@@ -10,6 +10,7 @@ import { EventDetailPage } from '../pages/EventDetailPage';
 import { LivePage } from '../pages/LivePage';
 import { TeamPage } from '../pages/TeamPage';
 import { TablePage } from '../pages/TablePage';
+import { ProfilePage } from '../pages/ProfilePage';
 import { LoginPage } from '../pages/LoginPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
@@ -55,6 +56,7 @@ export default function App(): React.ReactElement {
             <Route path="live/:id" element={<LivePage />} />
             <Route path="team" element={<TeamPage />} />
             <Route path="table" element={<TablePage />} />
+            <Route path="profile" element={<ProfilePage />} />
           </Route>
           <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
           <Route path="/admin/login" element={<LoginPage />} />

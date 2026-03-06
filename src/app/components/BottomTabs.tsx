@@ -1,6 +1,10 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { CircleDot, Grid3X3, Play, Users, BarChart3 } from 'lucide-react';
+
+function isPublicRoute(pathname: string): boolean {
+  return pathname === '/' || pathname === '/schedule';
+}
 
 function NavItem({
   to,
@@ -39,18 +43,32 @@ function NavItem({
   );
 }
 
+const publicTabs = [
+  { to: '/', end: true as const, label: 'Home', icon: <CircleDot size={24} /> },
+  { to: '/schedule', end: false as const, label: 'Spielplan', icon: <Grid3X3 size={24} /> },
+];
+
+const fullTabs = [
+  ...publicTabs,
+  { to: '/live', end: false as const, label: 'Live', icon: <Play size={24} /> },
+  { to: '/team', end: false as const, label: 'Team', icon: <Users size={24} /> },
+  { to: '/table', end: false as const, label: 'Tabelle', icon: <BarChart3 size={24} /> },
+];
+
 export const BottomTabs: React.FC = () => {
+  const { pathname } = useLocation();
+  const publicView = isPublicRoute(pathname);
+  const tabs = publicView ? publicTabs : fullTabs;
+
   return (
     <nav
       className="fixed bottom-0 left-0 z-50 w-full border-t border-white/10 bg-black/60 backdrop-blur-lg"
       aria-label="Hauptnavigation"
     >
       <div className="mx-auto flex max-w-[560px] justify-between px-6 py-3">
-        <NavItem to="/" end label="Home" icon={<CircleDot size={24} />} />
-        <NavItem to="/schedule" label="Spielplan" icon={<Grid3X3 size={24} />} />
-        <NavItem to="/live" label="Live" icon={<Play size={24} />} />
-        <NavItem to="/team" label="Team" icon={<Users size={24} />} />
-        <NavItem to="/table" label="Tabelle" icon={<BarChart3 size={24} />} />
+        {tabs.map((t) => (
+          <NavItem key={t.to} to={t.to} end={t.end} label={t.label} icon={t.icon} />
+        ))}
       </div>
     </nav>
   );

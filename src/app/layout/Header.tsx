@@ -1,11 +1,10 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
 
 const logo = import.meta.env.BASE_URL + 'logos/nsg-goelsental.png';
 
-/** Deutsche Anzeige für Rolle (nur sichtbar wenn Rolle vorhanden). */
 const ROLE_LABEL_DE: Record<string, string> = {
   admin: 'Admin',
   trainer: 'Trainer',
@@ -14,10 +13,17 @@ const ROLE_LABEL_DE: Record<string, string> = {
   fan: 'Fan',
 };
 
+/** Öffentliche Routen: nur Logo + App-Name, kein Profil/Login/Rolle. */
+function isPublicRoute(pathname: string): boolean {
+  return pathname === '/' || pathname === '/schedule';
+}
+
 export const Header: React.FC = () => {
+  const { pathname } = useLocation();
   const navigate = useNavigate();
   const { membershipError, effectiveRole, loading: sessionLoading } = useSession();
   const { user, loading: authLoading } = useAuth();
+  const publicView = isPublicRoute(pathname);
   const roleLabel = effectiveRole ? (ROLE_LABEL_DE[effectiveRole] ?? effectiveRole) : null;
 
   return (
@@ -39,7 +45,7 @@ export const Header: React.FC = () => {
             <div className="text-xs text-white/60">
               NSG Gölsental
             </div>
-            {membershipError && (
+            {!publicView && membershipError && (
               <span className="text-xs text-amber-400" role="alert">
                 {membershipError}
               </span>
@@ -47,45 +53,36 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* Rechts: Profil + Role-Badge (darunter) */}
-        <div className="flex shrink-0 flex-col items-end justify-center gap-1">
-          <div className="flex items-center gap-2">
-            {!authLoading && !user && (
-              <button
-                type="button"
-                onClick={() => navigate('/admin/login')}
-                className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs text-white transition-colors hover:bg-white/15 hover:text-white"
+        {/* Rechts: Profil + Login + Rolle nur auf nicht-öffentlichen Seiten */}
+        {!publicView && (
+          <div className="flex shrink-0 flex-col items-end justify-center gap-1">
+            <div className="flex items-center gap-2">
+              {!authLoading && !user && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/login')}
+                  className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs text-white transition-colors hover:bg-white/15"
+                >
+                  Login
+                </button>
+              )}
+              <Link
+                to="/profile"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white transition-colors hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
+                aria-label="Profil"
               >
-                Login
-              </button>
+                <svg viewBox="0 0 24 24" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8" fill="none" aria-hidden>
+                  <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4.5V20h14v-1.5C19 16 16 14 12 14z" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </Link>
+            </div>
+            {roleLabel && !sessionLoading && !authLoading && (
+              <span className="rounded-full bg-red-600/80 px-2 py-0.5 text-[11px] font-medium text-white">
+                {roleLabel}
+              </span>
             )}
-            <Link
-              to="/profile"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white transition-colors hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
-              aria-label="Profil"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                fill="none"
-                aria-hidden
-              >
-                <path
-                  d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4.5V20h14v-1.5C19 16 16 14 12 14z"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </Link>
           </div>
-          {roleLabel && !sessionLoading && !authLoading && (
-            <span className="rounded-full bg-red-600/80 px-2 py-0.5 text-[11px] font-medium text-white">
-              {roleLabel}
-            </span>
-          )}
-        </div>
+        )}
       </div>
     </header>
   );

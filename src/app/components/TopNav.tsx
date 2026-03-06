@@ -1,19 +1,27 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { useSession } from '../../auth/useSession';
+import { NavLink, useLocation } from 'react-router-dom';
 
-/** Standard-Nav: Kein "Trainer"-Button/Badge. Nur Links. */
-const links = [
+/** Öffentliche Routen: vereinfachte Nav (nur Home + Spielplan). */
+function isPublicRoute(pathname: string): boolean {
+  return pathname === '/' || pathname === '/schedule';
+}
+
+const publicLinks = [
   { to: '/', label: 'Home' },
   { to: '/schedule', label: 'Spielplan' },
+];
+
+const fullLinks = [
+  ...publicLinks,
   { to: '/live', label: 'Live' },
   { to: '/team', label: 'Team' },
   { to: '/table', label: 'Tabelle' },
 ];
 
 export const TopNav: React.FC = () => {
-  const { role } = useSession();
-  const isAdmin = (role ?? '').toString().toLowerCase() === 'admin';
+  const { pathname } = useLocation();
+  const publicView = isPublicRoute(pathname);
+  const links = publicView ? publicLinks : fullLinks;
 
   return (
     <nav className="flex sticky top-0 z-40 w-full bg-[rgba(11,11,15,0.9)] border-b border-[var(--border)] backdrop-blur">
@@ -35,21 +43,6 @@ export const TopNav: React.FC = () => {
               {link.label}
             </NavLink>
           ))}
-          {isAdmin && (
-            <NavLink
-              to="/roles-admin"
-              className={({ isActive }) =>
-                [
-                  'px-2 py-1 rounded-full transition-colors',
-                  isActive
-                    ? 'text-[var(--primary)] bg-white/5 font-semibold'
-                    : 'text-[var(--text-sub)] hover:text-[var(--text-main)] hover:bg-white/5',
-                ].join(' ')
-              }
-            >
-              Admin
-            </NavLink>
-          )}
         </div>
       </div>
     </nav>

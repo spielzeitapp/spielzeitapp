@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { CreateEventModal } from '../app/components/CreateEventModal';
@@ -65,12 +65,13 @@ export const SchedulePage: React.FC = () => {
     return publicLabel ?? teamLabel ?? 'Spielplan';
   })();
 
-  // Backend-Rolle = Membership-Rolle des gewählten Teams; UI-Rolle = Preview (Profil) oder Backend
+  // Öffentliche Spielplanseite: immer neutrale Ansicht, keine Admin-/User-UI
+  const forcePublicView = true;
   const backendRole = normalizeRole(roleFromHook);
-  const uiRole = previewRole ?? backendRole ?? null;
+  const uiRole = forcePublicView ? null : (previewRole ?? backendRole ?? null);
   const normalizedUiRole = normalizeRole(uiRole);
-  const canManage = canManageMatches(normalizedUiRole);
-  const showMeetupForRole = canSeeMeetup(normalizedUiRole);
+  const canManage = forcePublicView ? false : canManageMatches(normalizedUiRole);
+  const showMeetupForRole = forcePublicView ? true : canSeeMeetup(normalizedUiRole); // Öffentlich: Treffpunkt für alle
   const ourTeamName = teamLabel ?? publicLabel ?? getOurTeamDisplayName();
 
   const [activeTab, setActiveTab] = useState<TabId>('upcoming');
@@ -225,6 +226,12 @@ export const SchedulePage: React.FC = () => {
               {toastMessage}
             </div>
           )}
+          <Link
+            to="/"
+            className="mb-2 inline-block text-sm text-white/70 hover:text-white transition-colors"
+          >
+            ← Start
+          </Link>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="text-4xl font-bold text-white tracking-tight [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
