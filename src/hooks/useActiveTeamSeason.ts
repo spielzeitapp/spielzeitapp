@@ -38,7 +38,13 @@ export function useActiveTeamSeason() {
         error: authError,
       } = await supabase.auth.getUser();
 
-      if (authError && alive) {
+      // "Auth session missing!" = kein eingeloggter User – kein Fehler, nur Fallback auf public
+      const isSessionMissing =
+        authError &&
+        (authError.message === "Auth session missing!" ||
+          (authError as { name?: string }).name === "AuthSessionMissingError");
+
+      if (authError && !isSessionMissing && alive) {
         setError(authError.message);
         setRole(null);
         setTeamSeasonId(null);
