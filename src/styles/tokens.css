@@ -1,0 +1,57 @@
+/* Stadium Night – Dark dominant, red accents */
+:root {
+  /* Background – dark almost black */
+  --bg-base: #0b0b0f;
+
+  /* Glass – dark glass panels */
+  --glass-bg: rgba(25, 25, 30, 0.62);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --glass-blur: 16px;
+
+  /* Radius */
+  --radius-card: 1.5rem;
+  --radius-card-lg: 1.75rem;
+  --radius-btn: 1rem;
+  --radius-pill: 9999px;
+
+  /* Typography */
+  --text-main: #f8fafc;
+  --text-sub: rgba(255, 255, 255, 0.78);
+  --headline-size: clamp(1.5rem, 5vw, 2.75rem);
+  --headline-weight: 700;
+  --subline-size: 0.875rem;
+  --subline-weight: 400;
+
+  /* Primary / Red accent */
+  --red-primary: #dc2626;
+  --red-dark: #b91c1c;
+
+  /* Default buttons – grey dark (zinc-800) */
+  --btn-default-bg: #27272a;
+  --btn-default-hover: #3f3f46;
+
+  /* Pill – contrast on dark */
+  --pill-live-bg: rgba(16, 185, 129, 0.28);
+  --pill-live-border: rgba(16, 185, 129, 0.6);
+  --pill-live-text: #6ee7b7;
+  --pill-upcoming-bg: rgba(59, 130, 246, 0.28);
+  --pill-upcoming-border: rgba(59, 130, 246, 0.6);
+  --pill-upcoming-text: #93c5fd;
+  --pill-finished-bg: rgba(100, 116, 139, 0.35);
+  --pill-finished-border: rgba(148, 163, 184, 0.45);
+  --pill-finished-text: #cbd5e1;
+  --pill-not-started-bg: rgba(148, 163, 184, 0.25);
+  --pill-not-started-border: rgba(148, 163, 184, 0.4);
+  --pill-not-started-text: #94a3b8;
+
+  /* Layout */
+  --surface: rgba(30, 30, 35, 0.6);
+  --border: var(--glass-border);
+  --primary: var(--red-primary);
+  --watermark-opacity: 0.06;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /** Höhe des fixierten App-Headers (Topbar) – Modal-Overlay beginnt darunter */
+  --app-header-h: 64px;
+}

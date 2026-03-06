@@ -1,0 +1,31 @@
+@import "./styles/tokens.css";
+@import "./styles/layout.css";
+@import "./styles/components.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+@keyframes welcomeClaim {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.welcome-claim {
+  animation: welcomeClaim 600ms ease-out forwards;
+}
+

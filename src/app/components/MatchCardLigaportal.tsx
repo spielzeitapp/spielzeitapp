@@ -1,0 +1,420 @@
+import React from 'react';
+import { getClubLogoUrl } from '../../utils/logoResolver';
+import { getOurTeamDisplayName } from '../../lib/teamLogos';
+import type { EventKind, EventStatus } from '../../hooks/useEvents';
+
+/** Spielart (match_type) → Anzeige-Label. */
+const MATCH_TYPE_LABELS: Record<string, string> = {
+  league: 'Meisterschaftsspiel',
+  friendly: 'Freundschaftsspiel',
+  tournament: 'Turnier',
+  test: 'Testspiel',
+  cup: 'Pokal',
+  other: 'Sonstiges',
+};
+
+function getMatchTypeLabel(matchType: string | null | undefined): string | null {
+  if (!matchType || !matchType.trim()) return null;
+  const key = matchType.trim().toLowerCase();
+  return MATCH_TYPE_LABELS[key] ?? matchType;
+}
+
+/** Wochentag kurz für DE (Sa., So., Mo., …). */
+const WEEKDAY_SHORT_DE: Record<number, string> = {
+  0: 'So.',
+  1: 'Mo.',
+  2: 'Di.',
+  3: 'Mi.',
+  4: 'Do.',
+  5: 'Fr.',
+  6: 'Sa.',
+};
+
+/** Datum kurz: "Sa. 06.06.2026" (ohne Beistrich). */
+function formatDateShortDE(date: Date): string {
+  const w = date.getDay();
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${WEEKDAY_SHORT_DE[w] ?? ''} ${day}.${month}.${year}`;
+}
+
+/** Treffpunkt-Datum → nur Uhrzeit "HH:mm Uhr". */
+function formatMeetupTimeOnly(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+}
+
+/** Erstes Token = prefix, Rest = name. Kein Leerzeichen → prefix="", name=kompletter String. */
+function splitPrefixAndName(full: string): { prefix: string; name: string } {
+  const trimmed = (full || '').trim();
+  const i = trimmed.indexOf(' ');
+  if (i === -1) return { prefix: '', name: trimmed };
+  return { prefix: trimmed.slice(0, i), name: trimmed.slice(i + 1) };
+}
+
+/** Spielort: Zeile 1 "Sportplatz", Zeile 2 Ortsname (kein Buchstaben-Umbruch). */
+function formatLocationLines(loc: string): { line1: string; line2: string | null } {
+  const s = (loc ?? '').trim();
+  if (!s) return { line1: '', line2: null };
+  const prefix = 'Sportplatz ';
+  if (s.toLowerCase().startsWith(prefix.toLowerCase())) {
+    const rest = s.slice(prefix.length).trim();
+    return { line1: 'Sportplatz', line2: rest || null };
+  }
+  return { line1: s, line2: null };
+}
+
+type MatchCardLigaportalProps = {
+  ourTeamName: string;
+  opponent: string | null;
+  isHome: boolean | null;
+  startsAt: string | null;
+  status: EventStatus;
+  kind: EventKind;
+  matchType?: string | null;
+  location?: string | null;
+  meetupAt?: string | null;
+  /** true = Treffpunkt anzeigen (canSeeMeetup). Spielort ist immer sichtbar. */
+  showMeetup?: boolean;
+  scoreHome?: number | null;
+  scoreAway?: number | null;
+  className?: string;
+  eventId?: string | null;
+  onNavigate?: (eventId: string) => void;
+  opponentSlug?: string | null;
+  opponentLogoUrl?: string | null;
+  /** Nur für Trainer/Admin: Bearbeiten + Löschen anzeigen. Buttons stoppen Card-Klick. */
+  canManage?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  /** Rolle (z. B. "parent" | "player") – bei parent/player wird "Zu-/Absage"-Button in der Header-Zeile angezeigt. */
+  role?: string | null;
+  /** Aktueller Zu-/Absage-Status (für Anzeige auf der Card). */
+  attendanceStatus?: 'yes' | 'no' | null;
+  /** Wird aufgerufen wenn Nutzer auf "Zu-/Absage" klickt (öffnet Modal). */
+  onOpenAttendance?: () => void;
+  /** Für Trainer/Admin: Counts für Zu-/Absagen-Übersicht (Zugesagt / Abgesagt / Offen). */
+  attendanceCounts?: { yes: number; no: number; open: number } | null;
+};
+
+/** Logo-URL aus Anzeige-Namen (slugify nur für Pfad); Anzeige-Name bleibt unverändert. */
+function getLogoSrcForDisplayName(displayName: string, optionalUrl?: string | null): string {
+  if (optionalUrl && typeof optionalUrl === 'string' && optionalUrl.trim().startsWith('http'))
+    return optionalUrl.trim();
+  return getClubLogoUrl(displayName);
+}
+
+/** TeamBlock: Logo + Prefix + Vereinsname, mittig, responsive (Mobile kompakt). */
+type TeamBlockProps = {
+  logoUrl?: string | null;
+  prefix?: string;
+  name: string;
+};
+
+function TeamBlock({ logoUrl, prefix, name }: TeamBlockProps) {
+  return (
+    <div className="flex min-w-0 flex-col items-center text-center">
+      {logoUrl ? (
+        <img
+          src={logoUrl}
+          alt={name}
+          className="h-12 w-12 sm:h-14 sm:w-14 object-contain mx-auto"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        />
+      ) : (
+        <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-white/10 mx-auto" />
+      )}
+      {prefix ? (
+        <div className="mt-2 text-[14px] font-semibold text-white tracking-wide">
+          {prefix}
+        </div>
+      ) : null}
+      <div className="mt-1 text-[15px] font-semibold text-white text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[130px]">
+        {name || '–'}
+      </div>
+    </div>
+  );
+}
+
+/** KickoffBlock: ANPFIFF + Zeit + Uhr + Spielort, zentriert, responsive. */
+type KickoffBlockProps = {
+  timeDisplay: string;
+  showUhr: boolean;
+  location: string | null | undefined;
+};
+
+function KickoffBlock({ timeDisplay, showUhr, location }: KickoffBlockProps) {
+  const hasLocation = location != null && location.trim() !== '';
+  const locationLines = hasLocation ? formatLocationLines(location) : { line1: '', line2: null as string | null };
+
+  return (
+    <div className="flex min-w-0 flex-col items-center text-center">
+      <div className="text-[14px] tracking-[0.35em] text-red-300 font-semibold">
+        ANPFIFF
+      </div>
+      <div className="mt-2 text-[34px] sm:text-[44px] font-extrabold leading-[1] text-white tabular-nums">
+        {timeDisplay}
+      </div>
+      {showUhr ? (
+        <div className="mt-1 text-white font-medium">Uhr</div>
+      ) : null}
+      {hasLocation ? (
+        <div className="mt-1 text-[15px] font-medium text-white leading-tight text-center break-words line-clamp-2 min-w-0 max-w-[200px]">
+          {locationLines.line2 ? (
+            <>
+              {locationLines.line1}
+              <br />
+              {locationLines.line2}
+            </>
+          ) : (
+            locationLines.line1 || location.trim()
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
+  ourTeamName,
+  opponent,
+  isHome,
+  startsAt,
+  status,
+  kind,
+  matchType,
+  location,
+  meetupAt,
+  showMeetup,
+  scoreHome,
+  scoreAway,
+  className = '',
+  eventId,
+  onNavigate,
+  opponentSlug,
+  opponentLogoUrl,
+  canManage,
+  onEdit,
+  onDelete,
+  role,
+  attendanceStatus,
+  onOpenAttendance,
+  attendanceCounts,
+}) => {
+  const ourClubName = getOurTeamDisplayName();
+  const canSeeSensitiveInfo = showMeetup;
+  const matchTypeLabel = getMatchTypeLabel(matchType);
+  const meetupTimeOnly = formatMeetupTimeOnly(meetupAt);
+
+  let leftName: string;
+  let rightName: string;
+
+  if (kind === 'training') {
+    leftName = ourClubName;
+    rightName = 'Training';
+  } else if (kind === 'event') {
+    leftName = ourClubName;
+    rightName = opponent ?? 'Termin';
+  } else {
+    // kind === 'match' – Heim/Auswärts-Logik bleibt erhalten
+    if (isHome === true) {
+      leftName = ourClubName;
+      rightName = opponent ?? 'Gegner';
+    } else if (isHome === false) {
+      leftName = opponent ?? 'Gegner';
+      rightName = ourClubName;
+    } else {
+      // Fallback: unser Team links, Gegner rechts
+      leftName = ourClubName;
+      rightName = opponent ?? 'Gegner';
+    }
+  }
+
+  const date = startsAt ? new Date(startsAt) : null;
+  const dateLabelLong = date
+    ? date.toLocaleDateString('de-AT', {
+        weekday: 'long',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
+    : null;
+  const dateLabelShort = date ? formatDateShortDE(date) : null;
+  const timeStr = date
+    ? date.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
+    : '–';
+
+  const hasScore = status === 'live' || status === 'finished';
+  const showScore = hasScore && (scoreHome != null || scoreAway != null);
+  const home = scoreHome ?? 0;
+  const away = scoreAway ?? 0;
+  const isMatch = kind === 'match';
+
+  const handleCardClick = () => {
+    if (eventId && onNavigate) onNavigate(eventId);
+  };
+
+  const isClickable = Boolean(eventId && onNavigate);
+  const rightLogoOverride =
+    opponentLogoUrl ?? (opponentSlug ? getClubLogoUrl(opponentSlug) : null);
+
+  const leftSplit = splitPrefixAndName(leftName ?? '');
+  const rightSplit = splitPrefixAndName(rightName ?? '');
+  const homePrefix = leftSplit.prefix;
+  const homeName = leftSplit.name;
+  const awayPrefix = rightSplit.prefix;
+  const awayName = rightSplit.name;
+  const homeLogoUrl = getLogoSrcForDisplayName(leftName ?? '', null);
+  const awayLogoUrl = getLogoSrcForDisplayName(rightName ?? '', rightLogoOverride);
+
+  const showManageButtons = canManage && (onEdit || onDelete);
+  const showAttendanceChip = (role === 'parent' || role === 'player') && onOpenAttendance;
+
+  /* Pill wie Bearbeiten/Löschen: gleiche Höhe/Radius (rounded-full px-3 py-1 text-sm), farblich passend */
+  const attendanceChipClass =
+    attendanceStatus === 'yes'
+      ? 'rounded-full px-3 py-1 text-sm font-semibold text-white bg-green-600 border border-green-500/50 shrink-0'
+      : attendanceStatus === 'no'
+        ? 'rounded-full px-3 py-1 text-sm font-semibold text-white bg-red-700 border border-red-600/50 shrink-0'
+        : 'rounded-full px-3 py-1 text-sm font-semibold text-white border border-white/40 bg-white/10 hover:bg-white/20 shrink-0 transition-colors';
+
+  const attendanceChipLabel =
+    attendanceStatus === 'yes' ? 'Zugesagt' : attendanceStatus === 'no' ? 'Abgesagt' : 'Zu-/Absage';
+
+  const showAttendanceCounts = canManage && attendanceCounts != null;
+
+  const dateRow = (
+    <div className="flex items-center justify-between gap-2 mb-3">
+      <span className="text-lg font-semibold text-white whitespace-nowrap min-w-0 truncate">
+        {date ? dateLabelShort : ''}
+      </span>
+      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end" onClick={(e) => e.stopPropagation()}>
+        {showAttendanceCounts && (
+          <div className="flex items-center gap-1.5" aria-label="Zu-/Absagen">
+            <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Zugesagt">
+              {attendanceCounts.yes}
+            </span>
+            <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abgesagt">
+              {attendanceCounts.no}
+            </span>
+            <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30 whitespace-nowrap" title="Offen">
+              {attendanceCounts.open}
+            </span>
+          </div>
+        )}
+        {showManageButtons && (
+          <>
+            {onEdit && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                className="rounded-full bg-red-700 px-3 py-1 text-sm text-white shrink-0"
+              >
+                Bearbeiten
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                className="rounded-full bg-red-800 px-3 py-1 text-sm text-white shrink-0"
+              >
+                Löschen
+              </button>
+            )}
+          </>
+        )}
+        {showAttendanceChip && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onOpenAttendance?.(); }}
+          className={attendanceChipClass}
+        >
+          {attendanceChipLabel}
+        </button>
+        )}
+      </div>
+    </div>
+  );
+
+  const cardContent = (
+    <>
+      {/* Spielart: weiß, font-medium */}
+      {matchTypeLabel && (
+        <div className="flex justify-center">
+          <p className="text-xl font-semibold text-white">
+            {matchTypeLabel}
+          </p>
+        </div>
+      )}
+
+      {/* ANPFIFF-Block: 1fr_auto_1fr, Mitte nie verschoben, Mobile kompakt */}
+      <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-x-4">
+        <div className="min-w-0 flex flex-col items-center text-center">
+          <TeamBlock
+            logoUrl={homeLogoUrl}
+            prefix={homePrefix || undefined}
+            name={homeName || '–'}
+          />
+        </div>
+
+        <div className="min-w-0 flex flex-col items-center text-center">
+          <KickoffBlock
+            timeDisplay={isMatch && showScore ? `${home} : ${away}` : timeStr}
+            showUhr={!isMatch || !showScore}
+            location={location}
+          />
+        </div>
+
+        <div className="min-w-0 px-2 flex flex-col items-center text-center">
+          <TeamBlock
+            logoUrl={awayLogoUrl}
+            prefix={awayPrefix || undefined}
+            name={awayName || '–'}
+          />
+        </div>
+      </div>
+
+      {/* Treffpunkt: sekundärer CTA, einheitliche Höhe damit kein Layout-Sprung */}
+      <div className="mt-5 flex min-h-[36px] justify-center">
+        {canSeeSensitiveInfo && meetupTimeOnly ? (
+          <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-red-800/80 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800/90">
+            <span className="whitespace-nowrap">Treffpunkt: {meetupTimeOnly}</span>
+          </div>
+        ) : null}
+      </div>
+    </>
+  );
+
+  const cardClass =
+    `relative w-full max-w-none overflow-hidden rounded-2xl bg-gradient-to-b from-black to-red-900 px-[15px] py-4 ${isClickable ? 'cursor-pointer transition ' : ''}${className}`;
+
+  const cardEl = isClickable ? (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleCardClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
+      className={cardClass}
+      aria-label={`Spiel ${leftName} gegen ${rightName}, ${dateLabelLong ?? dateLabelShort ?? ''} ${timeStr}`}
+    >
+      {cardContent}
+    </div>
+  ) : (
+    <div className={cardClass}>{cardContent}</div>
+  );
+
+  return (
+    <div className="flex w-full max-w-none flex-col gap-0">
+      {dateRow}
+      {cardEl}
+    </div>
+  );
+};

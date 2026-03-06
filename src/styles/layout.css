@@ -1,0 +1,125 @@
+/* UI-Test Skin – Layout, Background, Watermark, Phone Frame */
+html,
+body {
+  min-height: 100dvh;
+  height: 100%;
+  margin: 0;
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: transparent;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+
+/* Background – base + subtle radial red glow + vignette */
+.bg-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 60% 55% at 50% 50%,
+      rgba(255, 0, 40, 0.18) 0%,
+      rgba(180, 20, 40, 0.08) 35%,
+      transparent 65%
+    ),
+    var(--bg-base);
+}
+
+/* Watermark – 0.05–0.08 opacity, soft blend */
+.bg-watermark {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(900px, 120vw);
+  height: auto;
+  max-height: min(900px, 120vw);
+  object-fit: contain;
+  opacity: 0.06;
+  z-index: 0;
+  filter: blur(0.4px) saturate(0.85);
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+
+/* Vignette – darker edges */
+.bg-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 90% 85% at 50% 50%,
+    transparent 25%,
+    rgba(0, 0, 0, 0.4) 60%,
+    rgba(0, 0, 0, 0.65) 100%
+  );
+}
+
+.app-shell {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.appShell {
+  min-height: 100dvh;
+}
+
+/* Phone Frame – 430px mobile, dann responsive bis screen-2xl */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  max-width: 430px;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .app {
+    max-width: 720px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app {
+    max-width: 1280px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .app {
+    max-width: 1536px;
+  }
+}
+
+.app__content {
+  flex: 1;
+  padding: 1rem;
+  padding-bottom: 5.5rem;
+}
+
+.appMain {
+  padding-top: 88px;
+  padding-bottom: 84px;
+}
+
+.page {
+  width: 100%;
+  max-width: 100%;
+}

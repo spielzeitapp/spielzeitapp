@@ -1,0 +1,28 @@
+/* UI-Test Legacy Tokens – Design Source of Truth */
+:root {
+  --bg-top: #7f1d1d;
+  --bg-mid: #991b1b;
+  --bg-bottom: #450a0a;
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  --text-main: #f8fafc;
+  --text-sub: rgba(255, 255, 255, 0.65);
+  --red-primary: #dc2626;
+  --red-dark: #b91c1c;
+  --pill-live-bg: rgba(16, 185, 129, 0.25);
+  --pill-live-border: rgba(16, 185, 129, 0.6);
+  --pill-live-text: #6ee7b7;
+  --pill-upcoming-bg: rgba(59, 130, 246, 0.25);
+  --pill-upcoming-border: rgba(59, 130, 246, 0.6);
+  --pill-upcoming-text: #93c5fd;
+  --pill-finished-bg: rgba(100, 116, 139, 0.25);
+  --pill-finished-border: rgba(148, 163, 184, 0.4);
+  --pill-finished-text: #cbd5e1;
+  --surface: rgba(30, 30, 30, 0.6);
+  --border: var(--glass-border);
+  --primary: var(--red-primary);
+  --headline-size: 1.25rem;
+  --subline-size: 0.875rem;
+  --accent-red: var(--red-primary);
+}

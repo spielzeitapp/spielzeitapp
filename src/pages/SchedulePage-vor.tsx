@@ -1,0 +1,344 @@
+import React, { useMemo, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '../app/components/ui/Button';
+import { Modal } from '../app/ui/Modal';
+import { CreateEventModal } from '../app/components/CreateEventModal';
+import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
+import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
+import { useEvents, type EventRow } from '../hooks/useEvents';
+import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from '../auth/useSession';
+import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
+import { getOurTeamDisplayName } from '../lib/teamLogos';
+import { supabase } from '../lib/supabaseClient';
+
+type TabId = 'upcoming' | 'live' | 'finished';
+
+const TAB_OPTIONS: { id: TabId; label: string }[] = [
+  { id: 'upcoming', label: 'Bevorstehend' },
+  { id: 'live', label: 'Live' },
+  { id: 'finished', label: 'Beendet' },
+];
+
+function getEventTab(e: EventRow): TabId {
+  const s = e.status ?? 'upcoming';
+  if (s === 'live') return 'live';
+  if (s === 'finished' || s === 'canceled') return 'finished';
+  return 'upcoming';
+}
+
+/** ISO-String → Wert für input type="datetime-local" (lokale Zeit). */
+function isoToDateTimeLocal(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${y}-${mo}-${day}T${h}:${min}`;
+}
+
+
+export const SchedulePage: React.FC = () => {
+  const navigate = useNavigate();
+  const { teamLabel, teamSeasonId, role: roleFromHook, loading: tsLoading, error: tsError } =
+    useActiveTeamSeason();
+  const { selectedMembership } = useSession();
+  const { events, loading: eLoading, error: eError, refetch } = useEvents(teamSeasonId);
+
+  const teamSeasonSubtitle = (() => {
+    if (!selectedMembership) return 'Team wählen';
+    const teamName = getTeamNameFromMembership(selectedMembership)?.trim();
+    const season = getSeasonLabelFromMembership(selectedMembership)?.trim();
+    if (!teamName) return 'Team wählen';
+    if (season && season !== '—') return `${teamName} (${season})`;
+    return teamName;
+  })();
+
+  const role = normalizeRole(roleFromHook);
+  const canManage = canManageMatches(role);
+  const showMeetupForRole = canSeeMeetup(role);
+  const ourTeamName = teamLabel ?? getOurTeamDisplayName();
+
+  const [activeTab, setActiveTab] = useState<TabId>('upcoming');
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editEvent, setEditEvent] = useState<EventRow | null>(null);
+  const [editOpponent, setEditOpponent] = useState('');
+  const [editDateTime, setEditDateTime] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editMeetupAt, setEditMeetupAt] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const t = setTimeout(() => setToastMessage(null), 3000);
+    return () => clearTimeout(t);
+  }, [toastMessage]);
+
+  const openEditModal = (e: EventRow) => {
+    if (!canManage) {
+      setToastMessage('Keine Berechtigung zum Bearbeiten.');
+      return;
+    }
+    setEditEvent(e);
+    setEditOpponent(e.opponent ?? '');
+    setEditDateTime(isoToDateTimeLocal(e.starts_at));
+    setEditLocation(e.location ?? '');
+    setEditMeetupAt(isoToDateTimeLocal(e.meetup_at));
+    setEditError(null);
+    setEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setEditModalOpen(false);
+    setEditEvent(null);
+    setEditOpponent('');
+    setEditDateTime('');
+    setEditLocation('');
+    setEditMeetupAt('');
+    setEditError(null);
+  };
+
+  const handleEditSubmit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!editEvent) return;
+    const opponent = editOpponent.trim();
+    if (!editDateTime.trim()) {
+      setEditError('Beginn ist Pflicht.');
+      return;
+    }
+    setEditError(null);
+    setSavingEdit(true);
+    const startsAt = new Date(editDateTime.trim()).toISOString();
+    const locationVal = editLocation.trim() || null;
+    const meetupAt = editMeetupAt.trim() ? new Date(editMeetupAt.trim()).toISOString() : null;
+
+    const eventPayload = {
+      opponent: opponent || null,
+      starts_at: startsAt,
+      location: locationVal,
+      meetup_at: meetupAt,
+    };
+    const { error: eventErr } = await supabase
+      .from('events')
+      .update(eventPayload)
+      .eq('id', editEvent.id);
+
+    if (eventErr) {
+      setEditError(eventErr.message);
+      setSavingEdit(false);
+      return;
+    }
+    setSavingEdit(false);
+    closeEditModal();
+    await refetch();
+  };
+
+  const handleDelete = async (event: EventRow) => {
+    if (!window.confirm('Termin wirklich löschen?')) return;
+    const { error } = await supabase.from('events').delete().eq('id', event.id);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    await refetch();
+  };
+
+  const displayEvents = useMemo(() => {
+    const sorted = [...events].sort((a, b) => (a.starts_at ?? '').localeCompare(b.starts_at ?? ''));
+    return sorted.filter((e) => getEventTab(e) === activeTab);
+  }, [events, activeTab]);
+
+  const loading = tsLoading || eLoading;
+  const error = tsError ?? eError;
+
+  return (
+    <div className="page schedule-page relative min-h-[60vh] [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_50%,rgba(10,0,0,0.99)_100%)] [box-shadow:inset_0_0_120px_rgba(120,20,20,0.12)]">
+      <div className="w-full px-[6px] sm:px-4">
+        <div className="max-w-[720px] mx-auto space-y-5 pt-4 mt-2">
+          {toastMessage && (
+            <div
+              className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl bg-black/90 border border-red-900/80 text-white text-sm font-medium shadow-lg backdrop-blur-sm"
+              role="alert"
+            >
+              {toastMessage}
+            </div>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-4xl font-bold text-white tracking-tight [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
+                Spielplan
+              </h1>
+              <p className="text-sm text-white/70 mt-2">
+                {teamSeasonSubtitle}
+              </p>
+            </div>
+            {canManage && (
+              <Button
+                variant="primary"
+                size="sm"
+                className="rounded-xl border border-red-500/30 bg-red-500/15 shadow-[0_0_20px_rgba(255,0,0,0.20)] hover:bg-red-500/25"
+                onClick={() => setCreateModalOpen(true)}
+                disabled={!teamSeasonId}
+              >
+                Spiel anlegen
+              </Button>
+            )}
+          </div>
+
+          <div className="flex gap-1.5 rounded-xl border border-red-900/40 bg-black/25 p-1.5 backdrop-blur-sm">
+            {TAB_OPTIONS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-colors ${
+                  activeTab === tab.id
+                    ? 'bg-red-500/15 text-white border border-red-500/30 shadow-[0_0_20px_rgba(255,0,0,0.20)]'
+                    : 'text-white/70 hover:text-white/90 border border-transparent'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {loading && <p className="text-sm text-[var(--muted)]">Lade Spielplan…</p>}
+          {error && (
+            <p className="text-sm text-red-600" role="alert">
+              {error}
+            </p>
+          )}
+
+          {!loading && !error && (
+            <>
+              {displayEvents.length === 0 ? (
+                <p className="text-sm text-[var(--text-sub)]">
+                  {events.length === 0
+                    ? 'Noch keine Spiele oder Termine für diese Mannschaft erfasst.'
+                    : `Keine Einträge in „${TAB_OPTIONS.find((t) => t.id === activeTab)?.label ?? activeTab}".`}
+                </p>
+              ) : (
+                displayEvents.map((ev) => (
+                  <div key={ev.id} className="w-full mb-6">
+                    <MatchCardLigaportal
+                      className="w-full max-w-none rounded-2xl"
+                      ourTeamName={ourTeamName}
+                      opponent={ev.opponent}
+                      isHome={ev.is_home}
+                      startsAt={ev.starts_at}
+                      status={ev.status}
+                      kind={ev.kind}
+                      matchType={ev.match_type}
+                      location={ev.location}
+                      meetupAt={ev.meetup_at}
+                      showMeetup={showMeetupForRole}
+                      eventId={ev.id}
+                      onNavigate={(id) => navigate(`/events/${id}`)}
+                      opponentSlug={ev.opponent_slug}
+                      opponentLogoUrl={ev.opponent_logo_url}
+                      canManage={canManage}
+                      onEdit={canManage ? () => openEditModal(ev) : undefined}
+                      onDelete={canManage ? () => handleDelete(ev) : undefined}
+                    />
+                  </div>
+                ))
+              )}
+            </>
+          )}
+
+          <CreateEventModal
+            isOpen={createModalOpen}
+            onClose={() => setCreateModalOpen(false)}
+            teamSeasonId={teamSeasonId}
+            onSuccess={refetch}
+            eventType="match"
+          />
+
+          <Modal
+            isOpen={editModalOpen}
+            title="Termin bearbeiten"
+            onClose={closeEditModal}
+            footer={
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={closeEditModal}>
+                  Abbrechen
+                </Button>
+                <Button
+                  type="submit"
+                  form="edit-event-form"
+                  variant="primary"
+                  disabled={savingEdit}
+                >
+                  {savingEdit ? 'Speichern…' : 'Speichern'}
+                </Button>
+              </div>
+            }
+          >
+            <form id="edit-event-form" onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="edit-opponent" className="block text-sm font-medium text-[var(--text-main)] mb-1">
+              Gegner / Bezeichnung
+            </label>
+            <input
+              id="edit-opponent"
+              type="text"
+              value={editOpponent}
+              onChange={(e) => setEditOpponent(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
+            />
+          </div>
+          <div>
+            <label htmlFor="edit-datetime" className="block text-sm font-medium text-[var(--text-main)] mb-1">
+              Beginn *
+            </label>
+            <input
+              id="edit-datetime"
+              type="datetime-local"
+              required
+              value={editDateTime}
+              onChange={(e) => setEditDateTime(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
+            />
+          </div>
+          <div>
+            <label htmlFor="edit-location" className="block text-sm font-medium text-[var(--text-main)] mb-1">
+              Ort (optional)
+            </label>
+            <input
+              id="edit-location"
+              type="text"
+              value={editLocation}
+              onChange={(e) => setEditLocation(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
+              placeholder="z. B. Heimspielplatz"
+            />
+          </div>
+          <div>
+            <label htmlFor="edit-meetup_at" className="block text-sm font-medium text-[var(--text-main)] mb-1">
+              Treffpunkt (optional)
+            </label>
+            <input
+              id="edit-meetup_at"
+              type="datetime-local"
+              value={editMeetupAt}
+              onChange={(e) => setEditMeetupAt(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
+            />
+          </div>
+          {editError && (
+            <p className="text-sm text-red-600" role="alert">
+              {editError}
+            </p>
+          )}
+            </form>
+          </Modal>
+        </div>
+      </div>
+    </div>
+  );
+};

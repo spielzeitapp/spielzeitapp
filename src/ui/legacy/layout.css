@@ -1,0 +1,93 @@
+/* UI-Test Legacy Layout – app-shell, topbar, bottom-tabs */
+.app-shell {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.topbar,
+.app__topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  padding-top: max(0.75rem, calc(0.75rem + env(safe-area-inset-top, 0px)));
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+}
+
+.topbar__logo {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.app__content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 1rem;
+  padding-bottom: 5.5rem;
+}
+
+.page {
+  width: 100%;
+  max-width: 100%;
+}
+
+.bottom-tabs {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  backdrop-filter: blur(8px);
+}
+
+.bottom-tabs .tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  flex: 1;
+  padding: 0.5rem 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-sub);
+  text-decoration: none;
+  border-radius: 0.5rem;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.bottom-tabs .tab:hover {
+  color: var(--text-main);
+}
+
+.bottom-tabs .tab.active {
+  color: var(--primary);
+  font-weight: 600;
+}

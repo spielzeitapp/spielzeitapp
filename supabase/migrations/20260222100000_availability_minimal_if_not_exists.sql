@@ -1,0 +1,17 @@
+-- Referenz-Schema für availability (Zu-/Absage). Pro (match_id, player_id) 0 oder 1 Eintrag.
+-- In diesem Projekt wird public.availability bereits in 20260220110000_availability_rsvp.sql
+-- angelegt (mit id, note, 'maybe' etc.). Die App nutzt nur status 'yes' | 'no' und Toggle.
+--
+-- Für ein neues Projekt ohne ältere Migrationen könntest du die Tabelle so anlegen:
+--
+--   CREATE TABLE public.availability (
+--     match_id uuid NOT NULL REFERENCES public.matches(id) ON DELETE CASCADE,
+--     player_id uuid NOT NULL REFERENCES public.players(id) ON DELETE CASCADE,
+--     status text NOT NULL CHECK (status IN ('yes', 'no')),
+--     created_at timestamptz NOT NULL DEFAULT now(),
+--     PRIMARY KEY (match_id, player_id)
+--   );
+--   ALTER TABLE public.availability ENABLE ROW LEVEL SECURITY;
+--   -- RLS: Trainer/Admin schreiben, Team-Mitglieder lesen (wie bei matches)
+--
+-- Diese Datei führt keine Änderungen aus (kein CREATE/ALTER).
