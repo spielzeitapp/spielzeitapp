@@ -11,6 +11,7 @@ import { LivePage } from '../pages/LivePage';
 import { TeamPage } from '../pages/TeamPage';
 import { TablePage } from '../pages/TablePage';
 import { LoginPage } from '../pages/LoginPage';
+import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
 import { RolesAdminPage } from '../pages/RolesAdminPage';
 
@@ -57,6 +58,7 @@ export default function App(): React.ReactElement {
           </Route>
           <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
           <Route path="/admin/login" element={<LoginPage />} />
+          <Route path="/admin/dashboard" element={<RequireAuth><AdminDashboardPage /></RequireAuth>} />
           <Route path="/admin/setup" element={<SetupAdminPage />} />
           <Route path="/admin/roles" element={<RequireAuth allowedBackendRoles={['admin', 'head_coach']}><RolesAdminPage /></RequireAuth>} />
         </Routes>

@@ -15,7 +15,7 @@ export const HomePage: React.FC = () => {
           NSG SpielzeitApp
         </h1>
         <p className="text-sm text-white/90 sm:text-base">
-          Spielplan, Spielzeiten & Infos für Eltern, Spieler und Fans.
+          Spielplan, Spielzeiten und Infos für Eltern, Spieler und Fans.
         </p>
 
         <div className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-6 backdrop-blur-sm sm:px-6 sm:py-7">
