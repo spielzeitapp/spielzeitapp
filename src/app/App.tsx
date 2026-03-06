@@ -9,6 +9,7 @@ import { MatchDetailPage } from '../pages/MatchDetail/MatchDetailPage';
 import { EventDetailPage } from '../pages/EventDetailPage';
 import { LivePage } from '../pages/LivePage';
 import { TeamPage } from '../pages/TeamPage';
+import { TablePage } from '../pages/TablePage';
 import { LoginPage } from '../pages/LoginPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
 import { RolesAdminPage } from '../pages/RolesAdminPage';
@@ -49,8 +50,10 @@ export default function App(): React.ReactElement {
             <Route path="schedule" element={<SchedulePage />} />
             <Route path="events/:eventId" element={<EventDetailPage />} />
             <Route path="match/:id" element={<MatchDetailPage />} />
+            <Route path="live" element={<LivePage />} />
             <Route path="live/:id" element={<LivePage />} />
             <Route path="team" element={<TeamPage />} />
+            <Route path="table" element={<TablePage />} />
           </Route>
           <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
           <Route path="/admin/login" element={<LoginPage />} />
