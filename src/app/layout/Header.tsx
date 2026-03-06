@@ -53,7 +53,7 @@ export const Header: React.FC = () => {
             {!authLoading && !user && (
               <button
                 type="button"
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/admin/login')}
                 className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs text-white transition-colors hover:bg-white/15 hover:text-white"
               >
                 Login

@@ -1,98 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import type { Match } from '../types/match';
-import { listMatches } from '../services/matchService';
 
 export const HomePage: React.FC = () => {
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await listMatches();
-        if (!cancelled) {
-          setMatches(data);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Fehler beim Laden der Spiele');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   return (
-    <div className="page home-page space-y-4 pb-4">
-      <section>
-        <h1 className="headline mb-1">Spiele</h1>
-        <p className="subline">Übersicht der anstehenden und vergangenen Matches</p>
-      </section>
+    <div
+      className="page home-page relative flex min-h-[70vh] w-full flex-col items-center justify-center px-4 py-8"
+      style={{
+        background: 'linear-gradient(180deg, rgba(40,5,5,0.97) 0%, rgba(20,0,0,0.98) 50%, rgba(10,0,0,0.99) 100%)',
+        boxShadow: 'inset 0 0 120px rgba(120,20,20,0.12)',
+      }}
+    >
+      <div className="relative z-10 flex w-full max-w-[400px] flex-col items-center gap-6 text-center">
+        <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-sm sm:text-3xl">
+          NSG SpielzeitApp
+        </h1>
+        <p className="text-sm text-white/90 sm:text-base">
+          Spielplan, Spielzeiten & Infos für Eltern, Spieler und Fans.
+        </p>
 
-      {loading && <p className="text-sm text-[var(--text-sub)]">Lade Spiele...</p>}
-      {error && <p className="text-sm text-red-400">{error}</p>}
+        <div className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-6 backdrop-blur-sm sm:px-6 sm:py-7">
+          <Link
+            to="/schedule"
+            className="flex h-12 w-full items-center justify-center rounded-xl bg-red-600 px-4 py-3 text-base font-semibold text-white transition-colors hover:bg-red-500 active:scale-[0.98]"
+          >
+            Spielplan öffnen
+          </Link>
+        </div>
 
-      {!loading && !error && matches.length === 0 && (
-        <p className="text-sm text-[var(--text-sub)]">Keine Spiele vorhanden.</p>
-      )}
-
-      <section className="matchCarousel">
-        {matches
-          .slice()
-          .sort(
-            (a, b) =>
-              new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime(),
-          )
-          .map((match) => {
-          const kickoff = new Date(match.kickoffISO);
-          const dateStr = kickoff.toLocaleDateString(undefined, { dateStyle: 'medium' });
-          const timeStr = kickoff.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-
-          return (
-            <div className="matchCarouselItem" key={match.id}>
-              <Link
-                to={`/match/${match.id}`}
-                className="block matchcard transition-transform hover:translate-y-0.5 active:scale-[0.99]"
-              >
-                <div className="matchgrid">
-                  <div className="matchmeta matchmeta--team">
-                    <p className="text-sm font-medium text-[var(--text-main)]">
-                      {match.home.shortName ?? match.home.name}
-                    </p>
-                    <span className="matchcard__score">{match.score.home}</span>
-                  </div>
-                  <div className="matchmeta">
-                    <span className="matchcard__time">{timeStr}</span>
-                    <p className="text-xs text-[var(--text-sub)] mt-0.5">{dateStr}</p>
-                    <p className="text-xs text-[var(--text-sub)] mt-0.5">{match.status}</p>
-                  </div>
-                  <div className="matchmeta matchmeta--opponent">
-                    <p className="text-sm font-medium text-[var(--text-main)]">
-                      {match.away.shortName ?? match.away.name}
-                    </p>
-                    <span className="matchcard__score">{match.score.away}</span>
-                  </div>
-                </div>
-              </Link>
-            </div>
-          );
-          })}
-      </section>
+        <p className="text-center text-xs text-white/60">
+          📲 Tipp: Zum Home-Bildschirm hinzufügen für App-Modus
+        </p>
+      </div>
     </div>
   );
 };

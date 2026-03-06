@@ -5,6 +5,7 @@ import { Modal } from '../app/ui/Modal';
 import { CreateEventModal } from '../app/components/CreateEventModal';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
+import { usePublicTeamSeason } from '../hooks/usePublicTeamSeason';
 import { useEvents, type EventRow } from '../hooks/useEvents';
 import { useEventsAttendance } from '../hooks/useEventsAttendance';
 import { usePlayers } from '../hooks/usePlayers';
@@ -46,16 +47,22 @@ export const SchedulePage: React.FC = () => {
   const navigate = useNavigate();
   const { teamLabel, teamSeasonId, role: roleFromHook, loading: tsLoading, error: tsError } =
     useActiveTeamSeason();
+  const { teamSeasonId: publicTeamId, teamLabel: publicLabel, loading: publicLoading } =
+    usePublicTeamSeason();
   const { selectedMembership, previewRole } = useSession();
-  const { events, loading: eLoading, error: eError, refetch } = useEvents(teamSeasonId);
+  const effectiveTeamSeasonId = teamSeasonId ?? publicTeamId;
+  const { events, loading: eLoading, error: eError, refetch } = useEvents(effectiveTeamSeasonId);
+
+  const loading = tsLoading || (!teamSeasonId && publicLoading);
 
   const teamSeasonSubtitle = (() => {
-    if (!selectedMembership) return 'Team wählen';
-    const teamName = getTeamNameFromMembership(selectedMembership)?.trim();
-    const season = getSeasonLabelFromMembership(selectedMembership)?.trim();
-    if (!teamName) return 'Team wählen';
-    if (season && season !== '—') return `${teamName} (${season})`;
-    return teamName;
+    if (selectedMembership) {
+      const teamName = getTeamNameFromMembership(selectedMembership)?.trim();
+      const season = getSeasonLabelFromMembership(selectedMembership)?.trim();
+      if (teamName && (season && season !== '—')) return `${teamName} (${season})`;
+      if (teamName) return teamName;
+    }
+    return publicLabel ?? teamLabel ?? 'Spielplan';
   })();
 
   // Backend-Rolle = Membership-Rolle des gewählten Teams; UI-Rolle = Preview (Profil) oder Backend
@@ -64,7 +71,7 @@ export const SchedulePage: React.FC = () => {
   const normalizedUiRole = normalizeRole(uiRole);
   const canManage = canManageMatches(normalizedUiRole);
   const showMeetupForRole = canSeeMeetup(normalizedUiRole);
-  const ourTeamName = teamLabel ?? getOurTeamDisplayName();
+  const ourTeamName = teamLabel ?? publicLabel ?? getOurTeamDisplayName();
 
   const [activeTab, setActiveTab] = useState<TabId>('upcoming');
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -195,7 +202,7 @@ export const SchedulePage: React.FC = () => {
 
   const displayEventIds = useMemo(() => displayEvents.map((e) => e.id), [displayEvents]);
   const { byEventId: attendanceByEventId, loading: attendanceLoading, refresh: refreshAttendance } = useEventsAttendance(displayEventIds);
-  const { players } = usePlayers(teamSeasonId);
+  const { players } = usePlayers(effectiveTeamSeasonId);
   const { myAttendancePlayerIds } = useAvailabilityPermissions({
     role: normalizedUiRole,
     teamSeasonId,
@@ -203,7 +210,7 @@ export const SchedulePage: React.FC = () => {
 
   const rosterSize = players.length;
 
-  const loading = tsLoading || eLoading;
+  const pageLoading = loading || eLoading;
   const error = tsError ?? eError;
 
   return (
@@ -257,14 +264,14 @@ export const SchedulePage: React.FC = () => {
             ))}
           </div>
 
-          {loading && <p className="text-sm text-[var(--muted)]">Lade Spielplan…</p>}
+          {pageLoading && <p className="text-sm text-[var(--muted)]">Lade Spielplan…</p>}
           {error && (
             <p className="text-sm text-red-600" role="alert">
               {error}
             </p>
           )}
 
-          {!loading && !error && (
+          {!pageLoading && !error && (
             <>
               {displayEvents.length === 0 ? (
                 <p className="text-sm text-[var(--text-sub)]">

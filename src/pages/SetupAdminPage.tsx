@@ -118,7 +118,7 @@ export const SetupAdminPage: React.FC = () => {
         <p className="mt-2 text-center text-white/70">Du musst eingeloggt sein, um Admin-Rechte zu setzen.</p>
         <button
           type="button"
-          onClick={() => navigate('/login')}
+          onClick={() => navigate('/admin/login')}
           className="mt-4 rounded bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
         >
           Login

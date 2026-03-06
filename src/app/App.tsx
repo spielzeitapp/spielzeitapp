@@ -1,12 +1,17 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { RoleProvider } from './role/RoleContext';
+import { RequireAuth } from '../auth/RequireAuth';
 import { HomePage } from '../pages/HomePage';
 import { SchedulePage } from '../pages/SchedulePage';
 import { MatchDetailPage } from '../pages/MatchDetail/MatchDetailPage';
+import { EventDetailPage } from '../pages/EventDetailPage';
 import { LivePage } from '../pages/LivePage';
 import { TeamPage } from '../pages/TeamPage';
+import { LoginPage } from '../pages/LoginPage';
+import { SetupAdminPage } from '../pages/SetupAdminPage';
+import { RolesAdminPage } from '../pages/RolesAdminPage';
 
 const FALLBACK = (
   <div style={{ padding: 20, color: '#fff' }}>App lädt…</div>
@@ -42,10 +47,15 @@ export default function App(): React.ReactElement {
           <Route element={<AppLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="schedule" element={<SchedulePage />} />
+            <Route path="events/:eventId" element={<EventDetailPage />} />
             <Route path="match/:id" element={<MatchDetailPage />} />
             <Route path="live/:id" element={<LivePage />} />
             <Route path="team" element={<TeamPage />} />
           </Route>
+          <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+          <Route path="/admin/login" element={<LoginPage />} />
+          <Route path="/admin/setup" element={<SetupAdminPage />} />
+          <Route path="/admin/roles" element={<RequireAuth allowedBackendRoles={['admin', 'head_coach']}><RolesAdminPage /></RequireAuth>} />
         </Routes>
       </RoleProvider>
     </AppErrorBoundary>

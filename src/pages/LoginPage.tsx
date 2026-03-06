@@ -44,7 +44,7 @@ export const LoginPage: React.FC = () => {
       return;
     }
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/spielzeitapp_test/`,
+      redirectTo: `${window.location.origin}/`,
     });
     if (resetError) {
       setResetMessage({ type: 'error', text: resetError.message });
