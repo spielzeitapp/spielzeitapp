@@ -18,7 +18,7 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [resetMessage, setResetMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/';
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/app/schedule';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

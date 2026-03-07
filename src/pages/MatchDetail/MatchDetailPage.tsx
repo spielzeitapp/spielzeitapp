@@ -355,7 +355,7 @@ export const MatchDetailPage: React.FC = () => {
     return (
       <div className="page pb-4 space-y-3">
         <p>{error}</p>
-        <Link to="/schedule" className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">
+        <Link to="/app/schedule" className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">
           ← Zurück zum Spielplan
         </Link>
       </div>
@@ -366,7 +366,7 @@ export const MatchDetailPage: React.FC = () => {
     return (
       <div className="page pb-4 space-y-3">
         <p>Spiel nicht gefunden.</p>
-        <Link to="/schedule" className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">
+        <Link to="/app/schedule" className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">
           ← Zurück zum Spielplan
         </Link>
       </div>
@@ -382,7 +382,7 @@ export const MatchDetailPage: React.FC = () => {
       <div className="space-y-4 lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
         {/* Links: Scoreboard, Controls, Aufstellung (Mobile: oben, ab lg: linke Spalte) */}
         <div className="space-y-4 lg:col-span-5">
-          <Link to="/" className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">← Zurück</Link>
+          <Link to="/app/schedule" className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">← Zurück</Link>
 
           {localMatch.status === 'live' ? (
           <section className="live-panel card space-y-3" aria-label="Live">

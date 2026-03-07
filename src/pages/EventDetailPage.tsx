@@ -202,7 +202,7 @@ export const EventDetailPage: React.FC = () => {
     return (
       <div className="page pb-4">
         <p>Keine Event-ID angegeben.</p>
-        <Link to="/schedule" className="mt-2 inline-block text-sm text-white/80 hover:text-white">
+        <Link to="/app/schedule" className="mt-2 inline-block text-sm text-white/80 hover:text-white">
           ← Zurück zum Spielplan
         </Link>
       </div>
@@ -221,7 +221,7 @@ export const EventDetailPage: React.FC = () => {
     return (
       <div className="page pb-4 space-y-3">
         <p>{error ?? 'Termin nicht gefunden.'}</p>
-        <Link to="/schedule" className="text-sm text-white/80 hover:text-white">
+        <Link to="/app/schedule" className="text-sm text-white/80 hover:text-white">
           ← Zurück zum Spielplan
         </Link>
       </div>
@@ -232,7 +232,7 @@ export const EventDetailPage: React.FC = () => {
     <div className="page pb-4">
       <div className="mx-auto max-w-[720px] space-y-4 px-4">
         <Link
-          to="/schedule"
+          to="/app/schedule"
           className="inline-block text-sm text-white/80 hover:text-white"
         >
           ← Zurück zum Spielplan
@@ -240,16 +240,17 @@ export const EventDetailPage: React.FC = () => {
 
         <div className="w-full">
           <MatchCardLigaportal
-          ourTeamName={ourTeamName}
-          opponent={event.opponent}
-          isHome={event.is_home}
-          startsAt={event.starts_at}
-          status={event.status}
-          kind={event.kind}
-          location={event.location}
-          meetupAt={event.meetup_at}
-          showMeetup={showMeetup}
-        />
+            ourTeamName={ourTeamName}
+            opponent={event.opponent}
+            isHome={event.is_home}
+            startsAt={event.starts_at}
+            status={event.status}
+            kind={event.kind}
+            location={event.location}
+            meetupAt={event.meetup_at}
+            showMeetup={showMeetup}
+            isPublicView={true}
+          />
         </div>
 
         {!isFan && (

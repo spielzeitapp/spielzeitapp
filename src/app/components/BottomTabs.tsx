@@ -2,9 +2,13 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { CircleDot, Grid3X3, Play, Users, BarChart3 } from 'lucide-react';
 
-function isPublicRoute(pathname: string): boolean {
-  return pathname === '/' || pathname === '/schedule';
-}
+/** Interne Tabs: /app/* (wird in InternalLayout verwendet). */
+const appTabs = [
+  { to: '/app/schedule', end: false as const, label: 'Spielplan', icon: <Grid3X3 size={24} /> },
+  { to: '/app/live', end: false as const, label: 'Live', icon: <Play size={24} /> },
+  { to: '/app/team', end: false as const, label: 'Team', icon: <Users size={24} /> },
+  { to: '/app/table', end: false as const, label: 'Tabelle', icon: <BarChart3 size={24} /> },
+];
 
 function NavItem({
   to,
@@ -48,17 +52,9 @@ const publicTabs = [
   { to: '/schedule', end: false as const, label: 'Spielplan', icon: <Grid3X3 size={24} /> },
 ];
 
-const fullTabs = [
-  ...publicTabs,
-  { to: '/live', end: false as const, label: 'Live', icon: <Play size={24} /> },
-  { to: '/team', end: false as const, label: 'Team', icon: <Users size={24} /> },
-  { to: '/table', end: false as const, label: 'Tabelle', icon: <BarChart3 size={24} /> },
-];
-
 export const BottomTabs: React.FC = () => {
   const { pathname } = useLocation();
-  const publicView = isPublicRoute(pathname);
-  const tabs = publicView ? publicTabs : fullTabs;
+  const tabs = pathname.startsWith('/app') ? appTabs : publicTabs;
 
   return (
     <nav

@@ -49,7 +49,7 @@ export const LivePage: React.FC = () => {
       }
 
       if (data?.id) {
-        navigate(`/match/${data.id}`, { replace: true });
+        navigate(`/app/match/${data.id}`, { replace: true });
         return;
       }
 
@@ -83,7 +83,7 @@ export const LivePage: React.FC = () => {
       <div className="page space-y-4 pb-4">
         <h1 className="headline">Live</h1>
         <p className="text-sm text-red-600">{error}</p>
-        <Link to="/schedule" className="btn btn-primary btn--sm inline-block mt-2">
+        <Link to="/app/schedule" className="btn btn-primary btn--sm inline-block mt-2">
           Zum Spielplan
         </Link>
       </div>
@@ -97,7 +97,7 @@ export const LivePage: React.FC = () => {
         <p className="text-sm text-[var(--text-sub)]">
           Starte ein Match im Spielplan oder im Match-Detail.
         </p>
-        <Link to="/schedule" className="btn btn-primary btn--sm inline-block mt-2">
+        <Link to="/app/schedule" className="btn btn-primary btn--sm inline-block mt-2">
           Zum Spielplan
         </Link>
       </div>
@@ -111,7 +111,7 @@ export const LivePage: React.FC = () => {
       <p className="text-sm text-[var(--text-sub)]">
         Es konnte kein Live-Spiel gefunden werden.
       </p>
-      <Link to="/schedule" className="btn btn-primary btn--sm inline-block mt-2">
+      <Link to="/app/schedule" className="btn btn-primary btn--sm inline-block mt-2">
         Zum Spielplan
       </Link>
     </div>
