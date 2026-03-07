@@ -97,8 +97,8 @@ type MatchCardLigaportalProps = {
   onOpenAttendance?: () => void;
   /** Für Trainer/Admin: Counts für Zu-/Absagen-Übersicht (Zugesagt / Abgesagt / Offen). */
   attendanceCounts?: { yes: number; no: number; open: number } | null;
-  /** true = Public Mode: Karte nur Anzeige, kein Klick/Navigation (z. B. /schedule, /live). */
-  disableNavigation?: boolean;
+  /** true = öffentliche Ansicht: Karte nur Anzeige, keine Navigation, kein Link, kein onClick, Cursor default. */
+  isPublicView?: boolean;
 };
 
 /** Logo-URL aus Anzeige-Namen (slugify nur für Pfad); Anzeige-Name bleibt unverändert. */
@@ -204,6 +204,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   attendanceStatus,
   onOpenAttendance,
   attendanceCounts,
+  isPublicView = false,
 }) => {
   const ourClubName = getOurTeamDisplayName();
   const canSeeSensitiveInfo = showMeetup;
@@ -255,10 +256,10 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const isMatch = kind === 'match';
 
   const handleCardClick = () => {
-    if (!disableNavigation && eventId && onNavigate) onNavigate(eventId);
+    if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
   };
 
-  const isClickable = !disableNavigation && Boolean(eventId && onNavigate);
+  const isClickable = !isPublicView && Boolean(eventId && onNavigate);
   const rightLogoOverride =
     opponentLogoUrl ?? (opponentSlug ? getClubLogoUrl(opponentSlug) : null);
 
@@ -390,8 +391,28 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     </>
   );
 
+  const baseCardClass =
+    `relative w-full max-w-none overflow-hidden rounded-2xl bg-gradient-to-b from-black to-red-900 px-[15px] py-4 ${className}`;
   const cardClass =
-    `relative w-full max-w-none overflow-hidden rounded-2xl bg-gradient-to-b from-black to-red-900 px-[15px] py-4 ${isClickable ? 'cursor-pointer transition ' : ''}${className}`;
+    isPublicView ? baseCardClass : `${baseCardClass} ${isClickable ? 'cursor-pointer transition ' : ''}`.trim();
+
+  if (isPublicView) {
+    const blockClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    return (
+      <div
+        className="flex w-full max-w-none flex-col gap-0"
+        onClick={blockClick}
+        onKeyDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        role="presentation"
+      >
+        {dateRow}
+        <div className={`${baseCardClass} cursor-default`} onClick={blockClick}>{cardContent}</div>
+      </div>
+    );
+  }
 
   const cardEl = isClickable ? (
     <div
@@ -419,4 +440,4 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       {cardEl}
     </div>
   );
-};
+}

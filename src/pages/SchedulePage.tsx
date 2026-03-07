@@ -65,10 +65,10 @@ export const SchedulePage: React.FC = () => {
     return publicLabel ?? teamLabel ?? 'Spielplan';
   })();
 
-  // Public Mode: Routen OHNE /app/… (z. B. /schedule, /live) = nur Anzeige, KEINE Navigation
-  // Klick auf Spielkarte darf hier nie zu /app/events/:id oder EventDetail führen
+  // Public Mode: /schedule und /live = nur Anzeige, KEINE Navigation zu Event-Detail
   const { pathname } = useLocation();
-  const forcePublicView = !pathname.startsWith('/app');
+  const forcePublicView =
+    pathname === '/schedule' || pathname === '/live' || !pathname.startsWith('/app');
   const backendRole = normalizeRole(roleFromHook);
   const uiRole = forcePublicView ? null : (previewRole ?? backendRole ?? null);
   const normalizedUiRole = normalizeRole(uiRole);
@@ -307,7 +307,20 @@ export const SchedulePage: React.FC = () => {
                       ? (myStatusFromDb ?? attendanceStatusByEventId[ev.id] ?? null)
                       : undefined;
                   return (
-                    <div key={ev.id} className="w-full mb-6">
+                    <div
+                      key={ev.id}
+                      className="w-full mb-6"
+                      {...(forcePublicView
+                        ? {
+                            onClick: (e: React.MouseEvent) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            },
+                            style: { cursor: 'default' as const },
+                            role: 'presentation',
+                          }
+                        : {})}
+                    >
                       <MatchCardLigaportal
                         className="w-full max-w-none rounded-2xl"
                         ourTeamName={ourTeamName}
@@ -322,7 +335,7 @@ export const SchedulePage: React.FC = () => {
                         showMeetup={showMeetupForRole}
                         eventId={forcePublicView ? undefined : ev.id}
                         onNavigate={forcePublicView ? undefined : (id) => navigate(`/app/events/${id}`)}
-                        disableNavigation={forcePublicView}
+                        isPublicView={forcePublicView}
                         opponentSlug={ev.opponent_slug}
                         opponentLogoUrl={ev.opponent_logo_url}
                         canManage={canManage}
