@@ -1,7 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
-import { InternalLayout } from './layout/InternalLayout';
+import { InternalLayout } from './layout/InternalLayout.tsx';
 import { RoleProvider } from './role/RoleContext';
 import { RequireAuth } from '../auth/RequireAuth';
 import { HomePage } from '../pages/HomePage';
