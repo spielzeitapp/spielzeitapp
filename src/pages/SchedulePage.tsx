@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { CreateEventModal } from '../app/components/CreateEventModal';
@@ -65,8 +65,10 @@ export const SchedulePage: React.FC = () => {
     return publicLabel ?? teamLabel ?? 'Spielplan';
   })();
 
-  // Öffentliche Spielplanseite: immer neutrale Ansicht, keine Admin-/User-UI
-  const forcePublicView = true;
+  // Public Mode: Routen OHNE /app/… (z. B. /schedule, /live) = nur Anzeige, KEINE Navigation
+  // Klick auf Spielkarte darf hier nie zu /app/events/:id oder EventDetail führen
+  const { pathname } = useLocation();
+  const forcePublicView = !pathname.startsWith('/app');
   const backendRole = normalizeRole(roleFromHook);
   const uiRole = forcePublicView ? null : (previewRole ?? backendRole ?? null);
   const normalizedUiRole = normalizeRole(uiRole);
@@ -96,6 +98,10 @@ export const SchedulePage: React.FC = () => {
     const t = setTimeout(() => setToastMessage(null), 3000);
     return () => clearTimeout(t);
   }, [toastMessage]);
+
+  useEffect(() => {
+    if (pathname === '/live') setActiveTab('live');
+  }, [pathname]);
 
   const openEditModal = (e: EventRow) => {
     if (!canManage) {
@@ -226,12 +232,14 @@ export const SchedulePage: React.FC = () => {
               {toastMessage}
             </div>
           )}
-          <Link
-            to="/"
-            className="mb-2 inline-block text-sm text-white/70 hover:text-white transition-colors"
-          >
-            ← Start
-          </Link>
+          {forcePublicView && (
+            <Link
+              to="/"
+              className="mb-2 inline-block text-sm text-white/70 hover:text-white transition-colors"
+            >
+              ← Start
+            </Link>
+          )}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="text-4xl font-bold text-white tracking-tight [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
@@ -312,8 +320,9 @@ export const SchedulePage: React.FC = () => {
                         location={ev.location}
                         meetupAt={ev.meetup_at}
                         showMeetup={showMeetupForRole}
-                        eventId={ev.id}
-                        onNavigate={(id) => navigate(`/events/${id}`)}
+                        eventId={forcePublicView ? undefined : ev.id}
+                        onNavigate={forcePublicView ? undefined : (id) => navigate(`/app/events/${id}`)}
+                        disableNavigation={forcePublicView}
                         opponentSlug={ev.opponent_slug}
                         opponentLogoUrl={ev.opponent_logo_url}
                         canManage={canManage}

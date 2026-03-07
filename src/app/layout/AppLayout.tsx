@@ -8,7 +8,7 @@ import { useIsTouchLayout } from '../../hooks/useMediaQuery';
 
 /** Öffentliche MVP-Routen: keine Header/TopNav/BottomTabs. */
 function isPublicMvpRoute(pathname: string): boolean {
-  return pathname === '/' || pathname === '/schedule';
+  return pathname === '/' || pathname === '/schedule' || pathname === '/live';
 }
 
 export const AppLayout: React.FC = () => {

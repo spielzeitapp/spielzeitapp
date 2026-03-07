@@ -13,10 +13,14 @@ const ROLE_LABEL_DE: Record<string, string> = {
   fan: 'Fan',
 };
 
-/** Öffentliche Routen: nur Logo + App-Name, kein Profil/Login/Rolle. */
+/** Öffentliche Routen: nur Logo + App-Name (Header wird dort nicht gerendert). */
 function isPublicRoute(pathname: string): boolean {
-  return pathname === '/' || pathname === '/schedule';
+  return pathname === '/' || pathname === '/schedule' || pathname === '/live';
 }
+
+/** Interner Bereich: Links mit /app-Prefix. */
+const APP_PROFILE = '/app/profile';
+const APP_LOGIN_REDIRECT = '/admin/login';
 
 export const Header: React.FC = () => {
   const { pathname } = useLocation();
@@ -60,14 +64,14 @@ export const Header: React.FC = () => {
               {!authLoading && !user && (
                 <button
                   type="button"
-                  onClick={() => navigate('/admin/login')}
+                  onClick={() => navigate(APP_LOGIN_REDIRECT)}
                   className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs text-white transition-colors hover:bg-white/15"
                 >
                   Login
                 </button>
               )}
               <Link
-                to="/profile"
+                to={pathname.startsWith('/app') ? APP_PROFILE : '/profile'}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white transition-colors hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
                 aria-label="Profil"
               >

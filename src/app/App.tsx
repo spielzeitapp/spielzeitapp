@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
+import { InternalLayout } from './layout/InternalLayout';
 import { RoleProvider } from './role/RoleContext';
 import { RequireAuth } from '../auth/RequireAuth';
 import { HomePage } from '../pages/HomePage';
@@ -47,8 +48,15 @@ export default function App(): React.ReactElement {
     <AppErrorBoundary>
       <RoleProvider>
         <Routes>
+          {/* Public: nur Landingpage, Spielplan, Live – keine Navigation zu Event-Detail */}
           <Route element={<AppLayout />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="schedule" element={<SchedulePage />} />
+            <Route path="live" element={<SchedulePage />} />
+          </Route>
+          {/* Interner Bereich: nur nach Login, mit Menüs und Rollen */}
+          <Route path="app" element={<RequireAuth><InternalLayout /></RequireAuth>}>
+            <Route index element={<Navigate to="/app/schedule" replace />} />
             <Route path="schedule" element={<SchedulePage />} />
             <Route path="events/:eventId" element={<EventDetailPage />} />
             <Route path="match/:id" element={<MatchDetailPage />} />

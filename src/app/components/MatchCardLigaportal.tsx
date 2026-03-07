@@ -97,6 +97,8 @@ type MatchCardLigaportalProps = {
   onOpenAttendance?: () => void;
   /** Für Trainer/Admin: Counts für Zu-/Absagen-Übersicht (Zugesagt / Abgesagt / Offen). */
   attendanceCounts?: { yes: number; no: number; open: number } | null;
+  /** true = Public Mode: Karte nur Anzeige, kein Klick/Navigation (z. B. /schedule, /live). */
+  disableNavigation?: boolean;
 };
 
 /** Logo-URL aus Anzeige-Namen (slugify nur für Pfad); Anzeige-Name bleibt unverändert. */
@@ -253,10 +255,10 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const isMatch = kind === 'match';
 
   const handleCardClick = () => {
-    if (eventId && onNavigate) onNavigate(eventId);
+    if (!disableNavigation && eventId && onNavigate) onNavigate(eventId);
   };
 
-  const isClickable = Boolean(eventId && onNavigate);
+  const isClickable = !disableNavigation && Boolean(eventId && onNavigate);
   const rightLogoOverride =
     opponentLogoUrl ?? (opponentSlug ? getClubLogoUrl(opponentSlug) : null);
 
