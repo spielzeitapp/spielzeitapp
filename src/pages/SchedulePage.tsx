@@ -79,8 +79,8 @@ export const SchedulePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('upcoming');
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  /** Zu-/Absage: Modal + Status pro Event (UI-State; später ggf. Supabase). */
-  const [attendanceModalEventId, setAttendanceModalEventId] = useState<string | null>(null);
+  /** Zu-/Absage: Modal + Status. Gespeichertes Event = genau das angeklickte Spiel (ID-Konsistenz). */
+  const [attendanceModalEvent, setAttendanceModalEvent] = useState<EventRow | null>(null);
   const [attendanceStatusByEventId, setAttendanceStatusByEventId] = useState<Record<string, 'yes' | 'no'>>({});
 
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -118,33 +118,53 @@ export const SchedulePage: React.FC = () => {
   };
 
   /**
-   * Wird beim Klick auf "Zusagen" oder "Absagen" im Zu-/Absage-Modal aufgerufen.
-   * Upsert in public.event_attendance (event_id, player_id, status). player_id aus player_guardians.
+   * Speichert Zusage/Absage in event_attendance (event_id, player_id, status).
+   * Verwendet angeklicktes Spiel + verknüpften Spieler (player_guardians).
    */
   const setAttendance = async (eventId: string, status: 'yes' | 'no') => {
-    const playerId = myAttendancePlayerIds[0] ?? null;
+    let playerId = myAttendancePlayerIds[0] ?? null;
+    if (!playerId) {
+      const { data: userRes } = await supabase.auth.getUser();
+      const userId = userRes?.user?.id;
+      if (userId) {
+        const byUser = await supabase.from('player_guardians').select('player_id').eq('user_id', userId);
+        if (!byUser.error && byUser.data?.length) playerId = byUser.data[0].player_id;
+        if (!playerId) {
+          const byGuardian = await supabase.from('player_guardians').select('player_id').eq('guardian_user_id', userId);
+          if (!byGuardian.error && byGuardian.data?.length) playerId = byGuardian.data[0].player_id;
+        }
+      }
+    }
 
     if (!eventId || !playerId) {
-      setAttendanceStatusByEventId((prev) => ({ ...prev, [eventId]: status }));
-      setAttendanceModalEventId(null);
+      console.error('[ATTENDANCE MISSING IDS]', { eventId, playerId });
+      setToastMessage(!playerId ? 'Kein Spieler zugeordnet.' : 'Event fehlt.');
+      setAttendanceModalEvent(null);
       return;
     }
 
-    const { error: upsertErr } = await supabase
+    console.log('[ATTENDANCE SAVE START]', { eventId, playerId, status });
+
+    const result = await supabase
       .from('event_attendance')
       .upsert(
         { event_id: eventId, player_id: playerId, status },
         { onConflict: 'event_id,player_id' }
-      );
+      )
+      .select('event_id, player_id, status');
 
-    if (upsertErr) {
-      setToastMessage(upsertErr.message ?? 'Speichern fehlgeschlagen.');
+    console.log('[ATTENDANCE SAVE RESULT]', { data: result.data, error: result.error });
+
+    if (result.error) {
+      console.error('[ATTENDANCE SAVE ERROR]', result.error);
+      setToastMessage(result.error.message ?? 'Speichern fehlgeschlagen.');
+      setAttendanceModalEvent(null);
       return;
     }
 
     setAttendanceStatusByEventId((prev) => ({ ...prev, [eventId]: status }));
-    setAttendanceModalEventId(null);
-    void refreshAttendance();
+    setAttendanceModalEvent(null);
+    await refreshAttendance();
   };
 
   const closeEditModal = () => {
@@ -300,8 +320,9 @@ export const SchedulePage: React.FC = () => {
                   const yes = evAttendance?.yes ?? 0;
                   const no = evAttendance?.no ?? 0;
                   const open = Math.max(0, rosterSize - yes - no);
+                  const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
                   const myStatusFromDb =
-                    (uiRole === 'parent' || uiRole === 'player') && myAttendancePlayerIds[0] && evAttendance?.availabilityByPlayerId[myAttendancePlayerIds[0]];
+                    (uiRole === 'parent' || uiRole === 'player') && myAttendancePlayerIds[0] && evAttendance?.availabilityByPlayerId[myPlayerIdKey];
                   const attendanceStatusMerged =
                     (uiRole === 'parent' || uiRole === 'player')
                       ? (myStatusFromDb ?? attendanceStatusByEventId[ev.id] ?? null)
@@ -343,7 +364,7 @@ export const SchedulePage: React.FC = () => {
                         onDelete={canManage ? () => handleDelete(ev) : undefined}
                         role={uiRole ?? undefined}
                         attendanceStatus={attendanceStatusMerged}
-                        onOpenAttendance={(uiRole === 'parent' || uiRole === 'player') ? () => setAttendanceModalEventId(ev.id) : undefined}
+                        onOpenAttendance={(uiRole === 'parent' || uiRole === 'player') ? () => setAttendanceModalEvent(ev) : undefined}
                         attendanceCounts={canManage ? { yes, no, open } : undefined}
                       />
                     </div>
@@ -440,34 +461,47 @@ export const SchedulePage: React.FC = () => {
             </form>
           </Modal>
 
-          {/* Modal Zu-/Absage (Eltern/Spieler) */}
+          {/* Modal Zu-/Absage (Eltern/Spieler) – verwendet exakt die event_id des angeklickten Spiels. */}
           <Modal
-            isOpen={attendanceModalEventId != null}
-            title="Zu-/Absage"
-            onClose={() => setAttendanceModalEventId(null)}
+            isOpen={attendanceModalEvent != null}
+            title={attendanceModalEvent ? `Zu-/Absage: ${attendanceModalEvent.opponent ?? 'Termin'}` : 'Zu-/Absage'}
+            onClose={() => setAttendanceModalEvent(null)}
             footer={
               <div className="flex justify-end">
-                <Button variant="ghost" onClick={() => setAttendanceModalEventId(null)}>
+                <Button variant="ghost" onClick={() => setAttendanceModalEvent(null)}>
                   Schließen
                 </Button>
               </div>
             }
           >
             <div className="flex flex-col py-3">
+              {attendanceModalEvent && (
+                <p className="text-sm text-[var(--text-sub)] mb-2">
+                  {attendanceModalEvent.opponent ?? 'Termin'} · {attendanceModalEvent.starts_at ? new Date(attendanceModalEvent.starts_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                </p>
+              )}
               <p className="text-sm text-[var(--text-sub)]">
                 Bitte gib deine Verfügbarkeit an.
               </p>
               <div className="flex flex-wrap gap-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => attendanceModalEventId && setAttendance(attendanceModalEventId, 'yes')}
+                  onClick={() => {
+                    console.log('[ATTENDANCE BUTTON CLICKED]');
+                    if (!attendanceModalEvent) return;
+                    setAttendance(attendanceModalEvent.id, 'yes').catch((e) => console.error('[ATTENDANCE]', e));
+                  }}
                   className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white bg-green-600 hover:bg-green-500 active:scale-[0.98] transition-all"
                 >
                   Zusagen
                 </button>
                 <button
                   type="button"
-                  onClick={() => attendanceModalEventId && setAttendance(attendanceModalEventId, 'no')}
+                  onClick={() => {
+                    console.log('[ATTENDANCE BUTTON CLICKED]');
+                    if (!attendanceModalEvent) return;
+                    setAttendance(attendanceModalEvent.id, 'no').catch((e) => console.error('[ATTENDANCE]', e));
+                  }}
                   className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white bg-red-600 hover:bg-red-500 active:scale-[0.98] transition-all"
                 >
                   Absagen
