@@ -153,48 +153,85 @@ export const EventDetailPage: React.FC = () => {
     loadRsvp();
   }, [eventId, playerId]);
 
-  useEffect(() => {
-    const loadEventAttendance = async () => {
-      if (!eventId) return;
-      setLoadingEventAttendance(true);
-      const { data, error: err } = await supabase
-        .from('event_attendance')
-        .select('player_id, status')
-        .eq('event_id', eventId);
-      if (!err && data) {
+  const loadEventAttendance = useCallback(async () => {
+    if (!eventId) return;
+    setLoadingEventAttendance(true);
+    const { data, error: err } = await supabase
+      .from('event_attendance')
+      .select('player_id, status')
+      .eq('event_id', eventId);
+    if (!err && data) {
         const byPlayer: Record<string, 'yes' | 'no'> = {};
         for (const row of data as { player_id: string; status: string }[]) {
-          if (row.status === 'yes' || row.status === 'no') byPlayer[row.player_id] = row.status as 'yes' | 'no';
+          const pid = (row.player_id ?? '').toLowerCase();
+          if (row.status === 'yes' || row.status === 'no') byPlayer[pid] = row.status as 'yes' | 'no';
         }
         setEventAttendanceByPlayerId(byPlayer);
       } else {
         setEventAttendanceByPlayerId({});
       }
-      setLoadingEventAttendance(false);
-    };
-    loadEventAttendance();
+    setLoadingEventAttendance(false);
   }, [eventId]);
+
+  useEffect(() => {
+    loadEventAttendance();
+  }, [loadEventAttendance]);
 
   const handleRsvp = useCallback(
     async (status: 'yes' | 'no') => {
-      if (!eventId || !playerId) return;
-      const { error: err } = await supabase
-        .from('event_attendance')
-        .upsert(
-          { event_id: eventId, player_id: playerId, status },
-          { onConflict: 'event_id,player_id' }
-        );
-      if (!err) {
-        setRsvpStatus(status);
-        setEventAttendanceByPlayerId((prev) => ({ ...prev, [playerId]: status }));
-        setAttendanceModalOpen(false);
+      let resolvedPlayerId = playerId ?? null;
+      console.log('[ATTENDANCE SAVE START]', { eventId, playerId: resolvedPlayerId, status });
+      if (!eventId) {
+        console.error('[ATTENDANCE MISSING IDS]', { eventId, playerId: resolvedPlayerId });
+        return;
       }
+      if (!resolvedPlayerId) {
+        const { data: userRes } = await supabase.auth.getUser();
+        const userId = userRes?.user?.id;
+        if (userId) {
+          const byUser = await supabase.from('player_guardians').select('player_id').eq('user_id', userId);
+          if (!byUser.error && byUser.data?.length) resolvedPlayerId = byUser.data[0].player_id;
+          if (!resolvedPlayerId) {
+            const byGuardian = await supabase.from('player_guardians').select('player_id').eq('guardian_user_id', userId);
+            if (!byGuardian.error && byGuardian.data?.length) resolvedPlayerId = byGuardian.data[0].player_id;
+          }
+        }
+      }
+      if (!resolvedPlayerId) {
+        console.error('[ATTENDANCE MISSING IDS]', { eventId, playerId: resolvedPlayerId });
+        return;
+      }
+
+      const payload = { event_id: eventId, player_id: resolvedPlayerId, status };
+      const result = await supabase
+        .from('event_attendance')
+        .upsert(payload, { onConflict: 'event_id,player_id' })
+        .select('event_id, player_id, status');
+
+      console.log('[ATTENDANCE SAVE RESULT]', { data: result.data, error: result.error });
+      if (result.error) {
+        console.error('[ATTENDANCE SAVE ERROR]', result.error.message, result.error.code, result.error.details);
+        return;
+      }
+
+      const verify = await supabase
+        .from('event_attendance')
+        .select('event_id, player_id, status')
+        .eq('event_id', eventId)
+        .eq('player_id', resolvedPlayerId)
+        .maybeSingle();
+      console.log('[ATTENDANCE VERIFY READ]', verify.data ?? verify.error);
+
+      setRsvpStatus(status);
+      setEventAttendanceByPlayerId((prev) => ({ ...prev, [resolvedPlayerId]: status }));
+      setAttendanceModalOpen(false);
+      await loadEventAttendance();
     },
-    [eventId, playerId]
+    [eventId, playerId, loadEventAttendance]
   );
 
   const getAttendanceStatus = useCallback(
-    (pid: string): 'yes' | 'no' | null => eventAttendanceByPlayerId[pid] ?? null,
+    (pid: string): 'yes' | 'no' | null => eventAttendanceByPlayerId[(pid ?? '').toLowerCase()] ?? null,
     [eventAttendanceByPlayerId]
   );
 
@@ -346,16 +383,20 @@ export const EventDetailPage: React.FC = () => {
             <Button
               variant="primary"
               className="bg-green-600 hover:bg-green-500"
-              disabled={!playerId}
-              onClick={() => handleRsvp('yes')}
+              onClick={() => {
+                console.log('[ATTENDANCE BUTTON CLICKED]', 'yes');
+                handleRsvp('yes');
+              }}
             >
               Zusagen
             </Button>
             <Button
               variant="primary"
               className="bg-red-600 hover:bg-red-500"
-              disabled={!playerId}
-              onClick={() => handleRsvp('no')}
+              onClick={() => {
+                console.log('[ATTENDANCE BUTTON CLICKED]', 'no');
+                handleRsvp('no');
+              }}
             >
               Absagen
             </Button>

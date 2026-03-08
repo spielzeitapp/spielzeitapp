@@ -28,16 +28,25 @@ export function useEventsAttendance(eventIds: string[]) {
     }
     setLoading(true);
     setError(null);
+    console.log("[useEventsAttendance] Lese event_attendance – dieselben event_ids wie angezeigte Spiele:", eventIds);
     const { data, error: err } = await supabase
       .from("event_attendance")
       .select("event_id, player_id, status")
       .in("event_id", eventIds);
 
+    const list = (data ?? []) as Array<{ event_id: string; player_id: string; status: string }>;
+    console.log("[useEventsAttendance] Response nach Refresh:", {
+      anzahl_event_ids_abgefragt: eventIds.length,
+      anzahl_zeilen: list.length,
+      zeilen: list.map((r) => ({ event_id: r.event_id, player_id: r.player_id, status: r.status })),
+      fehler: err,
+    });
+
     if (err) {
+      console.error("[useEventsAttendance] Fehler beim Lesen:", err);
       setError(err.message);
       setRows([]);
     } else {
-      const list = (data ?? []) as Array<{ event_id: string; player_id: string; status: string }>;
       setRows(list);
     }
     setLoading(false);
@@ -49,16 +58,22 @@ export function useEventsAttendance(eventIds: string[]) {
 
   const byEventId = useMemo(() => {
     const out: Record<string, EventAttendanceData> = {};
+    const eventIdToKey: Record<string, string> = {};
     for (const id of eventIds) {
-      out[id] = { yes: 0, no: 0, availabilityByPlayerId: {} };
+      const key = String(id);
+      out[key] = { yes: 0, no: 0, availabilityByPlayerId: {} };
+      eventIdToKey[key.toLowerCase()] = key;
     }
     for (const r of rows) {
-      if (!out[r.event_id]) continue;
+      const eidRaw = r.event_id == null ? "" : String(r.event_id);
+      const eidKey = eventIdToKey[eidRaw.toLowerCase()];
+      if (!eidKey) continue;
+      const pid = (r.player_id == null ? "" : String(r.player_id)).toLowerCase();
       const status = r.status === "yes" ? "yes" : r.status === "no" ? "no" : null;
       if (status) {
-        out[r.event_id].availabilityByPlayerId[r.player_id] = status;
-        if (status === "yes") out[r.event_id].yes += 1;
-        else out[r.event_id].no += 1;
+        out[eidKey].availabilityByPlayerId[pid] = status;
+        if (status === "yes") out[eidKey].yes += 1;
+        else out[eidKey].no += 1;
       }
     }
     return out;

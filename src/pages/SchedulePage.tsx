@@ -128,10 +128,15 @@ export const SchedulePage: React.FC = () => {
       const userId = userRes?.user?.id;
       if (userId) {
         const byUser = await supabase.from('player_guardians').select('player_id').eq('user_id', userId);
-        if (!byUser.error && byUser.data?.length) playerId = byUser.data[0].player_id;
-        if (!playerId) {
+        console.log('[PLAYER GUARDIAN LOOKUP RESULT]', { data: byUser.data, error: byUser.error });
+        if (!byUser.error && byUser.data?.length) {
+          playerId = byUser.data[0].player_id;
+        } else {
           const byGuardian = await supabase.from('player_guardians').select('player_id').eq('guardian_user_id', userId);
-          if (!byGuardian.error && byGuardian.data?.length) playerId = byGuardian.data[0].player_id;
+          console.log('[PLAYER GUARDIAN LOOKUP RESULT]', { data: byGuardian.data, error: byGuardian.error });
+          if (!byGuardian.error && byGuardian.data?.length) {
+            playerId = byGuardian.data[0].player_id;
+          }
         }
       }
     }
