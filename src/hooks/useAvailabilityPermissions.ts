@@ -39,40 +39,23 @@ export function useAvailabilityPermissions(params: {
           return;
         }
 
-        // player_guardians: Spalte kann user_id ODER guardian_user_id heißen (je nach Migration)
-        let data: { player_id: string }[] | null = null;
-        let error: { message: string; code?: string } | null = null;
-
+        // player_guardians: Spalte user_id (eingeloggter Eltern-User)
         const res = await supabase
           .from("player_guardians")
           .select("player_id")
           .eq("user_id", user.id);
-        data = res.data;
-        error = res.error;
         console.log("[PLAYER GUARDIAN LOOKUP RESULT]", { data: res.data, error: res.error });
-
-        if (error) {
-          const fallback = await supabase
-            .from("player_guardians")
-            .select("player_id")
-            .eq("guardian_user_id", user.id);
-          console.log("[PLAYER GUARDIAN LOOKUP RESULT]", { data: fallback.data, error: fallback.error });
-          if (!fallback.error) {
-            data = fallback.data;
-            error = null;
-          }
-        }
 
         if (!alive) return;
 
-        if (error) {
-          console.error("[useAvailabilityPermissions] player_guardians Abfrage fehlgeschlagen:", error);
-          setError(error.message);
+        if (res.error) {
+          console.error("[useAvailabilityPermissions] player_guardians Abfrage fehlgeschlagen:", res.error);
+          setError(res.error.message);
           setAllowedPlayerIds(new Set());
         } else {
-          const ids = (data ?? []).map((r: { player_id: string }) => r.player_id);
+          const ids = (res.data ?? []).map((r: { player_id: string }) => r.player_id);
           if (role === "parent" && ids.length === 0) {
-            console.warn("[useAvailabilityPermissions] Parent hat keine player_ids aus player_guardians (user_id bzw. guardian_user_id). Prüfe Verknüpfung Kind–Konto.");
+            console.warn("[useAvailabilityPermissions] Parent hat keine player_ids aus player_guardians (user_id). Prüfe Verknüpfung Kind–Konto.");
           }
           setAllowedPlayerIds(new Set(ids));
         }

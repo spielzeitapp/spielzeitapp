@@ -191,10 +191,6 @@ export const EventDetailPage: React.FC = () => {
         if (userId) {
           const byUser = await supabase.from('player_guardians').select('player_id').eq('user_id', userId);
           if (!byUser.error && byUser.data?.length) resolvedPlayerId = byUser.data[0].player_id;
-          if (!resolvedPlayerId) {
-            const byGuardian = await supabase.from('player_guardians').select('player_id').eq('guardian_user_id', userId);
-            if (!byGuardian.error && byGuardian.data?.length) resolvedPlayerId = byGuardian.data[0].player_id;
-          }
         }
       }
       if (!resolvedPlayerId) {
