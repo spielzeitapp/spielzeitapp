@@ -1,8 +1,8 @@
 {
-  "name": "SpielzeitApp",
-  "short_name": "Spielzeit",
-  "start_url": "/",
-  "scope": "/",
+  "name": "Spielzeit Trainer",
+  "short_name": "Trainer",
+  "start_url": "/app",
+  "scope": "/app",
   "display": "standalone",
   "background_color": "#7f1d1d",
   "theme_color": "#7f1d1d",

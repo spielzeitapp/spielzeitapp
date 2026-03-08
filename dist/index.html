@@ -2,13 +2,25 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function() {
+        var host = window.location.hostname;
+        var isInternal = (host === 'app.spielzeitapp.at');
+        window.__HOST_IS_INTERNAL__ = isInternal;
+        if (isInternal) {
+          var path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+          if (path === '/') window.location.replace('/admin/login');
+          else if (path === '/schedule') window.location.replace('/app/schedule');
+          else if (path === '/live') window.location.replace('/app/live');
+        }
+      })();
+    </script>
     <title>Spielzeit</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#7f1d1d" />
-    <script type="module" crossorigin src="/assets/index-DJhw-0vU.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-hpqjbLoD.css">
+    <script type="module" crossorigin src="/assets/main-BnBVUNr3.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/main-hpqjbLoD.css">
   </head>
   <body>
     <div id="root"></div>

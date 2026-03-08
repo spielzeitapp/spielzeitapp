@@ -43,35 +43,61 @@ class AppErrorBoundary extends Component<
   }
 }
 
-export default function App(): React.ReactElement {
+/** Nur internen Bereich: /app, Login, Admin. Keine Public-Landingpage. */
+function InternalRoutes(): React.ReactElement {
+  return (
+    <Routes>
+      <Route path="app.html" element={<Navigate to="/app" replace />} />
+      <Route path="/" element={<Navigate to="/app" replace />} />
+      <Route path="schedule" element={<Navigate to="/app/schedule" replace />} />
+      <Route path="live" element={<Navigate to="/app/live" replace />} />
+      <Route path="app" element={<RequireAuth><InternalLayout /></RequireAuth>}>
+        <Route index element={<Navigate to="/app/schedule" replace />} />
+        <Route path="schedule" element={<SchedulePage />} />
+        <Route path="events/:eventId" element={<EventDetailPage />} />
+        <Route path="match/:id" element={<MatchDetailPage />} />
+        <Route path="live" element={<LivePage />} />
+        <Route path="live/:id" element={<LivePage />} />
+        <Route path="team" element={<TeamPage />} />
+        <Route path="table" element={<TablePage />} />
+        <Route path="profile" element={<ProfilePage />} />
+      </Route>
+      <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+      <Route path="/admin/login" element={<LoginPage />} />
+      <Route path="/admin/dashboard" element={<RequireAuth><AdminDashboardPage /></RequireAuth>} />
+      <Route path="/admin/setup" element={<SetupAdminPage />} />
+      <Route path="/admin/roles" element={<RequireAuth allowedBackendRoles={['admin', 'head_coach']}><RolesAdminPage /></RequireAuth>} />
+    </Routes>
+  );
+}
+
+/** Nur öffentliche App: Landingpage, Spielplan. Kein /app, kein Login. */
+function PublicRoutes(): React.ReactElement {
+  return (
+    <Routes>
+      <Route path="app.html" element={<Navigate to="/" replace />} />
+      <Route element={<AppLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="schedule" element={<SchedulePage />} />
+        <Route path="live" element={<SchedulePage />} />
+      </Route>
+      <Route path="app" element={<Navigate to="/" replace />} />
+      <Route path="app/*" element={<Navigate to="/" replace />} />
+      <Route path="/admin" element={<Navigate to="/" replace />} />
+      <Route path="/admin/*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+interface AppProps {
+  isInternalDomain: boolean;
+}
+
+export default function App({ isInternalDomain }: AppProps): React.ReactElement {
   return (
     <AppErrorBoundary>
       <RoleProvider>
-        <Routes>
-          {/* Public: nur Landingpage, Spielplan, Live – keine Navigation zu Event-Detail */}
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="schedule" element={<SchedulePage />} />
-            <Route path="live" element={<SchedulePage />} />
-          </Route>
-          {/* Interner Bereich: nur nach Login, mit Menüs und Rollen */}
-          <Route path="app" element={<RequireAuth><InternalLayout /></RequireAuth>}>
-            <Route index element={<Navigate to="/app/schedule" replace />} />
-            <Route path="schedule" element={<SchedulePage />} />
-            <Route path="events/:eventId" element={<EventDetailPage />} />
-            <Route path="match/:id" element={<MatchDetailPage />} />
-            <Route path="live" element={<LivePage />} />
-            <Route path="live/:id" element={<LivePage />} />
-            <Route path="team" element={<TeamPage />} />
-            <Route path="table" element={<TablePage />} />
-            <Route path="profile" element={<ProfilePage />} />
-          </Route>
-          <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
-          <Route path="/admin/login" element={<LoginPage />} />
-          <Route path="/admin/dashboard" element={<RequireAuth><AdminDashboardPage /></RequireAuth>} />
-          <Route path="/admin/setup" element={<SetupAdminPage />} />
-          <Route path="/admin/roles" element={<RequireAuth allowedBackendRoles={['admin', 'head_coach']}><RolesAdminPage /></RequireAuth>} />
-        </Routes>
+        {isInternalDomain ? <InternalRoutes /> : <PublicRoutes />}
       </RoleProvider>
     </AppErrorBoundary>
   );

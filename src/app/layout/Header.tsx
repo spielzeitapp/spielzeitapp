@@ -33,28 +33,48 @@ export const Header: React.FC = () => {
   return (
     <header className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-black/60 py-3 backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-screen-2xl items-center justify-between gap-2 px-4 md:px-8">
-        {/* Links: Logo + Branding */}
+        {/* Links: Logo + Branding (im internen Bereich klickbar → /app/schedule) */}
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <img
-            src={logo}
-            alt=""
-            className="h-9 w-9 shrink-0 rounded-full object-cover"
-            width={36}
-            height={36}
-          />
-          <div className="min-w-0">
-            <div className="text-lg font-semibold leading-tight text-white">
-              SpielzeitApp
-            </div>
-            <div className="text-xs text-white/60">
-              NSG Gölsental
-            </div>
-            {!publicView && membershipError && (
-              <span className="text-xs text-amber-400" role="alert">
-                {membershipError}
-              </span>
-            )}
-          </div>
+          {pathname.startsWith('/app') ? (
+            <Link to="/app/schedule" className="flex items-center gap-3 min-w-0">
+              <img
+                src={logo}
+                alt=""
+                className="h-9 w-9 shrink-0 rounded-full object-cover"
+                width={36}
+                height={36}
+              />
+              <div className="min-w-0">
+                <div className="text-lg font-semibold leading-tight text-white">
+                  SpielzeitApp
+                </div>
+                <div className="text-xs text-white/60">NSG Gölsental</div>
+              </div>
+            </Link>
+          ) : (
+            <>
+              <img
+                src={logo}
+                alt=""
+                className="h-9 w-9 shrink-0 rounded-full object-cover"
+                width={36}
+                height={36}
+              />
+              <div className="min-w-0">
+                <div className="text-lg font-semibold leading-tight text-white">
+                  SpielzeitApp
+                </div>
+                <div className="text-xs text-white/60">
+                  NSG Gölsental
+                </div>
+                {!publicView && membershipError && (
+                  <span className="text-xs text-amber-400" role="alert">
+                    {membershipError}
+                  </span>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Rechts: Profil + Login + Rolle nur auf nicht-öffentlichen Seiten */}
