@@ -90,6 +90,8 @@ export function isDevMode(): boolean {
  */
 export function getUiRole(): UiRole {
   const backend = getBackendRole();
+  // Kein implizites Fallback mehr auf "fan" – wenn keine Backend-Rolle vorhanden ist,
+  // wird auf "viewer" normalisiert.
   const normalized = normalizeToUiRole(backend || '');
 
   if (!isDevMode()) return normalized;

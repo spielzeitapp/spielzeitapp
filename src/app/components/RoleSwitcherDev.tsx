@@ -15,9 +15,7 @@ const ROLE_LABEL_DE: Record<string, string> = {
 
 export const RoleSwitcherDev: React.FC = () => {
   const { role, setRole } = useSession();
-  const currentRole = BACKEND_ROLES.includes(role as (typeof BACKEND_ROLES)[number])
-    ? role
-    : 'fan';
+  const currentRole = BACKEND_ROLES.includes(role as (typeof BACKEND_ROLES)[number]) ? role : 'parent';
 
   return (
     <select

@@ -4,6 +4,7 @@ import { AppLayout } from './layout/AppLayout';
 import { InternalLayout } from './layout/InternalLayout.tsx';
 import { RoleProvider } from './role/RoleContext';
 import { RequireAuth } from '../auth/RequireAuth';
+import { useSession } from '../auth/useSession';
 import { HomePage } from '../pages/HomePage';
 import { SchedulePage } from '../pages/SchedulePage';
 import { ParentOnboardingPage } from '../pages/ParentOnboardingPage';
@@ -23,6 +24,55 @@ import { RolesAdminPage } from '../pages/RolesAdminPage';
 const FALLBACK = (
   <div style={{ padding: 20, color: '#fff' }}>App lädt…</div>
 );
+
+/**
+ * Startseite nach erfolgreichem Login im internen Bereich.
+ * Entscheidet anhand der Rolle wohin umgeleitet wird:
+ * - parent   → Parent-Onboarding
+ * - trainer → Schedule (Trainer-Ansicht)
+ * - fan     → Schedule (Fan-Ansicht)
+ * - keine Rolle (weder global noch Membership) → RoleChoicePage
+ */
+function AppIndexRedirect(): React.ReactElement {
+  const { loading, memberships, membershipRole, backendRole } = useSession();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center text-white/70">
+        Laden…
+      </div>
+    );
+  }
+
+  // 1) Membership-Rolle hat Priorität
+  const primaryMembershipRole = membershipRole || memberships[0]?.role || null;
+
+  // 2) Wenn keine Membership-Rolle vorhanden ist, auf globale Backend-Rolle zurückfallen
+  const effectiveBackendRole = backendRole || null;
+
+  const finalRole = (primaryMembershipRole || effectiveBackendRole || '').toLowerCase();
+
+  // 3) Wenn überhaupt keine Rolle existiert → RoleChoicePage
+  if (!finalRole) {
+    return <Navigate to="/app/role-choice" replace />;
+  }
+
+  // 4) Rollenbasierte Zielseiten
+  if (finalRole === 'parent') {
+    return <Navigate to="/app/parent-onboarding" replace />;
+  }
+
+  if (finalRole === 'trainer') {
+    return <Navigate to="/app/schedule" replace />;
+  }
+
+  if (finalRole === 'fan') {
+    return <Navigate to="/app/schedule" replace />;
+  }
+
+  // Alle anderen Rollen (player, admin, etc.) landen ebenfalls im Schedule.
+  return <Navigate to="/app/schedule" replace />;
+}
 
 class AppErrorBoundary extends Component<
   { children: ReactNode },
@@ -56,7 +106,7 @@ function InternalRoutes(): React.ReactElement {
       <Route path="schedule" element={<Navigate to="/app/schedule" replace />} />
       <Route path="live" element={<Navigate to="/app/live" replace />} />
       <Route path="app" element={<RequireAuth><InternalLayout /></RequireAuth>}>
-        <Route index element={<Navigate to="/app/schedule" replace />} />
+        <Route index element={<AppIndexRedirect />} />
         <Route path="schedule" element={<SchedulePage />} />
         <Route path="role-choice" element={<RoleChoicePage />} />
         <Route path="parent-onboarding" element={<ParentOnboardingPage />} />

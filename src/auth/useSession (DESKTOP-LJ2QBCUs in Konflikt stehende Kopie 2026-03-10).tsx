@@ -72,7 +72,7 @@ export function getSeasonLabelFromMembership(m: MembershipWithJoin | null | unde
 const ROLES = ['fan', 'parent', 'player', 'trainer', 'admin'] as const;
 export type AllowedRole = (typeof ROLES)[number];
 
-/** Beim Einlesen von membership.role: alte/abweichende Werte mappen, unbekannt -> '' (keine Rolle). */
+/** Beim Einlesen von membership.role: alte/abweichende Werte mappen, unbekannt -> 'fan'. */
 export function normalizeRole(roleStr: string): string {
   const s = (roleStr ?? '').trim().toLowerCase();
   if (ROLES.includes(s as AllowedRole)) return s;
@@ -88,7 +88,7 @@ export function normalizeRole(roleStr: string): string {
     s === 'co trainer'
   )
     return 'trainer';
-  return '';
+  return 'fan';
 }
 
 function toRole(roleStr: string): Role {
@@ -194,17 +194,17 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   /** Anzeige-Backend-Rolle (global); erst nach Fetch gesetzt, sonst leer. */
   const backendRole = globalRole;
 
-  /** effectiveRole: normalisiert über toRole(), keine Altlasten (head_coach etc.) im UI. */
+  /** effectiveRole: normalisiert über toRole(), keine Altlasten (head_coach etc.) im UI.
+   *  Wichtig: Kein hartes Fallback mehr auf "fan" – "Fan" soll nicht Default sein,
+   *  wenn der User noch keine Rolle hat. */
   const effectiveRole = useMemo((): string => {
-    const normalizedBackend = roleFromUserRoles ? toRole(roleFromUserRoles) : null;
+    const normalizedBackend = toRole(roleFromUserRoles ?? '');
     const normalizedPreview = previewRole ? toRole(previewRole) : null;
     const normalizedMembership = selectedMembership?.role ? toRole(selectedMembership.role) : null;
-
-    // Admin behält immer mindestens Admin-Rechte, kann aber in der UI eine Testrolle wählen.
     if (normalizedBackend === 'admin') return normalizedPreview ?? 'admin';
-
-    // Sonst: Preview > Membership > Backend. Kein automatischer Fan-Fallback mehr.
-    return (normalizedPreview ?? normalizedMembership ?? normalizedBackend ?? '') || '';
+    // Wenn weder Preview noch Membership gesetzt sind, bleibt effectiveRole leer.
+    // Die Aufrufer entscheiden dann selbst, was passieren soll (z. B. RoleChoicePage).
+    return normalizedPreview ?? normalizedMembership ?? '';
   }, [roleFromUserRoles, previewRole, selectedMembership?.role]);
 
   /** Speichert immer den Key (via toRole), nie deutsche Labels. */
@@ -268,8 +268,9 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       if (cancelled) return;
 
-      const roleToSet = dbRole ?? null;
-      setRoleFromUserRoles(roleToSet);
+      // Kein Default "fan" mehr: Wenn keine DB-Rolle existiert, lassen wir roleFromUserRoles leer.
+      const roleToSet = dbRole ?? ('' as Role | '');
+      setRoleFromUserRoles(roleToSet || null);
       try {
         if (roleToSet) {
           window.localStorage.setItem(LOCAL_STORAGE_KEY_ROLE, roleToSet);
@@ -286,7 +287,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setMemberships([]);
         setTeamSeasons([]);
         setSelectedTeamSeasonIdState(null);
-        // Keine künstliche Fan-Rolle setzen – fehlende Rolle muss explizit behandelt werden.
+        // Bei Fehler ebenfalls kein hartes "fan"-Fallback – Rolle bleibt leer.
+        setRoleFromUserRoles(null);
         setMembershipError(error.message);
         setMembershipLoading(false);
         return;

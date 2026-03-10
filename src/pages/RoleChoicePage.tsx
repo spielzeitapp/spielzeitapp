@@ -23,24 +23,24 @@ export const RoleChoicePage: React.FC = () => {
                 variant="primary"
                 className="w-full"
                 onClick={() => {
-                  console.log('[ROLE CHOICE SELECT FAN]');
-                  setPreviewRole('fan');
-                  navigate('/app/schedule', { replace: true });
-                }}
-              >
-                Ich bin Fan
-              </Button>
-
-              <Button
-                variant="ghost"
-                className="w-full"
-                onClick={() => {
                   console.log('[ROLE CHOICE SELECT PARENT]');
                   setPreviewRole('parent');
                   navigate('/app/parent-onboarding', { replace: true });
                 }}
               >
                 Ich bin Elternteil
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  console.log('[ROLE CHOICE SELECT FAN]');
+                  setPreviewRole('fan');
+                  navigate('/app/schedule', { replace: true });
+                }}
+              >
+                Ich bin Fan
               </Button>
             </div>
           </div>
