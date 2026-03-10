@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { usePlayers } from '../hooks/usePlayers';
 import { Button } from '../app/components/ui/Button';
 import { Card, CardTitle } from '../app/components/ui/Card';
 
@@ -19,10 +18,12 @@ export const ParentOnboardingPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const { players, loading: playersLoading } = usePlayers(
-    selectedTeamSeasonId || null
-  );
+  const [players, setPlayers] = useState<
+    { id: string; display_name: string; jersey_number: number | null }[]
+  >([]);
+  const [playersLoading, setPlayersLoading] = useState(false);
+  const [playersError, setPlayersError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -38,12 +39,17 @@ export const ParentOnboardingPage: React.FC = () => {
       if (!alive) return;
 
       if (authError || !user) {
-        setError(authError?.message ?? 'Kein Benutzer angemeldet.');
+        const msg = authError?.message ?? 'Kein Benutzer angemeldet.';
+        console.log('[PARENT ONBOARDING LOAD ERROR]', msg);
+        setError(msg);
+        setLoadError(msg);
         setLoading(false);
         return;
       }
 
       setUserId(user.id);
+
+      console.log('[PARENT ONBOARDING TEAM LOAD START]');
 
       const { data, error: tsError } = await supabase
         .from('team_seasons')
@@ -59,11 +65,23 @@ export const ParentOnboardingPage: React.FC = () => {
       if (!alive) return;
 
       if (tsError) {
-        setError(tsError.message);
+        console.log('[PARENT ONBOARDING TEAM LOAD RESULT]', {
+          data: null,
+          error: tsError,
+        });
+        const msg = tsError.message ?? 'Teams konnten nicht geladen werden.';
+        console.log('[PARENT ONBOARDING LOAD ERROR]', msg);
+        setError(msg);
+        setLoadError(msg);
         setTeamSeasons([]);
         setLoading(false);
         return;
       }
+
+      console.log('[PARENT ONBOARDING TEAM LOAD RESULT]', {
+        rowCount: (data ?? []).length,
+        ids: (data ?? []).map((r: any) => r.id),
+      });
 
       const opts: TeamSeasonOption[] = (data ?? []).map((row: any) => {
         const team = Array.isArray(row.team) ? row.team[0] : row.team;
@@ -77,14 +95,18 @@ export const ParentOnboardingPage: React.FC = () => {
 
       setTeamSeasons(opts);
       if (opts.length > 0) {
-        setSelectedTeamSeasonId(opts[0].id);
+        const firstId = opts[0].id;
+        setSelectedTeamSeasonId(firstId);
       }
       setLoading(false);
     }
 
     load().catch((e) => {
       if (!alive) return;
-      setError(e?.message ?? 'Unbekannter Fehler beim Laden.');
+      const msg = e?.message ?? 'Unbekannter Fehler beim Laden.';
+      console.log('[PARENT ONBOARDING LOAD ERROR]', msg);
+      setError(msg);
+      setLoadError(msg);
       setLoading(false);
     });
 
@@ -92,6 +114,77 @@ export const ParentOnboardingPage: React.FC = () => {
       alive = false;
     };
   }, []);
+
+  // Spieler für ausgewählte team_season_id laden
+  useEffect(() => {
+    let alive = true;
+
+    async function loadPlayersForTeam(teamSeasonId: string) {
+      if (!teamSeasonId) {
+        setPlayers([]);
+        setPlayersLoading(false);
+        setPlayersError(null);
+        return;
+      }
+      setPlayersLoading(true);
+      setPlayersError(null);
+
+      console.log('[PARENT ONBOARDING PLAYER LOAD START]', { teamSeasonId });
+
+      const { data, error } = await supabase
+        .from('players')
+        .select('id, first_name, last_name, jersey_number, team_season_id')
+        .eq('team_season_id', teamSeasonId);
+
+      if (!alive) return;
+
+      if (error) {
+        console.log('[PARENT ONBOARDING PLAYER LOAD ERROR]', error);
+        setPlayers([]);
+        setPlayersError(error.message ?? 'Spieler konnten nicht geladen werden.');
+        setPlayersLoading(false);
+        return;
+      }
+
+      const rows = (data ?? []) as {
+        id: string;
+        first_name: string | null;
+        last_name: string | null;
+        jersey_number: number | null;
+      }[];
+
+      console.log('[PARENT ONBOARDING PLAYER LOAD RESULT]', {
+        rowCount: rows.length,
+        ids: rows.map((r) => r.id),
+      });
+
+      const mapped = rows.map((r) => {
+        const first = (r.first_name ?? '').toString().trim();
+        const last = (r.last_name ?? '').toString().trim();
+        const display_name = `${first} ${last}`.trim() || 'Spieler';
+        return {
+          id: r.id,
+          display_name,
+          jersey_number: r.jersey_number ?? null,
+        };
+      });
+
+      setPlayers(mapped);
+      setPlayersLoading(false);
+    }
+
+    loadPlayersForTeam(selectedTeamSeasonId).catch((e) => {
+      console.log('[PARENT ONBOARDING PLAYER LOAD ERROR]', e);
+      if (!alive) return;
+      setPlayers([]);
+      setPlayersError(e?.message ?? 'Spieler konnten nicht geladen werden.');
+      setPlayersLoading(false);
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [selectedTeamSeasonId]);
 
   const handleSave = async () => {
     if (!userId || !selectedTeamSeasonId || !selectedPlayerId) {
@@ -186,6 +279,40 @@ export const ParentOnboardingPage: React.FC = () => {
 
             {loading ? (
               <p className="text-sm text-[var(--text-sub)]">Lade Daten…</p>
+            ) : loadError ? (
+              <div className="space-y-3">
+                <p className="text-sm text-red-400">
+                  Es gab ein Problem beim Laden der Onboarding-Daten.
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    variant="primary"
+                    className="flex-1"
+                    onClick={() => {
+                      console.log('[PARENT ONBOARDING RETRY]');
+                      window.location.reload();
+                    }}
+                  >
+                    Erneut laden
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="flex-1"
+                    onClick={async () => {
+                      console.log('[AUTH LOGOUT START]');
+                      try {
+                        await supabase.auth.signOut();
+                        console.log('[AUTH LOGOUT SUCCESS]');
+                        navigate('/admin/login', { replace: true });
+                      } catch (e) {
+                        console.error('[AUTH LOGOUT ERROR]', e);
+                      }
+                    }}
+                  >
+                    Abmelden
+                  </Button>
+                </div>
+              </div>
             ) : (
               <>
                 <div className="space-y-2">
@@ -216,9 +343,13 @@ export const ParentOnboardingPage: React.FC = () => {
                     <p className="text-sm text-[var(--text-sub)]">
                       Lade Spieler…
                     </p>
+                  ) : playersError ? (
+                    <p className="text-sm text-[var(--text-sub)]">
+                      Spieler konnten nicht geladen werden.
+                    </p>
                   ) : players.length === 0 ? (
                     <p className="text-sm text-[var(--text-sub)]">
-                      Für dieses Team sind keine aktiven Spieler erfasst.
+                      Kein Spieler gefunden. Bitte Trainer kontaktieren.
                     </p>
                   ) : (
                     <div className="space-y-2 max-h-[260px] overflow-y-auto rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2">

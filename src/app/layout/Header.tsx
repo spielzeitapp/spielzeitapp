@@ -26,7 +26,7 @@ export const Header: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { membershipError, effectiveRole, loading: sessionLoading } = useSession();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const publicView = isPublicRoute(pathname);
   const roleLabel = effectiveRole ? (ROLE_LABEL_DE[effectiveRole] ?? effectiveRole) : null;
 
@@ -77,7 +77,7 @@ export const Header: React.FC = () => {
           )}
         </div>
 
-        {/* Rechts: Profil + Login + Rolle nur auf nicht-öffentlichen Seiten */}
+        {/* Rechts: Profil + Login/Logout + Rolle nur auf nicht-öffentlichen Seiten */}
         {!publicView && (
           <div className="flex shrink-0 flex-col items-end justify-center gap-1">
             <div className="flex items-center gap-2">
@@ -88,6 +88,24 @@ export const Header: React.FC = () => {
                   className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs text-white transition-colors hover:bg-white/15"
                 >
                   Login
+                </button>
+              )}
+              {!authLoading && user && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    console.log('[AUTH LOGOUT START]');
+                    try {
+                      await signOut();
+                      console.log('[AUTH LOGOUT SUCCESS]');
+                      navigate('/admin/login', { replace: true });
+                    } catch (e) {
+                      console.error('[AUTH LOGOUT ERROR]', e);
+                    }
+                  }}
+                  className="rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs text-white transition-colors hover:bg-white/15"
+                >
+                  Abmelden
                 </button>
               )}
               <Link

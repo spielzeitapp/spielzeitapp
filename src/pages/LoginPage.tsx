@@ -4,6 +4,8 @@ import { useAuth } from '../auth/AuthProvider';
 import { Button } from '../app/components/ui/Button';
 import { supabase } from '../lib/supabaseClient';
 
+const PROD_URL = 'https://app.spielzeitapp.at';
+
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
 
@@ -21,6 +23,9 @@ export const LoginPage: React.FC = () => {
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/app/schedule';
 
+  console.log('[LOGIN PAGE RENDER]');
+  console.log('[LOGIN PAGE STATE]', { mode, emailNotEmpty: !!email, loading });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -32,6 +37,9 @@ export const LoginPage: React.FC = () => {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
+        options: {
+          emailRedirectTo: `${PROD_URL}/`,
+        },
       });
       setLoading(false);
       if (signUpError) {
@@ -40,16 +48,20 @@ export const LoginPage: React.FC = () => {
         return;
       }
       console.log('[AUTH SIGNUP SUCCESS]', { user: data.user, session: data.session });
-      // Nach erfolgreichem Signup direkt versuchen einzuloggen (je nach Supabase-Settings kann Session bereits existieren).
-      console.log('[AUTH LOGIN START]', { email: email.trim() });
-      const { error: signInError } = await signIn(email, password);
-      if (signInError) {
-        console.log('[AUTH LOGIN ERROR]', signInError);
-        setError(signInError.message);
+
+      // Falls Supabase direkt eine Session zurückgibt: sofort weiter.
+      if (data.session) {
+        console.log('[AUTH LOGIN SUCCESS]');
+        navigate(from, { replace: true });
         return;
       }
-      console.log('[AUTH LOGIN SUCCESS]');
-      navigate(from, { replace: true });
+
+      // Sonst: klare Erfolgsmeldung und Hinweis zum Einloggen.
+      setResetMessage({
+        type: 'success',
+        text: 'Konto erstellt. Bitte jetzt einloggen.',
+      });
+      setMode('login');
       return;
     }
 
@@ -74,7 +86,7 @@ export const LoginPage: React.FC = () => {
       return;
     }
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/`,
+      redirectTo: `${PROD_URL}/`,
     });
     if (resetError) {
       setResetMessage({ type: 'error', text: resetError.message });
@@ -89,6 +101,7 @@ export const LoginPage: React.FC = () => {
         <h1 className="text-xl font-semibold text-white">
           {mode === 'signup' ? 'Registrieren' : 'Einloggen'}
         </h1>
+        <p className="mt-1 text-xs text-white/60">LOGIN PAGE LOADED</p>
         {import.meta.env.DEV && (
           <p className="mt-0.5 text-xs text-white/50">DEV Login</p>
         )}
