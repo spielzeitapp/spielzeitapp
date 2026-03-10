@@ -8,6 +8,7 @@ import { useIsTouchLayout } from '../../hooks/useMediaQuery';
 import { useAuth } from '../../auth/AuthProvider';
 import { useSession, normalizeRole as normalizeSessionRole } from '../../auth/useSession';
 import { useSyncPendingProfile } from '../../auth/useSyncPendingProfile';
+import { useSyncProfileFromUserMetadata } from '../../auth/useSyncProfileFromUserMetadata';
 import { supabase } from '../../lib/supabaseClient';
 
 /**
@@ -15,7 +16,7 @@ import { supabase } from '../../lib/supabaseClient';
  * Immer mit Header, TopNav/BottomTabs (keine öffentliche Reduktion).
  *
  * E2E Parent flow:
- * - First time: magic link → /app → role-choice → parent-onboarding (team + child) → set-password → schedule.
+ * - First time: register → /app → role-choice → parent-onboarding (team + child) → set-password → schedule.
  * - Second login: email + password → /app/schedule (onboarding skipped if memberships + player_guardians exist).
  */
 export const InternalLayout: React.FC = () => {
@@ -27,6 +28,7 @@ export const InternalLayout: React.FC = () => {
   const [checked, setChecked] = useState(false);
 
   useSyncPendingProfile(user ?? null);
+  useSyncProfileFromUserMetadata(user ?? null);
 
   useEffect(() => {
     let alive = true;

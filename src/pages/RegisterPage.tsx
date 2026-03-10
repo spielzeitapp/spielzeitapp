@@ -1,26 +1,30 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { supabase } from '../lib/supabaseClient';
-import { PENDING_PROFILE_KEY, type PendingProfile } from '../lib/pendingProfile';
-
-const PROD_URL = 'https://app.spielzeitapp.at';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
 
+const MIN_PASSWORD_LENGTH = 6;
+
 export const RegisterPage: React.FC = () => {
+  const navigate = useNavigate();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setMessage(null);
+    setNeedsEmailConfirmation(false);
 
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
@@ -31,31 +35,44 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setMessage({ type: 'error', text: `Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben.` });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setMessage({ type: 'error', text: 'Passwörter stimmen nicht überein.' });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const payload: PendingProfile = {
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: trimmedEmail,
-        first_name: trimmedFirst,
-        last_name: trimmedLast,
-      };
-      localStorage.setItem(PENDING_PROFILE_KEY, JSON.stringify(payload));
-
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: trimmedEmail,
-        options: { emailRedirectTo: `${PROD_URL}/app` },
+        password,
+        options: {
+          data: { first_name: trimmedFirst, last_name: trimmedLast },
+        },
       });
 
-      if (otpError) {
-        setError(otpError.message);
-        setMessage({ type: 'error', text: otpError.message });
+      if (signUpError) {
+        setError(signUpError.message);
+        setMessage({ type: 'error', text: signUpError.message });
         setLoading(false);
         return;
       }
 
+      if (data.session) {
+        setLoading(false);
+        navigate('/app', { replace: true });
+        return;
+      }
+
+      setNeedsEmailConfirmation(true);
       setMessage({
         type: 'success',
-        text: 'Wir haben dir einen Anmeldelink per E-Mail geschickt. Nach dem Klick meldest du dich an und kannst Kind verknüpfen und ein Passwort setzen.',
+        text: 'Konto angelegt. Bitte E-Mail bestätigen – du erhältst einen Link zur Bestätigung.',
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Registrierung fehlgeschlagen.';
@@ -66,12 +83,30 @@ export const RegisterPage: React.FC = () => {
     }
   };
 
+  if (needsEmailConfirmation) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
+          <h1 className="text-xl font-semibold text-white">E-Mail bestätigen</h1>
+          <p className="mt-2 text-sm text-white/70">
+            Wir haben dir eine E-Mail geschickt. Bitte klicke auf den Link darin, um dein Konto zu aktivieren. Danach kannst du dich mit E-Mail und Passwort anmelden.
+          </p>
+          <p className="mt-4 text-center text-sm text-white/60">
+            <Link to="/login" className="text-white/80 hover:text-white hover:underline">
+              Zur Anmeldung
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
         <h1 className="text-xl font-semibold text-white">Registrieren</h1>
         <p className="mt-1 text-sm text-white/60">
-          Für Eltern: Nach dem ersten Anmelden verknüpfst du dein Kind und setzt ein Passwort.
+          Konto anlegen – danach kannst du Rolle, Team und Kind verknüpfen.
         </p>
 
         <form onSubmit={handleRegister} className="mt-6 space-y-4">
@@ -120,6 +155,38 @@ export const RegisterPage: React.FC = () => {
               className={inputClass}
             />
           </div>
+          <div>
+            <label htmlFor="reg-password" className="mb-1 block text-sm font-medium text-white/80">
+              Passwort
+            </label>
+            <input
+              id="reg-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={`Mindestens ${MIN_PASSWORD_LENGTH} Zeichen`}
+              minLength={MIN_PASSWORD_LENGTH}
+              required
+              autoComplete="new-password"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="reg-confirm-password" className="mb-1 block text-sm font-medium text-white/80">
+              Passwort wiederholen
+            </label>
+            <input
+              id="reg-confirm-password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Passwort wiederholen"
+              minLength={MIN_PASSWORD_LENGTH}
+              required
+              autoComplete="new-password"
+              className={inputClass}
+            />
+          </div>
 
           {error && <p className="text-sm text-red-300" role="alert">{error}</p>}
           {message && (
@@ -129,7 +196,7 @@ export const RegisterPage: React.FC = () => {
           )}
 
           <Button type="submit" fullWidth disabled={loading} className="mt-2">
-            {loading ? 'Wird gesendet…' : 'Anmeldelink senden'}
+            {loading ? 'Wird angelegt…' : 'Konto anlegen'}
           </Button>
         </form>
 
