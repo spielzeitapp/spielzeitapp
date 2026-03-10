@@ -103,6 +103,8 @@ export const SchedulePage: React.FC = () => {
     if (pathname === '/live') setActiveTab('live');
   }, [pathname]);
 
+  // Parent-Onboarding Redirect läuft zentral im InternalLayout (nach Login).
+
   const openEditModal = (e: EventRow) => {
     if (!canManage) {
       setToastMessage('Keine Berechtigung zum Bearbeiten.');
@@ -123,6 +125,7 @@ export const SchedulePage: React.FC = () => {
    */
   const setAttendance = async (eventId: string, status: 'yes' | 'no') => {
     let playerId = myAttendancePlayerIds[0] ?? null;
+    console.log('[ATTENDANCE LOOKUP START]', { eventId, status, playerIdFromHook: playerId });
     if (!playerId) {
       const { data: userRes } = await supabase.auth.getUser();
       const userId = userRes?.user?.id;
@@ -134,6 +137,7 @@ export const SchedulePage: React.FC = () => {
         }
       }
     }
+    console.log('[ATTENDANCE LOOKUP RESULT]', { eventId, status, playerId });
 
     if (!eventId || !playerId) {
       console.error('[ATTENDANCE MISSING IDS]', { eventId, playerId });

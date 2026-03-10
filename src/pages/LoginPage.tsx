@@ -11,6 +11,7 @@ export const LoginPage: React.FC = () => {
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -26,12 +27,41 @@ export const LoginPage: React.FC = () => {
     setResetMessage(null);
     setLoading(true);
 
+    if (mode === 'signup') {
+      console.log('[AUTH SIGNUP START]', { email: email.trim() });
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+      });
+      setLoading(false);
+      if (signUpError) {
+        console.log('[AUTH SIGNUP ERROR]', signUpError);
+        setError(signUpError.message);
+        return;
+      }
+      console.log('[AUTH SIGNUP SUCCESS]', { user: data.user, session: data.session });
+      // Nach erfolgreichem Signup direkt versuchen einzuloggen (je nach Supabase-Settings kann Session bereits existieren).
+      console.log('[AUTH LOGIN START]', { email: email.trim() });
+      const { error: signInError } = await signIn(email, password);
+      if (signInError) {
+        console.log('[AUTH LOGIN ERROR]', signInError);
+        setError(signInError.message);
+        return;
+      }
+      console.log('[AUTH LOGIN SUCCESS]');
+      navigate(from, { replace: true });
+      return;
+    }
+
+    console.log('[AUTH LOGIN START]', { email: email.trim() });
     const { error: signInError } = await signIn(email, password);
     setLoading(false);
 
     if (signInError) {
+      console.log('[AUTH LOGIN ERROR]', signInError);
       setError(signInError.message);
     } else {
+      console.log('[AUTH LOGIN SUCCESS]');
       navigate(from, { replace: true });
     }
   };
@@ -56,7 +86,9 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
-        <h1 className="text-xl font-semibold text-white">Einloggen</h1>
+        <h1 className="text-xl font-semibold text-white">
+          {mode === 'signup' ? 'Registrieren' : 'Einloggen'}
+        </h1>
         {import.meta.env.DEV && (
           <p className="mt-0.5 text-xs text-white/50">DEV Login</p>
         )}
@@ -112,7 +144,9 @@ export const LoginPage: React.FC = () => {
           )}
 
           <Button type="submit" fullWidth disabled={loading} className="mt-2">
-            {loading ? 'Wird angemeldet…' : 'Einloggen'}
+            {mode === 'signup'
+              ? (loading ? 'Konto wird erstellt…' : 'Konto erstellen')
+              : (loading ? 'Wird angemeldet…' : 'Einloggen')}
           </Button>
         </form>
 
@@ -123,6 +157,20 @@ export const LoginPage: React.FC = () => {
             className="text-sm text-white/60 hover:text-white/80 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 focus:ring-offset-2 focus:ring-offset-transparent rounded"
           >
             Passwort vergessen?
+          </button>
+        </p>
+
+        <p className="mt-2 text-center">
+          <button
+            type="button"
+            onClick={() => {
+              setError('');
+              setResetMessage(null);
+              setMode((m) => (m === 'login' ? 'signup' : 'login'));
+            }}
+            className="text-sm text-white/60 hover:text-white/80 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 focus:ring-offset-2 focus:ring-offset-transparent rounded"
+          >
+            {mode === 'login' ? 'Noch kein Konto? Registrieren' : 'Schon ein Konto? Einloggen'}
           </button>
         </p>
       </div>

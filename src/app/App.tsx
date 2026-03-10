@@ -6,6 +6,7 @@ import { RoleProvider } from './role/RoleContext';
 import { RequireAuth } from '../auth/RequireAuth';
 import { HomePage } from '../pages/HomePage';
 import { SchedulePage } from '../pages/SchedulePage';
+import { ParentOnboardingPage } from '../pages/ParentOnboardingPage';
 import { MatchDetailPage } from '../pages/MatchDetail/MatchDetailPage';
 import { EventDetailPage } from '../pages/EventDetailPage';
 import { LivePage } from '../pages/LivePage';
@@ -54,6 +55,7 @@ function InternalRoutes(): React.ReactElement {
       <Route path="app" element={<RequireAuth><InternalLayout /></RequireAuth>}>
         <Route index element={<Navigate to="/app/schedule" replace />} />
         <Route path="schedule" element={<SchedulePage />} />
+        <Route path="parent-onboarding" element={<ParentOnboardingPage />} />
         <Route path="events/:eventId" element={<EventDetailPage />} />
         <Route path="match/:id" element={<MatchDetailPage />} />
         <Route path="live" element={<LivePage />} />
