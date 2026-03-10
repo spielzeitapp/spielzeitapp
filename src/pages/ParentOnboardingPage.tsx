@@ -49,7 +49,7 @@ export const ParentOnboardingPage: React.FC = () => {
 
       setUserId(user.id);
 
-      console.log('[PARENT ONBOARDING TEAM LOAD START]');
+      console.log('[PARENT TEAM LOAD START]');
 
       const { data, error: tsError } = await supabase
         .from('team_seasons')
@@ -65,7 +65,7 @@ export const ParentOnboardingPage: React.FC = () => {
       if (!alive) return;
 
       if (tsError) {
-        console.log('[PARENT ONBOARDING TEAM LOAD RESULT]', {
+        console.log('[PARENT TEAM LOAD RESULT]', {
           data: null,
           error: tsError,
         });
@@ -78,7 +78,7 @@ export const ParentOnboardingPage: React.FC = () => {
         return;
       }
 
-      console.log('[PARENT ONBOARDING TEAM LOAD RESULT]', {
+      console.log('[PARENT TEAM LOAD RESULT]', {
         rowCount: (data ?? []).length,
         ids: (data ?? []).map((r: any) => r.id),
       });
@@ -129,7 +129,7 @@ export const ParentOnboardingPage: React.FC = () => {
       setPlayersLoading(true);
       setPlayersError(null);
 
-      console.log('[PARENT ONBOARDING PLAYER LOAD START]', { teamSeasonId });
+      console.log('[PARENT PLAYER LOAD START]', { teamSeasonId });
 
       const { data, error } = await supabase
         .from('players')
@@ -153,7 +153,7 @@ export const ParentOnboardingPage: React.FC = () => {
         jersey_number: number | null;
       }[];
 
-      console.log('[PARENT ONBOARDING PLAYER LOAD RESULT]', {
+      console.log('[PARENT PLAYER LOAD RESULT]', {
         rowCount: rows.length,
         ids: rows.map((r) => r.id),
       });
@@ -187,10 +187,16 @@ export const ParentOnboardingPage: React.FC = () => {
   }, [selectedTeamSeasonId]);
 
   const handleSave = async () => {
-    if (!userId || !selectedTeamSeasonId || !selectedPlayerId) {
-      setError('Bitte Team und Kind auswählen.');
-      return;
-    }
+      if (!userId || !selectedTeamSeasonId || !selectedPlayerId) {
+        const msg = 'Bitte Team und Kind auswählen.';
+        console.log('[PARENT ONBOARDING SAVE ERROR]', msg, {
+          userId,
+          selectedTeamSeasonId,
+          selectedPlayerId,
+        });
+        setError(msg);
+        return;
+      }
 
     console.log('[PARENT ONBOARDING TEAM SELECTED]', { teamSeasonId: selectedTeamSeasonId });
     console.log('[PARENT ONBOARDING PLAYER SELECTED]', { playerId: selectedPlayerId });
@@ -210,13 +216,15 @@ export const ParentOnboardingPage: React.FC = () => {
       )
       .select('user_id, team_season_id, role');
 
-    console.log('[PARENT ONBOARDING MEMBERSHIP SAVE RESULT]', {
+    console.log('[PARENT MEMBERSHIP UPSERT RESULT]', {
       data: membershipRes.data,
       error: membershipRes.error,
     });
 
     if (membershipRes.error) {
-      setError(membershipRes.error.message ?? 'Speichern der Membership fehlgeschlagen.');
+      const msg = membershipRes.error.message ?? 'Speichern der Membership fehlgeschlagen.';
+      console.log('[PARENT ONBOARDING SAVE ERROR]', msg);
+      setError(msg);
       setSaving(false);
       return;
     }
@@ -229,8 +237,10 @@ export const ParentOnboardingPage: React.FC = () => {
       .eq('player_id', selectedPlayerId)
       .maybeSingle();
     if (existing.error && existing.error.code !== 'PGRST116') {
-      console.log('[PARENT ONBOARDING PLAYER GUARDIAN SAVE RESULT]', { data: null, error: existing.error });
-      setError(existing.error.message ?? 'Prüfung der Kind-Verknüpfung fehlgeschlagen.');
+      console.log('[PARENT GUARDIAN UPSERT RESULT]', { data: null, error: existing.error });
+      const msg = existing.error.message ?? 'Prüfung der Kind-Verknüpfung fehlgeschlagen.';
+      console.log('[PARENT ONBOARDING SAVE ERROR]', msg);
+      setError(msg);
       setSaving(false);
       return;
     }
@@ -246,13 +256,15 @@ export const ParentOnboardingPage: React.FC = () => {
           .select('user_id, player_id')
           .maybeSingle();
 
-    console.log('[PARENT ONBOARDING PLAYER GUARDIAN SAVE RESULT]', {
+    console.log('[PARENT GUARDIAN UPSERT RESULT]', {
       data: pgRes.data,
       error: pgRes.error,
     });
 
     if (pgRes.error) {
-      setError(pgRes.error.message ?? 'Speichern der Kind-Verknüpfung fehlgeschlagen.');
+      const msg = pgRes.error.message ?? 'Speichern der Kind-Verknüpfung fehlgeschlagen.';
+      console.log('[PARENT ONBOARDING SAVE ERROR]', msg);
+      setError(msg);
       setSaving(false);
       return;
     }
