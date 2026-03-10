@@ -13,6 +13,10 @@ import { supabase } from '../../lib/supabaseClient';
 /**
  * Layout für den internen Bereich /app/*.
  * Immer mit Header, TopNav/BottomTabs (keine öffentliche Reduktion).
+ *
+ * E2E Parent flow:
+ * - First time: magic link → /app → role-choice → parent-onboarding (team + child) → set-password → schedule.
+ * - Second login: email + password → /app/schedule (onboarding skipped if memberships + player_guardians exist).
  */
 export const InternalLayout: React.FC = () => {
   const isTouchLayout = useIsTouchLayout();

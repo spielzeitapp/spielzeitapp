@@ -17,6 +17,10 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showMagicLinkSection, setShowMagicLinkSection] = useState(false);
+  const [magicLinkEmail, setMagicLinkEmail] = useState('');
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false);
+  const [magicLinkMessage, setMagicLinkMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/app/schedule';
 
@@ -37,32 +41,31 @@ export const LoginPage: React.FC = () => {
     navigate(from, { replace: true });
   };
 
-  const handleMagicLink = async (e: React.FormEvent) => {
+  const handleSendMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setMessage(null);
-    setLoading(true);
+    const trimmed = magicLinkEmail.trim();
+    if (!trimmed) return;
+    setMagicLinkMessage(null);
+    setMagicLinkLoading(true);
     const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
+      email: trimmed,
       options: { emailRedirectTo: `${PROD_URL}/app` },
     });
-    setLoading(false);
+    setMagicLinkLoading(false);
     if (otpError) {
-      setError(otpError.message);
+      setMagicLinkMessage({ type: 'error', text: otpError.message });
       return;
     }
-    setMessage({ type: 'success', text: 'Wir haben dir einen Anmeldelink per E-Mail geschickt.' });
+    setMagicLinkMessage({ type: 'success', text: 'Anmeldelink wurde gesendet. Bitte Postfach prüfen.' });
   };
 
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
         <h1 className="text-xl font-semibold text-white">Anmelden</h1>
-        {import.meta.env.DEV && (
-          <p className="mt-0.5 text-xs text-white/50">DEV Login (Eltern/Fan)</p>
-        )}
+        <p className="mt-1 text-sm text-white/60">E-Mail und Passwort eingeben</p>
 
-        {/* E-Mail + Passwort: für wiederkehrende Nutzer (z. B. Eltern mit gesetztem Passwort) */}
+        {/* Primary: E-Mail + Passwort – kein Magic Link, nur expliziter Submit */}
         <form onSubmit={handlePasswordLogin} className="mt-6 space-y-4">
           <div>
             <label htmlFor="login-email" className="mb-1 block text-sm font-medium text-white/80">
@@ -116,33 +119,56 @@ export const LoginPage: React.FC = () => {
           </Button>
         </form>
 
-        <div className="mt-4 border-t border-white/10 pt-4">
-          <p className="text-xs text-white/60 mb-2">Erstes Mal oder kein Passwort?</p>
-          <button
-            type="button"
-            onClick={handleMagicLink}
-            disabled={loading || !email.trim()}
-            className="text-sm text-white/80 hover:text-white hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded disabled:opacity-50"
-          >
-            Anmeldelink per E-Mail senden
-          </button>
-        </div>
-
-        <p className="mt-4 text-center">
+        <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4">
           <Link
             to="/forgot-password"
-            className="text-xs text-white/40 hover:text-white/60 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded"
+            className="text-sm text-white/60 hover:text-white/90 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded"
           >
             Passwort vergessen?
           </Link>
-        </p>
-
-        <p className="mt-4 text-center text-sm text-white/60">
-          Noch kein Konto?{' '}
-          <Link to="/register" className="text-white/80 hover:text-white hover:underline">
-            Registrieren
+          <button
+            type="button"
+            onClick={() => {
+              setShowMagicLinkSection((v) => !v);
+              setMagicLinkMessage(null);
+            }}
+            className="text-left text-sm text-white/60 hover:text-white/90 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded"
+          >
+            {showMagicLinkSection ? 'Anmeldelink ausblenden' : 'Mit Anmeldelink anmelden'}
+          </button>
+          <Link
+            to="/register"
+            className="text-sm text-white/60 hover:text-white/90 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded"
+          >
+            Erstzugang / Registrierung
           </Link>
-        </p>
+        </div>
+
+        {showMagicLinkSection && (
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
+            <p className="text-xs text-white/60 mb-3">
+              Nur wenn du explizit einen Link möchtest: E-Mail eingeben und „Link senden“ tippen. Es wird kein Link automatisch verschickt.
+            </p>
+            <form onSubmit={handleSendMagicLink} className="space-y-3">
+              <input
+                type="email"
+                value={magicLinkEmail}
+                onChange={(e) => setMagicLinkEmail(e.target.value)}
+                placeholder="E-Mail für Anmeldelink"
+                className={inputClass}
+                autoComplete="email"
+              />
+              {magicLinkMessage && (
+                <p className={`text-sm ${magicLinkMessage.type === 'success' ? 'text-green-300' : 'text-red-300'}`}>
+                  {magicLinkMessage.text}
+                </p>
+              )}
+              <Button type="submit" fullWidth disabled={magicLinkLoading || !magicLinkEmail.trim()} variant="secondary">
+                {magicLinkLoading ? 'Wird gesendet…' : 'Anmeldelink senden'}
+              </Button>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );
