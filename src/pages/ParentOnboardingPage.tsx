@@ -315,7 +315,7 @@ export const ParentOnboardingPage: React.FC = () => {
                       try {
                         await supabase.auth.signOut();
                         console.log('[AUTH LOGOUT SUCCESS]');
-                        navigate('/admin/login', { replace: true });
+                        navigate('/login', { replace: true });
                       } catch (e) {
                         console.error('[AUTH LOGOUT ERROR]', e);
                       }

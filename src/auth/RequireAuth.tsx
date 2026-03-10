@@ -23,7 +23,7 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children, allowedBacke
   }
 
   if (!user) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (allowedBackendRoles != null && allowedBackendRoles.length > 0) {

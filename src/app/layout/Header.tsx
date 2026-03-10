@@ -20,7 +20,7 @@ function isPublicRoute(pathname: string): boolean {
 
 /** Interner Bereich: Links mit /app-Prefix. */
 const APP_PROFILE = '/app/profile';
-const APP_LOGIN_REDIRECT = '/admin/login';
+const APP_LOGIN_REDIRECT = '/login';
 
 export const Header: React.FC = () => {
   const { pathname } = useLocation();
@@ -98,7 +98,7 @@ export const Header: React.FC = () => {
                     try {
                       await signOut();
                       console.log('[AUTH LOGOUT SUCCESS]');
-                      navigate('/admin/login', { replace: true });
+                      navigate('/login', { replace: true });
                     } catch (e) {
                       console.error('[AUTH LOGOUT ERROR]', e);
                     }

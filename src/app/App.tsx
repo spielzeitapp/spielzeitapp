@@ -51,7 +51,7 @@ function InternalRoutes(): React.ReactElement {
     <Routes>
       <Route path="app.html" element={<Navigate to="/app" replace />} />
       <Route path="/" element={<Navigate to="/app" replace />} />
-      <Route path="login" element={<Navigate to="/admin/login" replace />} />
+      <Route path="login" element={<LoginPage />} />
       <Route path="schedule" element={<Navigate to="/app/schedule" replace />} />
       <Route path="live" element={<Navigate to="/app/live" replace />} />
       <Route path="app" element={<RequireAuth><InternalLayout /></RequireAuth>}>
