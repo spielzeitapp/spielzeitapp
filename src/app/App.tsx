@@ -15,6 +15,7 @@ import { TeamPage } from '../pages/TeamPage';
 import { TablePage } from '../pages/TablePage';
 import { ProfilePage } from '../pages/ProfilePage';
 import { LoginPage } from '../pages/LoginPage';
+import { AdminLoginPage } from '../pages/AdminLoginPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
 import { RolesAdminPage } from '../pages/RolesAdminPage';
@@ -68,7 +69,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="profile" element={<ProfilePage />} />
       </Route>
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
-      <Route path="/admin/login" element={<LoginPage />} />
+      <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/admin/dashboard" element={<RequireAuth><AdminDashboardPage /></RequireAuth>} />
       <Route path="/admin/setup" element={<SetupAdminPage />} />
       <Route path="/admin/roles" element={<RequireAuth allowedBackendRoles={['admin', 'head_coach']}><RolesAdminPage /></RequireAuth>} />
