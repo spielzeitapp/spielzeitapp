@@ -30,8 +30,6 @@ export type EventRow = {
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
-  /** Optional DB: bevorzugt für Logo-Pfad /logos/<slug>.png */
-  opponent_slug?: string | null;
   /** Optional DB: nur public/Storage-URL verwenden */
   opponent_logo_url?: string | null;
 };
@@ -52,7 +50,6 @@ type EventDbRow = {
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
-  opponent_slug?: string | null;
   opponent_logo_url?: string | null;
 };
 
@@ -100,7 +97,6 @@ export function useEvents(teamSeasonId: string | null) {
         created_by: r.created_by ?? null,
         created_at: r.created_at ?? null,
         updated_at: r.updated_at ?? null,
-        opponent_slug: r.opponent_slug ?? null,
         opponent_logo_url: r.opponent_logo_url ?? null,
       }));
       setEvents(mapped);

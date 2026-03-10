@@ -226,7 +226,18 @@ export const SchedulePage: React.FC = () => {
   };
 
   const displayEvents = useMemo(() => {
-    const sorted = [...events].sort((a, b) => (a.starts_at ?? '').localeCompare(b.starts_at ?? ''));
+    const statusWeight: Record<string, number> = {
+      upcoming: 0,
+      live: 1,
+      finished: 2,
+      canceled: 3,
+    };
+    const sorted = [...events].sort((a, b) => {
+      const wa = statusWeight[a.status ?? 'upcoming'] ?? 0;
+      const wb = statusWeight[b.status ?? 'upcoming'] ?? 0;
+      if (wa !== wb) return wa - wb;
+      return (a.starts_at ?? '').localeCompare(b.starts_at ?? '');
+    });
     return sorted.filter((e) => getEventTab(e) === activeTab);
   }, [events, activeTab]);
 
@@ -360,7 +371,6 @@ export const SchedulePage: React.FC = () => {
                         eventId={forcePublicView ? undefined : ev.id}
                         onNavigate={forcePublicView ? undefined : (id) => navigate(`/app/events/${id}`)}
                         isPublicView={forcePublicView}
-                        opponentSlug={ev.opponent_slug}
                         opponentLogoUrl={ev.opponent_logo_url}
                         canManage={canManage}
                         onEdit={canManage ? () => openEditModal(ev) : undefined}

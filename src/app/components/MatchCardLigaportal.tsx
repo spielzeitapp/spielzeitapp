@@ -83,7 +83,6 @@ type MatchCardLigaportalProps = {
   className?: string;
   eventId?: string | null;
   onNavigate?: (eventId: string) => void;
-  opponentSlug?: string | null;
   opponentLogoUrl?: string | null;
   /** Nur für Trainer/Admin: Bearbeiten + Löschen anzeigen. Buttons stoppen Card-Klick. */
   canManage?: boolean;
@@ -195,7 +194,6 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   className = '',
   eventId,
   onNavigate,
-  opponentSlug,
   opponentLogoUrl,
   canManage,
   onEdit,
@@ -260,8 +258,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   };
 
   const isClickable = !isPublicView && Boolean(eventId && onNavigate);
-  const rightLogoOverride =
-    opponentLogoUrl ?? (opponentSlug ? getClubLogoUrl(opponentSlug) : null);
+  const rightLogoOverride = opponentLogoUrl ?? null;
 
   const leftSplit = splitPrefixAndName(leftName ?? '');
   const rightSplit = splitPrefixAndName(rightName ?? '');

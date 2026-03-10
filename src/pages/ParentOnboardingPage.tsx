@@ -51,18 +51,18 @@ export const ParentOnboardingPage: React.FC = () => {
 
       console.log('[PARENT TEAM LOAD START]');
 
-      const { data, error: tsError } = await supabase
+      const { data: teamSeasonRows, error: tsError } = await supabase
         .from('team_seasons')
-        .select('id, teams(name)')
-        .order('name', { foreignTable: 'teams' });
+        .select('id, team_id');
+
+      console.log('[PARENT TEAM LOAD RAW TEAM_SEASONS]', {
+        data: teamSeasonRows,
+        error: tsError,
+      });
 
       if (!alive) return;
 
       if (tsError) {
-        console.log('[PARENT TEAM LOAD RESULT]', {
-          data: null,
-          error: tsError,
-        });
         const msg = tsError.message ?? 'Teams konnten nicht geladen werden.';
         console.log('[PARENT ONBOARDING LOAD ERROR]', msg);
         setError(msg);
@@ -72,18 +72,42 @@ export const ParentOnboardingPage: React.FC = () => {
         return;
       }
 
-      console.log('[PARENT TEAM LOAD RESULT]', {
-        rowCount: (data ?? []).length,
-        ids: (data ?? []).map((r: any) => r.id),
+      const teamIds = [
+        ...new Set((teamSeasonRows ?? []).map((row: any) => row.team_id).filter(Boolean)),
+      ];
+
+      const { data: teamsRows, error: teamsError } = await supabase
+        .from('teams')
+        .select('id, name')
+        .in('id', teamIds);
+
+      console.log('[PARENT TEAM LOAD RAW TEAMS]', {
+        data: teamsRows,
+        error: teamsError,
       });
 
-      const opts: TeamSeasonOption[] = (data ?? []).map((row: any) => {
-        const teams = Array.isArray(row.teams) ? row.teams[0] : row.teams;
-        const teamName = (teams?.name ?? 'Team').toString().trim();
-        const label = teamName;
-        // Supabase kann id als number oder string liefern – für Dropdown immer als string verwenden.
-        return { id: String(row.id), label };
-      });
+      if (!alive) return;
+
+      if (teamsError) {
+        const msg = teamsError.message ?? 'Teamnamen konnten nicht geladen werden.';
+        console.log('[PARENT ONBOARDING LOAD ERROR]', msg);
+        setError(msg);
+        setLoadError(msg);
+        setTeamSeasons([]);
+        setLoading(false);
+        return;
+      }
+
+      const teamNameById = new Map(
+        (teamsRows ?? []).map((row: any) => [String(row.id), String(row.name ?? 'Team')]),
+      );
+
+      const opts: TeamSeasonOption[] = (teamSeasonRows ?? []).map((row: any) => ({
+        id: String(row.id),
+        label: (teamNameById.get(String(row.team_id)) ?? 'Team').toString().trim(),
+      }));
+
+      console.log('[PARENT TEAM OPTIONS]', opts);
 
       setTeamSeasons(opts);
       if (opts.length > 0) {
@@ -130,6 +154,8 @@ export const ParentOnboardingPage: React.FC = () => {
         .order('last_name', { ascending: true });
 
       if (!alive) return;
+
+      console.log('[PARENT PLAYER LOAD RAW]', { data, error });
 
       if (error) {
         console.log('[PARENT ONBOARDING PLAYER LOAD ERROR]', error);
