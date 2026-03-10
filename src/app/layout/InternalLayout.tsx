@@ -25,8 +25,11 @@ export const InternalLayout: React.FC = () => {
     let alive = true;
 
     async function gate() {
-      // Onboarding-Seite selbst nie blocken.
-      if (location.pathname === '/app/parent-onboarding') {
+      // Onboarding- / Rollenauswahl-Seiten selbst nie blocken.
+      if (
+        location.pathname === '/app/parent-onboarding' ||
+        location.pathname === '/app/role-choice'
+      ) {
         if (alive) setChecked(true);
         return;
       }
@@ -34,10 +37,18 @@ export const InternalLayout: React.FC = () => {
       if (!user || sessionLoading) return;
 
       // Trainer/Admin (globalRole) nie zum Parent-Onboarding zwingen.
+      // Parent-Onboarding nur für echte Parent-User (backendRole = 'parent'), nicht für Fans.
       const backend = normalizeSessionRole(backendRole);
       const isStaff = backend === 'trainer' || backend === 'admin';
-      if (isStaff) {
+      const isParentGlobal = backend === 'parent';
+      if (isStaff || !isParentGlobal) {
         if (alive) setChecked(true);
+        return;
+      }
+
+      // Wenn keine Memberships vorhanden sind (neuer User), zuerst Rollenauswahl anzeigen.
+      if ((memberships ?? []).length === 0) {
+        navigate('/app/role-choice', { replace: true });
         return;
       }
 
