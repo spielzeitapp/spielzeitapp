@@ -8,6 +8,9 @@ const inputClass =
 
 const MIN_PASSWORD_LENGTH = 6;
 
+/** Redirect URL after user clicks confirmation link in email (must be in Supabase Redirect URLs allow list). */
+const EMAIL_REDIRECT_TO = 'https://app.spielzeitapp.at/app';
+
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [firstName, setFirstName] = useState('');
@@ -48,12 +51,32 @@ export const RegisterPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const signUpPayload = {
         email: trimmedEmail,
         password,
         options: {
           data: { first_name: trimmedFirst, last_name: trimmedLast },
+          emailRedirectTo: EMAIL_REDIRECT_TO,
         },
+      };
+      console.log('[RegisterPage] signUp payload (no password):', {
+        email: signUpPayload.email,
+        options: signUpPayload.options,
+      });
+
+      const result = await supabase.auth.signUp(signUpPayload);
+      const { data, error: signUpError } = result;
+
+      console.log('[RegisterPage] signUp result:', {
+        hasData: !!data,
+        hasError: !!signUpError,
+        errorMessage: signUpError?.message ?? null,
+        errorCode: (signUpError as { code?: string } | null)?.code ?? null,
+        hasSession: !!data?.session,
+        hasUser: !!data?.user,
+        userIdentitiesLength: data?.user?.identities?.length ?? 0,
+        userEmailConfirmed: data?.user?.email_confirmed_at ?? null,
+        userId: data?.user?.id ?? null,
       });
 
       if (signUpError) {
@@ -69,12 +92,16 @@ export const RegisterPage: React.FC = () => {
         return;
       }
 
+      if (data?.user?.identities?.length === 0) {
+        console.warn('[RegisterPage] signUp returned user with identities.length === 0 (email may already be registered). No confirmation email is sent in that case.');
+      }
       setNeedsEmailConfirmation(true);
       setMessage({
         type: 'success',
         text: 'Konto angelegt. Bitte E-Mail bestätigen – du erhältst einen Link zur Bestätigung.',
       });
     } catch (e) {
+      console.error('[RegisterPage] signUp exception:', e);
       const msg = e instanceof Error ? e.message : 'Registrierung fehlgeschlagen.';
       setError(msg);
       setMessage({ type: 'error', text: msg });
