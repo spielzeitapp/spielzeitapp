@@ -62,5 +62,5 @@ export function displayName(profile: ProfileRow | null, email: string | undefine
   const first = (profile.first_name ?? '').trim();
   const last = (profile.last_name ?? '').trim();
   const name = `${first} ${last}`.trim();
-  return name || email ?? '–';
+  return name || email || '–';
 }
