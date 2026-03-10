@@ -51,11 +51,10 @@ export const ParentOnboardingPage: React.FC = () => {
 
       console.log('[PARENT TEAM LOAD START]');
 
-      // Team-Saisons inkl. Team- und Saison-Namen wie in teamSeasonRepo / SetupAdmin.
       const { data, error: tsError } = await supabase
         .from('team_seasons')
-        .select('id, team_id, season_id, team:teams(id,name), season:seasons(id,name)')
-        .order('id', { ascending: true });
+        .select('id, teams(name)')
+        .order('name', { foreignTable: 'teams' });
 
       if (!alive) return;
 
@@ -79,11 +78,9 @@ export const ParentOnboardingPage: React.FC = () => {
       });
 
       const opts: TeamSeasonOption[] = (data ?? []).map((row: any) => {
-        const team = Array.isArray(row.team) ? row.team[0] : row.team;
-        const season = Array.isArray(row.season) ? row.season[0] : row.season;
-        const teamName = (team?.name ?? 'Team').toString().trim();
-        const seasonName = (season?.name ?? '').toString().trim();
-        const label = seasonName !== '' ? `${teamName} (${seasonName})` : teamName;
+        const teams = Array.isArray(row.teams) ? row.teams[0] : row.teams;
+        const teamName = (teams?.name ?? 'Team').toString().trim();
+        const label = teamName;
         // Supabase kann id als number oder string liefern – für Dropdown immer als string verwenden.
         return { id: String(row.id), label };
       });
@@ -126,11 +123,11 @@ export const ParentOnboardingPage: React.FC = () => {
 
       console.log('[PARENT PLAYER LOAD START]', { teamSeasonId });
 
-      // Spieler für Onboarding aus View players_v laden (gefiltert nach team_season_id).
       const { data, error } = await supabase
-        .from('players_v')
-        .select('id, display_name, jersey_number, team_season_id')
-        .eq('team_season_id', teamSeasonId);
+        .from('players')
+        .select('id, first_name, last_name, jersey_number, team_season_id')
+        .eq('team_season_id', teamSeasonId)
+        .order('last_name', { ascending: true });
 
       if (!alive) return;
 
@@ -144,7 +141,8 @@ export const ParentOnboardingPage: React.FC = () => {
 
       const rows = (data ?? []) as {
         id: string;
-        display_name: string | null;
+        first_name: string | null;
+        last_name: string | null;
         jersey_number: number | null;
       }[];
 
@@ -153,11 +151,16 @@ export const ParentOnboardingPage: React.FC = () => {
         ids: rows.map((r) => r.id),
       });
 
-      const mapped = rows.map((r) => ({
-        id: r.id,
-        display_name: (r.display_name ?? '').toString().trim() || 'Spieler',
-        jersey_number: r.jersey_number ?? null,
-      }));
+      const mapped = rows.map((r) => {
+        const first = (r.first_name ?? '').toString().trim();
+        const last = (r.last_name ?? '').toString().trim();
+        const display_name = `${first} ${last}`.trim() || 'Spieler';
+        return {
+          id: r.id,
+          display_name,
+          jersey_number: r.jersey_number ?? null,
+        };
+      });
 
       setPlayers(mapped);
       setPlayersLoading(false);
