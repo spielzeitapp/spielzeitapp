@@ -64,7 +64,35 @@ export function useAvailabilityPermissions(params: {
         return;
       }
 
-      // Default: nichts erlaubt (Player-Regel später, wenn player<->user mapping klar ist)
+      // Player: nur sich selbst via player_users (user_id <-> player_id)
+      if (role === "player") {
+        setLoading(true);
+        const { data: userRes } = await supabase.auth.getUser();
+        const user = userRes?.user;
+        if (!user) {
+          if (alive) {
+            setAllowedPlayerIds(new Set());
+            setLoading(false);
+          }
+          return;
+        }
+        const res = await supabase
+          .from("player_users")
+          .select("player_id")
+          .eq("user_id", user.id);
+        if (!alive) return;
+        if (res.error) {
+          setError(res.error.message);
+          setAllowedPlayerIds(new Set());
+        } else {
+          const ids = (res.data ?? []).map((r: { player_id: string }) => r.player_id);
+          setAllowedPlayerIds(new Set(ids));
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Default: nichts erlaubt
       if (alive) {
         setAllowedPlayerIds(new Set());
         setLoading(false);
@@ -90,7 +118,7 @@ export function useAvailabilityPermissions(params: {
     };
   }, [allowedPlayerIds]);
 
-  /** Für Parent: Liste der player_ids (Kinder); für Player: [] bis user->player Mapping existiert. Für Zu-/Absage-Persistenz. */
+  /** Für Parent: Kinder (player_guardians). Für Player: Selbst (player_users). Für Trainer: []. Für Zu-/Absage-Persistenz. */
   const myAttendancePlayerIds = useMemo(() => {
     if (allowedPlayerIds.has("*")) return [];
     return Array.from(allowedPlayerIds);

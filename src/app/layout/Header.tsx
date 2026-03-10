@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
+import { useProfile, displayName } from '../../auth/useProfile';
 
 const logo = import.meta.env.BASE_URL + 'logos/nsg-goelsental.png';
 
@@ -27,8 +28,10 @@ export const Header: React.FC = () => {
   const navigate = useNavigate();
   const { membershipError, effectiveRole, loading: sessionLoading } = useSession();
   const { user, loading: authLoading, signOut } = useAuth();
+  const { profile } = useProfile(user?.id);
   const publicView = isPublicRoute(pathname);
   const roleLabel = effectiveRole ? (ROLE_LABEL_DE[effectiveRole] ?? effectiveRole) : null;
+  const userDisplayName = displayName(profile, user?.email ?? undefined);
 
   return (
     <header className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-black/60 py-3 backdrop-blur-md">
@@ -110,9 +113,14 @@ export const Header: React.FC = () => {
               )}
               <Link
                 to={pathname.startsWith('/app') ? APP_PROFILE : '/profile'}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white transition-colors hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
+                className="flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/10 py-2 pl-3 pr-2 text-white transition-colors hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
                 aria-label="Profil"
               >
+                {userDisplayName !== '–' && (
+                  <span className="max-w-[120px] truncate text-xs text-white/90" title={userDisplayName}>
+                    {userDisplayName}
+                  </span>
+                )}
                 <svg viewBox="0 0 24 24" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8" fill="none" aria-hidden>
                   <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4.5V20h14v-1.5C19 16 16 14 12 14z" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>

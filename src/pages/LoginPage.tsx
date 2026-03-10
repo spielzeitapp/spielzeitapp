@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { supabase } from '../lib/supabaseClient';
 
@@ -10,73 +10,60 @@ const inputClass =
 
 export const LoginPage: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resetMessage, setResetMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/app/schedule';
 
-  console.log('[LOGIN PAGE RENDER]');
-  console.log('[LOGIN PAGE STATE]', { emailNotEmpty: !!email, loading, from });
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setResetMessage(null);
+    setMessage(null);
     setLoading(true);
-
-    console.log('[AUTH MAGIC LINK START]', { email: email.trim() });
-    const { error: otpError } = await supabase.auth.signInWithOtp({
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
-      options: {
-        emailRedirectTo: `${PROD_URL}/app`,
-      },
+      password,
     });
     setLoading(false);
+    if (signInError) {
+      setError(signInError.message);
+      return;
+    }
+    navigate(from, { replace: true });
+  };
 
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setMessage(null);
+    setLoading(true);
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: { emailRedirectTo: `${PROD_URL}/app` },
+    });
+    setLoading(false);
     if (otpError) {
-      console.log('[AUTH MAGIC LINK ERROR]', otpError);
       setError(otpError.message);
       return;
     }
-
-    console.log('[AUTH MAGIC LINK SUCCESS]');
-    setResetMessage({
-      type: 'success',
-      text: 'Wir haben dir einen Anmeldelink per E-Mail geschickt.',
-    });
-  };
-
-  const handleForgotPassword = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    setResetMessage(null);
-    if (!email.trim()) {
-      setResetMessage({ type: 'error', text: 'Bitte zuerst E-Mail eingeben.' });
-      return;
-    }
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${PROD_URL}/`,
-    });
-    if (resetError) {
-      setResetMessage({ type: 'error', text: resetError.message });
-    } else {
-      setResetMessage({ type: 'success', text: 'E-Mail zum Zurücksetzen gesendet. Bitte Postfach prüfen.' });
-    }
+    setMessage({ type: 'success', text: 'Wir haben dir einen Anmeldelink per E-Mail geschickt.' });
   };
 
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-6 py-8 shadow-xl">
-        <h1 className="text-xl font-semibold text-white">
-          Anmelden
-        </h1>
-        <p className="mt-1 text-xs text-white/60">LOGIN PAGE LOADED</p>
+        <h1 className="text-xl font-semibold text-white">Anmelden</h1>
         {import.meta.env.DEV && (
-          <p className="mt-0.5 text-xs text-white/50">DEV Login</p>
+          <p className="mt-0.5 text-xs text-white/50">DEV Login (Eltern/Fan)</p>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        {/* E-Mail + Passwort: für wiederkehrende Nutzer (z. B. Eltern mit gesetztem Passwort) */}
+        <form onSubmit={handlePasswordLogin} className="mt-6 space-y-4">
           <div>
             <label htmlFor="login-email" className="mb-1 block text-sm font-medium text-white/80">
               E-Mail
@@ -92,28 +79,69 @@ export const LoginPage: React.FC = () => {
               className={inputClass}
             />
           </div>
+          <div>
+            <label htmlFor="login-password" className="mb-1 block text-sm font-medium text-white/80">
+              Passwort
+            </label>
+            <div className="relative">
+              <input
+                id="login-password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                className={inputClass}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/50 hover:text-white/80"
+                aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+              >
+                {showPassword ? 'Verbergen' : 'Anzeigen'}
+              </button>
+            </div>
+          </div>
 
           {error && <p className="text-sm text-red-300" role="alert">{error}</p>}
-          {resetMessage && (
-            <p className={`text-sm ${resetMessage.type === 'success' ? 'text-green-300' : 'text-red-300'}`} role="status">
-              {resetMessage.text}
+          {message && (
+            <p className={`text-sm ${message.type === 'success' ? 'text-green-300' : 'text-red-300'}`} role="status">
+              {message.text}
             </p>
           )}
 
           <Button type="submit" fullWidth disabled={loading} className="mt-2">
-            {loading ? 'Sende Anmeldelink…' : 'Anmeldelink senden'}
+            {loading ? 'Wird angemeldet…' : 'Anmelden'}
           </Button>
         </form>
 
-        {/* Optional: Passwort-Reset bleibt für Legacy-Accounts */}
-        <p className="mt-4 text-center">
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <p className="text-xs text-white/60 mb-2">Erstes Mal oder kein Passwort?</p>
           <button
             type="button"
-            onClick={handleForgotPassword}
-            className="text-xs text-white/40 hover:text-white/60 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 focus:ring-offset-2 focus:ring-offset-transparent rounded"
+            onClick={handleMagicLink}
+            disabled={loading || !email.trim()}
+            className="text-sm text-white/80 hover:text-white hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded disabled:opacity-50"
           >
-            Passwort vergessen? (Legacy)
+            Anmeldelink per E-Mail senden
           </button>
+        </div>
+
+        <p className="mt-4 text-center">
+          <Link
+            to="/forgot-password"
+            className="text-xs text-white/40 hover:text-white/60 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500/60 rounded"
+          >
+            Passwort vergessen?
+          </Link>
+        </p>
+
+        <p className="mt-4 text-center text-sm text-white/60">
+          Noch kein Konto?{' '}
+          <Link to="/register" className="text-white/80 hover:text-white hover:underline">
+            Registrieren
+          </Link>
         </p>
       </div>
     </div>

@@ -2,6 +2,7 @@ import React, { ChangeEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
 import { useAuth } from '../auth/AuthProvider';
+import { useProfile, displayName } from '../auth/useProfile';
 import { supabase } from '../lib/supabaseClient';
 import { Card, CardTitle } from '../app/components/ui/Card';
 
@@ -42,9 +43,11 @@ export const ProfilePage: React.FC = () => {
   const [childrenLoading, setChildrenLoading] = useState(false);
   const [childrenError, setChildrenError] = useState<string | null>(null);
 
+  const { profile } = useProfile(authUser?.id);
   const showPreviewSwitch = backendRole === 'admin' || backendRole === 'head_coach';
   const selectedTeamName = getTeamName(selectedTeamSeason);
   const email = authUser?.email ?? user?.name ?? '–';
+  const displayNameStr = displayName(profile, authUser?.email ?? undefined);
 
   useEffect(() => {
     // Nur für eingeloggte User; bevorzugt Parent-Rolle.
@@ -152,7 +155,10 @@ export const ProfilePage: React.FC = () => {
       <div className="mx-auto max-w-[480px] space-y-4">
         <h1 className="text-2xl font-bold text-white tracking-tight">Profil</h1>
         <Card className="text-white">
-          <CardTitle>{email}</CardTitle>
+          <CardTitle>{displayNameStr !== '–' ? displayNameStr : email}</CardTitle>
+          <p className="mt-1 text-sm text-[var(--text-sub)]">
+            E-Mail: <span className="font-medium text-[var(--text-main)]">{email}</span>
+          </p>
 
         <p className="mt-1 text-sm text-[var(--text-sub)]">
           Backend-Rolle: <span className="font-medium text-[var(--text-main)]">{backendRole}</span>
@@ -173,7 +179,7 @@ export const ProfilePage: React.FC = () => {
 
         {effectiveRole === 'parent' && (
           <div className="mt-2 text-sm text-[var(--text-sub)]">
-            <div className="font-medium text-[var(--text-main)]">Verknüpftes Kind</div>
+            <div className="font-medium text-[var(--text-main)]">Verknüpfte Kinder</div>
             {childrenLoading ? (
               <p className="mt-0.5 text-xs text-[var(--text-sub)]">Lade Kind-Verknüpfung…</p>
             ) : childrenError ? (

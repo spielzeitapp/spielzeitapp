@@ -15,7 +15,10 @@ import { LivePage } from '../pages/LivePage';
 import { TeamPage } from '../pages/TeamPage';
 import { TablePage } from '../pages/TablePage';
 import { ProfilePage } from '../pages/ProfilePage';
+import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { LoginPage } from '../pages/LoginPage';
+import { RegisterPage } from '../pages/RegisterPage';
+import { SetPasswordPage } from '../pages/SetPasswordPage';
 import { AdminLoginPage } from '../pages/AdminLoginPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
@@ -57,9 +60,9 @@ function AppIndexRedirect(): React.ReactElement {
     return <Navigate to="/app/role-choice" replace />;
   }
 
-  // 4) Rollenbasierte Zielseiten
+  // 4) Parent → Schedule; InternalLayout leitet bei unvollständigem Onboarding auf role-choice / parent-onboarding um.
   if (finalRole === 'parent') {
-    return <Navigate to="/app/parent-onboarding" replace />;
+    return <Navigate to="/app/schedule" replace />;
   }
 
   if (finalRole === 'trainer') {
@@ -103,6 +106,8 @@ function InternalRoutes(): React.ReactElement {
       <Route path="app.html" element={<Navigate to="/app" replace />} />
       <Route path="/" element={<Navigate to="/app" replace />} />
       <Route path="login" element={<LoginPage />} />
+      <Route path="register" element={<RegisterPage />} />
+      <Route path="forgot-password" element={<ForgotPasswordPage />} />
       <Route path="schedule" element={<Navigate to="/app/schedule" replace />} />
       <Route path="live" element={<Navigate to="/app/live" replace />} />
       <Route path="app" element={<RequireAuth><InternalLayout /></RequireAuth>}>
@@ -110,6 +115,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="schedule" element={<SchedulePage />} />
         <Route path="role-choice" element={<RoleChoicePage />} />
         <Route path="parent-onboarding" element={<ParentOnboardingPage />} />
+        <Route path="set-password" element={<SetPasswordPage />} />
         <Route path="events/:eventId" element={<EventDetailPage />} />
         <Route path="match/:id" element={<MatchDetailPage />} />
         <Route path="live" element={<LivePage />} />
@@ -137,6 +143,8 @@ function PublicRoutes(): React.ReactElement {
         <Route path="schedule" element={<SchedulePage />} />
         <Route path="live" element={<SchedulePage />} />
         <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
       </Route>
       <Route path="app" element={<Navigate to="/" replace />} />
       <Route path="app/*" element={<Navigate to="/" replace />} />

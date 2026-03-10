@@ -7,6 +7,7 @@ import { TopNav } from '../components/TopNav';
 import { useIsTouchLayout } from '../../hooks/useMediaQuery';
 import { useAuth } from '../../auth/AuthProvider';
 import { useSession, normalizeRole as normalizeSessionRole } from '../../auth/useSession';
+import { useSyncPendingProfile } from '../../auth/useSyncPendingProfile';
 import { supabase } from '../../lib/supabaseClient';
 
 /**
@@ -21,14 +22,17 @@ export const InternalLayout: React.FC = () => {
   const { memberships, loading: sessionLoading, backendRole } = useSession();
   const [checked, setChecked] = useState(false);
 
+  useSyncPendingProfile(user ?? null);
+
   useEffect(() => {
     let alive = true;
 
     async function gate() {
-      // Onboarding- / Rollenauswahl-Seiten selbst nie blocken.
+      // Onboarding / role-choice / set-password: allow without redirect (onboarding only once).
       if (
         location.pathname === '/app/parent-onboarding' ||
-        location.pathname === '/app/role-choice'
+        location.pathname === '/app/role-choice' ||
+        location.pathname === '/app/set-password'
       ) {
         if (alive) setChecked(true);
         return;
@@ -36,8 +40,6 @@ export const InternalLayout: React.FC = () => {
 
       if (!user || sessionLoading) return;
 
-      // Trainer/Admin (globalRole) nie zum Parent-Onboarding zwingen.
-      // Parent-Onboarding nur für echte Parent-User (backendRole = 'parent'), nicht für Fans.
       const backend = normalizeSessionRole(backendRole);
       const isStaff = backend === 'trainer' || backend === 'admin';
       const isParentGlobal = backend === 'parent';
@@ -46,7 +48,7 @@ export const InternalLayout: React.FC = () => {
         return;
       }
 
-      // Wenn keine Memberships vorhanden sind (neuer User), zuerst Rollenauswahl anzeigen.
+      // New user: no memberships → role choice first.
       if ((memberships ?? []).length === 0) {
         navigate('/app/role-choice', { replace: true });
         return;
@@ -54,7 +56,6 @@ export const InternalLayout: React.FC = () => {
 
       const hasParentMembership =
         (memberships ?? []).some((m) => normalizeSessionRole(m.role) === 'parent');
-
       const pgRes = await supabase
         .from('player_guardians')
         .select('player_id')
@@ -62,7 +63,8 @@ export const InternalLayout: React.FC = () => {
         .limit(1);
       const hasGuardian = !pgRes.error && (pgRes.data ?? []).length > 0;
 
-      // Redirect wenn Parent-Setup unvollständig: keine parent-membership ODER keine player_guardians.
+      // Onboarding only once: redirect to parent-onboarding only if membership or guardian link missing.
+      // Returning parents (membership + player_guardians exist) go straight to schedule.
       if (!hasParentMembership || !hasGuardian) {
         navigate('/app/parent-onboarding', { replace: true });
         return;

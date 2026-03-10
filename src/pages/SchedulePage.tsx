@@ -120,40 +120,40 @@ export const SchedulePage: React.FC = () => {
   };
 
   /**
-   * Speichert Zusage/Absage in event_attendance (event_id, player_id, status).
-   * Verwendet angeklicktes Spiel + verknüpften Spieler (player_guardians).
+   * Speichert Zusage/Absage in event_attendance (event_id, player_id, status, updated_by, source_role).
+   * Parent: linked children (player_guardians). Player: self (player_users). Trainer: via EventDetailPage.
    */
   const setAttendance = async (eventId: string, status: 'yes' | 'no') => {
+    const { data: userRes } = await supabase.auth.getUser();
+    const userId = userRes?.user?.id ?? null;
     let playerId = myAttendancePlayerIds[0] ?? null;
-    console.log('[ATTENDANCE LOOKUP START]', { eventId, status, playerIdFromHook: playerId });
-    if (!playerId) {
-      const { data: userRes } = await supabase.auth.getUser();
-      const userId = userRes?.user?.id;
-      if (userId) {
-        const byUser = await supabase.from('player_guardians').select('player_id').eq('user_id', userId);
-        console.log('[PLAYER GUARDIAN LOOKUP RESULT]', { data: byUser.data, error: byUser.error });
-        if (!byUser.error && byUser.data?.length) {
-          playerId = byUser.data[0].player_id;
-        }
+    if (!playerId && userId) {
+      const byGuardian = await supabase.from('player_guardians').select('player_id').eq('user_id', userId);
+      if (!byGuardian.error && byGuardian.data?.length) playerId = byGuardian.data[0].player_id;
+      if (!playerId) {
+        const byPlayer = await supabase.from('player_users').select('player_id').eq('user_id', userId);
+        if (!byPlayer.error && byPlayer.data?.length) playerId = byPlayer.data[0].player_id;
       }
     }
-    console.log('[ATTENDANCE LOOKUP RESULT]', { eventId, status, playerId });
 
     if (!eventId || !playerId) {
-      console.error('[ATTENDANCE MISSING IDS]', { eventId, playerId });
       setToastMessage(!playerId ? 'Kein Spieler zugeordnet.' : 'Event fehlt.');
       setAttendanceModalEvent(null);
       return;
     }
 
-    console.log('[ATTENDANCE SAVE START]', { eventId, playerId, status });
+    const sourceRole = (normalizedUiRole === 'parent' || normalizedUiRole === 'player' || normalizedUiRole === 'trainer') ? normalizedUiRole : null;
+    const payload = {
+      event_id: eventId,
+      player_id: playerId,
+      status,
+      ...(userId && { updated_by: userId }),
+      ...(sourceRole && { source_role: sourceRole }),
+    };
 
     const result = await supabase
       .from('event_attendance')
-      .upsert(
-        { event_id: eventId, player_id: playerId, status },
-        { onConflict: 'event_id,player_id' }
-      )
+      .upsert(payload, { onConflict: 'event_id,player_id' })
       .select('event_id, player_id, status');
 
     console.log('[ATTENDANCE SAVE RESULT]', { data: result.data, error: result.error });

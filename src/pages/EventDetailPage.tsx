@@ -180,50 +180,67 @@ export const EventDetailPage: React.FC = () => {
   const handleRsvp = useCallback(
     async (status: 'yes' | 'no') => {
       let resolvedPlayerId = playerId ?? null;
-      console.log('[ATTENDANCE SAVE START]', { eventId, playerId: resolvedPlayerId, status });
-      if (!eventId) {
-        console.error('[ATTENDANCE MISSING IDS]', { eventId, playerId: resolvedPlayerId });
-        return;
-      }
+      if (!eventId) return;
       if (!resolvedPlayerId) {
         const { data: userRes } = await supabase.auth.getUser();
-        const userId = userRes?.user?.id;
-        if (userId) {
-          const byUser = await supabase.from('player_guardians').select('player_id').eq('user_id', userId);
-          if (!byUser.error && byUser.data?.length) resolvedPlayerId = byUser.data[0].player_id;
+        const uid = userRes?.user?.id;
+        if (uid) {
+          const byGuardian = await supabase.from('player_guardians').select('player_id').eq('user_id', uid);
+          if (!byGuardian.error && byGuardian.data?.length) resolvedPlayerId = byGuardian.data[0].player_id;
+          if (!resolvedPlayerId) {
+            const byPlayer = await supabase.from('player_users').select('player_id').eq('user_id', uid);
+            if (!byPlayer.error && byPlayer.data?.length) resolvedPlayerId = byPlayer.data[0].player_id;
+          }
         }
       }
-      if (!resolvedPlayerId) {
-        console.error('[ATTENDANCE MISSING IDS]', { eventId, playerId: resolvedPlayerId });
-        return;
-      }
+      if (!resolvedPlayerId) return;
 
-      const payload = { event_id: eventId, player_id: resolvedPlayerId, status };
+      const { data: userRes } = await supabase.auth.getUser();
+      const userId = userRes?.user?.id ?? null;
+      const sourceRole = (effectiveRole === 'parent' || effectiveRole === 'player') ? effectiveRole : null;
+      const payload = {
+        event_id: eventId,
+        player_id: resolvedPlayerId,
+        status,
+        ...(userId && { updated_by: userId }),
+        ...(sourceRole && { source_role: sourceRole }),
+      };
       const result = await supabase
         .from('event_attendance')
         .upsert(payload, { onConflict: 'event_id,player_id' })
         .select('event_id, player_id, status');
 
-      console.log('[ATTENDANCE SAVE RESULT]', { data: result.data, error: result.error });
-      if (result.error) {
-        console.error('[ATTENDANCE SAVE ERROR]', result.error.message, result.error.code, result.error.details);
-        return;
-      }
-
-      const verify = await supabase
-        .from('event_attendance')
-        .select('event_id, player_id, status')
-        .eq('event_id', eventId)
-        .eq('player_id', resolvedPlayerId)
-        .maybeSingle();
-      console.log('[ATTENDANCE VERIFY READ]', verify.data ?? verify.error);
-
+      if (result.error) return;
       setRsvpStatus(status);
-      setEventAttendanceByPlayerId((prev) => ({ ...prev, [resolvedPlayerId]: status }));
+      setEventAttendanceByPlayerId((prev) => ({ ...prev, [resolvedPlayerId!]: status }));
       setAttendanceModalOpen(false);
       await loadEventAttendance();
     },
-    [eventId, playerId, loadEventAttendance]
+    [eventId, playerId, effectiveRole, loadEventAttendance]
+  );
+
+  /** Trainer/Admin: RSVP für einen beliebigen Spieler des Teams setzen. */
+  const handleTrainerRsvp = useCallback(
+    async (targetPlayerId: string, status: 'yes' | 'no') => {
+      if (!eventId || !isTrainerOrAdmin) return;
+      const { data: userRes } = await supabase.auth.getUser();
+      const userId = userRes?.user?.id ?? null;
+      const payload = {
+        event_id: eventId,
+        player_id: targetPlayerId,
+        status,
+        ...(userId && { updated_by: userId }),
+        source_role: 'trainer',
+      };
+      const result = await supabase
+        .from('event_attendance')
+        .upsert(payload, { onConflict: 'event_id,player_id' })
+        .select('event_id, player_id, status');
+      if (result.error) return;
+      setEventAttendanceByPlayerId((prev) => ({ ...prev, [targetPlayerId]: status }));
+      await loadEventAttendance();
+    },
+    [eventId, isTrainerOrAdmin, loadEventAttendance]
   );
 
   const getAttendanceStatus = useCallback(
@@ -326,8 +343,26 @@ export const EventDetailPage: React.FC = () => {
                             key={player.id}
                             className="flex items-center justify-between gap-2 py-2 border-b border-white/10 last:border-0"
                           >
-                            <span className="text-[var(--text-main)] font-medium truncate">{player.display_name}</span>
-                            <span className={chipClass}>{chipLabel}</span>
+                            <span className="text-[var(--text-main)] font-medium truncate min-w-0">{player.display_name}</span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className={chipClass}>{chipLabel}</span>
+                              <div className="flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleTrainerRsvp(player.id, 'yes')}
+                                  className="rounded px-2 py-1 text-xs font-medium bg-green-600/80 text-white hover:bg-green-500"
+                                >
+                                  Dabei
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleTrainerRsvp(player.id, 'no')}
+                                  className="rounded px-2 py-1 text-xs font-medium bg-red-600/80 text-white hover:bg-red-500"
+                                >
+                                  Abwesend
+                                </button>
+                              </div>
+                            </div>
                           </li>
                         );
                       })}

@@ -289,7 +289,7 @@ export const ParentOnboardingPage: React.FC = () => {
     }
 
     setSaving(false);
-    navigate('/app/schedule', { replace: true });
+    navigate('/app/set-password', { replace: true });
   };
 
   return (
