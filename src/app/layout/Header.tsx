@@ -28,7 +28,11 @@ export const Header: React.FC = () => {
   const { membershipError, effectiveRole, loading: sessionLoading } = useSession();
   const { user, loading: authLoading } = useAuth();
   const publicView = isPublicRoute(pathname);
-  const roleLabel = effectiveRole ? (ROLE_LABEL_DE[effectiveRole] ?? effectiveRole) : null;
+  const isRoleChoice = pathname === '/app/role-choice';
+  const roleLabel =
+    !isRoleChoice && effectiveRole
+      ? (ROLE_LABEL_DE[effectiveRole] ?? effectiveRole)
+      : null;
 
   return (
     <header className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-black/60 py-3 backdrop-blur-md">

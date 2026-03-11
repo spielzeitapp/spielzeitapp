@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { Button } from '../app/components/ui/Button';
 
@@ -95,6 +95,12 @@ export const AdminLoginPage: React.FC = () => {
             {loading ? 'Wird angemeldet…' : 'Einloggen'}
           </Button>
         </form>
+
+        <p className="mt-4 text-center text-xs text-white/60">
+          <Link to="/forgot-password" className="hover:text-white hover:underline">
+            Passwort vergessen?
+          </Link>
+        </p>
       </div>
     </div>
   );

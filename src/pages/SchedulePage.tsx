@@ -70,8 +70,9 @@ export const SchedulePage: React.FC = () => {
   const forcePublicView =
     pathname === '/schedule' || pathname === '/live' || !pathname.startsWith('/app');
   const backendRole = normalizeRole(roleFromHook);
-  const uiRole = forcePublicView ? null : (previewRole ?? backendRole ?? null);
-  const normalizedUiRole = normalizeRole(uiRole);
+  const uiRoleRaw = forcePublicView ? null : (previewRole ?? backendRole ?? null);
+  const normalizedUiRole = normalizeRole(uiRoleRaw);
+  const uiRole = normalizedUiRole === 'fan' ? null : normalizedUiRole;
   const canManage = forcePublicView ? false : canManageMatches(normalizedUiRole);
   const showMeetupForRole = forcePublicView ? true : canSeeMeetup(normalizedUiRole); // Öffentlich: Treffpunkt für alle
   const ourTeamName = teamLabel ?? publicLabel ?? getOurTeamDisplayName();

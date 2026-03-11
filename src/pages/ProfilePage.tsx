@@ -166,7 +166,7 @@ export const ProfilePage: React.FC = () => {
 
         <p className="mt-1 text-sm text-[var(--text-sub)]">
           UI-Ansicht: <span className="font-medium text-[var(--text-main)]">{effectiveRole}</span>
-          {previewRole != null && (
+          {previewRole != null && previewRole !== backendRole && (
             <span className="ml-1.5 rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-400">
               Preview
             </span>

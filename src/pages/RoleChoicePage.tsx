@@ -42,6 +42,18 @@ export const RoleChoicePage: React.FC = () => {
               >
                 Ich bin Fan
               </Button>
+
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  console.log('[ROLE CHOICE SELECT PLAYER]');
+                  setPreviewRole('player');
+                  navigate('/app/schedule', { replace: true });
+                }}
+              >
+                Ich bin Spieler
+              </Button>
             </div>
           </div>
         </Card>
