@@ -143,29 +143,59 @@ export const SchedulePage: React.FC = () => {
     }
 
     const sourceRole = (normalizedUiRole === 'parent' || normalizedUiRole === 'player' || normalizedUiRole === 'trainer') ? normalizedUiRole : null;
-    const payload = {
-      event_id: eventId,
-      player_id: playerId,
-      status,
-      ...(userId && { updated_by: userId }),
-      ...(sourceRole && { source_role: sourceRole }),
-    };
 
-    const result = await supabase
-      .from('event_attendance')
-      .upsert(payload, { onConflict: 'event_id,player_id' })
-      .select('event_id, player_id, status');
+    // Toggle-Logik: Klick auf denselben Status → zurück auf neutral (Eintrag löschen).
+    const currentLocal = attendanceStatusByEventId[eventId] ?? null;
 
-    console.log('[ATTENDANCE SAVE RESULT]', { data: result.data, error: result.error });
+    let result;
+    if (currentLocal === status) {
+      // Aktuell bereits dieser Status → löschen = neutral
+      result = await supabase
+        .from('event_attendance')
+        .delete()
+        .eq('event_id', eventId)
+        .eq('player_id', playerId);
 
-    if (result.error) {
-      console.error('[ATTENDANCE SAVE ERROR]', result.error);
-      setToastMessage(result.error.message ?? 'Speichern fehlgeschlagen.');
-      setAttendanceModalEvent(null);
-      return;
+      console.log('[ATTENDANCE DELETE RESULT]', { error: result.error });
+
+      if (result.error) {
+        console.error('[ATTENDANCE DELETE ERROR]', result.error);
+        setToastMessage(result.error.message ?? 'Speichern fehlgeschlagen.');
+        setAttendanceModalEvent(null);
+        return;
+      }
+
+      setAttendanceStatusByEventId((prev) => {
+        const next = { ...prev };
+        delete next[eventId];
+        return next;
+      });
+    } else {
+      const payload = {
+        event_id: eventId,
+        player_id: playerId,
+        status,
+        ...(userId && { updated_by: userId }),
+        ...(sourceRole && { source_role: sourceRole }),
+      };
+
+      result = await supabase
+        .from('event_attendance')
+        .upsert(payload, { onConflict: 'event_id,player_id' })
+        .select('event_id, player_id, status');
+
+      console.log('[ATTENDANCE SAVE RESULT]', { data: result.data, error: result.error });
+
+      if (result.error) {
+        console.error('[ATTENDANCE SAVE ERROR]', result.error);
+        setToastMessage(result.error.message ?? 'Speichern fehlgeschlagen.');
+        setAttendanceModalEvent(null);
+        return;
+      }
+
+      setAttendanceStatusByEventId((prev) => ({ ...prev, [eventId]: status }));
     }
 
-    setAttendanceStatusByEventId((prev) => ({ ...prev, [eventId]: status }));
     setAttendanceModalEvent(null);
     await refreshAttendance();
   };

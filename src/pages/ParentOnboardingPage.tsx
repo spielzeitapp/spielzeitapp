@@ -288,10 +288,68 @@ export const ParentOnboardingPage: React.FC = () => {
       return;
     }
 
+    // Nach erfolgreicher Membership + player_guardians: join_request als Approval-Layer anlegen.
+    try {
+      const { data: tsRow, error: tsError } = await supabase
+        .from('team_seasons')
+        .select('team_id')
+        .eq('id', selectedTeamSeasonId)
+        .maybeSingle();
+
+      if (!tsError && tsRow?.team_id) {
+        const teamId = tsRow.team_id as string;
+        const selectedPlayer = players.find((p) => p.id === selectedPlayerId);
+        const childName = selectedPlayer?.display_name ?? null;
+
+        // Duplikatprüfung: pending join_request für (user_id, team_id, 'parent')?
+        const { data: existingReq, error: checkError } = await supabase
+          .from('join_requests')
+          .select('id, status')
+          .eq('user_id', userId)
+          .eq('team_id', teamId)
+          .eq('requested_role', 'parent')
+          .eq('status', 'pending')
+          .maybeSingle();
+
+        if (checkError) {
+          console.warn('[PARENT ONBOARDING JOIN_REQUEST CHECK ERROR]', checkError);
+        }
+
+        if (!existingReq) {
+          const { error: jrError } = await supabase.from('join_requests').insert({
+            user_id: userId,
+            team_id: teamId,
+            requested_role: 'parent',
+            child_name: childName,
+            status: 'pending',
+          } as any);
+
+          if (jrError) {
+            console.warn('[PARENT ONBOARDING JOIN_REQUEST INSERT ERROR]', jrError);
+          } else {
+            console.log('[PARENT ONBOARDING JOIN_REQUEST CREATED]', {
+              user_id: userId,
+              team_id: teamId,
+              child_name: childName,
+            });
+          }
+        } else {
+          console.log('[PARENT ONBOARDING JOIN_REQUEST ALREADY EXISTS]', existingReq);
+        }
+      } else {
+        console.warn('[PARENT ONBOARDING TEAM_SEASON LOOKUP ERROR]', tsError);
+      }
+    } catch (e) {
+      console.warn('[PARENT ONBOARDING JOIN_REQUEST EXCEPTION]', e);
+    }
+
     setSaving(false);
     // Passwort wurde bereits bei der Registrierung gesetzt; nach erfolgreichem Onboarding
     // direkt in den normalen Flow (/app/schedule) leiten.
     navigate('/app/schedule', { replace: true });
+    // WICHTIG: Memberships & player_guardians werden im Session-Context einmalig geladen.
+    // Nach dem ersten Anlegen laden wir die Seite neu, damit Rollen & Berechtigungen sofort korrekt sind.
+    window.location.reload();
   };
 
   return (

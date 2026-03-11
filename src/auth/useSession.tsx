@@ -194,7 +194,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   /** Anzeige-Backend-Rolle (global); erst nach Fetch gesetzt, sonst leer. */
   const backendRole = globalRole;
 
-  /** effectiveRole: normalisiert über toRole(), keine Altlasten (head_coach etc.) im UI. */
+  /** effectiveRole: normalisiert über toRole(), keine Altlasten (head_coach etc.) im UI.
+   *  WICHTIG: Ein nacktes Backend-'player' ohne Membership soll NICHT automatisch zur Spieler-UI führen.
+   *  Spieler-UI nur, wenn es eine Membership mit Rolle 'player' gibt oder der Nutzer explizit eine Preview-Rolle gewählt hat.
+   */
   const effectiveRole = useMemo((): string => {
     const normalizedBackend = roleFromUserRoles ? toRole(roleFromUserRoles) : null;
     const normalizedPreview = previewRole ? toRole(previewRole) : null;
@@ -203,7 +206,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Admin behält immer mindestens Admin-Rechte, kann aber in der UI eine Testrolle wählen.
     if (normalizedBackend === 'admin') return normalizedPreview ?? 'admin';
 
-    // Sonst: Preview > Membership > Backend. Kein automatischer Fan-Fallback mehr.
+    // Sonst: Preview > Membership > Backend (ohne nackten 'player'-Fallback).
+    // Wenn es keine Membership gibt und die globale Rolle nur 'player' ist,
+    // bleibt effectiveRole leer → RoleChoice / Onboarding übernimmt.
+    if (!normalizedMembership && normalizedBackend === 'player' && !normalizedPreview) {
+      return '';
+    }
+
     return (normalizedPreview ?? normalizedMembership ?? normalizedBackend ?? '') || '';
   }, [roleFromUserRoles, previewRole, selectedMembership?.role]);
 

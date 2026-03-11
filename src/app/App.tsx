@@ -23,6 +23,7 @@ import { AdminLoginPage } from '../pages/AdminLoginPage';
 import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
 import { RolesAdminPage } from '../pages/RolesAdminPage';
+import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 
 const FALLBACK = (
   <div style={{ padding: 20, color: '#fff' }}>App lädt…</div>
@@ -48,12 +49,20 @@ function AppIndexRedirect(): React.ReactElement {
   }
 
   // 1) Membership-Rolle hat Priorität
-  const primaryMembershipRole = membershipRole || memberships[0]?.role || null;
+  const primaryMembershipRole = (membershipRole || memberships[0]?.role || '').toLowerCase() || null;
 
   // 2) Wenn keine Membership-Rolle vorhanden ist, auf globale Backend-Rolle zurückfallen
-  const effectiveBackendRole = backendRole || null;
+  const effectiveBackendRole = (backendRole || '').toLowerCase() || null;
 
-  const finalRole = (primaryMembershipRole || effectiveBackendRole || '').toLowerCase();
+  let finalRole = (primaryMembershipRole || effectiveBackendRole || '').toLowerCase();
+
+  // WICHTIG: Kein nackter Spieler-Fallback ohne Membership.
+  // Wenn es noch keine Membership gibt und die globale Rolle nur 'player' ist,
+  // soll der Nutzer in die Rollenwahl / das Parent-Onboarding, nicht direkt in die Spieler-Ansicht.
+  const hasAnyMembership = (memberships ?? []).length > 0;
+  if (!hasAnyMembership && !primaryMembershipRole && finalRole === 'player') {
+    finalRole = '';
+  }
 
   // 3) Wenn überhaupt keine Rolle existiert → RoleChoicePage
   if (!finalRole) {
@@ -128,7 +137,22 @@ function InternalRoutes(): React.ReactElement {
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/admin/dashboard" element={<RequireAuth><AdminDashboardPage /></RequireAuth>} />
       <Route path="/admin/setup" element={<SetupAdminPage />} />
-      <Route path="/admin/roles" element={<RequireAuth allowedBackendRoles={['admin', 'head_coach']}><RolesAdminPage /></RequireAuth>} />
+      <Route
+        path="/admin/roles"
+        element={
+          <RequireAuth allowedBackendRoles={['admin', 'head_coach']}>
+            <RolesAdminPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/join-requests"
+        element={
+          <RequireAuth allowedBackendRoles={['admin', 'head_coach', 'trainer', 'co_trainer']}>
+            <JoinRequestsAdminPage />
+          </RequireAuth>
+        }
+      />
     </Routes>
   );
 }
