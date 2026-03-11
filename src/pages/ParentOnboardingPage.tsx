@@ -289,7 +289,9 @@ export const ParentOnboardingPage: React.FC = () => {
     }
 
     setSaving(false);
-    navigate('/app/set-password', { replace: true });
+    // Passwort wurde bereits bei der Registrierung gesetzt; nach erfolgreichem Onboarding
+    // direkt in den normalen Flow (/app/schedule) leiten.
+    navigate('/app/schedule', { replace: true });
   };
 
   return (

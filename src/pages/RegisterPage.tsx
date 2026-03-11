@@ -8,8 +8,10 @@ const inputClass =
 
 const MIN_PASSWORD_LENGTH = 6;
 
-/** Redirect URL after user clicks confirmation link in email (must be in Supabase Redirect URLs allow list). */
-const EMAIL_REDIRECT_TO = 'https://app.spielzeitapp.at/app';
+/** Redirect URL after user clicks confirmation link in email (must be in Supabase Redirect URLs allow list).
+ * Use root; index.html forwards internal users from "/" to "/app".
+ */
+const EMAIL_REDIRECT_TO = 'https://app.spielzeitapp.at/';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
