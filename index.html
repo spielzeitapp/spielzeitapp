@@ -9,7 +9,8 @@
         window.__HOST_IS_INTERNAL__ = isInternal;
         if (isInternal) {
           var path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
-          if (path === '/') window.location.replace('/admin/login');
+          // Normal users should land in the main app flow, not on the admin login.
+          if (path === '/') window.location.replace('/app');
           else if (path === '/schedule') window.location.replace('/app/schedule');
           else if (path === '/live') window.location.replace('/app/live');
         }
