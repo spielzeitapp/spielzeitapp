@@ -39,7 +39,7 @@ const FALLBACK = (
  * - keine Rolle (weder global noch Membership) → RoleChoicePage
  */
 function AppIndexRedirect(): React.ReactElement {
-  const { loading, memberships, membershipRole, backendRole } = useSession();
+  const { loading, memberships, membershipRole, backendRole, hasPendingPlayerRequest } = useSession();
 
   if (loading) {
     return (
@@ -65,8 +65,13 @@ function AppIndexRedirect(): React.ReactElement {
     finalRole = '';
   }
 
-  // 3) Wenn überhaupt keine Rolle existiert → RoleChoicePage
+  // 3) Wenn überhaupt keine Rolle existiert:
+  //    - mit pending Spieler-Anfrage → als Fan in den Schedule
+  //    - sonst → RoleChoicePage
   if (!finalRole) {
+    if (hasPendingPlayerRequest) {
+      return <Navigate to="/app/schedule" replace />;
+    }
     return <Navigate to="/app/role-choice" replace />;
   }
 

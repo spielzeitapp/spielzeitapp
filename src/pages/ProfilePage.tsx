@@ -37,6 +37,7 @@ export const ProfilePage: React.FC = () => {
     setPreviewRole,
     selectedTeamSeason,
     signOut,
+    hasPendingPlayerRequest,
   } = useSession();
 
   const [linkedChildren, setLinkedChildren] = useState<string[]>([]);
@@ -172,6 +173,12 @@ export const ProfilePage: React.FC = () => {
             </span>
           )}
         </p>
+
+        {hasPendingPlayerRequest && effectiveRole === 'fan' && (
+          <p className="mt-1 text-xs text-amber-300">
+            Deine Spieleranfrage wurde an den Trainer gesendet. Du erhältst Spielerzugriff, sobald sie bestätigt wurde.
+          </p>
+        )}
 
         <p className="mt-2 text-sm text-[var(--text-sub)]">
           Team: <span className="font-medium text-[var(--text-main)]">{selectedTeamName}</span>

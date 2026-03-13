@@ -143,6 +143,8 @@ interface SessionContextValue {
   effectiveRole: string;
   /** Ausgewählte Membership (für Teamname aus Join). */
   selectedMembership: MembershipWithJoin | null;
+  /** True, wenn es mindestens eine pending Spieler-Anfrage (join_requests.requested_role='player') gibt. */
+  hasPendingPlayerRequest: boolean;
 }
 
 const SessionContext = createContext<SessionContextValue | undefined>(undefined);
@@ -172,6 +174,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [memberships, setMemberships] = useState<MembershipWithJoin[]>([]);
   const [membershipError, setMembershipError] = useState<string | null>(null);
   const [previewRole, setPreviewRoleState] = useState<string | null>(readPreviewRole);
+  const [hasPendingPlayerRequest, setHasPendingPlayerRequest] = useState(false);
 
   const selectedTeamSeason = useMemo(
     () => teamSeasons.find((ts) => ts.id === selectedTeamSeasonId) ?? null,
@@ -197,6 +200,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   /** effectiveRole: normalisiert über toRole(), keine Altlasten (head_coach etc.) im UI.
    *  WICHTIG: Ein nacktes Backend-'player' ohne Membership soll NICHT automatisch zur Spieler-UI führen.
    *  Spieler-UI nur, wenn es eine Membership mit Rolle 'player' gibt oder der Nutzer explizit eine Preview-Rolle gewählt hat.
+   *  Pending-Spieler-Anfragen (join_requests.requested_role = 'player', status = 'pending') werden im UI wie Fan behandelt.
    */
   const effectiveRole = useMemo((): string => {
     const normalizedBackend = roleFromUserRoles ? toRole(roleFromUserRoles) : null;
@@ -213,8 +217,18 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return '';
     }
 
+    // Pending-Spieler-Anfrage: solange keine Membership 'player' existiert,
+    // wird der Nutzer im UI wie Fan behandelt (kein Spieler-Zugriff).
+    if (
+      hasPendingPlayerRequest &&
+      !normalizedMembership &&
+      (normalizedPreview === 'player' || normalizedBackend === 'player')
+    ) {
+      return 'fan';
+    }
+
     return (normalizedPreview ?? normalizedMembership ?? normalizedBackend ?? '') || '';
-  }, [roleFromUserRoles, previewRole, selectedMembership?.role]);
+  }, [roleFromUserRoles, previewRole, selectedMembership?.role, hasPendingPlayerRequest]);
 
   /** Speichert immer den Key (via toRole), nie deutsche Labels. */
   const setPreviewRole = useCallback((role: string | null) => {
@@ -240,6 +254,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     if (!authUser) {
       setRoleFromUserRoles(null);
+      setHasPendingPlayerRequest(false);
       return;
     }
   }, [authUser]);
@@ -250,6 +265,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setMembershipError(null);
       setTeamSeasons([]);
       setSelectedTeamSeasonIdState(null);
+      setHasPendingPlayerRequest(false);
       return;
     }
     let cancelled = false;
@@ -373,6 +389,30 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
 
       setMembershipLoading(false);
+
+      // Pending Spieler-Anfragen als Flag lesen (MVP: global, nicht team-spezifisch)
+      try {
+        const { data: jrData, error: jrError } = await supabase
+          .from('join_requests')
+          .select('id')
+          .eq('user_id', authUser.id)
+          .eq('requested_role', 'player')
+          .eq('status', 'pending')
+          .limit(1);
+        if (!cancelled) {
+          if (jrError) {
+            console.warn('[useSession] join_requests(player,pending) error:', jrError.message);
+            setHasPendingPlayerRequest(false);
+          } else {
+            setHasPendingPlayerRequest((jrData ?? []).length > 0);
+          }
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          console.warn('[useSession] join_requests(player,pending) exception:', e?.message ?? e);
+          setHasPendingPlayerRequest(false);
+        }
+      }
     };
 
     run();
@@ -444,6 +484,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setPreviewRole,
     effectiveRole,
     selectedMembership,
+    hasPendingPlayerRequest,
   };
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
