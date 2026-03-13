@@ -44,17 +44,88 @@ export const JoinRequestsAdminPage: React.FC = () => {
   const updateStatus = async (id: string, status: 'approved' | 'rejected') => {
     setSavingId(id);
     setError(null);
-    const { error } = await supabase
-      .from('join_requests')
-      .update({ status })
-      .eq('id', id);
+    try {
+      // Aktuelle Anfrage laden
+      const { data: req, error: reqError } = await supabase
+        .from('join_requests')
+        .select('id, user_id, team_id, requested_role, status')
+        .eq('id', id)
+        .maybeSingle();
 
-    if (error) {
-      setError(error.message);
-    } else {
-      await load();
+      if (reqError) {
+        setError(reqError.message);
+        setSavingId(null);
+        return;
+      }
+      if (!req) {
+        setError('Anfrage nicht gefunden.');
+        setSavingId(null);
+        return;
+      }
+
+      // Bei Ablehnen nur Status setzen
+      if (status === 'rejected') {
+        const { error: updateErr } = await supabase
+          .from('join_requests')
+          .update({ status: 'rejected' })
+          .eq('id', id);
+        if (updateErr) {
+          setError(updateErr.message);
+        } else {
+          await load();
+        }
+        setSavingId(null);
+        return;
+      }
+
+      // APPROVED: je nach Rolle Membership sicherstellen
+      if (status === 'approved') {
+        // team_seasons zum team_id holen
+        const { data: tsRows, error: tsError } = await supabase
+          .from('team_seasons')
+          .select('id')
+          .eq('team_id', req.team_id);
+
+        if (tsError) {
+          console.warn('[JOIN REQUESTS ADMIN] team_seasons lookup error', tsError);
+        } else if (tsRows && tsRows.length > 0) {
+          const roleToSet = req.requested_role === 'parent' ? 'parent' : 'player';
+          // Für alle Saisons des Teams sicherstellen, dass Membership existiert
+          for (const row of tsRows as { id: string }[]) {
+            const teamSeasonId = row.id;
+            const { error: memErr } = await supabase
+              .from('memberships')
+              .upsert(
+                {
+                  user_id: req.user_id,
+                  team_season_id: teamSeasonId,
+                  role: roleToSet,
+                },
+                { onConflict: 'user_id,team_season_id' }
+              );
+            if (memErr) {
+              console.warn('[JOIN REQUESTS ADMIN] memberships upsert error', memErr);
+            }
+          }
+        }
+
+        // join_request auf approved setzen
+        const { error: updateErr } = await supabase
+          .from('join_requests')
+          .update({ status: 'approved' })
+          .eq('id', id);
+        if (updateErr) {
+          setError(updateErr.message);
+        } else {
+          await load();
+        }
+      }
+    } catch (e: any) {
+      console.error('[JOIN REQUESTS ADMIN] updateStatus exception', e);
+      setError(e?.message ?? 'Unbekannter Fehler bei der Freigabe.');
+    } finally {
+      setSavingId(null);
     }
-    setSavingId(null);
   };
 
   return (

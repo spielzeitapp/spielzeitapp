@@ -8,6 +8,7 @@ import { useSession } from '../auth/useSession';
 import { HomePage } from '../pages/HomePage';
 import { SchedulePage } from '../pages/SchedulePage';
 import { ParentOnboardingPage } from '../pages/ParentOnboardingPage';
+import { PlayerOnboardingPage } from '../pages/PlayerOnboardingPage';
 import { RoleChoicePage } from '../pages/RoleChoicePage';
 import { MatchDetailPage } from '../pages/MatchDetail/MatchDetailPage';
 import { EventDetailPage } from '../pages/EventDetailPage';
@@ -124,6 +125,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="schedule" element={<SchedulePage />} />
         <Route path="role-choice" element={<RoleChoicePage />} />
         <Route path="parent-onboarding" element={<ParentOnboardingPage />} />
+        <Route path="player-onboarding" element={<PlayerOnboardingPage />} />
         <Route path="set-password" element={<SetPasswordPage />} />
         <Route path="events/:eventId" element={<EventDetailPage />} />
         <Route path="match/:id" element={<MatchDetailPage />} />

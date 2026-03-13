@@ -49,7 +49,7 @@ export const RoleChoicePage: React.FC = () => {
                 onClick={() => {
                   console.log('[ROLE CHOICE SELECT PLAYER]');
                   setPreviewRole('player');
-                  navigate('/app/schedule', { replace: true });
+                  navigate('/app/player-onboarding', { replace: true });
                 }}
               >
                 Ich bin Spieler
