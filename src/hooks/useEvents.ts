@@ -18,6 +18,7 @@ export type EventRow = {
   id: string;
   team_season_id: string;
   kind: EventKind;
+  event_type: 'game' | 'training' | 'event' | 'other';
   match_type: string | null;
   opponent: string | null;
   is_home: boolean | null;
@@ -38,6 +39,7 @@ type EventDbRow = {
   id: string;
   team_season_id: string;
   kind: string;
+  event_type?: string | null;
   match_type: string | null;
   opponent: string | null;
   is_home: boolean | null;
@@ -55,7 +57,7 @@ type EventDbRow = {
 
 /** Spalten in events. match_type nullable – Spalte in DB ggf. per Migration ergänzen. */
 const EVENTS_SELECT =
-  "id, team_season_id, kind, match_type, opponent, is_home, location, starts_at, meetup_at, status, participation_mode, notes, created_by, created_at, updated_at";
+  "id, team_season_id, kind, event_type, match_type, opponent, is_home, location, starts_at, meetup_at, status, participation_mode, notes, created_by, created_at, updated_at";
 
 export function useEvents(teamSeasonId: string | null) {
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -85,6 +87,14 @@ export function useEvents(teamSeasonId: string | null) {
         id: r.id,
         team_season_id: r.team_season_id,
         kind: (r.kind === "match" || r.kind === "training" || r.kind === "event" ? r.kind : "event") as EventKind,
+        event_type: (() => {
+          const t = (r.event_type ?? "").trim().toLowerCase();
+          if (t === "game" || t === "training" || t === "event" || t === "other") return t;
+          if (r.kind === "match") return "game";
+          if (r.kind === "training") return "training";
+          if (r.kind === "event") return "event";
+          return "other";
+        })(),
         match_type: r.match_type ?? null,
         opponent: r.opponent ?? null,
         is_home: r.is_home ?? null,

@@ -7,6 +7,7 @@ import { RequireAuth } from '../auth/RequireAuth';
 import { useSession } from '../auth/useSession';
 import { HomePage } from '../pages/HomePage';
 import { SchedulePage } from '../pages/SchedulePage';
+import { CalendarPage } from '../pages/CalendarPage';
 import { ParentOnboardingPage } from '../pages/ParentOnboardingPage';
 import { PlayerOnboardingPage } from '../pages/PlayerOnboardingPage';
 import { RoleChoicePage } from '../pages/RoleChoicePage';
@@ -128,6 +129,7 @@ function InternalRoutes(): React.ReactElement {
       <Route path="app" element={<RequireAuth><InternalLayout /></RequireAuth>}>
         <Route index element={<AppIndexRedirect />} />
         <Route path="schedule" element={<SchedulePage />} />
+        <Route path="calendar" element={<CalendarPage />} />
         <Route path="role-choice" element={<RoleChoicePage />} />
         <Route path="parent-onboarding" element={<ParentOnboardingPage />} />
         <Route path="player-onboarding" element={<PlayerOnboardingPage />} />

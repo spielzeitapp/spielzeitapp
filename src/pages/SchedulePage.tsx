@@ -500,9 +500,11 @@ export const SchedulePage: React.FC = () => {
             }
           >
             <form id="edit-event-form" onSubmit={handleEditSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="edit-opponent" className="block text-sm font-medium text-[var(--text-main)] mb-1">
-              Gegner / Bezeichnung
+          <div>
+            <label htmlFor="edit-opponent" className="block text-sm font-medium text-[var(--text-main)] mb-1">
+              {editEvent?.event_type === 'training' || editEvent?.event_type === 'event' || editEvent?.event_type === 'other'
+                ? 'Titel'
+                : 'Gegner / Bezeichnung'}
             </label>
             <input
               id="edit-opponent"

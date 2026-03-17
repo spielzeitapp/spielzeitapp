@@ -57,8 +57,8 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [form, setForm] = useState<CreateEventFormValues>(defaultForm);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [kind, setKind] = useState<'match' | 'training'>(
-    eventType === 'training' ? 'training' : 'match',
+  const [eventTypeLocal, setEventTypeLocal] = useState<'game' | 'training' | 'event' | 'other'>(
+    eventType === 'training' ? 'training' : 'game',
   );
 
   const resetForm = () => {
@@ -85,11 +85,11 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       setError('Beginn ist Pflicht.');
       return;
     }
-    if (kind === 'match' && !opponentVal) {
+    if (eventTypeLocal === 'game' && !opponentVal) {
       setError('Gegner ist Pflicht.');
       return;
     }
-    if (kind === 'training' && !titleVal) {
+    if ((eventTypeLocal === 'training' || eventTypeLocal === 'event') && !titleVal) {
       setError('Titel ist Pflicht.');
       return;
     }
@@ -111,16 +111,21 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       const locationVal = form.location.trim() || null;
 
-      const matchKind: 'match' | 'training' = kind;
+      const matchKind: 'match' | 'training' | 'event' =
+        eventTypeLocal === 'game'
+          ? 'match'
+          : eventTypeLocal === 'training'
+            ? 'training'
+            : 'event';
       const matchTypeVal = form.match_type?.trim() || null;
 
       const payload: Record<string, unknown> = {
         team_season_id: teamSeasonId,
         kind: matchKind,
-        // type-Spalte in DB: 'match' | 'training' | 'event'
-        type: matchKind === 'match' ? 'match' : 'training',
-        opponent: matchKind === 'match' ? opponentVal || null : null,
-        is_home: matchKind === 'match' ? form.is_home : null,
+        type: matchKind,
+        event_type: eventTypeLocal,
+        opponent: eventTypeLocal === 'game' ? opponentVal || null : null,
+        is_home: eventTypeLocal === 'game' ? form.is_home : null,
         location: locationVal,
         starts_at: startsAt,
         meetup_at: meetupAt,
@@ -128,10 +133,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         participation_mode: form.participation_mode,
         created_by: user?.id ?? null,
       };
-      if (matchKind === 'match' && matchTypeVal != null) payload.match_type = matchTypeVal;
-      if (matchKind === 'training') {
+      if (eventTypeLocal === 'game' && matchTypeVal != null) payload.match_type = matchTypeVal;
+      if (eventTypeLocal === 'training' || eventTypeLocal === 'event' || eventTypeLocal === 'other') {
         const noteParts: string[] = [];
-        // Titel und optionale Details in notes ablegen
         if (titleVal) noteParts.push(titleVal);
         if (form.end_time.trim()) noteParts.push(`Ende: ${form.end_time.trim()} Uhr`);
         if (form.description.trim()) noteParts.push(form.description.trim());
@@ -176,32 +180,26 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       }
     >
       <form id="create-event-form" onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => setKind('match')}
-            className={`flex-1 rounded-xl border px-3 py-2 text-sm font-medium ${
-              kind === 'match'
-                ? 'border-red-500 bg-red-500/20 text-white'
-                : 'border-white/10 bg-black/40 text-white/70'
-            }`}
+        <div>
+          <label htmlFor="create-event-type" className={labelClass}>
+            Terminart *
+          </label>
+          <select
+            id="create-event-type"
+            value={eventTypeLocal}
+            onChange={(e) =>
+              setEventTypeLocal(e.target.value as 'game' | 'training' | 'event' | 'other')
+            }
+            className={inputClass}
           >
-            Spiel
-          </button>
-          <button
-            type="button"
-            onClick={() => setKind('training')}
-            className={`flex-1 rounded-xl border px-3 py-2 text-sm font-medium ${
-              kind === 'training'
-                ? 'border-red-500 bg-red-500/20 text-white'
-                : 'border-white/10 bg-black/40 text-white/70'
-            }`}
-          >
-            Training
-          </button>
+            <option value="game">Spiel</option>
+            <option value="training">Training</option>
+            <option value="event">Event</option>
+            <option value="other">Sonstiges</option>
+          </select>
         </div>
 
-        {kind === 'match' ? (
+        {eventTypeLocal === 'game' ? (
           <>
             <div>
               <label htmlFor="create-event-match_type" className={labelClass}>
@@ -259,7 +257,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               </div>
             </div>
           </>
-        ) : (
+        ) : eventTypeLocal === 'training' ? (
           <>
             <div>
               <label htmlFor="create-event-title" className={labelClass}>
@@ -284,6 +282,34 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
                 value={form.end_time}
                 onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))}
                 className={inputClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="create-event-description" className={labelClass}>
+                Beschreibung (optional)
+              </label>
+              <textarea
+                id="create-event-description"
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                className={inputClass}
+                rows={3}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <label htmlFor="create-event-title" className={labelClass}>
+                Titel *
+              </label>
+              <input
+                id="create-event-title"
+                type="text"
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className={inputClass}
+                placeholder="z. B. Elternabend, Team-Event"
               />
             </div>
             <div>

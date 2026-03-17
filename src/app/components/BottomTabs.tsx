@@ -6,6 +6,7 @@ import { useSession } from '../../auth/useSession';
 /** Interne Tabs: /app/* (wird in InternalLayout verwendet). */
 const appTabsBase = [
   { to: '/app/schedule', end: false as const, label: 'Spielplan', icon: <Grid3X3 size={24} /> },
+  { to: '/app/calendar', end: false as const, label: 'Kalender', icon: <CircleDot size={24} /> },
   { to: '/app/live', end: false as const, label: 'Live', icon: <Play size={24} /> },
   { to: '/app/team', end: false as const, label: 'Team', icon: <Users size={24} /> },
   { to: '/app/table', end: false as const, label: 'Tabelle', icon: <BarChart3 size={24} /> },
@@ -58,14 +59,19 @@ export const BottomTabs: React.FC = () => {
   const { effectiveRole } = useSession();
 
   const tabs = pathname.startsWith('/app')
-    ? appTabsBase.map((t) =>
-        t.to === '/app/schedule'
-          ? {
-              ...t,
-              label: effectiveRole === 'fan' ? 'Spielplan' : 'Termine',
-            }
-          : t,
-      )
+    ? appTabsBase
+        .filter((t) => {
+          if (t.to === '/app/calendar' && effectiveRole === 'fan') return false;
+          return true;
+        })
+        .map((t) =>
+          t.to === '/app/schedule'
+            ? {
+                ...t,
+                label: effectiveRole === 'fan' ? 'Spielplan' : 'Termine',
+              }
+            : t,
+        )
     : publicTabs;
 
   return (

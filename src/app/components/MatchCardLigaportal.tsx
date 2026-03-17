@@ -73,6 +73,7 @@ type MatchCardLigaportalProps = {
   startsAt: string | null;
   status: EventStatus;
   kind: EventKind;
+  eventType?: 'game' | 'training' | 'event' | 'other';
   matchType?: string | null;
   location?: string | null;
   meetupAt?: string | null;
@@ -185,6 +186,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   startsAt,
   status,
   kind,
+  eventType,
   matchType,
   location,
   meetupAt,
@@ -209,13 +211,17 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const matchTypeLabel = getMatchTypeLabel(matchType);
   const meetupTimeOnly = formatMeetupTimeOnly(meetupAt);
 
+  const effectiveEventType: 'game' | 'training' | 'event' | 'other' =
+    eventType ??
+    (kind === 'training' ? 'training' : kind === 'event' ? 'event' : 'game');
+
   let leftName: string;
   let rightName: string;
 
-  if (kind === 'training') {
+  if (effectiveEventType === 'training') {
     leftName = ourClubName;
     rightName = 'Training';
-  } else if (kind === 'event') {
+  } else if (effectiveEventType === 'event' || effectiveEventType === 'other') {
     leftName = ourClubName;
     rightName = opponent ?? 'Termin';
   } else {
@@ -251,7 +257,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const showScore = hasScore && (scoreHome != null || scoreAway != null);
   const home = scoreHome ?? 0;
   const away = scoreAway ?? 0;
-  const isMatch = kind === 'match';
+  const isMatch = effectiveEventType === 'game';
 
   const handleCardClick = () => {
     if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
