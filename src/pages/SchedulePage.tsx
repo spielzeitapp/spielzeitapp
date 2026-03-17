@@ -43,6 +43,14 @@ function isoToDateTimeLocal(iso: string | null): string {
   return `${y}-${mo}-${day}T${h}:${min}`;
 }
 
+function isoToTimeLocal(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${min}`;
+}
+
 
 export const SchedulePage: React.FC = () => {
   const navigate = useNavigate();
@@ -119,7 +127,7 @@ export const SchedulePage: React.FC = () => {
     setEditOpponent(e.opponent ?? '');
     setEditDateTime(isoToDateTimeLocal(e.starts_at));
     setEditLocation(e.location ?? '');
-    setEditMeetupAt(isoToDateTimeLocal(e.meetup_at));
+    setEditMeetupAt(isoToTimeLocal(e.meetup_at));
     setEditError(null);
     setEditModalOpen(true);
   };
@@ -225,9 +233,16 @@ export const SchedulePage: React.FC = () => {
     }
     setEditError(null);
     setSavingEdit(true);
-    const startsAt = new Date(editDateTime.trim()).toISOString();
+    const startsDate = new Date(editDateTime.trim());
+    const startsAt = startsDate.toISOString();
     const locationVal = editLocation.trim() || null;
-    const meetupAt = editMeetupAt.trim() ? new Date(editMeetupAt.trim()).toISOString() : null;
+    let meetupAt: string | null = null;
+    if (editMeetupAt.trim()) {
+      const [hh, mm] = editMeetupAt.split(':');
+      const meetup = new Date(startsDate);
+      meetup.setHours(Number(hh) || 0, Number(mm) || 0, 0, 0);
+      meetupAt = meetup.toISOString();
+    }
 
     const eventPayload = {
       opponent: opponent || null,
@@ -529,7 +544,7 @@ export const SchedulePage: React.FC = () => {
             </label>
             <input
               id="edit-meetup_at"
-              type="datetime-local"
+              type="time"
               value={editMeetupAt}
               onChange={(e) => setEditMeetupAt(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"

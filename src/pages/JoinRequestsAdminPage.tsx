@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
@@ -12,27 +13,34 @@ type JoinRequestRow = {
   player_name: string | null;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
+  team_name?: string | null;
 };
 
 export const JoinRequestsAdminPage: React.FC = () => {
+  const navigate = useNavigate();
   const [rows, setRows] = useState<JoinRequestRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
 
   const load = async () => {
     setLoading(true);
     setError(null);
     const { data, error } = await supabase
       .from('join_requests')
-      .select('id, user_id, team_id, requested_role, child_name, player_name, status, created_at')
+      .select('id, user_id, team_id, requested_role, child_name, player_name, status, created_at, teams(name)')
       .order('created_at', { ascending: false });
 
     if (error) {
       setError(error.message);
       setRows([]);
     } else {
-      setRows((data ?? []) as any);
+      const mapped = (data ?? []).map((r: any) => ({
+        ...r,
+        team_name: r.teams?.name ?? null,
+      }));
+      setRows(mapped as JoinRequestRow[]);
     }
     setLoading(false);
   };
@@ -128,48 +136,121 @@ export const JoinRequestsAdminPage: React.FC = () => {
     }
   };
 
+  const filteredRows = useMemo(() => {
+    if (activeFilter === 'all') return rows;
+    return rows.filter((r) => r.status === activeFilter);
+  }, [rows, activeFilter]);
+
+  const pendingCount = useMemo(() => rows.filter((r) => r.status === 'pending').length, [rows]);
+  const approvedCount = useMemo(() => rows.filter((r) => r.status === 'approved').length, [rows]);
+  const rejectedCount = useMemo(() => rows.filter((r) => r.status === 'rejected').length, [rows]);
+
   return (
     <div className="page min-h-[60vh] px-4 pt-6">
       <div className="mx-auto max-w-3xl space-y-4">
-        <h1 className="text-2xl font-bold text-white">Rollenanfragen (Parent/Player)</h1>
-        <p className="text-sm text-white/70">
-          Trainer/Admin sehen hier Anfragen für ihre Teams und können sie freigeben oder ablehnen.
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Rollenanfragen</h1>
+            <p className="text-sm text-white/70">
+              Trainer/Admin sehen hier Eltern- und Spieleranfragen und können sie freigeben oder ablehnen.
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10"
+            onClick={() => navigate('/app/schedule')}
+          >
+            ← Zurück zu Termine
+          </Button>
+        </div>
         <Card>
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {[
+              { id: 'pending', label: 'Neu', count: pendingCount },
+              { id: 'approved', label: 'Freigegeben', count: approvedCount },
+              { id: 'rejected', label: 'Abgelehnt', count: rejectedCount },
+              { id: 'all', label: 'Alle', count: rows.length },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveFilter(tab.id as any)}
+                className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  activeFilter === tab.id
+                    ? 'bg-red-600 text-white shadow-[0_0_14px_rgba(248,113,113,0.6)]'
+                    : 'bg-white/5 text-white/70 hover:bg-white/10'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span className="rounded-full bg-black/40 px-1.5 py-0.5 text-[10px]">
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
           <CardTitle>Anfragen</CardTitle>
           {loading ? (
             <p className="mt-3 text-sm text-white/60">Lade Anfragen…</p>
-          ) : rows.length === 0 ? (
-            <p className="mt-3 text-sm text-white/60">Keine Anfragen vorhanden.</p>
+          ) : filteredRows.length === 0 ? (
+            <p className="mt-3 text-sm text-white/60">
+              {rows.length === 0
+                ? 'Keine Anfragen vorhanden.'
+                : activeFilter === 'pending'
+                  ? 'Keine neuen Anfragen.'
+                  : 'Keine Anfragen in diesem Filter.'}
+            </p>
           ) : (
             <div className="mt-3 space-y-3">
-              {rows.map((r) => (
+              {filteredRows.map((r) => (
                 <div
                   key={r.id}
                   className="flex flex-col gap-1 rounded-xl border border-white/10 bg-black/40 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
-                    <div className="text-sm font-medium text-white">
+                    <div className="text-sm font-semibold text-white">
                       {r.requested_role === 'parent' ? 'Elternanfrage' : 'Spieleranfrage'}
                     </div>
                     <div className="mt-0.5 text-xs text-white/70">
-                      user_id: {r.user_id}
+                      Team: {r.team_name || 'Unbekannt'}
                     </div>
-                    <div className="mt-0.5 text-xs text-white/70">
-                      team_id: {r.team_id}
-                    </div>
-                    {r.child_name && (
+                    {r.requested_role === 'parent' && r.child_name && (
                       <div className="mt-0.5 text-xs text-white/70">
                         Kind: {r.child_name}
                       </div>
                     )}
-                    {r.player_name && (
+                    {r.requested_role === 'player' && r.player_name && (
                       <div className="mt-0.5 text-xs text-white/70">
                         Spieler: {r.player_name}
                       </div>
                     )}
                     <div className="mt-0.5 text-xs text-white/60">
-                      Status: <span className="font-semibold">{r.status}</span>
+                      Status:{' '}
+                      <span
+                        className={
+                          r.status === 'pending'
+                            ? 'font-semibold text-amber-300'
+                            : r.status === 'approved'
+                              ? 'font-semibold text-emerald-300'
+                              : 'font-semibold text-red-300'
+                        }
+                      >
+                        {r.status === 'pending'
+                          ? 'Neu'
+                          : r.status === 'approved'
+                            ? 'Freigegeben'
+                            : 'Abgelehnt'}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 text-xs text-white/50">
+                      Erstellt am:{' '}
+                      {new Date(r.created_at).toLocaleString('de-AT', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </div>
                   </div>
                   <div className="mt-2 flex gap-2 sm:mt-0">
