@@ -103,22 +103,57 @@ export const CalendarPage: React.FC = () => {
             ? accessibleTeamSeasons.map((ts) => ts.id)
             : [selectedTeamSeasonId];
 
-        const { data, error } = await supabase
+        // Erster Versuch: mit event_type-Spalte laden
+        let data: any[] | null = null;
+        let loadError: string | null = null;
+        const first = await supabase
           .from('events')
-          .select(
-            'id, team_season_id, event_type, opponent, notes, location, starts_at, team_seasons:team_seasons!events_team_season_id_fkey( teams!inner(name) )',
-          )
+          .select('id, team_season_id, event_type, kind, opponent, notes, location, starts_at')
           .in('team_season_id', teamSeasonIds)
           .gte('starts_at', start.toISOString())
           .lte('starts_at', end.toISOString())
           .order('starts_at', { ascending: true });
 
-        if (error) {
-          setError(error.message);
+        if (first.error && first.error.message?.includes('event_type')) {
+          // Fallback: ohne event_type-Spalte (alte DB)
+          const second = await supabase
+            .from('events')
+            .select('id, team_season_id, kind, opponent, notes, location, starts_at')
+            .in('team_season_id', teamSeasonIds)
+            .gte('starts_at', start.toISOString())
+            .lte('starts_at', end.toISOString())
+            .order('starts_at', { ascending: true });
+          if (second.error) {
+            loadError = second.error.message;
+          } else {
+            data = second.data ?? [];
+          }
+        } else if (first.error) {
+          loadError = first.error.message;
+        } else {
+          data = first.data ?? [];
+        }
+
+        if (loadError) {
+          setError(loadError);
           setEvents([]);
         } else {
           const mapped: CalendarEvent[] = (data ?? []).map((r: any) => {
-            const t = (r.event_type ?? 'game') as CalendarEvent['event_type'];
+            const rawType = (r.event_type ?? '').trim().toLowerCase();
+            const kind = (r.kind ?? '').trim().toLowerCase();
+            let t: CalendarEvent['event_type'];
+            if (rawType === 'game' || rawType === 'training' || rawType === 'event' || rawType === 'other') {
+              t = rawType;
+            } else if (kind === 'match') {
+              t = 'game';
+            } else if (kind === 'training') {
+              t = 'training';
+            } else if (kind === 'event') {
+              t = 'event';
+            } else {
+              t = 'other';
+            }
+
             const startsAt = r.starts_at as string;
             let title = '';
             if (t === 'game') {
@@ -128,7 +163,10 @@ export const CalendarPage: React.FC = () => {
             } else {
               title = (r.notes as string | null)?.split(' · ')[0] || 'Termin';
             }
-            const teamName = r.team_seasons?.teams?.name ?? null;
+
+            const ts = accessibleTeamSeasons.find((ts: any) => ts.id === r.team_season_id);
+            const teamName = ts?.teams?.name ?? null;
+
             return {
               id: r.id,
               team_season_id: r.team_season_id,
