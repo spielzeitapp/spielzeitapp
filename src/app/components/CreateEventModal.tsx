@@ -117,7 +117,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       const payload: Record<string, unknown> = {
         team_season_id: teamSeasonId,
         kind: matchKind,
-        opponent: matchKind === 'match' ? opponentVal || null : titleVal || null,
+        // type-Spalte in DB: 'match' | 'training' | 'event'
+        type: matchKind === 'match' ? 'match' : 'training',
+        opponent: matchKind === 'match' ? opponentVal || null : null,
         is_home: matchKind === 'match' ? form.is_home : null,
         location: locationVal,
         starts_at: startsAt,
@@ -129,6 +131,8 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       if (matchKind === 'match' && matchTypeVal != null) payload.match_type = matchTypeVal;
       if (matchKind === 'training') {
         const noteParts: string[] = [];
+        // Titel und optionale Details in notes ablegen
+        if (titleVal) noteParts.push(titleVal);
         if (form.end_time.trim()) noteParts.push(`Ende: ${form.end_time.trim()} Uhr`);
         if (form.description.trim()) noteParts.push(form.description.trim());
         if (noteParts.length > 0) payload.notes = noteParts.join(' · ');
