@@ -1,9 +1,10 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { CircleDot, Grid3X3, Play, Users, BarChart3 } from 'lucide-react';
+import { useSession } from '../../auth/useSession';
 
 /** Interne Tabs: /app/* (wird in InternalLayout verwendet). */
-const appTabs = [
+const appTabsBase = [
   { to: '/app/schedule', end: false as const, label: 'Spielplan', icon: <Grid3X3 size={24} /> },
   { to: '/app/live', end: false as const, label: 'Live', icon: <Play size={24} /> },
   { to: '/app/team', end: false as const, label: 'Team', icon: <Users size={24} /> },
@@ -54,7 +55,18 @@ const publicTabs = [
 
 export const BottomTabs: React.FC = () => {
   const { pathname } = useLocation();
-  const tabs = pathname.startsWith('/app') ? appTabs : publicTabs;
+  const { effectiveRole } = useSession();
+
+  const tabs = pathname.startsWith('/app')
+    ? appTabsBase.map((t) =>
+        t.to === '/app/schedule'
+          ? {
+              ...t,
+              label: effectiveRole === 'fan' ? 'Spielplan' : 'Termine',
+            }
+          : t,
+      )
+    : publicTabs;
 
   return (
     <nav

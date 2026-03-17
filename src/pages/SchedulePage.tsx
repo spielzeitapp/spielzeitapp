@@ -16,6 +16,7 @@ import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
 
 type TabId = 'upcoming' | 'live' | 'finished';
+type KindFilterId = 'all' | 'match' | 'training';
 
 const TAB_OPTIONS: { id: TabId; label: string }[] = [
   { id: 'upcoming', label: 'Bevorstehend' },
@@ -78,6 +79,9 @@ export const SchedulePage: React.FC = () => {
   const ourTeamName = teamLabel ?? publicLabel ?? getOurTeamDisplayName();
 
   const [activeTab, setActiveTab] = useState<TabId>('upcoming');
+  const [kindFilter, setKindFilter] = useState<KindFilterId>(() =>
+    normalizedUiRole === 'fan' ? 'match' : 'all',
+  );
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   /** Zu-/Absage: Modal + Status. Gespeichertes Event = genau das angeklickte Spiel (ID-Konsistenz). */
@@ -263,14 +267,23 @@ export const SchedulePage: React.FC = () => {
       finished: 2,
       canceled: 3,
     };
-    const sorted = [...events].sort((a, b) => {
+    const base = events.filter((e) => {
+      // Fans sehen nur Spiele (kind === 'match')
+      if (normalizedUiRole === 'fan') return e.kind === 'match';
+      // Trainer/Player/Parent sehen alle Events, optional per Kind-Filter eingegrenzt
+      if (kindFilter === 'match') return e.kind === 'match';
+      if (kindFilter === 'training') return e.kind === 'training';
+      return true;
+    });
+
+    const sorted = [...base].sort((a, b) => {
       const wa = statusWeight[a.status ?? 'upcoming'] ?? 0;
       const wb = statusWeight[b.status ?? 'upcoming'] ?? 0;
       if (wa !== wb) return wa - wb;
       return (a.starts_at ?? '').localeCompare(b.starts_at ?? '');
     });
     return sorted.filter((e) => getEventTab(e) === activeTab);
-  }, [events, activeTab]);
+  }, [events, activeTab, kindFilter, normalizedUiRole]);
 
   const displayEventIds = useMemo(() => displayEvents.map((e) => e.id), [displayEvents]);
   const { byEventId: attendanceByEventId, loading: attendanceLoading, refresh: refreshAttendance } = useEventsAttendance(displayEventIds);
@@ -308,7 +321,7 @@ export const SchedulePage: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="text-4xl font-bold text-white tracking-tight [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
-                Spielplan
+                {normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine'}
               </h1>
               <p className="text-sm text-white/70 mt-2">
                 {teamSeasonSubtitle}
@@ -322,7 +335,7 @@ export const SchedulePage: React.FC = () => {
                 onClick={() => setCreateModalOpen(true)}
                 disabled={!teamSeasonId}
               >
-                Spiel anlegen
+                Spiel / Termin anlegen
               </Button>
             )}
           </div>
@@ -344,7 +357,32 @@ export const SchedulePage: React.FC = () => {
             ))}
           </div>
 
-          {pageLoading && <p className="text-sm text-[var(--muted)]">Lade Spielplan…</p>}
+          <div className="mt-3 flex gap-1.5 rounded-xl border border-white/10 bg-black/30 p-1.5 backdrop-blur-sm">
+            {([
+              { id: 'all', label: 'Alle' },
+              { id: 'match', label: 'Spiele' },
+              { id: 'training', label: 'Trainings' },
+            ] as const).map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setKindFilter(f.id)}
+                className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-medium transition-colors ${
+                  kindFilter === f.id
+                    ? 'bg-white/15 text-white border border-white/40'
+                    : 'text-white/70 hover:text-white/90 border border-transparent'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {pageLoading && (
+            <p className="text-sm text-[var(--muted)]">
+              {normalizedUiRole === 'fan' ? 'Lade Spielplan…' : 'Lade Termine…'}
+            </p>
+          )}
           {error && (
             <p className="text-sm text-red-600" role="alert">
               {error}

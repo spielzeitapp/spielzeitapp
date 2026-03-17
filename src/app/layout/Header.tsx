@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
+import { supabase } from '../../lib/supabaseClient';
 
 const logo = import.meta.env.BASE_URL + 'logos/nsg-goelsental.png';
 
@@ -25,7 +26,7 @@ const APP_LOGIN_REDIRECT = '/login';
 export const Header: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { membershipError, effectiveRole, loading: sessionLoading } = useSession();
+  const { membershipError, effectiveRole, loading: sessionLoading, backendRole } = useSession();
   const { user, loading: authLoading } = useAuth();
   const publicView = isPublicRoute(pathname);
   const isRoleChoice = pathname === '/app/role-choice';
@@ -33,6 +34,46 @@ export const Header: React.FC = () => {
     !isRoleChoice && effectiveRole
       ? (ROLE_LABEL_DE[effectiveRole] ?? effectiveRole)
       : null;
+
+  const isStaff =
+    !!backendRole &&
+    ['admin', 'head_coach', 'trainer', 'co_trainer'].includes(backendRole.toLowerCase());
+
+  const [pendingRequestsCount, setPendingRequestsCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isStaff) {
+      setPendingRequestsCount(null);
+      return;
+    }
+
+    let cancelled = false;
+    async function loadPendingCount() {
+      try {
+        const { count, error } = await supabase
+          .from('join_requests')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'pending');
+        if (cancelled) return;
+        if (error) {
+          console.warn('[HEADER] join_requests pending count error', error);
+          setPendingRequestsCount(null);
+        } else {
+          setPendingRequestsCount(typeof count === 'number' ? count : 0);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          console.warn('[HEADER] join_requests pending count exception', e);
+          setPendingRequestsCount(null);
+        }
+      }
+    }
+
+    loadPendingCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [isStaff]);
 
   return (
     <header className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-black/60 py-3 backdrop-blur-md">
@@ -81,10 +122,24 @@ export const Header: React.FC = () => {
           )}
         </div>
 
-        {/* Rechts: Profil + Login (kein Logout im Header) + kompakte Rollen-Badge */}
+        {/* Rechts: Staff-Navigation (Anfragen), Profil + Login (kein Logout im Header) + kompakte Rollen-Badge */}
         {!publicView && (
           <div className="flex shrink-0 flex-col items-end justify-center gap-1">
             <div className="flex items-center gap-2">
+              {isStaff && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/join-requests')}
+                  className="hidden rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs text-white transition-colors hover:bg-white/15 sm:inline-flex"
+                >
+                  Anfragen
+                  {typeof pendingRequestsCount === 'number' && pendingRequestsCount > 0 && (
+                    <span className="ml-1 rounded-full bg-red-600/80 px-1.5 py-0.5 text-[10px] font-semibold">
+                      {pendingRequestsCount}
+                    </span>
+                  )}
+                </button>
+              )}
               {!authLoading && !user && (
                 <button
                   type="button"
