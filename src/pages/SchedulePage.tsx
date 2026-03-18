@@ -483,45 +483,6 @@ export const SchedulePage: React.FC = () => {
                       : undefined;
 
                   const et = getEffectiveEventType(ev);
-                  const isGame = et === 'game';
-                  const isAppointmentLike = et === 'training' || et === 'event' || et === 'other';
-                  const title =
-                    et === 'training'
-                      ? ((ev.notes ?? '').split(' · ')[0]?.trim() || 'Training')
-                      : et === 'event' || et === 'other'
-                        ? ((ev.notes ?? '').split(' · ')[0]?.trim() || 'Termin')
-                        : (ev.opponent ?? 'Spiel');
-
-                  const description =
-                    isAppointmentLike
-                      ? (() => {
-                          const parts = (ev.notes ?? '').split(' · ').map((p) => p.trim()).filter(Boolean);
-                          if (parts.length <= 1) return null;
-                          return parts.slice(1).join(' · ');
-                        })()
-                      : null;
-
-                  const endTimeLabel = (() => {
-                    const parts = (ev.notes ?? '').split(' · ').map((p) => p.trim()).filter(Boolean);
-                    const endRaw = parts.find((p) => p.toLowerCase().startsWith('ende:'));
-                    if (!endRaw) return null;
-                    return endRaw
-                      .replace(/^ende:\s*/i, '')
-                      .replace(/\s*uhr\s*$/i, '')
-                      .trim();
-                  })();
-
-                  const dateObj = ev.starts_at ? new Date(ev.starts_at) : null;
-                  const dateLabel = dateObj
-                    ? dateObj.toLocaleDateString('de-AT', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
-                    : '';
-                  const timeLabel = dateObj
-                    ? dateObj.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
-                    : '';
-                  const meetupLabel =
-                    showMeetupForRole && ev.meetup_at
-                      ? new Date(ev.meetup_at).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
-                      : null;
                   return (
                     <div
                       key={ev.id}
@@ -537,214 +498,32 @@ export const SchedulePage: React.FC = () => {
                           }
                         : {})}
                     >
-                      {isGame ? (
-                        <MatchCardLigaportal
-                          className="w-full max-w-none rounded-2xl"
-                          ourTeamName={ourTeamName}
-                          opponent={ev.opponent}
-                          isHome={ev.is_home}
-                          startsAt={ev.starts_at}
-                          status={ev.status}
-                          kind={ev.kind}
-                          eventType={et}
-                          matchType={ev.match_type}
-                          location={ev.location}
-                          meetupAt={ev.meetup_at}
-                          showMeetup={showMeetupForRole}
-                          eventId={forcePublicView ? undefined : ev.id}
-                          onNavigate={forcePublicView ? undefined : (id) => navigate(`/app/events/${id}`)}
-                          isPublicView={forcePublicView}
-                          opponentLogoUrl={ev.opponent_logo_url}
-                          canManage={canManage}
-                          onEdit={canManage ? () => openEditModal(ev) : undefined}
-                          onDelete={canManage ? () => handleDelete(ev) : undefined}
-                          role={uiRole ?? undefined}
-                          attendanceStatus={attendanceStatusMerged}
-                          onOpenAttendance={(uiRole === 'parent' || uiRole === 'player') ? () => setAttendanceModalEvent(ev) : undefined}
-                          attendanceCounts={canManage ? { yes, no, open } : undefined}
-                        />
-                      ) : (
-                        <div
-                          className={`w-full max-w-none rounded-2xl border border-white/10 bg-black/40 px-4 py-3 ${
-                            forcePublicView ? '' : 'cursor-pointer hover:bg-black/50 transition-colors'
-                          }`}
-                          role={forcePublicView ? undefined : 'button'}
-                          tabIndex={forcePublicView ? -1 : 0}
-                          onClick={() => {
-                            if (forcePublicView) return;
-                            navigate(`/app/events/${ev.id}`);
-                          }}
-                          onKeyDown={(e) => {
-                            if (forcePublicView) return;
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              navigate(`/app/events/${ev.id}`);
-                            }
-                          }}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              {et === 'training' ? (
-                                <>
-                                  {/* Top: Badge + große Uhrzeit */}
-                                  <div className="flex items-start justify-between gap-3">
-                                    <span
-                                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold bg-blue-600/25 text-blue-200 border border-blue-500/30`}
-                                    >
-                                      Training
-                                    </span>
-                                    <span className="text-2xl font-bold text-white tabular-nums leading-none">
-                                      {timeLabel}
-                                    </span>
-                                  </div>
-
-                                  {/* Gruppen-Block */}
-                                  <div className="mt-2 space-y-1">
-                                    {/* Line 1: Date + Time */}
-                                    <div className="text-sm text-white/80 font-semibold">
-                                      {dateLabel} · {timeLabel}
-                                    </div>
-
-                                    {/* Line 2: Location */}
-                                    {ev.location ? (
-                                      <div className="text-sm text-white/70 font-medium">{ev.location}</div>
-                                    ) : null}
-
-                                    {/* Line 3: Treffpunkt + Ende (same row) */}
-                                    <div className="flex items-start justify-between gap-3">
-                                      {meetupLabel ? (
-                                        <div className="text-sm text-amber-200 font-medium truncate">
-                                          Treffpunkt: {meetupLabel}
-                                        </div>
-                                      ) : (
-                                        <div />
-                                      )}
-                                      {endTimeLabel ? (
-                                        <div className="text-sm text-white/60 font-medium whitespace-nowrap">
-                                          Ende: {endTimeLabel}
-                                        </div>
-                                      ) : null}
-                                    </div>
-
-                                    {/* Optional description */}
-                                    {description ? (
-                                      <div className="pt-1 text-sm text-white/60 line-clamp-2">
-                                        {description}
-                                      </div>
-                                    ) : null}
-                                  </div>
-
-                                  {/* Participation stats */}
-                                  {canManage && (
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                      <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
-                                        Zugesagt: {yes}
-                                      </span>
-                                      <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
-                                        Abgesagt: {no}
-                                      </span>
-                                      <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
-                                        Offen: {open}
-                                      </span>
-                                    </div>
-                                  )}
-                                </>
-                              ) : (
-                                <>
-                                  {/* Top: Badge + großer Titel */}
-                                  <div className="flex items-start justify-between gap-3">
-                                    <span
-                                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                        et === 'event'
-                                          ? 'bg-white/10 text-white/80 border border-white/15'
-                                          : 'bg-white/5 text-white/70 border border-white/10'
-                                      }`}
-                                    >
-                                      {et === 'event' ? 'Event' : 'Termin'}
-                                    </span>
-                                    <span className="text-lg font-semibold text-white truncate">{title}</span>
-                                  </div>
-
-                                  <div className="mt-2 space-y-1">
-                                    {/* Line 1: Date + Time */}
-                                    <div className="text-sm text-white/80 font-semibold">
-                                      {dateLabel} · {timeLabel}
-                                    </div>
-
-                                    {/* Line 2: Location */}
-                                    {ev.location ? (
-                                      <div className="text-sm text-white/70 font-medium">{ev.location}</div>
-                                    ) : null}
-
-                                    {/* Line 3: Description */}
-                                    {description ? (
-                                      <div className="pt-1 text-sm text-white/60 line-clamp-2">
-                                        {description}
-                                      </div>
-                                    ) : null}
-                                  </div>
-
-                                  {/* Participation stats */}
-                                  {canManage && (
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                      <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
-                                        Zugesagt: {yes}
-                                      </span>
-                                      <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
-                                        Abgesagt: {no}
-                                      </span>
-                                      <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
-                                        Offen: {open}
-                                      </span>
-                                    </div>
-                                  )}
-                                </>
-                              )}
-                            </div>
-
-                        <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                          {(uiRole === 'parent' || uiRole === 'player') && !forcePublicView && (
-                            <button
-                              type="button"
-                              onClick={() => setAttendanceModalEvent(ev)}
-                              className={`rounded-full px-3 py-1 text-sm font-semibold text-white shrink-0 ${
-                                attendanceStatusMerged === 'yes'
-                                  ? 'bg-green-600 hover:bg-green-500'
-                                  : attendanceStatusMerged === 'no'
-                                    ? 'bg-red-600 hover:bg-red-500'
-                                    : 'bg-white/15 hover:bg-white/20 border border-white/30'
-                              }`}
-                            >
-                              {attendanceStatusMerged === 'yes'
-                                ? 'Dabei'
-                                : attendanceStatusMerged === 'no'
-                                  ? 'Abwesend'
-                                  : 'Zu-/Absage'}
-                            </button>
-                          )}
-
-                          {canManage && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => openEditModal(ev)}
-                                className="rounded-full bg-red-700 px-3 py-1 text-sm text-white shrink-0"
-                              >
-                                Bearbeiten
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(ev)}
-                                className="rounded-full bg-red-800 px-3 py-1 text-sm text-white shrink-0"
-                              >
-                                Löschen
-                              </button>
-                            </>
-                          )}
-                        </div>
-                          </div>
-                        </div>
-                      )}
+                      <MatchCardLigaportal
+                        className="w-full max-w-none rounded-2xl"
+                        ourTeamName={ourTeamName}
+                        opponent={ev.opponent}
+                        isHome={ev.is_home}
+                        startsAt={ev.starts_at}
+                        status={ev.status}
+                        kind={ev.kind}
+                        eventType={et}
+                        notes={ev.notes}
+                        matchType={ev.match_type}
+                        location={ev.location}
+                        meetupAt={ev.meetup_at}
+                        showMeetup={showMeetupForRole}
+                        eventId={forcePublicView ? undefined : ev.id}
+                        onNavigate={forcePublicView ? undefined : (id) => navigate(`/app/events/${id}`)}
+                        isPublicView={forcePublicView}
+                        opponentLogoUrl={ev.opponent_logo_url}
+                        canManage={canManage}
+                        onEdit={canManage ? () => openEditModal(ev) : undefined}
+                        onDelete={canManage ? () => handleDelete(ev) : undefined}
+                        role={uiRole ?? undefined}
+                        attendanceStatus={attendanceStatusMerged}
+                        onOpenAttendance={(uiRole === 'parent' || uiRole === 'player') ? () => setAttendanceModalEvent(ev) : undefined}
+                        attendanceCounts={canManage ? { yes, no, open } : undefined}
+                      />
                     </div>
                   );
                 })

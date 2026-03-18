@@ -147,16 +147,17 @@ type KickoffBlockProps = {
   timeDisplay: string;
   showUhr: boolean;
   location: string | null | undefined;
+  headerLabel?: string;
 };
 
-function KickoffBlock({ timeDisplay, showUhr, location }: KickoffBlockProps) {
+function KickoffBlock({ timeDisplay, showUhr, location, headerLabel }: KickoffBlockProps) {
   const hasLocation = location != null && location.trim() !== '';
   const locationLines = hasLocation ? formatLocationLines(location) : { line1: '', line2: null as string | null };
 
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
       <div className="text-[14px] tracking-[0.35em] text-red-300 font-semibold">
-        ANPFIFF
+        {headerLabel ?? 'ANPFIFF'}
       </div>
       <div className="mt-2 text-[34px] sm:text-[44px] font-extrabold leading-[1] text-white tabular-nums">
         {timeDisplay}
@@ -221,13 +222,20 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   let leftName: string;
   let rightName: string;
 
-  if (effectiveEventType === 'training') {
-    leftName = ourClubName;
-    rightName = 'Training';
-  } else if (effectiveEventType === 'event' || effectiveEventType === 'other') {
-    leftName = ourClubName;
-    rightName = opponent ?? 'Termin';
-  } else {
+  const noteParts = (notes ?? '')
+    .split(' · ')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const notesTitle = noteParts[0] ?? null;
+
+  const headerTitle =
+    effectiveEventType === 'game'
+      ? matchTypeLabel
+      : effectiveEventType === 'training'
+        ? 'Training'
+        : notesTitle ?? 'Termin';
+
+  if (effectiveEventType === 'game') {
     // kind === 'match' – Heim/Auswärts-Logik bleibt erhalten
     if (isHome === true) {
       leftName = ourClubName;
@@ -240,6 +248,10 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       leftName = ourClubName;
       rightName = opponent ?? 'Gegner';
     }
+  } else {
+    // Training/Event: nur unser Team (Opponent wird UI-seitig ausgeblendet)
+    leftName = ourClubName;
+    rightName = opponent ?? 'Termin';
   }
 
   const date = startsAt ? new Date(startsAt) : null;
@@ -255,171 +267,6 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const timeStr = date
     ? date.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
     : '–';
-
-  // ===== Training: kompakte Termin-Karte (kein Match-Layout) =====
-  if (effectiveEventType === 'training') {
-    const noteParts = (notes ?? '').split(' · ').map((p) => p.trim()).filter(Boolean);
-    const title = noteParts[0] || 'Training';
-    const endRaw = noteParts.find((p) => p.toLowerCase().startsWith('ende:'));
-    const endTime = endRaw ? endRaw.replace(/^ende:\s*/i, '').replace(/\s*uhr\s*$/i, '').trim() : null;
-    const description =
-      noteParts.length > 1
-        ? noteParts
-            .slice(1)
-            .filter((p) => !p.toLowerCase().startsWith('ende:'))
-            .join(' · ')
-        : null;
-
-    const baseCardClass =
-      `relative w-full max-w-none overflow-hidden rounded-2xl border border-white/10 bg-black/40 px-4 py-3 ${className}`;
-    const cardClass =
-      isPublicView ? baseCardClass : `${baseCardClass} ${eventId && onNavigate ? 'cursor-pointer hover:bg-black/50 transition-colors' : ''}`.trim();
-
-    const handleClick = () => {
-      if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
-    };
-
-    return (
-      <div className="flex w-full max-w-none flex-col gap-0">
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold bg-blue-600/25 text-blue-200 border border-blue-500/30">
-            Training
-          </span>
-          <span className="text-2xl font-bold text-white tabular-nums leading-none">{timeStr}</span>
-        </div>
-        <div
-          className={cardClass}
-          role={!isPublicView && eventId && onNavigate ? 'button' : undefined}
-          tabIndex={!isPublicView && eventId && onNavigate ? 0 : -1}
-          onClick={handleClick}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleClick();
-            }
-          }}
-          aria-label={`Training ${title}, ${dateLabelLong ?? dateLabelShort ?? ''} ${timeStr}`}
-        >
-          <div className="flex flex-col gap-1">
-            <div className="text-sm text-white/80 font-semibold">{dateLabelShort ?? ''}</div>
-            {location && location.trim() ? (
-              <div className="text-sm text-white/70 font-medium">{location.trim()}</div>
-            ) : null}
-
-            <div className="mt-1 text-sm text-white/70">
-              {canSeeSensitiveInfo && meetupTimeOnly ? (
-                <div className="text-amber-200">Treffpunkt: {meetupTimeOnly}</div>
-              ) : null}
-              {endTime ? (
-                <div className="text-white/60 font-medium">Ende: {endTime}</div>
-              ) : null}
-            </div>
-
-            {description ? (
-              <div className="mt-1 text-sm text-white/60 line-clamp-2">{description}</div>
-            ) : null}
-
-            {canManage && attendanceCounts != null ? (
-              <div className="mt-2 flex flex-wrap gap-2">
-                <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
-                  Zugesagt: {attendanceCounts.yes}
-                </span>
-                <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
-                  Abgesagt: {attendanceCounts.no}
-                </span>
-                <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
-                  Offen: {attendanceCounts.open}
-                </span>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ===== Event/other: neutrales Termin-Layout =====
-  if (effectiveEventType === 'event' || effectiveEventType === 'other') {
-    const noteParts = (notes ?? '')
-      .split(' · ')
-      .map((p) => p.trim())
-      .filter(Boolean);
-
-    const title = noteParts[0] || opponent || 'Termin';
-
-    const endRaw = noteParts.find((p) => p.toLowerCase().startsWith('ende:'));
-    const endTime = endRaw
-      ? endRaw.replace(/^ende:\s*/i, '').replace(/\s*uhr\s*$/i, '').trim()
-      : null;
-
-    const descriptionParts = noteParts
-      .slice(1)
-      .filter((p) => !p.toLowerCase().startsWith('ende:'));
-    const description = descriptionParts.length ? descriptionParts.join(' · ') : null;
-
-    const badgeLabel = effectiveEventType === 'event' ? 'Event' : 'Termin';
-
-    const baseCardClass =
-      `relative w-full max-w-none overflow-hidden rounded-2xl border border-white/10 bg-black/40 px-4 py-3 ${className}`;
-    const cardClass =
-      isPublicView ? baseCardClass : `${baseCardClass} ${eventId && onNavigate ? 'cursor-pointer hover:bg-black/50 transition-colors' : ''}`.trim();
-
-    const handleClick = () => {
-      if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
-    };
-
-    return (
-      <div className="flex w-full max-w-none flex-col gap-0">
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold bg-white/10 text-white/80 border border-white/15">
-            {badgeLabel}
-          </span>
-          <span className="text-lg font-semibold text-white truncate">{title}</span>
-        </div>
-
-        <div
-          className={cardClass}
-          role={!isPublicView && eventId && onNavigate ? 'button' : undefined}
-          tabIndex={!isPublicView && eventId && onNavigate ? 0 : -1}
-          onClick={handleClick}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleClick();
-            }
-          }}
-          aria-label={`${badgeLabel} ${title}, ${dateLabelLong ?? dateLabelShort ?? ''} ${timeStr}`}
-        >
-          <div className="flex flex-col gap-1">
-            <div className="text-sm text-white/70 font-medium">
-              {dateLabelShort ?? ''} · {timeStr}
-            </div>
-            {location && location.trim() ? (
-              <div className="text-sm text-white/70 font-medium">{location.trim()}</div>
-            ) : null}
-
-            {description ? (
-              <div className="mt-1 text-sm text-white/60 line-clamp-3">{description}</div>
-            ) : null}
-
-            {canManage && attendanceCounts != null ? (
-              <div className="mt-2 flex flex-wrap gap-2">
-                <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
-                  Zugesagt: {attendanceCounts.yes}
-                </span>
-                <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
-                  Abgesagt: {attendanceCounts.no}
-                </span>
-                <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
-                  Offen: {attendanceCounts.open}
-                </span>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const hasScore = status === 'live' || status === 'finished';
   const showScore = hasScore && (scoreHome != null || scoreAway != null);
@@ -516,10 +363,10 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const cardContent = (
     <>
       {/* Spielart: weiß, font-medium */}
-      {matchTypeLabel && (
+      {headerTitle && (
         <div className="flex justify-center">
           <p className="text-xl font-semibold text-white">
-            {matchTypeLabel}
+            {headerTitle}
           </p>
         </div>
       )}
@@ -527,11 +374,15 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       {/* ANPFIFF-Block: 1fr_auto_1fr, Mitte nie verschoben, Mobile kompakt */}
       <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-x-4">
         <div className="min-w-0 flex flex-col items-center text-center">
-          <TeamBlock
-            logoUrl={homeLogoUrl}
-            prefix={homePrefix || undefined}
-            name={homeName || '–'}
-          />
+          {effectiveEventType !== 'event' ? (
+            <TeamBlock
+              logoUrl={homeLogoUrl}
+              prefix={homePrefix || undefined}
+              name={homeName || '–'}
+            />
+          ) : (
+            <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-white/10 mx-auto" />
+          )}
         </div>
 
         <div className="min-w-0 flex flex-col items-center text-center">
@@ -539,15 +390,20 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             timeDisplay={isMatch && showScore ? `${home} : ${away}` : timeStr}
             showUhr={!isMatch || !showScore}
             location={location}
+            headerLabel={effectiveEventType === 'game' ? 'ANPFIFF' : 'BEGINN'}
           />
         </div>
 
         <div className="min-w-0 px-2 flex flex-col items-center text-center">
-          <TeamBlock
-            logoUrl={awayLogoUrl}
-            prefix={awayPrefix || undefined}
-            name={awayName || '–'}
-          />
+          {effectiveEventType === 'game' ? (
+            <TeamBlock
+              logoUrl={awayLogoUrl}
+              prefix={awayPrefix || undefined}
+              name={awayName || '–'}
+            />
+          ) : (
+            <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-white/10 mx-auto" />
+          )}
         </div>
       </div>
 
