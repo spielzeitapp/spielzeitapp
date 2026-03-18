@@ -584,71 +584,121 @@ export const SchedulePage: React.FC = () => {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="flex items-start justify-between gap-3">
-                                <span
-                                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                    et === 'training'
-                                      ? 'bg-blue-600/25 text-blue-200 border border-blue-500/30'
-                                      : et === 'event'
-                                        ? 'bg-white/10 text-white/80 border border-white/15'
-                                        : 'bg-white/5 text-white/70 border border-white/10'
-                                  }`}
-                                >
-                                  {et === 'training' ? 'Training' : et === 'event' ? 'Event' : 'Termin'}
-                                </span>
-
-                                {et === 'training' ? (
-                                  <span className="text-2xl font-bold text-white tabular-nums leading-none">
-                                    {timeLabel}
-                                  </span>
-                                ) : null}
-                              </div>
-
                               {et === 'training' ? (
                                 <>
-                                  <div className="mt-1 text-sm text-white/80 font-semibold">{dateLabel}</div>
-                                  {ev.location ? (
-                                    <div className="mt-0.5 text-sm text-white/70 font-medium">{ev.location}</div>
-                                  ) : null}
-                                  <div className="mt-1 text-sm text-white/70">
-                                    {meetupLabel ? (
-                                      <div className="text-sm text-amber-200">Treffpunkt: {meetupLabel}</div>
+                                  {/* Top: Badge + große Uhrzeit */}
+                                  <div className="flex items-start justify-between gap-3">
+                                    <span
+                                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold bg-blue-600/25 text-blue-200 border border-blue-500/30`}
+                                    >
+                                      Training
+                                    </span>
+                                    <span className="text-2xl font-bold text-white tabular-nums leading-none">
+                                      {timeLabel}
+                                    </span>
+                                  </div>
+
+                                  {/* Gruppen-Block */}
+                                  <div className="mt-2 space-y-1">
+                                    {/* Line 1: Date + Time */}
+                                    <div className="text-sm text-white/80 font-semibold">
+                                      {dateLabel} · {timeLabel}
+                                    </div>
+
+                                    {/* Line 2: Location */}
+                                    {ev.location ? (
+                                      <div className="text-sm text-white/70 font-medium">{ev.location}</div>
                                     ) : null}
-                                    {endTimeLabel ? (
-                                      <div className="text-sm text-white/60 font-medium">Ende: {endTimeLabel}</div>
+
+                                    {/* Line 3: Treffpunkt + Ende (same row) */}
+                                    <div className="flex items-start justify-between gap-3">
+                                      {meetupLabel ? (
+                                        <div className="text-sm text-amber-200 font-medium truncate">
+                                          Treffpunkt: {meetupLabel}
+                                        </div>
+                                      ) : (
+                                        <div />
+                                      )}
+                                      {endTimeLabel ? (
+                                        <div className="text-sm text-white/60 font-medium whitespace-nowrap">
+                                          Ende: {endTimeLabel}
+                                        </div>
+                                      ) : null}
+                                    </div>
+
+                                    {/* Optional description */}
+                                    {description ? (
+                                      <div className="pt-1 text-sm text-white/60 line-clamp-2">
+                                        {description}
+                                      </div>
                                     ) : null}
                                   </div>
-                                  {description ? (
-                                    <div className="mt-1 text-sm text-white/60 line-clamp-2">{description}</div>
-                                  ) : null}
+
+                                  {/* Participation stats */}
+                                  {canManage && (
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                      <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
+                                        Zugesagt: {yes}
+                                      </span>
+                                      <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
+                                        Abgesagt: {no}
+                                      </span>
+                                      <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
+                                        Offen: {open}
+                                      </span>
+                                    </div>
+                                  )}
                                 </>
                               ) : (
                                 <>
-                                  <div className="mt-1 text-lg font-semibold text-white truncate">{title}</div>
-                                  <div className="mt-1 text-sm text-white/70 font-medium">
-                                    {dateLabel} · {timeLabel}
+                                  {/* Top: Badge + großer Titel */}
+                                  <div className="flex items-start justify-between gap-3">
+                                    <span
+                                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                        et === 'event'
+                                          ? 'bg-white/10 text-white/80 border border-white/15'
+                                          : 'bg-white/5 text-white/70 border border-white/10'
+                                      }`}
+                                    >
+                                      {et === 'event' ? 'Event' : 'Termin'}
+                                    </span>
+                                    <span className="text-lg font-semibold text-white truncate">{title}</span>
                                   </div>
-                                  {ev.location ? (
-                                    <div className="mt-0.5 text-sm text-white/70 font-medium">{ev.location}</div>
-                                  ) : null}
-                                  {description ? (
-                                    <div className="mt-1 text-sm text-white/60 line-clamp-3">{description}</div>
-                                  ) : null}
-                                </>
-                              )}
 
-                              {canManage && (
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                  <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
-                                    Zugesagt: {yes}
-                                  </span>
-                                  <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
-                                    Abgesagt: {no}
-                                  </span>
-                                  <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
-                                    Offen: {open}
-                                  </span>
-                                </div>
+                                  <div className="mt-2 space-y-1">
+                                    {/* Line 1: Date + Time */}
+                                    <div className="text-sm text-white/80 font-semibold">
+                                      {dateLabel} · {timeLabel}
+                                    </div>
+
+                                    {/* Line 2: Location */}
+                                    {ev.location ? (
+                                      <div className="text-sm text-white/70 font-medium">{ev.location}</div>
+                                    ) : null}
+
+                                    {/* Line 3: Description */}
+                                    {description ? (
+                                      <div className="pt-1 text-sm text-white/60 line-clamp-2">
+                                        {description}
+                                      </div>
+                                    ) : null}
+                                  </div>
+
+                                  {/* Participation stats */}
+                                  {canManage && (
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                      <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
+                                        Zugesagt: {yes}
+                                      </span>
+                                      <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
+                                        Abgesagt: {no}
+                                      </span>
+                                      <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
+                                        Offen: {open}
+                                      </span>
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </div>
 
