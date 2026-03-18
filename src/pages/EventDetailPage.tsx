@@ -296,6 +296,8 @@ export const EventDetailPage: React.FC = () => {
             startsAt={event.starts_at}
             status={event.status}
             kind={event.kind}
+            eventType={(event as any).event_type ?? undefined}
+            notes={event.notes}
             location={event.location}
             meetupAt={event.meetup_at}
             showMeetup={showMeetup}

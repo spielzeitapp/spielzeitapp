@@ -74,6 +74,8 @@ type MatchCardLigaportalProps = {
   status: EventStatus;
   kind: EventKind;
   eventType?: 'game' | 'training' | 'event' | 'other';
+  /** Optional: für Training/Event Kurz-Titel/Beschreibung. */
+  notes?: string | null;
   matchType?: string | null;
   location?: string | null;
   meetupAt?: string | null;
@@ -187,6 +189,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   status,
   kind,
   eventType,
+  notes,
   matchType,
   location,
   meetupAt,
@@ -252,6 +255,77 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const timeStr = date
     ? date.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
     : '–';
+
+  // ===== Training: kompakte Termin-Karte (kein Match-Layout) =====
+  if (effectiveEventType === 'training') {
+    const noteParts = (notes ?? '').split(' · ').map((p) => p.trim()).filter(Boolean);
+    const title = noteParts[0] || 'Training';
+    const endRaw = noteParts.find((p) => p.toLowerCase().startsWith('ende:'));
+    const endTime = endRaw ? endRaw.replace(/^ende:\s*/i, '').replace(/\s*uhr\s*$/i, '').trim() : null;
+    const description =
+      noteParts.length > 1
+        ? noteParts
+            .slice(1)
+            .filter((p) => !p.toLowerCase().startsWith('ende:'))
+            .join(' · ')
+        : null;
+
+    const baseCardClass =
+      `relative w-full max-w-none overflow-hidden rounded-2xl border border-white/10 bg-black/40 px-4 py-4 ${className}`;
+    const cardClass =
+      isPublicView ? baseCardClass : `${baseCardClass} ${eventId && onNavigate ? 'cursor-pointer hover:bg-black/50 transition-colors' : ''}`.trim();
+
+    const handleClick = () => {
+      if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
+    };
+
+    return (
+      <div className="flex w-full max-w-none flex-col gap-0">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <span className="text-lg font-semibold text-white whitespace-nowrap min-w-0 truncate">
+            {dateLabelShort ?? ''}
+          </span>
+          <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-blue-600/25 text-blue-200 border border-blue-500/30">
+            Training
+          </span>
+        </div>
+        <div
+          className={cardClass}
+          role={!isPublicView && eventId && onNavigate ? 'button' : undefined}
+          tabIndex={!isPublicView && eventId && onNavigate ? 0 : -1}
+          onClick={handleClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleClick();
+            }
+          }}
+          aria-label={`Training ${title}, ${dateLabelLong ?? dateLabelShort ?? ''} ${timeStr}`}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-base font-semibold text-white truncate">{title}</div>
+              <div className="mt-1 text-sm text-white/70">
+                <span className="font-semibold text-white/80 tabular-nums">{timeStr}</span>
+                {endTime ? <span className="text-white/60"> – {endTime}</span> : null}
+                {location && location.trim() ? <span className="text-white/60"> · {location.trim()}</span> : null}
+              </div>
+              {canSeeSensitiveInfo && meetupTimeOnly ? (
+                <div className="mt-1 text-sm text-amber-200">
+                  Treffpunkt: {meetupTimeOnly}
+                </div>
+              ) : null}
+              {description ? (
+                <div className="mt-2 text-sm text-white/60 line-clamp-3">
+                  {description}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const hasScore = status === 'live' || status === 'finished';
   const showScore = hasScore && (scoreHome != null || scoreAway != null);
