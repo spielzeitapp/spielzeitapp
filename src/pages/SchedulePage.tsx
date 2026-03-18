@@ -479,7 +479,7 @@ export const SchedulePage: React.FC = () => {
                     (uiRole === 'parent' || uiRole === 'player') && myAttendancePlayerIds[0] && evAttendance?.availabilityByPlayerId[myPlayerIdKey];
                   const attendanceStatusMerged =
                     (uiRole === 'parent' || uiRole === 'player')
-                      ? (myStatusFromDb ?? attendanceStatusByEventId[ev.id] ?? null)
+                      ? (attendanceStatusByEventId[ev.id] ?? myStatusFromDb ?? null)
                       : undefined;
 
                   const et = getEffectiveEventType(ev);
@@ -588,7 +588,7 @@ export const SchedulePage: React.FC = () => {
                                 </span>
                                 <span className="text-sm font-semibold text-white truncate">{title}</span>
                               </div>
-                              <div className="mt-1 text-xs text-white/70">
+                              <div className="mt-1 text-sm text-white/80 font-medium">
                                 {dateLabel} · {timeLabel}
                                 {ev.location ? <span> · {ev.location}</span> : null}
                               </div>
@@ -602,26 +602,62 @@ export const SchedulePage: React.FC = () => {
                                   {description}
                                 </div>
                               ) : null}
+
+                          {canManage && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
+                                Zugesagt: {yes}
+                              </span>
+                              <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
+                                Abgesagt: {no}
+                              </span>
+                              <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
+                                Offen: {open}
+                              </span>
+                            </div>
+                          )}
                             </div>
 
-                            {canManage && (
-                              <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                <button
-                                  type="button"
-                                  onClick={() => openEditModal(ev)}
-                                  className="rounded-full bg-red-700 px-3 py-1 text-sm text-white shrink-0"
-                                >
-                                  Bearbeiten
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDelete(ev)}
-                                  className="rounded-full bg-red-800 px-3 py-1 text-sm text-white shrink-0"
-                                >
-                                  Löschen
-                                </button>
-                              </div>
-                            )}
+                        <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          {(uiRole === 'parent' || uiRole === 'player') && !forcePublicView && (
+                            <button
+                              type="button"
+                              onClick={() => setAttendanceModalEvent(ev)}
+                              className={`rounded-full px-3 py-1 text-sm font-semibold text-white shrink-0 ${
+                                attendanceStatusMerged === 'yes'
+                                  ? 'bg-green-600 hover:bg-green-500'
+                                  : attendanceStatusMerged === 'no'
+                                    ? 'bg-red-600 hover:bg-red-500'
+                                    : 'bg-white/15 hover:bg-white/20 border border-white/30'
+                              }`}
+                            >
+                              {attendanceStatusMerged === 'yes'
+                                ? 'Dabei'
+                                : attendanceStatusMerged === 'no'
+                                  ? 'Abwesend'
+                                  : 'Zu-/Absage'}
+                            </button>
+                          )}
+
+                          {canManage && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(ev)}
+                                className="rounded-full bg-red-700 px-3 py-1 text-sm text-white shrink-0"
+                              >
+                                Bearbeiten
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(ev)}
+                                className="rounded-full bg-red-800 px-3 py-1 text-sm text-white shrink-0"
+                              >
+                                Löschen
+                              </button>
+                            </>
+                          )}
+                        </div>
                           </div>
                         </div>
                       )}
@@ -724,7 +760,14 @@ export const SchedulePage: React.FC = () => {
           {/* Modal Zu-/Absage (Eltern/Spieler) – verwendet exakt die event_id des angeklickten Spiels. */}
           <Modal
             isOpen={attendanceModalEvent != null}
-            title={attendanceModalEvent ? `Zu-/Absage: ${attendanceModalEvent.opponent ?? 'Termin'}` : 'Zu-/Absage'}
+            title={
+              attendanceModalEvent
+                ? `Zu-/Absage: ${
+                    ((attendanceModalEvent.notes ?? '').split(' · ')[0]?.trim() || attendanceModalEvent.opponent) ??
+                    'Termin'
+                  }`
+                : 'Zu-/Absage'
+            }
             onClose={() => setAttendanceModalEvent(null)}
             footer={
               <div className="flex justify-end">
@@ -737,7 +780,19 @@ export const SchedulePage: React.FC = () => {
             <div className="flex flex-col py-3">
               {attendanceModalEvent && (
                 <p className="text-sm text-[var(--text-sub)] mb-2">
-                  {attendanceModalEvent.opponent ?? 'Termin'} · {attendanceModalEvent.starts_at ? new Date(attendanceModalEvent.starts_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                  {attendanceModalEvent.notes
+                    ? attendanceModalEvent.notes.split(' · ')[0] ?? 'Termin'
+                    : attendanceModalEvent.opponent ?? 'Termin'}{' '}
+                  ·{' '}
+                  {attendanceModalEvent.starts_at
+                    ? new Date(attendanceModalEvent.starts_at).toLocaleDateString('de-DE', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : ''}
                 </p>
               )}
               <p className="text-sm text-[var(--text-sub)]">
@@ -753,7 +808,7 @@ export const SchedulePage: React.FC = () => {
                   }}
                   className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white bg-green-600 hover:bg-green-500 active:scale-[0.98] transition-all"
                 >
-                  Zusagen
+                  Dabei
                 </button>
                 <button
                   type="button"
@@ -764,7 +819,7 @@ export const SchedulePage: React.FC = () => {
                   }}
                   className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white bg-red-600 hover:bg-red-500 active:scale-[0.98] transition-all"
                 >
-                  Absagen
+                  Abwesend
                 </button>
               </div>
             </div>

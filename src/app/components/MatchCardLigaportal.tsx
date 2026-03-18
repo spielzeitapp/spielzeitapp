@@ -327,6 +327,87 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     );
   }
 
+  // ===== Event/other: neutrales Termin-Layout =====
+  if (effectiveEventType === 'event' || effectiveEventType === 'other') {
+    const noteParts = (notes ?? '')
+      .split(' · ')
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    const title = noteParts[0] || opponent || 'Termin';
+
+    const endRaw = noteParts.find((p) => p.toLowerCase().startsWith('ende:'));
+    const endTime = endRaw
+      ? endRaw.replace(/^ende:\s*/i, '').replace(/\s*uhr\s*$/i, '').trim()
+      : null;
+
+    const descriptionParts = noteParts
+      .slice(1)
+      .filter((p) => !p.toLowerCase().startsWith('ende:'));
+    const description = descriptionParts.length ? descriptionParts.join(' · ') : null;
+
+    const badgeLabel = effectiveEventType === 'event' ? 'Event' : 'Termin';
+
+    const baseCardClass =
+      `relative w-full max-w-none overflow-hidden rounded-2xl border border-white/10 bg-black/40 px-4 py-4 ${className}`;
+    const cardClass =
+      isPublicView ? baseCardClass : `${baseCardClass} ${eventId && onNavigate ? 'cursor-pointer hover:bg-black/50 transition-colors' : ''}`.trim();
+
+    const handleClick = () => {
+      if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
+    };
+
+    return (
+      <div className="flex w-full max-w-none flex-col gap-0">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <span className="text-lg font-semibold text-white whitespace-nowrap min-w-0 truncate">
+            {dateLabelShort ?? ''}
+          </span>
+          <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-white/10 text-white/80 border border-white/15">
+            {badgeLabel}
+          </span>
+        </div>
+
+        <div
+          className={cardClass}
+          role={!isPublicView && eventId && onNavigate ? 'button' : undefined}
+          tabIndex={!isPublicView && eventId && onNavigate ? 0 : -1}
+          onClick={handleClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleClick();
+            }
+          }}
+          aria-label={`${badgeLabel} ${title}, ${dateLabelLong ?? dateLabelShort ?? ''} ${timeStr}`}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-base font-semibold text-white truncate">{title}</div>
+              <div className="mt-1 text-sm text-white/70">
+                <span className="font-semibold text-white/80 tabular-nums">{timeStr}</span>
+                {endTime ? <span className="text-white/60"> – {endTime}</span> : null}
+                {location && location.trim() ? (
+                  <span className="text-white/60"> · {location.trim()}</span>
+                ) : null}
+              </div>
+
+              {canSeeSensitiveInfo && meetupTimeOnly ? (
+                <div className="mt-1 text-sm text-amber-200">
+                  Treffpunkt: {meetupTimeOnly}
+                </div>
+              ) : null}
+
+              {description ? (
+                <div className="mt-2 text-sm text-white/60 line-clamp-3">{description}</div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const hasScore = status === 'live' || status === 'finished';
   const showScore = hasScore && (scoreHome != null || scoreAway != null);
   const home = scoreHome ?? 0;

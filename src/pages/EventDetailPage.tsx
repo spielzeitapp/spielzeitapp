@@ -421,7 +421,7 @@ export const EventDetailPage: React.FC = () => {
                 handleRsvp('yes');
               }}
             >
-              Zusagen
+              Dabei
             </Button>
             <Button
               variant="primary"
@@ -431,7 +431,7 @@ export const EventDetailPage: React.FC = () => {
                 handleRsvp('no');
               }}
             >
-              Absagen
+              Abwesend
             </Button>
           </div>
         </Modal>
