@@ -450,7 +450,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             </div>
 
             {effectiveEventType !== 'training' && descriptionText ? (
-              <div className="mt-1 text-sm text-white/60 line-clamp-2 max-w-[320px]">
+              <div className="mt-1 text-[13px] leading-snug text-white/75 font-semibold line-clamp-2 max-w-[320px]">
                 {descriptionText}
               </div>
             ) : null}
