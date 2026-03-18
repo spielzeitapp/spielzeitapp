@@ -13,6 +13,7 @@ import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
+import { downloadEventIcs } from '../lib/ics';
 
 type EventDbRow = {
   id: string;
@@ -287,6 +288,21 @@ export const EventDetailPage: React.FC = () => {
         >
           ← Zurück zum Spielplan
         </Link>
+
+        <div className="flex justify-end">
+          <Button
+            variant="soft"
+            size="sm"
+            className="rounded-xl"
+            onClick={() =>
+              downloadEventIcs(event as any, {
+                appBaseUrl: window.location.origin,
+              })
+            }
+          >
+            Zum Kalender hinzufügen
+          </Button>
+        </div>
 
         <div className="w-full">
           <MatchCardLigaportal

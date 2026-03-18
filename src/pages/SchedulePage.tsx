@@ -14,6 +14,7 @@ import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } f
 import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
+import { downloadCalendarIcs, downloadEventIcs } from '../lib/ics';
 
 type TabId = 'upcoming' | 'live' | 'finished';
 type KindFilterId = 'all' | 'match' | 'training' | 'event';
@@ -380,6 +381,21 @@ export const SchedulePage: React.FC = () => {
                 Termin anlegen
               </Button>
             )}
+            {teamSeasonId && !pageLoading && displayEvents.length > 0 && (
+              <Button
+                variant="soft"
+                size="sm"
+                className="rounded-xl"
+                onClick={() =>
+                  downloadCalendarIcs(displayEvents, {
+                    appBaseUrl: window.location.origin,
+                    calendarName: normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine',
+                  })
+                }
+              >
+                Kalender exportieren
+              </Button>
+            )}
           </div>
 
           {normalizedUiRole === 'fan' ? (
@@ -524,6 +540,21 @@ export const SchedulePage: React.FC = () => {
                         onOpenAttendance={(uiRole === 'parent' || uiRole === 'player') ? () => setAttendanceModalEvent(ev) : undefined}
                         attendanceCounts={canManage ? { yes, no, open } : undefined}
                       />
+                      <div className="mt-2 flex justify-end">
+                        <Button
+                          variant="soft"
+                          size="xs"
+                          className="rounded-full"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadEventIcs(ev, {
+                              appBaseUrl: window.location.origin,
+                            });
+                          }}
+                        >
+                          Zum Kalender hinzufügen
+                        </Button>
+                      </div>
                     </div>
                   );
                 })
