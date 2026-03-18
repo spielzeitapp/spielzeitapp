@@ -228,6 +228,14 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     .filter(Boolean);
   const notesTitle = noteParts[0] ?? null;
 
+  const endRaw = noteParts.find((p) => p.toLowerCase().startsWith('ende:'));
+  const endTimeLabel = endRaw
+    ? endRaw.replace(/^ende:\s*/i, '').replace(/\s*uhr\s*$/i, '').trim()
+    : null;
+
+  const descriptionParts = noteParts.slice(1).filter((p) => !p.toLowerCase().startsWith('ende:'));
+  const descriptionText = descriptionParts.length ? descriptionParts.join(' · ') : null;
+
   const headerTitle =
     effectiveEventType === 'game'
       ? matchTypeLabel
@@ -371,50 +379,84 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         </div>
       )}
 
-      {/* ANPFIFF-Block: 1fr_auto_1fr, Mitte nie verschoben, Mobile kompakt */}
-      <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-x-4">
-        <div className="min-w-0 flex flex-col items-center text-center">
-          {effectiveEventType !== 'event' ? (
-            <TeamBlock
-              logoUrl={homeLogoUrl}
-              prefix={homePrefix || undefined}
-              name={homeName || '–'}
-            />
-          ) : (
-            <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-white/10 mx-auto" />
-          )}
-        </div>
+      {effectiveEventType === 'game' ? (
+        <>
+          {/* ANPFIFF-Block: 1fr_auto_1fr, Mitte nie verschoben, Mobile kompakt */}
+          <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-x-4">
+            <div className="min-w-0 flex flex-col items-center text-center">
+              <TeamBlock
+                logoUrl={homeLogoUrl}
+                prefix={homePrefix || undefined}
+                name={homeName || '–'}
+              />
+            </div>
 
-        <div className="min-w-0 flex flex-col items-center text-center">
-          <KickoffBlock
-            timeDisplay={isMatch && showScore ? `${home} : ${away}` : timeStr}
-            showUhr={!isMatch || !showScore}
-            location={location}
-            headerLabel={effectiveEventType === 'game' ? 'ANPFIFF' : 'BEGINN'}
-          />
-        </div>
+            <div className="min-w-0 flex flex-col items-center text-center">
+              <KickoffBlock
+                timeDisplay={isMatch && showScore ? `${home} : ${away}` : timeStr}
+                showUhr={!isMatch || !showScore}
+                location={location}
+                headerLabel="ANPFIFF"
+              />
+            </div>
 
-        <div className="min-w-0 px-2 flex flex-col items-center text-center">
-          {effectiveEventType === 'game' ? (
-            <TeamBlock
-              logoUrl={awayLogoUrl}
-              prefix={awayPrefix || undefined}
-              name={awayName || '–'}
-            />
-          ) : (
-            <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-white/10 mx-auto" />
-          )}
-        </div>
-      </div>
-
-      {/* Treffpunkt: sekundärer CTA, einheitliche Höhe damit kein Layout-Sprung */}
-      <div className="mt-5 flex min-h-[36px] justify-center">
-        {canSeeSensitiveInfo && meetupTimeOnly ? (
-          <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-red-800/80 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800/90">
-            <span className="whitespace-nowrap">Treffpunkt: {meetupTimeOnly}</span>
+            <div className="min-w-0 px-2 flex flex-col items-center text-center">
+              <TeamBlock
+                logoUrl={awayLogoUrl}
+                prefix={awayPrefix || undefined}
+                name={awayName || '–'}
+              />
+            </div>
           </div>
-        ) : null}
-      </div>
+
+          {/* Treffpunkt: sekundärer CTA, einheitliche Höhe damit kein Layout-Sprung */}
+          <div className="mt-5 flex min-h-[36px] justify-center">
+            {canSeeSensitiveInfo && meetupTimeOnly ? (
+              <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-red-800/80 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800/90">
+                <span className="whitespace-nowrap">Treffpunkt: {meetupTimeOnly}</span>
+              </div>
+            ) : null}
+          </div>
+        </>
+      ) : (
+        <>
+          {/* TRAINING / EVENT: kein Team-/Opponent-Grid, dafür kompakte Pills/Badges */}
+          <div className="mt-4 flex flex-col items-center text-center gap-2">
+            <KickoffBlock
+              timeDisplay={timeStr}
+              showUhr
+              location={null}
+              headerLabel="BEGINN"
+            />
+
+            {location && location.trim() ? (
+              <div className="mt-1 flex h-9 max-w-[320px] items-center justify-center rounded-full bg-white/10 border border-white/15 px-5 py-2 text-sm font-medium text-white/90">
+                <span className="break-words line-clamp-2">{location.trim()}</span>
+              </div>
+            ) : null}
+
+            <div className="mt-1 flex flex-wrap justify-center gap-2">
+              {canSeeSensitiveInfo && meetupTimeOnly ? (
+                <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-red-800/80 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800/90">
+                  <span className="whitespace-nowrap">Treffpunkt: {meetupTimeOnly}</span>
+                </div>
+              ) : null}
+
+              {endTimeLabel ? (
+                <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-white/10 border border-white/15 px-5 py-2 text-sm font-medium text-white/90">
+                  <span className="whitespace-nowrap">Ende: {endTimeLabel}</span>
+                </div>
+              ) : null}
+            </div>
+
+            {effectiveEventType !== 'training' && descriptionText ? (
+              <div className="mt-1 text-sm text-white/60 line-clamp-2 max-w-[320px]">
+                {descriptionText}
+              </div>
+            ) : null}
+          </div>
+        </>
+      )}
     </>
   );
 
@@ -453,7 +495,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         }
       }}
       className={cardClass}
-      aria-label={`Spiel ${leftName} gegen ${rightName}, ${dateLabelLong ?? dateLabelShort ?? ''} ${timeStr}`}
+      aria-label={
+        effectiveEventType === 'game'
+          ? `Spiel ${leftName} gegen ${rightName}, ${dateLabelLong ?? dateLabelShort ?? ''} ${timeStr}`
+          : `${headerTitle ?? 'Termin'}, ${dateLabelLong ?? dateLabelShort ?? ''} ${timeStr}`
+      }
     >
       {cardContent}
     </div>
