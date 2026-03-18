@@ -501,6 +501,16 @@ export const SchedulePage: React.FC = () => {
                         })()
                       : null;
 
+                  const endTimeLabel = (() => {
+                    const parts = (ev.notes ?? '').split(' · ').map((p) => p.trim()).filter(Boolean);
+                    const endRaw = parts.find((p) => p.toLowerCase().startsWith('ende:'));
+                    if (!endRaw) return null;
+                    return endRaw
+                      .replace(/^ende:\s*/i, '')
+                      .replace(/\s*uhr\s*$/i, '')
+                      .trim();
+                  })();
+
                   const dateObj = ev.starts_at ? new Date(ev.starts_at) : null;
                   const dateLabel = dateObj
                     ? dateObj.toLocaleDateString('de-AT', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -555,7 +565,7 @@ export const SchedulePage: React.FC = () => {
                         />
                       ) : (
                         <div
-                          className={`w-full max-w-none rounded-2xl border border-white/10 bg-black/40 px-4 py-4 ${
+                          className={`w-full max-w-none rounded-2xl border border-white/10 bg-black/40 px-4 py-3 ${
                             forcePublicView ? '' : 'cursor-pointer hover:bg-black/50 transition-colors'
                           }`}
                           role={forcePublicView ? undefined : 'button'}
@@ -574,9 +584,9 @@ export const SchedulePage: React.FC = () => {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-start justify-between gap-3">
                                 <span
-                                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                                     et === 'training'
                                       ? 'bg-blue-600/25 text-blue-200 border border-blue-500/30'
                                       : et === 'event'
@@ -586,36 +596,60 @@ export const SchedulePage: React.FC = () => {
                                 >
                                   {et === 'training' ? 'Training' : et === 'event' ? 'Event' : 'Termin'}
                                 </span>
-                                <span className="text-sm font-semibold text-white truncate">{title}</span>
-                              </div>
-                              <div className="mt-1 text-sm text-white/80 font-medium">
-                                {dateLabel} · {timeLabel}
-                                {ev.location ? <span> · {ev.location}</span> : null}
-                              </div>
-                              {meetupLabel ? (
-                                <div className="mt-1 text-xs text-amber-200">
-                                  Treffpunkt: {meetupLabel}
-                                </div>
-                              ) : null}
-                              {description ? (
-                                <div className="mt-2 text-xs text-white/60 line-clamp-2">
-                                  {description}
-                                </div>
-                              ) : null}
 
-                          {canManage && (
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
-                                Zugesagt: {yes}
-                              </span>
-                              <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
-                                Abgesagt: {no}
-                              </span>
-                              <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
-                                Offen: {open}
-                              </span>
-                            </div>
-                          )}
+                                {et === 'training' ? (
+                                  <span className="text-2xl font-bold text-white tabular-nums leading-none">
+                                    {timeLabel}
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              {et === 'training' ? (
+                                <>
+                                  <div className="mt-1 text-sm text-white/80 font-semibold">{dateLabel}</div>
+                                  {ev.location ? (
+                                    <div className="mt-0.5 text-sm text-white/70 font-medium">{ev.location}</div>
+                                  ) : null}
+                                  <div className="mt-1 text-sm text-white/70">
+                                    {meetupLabel ? (
+                                      <div className="text-sm text-amber-200">Treffpunkt: {meetupLabel}</div>
+                                    ) : null}
+                                    {endTimeLabel ? (
+                                      <div className="text-sm text-white/60 font-medium">Ende: {endTimeLabel}</div>
+                                    ) : null}
+                                  </div>
+                                  {description ? (
+                                    <div className="mt-1 text-sm text-white/60 line-clamp-2">{description}</div>
+                                  ) : null}
+                                </>
+                              ) : (
+                                <>
+                                  <div className="mt-1 text-lg font-semibold text-white truncate">{title}</div>
+                                  <div className="mt-1 text-sm text-white/70 font-medium">
+                                    {dateLabel} · {timeLabel}
+                                  </div>
+                                  {ev.location ? (
+                                    <div className="mt-0.5 text-sm text-white/70 font-medium">{ev.location}</div>
+                                  ) : null}
+                                  {description ? (
+                                    <div className="mt-1 text-sm text-white/60 line-clamp-3">{description}</div>
+                                  ) : null}
+                                </>
+                              )}
+
+                              {canManage && (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
+                                    Zugesagt: {yes}
+                                  </span>
+                                  <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
+                                    Abgesagt: {no}
+                                  </span>
+                                  <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
+                                    Offen: {open}
+                                  </span>
+                                </div>
+                              )}
                             </div>
 
                         <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>

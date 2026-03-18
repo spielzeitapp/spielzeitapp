@@ -271,7 +271,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         : null;
 
     const baseCardClass =
-      `relative w-full max-w-none overflow-hidden rounded-2xl border border-white/10 bg-black/40 px-4 py-4 ${className}`;
+      `relative w-full max-w-none overflow-hidden rounded-2xl border border-white/10 bg-black/40 px-4 py-3 ${className}`;
     const cardClass =
       isPublicView ? baseCardClass : `${baseCardClass} ${eventId && onNavigate ? 'cursor-pointer hover:bg-black/50 transition-colors' : ''}`.trim();
 
@@ -281,13 +281,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
     return (
       <div className="flex w-full max-w-none flex-col gap-0">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <span className="text-lg font-semibold text-white whitespace-nowrap min-w-0 truncate">
-            {dateLabelShort ?? ''}
-          </span>
-          <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-blue-600/25 text-blue-200 border border-blue-500/30">
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold bg-blue-600/25 text-blue-200 border border-blue-500/30">
             Training
           </span>
+          <span className="text-2xl font-bold text-white tabular-nums leading-none">{timeStr}</span>
         </div>
         <div
           className={cardClass}
@@ -302,25 +300,38 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           }}
           aria-label={`Training ${title}, ${dateLabelLong ?? dateLabelShort ?? ''} ${timeStr}`}
         >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-base font-semibold text-white truncate">{title}</div>
-              <div className="mt-1 text-sm text-white/70">
-                <span className="font-semibold text-white/80 tabular-nums">{timeStr}</span>
-                {endTime ? <span className="text-white/60"> – {endTime}</span> : null}
-                {location && location.trim() ? <span className="text-white/60"> · {location.trim()}</span> : null}
-              </div>
+          <div className="flex flex-col gap-1">
+            <div className="text-sm text-white/80 font-semibold">{dateLabelShort ?? ''}</div>
+            {location && location.trim() ? (
+              <div className="text-sm text-white/70 font-medium">{location.trim()}</div>
+            ) : null}
+
+            <div className="mt-1 text-sm text-white/70">
               {canSeeSensitiveInfo && meetupTimeOnly ? (
-                <div className="mt-1 text-sm text-amber-200">
-                  Treffpunkt: {meetupTimeOnly}
-                </div>
+                <div className="text-amber-200">Treffpunkt: {meetupTimeOnly}</div>
               ) : null}
-              {description ? (
-                <div className="mt-2 text-sm text-white/60 line-clamp-3">
-                  {description}
-                </div>
+              {endTime ? (
+                <div className="text-white/60 font-medium">Ende: {endTime}</div>
               ) : null}
             </div>
+
+            {description ? (
+              <div className="mt-1 text-sm text-white/60 line-clamp-2">{description}</div>
+            ) : null}
+
+            {canManage && attendanceCounts != null ? (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
+                  Zugesagt: {attendanceCounts.yes}
+                </span>
+                <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
+                  Abgesagt: {attendanceCounts.no}
+                </span>
+                <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
+                  Offen: {attendanceCounts.open}
+                </span>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -349,7 +360,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     const badgeLabel = effectiveEventType === 'event' ? 'Event' : 'Termin';
 
     const baseCardClass =
-      `relative w-full max-w-none overflow-hidden rounded-2xl border border-white/10 bg-black/40 px-4 py-4 ${className}`;
+      `relative w-full max-w-none overflow-hidden rounded-2xl border border-white/10 bg-black/40 px-4 py-3 ${className}`;
     const cardClass =
       isPublicView ? baseCardClass : `${baseCardClass} ${eventId && onNavigate ? 'cursor-pointer hover:bg-black/50 transition-colors' : ''}`.trim();
 
@@ -359,13 +370,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
     return (
       <div className="flex w-full max-w-none flex-col gap-0">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <span className="text-lg font-semibold text-white whitespace-nowrap min-w-0 truncate">
-            {dateLabelShort ?? ''}
-          </span>
-          <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-white/10 text-white/80 border border-white/15">
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold bg-white/10 text-white/80 border border-white/15">
             {badgeLabel}
           </span>
+          <span className="text-lg font-semibold text-white truncate">{title}</span>
         </div>
 
         <div
@@ -381,27 +390,31 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           }}
           aria-label={`${badgeLabel} ${title}, ${dateLabelLong ?? dateLabelShort ?? ''} ${timeStr}`}
         >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-base font-semibold text-white truncate">{title}</div>
-              <div className="mt-1 text-sm text-white/70">
-                <span className="font-semibold text-white/80 tabular-nums">{timeStr}</span>
-                {endTime ? <span className="text-white/60"> – {endTime}</span> : null}
-                {location && location.trim() ? (
-                  <span className="text-white/60"> · {location.trim()}</span>
-                ) : null}
-              </div>
-
-              {canSeeSensitiveInfo && meetupTimeOnly ? (
-                <div className="mt-1 text-sm text-amber-200">
-                  Treffpunkt: {meetupTimeOnly}
-                </div>
-              ) : null}
-
-              {description ? (
-                <div className="mt-2 text-sm text-white/60 line-clamp-3">{description}</div>
-              ) : null}
+          <div className="flex flex-col gap-1">
+            <div className="text-sm text-white/70 font-medium">
+              {dateLabelShort ?? ''} · {timeStr}
             </div>
+            {location && location.trim() ? (
+              <div className="text-sm text-white/70 font-medium">{location.trim()}</div>
+            ) : null}
+
+            {description ? (
+              <div className="mt-1 text-sm text-white/60 line-clamp-3">{description}</div>
+            ) : null}
+
+            {canManage && attendanceCounts != null ? (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
+                  Zugesagt: {attendanceCounts.yes}
+                </span>
+                <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
+                  Abgesagt: {attendanceCounts.no}
+                </span>
+                <span className="rounded-full px-3 py-1 text-[11px] font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
+                  Offen: {attendanceCounts.open}
+                </span>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
