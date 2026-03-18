@@ -166,7 +166,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   return (
     <Modal
       isOpen={isOpen}
-      title={eventType === 'match' ? 'Neues Spiel' : eventType === 'training' ? 'Neues Training' : 'Neuer Termin'}
+      title="Neuer Termin"
       onClose={handleClose}
       footer={
         <div className="flex justify-end gap-2">

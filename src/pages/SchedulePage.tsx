@@ -16,7 +16,8 @@ import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
 
 type TabId = 'upcoming' | 'live' | 'finished';
-type KindFilterId = 'all' | 'match' | 'training';
+type KindFilterId = 'all' | 'match' | 'training' | 'event';
+type TimeFilterId = 'upcoming' | 'past';
 
 const TAB_OPTIONS: { id: TabId; label: string }[] = [
   { id: 'upcoming', label: 'Bevorstehend' },
@@ -28,6 +29,23 @@ function getEventTab(e: EventRow): TabId {
   const s = e.status ?? 'upcoming';
   if (s === 'live') return 'live';
   if (s === 'finished' || s === 'canceled') return 'finished';
+  return 'upcoming';
+}
+
+function getEffectiveEventType(e: EventRow): 'game' | 'training' | 'event' | 'other' {
+  const raw = ((e as any).event_type as string | undefined) ?? '';
+  const t = raw.trim().toLowerCase();
+  if (t === 'game' || t === 'training' || t === 'event' || t === 'other') return t;
+  if (e.kind === 'training') return 'training';
+  if (e.kind === 'event') return 'event';
+  return 'game';
+}
+
+function getTimeBucket(e: EventRow, now: Date): TimeFilterId {
+  const status = e.status ?? 'upcoming';
+  if (status === 'finished' || status === 'canceled') return 'past';
+  const starts = e.starts_at ? new Date(e.starts_at) : null;
+  if (starts && starts.getTime() < now.getTime()) return 'past';
   return 'upcoming';
 }
 
@@ -90,6 +108,7 @@ export const SchedulePage: React.FC = () => {
   const [kindFilter, setKindFilter] = useState<KindFilterId>(() =>
     normalizedUiRole === 'fan' ? 'match' : 'all',
   );
+  const [timeFilter, setTimeFilter] = useState<TimeFilterId>('upcoming');
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   /** Zu-/Absage: Modal + Status. Gespeichertes Event = genau das angeklickte Spiel (ID-Konsistenz). */
@@ -276,6 +295,7 @@ export const SchedulePage: React.FC = () => {
   };
 
   const displayEvents = useMemo(() => {
+    const now = new Date();
     const statusWeight: Record<string, number> = {
       upcoming: 0,
       live: 1,
@@ -285,10 +305,12 @@ export const SchedulePage: React.FC = () => {
     const base = events.filter((e) => {
       // Fans sehen nur Spiele (kind === 'match')
       if (normalizedUiRole === 'fan') return e.kind === 'match';
-      // Trainer/Player/Parent sehen alle Events, optional per Kind-Filter eingegrenzt
-      if (kindFilter === 'match') return e.kind === 'match';
-      if (kindFilter === 'training') return e.kind === 'training';
-      return true;
+      // Termine: Typ-Filter (Alle/Spiele/Trainings/Events)
+      const et = getEffectiveEventType(e);
+      if (kindFilter === 'match') return et === 'game';
+      if (kindFilter === 'training') return et === 'training';
+      if (kindFilter === 'event') return et === 'event' || et === 'other';
+      return true; // all
     });
 
     const sorted = [...base].sort((a, b) => {
@@ -297,8 +319,13 @@ export const SchedulePage: React.FC = () => {
       if (wa !== wb) return wa - wb;
       return (a.starts_at ?? '').localeCompare(b.starts_at ?? '');
     });
-    return sorted.filter((e) => getEventTab(e) === activeTab);
-  }, [events, activeTab, kindFilter, normalizedUiRole]);
+
+    // Fan: alte Tabs (Bevorstehend/Live/Beendet). Termine: Bevorstehend/Vergangen.
+    if (normalizedUiRole === 'fan') {
+      return sorted.filter((e) => getEventTab(e) === activeTab);
+    }
+    return sorted.filter((e) => getTimeBucket(e, now) === timeFilter);
+  }, [events, activeTab, kindFilter, normalizedUiRole, timeFilter]);
 
   const displayEventIds = useMemo(() => displayEvents.map((e) => e.id), [displayEvents]);
   const { byEventId: attendanceByEventId, loading: attendanceLoading, refresh: refreshAttendance } = useEventsAttendance(displayEventIds);
@@ -350,48 +377,75 @@ export const SchedulePage: React.FC = () => {
                 onClick={() => setCreateModalOpen(true)}
                 disabled={!teamSeasonId}
               >
-                Spiel / Termin anlegen
+                Termin anlegen
               </Button>
             )}
           </div>
 
-          <div className="flex gap-1.5 rounded-xl border border-red-900/40 bg-black/25 p-1.5 backdrop-blur-sm">
-            {TAB_OPTIONS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? 'bg-red-500/15 text-white border border-red-500/30 shadow-[0_0_20px_rgba(255,0,0,0.20)]'
-                    : 'text-white/70 hover:text-white/90 border border-transparent'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          {normalizedUiRole === 'fan' ? (
+            <div className="flex gap-1.5 rounded-xl border border-red-900/40 bg-black/25 p-1.5 backdrop-blur-sm">
+              {TAB_OPTIONS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-red-500/15 text-white border border-red-500/30 shadow-[0_0_20px_rgba(255,0,0,0.20)]'
+                      : 'text-white/70 hover:text-white/90 border border-transparent'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <>
+              {/* Row 1: Event-Typ */}
+              <div className="flex gap-1.5 rounded-xl border border-white/10 bg-black/30 p-1.5 backdrop-blur-sm">
+                {([
+                  { id: 'all', label: 'Alle' },
+                  { id: 'match', label: 'Spiele' },
+                  { id: 'training', label: 'Trainings' },
+                  { id: 'event', label: 'Events' },
+                ] as const).map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setKindFilter(f.id)}
+                    className={`flex-1 py-2 px-2 rounded-xl text-xs font-medium transition-colors ${
+                      kindFilter === f.id
+                        ? 'bg-white/15 text-white border border-white/40'
+                        : 'text-white/70 hover:text-white/90 border border-transparent'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
 
-          <div className="mt-3 flex gap-1.5 rounded-xl border border-white/10 bg-black/30 p-1.5 backdrop-blur-sm">
-            {([
-              { id: 'all', label: 'Alle' },
-              { id: 'match', label: 'Spiele' },
-              { id: 'training', label: 'Trainings' },
-            ] as const).map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setKindFilter(f.id)}
-                className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-medium transition-colors ${
-                  kindFilter === f.id
-                    ? 'bg-white/15 text-white border border-white/40'
-                    : 'text-white/70 hover:text-white/90 border border-transparent'
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+              {/* Row 2: Zeit */}
+              <div className="mt-2 flex gap-1.5 rounded-xl border border-white/10 bg-black/25 p-1.5 backdrop-blur-sm">
+                {([
+                  { id: 'upcoming', label: 'Bevorstehend' },
+                  { id: 'past', label: 'Vergangen' },
+                ] as const).map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTimeFilter(t.id)}
+                    className={`flex-1 py-2 px-2 rounded-xl text-xs font-medium transition-colors ${
+                      timeFilter === t.id
+                        ? 'bg-red-500/15 text-white border border-red-500/30'
+                        : 'text-white/70 hover:text-white/90 border border-transparent'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           {pageLoading && (
             <p className="text-sm text-[var(--muted)]">
@@ -410,7 +464,9 @@ export const SchedulePage: React.FC = () => {
                 <p className="text-sm text-[var(--text-sub)]">
                   {events.length === 0
                     ? 'Noch keine Spiele oder Termine für diese Mannschaft erfasst.'
-                    : `Keine Einträge in „${TAB_OPTIONS.find((t) => t.id === activeTab)?.label ?? activeTab}".`}
+                    : normalizedUiRole === 'fan'
+                      ? `Keine Einträge in „${TAB_OPTIONS.find((t) => t.id === activeTab)?.label ?? activeTab}".`
+                      : `Keine Einträge in „${timeFilter === 'upcoming' ? 'Bevorstehend' : 'Vergangen'}“.`}
                 </p>
               ) : (
                 displayEvents.map((ev) => {
@@ -425,6 +481,37 @@ export const SchedulePage: React.FC = () => {
                     (uiRole === 'parent' || uiRole === 'player')
                       ? (myStatusFromDb ?? attendanceStatusByEventId[ev.id] ?? null)
                       : undefined;
+
+                  const et = getEffectiveEventType(ev);
+                  const isGame = et === 'game';
+                  const isAppointmentLike = et === 'training' || et === 'event' || et === 'other';
+                  const title =
+                    et === 'training'
+                      ? ((ev.notes ?? '').split(' · ')[0]?.trim() || 'Training')
+                      : et === 'event' || et === 'other'
+                        ? ((ev.notes ?? '').split(' · ')[0]?.trim() || 'Termin')
+                        : (ev.opponent ?? 'Spiel');
+
+                  const description =
+                    isAppointmentLike
+                      ? (() => {
+                          const parts = (ev.notes ?? '').split(' · ').map((p) => p.trim()).filter(Boolean);
+                          if (parts.length <= 1) return null;
+                          return parts.slice(1).join(' · ');
+                        })()
+                      : null;
+
+                  const dateObj = ev.starts_at ? new Date(ev.starts_at) : null;
+                  const dateLabel = dateObj
+                    ? dateObj.toLocaleDateString('de-AT', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
+                    : '';
+                  const timeLabel = dateObj
+                    ? dateObj.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
+                    : '';
+                  const meetupLabel =
+                    showMeetupForRole && ev.meetup_at
+                      ? new Date(ev.meetup_at).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
+                      : null;
                   return (
                     <div
                       key={ev.id}
@@ -440,30 +527,104 @@ export const SchedulePage: React.FC = () => {
                           }
                         : {})}
                     >
-                      <MatchCardLigaportal
-                        className="w-full max-w-none rounded-2xl"
-                        ourTeamName={ourTeamName}
-                        opponent={ev.opponent}
-                        isHome={ev.is_home}
-                        startsAt={ev.starts_at}
-                        status={ev.status}
-                        kind={ev.kind}
-                        matchType={ev.match_type}
-                        location={ev.location}
-                        meetupAt={ev.meetup_at}
-                        showMeetup={showMeetupForRole}
-                        eventId={forcePublicView ? undefined : ev.id}
-                        onNavigate={forcePublicView ? undefined : (id) => navigate(`/app/events/${id}`)}
-                        isPublicView={forcePublicView}
-                        opponentLogoUrl={ev.opponent_logo_url}
-                        canManage={canManage}
-                        onEdit={canManage ? () => openEditModal(ev) : undefined}
-                        onDelete={canManage ? () => handleDelete(ev) : undefined}
-                        role={uiRole ?? undefined}
-                        attendanceStatus={attendanceStatusMerged}
-                        onOpenAttendance={(uiRole === 'parent' || uiRole === 'player') ? () => setAttendanceModalEvent(ev) : undefined}
-                        attendanceCounts={canManage ? { yes, no, open } : undefined}
-                      />
+                      {isGame ? (
+                        <MatchCardLigaportal
+                          className="w-full max-w-none rounded-2xl"
+                          ourTeamName={ourTeamName}
+                          opponent={ev.opponent}
+                          isHome={ev.is_home}
+                          startsAt={ev.starts_at}
+                          status={ev.status}
+                          kind={ev.kind}
+                          eventType={et}
+                          matchType={ev.match_type}
+                          location={ev.location}
+                          meetupAt={ev.meetup_at}
+                          showMeetup={showMeetupForRole}
+                          eventId={forcePublicView ? undefined : ev.id}
+                          onNavigate={forcePublicView ? undefined : (id) => navigate(`/app/events/${id}`)}
+                          isPublicView={forcePublicView}
+                          opponentLogoUrl={ev.opponent_logo_url}
+                          canManage={canManage}
+                          onEdit={canManage ? () => openEditModal(ev) : undefined}
+                          onDelete={canManage ? () => handleDelete(ev) : undefined}
+                          role={uiRole ?? undefined}
+                          attendanceStatus={attendanceStatusMerged}
+                          onOpenAttendance={(uiRole === 'parent' || uiRole === 'player') ? () => setAttendanceModalEvent(ev) : undefined}
+                          attendanceCounts={canManage ? { yes, no, open } : undefined}
+                        />
+                      ) : (
+                        <div
+                          className={`w-full max-w-none rounded-2xl border border-white/10 bg-black/40 px-4 py-4 ${
+                            forcePublicView ? '' : 'cursor-pointer hover:bg-black/50 transition-colors'
+                          }`}
+                          role={forcePublicView ? undefined : 'button'}
+                          tabIndex={forcePublicView ? -1 : 0}
+                          onClick={() => {
+                            if (forcePublicView) return;
+                            navigate(`/app/events/${ev.id}`);
+                          }}
+                          onKeyDown={(e) => {
+                            if (forcePublicView) return;
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              navigate(`/app/events/${ev.id}`);
+                            }
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                    et === 'training'
+                                      ? 'bg-blue-600/25 text-blue-200 border border-blue-500/30'
+                                      : et === 'event'
+                                        ? 'bg-white/10 text-white/80 border border-white/15'
+                                        : 'bg-white/5 text-white/70 border border-white/10'
+                                  }`}
+                                >
+                                  {et === 'training' ? 'Training' : et === 'event' ? 'Event' : 'Termin'}
+                                </span>
+                                <span className="text-sm font-semibold text-white truncate">{title}</span>
+                              </div>
+                              <div className="mt-1 text-xs text-white/70">
+                                {dateLabel} · {timeLabel}
+                                {ev.location ? <span> · {ev.location}</span> : null}
+                              </div>
+                              {meetupLabel ? (
+                                <div className="mt-1 text-xs text-amber-200">
+                                  Treffpunkt: {meetupLabel}
+                                </div>
+                              ) : null}
+                              {description ? (
+                                <div className="mt-2 text-xs text-white/60 line-clamp-2">
+                                  {description}
+                                </div>
+                              ) : null}
+                            </div>
+
+                            {canManage && (
+                              <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  type="button"
+                                  onClick={() => openEditModal(ev)}
+                                  className="rounded-full bg-red-700 px-3 py-1 text-sm text-white shrink-0"
+                                >
+                                  Bearbeiten
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(ev)}
+                                  className="rounded-full bg-red-800 px-3 py-1 text-sm text-white shrink-0"
+                                >
+                                  Löschen
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -476,7 +637,7 @@ export const SchedulePage: React.FC = () => {
             onClose={() => setCreateModalOpen(false)}
             teamSeasonId={teamSeasonId}
             onSuccess={refetch}
-            eventType="match"
+            eventType="event"
           />
 
           <Modal
