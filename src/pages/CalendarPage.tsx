@@ -218,6 +218,28 @@ export const CalendarPage: React.FC = () => {
     return 'bg-white/10 text-white/80';
   };
 
+  const selectedTeamIdForFeed = useMemo(() => {
+    if (selectedTeamSeasonId === 'all') return null;
+    const selected = accessibleTeamSeasons.find((ts: any) => ts.id === selectedTeamSeasonId);
+    const teamObj = selected?.team ?? (Array.isArray(selected?.teams) ? selected.teams[0] : selected?.teams);
+    return teamObj?.id ?? null;
+  }, [selectedTeamSeasonId, accessibleTeamSeasons]);
+
+  const feedUrl = useMemo(() => {
+    if (!selectedTeamIdForFeed) return null;
+    return `${window.location.origin}/api/calendar/team/${selectedTeamIdForFeed}.ics`;
+  }, [selectedTeamIdForFeed]);
+
+  const handleSubscribeCalendar = async () => {
+    if (!feedUrl) return;
+    try {
+      await navigator.clipboard.writeText(feedUrl);
+      alert('Feed-URL kopiert. In deiner Kalender-App als Abo-URL einfuegen.');
+    } catch {
+      window.open(feedUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
     <div className="page relative min-h-[60vh] px-4 pt-6">
       <div className="mx-auto max-w-5xl space-y-4">
@@ -280,9 +302,21 @@ export const CalendarPage: React.FC = () => {
                 ))}
               </select>
             </div>
-            {loadingEvents && (
-              <p className="text-xs text-white/60">Lade Termine…</p>
-            )}
+            <div className="flex items-center gap-2">
+              {feedUrl && (
+                <Button
+                  variant="soft"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={handleSubscribeCalendar}
+                >
+                  Kalender abonnieren
+                </Button>
+              )}
+              {loadingEvents && (
+                <p className="text-xs text-white/60">Lade Termine…</p>
+              )}
+            </div>
           </div>
         )}
 
