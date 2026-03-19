@@ -193,13 +193,14 @@ export default async function handler(req: any, res: any) {
 
   const appBaseUrl = process.env.APP_BASE_URL || `${req.headers['x-forwarded-proto'] ?? 'https'}://${req.headers.host}`;
   const dtstamp = toIcsUtc(new Date());
-  const vevents = ((events ?? []) as ApiEventRow[]).map((ev) => {
+  const vevents: string[] = ((events ?? []) as ApiEventRow[]).flatMap((ev) => {
     const start = new Date(ev.starts_at);
+    if (!start || isNaN(start.getTime())) return [];
     const end = resolveEndDate(ev, start);
     const summary = buildSummary(ev, teamName);
     const description = buildDescription(ev, appBaseUrl);
 
-    return buildIcsContent([
+    return [
       'BEGIN:VEVENT',
       `UID:${escapeIcsText(`${ev.id}@spielzeitapp.at`)}`,
       `DTSTAMP:${dtstamp}`,
@@ -209,12 +210,10 @@ export default async function handler(req: any, res: any) {
       ev.location ? `LOCATION:${escapeIcsText(ev.location)}` : undefined,
       `DESCRIPTION:${escapeIcsText(description)}`,
       'END:VEVENT',
-    ]
-      .filter(Boolean)
-      );
+    ].filter(Boolean) as string[];
   });
 
-  const ics = buildIcsContent([
+  let ics = buildIcsContent([
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//SpielzeitApp//Calendar//DE',
@@ -225,6 +224,19 @@ export default async function handler(req: any, res: any) {
     ...vevents,
     'END:VCALENDAR',
   ]);
+
+  // Debug-safety: ensure we never return an empty/blank body.
+  if (!ics || !ics.startsWith('BEGIN:VCALENDAR')) {
+    ics = buildIcsContent([
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//SpielzeitApp//Calendar//DE',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      `X-WR-CALNAME:${escapeIcsText(`${teamName} Termine`)}`,
+      'END:VCALENDAR',
+    ]);
+  }
 
   res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=300');
