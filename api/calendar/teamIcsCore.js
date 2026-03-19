@@ -1,29 +1,15 @@
-import { createClient } from '@supabase/supabase-js';
+/**
+ * ICS feed implementation — CommonJS for Vercel Node serverless (no ESM load errors).
+ */
+const { createClient } = require('@supabase/supabase-js');
 
-type ApiEventRow = {
-  id: string;
-  team_season_id: string;
-  kind: string | null;
-  event_type?: string | null;
-  opponent: string | null;
-  location: string | null;
-  starts_at: string;
-  meetup_at: string | null;
-  notes: string | null;
-};
-
-type TeamSeasonRow = {
-  id: string;
-  team_id: string;
-};
-
-function getEnv(name: string): string | undefined {
-  const g = globalThis as any;
+function getEnv(name) {
+  const g = globalThis;
   return g?.process?.env?.[name];
 }
 
-function escapeIcsText(input: string): string {
-  return input
+function escapeIcsText(input) {
+  return String(input)
     .replace(/\\/g, '\\\\')
     .replace(/\r\n/g, '\\n')
     .replace(/\n/g, '\\n')
@@ -31,10 +17,10 @@ function escapeIcsText(input: string): string {
     .replace(/;/g, '\\;');
 }
 
-function foldIcsLine(line: string): string {
+function foldIcsLine(line) {
   const maxLen = 74;
   if (line.length <= maxLen) return line;
-  const chunks: string[] = [];
+  const chunks = [];
   let rest = line;
   while (rest.length > maxLen) {
     chunks.push(rest.slice(0, maxLen));
@@ -44,16 +30,12 @@ function foldIcsLine(line: string): string {
   return chunks.map((c, i) => (i === 0 ? c : ` ${c}`)).join('\r\n');
 }
 
-function buildIcsContent(lines: string[]): string {
+function buildIcsContent(lines) {
   return lines.map((line) => foldIcsLine(line)).join('\r\n');
 }
 
-function ensureCalendarPrefix(icsBody: string): string {
-  const requiredPrefix = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//SpielzeitApp//Calendar//DE',
-  ].join('\r\n');
+function ensureCalendarPrefix(icsBody) {
+  const requiredPrefix = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SpielzeitApp//Calendar//DE'].join('\r\n');
 
   if (icsBody.startsWith(requiredPrefix)) return icsBody;
 
@@ -70,11 +52,11 @@ function ensureCalendarPrefix(icsBody: string): string {
     .join('\r\n');
 }
 
-function toIcsUtc(date: Date): string {
+function toIcsUtc(date) {
   return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
 }
 
-function parseEndTimeFromNotes(notes: string | null | undefined): string | null {
+function parseEndTimeFromNotes(notes) {
   if (!notes) return null;
   const m = notes.match(/ende:\s*(\d{1,2}):(\d{2})\s*uhr/i);
   if (!m) return null;
@@ -83,7 +65,7 @@ function parseEndTimeFromNotes(notes: string | null | undefined): string | null 
   return `${hh}:${mm}`;
 }
 
-function effectiveType(ev: ApiEventRow): 'game' | 'training' | 'event' | 'other' {
+function effectiveType(ev) {
   const raw = (ev.event_type ?? '').trim().toLowerCase();
   if (raw === 'game' || raw === 'training' || raw === 'event' || raw === 'other') return raw;
   if ((ev.kind ?? '').trim().toLowerCase() === 'training') return 'training';
@@ -91,7 +73,7 @@ function effectiveType(ev: ApiEventRow): 'game' | 'training' | 'event' | 'other'
   return 'game';
 }
 
-function notesTitleAndDescription(notes: string | null | undefined): { title: string | null; description: string | null } {
+function notesTitleAndDescription(notes) {
   const parts = (notes ?? '')
     .split(' · ')
     .map((p) => p.trim())
@@ -105,7 +87,7 @@ function notesTitleAndDescription(notes: string | null | undefined): { title: st
   return { title, description: description || null };
 }
 
-function resolveEndDate(ev: ApiEventRow, startDate: Date): Date {
+function resolveEndDate(ev, startDate) {
   const parsed = parseEndTimeFromNotes(ev.notes);
   if (parsed) {
     const [hh, mm] = parsed.split(':');
@@ -118,7 +100,7 @@ function resolveEndDate(ev: ApiEventRow, startDate: Date): Date {
   return new Date(startDate.getTime() + addMin * 60 * 1000);
 }
 
-function buildSummary(ev: ApiEventRow, teamName: string): string {
+function buildSummary(ev, teamName) {
   const t = effectiveType(ev);
   const notes = notesTitleAndDescription(ev.notes);
   if (t === 'game') return `${teamName} Spiel: ${teamName} vs ${ev.opponent ?? 'Gegner'}`;
@@ -126,13 +108,13 @@ function buildSummary(ev: ApiEventRow, teamName: string): string {
   return notes.title ?? 'Event';
 }
 
-function buildDescription(ev: ApiEventRow, appBaseUrl: string): string {
+function buildDescription(ev, appBaseUrl) {
   const notes = notesTitleAndDescription(ev.notes);
   const meetup = ev.meetup_at
     ? new Date(ev.meetup_at).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
     : null;
   const eventUrl = `${appBaseUrl}/app/events/${ev.id}`;
-  const lines: string[] = [];
+  const lines = [];
   if (meetup) lines.push(`Treffpunkt: ${meetup}`);
   if (notes.description) lines.push(`Hinweise: ${notes.description}`);
   if (notes.description) lines.push(`Trainerinfo: ${notes.description}`);
@@ -140,11 +122,15 @@ function buildDescription(ev: ApiEventRow, appBaseUrl: string): string {
   return lines.join('\n');
 }
 
-export default async function handler(req: any, res: any) {
+/**
+ * @param {any} req
+ * @param {any} res
+ */
+async function teamIcsHandler(req, res) {
   try {
     console.log('[ics-feed] handler start', { method: req?.method });
 
-    const proc = (globalThis as any)?.process;
+    const proc = globalThis.process;
     console.log('ENV CHECK', {
       hasSupabaseUrl: !!proc?.env?.SUPABASE_URL,
       hasViteUrl: !!proc?.env?.VITE_SUPABASE_URL,
@@ -191,7 +177,7 @@ export default async function handler(req: any, res: any) {
       return;
     }
     console.log('[ics-feed] team lookup end', { hasRow: !!teamData });
-    const teamName = (teamData as any)?.name ?? 'Team';
+    const teamName = teamData?.name ?? 'Team';
 
     console.log('[ics-feed] team seasons lookup start', { teamId });
     const { data: teamSeasons, error: tsError } = await admin
@@ -205,7 +191,7 @@ export default async function handler(req: any, res: any) {
     }
     console.log('[ics-feed] team seasons lookup end', { count: (teamSeasons ?? []).length });
 
-    const teamSeasonIds = ((teamSeasons ?? []) as TeamSeasonRow[]).map((t) => t.id);
+    const teamSeasonIds = (teamSeasons ?? []).map((t) => t.id);
 
     const nowIso = new Date().toISOString();
     console.log('[ics-feed] events lookup start', {
@@ -225,10 +211,11 @@ export default async function handler(req: any, res: any) {
     }
     console.log('[ics-feed] events lookup end', { count: (events ?? []).length });
 
-    const appBaseUrl = getEnv('APP_BASE_URL') || `${req.headers['x-forwarded-proto'] ?? 'https'}://${req.headers.host}`;
+    const appBaseUrl =
+      getEnv('APP_BASE_URL') || `${req.headers['x-forwarded-proto'] ?? 'https'}://${req.headers.host}`;
     const dtstamp = toIcsUtc(new Date());
     console.log('[ics-feed] ICS build start');
-    const vevents: string[] = ((events ?? []) as ApiEventRow[]).flatMap((ev) => {
+    const vevents = (events ?? []).flatMap((ev) => {
       const start = new Date(ev.starts_at);
       if (!start || isNaN(start.getTime())) return [];
       const end = resolveEndDate(ev, start);
@@ -245,7 +232,7 @@ export default async function handler(req: any, res: any) {
         ev.location ? `LOCATION:${escapeIcsText(ev.location)}` : undefined,
         `DESCRIPTION:${escapeIcsText(description)}`,
         'END:VEVENT',
-      ].filter(Boolean) as string[];
+      ].filter(Boolean);
     });
 
     let ics = buildIcsContent([
@@ -296,14 +283,14 @@ export default async function handler(req: any, res: any) {
   } catch (error) {
     console.error('ICS ERROR', error);
     if (error !== null && typeof error === 'object') {
-      const e = error as Record<string, unknown>;
       console.error('ICS ERROR details', {
-        message: e.message,
-        stack: e.stack,
-        name: e.name,
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
       });
     }
     res.status(500).send('ICS feed error');
   }
 }
 
+module.exports = { teamIcsHandler };
