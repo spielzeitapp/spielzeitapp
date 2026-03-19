@@ -17,6 +17,11 @@ type TeamSeasonRow = {
   team_id: string;
 };
 
+function getEnv(name: string): string | undefined {
+  const g = globalThis as any;
+  return g?.process?.env?.[name];
+}
+
 function escapeIcsText(input: string): string {
   return input
     .replace(/\\/g, '\\\\')
@@ -152,8 +157,8 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = getEnv('SUPABASE_URL') || getEnv('VITE_SUPABASE_URL');
+  const serviceKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
   if (!supabaseUrl || !serviceKey) {
     res.status(500).send('Server not configured');
     return;
@@ -191,7 +196,7 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const appBaseUrl = process.env.APP_BASE_URL || `${req.headers['x-forwarded-proto'] ?? 'https'}://${req.headers.host}`;
+  const appBaseUrl = getEnv('APP_BASE_URL') || `${req.headers['x-forwarded-proto'] ?? 'https'}://${req.headers.host}`;
   const dtstamp = toIcsUtc(new Date());
   const vevents: string[] = ((events ?? []) as ApiEventRow[]).flatMap((ev) => {
     const start = new Date(ev.starts_at);
@@ -251,7 +256,6 @@ export default async function handler(req: any, res: any) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-SpielzeitApp-ICS', 'true');
   res.setHeader('Cache-Control', 'public, max-age=300');
-  res.setHeader('Content-Length', String(Buffer.byteLength(ics, 'utf8')));
   res.status(200).end(ics, 'utf8');
 }
 
