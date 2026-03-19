@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useSession } from '../auth/useSession';
 import { Button } from '../app/components/ui/Button';
+import { Modal } from '../app/ui/Modal';
+import { buildTeamIcsFeedUrl } from '../lib/calendarFeed';
 
 type CalendarEvent = {
   id: string;
@@ -48,7 +50,7 @@ function getMonthGrid(date: Date): Date[] {
 
 export const CalendarPage: React.FC = () => {
   const navigate = useNavigate();
-  const { effectiveRole, teamSeasons, loading } = useSession();
+  const { effectiveRole, teamSeasons, loading, selectedMembership } = useSession();
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -57,6 +59,7 @@ export const CalendarPage: React.FC = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
 
   const isFan = effectiveRole === 'fan';
   const canSeeAllTeams =
@@ -80,8 +83,12 @@ export const CalendarPage: React.FC = () => {
   useEffect(() => {
     if (accessibleTeamSeasons.length === 0) return;
     if (selectedTeamSeasonId !== 'all') return;
-    setSelectedTeamSeasonId('all');
-  }, [accessibleTeamSeasons, selectedTeamSeasonId]);
+    if (canSeeAllTeams) {
+      setSelectedTeamSeasonId('all');
+      return;
+    }
+    setSelectedTeamSeasonId(accessibleTeamSeasons[0]?.id ?? 'all');
+  }, [accessibleTeamSeasons, selectedTeamSeasonId, canSeeAllTeams]);
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -219,22 +226,46 @@ export const CalendarPage: React.FC = () => {
   };
 
   const selectedTeamIdForFeed = useMemo(() => {
-    if (selectedTeamSeasonId === 'all') return null;
-    const selected = accessibleTeamSeasons.find((ts: any) => ts.id === selectedTeamSeasonId);
-    const teamObj = selected?.team ?? (Array.isArray(selected?.teams) ? selected.teams[0] : selected?.teams);
-    return teamObj?.id ?? null;
-  }, [selectedTeamSeasonId, accessibleTeamSeasons]);
+    // 1) Team aus aktuellem Kalender-Filter (Trainer/Fachrollen wechseln hier aktiv)
+    if (selectedTeamSeasonId !== 'all') {
+      const selected = accessibleTeamSeasons.find((ts: any) => ts.id === selectedTeamSeasonId);
+      const teamObj = selected?.team ?? (Array.isArray(selected?.teams) ? selected.teams[0] : selected?.teams);
+      if (teamObj?.id) return teamObj.id as string;
+    }
+
+    // 2) Team aus aktiver Membership (Parent/Player i.d.R. genau 1 Team)
+    const fromMembership =
+      selectedMembership?.team_seasons?.team ??
+      (Array.isArray(selectedMembership?.team_seasons?.teams)
+        ? selectedMembership?.team_seasons?.teams[0]
+        : selectedMembership?.team_seasons?.teams);
+    if ((fromMembership as any)?.id) return (fromMembership as any).id as string;
+
+    // 3) Fallback bei genau einem zugreifbaren Team
+    if (accessibleTeamSeasons.length === 1) {
+      const only = accessibleTeamSeasons[0] as any;
+      const teamObj = only?.team ?? (Array.isArray(only?.teams) ? only.teams[0] : only?.teams);
+      return teamObj?.id ?? null;
+    }
+
+    return null;
+  }, [selectedTeamSeasonId, accessibleTeamSeasons, selectedMembership]);
 
   const feedUrl = useMemo(() => {
     if (!selectedTeamIdForFeed) return null;
-    return `${window.location.origin}/api/calendar/team/${selectedTeamIdForFeed}.ics`;
+    return buildTeamIcsFeedUrl(window.location.origin, selectedTeamIdForFeed);
   }, [selectedTeamIdForFeed]);
 
   const handleSubscribeCalendar = async () => {
     if (!feedUrl) return;
+    setSubscribeModalOpen(true);
+  };
+
+  const handleCopyFeedUrl = async () => {
+    if (!feedUrl) return;
     try {
       await navigator.clipboard.writeText(feedUrl);
-      alert('Feed-URL kopiert. In deiner Kalender-App als Abo-URL einfuegen.');
+      alert('Feed-URL kopiert.');
     } catch {
       window.open(feedUrl, '_blank', 'noopener,noreferrer');
     }
@@ -387,6 +418,34 @@ export const CalendarPage: React.FC = () => {
             })}
           </div>
         </div>
+
+        <Modal
+          isOpen={subscribeModalOpen}
+          title="Kalender abonnieren"
+          onClose={() => setSubscribeModalOpen(false)}
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setSubscribeModalOpen(false)}>
+                Schließen
+              </Button>
+              <Button variant="primary" onClick={handleCopyFeedUrl}>
+                Link kopieren
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-3">
+            <p className="text-sm text-white/80">
+              Diese URL in Apple Kalender, Google Kalender, Outlook oder FamilyWall als Abo-Link einfügen:
+            </p>
+            <div className="rounded-lg border border-white/15 bg-black/40 p-3 text-xs text-white/90 break-all">
+              {feedUrl ?? 'Kein Team ausgewählt'}
+            </div>
+            <p className="text-xs text-white/60">
+              Tipp: Apple/Google/FamilyWall haben oft eine verzögerte Aktualisierung (kein Echtzeit-Update).
+            </p>
+          </div>
+        </Modal>
       </div>
     </div>
   );
