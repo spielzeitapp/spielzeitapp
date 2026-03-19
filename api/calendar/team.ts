@@ -142,6 +142,8 @@ function buildDescription(ev: ApiEventRow, appBaseUrl: string): string {
 
 export default async function handler(req: any, res: any) {
   try {
+    console.log('[ics-feed] handler start', { method: req?.method });
+
     const proc = (globalThis as any)?.process;
     console.log('ENV CHECK', {
       hasSupabaseUrl: !!proc?.env?.SUPABASE_URL,
@@ -164,6 +166,7 @@ export default async function handler(req: any, res: any) {
       res.status(400).send('Invalid teamId');
       return;
     }
+    console.log('[ics-feed] parsed teamId', { teamId, rawTeamId });
 
     const supabaseUrl = getEnv('SUPABASE_URL') || getEnv('VITE_SUPABASE_URL');
     const serviceKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
@@ -174,42 +177,57 @@ export default async function handler(req: any, res: any) {
 
     console.log('Creating Supabase client');
     const admin = createClient(supabaseUrl, serviceKey);
+    console.log('[ics-feed] supabase client created');
 
-    const { data: teamData } = await admin
+    console.log('[ics-feed] team lookup start', { teamId });
+    const { data: teamData, error: teamError } = await admin
       .from('teams')
       .select('name')
       .eq('id', teamId)
       .maybeSingle();
-    console.log('Loaded team');
+    if (teamError) {
+      console.error('[ics-feed] DB teams error', teamError);
+      res.status(500).send(teamError.message ?? 'teams query failed');
+      return;
+    }
+    console.log('[ics-feed] team lookup end', { hasRow: !!teamData });
     const teamName = (teamData as any)?.name ?? 'Team';
 
+    console.log('[ics-feed] team seasons lookup start', { teamId });
     const { data: teamSeasons, error: tsError } = await admin
       .from('team_seasons')
       .select('id, team_id')
       .eq('team_id', teamId);
-    console.log('Loaded team seasons');
     if (tsError) {
+      console.error('[ics-feed] DB team_seasons error', tsError);
       res.status(500).send(tsError.message);
       return;
     }
+    console.log('[ics-feed] team seasons lookup end', { count: (teamSeasons ?? []).length });
 
     const teamSeasonIds = ((teamSeasons ?? []) as TeamSeasonRow[]).map((t) => t.id);
 
     const nowIso = new Date().toISOString();
+    console.log('[ics-feed] events lookup start', {
+      teamSeasonCount: teamSeasonIds.length,
+      nowIso,
+    });
     const { data: events, error: evError } = await admin
       .from('events')
       .select('id, team_season_id, kind, event_type, opponent, location, starts_at, meetup_at, notes')
       .in('team_season_id', teamSeasonIds.length ? teamSeasonIds : ['00000000-0000-0000-0000-000000000000'])
       .gte('starts_at', nowIso)
       .order('starts_at', { ascending: true });
-    console.log('Loaded events');
     if (evError) {
+      console.error('[ics-feed] DB events error', evError);
       res.status(500).send(evError.message);
       return;
     }
+    console.log('[ics-feed] events lookup end', { count: (events ?? []).length });
 
     const appBaseUrl = getEnv('APP_BASE_URL') || `${req.headers['x-forwarded-proto'] ?? 'https'}://${req.headers.host}`;
     const dtstamp = toIcsUtc(new Date());
+    console.log('[ics-feed] ICS build start');
     const vevents: string[] = ((events ?? []) as ApiEventRow[]).flatMap((ev) => {
       const start = new Date(ev.starts_at);
       if (!start || isNaN(start.getTime())) return [];
@@ -256,6 +274,12 @@ export default async function handler(req: any, res: any) {
     ics = ensureCalendarPrefix(ics);
     if (!ics.endsWith('\r\n')) ics = `${ics}\r\n`;
 
+    console.log('[ics-feed] ICS build end', {
+      eventRowCount: (events ?? []).length,
+      veventLineCount: vevents.length,
+      bodyLength: ics.length,
+    });
+
     const previewLines = ics.split('\r\n').slice(0, 15);
     console.info('[ics-feed] response preview', {
       teamId,
@@ -271,6 +295,14 @@ export default async function handler(req: any, res: any) {
     res.status(200).end(ics, 'utf8');
   } catch (error) {
     console.error('ICS ERROR', error);
+    if (error !== null && typeof error === 'object') {
+      const e = error as Record<string, unknown>;
+      console.error('ICS ERROR details', {
+        message: e.message,
+        stack: e.stack,
+        name: e.name,
+      });
+    }
     res.status(500).send('ICS feed error');
   }
 }
