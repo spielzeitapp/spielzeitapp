@@ -44,6 +44,28 @@ function buildIcsContent(lines: string[]): string {
   return lines.map((line) => foldIcsLine(line)).join('\r\n');
 }
 
+function ensureCalendarPrefix(icsBody: string): string {
+  const requiredPrefix = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//SpielzeitApp//Calendar//DE',
+  ].join('\r\n');
+
+  if (icsBody.startsWith(requiredPrefix)) return icsBody;
+
+  const withoutLeadingCalendar = icsBody.replace(/^BEGIN:VCALENDAR[\s\S]*?METHOD:PUBLISH\r?\n?/m, '');
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//SpielzeitApp//Calendar//DE',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    withoutLeadingCalendar.trim(),
+  ]
+    .filter(Boolean)
+    .join('\r\n');
+}
+
 function toIcsUtc(date: Date): string {
   return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
 }
@@ -213,7 +235,7 @@ export default async function handler(req: any, res: any) {
     ].filter(Boolean) as string[];
   });
 
-  let ics = buildIcsContent([
+  const calendarLines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//SpielzeitApp//Calendar//DE',
@@ -223,7 +245,8 @@ export default async function handler(req: any, res: any) {
     'X-WR-TIMEZONE:UTC',
     ...vevents,
     'END:VCALENDAR',
-  ]);
+  ];
+  let ics = buildIcsContent(calendarLines);
 
   // Debug-safety: ensure we never return an empty/blank body.
   if (!ics || !ics.startsWith('BEGIN:VCALENDAR')) {
@@ -238,8 +261,19 @@ export default async function handler(req: any, res: any) {
     ]);
   }
 
+  ics = ensureCalendarPrefix(ics);
+  if (!ics.endsWith('\r\n')) ics = `${ics}\r\n`;
+
+  const previewLines = ics.split('\r\n').slice(0, 15);
+  console.info('[ics-feed] response preview', {
+    teamId,
+    length: ics.length,
+    firstLines: previewLines,
+  });
+
   res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=300');
-  res.status(200).send(ics);
+  res.setHeader('Content-Length', String(Buffer.byteLength(ics, 'utf8')));
+  res.status(200).end(ics, 'utf8');
 }
 
