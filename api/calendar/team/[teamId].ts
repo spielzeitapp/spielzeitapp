@@ -26,6 +26,24 @@ function escapeIcsText(input: string): string {
     .replace(/;/g, '\\;');
 }
 
+function foldIcsLine(line: string): string {
+  // RFC5545: fold lines at 75 octets (approx. chars here), continuation starts with one space.
+  const maxLen = 74;
+  if (line.length <= maxLen) return line;
+  const chunks: string[] = [];
+  let rest = line;
+  while (rest.length > maxLen) {
+    chunks.push(rest.slice(0, maxLen));
+    rest = rest.slice(maxLen);
+  }
+  if (rest.length) chunks.push(rest);
+  return chunks.map((c, i) => (i === 0 ? c : ` ${c}`)).join('\r\n');
+}
+
+function buildIcsContent(lines: string[]): string {
+  return lines.map((line) => foldIcsLine(line)).join('\r\n');
+}
+
 function toIcsUtc(date: Date): string {
   return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
 }
@@ -106,9 +124,14 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const teamId = req.query?.teamId;
-  if (!teamId || typeof teamId !== 'string') {
+  const rawTeamId = req.query?.teamId;
+  if (!rawTeamId || typeof rawTeamId !== 'string') {
     res.status(400).send('Missing teamId');
+    return;
+  }
+  const teamId = rawTeamId.replace(/\.ics$/i, '').trim();
+  if (!teamId) {
+    res.status(400).send('Invalid teamId');
     return;
   }
 
@@ -140,14 +163,15 @@ export default async function handler(req: any, res: any) {
 
   const teamSeasonIds = ((teamSeasons ?? []) as TeamSeasonRow[]).map((t) => t.id);
   if (teamSeasonIds.length === 0) {
-    const emptyCal = [
+    const emptyCal = buildIcsContent([
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//SpielzeitApp//TeamFeed//DE',
+      'PRODID:-//SpielzeitApp//Calendar//DE',
       'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
       `X-WR-CALNAME:${escapeIcsText(`${teamName} Termine`)}`,
       'END:VCALENDAR',
-    ].join('\r\n');
+    ]);
     res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=300');
     res.status(200).send(emptyCal);
@@ -175,7 +199,7 @@ export default async function handler(req: any, res: any) {
     const summary = buildSummary(ev, teamName);
     const description = buildDescription(ev, appBaseUrl);
 
-    return [
+    return buildIcsContent([
       'BEGIN:VEVENT',
       `UID:${escapeIcsText(`${ev.id}@spielzeitapp.at`)}`,
       `DTSTAMP:${dtstamp}`,
@@ -187,20 +211,20 @@ export default async function handler(req: any, res: any) {
       'END:VEVENT',
     ]
       .filter(Boolean)
-      .join('\r\n');
+      );
   });
 
-  const ics = [
+  const ics = buildIcsContent([
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//SpielzeitApp//TeamFeed//DE',
+    'PRODID:-//SpielzeitApp//Calendar//DE',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escapeIcsText(`${teamName} Termine`)}`,
     'X-WR-TIMEZONE:UTC',
     ...vevents,
     'END:VCALENDAR',
-  ].join('\r\n');
+  ]);
 
   res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=300');
