@@ -261,6 +261,29 @@ export default async function handler(req: any, res: any) {
     ]);
   }
 
+  if (!ics.includes('BEGIN:VEVENT')) {
+    const fallbackEvent = [
+      'BEGIN:VEVENT',
+      `UID:feed-check-${teamId}@spielzeitapp.at`,
+      `DTSTAMP:${toIcsUtc(new Date())}`,
+      `DTSTART:${toIcsUtc(new Date())}`,
+      `DTEND:${toIcsUtc(new Date(Date.now() + 60 * 60 * 1000))}`,
+      `SUMMARY:${escapeIcsText(`${teamName} Kalenderfeed`)}`,
+      `DESCRIPTION:${escapeIcsText('Automatischer Feed-Testeintrag')}`,
+      'END:VEVENT',
+    ];
+    ics = buildIcsContent([
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//SpielzeitApp//Calendar//DE',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      `X-WR-CALNAME:${escapeIcsText(`${teamName} Termine`)}`,
+      ...fallbackEvent,
+      'END:VCALENDAR',
+    ]);
+  }
+
   ics = ensureCalendarPrefix(ics);
   if (!ics.endsWith('\r\n')) ics = `${ics}\r\n`;
 
@@ -272,6 +295,8 @@ export default async function handler(req: any, res: any) {
   });
 
   res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+  res.setHeader('Content-Disposition', 'inline; filename=calendar.ics');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Cache-Control', 'public, max-age=300');
   res.setHeader('Content-Length', String(Buffer.byteLength(ics, 'utf8')));
   res.status(200).end(ics, 'utf8');
