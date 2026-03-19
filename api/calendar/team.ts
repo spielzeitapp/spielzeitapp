@@ -27,7 +27,6 @@ function escapeIcsText(input: string): string {
 }
 
 function foldIcsLine(line: string): string {
-  // RFC5545: fold lines at 75 octets (approx. chars here), continuation starts with one space.
   const maxLen = 74;
   if (line.length <= maxLen) return line;
   const chunks: string[] = [];
@@ -117,12 +116,8 @@ function resolveEndDate(ev: ApiEventRow, startDate: Date): Date {
 function buildSummary(ev: ApiEventRow, teamName: string): string {
   const t = effectiveType(ev);
   const notes = notesTitleAndDescription(ev.notes);
-  if (t === 'game') {
-    return `${teamName} Spiel: ${teamName} vs ${ev.opponent ?? 'Gegner'}`;
-  }
-  if (t === 'training') {
-    return `${teamName} Training`;
-  }
+  if (t === 'game') return `${teamName} Spiel: ${teamName} vs ${ev.opponent ?? 'Gegner'}`;
+  if (t === 'training') return `${teamName} Training`;
   return notes.title ?? 'Event';
 }
 
@@ -177,37 +172,20 @@ export default async function handler(req: any, res: any) {
     .from('team_seasons')
     .select('id, team_id')
     .eq('team_id', teamId);
-
   if (tsError) {
     res.status(500).send(tsError.message);
     return;
   }
 
   const teamSeasonIds = ((teamSeasons ?? []) as TeamSeasonRow[]).map((t) => t.id);
-  if (teamSeasonIds.length === 0) {
-    const emptyCal = buildIcsContent([
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//SpielzeitApp//Calendar//DE',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-      `X-WR-CALNAME:${escapeIcsText(`${teamName} Termine`)}`,
-      'END:VCALENDAR',
-    ]);
-    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=300');
-    res.status(200).send(emptyCal);
-    return;
-  }
 
   const nowIso = new Date().toISOString();
   const { data: events, error: evError } = await admin
     .from('events')
     .select('id, team_season_id, kind, event_type, opponent, location, starts_at, meetup_at, notes')
-    .in('team_season_id', teamSeasonIds)
+    .in('team_season_id', teamSeasonIds.length ? teamSeasonIds : ['00000000-0000-0000-0000-000000000000'])
     .gte('starts_at', nowIso)
     .order('starts_at', { ascending: true });
-
   if (evError) {
     res.status(500).send(evError.message);
     return;
@@ -235,7 +213,7 @@ export default async function handler(req: any, res: any) {
     ].filter(Boolean) as string[];
   });
 
-  const calendarLines = [
+  let ics = buildIcsContent([
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//SpielzeitApp//Calendar//DE',
@@ -245,10 +223,8 @@ export default async function handler(req: any, res: any) {
     'X-WR-TIMEZONE:UTC',
     ...vevents,
     'END:VCALENDAR',
-  ];
-  let ics = buildIcsContent(calendarLines);
+  ]);
 
-  // Debug-safety: ensure we never return an empty/blank body.
   if (!ics || !ics.startsWith('BEGIN:VCALENDAR')) {
     ics = buildIcsContent([
       'BEGIN:VCALENDAR',
@@ -260,30 +236,6 @@ export default async function handler(req: any, res: any) {
       'END:VCALENDAR',
     ]);
   }
-
-  if (!ics.includes('BEGIN:VEVENT')) {
-    const fallbackEvent = [
-      'BEGIN:VEVENT',
-      `UID:feed-check-${teamId}@spielzeitapp.at`,
-      `DTSTAMP:${toIcsUtc(new Date())}`,
-      `DTSTART:${toIcsUtc(new Date())}`,
-      `DTEND:${toIcsUtc(new Date(Date.now() + 60 * 60 * 1000))}`,
-      `SUMMARY:${escapeIcsText(`${teamName} Kalenderfeed`)}`,
-      `DESCRIPTION:${escapeIcsText('Automatischer Feed-Testeintrag')}`,
-      'END:VEVENT',
-    ];
-    ics = buildIcsContent([
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//SpielzeitApp//Calendar//DE',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-      `X-WR-CALNAME:${escapeIcsText(`${teamName} Termine`)}`,
-      ...fallbackEvent,
-      'END:VCALENDAR',
-    ]);
-  }
-
   ics = ensureCalendarPrefix(ics);
   if (!ics.endsWith('\r\n')) ics = `${ics}\r\n`;
 
@@ -297,6 +249,7 @@ export default async function handler(req: any, res: any) {
   res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
   res.setHeader('Content-Disposition', 'inline; filename=calendar.ics');
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-SpielzeitApp-ICS', 'true');
   res.setHeader('Cache-Control', 'public, max-age=300');
   res.setHeader('Content-Length', String(Buffer.byteLength(ics, 'utf8')));
   res.status(200).end(ics, 'utf8');

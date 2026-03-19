@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/calendar/team/(.*)\\.ics",
-      "destination": "/api/calendar/team/$1"
+      "destination": "/api/calendar/team?teamId=$1"
     },
     {
       "source": "/api/(.*)",
