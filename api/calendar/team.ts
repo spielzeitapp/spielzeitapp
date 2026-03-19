@@ -141,121 +141,137 @@ function buildDescription(ev: ApiEventRow, appBaseUrl: string): string {
 }
 
 export default async function handler(req: any, res: any) {
-  if (req.method !== 'GET') {
-    res.status(405).send('Method not allowed');
-    return;
-  }
+  try {
+    const proc = (globalThis as any)?.process;
+    console.log('ENV CHECK', {
+      hasSupabaseUrl: !!proc?.env?.SUPABASE_URL,
+      hasViteUrl: !!proc?.env?.VITE_SUPABASE_URL,
+      hasServiceKey: !!proc?.env?.SUPABASE_SERVICE_ROLE_KEY,
+    });
 
-  const rawTeamId = req.query?.teamId;
-  if (!rawTeamId || typeof rawTeamId !== 'string') {
-    res.status(400).send('Missing teamId');
-    return;
-  }
-  const teamId = rawTeamId.replace(/\.ics$/i, '').trim();
-  if (!teamId) {
-    res.status(400).send('Invalid teamId');
-    return;
-  }
+    if (req.method !== 'GET') {
+      res.status(405).send('Method not allowed');
+      return;
+    }
 
-  const supabaseUrl = getEnv('SUPABASE_URL') || getEnv('VITE_SUPABASE_URL');
-  const serviceKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseUrl || !serviceKey) {
-    res.status(500).send('Server not configured');
-    return;
-  }
+    const rawTeamId = req.query?.teamId;
+    if (!rawTeamId || typeof rawTeamId !== 'string') {
+      res.status(400).send('Missing teamId');
+      return;
+    }
+    const teamId = rawTeamId.replace(/\.ics$/i, '').trim();
+    if (!teamId) {
+      res.status(400).send('Invalid teamId');
+      return;
+    }
 
-  const admin = createClient(supabaseUrl, serviceKey);
+    const supabaseUrl = getEnv('SUPABASE_URL') || getEnv('VITE_SUPABASE_URL');
+    const serviceKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !serviceKey) {
+      res.status(500).send('Server not configured');
+      return;
+    }
 
-  const { data: teamData } = await admin
-    .from('teams')
-    .select('name')
-    .eq('id', teamId)
-    .maybeSingle();
-  const teamName = (teamData as any)?.name ?? 'Team';
+    console.log('Creating Supabase client');
+    const admin = createClient(supabaseUrl, serviceKey);
 
-  const { data: teamSeasons, error: tsError } = await admin
-    .from('team_seasons')
-    .select('id, team_id')
-    .eq('team_id', teamId);
-  if (tsError) {
-    res.status(500).send(tsError.message);
-    return;
-  }
+    const { data: teamData } = await admin
+      .from('teams')
+      .select('name')
+      .eq('id', teamId)
+      .maybeSingle();
+    console.log('Loaded team');
+    const teamName = (teamData as any)?.name ?? 'Team';
 
-  const teamSeasonIds = ((teamSeasons ?? []) as TeamSeasonRow[]).map((t) => t.id);
+    const { data: teamSeasons, error: tsError } = await admin
+      .from('team_seasons')
+      .select('id, team_id')
+      .eq('team_id', teamId);
+    console.log('Loaded team seasons');
+    if (tsError) {
+      res.status(500).send(tsError.message);
+      return;
+    }
 
-  const nowIso = new Date().toISOString();
-  const { data: events, error: evError } = await admin
-    .from('events')
-    .select('id, team_season_id, kind, event_type, opponent, location, starts_at, meetup_at, notes')
-    .in('team_season_id', teamSeasonIds.length ? teamSeasonIds : ['00000000-0000-0000-0000-000000000000'])
-    .gte('starts_at', nowIso)
-    .order('starts_at', { ascending: true });
-  if (evError) {
-    res.status(500).send(evError.message);
-    return;
-  }
+    const teamSeasonIds = ((teamSeasons ?? []) as TeamSeasonRow[]).map((t) => t.id);
 
-  const appBaseUrl = getEnv('APP_BASE_URL') || `${req.headers['x-forwarded-proto'] ?? 'https'}://${req.headers.host}`;
-  const dtstamp = toIcsUtc(new Date());
-  const vevents: string[] = ((events ?? []) as ApiEventRow[]).flatMap((ev) => {
-    const start = new Date(ev.starts_at);
-    if (!start || isNaN(start.getTime())) return [];
-    const end = resolveEndDate(ev, start);
-    const summary = buildSummary(ev, teamName);
-    const description = buildDescription(ev, appBaseUrl);
+    const nowIso = new Date().toISOString();
+    const { data: events, error: evError } = await admin
+      .from('events')
+      .select('id, team_season_id, kind, event_type, opponent, location, starts_at, meetup_at, notes')
+      .in('team_season_id', teamSeasonIds.length ? teamSeasonIds : ['00000000-0000-0000-0000-000000000000'])
+      .gte('starts_at', nowIso)
+      .order('starts_at', { ascending: true });
+    console.log('Loaded events');
+    if (evError) {
+      res.status(500).send(evError.message);
+      return;
+    }
 
-    return [
-      'BEGIN:VEVENT',
-      `UID:${escapeIcsText(`${ev.id}@spielzeitapp.at`)}`,
-      `DTSTAMP:${dtstamp}`,
-      `DTSTART:${toIcsUtc(start)}`,
-      `DTEND:${toIcsUtc(end)}`,
-      `SUMMARY:${escapeIcsText(summary)}`,
-      ev.location ? `LOCATION:${escapeIcsText(ev.location)}` : undefined,
-      `DESCRIPTION:${escapeIcsText(description)}`,
-      'END:VEVENT',
-    ].filter(Boolean) as string[];
-  });
+    const appBaseUrl = getEnv('APP_BASE_URL') || `${req.headers['x-forwarded-proto'] ?? 'https'}://${req.headers.host}`;
+    const dtstamp = toIcsUtc(new Date());
+    const vevents: string[] = ((events ?? []) as ApiEventRow[]).flatMap((ev) => {
+      const start = new Date(ev.starts_at);
+      if (!start || isNaN(start.getTime())) return [];
+      const end = resolveEndDate(ev, start);
+      const summary = buildSummary(ev, teamName);
+      const description = buildDescription(ev, appBaseUrl);
 
-  let ics = buildIcsContent([
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//SpielzeitApp//Calendar//DE',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    `X-WR-CALNAME:${escapeIcsText(`${teamName} Termine`)}`,
-    'X-WR-TIMEZONE:UTC',
-    ...vevents,
-    'END:VCALENDAR',
-  ]);
+      return [
+        'BEGIN:VEVENT',
+        `UID:${escapeIcsText(`${ev.id}@spielzeitapp.at`)}`,
+        `DTSTAMP:${dtstamp}`,
+        `DTSTART:${toIcsUtc(start)}`,
+        `DTEND:${toIcsUtc(end)}`,
+        `SUMMARY:${escapeIcsText(summary)}`,
+        ev.location ? `LOCATION:${escapeIcsText(ev.location)}` : undefined,
+        `DESCRIPTION:${escapeIcsText(description)}`,
+        'END:VEVENT',
+      ].filter(Boolean) as string[];
+    });
 
-  if (!ics || !ics.startsWith('BEGIN:VCALENDAR')) {
-    ics = buildIcsContent([
+    let ics = buildIcsContent([
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//SpielzeitApp//Calendar//DE',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       `X-WR-CALNAME:${escapeIcsText(`${teamName} Termine`)}`,
+      'X-WR-TIMEZONE:UTC',
+      ...vevents,
       'END:VCALENDAR',
     ]);
+
+    if (!ics || !ics.startsWith('BEGIN:VCALENDAR')) {
+      ics = buildIcsContent([
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//SpielzeitApp//Calendar//DE',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        `X-WR-CALNAME:${escapeIcsText(`${teamName} Termine`)}`,
+        'END:VCALENDAR',
+      ]);
+    }
+    ics = ensureCalendarPrefix(ics);
+    if (!ics.endsWith('\r\n')) ics = `${ics}\r\n`;
+
+    const previewLines = ics.split('\r\n').slice(0, 15);
+    console.info('[ics-feed] response preview', {
+      teamId,
+      length: ics.length,
+      firstLines: previewLines,
+    });
+
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+    res.setHeader('Content-Disposition', 'inline; filename=calendar.ics');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-SpielzeitApp-ICS', 'true');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.status(200).end(ics, 'utf8');
+  } catch (error) {
+    console.error('ICS ERROR', error);
+    res.status(500).send('ICS feed error');
   }
-  ics = ensureCalendarPrefix(ics);
-  if (!ics.endsWith('\r\n')) ics = `${ics}\r\n`;
-
-  const previewLines = ics.split('\r\n').slice(0, 15);
-  console.info('[ics-feed] response preview', {
-    teamId,
-    length: ics.length,
-    firstLines: previewLines,
-  });
-
-  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-  res.setHeader('Content-Disposition', 'inline; filename=calendar.ics');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-SpielzeitApp-ICS', 'true');
-  res.setHeader('Cache-Control', 'public, max-age=300');
-  res.status(200).end(ics, 'utf8');
 }
 
