@@ -4,6 +4,43 @@ import { Modal } from '../ui/Modal';
 import { supabase } from '../../lib/supabaseClient';
 import { enumerateOccurrenceStarts, type RecurrenceKind } from '../../lib/recurrenceDates';
 
+/** Leerstring / Whitespace → null (Supabase/Postgres). */
+function nullIfEmpty(s: string | null | undefined): string | null {
+  if (s == null) return null;
+  const t = String(s).trim();
+  return t === '' ? null : t;
+}
+
+/**
+ * Entfernt undefined, wandelt "" in null für optionale DB-Felder.
+ * recurrence / recurrence_until / cancellation_deadline: nur Formular – im Insert nicht; meeting_point = meetup_at; description = notes.
+ */
+function sanitizeEventsInsertRow(row: Record<string, unknown>): Record<string, unknown> {
+  const nullableStringKeys = new Set([
+    'series_id',
+    'address',
+    'location',
+    'opponent',
+    'notes',
+    'meetup_at',
+    'meeting_at',
+    'match_type',
+    'created_by',
+  ]);
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(row)) {
+    if (v === undefined) continue;
+    if (nullableStringKeys.has(k)) {
+      if (v == null || (typeof v === 'string' && v.trim() === '')) {
+        out[k] = null;
+        continue;
+      }
+    }
+    out[k] = v;
+  }
+  return out;
+}
+
 /** Spielart → match_type in DB. UI: "Meisterschaftsspiel" statt "Liga". */
 const MATCH_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'friendly', label: 'Freundschaftsspiel' },
@@ -46,6 +83,7 @@ const defaultForm: CreateEventFormValues = {
   description: '',
   recurrence: 'once',
   until_date: '',
+  training_absence_deadline_disabled: false,
 };
 
 type CreateEventModalProps = {
@@ -123,15 +161,16 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           : eventTypeLocal === 'training'
             ? 'training'
             : 'event';
-      const matchTypeVal = form.match_type?.trim() || null;
+      const matchTypeVal = nullIfEmpty(form.match_type);
 
-      const buildNotes = () => {
-        if (eventTypeLocal !== 'training' && eventTypeLocal !== 'event' && eventTypeLocal !== 'other') return undefined;
+      const buildNotes = (): string | null => {
+        if (eventTypeLocal !== 'training' && eventTypeLocal !== 'event' && eventTypeLocal !== 'other') return null;
         const noteParts: string[] = [];
         if (titleVal) noteParts.push(titleVal);
         if (form.end_time.trim()) noteParts.push(`Ende: ${form.end_time.trim()} Uhr`);
-        if (form.description.trim()) noteParts.push(form.description.trim());
-        return noteParts.length > 0 ? noteParts.join(' · ') : undefined;
+        const desc = nullIfEmpty(form.description);
+        if (desc) noteParts.push(desc);
+        return noteParts.length > 0 ? noteParts.join(' · ') : null;
       };
 
       const meetupIsoForStart = (d: Date): string | null => {
@@ -176,13 +215,16 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       const notesVal = buildNotes();
 
+      const recurrenceUntilNormalized = nullIfEmpty(form.until_date);
+
       const buildPayloadForStart = (d: Date): Record<string, unknown> => {
+        const sid = nullIfEmpty(seriesId ?? '');
         const payload: Record<string, unknown> = {
           team_season_id: teamSeasonId,
           kind: matchKind,
           type: matchKind,
           event_type: eventTypeLocal,
-          opponent: eventTypeLocal === 'game' ? opponentVal || null : null,
+          opponent: eventTypeLocal === 'game' ? nullIfEmpty(opponentVal) : null,
           is_home: eventTypeLocal === 'game' ? form.is_home : null,
           location: locationVal,
           address: addressVal,
@@ -192,19 +234,35 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           participation_mode: form.participation_mode,
           created_by: user?.id ?? null,
         };
-        if (seriesId) payload.series_id = seriesId;
+        payload.series_id = sid;
         if (eventTypeLocal === 'game' && matchTypeVal != null) payload.match_type = matchTypeVal;
         if (notesVal) payload.notes = notesVal;
         if (eventTypeLocal === 'training') {
-          payload.training_absence_deadline_disabled = form.training_absence_deadline_disabled;
+          payload.training_absence_deadline_disabled = Boolean(form.training_absence_deadline_disabled);
         }
-        return payload;
+        return sanitizeEventsInsertRow(payload);
       };
 
       const rows = occurrenceStarts.map((d) => buildPayloadForStart(d));
+
+      console.log('[CreateEventModal] events.insert payload (exact)', JSON.parse(JSON.stringify(rows)));
+      console.log('[CreateEventModal] form recurrence meta', {
+        recurrence: form.recurrence,
+        recurrence_until: recurrenceUntilNormalized,
+        cancellation_deadline: eventTypeLocal === 'training' ? form.training_absence_deadline_disabled : null,
+      });
+
       const { error: eventErr } = await supabase.from('events').insert(rows);
 
       if (eventErr) {
+        const pe = eventErr as { message: string; details?: string; hint?: string; code?: string };
+        console.error('[CreateEventModal] Supabase events.insert error', {
+          message: pe.message,
+          details: pe.details,
+          hint: pe.hint,
+          code: pe.code,
+          raw: eventErr,
+        });
         setError(eventErr.message);
         setCreating(false);
         return;
@@ -213,6 +271,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       handleClose();
       await onSuccess();
     } catch (err) {
+      console.error('[CreateEventModal] events.insert catch', err);
       setError(err instanceof Error ? err.message : 'Unbekannter Fehler');
     } finally {
       setCreating(false);
