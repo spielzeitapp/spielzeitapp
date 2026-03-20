@@ -87,13 +87,71 @@ function notesTitleAndDescription(notes) {
   return { title, description: description || null };
 }
 
+function getDateTimePartsInTimeZone(date, timeZone) {
+  const fmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(date);
+  const get = (type) => {
+    const v = parts.find((p) => p.type === type)?.value;
+    return v ? Number(v) : null;
+  };
+  return {
+    year: get('year'),
+    month: get('month'),
+    day: get('day'),
+    hour: get('hour'),
+    minute: get('minute'),
+  };
+}
+
+function zonedTimeToUtcMillis({ year, month, day, hour, minute }, timeZone) {
+  const desiredUtc = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+  // Start with "interpret as UTC"; then iteratively correct using the actual zone offset.
+  let utcMillis = desiredUtc;
+  for (let i = 0; i < 3; i++) {
+    const parts = getDateTimePartsInTimeZone(new Date(utcMillis), timeZone);
+    if (parts.year == null || parts.month == null || parts.day == null || parts.hour == null || parts.minute == null) {
+      break;
+    }
+    const asUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, 0, 0);
+    const diff = asUtc - desiredUtc;
+    if (diff === 0) break;
+    utcMillis -= diff;
+  }
+  return utcMillis;
+}
+
 function resolveEndDate(ev, startDate) {
   const parsed = parseEndTimeFromNotes(ev.notes);
   if (parsed) {
     const [hh, mm] = parsed.split(':');
-    const d = new Date(startDate);
-    d.setHours(Number(hh) || 0, Number(mm) || 0, 0, 0);
-    return d;
+    // Notes' "ende: HH:MM uhr" is in Europe/Vienna local time.
+    // Node's Date.setHours() uses server local timezone (often UTC on Vercel), which shifts DTEND.
+    const viennaParts = getDateTimePartsInTimeZone(startDate, 'Europe/Vienna');
+    if (viennaParts.year == null || viennaParts.month == null || viennaParts.day == null) {
+      // Fallback: keep previous behavior if timezone parts can't be resolved.
+      const d = new Date(startDate);
+      d.setHours(Number(hh) || 0, Number(mm) || 0, 0, 0);
+      return d;
+    }
+    const endUtcMillis = zonedTimeToUtcMillis(
+      {
+        year: viennaParts.year,
+        month: viennaParts.month,
+        day: viennaParts.day,
+        hour: Number(hh) || 0,
+        minute: Number(mm) || 0,
+      },
+      'Europe/Vienna'
+    );
+    return new Date(endUtcMillis);
   }
   const t = effectiveType(ev);
   const addMin = t === 'event' ? 60 : 90;
