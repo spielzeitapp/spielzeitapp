@@ -14,27 +14,31 @@ import { Modal } from '../app/ui/Modal';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
 import { downloadEventIcs } from '../lib/ics';
-import { isViennaCutoffPassed } from '../lib/viennaTime';
+import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 
 type EventDbRow = {
   id: string;
   team_season_id: string;
   kind: string;
+  event_type?: string | null;
   opponent: string | null;
   is_home: boolean | null;
   location: string | null;
+  address: string | null;
+  series_id: string | null;
   starts_at: string;
   meetup_at: string | null;
   status: string | null;
   participation_mode: string | null;
   notes: string | null;
+  training_absence_deadline_disabled: boolean | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
 
 const EVENTS_SELECT =
-  'id, team_season_id, kind, opponent, is_home, location, starts_at, meetup_at, status, participation_mode, notes, created_by, created_at, updated_at';
+  'id, team_season_id, kind, event_type, opponent, is_home, location, address, series_id, starts_at, meetup_at, status, participation_mode, notes, created_by, created_at, updated_at';
 
 function normalizeEventStatus(s: string | null): EventStatus {
   const v = (s ?? '').trim().toLowerCase();
@@ -45,33 +49,51 @@ function normalizeEventStatus(s: string | null): EventStatus {
 }
 
 function mapRowToEventRow(r: EventDbRow): EventRow {
+  const etRaw = (r.event_type ?? '').trim().toLowerCase();
+  const event_type: EventRow['event_type'] =
+    etRaw === 'game' || etRaw === 'training' || etRaw === 'event' || etRaw === 'other'
+      ? etRaw
+      : r.kind === 'match'
+        ? 'game'
+        : r.kind === 'training'
+          ? 'training'
+          : 'event';
   return {
     id: r.id,
     team_season_id: r.team_season_id,
     kind: (r.kind === 'match' || r.kind === 'training' || r.kind === 'event' ? r.kind : 'event') as EventKind,
+    event_type,
     match_type: null,
     opponent: r.opponent ?? null,
     is_home: r.is_home ?? null,
     location: r.location ?? null,
+    address: r.address ?? null,
+    series_id: r.series_id ?? null,
     starts_at: r.starts_at,
     meetup_at: r.meetup_at ?? null,
     status: normalizeEventStatus(r.status),
     participation_mode: (r.participation_mode === 'opt_out' ? 'opt_out' : 'opt_in') as 'opt_in' | 'opt_out',
     notes: r.notes ?? null,
+    training_absence_deadline_disabled: r.training_absence_deadline_disabled ?? false,
     created_by: r.created_by ?? null,
     created_at: r.created_at ?? null,
     updated_at: r.updated_at ?? null,
   };
 }
 
-/** Sortierung: Offen zuerst, dann Abgesagt, dann Zugesagt. */
+/** Sortierung: Match: Offen → Abwesend → Dabei. Training: Abwesend → Dabei (Default). */
 function sortPlayersByAttendanceStatus(
   players: PlayerItem[],
-  getStatus: (playerId: string) => 'yes' | 'no' | null
+  getStatus: (playerId: string) => 'yes' | 'no' | null,
+  isTrainingList: boolean,
 ): PlayerItem[] {
   const order = (a: PlayerItem, b: PlayerItem) => {
     const sa = getStatus(a.id) ?? 'open';
     const sb = getStatus(b.id) ?? 'open';
+    if (isTrainingList) {
+      const rankTr = (s: string) => (s === 'no' ? 0 : 1);
+      return rankTr(sa) - rankTr(sb);
+    }
     const rank = (s: string) => (s === 'open' ? 0 : s === 'no' ? 1 : 2);
     return rank(sa) - rank(sb);
   };
@@ -90,6 +112,7 @@ export const EventDetailPage: React.FC = () => {
   const [cancelReason, setCancelReason] = useState('');
   /** Für Trainer: alle Zu-/Absagen dieses Events aus event_attendance. */
   const [eventAttendanceByPlayerId, setEventAttendanceByPlayerId] = useState<Record<string, 'yes' | 'no'>>({});
+  const [eventAttendanceReasonByPlayerId, setEventAttendanceReasonByPlayerId] = useState<Record<string, string | null>>({});
   const [loadingEventAttendance, setLoadingEventAttendance] = useState(false);
 
   const { teamLabel, role: roleFromHook } = useActiveTeamSeason();
@@ -109,7 +132,10 @@ export const EventDetailPage: React.FC = () => {
   const playerId = myAttendancePlayerIds[0] ?? null;
 
   const isTraining = event?.kind === 'training';
-  const trainingCancelCutoffPassed = event?.kind === 'training' ? isViennaCutoffPassed(event.starts_at) : false;
+  const trainingCancelCutoffPassed =
+    event?.kind === 'training'
+      ? isTrainingAbsenceDeadlinePassed(event.starts_at, event.training_absence_deadline_disabled)
+      : false;
   const trainingCancellationAllowed = event?.kind === 'training' ? !trainingCancelCutoffPassed : false;
 
   const loadEvent = useCallback(async () => {
@@ -165,17 +191,21 @@ export const EventDetailPage: React.FC = () => {
     setLoadingEventAttendance(true);
     const { data, error: err } = await supabase
       .from('event_attendance')
-      .select('player_id, status')
+      .select('player_id, status, reason')
       .eq('event_id', eventId);
     if (!err && data) {
         const byPlayer: Record<string, 'yes' | 'no'> = {};
-        for (const row of data as { player_id: string; status: string }[]) {
+        const byReason: Record<string, string | null> = {};
+        for (const row of data as { player_id: string; status: string; reason?: string | null }[]) {
           const pid = (row.player_id ?? '').toLowerCase();
           if (row.status === 'yes' || row.status === 'no') byPlayer[pid] = row.status as 'yes' | 'no';
+          if (row.reason != null && String(row.reason).trim()) byReason[pid] = String(row.reason).trim();
         }
         setEventAttendanceByPlayerId(byPlayer);
+        setEventAttendanceReasonByPlayerId(byReason);
       } else {
         setEventAttendanceByPlayerId({});
+        setEventAttendanceReasonByPlayerId({});
       }
     setLoadingEventAttendance(false);
   }, [eventId]);
@@ -186,6 +216,7 @@ export const EventDetailPage: React.FC = () => {
 
   const handleRsvp = useCallback(
     async (status: 'yes' | 'no', reason?: string) => {
+      if (event?.kind === 'training' && status === 'yes') return;
       let resolvedPlayerId = playerId ?? null;
       if (!eventId) return;
       if (!resolvedPlayerId) {
@@ -234,15 +265,30 @@ export const EventDetailPage: React.FC = () => {
       setCancelReason('');
       await loadEventAttendance();
     },
-    [eventId, playerId, effectiveRole, loadEventAttendance]
+    [eventId, playerId, effectiveRole, loadEventAttendance, event?.kind]
   );
 
-  /** Trainer/Admin: RSVP für einen beliebigen Spieler des Teams setzen. */
+  /** Trainer/Admin: RSVP für einen beliebigen Spieler des Teams setzen. Training: „Dabei“ = Eintrag löschen (nur Absagen speichern). */
   const handleTrainerRsvp = useCallback(
     async (targetPlayerId: string, status: 'yes' | 'no') => {
       if (!eventId || !isTrainerOrAdmin) return;
       const { data: userRes } = await supabase.auth.getUser();
       const userId = userRes?.user?.id ?? null;
+      if (event?.kind === 'training' && status === 'yes') {
+        const del = await supabase
+          .from('event_attendance')
+          .delete()
+          .eq('event_id', eventId)
+          .eq('player_id', targetPlayerId);
+        if (del.error) return;
+        setEventAttendanceByPlayerId((prev) => {
+          const next = { ...prev };
+          delete next[(targetPlayerId ?? '').toLowerCase()];
+          return next;
+        });
+        await loadEventAttendance();
+        return;
+      }
       const payload = {
         event_id: eventId,
         player_id: targetPlayerId,
@@ -258,7 +304,7 @@ export const EventDetailPage: React.FC = () => {
       setEventAttendanceByPlayerId((prev) => ({ ...prev, [targetPlayerId]: status }));
       await loadEventAttendance();
     },
-    [eventId, isTrainerOrAdmin, loadEventAttendance]
+    [eventId, event?.kind, isTrainerOrAdmin, loadEventAttendance]
   );
 
   const getAttendanceStatus = useCallback(
@@ -332,6 +378,7 @@ export const EventDetailPage: React.FC = () => {
             eventType={(event as any).event_type ?? undefined}
             notes={event.notes}
             location={event.location}
+            address={event.address}
             meetupAt={event.meetup_at}
             showMeetup={showMeetup}
             isPublicView={true}
@@ -346,11 +393,11 @@ export const EventDetailPage: React.FC = () => {
               <>
                 {isTraining ? (
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="rounded-full px-3 py-1 text-sm font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
-                      Abgesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
-                    </span>
                     <span className="rounded-full px-3 py-1 text-sm font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
-                      Automatisch dabei: {Math.max(0, players.length - Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length)}
+                      Dabei: {Math.max(0, players.length - Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length)}
+                    </span>
+                    <span className="rounded-full px-3 py-1 text-sm font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
+                      Abwesend: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
                     </span>
                   </div>
                 ) : (
@@ -375,7 +422,7 @@ export const EventDetailPage: React.FC = () => {
                   )}
                   {!playersLoading && !loadingEventAttendance && players.length > 0 && (
                     <ul className="space-y-2">
-                      {sortPlayersByAttendanceStatus(players, getAttendanceStatus).map((player) => {
+                      {sortPlayersByAttendanceStatus(players, getAttendanceStatus, isTraining).map((player) => {
                         const status = getAttendanceStatus(player.id);
                         const chipClass = isTraining
                           ? status === 'no'
@@ -389,8 +436,8 @@ export const EventDetailPage: React.FC = () => {
 
                         const chipLabel = isTraining
                           ? status === 'no'
-                            ? 'ABGESAGT'
-                            : 'TEILNEHMEND'
+                            ? 'ABWESEND'
+                            : 'DABEI'
                           : status === 'yes'
                             ? 'DABEI'
                             : status === 'no'
@@ -399,24 +446,41 @@ export const EventDetailPage: React.FC = () => {
                         return (
                           <li
                             key={player.id}
-                            className="flex items-center justify-between gap-2 py-2 border-b border-white/10 last:border-0"
+                            className="flex flex-col gap-1 py-2 border-b border-white/10 last:border-0 sm:flex-row sm:items-center sm:justify-between"
                           >
-                            <span className="text-[var(--text-main)] font-medium truncate min-w-0">{player.display_name}</span>
+                            <div className="min-w-0 flex-1">
+                              <span className="text-[var(--text-main)] font-medium truncate block">{player.display_name}</span>
+                              {isTraining && status === 'no' && eventAttendanceReasonByPlayerId[(player.id ?? '').toLowerCase()] ? (
+                                <span className="text-xs text-[var(--text-sub)]">
+                                  Grund: {eventAttendanceReasonByPlayerId[(player.id ?? '').toLowerCase()]}
+                                </span>
+                              ) : null}
+                            </div>
                             <div className="flex items-center gap-2 shrink-0">
                               <span className={chipClass}>{chipLabel}</span>
                               {isTraining ? (
-                                <button
-                                  type="button"
-                                  disabled={!trainingCancellationAllowed || status === 'no'}
-                                  onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                  className={`rounded px-2 py-1 text-xs font-medium ${
-                                    !trainingCancellationAllowed || status === 'no'
-                                      ? 'bg-gray-600/40 text-gray-300 cursor-not-allowed'
-                                      : 'bg-red-600/80 text-white hover:bg-red-500'
-                                  }`}
-                                >
-                                  {status === 'no' ? 'Abgesagt' : !trainingCancellationAllowed ? 'Zu spät' : 'Absagen'}
-                                </button>
+                                <>
+                                  <button
+                                    type="button"
+                                    disabled={!trainingCancellationAllowed || status === 'no'}
+                                    onClick={() => handleTrainerRsvp(player.id, 'no')}
+                                    className={`rounded px-2 py-1 text-xs font-medium ${
+                                      !trainingCancellationAllowed || status === 'no'
+                                        ? 'bg-gray-600/40 text-gray-300 cursor-not-allowed'
+                                        : 'bg-red-600/80 text-white hover:bg-red-500'
+                                    }`}
+                                  >
+                                    {status === 'no' ? 'Abwesend' : !trainingCancellationAllowed ? 'Zu spät' : 'Absagen'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={status !== 'no'}
+                                    onClick={() => handleTrainerRsvp(player.id, 'yes')}
+                                    className="rounded px-2 py-1 text-xs font-medium bg-green-600/80 text-white hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                                  >
+                                    Dabei
+                                  </button>
+                                </>
                               ) : (
                                 <div className="flex gap-1">
                                   <button
@@ -456,13 +520,17 @@ export const EventDetailPage: React.FC = () => {
                   <>
                     {isTraining ? (
                       <>
-                        <p className="mt-2 text-sm text-[var(--text-main)]">
-                          {rsvpStatus === 'no'
-                            ? 'Abgesagt'
-                            : trainingCancellationAllowed
-                              ? 'Ohne Absage bis 12:00 gilt Teilnahme'
-                              : 'Absage zu spät – Teilnahme gilt'}
+                        <p className="mt-2 text-sm text-[var(--text-main)] font-medium">
+                          Status: {rsvpStatus === 'no' ? 'Abwesend' : 'Dabei'}
                         </p>
+                        <p className="mt-1 text-xs text-[var(--text-sub)]">
+                          {event.training_absence_deadline_disabled
+                            ? 'Absage jederzeit möglich.'
+                            : 'Absage bis 12:00 Uhr am Trainingstag möglich (Europe/Vienna).'}
+                        </p>
+                        {!trainingCancellationAllowed && rsvpStatus !== 'no' ? (
+                          <p className="mt-1 text-xs text-amber-200/90">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
+                        ) : null}
                         <Button
                           variant={rsvpStatus === 'no' ? 'secondary' : 'primary'}
                           size="sm"
@@ -476,7 +544,7 @@ export const EventDetailPage: React.FC = () => {
                           }`}
                           onClick={() => { setCancelReason(''); setAttendanceModalOpen(true); }}
                         >
-                          {rsvpStatus === 'no' ? 'Abgesagt' : trainingCancellationAllowed ? 'Absagen' : 'Zu spät'}
+                          {rsvpStatus === 'no' ? 'Abwesend' : trainingCancellationAllowed ? 'Absagen' : 'Zu spät'}
                         </Button>
                       </>
                     ) : (
@@ -525,7 +593,10 @@ export const EventDetailPage: React.FC = () => {
           {isTraining ? (
             <>
               <p className="text-sm text-[var(--text-sub)] mb-4">
-                Ohne Absage bis 12:00 gilt Teilnahme
+                Standard ist „Dabei“. Nur Absagen werden gespeichert.{' '}
+                {event?.training_absence_deadline_disabled
+                  ? 'Absage jederzeit möglich.'
+                  : 'Absage bis 12:00 Uhr am Trainingstag möglich (Europe/Vienna).'}
               </p>
               <div>
                 <label className="block text-sm font-medium text-[var(--text-main)] mb-1">
@@ -551,7 +622,9 @@ export const EventDetailPage: React.FC = () => {
             </>
           ) : (
             <>
-              <p className="text-sm text-[var(--text-sub)] mb-4">Bitte gib deine Verfügbarkeit an.</p>
+              <p className="text-sm text-[var(--text-sub)] mb-4">
+                Standard ist „Offen“, bis du zusagst oder absagst.
+              </p>
               <div className="flex flex-wrap gap-3">
                 <Button
                   variant="primary"
@@ -561,7 +634,7 @@ export const EventDetailPage: React.FC = () => {
                     handleRsvp('yes');
                   }}
                 >
-                  Dabei
+                  Zusage
                 </Button>
                 <Button
                   variant="primary"
@@ -571,7 +644,7 @@ export const EventDetailPage: React.FC = () => {
                     handleRsvp('no');
                   }}
                 >
-                  Abwesend
+                  Absage
                 </Button>
               </div>
             </>

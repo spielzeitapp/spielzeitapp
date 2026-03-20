@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from './ui/Button';
 import { Modal } from '../ui/Modal';
 import { supabase } from '../../lib/supabaseClient';
+import { enumerateOccurrenceStarts, type RecurrenceKind } from '../../lib/recurrenceDates';
 
 /** Spielart → match_type in DB. UI: "Meisterschaftsspiel" statt "Liga". */
 const MATCH_TYPE_OPTIONS: { value: string; label: string }[] = [
@@ -18,12 +19,17 @@ export type CreateEventFormValues = {
   opponent: string;
   is_home: boolean;
   location: string;
+  address: string;
   starts_at: string;
   meetup_time: string;
   participation_mode: 'opt_in' | 'opt_out';
   title: string;
   end_time: string;
   description: string;
+  recurrence: RecurrenceKind;
+  until_date: string;
+  /** true = keine 12:00-Frist (nur Training) */
+  training_absence_deadline_disabled: boolean;
 };
 
 const defaultForm: CreateEventFormValues = {
@@ -31,12 +37,15 @@ const defaultForm: CreateEventFormValues = {
   opponent: '',
   is_home: true,
   location: '',
+  address: '',
   starts_at: '',
   meetup_time: '',
   participation_mode: 'opt_in',
   title: '',
   end_time: '',
   description: '',
+  recurrence: 'once',
+  until_date: '',
 };
 
 type CreateEventModalProps = {
@@ -99,17 +108,14 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const startDate = new Date(startsAtRaw);
-      const startsAt = startDate.toISOString();
-
-      let meetupAt: string | null = null;
-      if (form.meetup_time.trim()) {
-        const [hh, mm] = form.meetup_time.split(':');
-        const meetup = new Date(startDate);
-        meetup.setHours(Number(hh) || 0, Number(mm) || 0, 0, 0);
-        meetupAt = meetup.toISOString();
+      if (isNaN(startDate.getTime())) {
+        setError('Ungültiges Datumsformat.');
+        setCreating(false);
+        return;
       }
 
       const locationVal = form.location.trim() || null;
+      const addressVal = form.address.trim() || null;
 
       const matchKind: 'match' | 'training' | 'event' =
         eventTypeLocal === 'game'
@@ -119,30 +125,84 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             : 'event';
       const matchTypeVal = form.match_type?.trim() || null;
 
-      const payload: Record<string, unknown> = {
-        team_season_id: teamSeasonId,
-        kind: matchKind,
-        type: matchKind,
-        event_type: eventTypeLocal,
-        opponent: eventTypeLocal === 'game' ? opponentVal || null : null,
-        is_home: eventTypeLocal === 'game' ? form.is_home : null,
-        location: locationVal,
-        starts_at: startsAt,
-        meetup_at: meetupAt,
-        status: 'upcoming',
-        participation_mode: form.participation_mode,
-        created_by: user?.id ?? null,
-      };
-      if (eventTypeLocal === 'game' && matchTypeVal != null) payload.match_type = matchTypeVal;
-      if (eventTypeLocal === 'training' || eventTypeLocal === 'event' || eventTypeLocal === 'other') {
+      const buildNotes = () => {
+        if (eventTypeLocal !== 'training' && eventTypeLocal !== 'event' && eventTypeLocal !== 'other') return undefined;
         const noteParts: string[] = [];
         if (titleVal) noteParts.push(titleVal);
         if (form.end_time.trim()) noteParts.push(`Ende: ${form.end_time.trim()} Uhr`);
         if (form.description.trim()) noteParts.push(form.description.trim());
-        if (noteParts.length > 0) payload.notes = noteParts.join(' · ');
+        return noteParts.length > 0 ? noteParts.join(' · ') : undefined;
+      };
+
+      const meetupIsoForStart = (d: Date): string | null => {
+        if (!form.meetup_time.trim()) return null;
+        const [hh, mm] = form.meetup_time.split(':');
+        const meetup = new Date(d);
+        meetup.setHours(Number(hh) || 0, Number(mm) || 0, 0, 0);
+        return meetup.toISOString();
+      };
+
+      const canRecur =
+        eventTypeLocal === 'training' || eventTypeLocal === 'event' || eventTypeLocal === 'other';
+      const recurrence: RecurrenceKind =
+        eventTypeLocal === 'game' ? 'once' : form.recurrence;
+
+      let occurrenceStarts: Date[] = [new Date(startDate.getTime())];
+      let seriesId: string | null = null;
+
+      if (canRecur && recurrence !== 'once') {
+        const untilRaw = form.until_date.trim();
+        if (!untilRaw) {
+          setError('Bitte „Wiederholen bis“ angeben oder auf Einmalig stellen.');
+          setCreating(false);
+          return;
+        }
+        const untilDate = new Date(`${untilRaw}T23:59:59`);
+        const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        const untilDay = new Date(untilDate.getFullYear(), untilDate.getMonth(), untilDate.getDate());
+        if (untilDay < startDay) {
+          setError('Enddatum muss am oder nach dem ersten Termin liegen.');
+          setCreating(false);
+          return;
+        }
+        occurrenceStarts = enumerateOccurrenceStarts(startDate, recurrence, untilDate);
+        if (occurrenceStarts.length === 0) {
+          setError('Keine Termine im gewählten Zeitraum.');
+          setCreating(false);
+          return;
+        }
+        seriesId = crypto.randomUUID();
       }
 
-      const { error: eventErr } = await supabase.from('events').insert(payload);
+      const notesVal = buildNotes();
+
+      const buildPayloadForStart = (d: Date): Record<string, unknown> => {
+        const payload: Record<string, unknown> = {
+          team_season_id: teamSeasonId,
+          kind: matchKind,
+          type: matchKind,
+          event_type: eventTypeLocal,
+          opponent: eventTypeLocal === 'game' ? opponentVal || null : null,
+          is_home: eventTypeLocal === 'game' ? form.is_home : null,
+          location: locationVal,
+          address: addressVal,
+          starts_at: d.toISOString(),
+          meetup_at: meetupIsoForStart(d),
+          status: 'upcoming',
+          participation_mode: form.participation_mode,
+          created_by: user?.id ?? null,
+        };
+        if (seriesId) payload.series_id = seriesId;
+        if (eventTypeLocal === 'game' && matchTypeVal != null) payload.match_type = matchTypeVal;
+        if (notesVal) payload.notes = notesVal;
+        if (eventTypeLocal === 'training') {
+          payload.training_absence_deadline_disabled = form.training_absence_deadline_disabled;
+        }
+        return payload;
+      };
+
+      const rows = occurrenceStarts.map((d) => buildPayloadForStart(d));
+      const { error: eventErr } = await supabase.from('events').insert(rows);
 
       if (eventErr) {
         setError(eventErr.message);
@@ -296,6 +356,22 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
                 rows={3}
               />
             </div>
+            <label className="flex items-start gap-2 text-sm text-[var(--text-main)] cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1 rounded border-[var(--glass-border)]"
+                checked={form.training_absence_deadline_disabled}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, training_absence_deadline_disabled: e.target.checked }))
+                }
+              />
+              <span>
+                Keine Absagefrist (Absage jederzeit möglich).{' '}
+                <span className="text-[var(--text-sub)]">
+                  Standard: Absage bis 12:00 Uhr am Trainingstag (Europe/Vienna).
+                </span>
+              </span>
+            </label>
           </>
         ) : (
           <>
@@ -328,7 +404,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         )}
         <div>
           <label htmlFor="create-event-location" className={labelClass}>
-            Ort (optional)
+            Ort / Platzname (optional)
           </label>
           <input
             id="create-event-location"
@@ -336,7 +412,20 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             value={form.location}
             onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
             className={inputClass}
-            placeholder="z. B. Heimspielplatz"
+            placeholder="z. B. Sportplatz Rohrbach"
+          />
+        </div>
+        <div>
+          <label htmlFor="create-event-address" className={labelClass}>
+            Adresse (optional)
+          </label>
+          <input
+            id="create-event-address"
+            type="text"
+            value={form.address}
+            onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+            className={inputClass}
+            placeholder="z. B. Sportplatzstraße 1, 3163 Rohrbach an der Gölsen"
           />
         </div>
         <div>
@@ -364,6 +453,44 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             className={inputClass}
           />
         </div>
+        {(eventTypeLocal === 'training' || eventTypeLocal === 'event' || eventTypeLocal === 'other') && (
+          <>
+            <div>
+              <label htmlFor="create-event-recurrence" className={labelClass}>
+                Wiederholung
+              </label>
+              <select
+                id="create-event-recurrence"
+                value={form.recurrence}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, recurrence: e.target.value as RecurrenceKind }))
+                }
+                className={inputClass}
+              >
+                <option value="once">Einmalig</option>
+                <option value="weekly">Wöchentlich</option>
+                <option value="biweekly">Alle 2 Wochen</option>
+              </select>
+            </div>
+            {form.recurrence !== 'once' && (
+              <div>
+                <label htmlFor="create-event-until" className={labelClass}>
+                  Wiederholen bis *
+                </label>
+                <input
+                  id="create-event-until"
+                  type="date"
+                  value={form.until_date}
+                  onChange={(e) => setForm((f) => ({ ...f, until_date: e.target.value }))}
+                  className={inputClass}
+                />
+                <p className="mt-1 text-xs text-[var(--text-sub)]">
+                  Es werden alle Termine im Zeitraum als eigenständige Einträge angelegt.
+                </p>
+              </div>
+            )}
+          </>
+        )}
         <div>
           <label htmlFor="create-event-participation_mode" className={labelClass}>
             Teilnahme

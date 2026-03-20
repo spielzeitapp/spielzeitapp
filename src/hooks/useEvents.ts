@@ -23,6 +23,10 @@ export type EventRow = {
   opponent: string | null;
   is_home: boolean | null;
   location: string | null;
+  /** Straße, PLZ Ort (getrennt von Platzname) */
+  address: string | null;
+  /** Serie: gleiche ID bei wiederkehrenden Terminen */
+  series_id: string | null;
   starts_at: string;
   meetup_at: string | null;
   status: EventStatus;
@@ -33,6 +37,8 @@ export type EventRow = {
   updated_at: string | null;
   /** Optional DB: nur public/Storage-URL verwenden */
   opponent_logo_url?: string | null;
+  /** true = keine 12:00-Absagefrist (nur Training) */
+  training_absence_deadline_disabled?: boolean | null;
 };
 
 type EventDbRow = {
@@ -44,6 +50,8 @@ type EventDbRow = {
   opponent: string | null;
   is_home: boolean | null;
   location: string | null;
+  address: string | null;
+  series_id: string | null;
   starts_at: string;
   meetup_at: string | null;
   status: string | null;
@@ -53,11 +61,16 @@ type EventDbRow = {
   created_at: string | null;
   updated_at: string | null;
   opponent_logo_url?: string | null;
+  training_absence_deadline_disabled?: boolean | null;
 };
 
 /** Spalten in events. match_type nullable – Spalte in DB ggf. per Migration ergänzen. */
 const EVENTS_SELECT =
-  "id, team_season_id, kind, event_type, match_type, opponent, is_home, location, starts_at, meetup_at, status, participation_mode, notes, created_by, created_at, updated_at";
+  "id, team_season_id, kind, event_type, match_type, opponent, is_home, location, address, series_id, starts_at, meetup_at, status, participation_mode, notes, training_absence_deadline_disabled, created_by, created_at, updated_at";
+
+/** Ohne training_absence_deadline_disabled (alte DB). */
+const EVENTS_SELECT_LEGACY =
+  "id, team_season_id, kind, event_type, match_type, opponent, is_home, location, address, series_id, starts_at, meetup_at, status, participation_mode, notes, created_by, created_at, updated_at";
 
 export function useEvents(teamSeasonId: string | null) {
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -73,11 +86,21 @@ export function useEvents(teamSeasonId: string | null) {
     }
     setLoading(true);
     setError(null);
-    const { data, error: err } = await supabase
+    let res = await supabase
       .from("events")
       .select(EVENTS_SELECT)
       .eq("team_season_id", teamSeasonId)
       .order("starts_at", { ascending: true });
+
+    if (res.error && /training_absence_deadline_disabled|column/i.test(String(res.error.message ?? ""))) {
+      res = await supabase
+        .from("events")
+        .select(EVENTS_SELECT_LEGACY)
+        .eq("team_season_id", teamSeasonId)
+        .order("starts_at", { ascending: true });
+    }
+
+    const { data, error: err } = res;
 
     if (err) {
       setError(err.message);
@@ -99,6 +122,8 @@ export function useEvents(teamSeasonId: string | null) {
         opponent: r.opponent ?? null,
         is_home: r.is_home ?? null,
         location: r.location ?? null,
+        address: r.address ?? null,
+        series_id: r.series_id ?? null,
         starts_at: r.starts_at,
         meetup_at: r.meetup_at ?? null,
         status: normalizeEventStatus(r.status),
@@ -108,6 +133,7 @@ export function useEvents(teamSeasonId: string | null) {
         created_at: r.created_at ?? null,
         updated_at: r.updated_at ?? null,
         opponent_logo_url: r.opponent_logo_url ?? null,
+        training_absence_deadline_disabled: r.training_absence_deadline_disabled ?? false,
       }));
       setEvents(mapped);
     }

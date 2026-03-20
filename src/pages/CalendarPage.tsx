@@ -7,6 +7,7 @@ import { Modal } from '../app/ui/Modal';
 import { buildTeamIcsFeedUrl } from '../lib/calendarFeed';
 import type { CalendarEvent, CalendarView } from './calendar/calendarTypes';
 import { notesTitleAndDescription, resolveEndAtFromNotes, toLocalDayKey, addDays, startOfWeekMonday } from './calendar/calendarUtils';
+import { formatFullLocation } from '../lib/eventLocation';
 import { CalendarListView } from './calendar/CalendarListView';
 import { CalendarWeekView } from './calendar/CalendarWeekView';
 import { CalendarMonthView } from './calendar/CalendarMonthView';
@@ -125,13 +126,23 @@ export const CalendarPage: React.FC = () => {
         // Erster Versuch: mit event_type-Spalte laden
         let data: any[] | null = null;
         let loadError: string | null = null;
-        const first = await supabase
+        let first = await supabase
           .from('events')
-          .select('id, team_season_id, event_type, kind, opponent, notes, meetup_at, location, starts_at')
+          .select('id, team_season_id, event_type, kind, opponent, notes, meetup_at, location, address, starts_at')
           .in('team_season_id', teamSeasonIds)
           .gte('starts_at', start.toISOString())
           .lte('starts_at', end.toISOString())
           .order('starts_at', { ascending: true });
+
+        if (first.error && String(first.error.message ?? '').toLowerCase().includes('address')) {
+          first = await supabase
+            .from('events')
+            .select('id, team_season_id, event_type, kind, opponent, notes, meetup_at, location, starts_at')
+            .in('team_season_id', teamSeasonIds)
+            .gte('starts_at', start.toISOString())
+            .lte('starts_at', end.toISOString())
+            .order('starts_at', { ascending: true });
+        }
 
         if (first.error && first.error.message?.includes('event_type')) {
           // Fallback: ohne event_type-Spalte (alte DB)
@@ -190,6 +201,9 @@ export const CalendarPage: React.FC = () => {
             const teamName = ts?.teams?.name ?? null;
 
             const { description } = notesTitleAndDescription(notes);
+            const place = (r.location as string | null) ?? null;
+            const addr = (r.address as string | null) ?? null;
+            const locationDisplay = formatFullLocation(place, addr) || place;
 
             return {
               id: r.id,
@@ -202,7 +216,8 @@ export const CalendarPage: React.FC = () => {
                 notes,
               }),
               meetup_at: meetupAt,
-              location: r.location ?? null,
+              location: locationDisplay,
+              address: addr,
               opponent,
               notes,
               description: description ?? null,

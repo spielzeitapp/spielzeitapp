@@ -15,7 +15,8 @@ import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
 import { downloadCalendarIcs, downloadEventIcs } from '../lib/ics';
-import { isViennaCutoffPassed } from '../lib/viennaTime';
+import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
+import type { SeriesEditScope } from '../lib/seriesEditScope';
 
 type TabId = 'upcoming' | 'live' | 'finished';
 type KindFilterId = 'all' | 'match' | 'training' | 'event';
@@ -123,7 +124,10 @@ export const SchedulePage: React.FC = () => {
   const [editOpponent, setEditOpponent] = useState('');
   const [editDateTime, setEditDateTime] = useState('');
   const [editLocation, setEditLocation] = useState('');
+  const [editAddress, setEditAddress] = useState('');
   const [editMeetupAt, setEditMeetupAt] = useState('');
+  const [editTrainingDeadlineDisabled, setEditTrainingDeadlineDisabled] = useState(false);
+  const [editSeriesScope, setEditSeriesScope] = useState<SeriesEditScope>('single');
   const [editError, setEditError] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -149,7 +153,10 @@ export const SchedulePage: React.FC = () => {
     setEditOpponent(e.opponent ?? '');
     setEditDateTime(isoToDateTimeLocal(e.starts_at));
     setEditLocation(e.location ?? '');
+    setEditAddress(e.address ?? '');
     setEditMeetupAt(isoToTimeLocal(e.meetup_at));
+    setEditTrainingDeadlineDisabled(e.training_absence_deadline_disabled ?? false);
+    setEditSeriesScope('single');
     setEditError(null);
     setEditModalOpen(true);
   };
@@ -179,6 +186,13 @@ export const SchedulePage: React.FC = () => {
     }
 
     const sourceRole = (normalizedUiRole === 'parent' || normalizedUiRole === 'player' || normalizedUiRole === 'trainer') ? normalizedUiRole : null;
+
+    const evRow = events.find((x) => x.id === eventId);
+    const isTrainingEv = evRow != null && getEffectiveEventType(evRow) === 'training';
+    if (isTrainingEv && status === 'yes') {
+      setToastMessage('Beim Training ist nur eine Absage möglich (Standard: dabei).');
+      return;
+    }
 
     // Toggle-Logik: Klick auf denselben Status → zurück auf neutral (Eintrag löschen).
     const currentLocal = attendanceStatusByEventId[eventId] ?? null;
@@ -255,7 +269,9 @@ export const SchedulePage: React.FC = () => {
     setEditOpponent('');
     setEditDateTime('');
     setEditLocation('');
+    setEditAddress('');
     setEditMeetupAt('');
+    setEditSeriesScope('single');
     setEditError(null);
   };
 
@@ -272,6 +288,7 @@ export const SchedulePage: React.FC = () => {
     const startsDate = new Date(editDateTime.trim());
     const startsAt = startsDate.toISOString();
     const locationVal = editLocation.trim() || null;
+    const addressVal = editAddress.trim() || null;
     let meetupAt: string | null = null;
     if (editMeetupAt.trim()) {
       const [hh, mm] = editMeetupAt.split(':');
@@ -280,16 +297,44 @@ export const SchedulePage: React.FC = () => {
       meetupAt = meetup.toISOString();
     }
 
-    const eventPayload = {
+    const hasSeries = Boolean(editEvent.series_id);
+    const bulkScope = hasSeries && editSeriesScope !== 'single';
+
+    const trainingExtra =
+      editEvent.kind === 'training' ? { training_absence_deadline_disabled: editTrainingDeadlineDisabled } : {};
+
+    const fullPayload = {
       opponent: opponent || null,
       starts_at: startsAt,
       location: locationVal,
+      address: addressVal,
       meetup_at: meetupAt,
+      ...trainingExtra,
     };
-    const { error: eventErr } = await supabase
-      .from('events')
-      .update(eventPayload)
-      .eq('id', editEvent.id);
+
+    const sharedPayload = {
+      opponent: opponent || null,
+      location: locationVal,
+      address: addressVal,
+      ...trainingExtra,
+    };
+
+    let eventErr: { message: string } | null = null;
+
+    if (!bulkScope) {
+      const r = await supabase.from('events').update(fullPayload).eq('id', editEvent.id);
+      eventErr = r.error;
+    } else if (editSeriesScope === 'future' && editEvent.series_id) {
+      const r = await supabase
+        .from('events')
+        .update(sharedPayload)
+        .eq('series_id', editEvent.series_id)
+        .gte('starts_at', editEvent.starts_at);
+      eventErr = r.error;
+    } else if (editSeriesScope === 'series' && editEvent.series_id) {
+      const r = await supabase.from('events').update(sharedPayload).eq('series_id', editEvent.series_id);
+      eventErr = r.error;
+    }
 
     if (eventErr) {
       setEditError(eventErr.message);
@@ -303,6 +348,20 @@ export const SchedulePage: React.FC = () => {
 
   const handleDelete = async (event: EventRow) => {
     if (!window.confirm('Termin wirklich löschen?')) return;
+    if (event.series_id) {
+      const delAll = window.confirm(
+        'Alle Wiederholungen dieser Serie löschen?\n\nOK = gesamte Serie\nAbbrechen = nur dieser eine Termin',
+      );
+      if (delAll) {
+        const { error } = await supabase.from('events').delete().eq('series_id', event.series_id);
+        if (error) {
+          alert(error.message);
+          return;
+        }
+        await refetch();
+        return;
+      }
+    }
     const { error } = await supabase.from('events').delete().eq('id', event.id);
     if (error) {
       alert(error.message);
@@ -503,9 +562,14 @@ export const SchedulePage: React.FC = () => {
               ) : (
                 displayEvents.map((ev) => {
                   const evAttendance = attendanceByEventId[ev.id];
-                  const yes = evAttendance?.yes ?? 0;
+                  const yesRaw = evAttendance?.yes ?? 0;
                   const no = evAttendance?.no ?? 0;
-                  const open = Math.max(0, rosterSize - yes - no);
+                  const open = Math.max(0, rosterSize - yesRaw - no);
+                  const et = getEffectiveEventType(ev);
+                  const countsForCard =
+                    et === 'training'
+                      ? { yes: Math.max(0, rosterSize - no), no, open: 0 }
+                      : { yes: yesRaw, no, open: open };
                   const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
                   const myStatusFromDb =
                     (uiRole === 'parent' || uiRole === 'player') && myAttendancePlayerIds[0] && evAttendance?.availabilityByPlayerId[myPlayerIdKey];
@@ -513,8 +577,6 @@ export const SchedulePage: React.FC = () => {
                     (uiRole === 'parent' || uiRole === 'player')
                       ? (attendanceStatusByEventId[ev.id] ?? myStatusFromDb ?? null)
                       : undefined;
-
-                  const et = getEffectiveEventType(ev);
                   return (
                     <div
                       key={ev.id}
@@ -542,6 +604,7 @@ export const SchedulePage: React.FC = () => {
                         notes={ev.notes}
                         matchType={ev.match_type}
                         location={ev.location}
+                        address={ev.address}
                         meetupAt={ev.meetup_at}
                         showMeetup={showMeetupForRole}
                         eventId={forcePublicView ? undefined : ev.id}
@@ -554,7 +617,7 @@ export const SchedulePage: React.FC = () => {
                         role={uiRole ?? undefined}
                         attendanceStatus={attendanceStatusMerged}
                         onOpenAttendance={(uiRole === 'parent' || uiRole === 'player') ? () => setAttendanceModalEvent(ev) : undefined}
-                        attendanceCounts={canManage ? { yes, no, open } : undefined}
+                        attendanceCounts={canManage ? countsForCard : undefined}
                       />
                       <div className="mt-2 flex justify-end">
                         <Button
@@ -607,6 +670,43 @@ export const SchedulePage: React.FC = () => {
             }
           >
             <form id="edit-event-form" onSubmit={handleEditSubmit} className="space-y-4">
+          {editEvent?.series_id ? (
+            <div className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] p-3 space-y-2">
+              <span className="block text-sm font-medium text-[var(--text-main)]">Serie bearbeiten</span>
+              <label className="flex items-center gap-2 text-sm text-[var(--text-main)] cursor-pointer">
+                <input
+                  type="radio"
+                  name="edit-series-scope"
+                  checked={editSeriesScope === 'single'}
+                  onChange={() => setEditSeriesScope('single')}
+                />
+                Nur diesen Termin ändern (inkl. Zeit & Treffpunkt)
+              </label>
+              <label className="flex items-center gap-2 text-sm text-[var(--text-main)] cursor-pointer">
+                <input
+                  type="radio"
+                  name="edit-series-scope"
+                  checked={editSeriesScope === 'future'}
+                  onChange={() => setEditSeriesScope('future')}
+                />
+                Alle zukünftigen Termine ändern (Ort, Adresse, Bezeichnung, Trainings-Frist)
+              </label>
+              <label className="flex items-center gap-2 text-sm text-[var(--text-main)] cursor-pointer">
+                <input
+                  type="radio"
+                  name="edit-series-scope"
+                  checked={editSeriesScope === 'series'}
+                  onChange={() => setEditSeriesScope('series')}
+                />
+                Gesamte Serie ändern (Ort, Adresse, Bezeichnung, Trainings-Frist)
+              </label>
+              {editSeriesScope !== 'single' && (
+                <p className="text-xs text-[var(--text-sub)]">
+                  Zeit und Treffpunkt nur bei „Nur diesen Termin ändern“.
+                </p>
+              )}
+            </div>
+          ) : null}
           <div>
             <label htmlFor="edit-opponent" className="block text-sm font-medium text-[var(--text-main)] mb-1">
               {editEvent?.event_type === 'training' || editEvent?.event_type === 'event' || editEvent?.event_type === 'other'
@@ -629,14 +729,15 @@ export const SchedulePage: React.FC = () => {
               id="edit-datetime"
               type="datetime-local"
               required
+              disabled={Boolean(editEvent?.series_id && editSeriesScope !== 'single')}
               value={editDateTime}
               onChange={(e) => setEditDateTime(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
+              className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)] disabled:opacity-50"
             />
           </div>
           <div>
             <label htmlFor="edit-location" className="block text-sm font-medium text-[var(--text-main)] mb-1">
-              Ort (optional)
+              Ort / Platzname (optional)
             </label>
             <input
               id="edit-location"
@@ -644,7 +745,20 @@ export const SchedulePage: React.FC = () => {
               value={editLocation}
               onChange={(e) => setEditLocation(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
-              placeholder="z. B. Heimspielplatz"
+              placeholder="z. B. Sportplatz Rohrbach"
+            />
+          </div>
+          <div>
+            <label htmlFor="edit-address" className="block text-sm font-medium text-[var(--text-main)] mb-1">
+              Adresse (optional)
+            </label>
+            <input
+              id="edit-address"
+              type="text"
+              value={editAddress}
+              onChange={(e) => setEditAddress(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
+              placeholder="z. B. Sportplatzstraße 1, 3163 Rohrbach"
             />
           </div>
           <div>
@@ -654,11 +768,25 @@ export const SchedulePage: React.FC = () => {
             <input
               id="edit-meetup_at"
               type="time"
+              disabled={Boolean(editEvent?.series_id && editSeriesScope !== 'single')}
               value={editMeetupAt}
               onChange={(e) => setEditMeetupAt(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
+              className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)] disabled:opacity-50"
             />
           </div>
+          {editEvent?.kind === 'training' ? (
+            <label className="flex items-start gap-2 text-sm text-[var(--text-main)] cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1 rounded border-[var(--glass-border)]"
+                checked={editTrainingDeadlineDisabled}
+                onChange={(e) => setEditTrainingDeadlineDisabled(e.target.checked)}
+              />
+              <span>
+                Keine Absagefrist (Absage jederzeit möglich). Wenn nicht angehakt: Absage bis 12:00 Uhr am Trainingstag (Europe/Vienna).
+              </span>
+            </label>
+          ) : null}
           {editError && (
             <p className="text-sm text-red-600" role="alert">
               {editError}
@@ -731,17 +859,24 @@ export const SchedulePage: React.FC = () => {
 
                     const current = attendanceStatusByEventId[attendanceModalEvent.id] ?? myStatusFromDb ?? null;
                     const canceled = current === 'no';
-                    const cutoffPassed = isViennaCutoffPassed(attendanceModalEvent.starts_at);
+                    const cutoffPassed = isTrainingAbsenceDeadlinePassed(
+                      attendanceModalEvent.starts_at,
+                      attendanceModalEvent.training_absence_deadline_disabled,
+                    );
                     const cancelAllowed = !cutoffPassed;
                     return (
                       <>
-                        <p className="text-sm text-[var(--text-sub)]">
-                          {canceled
-                            ? 'Abgesagt'
-                            : cancelAllowed
-                              ? 'Ohne Absage bis 12:00 gilt Teilnahme'
-                              : 'Absage zu spät – Teilnahme gilt'}
+                        <p className="text-sm text-[var(--text-main)] font-medium">
+                          Status: {canceled ? 'Abwesend' : 'Dabei'}
                         </p>
+                        <p className="text-xs text-[var(--text-sub)] mt-1">
+                          {attendanceModalEvent.training_absence_deadline_disabled
+                            ? 'Absage jederzeit möglich.'
+                            : 'Absage bis 12:00 Uhr am Trainingstag möglich (Europe/Vienna).'}
+                        </p>
+                        {!cancelAllowed && !canceled ? (
+                          <p className="text-xs text-amber-200/90 mt-1">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
+                        ) : null}
 
                         <div className="mt-4">
                           <label className="block text-sm font-medium text-[var(--text-main)] mb-1">
@@ -780,7 +915,7 @@ export const SchedulePage: React.FC = () => {
               ) : (
                 <>
                   <p className="text-sm text-[var(--text-sub)]">
-                    Bitte gib deine Verfügbarkeit an.
+                    Standard ist „Offen“, bis du zusagst oder absagst.
                   </p>
                   <div className="flex flex-wrap gap-3 mt-6">
                     <button
@@ -792,7 +927,7 @@ export const SchedulePage: React.FC = () => {
                       }}
                       className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white bg-green-600 hover:bg-green-500 active:scale-[0.98] transition-all"
                     >
-                      Dabei
+                      Zusage
                     </button>
                     <button
                       type="button"
@@ -803,7 +938,7 @@ export const SchedulePage: React.FC = () => {
                       }}
                       className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white bg-red-600 hover:bg-red-500 active:scale-[0.98] transition-all"
                     >
-                      Abwesend
+                      Absage
                     </button>
                   </div>
                 </>

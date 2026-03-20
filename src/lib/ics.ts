@@ -11,6 +11,7 @@ export type IcsEventLike = {
   title?: string | null;
   notes?: string | null;
   location?: string | null;
+  address?: string | null;
   meetup_at?: string | null;
   starts_at?: string | null;
   // For "stable UID"; others optional
@@ -118,7 +119,11 @@ export function generateEventIcs(
 
   const meetupTimeOnly = e.meetup_at ? new Date(e.meetup_at).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' }) : null;
   const location =
-    (e.location ?? '').trim() || (descriptionText ?? '').trim() || null;
+    fullLocationForIcs(e.location, e.address) ||
+    (e.location ?? '').trim() ||
+    (e.address ?? '').trim() ||
+    (descriptionText ?? '').trim() ||
+    null;
 
   const eventUrl = safeUrl(`${opts.appBaseUrl}/app/events/${e.id}`);
 

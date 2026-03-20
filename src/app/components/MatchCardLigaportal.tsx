@@ -2,6 +2,7 @@ import React from 'react';
 import { getClubLogoUrl } from '../../utils/logoResolver';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import type { EventKind, EventStatus } from '../../hooks/useEvents';
+import { formatFullLocation } from '../../lib/eventLocation';
 
 /** Spielart (match_type) → Anzeige-Label. */
 const MATCH_TYPE_LABELS: Record<string, string> = {
@@ -78,6 +79,8 @@ type MatchCardLigaportalProps = {
   notes?: string | null;
   matchType?: string | null;
   location?: string | null;
+  /** Straße, PLZ Ort */
+  address?: string | null;
   meetupAt?: string | null;
   /** true = Treffpunkt anzeigen (canSeeMeetup). Spielort ist immer sichtbar. */
   showMeetup?: boolean;
@@ -193,6 +196,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   notes,
   matchType,
   location,
+  address,
   meetupAt,
   showMeetup,
   scoreHome,
@@ -214,6 +218,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const canSeeSensitiveInfo = showMeetup;
   const matchTypeLabel = getMatchTypeLabel(matchType);
   const meetupTimeOnly = formatMeetupTimeOnly(meetupAt);
+  const locationForKickoff = formatFullLocation(location, address) || null;
 
   const effectiveEventType: 'game' | 'training' | 'event' | 'other' =
     eventType ??
@@ -316,8 +321,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const attendanceChipLabel = isTrainingCard
     ? attendanceStatus === 'no'
-      ? 'Abgesagt'
-      : 'Automatisch dabei'
+      ? 'Abwesend'
+      : 'Dabei'
     : attendanceStatus === 'yes'
       ? 'Zugesagt'
       : attendanceStatus === 'no'
@@ -335,10 +340,10 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         {showAttendanceCounts && (
           isTrainingCard ? (
             <div className="flex items-center gap-1.5" aria-label="Trainings-Teilnahme">
-              <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abgesagt">
+              <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abwesend">
                 {attendanceCounts.no}
               </span>
-              <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Automatisch dabei">
+              <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Dabei">
                 {attendanceCounts.yes + attendanceCounts.open}
               </span>
             </div>
@@ -418,7 +423,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               <KickoffBlock
                 timeDisplay={isMatch && showScore ? `${home} : ${away}` : timeStr}
                 showUhr={!isMatch || !showScore}
-                location={location}
+                location={locationForKickoff}
                 headerLabel="ANPFIFF"
               />
             </div>
@@ -466,9 +471,14 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               headerLabel="BEGINN"
             />
 
-            {location && location.trim() ? (
-              <div className="mt-1 flex h-9 max-w-[320px] items-center justify-center rounded-full bg-white/10 border border-white/15 px-5 py-2 text-sm font-medium text-white/90">
+            {location?.trim() ? (
+              <div className="mt-1 flex min-h-9 max-w-[320px] items-center justify-center rounded-full bg-white/10 border border-white/15 px-5 py-2 text-sm font-medium text-white/90">
                 <span className="break-words line-clamp-2">{location.trim()}</span>
+              </div>
+            ) : null}
+            {address?.trim() ? (
+              <div className="mt-1 flex min-h-9 max-w-[320px] items-center justify-center rounded-full bg-white/5 border border-white/10 px-5 py-2 text-xs font-medium text-white/80">
+                <span className="break-words line-clamp-3 text-center">{address.trim()}</span>
               </div>
             ) : null}
 
