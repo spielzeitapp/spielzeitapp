@@ -14,6 +14,7 @@ import { Modal } from '../app/ui/Modal';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
 import { downloadEventIcs } from '../lib/ics';
+import { isViennaCutoffPassed } from '../lib/viennaTime';
 
 type EventDbRow = {
   id: string;
@@ -86,6 +87,7 @@ export const EventDetailPage: React.FC = () => {
 
   const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | null>(null);
   const [loadingRsvp, setLoadingRsvp] = useState(true);
+  const [cancelReason, setCancelReason] = useState('');
   /** Für Trainer: alle Zu-/Absagen dieses Events aus event_attendance. */
   const [eventAttendanceByPlayerId, setEventAttendanceByPlayerId] = useState<Record<string, 'yes' | 'no'>>({});
   const [loadingEventAttendance, setLoadingEventAttendance] = useState(false);
@@ -105,6 +107,10 @@ export const EventDetailPage: React.FC = () => {
     teamSeasonId,
   });
   const playerId = myAttendancePlayerIds[0] ?? null;
+
+  const isTraining = event?.kind === 'training';
+  const trainingCancelCutoffPassed = event?.kind === 'training' ? isViennaCutoffPassed(event.starts_at) : false;
+  const trainingCancellationAllowed = event?.kind === 'training' ? !trainingCancelCutoffPassed : false;
 
   const loadEvent = useCallback(async () => {
     if (!eventId) return;
@@ -179,7 +185,7 @@ export const EventDetailPage: React.FC = () => {
   }, [loadEventAttendance]);
 
   const handleRsvp = useCallback(
-    async (status: 'yes' | 'no') => {
+    async (status: 'yes' | 'no', reason?: string) => {
       let resolvedPlayerId = playerId ?? null;
       if (!eventId) return;
       if (!resolvedPlayerId) {
@@ -199,22 +205,33 @@ export const EventDetailPage: React.FC = () => {
       const { data: userRes } = await supabase.auth.getUser();
       const userId = userRes?.user?.id ?? null;
       const sourceRole = (effectiveRole === 'parent' || effectiveRole === 'player') ? effectiveRole : null;
-      const payload = {
+      const payload: any = {
         event_id: eventId,
         player_id: resolvedPlayerId,
         status,
         ...(userId && { updated_by: userId }),
         ...(sourceRole && { source_role: sourceRole }),
+        ...(reason?.trim() ? { reason: reason.trim() } : {}),
       };
-      const result = await supabase
+      let result = await supabase
         .from('event_attendance')
         .upsert(payload, { onConflict: 'event_id,player_id' })
         .select('event_id, player_id, status');
+
+      // Best-effort: falls es keine `reason`-Spalte gibt, ohne Grund erneut speichern.
+      if (result.error && reason?.trim()) {
+        const { reason: _r, ...payloadWithoutReason } = payload;
+        result = await supabase
+          .from('event_attendance')
+          .upsert(payloadWithoutReason, { onConflict: 'event_id,player_id' })
+          .select('event_id, player_id, status');
+      }
 
       if (result.error) return;
       setRsvpStatus(status);
       setEventAttendanceByPlayerId((prev) => ({ ...prev, [resolvedPlayerId!]: status }));
       setAttendanceModalOpen(false);
+      setCancelReason('');
       await loadEventAttendance();
     },
     [eventId, playerId, effectiveRole, loadEventAttendance]
@@ -323,21 +340,32 @@ export const EventDetailPage: React.FC = () => {
 
         {!isFan && (
           <Card>
-            <CardTitle>Zu-/Absagen</CardTitle>
+            <CardTitle>{isTraining ? 'Training-Teilnahme' : 'Zu-/Absagen'}</CardTitle>
 
             {isTrainerOrAdmin && (
               <>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="rounded-full px-3 py-1 text-sm font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
-                    Zugesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length}
-                  </span>
-                  <span className="rounded-full px-3 py-1 text-sm font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
-                    Abgesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
-                  </span>
-                  <span className="rounded-full px-3 py-1 text-sm font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
-                    Offen: {Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}
-                  </span>
-                </div>
+                {isTraining ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <span className="rounded-full px-3 py-1 text-sm font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
+                      Abgesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
+                    </span>
+                    <span className="rounded-full px-3 py-1 text-sm font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
+                      Automatisch dabei: {Math.max(0, players.length - Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length)}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <span className="rounded-full px-3 py-1 text-sm font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
+                      Zugesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length}
+                    </span>
+                    <span className="rounded-full px-3 py-1 text-sm font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
+                      Abgesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
+                    </span>
+                    <span className="rounded-full px-3 py-1 text-sm font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
+                      Offen: {Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}
+                    </span>
+                  </div>
+                )}
                 <div className="mt-4 space-y-2">
                   {(playersLoading || loadingEventAttendance) && (
                     <p className="text-sm text-[var(--text-sub)]">Lade…</p>
@@ -349,13 +377,25 @@ export const EventDetailPage: React.FC = () => {
                     <ul className="space-y-2">
                       {sortPlayersByAttendanceStatus(players, getAttendanceStatus).map((player) => {
                         const status = getAttendanceStatus(player.id);
-                        const chipClass =
-                          status === 'yes'
+                        const chipClass = isTraining
+                          ? status === 'no'
+                            ? 'rounded-full px-3 py-1 text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/40'
+                            : 'rounded-full px-3 py-1 text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/40'
+                          : status === 'yes'
                             ? 'rounded-full px-3 py-1 text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/40'
                             : status === 'no'
                               ? 'rounded-full px-3 py-1 text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/40'
                               : 'rounded-full px-3 py-1 text-xs font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30';
-                        const chipLabel = status === 'yes' ? 'DABEI' : status === 'no' ? 'ABWESEND' : 'OFFEN';
+
+                        const chipLabel = isTraining
+                          ? status === 'no'
+                            ? 'ABGESAGT'
+                            : 'TEILNEHMEND'
+                          : status === 'yes'
+                            ? 'DABEI'
+                            : status === 'no'
+                              ? 'ABWESEND'
+                              : 'OFFEN';
                         return (
                           <li
                             key={player.id}
@@ -364,22 +404,37 @@ export const EventDetailPage: React.FC = () => {
                             <span className="text-[var(--text-main)] font-medium truncate min-w-0">{player.display_name}</span>
                             <div className="flex items-center gap-2 shrink-0">
                               <span className={chipClass}>{chipLabel}</span>
-                              <div className="flex gap-1">
+                              {isTraining ? (
                                 <button
                                   type="button"
-                                  onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                  className="rounded px-2 py-1 text-xs font-medium bg-green-600/80 text-white hover:bg-green-500"
-                                >
-                                  Dabei
-                                </button>
-                                <button
-                                  type="button"
+                                  disabled={!trainingCancellationAllowed || status === 'no'}
                                   onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                  className="rounded px-2 py-1 text-xs font-medium bg-red-600/80 text-white hover:bg-red-500"
+                                  className={`rounded px-2 py-1 text-xs font-medium ${
+                                    !trainingCancellationAllowed || status === 'no'
+                                      ? 'bg-gray-600/40 text-gray-300 cursor-not-allowed'
+                                      : 'bg-red-600/80 text-white hover:bg-red-500'
+                                  }`}
                                 >
-                                  Abwesend
+                                  {status === 'no' ? 'Abgesagt' : !trainingCancellationAllowed ? 'Zu spät' : 'Absagen'}
                                 </button>
-                              </div>
+                              ) : (
+                                <div className="flex gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTrainerRsvp(player.id, 'yes')}
+                                    className="rounded px-2 py-1 text-xs font-medium bg-green-600/80 text-white hover:bg-green-500"
+                                  >
+                                    Dabei
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTrainerRsvp(player.id, 'no')}
+                                    className="rounded px-2 py-1 text-xs font-medium bg-red-600/80 text-white hover:bg-red-500"
+                                  >
+                                    Abwesend
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </li>
                         );
@@ -399,17 +454,48 @@ export const EventDetailPage: React.FC = () => {
                   <p className="mt-2 text-sm text-[var(--text-sub)]">Lade Status…</p>
                 ) : (
                   <>
-                    <p className="mt-2 text-sm text-[var(--text-main)]">
-                      Status: {rsvpStatus === 'yes' ? 'Zugesagt' : rsvpStatus === 'no' ? 'Abgesagt' : 'Offen'}
-                    </p>
-                    <Button
-                      variant={rsvpStatus === 'yes' || rsvpStatus === 'no' ? 'primary' : 'secondary'}
-                      size="sm"
-                      className={`mt-3 ${rsvpStatus === 'yes' ? 'bg-green-600 hover:bg-green-500' : rsvpStatus === 'no' ? 'bg-red-600 hover:bg-red-500' : ''}`}
-                      onClick={() => setAttendanceModalOpen(true)}
-                    >
-                      {rsvpStatus === 'yes' ? 'Zugesagt' : rsvpStatus === 'no' ? 'Abgesagt' : 'Zu-/Absage'}
-                    </Button>
+                    {isTraining ? (
+                      <>
+                        <p className="mt-2 text-sm text-[var(--text-main)]">
+                          {rsvpStatus === 'no'
+                            ? 'Abgesagt'
+                            : trainingCancellationAllowed
+                              ? 'Ohne Absage bis 12:00 gilt Teilnahme'
+                              : 'Absage zu spät – Teilnahme gilt'}
+                        </p>
+                        <Button
+                          variant={rsvpStatus === 'no' ? 'secondary' : 'primary'}
+                          size="sm"
+                          disabled={rsvpStatus === 'no' || !trainingCancellationAllowed}
+                          className={`mt-3 ${
+                            rsvpStatus === 'no'
+                              ? 'bg-red-600/40 text-white/80 hover:bg-red-600/40 cursor-not-allowed'
+                              : !trainingCancellationAllowed
+                                ? 'bg-gray-600/40 text-gray-300 cursor-not-allowed'
+                                : 'bg-red-600 hover:bg-red-500'
+                          }`}
+                          onClick={() => { setCancelReason(''); setAttendanceModalOpen(true); }}
+                        >
+                          {rsvpStatus === 'no' ? 'Abgesagt' : trainingCancellationAllowed ? 'Absagen' : 'Zu spät'}
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="mt-2 text-sm text-[var(--text-main)]">
+                          Status: {rsvpStatus === 'yes' ? 'Zugesagt' : rsvpStatus === 'no' ? 'Abgesagt' : 'Offen'}
+                        </p>
+                        <Button
+                          variant={rsvpStatus === 'yes' || rsvpStatus === 'no' ? 'primary' : 'secondary'}
+                          size="sm"
+                          className={`mt-3 ${
+                            rsvpStatus === 'yes' ? 'bg-green-600 hover:bg-green-500' : rsvpStatus === 'no' ? 'bg-red-600 hover:bg-red-500' : ''
+                          }`}
+                          onClick={() => { setCancelReason(''); setAttendanceModalOpen(true); }}
+                        >
+                          {rsvpStatus === 'yes' ? 'Zugesagt' : rsvpStatus === 'no' ? 'Abgesagt' : 'Zu-/Absage'}
+                        </Button>
+                      </>
+                    )}
                   </>
                 )}
               </>
@@ -419,37 +505,77 @@ export const EventDetailPage: React.FC = () => {
 
         <Modal
           isOpen={attendanceModalOpen}
-          title="Zu-/Absage"
-          onClose={() => setAttendanceModalOpen(false)}
+          title={isTraining ? 'Absage (Training)' : 'Zu-/Absage'}
+          onClose={() => {
+            setAttendanceModalOpen(false);
+            setCancelReason('');
+          }}
           footer={
-            <Button variant="ghost" onClick={() => setAttendanceModalOpen(false)}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setAttendanceModalOpen(false);
+                setCancelReason('');
+              }}
+            >
               Schließen
             </Button>
           }
         >
-          <p className="text-sm text-[var(--text-sub)] mb-4">Bitte gib deine Verfügbarkeit an.</p>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant="primary"
-              className="bg-green-600 hover:bg-green-500"
-              onClick={() => {
-                console.log('[ATTENDANCE BUTTON CLICKED]', 'yes');
-                handleRsvp('yes');
-              }}
-            >
-              Dabei
-            </Button>
-            <Button
-              variant="primary"
-              className="bg-red-600 hover:bg-red-500"
-              onClick={() => {
-                console.log('[ATTENDANCE BUTTON CLICKED]', 'no');
-                handleRsvp('no');
-              }}
-            >
-              Abwesend
-            </Button>
-          </div>
+          {isTraining ? (
+            <>
+              <p className="text-sm text-[var(--text-sub)] mb-4">
+                Ohne Absage bis 12:00 gilt Teilnahme
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-main)] mb-1">
+                  Grund (optional)
+                </label>
+                <textarea
+                  value={cancelReason}
+                  onChange={(ev) => setCancelReason(ev.target.value)}
+                  className="w-full min-h-[80px] px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
+                  placeholder="z. B. Krankheit, keine Zeit, etc."
+                />
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  variant="primary"
+                  className="bg-red-600 hover:bg-red-500"
+                  disabled={!trainingCancellationAllowed || rsvpStatus === 'no'}
+                  onClick={() => handleRsvp('no', cancelReason)}
+                >
+                  Absagen
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-[var(--text-sub)] mb-4">Bitte gib deine Verfügbarkeit an.</p>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  variant="primary"
+                  className="bg-green-600 hover:bg-green-500"
+                  onClick={() => {
+                    console.log('[ATTENDANCE BUTTON CLICKED]', 'yes');
+                    handleRsvp('yes');
+                  }}
+                >
+                  Dabei
+                </Button>
+                <Button
+                  variant="primary"
+                  className="bg-red-600 hover:bg-red-500"
+                  onClick={() => {
+                    console.log('[ATTENDANCE BUTTON CLICKED]', 'no');
+                    handleRsvp('no');
+                  }}
+                >
+                  Abwesend
+                </Button>
+              </div>
+            </>
+          )}
         </Modal>
 
         {isFan && (

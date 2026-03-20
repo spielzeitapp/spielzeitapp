@@ -6,7 +6,7 @@ import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { buildTeamIcsFeedUrl } from '../lib/calendarFeed';
 import type { CalendarEvent, CalendarView } from './calendar/calendarTypes';
-import { resolveEndAtFromNotes, toLocalDayKey, addDays, startOfWeekMonday } from './calendar/calendarUtils';
+import { notesTitleAndDescription, resolveEndAtFromNotes, toLocalDayKey, addDays, startOfWeekMonday } from './calendar/calendarUtils';
 import { CalendarListView } from './calendar/CalendarListView';
 import { CalendarWeekView } from './calendar/CalendarWeekView';
 import { CalendarMonthView } from './calendar/CalendarMonthView';
@@ -127,7 +127,7 @@ export const CalendarPage: React.FC = () => {
         let loadError: string | null = null;
         const first = await supabase
           .from('events')
-          .select('id, team_season_id, event_type, kind, opponent, notes, location, starts_at')
+          .select('id, team_season_id, event_type, kind, opponent, notes, meetup_at, location, starts_at')
           .in('team_season_id', teamSeasonIds)
           .gte('starts_at', start.toISOString())
           .lte('starts_at', end.toISOString())
@@ -137,7 +137,7 @@ export const CalendarPage: React.FC = () => {
           // Fallback: ohne event_type-Spalte (alte DB)
           const second = await supabase
             .from('events')
-            .select('id, team_season_id, kind, opponent, notes, location, starts_at')
+            .select('id, team_season_id, kind, opponent, notes, meetup_at, location, starts_at')
             .in('team_season_id', teamSeasonIds)
             .gte('starts_at', start.toISOString())
             .lte('starts_at', end.toISOString())
@@ -175,6 +175,8 @@ export const CalendarPage: React.FC = () => {
 
             const startsAt = r.starts_at as string;
             const notes: string | null = (r.notes as string | null) ?? null;
+            const meetupAt: string | null = (r.meetup_at as string | null) ?? null;
+            const opponent: string | null = (r.opponent as string | null) ?? null;
             let title = '';
             if (t === 'game') {
               title = r.opponent || 'Spiel';
@@ -187,6 +189,8 @@ export const CalendarPage: React.FC = () => {
             const ts = accessibleTeamSeasons.find((ts: any) => ts.id === r.team_season_id);
             const teamName = ts?.teams?.name ?? null;
 
+            const { description } = notesTitleAndDescription(notes);
+
             return {
               id: r.id,
               team_season_id: r.team_season_id,
@@ -197,7 +201,11 @@ export const CalendarPage: React.FC = () => {
                 eventType: t,
                 notes,
               }),
+              meetup_at: meetupAt,
               location: r.location ?? null,
+              opponent,
+              notes,
+              description: description ?? null,
               title,
               team_name: teamName,
             };

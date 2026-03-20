@@ -1,7 +1,14 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { CalendarEvent } from './calendarTypes';
-import { addDays, startOfWeekMonday, toLocalDayKey, resolveEndAtFromNotes } from './calendarUtils';
+import {
+  formatMeetingPoint,
+  formatTimeRange,
+  formatTrainingTimeRange,
+  addDays,
+  startOfWeekMonday,
+  toLocalDayKey,
+} from './calendarUtils';
 
 type Props = {
   weekAnchor: Date;
@@ -14,10 +21,6 @@ type Props = {
 const AXIS_START_HOUR = 8;
 const AXIS_END_HOUR = 20;
 const PX_PER_MINUTE = 2;
-
-function formatTime(d: Date) {
-  return d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' });
-}
 
 export const CalendarWeekView: React.FC<Props> = ({
   weekAnchor,
@@ -131,14 +134,7 @@ export const CalendarWeekView: React.FC<Props> = ({
                       >
                         {dayEvents.map((ev) => {
                           const start = new Date(ev.starts_at);
-                          const endIso =
-                            ev.end_at ??
-                            resolveEndAtFromNotes({
-                              startsAtIso: ev.starts_at,
-                              eventType: ev.event_type,
-                              notes: null,
-                            });
-                          const end = endIso ? new Date(endIso) : new Date(start.getTime() + 90 * 60 * 1000);
+                          const end = ev.end_at ? new Date(ev.end_at) : new Date(start.getTime() + 90 * 60 * 1000);
 
                           const startMinutes = start.getHours() * 60 + start.getMinutes();
                           const endMinutes = end.getHours() * 60 + end.getMinutes();
@@ -152,7 +148,20 @@ export const CalendarWeekView: React.FC<Props> = ({
                           const top = (clampedStart - axisStartMinutes) * PX_PER_MINUTE;
                           const height = Math.max(18, (clampedEnd - clampedStart) * PX_PER_MINUTE);
 
-                          const timeText = `${formatTime(start)} - ${formatTime(end)}`;
+                          const timeText =
+                            ev.event_type === 'training'
+                              ? formatTrainingTimeRange(ev.starts_at, ev.end_at)
+                              : formatTimeRange(ev.starts_at, ev.end_at);
+                          const locationLine = ev.location
+                            ? ev.location
+                            : ev.description
+                              ? ev.description
+                              : null;
+                          const meetingPointLine = formatMeetingPoint(ev.meetup_at);
+                          const descriptionLine =
+                            !meetingPointLine && ev.description
+                              ? ev.description
+                              : null;
 
                           return (
                             <button
@@ -170,8 +179,16 @@ export const CalendarWeekView: React.FC<Props> = ({
                               <div className="mt-0.5 text-[11px] font-semibold truncate leading-tight">
                                 {ev.title}
                               </div>
-                              {ev.team_name ? (
+                              {locationLine ? (
+                                <div className="mt-0.5 text-[9px] text-white/80 truncate">{locationLine}</div>
+                              ) : ev.team_name ? (
                                 <div className="mt-0.5 text-[9px] text-white/80 truncate">{ev.team_name}</div>
+                              ) : null}
+                              {meetingPointLine ? (
+                                <div className="mt-0.5 text-[9px] text-yellow-200/90 truncate">{meetingPointLine}</div>
+                              ) : null}
+                              {descriptionLine ? (
+                                <div className="mt-0.5 text-[9px] text-white/70 truncate">{descriptionLine}</div>
                               ) : null}
                             </button>
                           );

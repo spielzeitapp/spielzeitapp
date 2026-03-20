@@ -117,19 +117,19 @@ export function generateEventIcs(
           : `${notesTitle ?? e.title ?? 'Termin'}`;
 
   const meetupTimeOnly = e.meetup_at ? new Date(e.meetup_at).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' }) : null;
-  const location = e.location ?? null;
+  const location =
+    (e.location ?? '').trim() || (descriptionText ?? '').trim() || null;
 
   const eventUrl = safeUrl(`${opts.appBaseUrl}/app/events/${e.id}`);
 
   const descriptionLines: string[] = [];
-  if (location && location.trim()) descriptionLines.push(`Ort: ${location.trim()}`);
   if (meetupTimeOnly) descriptionLines.push(`Treffpunkt: ${meetupTimeOnly}`);
-  if (descriptionText && descriptionText.trim()) descriptionLines.push(`Beschreibung: ${descriptionText.trim()}`);
+  if (e.opponent && type === 'game') descriptionLines.push(`Gegner: ${e.opponent}`);
   if (descriptionText && descriptionText.trim()) descriptionLines.push(`Hinweise: ${descriptionText.trim()}`);
-  if (eventUrl) descriptionLines.push(`Link zur App: ${eventUrl}`);
+  if (eventUrl) descriptionLines.push(`Link zur SpielzeitApp: ${eventUrl}`);
 
   // If no description lines, still provide something minimal
-  const description = descriptionLines.length ? descriptionLines.join('\n') : `Link zur App: ${eventUrl}`;
+  const description = descriptionLines.length ? descriptionLines.join('\n') : `Link zur SpielzeitApp: ${eventUrl}`;
 
   const uid = `${e.id}@${opts.uidDomain ?? 'spielzeitapp.at'}`;
 

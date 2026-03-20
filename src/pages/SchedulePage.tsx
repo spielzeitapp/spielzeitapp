@@ -15,6 +15,7 @@ import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
 import { downloadCalendarIcs, downloadEventIcs } from '../lib/ics';
+import { isViennaCutoffPassed } from '../lib/viennaTime';
 
 type TabId = 'upcoming' | 'live' | 'finished';
 type KindFilterId = 'all' | 'match' | 'training' | 'event';
@@ -115,6 +116,7 @@ export const SchedulePage: React.FC = () => {
   /** Zu-/Absage: Modal + Status. Gespeichertes Event = genau das angeklickte Spiel (ID-Konsistenz). */
   const [attendanceModalEvent, setAttendanceModalEvent] = useState<EventRow | null>(null);
   const [attendanceStatusByEventId, setAttendanceStatusByEventId] = useState<Record<string, 'yes' | 'no'>>({});
+  const [trainingCancelReason, setTrainingCancelReason] = useState('');
 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editEvent, setEditEvent] = useState<EventRow | null>(null);
@@ -156,7 +158,7 @@ export const SchedulePage: React.FC = () => {
    * Speichert Zusage/Absage in event_attendance (event_id, player_id, status, updated_by, source_role).
    * Parent: linked children (player_guardians). Player: self (player_users). Trainer: via EventDetailPage.
    */
-  const setAttendance = async (eventId: string, status: 'yes' | 'no') => {
+  const setAttendance = async (eventId: string, status: 'yes' | 'no', reason?: string) => {
     const { data: userRes } = await supabase.auth.getUser();
     const userId = userRes?.user?.id ?? null;
     let playerId = myAttendancePlayerIds[0] ?? null;
@@ -172,6 +174,7 @@ export const SchedulePage: React.FC = () => {
     if (!eventId || !playerId) {
       setToastMessage(!playerId ? 'Kein Spieler zugeordnet.' : 'Event fehlt.');
       setAttendanceModalEvent(null);
+      setTrainingCancelReason('');
       return;
     }
 
@@ -195,6 +198,7 @@ export const SchedulePage: React.FC = () => {
         console.error('[ATTENDANCE DELETE ERROR]', result.error);
         setToastMessage(result.error.message ?? 'Speichern fehlgeschlagen.');
         setAttendanceModalEvent(null);
+        setTrainingCancelReason('');
         return;
       }
 
@@ -204,25 +208,36 @@ export const SchedulePage: React.FC = () => {
         return next;
       });
     } else {
-      const payload = {
+      const payload: any = {
         event_id: eventId,
         player_id: playerId,
         status,
         ...(userId && { updated_by: userId }),
         ...(sourceRole && { source_role: sourceRole }),
+        ...(reason?.trim() ? { reason: reason.trim() } : {}),
       };
 
-      result = await supabase
+      let result = await supabase
         .from('event_attendance')
         .upsert(payload, { onConflict: 'event_id,player_id' })
         .select('event_id, player_id, status');
 
       console.log('[ATTENDANCE SAVE RESULT]', { data: result.data, error: result.error });
 
+      // Best-effort: falls `reason`-Spalte nicht existiert → Retry ohne reason
+      if (result.error && reason?.trim()) {
+        const { reason: _r, ...payloadWithoutReason } = payload;
+        result = await supabase
+          .from('event_attendance')
+          .upsert(payloadWithoutReason, { onConflict: 'event_id,player_id' })
+          .select('event_id, player_id, status');
+      }
+
       if (result.error) {
         console.error('[ATTENDANCE SAVE ERROR]', result.error);
         setToastMessage(result.error.message ?? 'Speichern fehlgeschlagen.');
         setAttendanceModalEvent(null);
+        setTrainingCancelReason('');
         return;
       }
 
@@ -230,6 +245,7 @@ export const SchedulePage: React.FC = () => {
     }
 
     setAttendanceModalEvent(null);
+    setTrainingCancelReason('');
     await refreshAttendance();
   };
 
@@ -656,16 +672,30 @@ export const SchedulePage: React.FC = () => {
             isOpen={attendanceModalEvent != null}
             title={
               attendanceModalEvent
-                ? `Zu-/Absage: ${
-                    ((attendanceModalEvent.notes ?? '').split(' · ')[0]?.trim() || attendanceModalEvent.opponent) ??
-                    'Termin'
-                  }`
+                ? attendanceModalEvent.event_type === 'training'
+                  ? `Absage (Training): ${
+                      ((attendanceModalEvent.notes ?? '').split(' · ')[0]?.trim() || attendanceModalEvent.opponent) ??
+                      'Termin'
+                    }`
+                  : `Zu-/Absage: ${
+                      ((attendanceModalEvent.notes ?? '').split(' · ')[0]?.trim() || attendanceModalEvent.opponent) ??
+                      'Termin'
+                    }`
                 : 'Zu-/Absage'
             }
-            onClose={() => setAttendanceModalEvent(null)}
+            onClose={() => {
+              setAttendanceModalEvent(null);
+              setTrainingCancelReason('');
+            }}
             footer={
               <div className="flex justify-end">
-                <Button variant="ghost" onClick={() => setAttendanceModalEvent(null)}>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setAttendanceModalEvent(null);
+                    setTrainingCancelReason('');
+                  }}
+                >
                   Schließen
                 </Button>
               </div>
@@ -689,33 +719,95 @@ export const SchedulePage: React.FC = () => {
                     : ''}
                 </p>
               )}
-              <p className="text-sm text-[var(--text-sub)]">
-                Bitte gib deine Verfügbarkeit an.
-              </p>
-              <div className="flex flex-wrap gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    console.log('[ATTENDANCE BUTTON CLICKED]');
-                    if (!attendanceModalEvent) return;
-                    setAttendance(attendanceModalEvent.id, 'yes').catch((e) => console.error('[ATTENDANCE]', e));
-                  }}
-                  className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white bg-green-600 hover:bg-green-500 active:scale-[0.98] transition-all"
-                >
-                  Dabei
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    console.log('[ATTENDANCE BUTTON CLICKED]');
-                    if (!attendanceModalEvent) return;
-                    setAttendance(attendanceModalEvent.id, 'no').catch((e) => console.error('[ATTENDANCE]', e));
-                  }}
-                  className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white bg-red-600 hover:bg-red-500 active:scale-[0.98] transition-all"
-                >
-                  Abwesend
-                </button>
-              </div>
+
+              {attendanceModalEvent?.event_type === 'training' ? (
+                <>
+                  {(() => {
+                    const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
+                    const myStatusFromDb =
+                      (uiRole === 'parent' || uiRole === 'player') && myAttendancePlayerIds[0] && attendanceByEventId[attendanceModalEvent.id]
+                        ? attendanceByEventId[attendanceModalEvent.id].availabilityByPlayerId[myPlayerIdKey] ?? null
+                        : null;
+
+                    const current = attendanceStatusByEventId[attendanceModalEvent.id] ?? myStatusFromDb ?? null;
+                    const canceled = current === 'no';
+                    const cutoffPassed = isViennaCutoffPassed(attendanceModalEvent.starts_at);
+                    const cancelAllowed = !cutoffPassed;
+                    return (
+                      <>
+                        <p className="text-sm text-[var(--text-sub)]">
+                          {canceled
+                            ? 'Abgesagt'
+                            : cancelAllowed
+                              ? 'Ohne Absage bis 12:00 gilt Teilnahme'
+                              : 'Absage zu spät – Teilnahme gilt'}
+                        </p>
+
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium text-[var(--text-main)] mb-1">
+                            Grund (optional)
+                          </label>
+                          <textarea
+                            value={trainingCancelReason}
+                            onChange={(ev) => setTrainingCancelReason(ev.target.value)}
+                            className="w-full min-h-[80px] px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
+                            placeholder="z. B. Krankheit, keine Zeit, etc."
+                          />
+                        </div>
+
+                        <div className="flex flex-wrap gap-3 mt-6">
+                          <button
+                            type="button"
+                            disabled={canceled || !cancelAllowed}
+                            onClick={() => {
+                              console.log('[ATTENDANCE BUTTON CLICKED]', 'training-no');
+                              if (!attendanceModalEvent) return;
+                              setAttendance(attendanceModalEvent.id, 'no', trainingCancelReason).catch((e) => console.error('[ATTENDANCE]', e));
+                            }}
+                            className={`flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white active:scale-[0.98] transition-all ${
+                              canceled || !cancelAllowed
+                                ? 'bg-gray-600/40 text-gray-300 cursor-not-allowed'
+                                : 'bg-red-600 hover:bg-red-500'
+                            }`}
+                          >
+                            Absagen
+                          </button>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-[var(--text-sub)]">
+                    Bitte gib deine Verfügbarkeit an.
+                  </p>
+                  <div className="flex flex-wrap gap-3 mt-6">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        console.log('[ATTENDANCE BUTTON CLICKED]');
+                        if (!attendanceModalEvent) return;
+                        setAttendance(attendanceModalEvent.id, 'yes').catch((e) => console.error('[ATTENDANCE]', e));
+                      }}
+                      className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white bg-green-600 hover:bg-green-500 active:scale-[0.98] transition-all"
+                    >
+                      Dabei
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        console.log('[ATTENDANCE BUTTON CLICKED]');
+                        if (!attendanceModalEvent) return;
+                        setAttendance(attendanceModalEvent.id, 'no').catch((e) => console.error('[ATTENDANCE]', e));
+                      }}
+                      className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white bg-red-600 hover:bg-red-500 active:scale-[0.98] transition-all"
+                    >
+                      Abwesend
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </Modal>
         </div>

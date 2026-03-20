@@ -166,6 +166,13 @@ function buildSummary(ev, teamName) {
   return notes.title ?? 'Event';
 }
 
+function buildLocation(ev) {
+  const loc = (ev.location ?? '').trim();
+  if (loc) return loc;
+  const notes = notesTitleAndDescription(ev.notes);
+  return notes.description ?? null;
+}
+
 function formatViennaTime(isoString) {
   const d = new Date(isoString);
   if (!d || isNaN(d.getTime())) return null;
@@ -184,8 +191,8 @@ function buildDescription(ev, appBaseUrl) {
   const eventUrl = `${appBaseUrl}/app/events/${ev.id}`;
   const lines = [];
   if (meetup) lines.push(`Treffpunkt: ${meetup}`);
+  if (effectiveType(ev) === 'game' && ev.opponent) lines.push(`Gegner: ${ev.opponent}`);
   if (notes.description) lines.push(`Hinweise: ${notes.description}`);
-  if (notes.description) lines.push(`Trainerinfo: ${notes.description}`);
   lines.push(`Link zur SpielzeitApp: ${eventUrl}`);
   return lines.join('\n');
 }
@@ -289,6 +296,7 @@ async function teamIcsHandler(req, res) {
       const end = resolveEndDate(ev, start);
       const summary = buildSummary(ev, teamName);
       const description = buildDescription(ev, appBaseUrl);
+      const location = buildLocation(ev);
 
       return [
         'BEGIN:VEVENT',
@@ -297,7 +305,7 @@ async function teamIcsHandler(req, res) {
         `DTSTART:${toIcsUtc(start)}`,
         `DTEND:${toIcsUtc(end)}`,
         `SUMMARY:${escapeIcsText(summary)}`,
-        ev.location ? `LOCATION:${escapeIcsText(ev.location)}` : undefined,
+        location ? `LOCATION:${escapeIcsText(location)}` : undefined,
         `DESCRIPTION:${escapeIcsText(description)}`,
         'END:VEVENT',
       ].filter(Boolean);

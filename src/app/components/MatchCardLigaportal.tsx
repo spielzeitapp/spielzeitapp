@@ -219,6 +219,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     eventType ??
     (kind === 'training' ? 'training' : kind === 'event' ? 'event' : 'game');
 
+  const isTrainingCard = effectiveEventType === 'training';
+
   let leftName: string;
   let rightName: string;
 
@@ -302,15 +304,25 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const showAttendanceChip = (role === 'parent' || role === 'player') && onOpenAttendance;
 
   /* Pill wie Bearbeiten/Löschen: gleiche Höhe/Radius (rounded-full px-3 py-1 text-sm), farblich passend */
-  const attendanceChipClass =
-    attendanceStatus === 'yes'
+  const attendanceChipClass = isTrainingCard
+    ? attendanceStatus === 'no'
+      ? 'rounded-full px-3 py-1 text-sm font-semibold text-white bg-red-700 border border-red-600/50 shrink-0'
+      : 'rounded-full px-3 py-1 text-sm font-semibold text-white bg-green-600 border border-green-500/50 shrink-0'
+    : attendanceStatus === 'yes'
       ? 'rounded-full px-3 py-1 text-sm font-semibold text-white bg-green-600 border border-green-500/50 shrink-0'
       : attendanceStatus === 'no'
         ? 'rounded-full px-3 py-1 text-sm font-semibold text-white bg-red-700 border border-red-600/50 shrink-0'
         : 'rounded-full px-3 py-1 text-sm font-semibold text-white border border-white/40 bg-white/10 hover:bg-white/20 shrink-0 transition-colors';
 
-  const attendanceChipLabel =
-    attendanceStatus === 'yes' ? 'Zugesagt' : attendanceStatus === 'no' ? 'Abgesagt' : 'Zu-/Absage';
+  const attendanceChipLabel = isTrainingCard
+    ? attendanceStatus === 'no'
+      ? 'Abgesagt'
+      : 'Automatisch dabei'
+    : attendanceStatus === 'yes'
+      ? 'Zugesagt'
+      : attendanceStatus === 'no'
+        ? 'Abgesagt'
+        : 'Zu-/Absage';
 
   const showAttendanceCounts = canManage && attendanceCounts != null;
 
@@ -321,17 +333,28 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       </span>
       <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end" onClick={(e) => e.stopPropagation()}>
         {showAttendanceCounts && (
-          <div className="flex items-center gap-1.5" aria-label="Zu-/Absagen">
-            <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Zugesagt">
-              {attendanceCounts.yes}
-            </span>
-            <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abgesagt">
-              {attendanceCounts.no}
-            </span>
-            <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30 whitespace-nowrap" title="Offen">
-              {attendanceCounts.open}
-            </span>
-          </div>
+          isTrainingCard ? (
+            <div className="flex items-center gap-1.5" aria-label="Trainings-Teilnahme">
+              <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abgesagt">
+                {attendanceCounts.no}
+              </span>
+              <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Automatisch dabei">
+                {attendanceCounts.yes + attendanceCounts.open}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5" aria-label="Zu-/Absagen">
+              <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Zugesagt">
+                {attendanceCounts.yes}
+              </span>
+              <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abgesagt">
+                {attendanceCounts.no}
+              </span>
+              <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30 whitespace-nowrap" title="Offen">
+                {attendanceCounts.open}
+              </span>
+            </div>
+          )
         )}
         {showManageButtons && (
           <>
@@ -417,6 +440,20 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               </div>
             ) : null}
           </div>
+
+              {endTimeLabel ? (
+                <div className="mt-2 flex min-h-[36px] justify-center">
+                  <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-white/10 border border-white/15 px-5 py-2 text-sm font-medium text-white/90">
+                    <span className="whitespace-nowrap">Ende: {endTimeLabel}</span>
+                  </div>
+                </div>
+              ) : null}
+
+              {descriptionText ? (
+                <div className="mt-2 text-[13px] leading-snug text-white/75 font-semibold line-clamp-2 max-w-[320px]">
+                  {descriptionText}
+                </div>
+              ) : null}
         </>
       ) : (
         <>
@@ -449,7 +486,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               ) : null}
             </div>
 
-            {effectiveEventType !== 'training' && descriptionText ? (
+            {descriptionText ? (
               <div className="mt-1 text-[13px] leading-snug text-white/75 font-semibold line-clamp-2 max-w-[320px]">
                 {descriptionText}
               </div>

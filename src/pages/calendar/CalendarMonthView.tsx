@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { CalendarEvent } from './calendarTypes';
-import { toLocalDayKey } from './calendarUtils';
+import { formatMeetingPoint, formatTimeRange, formatTrainingTimeRange, toLocalDayKey } from './calendarUtils';
 
 type Props = {
   days: Date[];
@@ -52,8 +52,6 @@ export const CalendarMonthView: React.FC<Props> = ({
               </div>
               <div className="space-y-0.5">
                 {dayEvents.map((ev) => {
-                  const t = new Date(ev.starts_at);
-                  const time = t.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' });
                   return (
                     <button
                       key={ev.id}
@@ -63,12 +61,24 @@ export const CalendarMonthView: React.FC<Props> = ({
                         ev.event_type,
                       )}`}
                     >
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-semibold tabular-nums">{time}</span>
-                        <span className="truncate text-[10px] font-semibold">{ev.title}</span>
+                      <div className="text-[10px] font-semibold truncate">{ev.title}</div>
+                      <div className="text-[10px] font-semibold tabular-nums truncate">
+                        {ev.event_type === 'training'
+                          ? formatTrainingTimeRange(ev.starts_at, ev.end_at)
+                          : formatTimeRange(ev.starts_at, ev.end_at)}
                       </div>
+                      {ev.location ? (
+                        <div className="text-[9px] text-white/80 truncate">{ev.location}</div>
+                      ) : null}
+                      {formatMeetingPoint(ev.meetup_at) ? (
+                        <div className="text-[9px] text-yellow-200/90 truncate">
+                          {formatMeetingPoint(ev.meetup_at)}
+                        </div>
+                      ) : ev.description ? (
+                        <div className="text-[9px] text-white/70 truncate">{ev.description}</div>
+                      ) : null}
                       {ev.team_name ? (
-                        <span className="text-[9px] text-white/80 truncate">{ev.team_name}</span>
+                        <div className="text-[9px] text-white/70 truncate">{ev.team_name}</div>
                       ) : null}
                     </button>
                   );

@@ -1,7 +1,12 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { CalendarEvent } from './calendarTypes';
-import { toLocalDayKey } from './calendarUtils';
+import {
+  formatMeetingPoint,
+  formatTimeRange,
+  formatTrainingTimeRange,
+  toLocalDayKey,
+} from './calendarUtils';
 
 type Props = {
   events: CalendarEvent[];
@@ -66,11 +71,7 @@ export const CalendarListView: React.FC<Props> = ({
 
               <div className="space-y-2">
                 {list.map((ev) => {
-                  const start = new Date(ev.starts_at);
-                  const time = start.toLocaleTimeString('de-AT', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  });
+                  const meetingPointLine = formatMeetingPoint(ev.meetup_at);
                   return (
                     <button
                       key={ev.id}
@@ -80,13 +81,34 @@ export const CalendarListView: React.FC<Props> = ({
                         ev.event_type,
                       )}`}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-xs font-semibold tabular-nums">{time}</span>
-                        <span className="truncate text-xs font-semibold">{ev.title}</span>
+                      <div className="space-y-0.5">
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="truncate text-xs font-semibold">{ev.title}</span>
+                        </div>
+                        <div className="text-[11px] font-semibold tabular-nums truncate">
+                          {ev.event_type === 'training'
+                            ? formatTrainingTimeRange(ev.starts_at, ev.end_at)
+                            : formatTimeRange(ev.starts_at, ev.end_at)}
+                        </div>
+                        {ev.location ? (
+                          <div className="text-[11px] text-white/80 truncate">{ev.location}</div>
+                        ) : ev.description ? (
+                          <div className="text-[11px] text-white/80 truncate">{ev.description}</div>
+                        ) : null}
+                        {meetingPointLine ? (
+                          <div className="text-[10px] text-yellow-200/90 truncate">
+                            {meetingPointLine}
+                          </div>
+                        ) : null}
+                        {!meetingPointLine && ev.description ? (
+                          <div className="text-[10px] text-white/70 truncate">
+                            {ev.description}
+                          </div>
+                        ) : null}
+                        {ev.team_name ? (
+                          <div className="pt-0.5 text-[10px] text-white/70 truncate">{ev.team_name}</div>
+                        ) : null}
                       </div>
-                      {ev.team_name ? (
-                        <div className="mt-1 text-[11px] text-white/80 truncate">{ev.team_name}</div>
-                      ) : null}
                     </button>
                   );
                 })}
