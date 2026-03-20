@@ -5,18 +5,11 @@ import { useSession } from '../auth/useSession';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { buildTeamIcsFeedUrl } from '../lib/calendarFeed';
-
-type CalendarEvent = {
-  id: string;
-  team_season_id: string;
-  event_type: 'game' | 'training' | 'event' | 'other';
-  starts_at: string;
-  location: string | null;
-  title: string;
-  team_name: string | null;
-};
-
-type DayEvents = CalendarEvent[];
+import type { CalendarEvent, CalendarView } from './calendar/calendarTypes';
+import { resolveEndAtFromNotes, toLocalDayKey, addDays, startOfWeekMonday } from './calendar/calendarUtils';
+import { CalendarListView } from './calendar/CalendarListView';
+import { CalendarWeekView } from './calendar/CalendarWeekView';
+import { CalendarMonthView } from './calendar/CalendarMonthView';
 
 function startOfMonth(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -60,6 +53,25 @@ export const CalendarPage: React.FC = () => {
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
+
+  const [view, setView] = useState<CalendarView>(() => {
+    try {
+      const saved = window.localStorage.getItem('sz_calendar_view_v1');
+      if (saved === 'list' || saved === 'week' || saved === 'month') return saved;
+    } catch {
+      // ignore
+    }
+    return 'list';
+  });
+  const [weekAnchor, setWeekAnchor] = useState(() => new Date());
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('sz_calendar_view_v1', view);
+    } catch {
+      // ignore
+    }
+  }, [view]);
 
   const isFan = effectiveRole === 'fan';
   const canSeeAllTeams =
@@ -162,6 +174,7 @@ export const CalendarPage: React.FC = () => {
             }
 
             const startsAt = r.starts_at as string;
+            const notes: string | null = (r.notes as string | null) ?? null;
             let title = '';
             if (t === 'game') {
               title = r.opponent || 'Spiel';
@@ -179,6 +192,11 @@ export const CalendarPage: React.FC = () => {
               team_season_id: r.team_season_id,
               event_type: t,
               starts_at: startsAt,
+              end_at: resolveEndAtFromNotes({
+                startsAtIso: startsAt,
+                eventType: t,
+                notes,
+              }),
               location: r.location ?? null,
               title,
               team_name: teamName,
@@ -201,10 +219,10 @@ export const CalendarPage: React.FC = () => {
   const days = useMemo(() => getMonthGrid(currentMonth), [currentMonth]);
 
   const eventsByDay = useMemo(() => {
-    const map = new Map<string, DayEvents>();
+    const map = new Map<string, CalendarEvent[]>();
     for (const ev of events) {
       const d = new Date(ev.starts_at);
-      const key = d.toISOString().slice(0, 10);
+      const key = toLocalDayKey(d);
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(ev);
     }
@@ -216,12 +234,20 @@ export const CalendarPage: React.FC = () => {
     year: 'numeric',
   });
 
-  const weekdayLabels = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  const todayKey = toLocalDayKey(new Date());
+  const weekStart = startOfWeekMonday(weekAnchor);
+  const weekEnd = addDays(weekStart, 6);
+  const weekLabel = `${weekStart.toLocaleDateString('de-AT', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'long',
+  })} – ${weekEnd.toLocaleDateString('de-AT', { day: 'numeric', month: 'long' })}`;
+  const headerLabel = view === 'week' ? weekLabel : monthLabel;
 
   const getEventColorClass = (type: CalendarEvent['event_type']) => {
     if (type === 'game') return 'bg-red-600/80 text-white';
-    if (type === 'training') return 'bg-blue-600/80 text-white';
-    if (type === 'event') return 'bg-white/15 text-white';
+    if (type === 'training') return 'bg-green-600/80 text-white';
+    if (type === 'event') return 'bg-white/10 text-white/90';
     return 'bg-white/10 text-white/80';
   };
 
@@ -285,23 +311,33 @@ export const CalendarPage: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() =>
-                setCurrentMonth(
-                  (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1),
-                )
-              }
+              onClick={() => {
+                if (view === 'week') {
+                  const next = new Date(weekAnchor);
+                  next.setDate(next.getDate() - 7);
+                  setWeekAnchor(next);
+                  setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
+                } else {
+                  setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+                }
+              }}
             >
               ←
             </Button>
-            <span className="text-sm text-white/80 min-w-[120px] text-center">{monthLabel}</span>
+            <span className="text-sm text-white/80 min-w-[160px] text-center">{headerLabel}</span>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() =>
-                setCurrentMonth(
-                  (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1),
-                )
-              }
+              onClick={() => {
+                if (view === 'week') {
+                  const next = new Date(weekAnchor);
+                  next.setDate(next.getDate() + 7);
+                  setWeekAnchor(next);
+                  setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
+                } else {
+                  setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+                }
+              }}
             >
               →
             </Button>
@@ -358,65 +394,51 @@ export const CalendarPage: React.FC = () => {
         )}
 
         <div className="mt-2 rounded-2xl border border-white/10 bg-black/30 p-3">
-          <div className="grid grid-cols-7 gap-2 text-xs text-white/60 mb-2">
-            {weekdayLabels.map((w) => (
-              <div key={w} className="text-center font-medium">
-                {w}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-2 text-xs">
-            {days.map((day) => {
-              const key = day.toISOString().slice(0, 10);
-              const dayEvents = eventsByDay.get(key) ?? [];
-              const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
-              return (
-                <div
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div className="inline-flex items-center rounded-xl border border-white/10 bg-black/20 p-1">
+              {([
+                ['list', 'Liste'],
+                ['week', 'Woche'],
+                ['month', 'Monat'],
+              ] as const).map(([key, label]) => (
+                <button
                   key={key}
-                  className={`min-h-[72px] rounded-xl border px-1.5 py-1.5 ${
-                    isCurrentMonth
-                      ? 'border-white/15 bg-white/5'
-                      : 'border-white/5 bg-black/20 opacity-70'
+                  type="button"
+                  onClick={() => setView(key)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
+                    view === key
+                      ? 'bg-white/15 text-white border border-white/20'
+                      : 'text-white/70 hover:bg-white/10'
                   }`}
                 >
-                  <div className="mb-1 text-right text-[11px] font-semibold text-white/80">
-                    {day.getDate()}
-                  </div>
-                  <div className="space-y-0.5">
-                    {dayEvents.map((ev) => {
-                      const t = new Date(ev.starts_at);
-                      const time = t.toLocaleTimeString('de-AT', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      });
-                      return (
-                        <div
-                          key={ev.id}
-                          className={`flex flex-col rounded-md px-1 py-0.5 ${getEventColorClass(
-                            ev.event_type,
-                          )}`}
-                        >
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] font-semibold tabular-nums">
-                              {time}
-                            </span>
-                            <span className="truncate text-[10px] font-semibold">
-                              {ev.title}
-                            </span>
-                          </div>
-                          {ev.team_name && (
-                            <span className="text-[9px] text-white/80 truncate">
-                              {ev.team_name}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="text-xs text-white/60">
+              {view === 'week' ? '7-Tage-Ansicht' : view === 'month' ? 'Monatsansicht' : 'Agenda'}
+            </div>
           </div>
+
+          {view === 'list' ? (
+            <CalendarListView events={events} getEventColorClass={getEventColorClass} todayKey={todayKey} />
+          ) : view === 'week' ? (
+            <CalendarWeekView
+              weekAnchor={weekAnchor}
+              events={events}
+              getEventColorClass={getEventColorClass}
+              todayKey={todayKey}
+            />
+          ) : (
+            <CalendarMonthView
+              days={days}
+              currentMonth={currentMonth}
+              eventsByDay={eventsByDay}
+              getEventColorClass={getEventColorClass}
+              todayKey={todayKey}
+            />
+          )}
         </div>
 
         <Modal
