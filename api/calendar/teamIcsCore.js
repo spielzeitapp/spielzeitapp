@@ -108,11 +108,21 @@ function buildSummary(ev, teamName) {
   return notes.title ?? 'Event';
 }
 
+function formatViennaTime(isoString) {
+  const d = new Date(isoString);
+  if (!d || isNaN(d.getTime())) return null;
+  // Important: Vercel server defaults to UTC; force Europe/Vienna so FamilieWall matches app.
+  return new Intl.DateTimeFormat('de-AT', {
+    timeZone: 'Europe/Vienna',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(d);
+}
+
 function buildDescription(ev, appBaseUrl) {
   const notes = notesTitleAndDescription(ev.notes);
-  const meetup = ev.meetup_at
-    ? new Date(ev.meetup_at).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
-    : null;
+  const meetup = ev.meetup_at ? formatViennaTime(ev.meetup_at) : null;
   const eventUrl = `${appBaseUrl}/app/events/${ev.id}`;
   const lines = [];
   if (meetup) lines.push(`Treffpunkt: ${meetup}`);
