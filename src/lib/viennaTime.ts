@@ -1,4 +1,5 @@
-const VIENNA_TZ = 'Europe/Vienna';
+/** Österreichische lokale Zeit für Fristen (Trainings-Absage 12:00, Reminder 11:00). */
+export const VIENNA_TZ = 'Europe/Vienna';
 
 type DateTimeParts = {
   year: number;
@@ -85,5 +86,32 @@ export function isViennaCutoffSoon(startsAtIso: string, now: Date = new Date(), 
   if (!cutoff) return false;
   const diffMs = cutoff.getTime() - now.getTime();
   return diffMs <= 30 * 60 * 1000 && diffMs >= 0;
+}
+
+/** Gleicher Kalendertag in Europe/Vienna. */
+export function isSameViennaCalendarDay(a: Date, b: Date): boolean {
+  const pa = getDateTimePartsInTimeZone(a, VIENNA_TZ);
+  const pb = getDateTimePartsInTimeZone(b, VIENNA_TZ);
+  if (!pa || !pb) return false;
+  return pa.year === pb.year && pa.month === pb.month && pa.day === pb.day;
+}
+
+/**
+ * Liegt `now` in Wien im Halboffenen Intervall [start, end) (lokale Uhrzeit)?
+ * Beispiel: Reminder-Fenster Training 11:00–12:00 → start 11:0, end 12:0.
+ */
+export function isViennaLocalTimeInRange(
+  now: Date,
+  startHour: number,
+  startMinute: number,
+  endHour: number,
+  endMinute: number,
+): boolean {
+  const p = getDateTimePartsInTimeZone(now, VIENNA_TZ);
+  if (!p) return false;
+  const minutes = p.hour * 60 + p.minute;
+  const start = startHour * 60 + startMinute;
+  const end = endHour * 60 + endMinute;
+  return minutes >= start && minutes < end;
 }
 
