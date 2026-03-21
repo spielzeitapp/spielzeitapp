@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { useProfile, displayName } from '../auth/useProfile';
 import { supabase } from '../lib/supabaseClient';
 import { Card, CardTitle } from '../app/components/ui/Card';
+import { PushNotificationsButton } from '../components/PushNotificationsButton';
 
 const PREVIEW_ROLE_OPTIONS = ['fan', 'parent', 'player', 'trainer', 'co_trainer', 'head_coach', 'admin'] as const;
 
@@ -183,6 +184,15 @@ export const ProfilePage: React.FC = () => {
         <p className="mt-2 text-sm text-[var(--text-sub)]">
           Team: <span className="font-medium text-[var(--text-main)]">{selectedTeamName}</span>
         </p>
+
+        {effectiveRole === 'parent' && (
+          <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
+            <div className="mb-2 text-xs font-medium text-[var(--text-sub)]">
+              Browser-Benachrichtigungen
+            </div>
+            <PushNotificationsButton />
+          </div>
+        )}
 
         {effectiveRole === 'parent' && (
           <div className="mt-2 text-sm text-[var(--text-sub)]">
