@@ -36,7 +36,8 @@ type Props = {
  * Client-ENV muss beim Build gesetzt sein (Vercel: Redeploy nach Setzen von NEXT_PUBLIC_*).
  */
 export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
-  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() || '';
+  const rawVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const vapidKey = rawVapidKey?.trim() || '';
   const hasVapidKey = vapidKey.length > 0;
 
   const [browserOk, setBrowserOk] = useState(true);
@@ -45,6 +46,11 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
 
   const [permissionLabel, setPermissionLabel] = useState<'default' | 'granted' | 'denied'>('default');
   const [subscriptionLabel, setSubscriptionLabel] = useState<'aktiv' | 'nicht aktiv'>('nicht aktiv');
+
+  const [locationInfo, setLocationInfo] = useState<{ host: string; origin: string }>({
+    host: '',
+    origin: '',
+  });
 
   const refreshDebug = useCallback(async () => {
     if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
@@ -61,9 +67,17 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    console.log('Push env loaded:', {
+    setLocationInfo({
+      host: window.location.host,
+      origin: window.location.origin,
+    });
+
+    console.log('PUSH DEBUG', {
+      rawVapidKey,
+      vapidKey,
       hasVapidKey,
-      keyLength: vapidKey.length,
+      host: typeof window !== 'undefined' ? window.location.host : null,
+      origin: typeof window !== 'undefined' ? window.location.origin : null,
     });
 
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -81,7 +95,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         setInitDone(true);
       }
     })();
-  }, [hasVapidKey, vapidKey.length, refreshDebug]);
+  }, [rawVapidKey, vapidKey, hasVapidKey, refreshDebug]);
 
   const onActivate = useCallback(async () => {
     if (!hasVapidKey) return;
@@ -178,6 +192,8 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
     return 'Push verfügbar';
   }, [hasVapidKey, activation, subscriptionLabel]);
 
+  const keyPreview = hasVapidKey ? vapidKey.slice(0, 12) : '—';
+
   if (!browserOk) {
     return (
       <p className={`text-xs text-[var(--text-sub)] ${className ?? ''}`}>
@@ -204,15 +220,18 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         {message}
       </p>
 
-      <div className="mt-3 space-y-1 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[11px] leading-snug text-[var(--text-sub)]">
-        <div>
-          <span className="text-white/50">Berechtigung:</span>{' '}
-          <span className="font-medium text-[var(--text-main)]">{permissionLabel}</span>
+      {/* TEMP: Debug-Panel entfernen, sobald ENV/Build geklärt ist */}
+      <div className="mt-3 rounded-md border border-amber-500/40 bg-amber-950/30 px-3 py-2 font-mono text-[10px] leading-relaxed text-amber-100/90">
+        <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-amber-400">
+          Push ENV (temporär)
         </div>
-        <div>
-          <span className="text-white/50">Subscription:</span>{' '}
-          <span className="font-medium text-[var(--text-main)]">{subscriptionLabel}</span>
-        </div>
+        <div>ENV key present: {hasVapidKey ? 'yes' : 'no'}</div>
+        <div>ENV key length: {vapidKey.length}</div>
+        <div>ENV key preview: {keyPreview}</div>
+        <div>Host: {locationInfo.host || '—'}</div>
+        <div>Origin: {locationInfo.origin || '—'}</div>
+        <div>Permission: {permissionLabel}</div>
+        <div>Subscription: {subscriptionLabel}</div>
       </div>
     </div>
   );
