@@ -43,6 +43,8 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
     body: bodyStr,
   });
 
+  console.log('[api/push/subscribe] Vercel handler', { url, bodyLength: bodyStr.length });
+
   const response = await handlePushSubscribe(request);
   const text = await response.text();
   let json: unknown;

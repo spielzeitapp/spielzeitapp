@@ -78,27 +78,48 @@ export async function handlePushSubscribe(request: Request): Promise<Response> {
   const ua = request.headers.get('user-agent');
   const now = new Date().toISOString();
 
-  const { error } = await admin.from('notification_subscriptions').upsert(
-    {
-      user_id: user.id,
-      endpoint,
-      p256dh: keys.p256dh,
-      auth: keys.auth,
-      user_agent: ua ?? null,
-      is_active: true,
-      last_seen_at: now,
-      updated_at: now,
-    },
-    { onConflict: 'endpoint' },
-  );
+  console.log('[push/subscribe] received', {
+    userId: user.id,
+    endpointPrefix: endpoint.slice(0, 72),
+    hasP256dh: keys.p256dh.length > 0,
+    hasAuth: keys.auth.length > 0,
+    userAgent: ua?.slice(0, 120) ?? null,
+  });
+
+  const row = {
+    user_id: user.id,
+    endpoint,
+    p256dh: keys.p256dh,
+    auth: keys.auth,
+    user_agent: ua ?? null,
+    is_active: true,
+    last_seen_at: now,
+    updated_at: now,
+  };
+
+  const { error } = await admin.from('notification_subscriptions').upsert(row, { onConflict: 'endpoint' });
 
   if (error) {
-    console.error('[push/subscribe] upsert', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
+    console.error('[push/subscribe] upsert failed', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
     });
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+        code: error.code,
+        details: error.details,
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   }
+
+  console.log('[push/subscribe] upsert ok', { userId: user.id });
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,

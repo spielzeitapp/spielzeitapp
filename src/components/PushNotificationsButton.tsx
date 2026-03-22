@@ -24,7 +24,16 @@ function permissionToLabel(perm: NotificationPermission): 'default' | 'granted' 
   return 'default';
 }
 
-type ActivationState = 'idle' | 'loading' | 'error' | 'denied';
+/** Nur Browser/Push-Pipeline; API-Fehler werden separat in apiSaveDebug geführt. */
+type ActivationState = 'idle' | 'loading' | 'denied' | 'browser_error';
+
+type ApiSaveDebug = {
+  result: 'ok' | 'failed';
+  statusCode: number;
+  bodyText: string;
+  /** Kurztext aus JSON.error oder Rohtext */
+  errorMessage?: string;
+};
 
 type Props = {
   className?: string;
@@ -79,6 +88,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
   const [browserOk, setBrowserOk] = useState(true);
   const [initDone, setInitDone] = useState(false);
   const [activation, setActivation] = useState<ActivationState>('idle');
+  const [apiSaveDebug, setApiSaveDebug] = useState<ApiSaveDebug | null>(null);
 
   const [permissionLabel, setPermissionLabel] = useState<'default' | 'granted' | 'denied'>('default');
   const [subscriptionLabel, setSubscriptionLabel] = useState<'aktiv' | 'nicht aktiv'>('nicht aktiv');
@@ -137,6 +147,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
     if (!hasVapidKey) return;
 
     setActivation('loading');
+    setApiSaveDebug(null);
 
     try {
       const perm = await Notification.requestPermission();
@@ -166,8 +177,11 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
       await refreshDebug();
 
       const json = subscription.toJSON();
+      console.log('[push] subscription after subscribe()', subscription);
+      console.log('[push] subscription.toJSON()', json);
+
       if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
-        setActivation('error');
+        setActivation('browser_error');
         return;
       }
 
@@ -175,9 +189,29 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        setActivation('error');
+        const msg = 'Kein Auth-Token – bitte erneut anmelden.';
+        setApiSaveDebug({
+          result: 'failed',
+          statusCode: 0,
+          bodyText: msg,
+          errorMessage: msg,
+        });
+        setActivation('idle');
+        await refreshDebug();
         return;
       }
+
+      const fetchUrl =
+        typeof window !== 'undefined' ? `${window.location.origin}${PUSH_SUBSCRIBE_API}` : PUSH_SUBSCRIBE_API;
+      const requestBody = {
+        endpoint: json.endpoint,
+        keys: {
+          p256dh: json.keys.p256dh,
+          auth: json.keys.auth,
+        },
+      };
+
+      console.log('[push] POST save subscription', { fetchUrl, body: requestBody });
 
       const res = await fetch(PUSH_SUBSCRIBE_API, {
         method: 'POST',
@@ -185,25 +219,42 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({
-          endpoint: json.endpoint,
-          keys: {
-            p256dh: json.keys.p256dh,
-            auth: json.keys.auth,
-          },
-        }),
+        body: JSON.stringify(requestBody),
       });
 
-      await res.json().catch(() => ({}));
+      const responseBodyText = await res.text();
+      console.log('[push] API response', { status: res.status, ok: res.ok, body: responseBodyText });
+
+      let parsedErr: string | undefined;
+      try {
+        const parsed = JSON.parse(responseBodyText) as { error?: string };
+        if (typeof parsed?.error === 'string') parsedErr = parsed.error;
+      } catch {
+        /* Rohtext */
+      }
+
       if (!res.ok) {
-        setActivation('error');
+        setApiSaveDebug({
+          result: 'failed',
+          statusCode: res.status,
+          bodyText: responseBodyText.slice(0, 2000),
+          errorMessage: parsedErr ?? (responseBodyText.slice(0, 500) || `HTTP ${res.status}`),
+        });
+        setActivation('idle');
+        await refreshDebug();
         return;
       }
 
+      setApiSaveDebug({
+        result: 'ok',
+        statusCode: res.status,
+        bodyText: responseBodyText.slice(0, 500),
+      });
       setActivation('idle');
       await refreshDebug();
-    } catch {
-      setActivation('error');
+    } catch (e) {
+      console.error('[push] activation catch', e);
+      setActivation('browser_error');
       try {
         await refreshDebug();
       } catch {
@@ -219,14 +270,24 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
     if (!hasVapidKey) {
       return 'Push Setup fehlt – bitte Vercel ENV setzen';
     }
-    if (activation === 'error' || activation === 'denied') {
-      return 'Aktivierung fehlgeschlagen';
+    if (activation === 'denied') {
+      return 'Benachrichtigungen wurden abgelehnt';
     }
-    if (subscriptionLabel === 'aktiv') {
+    if (activation === 'browser_error') {
+      return 'Aktivierung fehlgeschlagen (Browser/Push-Pipeline)';
+    }
+    // Browser-Push ok: Meldung von API/Subscription abhängig, nicht von generischem "error"
+    if (subscriptionLabel === 'aktiv' && apiSaveDebug?.result === 'ok') {
       return 'Push aktiviert ✅';
     }
+    if (subscriptionLabel === 'aktiv' && apiSaveDebug?.result === 'failed') {
+      return 'Push im Browser aktiv, aber Speichern am Server fehlgeschlagen';
+    }
+    if (subscriptionLabel === 'aktiv') {
+      return 'Push aktiv (Browser)';
+    }
     return 'Push verfügbar';
-  }, [hasVapidKey, activation, subscriptionLabel]);
+  }, [hasVapidKey, activation, subscriptionLabel, apiSaveDebug]);
 
   const keyPreview = hasVapidKey ? vapidKey.slice(0, 12) : '—';
 
@@ -248,13 +309,19 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
 
       <p
         className={`mt-2 text-sm ${
-          !hasVapidKey || activation === 'error' || activation === 'denied'
+          !hasVapidKey ||
+          activation === 'denied' ||
+          activation === 'browser_error' ||
+          (subscriptionLabel === 'aktiv' && apiSaveDebug?.result === 'failed')
             ? 'text-amber-300'
             : 'text-[var(--text-main)]'
         }`}
       >
         {message}
       </p>
+      {subscriptionLabel === 'aktiv' && apiSaveDebug?.result === 'failed' && apiSaveDebug.errorMessage ? (
+        <p className="mt-1 text-xs text-amber-200/90">{apiSaveDebug.errorMessage}</p>
+      ) : null}
 
       {/* TEMP: Debug-Panel entfernen, sobald ENV/Build geklärt ist */}
       <div className="mt-3 rounded-md border border-amber-500/40 bg-amber-950/30 px-3 py-2 font-mono text-[10px] leading-relaxed text-amber-100/90">
@@ -275,6 +342,18 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         <div>Origin: {locationInfo.origin || '—'}</div>
         <div>Permission: {permissionLabel}</div>
         <div>Subscription: {subscriptionLabel}</div>
+        <div className="mt-2 border-t border-amber-500/30 pt-2">
+          API save result: {apiSaveDebug ? (apiSaveDebug.result === 'ok' ? 'ok' : 'failed') : '—'}
+        </div>
+        <div>API status code: {apiSaveDebug?.statusCode ?? '—'}</div>
+        <div className="break-all">
+          API error / body:{' '}
+          {apiSaveDebug && apiSaveDebug.result === 'failed'
+            ? apiSaveDebug.errorMessage ?? apiSaveDebug.bodyText.slice(0, 200)
+            : apiSaveDebug?.result === 'ok'
+              ? apiSaveDebug.bodyText.slice(0, 120) || 'ok'
+              : '—'}
+        </div>
       </div>
     </div>
   );
