@@ -4,7 +4,11 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
-import { ensureVapid, logVapidBeforeSend } from "./_vapid.js";
+import {
+  ensureVapid,
+  getVapidSendResponseDebug,
+  logVapidBeforeSend,
+} from "./_vapid.js";
 
 function normalizeMembershipRole(roleStr) {
   const s = String(roleStr ?? "")
@@ -233,6 +237,7 @@ export default async function handler(req, res) {
         sent: 0,
         failed: 0,
         results: [],
+        vapidDebug: getVapidSendResponseDebug(),
       });
     }
 
@@ -263,6 +268,7 @@ export default async function handler(req, res) {
         sent: 0,
         failed: 0,
         results: [],
+        vapidDebug: getVapidSendResponseDebug(),
       });
     }
 
@@ -349,6 +355,7 @@ export default async function handler(req, res) {
       sent,
       failed,
       results,
+      vapidDebug: getVapidSendResponseDebug(),
     });
   } catch (err) {
     console.error("[push/send-team] full error:", err);
@@ -356,6 +363,7 @@ export default async function handler(req, res) {
       ok: false,
       error: err?.message || String(err),
       step: "send",
+      vapidDebug: getVapidSendResponseDebug(),
     });
   }
 }
