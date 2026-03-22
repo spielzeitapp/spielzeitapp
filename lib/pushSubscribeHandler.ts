@@ -11,19 +11,10 @@ function getSupabaseUrl(): string | undefined {
   return readEnv('SUPABASE_URL') || readEnv('NEXT_PUBLIC_SUPABASE_URL') || readEnv('VITE_SUPABASE_URL');
 }
 
-export type PushSubscribeErrorBody = {
-  ok: false;
-  step: string;
-  error: string;
-  details?: string;
+export type PushSubscribeResult = {
+  status: number;
+  body: Record<string, unknown>;
 };
-
-function jsonResponse(status: number, body: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-  });
-}
 
 type SubscriptionPayload = {
   endpoint?: unknown;
@@ -56,32 +47,77 @@ export type PushSubscribeFromPartsInput = {
 };
 
 /**
- * Kernlogik POST /api/push/subscribe (Vercel ruft das direkt auf).
- * Header: Authorization: Bearer <access_token>
- * Body: { endpoint: string, keys: { p256dh: string, auth: string } }
- *
- * Tabelle public.notification_subscriptions (Migration 20260308120000):
- * user_id, endpoint, p256dh, "auth", user_agent, is_active, last_seen_at, updated_at
+ * POST /api/push/subscribe – reine Datenstruktur, kein Response-Objekt (Vercel-sicher).
+ * Tabelle: public.notification_subscriptions
  */
-export async function handlePushSubscribeFromParts(input: PushSubscribeFromPartsInput): Promise<Response> {
-  const { bodyText, authorizationHeader, userAgent } = input;
+export async function runPushSubscribeFromParts(input: PushSubscribeFromPartsInput): Promise<PushSubscribeResult> {
+  let step = 'enter';
 
   try {
-    console.log('[push/subscribe] step: start', {
-      bodyLength: bodyText?.length ?? 0,
-      hasAuthHeader: Boolean(authorizationHeader?.length),
+    console.log('[push/subscribe] entering route', {
+      bodyLength: input.bodyText?.length ?? 0,
+      hasAuthHeader: Boolean(input.authorizationHeader?.length),
     });
 
+    step = 'parse-body';
+    console.log('[push/subscribe] parse-body start');
+    let parsed: SubscriptionPayload;
+    try {
+      const raw = typeof input.bodyText === 'string' ? input.bodyText : String(input.bodyText ?? '');
+      parsed = raw.trim().length === 0 ? {} : (JSON.parse(raw) as SubscriptionPayload);
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      console.error('[push/subscribe] parse-body end (error)', err.message);
+      return {
+        status: 400,
+        body: {
+          ok: false,
+          step: 'parse-body',
+          error: 'Ungültiges JSON',
+          details: err.message,
+        },
+      };
+    }
+    console.log('[push/subscribe] parse-body end (ok)', {
+      hasEndpoint: typeof parsed.endpoint === 'string',
+      hasKeys: parsed.keys != null,
+    });
+
+    step = 'validate-payload';
+    console.log('[push/subscribe] validate-payload start');
+    const validated = validatePayload(parsed);
+    if (!validated.ok) {
+      console.warn('[push/subscribe] validate-payload result: invalid', validated.message);
+      return {
+        status: 400,
+        body: {
+          ok: false,
+          step: 'validate-payload',
+          error: validated.message,
+          details: null,
+        },
+      };
+    }
+    console.log('[push/subscribe] validate-payload result: ok');
+
+    step = 'create-supabase-client';
+    console.log('[push/subscribe] create-supabase-client start');
     const supabaseUrl = getSupabaseUrl();
     const serviceKey = readEnv('SUPABASE_SERVICE_ROLE_KEY');
-
     if (!supabaseUrl || !serviceKey) {
-      console.error('[push/subscribe] step: env', { hasUrl: Boolean(supabaseUrl), hasServiceKey: Boolean(serviceKey) });
-      return jsonResponse(500, {
-        ok: false,
-        step: 'env',
-        error: 'SUPABASE_URL und SUPABASE_SERVICE_ROLE_KEY müssen in der Server-Umgebung gesetzt sein',
+      console.error('[push/subscribe] create-supabase-client: missing env', {
+        hasUrl: Boolean(supabaseUrl),
+        hasServiceKey: Boolean(serviceKey),
       });
+      return {
+        status: 500,
+        body: {
+          ok: false,
+          step: 'create-supabase-client',
+          error: 'SUPABASE_URL und SUPABASE_SERVICE_ROLE_KEY müssen in der Server-Umgebung gesetzt sein',
+          details: null,
+        },
+      };
     }
 
     let admin: SupabaseClient;
@@ -89,26 +125,41 @@ export async function handlePushSubscribeFromParts(input: PushSubscribeFromParts
       admin = createClient(supabaseUrl, serviceKey, {
         auth: { autoRefreshToken: false, persistSession: false },
       });
-      console.log('[push/subscribe] step: supabase-client', { urlHost: new URL(supabaseUrl).host });
+      let hostHint: string | null = null;
+      try {
+        hostHint = new URL(supabaseUrl).host;
+      } catch {
+        hostHint = null;
+      }
+      console.log('[push/subscribe] supabase client created', { urlHost: hostHint });
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
-      console.error('[push/subscribe] step: supabase-client', err.message, err.stack);
-      return jsonResponse(500, {
-        ok: false,
-        step: 'supabase-client',
-        error: err.message,
-        details: err.stack,
-      });
+      console.error('[push/subscribe] create-supabase-client failed', err.message, err.stack);
+      return {
+        status: 500,
+        body: {
+          ok: false,
+          step: 'create-supabase-client',
+          error: err.message,
+          details: err.stack ?? null,
+        },
+      };
     }
 
-    const token = authorizationHeader?.replace(/^Bearer\s+/i, '').trim();
-    if (!token) {
-      console.warn('[push/subscribe] step: auth', { mode: 'missing-bearer' });
-      return jsonResponse(401, {
-        ok: false,
-        step: 'auth',
-        error: 'Authorization: Bearer <access_token> fehlt',
-      });
+    step = 'resolve-user';
+    console.log('[push/subscribe] resolve-user start');
+    const token = input.authorizationHeader?.replace(/^Bearer\s+/i, '').trim();
+    if (!token || token.length === 0) {
+      console.warn('[push/subscribe] resolve-user: no bearer token');
+      return {
+        status: 401,
+        body: {
+          ok: false,
+          step: 'resolve-user',
+          error: 'Authorization: Bearer <access_token> fehlt – user_id kann nicht ermittelt werden',
+          details: null,
+        },
+      };
     }
 
     let userId: string;
@@ -118,61 +169,43 @@ export async function handlePushSubscribeFromParts(input: PushSubscribeFromParts
         error: userErr,
       } = await admin.auth.getUser(token);
       if (userErr) {
-        console.error('[push/subscribe] step: auth-getUser', { message: userErr.message, status: userErr.status });
-        return jsonResponse(401, {
-          ok: false,
-          step: 'auth-getUser',
-          error: userErr.message,
-        });
+        console.error('[push/subscribe] resolve-user: getUser error', userErr.message, userErr.status);
+        return {
+          status: 401,
+          body: {
+            ok: false,
+            step: 'resolve-user',
+            error: userErr.message,
+            details: userErr.status != null ? String(userErr.status) : null,
+          },
+        };
       }
-      if (!user) {
-        console.warn('[push/subscribe] step: auth-getUser', { mode: 'no-user' });
-        return jsonResponse(401, {
-          ok: false,
-          step: 'auth-getUser',
-          error: 'Kein Benutzer für dieses Token',
-        });
+      if (!user || typeof user.id !== 'string' || user.id.length === 0) {
+        console.warn('[push/subscribe] resolve-user: no user or empty user_id');
+        return {
+          status: 401,
+          body: {
+            ok: false,
+            step: 'resolve-user',
+            error: 'Kein Benutzer bzw. keine user_id für dieses Token',
+            details: null,
+          },
+        };
       }
       userId = user.id;
-      console.log('[push/subscribe] step: auth', { mode: 'jwt-user', userId });
+      console.log('[push/subscribe] resolve-user ok', { userId });
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
-      console.error('[push/subscribe] step: auth-getUser-throw', err.message, err.stack);
-      return jsonResponse(500, {
-        ok: false,
-        step: 'auth-getUser',
-        error: err.message,
-        details: err.stack,
-      });
-    }
-
-    let parsed: SubscriptionPayload;
-    try {
-      parsed = bodyText.trim().length === 0 ? {} : (JSON.parse(bodyText) as SubscriptionPayload);
-    } catch (e) {
-      const err = e instanceof Error ? e : new Error(String(e));
-      console.error('[push/subscribe] step: parse-json', err.message, { preview: bodyText.slice(0, 200) });
-      return jsonResponse(400, {
-        ok: false,
-        step: 'parse-json',
-        error: 'Ungültiges JSON',
-        details: err.message,
-      });
-    }
-
-    console.log('[push/subscribe] step: body-parsed', {
-      hasEndpoint: typeof parsed.endpoint === 'string',
-      hasKeys: parsed.keys != null,
-    });
-
-    const validated = validatePayload(parsed);
-    if (!validated.ok) {
-      console.warn('[push/subscribe] step: validation', { error: validated.message });
-      return jsonResponse(400, {
-        ok: false,
-        step: 'validation',
-        error: validated.message,
-      });
+      console.error('[push/subscribe] resolve-user threw', err.message, err.stack);
+      return {
+        status: 500,
+        body: {
+          ok: false,
+          step: 'resolve-user',
+          error: err.message,
+          details: err.stack ?? null,
+        },
+      };
     }
 
     const { endpoint, p256dh, auth: authKey } = validated;
@@ -183,13 +216,15 @@ export async function handlePushSubscribeFromParts(input: PushSubscribeFromParts
       endpoint,
       p256dh,
       auth: authKey,
-      user_agent: userAgent ?? null,
-      is_active: true,
+      user_agent: input.userAgent ?? null,
+      is_active: true as const,
       last_seen_at: now,
       updated_at: now,
     };
 
-    console.log('[push/subscribe] step: supabase-upsert', {
+    step = 'save-subscription';
+    console.log('[push/subscribe] save-subscription: insert/upsert attempt', {
+      table: 'notification_subscriptions',
       userId,
       endpointPrefix: endpoint.slice(0, 72),
       p256dhLen: p256dh.length,
@@ -201,53 +236,72 @@ export async function handlePushSubscribeFromParts(input: PushSubscribeFromParts
     });
 
     if (upsertError) {
-      console.error('[push/subscribe] step: supabase-upsert', {
+      console.error('[push/subscribe] save-subscription: insert/upsert result error', {
         message: upsertError.message,
         code: upsertError.code,
         details: upsertError.details,
         hint: upsertError.hint,
       });
-      return jsonResponse(500, {
-        ok: false,
-        step: 'supabase-upsert',
-        error: upsertError.message,
-        details: [upsertError.code, upsertError.details, upsertError.hint].filter(Boolean).join(' | ') || undefined,
-      });
+      return {
+        status: 500,
+        body: {
+          ok: false,
+          step: 'save-subscription',
+          error: upsertError.message,
+          details: [upsertError.code, upsertError.details, upsertError.hint].filter(Boolean).join(' | ') || null,
+        },
+      };
     }
 
-    console.log('[push/subscribe] step: ok', { userId });
-    return jsonResponse(200, { ok: true });
+    console.log('[push/subscribe] save-subscription: insert/upsert result ok', { userId });
+    return {
+      status: 200,
+      body: { ok: true },
+    };
   } catch (e) {
     const err = e instanceof Error ? e : new Error(String(e));
-    console.error('[push/subscribe] step: unhandled', err.message, err.stack);
-    return jsonResponse(500, {
-      ok: false,
-      step: 'unhandled',
-      error: err.message,
-      details: err.stack,
-    });
+    console.error('[push/subscribe] catch block full error', err, err.stack);
+    return {
+      status: 500,
+      body: {
+        ok: false,
+        step,
+        error: err.message || String(err),
+        details: err.stack ?? null,
+      },
+    };
   }
 }
 
 /**
- * Next.js / fetch-Handler: Body einmal lesen.
+ * Next.js App Router: Request → plain result → Response
  */
 export async function handlePushSubscribe(request: Request): Promise<Response> {
   try {
     const bodyText = await request.text();
-    return await handlePushSubscribeFromParts({
+    const result = await runPushSubscribeFromParts({
       bodyText,
       authorizationHeader: request.headers.get('authorization'),
       userAgent: request.headers.get('user-agent'),
     });
+    return new Response(JSON.stringify(result.body), {
+      status: result.status,
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    });
   } catch (e) {
     const err = e instanceof Error ? e : new Error(String(e));
-    console.error('[push/subscribe] handlePushSubscribe wrapper', err.message, err.stack);
-    return jsonResponse(500, {
-      ok: false,
-      step: 'request-read',
-      error: err.message,
-      details: err.stack,
-    });
+    console.error('[push/subscribe] handlePushSubscribe catch', err.message, err.stack);
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        step: 'request-read',
+        error: err.message || String(err),
+        details: err.stack ?? null,
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      },
+    );
   }
 }

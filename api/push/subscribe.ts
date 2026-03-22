@@ -1,9 +1,7 @@
 /**
- * Vercel Serverless Function: POST /api/push/subscribe
- * Kein new Request() – vermeidet Laufzeitprobleme; Kern in handlePushSubscribeFromParts.
+ * Vercel Serverless: POST /api/push/subscribe
+ * Oberstes try/catch; dynamischer Import vermeidet Load-Crash ohne JSON.
  */
-import { handlePushSubscribeFromParts } from '../../lib/pushSubscribeHandler';
-
 type VercelLikeReq = {
   method?: string;
   headers: {
@@ -32,47 +30,93 @@ function bodyToString(body: unknown): string {
 
 export default async function handler(req: VercelLikeReq, res: VercelLikeRes): Promise<void> {
   try {
-    // @vercel/node setzt ggf. kein method – Default POST
-    const method = req.method ?? 'POST';
-    console.log('[api/push/subscribe] incoming', { method });
+    console.log('[api/push/subscribe] entering route');
 
-    if (method !== 'POST') {
-      res.status(405).json({ ok: false, step: 'method', error: 'Method not allowed' });
+    let runPushSubscribeFromParts: (input: {
+      bodyText: string;
+      authorizationHeader: string | null;
+      userAgent: string | null;
+    }) => Promise<{ status: number; body: Record<string, unknown> }>;
+    try {
+      const mod = await import('../../lib/pushSubscribeHandler');
+      runPushSubscribeFromParts = mod.runPushSubscribeFromParts;
+      console.log('[api/push/subscribe] handler module loaded');
+    } catch (importErr) {
+      const err = importErr instanceof Error ? importErr : new Error(String(importErr));
+      console.error('[api/push/subscribe] module import failed', err.message, err.stack);
+      res.status(500).json({
+        ok: false,
+        step: 'module-load',
+        error: err.message || String(importErr),
+        details: err.stack ?? null,
+      });
       return;
     }
 
-    const bodyStr = bodyToString(req.body);
-    console.log('[api/push/subscribe] body', {
-      length: bodyStr.length,
-      preview: bodyStr.slice(0, 400),
-    });
+    const method = typeof req.method === 'string' ? req.method : 'POST';
+    if (method !== 'POST') {
+      console.warn('[api/push/subscribe] method-check failed', { method });
+      res.status(405).json({
+        ok: false,
+        step: 'method-check',
+        error: 'Nur POST erlaubt',
+        details: null,
+      });
+      return;
+    }
+    console.log('[api/push/subscribe] method-check ok');
+
+    let bodyStr: string;
+    try {
+      console.log('[api/push/subscribe] parse-body (raw) start');
+      bodyStr = bodyToString(req.body);
+      console.log('[api/push/subscribe] parse-body (raw) end', { length: bodyStr.length });
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      console.error('[api/push/subscribe] parse-body (raw) failed', err.message, err.stack);
+      res.status(400).json({
+        ok: false,
+        step: 'parse-body',
+        error: 'Request-Body konnte nicht gelesen werden',
+        details: err.stack ?? err.message,
+      });
+      return;
+    }
 
     const auth = (req.headers as { authorization?: string }).authorization;
     const ua = req.headers['user-agent'];
 
-    const response = await handlePushSubscribeFromParts({
+    const result = await runPushSubscribeFromParts({
       bodyText: bodyStr,
       authorizationHeader: typeof auth === 'string' ? auth : null,
       userAgent: typeof ua === 'string' ? ua : null,
     });
 
-    const text = await response.text();
-    let json: unknown;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      json = { ok: false, step: 'response-parse', error: 'Invalid JSON from handler', raw: text.slice(0, 500) };
-    }
+    console.log('[api/push/subscribe] runPushSubscribeFromParts done', {
+      status: result.status,
+      ok: result.body?.ok,
+      step: result.body?.step,
+    });
 
-    res.status(response.status).json(json);
+    try {
+      res.status(result.status).json(result.body);
+    } catch (sendErr) {
+      const err = sendErr instanceof Error ? sendErr : new Error(String(sendErr));
+      console.error('[api/push/subscribe] res.json failed', err.message, err.stack);
+      throw err;
+    }
   } catch (e) {
     const err = e instanceof Error ? e : new Error(String(e));
-    console.error('[api/push/subscribe] fatal', err.message, err.stack);
-    res.status(500).json({
-      ok: false,
-      step: 'vercel-handler',
-      error: err.message,
-      details: err.stack,
-    });
+    console.error('[api/push/subscribe] TOP LEVEL CATCH', err.message, err.stack);
+    try {
+      res.status(500).json({
+        ok: false,
+        step: 'vercel-handler',
+        error: err.message || String(err),
+        details: err.stack ?? null,
+      });
+    } catch (sendErr) {
+      console.error('[api/push/subscribe] TOP LEVEL CATCH: could not send JSON', sendErr);
+    }
   }
 }
