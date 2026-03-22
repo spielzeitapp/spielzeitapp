@@ -3,24 +3,14 @@ import react from "@vitejs/plugin-react-swc";
 import { resolve } from "path";
 
 /**
- * Vite exponiert Client-Env nur als import.meta.env.VITE_*.
- * Vercel: VITE_VAPID_PUBLIC_KEY (und optional NEXT_PUBLIC_VAPID_PUBLIC_KEY) setzen;
- * Server-API: VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY / NEXT_PUBLIC_VAPID_PUBLIC_KEY.
+ * Client: nur import.meta.env.VITE_VAPID_PUBLIC_KEY (aus .env / Vercel).
+ * Backend: VAPID_PUBLIC_KEY muss derselbe öffentliche Key wie VITE_VAPID_PUBLIC_KEY sein.
  */
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
-  const vapidPublic =
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ??
-    process.env.VITE_VAPID_PUBLIC_KEY ??
-    env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ??
-    env.VITE_VAPID_PUBLIC_KEY ??
-    "";
+  loadEnv(mode, process.cwd(), "");
 
   return {
     base: "/",
-    define: {
-      "process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY": JSON.stringify(vapidPublic),
-    },
     plugins: [react()],
     build: {
       /** Vite-Standard-Warnung bei großen Bundles (harmlos für Deploy) */

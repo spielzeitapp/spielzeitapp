@@ -4,17 +4,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
-
-function ensureVapid() {
-  const publicKey =
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT || "mailto:team@spielzeitapp.at";
-  if (!publicKey || !privateKey) {
-    throw new Error("VAPID keys missing");
-  }
-  webpush.setVapidDetails(subject, publicKey, privateKey);
-}
+import { ensureVapid, logVapidBeforeSend } from "./_vapid.js";
 
 function normalizeMembershipRole(roleStr) {
   const s = String(roleStr ?? "")
@@ -64,6 +54,15 @@ function safeErrorBody(err) {
   else s = String(err.body);
   if (s.length > 2000) return `${s.slice(0, 2000)}…`;
   return s;
+}
+
+function formatPushSendError(err, bodyStr) {
+  const raw = err?.message ? String(err.message) : String(err);
+  const merged = `${raw} ${bodyStr || ""}`;
+  if (/VapidPkHashMismatch/i.test(merged)) {
+    return `${raw} — VAPID-Mismatch: VITE_VAPID_PUBLIC_KEY (Frontend) und VAPID_PUBLIC_KEY (Backend) müssen identisch sein. Push im Browser deaktivieren und neu aktivieren.`;
+  }
+  return raw;
 }
 
 async function deleteSubscriptionByEndpoint(supabase, endpoint) {
@@ -269,25 +268,16 @@ export default async function handler(req, res) {
 
     ensureVapid();
 
-    const vapidSubject = process.env.VAPID_SUBJECT || "mailto:team@spielzeitapp.at";
-    const hasPublicKey = !!(
-      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VAPID_PUBLIC_KEY
-    );
-    const hasPrivateKey = !!process.env.VAPID_PRIVATE_KEY;
-
     const payload = JSON.stringify({
       title,
       body: textBody,
       url,
     });
 
-    console.log("[push/send-team] vapid subject:", vapidSubject);
-    console.log("[push/send-team] vapid keys present:", {
-      public: hasPublicKey,
-      private: hasPrivateKey,
+    logVapidBeforeSend("push/send-team", {
+      payloadJSON: payload,
+      recipientCount: rows.length,
     });
-    console.log("[push/send-team] payload JSON:", payload);
-    console.log("[push/send-team] recipient count:", rows.length);
 
     const uniqueUids = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
     const emailMap = new Map();
@@ -346,7 +336,7 @@ export default async function handler(req, res) {
           ...baseResult,
           success: false,
           statusCode: statusCode ?? null,
-          error: err?.message ? String(err.message) : String(err),
+          error: formatPushSendError(err, bodyStr),
           body: bodyStr,
         });
       }

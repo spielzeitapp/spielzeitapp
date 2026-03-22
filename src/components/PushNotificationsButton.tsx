@@ -19,17 +19,16 @@ const PUSH_SUBSCRIBE_API = '/api/push/subscribe';
 const PUSH_UNSUBSCRIBE_API = '/api/push/unsubscribe';
 const PUSH_TEST_API = '/api/push/test';
 
+/** Nur VITE_VAPID_PUBLIC_KEY – muss mit Backend VAPID_PUBLIC_KEY identisch sein. */
 function getVapidPublicKey(): string {
-  const fromProcess =
-    typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VAPID_PUBLIC_KEY != null
-      ? String(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY).trim()
-      : '';
-  if (fromProcess.length > 0) return fromProcess;
-  const fromVite =
-    typeof import.meta !== 'undefined' && import.meta.env?.VITE_VAPID_PUBLIC_KEY != null
-      ? String(import.meta.env.VITE_VAPID_PUBLIC_KEY).trim()
-      : '';
-  return fromVite;
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_VAPID_PUBLIC_KEY != null) {
+    return String(import.meta.env.VITE_VAPID_PUBLIC_KEY).trim();
+  }
+  return '';
+}
+
+function textLooksLikeVapidMismatch(t: string): boolean {
+  return /VapidPkHashMismatch/i.test(t);
 }
 
 function detectFrontendRuntime(): 'vite' | 'next' | 'unknown' {
@@ -260,17 +259,28 @@ export const PushNotificationsButton: React.FC<Props> = ({
         ok?: boolean;
         sent?: number;
         failed?: number;
+        results?: Array<{ success?: boolean; error?: string | null }>;
       };
+      const rawJson = JSON.stringify(data).slice(0, 1500);
       setDebugSnapshot((prev) => ({
         ...prev,
         lastApiStatus: res.status,
         lastSent: typeof data.sent === 'number' ? data.sent : undefined,
         lastFailed: typeof data.failed === 'number' ? data.failed : undefined,
-        lastBody: JSON.stringify(data).slice(0, 1500),
+        lastBody: rawJson,
         lastStep: 'test-broadcast',
       }));
       if (res.ok && data.ok === true) {
-        setTestPushMessage('Test Push gesendet');
+        const mismatch =
+          Array.isArray(data.results) &&
+          data.results.some((r) => r && textLooksLikeVapidMismatch(String(r.error ?? '')));
+        if (mismatch) {
+          setTestPushMessage(
+            'Test Push: VAPID-Mismatch erkannt – VITE_VAPID_PUBLIC_KEY und VAPID_PUBLIC_KEY in Vercel angleichen, Push neu aktivieren.',
+          );
+        } else {
+          setTestPushMessage('Test Push gesendet');
+        }
       } else {
         setTestPushMessage('Test Push fehlgeschlagen');
       }
@@ -332,9 +342,17 @@ export const PushNotificationsButton: React.FC<Props> = ({
           )}
 
           {actionError && (
-            <p className="mt-2 text-sm text-amber-300" role="alert">
-              {actionError}
-            </p>
+            <div className="mt-2 space-y-1" role="alert">
+              <p className="text-sm text-amber-300">{actionError}</p>
+              {textLooksLikeVapidMismatch(actionError) && (
+                <p className="text-xs text-amber-200/90">
+                  VAPID-Schlüssel passen nicht zusammen: In Vercel müssen{' '}
+                  <code className="rounded bg-black/40 px-1">VITE_VAPID_PUBLIC_KEY</code> und{' '}
+                  <code className="rounded bg-black/40 px-1">VAPID_PUBLIC_KEY</code> exakt gleich sein.
+                  Danach Push hier deaktivieren und erneut aktivieren.
+                </p>
+              )}
+            </div>
           )}
 
           <div className="mt-4 flex flex-col gap-2">

@@ -197,6 +197,13 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId }) => {
                   <div className="mt-1 text-red-200/95">
                     <span className="text-[var(--text-sub)]">Fehler: </span>
                     {r.error}
+                    {/VapidPkHashMismatch/i.test(r.error) && (
+                      <span className="mt-1 block text-amber-200/95">
+                        Tipp: In Vercel <code className="rounded bg-black/40 px-1">VITE_VAPID_PUBLIC_KEY</code> und{' '}
+                        <code className="rounded bg-black/40 px-1">VAPID_PUBLIC_KEY</code> müssen identisch sein; Push beim
+                        Empfänger neu aktivieren.
+                      </span>
+                    )}
                   </div>
                 )}
                 {r.body != null && r.body !== '' && (

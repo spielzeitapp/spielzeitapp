@@ -1,21 +1,11 @@
 /**
- * GET  /api/push/test — Readiness (kein Versand)
+ * GET  /api/push/test — Readiness + VAPID-Debug (kein Versand)
  * POST /api/push/test — Test-Push an alle Zeilen in public.push_subscriptions
  * Bei 404/410 wird die Subscription gelöscht.
  */
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
-
-function ensureVapid() {
-  const publicKey =
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT || "mailto:team@spielzeitapp.at";
-  if (!publicKey || !privateKey) {
-    throw new Error("VAPID keys missing");
-  }
-  webpush.setVapidDetails(subject, publicKey, privateKey);
-}
+import { ensureVapid, getVapidDebugInfo, logVapidBeforeSend } from "./_vapid.js";
 
 function getPushFailureStatusCode(err) {
   if (!err) return undefined;
@@ -31,11 +21,18 @@ function isGoneSubscriptionStatus(statusCode) {
 function describePushError(err, statusCode) {
   if (statusCode === 404) return "Not Found";
   if (statusCode === 410) return "Gone";
+  let msg = "";
   if (err && typeof err.message === "string" && err.message.trim()) {
-    return err.message.trim();
+    msg = err.message.trim();
+  } else if (err) {
+    msg = String(err);
+  } else {
+    msg = "Unknown error";
   }
-  if (err) return String(err);
-  return "Unknown error";
+  if (/VapidPkHashMismatch/i.test(msg)) {
+    return `${msg} — VAPID-Mismatch: VITE_VAPID_PUBLIC_KEY und VAPID_PUBLIC_KEY müssen identisch sein; Push neu aktivieren.`;
+  }
+  return msg;
 }
 
 function endpointPreview(endpoint) {
@@ -66,6 +63,8 @@ async function runBroadcastTest(req, res) {
   }
 
   ensureVapid();
+
+  logVapidBeforeSend("push/test", { mode: "broadcast-test" });
 
   const supabase = createClient(
     process.env.SUPABASE_URL,
@@ -157,6 +156,7 @@ export default async function handler(req, res) {
         ok: true,
         message: "Push API ready",
         time: new Date().toISOString(),
+        vapid: getVapidDebugInfo(),
       });
     }
 

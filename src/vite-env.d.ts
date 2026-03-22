@@ -3,7 +3,7 @@
 interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL: string;
   readonly VITE_SUPABASE_ANON_KEY: string;
-  /** Optional: Web-Push VAPID (public); gleiche Rolle wie NEXT_PUBLIC_VAPID_PUBLIC_KEY nach vite.config define */
+  /** Öffentlicher VAPID-Key (Client); muss mit Server-Env VAPID_PUBLIC_KEY übereinstimmen */
   readonly VITE_VAPID_PUBLIC_KEY?: string;
   readonly MODE: string;
   readonly DEV: boolean;

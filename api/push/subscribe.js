@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { getVapidDebugInfo } from "./_vapid.js";
 
 function parseBody(req) {
   try {
@@ -55,6 +56,14 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   try {
+    if (req.method === "GET") {
+      return res.status(200).json({
+        ok: true,
+        message: "POST JSON mit endpoint + keys; VAPID-Debug (Server-Env)",
+        vapid: getVapidDebugInfo(),
+      });
+    }
+
     if (req.method !== "POST") {
       return res.status(405).json({
         ok: false,
