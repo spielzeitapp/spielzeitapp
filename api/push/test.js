@@ -18,10 +18,30 @@ function ensureVapid() {
   webpush.setVapidDetails(subject, publicKey, privateKey);
 }
 
-function getStatusCode(err) {
-  if (err && typeof err.statusCode === "number") return err.statusCode;
-  if (err && typeof err.status_code === "number") return err.status_code;
+/**
+ * HTTP-Status aus web-push WebPushError (immer statusCode bei HTTP-Fehlerantwort).
+ */
+function getPushFailureStatusCode(err) {
+  if (!err) return undefined;
+  const n = Number(err.statusCode ?? err.status_code);
+  if (Number.isFinite(n) && n >= 100 && n <= 599) return n;
   return undefined;
+}
+
+function isGoneSubscriptionStatus(statusCode) {
+  return statusCode === 404 || statusCode === 410;
+}
+
+/** Ungültige / abgelaufene Subscriptions entfernen (Push-Dienst meldet Gone/Not Found). */
+async function deleteSubscriptionByEndpoint(supabase, endpoint) {
+  if (!endpoint || typeof endpoint !== "string") return;
+  const { error } = await supabase
+    .from("push_subscriptions")
+    .delete()
+    .eq("endpoint", endpoint.trim());
+  if (error) {
+    console.error("[push/test] delete push_subscriptions failed:", error.message || error);
+  }
 }
 
 export default async function handler(req, res) {
@@ -89,12 +109,9 @@ export default async function handler(req, res) {
         sent += 1;
       } catch (err) {
         failed += 1;
-        const statusCode = getStatusCode(err);
-        if (statusCode === 404 || statusCode === 410) {
-          await supabase
-            .from("push_subscriptions")
-            .delete()
-            .eq("endpoint", row.endpoint);
+        const statusCode = getPushFailureStatusCode(err);
+        if (isGoneSubscriptionStatus(statusCode)) {
+          await deleteSubscriptionByEndpoint(supabase, row.endpoint);
         }
       }
     }
