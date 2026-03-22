@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Button } from '../app/components/ui/Button';
@@ -19,75 +21,102 @@ function getSubscribeApiUrl(): string {
   return '/api/push/subscribe';
 }
 
+function permissionToLabel(perm: NotificationPermission): string {
+  if (perm === 'granted') return 'granted';
+  if (perm === 'denied') return 'denied';
+  return 'default';
+}
+
 type Props = {
   className?: string;
 };
 
 /**
- * MVP: Permission, SW-Registrierung, PushSubscription, POST an /api/push/subscribe.
- * Benötigt NEXT_PUBLIC_VAPID_PUBLIC_KEY und serverseitig SUPABASE_SERVICE_ROLE_KEY.
+ * Web Push: Permission → Service Worker → PushManager.subscribe → POST /api/push/subscribe
+ * Benötigt NEXT_PUBLIC_VAPID_PUBLIC_KEY (Client) und serverseitig SUPABASE_SERVICE_ROLE_KEY.
  */
 export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
-  const [status, setStatus] = useState<
-    'idle' | 'unsupported' | 'checking' | 'prompt' | 'loading' | 'granted' | 'denied' | 'error'
-  >('idle');
-  const [message, setMessage] = useState<string | null>(null);
+  const [browserOk, setBrowserOk] = useState(true);
+  const [initDone, setInitDone] = useState(false);
   const [configMissing, setConfigMissing] = useState(false);
+
+  const [activation, setActivation] = useState<'idle' | 'loading' | 'success' | 'error' | 'denied'>('idle');
+  const [message, setMessage] = useState<string | null>(null);
+
+  const [permissionLabel, setPermissionLabel] = useState<string>('—');
+  const [subscriptionLabel, setSubscriptionLabel] = useState<string>('—');
+
+  const refreshDebug = useCallback(async () => {
+    if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
+    try {
+      setPermissionLabel(permissionToLabel(Notification.permission));
+      const reg = await navigator.serviceWorker.getRegistration();
+      const sub = await reg?.pushManager.getSubscription();
+      setSubscriptionLabel(sub ? 'aktiv' : 'nicht aktiv');
+    } catch {
+      setSubscriptionLabel('nicht aktiv');
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      setStatus('unsupported');
+      setBrowserOk(false);
+      setInitDone(true);
       return;
     }
 
-    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
-    if (!vapidKey) {
-      console.warn('Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY');
-      setConfigMissing(true);
-      setStatus('prompt');
-      setMessage('Push nicht aktiviert (Setup fehlt)');
-      return;
-    }
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    console.log('VAPID KEY:', vapidKey);
 
-    setStatus('checking');
     void (async () => {
       try {
+        if (!vapidKey?.trim()) {
+          console.warn('Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY');
+          setConfigMissing(true);
+          setMessage('Push Setup fehlt (ENV nicht gesetzt)');
+          setPermissionLabel(permissionToLabel(Notification.permission));
+          setSubscriptionLabel('nicht aktiv');
+          return;
+        }
+
+        await refreshDebug();
+
         const reg = await navigator.serviceWorker.getRegistration();
         const sub = await reg?.pushManager.getSubscription();
         if (sub && Notification.permission === 'granted') {
-          setStatus('granted');
-          setMessage('Benachrichtigungen sind aktiv.');
-        } else {
-          setStatus('prompt');
+          setActivation('success');
+          setMessage('Push aktiviert ✅');
         }
-      } catch {
-        setStatus('prompt');
+      } catch (e) {
+        console.error('[PushNotificationsButton] init', e);
+        setMessage(null);
+      } finally {
+        setInitDone(true);
       }
     })();
-  }, []);
+  }, [refreshDebug]);
 
   const onActivate = useCallback(async () => {
-    setMessage(null);
-
     const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+    console.log('VAPID KEY:', vapidKey);
+
     if (!vapidKey) {
-      console.warn('Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY');
-      setMessage('Push nicht aktiviert (Setup fehlt)');
+      setMessage('Push Setup fehlt (ENV nicht gesetzt)');
       return;
     }
 
-    setStatus('loading');
+    setActivation('loading');
+    setMessage(null);
 
     try {
       const perm = await Notification.requestPermission();
+      await refreshDebug();
+
       if (perm !== 'granted') {
-        setStatus('denied');
-        setMessage(
-          perm === 'denied'
-            ? 'Benachrichtigungen wurden abgelehnt. In den Browser-Einstellungen kannst du sie später erlauben.'
-            : 'Berechtigung nicht erteilt.',
-        );
+        setActivation('denied');
+        setMessage('Push fehlgeschlagen');
+        await refreshDebug();
         return;
       }
 
@@ -106,6 +135,8 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         applicationServerKey: urlBase64ToUint8Array(vapidKey) as BufferSource,
       });
 
+      await refreshDebug();
+
       const json = subscription.toJSON();
       if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
         throw new Error('Ungültige Push-Subscription');
@@ -115,8 +146,8 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        setStatus('error');
-        setMessage('Nicht angemeldet.');
+        setActivation('error');
+        setMessage('Push fehlgeschlagen');
         return;
       }
 
@@ -141,16 +172,22 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         throw new Error(payload.error || `Server ${res.status}`);
       }
 
-      setStatus('granted');
-      setMessage('Benachrichtigungen sind aktiv.');
+      setActivation('success');
+      setMessage('Push aktiviert ✅');
+      await refreshDebug();
     } catch (e: unknown) {
       console.error('[PushNotificationsButton]', e);
-      setStatus('error');
-      setMessage(e instanceof Error ? e.message : 'Aktivierung fehlgeschlagen.');
+      setActivation('error');
+      setMessage('Push fehlgeschlagen');
+      try {
+        await refreshDebug();
+      } catch {
+        /* ignore */
+      }
     }
-  }, []);
+  }, [refreshDebug]);
 
-  if (status === 'unsupported') {
+  if (!browserOk) {
     return (
       <p className={`text-xs text-[var(--text-sub)] ${className ?? ''}`}>
         Push-Benachrichtigungen werden in diesem Browser nicht unterstützt.
@@ -158,32 +195,37 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
     );
   }
 
-  if (status === 'checking') {
-    return (
-      <p className={`text-xs text-[var(--text-sub)] ${className ?? ''}`}>Prüfe Benachrichtigungen…</p>
-    );
-  }
+  const loading = !initDone || activation === 'loading';
+  const disabled = loading || configMissing || activation === 'success';
+
+  const buttonLabel = !initDone ? 'Lade…' : activation === 'loading' ? 'Aktiviere…' : 'Benachrichtigungen aktivieren';
 
   return (
     <div className={className}>
-      <Button
-        type="button"
-        variant="soft"
-        fullWidth
-        onClick={onActivate}
-        disabled={status === 'loading' || configMissing}
-      >
-        {status === 'loading' ? 'Wird eingerichtet…' : 'Benachrichtigungen aktivieren'}
+      <Button type="button" variant="soft" fullWidth onClick={onActivate} disabled={disabled}>
+        {buttonLabel}
       </Button>
+
       {message && (
         <p
-          className={`mt-2 text-xs ${
-            status === 'error' || status === 'denied' ? 'text-amber-300' : 'text-[var(--text-sub)]'
+          className={`mt-2 text-sm ${
+            activation === 'error' || activation === 'denied' ? 'text-amber-300' : 'text-[var(--text-main)]'
           }`}
         >
           {message}
         </p>
       )}
+
+      <div className="mt-3 space-y-1 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[11px] leading-snug text-[var(--text-sub)]">
+        <div>
+          <span className="text-white/50">Permission:</span>{' '}
+          <span className="font-medium text-[var(--text-main)]">{permissionLabel}</span>
+        </div>
+        <div>
+          <span className="text-white/50">Subscription:</span>{' '}
+          <span className="font-medium text-[var(--text-main)]">{subscriptionLabel}</span>
+        </div>
+      </div>
     </div>
   );
 };
