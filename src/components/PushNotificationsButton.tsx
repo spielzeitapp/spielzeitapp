@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
 import { Button } from '../app/components/ui/Button';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -39,6 +38,8 @@ type ApiSaveDebug = {
   backendDetails?: string;
   /** Volle/vollständige OK-JSON-Antwort vom Backend (Debug) */
   backendResponseOkJson?: string;
+  /** Aus Backend-JSON `ok` */
+  apiResult?: 'ok' | 'error' | '—';
 };
 
 type Props = {
@@ -175,15 +176,15 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         await existing.unsubscribe();
       }
 
-      const subscription = await registration.pushManager.subscribe({
+      const webPushSubscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey) as BufferSource,
       });
 
       await refreshDebug();
 
-      const json = subscription.toJSON();
-      console.log('[push] subscription after subscribe()', subscription);
+      const json = webPushSubscription.toJSON();
+      console.log('[push] subscription after subscribe()', webPushSubscription);
       console.log('[push] subscription.toJSON()', json);
 
       if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
@@ -191,25 +192,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         return;
       }
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        const msg = 'Kein Auth-Token – bitte erneut anmelden.';
-        setApiSaveDebug({
-          result: 'failed',
-          statusCode: 0,
-          bodyText: msg,
-          errorMessage: msg,
-        });
-        setActivation('idle');
-        await refreshDebug();
-        return;
-      }
-
-      const fetchUrl =
-        typeof window !== 'undefined' ? `${window.location.origin}${PUSH_SUBSCRIBE_API}` : PUSH_SUBSCRIBE_API;
-      const requestBody = {
+      const subscription = {
         endpoint: json.endpoint,
         keys: {
           p256dh: json.keys.p256dh,
@@ -217,63 +200,74 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         },
       };
 
-      console.log('[push] POST save subscription', { fetchUrl, body: requestBody });
+      console.log('Calling push subscribe API', subscription);
 
-      const res = await fetch(PUSH_SUBSCRIBE_API, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      const responseBodyText = await res.text();
-      console.log('[push] API response', { status: res.status, ok: res.ok, body: responseBodyText });
-
-      let parsedBackend: {
-        ok?: boolean;
-        step?: string;
-        error?: string;
-        details?: string;
-      } | null = null;
       try {
-        parsedBackend = JSON.parse(responseBodyText) as typeof parsedBackend;
-      } catch {
-        parsedBackend = null;
-      }
+        const res = await fetch(PUSH_SUBSCRIBE_API, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(subscription),
+        });
 
-      const backendStep = typeof parsedBackend?.step === 'string' ? parsedBackend.step : undefined;
-      const backendError = typeof parsedBackend?.error === 'string' ? parsedBackend.error : undefined;
-      const backendDetails = typeof parsedBackend?.details === 'string' ? parsedBackend.details : undefined;
-      const parsedErr = backendError;
+        console.log('API response status:', res.status);
 
-      if (!res.ok) {
+        const data = (await res.json()) as {
+          ok?: boolean;
+          step?: string;
+          error?: string;
+          details?: string;
+          [key: string]: unknown;
+        };
+
+        console.log('API response body:', data);
+
+        const backendStep = typeof data.step === 'string' ? data.step : undefined;
+        const backendError = typeof data.error === 'string' ? data.error : undefined;
+        const backendDetails = typeof data.details === 'string' ? data.details : undefined;
+        const apiResult: 'ok' | 'error' | '—' =
+          data.ok === true ? 'ok' : data.ok === false ? 'error' : '—';
+
+        const bodyText = JSON.stringify(data);
+
+        if (!res.ok || data.ok === false) {
+          setApiSaveDebug({
+            result: 'failed',
+            statusCode: res.status,
+            bodyText: bodyText.slice(0, 2000),
+            errorMessage: backendError ?? `HTTP ${res.status}`,
+            backendStep,
+            backendError: backendError ?? undefined,
+            backendDetails,
+            apiResult: apiResult === '—' ? 'error' : apiResult,
+          });
+        } else {
+          setApiSaveDebug({
+            result: 'ok',
+            statusCode: res.status,
+            bodyText: bodyText.slice(0, 800),
+            backendStep,
+            backendError: undefined,
+            backendDetails: undefined,
+            backendResponseOkJson: bodyText.slice(0, 1200),
+            apiResult: 'ok',
+          });
+        }
+        setActivation('idle');
+        await refreshDebug();
+      } catch (err) {
+        console.error('Push save failed:', err);
         setApiSaveDebug({
           result: 'failed',
-          statusCode: res.status,
-          bodyText: responseBodyText.slice(0, 2000),
-          errorMessage: parsedErr ?? (responseBodyText.slice(0, 500) || `HTTP ${res.status}`),
-          backendStep,
-          backendError: backendError ?? parsedErr,
-          backendDetails,
+          statusCode: 0,
+          bodyText: err instanceof Error ? err.message : String(err),
+          errorMessage: err instanceof Error ? err.message : String(err),
+          apiResult: 'error',
         });
         setActivation('idle');
         await refreshDebug();
-        return;
       }
-
-      setApiSaveDebug({
-        result: 'ok',
-        statusCode: res.status,
-        bodyText: responseBodyText.slice(0, 500),
-        backendStep: backendStep ?? (res.ok ? 'ok' : undefined),
-        backendError: undefined,
-        backendDetails: undefined,
-        backendResponseOkJson: responseBodyText.slice(0, 1200),
-      });
-      setActivation('idle');
-      await refreshDebug();
     } catch (e) {
       console.error('[push] activation catch', e);
       setActivation('browser_error');
@@ -371,6 +365,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
           API save result: {apiSaveDebug ? (apiSaveDebug.result === 'ok' ? 'ok' : 'failed') : '—'}
         </div>
         <div>API status code: {apiSaveDebug?.statusCode ?? '—'}</div>
+        <div>API result (ok / error): {apiSaveDebug?.apiResult ?? '—'}</div>
         <div className="break-all">
           API error / body:{' '}
           {apiSaveDebug && apiSaveDebug.result === 'failed'
