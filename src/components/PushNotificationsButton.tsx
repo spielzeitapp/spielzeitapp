@@ -14,7 +14,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 function getSubscribeApiUrl(): string {
-  const base = import.meta.env.VITE_PUSH_API_URL?.trim();
+  const base = process.env.NEXT_PUBLIC_PUSH_API_URL?.trim();
   if (base) return base.replace(/\/$/, '');
   return '/api/push/subscribe';
 }
@@ -25,15 +25,14 @@ type Props = {
 
 /**
  * MVP: Permission, SW-Registrierung, PushSubscription, POST an /api/push/subscribe.
- * Benötigt VITE_VAPID_PUBLIC_KEY und serverseitig SUPABASE_SERVICE_ROLE_KEY.
+ * Benötigt NEXT_PUBLIC_VAPID_PUBLIC_KEY und serverseitig SUPABASE_SERVICE_ROLE_KEY.
  */
 export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
   const [status, setStatus] = useState<
     'idle' | 'unsupported' | 'checking' | 'prompt' | 'loading' | 'granted' | 'denied' | 'error'
   >('idle');
   const [message, setMessage] = useState<string | null>(null);
-
-  const vapidPublic = import.meta.env.VITE_VAPID_PUBLIC_KEY?.trim();
+  const [configMissing, setConfigMissing] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -41,11 +40,16 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
       setStatus('unsupported');
       return;
     }
-    if (!vapidPublic) {
-      setStatus('error');
-      setMessage('VITE_VAPID_PUBLIC_KEY fehlt (.env).');
+
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+    if (!vapidKey) {
+      console.warn('Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY');
+      setConfigMissing(true);
+      setStatus('prompt');
+      setMessage('Push nicht aktiviert (Setup fehlt)');
       return;
     }
+
     setStatus('checking');
     void (async () => {
       try {
@@ -61,13 +65,15 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         setStatus('prompt');
       }
     })();
-  }, [vapidPublic]);
+  }, []);
 
   const onActivate = useCallback(async () => {
     setMessage(null);
-    if (!vapidPublic) {
-      setStatus('error');
-      setMessage('VITE_VAPID_PUBLIC_KEY fehlt.');
+
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+    if (!vapidKey) {
+      console.warn('Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY');
+      setMessage('Push nicht aktiviert (Setup fehlt)');
       return;
     }
 
@@ -97,7 +103,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
 
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublic) as BufferSource,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey) as BufferSource,
       });
 
       const json = subscription.toJSON();
@@ -142,7 +148,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
       setStatus('error');
       setMessage(e instanceof Error ? e.message : 'Aktivierung fehlgeschlagen.');
     }
-  }, [vapidPublic]);
+  }, []);
 
   if (status === 'unsupported') {
     return (
@@ -160,7 +166,13 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
 
   return (
     <div className={className}>
-      <Button type="button" variant="soft" fullWidth onClick={onActivate} disabled={status === 'loading'}>
+      <Button
+        type="button"
+        variant="soft"
+        fullWidth
+        onClick={onActivate}
+        disabled={status === 'loading' || configMissing}
+      >
         {status === 'loading' ? 'Wird eingerichtet…' : 'Benachrichtigungen aktivieren'}
       </Button>
       {message && (

@@ -19,10 +19,7 @@ let vapidConfigured = false;
 
 function ensureWebPushVapid(): void {
   if (vapidConfigured) return;
-  const publicKey =
-    readEnv('VAPID_PUBLIC_KEY') ||
-    readEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY') ||
-    readEnv('VITE_VAPID_PUBLIC_KEY');
+  const publicKey = readEnv('VAPID_PUBLIC_KEY') || readEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY');
   const privateKey = readEnv('VAPID_PRIVATE_KEY');
   const subject = readEnv('VAPID_CONTACT_EMAIL') || 'mailto:team@spielzeitapp.at';
   if (!publicKey || !privateKey) {
