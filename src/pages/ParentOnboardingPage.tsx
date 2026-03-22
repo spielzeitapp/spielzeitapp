@@ -345,8 +345,8 @@ export const ParentOnboardingPage: React.FC = () => {
 
     setSaving(false);
     // Passwort wurde bereits bei der Registrierung gesetzt; nach erfolgreichem Onboarding
-    // direkt in den normalen Flow (/app/schedule) leiten.
-    navigate('/app/schedule', { replace: true });
+    // direkt in den normalen Flow (/app/home) leiten.
+    navigate('/app/home', { replace: true });
     // WICHTIG: Memberships & player_guardians werden im Session-Context einmalig geladen.
     // Nach dem ersten Anlegen laden wir die Seite neu, damit Rollen & Berechtigungen sofort korrekt sind.
     window.location.reload();

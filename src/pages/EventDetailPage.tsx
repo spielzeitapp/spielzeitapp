@@ -316,7 +316,7 @@ export const EventDetailPage: React.FC = () => {
     return (
       <div className="page pb-4">
         <p>Keine Event-ID angegeben.</p>
-        <Link to="/app/schedule" className="mt-2 inline-block text-sm text-white/80 hover:text-white">
+        <Link to="/app/termine" className="mt-2 inline-block text-sm text-white/80 hover:text-white">
           ← Zurück zum Spielplan
         </Link>
       </div>
@@ -335,7 +335,7 @@ export const EventDetailPage: React.FC = () => {
     return (
       <div className="page pb-4 space-y-3">
         <p>{error ?? 'Termin nicht gefunden.'}</p>
-        <Link to="/app/schedule" className="text-sm text-white/80 hover:text-white">
+        <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
           ← Zurück zum Spielplan
         </Link>
       </div>
@@ -346,7 +346,7 @@ export const EventDetailPage: React.FC = () => {
     <div className="page pb-4">
       <div className="mx-auto max-w-[720px] space-y-4 px-4">
         <Link
-          to="/app/schedule"
+          to="/app/termine"
           className="inline-block text-sm text-white/80 hover:text-white"
         >
           ← Zurück zum Spielplan

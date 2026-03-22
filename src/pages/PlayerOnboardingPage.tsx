@@ -283,7 +283,7 @@ export const PlayerOnboardingPage: React.FC = () => {
       }
 
       setSaving(false);
-      navigate('/app/schedule', { replace: true });
+      navigate('/app/home', { replace: true });
     } catch (e: any) {
       console.log('[PLAYER ONBOARDING SAVE EXCEPTION]', e);
       setError(e?.message ?? 'Unbekannter Fehler beim Speichern.');

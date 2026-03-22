@@ -6,8 +6,12 @@ import { RoleProvider } from './role/RoleContext';
 import { RequireAuth } from '../auth/RequireAuth';
 import { useSession } from '../auth/useSession';
 import { HomePage } from '../pages/HomePage';
+import { AppHomePage } from '../pages/AppHomePage';
 import { SchedulePage } from '../pages/SchedulePage';
 import { CalendarPage } from '../pages/CalendarPage';
+import { TermineLayout } from '../pages/TermineLayout';
+import { MoreLayout } from '../pages/MoreLayout';
+import { MoreHubPage } from '../pages/MoreHubPage';
 import { ParentOnboardingPage } from '../pages/ParentOnboardingPage';
 import { PlayerOnboardingPage } from '../pages/PlayerOnboardingPage';
 import { RoleChoicePage } from '../pages/RoleChoicePage';
@@ -70,28 +74,28 @@ function AppIndexRedirect(): React.ReactElement {
   // 3) Wenn überhaupt keine Rolle existiert:
   //    - mit pending Spieler-Anfrage → als Fan in den Schedule
   //    - sonst → RoleChoicePage
-  if (!finalRole) {
+    if (!finalRole) {
     if (hasPendingPlayerRequest) {
-      return <Navigate to="/app/schedule" replace />;
+      return <Navigate to="/app/home" replace />;
     }
     return <Navigate to="/app/role-choice" replace />;
   }
 
-  // 4) Parent → Schedule; InternalLayout leitet bei unvollständigem Onboarding auf role-choice / parent-onboarding um.
+  // 4) Parent → Home; InternalLayout leitet bei unvollständigem Onboarding auf role-choice / parent-onboarding um.
   if (finalRole === 'parent') {
-    return <Navigate to="/app/schedule" replace />;
+    return <Navigate to="/app/home" replace />;
   }
 
   if (finalRole === 'trainer') {
-    return <Navigate to="/app/schedule" replace />;
+    return <Navigate to="/app/home" replace />;
   }
 
   if (finalRole === 'fan') {
-    return <Navigate to="/app/schedule" replace />;
+    return <Navigate to="/app/home" replace />;
   }
 
-  // Alle anderen Rollen (player, admin, etc.) landen ebenfalls im Schedule.
-  return <Navigate to="/app/schedule" replace />;
+  // Alle anderen Rollen (player, admin, etc.) landen ebenfalls auf Home.
+  return <Navigate to="/app/home" replace />;
 }
 
 class AppErrorBoundary extends Component<
@@ -125,12 +129,17 @@ function InternalRoutes(): React.ReactElement {
       <Route path="login" element={<LoginPage />} />
       <Route path="register" element={<RegisterPage />} />
       <Route path="forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="schedule" element={<Navigate to="/app/schedule" replace />} />
+      <Route path="schedule" element={<Navigate to="/app/termine" replace />} />
       <Route path="live" element={<Navigate to="/app/live" replace />} />
       <Route path="app" element={<RequireAuth><InternalLayout /></RequireAuth>}>
         <Route index element={<AppIndexRedirect />} />
-        <Route path="schedule" element={<SchedulePage />} />
-        <Route path="calendar" element={<CalendarPage />} />
+        <Route path="home" element={<AppHomePage />} />
+        <Route path="termine" element={<TermineLayout />}>
+          <Route index element={<SchedulePage />} />
+          <Route path="calendar" element={<CalendarPage />} />
+        </Route>
+        <Route path="schedule" element={<Navigate to="/app/termine" replace />} />
+        <Route path="calendar" element={<Navigate to="/app/termine/calendar" replace />} />
         <Route path="role-choice" element={<RoleChoicePage />} />
         <Route path="parent-onboarding" element={<ParentOnboardingPage />} />
         <Route path="player-onboarding" element={<PlayerOnboardingPage />} />
@@ -141,9 +150,13 @@ function InternalRoutes(): React.ReactElement {
         <Route path="live/:id" element={<LivePage />} />
         <Route path="team" element={<TeamPage />} />
         <Route path="table" element={<TablePage />} />
-        <Route path="notifications" element={<NotificationsPage />} />
-        <Route path="termine" element={<Navigate to="/app/schedule" replace />} />
-        <Route path="profile" element={<ProfilePage />} />
+        <Route path="mehr" element={<MoreLayout />}>
+          <Route index element={<MoreHubPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+        </Route>
+        <Route path="notifications" element={<Navigate to="/app/mehr/notifications" replace />} />
+        <Route path="profile" element={<Navigate to="/app/mehr/profile" replace />} />
       </Route>
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
       <Route path="/admin/login" element={<AdminLoginPage />} />

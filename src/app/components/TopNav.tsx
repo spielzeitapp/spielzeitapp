@@ -7,13 +7,13 @@ const publicLinks = [
   { to: '/schedule', label: 'Spielplan' },
 ];
 
-/** Interne Nav: /app/* (wird in InternalLayout verwendet). */
+/** Desktop: schlanke Links zum internen MVP (5 Bereiche + Kalender-Unterseite über Termine). */
 const appLinks = [
-  { to: '/app/schedule', label: 'Spielplan' },
+  { to: '/app/home', label: 'Home' },
+  { to: '/app/termine', label: 'Termine' },
   { to: '/app/live', label: 'Live' },
-  { to: '/app/notifications', label: 'Nachrichten' },
   { to: '/app/team', label: 'Team' },
-  { to: '/app/table', label: 'Tabelle' },
+  { to: '/app/mehr', label: 'Mehr' },
 ];
 
 export const TopNav: React.FC = () => {
@@ -26,7 +26,7 @@ export const TopNav: React.FC = () => {
   return (
     <nav className="flex sticky top-0 z-40 w-full bg-[rgba(11,11,15,0.9)] border-b border-[var(--border)] backdrop-blur">
       <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between px-4 md:px-8 py-2 text-sm">
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           {links.map((link) => (
             <NavLink
               key={link.to}
@@ -63,4 +63,3 @@ export const TopNav: React.FC = () => {
     </nav>
   );
 };
-

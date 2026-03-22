@@ -20,7 +20,7 @@ function resolveAppPath(link: string | null | undefined): string | null {
   if (link == null || !String(link).trim()) return null;
   const p = String(link).trim();
   if (p.startsWith('/app/')) return p;
-  if (p === '/termine' || p === 'termine') return '/app/schedule';
+  if (p === '/termine' || p === 'termine') return '/app/termine';
   const sub = p.startsWith('/') ? p : `/${p}`;
   return `/app${sub}`;
 }

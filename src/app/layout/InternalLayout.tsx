@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AppBackground } from './AppBackground';
 import { Header } from './Header';
 import { BottomTabs } from '../components/BottomTabs';
+import { AppFab } from '../components/AppFab';
 import { TopNav } from '../components/TopNav';
 import { useIsTouchLayout } from '../../hooks/useMediaQuery';
 import { useAuth } from '../../auth/AuthProvider';
@@ -17,7 +18,7 @@ import { supabase } from '../../lib/supabaseClient';
  *
  * E2E Parent flow:
  * - First time: register → /app → role-choice → parent-onboarding (team + child) → set-password → schedule.
- * - Second login: email + password → /app/schedule (onboarding skipped if memberships + player_guardians exist).
+ * - Second login: email + password → /app/home (onboarding skipped if memberships + player_guardians exist).
  */
 export const InternalLayout: React.FC = () => {
   const isTouchLayout = useIsTouchLayout();
@@ -105,6 +106,7 @@ export const InternalLayout: React.FC = () => {
       </div>
 
       {isTouchLayout ? <BottomTabs /> : null}
+      {isTouchLayout ? <AppFab /> : null}
     </AppBackground>
   );
 };

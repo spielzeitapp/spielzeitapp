@@ -83,7 +83,7 @@ export const CalendarPage: React.FC = () => {
 
   useEffect(() => {
     if (isFan && !loading) {
-      navigate('/app/schedule', { replace: true });
+      navigate('/app/termine', { replace: true });
     }
   }, [isFan, loading, navigate]);
 

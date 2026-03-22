@@ -34,7 +34,7 @@ export const SetPasswordPage: React.FC = () => {
       return;
     }
     setSuccess(true);
-    setTimeout(() => navigate('/app/schedule', { replace: true }), 800);
+    setTimeout(() => navigate('/app/home', { replace: true }), 800);
   };
 
   return (

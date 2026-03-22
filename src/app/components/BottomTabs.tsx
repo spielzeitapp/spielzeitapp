@@ -1,27 +1,30 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Bell, CircleDot, Grid3X3, Play, Users, BarChart3 } from 'lucide-react';
-import { useSession } from '../../auth/useSession';
+import { Home, Users, CalendarDays, Radio, MoreHorizontal } from 'lucide-react';
 
-/** Interne Tabs: /app/* (wird in InternalLayout verwendet). */
-const appTabsBase = [
-  { to: '/app/schedule', end: false as const, label: 'Spielplan', icon: <Grid3X3 size={24} /> },
-  { to: '/app/calendar', end: false as const, label: 'Kalender', icon: <CircleDot size={24} /> },
-  { to: '/app/live', end: false as const, label: 'Live', icon: <Play size={24} /> },
-  { to: '/app/notifications', end: false as const, label: 'Nachrichten', icon: <Bell size={24} /> },
-  { to: '/app/team', end: false as const, label: 'Team', icon: <Users size={24} /> },
-  { to: '/app/table', end: false as const, label: 'Tabelle', icon: <BarChart3 size={24} /> },
+/** Interne MVP-Navigation: genau 5 Tabs (mobile-first). */
+const appTabs = [
+  { to: '/app/home', end: true as const, label: 'Home', icon: Home },
+  { to: '/app/team', end: true as const, label: 'Team', icon: Users },
+  { to: '/app/termine', end: false as const, label: 'Termine', icon: CalendarDays },
+  { to: '/app/live', end: false as const, label: 'Live', icon: Radio },
+  { to: '/app/mehr', end: false as const, label: 'Mehr', icon: MoreHorizontal },
+] as const;
+
+const publicTabs = [
+  { to: '/', end: true as const, label: 'Home', icon: Home },
+  { to: '/schedule', end: false as const, label: 'Spielplan', icon: CalendarDays },
 ];
 
 function NavItem({
   to,
   end,
-  icon,
+  icon: Icon,
   label,
 }: {
   to: string;
   end?: boolean;
-  icon: React.ReactNode;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
 }) {
   return (
@@ -41,46 +44,25 @@ function NavItem({
               isActive ? 'bg-red-600 shadow-lg' : ''
             }`}
           >
-            {icon}
+            <Icon size={24} strokeWidth={2} />
           </div>
-          <span className="mt-1">{label}</span>
+          <span className="mt-1 max-w-[4.5rem] truncate text-center">{label}</span>
         </>
       )}
     </NavLink>
   );
 }
 
-const publicTabs = [
-  { to: '/', end: true as const, label: 'Home', icon: <CircleDot size={24} /> },
-  { to: '/schedule', end: false as const, label: 'Spielplan', icon: <Grid3X3 size={24} /> },
-];
-
 export const BottomTabs: React.FC = () => {
   const { pathname } = useLocation();
-  const { effectiveRole } = useSession();
-
-  const tabs = pathname.startsWith('/app')
-    ? appTabsBase
-        .filter((t) => {
-          if (t.to === '/app/calendar' && effectiveRole === 'fan') return false;
-          return true;
-        })
-        .map((t) =>
-          t.to === '/app/schedule'
-            ? {
-                ...t,
-                label: effectiveRole === 'fan' ? 'Spielplan' : 'Termine',
-              }
-            : t,
-        )
-    : publicTabs;
+  const tabs = pathname.startsWith('/app') ? appTabs : publicTabs;
 
   return (
     <nav
       className="fixed bottom-0 left-0 z-50 w-full border-t border-white/10 bg-black/60 backdrop-blur-lg"
       aria-label="Hauptnavigation"
     >
-      <div className="mx-auto flex max-w-[560px] justify-between px-6 py-3">
+      <div className="mx-auto flex max-w-[560px] justify-between px-2 py-2 sm:px-4 sm:py-3">
         {tabs.map((t) => (
           <NavItem key={t.to} to={t.to} end={t.end} label={t.label} icon={t.icon} />
         ))}
