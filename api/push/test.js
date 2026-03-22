@@ -1,7 +1,8 @@
 /**
- * POST /api/push/test
+ * GET / POST /api/push/test
  * Sendet eine Test-Push an alle Zeilen in public.push_subscriptions (web-push).
  * Bei 404/410 wird die Subscription in Supabase gelöscht.
+ * GET erlaubt für einfachen Browser-Test.
  */
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
@@ -25,10 +26,9 @@ function getStatusCode(err) {
 
 export default async function handler(req, res) {
   try {
-    if (req.method !== "POST") {
+    if (req.method !== "GET" && req.method !== "POST") {
       return res.status(405).json({
         ok: false,
-        step: "method",
         error: "Method not allowed",
       });
     }
