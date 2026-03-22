@@ -187,7 +187,7 @@ export const ProfilePage: React.FC = () => {
 
         {effectiveRole === 'parent' && (
           <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
-            <PushNotificationsButton showDebug={backendRole === 'admin'} />
+            <PushNotificationsButton isAdmin={backendRole === 'admin'} />
           </div>
         )}
 

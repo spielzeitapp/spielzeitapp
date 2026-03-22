@@ -15,8 +15,20 @@ export default async function handler(req, res) {
       });
     }
 
-    const body =
-      typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    let body = {};
+    try {
+      if (typeof req.body === "string") {
+        body = req.body ? JSON.parse(req.body) : {};
+      } else if (req.body && typeof req.body === "object") {
+        body = req.body;
+      }
+    } catch {
+      return res.status(400).json({
+        ok: false,
+        step: "parse",
+        error: "Invalid JSON",
+      });
+    }
 
     const endpoint = body?.endpoint;
 

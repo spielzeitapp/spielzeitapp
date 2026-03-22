@@ -16,6 +16,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 const PUSH_SUBSCRIBE_API = '/api/push/subscribe';
 const PUSH_UNSUBSCRIBE_API = '/api/push/unsubscribe';
+const PUSH_TEST_API = '/api/push/test';
 
 function getVapidPublicKey(): string {
   const fromProcess =
@@ -42,11 +43,11 @@ function detectFrontendRuntime(): 'vite' | 'next' | 'unknown' {
 
 type Props = {
   className?: string;
-  /** Nur für Admins: technisches Debug-Panel */
-  showDebug?: boolean;
+  /** Nur für Admins: technisches Debug-Panel + Test-Push */
+  isAdmin?: boolean;
 };
 
-export const PushNotificationsButton: React.FC<Props> = ({ className, showDebug = false }) => {
+export const PushNotificationsButton: React.FC<Props> = ({ className, isAdmin = false }) => {
   const rawVapidKey = getVapidPublicKey();
   const vapidKey = rawVapidKey?.trim() ?? '';
   const hasVapidKey = vapidKey.length > 0;
@@ -61,10 +62,11 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, showDebug 
   const [loading, setLoading] = useState(false);
   /** 'activate' | 'deactivate' während Request */
   const [loadingAction, setLoadingAction] = useState<'activate' | 'deactivate' | null>(null);
-  /** Erfolgshinweise */
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
-  /** Nutzerfreundliche Fehlermeldung (Anzeige C) */
+  /** Nutzerfreundliche Fehlermeldung */
   const [actionError, setActionError] = useState<string | null>(null);
+  /** Nur Admin: Ergebnis Test-Push */
+  const [testPushMessage, setTestPushMessage] = useState<string | null>(null);
+  const [testPushLoading, setTestPushLoading] = useState(false);
 
   /** Admin-Debug */
   const [debugSnapshot, setDebugSnapshot] = useState<{
@@ -112,7 +114,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, showDebug 
     setLoading(true);
     setLoadingAction('activate');
     setActionError(null);
-    setActionMessage(null);
+    setTestPushMessage(null);
 
     try {
       const perm = await Notification.requestPermission();
@@ -156,7 +158,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, showDebug 
       });
 
       const data = (await res.json()) as { ok?: boolean; step?: string; error?: string };
-      if (showDebug) {
+      if (isAdmin) {
         setDebugSnapshot({
           lastApiStatus: res.status,
           lastBody: JSON.stringify(data).slice(0, 1500),
@@ -176,13 +178,13 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, showDebug 
       setLoading(false);
       setLoadingAction(null);
     }
-  }, [browserOk, hasVapidKey, vapidKey, syncFromBrowser, showDebug]);
+  }, [browserOk, hasVapidKey, vapidKey, syncFromBrowser, isAdmin]);
 
   const onDeactivate = useCallback(async () => {
     setLoading(true);
     setLoadingAction('deactivate');
     setActionError(null);
-    setActionMessage(null);
+    setTestPushMessage(null);
 
     try {
       const registration = await navigator.serviceWorker.ready;
@@ -190,7 +192,6 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, showDebug 
 
       if (!subscription) {
         await syncFromBrowser();
-        setActionMessage('Benachrichtigungen deaktiviert');
         return;
       }
 
@@ -203,7 +204,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, showDebug 
       });
 
       const data = (await res.json()) as { ok?: boolean; step?: string; error?: string };
-      if (showDebug) {
+      if (isAdmin) {
         setDebugSnapshot({
           lastApiStatus: res.status,
           lastBody: JSON.stringify(data).slice(0, 1500),
@@ -218,7 +219,6 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, showDebug 
 
       await subscription.unsubscribe();
 
-      setActionMessage('Benachrichtigungen deaktiviert');
       await syncFromBrowser();
     } catch {
       setActionError('Deaktivierung fehlgeschlagen. Bitte versuche es erneut.');
@@ -226,15 +226,34 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, showDebug 
       setLoading(false);
       setLoadingAction(null);
     }
-  }, [syncFromBrowser, showDebug]);
+  }, [syncFromBrowser, isAdmin]);
 
-  const statusText = useMemo(() => {
-    if (actionMessage === 'Benachrichtigungen deaktiviert') return 'Benachrichtigungen deaktiviert';
-    if (isActive) return 'Push aktiv ✅';
-    return 'Benachrichtigungen sind derzeit deaktiviert.';
-  }, [actionMessage, isActive]);
+  const onTestPush = useCallback(async () => {
+    if (!isAdmin) return;
+    setTestPushLoading(true);
+    setTestPushMessage(null);
+    try {
+      const res = await fetch(PUSH_TEST_API, { method: 'POST' });
+      const data = (await res.json()) as { ok?: boolean };
+      if (res.ok && data.ok === true) {
+        setTestPushMessage('Test Push gesendet');
+      } else {
+        setTestPushMessage('Test Push fehlgeschlagen');
+      }
+    } catch {
+      setTestPushMessage('Test Push fehlgeschlagen');
+    } finally {
+      setTestPushLoading(false);
+    }
+  }, [isAdmin]);
 
   const busy = loading || !initDone;
+
+  const primaryButtonLabel = useMemo(() => {
+    if (loadingAction === 'activate') return 'Wird aktiviert…';
+    if (loadingAction === 'deactivate') return 'Wird deaktiviert…';
+    return isActive ? 'Benachrichtigungen deaktivieren' : 'Benachrichtigungen aktivieren';
+  }, [loadingAction, isActive]);
 
   if (!browserOk) {
     return (
@@ -265,7 +284,18 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, showDebug 
 
       {hasVapidKey && (
         <>
-          <p className="mt-3 text-sm text-[var(--text-main)]">{statusText}</p>
+          {isActive ? (
+            <>
+              <p className="mt-3 text-sm text-[var(--text-main)]">Push aktiv ✅</p>
+              <p className="mt-1 text-sm text-[var(--text-sub)]">
+                Du erhältst Updates zu Spielen & Terminen.
+              </p>
+            </>
+          ) : (
+            <p className="mt-3 text-sm text-[var(--text-main)]">
+              Benachrichtigungen sind derzeit deaktiviert.
+            </p>
+          )}
 
           {actionError && (
             <p className="mt-2 text-sm text-amber-300" role="alert">
@@ -274,32 +304,37 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, showDebug 
           )}
 
           <div className="mt-4 flex flex-col gap-2">
-            {!isActive ? (
-              <Button
-                type="button"
-                variant="primary"
-                fullWidth
-                disabled={busy || !pushReady}
-                onClick={() => void onActivate()}
-              >
-                {loadingAction === 'activate' ? 'Wird aktiviert…' : 'Benachrichtigungen aktivieren'}
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="secondary"
-                fullWidth
-                disabled={busy}
-                onClick={() => void onDeactivate()}
-              >
-                {loadingAction === 'deactivate' ? 'Wird deaktiviert…' : 'Benachrichtigungen deaktivieren'}
-              </Button>
+            <Button
+              type="button"
+              variant={isActive ? 'secondary' : 'primary'}
+              fullWidth
+              disabled={busy || (!pushReady && !isActive)}
+              onClick={() => void (isActive ? onDeactivate() : onActivate())}
+            >
+              {primaryButtonLabel}
+            </Button>
+
+            {isAdmin && (
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  fullWidth
+                  disabled={testPushLoading}
+                  onClick={() => void onTestPush()}
+                >
+                  {testPushLoading ? 'Wird gesendet…' : 'Test Push senden'}
+                </Button>
+                {testPushMessage && (
+                  <p className="text-center text-sm text-[var(--text-sub)]">{testPushMessage}</p>
+                )}
+              </>
             )}
           </div>
         </>
       )}
 
-      {showDebug && (
+      {isAdmin && (
         <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-950/30 px-3 py-2 font-mono text-[10px] leading-relaxed text-amber-100/90">
           <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-amber-400">
             Push-Debug (Admin)
