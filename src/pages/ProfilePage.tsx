@@ -47,6 +47,9 @@ export const ProfilePage: React.FC = () => {
 
   const { profile } = useProfile(authUser?.id);
   const showPreviewSwitch = backendRole === 'admin' || backendRole === 'head_coach';
+  /** Echte Admin-Ansicht: kein Rollen-Preview (parent/player/trainer …). */
+  const currentUIView = effectiveRole;
+  const isAdminToolsVisible = backendRole === 'admin' && currentUIView === 'admin';
   const selectedTeamName = getTeamName(selectedTeamSeason);
   const email = authUser?.email ?? user?.name ?? '–';
   const displayNameStr = displayName(profile, authUser?.email ?? undefined);
@@ -187,7 +190,7 @@ export const ProfilePage: React.FC = () => {
 
         {effectiveRole === 'parent' && (
           <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
-            <PushNotificationsButton isAdmin={backendRole === 'admin'} />
+            <PushNotificationsButton isAdminToolsVisible={isAdminToolsVisible} />
           </div>
         )}
 

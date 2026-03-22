@@ -43,11 +43,14 @@ function detectFrontendRuntime(): 'vite' | 'next' | 'unknown' {
 
 type Props = {
   className?: string;
-  /** Nur für Admins: technisches Debug-Panel + Test-Push */
-  isAdmin?: boolean;
+  /** Nur wenn Backend admin UND echte Admin-UI (kein Preview): Debug + Test-Push */
+  isAdminToolsVisible?: boolean;
 };
 
-export const PushNotificationsButton: React.FC<Props> = ({ className, isAdmin = false }) => {
+export const PushNotificationsButton: React.FC<Props> = ({
+  className,
+  isAdminToolsVisible = false,
+}) => {
   const rawVapidKey = getVapidPublicKey();
   const vapidKey = rawVapidKey?.trim() ?? '';
   const hasVapidKey = vapidKey.length > 0;
@@ -158,7 +161,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, isAdmin = 
       });
 
       const data = (await res.json()) as { ok?: boolean; step?: string; error?: string };
-      if (isAdmin) {
+      if (isAdminToolsVisible) {
         setDebugSnapshot({
           lastApiStatus: res.status,
           lastBody: JSON.stringify(data).slice(0, 1500),
@@ -178,7 +181,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, isAdmin = 
       setLoading(false);
       setLoadingAction(null);
     }
-  }, [browserOk, hasVapidKey, vapidKey, syncFromBrowser, isAdmin]);
+  }, [browserOk, hasVapidKey, vapidKey, syncFromBrowser, isAdminToolsVisible]);
 
   const onDeactivate = useCallback(async () => {
     setLoading(true);
@@ -204,7 +207,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, isAdmin = 
       });
 
       const data = (await res.json()) as { ok?: boolean; step?: string; error?: string };
-      if (isAdmin) {
+      if (isAdminToolsVisible) {
         setDebugSnapshot({
           lastApiStatus: res.status,
           lastBody: JSON.stringify(data).slice(0, 1500),
@@ -226,10 +229,10 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, isAdmin = 
       setLoading(false);
       setLoadingAction(null);
     }
-  }, [syncFromBrowser, isAdmin]);
+  }, [syncFromBrowser, isAdminToolsVisible]);
 
   const onTestPush = useCallback(async () => {
-    if (!isAdmin) return;
+    if (!isAdminToolsVisible) return;
     setTestPushLoading(true);
     setTestPushMessage(null);
     try {
@@ -245,7 +248,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, isAdmin = 
     } finally {
       setTestPushLoading(false);
     }
-  }, [isAdmin]);
+  }, [isAdminToolsVisible]);
 
   const busy = loading || !initDone;
 
@@ -314,7 +317,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, isAdmin = 
               {primaryButtonLabel}
             </Button>
 
-            {isAdmin && (
+            {isAdminToolsVisible && (
               <>
                 <Button
                   type="button"
@@ -334,7 +337,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className, isAdmin = 
         </>
       )}
 
-      {isAdmin && (
+      {isAdminToolsVisible && (
         <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-950/30 px-3 py-2 font-mono text-[10px] leading-relaxed text-amber-100/90">
           <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-amber-400">
             Push-Debug (Admin)
