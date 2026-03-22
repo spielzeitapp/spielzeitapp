@@ -15,11 +15,8 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
-function getSubscribeApiUrl(): string {
-  const base = process.env.NEXT_PUBLIC_PUSH_API_URL?.trim();
-  if (base) return base.replace(/\/$/, '');
-  return '/api/push/subscribe';
-}
+/** POST-Endpoint für gespeicherte Push-Subscription (gleiche Origin). */
+const PUSH_SUBSCRIBE_API = '/api/push/subscribe';
 
 function permissionToLabel(perm: NotificationPermission): 'default' | 'granted' | 'denied' {
   if (perm === 'granted') return 'granted';
@@ -132,8 +129,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         return;
       }
 
-      const apiUrl = getSubscribeApiUrl();
-      const res = await fetch(apiUrl, {
+      const res = await fetch(PUSH_SUBSCRIBE_API, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

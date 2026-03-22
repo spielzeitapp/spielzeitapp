@@ -4,6 +4,5 @@
 declare namespace NodeJS {
   interface ProcessEnv {
     readonly NEXT_PUBLIC_VAPID_PUBLIC_KEY?: string;
-    readonly NEXT_PUBLIC_PUSH_API_URL?: string;
   }
 }
