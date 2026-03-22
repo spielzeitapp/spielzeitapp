@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, ChevronRight, LayoutGrid, User } from 'lucide-react';
+import { Bell, ChevronRight, LayoutGrid, Settings, User } from 'lucide-react';
 import { Card } from '../app/components/ui/Card';
 import { useSession } from '../auth/useSession';
 
@@ -51,6 +51,13 @@ export const MoreHubPage: React.FC = () => {
             </span>
             <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
           </Link>
+          <div className={`${rowClass} cursor-not-allowed opacity-60`} title="Demnächst">
+            <span className="flex items-center gap-3">
+              <Settings className="h-5 w-5 text-white/40" aria-hidden />
+              <span className="font-medium">Einstellungen</span>
+            </span>
+            <span className="text-xs text-white/40">Bald</span>
+          </div>
         </nav>
 
         {canSwitchTeam && (

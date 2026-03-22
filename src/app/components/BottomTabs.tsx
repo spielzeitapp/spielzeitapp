@@ -1,30 +1,31 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Users, CalendarDays, Radio, MoreHorizontal } from 'lucide-react';
 
-/** Interne MVP-Navigation: genau 5 Tabs (mobile-first). */
+/**
+ * MVP: genau 5 Tabs (mobile-first), Emoji wie Spezifikation.
+ */
 const appTabs = [
-  { to: '/app/home', end: true as const, label: 'Home', icon: Home },
-  { to: '/app/team', end: true as const, label: 'Team', icon: Users },
-  { to: '/app/termine', end: false as const, label: 'Termine', icon: CalendarDays },
-  { to: '/app/live', end: false as const, label: 'Live', icon: Radio },
-  { to: '/app/mehr', end: false as const, label: 'Mehr', icon: MoreHorizontal },
+  { to: '/app/home', end: true as const, label: 'Home', emoji: '🏠' },
+  { to: '/app/team', end: true as const, label: 'Team', emoji: '👥' },
+  { to: '/app/termine', end: false as const, label: 'Termine', emoji: '📅' },
+  { to: '/app/live', end: false as const, label: 'Live', emoji: '🔴' },
+  { to: '/app/mehr', end: false as const, label: 'Mehr', emoji: '⚙️' },
 ] as const;
 
 const publicTabs = [
-  { to: '/', end: true as const, label: 'Home', icon: Home },
-  { to: '/schedule', end: false as const, label: 'Spielplan', icon: CalendarDays },
+  { to: '/', end: true as const, label: 'Home', emoji: '🏠' },
+  { to: '/schedule', end: false as const, label: 'Spielplan', emoji: '📅' },
 ];
 
 function NavItem({
   to,
   end,
-  icon: Icon,
+  emoji,
   label,
 }: {
   to: string;
   end?: boolean;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  emoji: string;
   label: string;
 }) {
   return (
@@ -32,7 +33,7 @@ function NavItem({
       to={to}
       end={end}
       className={({ isActive }) =>
-        `flex flex-col items-center text-xs transition-all ${
+        `flex min-w-0 flex-1 flex-col items-center text-xs transition-all ${
           isActive ? 'text-white' : 'text-white/60'
         }`
       }
@@ -40,11 +41,12 @@ function NavItem({
       {({ isActive }) => (
         <>
           <div
-            className={`rounded-xl p-3 transition-all ${
+            className={`flex h-12 w-12 items-center justify-center rounded-xl text-2xl leading-none transition-all ${
               isActive ? 'bg-red-600 shadow-lg' : ''
             }`}
+            aria-hidden
           >
-            <Icon size={24} strokeWidth={2} />
+            {emoji}
           </div>
           <span className="mt-1 max-w-[4.5rem] truncate text-center">{label}</span>
         </>
@@ -60,11 +62,12 @@ export const BottomTabs: React.FC = () => {
   return (
     <nav
       className="fixed bottom-0 left-0 z-50 w-full border-t border-white/10 bg-black/60 backdrop-blur-lg"
+      style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))' }}
       aria-label="Hauptnavigation"
     >
-      <div className="mx-auto flex max-w-[560px] justify-between px-2 py-2 sm:px-4 sm:py-3">
+      <div className="mx-auto flex max-w-[560px] justify-between gap-0.5 px-1 py-2 sm:gap-1 sm:px-3 sm:py-3">
         {tabs.map((t) => (
-          <NavItem key={t.to} to={t.to} end={t.end} label={t.label} icon={t.icon} />
+          <NavItem key={t.to} to={t.to} end={t.end} label={t.label} emoji={t.emoji} />
         ))}
       </div>
     </nav>

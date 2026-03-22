@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSession } from "../auth/useSession";
 import { RequireFeature } from "../auth/rbac";
 import { Card, CardTitle } from "../app/components/ui/Card";
@@ -37,6 +37,72 @@ function parseJersey(value: string): number | null {
 /** Unique-Constraint für Trikot pro team_season (Postgres + ggf. Constraint-Name). */
 function isJerseyDuplicateError(err: { code?: string; message?: string }): boolean {
   return err.code === "23505" || (err.message ?? "").includes("players_unique_jersey_per_teamseason");
+}
+
+/** Read-only: Rollenverteilung aus memberships (MVP). */
+function TeamMembershipRolesCard({ teamSeasonId }: { teamSeasonId: string | null }) {
+  const [rows, setRows] = useState<Array<{ role: string }>>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!teamSeasonId) {
+      setRows([]);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    void supabase
+      .from("memberships")
+      .select("role")
+      .eq("team_season_id", teamSeasonId)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        setLoading(false);
+        if (error) {
+          setRows([]);
+          return;
+        }
+        setRows((data ?? []) as Array<{ role: string }>);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [teamSeasonId]);
+
+  const counts = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const r of rows) {
+      const key = String(r.role ?? "").trim() || "—";
+      m[key] = (m[key] ?? 0) + 1;
+    }
+    return m;
+  }, [rows]);
+
+  if (!teamSeasonId) return null;
+
+  return (
+    <Card>
+      <CardTitle className="mt-0">Team & Rollen</CardTitle>
+      <p className="mt-1 text-xs text-[var(--muted)]">Mitgliedschafts-Rollen (Lesen)</p>
+      {loading && <p className="mt-2 text-sm text-[var(--muted)]">Laden…</p>}
+      {!loading && rows.length === 0 && (
+        <p className="mt-2 text-sm text-[var(--muted)]">Keine Einträge.</p>
+      )}
+      {!loading && rows.length > 0 && (
+        <ul className="mt-2 space-y-1.5 text-sm">
+          {Object.entries(counts).map(([raw, n]) => {
+            const nr = normalizeRole(raw);
+            return (
+              <li key={raw} className="flex justify-between gap-2 border-b border-[var(--border)]/40 pb-1 last:border-0">
+                <span>{roleLabel(nr || raw)}</span>
+                <span className="text-[var(--muted)]">{n}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Card>
+  );
 }
 
 export const TeamPage: React.FC = () => {
@@ -232,6 +298,8 @@ export const TeamPage: React.FC = () => {
           </p>
         )}
       </Card>
+
+      <TeamMembershipRolesCard teamSeasonId={teamSeasonId} />
 
       {/* Kader Card */}
       <Card>

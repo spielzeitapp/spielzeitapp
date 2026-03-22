@@ -125,6 +125,11 @@ function InternalRoutes(): React.ReactElement {
   return (
     <Routes>
       <Route path="app.html" element={<Navigate to="/app" replace />} />
+      {/* Kurz-URLs → interne App */}
+      <Route path="/home" element={<Navigate to="/app/home" replace />} />
+      <Route path="/team" element={<Navigate to="/app/team" replace />} />
+      <Route path="/termine" element={<Navigate to="/app/termine" replace />} />
+      <Route path="/mehr" element={<Navigate to="/app/mehr" replace />} />
       <Route path="/" element={<Navigate to="/app" replace />} />
       <Route path="login" element={<LoginPage />} />
       <Route path="register" element={<RegisterPage />} />

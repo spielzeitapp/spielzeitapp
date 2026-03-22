@@ -55,10 +55,10 @@ function formatDt(iso: string | null): string {
 }
 
 export const AppHomePage: React.FC = () => {
-  const { teamSeasonId, loading: tsLoading } = useActiveTeamSeason();
+  const { selectedTeamSeasonId: teamSeasonId, loading: sessionLoading, effectiveRole, selectedTeamSeason } =
+    useSession();
   const { events, loading: evLoading } = useEvents(teamSeasonId);
   const { session } = useAuth();
-  const { selectedTeamSeason, effectiveRole } = useSession();
   const teamId = selectedTeamSeason?.team?.id ?? null;
 
   const [notifs, setNotifs] = useState<NotificationRow[]>([]);
