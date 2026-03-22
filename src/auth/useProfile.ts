@@ -32,12 +32,13 @@ export function useProfile(userId: string | undefined | null): {
     setLoading(true);
     setError(null);
 
-    supabase
-      .from('profiles')
-      .select('id, first_name, last_name, is_admin')
-      .eq('id', userId)
-      .maybeSingle()
-      .then(({ data, error: err }) => {
+    void (async () => {
+      try {
+        const { data, error: err } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, is_admin')
+          .eq('id', userId)
+          .maybeSingle();
         if (cancelled) return;
         setLoading(false);
         if (err) {
@@ -46,7 +47,14 @@ export function useProfile(userId: string | undefined | null): {
           return;
         }
         setProfile((data as ProfileRow) ?? null);
-      });
+      } catch (e: unknown) {
+        if (cancelled) return;
+        console.error('[useProfile] profile fetch failed', e);
+        setLoading(false);
+        setError(e instanceof Error ? e.message : String(e));
+        setProfile(null);
+      }
+    })();
 
     return () => {
       cancelled = true;

@@ -474,6 +474,17 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, [authUser?.id]);
 
+  /** Falls Membership-Fetch hängt: nach 15s Loading beenden (RequireAuth hat zusätzlich Bypass). */
+  useEffect(() => {
+    if (!authUser || !membershipLoading) return;
+    const t = window.setTimeout(() => {
+      console.warn('[useSession] membership load safety timeout — forcing membershipLoading false');
+      setMembershipLoading(false);
+      setMembershipError((prev) => prev ?? 'Zeitüberschreitung beim Laden der Team-Daten.');
+    }, 15000);
+    return () => window.clearTimeout(t);
+  }, [authUser?.id, membershipLoading]);
+
   const setRole = (next: Role) => {
     try {
       window.localStorage.setItem(LOCAL_STORAGE_KEY_ROLE, next);
@@ -494,7 +505,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const setSelectedTeamSeasonId = (id: string | null) => {
     setSelectedTeamSeasonIdState(id === '' || id == null ? null : id);
     try {
-      if (id !== '') {
+      if (id != null && id !== '') {
         window.localStorage.setItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID, id);
       } else {
         window.localStorage.removeItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID);
