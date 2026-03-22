@@ -1,5 +1,6 @@
 /**
  * Vercel: POST /api/notifications/dispatch
+ * Header-Zugriff via getHeader (typ-sicher für x-forwarded/host/proto).
  */
 import { handleNotificationDispatch } from '../../lib/notificationDispatchHandler';
 

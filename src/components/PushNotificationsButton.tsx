@@ -36,6 +36,7 @@ type Props = {
 /**
  * Web Push: NEXT_PUBLIC_VAPID_PUBLIC_KEY → Permission → /sw.js → subscribe → POST /api/push/subscribe
  * Server (Vercel): VAPID_PRIVATE_KEY, VAPID_SUBJECT, SUPABASE_SERVICE_ROLE_KEY
+ * Client-ENV muss beim Build gesetzt sein (Vercel: Redeploy nach Setzen von NEXT_PUBLIC_*).
  */
 export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
   const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() || '';
