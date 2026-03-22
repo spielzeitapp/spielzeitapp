@@ -307,12 +307,18 @@ export const PushNotificationsButton: React.FC<Props> = ({
           )}
 
           <div className="mt-4 flex flex-col gap-2">
+            {/* Aktivieren: Grün (positiv); Deaktivieren: rot / destruktiv – nicht primary (rot) für Aktivieren */}
             <Button
               type="button"
-              variant={isActive ? 'secondary' : 'primary'}
+              variant="ghost"
               fullWidth
               disabled={busy || (!pushReady && !isActive)}
               onClick={() => void (isActive ? onDeactivate() : onActivate())}
+              className={
+                isActive
+                  ? '!border-2 !border-red-500/65 !bg-red-950/40 !text-red-100 hover:!bg-red-900/50 focus-visible:!shadow-[0_0_0_2px_rgba(239,68,68,0.35)]'
+                  : '!border-0 !bg-gradient-to-br !from-emerald-600 !to-green-800 !text-white hover:!from-emerald-500 hover:!to-green-700 focus-visible:!shadow-[0_0_0_2px_rgba(16,185,129,0.45)]'
+              }
             >
               {primaryButtonLabel}
             </Button>
@@ -325,6 +331,7 @@ export const PushNotificationsButton: React.FC<Props> = ({
                   fullWidth
                   disabled={testPushLoading}
                   onClick={() => void onTestPush()}
+                  className="!border-white/20 !bg-zinc-800/60 !text-zinc-200 hover:!bg-zinc-700/70"
                 >
                   {testPushLoading ? 'Wird gesendet…' : 'Test Push senden'}
                 </Button>

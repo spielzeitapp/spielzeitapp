@@ -50,6 +50,12 @@ export const ProfilePage: React.FC = () => {
   /** Echte Admin-Ansicht: kein Rollen-Preview (parent/player/trainer …). */
   const currentUIView = effectiveRole;
   const isAdminToolsVisible = backendRole === 'admin' && currentUIView === 'admin';
+  /** Push-Bereich für typische Team-Views + echte Admin-Ansicht (nicht nur Parent). */
+  const showPushSection =
+    effectiveRole === 'parent' ||
+    effectiveRole === 'player' ||
+    effectiveRole === 'trainer' ||
+    effectiveRole === 'admin';
   const selectedTeamName = getTeamName(selectedTeamSeason);
   const email = authUser?.email ?? user?.name ?? '–';
   const displayNameStr = displayName(profile, authUser?.email ?? undefined);
@@ -188,7 +194,7 @@ export const ProfilePage: React.FC = () => {
           Team: <span className="font-medium text-[var(--text-main)]">{selectedTeamName}</span>
         </p>
 
-        {effectiveRole === 'parent' && (
+        {showPushSection && (
           <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
             <PushNotificationsButton isAdminToolsVisible={isAdminToolsVisible} />
           </div>
