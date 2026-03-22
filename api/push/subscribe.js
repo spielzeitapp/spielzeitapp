@@ -1,3 +1,10 @@
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 export default async function handler(req, res) {
   try {
     if (req.method !== "POST") {
@@ -24,17 +31,38 @@ export default async function handler(req, res) {
       });
     }
 
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return res.status(500).json({
+        ok: false,
+        step: "supabase",
+        error: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY"
+      });
+    }
+
+    const { error } = await supabase.from("push_subscriptions").insert({
+      user_id: body.user_id || null,
+      endpoint,
+      p256dh,
+      auth,
+      user_agent: req.headers["user-agent"] || null
+    });
+
+    if (error) {
+      return res.status(500).json({
+        ok: false,
+        step: "supabase",
+        error: error.message || String(error)
+      });
+    }
+
     return res.status(200).json({
       ok: true,
-      step: "working",
-      endpointPreview: endpoint.slice(0, 40),
-      hasP256dh: !!p256dh,
-      hasAuth: !!auth
+      step: "saved"
     });
   } catch (err) {
     return res.status(500).json({
       ok: false,
-      step: "catch",
+      step: "supabase",
       error: err?.message || String(err)
     });
   }
