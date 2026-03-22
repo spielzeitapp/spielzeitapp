@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AppBackground } from './AppBackground';
 import { Header } from './Header';
-import { BottomTabs } from '../components/BottomTabs';
+import { BottomNav } from '../components/BottomNav';
 import { AppFab } from '../components/AppFab';
 import { TopNav } from '../components/TopNav';
 import { useIsTouchLayout } from '../../hooks/useMediaQuery';
@@ -14,7 +14,7 @@ import { supabase } from '../../lib/supabaseClient';
 
 /**
  * Layout für den internen Bereich /app/*.
- * Immer mit Header, TopNav/BottomTabs (keine öffentliche Reduktion).
+ * Immer mit Header, TopNav/BottomNav (keine öffentliche Reduktion).
  *
  * E2E Parent flow:
  * - First time: register → /app → role-choice → parent-onboarding (team + child) → set-password → schedule.
@@ -105,7 +105,7 @@ export const InternalLayout: React.FC = () => {
         </main>
       </div>
 
-      {isTouchLayout ? <BottomTabs /> : null}
+      {isTouchLayout ? <BottomNav /> : null}
       {isTouchLayout ? <AppFab /> : null}
     </AppBackground>
   );

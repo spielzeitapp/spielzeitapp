@@ -11,7 +11,7 @@ import { SchedulePage } from '../pages/SchedulePage';
 import { CalendarPage } from '../pages/CalendarPage';
 import { TermineLayout } from '../pages/TermineLayout';
 import { MoreLayout } from '../pages/MoreLayout';
-import { MoreHubPage } from '../pages/MoreHubPage';
+import { MorePage } from '../pages/MorePage';
 import { ParentOnboardingPage } from '../pages/ParentOnboardingPage';
 import { PlayerOnboardingPage } from '../pages/PlayerOnboardingPage';
 import { RoleChoicePage } from '../pages/RoleChoicePage';
@@ -130,6 +130,7 @@ function InternalRoutes(): React.ReactElement {
       <Route path="/team" element={<Navigate to="/app/team" replace />} />
       <Route path="/termine" element={<Navigate to="/app/termine" replace />} />
       <Route path="/mehr" element={<Navigate to="/app/mehr" replace />} />
+      <Route path="/more" element={<Navigate to="/app/mehr" replace />} />
       <Route path="/" element={<Navigate to="/app" replace />} />
       <Route path="login" element={<LoginPage />} />
       <Route path="register" element={<RegisterPage />} />
@@ -139,7 +140,7 @@ function InternalRoutes(): React.ReactElement {
       <Route path="app" element={<RequireAuth><InternalLayout /></RequireAuth>}>
         <Route index element={<AppIndexRedirect />} />
         <Route path="home" element={<AppHomePage />} />
-        <Route path="termine" element={<TermineLayout />}>
+        <Route path="termine" element={<TerminePage />}>
           <Route index element={<SchedulePage />} />
           <Route path="calendar" element={<CalendarPage />} />
         </Route>
@@ -156,7 +157,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="team" element={<TeamPage />} />
         <Route path="table" element={<TablePage />} />
         <Route path="mehr" element={<MoreLayout />}>
-          <Route index element={<MoreHubPage />} />
+          <Route index element={<MorePage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>

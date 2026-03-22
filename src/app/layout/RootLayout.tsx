@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { AppBackground } from './AppBackground';
-import { BottomTabs } from '../components/BottomTabs';
+import { BottomNav } from '../components/BottomNav';
 import { TeamSwitcher } from '../components/TeamSwitcher';
 import { RoleSwitcherDev } from '../components/RoleSwitcherDev';
 
@@ -29,7 +29,7 @@ export const RootLayout: React.FC = () => {
           <Outlet />
         </main>
 
-        <BottomTabs />
+        <BottomNav />
       </div>
     </AppBackground>
   );

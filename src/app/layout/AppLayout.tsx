@@ -2,11 +2,11 @@ import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AppBackground } from './AppBackground';
 import { Header } from './Header';
-import { BottomTabs } from '../components/BottomTabs';
+import { BottomNav } from '../components/BottomNav';
 import { TopNav } from '../components/TopNav';
 import { useIsTouchLayout } from '../../hooks/useMediaQuery';
 
-/** Öffentliche MVP-Routen: keine Header/TopNav/BottomTabs. */
+/** Öffentliche MVP-Routen: keine Header/TopNav/BottomNav. */
 function isPublicMvpRoute(pathname: string): boolean {
   return pathname === '/' || pathname === '/schedule' || pathname === '/live';
 }
@@ -29,7 +29,7 @@ export const AppLayout: React.FC = () => {
         </main>
       </div>
 
-      {!publicMvp && (isTouchLayout ? <BottomTabs /> : null)}
+      {!publicMvp && (isTouchLayout ? <BottomNav /> : null)}
     </AppBackground>
   );
 };

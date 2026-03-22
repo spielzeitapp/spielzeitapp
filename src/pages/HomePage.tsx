@@ -13,6 +13,9 @@ export const HomePage: React.FC = () => {
       }}
     >
       <div className="relative z-10 flex w-full max-w-[400px] flex-col items-center gap-6 text-center">
+        <p className="w-full text-center text-[10px] font-bold uppercase tracking-[0.25em] text-red-400">
+          NAV UPDATE ACTIVE
+        </p>
         <img
           src={logo}
           alt=""

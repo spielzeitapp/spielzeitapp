@@ -143,6 +143,9 @@ export const AppHomePage: React.FC = () => {
       }}
     >
       <div className="mx-auto max-w-[560px] space-y-4">
+        <p className="text-center text-[10px] font-bold uppercase tracking-[0.25em] text-red-400">
+          NAV UPDATE ACTIVE
+        </p>
         <h1 className="text-2xl font-bold tracking-tight text-white">Home</h1>
         <p className="text-sm text-white/60">Dein Überblick</p>
 
