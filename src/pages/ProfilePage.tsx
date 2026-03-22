@@ -1,6 +1,6 @@
 import React, { ChangeEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useSession } from '../auth/useSession';
+import { useSession, PREVIEW_ROLE_STORAGE_KEY } from '../auth/useSession';
 import { useAuth } from '../auth/AuthProvider';
 import { useProfile, displayName } from '../auth/useProfile';
 import { supabase } from '../lib/supabaseClient';
@@ -150,6 +150,11 @@ export const ProfilePage: React.FC = () => {
 
   const handleResetPreview = () => {
     setPreviewRole(null);
+    try {
+      window.localStorage.removeItem(PREVIEW_ROLE_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
   };
 
   const handleSignOut = async () => {

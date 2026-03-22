@@ -115,7 +115,8 @@ export async function fetchUserRole(userId: string): Promise<Role | null> {
   return toRole(role) as Role;
 }
 
-const LOCAL_STORAGE_KEY_PREVIEW_ROLE = 'spz_preview_role';
+/** localStorage-Key für Preview-Rolle (Reset muss denselben Key löschen). */
+export const PREVIEW_ROLE_STORAGE_KEY = 'spz_preview_role';
 
 interface SessionContextValue {
   user: User | null;
@@ -157,7 +158,7 @@ const defaultTeamId = 'u11';
 
 function readPreviewRole(): string | null {
   try {
-    const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY_PREVIEW_ROLE);
+    const stored = window.localStorage.getItem(PREVIEW_ROLE_STORAGE_KEY);
     return stored ? toRole(stored) : null;
   } catch {
     return null;
@@ -197,46 +198,84 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   /** Anzeige-Backend-Rolle (global); erst nach Fetch gesetzt, sonst leer. */
   const backendRole = globalRole;
 
-  /** effectiveRole: normalisiert über toRole(), keine Altlasten (head_coach etc.) im UI.
-   *  WICHTIG: Ein nacktes Backend-'player' ohne Membership soll NICHT automatisch zur Spieler-UI führen.
-   *  Spieler-UI nur, wenn es eine Membership mit Rolle 'player' gibt oder der Nutzer explizit eine Preview-Rolle gewählt hat.
-   *  Pending-Spieler-Anfragen (join_requests.requested_role = 'player', status = 'pending') werden im UI wie Fan behandelt.
+  /**
+   * UI-Rolle (Badge, Tabs, …): strikt Preview ODER Membership zur aktiven team_season_id.
+   * user_roles (backendRole) steuert nur Admin-/Staff-Features, ersetzt keine Team-Rolle.
    */
   const effectiveRole = useMemo((): string => {
-    const normalizedBackend = roleFromUserRoles ? toRole(roleFromUserRoles) : null;
-    const normalizedPreview = previewRole ? toRole(previewRole) : null;
-    const normalizedMembership = selectedMembership?.role ? toRole(selectedMembership.role) : null;
+    const fromPreview = previewRole ? toRole(previewRole) : '';
+    if (fromPreview) {
+      return fromPreview;
+    }
 
-    // Admin behält immer mindestens Admin-Rechte, kann aber in der UI eine Testrolle wählen.
-    if (normalizedBackend === 'admin') return normalizedPreview ?? 'admin';
-
-    // Sonst: Preview > Membership > Backend (ohne nackten 'player'-Fallback).
-    // Wenn es keine Membership gibt und die globale Rolle nur 'player' ist,
-    // bleibt effectiveRole leer → RoleChoice / Onboarding übernimmt.
-    if (!normalizedMembership && normalizedBackend === 'player' && !normalizedPreview) {
+    if (authUser && membershipLoading) {
       return '';
     }
 
-    // Pending-Spieler-Anfrage: solange keine Membership 'player' existiert,
-    // wird der Nutzer im UI wie Fan behandelt (kein Spieler-Zugriff).
+    const fromMembership =
+      selectedMembership?.role && String(selectedMembership.role).trim() !== ''
+        ? toRole(selectedMembership.role)
+        : '';
+    if (fromMembership) {
+      return fromMembership;
+    }
+
+    // Ohne Team-Membership: pending Spieler-Anfrage → Fan-UI
     if (
       hasPendingPlayerRequest &&
-      !normalizedMembership &&
-      (normalizedPreview === 'player' || normalizedBackend === 'player')
+      memberships.length === 0 &&
+      roleFromUserRoles &&
+      toRole(roleFromUserRoles) === 'player'
     ) {
       return 'fan';
     }
 
-    return (normalizedPreview ?? normalizedMembership ?? normalizedBackend ?? '') || '';
-  }, [roleFromUserRoles, previewRole, selectedMembership?.role, hasPendingPlayerRequest]);
+    // Keine Memberships: nur dann globale Rolle (Fan/Admin ohne Team) — nicht zur Überschreibung einer Team-Rolle
+    if (memberships.length === 0) {
+      const g = roleFromUserRoles ? toRole(roleFromUserRoles) : null;
+      if (g === 'player') return '';
+      return (g ?? '') || '';
+    }
+
+    // Memberships vorhanden, aber keine Zeile für selectedTeamSeasonId → kein Fallback auf user_roles
+    return '';
+  }, [
+    authUser,
+    membershipLoading,
+    previewRole,
+    selectedMembership,
+    roleFromUserRoles,
+    hasPendingPlayerRequest,
+    memberships.length,
+  ]);
+
+  /** Temporäres Debug-Logging (nur DEV) */
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.log({
+      email: authUser?.email,
+      user_id: authUser?.id,
+      memberships,
+      selectedMembership,
+      previewRole,
+      finalRole: effectiveRole,
+    });
+  }, [
+    authUser?.email,
+    authUser?.id,
+    memberships,
+    selectedMembership,
+    previewRole,
+    effectiveRole,
+  ]);
 
   /** Speichert immer den Key (via toRole), nie deutsche Labels. */
   const setPreviewRole = useCallback((role: string | null) => {
     const key = role ? toRole(role) : null;
     setPreviewRoleState(key);
     try {
-      if (key) window.localStorage.setItem(LOCAL_STORAGE_KEY_PREVIEW_ROLE, key);
-      else window.localStorage.removeItem(LOCAL_STORAGE_KEY_PREVIEW_ROLE);
+      if (key) window.localStorage.setItem(PREVIEW_ROLE_STORAGE_KEY, key);
+      else window.localStorage.removeItem(PREVIEW_ROLE_STORAGE_KEY);
     } catch {
       // ignore
     }
@@ -255,6 +294,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!authUser) {
       setRoleFromUserRoles(null);
       setHasPendingPlayerRequest(false);
+      setPreviewRoleState(null);
+      try {
+        window.localStorage.removeItem(PREVIEW_ROLE_STORAGE_KEY);
+      } catch {
+        // ignore
+      }
       return;
     }
   }, [authUser]);
