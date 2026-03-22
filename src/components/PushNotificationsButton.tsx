@@ -37,6 +37,8 @@ type ApiSaveDebug = {
   backendStep?: string;
   backendError?: string;
   backendDetails?: string;
+  /** Volle/vollständige OK-JSON-Antwort vom Backend (Debug) */
+  backendResponseOkJson?: string;
 };
 
 type Props = {
@@ -268,6 +270,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         backendStep: backendStep ?? (res.ok ? 'ok' : undefined),
         backendError: undefined,
         backendDetails: undefined,
+        backendResponseOkJson: responseBodyText.slice(0, 1200),
       });
       setActivation('idle');
       await refreshDebug();
@@ -380,6 +383,11 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         <div className="break-all">backend error: {apiSaveDebug?.backendError ?? apiSaveDebug?.errorMessage ?? '—'}</div>
         {apiSaveDebug?.backendDetails ? (
           <div className="break-all text-[9px] opacity-90">backend details: {apiSaveDebug.backendDetails.slice(0, 400)}</div>
+        ) : null}
+        {apiSaveDebug?.result === 'ok' && apiSaveDebug.backendResponseOkJson ? (
+          <div className="mt-1 break-all text-[9px] text-emerald-200/90">
+            backend response (ok): {apiSaveDebug.backendResponseOkJson}
+          </div>
         ) : null}
       </div>
     </div>
