@@ -49,23 +49,34 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data && event.notification.data.url
-    ? event.notification.data.url
-    : '/app/schedule';
+
+  /** URL aus showNotification({ data: { url } }) – gleiches Format wie Push-Payload (z. B. /termine). */
+  const data = event.notification.data;
+  let path = '/app/schedule';
+  if (data && typeof data === 'object' && typeof data.url === 'string' && data.url.trim()) {
+    path = data.url.trim();
+  }
 
   event.waitUntil(
     (async () => {
+      const origin = self.location.origin;
+      const absolute = path.startsWith('http') ? path : origin + path;
+
       const list = await self.clients.matchAll({
         type: 'window',
         includeUncontrolled: true,
       });
-      const origin = self.location.origin;
-      const absolute = url.startsWith('http') ? url : origin + url;
 
       for (const client of list) {
-        if ('focus' in client && client.url.startsWith(origin)) {
-          await client.navigate(absolute);
-          return client.focus();
+        if (!('focus' in client) || !client.url.startsWith(origin)) continue;
+        try {
+          if (typeof client.navigate === 'function') {
+            await client.navigate(absolute);
+          }
+          return await client.focus();
+        } catch {
+          /* navigate nicht unterstützt oder fehlgeschlagen → neues Fenster */
+          break;
         }
       }
       if (self.clients.openWindow) {

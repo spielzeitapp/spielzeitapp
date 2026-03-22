@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '../app/components/ui/Button';
+import { useAuth } from '../auth/AuthProvider';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -51,6 +52,7 @@ export const PushNotificationsButton: React.FC<Props> = ({
   className,
   isAdminToolsVisible = false,
 }) => {
+  const { user: authUser } = useAuth();
   const rawVapidKey = getVapidPublicKey();
   const vapidKey = rawVapidKey?.trim() ?? '';
   const hasVapidKey = vapidKey.length > 0;
@@ -76,6 +78,8 @@ export const PushNotificationsButton: React.FC<Props> = ({
     lastApiStatus?: number;
     lastBody?: string;
     lastStep?: string;
+    lastSent?: number;
+    lastFailed?: number;
   }>({});
 
   const syncFromBrowser = useCallback(async () => {
@@ -105,6 +109,13 @@ export const PushNotificationsButton: React.FC<Props> = ({
       }
     })();
   }, [syncFromBrowser]);
+
+  useEffect(() => {
+    if (!initDone || hasVapidKey) return;
+    console.warn(
+      '[SpielzeitApp] Push: VAPID public key fehlt. In Vercel setzen: VITE_VAPID_PUBLIC_KEY (und serverseitig VAPID_PRIVATE_KEY / VAPID_PUBLIC_KEY).',
+    );
+  }, [initDone, hasVapidKey]);
 
   const pushReady = browserOk && hasVapidKey && initDone;
 
@@ -146,13 +157,20 @@ export const PushNotificationsButton: React.FC<Props> = ({
         return;
       }
 
-      const payload = {
+      const payload: {
+        endpoint: string;
+        keys: { p256dh: string; auth: string };
+        user_id?: string;
+      } = {
         endpoint: json.endpoint,
         keys: {
           p256dh: json.keys.p256dh,
           auth: json.keys.auth,
         },
       };
+      if (authUser?.id) {
+        payload.user_id = authUser.id;
+      }
 
       const res = await fetch(PUSH_SUBSCRIBE_API, {
         method: 'POST',
@@ -181,7 +199,7 @@ export const PushNotificationsButton: React.FC<Props> = ({
       setLoading(false);
       setLoadingAction(null);
     }
-  }, [browserOk, hasVapidKey, vapidKey, syncFromBrowser, isAdminToolsVisible]);
+  }, [authUser?.id, browserOk, hasVapidKey, vapidKey, syncFromBrowser, isAdminToolsVisible]);
 
   const onDeactivate = useCallback(async () => {
     setLoading(true);
@@ -208,11 +226,12 @@ export const PushNotificationsButton: React.FC<Props> = ({
 
       const data = (await res.json()) as { ok?: boolean; step?: string; error?: string };
       if (isAdminToolsVisible) {
-        setDebugSnapshot({
+        setDebugSnapshot((prev) => ({
+          ...prev,
           lastApiStatus: res.status,
           lastBody: JSON.stringify(data).slice(0, 1500),
           lastStep: typeof data.step === 'string' ? data.step : undefined,
-        });
+        }));
       }
 
       if (!res.ok || data.ok === false) {
@@ -237,7 +256,19 @@ export const PushNotificationsButton: React.FC<Props> = ({
     setTestPushMessage(null);
     try {
       const res = await fetch(PUSH_TEST_API, { method: 'POST' });
-      const data = (await res.json()) as { ok?: boolean };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        sent?: number;
+        failed?: number;
+      };
+      setDebugSnapshot((prev) => ({
+        ...prev,
+        lastApiStatus: res.status,
+        lastSent: typeof data.sent === 'number' ? data.sent : undefined,
+        lastFailed: typeof data.failed === 'number' ? data.failed : undefined,
+        lastBody: JSON.stringify(data).slice(0, 1500),
+        lastStep: 'test-broadcast',
+      }));
       if (res.ok && data.ok === true) {
         setTestPushMessage('Test Push gesendet');
       } else {
@@ -354,6 +385,9 @@ export const PushNotificationsButton: React.FC<Props> = ({
           <div>permission: {permission}</div>
           <div>subscriptionActive: {subscriptionActive ? 'yes' : 'no'}</div>
           <div>last API status: {debugSnapshot.lastApiStatus ?? '—'}</div>
+          <div>
+            sent / failed: {debugSnapshot.lastSent ?? '—'} / {debugSnapshot.lastFailed ?? '—'}
+          </div>
           <div>last step: {debugSnapshot.lastStep ?? '—'}</div>
           <div className="break-all opacity-90">last body: {debugSnapshot.lastBody ?? '—'}</div>
         </div>

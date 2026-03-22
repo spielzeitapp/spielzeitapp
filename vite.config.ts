@@ -4,8 +4,8 @@ import { resolve } from "path";
 
 /**
  * Vite exponiert Client-Env nur als import.meta.env.VITE_*.
- * Vercel liefert oft NEXT_PUBLIC_VAPID_PUBLIC_KEY – zur Build-Zeit einbetten,
- * damit process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY im Bundle gesetzt ist.
+ * Vercel: VITE_VAPID_PUBLIC_KEY (und optional NEXT_PUBLIC_VAPID_PUBLIC_KEY) setzen;
+ * Server-API: VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY / NEXT_PUBLIC_VAPID_PUBLIC_KEY.
  */
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -23,10 +23,24 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [react()],
     build: {
+      /** Vite-Standard-Warnung bei großen Bundles (harmlos für Deploy) */
+      chunkSizeWarningLimit: 2000,
       rollupOptions: {
         input: {
           main: resolve(__dirname, "index.html"),
           app: resolve(__dirname, "app.html"),
+        },
+        onwarn(warning, defaultHandler) {
+          if (
+            warning.code === "EMPTY_CHUNK" ||
+            warning.code === "MODULE_LEVEL_DIRECTIVE" ||
+            (typeof warning.message === "string" &&
+              (warning.message.includes("chunk") ||
+                warning.message.includes("Chunk")))
+          ) {
+            return;
+          }
+          defaultHandler(warning);
         },
       },
     },

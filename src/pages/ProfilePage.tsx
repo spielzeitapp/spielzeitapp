@@ -6,6 +6,7 @@ import { useProfile, displayName } from '../auth/useProfile';
 import { supabase } from '../lib/supabaseClient';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { PushNotificationsButton } from '../components/PushNotificationsButton';
+import { PushTeamSendPanel } from '../components/PushTeamSendPanel';
 
 const PREVIEW_ROLE_OPTIONS = ['fan', 'parent', 'player', 'trainer', 'co_trainer', 'head_coach', 'admin'] as const;
 
@@ -37,6 +38,7 @@ export const ProfilePage: React.FC = () => {
     previewRole,
     setPreviewRole,
     selectedTeamSeason,
+    selectedTeamSeasonId,
     signOut,
     hasPendingPlayerRequest,
   } = useSession();
@@ -197,6 +199,12 @@ export const ProfilePage: React.FC = () => {
         {showPushSection && (
           <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
             <PushNotificationsButton isAdminToolsVisible={isAdminToolsVisible} />
+          </div>
+        )}
+
+        {showTeamPushSend && (
+          <div className="mt-3">
+            <PushTeamSendPanel teamSeasonId={selectedTeamSeasonId} />
           </div>
         )}
 
