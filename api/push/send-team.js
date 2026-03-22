@@ -48,6 +48,24 @@ function isGoneSubscriptionStatus(statusCode) {
   return statusCode === 404 || statusCode === 410;
 }
 
+function endpointPreview(endpoint, maxLen = 72) {
+  if (!endpoint || typeof endpoint !== "string") return "";
+  const t = endpoint.trim();
+  if (t.length <= maxLen) return t;
+  return `${t.slice(0, maxLen)}…`;
+}
+
+function safeErrorBody(err) {
+  if (err == null || err.body == null) return undefined;
+  let s;
+  if (typeof err.body === "string") s = err.body;
+  else if (typeof Buffer !== "undefined" && Buffer.isBuffer(err.body))
+    s = err.body.toString("utf8");
+  else s = String(err.body);
+  if (s.length > 2000) return `${s.slice(0, 2000)}…`;
+  return s;
+}
+
 async function deleteSubscriptionByEndpoint(supabase, endpoint) {
   if (!endpoint || typeof endpoint !== "string") return;
   const { error } = await supabase
@@ -201,6 +219,13 @@ export default async function handler(req, res) {
       ),
     ];
 
+    /** user_id → Team-Rolle (memberships) für diese Saison */
+    const userIdToRole = new Map();
+    for (const m of memRows || []) {
+      const r = normalizeMembershipRole(m.role);
+      if (m.user_id && r) userIdToRole.set(m.user_id, r);
+    }
+
     if (userIds.length === 0) {
       return res.status(200).json({
         ok: true,
@@ -208,6 +233,7 @@ export default async function handler(req, res) {
         totalRecipients: 0,
         sent: 0,
         failed: 0,
+        results: [],
       });
     }
 
@@ -237,10 +263,17 @@ export default async function handler(req, res) {
         totalRecipients: 0,
         sent: 0,
         failed: 0,
+        results: [],
       });
     }
 
     ensureVapid();
+
+    const vapidSubject = process.env.VAPID_SUBJECT || "mailto:team@spielzeitapp.at";
+    const hasPublicKey = !!(
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VAPID_PUBLIC_KEY
+    );
+    const hasPrivateKey = !!process.env.VAPID_PRIVATE_KEY;
 
     const payload = JSON.stringify({
       title,
@@ -248,10 +281,46 @@ export default async function handler(req, res) {
       url,
     });
 
+    console.log("[push/send-team] vapid subject:", vapidSubject);
+    console.log("[push/send-team] vapid keys present:", {
+      public: hasPublicKey,
+      private: hasPrivateKey,
+    });
+    console.log("[push/send-team] payload JSON:", payload);
+    console.log("[push/send-team] recipient count:", rows.length);
+
+    const uniqueUids = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
+    const emailMap = new Map();
+    await Promise.all(
+      uniqueUids.map(async (uid) => {
+        try {
+          const { data: uData, error: uErr } =
+            await supabase.auth.admin.getUserById(uid);
+          if (!uErr && uData?.user?.email) {
+            emailMap.set(uid, uData.user.email);
+          }
+        } catch (e) {
+          console.warn("[push/send-team] getUserById failed for", uid, e?.message || e);
+        }
+      }),
+    );
+
+    const results = [];
     let sent = 0;
     let failed = 0;
 
     for (const row of rows) {
+      const uid = row.user_id;
+      const email = emailMap.get(uid) ?? null;
+      const role = userIdToRole.get(uid) ?? null;
+      const epPrev = endpointPreview(row.endpoint);
+
+      const baseResult = {
+        email,
+        role,
+        endpointPreview: epPrev,
+      };
+
       try {
         await webpush.sendNotification(
           {
@@ -262,12 +331,24 @@ export default async function handler(req, res) {
           { TTL: 3600 },
         );
         sent += 1;
+        results.push({
+          ...baseResult,
+          success: true,
+        });
       } catch (err) {
         failed += 1;
         const statusCode = getPushFailureStatusCode(err);
+        const bodyStr = safeErrorBody(err);
         if (isGoneSubscriptionStatus(statusCode)) {
           await deleteSubscriptionByEndpoint(supabase, row.endpoint);
         }
+        results.push({
+          ...baseResult,
+          success: false,
+          statusCode: statusCode ?? null,
+          error: err?.message ? String(err.message) : String(err),
+          body: bodyStr,
+        });
       }
     }
 
@@ -277,6 +358,7 @@ export default async function handler(req, res) {
       totalRecipients,
       sent,
       failed,
+      results,
     });
   } catch (err) {
     console.error("[push/send-team] full error:", err);
