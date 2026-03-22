@@ -31,14 +31,50 @@ type Props = {
 };
 
 /**
- * Web Push: NEXT_PUBLIC_VAPID_PUBLIC_KEY → Permission → /sw.js → subscribe → POST /api/push/subscribe
+ * Web Push: VAPID public key → Permission → /sw.js → subscribe → POST /api/push/subscribe
+ * Vite-Build: Key kommt aus vite.config define (NEXT_PUBLIC_* oder VITE_* zur Build-Zeit).
  * Server (Vercel): VAPID_PRIVATE_KEY, VAPID_SUBJECT, SUPABASE_SERVICE_ROLE_KEY
- * Client-ENV muss beim Build gesetzt sein (Vercel: Redeploy nach Setzen von NEXT_PUBLIC_*).
  */
+function getVapidPublicKey(): string {
+  const fromProcess =
+    typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_VAPID_PUBLIC_KEY != null
+      ? String(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY).trim()
+      : '';
+  if (fromProcess.length > 0) return fromProcess;
+  const fromVite = typeof import.meta !== 'undefined' && import.meta.env?.VITE_VAPID_PUBLIC_KEY != null
+    ? String(import.meta.env.VITE_VAPID_PUBLIC_KEY).trim()
+    : '';
+  return fromVite;
+}
+
+/** Laufzeit: Vite (kein Next.js in diesem Repo). */
+function detectFrontendRuntime(): 'vite' | 'next' | 'unknown' {
+  if (typeof import.meta !== 'undefined' && import.meta.env && 'MODE' in import.meta.env) {
+    return 'vite';
+  }
+  if (typeof process !== 'undefined' && process.env && process.env.NEXT_RUNTIME != null) {
+    return 'next';
+  }
+  return 'unknown';
+}
+
 export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
-  const rawVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const rawVapidKey = getVapidPublicKey();
   const vapidKey = rawVapidKey?.trim() || '';
   const hasVapidKey = vapidKey.length > 0;
+
+  const frontendRuntime = detectFrontendRuntime();
+  const envSourceLabel =
+    typeof process !== 'undefined' &&
+    process.env &&
+    typeof process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY === 'string' &&
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY.trim().length > 0
+      ? 'process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY (Vite define)'
+      : typeof import.meta !== 'undefined' &&
+          import.meta.env?.VITE_VAPID_PUBLIC_KEY != null &&
+          String(import.meta.env.VITE_VAPID_PUBLIC_KEY).length > 0
+        ? 'import.meta.env.VITE_VAPID_PUBLIC_KEY'
+        : 'none (key missing at build time)';
 
   const [browserOk, setBrowserOk] = useState(true);
   const [initDone, setInitDone] = useState(false);
@@ -224,6 +260,13 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
       <div className="mt-3 rounded-md border border-amber-500/40 bg-amber-950/30 px-3 py-2 font-mono text-[10px] leading-relaxed text-amber-100/90">
         <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-amber-400">
           Push ENV (temporär)
+        </div>
+        <div>frontend type detected: {frontendRuntime}</div>
+        <div>env source used: {envSourceLabel}</div>
+        <div>
+          build target: MODE={typeof import.meta !== 'undefined' ? import.meta.env?.MODE : '—'} | PROD=
+          {typeof import.meta !== 'undefined' ? String(import.meta.env?.PROD) : '—'} | BASE_URL=
+          {typeof import.meta !== 'undefined' ? import.meta.env?.BASE_URL : '—'}
         </div>
         <div>ENV key present: {hasVapidKey ? 'yes' : 'no'}</div>
         <div>ENV key length: {vapidKey.length}</div>
