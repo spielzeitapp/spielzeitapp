@@ -1,55 +1,42 @@
-/**
- * POST /api/push/subscribe — stabil ohne Supabase (temporär).
- */
-
-type VercelLikeReq = {
-  method?: string;
-  headers?: Record<string, string | string[] | undefined>;
-  body?: unknown;
-};
-
-type VercelLikeRes = {
-  status: (code: number) => { json: (data: unknown) => void };
-};
-
-export default async function handler(req: VercelLikeReq, res: VercelLikeRes): Promise<void> {
-  let step = 'start';
-
+export default async function handler(req, res) {
   try {
-    step = 'parse_body';
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    let step = "start";
 
-    step = 'validate';
-    const { endpoint, keys } = (body || {}) as {
-      endpoint?: unknown;
-      keys?: { p256dh?: unknown; auth?: unknown };
-    };
-
-    if (!endpoint || !keys?.p256dh || !keys?.auth) {
-      res.status(400).json({
-        ok: false,
-        step,
-        error: 'Invalid subscription payload',
-        body,
-      });
-      return;
+    if (req.method !== "POST") {
+      return res.status(405).json({ ok: false, error: "Method not allowed" });
     }
 
-    const endpointStr = typeof endpoint === 'string' ? endpoint : String(endpoint);
+    step = "parse_body";
+
+    const body =
+      typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+
+    step = "validate";
+
+    const endpoint = body?.endpoint;
+    const p256dh = body?.keys?.p256dh;
+    const auth = body?.keys?.auth;
+
+    if (!endpoint || !p256dh || !auth) {
+      return res.status(400).json({
+        ok: false,
+        step,
+        error: "Invalid payload",
+        body
+      });
+    }
 
     return res.status(200).json({
       ok: true,
-      step: 'parsed-only',
-      endpointPreview: endpointStr.slice(0, 40),
-      hasKeys: true,
+      step: "working",
+      endpointPreview: endpoint.slice(0, 40)
     });
+
   } catch (err) {
-    const e = err instanceof Error ? err : new Error(String(err));
-    res.status(500).json({
+    return res.status(500).json({
       ok: false,
-      step,
-      error: e.message || 'unknown',
-      stack: e.stack,
+      error: err.message || "unknown",
+      stack: err.stack || null
     });
   }
 }
