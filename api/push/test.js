@@ -32,6 +32,25 @@ function isGoneSubscriptionStatus(statusCode) {
   return statusCode === 404 || statusCode === 410;
 }
 
+/** Kurze Lesbarkeit für Push-HTTP-Fehler (ergänzt err.message). */
+function describePushError(err, statusCode) {
+  if (statusCode === 404) return "Not Found";
+  if (statusCode === 410) return "Gone";
+  if (err && typeof err.message === "string" && err.message.trim()) {
+    return err.message.trim();
+  }
+  if (err) return String(err);
+  return "Unknown error";
+}
+
+/** Endpunkt gekürzt für Logs/JSON (kein voller Secret-Leak). */
+function endpointPreview(endpoint) {
+  if (!endpoint || typeof endpoint !== "string") return "(no endpoint)";
+  const s = endpoint.trim();
+  if (s.length <= 120) return s;
+  return `${s.slice(0, 120)}…`;
+}
+
 /** Ungültige / abgelaufene Subscriptions entfernen (Push-Dienst meldet Gone/Not Found). */
 async function deleteSubscriptionByEndpoint(supabase, endpoint) {
   if (!endpoint || typeof endpoint !== "string") return;
@@ -91,14 +110,25 @@ export default async function handler(req, res) {
 
     let sent = 0;
     let failed = 0;
+    /** @type {Array<{ endpointPreview: string, success: boolean, statusCode?: number | null, error?: string | null }>} */
+    const results = [];
 
     for (const row of rows || []) {
+      const preview = endpointPreview(row?.endpoint);
+
       if (!row?.endpoint || !row?.p256dh || !row?.auth) {
         failed += 1;
+        results.push({
+          endpointPreview: preview,
+          success: false,
+          statusCode: null,
+          error: "Missing endpoint, p256dh, or auth in row",
+        });
         continue;
       }
+
       try {
-        await webpush.sendNotification(
+        const sendResult = await webpush.sendNotification(
           {
             endpoint: row.endpoint,
             keys: { p256dh: row.p256dh, auth: row.auth },
@@ -107,16 +137,33 @@ export default async function handler(req, res) {
           { TTL: 3600 }
         );
         sent += 1;
+        const okCode =
+          sendResult && typeof sendResult.statusCode === "number"
+            ? sendResult.statusCode
+            : null;
+        results.push({
+          endpointPreview: preview,
+          success: true,
+          statusCode: okCode,
+          error: null,
+        });
       } catch (err) {
         failed += 1;
         const statusCode = getPushFailureStatusCode(err);
+        const errMsg = describePushError(err, statusCode);
+        results.push({
+          endpointPreview: preview,
+          success: false,
+          statusCode: statusCode ?? null,
+          error: errMsg,
+        });
         if (isGoneSubscriptionStatus(statusCode)) {
           await deleteSubscriptionByEndpoint(supabase, row.endpoint);
         }
       }
     }
 
-    return res.status(200).json({ ok: true, sent, failed });
+    return res.status(200).json({ ok: true, sent, failed, results });
   } catch (err) {
     return res.status(500).json({
       ok: false,
