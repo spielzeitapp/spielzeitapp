@@ -3,12 +3,32 @@
  */
 import { handleNotificationDispatch } from '../../lib/notificationDispatchHandler';
 
+/** Vercel/Node: Header-Werte können string oder string[] sein */
+type IncomingHeaderRecord = Record<string, string | string[] | undefined>;
+
+function getHeader(
+  headers: Headers | IncomingHeaderRecord,
+  key: string,
+): string | undefined {
+  if (headers instanceof Headers) {
+    return headers.get(key) ?? headers.get(key.toLowerCase()) ?? undefined;
+  }
+  const lower = key.toLowerCase();
+  const direct = headers[key] ?? headers[lower];
+  if (direct == null) {
+    for (const [h, v] of Object.entries(headers)) {
+      if (h.toLowerCase() === lower) {
+        return Array.isArray(v) ? v[0] : v;
+      }
+    }
+    return undefined;
+  }
+  return Array.isArray(direct) ? direct[0] : direct;
+}
+
 type VercelLikeReq = {
   method?: string;
-  headers: {
-    authorization?: string;
-    'x-cron-secret'?: string;
-  };
+  headers: IncomingHeaderRecord;
   body?: unknown;
 };
 
@@ -22,22 +42,23 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
     return;
   }
 
-  const host = (req.headers['x-forwarded-host'] || req.headers.host) as string | undefined;
-  const proto = (req.headers['x-forwarded-proto'] as string) || 'https';
-  const url = `${proto}://${host ?? 'localhost'}/api/notifications/dispatch`;
+  const host =
+    getHeader(req.headers, 'x-forwarded-host') ?? getHeader(req.headers, 'host') ?? 'localhost';
+  const proto = getHeader(req.headers, 'x-forwarded-proto') ?? 'https';
+  const url = `${proto}://${host}/api/notifications/dispatch`;
 
   const bodyStr =
     typeof req.body === 'string' ? req.body : req.body != null ? JSON.stringify(req.body) : '{}';
 
-  const headers = new Headers();
-  const auth = req.headers.authorization;
-  if (auth) headers.set('authorization', auth);
-  const xs = req.headers['x-cron-secret'];
-  if (xs) headers.set('x-cron-secret', xs);
+  const forwardHeaders = new Headers();
+  const auth = getHeader(req.headers, 'authorization');
+  if (auth) forwardHeaders.set('authorization', auth);
+  const xs = getHeader(req.headers, 'x-cron-secret');
+  if (xs) forwardHeaders.set('x-cron-secret', xs);
 
   const request = new Request(url, {
     method: 'POST',
-    headers,
+    headers: forwardHeaders,
     body: bodyStr,
   });
 

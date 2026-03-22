@@ -4,6 +4,7 @@ import { buildGameReminderBody, buildTrainingReminderBody } from './format';
 import {
   getCanonicalEventType,
   getEventDisplayTitle,
+  getParticipationMode,
   type RawEventRow,
 } from './eventTypes';
 import {
