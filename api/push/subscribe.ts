@@ -262,42 +262,48 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
 
     step = 'save-subscription';
     const now = new Date().toISOString();
-    const row = {
+    const userAgentStr: string | null = ua == null ? null : String(ua);
+
+    console.log('Saving subscription', {
       user_id: userId,
-      endpoint: endpointStr,
-      p256dh: p256dhStr,
-      auth: authStr,
-      user_agent: ua ?? null,
-      is_active: true as const,
-      last_seen_at: now,
-      updated_at: now,
-    };
-
-    console.log('[push/subscribe] supabase write attempt', {
-      table: 'notification_subscriptions',
-      endpointPrefix: endpointStr.slice(0, 48),
+      endpoint: endpointStr.slice(0, 40),
+      hasKeys: Boolean(p256dhStr) && Boolean(authStr),
     });
 
-    const { error: upsertError } = await admin.from('notification_subscriptions').upsert(row, {
-      onConflict: 'endpoint',
-    });
+    const upsertPayload = [
+      {
+        user_id: userId,
+        endpoint: endpointStr,
+        p256dh: p256dhStr,
+        auth: authStr,
+        user_agent: userAgentStr,
+        is_active: true,
+        last_seen_at: now,
+        updated_at: now,
+      },
+    ] as any;
 
-    if (upsertError) {
-      console.error('[push/subscribe] supabase write result error', upsertError);
+    const { data, error } = await admin
+      .from('notification_subscriptions')
+      .upsert(upsertPayload, { onConflict: 'endpoint' })
+      .select('id');
+
+    if (error) {
+      console.error('[push/subscribe] supabase insert/upsert error', error);
       safeSendJson(res, 500, {
         ok: false,
-        step: 'save-subscription',
-        error: upsertError.message,
-        details: [upsertError.code, upsertError.details, upsertError.hint].filter(Boolean).join(' | ') || null,
+        step: 'supabase_insert',
+        error: error.message,
+        details: error,
       });
       return;
     }
 
-    console.log('[push/subscribe] supabase write ok');
+    console.log('[push/subscribe] supabase write ok', { id: data?.[0]?.id ?? null });
     safeSendJson(res, 200, {
       ok: true,
-      step: 'save-subscription',
-      saved: true,
+      step: 'saved',
+      id: data?.[0]?.id ?? null,
     });
   } catch (e) {
     const err = e instanceof Error ? e : new Error(String(e));
