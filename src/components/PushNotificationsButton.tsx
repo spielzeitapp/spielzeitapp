@@ -14,8 +14,9 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
-/** POST-Endpoint für gespeicherte Push-Subscription (gleiche Origin). */
+/** POST-Endpoints (gleiche Origin). */
 const PUSH_SUBSCRIBE_API = '/api/push/subscribe';
+const PUSH_UNSUBSCRIBE_API = '/api/push/unsubscribe';
 
 function permissionToLabel(perm: NotificationPermission): 'default' | 'granted' | 'denied' {
   if (perm === 'granted') return 'granted';
@@ -40,6 +41,8 @@ type ApiSaveDebug = {
   backendResponseOkJson?: string;
   /** Aus Backend-JSON `ok` */
   apiResult?: 'ok' | 'error' | '—';
+  /** Letzte API-Aktion (Debug) */
+  operation?: 'subscribe' | 'unsubscribe';
 };
 
 type Props = {
@@ -104,6 +107,9 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
     host: '',
     origin: '',
   });
+
+  /** Nach erfolgreichem Deaktivieren + Server-Löschen */
+  const [pushDeactivated, setPushDeactivated] = useState(false);
 
   const refreshDebug = useCallback(async () => {
     if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
@@ -241,6 +247,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
             backendError: backendError ?? undefined,
             backendDetails,
             apiResult: apiResult === '—' ? 'error' : apiResult,
+            operation: 'subscribe',
           });
         } else {
           setApiSaveDebug({
@@ -279,8 +286,88 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
     }
   }, [hasVapidKey, refreshDebug, vapidKey]);
 
+  const onDisablePush = useCallback(async () => {
+    setActivation('loading');
+    setApiSaveDebug(null);
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription) {
+        setPushDeactivated(true);
+        setApiSaveDebug({
+          result: 'ok',
+          statusCode: 200,
+          bodyText: 'no local subscription',
+          apiResult: 'ok',
+          operation: 'unsubscribe',
+          backendStep: 'skipped',
+        });
+        setActivation('idle');
+        await refreshDebug();
+        return;
+      }
+
+      const endpoint = subscription.endpoint;
+
+      await subscription.unsubscribe();
+
+      const res = await fetch(PUSH_UNSUBSCRIBE_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint }),
+      });
+
+      const data = (await res.json()) as { ok?: boolean; error?: string; step?: string };
+      const bodyText = JSON.stringify(data);
+
+      if (!res.ok || data.ok === false) {
+        setPushDeactivated(false);
+        setApiSaveDebug({
+          result: 'failed',
+          statusCode: res.status,
+          bodyText: bodyText.slice(0, 2000),
+          errorMessage: data.error ?? `HTTP ${res.status}`,
+          backendStep: data.step,
+          backendError: data.error,
+          apiResult: 'error',
+          operation: 'unsubscribe',
+        });
+      } else {
+        setPushDeactivated(true);
+        setApiSaveDebug({
+          result: 'ok',
+          statusCode: res.status,
+          bodyText: bodyText.slice(0, 800),
+          backendStep: data.ok ? 'saved' : undefined,
+          apiResult: 'ok',
+          operation: 'unsubscribe',
+          backendResponseOkJson: bodyText.slice(0, 1200),
+        });
+      }
+
+      setActivation('idle');
+      await refreshDebug();
+    } catch (err) {
+      console.error('Push unsubscribe failed:', err);
+      setPushDeactivated(false);
+      setApiSaveDebug({
+        result: 'failed',
+        statusCode: 0,
+        bodyText: err instanceof Error ? err.message : String(err),
+        errorMessage: err instanceof Error ? err.message : String(err),
+        apiResult: 'error',
+        operation: 'unsubscribe',
+      });
+      setActivation('idle');
+      await refreshDebug();
+    }
+  }, [refreshDebug]);
+
   const loading = !initDone || activation === 'loading';
   const disabled = !hasVapidKey || loading;
+  const disabledDeactivate = loading;
 
   const message = useMemo(() => {
     if (!hasVapidKey) {
@@ -291,6 +378,9 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
     }
     if (activation === 'browser_error') {
       return 'Aktivierung fehlgeschlagen (Browser/Push-Pipeline)';
+    }
+    if (pushDeactivated && subscriptionLabel === 'nicht aktiv') {
+      return 'Push deaktiviert';
     }
     // Browser-Push ok: Meldung von API/Subscription abhängig, nicht von generischem "error"
     if (subscriptionLabel === 'aktiv' && apiSaveDebug?.result === 'ok') {
@@ -303,7 +393,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
       return 'Push aktiv (Browser)';
     }
     return 'Push verfügbar';
-  }, [hasVapidKey, activation, subscriptionLabel, apiSaveDebug]);
+  }, [hasVapidKey, activation, subscriptionLabel, apiSaveDebug, pushDeactivated]);
 
   const keyPreview = hasVapidKey ? vapidKey.slice(0, 12) : '—';
 
@@ -361,6 +451,7 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         <div>Origin: {locationInfo.origin || '—'}</div>
         <div>Permission: {permissionLabel}</div>
         <div>Subscription: {subscriptionLabel}</div>
+        <div>Last API op: {apiSaveDebug?.operation ?? '—'}</div>
         <div className="mt-2 border-t border-amber-500/30 pt-2">
           API save result: {apiSaveDebug ? (apiSaveDebug.result === 'ok' ? 'ok' : 'failed') : '—'}
         </div>
