@@ -1,3 +1,8 @@
+/**
+ * POST /api/push/test
+ * Sendet eine Test-Push an alle Zeilen in public.push_subscriptions (web-push).
+ * Bei 404/410 wird die Subscription in Supabase gelöscht.
+ */
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
 
