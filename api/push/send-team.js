@@ -245,6 +245,16 @@ export default async function handler(req, res) {
       });
     }
 
+    let teamIdForNotification = null;
+    const { data: tsTeamRow } = await supabase
+      .from("team_seasons")
+      .select("team_id")
+      .eq("id", team_season_id)
+      .maybeSingle();
+    if (tsTeamRow?.team_id != null) {
+      teamIdForNotification = tsTeamRow.team_id;
+    }
+
     const { data: memRows, error: memErr } = await supabase
       .from("memberships")
       .select("user_id, role")
@@ -412,6 +422,25 @@ export default async function handler(req, res) {
       }
     }
 
+    let notificationSaveWarning = null;
+    if (rows.length > 0 && teamIdForNotification) {
+      try {
+        const { error: nErr } = await supabase.from("notifications").insert({
+          team_id: teamIdForNotification,
+          title,
+          message: textBody,
+          link: url,
+          type: "manual",
+          created_by: user.id,
+        });
+        if (nErr) {
+          notificationSaveWarning = nErr.message || String(nErr);
+        }
+      } catch (e) {
+        notificationSaveWarning = e?.message || String(e);
+      }
+    }
+
     return res.status(200).json({
       ok: true,
       recipient_group,
@@ -424,6 +453,9 @@ export default async function handler(req, res) {
         ...getVapidSendResponseDebug(),
         obsoleteSubscriptionsRemoved,
       },
+      ...(notificationSaveWarning != null
+        ? { notificationSaveWarning }
+        : {}),
     });
   } catch (err) {
     console.error("[push/send-team] full error:", err);

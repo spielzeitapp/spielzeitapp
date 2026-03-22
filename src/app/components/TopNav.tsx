@@ -11,6 +11,7 @@ const publicLinks = [
 const appLinks = [
   { to: '/app/schedule', label: 'Spielplan' },
   { to: '/app/live', label: 'Live' },
+  { to: '/app/notifications', label: 'Nachrichten' },
   { to: '/app/team', label: 'Team' },
   { to: '/app/table', label: 'Tabelle' },
 ];

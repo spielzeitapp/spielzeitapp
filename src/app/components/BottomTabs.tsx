@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { CircleDot, Grid3X3, Play, Users, BarChart3 } from 'lucide-react';
+import { Bell, CircleDot, Grid3X3, Play, Users, BarChart3 } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 
 /** Interne Tabs: /app/* (wird in InternalLayout verwendet). */
@@ -8,6 +8,7 @@ const appTabsBase = [
   { to: '/app/schedule', end: false as const, label: 'Spielplan', icon: <Grid3X3 size={24} /> },
   { to: '/app/calendar', end: false as const, label: 'Kalender', icon: <CircleDot size={24} /> },
   { to: '/app/live', end: false as const, label: 'Live', icon: <Play size={24} /> },
+  { to: '/app/notifications', end: false as const, label: 'Nachrichten', icon: <Bell size={24} /> },
   { to: '/app/team', end: false as const, label: 'Team', icon: <Users size={24} /> },
   { to: '/app/table', end: false as const, label: 'Tabelle', icon: <BarChart3 size={24} /> },
 ];

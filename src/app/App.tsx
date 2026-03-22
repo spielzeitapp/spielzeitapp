@@ -16,6 +16,7 @@ import { EventDetailPage } from '../pages/EventDetailPage';
 import { LivePage } from '../pages/LivePage';
 import { TeamPage } from '../pages/TeamPage';
 import { TablePage } from '../pages/TablePage';
+import { NotificationsPage } from '../pages/NotificationsPage';
 import { ProfilePage } from '../pages/ProfilePage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { LoginPage } from '../pages/LoginPage';
@@ -140,6 +141,8 @@ function InternalRoutes(): React.ReactElement {
         <Route path="live/:id" element={<LivePage />} />
         <Route path="team" element={<TeamPage />} />
         <Route path="table" element={<TablePage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="termine" element={<Navigate to="/app/schedule" replace />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
