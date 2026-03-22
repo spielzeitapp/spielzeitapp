@@ -38,8 +38,56 @@ function getPushFailureStatusCode(err) {
   return undefined;
 }
 
-function isGoneSubscriptionStatus(statusCode) {
-  return statusCode === 404 || statusCode === 410;
+/** Subscription ist ungültig/veraltet und soll aus push_subscriptions entfernt werden */
+function shouldRemoveSubscription(statusCode, bodyStr, errMsg) {
+  if (statusCode === 404 || statusCode === 410) return true;
+  const merged = `${errMsg ?? ""} ${bodyStr ?? ""}`;
+  if (/VapidPkHashMismatch/i.test(merged)) return true;
+  if (/BadJwtToken/i.test(merged)) return true;
+  if (/["']reason["']\s*:\s*["']BadJwtToken["']/i.test(merged)) return true;
+  return false;
+}
+
+/**
+ * Zeile löschen: zuerst endpoint + p256dh + auth, sonst nur endpoint (Fallback).
+ * @returns {{ removed: boolean, removalMethod?: string, deleteError?: string }}
+ */
+async function deletePushSubscriptionRow(supabase, row) {
+  const endpoint = typeof row.endpoint === "string" ? row.endpoint.trim() : "";
+  if (!endpoint) {
+    return { removed: false, deleteError: "no_endpoint" };
+  }
+
+  const hasKeys = row.p256dh && row.auth;
+  if (hasKeys) {
+    const { data: dataTriple, error: errTriple } = await supabase
+      .from("push_subscriptions")
+      .delete()
+      .eq("endpoint", endpoint)
+      .eq("p256dh", row.p256dh)
+      .eq("auth", row.auth)
+      .select("endpoint");
+    if (!errTriple && Array.isArray(dataTriple) && dataTriple.length > 0) {
+      return { removed: true, removalMethod: "endpoint+p256dh+auth" };
+    }
+    if (errTriple) {
+      console.error("[push/send-team] delete (triple) failed:", errTriple.message || errTriple);
+    }
+  }
+
+  const { data: dataEp, error: errEp } = await supabase
+    .from("push_subscriptions")
+    .delete()
+    .eq("endpoint", endpoint)
+    .select("endpoint");
+  if (!errEp && Array.isArray(dataEp) && dataEp.length > 0) {
+    return { removed: true, removalMethod: hasKeys ? "endpoint_only_fallback" : "endpoint" };
+  }
+  if (errEp) {
+    console.error("[push/send-team] delete (endpoint) failed:", errEp.message || errEp);
+    return { removed: false, deleteError: errEp.message || String(errEp) };
+  }
+  return { removed: false, deleteError: "no_matching_row" };
 }
 
 function endpointPreview(endpoint, maxLen = 72) {
@@ -304,6 +352,7 @@ export default async function handler(req, res) {
     const results = [];
     let sent = 0;
     let failed = 0;
+    let obsoleteSubscriptionsRemoved = 0;
 
     for (const row of rows) {
       const uid = row.user_id;
@@ -335,15 +384,30 @@ export default async function handler(req, res) {
         failed += 1;
         const statusCode = getPushFailureStatusCode(err);
         const bodyStr = safeErrorBody(err);
-        if (isGoneSubscriptionStatus(statusCode)) {
-          await deleteSubscriptionByEndpoint(supabase, row.endpoint);
+        const rawMsg = err?.message ? String(err.message) : String(err);
+        const formattedError = formatPushSendError(err, bodyStr);
+
+        let subscriptionRemoved = false;
+        let removalMethod = null;
+        let removalError = null;
+
+        if (shouldRemoveSubscription(statusCode, bodyStr, rawMsg)) {
+          const del = await deletePushSubscriptionRow(supabase, row);
+          subscriptionRemoved = del.removed;
+          removalMethod = del.removalMethod ?? null;
+          removalError = del.deleteError ?? null;
+          if (del.removed) obsoleteSubscriptionsRemoved += 1;
         }
+
         results.push({
           ...baseResult,
           success: false,
           statusCode: statusCode ?? null,
-          error: formatPushSendError(err, bodyStr),
+          error: formattedError,
           body: bodyStr,
+          subscriptionRemoved,
+          ...(removalMethod != null ? { removalMethod } : {}),
+          ...(removalError != null ? { removalError } : {}),
         });
       }
     }
@@ -355,7 +419,11 @@ export default async function handler(req, res) {
       sent,
       failed,
       results,
-      vapidDebug: getVapidSendResponseDebug(),
+      obsoleteSubscriptionsRemoved,
+      vapidDebug: {
+        ...getVapidSendResponseDebug(),
+        obsoleteSubscriptionsRemoved,
+      },
     });
   } catch (err) {
     console.error("[push/send-team] full error:", err);
