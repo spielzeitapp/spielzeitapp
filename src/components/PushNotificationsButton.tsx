@@ -33,6 +33,10 @@ type ApiSaveDebug = {
   bodyText: string;
   /** Kurztext aus JSON.error oder Rohtext */
   errorMessage?: string;
+  /** Backend JSON (pushSubscribeHandler) */
+  backendStep?: string;
+  backendError?: string;
+  backendDetails?: string;
 };
 
 type Props = {
@@ -225,13 +229,22 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
       const responseBodyText = await res.text();
       console.log('[push] API response', { status: res.status, ok: res.ok, body: responseBodyText });
 
-      let parsedErr: string | undefined;
+      let parsedBackend: {
+        ok?: boolean;
+        step?: string;
+        error?: string;
+        details?: string;
+      } | null = null;
       try {
-        const parsed = JSON.parse(responseBodyText) as { error?: string };
-        if (typeof parsed?.error === 'string') parsedErr = parsed.error;
+        parsedBackend = JSON.parse(responseBodyText) as typeof parsedBackend;
       } catch {
-        /* Rohtext */
+        parsedBackend = null;
       }
+
+      const backendStep = typeof parsedBackend?.step === 'string' ? parsedBackend.step : undefined;
+      const backendError = typeof parsedBackend?.error === 'string' ? parsedBackend.error : undefined;
+      const backendDetails = typeof parsedBackend?.details === 'string' ? parsedBackend.details : undefined;
+      const parsedErr = backendError;
 
       if (!res.ok) {
         setApiSaveDebug({
@@ -239,6 +252,9 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
           statusCode: res.status,
           bodyText: responseBodyText.slice(0, 2000),
           errorMessage: parsedErr ?? (responseBodyText.slice(0, 500) || `HTTP ${res.status}`),
+          backendStep,
+          backendError: backendError ?? parsedErr,
+          backendDetails,
         });
         setActivation('idle');
         await refreshDebug();
@@ -249,6 +265,9 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         result: 'ok',
         statusCode: res.status,
         bodyText: responseBodyText.slice(0, 500),
+        backendStep: backendStep ?? (res.ok ? 'ok' : undefined),
+        backendError: undefined,
+        backendDetails: undefined,
       });
       setActivation('idle');
       await refreshDebug();
@@ -319,8 +338,11 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
       >
         {message}
       </p>
-      {subscriptionLabel === 'aktiv' && apiSaveDebug?.result === 'failed' && apiSaveDebug.errorMessage ? (
-        <p className="mt-1 text-xs text-amber-200/90">{apiSaveDebug.errorMessage}</p>
+      {subscriptionLabel === 'aktiv' && apiSaveDebug?.result === 'failed' && (apiSaveDebug.backendError || apiSaveDebug.errorMessage) ? (
+        <p className="mt-1 text-xs text-amber-200/90">
+          {apiSaveDebug.backendStep ? `[${apiSaveDebug.backendStep}] ` : ''}
+          {apiSaveDebug.backendError ?? apiSaveDebug.errorMessage}
+        </p>
       ) : null}
 
       {/* TEMP: Debug-Panel entfernen, sobald ENV/Build geklärt ist */}
@@ -354,6 +376,11 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
               ? apiSaveDebug.bodyText.slice(0, 120) || 'ok'
               : '—'}
         </div>
+        <div>backend step: {apiSaveDebug?.backendStep ?? '—'}</div>
+        <div className="break-all">backend error: {apiSaveDebug?.backendError ?? apiSaveDebug?.errorMessage ?? '—'}</div>
+        {apiSaveDebug?.backendDetails ? (
+          <div className="break-all text-[9px] opacity-90">backend details: {apiSaveDebug.backendDetails.slice(0, 400)}</div>
+        ) : null}
       </div>
     </div>
   );
