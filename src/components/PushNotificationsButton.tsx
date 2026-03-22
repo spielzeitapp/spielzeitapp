@@ -21,30 +21,34 @@ function getSubscribeApiUrl(): string {
   return '/api/push/subscribe';
 }
 
-function permissionToLabel(perm: NotificationPermission): string {
+/** Anzeige: default | granted | denied */
+function permissionToLabel(perm: NotificationPermission): 'default' | 'granted' | 'denied' {
   if (perm === 'granted') return 'granted';
   if (perm === 'denied') return 'denied';
   return 'default';
 }
+
+type ActivationState = 'idle' | 'loading' | 'success' | 'error' | 'denied';
 
 type Props = {
   className?: string;
 };
 
 /**
- * Web Push: Permission → Service Worker → PushManager.subscribe → POST /api/push/subscribe
- * Benötigt NEXT_PUBLIC_VAPID_PUBLIC_KEY (Client) und serverseitig SUPABASE_SERVICE_ROLE_KEY.
+ * Web Push: NEXT_PUBLIC_VAPID_PUBLIC_KEY → Permission → /sw.js → subscribe → POST /api/push/subscribe
+ * Server (Vercel): VAPID_PRIVATE_KEY, VAPID_SUBJECT, SUPABASE_SERVICE_ROLE_KEY
  */
 export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
+  const vapidKey = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '').trim();
+  const hasVapidKey = vapidKey.length > 0;
+
   const [browserOk, setBrowserOk] = useState(true);
   const [initDone, setInitDone] = useState(false);
-  const [configMissing, setConfigMissing] = useState(false);
 
-  const [activation, setActivation] = useState<'idle' | 'loading' | 'success' | 'error' | 'denied'>('idle');
-  const [message, setMessage] = useState<string | null>(null);
+  const [activation, setActivation] = useState<ActivationState>('idle');
 
-  const [permissionLabel, setPermissionLabel] = useState<string>('—');
-  const [subscriptionLabel, setSubscriptionLabel] = useState<string>('—');
+  const [permissionLabel, setPermissionLabel] = useState<'default' | 'granted' | 'denied'>('default');
+  const [subscriptionLabel, setSubscriptionLabel] = useState<'aktiv' | 'nicht aktiv'>('nicht aktiv');
 
   const refreshDebug = useCallback(async () => {
     if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
@@ -58,23 +62,21 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
     }
   }, []);
 
+  const isPushActive =
+    subscriptionLabel === 'aktiv' && permissionLabel === 'granted';
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       setBrowserOk(false);
       setInitDone(true);
       return;
     }
 
-    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    console.log('VAPID KEY:', vapidKey);
-
     void (async () => {
       try {
-        if (!vapidKey?.trim()) {
-          console.warn('Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY');
-          setConfigMissing(true);
-          setMessage('Push Setup fehlt (ENV nicht gesetzt)');
+        if (!hasVapidKey) {
           setPermissionLabel(permissionToLabel(Notification.permission));
           setSubscriptionLabel('nicht aktiv');
           return;
@@ -86,28 +88,19 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         const sub = await reg?.pushManager.getSubscription();
         if (sub && Notification.permission === 'granted') {
           setActivation('success');
-          setMessage('Push aktiviert ✅');
         }
-      } catch (e) {
-        console.error('[PushNotificationsButton] init', e);
-        setMessage(null);
+      } catch {
+        setActivation('idle');
       } finally {
         setInitDone(true);
       }
     })();
-  }, [refreshDebug]);
+  }, [hasVapidKey, refreshDebug]);
 
   const onActivate = useCallback(async () => {
-    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
-    console.log('VAPID KEY:', vapidKey);
-
-    if (!vapidKey) {
-      setMessage('Push Setup fehlt (ENV nicht gesetzt)');
-      return;
-    }
+    if (!hasVapidKey) return;
 
     setActivation('loading');
-    setMessage(null);
 
     try {
       const perm = await Notification.requestPermission();
@@ -115,7 +108,6 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
 
       if (perm !== 'granted') {
         setActivation('denied');
-        setMessage('Push fehlgeschlagen');
         await refreshDebug();
         return;
       }
@@ -139,7 +131,8 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
 
       const json = subscription.toJSON();
       if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
-        throw new Error('Ungültige Push-Subscription');
+        setActivation('error');
+        return;
       }
 
       const {
@@ -147,7 +140,6 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
       } = await supabase.auth.getSession();
       if (!session?.access_token) {
         setActivation('error');
-        setMessage('Push fehlgeschlagen');
         return;
       }
 
@@ -167,25 +159,23 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         }),
       });
 
-      const payload = (await res.json().catch(() => ({}))) as { error?: string; ok?: boolean };
+      await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(payload.error || `Server ${res.status}`);
+        setActivation('error');
+        return;
       }
 
       setActivation('success');
-      setMessage('Push aktiviert ✅');
       await refreshDebug();
-    } catch (e: unknown) {
-      console.error('[PushNotificationsButton]', e);
+    } catch {
       setActivation('error');
-      setMessage('Push fehlgeschlagen');
       try {
         await refreshDebug();
       } catch {
         /* ignore */
       }
     }
-  }, [refreshDebug]);
+  }, [hasVapidKey, refreshDebug, vapidKey]);
 
   if (!browserOk) {
     return (
@@ -196,9 +186,21 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
   }
 
   const loading = !initDone || activation === 'loading';
-  const disabled = loading || configMissing || activation === 'success';
+  const disabled = loading || !hasVapidKey || isPushActive || activation === 'success';
 
-  const buttonLabel = !initDone ? 'Lade…' : activation === 'loading' ? 'Aktiviere…' : 'Benachrichtigungen aktivieren';
+  const buttonLabel =
+    !initDone ? 'Lade…' : activation === 'loading' ? 'Aktiviere…' : 'Benachrichtigungen aktivieren';
+
+  let statusText: string;
+  if (!hasVapidKey) {
+    statusText = 'Push Setup fehlt – bitte Vercel ENV setzen';
+  } else if (activation === 'error' || activation === 'denied') {
+    statusText = 'Aktivierung fehlgeschlagen';
+  } else if (isPushActive || activation === 'success') {
+    statusText = 'Push aktiviert ✅';
+  } else {
+    statusText = 'Push verfügbar';
+  }
 
   return (
     <div className={className}>
@@ -206,19 +208,19 @@ export const PushNotificationsButton: React.FC<Props> = ({ className }) => {
         {buttonLabel}
       </Button>
 
-      {message && (
-        <p
-          className={`mt-2 text-sm ${
-            activation === 'error' || activation === 'denied' ? 'text-amber-300' : 'text-[var(--text-main)]'
-          }`}
-        >
-          {message}
-        </p>
-      )}
+      <p
+        className={`mt-2 text-sm ${
+          !hasVapidKey || activation === 'error' || activation === 'denied'
+            ? 'text-amber-300'
+            : 'text-[var(--text-main)]'
+        }`}
+      >
+        {statusText}
+      </p>
 
       <div className="mt-3 space-y-1 rounded-md border border-white/10 bg-black/20 px-3 py-2 text-[11px] leading-snug text-[var(--text-sub)]">
         <div>
-          <span className="text-white/50">Permission:</span>{' '}
+          <span className="text-white/50">Berechtigung:</span>{' '}
           <span className="font-medium text-[var(--text-main)]">{permissionLabel}</span>
         </div>
         <div>
