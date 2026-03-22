@@ -243,29 +243,36 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     authUser,
     membershipLoading,
     previewRole,
-    selectedMembership,
+    selectedMembership?.role,
+    selectedTeamSeasonId,
     roleFromUserRoles,
     hasPendingPlayerRequest,
     memberships.length,
   ]);
 
-  /** Temporäres Debug-Logging (nur DEV) */
+  const selectedMembershipRoleForDebug = selectedMembership?.role ?? null;
+
+  /** Temporäres Debug-Logging (nur DEV); primitive deps — keine Loops durch Objekt-Identität */
   useEffect(() => {
     if (!import.meta.env.DEV) return;
-    console.log({
+    console.log('[Session]', {
       email: authUser?.email,
       user_id: authUser?.id,
-      memberships,
-      selectedMembership,
+      membershipCount: memberships.length,
+      selectedTeamSeasonId,
+      selectedMembershipRole: selectedMembershipRoleForDebug,
       previewRole,
+      membershipLoading,
       finalRole: effectiveRole,
     });
   }, [
     authUser?.email,
     authUser?.id,
-    memberships,
-    selectedMembership,
+    memberships.length,
+    selectedTeamSeasonId,
+    selectedMembershipRoleForDebug,
     previewRole,
+    membershipLoading,
     effectiveRole,
   ]);
 
@@ -307,22 +314,26 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // A) Memberships first, then team_seasons by membership ids. selectedTeamSeasonId always string | null.
   useEffect(() => {
     if (!authUser) {
+      setMembershipLoading(false);
       setMembershipError(null);
       setTeamSeasons([]);
       setSelectedTeamSeasonIdState(null);
+      setMemberships([]);
       setHasPendingPlayerRequest(false);
       return;
     }
+
     let cancelled = false;
     setMembershipLoading(true);
     setMembershipError(null);
 
     const run = async () => {
-      const [dbRole, membershipsRes] = await Promise.all([
-        fetchUserRole(authUser.id),
-        supabase
-          .from('memberships')
-          .select(`
+      try {
+        const [dbRole, membershipsRes] = await Promise.all([
+          fetchUserRole(authUser.id),
+          supabase
+            .from('memberships')
+            .select(`
   id,
   role,
   team_season_id,
@@ -332,135 +343,132 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     season:seasons ( id, name )
   )
 `)
-          .eq('user_id', authUser.id)
-          .order('id', { ascending: true }),
-      ]);
+            .eq('user_id', authUser.id)
+            .order('id', { ascending: true }),
+        ]);
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      const roleToSet = dbRole ?? null;
-      setRoleFromUserRoles(roleToSet);
-      try {
-        if (roleToSet) {
-          window.localStorage.setItem(LOCAL_STORAGE_KEY_ROLE, roleToSet);
-        } else {
-          window.localStorage.removeItem(LOCAL_STORAGE_KEY_ROLE);
+        const roleToSet = dbRole ?? null;
+        setRoleFromUserRoles(roleToSet);
+        try {
+          if (roleToSet) {
+            window.localStorage.setItem(LOCAL_STORAGE_KEY_ROLE, roleToSet);
+          } else {
+            window.localStorage.removeItem(LOCAL_STORAGE_KEY_ROLE);
+          }
+        } catch {
+          // ignore
         }
-      } catch {
-        // ignore
-      }
 
-      const { data, error } = membershipsRes;
-      if (error) {
-        console.error('[useSession] memberships error:', error.message);
-        setMemberships([]);
-        setTeamSeasons([]);
-        setSelectedTeamSeasonIdState(null);
-        // Keine künstliche Fan-Rolle setzen – fehlende Rolle muss explizit behandelt werden.
-        setMembershipError(error.message);
-        setMembershipLoading(false);
-        return;
-      }
+        const { data, error } = membershipsRes;
+        if (error) {
+          console.error('[useSession] memberships error:', error.message);
+          setMemberships([]);
+          setTeamSeasons([]);
+          setSelectedTeamSeasonIdState(null);
+          setMembershipError(error.message);
+          return;
+        }
 
-      setMembershipError(null);
-      const list = ((data ?? []) as MembershipWithJoin[]).map((m) => ({
-        ...m,
-        role: normalizeRole(m.role),
-      }));
-      setMemberships(list);
+        setMembershipError(null);
+        const list = ((data ?? []) as MembershipWithJoin[]).map((m) => ({
+          ...m,
+          role: normalizeRole(m.role),
+        }));
+        setMemberships(list);
 
-      if (list.length === 0) {
-        setTeamSeasons([]);
-        setSelectedTeamSeasonIdState(null);
-        setMembershipLoading(false);
-        return;
-      }
+        if (list.length === 0) {
+          setTeamSeasons([]);
+          setSelectedTeamSeasonIdState(null);
+          return;
+        }
 
-      const teamSeasonIds = list.map((m) => m.team_season_id).filter(Boolean) as string[];
-      if (teamSeasonIds.length === 0) {
-        setTeamSeasons([]);
-        setSelectedTeamSeasonIdState(null);
-        setMembershipLoading(false);
-        return;
-      }
+        const teamSeasonIds = list.map((m) => m.team_season_id).filter(Boolean) as string[];
+        if (teamSeasonIds.length === 0) {
+          setTeamSeasons([]);
+          setSelectedTeamSeasonIdState(null);
+          return;
+        }
 
-      const { data: tsData, error: tsError } = await supabase
-        .from('team_seasons')
-        .select(`
+        const { data: tsData, error: tsError } = await supabase
+          .from('team_seasons')
+          .select(`
   id,
   team_id,
   season_id,
   teams:teams ( id, name, age_group ),
   seasons:seasons ( id, name )
 `)
-        .in('id', teamSeasonIds)
-        .order('id', { ascending: true });
+          .in('id', teamSeasonIds)
+          .order('id', { ascending: true });
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      if (tsError) {
-        console.error('[useSession] team_seasons error:', tsError.message);
-        setTeamSeasons([]);
-        setSelectedTeamSeasonIdState(null);
-        setMembershipLoading(false);
-        return;
-      }
-
-      const rawRows = (tsData ?? []) as unknown[];
-      const normalized: SessionTeamSeasonItem[] = [];
-      for (const raw of rawRows) {
-        const item = normalizeTeamSeasonRow(raw);
-        if (item) normalized.push(item);
-      }
-      setTeamSeasons(normalized);
-
-      if (normalized.length > 0) {
-        let selectedId: string;
-        try {
-          const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID);
-          const valid = stored != null && normalized.some((ts) => ts.id === stored);
-          selectedId = valid && stored != null ? stored : normalized[0].id;
-        } catch {
-          selectedId = normalized[0].id;
+        if (tsError) {
+          console.error('[useSession] team_seasons error:', tsError.message);
+          setTeamSeasons([]);
+          setSelectedTeamSeasonIdState(null);
+          return;
         }
-        setSelectedTeamSeasonIdState(selectedId);
-        try {
-          window.localStorage.setItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID, selectedId);
-        } catch {
-          // ignore
+
+        const rawRows = (tsData ?? []) as unknown[];
+        const normalized: SessionTeamSeasonItem[] = [];
+        for (const raw of rawRows) {
+          const item = normalizeTeamSeasonRow(raw);
+          if (item) normalized.push(item);
         }
-      } else {
-        setSelectedTeamSeasonIdState(null);
-      }
+        setTeamSeasons(normalized);
 
-      setMembershipLoading(false);
-
-      // Pending Spieler-Anfragen als Flag lesen (MVP: global, nicht team-spezifisch)
-      try {
-        const { data: jrData, error: jrError } = await supabase
-          .from('join_requests')
-          .select('id')
-          .eq('user_id', authUser.id)
-          .eq('requested_role', 'player')
-          .eq('status', 'pending')
-          .limit(1);
-        if (!cancelled) {
-          if (jrError) {
-            console.warn('[useSession] join_requests(player,pending) error:', jrError.message);
-            setHasPendingPlayerRequest(false);
-          } else {
-            setHasPendingPlayerRequest((jrData ?? []).length > 0);
+        if (normalized.length > 0) {
+          let selectedId: string;
+          try {
+            const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID);
+            const valid = stored != null && normalized.some((ts) => ts.id === stored);
+            selectedId = valid && stored != null ? stored : normalized[0].id;
+          } catch {
+            selectedId = normalized[0].id;
           }
+          setSelectedTeamSeasonIdState(selectedId);
+          try {
+            window.localStorage.setItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID, selectedId);
+          } catch {
+            // ignore
+          }
+        } else {
+          setSelectedTeamSeasonIdState(null);
         }
-      } catch (e: any) {
+
+        // Pending Spieler-Anfragen (nach team_seasons, vor Loading-Ende)
+        try {
+          if (!cancelled) {
+            const { data: jrData, error: jrError } = await supabase
+              .from('join_requests')
+              .select('id')
+              .eq('user_id', authUser.id)
+              .eq('requested_role', 'player')
+              .eq('status', 'pending')
+              .limit(1);
+            if (jrError) {
+              console.warn('[useSession] join_requests(player,pending) error:', jrError.message);
+              setHasPendingPlayerRequest(false);
+            } else {
+              setHasPendingPlayerRequest((jrData ?? []).length > 0);
+            }
+          }
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.warn('[useSession] join_requests(player,pending) exception:', msg);
+          if (!cancelled) setHasPendingPlayerRequest(false);
+        }
+      } finally {
         if (!cancelled) {
-          console.warn('[useSession] join_requests(player,pending) exception:', e?.message ?? e);
-          setHasPendingPlayerRequest(false);
+          setMembershipLoading(false);
         }
       }
     };
 
-    run();
+    void run();
     return () => {
       cancelled = true;
     };

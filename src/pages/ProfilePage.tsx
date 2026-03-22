@@ -41,6 +41,8 @@ export const ProfilePage: React.FC = () => {
     selectedTeamSeasonId,
     signOut,
     hasPendingPlayerRequest,
+    loading: sessionLoading,
+    membershipError,
   } = useSession();
 
   const [linkedChildren, setLinkedChildren] = useState<string[]>([]);
@@ -177,6 +179,13 @@ export const ProfilePage: React.FC = () => {
           <p className="mt-1 text-sm text-[var(--text-sub)]">
             E-Mail: <span className="font-medium text-[var(--text-main)]">{email}</span>
           </p>
+
+        {membershipError && (
+          <p className="mt-2 rounded-md border border-amber-500/40 bg-amber-950/40 px-2 py-2 text-xs text-amber-200" role="alert">
+            Team-Zuordnung konnte nicht geladen werden ({membershipError}). Bitte Seite neu laden oder Support
+            kontaktieren.
+          </p>
+        )}
 
         <p className="mt-1 text-sm text-[var(--text-sub)]">
           Backend-Rolle: <span className="font-medium text-[var(--text-main)]">{backendRole}</span>
