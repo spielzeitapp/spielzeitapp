@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode, useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { InternalLayout } from './layout/InternalLayout.tsx';
@@ -32,9 +32,45 @@ import { SetupAdminPage } from '../pages/SetupAdminPage';
 import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 
-const FALLBACK = (
-  <div style={{ padding: 20, color: '#fff' }}>App lädt…</div>
-);
+/** Freundliche Fallback-UI statt endloser „App lädt…“ nach Render-Crash */
+function AppErrorFallback(): React.ReactElement {
+  return (
+    <div
+      style={{
+        padding: 24,
+        color: '#fff',
+        maxWidth: 420,
+        margin: '0 auto',
+        fontFamily: 'system-ui, sans-serif',
+      }}
+    >
+      <p style={{ marginBottom: 12, fontWeight: 600 }}>Die App konnte nicht geladen werden.</p>
+      <p style={{ marginBottom: 16, fontSize: 14, opacity: 0.85 }}>
+        Bitte öffne die Terminübersicht oder lade die Seite neu.
+      </p>
+      <a
+        href="/app/termine"
+        style={{ color: '#f87171', fontWeight: 600, marginRight: 16 }}
+      >
+        Zu Termine
+      </a>
+      <button
+        type="button"
+        style={{
+          background: 'transparent',
+          border: '1px solid rgba(255,255,255,0.35)',
+          color: '#fff',
+          padding: '8px 12px',
+          borderRadius: 8,
+          cursor: 'pointer',
+        }}
+        onClick={() => window.location.reload()}
+      >
+        Neu laden
+      </button>
+    </div>
+  );
+}
 
 /**
  * Startseite nach erfolgreichem Login im internen Bereich.
@@ -44,15 +80,35 @@ const FALLBACK = (
  * - fan     → Schedule (Fan-Ansicht)
  * - keine Rolle (weder global noch Membership) → RoleChoicePage
  */
+const APP_INDEX_LOADING_TIMEOUT_MS = 20000;
+
 function AppIndexRedirect(): React.ReactElement {
   const { loading, memberships, membershipRole, backendRole, hasPendingPlayerRequest } = useSession();
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading) {
+      setLoadTimedOut(false);
+      return;
+    }
+    const t = window.setTimeout(() => {
+      console.warn('[AppIndexRedirect] session loading timeout — routing to /app/termine');
+      setLoadTimedOut(true);
+    }, APP_INDEX_LOADING_TIMEOUT_MS);
+    return () => window.clearTimeout(t);
+  }, [loading]);
+
+  if (loading && !loadTimedOut) {
     return (
       <div className="flex min-h-[200px] items-center justify-center text-white/70">
         Laden…
       </div>
     );
+  }
+
+  /** Nach Timeout oder hängender Session: stabile Startseite */
+  if (loading && loadTimedOut) {
+    return <Navigate to="/app/termine" replace />;
   }
 
   // 1) Membership-Rolle hat Priorität
@@ -114,7 +170,7 @@ class AppErrorBoundary extends Component<
 
   render(): ReactNode {
     if (this.state.hasError) {
-      return FALLBACK;
+      return <AppErrorFallback />;
     }
     return this.props.children;
   }
@@ -140,7 +196,7 @@ function InternalRoutes(): React.ReactElement {
       <Route path="app" element={<RequireAuth><InternalLayout /></RequireAuth>}>
         <Route index element={<AppIndexRedirect />} />
         <Route path="home" element={<AppHomePage />} />
-        <Route path="termine" element={<TerminePage />}>
+        <Route path="termine" element={<TermineLayout />}>
           <Route index element={<SchedulePage />} />
           <Route path="calendar" element={<CalendarPage />} />
         </Route>

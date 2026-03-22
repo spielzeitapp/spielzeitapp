@@ -1,6 +1,20 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
+/** Keine Spalte `profiles.is_admin` – Admin nur über `user_roles` / `memberships` (useSession). */
+function friendlyProfileFetchError(raw: string): string {
+  const m = raw.toLowerCase();
+  if (
+    m.includes('is_admin') ||
+    m.includes('does not exist') ||
+    m.includes('42703') ||
+    (m.includes('column') && m.includes('profiles'))
+  ) {
+    return 'Profilnamen konnten nicht geladen werden. Bitte später erneut versuchen oder Support informieren.';
+  }
+  return raw;
+}
+
 /** Nur Anzeigedaten aus `profiles` (Vor-/Nachname). Globales Admin: `user_roles` / useSession, nicht profiles. */
 export interface ProfileRow {
   id: string;
@@ -42,7 +56,7 @@ export function useProfile(userId: string | undefined | null): {
         if (cancelled) return;
         setLoading(false);
         if (err) {
-          setError(err.message);
+          setError(friendlyProfileFetchError(err.message ?? 'Unbekannter Fehler'));
           setProfile(null);
           return;
         }
@@ -51,7 +65,7 @@ export function useProfile(userId: string | undefined | null): {
         if (cancelled) return;
         console.error('[useProfile] profile fetch failed', e);
         setLoading(false);
-        setError(e instanceof Error ? e.message : String(e));
+        setError(friendlyProfileFetchError(e instanceof Error ? e.message : String(e)));
         setProfile(null);
       }
     })();
