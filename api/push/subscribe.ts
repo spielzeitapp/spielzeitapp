@@ -283,7 +283,9 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
       },
     ] as any;
 
-    const { data, error } = await admin
+    // TS: generische Tabellentypen lösen TS2769 – gesamte Kette als any
+    const supabaseAny = admin as any;
+    const { data, error } = await supabaseAny
       .from('notification_subscriptions')
       .upsert(upsertPayload, { onConflict: 'endpoint' })
       .select('id');
