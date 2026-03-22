@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
+/** Nur Anzeigedaten aus `profiles` (Vor-/Nachname). Globales Admin: `user_roles` / useSession, nicht profiles. */
 export interface ProfileRow {
   id: string;
   first_name: string | null;
   last_name: string | null;
-  is_admin?: boolean;
 }
 
 /**
@@ -36,7 +36,7 @@ export function useProfile(userId: string | undefined | null): {
       try {
         const { data, error: err } = await supabase
           .from('profiles')
-          .select('id, first_name, last_name, is_admin')
+          .select('id, first_name, last_name')
           .eq('id', userId)
           .maybeSingle();
         if (cancelled) return;
