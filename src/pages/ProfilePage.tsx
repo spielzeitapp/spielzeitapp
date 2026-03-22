@@ -116,7 +116,8 @@ export const ProfilePage: React.FC = () => {
   const email = authUser?.email ?? user?.name ?? '–';
   const displayNameStr = displayName(profile, authUser?.email ?? undefined);
 
-  const blockingLoad = !!(authUser && (sessionLoading || profileLoading));
+  /** Nur Session-Gate; Profil lädt im Hintergrund (kein globales Blockieren). */
+  const blockingLoad = !!(authUser && sessionLoading);
 
   useEffect(() => {
     console.log('[ProfilePage] mounted');

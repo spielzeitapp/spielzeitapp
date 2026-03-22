@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AppBackground } from './AppBackground';
 import { Header } from './Header';
@@ -26,22 +26,20 @@ export const InternalLayout: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { memberships, loading: sessionLoading, backendRole } = useSession();
-  const [checked, setChecked] = useState(false);
 
   useSyncPendingProfile(user ?? null);
   useSyncProfileFromUserMetadata(user ?? null);
 
+  /** Parent-Onboarding-Gate: nur navigieren, Shell nie blockieren (kein globaler „Laden…“-Deadlock). */
   useEffect(() => {
     let alive = true;
 
     async function gate() {
-      // Onboarding / role-choice / set-password: allow without redirect (onboarding only once).
       if (
         location.pathname === '/app/parent-onboarding' ||
         location.pathname === '/app/role-choice' ||
         location.pathname === '/app/set-password'
       ) {
-        if (alive) setChecked(true);
         return;
       }
 
@@ -51,11 +49,9 @@ export const InternalLayout: React.FC = () => {
       const isStaff = backend === 'trainer' || backend === 'admin';
       const isParentGlobal = backend === 'parent';
       if (isStaff || !isParentGlobal) {
-        if (alive) setChecked(true);
         return;
       }
 
-      // New user: no memberships → role choice first.
       if ((memberships ?? []).length === 0) {
         navigate('/app/role-choice', { replace: true });
         return;
@@ -70,19 +66,16 @@ export const InternalLayout: React.FC = () => {
         .limit(1);
       const hasGuardian = !pgRes.error && (pgRes.data ?? []).length > 0;
 
-      // Onboarding only once: redirect to parent-onboarding only if membership or guardian link missing.
-      // Returning parents (membership + player_guardians exist) go straight to schedule.
+      if (!alive) return;
+
       if (!hasParentMembership || !hasGuardian) {
         navigate('/app/parent-onboarding', { replace: true });
         return;
       }
-
-      if (alive) setChecked(true);
     }
 
     gate().catch((e) => {
       console.error('[ParentOnboardingGate]', e);
-      if (alive) setChecked(true);
     });
 
     return () => {
@@ -97,11 +90,7 @@ export const InternalLayout: React.FC = () => {
       <div className="app min-h-screen bg-black text-white">
         <Header />
         <main className="app__content appMain pt-24 pb-24">
-          {!user || sessionLoading || checked ? <Outlet /> : (
-            <div className="flex min-h-[200px] items-center justify-center text-white/70">
-              Laden…
-            </div>
-          )}
+          <Outlet />
         </main>
       </div>
 

@@ -326,6 +326,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     let cancelled = false;
     setMembershipLoading(true);
     setMembershipError(null);
+    console.info('[startup] memberships fetch start');
 
     const run = async () => {
       try {
@@ -463,6 +464,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       } finally {
         if (!cancelled) {
+          console.info('[startup] memberships fetch end');
           setMembershipLoading(false);
         }
       }
@@ -474,14 +476,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, [authUser?.id]);
 
-  /** Falls Membership-Fetch hängt: nach 15s Loading beenden (RequireAuth hat zusätzlich Bypass). */
+  /** Falls Membership-Fetch hängt: nach 3s Loading beenden (Shell bleibt nutzbar). */
   useEffect(() => {
     if (!authUser || !membershipLoading) return;
     const t = window.setTimeout(() => {
-      console.warn('[useSession] membership load safety timeout — forcing membershipLoading false');
+      console.warn('[startup] membership load safety timeout — forcing membershipLoading false');
       setMembershipLoading(false);
       setMembershipError((prev) => prev ?? 'Zeitüberschreitung beim Laden der Team-Daten.');
-    }, 15000);
+    }, 3000);
     return () => window.clearTimeout(t);
   }, [authUser?.id, membershipLoading]);
 

@@ -1,10 +1,9 @@
-import React, { Component, ErrorInfo, ReactNode, useEffect, useState } from 'react';
+import React, { Component, ErrorInfo, ReactNode, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { InternalLayout } from './layout/InternalLayout.tsx';
 import { RoleProvider } from './role/RoleContext';
 import { RequireAuth } from '../auth/RequireAuth';
-import { useSession } from '../auth/useSession';
 import { HomePage } from '../pages/HomePage';
 import { AppHomePage } from '../pages/AppHomePage';
 import { SchedulePage } from '../pages/SchedulePage';
@@ -72,86 +71,12 @@ function AppErrorFallback(): React.ReactElement {
   );
 }
 
-/**
- * Startseite nach erfolgreichem Login im internen Bereich.
- * Entscheidet anhand der Rolle wohin umgeleitet wird:
- * - parent   → Parent-Onboarding
- * - trainer → Schedule (Trainer-Ansicht)
- * - fan     → Schedule (Fan-Ansicht)
- * - keine Rolle (weder global noch Membership) → RoleChoicePage
- */
-const APP_INDEX_LOADING_TIMEOUT_MS = 20000;
-
-function AppIndexRedirect(): React.ReactElement {
-  const { loading, memberships, membershipRole, backendRole, hasPendingPlayerRequest } = useSession();
-  const [loadTimedOut, setLoadTimedOut] = useState(false);
-
+/** /app: sofortiger Redirect auf Termine (kein Warten auf Session/Memberships). */
+function StartupRedirectToTermine(): React.ReactElement {
   useEffect(() => {
-    if (!loading) {
-      setLoadTimedOut(false);
-      return;
-    }
-    const t = window.setTimeout(() => {
-      console.warn('[AppIndexRedirect] session loading timeout — routing to /app/termine');
-      setLoadTimedOut(true);
-    }, APP_INDEX_LOADING_TIMEOUT_MS);
-    return () => window.clearTimeout(t);
-  }, [loading]);
-
-  if (loading && !loadTimedOut) {
-    return (
-      <div className="flex min-h-[200px] items-center justify-center text-white/70">
-        Laden…
-      </div>
-    );
-  }
-
-  /** Nach Timeout oder hängender Session: stabile Startseite */
-  if (loading && loadTimedOut) {
-    return <Navigate to="/app/termine" replace />;
-  }
-
-  // 1) Membership-Rolle hat Priorität
-  const primaryMembershipRole = (membershipRole || memberships[0]?.role || '').toLowerCase() || null;
-
-  // 2) Wenn keine Membership-Rolle vorhanden ist, auf globale Backend-Rolle zurückfallen
-  const effectiveBackendRole = (backendRole || '').toLowerCase() || null;
-
-  let finalRole = (primaryMembershipRole || effectiveBackendRole || '').toLowerCase();
-
-  // WICHTIG: Kein nackter Spieler-Fallback ohne Membership.
-  // Wenn es noch keine Membership gibt und die globale Rolle nur 'player' ist,
-  // soll der Nutzer in die Rollenwahl / das Parent-Onboarding, nicht direkt in die Spieler-Ansicht.
-  const hasAnyMembership = (memberships ?? []).length > 0;
-  if (!hasAnyMembership && !primaryMembershipRole && finalRole === 'player') {
-    finalRole = '';
-  }
-
-  // 3) Wenn überhaupt keine Rolle existiert:
-  //    - mit pending Spieler-Anfrage → als Fan in den Schedule
-  //    - sonst → RoleChoicePage
-    if (!finalRole) {
-    if (hasPendingPlayerRequest) {
-      return <Navigate to="/app/home" replace />;
-    }
-    return <Navigate to="/app/role-choice" replace />;
-  }
-
-  // 4) Parent → Home; InternalLayout leitet bei unvollständigem Onboarding auf role-choice / parent-onboarding um.
-  if (finalRole === 'parent') {
-    return <Navigate to="/app/home" replace />;
-  }
-
-  if (finalRole === 'trainer') {
-    return <Navigate to="/app/home" replace />;
-  }
-
-  if (finalRole === 'fan') {
-    return <Navigate to="/app/home" replace />;
-  }
-
-  // Alle anderen Rollen (player, admin, etc.) landen ebenfalls auf Home.
-  return <Navigate to="/app/home" replace />;
+    console.info('[startup] redirect target: /app/termine');
+  }, []);
+  return <Navigate to="/app/termine" replace />;
 }
 
 class AppErrorBoundary extends Component<
@@ -182,7 +107,7 @@ function InternalRoutes(): React.ReactElement {
     <Routes>
       <Route path="app.html" element={<Navigate to="/app" replace />} />
       {/* Kurz-URLs → interne App */}
-      <Route path="/home" element={<Navigate to="/app/home" replace />} />
+      <Route path="/home" element={<Navigate to="/app/termine" replace />} />
       <Route path="/team" element={<Navigate to="/app/team" replace />} />
       <Route path="/termine" element={<Navigate to="/app/termine" replace />} />
       <Route path="/mehr" element={<Navigate to="/app/mehr" replace />} />
@@ -194,7 +119,7 @@ function InternalRoutes(): React.ReactElement {
       <Route path="schedule" element={<Navigate to="/app/termine" replace />} />
       <Route path="live" element={<Navigate to="/app/live" replace />} />
       <Route path="app" element={<RequireAuth><InternalLayout /></RequireAuth>}>
-        <Route index element={<AppIndexRedirect />} />
+        <Route index element={<StartupRedirectToTermine />} />
         <Route path="home" element={<AppHomePage />} />
         <Route path="termine" element={<TermineLayout />}>
           <Route index element={<SchedulePage />} />

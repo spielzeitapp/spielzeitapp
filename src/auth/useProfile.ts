@@ -75,6 +75,17 @@ export function useProfile(userId: string | undefined | null): {
     };
   }, [userId]);
 
+  /** Profil blockiert keine Shell: nach 3s UI trotzdem bedienbar */
+  useEffect(() => {
+    if (!userId || !loading) return;
+    console.info('[startup] profile fetch start');
+    const t = window.setTimeout(() => {
+      console.warn('[startup] profile load timeout — unlock UI');
+      setLoading(false);
+    }, 3000);
+    return () => window.clearTimeout(t);
+  }, [userId, loading]);
+
   return { profile, loading, error };
 }
 
