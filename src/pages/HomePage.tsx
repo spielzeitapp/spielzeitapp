@@ -12,7 +12,7 @@ export const HomePage: React.FC = () => {
     profile?.first_name?.trim() ||
     profile?.full_name?.trim()?.split(' ')[0] ||
     profile?.display_name?.trim() ||
-    'SpielzeitApp';
+    '';
 
   return (
     <div

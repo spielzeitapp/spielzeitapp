@@ -60,7 +60,7 @@ export const AppHomePage: React.FC = () => {
     profile?.first_name?.trim() ||
     profile?.full_name?.trim()?.split(/\s+/)[0] ||
     profile?.display_name?.trim() ||
-    'SpielzeitApp';
+    '';
 
   const [latestMessage, setLatestMessage] = useState<MessageRow | null>(null);
   const [messagesLoading, setMessagesLoading] = useState(false);
