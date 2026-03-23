@@ -1,9 +1,13 @@
 /**
- * Reminder-Logik (Training 11:00–12:00 Wien, Spiele ≤7 Tage) + Hilfen.
- * Server: getPendingNotifications + Dispatch mit Service Role.
+ * Reminder-Logik: team_notification_settings + notification_dispatch_log (Server: Service Role).
  */
 
 export { getNotificationConfig, type NotificationRuntimeConfig } from './config';
+export {
+  DEFAULT_TEAM_NOTIFICATION_SETTINGS,
+  resolveTeamSettings,
+  type TeamNotificationSettingsRow,
+} from './teamSettings';
 export {
   getCanonicalEventType,
   getParticipationMode,
@@ -29,6 +33,8 @@ export { fetchPlayerIdsForUserInTeamSeason, fetchRecipientUserIdsForTeamSeason }
 export {
   buildGameReminderBody,
   buildTrainingReminderBody,
+  buildReminderInAppBody,
+  buildPushReminderShort,
   formatEventDateVienna,
   formatEventTimeVienna,
 } from './format';

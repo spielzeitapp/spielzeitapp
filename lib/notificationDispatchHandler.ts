@@ -1,10 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
-import {
-  getNotificationConfig,
-  getPendingNotifications,
-  type PendingNotificationItem,
-} from '../src/lib/notifications';
+import { getPendingNotifications, type PendingNotificationItem } from '../src/lib/notifications';
 
 function readEnv(key: string): string | undefined {
   const g = globalThis as unknown as { process?: { env?: Record<string, string | undefined> } };
@@ -52,6 +48,70 @@ export type DispatchResult = {
 };
 
 /**
+ * Zentrale Reminder-Verarbeitung (Cron / manueller Aufruf).
+ */
+export async function processDueReminders(
+  admin: SupabaseClient,
+  now: Date,
+  dryRun: boolean,
+): Promise<DispatchResult> {
+  const result: DispatchResult = {
+    ok: true,
+    dryRun,
+    processed: 0,
+    sent: 0,
+    skipped: 0,
+    errors: [],
+    details: [],
+  };
+
+  let pending: PendingNotificationItem[];
+  try {
+    pending = await getPendingNotifications(admin, now);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    result.ok = false;
+    result.errors.push(msg);
+    return result;
+  }
+
+  result.processed = pending.length;
+
+  if (dryRun) {
+    for (const p of pending) {
+      result.details.push({
+        userId: p.userId,
+        eventId: p.eventId,
+        type: p.reminderKey,
+        status: 'dry_run',
+      });
+    }
+    return result;
+  }
+
+  for (const item of pending) {
+    try {
+      const sendResult = await sendOneReminder(admin, item);
+      result.sent += sendResult.sent;
+      result.skipped += sendResult.skipped;
+      result.details.push(...sendResult.details);
+      if (sendResult.errors.length) result.errors.push(...sendResult.errors);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      result.errors.push(msg);
+      result.details.push({
+        userId: item.userId,
+        eventId: item.eventId,
+        type: item.reminderKey,
+        status: `error: ${msg}`,
+      });
+    }
+  }
+
+  return result;
+}
+
+/**
  * POST /api/notifications/dispatch
  * Header: Authorization: Bearer <CRON_SECRET> oder x-cron-secret
  */
@@ -82,65 +142,9 @@ export async function handleNotificationDispatch(request: Request): Promise<Resp
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const cfg = getNotificationConfig();
-  let pending: PendingNotificationItem[];
-  try {
-    pending = await getPendingNotifications(admin, new Date(), cfg);
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return new Response(JSON.stringify({ error: msg }), { status: 500 });
-  }
-
-  const result: DispatchResult = {
-    ok: true,
-    dryRun,
-    processed: pending.length,
-    sent: 0,
-    skipped: 0,
-    errors: [],
-    details: [],
-  };
-
-  if (dryRun) {
-    for (const p of pending) {
-      result.details.push({
-        userId: p.userId,
-        eventId: p.eventId,
-        type: p.notificationType,
-        status: 'dry_run',
-      });
-    }
-    return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  }
-
-  try {
-    ensureWebPushVapid();
-  } catch (e: unknown) {
-    result.ok = false;
-    result.errors.push(e instanceof Error ? e.message : String(e));
-    return new Response(JSON.stringify(result), { status: 500, headers: { 'Content-Type': 'application/json' } });
-  }
-
-  for (const item of pending) {
-    try {
-      const sendResult = await sendOneReminder(admin, item);
-      result.sent += sendResult.sent;
-      result.skipped += sendResult.skipped;
-      result.details.push(...sendResult.details);
-      if (sendResult.errors.length) result.errors.push(...sendResult.errors);
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      result.errors.push(msg);
-      result.details.push({
-        userId: item.userId,
-        eventId: item.eventId,
-        type: item.notificationType,
-        status: `error: ${msg}`,
-      });
-    }
-  }
-
-  return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  const result = await processDueReminders(admin, new Date(), dryRun);
+  const status = result.ok ? 200 : 500;
+  return new Response(JSON.stringify(result), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
 async function sendOneReminder(
@@ -155,66 +159,106 @@ async function sendOneReminder(
   const details: DispatchResult['details'] = [];
   const errors: string[] = [];
 
+  const { data: dupInApp } = await admin
+    .from('notification_dispatch_log')
+    .select('id')
+    .eq('user_id', item.userId)
+    .eq('event_id', item.eventId)
+    .eq('reminder_key', item.reminderKey)
+    .eq('channel', 'in_app')
+    .maybeSingle();
+
+  if (dupInApp) {
+    details.push({
+      userId: item.userId,
+      eventId: item.eventId,
+      type: item.reminderKey,
+      status: 'skipped_duplicate_dispatch',
+    });
+    return { sent: 0, skipped: 1, errors, details };
+  }
+
+  const { error: msgErr } = await admin.from('messages').insert({
+    team_id: item.teamId,
+    user_id: item.userId,
+    title: item.title,
+    body: item.body,
+    content: item.body,
+    type: 'event_reminder',
+    event_id: item.eventId,
+    related_event_id: item.eventId,
+    reminder_key: item.reminderKey,
+    read: false,
+  });
+
+  if (msgErr) {
+    const code = (msgErr as { code?: string }).code;
+    if (code !== '23505') {
+      console.warn('[notificationDispatch] messages.insert failed', msgErr.message || msgErr);
+      throw msgErr;
+    }
+  }
+
+  const { error: dispErr } = await admin.from('notification_dispatch_log').insert({
+    user_id: item.userId,
+    event_id: item.eventId,
+    reminder_key: item.reminderKey,
+    channel: 'in_app',
+  });
+
+  if (dispErr) {
+    const code = (dispErr as { code?: string }).code;
+    if (code !== '23505') {
+      console.warn('[notificationDispatch] notification_dispatch_log in_app failed', dispErr.message || dispErr);
+    }
+  }
+
   const { data: subs, error: subErr } = await admin
     .from('notification_subscriptions')
     .select('id, endpoint, p256dh, auth')
     .eq('user_id', item.userId)
     .eq('is_active', true);
 
-  if (subErr) throw subErr;
-  if (!subs?.length) {
-    details.push({ userId: item.userId, eventId: item.eventId, type: item.notificationType, status: 'skipped_no_subscription' });
-    return { sent: 0, skipped: 1, errors, details };
-  }
-
-  const { error: insErr } = await admin.from('notification_log').insert({
-    user_id: item.userId,
-    event_id: item.eventId,
-    notification_type: item.notificationType,
-  });
-
-  if (insErr) {
-    const code = (insErr as { code?: string }).code;
-    if (code === '23505') {
-      details.push({ userId: item.userId, eventId: item.eventId, type: item.notificationType, status: 'skipped_duplicate' });
-      return { sent: 0, skipped: 1, errors, details };
-    }
-    throw insErr;
-  }
-
-  // MVP: Reminder als In-App Nachricht speichern
-  try {
-    const messageType = item.notificationType === 'training_reminder' || item.notificationType === 'game_reminder'
-      ? 'event_reminder'
-      : 'system';
-    const { error: msgErr } = await admin.from('messages').insert({
-      team_id: item.teamId,
-      user_id: item.userId,
-      title: item.title,
-      body: item.body,
-      content: item.body,
-      type: messageType,
-      event_id: item.eventId,
-      related_event_id: item.eventId,
-      read: false,
+  if (subErr) {
+    console.warn('[notificationDispatch] subscriptions query', subErr.message || subErr);
+    details.push({
+      userId: item.userId,
+      eventId: item.eventId,
+      type: item.reminderKey,
+      status: 'in_app_ok_no_sub_query',
     });
-    if (msgErr) {
-      const code = (msgErr as { code?: string }).code;
-      if (code === '23505') {
-        // Reminder ist bereits als Nachricht gespeichert (z. B. batch pro user).
-      } else {
-        console.warn('[notificationDispatch] messages.insert failed', msgErr.message || msgErr);
-      }
-    }
+    return { sent: 0, skipped: 0, errors, details };
+  }
+
+  if (!subs?.length) {
+    details.push({
+      userId: item.userId,
+      eventId: item.eventId,
+      type: item.reminderKey,
+      status: 'in_app_ok_no_subscription',
+    });
+    return { sent: 0, skipped: 0, errors, details };
+  }
+
+  try {
+    ensureWebPushVapid();
   } catch (e: unknown) {
-    console.warn('[notificationDispatch] messages.insert exception', e);
+    const msg = e instanceof Error ? e.message : String(e);
+    errors.push(`vapid: ${msg}`);
+    details.push({
+      userId: item.userId,
+      eventId: item.eventId,
+      type: item.reminderKey,
+      status: 'in_app_ok_push_skipped_vapid',
+    });
+    return { sent: 0, skipped: 0, errors, details };
   }
 
   const payload = JSON.stringify({
     title: 'SpielzeitApp Erinnerung',
-    body: item.body,
+    body: item.pushBody,
     url: item.url,
-    tag: `${item.notificationType}-${item.eventId}`,
+    tag: `reminder-${item.reminderKey}-${item.eventId}`,
   });
 
   let sent = 0;
@@ -242,17 +286,27 @@ async function sendOneReminder(
     }
   }
 
-  if (sent === 0) {
-    await admin
-      .from('notification_log')
-      .delete()
-      .eq('user_id', item.userId)
-      .eq('event_id', item.eventId)
-      .eq('notification_type', item.notificationType);
-    details.push({ userId: item.userId, eventId: item.eventId, type: item.notificationType, status: 'failed_all_subscriptions' });
-    return { sent: 0, skipped: 0, errors, details };
+  if (sent > 0) {
+    const { error: pushLogErr } = await admin.from('notification_dispatch_log').insert({
+      user_id: item.userId,
+      event_id: item.eventId,
+      reminder_key: item.reminderKey,
+      channel: 'push',
+    });
+    if (pushLogErr) {
+      const code = (pushLogErr as { code?: string }).code;
+      if (code !== '23505') {
+        console.warn('[notificationDispatch] notification_dispatch_log push failed', pushLogErr.message || pushLogErr);
+      }
+    }
   }
 
-  details.push({ userId: item.userId, eventId: item.eventId, type: item.notificationType, status: `sent_${sent}` });
+  details.push({
+    userId: item.userId,
+    eventId: item.eventId,
+    type: item.reminderKey,
+    status: sent > 0 ? `push_sent_${sent}` : 'push_all_failed',
+  });
+
   return { sent, skipped: 0, errors, details };
 }

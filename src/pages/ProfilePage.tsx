@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabaseClient';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { PushNotificationsButton } from '../components/PushNotificationsButton';
 import { PushTeamSendPanel } from '../components/PushTeamSendPanel';
+import { TeamReminderSettingsPanel } from '../components/TeamReminderSettingsPanel';
 
 const PREVIEW_ROLE_OPTIONS = ['fan', 'parent', 'player', 'trainer', 'co_trainer', 'head_coach', 'admin'] as const;
 
@@ -375,6 +376,12 @@ export const ProfilePage: React.FC = () => {
               <div className="mt-3">
                 <PushTeamSendPanel teamSeasonId={selectedTeamSeasonId} />
               </div>
+            </ProfileSectionErrorBoundary>
+          )}
+
+          {showTeamPushSend && (
+            <ProfileSectionErrorBoundary label="Erinnerungen">
+              <TeamReminderSettingsPanel teamSeasonId={selectedTeamSeasonId} />
             </ProfileSectionErrorBoundary>
           )}
 

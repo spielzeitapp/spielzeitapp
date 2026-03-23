@@ -225,13 +225,16 @@ export const AppHomePage: React.FC = () => {
           <CardTitle className="text-base">Letzte wichtige Nachricht</CardTitle>
           {messagesLoading && <p className="mt-2 text-sm text-white/50">Laden…</p>}
           {!messagesLoading && latestMessage && (
-            <>
-              <p className="mt-2 text-xs text-white/60">{formatDt(latestMessage.created_at)}</p>
+            <Link
+              to="/app/nachrichten"
+              className="-mx-1 mt-2 block rounded-lg p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+            >
+              <p className="text-xs text-white/60">{formatDt(latestMessage.created_at)}</p>
               <p className="mt-1 font-medium text-white">{latestMessage.title}</p>
               <p className="mt-2 line-clamp-2 text-sm text-white/60">
                 {latestMessage.body ?? latestMessage.content ?? ''}
               </p>
-            </>
+            </Link>
           )}
           {!messagesLoading && !latestMessage && <p className="mt-2 text-sm text-white/60">Noch keine Nachrichten.</p>}
           <Link to="/app/nachrichten" className="mt-3 inline-block text-sm text-red-400">

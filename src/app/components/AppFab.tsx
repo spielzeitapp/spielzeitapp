@@ -19,7 +19,13 @@ export const AppFab: React.FC = () => {
     effectiveRole === 'admin';
 
   if (!staff) return null;
-  if (pathname === '/app/profile' || pathname.startsWith('/app/mehr')) return null;
+  if (
+    pathname === '/app/home' ||
+    pathname === '/app/profile' ||
+    pathname.startsWith('/app/mehr')
+  ) {
+    return null;
+  }
 
   return (
     <button
