@@ -56,10 +56,11 @@ export const AppHomePage: React.FC = () => {
   const { profile } = useProfile(session?.user?.id ?? null);
   const teamId = selectedTeamSeason?.team?.id ?? null;
   const teamName = selectedTeamSeason?.team?.name ?? '—';
-  const displayName =
-    profile?.first_name ||
-    profile?.full_name?.split(' ')[0] ||
-    '';
+  const welcomeName =
+    profile?.first_name?.trim() ||
+    profile?.full_name?.trim()?.split(' ')[0] ||
+    profile?.display_name?.trim() ||
+    'SpielzeitApp';
 
   const [latestMessage, setLatestMessage] = useState<MessageRow | null>(null);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -158,8 +159,8 @@ export const AppHomePage: React.FC = () => {
       }}
     >
       <div className="mx-auto max-w-[560px] space-y-4">
-        {displayName ? (
-          <h1 className="text-xl font-bold text-white">Herzlich willkommen, {displayName}</h1>
+        {welcomeName ? (
+          <h1 className="text-xl font-bold text-white">Herzlich willkommen, {welcomeName}!</h1>
         ) : (
           <h1 className="text-xl font-bold text-white">Herzlich willkommen!</h1>
         )}

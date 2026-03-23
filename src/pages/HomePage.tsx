@@ -8,10 +8,11 @@ const logo = import.meta.env.BASE_URL + 'logos/nsg-goelsental.png';
 export const HomePage: React.FC = () => {
   const { session } = useAuth();
   const { profile } = useProfile(session?.user?.id ?? null);
-  const displayName =
-    profile?.first_name ||
-    profile?.full_name?.split(' ')[0] ||
-    'Spieler';
+  const welcomeName =
+    profile?.first_name?.trim() ||
+    profile?.full_name?.trim()?.split(' ')[0] ||
+    profile?.display_name?.trim() ||
+    'SpielzeitApp';
 
   return (
     <div
@@ -32,8 +33,8 @@ export const HomePage: React.FC = () => {
           width={64}
           height={64}
         />
-        {displayName ? (
-          <h1 className="text-xl font-bold text-white">Herzlich willkommen, {displayName}</h1>
+        {welcomeName ? (
+          <h1 className="text-xl font-bold text-white">Herzlich willkommen, {welcomeName}!</h1>
         ) : (
           <h1 className="text-xl font-bold text-white">Herzlich willkommen!</h1>
         )}

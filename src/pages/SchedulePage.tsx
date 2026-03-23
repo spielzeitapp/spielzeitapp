@@ -342,18 +342,26 @@ export const SchedulePage: React.FC = () => {
       return;
     }
 
-    // MVP: Automatische Nachricht + Push bei „Treffpunkt geändert“
+    // MVP: Automatische Nachricht + Push bei relevanter Termin-Aenderung
     try {
       const oldLoc = (editEvent.location ?? '').toString();
       const oldAddr = (editEvent.address ?? '').toString();
       const newLoc = (locationVal ?? '').toString();
       const newAddr = (addressVal ?? '').toString();
       const locationChanged = oldLoc !== newLoc || oldAddr !== newAddr;
+      const startsChanged = (editEvent.starts_at ?? '') !== startsAt;
+      const meetupChanged = (editEvent.meetup_at ?? '') !== (meetupAt ?? '');
+      const relevantChanged = locationChanged || startsChanged || meetupChanged;
 
-      if (locationChanged && teamSeasonId) {
+      if (relevantChanged && teamSeasonId) {
         const { data: sessionRes } = await supabase.auth.getSession();
         const accessToken = sessionRes.session?.access_token;
         if (accessToken) {
+          const changedParts: string[] = [];
+          if (meetupChanged) changedParts.push('Treffpunkt');
+          if (startsChanged) changedParts.push('Uhrzeit');
+          if (locationChanged) changedParts.push('Ort');
+          const changedTxt = changedParts.length > 0 ? changedParts.join('/') : 'Details';
           await fetch('/api/push/send-team', {
             method: 'POST',
             headers: {
@@ -363,10 +371,10 @@ export const SchedulePage: React.FC = () => {
             body: JSON.stringify({
               team_season_id: teamSeasonId,
               recipient_group: 'all',
-              title: 'Update: Treffpunkt geändert',
-              body: `Bitte prüfe den neuen Treffpunkt für den Termin.`,
+              title: 'Termin aktualisiert',
+              body: `Ein Termin wurde aktualisiert: ${changedTxt} geändert.`,
               url: '/app/nachrichten',
-              message_type: 'change',
+              message_type: 'event_updated',
               related_event_id: editEvent.id,
             }),
           });

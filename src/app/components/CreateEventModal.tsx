@@ -282,22 +282,34 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             month: 'long',
             year: 'numeric',
           });
+          const timeStr = startDate.toLocaleTimeString('de-DE', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
 
           const ortVal = (form.location.trim() || form.address.trim()).trim();
+          const treffpunktVal = form.meetup_time.trim();
           let titleForMsg = '';
           let contentForMsg = '';
           if (eventTypeLocal === 'training') {
-            titleForMsg = `Neuer Termin: Training am ${dateStr}`;
-            contentForMsg = ortVal ? `Ort: ${ortVal}` : 'Bitte prüfe die Details im Kalender.';
+            titleForMsg = 'Neues Training';
+            contentForMsg = `Für dein Team wurde ein neuer Termin erstellt: Training am ${dateStr} um ${timeStr}.`;
           } else if (eventTypeLocal === 'game') {
-            titleForMsg = `Neuer Termin: Spiel am ${dateStr}`;
-            contentForMsg = ortVal ? `Ort: ${ortVal}` : 'Bitte prüfe die Details im Kalender.';
+            titleForMsg = 'Neues Spiel';
+            contentForMsg = `Für dein Team wurde ein neuer Termin erstellt: Spiel am ${dateStr} um ${timeStr}.`;
           } else if (eventTypeLocal === 'event') {
-            titleForMsg = `Neues Event erstellt am ${dateStr}`;
-            contentForMsg = ortVal ? `Ort: ${ortVal}` : 'Bitte prüfe die Details im Kalender.';
+            titleForMsg = 'Neues Event';
+            contentForMsg = `Für dein Team wurde ein neuer Termin erstellt: Event am ${dateStr} um ${timeStr}.`;
           } else {
-            titleForMsg = `Neuer Termin am ${dateStr}`;
-            contentForMsg = ortVal ? `Ort: ${ortVal}` : 'Bitte prüfe die Details im Kalender.';
+            titleForMsg = 'Neues Event';
+            contentForMsg = `Für dein Team wurde ein neuer Termin erstellt: Termin am ${dateStr} um ${timeStr}.`;
+          }
+
+          if (ortVal) {
+            contentForMsg += ` Ort: ${ortVal}.`;
+          }
+          if (treffpunktVal) {
+            contentForMsg += ` Treffpunkt: ${treffpunktVal}.`;
           }
 
           await fetch('/api/push/send-team', {
@@ -312,7 +324,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               title: titleForMsg,
               body: contentForMsg,
               url: '/app/nachrichten',
-              message_type: 'info',
+              message_type: 'event_created',
               related_event_id: firstEventId,
             }),
           });

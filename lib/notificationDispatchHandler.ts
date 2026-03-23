@@ -190,7 +190,7 @@ async function sendOneReminder(
       title: item.title,
       body: item.body,
       content: item.body,
-      type: 'reminder',
+      type: 'event_reminder',
       event_id: item.eventId,
       related_event_id: item.eventId,
       read: false,

@@ -21,10 +21,11 @@ export interface ProfileRow {
   first_name: string | null;
   last_name: string | null;
   full_name: string | null;
+  display_name: string | null;
 }
 
 /**
- * Load current user's profile (first_name, last_name, full_name). Returns null until loaded or if no user.
+ * Load current user's profile (first_name, last_name, full_name, display_name). Returns null until loaded or if no user.
  */
 export function useProfile(userId: string | undefined | null): {
   profile: ProfileRow | null;
@@ -51,7 +52,7 @@ export function useProfile(userId: string | undefined | null): {
       try {
         const { data, error: err } = await supabase
           .from('profiles')
-          .select('id, first_name, last_name, full_name')
+          .select('id, first_name, last_name, full_name, display_name')
           .eq('id', userId)
           .maybeSingle();
         if (cancelled) return;
