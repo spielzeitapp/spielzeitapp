@@ -99,24 +99,25 @@ export function profileHeadingLine(profile: ProfileRow | null, email: string): s
   const combined = [first, last].filter(Boolean).join(' ').trim();
   if (combined) return combined;
   const full = (profile.full_name ?? '').trim();
-  if (full) return full;
+  if (full && !APP_NAME_PLACEHOLDER.test(full)) return full;
   const dn = (profile.display_name ?? '').trim();
-  if (dn) return dn;
+  if (dn && !APP_NAME_PLACEHOLDER.test(dn)) return dn;
   return email || '–';
 }
 
-/** Home-Begrüßung: nur first_name → erstes Wort full_name → display_name (keine E-Mail). */
+export const APP_NAME_PLACEHOLDER = /^spielzeitapp$/i;
+
+/** Home: nur first_name → erstes Wort full_name; sonst leer (neutraler Gruß). Keine E-Mail, kein display_name. */
 export function welcomeGreetingFromProfile(profile: ProfileRow | null): string {
   if (!profile) return '';
   const fn = (profile.first_name ?? '').trim();
-  if (fn) return fn;
+  if (fn && !APP_NAME_PLACEHOLDER.test(fn)) return fn;
   const full = (profile.full_name ?? '').trim();
   if (full) {
     const w = full.split(/\s+/)[0]?.trim();
-    if (w) return w;
+    if (w && !APP_NAME_PLACEHOLDER.test(w)) return w;
   }
-  const dn = (profile.display_name ?? '').trim();
-  return dn || '';
+  return '';
 }
 
 /** @deprecated Nutze profileHeadingLine */

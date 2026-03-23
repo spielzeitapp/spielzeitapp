@@ -116,7 +116,9 @@ export const ProfilePage: React.FC = () => {
   const selectedTeamName = getTeamName(selectedTeamSeason);
   const email = authUser?.email ?? user?.name ?? '–';
   const headingMain = profileHeadingLine(profile, email);
-  const showEmailRow = headingMain !== email && email !== '–';
+  const emailLo = email.trim().toLowerCase();
+  const headingLo = headingMain.trim().toLowerCase();
+  const showEmailRow = email !== '–' && headingLo !== emailLo;
 
   /** Nur Session-Gate; Profil lädt im Hintergrund (kein globales Blockieren). */
   const blockingLoad = !!(authUser && sessionLoading);
@@ -330,10 +332,9 @@ export const ProfilePage: React.FC = () => {
 
           {slowLoadBanner}
 
-          {profileLoading && <p className="mt-2 text-xs text-white/50">Profil wird geladen…</p>}
-          {!profileLoading && profileError && !profile && (
-            <p className="mt-2 text-xs text-white/55" role="status">
-              Profilinformationen werden aktualisiert.
+          {(profileLoading || (!profileLoading && profileError && !profile)) && (
+            <p className="mt-2 text-[11px] leading-relaxed text-white/45" role="status">
+              {profileLoading ? 'Profil wird geladen…' : 'Profilinformationen werden aktualisiert.'}
             </p>
           )}
 

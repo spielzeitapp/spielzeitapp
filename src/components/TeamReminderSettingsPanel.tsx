@@ -88,8 +88,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
     setSaveError(false);
     setSaved(false);
     try {
-      const payload = {
-        team_season_id: teamSeasonId,
+      const fields = {
         training_reminder_enabled: row.training_reminder_enabled,
         training_reminder_minutes_before: row.training_reminder_minutes_before,
         match_reminder_enabled: row.match_reminder_enabled,
@@ -99,11 +98,40 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         event_reminder_enabled: row.event_reminder_enabled,
         event_reminder_minutes_before: row.event_reminder_minutes_before,
       };
-      const { error: uErr } = await supabase.from('team_notification_settings').upsert(payload, {
-        onConflict: 'team_season_id',
-      });
-      if (uErr) {
-        console.warn('[TeamReminderSettings] save', uErr.message ?? uErr);
+      const { data: existing, error: exErr } = await supabase
+        .from('team_notification_settings')
+        .select('id')
+        .eq('team_season_id', teamSeasonId)
+        .maybeSingle();
+      if (exErr) {
+        console.warn('[TeamReminderSettings] save lookup', exErr.message ?? exErr);
+      }
+
+      let lastErr: { message?: string; code?: string } | null = null;
+      if (existing) {
+        const { error: updErr } = await supabase
+          .from('team_notification_settings')
+          .update(fields)
+          .eq('team_season_id', teamSeasonId);
+        lastErr = updErr;
+      } else {
+        const { error: insErr } = await supabase.from('team_notification_settings').insert({
+          team_season_id: teamSeasonId,
+          ...fields,
+        });
+        lastErr = insErr;
+        const code = (insErr as { code?: string } | null)?.code;
+        if (insErr && (code === '23505' || code === '42P10')) {
+          const { error: upd2 } = await supabase
+            .from('team_notification_settings')
+            .update(fields)
+            .eq('team_season_id', teamSeasonId);
+          lastErr = upd2;
+        }
+      }
+
+      if (lastErr) {
+        console.warn('[TeamReminderSettings] save', lastErr);
         setSaveError(true);
         return;
       }
@@ -143,9 +171,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         </>
       )}
 
-      {saveError && (
-        <p className="mt-2 text-xs text-white/55">Speichern war gerade nicht möglich. Bitte später erneut versuchen.</p>
-      )}
+      {saveError && <p className="mt-2 text-[11px] text-white/40">Bitte später erneut speichern.</p>}
       {saved && <p className="mt-2 text-xs text-emerald-300/90">Gespeichert.</p>}
 
       <div className="mt-3 space-y-3 text-sm">
