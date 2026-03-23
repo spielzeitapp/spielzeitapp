@@ -184,13 +184,16 @@ async function sendOneReminder(
 
   // MVP: Reminder als In-App Nachricht speichern
   try {
+    const messageType = item.notificationType === 'training_reminder' || item.notificationType === 'game_reminder'
+      ? 'event_reminder'
+      : 'system';
     const { error: msgErr } = await admin.from('messages').insert({
       team_id: item.teamId,
       user_id: item.userId,
       title: item.title,
       body: item.body,
       content: item.body,
-      type: 'event_reminder',
+      type: messageType,
       event_id: item.eventId,
       related_event_id: item.eventId,
       read: false,
