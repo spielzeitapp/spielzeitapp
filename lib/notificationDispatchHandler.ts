@@ -28,7 +28,10 @@ function ensureWebPushVapid(): void {
 }
 
 function verifyCronAuth(request: Request): boolean {
-  const secret = readEnv('CRON_SECRET') || readEnv('NOTIFICATION_DISPATCH_SECRET');
+  const secret =
+    readEnv('CRON_SECRET') ||
+    readEnv('NOTIFICATION_DISPATCH_SECRET') ||
+    readEnv('REMINDER_PROCESS_SECRET');
   if (!secret) return false;
   const auth = request.headers.get('authorization');
   const bearer = auth?.replace(/^Bearer\s+/i, '').trim();

@@ -8,8 +8,8 @@ import {
 import { resolveTeamSettings, type TeamNotificationSettingsRow } from './teamSettings';
 import { fetchPlayerIdsForUserInTeamSeason, fetchRecipientUserIdsForTeamSeason } from './users';
 
-/** Horizont: nur Events in nächsten N Tagen (Performance) */
-const REMINDER_HORIZON_DAYS = 14;
+/** Horizont: zukünftige Termine bis N Tage (Cron prüft regelmäßig) */
+const REMINDER_HORIZON_DAYS = 365;
 
 export type NotificationKind =
   | 'training_reminder'
@@ -118,7 +118,7 @@ function slotsForEvent(
         reminderKey: `event_${m}`,
         minutes: m,
         kind: 'event_reminder',
-        title: 'Erinnerung: Event bald',
+        title: 'Erinnerung: Termin bald',
       });
     }
   }

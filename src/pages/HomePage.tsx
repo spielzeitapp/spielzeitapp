@@ -10,7 +10,7 @@ export const HomePage: React.FC = () => {
   const { profile } = useProfile(session?.user?.id ?? null);
   const welcomeName =
     profile?.first_name?.trim() ||
-    profile?.full_name?.trim()?.split(' ')[0] ||
+    profile?.full_name?.trim()?.split(/\s+/)[0] ||
     profile?.display_name?.trim() ||
     '';
 

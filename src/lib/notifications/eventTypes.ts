@@ -26,15 +26,18 @@ export type CanonicalEventType = 'training' | 'game' | 'event' | 'other';
 export function getCanonicalEventType(row: RawEventRow): CanonicalEventType {
   const et = (row.event_type ?? '').toLowerCase().trim();
   if (et === 'game') return 'game';
+  if (et === 'spiel') return 'game';
   if (et === 'training') return 'training';
   if (et === 'event') return 'event';
   if (et === 'other') return 'other';
   const t = (row.type ?? '').toLowerCase().trim();
   if (t === 'match') return 'game';
+  if (t === 'spiel') return 'game';
   if (t === 'training') return 'training';
   if (t === 'event') return 'event';
   const k = (row.kind ?? '').toLowerCase().trim();
   if (k === 'match') return 'game';
+  if (k === 'spiel') return 'game';
   if (k === 'training') return 'training';
   if (k === 'event') return 'event';
   return 'other';

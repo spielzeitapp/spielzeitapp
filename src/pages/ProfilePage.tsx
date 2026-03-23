@@ -328,15 +328,14 @@ export const ProfilePage: React.FC = () => {
           {slowLoadBanner}
 
           {profileError && (
-            <p className="mt-2 rounded-md border border-red-500/30 bg-red-950/30 px-2 py-2 text-xs text-red-200" role="alert">
+            <p className="mt-2 rounded-md border border-white/10 bg-white/5 px-2 py-2 text-xs text-white/65" role="status">
               Profilinformationen werden aktualisiert.
             </p>
           )}
 
           {membershipError && (
             <p className="mt-2 rounded-md border border-amber-500/40 bg-amber-950/40 px-2 py-2 text-xs text-amber-200" role="alert">
-              Team-Zuordnung konnte nicht geladen werden ({membershipError}). Bitte Seite neu laden oder Support
-              kontaktieren.
+              Team-Zuordnung konnte nicht geladen werden. Bitte Seite neu laden oder später erneut versuchen.
             </p>
           )}
 
