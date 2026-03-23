@@ -2,18 +2,18 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useSession } from '../auth/useSession';
+import { useProfile } from '../auth/useProfile';
 import { useEvents, type EventRow } from '../hooks/useEvents';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { supabase } from '../lib/supabaseClient';
 
-const MESSAGES_API = '/api/messages';
-
 type MessageRow = {
   id: string;
   title: string;
-  content: string;
+  content: string | null;
+  body: string | null;
   type: string;
-  related_event_id: string | null;
+  event_id: string | null;
   created_at: string;
 };
 
@@ -53,9 +53,13 @@ export const AppHomePage: React.FC = () => {
     useSession();
   const { events, loading: evLoading } = useEvents(teamSeasonId);
   const { session } = useAuth();
+  const { profile } = useProfile(session?.user?.id ?? null);
   const teamId = selectedTeamSeason?.team?.id ?? null;
-  const userName = session?.user?.email ?? '—';
   const teamName = selectedTeamSeason?.team?.name ?? '—';
+  const displayName =
+    profile?.first_name ||
+    profile?.full_name?.split(' ')[0] ||
+    '';
 
   const [latestMessage, setLatestMessage] = useState<MessageRow | null>(null);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -65,30 +69,40 @@ export const AppHomePage: React.FC = () => {
   const next = useMemo(() => nextUpcoming(events ?? [], now), [events, now]);
 
   const loadLatestMessage = useCallback(async () => {
-    if (!session?.access_token || !teamId) {
+    if (!teamId) {
       setLatestMessage(null);
       setMessagesLoading(false);
       return;
     }
     setMessagesLoading(true);
     try {
-      const q = new URLSearchParams({ team_id: String(teamId), limit: '1' });
-      const res = await fetch(`${MESSAGES_API}?${q.toString()}`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      const data = (await res.json()) as { ok?: boolean; messages?: MessageRow[]; error?: string };
-      if (!res.ok || data.ok === false) {
+      const userRes = await supabase.auth.getUser();
+      const uid = userRes.data.user?.id;
+      if (!uid) {
         setLatestMessage(null);
         return;
       }
-      const list = Array.isArray(data.messages) ? data.messages : [];
+
+      const { data, error } = await supabase
+        .from('messages')
+        .select('id, title, content, body, type, event_id, created_at')
+        .eq('team_id', teamId)
+        .eq('user_id', uid)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        setLatestMessage(null);
+        return;
+      }
+      const list = Array.isArray(data) ? (data as MessageRow[]) : [];
       setLatestMessage(list[0] ?? null);
     } catch {
       setLatestMessage(null);
     } finally {
       setMessagesLoading(false);
     }
-  }, [session?.access_token, teamId]);
+  }, [teamId]);
 
   useEffect(() => {
     void loadLatestMessage();
@@ -144,9 +158,11 @@ export const AppHomePage: React.FC = () => {
       }}
     >
       <div className="mx-auto max-w-[560px] space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight text-white">
-          Herzlich willkommen, {userName}
-        </h1>
+        {displayName ? (
+          <h1 className="text-xl font-bold text-white">Herzlich willkommen, {displayName}</h1>
+        ) : (
+          <h1 className="text-xl font-bold text-white">Herzlich willkommen!</h1>
+        )}
         <p className="text-sm text-white/60">Dein Überblick für {teamName}</p>
 
         {loading && <p className="text-sm text-white/50">Laden…</p>}
@@ -187,6 +203,11 @@ export const AppHomePage: React.FC = () => {
                 </div>
               </Card>
             )}
+            {pendingRsvp === false && (
+              <Card className="border-emerald-500/30 bg-emerald-950/20 text-white">
+                <div className="px-4 py-3 text-sm text-emerald-100">Alles erledigt 👍</div>
+              </Card>
+            )}
           </>
         )}
 
@@ -206,7 +227,9 @@ export const AppHomePage: React.FC = () => {
             <>
               <p className="mt-2 text-xs text-white/60">{formatDt(latestMessage.created_at)}</p>
               <p className="mt-1 font-medium text-white">{latestMessage.title}</p>
-              <p className="mt-2 line-clamp-2 text-sm text-white/60">{latestMessage.content}</p>
+              <p className="mt-2 line-clamp-2 text-sm text-white/60">
+                {latestMessage.body ?? latestMessage.content ?? ''}
+              </p>
             </>
           )}
           {!messagesLoading && !latestMessage && <p className="mt-2 text-sm text-white/60">Noch keine Nachrichten.</p>}

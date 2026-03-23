@@ -1,20 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../auth/AuthProvider';
 import { useSession } from '../auth/useSession';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
-
-const API = '/api/messages';
+import { supabase } from '../lib/supabaseClient';
 
 type MessageRow = {
   id: string;
-  team_id: string;
+  user_id: string | null;
   title: string;
-  content: string;
+  body: string | null;
+  content: string | null;
   type: string;
-  related_event_id: string | null;
+  event_id: string | null;
   created_at: string;
+  read: boolean;
 };
 
 function formatWhen(iso: string): string {
@@ -53,7 +53,6 @@ function writeReadSet(set: Set<string>): void {
 export const MessageDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { messageId } = useParams();
-  const { session } = useAuth();
   const { selectedTeamSeason } = useSession();
   const teamId = selectedTeamSeason?.team?.id ?? null;
 
@@ -67,7 +66,7 @@ export const MessageDetailPage: React.FC = () => {
     let cancelled = false;
 
     async function load() {
-      if (!safeMessageId || !teamId || !session?.access_token) {
+      if (!safeMessageId || !teamId) {
         setError('Nachricht konnte nicht geladen werden.');
         setLoading(false);
         return;
@@ -75,17 +74,26 @@ export const MessageDetailPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const q = new URLSearchParams({ team_id: String(teamId), id: safeMessageId });
-        const res = await fetch(`${API}?${q.toString()}`, {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        const data = (await res.json()) as { ok?: boolean; message?: MessageRow | null; error?: string };
-        if (!res.ok || data.ok === false) {
-          setError(data.error || 'Nachricht konnte nicht geladen werden.');
+        const user = await supabase.auth.getUser();
+        const uid = user.data.user?.id;
+        if (!uid) {
+          setError('Bitte neu einloggen');
           setItem(null);
           return;
         }
-        setItem(data.message ?? null);
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('id', safeMessageId)
+          .eq('team_id', teamId)
+          .eq('user_id', uid)
+          .maybeSingle();
+        if (error) {
+          setError(error.message || 'Nachricht konnte nicht geladen werden.');
+          setItem(null);
+          return;
+        }
+        setItem((data as MessageRow | null) ?? null);
       } catch {
         setError('Nachricht konnte nicht geladen werden.');
         setItem(null);
@@ -98,7 +106,7 @@ export const MessageDetailPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [safeMessageId, session?.access_token, teamId]);
+  }, [safeMessageId, teamId]);
 
   useEffect(() => {
     if (!item?.id) return;
@@ -109,8 +117,8 @@ export const MessageDetailPage: React.FC = () => {
   }, [item?.id]);
 
   const onZumTermin = () => {
-    if (!item?.related_event_id) return;
-    navigate(`/app/events/${item.related_event_id}`);
+    if (!item?.event_id) return;
+    navigate(`/app/events/${item.event_id}`);
   };
 
   return (
@@ -147,9 +155,9 @@ export const MessageDetailPage: React.FC = () => {
               <div className="px-4 py-3">
                 <div className="text-xs text-[var(--text-sub)]">{formatWhen(item.created_at)}</div>
                 <CardTitle className="text-base mt-1">{item.title}</CardTitle>
-                <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--text-sub)]">{item.content}</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--text-sub)]">{item.body ?? item.content ?? ''}</p>
 
-                {item.related_event_id && (
+                {item.event_id && (
                   <div className="mt-4 space-y-2">
                     <Button type="button" onClick={onZumTermin} fullWidth>
                       Zum Termin

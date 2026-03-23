@@ -34,10 +34,11 @@ export function useSyncPendingProfile(user: User | null): void {
     (async () => {
       const first_name = (payload.first_name ?? '').trim() || null;
       const last_name = (payload.last_name ?? '').trim() || null;
+      const full_name = `${first_name ?? ''} ${last_name ?? ''}`.trim() || null;
       await supabase
         .from('profiles')
         .upsert(
-          { id: user.id, first_name, last_name, updated_at: new Date().toISOString() },
+          { id: user.id, first_name, last_name, full_name, updated_at: new Date().toISOString() },
           { onConflict: 'id' }
         );
       localStorage.removeItem(PENDING_PROFILE_KEY);

@@ -181,9 +181,7 @@ export default async function handler(req, res) {
 
     const messageTypeRaw =
       typeof body.message_type === "string" ? body.message_type.trim().toLowerCase() : "";
-    const message_type = ["info", "reminder", "change"].includes(messageTypeRaw)
-      ? messageTypeRaw
-      : "info";
+    const message_type = messageTypeRaw || "event";
     const related_event_id =
       typeof body.related_event_id === "string" && body.related_event_id.trim()
         ? body.related_event_id.trim()
@@ -450,15 +448,22 @@ export default async function handler(req, res) {
         notificationSaveWarning = e?.message || String(e);
       }
 
-      // MVP: Zusätzlich In-App Nachricht („messages“) speichern
+      // MVP: Zusätzlich In-App Nachrichten („messages“) pro Empfänger speichern
       try {
-        await supabase.from("messages").insert({
+        const messageRows = userIds.map((uid) => ({
           team_id: teamIdForNotification,
+          user_id: uid,
           title,
+          body: textBody,
           content: textBody,
           type: message_type,
+          event_id: related_event_id,
           related_event_id,
-        });
+          read: false,
+        }));
+        if (messageRows.length > 0) {
+          await supabase.from("messages").insert(messageRows);
+        }
       } catch (e) {
         // nicht hard-failen: Push ist bereits raus
         console.warn("[push/send-team] messages.insert failed", e?.message || e);

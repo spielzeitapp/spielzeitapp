@@ -186,10 +186,14 @@ async function sendOneReminder(
   try {
     const { error: msgErr } = await admin.from('messages').insert({
       team_id: item.teamId,
+      user_id: item.userId,
       title: item.title,
+      body: item.body,
       content: item.body,
       type: 'reminder',
+      event_id: item.eventId,
       related_event_id: item.eventId,
+      read: false,
     });
     if (msgErr) {
       const code = (msgErr as { code?: string }).code;

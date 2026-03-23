@@ -15,19 +15,24 @@ export function useSyncProfileFromUserMetadata(user: User | null): void {
 
     const first = user.user_metadata?.first_name;
     const last = user.user_metadata?.last_name;
+    const full = user.user_metadata?.full_name;
     if (first == null && last == null) return;
 
     synced.current = true;
 
     const first_name = typeof first === 'string' ? first.trim() || null : null;
     const last_name = typeof last === 'string' ? last.trim() || null : null;
+    const full_name =
+      typeof full === 'string'
+        ? full.trim() || null
+        : `${first_name ?? ''} ${last_name ?? ''}`.trim() || null;
 
     supabase
       .from('profiles')
       .upsert(
-        { id: user.id, first_name, last_name, updated_at: new Date().toISOString() },
+        { id: user.id, first_name, last_name, full_name, updated_at: new Date().toISOString() },
         { onConflict: 'id' }
       )
       .then(() => {});
-  }, [user?.id, user?.user_metadata?.first_name, user?.user_metadata?.last_name]);
+  }, [user?.id, user?.user_metadata?.first_name, user?.user_metadata?.last_name, user?.user_metadata?.full_name]);
 }

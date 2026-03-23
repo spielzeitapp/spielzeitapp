@@ -1,19 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth/AuthProvider';
 import { useSession } from '../auth/useSession';
 import { Card } from '../app/components/ui/Card';
-
-const API = '/api/messages';
+import { supabase } from '../lib/supabaseClient';
 
 type MessageRow = {
   id: string;
-  team_id: string;
+  user_id: string | null;
   title: string;
-  content: string;
+  body: string | null;
+  content: string | null;
   type: string;
-  related_event_id: string | null;
+  event_id: string | null;
   created_at: string;
+  read: boolean;
 };
 
 function formatWhen(iso: string): string {
@@ -51,9 +51,9 @@ function writeReadSet(set: Set<string>): void {
 
 export const MessagesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { session } = useAuth();
   const { selectedTeamSeason } = useSession();
   const teamId = selectedTeamSeason?.team?.id ?? null;
+  const [needsRelogin, setNeedsRelogin] = useState(false);
 
   const [items, setItems] = useState<MessageRow[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,33 +66,45 @@ export const MessagesPage: React.FC = () => {
   }, []);
 
   const load = useCallback(async () => {
-    if (!session?.access_token || !teamId) {
+    if (!teamId) {
       setItems([]);
       setError(null);
       setLoading(false);
       return;
     }
+
     setLoading(true);
     setError(null);
     try {
-      const q = new URLSearchParams({ team_id: String(teamId) });
-      const res = await fetch(`${API}?${q.toString()}&limit=200`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      const data = (await res.json()) as { ok?: boolean; messages?: MessageRow[]; error?: string };
-      if (!res.ok || data.ok === false) {
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) {
+        setNeedsRelogin(true);
         setItems([]);
-        setError(data.error || 'Nachrichten konnten nicht geladen werden.');
+        setLoading(false);
         return;
       }
-      setItems(Array.isArray(data.messages) ? data.messages : []);
+      setNeedsRelogin(false);
+
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('user_id', user.data.user.id)
+        .eq('team_id', teamId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        setItems([]);
+        setError(error.message || 'Nachrichten konnten nicht geladen werden.');
+        return;
+      }
+      setItems(Array.isArray(data) ? (data as MessageRow[]) : []);
     } catch {
       setItems([]);
       setError('Nachrichten konnten nicht geladen werden.');
     } finally {
       setLoading(false);
     }
-  }, [session?.access_token, teamId]);
+  }, [teamId]);
 
   useEffect(() => {
     void load();
@@ -138,6 +150,9 @@ export const MessagesPage: React.FC = () => {
         </div>
 
         {!teamId && <p className="text-sm text-amber-200/90">Kein Team ausgewählt.</p>}
+        {needsRelogin && (
+          <div className="text-center text-gray-400 mt-10">Bitte neu einloggen</div>
+        )}
         {loading && teamId && <p className="text-sm text-white/60">Laden…</p>}
         {error && (
           <p className="text-sm text-amber-300" role="alert">
@@ -146,7 +161,7 @@ export const MessagesPage: React.FC = () => {
         )}
 
         {!loading && !error && teamId && items && items.length === 0 && (
-          <p className="text-sm text-white/70">Noch keine Nachrichten vorhanden.</p>
+          <div className="text-center text-gray-400 mt-10">Noch keine Nachrichten vorhanden</div>
         )}
 
         {!loading && items && items.length > 0 && (
@@ -176,12 +191,13 @@ export const MessagesPage: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    <h2 className={`mt-1 text-base font-semibold ${isRead ? 'text-white/90' : 'text-white'}`}>
+                    <h2 className={`mt-1 font-semibold ${isRead ? 'text-white/90' : 'text-white'}`}>
                       {m.title}
                     </h2>
-                    <p className={`mt-2 whitespace-pre-wrap text-sm text-[var(--text-sub)] ${isRead ? '' : 'text-red-100'}`}>
-                      {m.content}
+                    <p className={`mt-2 whitespace-pre-wrap text-sm text-gray-300 ${isRead ? '' : 'text-red-100'}`}>
+                      {m.body ?? m.content ?? ''}
                     </p>
+                    <div className="mt-2 text-xs text-gray-500">{formatWhen(m.created_at)}</div>
                   </Card>
                 </li>
               );
