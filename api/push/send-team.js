@@ -179,6 +179,16 @@ export default async function handler(req, res) {
       typeof body.url === "string" && body.url.trim() ? body.url.trim() : "/termine";
     if (!url.startsWith("/")) url = `/${url}`;
 
+    const messageTypeRaw =
+      typeof body.message_type === "string" ? body.message_type.trim().toLowerCase() : "";
+    const message_type = ["info", "reminder", "change"].includes(messageTypeRaw)
+      ? messageTypeRaw
+      : "info";
+    const related_event_id =
+      typeof body.related_event_id === "string" && body.related_event_id.trim()
+        ? body.related_event_id.trim()
+        : null;
+
     const wantedRoles = recipientRolesForGroup(recipient_group);
     if (!team_season_id || !wantedRoles) {
       return res.status(400).json({
@@ -438,6 +448,20 @@ export default async function handler(req, res) {
         }
       } catch (e) {
         notificationSaveWarning = e?.message || String(e);
+      }
+
+      // MVP: Zusätzlich In-App Nachricht („messages“) speichern
+      try {
+        await supabase.from("messages").insert({
+          team_id: teamIdForNotification,
+          title,
+          content: textBody,
+          type: message_type,
+          related_event_id,
+        });
+      } catch (e) {
+        // nicht hard-failen: Push ist bereits raus
+        console.warn("[push/send-team] messages.insert failed", e?.message || e);
       }
     }
 

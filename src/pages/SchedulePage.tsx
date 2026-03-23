@@ -341,6 +341,41 @@ export const SchedulePage: React.FC = () => {
       setSavingEdit(false);
       return;
     }
+
+    // MVP: Automatische Nachricht + Push bei „Treffpunkt geändert“
+    try {
+      const oldLoc = (editEvent.location ?? '').toString();
+      const oldAddr = (editEvent.address ?? '').toString();
+      const newLoc = (locationVal ?? '').toString();
+      const newAddr = (addressVal ?? '').toString();
+      const locationChanged = oldLoc !== newLoc || oldAddr !== newAddr;
+
+      if (locationChanged && teamSeasonId) {
+        const { data: sessionRes } = await supabase.auth.getSession();
+        const accessToken = sessionRes.session?.access_token;
+        if (accessToken) {
+          await fetch('/api/push/send-team', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              team_season_id: teamSeasonId,
+              recipient_group: 'all',
+              title: 'Update: Treffpunkt geändert',
+              body: `Bitte prüfe den neuen Treffpunkt für den Termin.`,
+              url: '/app/nachrichten',
+              message_type: 'change',
+              related_event_id: editEvent.id,
+            }),
+          });
+        }
+      }
+    } catch {
+      // best-effort
+    }
+
     setSavingEdit(false);
     closeEditModal();
     await refetch();

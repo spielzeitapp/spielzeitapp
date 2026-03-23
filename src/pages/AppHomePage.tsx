@@ -6,13 +6,14 @@ import { useEvents, type EventRow } from '../hooks/useEvents';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { supabase } from '../lib/supabaseClient';
 
-const NOTIF_API = '/api/notifications';
+const MESSAGES_API = '/api/messages';
 
-type NotificationRow = {
+type MessageRow = {
   id: string;
   title: string;
-  message: string;
-  link: string | null;
+  content: string;
+  type: string;
+  related_event_id: string | null;
   created_at: string;
 };
 
@@ -30,13 +31,6 @@ function nextUpcoming(events: EventRow[], now: Date): EventRow | null {
       return ta - tb;
     });
   return upcoming[0] ?? null;
-}
-
-function lastFinishedMatch(events: EventRow[]): EventRow | null {
-  const done = events
-    .filter((e) => (e.status === 'finished' || e.status === 'canceled') && e.kind === 'match')
-    .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
-  return done[0] ?? null;
 }
 
 function formatDt(iso: string | null): string {
@@ -60,38 +54,45 @@ export const AppHomePage: React.FC = () => {
   const { events, loading: evLoading } = useEvents(teamSeasonId);
   const { session } = useAuth();
   const teamId = selectedTeamSeason?.team?.id ?? null;
+  const userName = session?.user?.email ?? '—';
+  const teamName = selectedTeamSeason?.team?.name ?? '—';
 
-  const [notifs, setNotifs] = useState<NotificationRow[]>([]);
-  const [notifLoading, setNotifLoading] = useState(false);
+  const [latestMessage, setLatestMessage] = useState<MessageRow | null>(null);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const [pendingRsvp, setPendingRsvp] = useState<boolean | null>(null);
 
   const now = useMemo(() => new Date(), []);
   const next = useMemo(() => nextUpcoming(events ?? [], now), [events, now]);
-  const lastMatch = useMemo(() => lastFinishedMatch(events ?? []), [events]);
 
-  const loadNotifs = useCallback(async () => {
+  const loadLatestMessage = useCallback(async () => {
     if (!session?.access_token || !teamId) {
-      setNotifs([]);
+      setLatestMessage(null);
+      setMessagesLoading(false);
       return;
     }
-    setNotifLoading(true);
+    setMessagesLoading(true);
     try {
-      const q = new URLSearchParams({ team_id: String(teamId) });
-      const res = await fetch(`${NOTIF_API}?${q}`, {
+      const q = new URLSearchParams({ team_id: String(teamId), limit: '1' });
+      const res = await fetch(`${MESSAGES_API}?${q.toString()}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      const data = (await res.json()) as { notifications?: NotificationRow[] };
-      setNotifs(Array.isArray(data.notifications) ? data.notifications.slice(0, 5) : []);
+      const data = (await res.json()) as { ok?: boolean; messages?: MessageRow[]; error?: string };
+      if (!res.ok || data.ok === false) {
+        setLatestMessage(null);
+        return;
+      }
+      const list = Array.isArray(data.messages) ? data.messages : [];
+      setLatestMessage(list[0] ?? null);
     } catch {
-      setNotifs([]);
+      setLatestMessage(null);
     } finally {
-      setNotifLoading(false);
+      setMessagesLoading(false);
     }
   }, [session?.access_token, teamId]);
 
   useEffect(() => {
-    void loadNotifs();
-  }, [loadNotifs]);
+    void loadLatestMessage();
+  }, [loadLatestMessage]);
 
   /** Eltern: offene Zusage beim nächsten Termin (opt_in) */
   useEffect(() => {
@@ -143,43 +144,50 @@ export const AppHomePage: React.FC = () => {
       }}
     >
       <div className="mx-auto max-w-[560px] space-y-4">
-        <p className="text-center text-[10px] font-bold uppercase tracking-[0.25em] text-red-400">
-          NAV UPDATE ACTIVE
-        </p>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Home</h1>
-        <p className="text-sm text-white/60">Dein Überblick</p>
+        <h1 className="text-2xl font-bold tracking-tight text-white">
+          Herzlich willkommen, {userName}
+        </h1>
+        <p className="text-sm text-white/60">Dein Überblick für {teamName}</p>
 
         {loading && <p className="text-sm text-white/50">Laden…</p>}
 
-        {!loading && pendingRsvp === true && (
-          <div
-            className="rounded-xl border border-amber-500/40 bg-amber-950/40 px-4 py-3 text-sm text-amber-100"
-            role="status"
-          >
-            Du hast noch nicht zugesagt – bitte beim nächsten Termin reagieren.
-          </div>
-        )}
-
         {!loading && next && (
-          <Card className="border-white/10 bg-white/5 text-white">
-            <CardTitle className="text-base">Nächster Termin</CardTitle>
-            <p className="mt-1 text-lg font-semibold text-white">
-              {next.opponent?.trim() ||
-                (next.notes && next.notes.trim().slice(0, 80)) ||
-                (next.kind === 'training' ? 'Training' : next.kind === 'event' ? 'Event' : 'Spiel')}
-            </p>
-            <p className="mt-1 text-sm text-white/70">
-              {next.kind === 'training' ? 'Training' : next.kind === 'event' ? 'Event' : 'Spiel'} ·{' '}
-              {formatDt(next.starts_at)}
-            </p>
-            {next.location && <p className="mt-1 text-sm text-white/60">{next.location}</p>}
-            <Link
-              to={`/app/events/${next.id}`}
-              className="mt-3 inline-block text-sm font-medium text-red-400 hover:text-red-300"
-            >
-              Details &amp; RSVP →
-            </Link>
-          </Card>
+          <>
+            <Card className="border-white/10 bg-white/5 text-white">
+              <CardTitle className="text-base">Nächster Termin</CardTitle>
+
+              <p className="mt-1 text-lg font-semibold text-white">
+                {next.kind === 'training' ? 'Training' : next.kind === 'event' ? 'Termin' : 'Spiel'}
+              </p>
+              <p className="mt-1 text-sm text-white/70">{formatDt(next.starts_at)}</p>
+              <p className="mt-1 text-sm text-white/60">{next.location || next.address || '—'}</p>
+
+              <Link
+                to={`/app/events/${next.id}`}
+                className="mt-3 inline-block text-sm font-medium text-red-400 hover:text-red-300"
+              >
+                Details &amp; RSVP
+              </Link>
+            </Card>
+
+            {pendingRsvp === true && (
+              <Card className="border-amber-500/30 bg-amber-950/30 text-white">
+                <div className="px-4 py-3">
+                  <div className="text-xs font-bold uppercase tracking-[0.25em] text-amber-200">
+                    Offene Aktion
+                  </div>
+                  <p className="mt-2 text-sm text-amber-100">Du hast für 1 Termin noch nicht reagiert</p>
+
+                  <Link
+                    to={`/app/events/${next.id}`}
+                    className="mt-3 inline-block text-sm font-medium text-red-300 hover:text-red-200"
+                  >
+                    Jetzt reagieren →
+                  </Link>
+                </div>
+              </Card>
+            )}
+          </>
         )}
 
         {!loading && !next && teamSeasonId && (
@@ -191,39 +199,19 @@ export const AppHomePage: React.FC = () => {
           </Card>
         )}
 
-        {!loading && lastMatch && (
-          <Card className="border-white/10 bg-white/5 text-white">
-            <CardTitle className="text-base">Letztes Ergebnis</CardTitle>
-            <p className="mt-1 text-sm text-white/80">
-              {lastMatch.opponent ?? 'Spiel'} · {formatDt(lastMatch.starts_at)}
-            </p>
-            <Link
-              to={`/app/events/${lastMatch.id}`}
-              className="mt-2 inline-block text-sm text-red-400 hover:text-red-300"
-            >
-              Ansehen
-            </Link>
-          </Card>
-        )}
-
         <Card className="border-white/10 bg-white/5 text-white">
-          <CardTitle className="text-base">Letzte Nachrichten</CardTitle>
-          {notifLoading && <p className="mt-2 text-sm text-white/50">Laden…</p>}
-          {!notifLoading && notifs.length === 0 && (
-            <p className="mt-2 text-sm text-white/60">Noch keine Nachrichten.</p>
+          <CardTitle className="text-base">Letzte wichtige Nachricht</CardTitle>
+          {messagesLoading && <p className="mt-2 text-sm text-white/50">Laden…</p>}
+          {!messagesLoading && latestMessage && (
+            <>
+              <p className="mt-2 text-xs text-white/60">{formatDt(latestMessage.created_at)}</p>
+              <p className="mt-1 font-medium text-white">{latestMessage.title}</p>
+              <p className="mt-2 line-clamp-2 text-sm text-white/60">{latestMessage.content}</p>
+            </>
           )}
-          {!notifLoading && notifs.length > 0 && (
-            <ul className="mt-2 space-y-2">
-              {notifs.map((n) => (
-                <li key={n.id} className="border-b border-white/10 pb-2 last:border-0">
-                  <p className="font-medium text-white">{n.title}</p>
-                  <p className="line-clamp-2 text-xs text-white/60">{n.message}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-          <Link to="/app/mehr/notifications" className="mt-3 inline-block text-sm text-red-400">
-            Alle Nachrichten
+          {!messagesLoading && !latestMessage && <p className="mt-2 text-sm text-white/60">Noch keine Nachrichten.</p>}
+          <Link to="/app/nachrichten" className="mt-3 inline-block text-sm text-red-400">
+            Alle Nachrichten →
           </Link>
         </Card>
       </div>

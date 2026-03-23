@@ -252,7 +252,10 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         cancellation_deadline: eventTypeLocal === 'training' ? form.training_absence_deadline_disabled : null,
       });
 
-      const { error: eventErr } = await supabase.from('events').insert(rows);
+      const { data: insertedRows, error: eventErr } = await supabase
+        .from('events')
+        .insert(rows)
+        .select('id');
 
       if (eventErr) {
         const pe = eventErr as { message: string; details?: string; hint?: string; code?: string };
@@ -266,6 +269,56 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         setError(eventErr.message);
         setCreating(false);
         return;
+      }
+
+      // MVP: Automatische Nachricht + Push für „Neuer Termin / Event erstellt“
+      try {
+        const { data: sessionRes } = await supabase.auth.getSession();
+        const accessToken = sessionRes.session?.access_token;
+        if (accessToken && teamSeasonId) {
+          const firstEventId = (Array.isArray(insertedRows) ? insertedRows[0] : null)?.id ?? null;
+          const dateStr = startDate.toLocaleDateString('de-DE', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          });
+
+          const ortVal = (form.location.trim() || form.address.trim()).trim();
+          let titleForMsg = '';
+          let contentForMsg = '';
+          if (eventTypeLocal === 'training') {
+            titleForMsg = `Neuer Termin: Training am ${dateStr}`;
+            contentForMsg = ortVal ? `Ort: ${ortVal}` : 'Bitte prüfe die Details im Kalender.';
+          } else if (eventTypeLocal === 'game') {
+            titleForMsg = `Neuer Termin: Spiel am ${dateStr}`;
+            contentForMsg = ortVal ? `Ort: ${ortVal}` : 'Bitte prüfe die Details im Kalender.';
+          } else if (eventTypeLocal === 'event') {
+            titleForMsg = `Neues Event erstellt am ${dateStr}`;
+            contentForMsg = ortVal ? `Ort: ${ortVal}` : 'Bitte prüfe die Details im Kalender.';
+          } else {
+            titleForMsg = `Neuer Termin am ${dateStr}`;
+            contentForMsg = ortVal ? `Ort: ${ortVal}` : 'Bitte prüfe die Details im Kalender.';
+          }
+
+          await fetch('/api/push/send-team', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              team_season_id: teamSeasonId,
+              recipient_group: 'all',
+              title: titleForMsg,
+              body: contentForMsg,
+              url: '/app/nachrichten',
+              message_type: 'info',
+              related_event_id: firstEventId,
+            }),
+          });
+        }
+      } catch {
+        // best-effort: Nachricht/Push darf nicht das Event anlegen blockieren
       }
 
       handleClose();

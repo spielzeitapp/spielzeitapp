@@ -30,7 +30,7 @@ export const MoreHubPage: React.FC = () => {
         <p className="text-sm text-white/60">Einstellungen und weitere Bereiche</p>
 
         <nav className="space-y-2" aria-label="Mehr-Menü">
-          <Link to="/app/mehr/notifications" className={rowClass}>
+          <Link to="/app/nachrichten" className={rowClass}>
             <span className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-red-400" aria-hidden />
               <span className="font-medium">Nachrichten</span>

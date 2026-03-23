@@ -21,6 +21,8 @@ import { TeamPage } from '../pages/TeamPage';
 import { TablePage } from '../pages/TablePage';
 import { NotificationsPage } from '../pages/NotificationsPage';
 import { ProfilePage } from '../pages/ProfilePage';
+import { MessagesPage } from '../pages/MessagesPage';
+import { MessageDetailPage } from '../pages/MessageDetailPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
@@ -139,12 +141,18 @@ function InternalRoutes(): React.ReactElement {
         <Route path="table" element={<TablePage />} />
         <Route path="mehr" element={<MoreLayout />}>
           <Route index element={<MorePage />} />
-          <Route path="notifications" element={<NotificationsPage />} />
+          {/* Legacy: /app/mehr/notifications -> /app/nachrichten */}
+          <Route path="notifications" element={<Navigate to="/app/nachrichten" replace />} />
           <Route path="profile" element={<Navigate to="/app/profile" replace />} />
         </Route>
-        <Route path="notifications" element={<Navigate to="/app/mehr/notifications" replace />} />
+        {/* Legacy: /app/notifications -> /app/nachrichten */}
+        <Route path="notifications" element={<Navigate to="/app/nachrichten" replace />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="mehr/profile" element={<Navigate to="/app/profile" replace />} />
+
+        {/* MVP Nachrichten */}
+        <Route path="nachrichten" element={<MessagesPage />} />
+        <Route path="nachrichten/:messageId" element={<MessageDetailPage />} />
       </Route>
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
       <Route path="/admin/login" element={<AdminLoginPage />} />

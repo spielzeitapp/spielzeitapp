@@ -20,6 +20,7 @@ export type NotificationKind = 'training_reminder' | 'game_reminder';
 export type PendingNotificationItem = {
   userId: string;
   eventId: string;
+  teamId: string;
   notificationType: NotificationKind;
   title: string;
   body: string;
@@ -45,13 +46,13 @@ export async function getPendingNotifications(
 
   const { data: events, error: evErr } = await admin
     .from('events')
-    .select('*')
+    .select('*, team_seasons(team_id)')
     .eq('status', 'upcoming')
     .gte('starts_at', back)
     .lte('starts_at', horizon);
 
   if (evErr) throw evErr;
-  const list = (events ?? []) as RawEventRow[];
+  const list = (events ?? []) as Array<RawEventRow & { team_seasons?: { team_id?: string } | Array<{ team_id?: string }> | null }>;
   if (list.length === 0) return [];
 
   const eventIds = list.map((e) => e.id);
@@ -87,6 +88,14 @@ export async function getPendingNotifications(
   const out: PendingNotificationItem[] = [];
 
   for (const event of list) {
+    const teamIdRaw = event.team_seasons
+      ? Array.isArray(event.team_seasons)
+        ? event.team_seasons[0]?.team_id
+        : event.team_seasons.team_id
+      : undefined;
+    const teamId = (teamIdRaw ?? '') as string;
+    if (!teamId) continue;
+
     const ctype = getCanonicalEventType(event);
     const mode = getParticipationMode(event);
     const titleStr = getEventDisplayTitle(event);
@@ -122,10 +131,11 @@ export async function getPendingNotifications(
         out.push({
           userId,
           eventId: event.id,
+          teamId,
           notificationType: kind,
           title: 'Training heute',
           body: buildTrainingReminderBody(titleStr, event.starts_at),
-          url: `/app/events/${event.id}`,
+          url: `/app/nachrichten`,
         });
       }
 
@@ -136,10 +146,11 @@ export async function getPendingNotifications(
         out.push({
           userId,
           eventId: event.id,
+          teamId,
           notificationType: kind,
           title: 'Spiel-Zusage fehlt',
           body: buildGameReminderBody(titleStr, event.starts_at),
-          url: `/app/events/${event.id}`,
+          url: `/app/nachrichten`,
         });
       }
     }

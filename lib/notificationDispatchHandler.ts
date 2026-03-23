@@ -182,6 +182,27 @@ async function sendOneReminder(
     throw insErr;
   }
 
+  // MVP: Reminder als In-App Nachricht speichern
+  try {
+    const { error: msgErr } = await admin.from('messages').insert({
+      team_id: item.teamId,
+      title: item.title,
+      content: item.body,
+      type: 'reminder',
+      related_event_id: item.eventId,
+    });
+    if (msgErr) {
+      const code = (msgErr as { code?: string }).code;
+      if (code === '23505') {
+        // Reminder ist bereits als Nachricht gespeichert (z. B. batch pro user).
+      } else {
+        console.warn('[notificationDispatch] messages.insert failed', msgErr.message || msgErr);
+      }
+    }
+  } catch (e: unknown) {
+    console.warn('[notificationDispatch] messages.insert exception', e);
+  }
+
   const payload = JSON.stringify({
     title: item.title,
     body: item.body,
