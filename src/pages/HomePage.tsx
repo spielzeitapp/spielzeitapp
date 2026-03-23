@@ -1,18 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
-import { useProfile } from '../auth/useProfile';
+import { useProfile, welcomeGreetingFromProfile } from '../auth/useProfile';
 
 const logo = import.meta.env.BASE_URL + 'logos/nsg-goelsental.png';
 
 export const HomePage: React.FC = () => {
   const { session } = useAuth();
-  const { profile } = useProfile(session?.user?.id ?? null);
-  const welcomeName =
-    profile?.first_name?.trim() ||
-    profile?.full_name?.trim()?.split(/\s+/)[0] ||
-    profile?.display_name?.trim() ||
-    '';
+  const { profile, loading: profileLoading } = useProfile(session?.user?.id ?? null);
+  const welcomeName = !profileLoading ? welcomeGreetingFromProfile(profile) : '';
 
   return (
     <div

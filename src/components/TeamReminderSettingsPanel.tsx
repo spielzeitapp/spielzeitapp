@@ -10,13 +10,30 @@ const MATCH_MIN = [360, 720, 1440] as const;
 const MATCH2_MIN = [60, 120, 180] as const;
 const EVENT_MIN = [720, 1440] as const;
 
-type Props = { teamSeasonId: string | null };
+function nearest(allowed: readonly number[], v: number, fallback: number): number {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  if ((allowed as readonly number[]).includes(n)) return n;
+  return allowed.reduce((best, x) => (Math.abs(x - n) < Math.abs(best - n) ? x : best), allowed[0] ?? fallback);
+}
 
-export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId }) => {
+function normalizeRow(raw: TeamNotificationSettingsRow): TeamNotificationSettingsRow {
+  return {
+    ...raw,
+    training_reminder_minutes_before: nearest(TRAINING_MIN, raw.training_reminder_minutes_before, 120),
+    match_reminder_minutes_before: nearest(MATCH_MIN, raw.match_reminder_minutes_before, 1440),
+    match_second_reminder_minutes_before: nearest(MATCH2_MIN, raw.match_second_reminder_minutes_before, 120),
+    event_reminder_minutes_before: nearest(EVENT_MIN, raw.event_reminder_minutes_before, 1440),
+  };
+}
+
+type Props = { teamSeasonId: string | null; embedded?: boolean };
+
+export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embedded }) => {
   const [row, setRow] = useState<TeamNotificationSettingsRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
@@ -26,7 +43,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId }) => 
       return;
     }
     setLoading(true);
-    setError(null);
+    setSaveError(false);
     try {
       const { data, error: qErr } = await supabase
         .from('team_notification_settings')
@@ -34,18 +51,22 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId }) => 
         .eq('team_season_id', teamSeasonId)
         .maybeSingle();
       if (qErr) {
-        setError('Einstellungen konnten nicht geladen werden.');
-        setRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS });
+        console.warn('[TeamReminderSettings]', qErr.message ?? qErr);
+        setRow(
+          normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }),
+        );
         return;
       }
       if (data) {
-        setRow(data as TeamNotificationSettingsRow);
+        setRow(normalizeRow(data as TeamNotificationSettingsRow));
       } else {
-        setRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS });
+        setRow(
+          normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }),
+        );
       }
-    } catch {
-      setError('Einstellungen konnten nicht geladen werden.');
-      setRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS });
+    } catch (e) {
+      console.warn('[TeamReminderSettings] load', e);
+      setRow(normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }));
     } finally {
       setLoading(false);
     }
@@ -58,12 +79,13 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId }) => 
   const update = <K extends keyof TeamNotificationSettingsRow>(key: K, value: TeamNotificationSettingsRow[K]) => {
     setRow((prev) => (prev ? { ...prev, [key]: value } : prev));
     setSaved(false);
+    setSaveError(false);
   };
 
   const save = async () => {
     if (!teamSeasonId || !row) return;
     setSaving(true);
-    setError(null);
+    setSaveError(false);
     setSaved(false);
     try {
       const payload = {
@@ -81,12 +103,15 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId }) => 
         onConflict: 'team_season_id',
       });
       if (uErr) {
-        setError('Speichern fehlgeschlagen.');
+        console.warn('[TeamReminderSettings] save', uErr.message ?? uErr);
+        setSaveError(true);
         return;
       }
       setSaved(true);
-    } catch {
-      setError('Speichern fehlgeschlagen.');
+      await load();
+    } catch (e) {
+      console.warn('[TeamReminderSettings] save', e);
+      setSaveError(true);
     } finally {
       setSaving(false);
     }
@@ -95,16 +120,32 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId }) => 
   if (!teamSeasonId) return null;
   if (loading || !row) {
     return (
-      <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white/60">Erinnerungen laden…</div>
+      <div
+        className={
+          embedded
+            ? 'py-2 text-sm text-white/60'
+            : 'mt-3 rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white/60'
+        }
+      >
+        Erinnerungen laden…
+      </div>
     );
   }
 
-  return (
-    <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3 text-white">
-      <h3 className="text-sm font-semibold text-white/95">Erinnerungen</h3>
-      <p className="mt-1 text-xs text-white/55">Globale Regeln für dieses Team (automatische Termin-Erinnerungen).</p>
+  const shell = embedded ? 'mt-2' : 'mt-3 rounded-lg border border-white/10 bg-white/5 p-3 text-white';
 
-      {error && <p className="mt-2 text-xs text-amber-200/90">{error}</p>}
+  return (
+    <div className={shell}>
+      {!embedded && (
+        <>
+          <h3 className="text-sm font-semibold text-white/95">Erinnerungen</h3>
+          <p className="mt-1 text-xs text-white/55">Globale Regeln für dieses Team (automatische Termin-Erinnerungen).</p>
+        </>
+      )}
+
+      {saveError && (
+        <p className="mt-2 text-xs text-white/55">Speichern war gerade nicht möglich. Bitte später erneut versuchen.</p>
+      )}
       {saved && <p className="mt-2 text-xs text-emerald-300/90">Gespeichert.</p>}
 
       <div className="mt-3 space-y-3 text-sm">

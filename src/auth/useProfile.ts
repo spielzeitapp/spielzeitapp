@@ -91,11 +91,36 @@ export function useProfile(userId: string | undefined | null): {
   return { profile, loading, error };
 }
 
-/** Format display name from profile or fallback to email. */
-export function displayName(profile: ProfileRow | null, email: string | undefined): string {
-  if (!profile) return email ?? '–';
+/** Hauptzeile Profil: Vor-/Nachname, sonst full_name, sonst display_name, sonst E-Mail. */
+export function profileHeadingLine(profile: ProfileRow | null, email: string): string {
+  if (!profile) return email || '–';
   const first = (profile.first_name ?? '').trim();
   const last = (profile.last_name ?? '').trim();
-  const name = `${first} ${last}`.trim();
-  return name || email || '–';
+  const combined = [first, last].filter(Boolean).join(' ').trim();
+  if (combined) return combined;
+  const full = (profile.full_name ?? '').trim();
+  if (full) return full;
+  const dn = (profile.display_name ?? '').trim();
+  if (dn) return dn;
+  return email || '–';
+}
+
+/** Home-Begrüßung: nur first_name → erstes Wort full_name → display_name (keine E-Mail). */
+export function welcomeGreetingFromProfile(profile: ProfileRow | null): string {
+  if (!profile) return '';
+  const fn = (profile.first_name ?? '').trim();
+  if (fn) return fn;
+  const full = (profile.full_name ?? '').trim();
+  if (full) {
+    const w = full.split(/\s+/)[0]?.trim();
+    if (w) return w;
+  }
+  const dn = (profile.display_name ?? '').trim();
+  return dn || '';
+}
+
+/** @deprecated Nutze profileHeadingLine */
+export function displayName(profile: ProfileRow | null, email: string | undefined): string {
+  const e = (email ?? '').trim();
+  return profileHeadingLine(profile, e || '–');
 }

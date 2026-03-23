@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useSession } from '../auth/useSession';
-import { useProfile } from '../auth/useProfile';
+import { useProfile, welcomeGreetingFromProfile } from '../auth/useProfile';
 import { useEvents, type EventRow } from '../hooks/useEvents';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { supabase } from '../lib/supabaseClient';
@@ -48,19 +48,23 @@ function formatDt(iso: string | null): string {
   }
 }
 
+function eventShortLabel(ev: EventRow): string {
+  const n = ev.notes?.trim()?.split('·')[0]?.trim();
+  if (n) return n;
+  if (ev.kind === 'training') return 'Training';
+  if (ev.kind === 'event') return 'Termin';
+  return ev.opponent?.trim() ? `vs ${ev.opponent.trim()}` : 'Spiel';
+}
+
 export const AppHomePage: React.FC = () => {
   const { selectedTeamSeasonId: teamSeasonId, loading: sessionLoading, effectiveRole, selectedTeamSeason } =
     useSession();
   const { events, loading: evLoading } = useEvents(teamSeasonId);
   const { session } = useAuth();
-  const { profile } = useProfile(session?.user?.id ?? null);
+  const { profile, loading: profileLoading } = useProfile(session?.user?.id ?? null);
   const teamId = selectedTeamSeason?.team?.id ?? null;
   const teamName = selectedTeamSeason?.team?.name ?? '—';
-  const welcomeName =
-    profile?.first_name?.trim() ||
-    profile?.full_name?.trim()?.split(/\s+/)[0] ||
-    profile?.display_name?.trim() ||
-    '';
+  const welcomeName = !profileLoading ? welcomeGreetingFromProfile(profile) : '';
 
   const [latestMessage, setLatestMessage] = useState<MessageRow | null>(null);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -193,11 +197,16 @@ export const AppHomePage: React.FC = () => {
                   <div className="text-xs font-bold uppercase tracking-[0.25em] text-amber-200">
                     Offene Aktion
                   </div>
-                  <p className="mt-2 text-sm text-amber-100">Du hast für 1 Termin noch nicht reagiert</p>
+                  <p className="mt-2 text-sm text-amber-100">
+                    Bitte gib noch deine Zu-/Absage für „{eventShortLabel(next)}“ ab.
+                  </p>
+                  <p className="mt-1 text-xs text-amber-200/80">
+                    Termin: {formatDt(next.starts_at)}
+                  </p>
 
                   <Link
                     to={`/app/events/${next.id}`}
-                    className="mt-3 inline-block text-sm font-medium text-red-300 hover:text-red-200"
+                    className="mt-3 inline-block text-sm font-semibold text-red-300 hover:text-red-200"
                   >
                     Jetzt reagieren →
                   </Link>
@@ -221,26 +230,37 @@ export const AppHomePage: React.FC = () => {
           </Card>
         )}
 
-        <Card className="border-white/10 bg-white/5 text-white">
-          <CardTitle className="text-base">Letzte wichtige Nachricht</CardTitle>
-          {messagesLoading && <p className="mt-2 text-sm text-white/50">Laden…</p>}
-          {!messagesLoading && latestMessage && (
+        {messagesLoading ? (
+          <Card className="border-white/10 bg-white/5 text-white">
+            <CardTitle className="text-base">Letzte wichtige Nachricht</CardTitle>
+            <p className="mt-2 text-sm text-white/50">Laden…</p>
+          </Card>
+        ) : latestMessage ? (
+          <Card className="border-white/10 bg-white/5 text-white">
+            <CardTitle className="text-base">Letzte wichtige Nachricht</CardTitle>
             <Link
               to="/app/nachrichten"
               className="-mx-1 mt-2 block rounded-lg p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
             >
-              <p className="text-xs text-white/60">{formatDt(latestMessage.created_at)}</p>
+              <p className="text-xs text-white/50">{formatDt(latestMessage.created_at)}</p>
               <p className="mt-1 font-medium text-white">{latestMessage.title}</p>
-              <p className="mt-2 line-clamp-2 text-sm text-white/60">
-                {latestMessage.body ?? latestMessage.content ?? ''}
+              <p className="mt-1 line-clamp-1 text-sm text-white/55">
+                {(latestMessage.body ?? latestMessage.content ?? '').replace(/\s+/g, ' ').trim()}
               </p>
             </Link>
-          )}
-          {!messagesLoading && !latestMessage && <p className="mt-2 text-sm text-white/60">Noch keine Nachrichten.</p>}
-          <Link to="/app/nachrichten" className="mt-3 inline-block text-sm text-red-400">
-            Alle Nachrichten →
-          </Link>
-        </Card>
+            <Link to="/app/nachrichten" className="mt-3 inline-block text-sm text-red-400">
+              Alle Nachrichten →
+            </Link>
+          </Card>
+        ) : (
+          <div className="rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 text-white">
+            <p className="text-xs font-medium uppercase tracking-wide text-white/45">Letzte wichtige Nachricht</p>
+            <p className="mt-2 text-sm text-white/45">Noch keine Nachrichten.</p>
+            <Link to="/app/nachrichten" className="mt-2 inline-block text-sm text-red-400/90">
+              Zu Nachrichten
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

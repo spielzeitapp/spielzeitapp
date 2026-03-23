@@ -2,7 +2,7 @@ import React, { ChangeEvent, Component, ErrorInfo, ReactNode, useEffect, useMemo
 import { Link, useNavigate } from 'react-router-dom';
 import { useSession, PREVIEW_ROLE_STORAGE_KEY } from '../auth/useSession';
 import { useAuth } from '../auth/AuthProvider';
-import { useProfile, displayName } from '../auth/useProfile';
+import { useProfile, profileHeadingLine } from '../auth/useProfile';
 import { supabase } from '../lib/supabaseClient';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { PushNotificationsButton } from '../components/PushNotificationsButton';
@@ -115,7 +115,8 @@ export const ProfilePage: React.FC = () => {
 
   const selectedTeamName = getTeamName(selectedTeamSeason);
   const email = authUser?.email ?? user?.name ?? '–';
-  const displayNameStr = displayName(profile, undefined);
+  const headingMain = profileHeadingLine(profile, email);
+  const showEmailRow = headingMain !== email && email !== '–';
 
   /** Nur Session-Gate; Profil lädt im Hintergrund (kein globales Blockieren). */
   const blockingLoad = !!(authUser && sessionLoading);
@@ -315,11 +316,13 @@ export const ProfilePage: React.FC = () => {
         boxShadow: 'inset 0 0 120px rgba(120,20,20,0.12)',
       }}
     >
-      <div className="mx-auto max-w-[480px] space-y-4">
+      <div className="mx-auto max-w-[480px] space-y-6">
         <h1 className="text-2xl font-bold text-white tracking-tight">Profil</h1>
+
         <Card className="text-white">
-          <CardTitle>{displayNameStr !== '–' ? displayNameStr : email}</CardTitle>
-          {displayNameStr !== email && (
+          <CardTitle className="text-lg">Profil</CardTitle>
+          <p className="mt-2 text-lg font-semibold text-[var(--text-main)]">{headingMain}</p>
+          {showEmailRow && (
             <p className="mt-1 text-sm text-[var(--text-sub)]">
               E-Mail: <span className="font-medium text-[var(--text-main)]">{email}</span>
             </p>
@@ -327,8 +330,9 @@ export const ProfilePage: React.FC = () => {
 
           {slowLoadBanner}
 
-          {profileError && (
-            <p className="mt-2 rounded-md border border-white/10 bg-white/5 px-2 py-2 text-xs text-white/65" role="status">
+          {profileLoading && <p className="mt-2 text-xs text-white/50">Profil wird geladen…</p>}
+          {!profileLoading && profileError && !profile && (
+            <p className="mt-2 text-xs text-white/55" role="status">
               Profilinformationen werden aktualisiert.
             </p>
           )}
@@ -339,7 +343,7 @@ export const ProfilePage: React.FC = () => {
             </p>
           )}
 
-          <p className="mt-1 text-sm text-[var(--text-sub)]">
+          <p className="mt-3 text-sm text-[var(--text-sub)]">
             Backend-Rolle: <span className="font-medium text-[var(--text-main)]">{backendRole}</span>
           </p>
 
@@ -353,7 +357,7 @@ export const ProfilePage: React.FC = () => {
           </p>
 
           {hasPendingPlayerRequest && effectiveRole === 'fan' && (
-            <p className="mt-1 text-xs text-amber-300">
+            <p className="mt-2 text-xs text-amber-300">
               Deine Spieleranfrage wurde an den Trainer gesendet. Du erhältst Spielerzugriff, sobald sie bestätigt wurde.
             </p>
           )}
@@ -362,31 +366,9 @@ export const ProfilePage: React.FC = () => {
             Team: <span className="font-medium text-[var(--text-main)]">{selectedTeamName}</span>
           </p>
 
-          {showPushSection && mountPushUi && (
-            <ProfileSectionErrorBoundary label="Push-Benachrichtigungen">
-              <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
-                <PushNotificationsButton isAdminToolsVisible={isAdminToolsVisible} />
-              </div>
-            </ProfileSectionErrorBoundary>
-          )}
-
-          {showTeamPushSend && mountPushUi && (
-            <ProfileSectionErrorBoundary label="Team-Push senden">
-              <div className="mt-3">
-                <PushTeamSendPanel teamSeasonId={selectedTeamSeasonId} />
-              </div>
-            </ProfileSectionErrorBoundary>
-          )}
-
-          {showTeamPushSend && (
-            <ProfileSectionErrorBoundary label="Erinnerungen">
-              <TeamReminderSettingsPanel teamSeasonId={selectedTeamSeasonId} />
-            </ProfileSectionErrorBoundary>
-          )}
-
           {effectiveRole === 'parent' && (
             <ProfileSectionErrorBoundary label="Verknüpfte Kinder">
-              <div className="mt-2 text-sm text-[var(--text-sub)]">
+              <div className="mt-4 border-t border-white/10 pt-3 text-sm text-[var(--text-sub)]">
                 <div className="font-medium text-[var(--text-main)]">Verknüpfte Kinder</div>
                 {childrenLoading ? (
                   <p className="mt-0.5 text-xs text-[var(--text-sub)]">Lade Kind-Verknüpfung…</p>
@@ -405,39 +387,7 @@ export const ProfilePage: React.FC = () => {
             </ProfileSectionErrorBoundary>
           )}
 
-          {showPreviewSwitch && (
-            <ProfileSectionErrorBoundary label="Rollen-Vorschau">
-              <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
-                <label className="block text-xs font-medium text-[var(--text-sub)]" htmlFor="preview-role-select">
-                  Ansicht testen als
-                </label>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <select
-                    id="preview-role-select"
-                    value={previewRole ?? ''}
-                    onChange={handlePreviewRoleChange}
-                    className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-black/40 px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                  >
-                    <option value="">— Backend-Rolle —</option>
-                    {PREVIEW_ROLE_OPTIONS.map((r) => (
-                      <option key={r} value={r}>
-                        {ROLE_LABELS[r] ?? r}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={handleResetPreview}
-                    className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-xs font-medium text-[var(--text-main)] hover:bg-white/10"
-                  >
-                    Reset
-                  </button>
-                </div>
-              </div>
-            </ProfileSectionErrorBoundary>
-          )}
-
-          <p className="mt-3 text-xs text-[var(--text-sub)]">
+          <p className="mt-4 text-xs text-[var(--text-sub)]">
             Später kannst du hier Kontaktinformationen, Benachrichtigungen und verknüpfte Kinder verwalten.
           </p>
 
@@ -457,6 +407,69 @@ export const ProfilePage: React.FC = () => {
             </p>
           )}
         </Card>
+
+        {showPushSection && mountPushUi && (
+          <Card className="text-white">
+            <CardTitle className="text-lg">Benachrichtigungen</CardTitle>
+            <ProfileSectionErrorBoundary label="Push-Benachrichtigungen">
+              <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
+                <PushNotificationsButton isAdminToolsVisible={isAdminToolsVisible} />
+              </div>
+            </ProfileSectionErrorBoundary>
+          </Card>
+        )}
+
+        {showTeamPushSend && mountPushUi && (
+          <Card className="text-white">
+            <CardTitle className="text-lg">Team-Push</CardTitle>
+            <p className="mt-1 text-xs text-white/55">Nachricht an Eltern/Spieler mit Push (manuell).</p>
+            <ProfileSectionErrorBoundary label="Team-Push senden">
+              <div className="mt-3">
+                <PushTeamSendPanel teamSeasonId={selectedTeamSeasonId} />
+              </div>
+            </ProfileSectionErrorBoundary>
+          </Card>
+        )}
+
+        {showTeamPushSend && (
+          <ProfileSectionErrorBoundary label="Erinnerungen">
+            <Card className="text-white">
+              <CardTitle className="text-lg">Erinnerungen</CardTitle>
+              <p className="mt-1 text-xs text-white/55">Automatische Termin-Erinnerungen für das Team.</p>
+              <TeamReminderSettingsPanel teamSeasonId={selectedTeamSeasonId} embedded />
+            </Card>
+          </ProfileSectionErrorBoundary>
+        )}
+
+        {showPreviewSwitch && (
+          <ProfileSectionErrorBoundary label="Rollen-Vorschau">
+            <Card className="text-white">
+              <CardTitle className="text-lg">Ansicht testen als</CardTitle>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <select
+                  id="preview-role-select"
+                  value={previewRole ?? ''}
+                  onChange={handlePreviewRoleChange}
+                  className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-black/40 px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                >
+                  <option value="">— Backend-Rolle —</option>
+                  {PREVIEW_ROLE_OPTIONS.map((r) => (
+                    <option key={r} value={r}>
+                      {ROLE_LABELS[r] ?? r}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleResetPreview}
+                  className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-xs font-medium text-[var(--text-main)] hover:bg-white/10"
+                >
+                  Reset
+                </button>
+              </div>
+            </Card>
+          </ProfileSectionErrorBoundary>
+        )}
       </div>
     </div>
   );
