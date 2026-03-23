@@ -211,7 +211,7 @@ async function sendOneReminder(
   }
 
   const payload = JSON.stringify({
-    title: item.title,
+    title: 'SpielzeitApp Erinnerung',
     body: item.body,
     url: item.url,
     tag: `${item.notificationType}-${item.eventId}`,

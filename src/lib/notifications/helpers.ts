@@ -1,38 +1,29 @@
-import { isSameViennaCalendarDay, isViennaLocalTimeInRange } from '../viennaTime';
 import type { NotificationRuntimeConfig } from './config';
 import type { RawEventRow } from './eventTypes';
 import { getCanonicalEventType, getParticipationMode } from './eventTypes';
 
-/**
- * Training: gleicher Kalendertag wie Start, opt-out, Frist nicht deaktiviert,
- * Reminder-Fenster [11:00, 12:00) Wien (konfigurierbar).
- */
+function isWithinReminderWindow(now: Date, start: Date, hoursBefore: number): boolean {
+  const diffMs = start.getTime() - now.getTime();
+  if (diffMs <= 0) return false;
+  return diffMs <= hoursBefore * 60 * 60 * 1000;
+}
+
 export function isTrainingReminderDue(
   event: RawEventRow,
   now: Date,
   cfg: NotificationRuntimeConfig,
 ): boolean {
   if (getCanonicalEventType(event) !== 'training') return false;
-  if (getParticipationMode(event) !== 'opt_out') return false;
-  if (event.training_absence_deadline_disabled === true) return false;
+  if (getParticipationMode(event) !== 'opt_in') return false;
   if ((event.status ?? 'upcoming').toLowerCase() !== 'upcoming') return false;
 
   const start = new Date(event.starts_at);
   if (Number.isNaN(start.getTime())) return false;
-
-  if (!isSameViennaCalendarDay(start, now)) return false;
-
-  return isViennaLocalTimeInRange(
-    now,
-    cfg.trainingReminderHour,
-    cfg.trainingReminderMinute,
-    cfg.trainingReminderWindowEndHour,
-    cfg.trainingReminderWindowEndMinute,
-  );
+  return isWithinReminderWindow(now, start, cfg.trainingReminderHoursBefore);
 }
 
 /**
- * Spiel: innerhalb der nächsten N Tage, opt-in, noch nicht vorbei.
+ * Spiel: 24h vorher oder optional 2h vorher, opt-in.
  */
 export function isGameReminderDue(
   event: RawEventRow,
@@ -45,10 +36,10 @@ export function isGameReminderDue(
 
   const start = new Date(event.starts_at);
   if (Number.isNaN(start.getTime())) return false;
-  if (start.getTime() <= now.getTime()) return false;
-
-  const horizonMs = cfg.gameReminderDaysBefore * 24 * 60 * 60 * 1000;
-  return start.getTime() <= now.getTime() + horizonMs;
+  return (
+    isWithinReminderWindow(now, start, cfg.eventReminderHoursBefore) ||
+    isWithinReminderWindow(now, start, cfg.gameSecondReminderHoursBefore)
+  );
 }
 
 /** Alle Kinder dieser User-Ansicht haben explizit "Abgesagt" (Training opt-out). */

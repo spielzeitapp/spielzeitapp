@@ -114,7 +114,7 @@ export const ProfilePage: React.FC = () => {
 
   const selectedTeamName = getTeamName(selectedTeamSeason);
   const email = authUser?.email ?? user?.name ?? '–';
-  const displayNameStr = displayName(profile, authUser?.email ?? undefined);
+  const displayNameStr = displayName(profile, undefined);
 
   /** Nur Session-Gate; Profil lädt im Hintergrund (kein globales Blockieren). */
   const blockingLoad = !!(authUser && sessionLoading);
@@ -318,9 +318,11 @@ export const ProfilePage: React.FC = () => {
         <h1 className="text-2xl font-bold text-white tracking-tight">Profil</h1>
         <Card className="text-white">
           <CardTitle>{displayNameStr !== '–' ? displayNameStr : email}</CardTitle>
-          <p className="mt-1 text-sm text-[var(--text-sub)]">
-            E-Mail: <span className="font-medium text-[var(--text-main)]">{email}</span>
-          </p>
+          {displayNameStr !== email && (
+            <p className="mt-1 text-sm text-[var(--text-sub)]">
+              E-Mail: <span className="font-medium text-[var(--text-main)]">{email}</span>
+            </p>
+          )}
 
           {slowLoadBanner}
 

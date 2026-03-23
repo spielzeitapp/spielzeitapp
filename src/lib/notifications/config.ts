@@ -2,14 +2,12 @@
  * Konfiguration Reminder (MVP). Optional per Env überschreibbar.
  */
 export type NotificationRuntimeConfig = {
-  /** Training: Reminder-Fenster Start (Stunde Wien) */
-  trainingReminderHour: number;
-  trainingReminderMinute: number;
-  /** Training: Ende Reminder-Fenster / gleich Absagefrist-Stunde (12:00) */
-  trainingReminderWindowEndHour: number;
-  trainingReminderWindowEndMinute: number;
-  /** Spiele: wie viele Tage vor Termin erinnern */
-  gameReminderDaysBefore: number;
+  /** Training: Stunden vor Start (MVP: 2h) */
+  trainingReminderHoursBefore: number;
+  /** Spiel/Event: Stunden vor Start (MVP: 24h) */
+  eventReminderHoursBefore: number;
+  /** Spiel: optional zusätzlicher Reminder kurz vor Start (MVP: 2h) */
+  gameSecondReminderHoursBefore: number;
   timeZone: string;
 };
 
@@ -27,11 +25,9 @@ function envInt(name: string, fallback: number): number {
 
 export function getNotificationConfig(): NotificationRuntimeConfig {
   return {
-    trainingReminderHour: envInt('NOTIFICATION_TRAINING_REMINDER_HOUR', 11),
-    trainingReminderMinute: envInt('NOTIFICATION_TRAINING_REMINDER_MINUTE', 0),
-    trainingReminderWindowEndHour: envInt('NOTIFICATION_TRAINING_WINDOW_END_HOUR', 12),
-    trainingReminderWindowEndMinute: envInt('NOTIFICATION_TRAINING_WINDOW_END_MINUTE', 0),
-    gameReminderDaysBefore: envInt('NOTIFICATION_GAME_REMINDER_DAYS', 7),
+    trainingReminderHoursBefore: envInt('NOTIFICATION_TRAINING_REMINDER_HOURS_BEFORE', 2),
+    eventReminderHoursBefore: envInt('NOTIFICATION_EVENT_REMINDER_HOURS_BEFORE', 24),
+    gameSecondReminderHoursBefore: envInt('NOTIFICATION_GAME_SECOND_REMINDER_HOURS_BEFORE', 2),
     timeZone: 'Europe/Vienna',
   };
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 
@@ -8,6 +8,7 @@ import { useSession } from '../../auth/useSession';
  */
 export const AppFab: React.FC = () => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { backendRole, effectiveRole } = useSession();
   const staff =
     backendRole === 'admin' ||
@@ -18,6 +19,7 @@ export const AppFab: React.FC = () => {
     effectiveRole === 'admin';
 
   if (!staff) return null;
+  if (pathname === '/app/profile' || pathname.startsWith('/app/mehr')) return null;
 
   return (
     <button

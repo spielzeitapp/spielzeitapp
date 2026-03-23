@@ -1,18 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getNotificationConfig, type NotificationRuntimeConfig } from './config';
-import { buildGameReminderBody, buildTrainingReminderBody } from './format';
+import { buildGameReminderBody } from './format';
 import {
   getCanonicalEventType,
   getEventDisplayTitle,
   getParticipationMode,
   type RawEventRow,
 } from './eventTypes';
-import {
-  isGameReminderDue,
-  isTrainingReminderDue,
-  shouldSendGameReminderForPlayers,
-  shouldSendTrainingReminderForPlayers,
-} from './helpers';
+import { isGameReminderDue, isTrainingReminderDue } from './helpers';
 import { fetchPlayerIdsForUserInTeamSeason, fetchRecipientUserIdsForTeamSeason } from './users';
 
 export type NotificationKind = 'training_reminder' | 'game_reminder';
@@ -30,6 +25,14 @@ export type PendingNotificationItem = {
 
 function logKey(userId: string, eventId: string, t: NotificationKind): string {
   return `${userId}|${eventId}|${t}`;
+}
+
+function hasAllPlayersAnswered(playerIds: string[], attendanceByPlayerId: Map<string, string>): boolean {
+  if (playerIds.length === 0) return true;
+  return playerIds.every((pid) => {
+    const s = attendanceByPlayerId.get(pid);
+    return s === 'yes' || s === 'no';
+  });
 }
 
 /**
@@ -101,7 +104,7 @@ export async function getPendingNotifications(
     const titleStr = getEventDisplayTitle(event);
 
     const trainingDue =
-      ctype === 'training' && mode === 'opt_out' && isTrainingReminderDue(event, now, cfg);
+      ctype === 'training' && mode === 'opt_in' && isTrainingReminderDue(event, now, cfg);
     const gameDue = ctype === 'game' && mode === 'opt_in' && isGameReminderDue(event, now, cfg);
 
     if (!trainingDue && !gameDue) continue;
@@ -127,14 +130,16 @@ export async function getPendingNotifications(
       if (trainingDue) {
         const kind: NotificationKind = 'training_reminder';
         if (sent.has(logKey(userId, event.id, kind))) continue;
-        if (!shouldSendTrainingReminderForPlayers(playerIds, attMap)) continue;
+        if (hasAllPlayersAnswered(playerIds, attMap)) continue;
         out.push({
           userId,
           eventId: event.id,
           teamId,
           notificationType: kind,
-          title: 'Training heute',
-          body: buildTrainingReminderBody(titleStr, event.starts_at),
+          title: 'Erinnerung: Training heute',
+          body: `Bitte gib noch deine Zu- oder Absage für '${titleStr || 'Training'}' heute um ${new Date(
+            event.starts_at,
+          ).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} ab.`,
           url: `/app/nachrichten`,
         });
       }
@@ -142,13 +147,13 @@ export async function getPendingNotifications(
       if (gameDue) {
         const kind: NotificationKind = 'game_reminder';
         if (sent.has(logKey(userId, event.id, kind))) continue;
-        if (!shouldSendGameReminderForPlayers(playerIds, attMap)) continue;
+        if (hasAllPlayersAnswered(playerIds, attMap)) continue;
         out.push({
           userId,
           eventId: event.id,
           teamId,
           notificationType: kind,
-          title: 'Spiel-Zusage fehlt',
+          title: 'Erinnerung: Spiel bald',
           body: buildGameReminderBody(titleStr, event.starts_at),
           url: `/app/nachrichten`,
         });
