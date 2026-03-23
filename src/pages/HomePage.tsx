@@ -1,9 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../auth/AuthProvider';
+import { useProfile } from '../auth/useProfile';
 
 const logo = import.meta.env.BASE_URL + 'logos/nsg-goelsental.png';
 
 export const HomePage: React.FC = () => {
+  const { session } = useAuth();
+  const { profile } = useProfile(session?.user?.id ?? null);
+  const displayName =
+    profile?.first_name ||
+    profile?.full_name?.split(' ')[0] ||
+    'Spieler';
+
   return (
     <div
       className="page home-page relative flex min-h-[100dvh] w-full flex-col items-center justify-center px-4 py-8"
@@ -23,9 +32,11 @@ export const HomePage: React.FC = () => {
           width={64}
           height={64}
         />
-        <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-sm sm:text-3xl">
-          NSG SpielzeitApp
-        </h1>
+        {displayName ? (
+          <h1 className="text-xl font-bold text-white">Herzlich willkommen, {displayName}</h1>
+        ) : (
+          <h1 className="text-xl font-bold text-white">Herzlich willkommen!</h1>
+        )}
         <p className="text-sm text-white/90 sm:text-base">
           Spielplan, Spielzeiten und Infos für Eltern, Spieler und Fans.
         </p>

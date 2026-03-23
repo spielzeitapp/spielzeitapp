@@ -51,8 +51,7 @@ function writeReadSet(set: Set<string>): void {
 
 export const MessagesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { selectedTeamSeason } = useSession();
-  const teamId = selectedTeamSeason?.team?.id ?? null;
+  useSession();
   const [needsRelogin, setNeedsRelogin] = useState(false);
 
   const [items, setItems] = useState<MessageRow[] | null>(null);
@@ -66,13 +65,6 @@ export const MessagesPage: React.FC = () => {
   }, []);
 
   const load = useCallback(async () => {
-    if (!teamId) {
-      setItems([]);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     setError(null);
     try {
@@ -89,7 +81,6 @@ export const MessagesPage: React.FC = () => {
         .from('messages')
         .select('*')
         .eq('user_id', user.data.user.id)
-        .eq('team_id', teamId)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -104,7 +95,7 @@ export const MessagesPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [teamId]);
+  }, []);
 
   useEffect(() => {
     void load();
@@ -149,18 +140,17 @@ export const MessagesPage: React.FC = () => {
           )}
         </div>
 
-        {!teamId && <p className="text-sm text-amber-200/90">Kein Team ausgewählt.</p>}
         {needsRelogin && (
           <div className="text-center text-gray-400 mt-10">Bitte neu einloggen</div>
         )}
-        {loading && teamId && <p className="text-sm text-white/60">Laden…</p>}
+        {loading && <p className="text-sm text-white/60">Laden…</p>}
         {error && (
           <p className="text-sm text-amber-300" role="alert">
             {error}
           </p>
         )}
 
-        {!loading && !error && teamId && items && items.length === 0 && (
+        {!loading && !error && items && items.length === 0 && (
           <div className="text-center text-gray-400 mt-10">Noch keine Nachrichten vorhanden</div>
         )}
 
