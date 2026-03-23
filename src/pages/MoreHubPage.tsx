@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, ChevronRight, LayoutGrid, Settings, User } from 'lucide-react';
+import { Bell, ChevronRight, LayoutGrid, Settings } from 'lucide-react';
 import { Card } from '../app/components/ui/Card';
 import { useSession } from '../auth/useSession';
 
@@ -34,13 +34,6 @@ export const MoreHubPage: React.FC = () => {
             <span className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-red-400" aria-hidden />
               <span className="font-medium">Nachrichten</span>
-            </span>
-            <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-          </Link>
-          <Link to="/app/mehr/profile" className={rowClass}>
-            <span className="flex items-center gap-3">
-              <User className="h-5 w-5 text-red-400" aria-hidden />
-              <span className="font-medium">Profil</span>
             </span>
             <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
           </Link>

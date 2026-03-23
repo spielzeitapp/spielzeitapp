@@ -1,22 +1,22 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
-import { CalendarDays, Radio, Home, Menu, Users } from 'lucide-react';
+import { CircleDot, LayoutGrid, Menu, Radio, Users } from 'lucide-react';
 
 /**
- * Bottom Navigation — nur UI; Routen: /app/home, /app/team, /app/termine, /app/live, /app/mehr
+ * Bottom Navigation — nur UI; Routen bleiben unveraendert.
  */
 const appTabs = [
-  { to: '/app/home', end: true as const, label: 'Home', Icon: Home, live: false as const },
+  { to: '/app/home', end: true as const, label: 'Home', Icon: CircleDot, live: false as const },
   { to: '/app/team', end: true as const, label: 'Team', Icon: Users, live: false as const },
-  { to: '/app/termine', end: false as const, label: 'Termine', Icon: CalendarDays, live: false as const },
+  { to: '/app/termine', end: false as const, label: 'Termine', Icon: LayoutGrid, live: false as const },
   { to: '/app/live', end: false as const, label: 'Live', Icon: Radio, live: true as const },
   { to: '/app/mehr', end: false as const, label: 'Mehr', Icon: Menu, live: false as const },
 ] as const;
 
 const publicTabs = [
-  { to: '/', end: true as const, label: 'Home', Icon: Home, live: false as const },
-  { to: '/schedule', end: false as const, label: 'Spielplan', Icon: CalendarDays, live: false as const },
+  { to: '/', end: true as const, label: 'Home', Icon: CircleDot, live: false as const },
+  { to: '/schedule', end: false as const, label: 'Spielplan', Icon: LayoutGrid, live: false as const },
 ] as const;
 
 function NavItem({
@@ -36,19 +36,19 @@ function NavItem({
     <NavLink
       to={to}
       end={end}
-      className="group flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+      className="group flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
     >
       {({ isActive }) => (
         <>
           <div
             className={[
-              'relative flex min-h-[48px] w-full max-w-[4.5rem] items-center justify-center rounded-2xl transition-all duration-200 ease-out',
+              'relative flex min-h-[50px] w-full max-w-[4.6rem] items-center justify-center rounded-2xl transition-all duration-200 ease-out',
               isActive
                 ? isLiveTab
-                  ? 'bg-gradient-to-b from-red-600 to-red-800 text-white shadow-[0_6px_24px_rgba(220,38,38,0.4)] ring-2 ring-red-400/40'
-                  : 'bg-red-600/30 text-red-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-red-500/40'
+                  ? 'bg-gradient-to-b from-red-600 to-red-800 text-white shadow-[0_8px_24px_rgba(220,38,38,0.45)] ring-2 ring-red-400/45'
+                  : 'bg-red-600/35 text-red-300 shadow-[0_0_16px_rgba(220,38,38,0.25)] ring-1 ring-red-500/45'
                 : isLiveTab
-                  ? 'text-red-400/90 ring-1 ring-red-600/25 bg-red-950/40'
+                  ? 'bg-red-950/40 text-red-400 ring-1 ring-red-600/35'
                   : 'text-zinc-500 group-hover:bg-white/5 group-hover:text-zinc-300',
             ].join(' ')}
             aria-hidden
@@ -64,22 +64,16 @@ function NavItem({
             )}
             <Icon
               className={[
-                'shrink-0 transition-transform duration-200',
-                isActive
-                  ? isLiveTab
-                    ? 'h-6 w-6'
-                    : 'h-[22px] w-[22px]'
-                  : isLiveTab
-                    ? 'h-[22px] w-[22px]'
-                    : 'h-5 w-5',
+                'shrink-0 transition-all duration-200',
+                isActive ? 'h-[26px] w-[26px] scale-110' : 'h-[22px] w-[22px]',
               ].join(' ')}
-              strokeWidth={isActive && !isLiveTab ? 2.35 : isLiveTab && !isActive ? 2.25 : 2}
+              strokeWidth={isActive ? 2.4 : isLiveTab ? 2.25 : 2.1}
             />
           </div>
           <span
             className={[
               'max-w-[4.75rem] truncate px-0.5 text-center text-[10px] font-bold uppercase tracking-[0.06em]',
-              isActive ? 'text-white' : isLiveTab ? 'text-red-400/80' : 'text-zinc-500 group-hover:text-zinc-400',
+              isActive ? 'text-white' : isLiveTab ? 'text-red-400/85' : 'text-zinc-500 group-hover:text-zinc-400',
             ].join(' ')}
           >
             {label}
@@ -96,7 +90,7 @@ export const BottomNav: React.FC = () => {
 
   return (
     <nav
-      className="pointer-events-none fixed bottom-0 left-0 z-50 w-full px-3 pb-0 pt-2 sm:px-5"
+      className="pointer-events-none fixed bottom-0 left-0 z-50 w-full px-3 pt-2 sm:px-5"
       style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))' }}
       aria-label="Hauptnavigation"
     >
@@ -118,5 +112,5 @@ export const BottomNav: React.FC = () => {
   );
 };
 
-/** @deprecated Prefer BottomNav; Alias für bestehende Imports */
+/** @deprecated Prefer BottomNav; Alias fuer bestehende Imports */
 export const BottomTabs = BottomNav;

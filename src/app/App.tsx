@@ -140,10 +140,11 @@ function InternalRoutes(): React.ReactElement {
         <Route path="mehr" element={<MoreLayout />}>
           <Route index element={<MorePage />} />
           <Route path="notifications" element={<NotificationsPage />} />
-          <Route path="profile" element={<ProfilePage />} />
+          <Route path="profile" element={<Navigate to="/app/profile" replace />} />
         </Route>
         <Route path="notifications" element={<Navigate to="/app/mehr/notifications" replace />} />
-        <Route path="profile" element={<Navigate to="/app/mehr/profile" replace />} />
+        <Route path="profile" element={<ProfilePage />} />
+        <Route path="mehr/profile" element={<Navigate to="/app/profile" replace />} />
       </Route>
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
       <Route path="/admin/login" element={<AdminLoginPage />} />

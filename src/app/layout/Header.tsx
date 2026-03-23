@@ -20,7 +20,7 @@ function isPublicRoute(pathname: string): boolean {
 }
 
 /** Interner Bereich: Links mit /app-Prefix. */
-const APP_PROFILE = '/app/mehr/profile';
+const APP_PROFILE = '/app/profile';
 const APP_LOGIN_REDIRECT = '/login';
 
 export const Header: React.FC = () => {
