@@ -32,14 +32,21 @@ function toAppHref(path: string): string {
   return `/app${p}`;
 }
 
-function bodyWithoutAppendedPath(body: string | null, content: string | null, type: string): string {
-  const raw = (body ?? content ?? '').trim();
-  if (type !== 'manual_push') return raw;
+function bodyWithoutAppendedPath(
+  body: string | null,
+  content: string | null,
+  type: string,
+  title: string,
+): string {
+  const rawBody = (body ?? '').trim();
+  if (type !== 'manual_push') return rawBody || (content ?? '').trim() || title.trim();
+  if (rawBody) return rawBody;
+  const raw = (content ?? '').trim();
   const idx = raw.lastIndexOf('\n\n');
-  if (idx === -1) return raw;
+  if (idx === -1) return raw || title.trim();
   const tail = raw.slice(idx + 2).trim();
-  if (tail.startsWith('/')) return raw.slice(0, idx).trim();
-  return raw;
+  if (tail.startsWith('/')) return raw.slice(0, idx).trim() || title.trim();
+  return raw || title.trim();
 }
 
 function formatWhen(iso: string): string {
@@ -56,8 +63,6 @@ function formatWhen(iso: string): string {
 export const MessageDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { messageId } = useParams();
-  const { selectedTeamSeason } = useSession();
-  const teamId = selectedTeamSeason?.team?.id ?? null;
 
   const [item, setItem] = useState<MessageRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -177,7 +182,7 @@ export const MessageDetailPage: React.FC = () => {
                 <div className="text-xs text-[var(--text-sub)]">{formatWhen(item.created_at)}</div>
                 <CardTitle className="text-base mt-1">{item.title}</CardTitle>
                 <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--text-sub)]">
-                  {bodyWithoutAppendedPath(item.body, item.content, item.type)}
+                  {bodyWithoutAppendedPath(item.body, item.content, item.type, item.title)}
                 </p>
 
                 {manualLink && (

@@ -3,12 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import { CircleDot, LayoutGrid, MoreHorizontal, Radio, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
-import {
-  countUnreadMessages,
-  MESSAGES_READ_CHANGED_EVENT,
-  MESSAGES_READ_STORAGE_KEY,
-  readReadSet,
-} from '../../lib/messagesReadState';
+import { MESSAGES_READ_CHANGED_EVENT, MESSAGES_READ_STORAGE_KEY } from '../../lib/messagesReadState';
 
 /**
  * Bottom Navigation — nur UI; Routen bleiben unveraendert.
@@ -38,14 +33,19 @@ function useUnreadMessagesBadgeCount(): number {
         setCount(0);
         return;
       }
-      const { data, error } = await supabase.from('messages').select('id, read').eq('user_id', uid);
+      const { count, error } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', uid)
+        .eq('read', false);
       if (error) {
+        console.warn('[BottomNav] unread count', error.message ?? error);
         setCount(0);
         return;
       }
-      const rows = Array.isArray(data) ? (data as Array<{ id: string; read?: boolean | null }>) : [];
-      setCount(countUnreadMessages(rows, readReadSet()));
-    } catch {
+      setCount(count ?? 0);
+    } catch (e) {
+      console.warn('[BottomNav] unread count', e);
       setCount(0);
     }
   }, []);

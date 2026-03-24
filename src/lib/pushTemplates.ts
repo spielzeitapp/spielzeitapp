@@ -1,5 +1,20 @@
 import { supabase } from './supabaseClient';
 
+/** Wenn `team` im Session-Join fehlt: team_id aus team_seasons. */
+export async function resolveTeamIdFromSeasonId(teamSeasonId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('team_seasons')
+    .select('team_id')
+    .eq('id', teamSeasonId)
+    .maybeSingle();
+  if (error) {
+    console.warn('[resolveTeamIdFromSeasonId]', error.message);
+    return null;
+  }
+  const tid = (data as { team_id?: string } | null)?.team_id;
+  return tid != null ? String(tid) : null;
+}
+
 export type PushTemplateRow = {
   id: string;
   team_id: string;

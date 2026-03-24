@@ -24,13 +24,15 @@ type MessageRow = {
 
 /** Ohne angehängten Pfad (manual_push speichert URL in content). */
 function listBodyPreview(m: MessageRow): string {
-  const raw = (m.body ?? m.content ?? '').trim();
-  if (m.type !== 'manual_push') return raw;
+  const rawBody = (m.body ?? '').trim();
+  if (rawBody) return rawBody;
+  const raw = (m.content ?? '').trim();
+  if (m.type !== 'manual_push') return raw || (m.title ?? '').trim();
   const idx = raw.lastIndexOf('\n\n');
-  if (idx === -1) return raw;
+  if (idx === -1) return raw || (m.title ?? '').trim();
   const tail = raw.slice(idx + 2).trim();
-  if (tail.startsWith('/')) return raw.slice(0, idx).trim();
-  return raw;
+  if (tail.startsWith('/')) return raw.slice(0, idx).trim() || (m.title ?? '').trim();
+  return raw || (m.title ?? '').trim();
 }
 
 function formatWhen(iso: string): string {

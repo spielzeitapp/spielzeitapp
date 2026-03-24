@@ -260,6 +260,8 @@ export default async function handler(req, res) {
       teamIdForNotification = tsTeamRow.team_id;
     }
 
+    const contentWithLink = url ? `${textBody}\n\n${url}` : textBody;
+
     const { data: memRows, error: memErr } = await supabase
       .from("memberships")
       .select("user_id, role")
@@ -300,8 +302,43 @@ export default async function handler(req, res) {
         sent: 0,
         failed: 0,
         results: [],
+        messagesSaved: 0,
         vapidDebug: getVapidSendResponseDebug(),
       });
+    }
+
+    let messagesSaved = 0;
+    if (teamIdForNotification) {
+      for (const uid of userIds) {
+        const row = {
+          team_id: teamIdForNotification,
+          user_id: uid,
+          title,
+          body: textBody,
+          content: contentWithLink,
+          type: "manual_push",
+          read: false,
+          ...(related_event_id
+            ? { related_event_id, event_id: related_event_id }
+            : {}),
+        };
+        try {
+          const { error: insErr } = await supabase.from("messages").insert(row);
+          if (insErr) {
+            console.warn(
+              "[push/send-team] messages.insert failed for user",
+              uid,
+              insErr.message || insErr,
+            );
+          } else {
+            messagesSaved += 1;
+          }
+        } catch (e) {
+          console.warn("[push/send-team] messages.insert exception", uid, e?.message || e);
+        }
+      }
+    } else {
+      console.warn("[push/send-team] no team_id for team_season; skipping messages insert", team_season_id);
     }
 
     const { data: subRows, error: subErr } = await supabase
@@ -435,28 +472,6 @@ export default async function handler(req, res) {
       } catch (e) {
         notificationSaveWarning = e?.message || String(e);
       }
-
-      try {
-        const contentWithLink = url ? `${textBody}\n\n${url}` : textBody;
-        const messageRows = userIds.map((uid) => ({
-          team_id: teamIdForNotification,
-          user_id: uid,
-          title,
-          body: textBody,
-          content: contentWithLink,
-          type: "manual_push",
-          read: false,
-          ...(related_event_id
-            ? { related_event_id, event_id: related_event_id }
-            : {}),
-        }));
-        const { error: mErr } = await supabase.from("messages").insert(messageRows);
-        if (mErr) {
-          console.warn("[push/send-team] messages.insert failed", mErr.message || mErr);
-        }
-      } catch (e) {
-        console.warn("[push/send-team] messages.insert failed", e?.message || e);
-      }
     }
 
     return res.status(200).json({
@@ -465,6 +480,7 @@ export default async function handler(req, res) {
       totalRecipients,
       sent,
       failed,
+      messagesSaved,
       results,
       obsoleteSubscriptionsRemoved,
       vapidDebug: {

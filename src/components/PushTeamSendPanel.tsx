@@ -5,7 +5,13 @@ import { Link } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { useAuth } from '../auth/AuthProvider';
 import { useSession } from '../auth/useSession';
-import { createTemplate, deleteTemplate, fetchTemplates, type PushTemplateRow } from '../lib/pushTemplates';
+import {
+  createTemplate,
+  deleteTemplate,
+  fetchTemplates,
+  resolveTeamIdFromSeasonId,
+  type PushTemplateRow,
+} from '../lib/pushTemplates';
 
 const API = '/api/push/send-team';
 
@@ -43,7 +49,9 @@ function previewLine(text: string, max = 72): string {
 export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'full' }) => {
   const { session, user } = useAuth();
   const { selectedTeamSeason } = useSession();
-  const teamId = selectedTeamSeason?.team?.id ?? null;
+  const teamIdFromSession = selectedTeamSeason?.team?.id != null ? String(selectedTeamSeason.team.id) : null;
+  const [teamIdResolved, setTeamIdResolved] = useState<string | null>(null);
+  const teamId = teamIdFromSession ?? teamIdResolved;
 
   const [recipientGroup, setRecipientGroup] = useState<'parents' | 'players' | 'all'>('all');
   const [title, setTitle] = useState('');
@@ -71,6 +79,24 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
     setTemplateSelect('');
     void reloadTemplates();
   }, [reloadTemplates]);
+
+  useEffect(() => {
+    if (teamIdFromSession) {
+      setTeamIdResolved(null);
+      return;
+    }
+    if (!teamSeasonId) {
+      setTeamIdResolved(null);
+      return;
+    }
+    let cancelled = false;
+    void resolveTeamIdFromSeasonId(teamSeasonId).then((id) => {
+      if (!cancelled) setTeamIdResolved(id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [teamSeasonId, teamIdFromSession]);
 
   const disabled = !teamSeasonId || !session?.access_token;
 
