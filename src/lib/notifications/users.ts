@@ -48,3 +48,18 @@ export async function fetchRecipientUserIdsForTeamSeason(
   const ids = (members ?? []).map((m: { user_id: string }) => m.user_id);
   return Array.from(new Set(ids));
 }
+
+/** Nur Spieler-Mitgliedschaft (Push-Automationen). */
+export async function fetchPlayerUserIdsForTeamSeason(
+  admin: SupabaseClient,
+  teamSeasonId: string,
+): Promise<string[]> {
+  const { data: members, error } = await admin
+    .from('memberships')
+    .select('user_id')
+    .eq('team_season_id', teamSeasonId)
+    .eq('role', 'player');
+  if (error) throw error;
+  const ids = (members ?? []).map((m: { user_id: string }) => m.user_id);
+  return Array.from(new Set(ids));
+}

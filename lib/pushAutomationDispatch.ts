@@ -5,7 +5,7 @@ import {
   getEventDisplayTitle,
   type RawEventRow,
 } from '../src/lib/notifications/eventTypes';
-import { fetchPlayerIdsForUserInTeamSeason, fetchRecipientUserIdsForTeamSeason } from '../src/lib/notifications/users';
+import { fetchPlayerIdsForUserInTeamSeason, fetchPlayerUserIdsForTeamSeason } from '../src/lib/notifications/users';
 
 function readEnv(key: string): string | undefined {
   const g = globalThis as unknown as { process?: { env?: Record<string, string | undefined> } };
@@ -221,7 +221,7 @@ export async function processPushAutomations(
 
         let userIds: string[] = [];
         try {
-          userIds = await fetchRecipientUserIdsForTeamSeason(admin, event.team_season_id);
+          userIds = await fetchPlayerUserIdsForTeamSeason(admin, event.team_season_id);
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
           result.errors.push(msg);
@@ -359,6 +359,7 @@ async function sendOneAutomationReminder(
     const msg = e instanceof Error ? e.message : String(e);
     console.warn('[pushAutomations] messages.insert', msg);
     errors.push(msg);
+    return { messageInserted: false, pushCount: 0, errors };
   }
 
   try {
