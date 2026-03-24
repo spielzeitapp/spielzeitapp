@@ -22,6 +22,17 @@ type MessageRow = {
   read: boolean;
 };
 
+/** Ohne angehängten Pfad (manual_push speichert URL in content). */
+function listBodyPreview(m: MessageRow): string {
+  const raw = (m.body ?? m.content ?? '').trim();
+  if (m.type !== 'manual_push') return raw;
+  const idx = raw.lastIndexOf('\n\n');
+  if (idx === -1) return raw;
+  const tail = raw.slice(idx + 2).trim();
+  if (tail.startsWith('/')) return raw.slice(0, idx).trim();
+  return raw;
+}
+
 function formatWhen(iso: string): string {
   try {
     return new Date(iso).toLocaleString('de-DE', {
@@ -68,8 +79,9 @@ export const MessagesPage: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
+        console.warn('[MessagesPage] load', error.message ?? error);
         setItems([]);
-        setError(error.message || 'Nachrichten konnten nicht geladen werden.');
+        setError('Nachrichten konnten nicht geladen werden.');
         return;
       }
       const rows = Array.isArray(data) ? (data as MessageRow[]) : [];
@@ -88,7 +100,8 @@ export const MessagesPage: React.FC = () => {
           notifyMessagesReadChanged();
         }
       }
-    } catch {
+    } catch (e) {
+      console.warn('[MessagesPage] load', e);
       setItems([]);
       setError('Nachrichten konnten nicht geladen werden.');
     } finally {
@@ -179,10 +192,9 @@ export const MessagesPage: React.FC = () => {
                     <h2 className={`mt-1 font-semibold ${isRead ? 'text-white/90' : 'text-white'}`}>
                       {m.title}
                     </h2>
-                    <p className={`mt-2 whitespace-pre-wrap text-sm text-gray-300 ${isRead ? '' : 'text-red-100'}`}>
-                      {m.body ?? m.content ?? ''}
+                    <p className={`mt-2 line-clamp-2 whitespace-pre-wrap text-sm text-gray-300 ${isRead ? '' : 'text-red-100'}`}>
+                      {listBodyPreview(m)}
                     </p>
-                    <div className="mt-2 text-xs text-gray-500">{formatWhen(m.created_at)}</div>
                   </Card>
                 </li>
               );

@@ -1,20 +1,31 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, ChevronRight, LayoutGrid, Settings } from 'lucide-react';
+import { Bell, ChevronRight, LayoutGrid, Settings, Wrench } from 'lucide-react';
 import { Card } from '../app/components/ui/Card';
 import { useSession } from '../auth/useSession';
 
 const rowClass =
   'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-white transition-colors hover:bg-white/10';
 
+const subRowClass =
+  'flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-2.5 pl-6 text-left text-sm text-white/95 transition-colors hover:bg-white/10';
+
+function isTrainerToolsRole(role: string): boolean {
+  const r = (role ?? '').trim().toLowerCase();
+  return r === 'trainer' || r === 'co_trainer' || r === 'head_coach' || r === 'admin';
+}
+
 export const MoreHubPage: React.FC = () => {
-  const { selectedTeamSeason, setSelectedTeamSeasonId, teamSeasons, effectiveRole } = useSession();
+  const { selectedTeamSeason, setSelectedTeamSeasonId, teamSeasons, effectiveRole, backendRole } = useSession();
   const canSwitchTeam =
     (teamSeasons?.length ?? 0) > 1 &&
     (effectiveRole === 'trainer' ||
       effectiveRole === 'admin' ||
       effectiveRole === 'head_coach' ||
       effectiveRole === 'co_trainer');
+
+  const showTrainerTools = isTrainerToolsRole(effectiveRole);
+  const showPreviewLink = backendRole === 'admin' || backendRole === 'head_coach';
 
   return (
     <div
@@ -44,13 +55,41 @@ export const MoreHubPage: React.FC = () => {
             </span>
             <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
           </Link>
-          <div className={`${rowClass} cursor-not-allowed opacity-60`} title="Demnächst">
+
+          {showTrainerTools && (
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center gap-2 px-1 pt-1 text-xs font-semibold uppercase tracking-wide text-white/45">
+                <Wrench className="h-4 w-4 text-red-400/90" aria-hidden />
+                Trainer-Tools
+              </div>
+              <Link to="/app/mehr/trainer/team-push" className={subRowClass}>
+                <span>Team-Push</span>
+                <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+              </Link>
+              <Link to="/app/mehr/trainer/vorlagen" className={subRowClass}>
+                <span>Vorlagen</span>
+                <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+              </Link>
+              <Link to="/app/mehr/trainer/erinnerungen" className={subRowClass}>
+                <span>Erinnerungen</span>
+                <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+              </Link>
+              {showPreviewLink && (
+                <Link to="/app/mehr/trainer/preview" className={subRowClass}>
+                  <span>Ansicht testen als</span>
+                  <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+                </Link>
+              )}
+            </div>
+          )}
+
+          <Link to="/app/profile" className={rowClass}>
             <span className="flex items-center gap-3">
-              <Settings className="h-5 w-5 text-white/40" aria-hidden />
+              <Settings className="h-5 w-5 text-red-400" aria-hidden />
               <span className="font-medium">Einstellungen</span>
             </span>
-            <span className="text-xs text-white/40">Bald</span>
-          </div>
+            <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
+          </Link>
         </nav>
 
         {canSwitchTeam && (

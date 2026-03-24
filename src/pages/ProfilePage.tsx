@@ -1,25 +1,11 @@
-import React, { ChangeEvent, Component, ErrorInfo, ReactNode, useEffect, useMemo, useState } from 'react';
+import React, { Component, ErrorInfo, ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useSession, PREVIEW_ROLE_STORAGE_KEY } from '../auth/useSession';
+import { useSession } from '../auth/useSession';
 import { useAuth } from '../auth/AuthProvider';
 import { useProfile, profileDisplayName } from '../auth/useProfile';
 import { supabase } from '../lib/supabaseClient';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { PushNotificationsButton } from '../components/PushNotificationsButton';
-import { PushTeamSendPanel } from '../components/PushTeamSendPanel';
-import { TeamReminderSettingsPanel } from '../components/TeamReminderSettingsPanel';
-
-const PREVIEW_ROLE_OPTIONS = ['fan', 'parent', 'player', 'trainer', 'co_trainer', 'head_coach', 'admin'] as const;
-
-const ROLE_LABELS: Record<string, string> = {
-  fan: 'Fan',
-  parent: 'Parent',
-  player: 'Player',
-  trainer: 'Trainer',
-  co_trainer: 'Co-Trainer',
-  head_coach: 'Head Coach',
-  admin: 'Admin',
-};
 
 /** Profil-Lade-Timeout: danach Fallback-Karte statt stiller Blockade */
 const PROFILE_LOAD_TIMEOUT_MS = 12000;
@@ -73,13 +59,9 @@ export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const {
-    user,
     backendRole,
     effectiveRole,
-    previewRole,
-    setPreviewRole,
     selectedTeamSeason,
-    selectedTeamSeasonId,
     signOut,
     hasPendingPlayerRequest,
     loading: sessionLoading,
@@ -95,7 +77,6 @@ export const ProfilePage: React.FC = () => {
   const [profileLoadTimedOut, setProfileLoadTimedOut] = useState(false);
   const [mountPushUi, setMountPushUi] = useState(false);
 
-  const showPreviewSwitch = backendRole === 'admin' || backendRole === 'head_coach';
   const currentUIView = effectiveRole;
   const isAdminToolsVisible = backendRole === 'admin' && currentUIView === 'admin';
 
@@ -107,11 +88,6 @@ export const ProfilePage: React.FC = () => {
       effectiveRole === 'co_trainer' ||
       effectiveRole === 'head_coach' ||
       effectiveRole === 'admin');
-
-  /** Team-Push nur für Staff + Admin mit gewählter Saison (war vorher undefiniert → ReferenceError → „App lädt…“). */
-  const showTeamPushSend =
-    selectedTeamSeasonId != null &&
-    (effectiveRole === 'trainer' || effectiveRole === 'co_trainer' || effectiveRole === 'head_coach' || effectiveRole === 'admin');
 
   const selectedTeamName = getTeamName(selectedTeamSeason);
   const email = authUser?.email?.trim() || '–';
@@ -267,26 +243,6 @@ export const ProfilePage: React.FC = () => {
     };
   }, [authUser?.id]);
 
-  const handlePreviewRoleChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const v = event.target.value;
-    try {
-      setPreviewRole(v === '' ? null : v);
-      console.log('[ProfilePage] preview role changed', v || '(reset)');
-    } catch (e) {
-      console.error('[ProfilePage] preview role change failed', e);
-    }
-  };
-
-  const handleResetPreview = () => {
-    try {
-      setPreviewRole(null);
-      window.localStorage.removeItem(PREVIEW_ROLE_STORAGE_KEY);
-      console.log('[ProfilePage] preview role reset');
-    } catch (e) {
-      console.warn('[ProfilePage] preview reset failed', e);
-    }
-  };
-
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -345,11 +301,6 @@ export const ProfilePage: React.FC = () => {
 
           <p className="mt-1 text-sm text-[var(--text-sub)]">
             UI-Ansicht: <span className="font-medium text-[var(--text-main)]">{effectiveRole}</span>
-            {previewRole != null && previewRole !== backendRole && (
-              <span className="ml-1.5 rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-400">
-                Preview
-              </span>
-            )}
           </p>
 
           {hasPendingPlayerRequest && effectiveRole === 'fan' && (
@@ -415,57 +366,6 @@ export const ProfilePage: React.FC = () => {
           </Card>
         )}
 
-        {showTeamPushSend && mountPushUi && (
-          <Card className="text-white shadow-lg shadow-black/20">
-            <CardTitle className="text-lg">Team-Push</CardTitle>
-            <p className="mt-1 text-xs text-white/55">Nachricht an Eltern/Spieler mit Push (manuell).</p>
-            <ProfileSectionErrorBoundary label="Team-Push senden">
-              <div className="mt-3">
-                <PushTeamSendPanel teamSeasonId={selectedTeamSeasonId} />
-              </div>
-            </ProfileSectionErrorBoundary>
-          </Card>
-        )}
-
-        {showTeamPushSend && (
-          <ProfileSectionErrorBoundary label="Erinnerungen">
-            <Card className="text-white shadow-lg shadow-black/20">
-              <CardTitle className="text-lg">Erinnerungen</CardTitle>
-              <p className="mt-1 text-xs text-white/55">Automatische Termin-Erinnerungen für das Team.</p>
-              <TeamReminderSettingsPanel teamSeasonId={selectedTeamSeasonId} embedded />
-            </Card>
-          </ProfileSectionErrorBoundary>
-        )}
-
-        {showPreviewSwitch && (
-          <ProfileSectionErrorBoundary label="Rollen-Vorschau">
-            <Card className="text-white shadow-lg shadow-black/20">
-              <CardTitle className="text-lg">Ansicht testen als</CardTitle>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <select
-                  id="preview-role-select"
-                  value={previewRole ?? ''}
-                  onChange={handlePreviewRoleChange}
-                  className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-black/40 px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                >
-                  <option value="">— Backend-Rolle —</option>
-                  {PREVIEW_ROLE_OPTIONS.map((r) => (
-                    <option key={r} value={r}>
-                      {ROLE_LABELS[r] ?? r}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={handleResetPreview}
-                  className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-xs font-medium text-[var(--text-main)] hover:bg-white/10"
-                >
-                  Reset
-                </button>
-              </div>
-            </Card>
-          </ProfileSectionErrorBoundary>
-        )}
       </div>
     </div>
   );

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useSession } from '../auth/useSession';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
 import { supabase } from '../lib/supabaseClient';
@@ -17,6 +16,31 @@ type MessageRow = {
   created_at: string;
   read: boolean;
 };
+
+function extractAppPathFromContent(content: string | null): string | null {
+  if (!content) return null;
+  const parts = content.trim().split(/\n\n+/);
+  const last = parts[parts.length - 1]?.trim();
+  if (last?.startsWith('/')) return last;
+  return null;
+}
+
+function toAppHref(path: string): string {
+  const p = path.trim();
+  if (!p.startsWith('/')) return '/app/termine';
+  if (p.startsWith('/app/')) return p;
+  return `/app${p}`;
+}
+
+function bodyWithoutAppendedPath(body: string | null, content: string | null, type: string): string {
+  const raw = (body ?? content ?? '').trim();
+  if (type !== 'manual_push') return raw;
+  const idx = raw.lastIndexOf('\n\n');
+  if (idx === -1) return raw;
+  const tail = raw.slice(idx + 2).trim();
+  if (tail.startsWith('/')) return raw.slice(0, idx).trim();
+  return raw;
+}
 
 function formatWhen(iso: string): string {
   try {
@@ -45,7 +69,7 @@ export const MessageDetailPage: React.FC = () => {
     let cancelled = false;
 
     async function load() {
-      if (!safeMessageId || !teamId) {
+      if (!safeMessageId) {
         setError('Nachricht konnte nicht geladen werden.');
         setLoading(false);
         return;
@@ -64,11 +88,11 @@ export const MessageDetailPage: React.FC = () => {
           .from('messages')
           .select('*')
           .eq('id', safeMessageId)
-          .eq('team_id', teamId)
           .eq('user_id', uid)
           .maybeSingle();
         if (error) {
-          setError(error.message || 'Nachricht konnte nicht geladen werden.');
+          console.warn('[MessageDetailPage]', error.message ?? error);
+          setError('Nachricht konnte nicht geladen werden.');
           setItem(null);
           return;
         }
@@ -103,11 +127,19 @@ export const MessageDetailPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [safeMessageId, teamId]);
+  }, [safeMessageId]);
 
   const onZumTermin = () => {
     if (!item?.event_id) return;
     navigate(`/app/events/${item.event_id}`);
+  };
+
+  const manualLink =
+    item?.type === 'manual_push' ? extractAppPathFromContent(item.content ?? item.body) : null;
+
+  const onOpenInApp = () => {
+    if (!manualLink) return;
+    navigate(toAppHref(manualLink));
   };
 
   return (
@@ -144,7 +176,17 @@ export const MessageDetailPage: React.FC = () => {
               <div className="px-4 py-3">
                 <div className="text-xs text-[var(--text-sub)]">{formatWhen(item.created_at)}</div>
                 <CardTitle className="text-base mt-1">{item.title}</CardTitle>
-                <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--text-sub)]">{item.body ?? item.content ?? ''}</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--text-sub)]">
+                  {bodyWithoutAppendedPath(item.body, item.content, item.type)}
+                </p>
+
+                {manualLink && (
+                  <div className="mt-4">
+                    <Button type="button" onClick={onOpenInApp} fullWidth>
+                      In der App öffnen
+                    </Button>
+                  </div>
+                )}
 
                 {item.event_id && (
                   <div className="mt-4 space-y-2">

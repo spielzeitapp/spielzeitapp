@@ -23,6 +23,10 @@ import { NotificationsPage } from '../pages/NotificationsPage';
 import { ProfilePage } from '../pages/ProfilePage';
 import { MessagesPage } from '../pages/MessagesPage';
 import { MessageDetailPage } from '../pages/MessageDetailPage';
+import { TrainerTeamPushPage } from '../pages/TrainerTeamPushPage';
+import { TrainerTemplatesPage } from '../pages/TrainerTemplatesPage';
+import { TrainerRemindersPage } from '../pages/TrainerRemindersPage';
+import { TrainerPreviewPage } from '../pages/TrainerPreviewPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
@@ -141,6 +145,10 @@ function InternalRoutes(): React.ReactElement {
         <Route path="table" element={<TablePage />} />
         <Route path="mehr" element={<MoreLayout />}>
           <Route index element={<MorePage />} />
+          <Route path="trainer/team-push" element={<TrainerTeamPushPage />} />
+          <Route path="trainer/vorlagen" element={<TrainerTemplatesPage />} />
+          <Route path="trainer/erinnerungen" element={<TrainerRemindersPage />} />
+          <Route path="trainer/preview" element={<TrainerPreviewPage />} />
           {/* Legacy: /app/mehr/notifications -> /app/nachrichten */}
           <Route path="notifications" element={<Navigate to="/app/nachrichten" replace />} />
           <Route path="profile" element={<Navigate to="/app/profile" replace />} />

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { useAuth } from '../auth/AuthProvider';
 import { useSession } from '../auth/useSession';
@@ -10,6 +11,8 @@ const API = '/api/push/send-team';
 
 type Props = {
   teamSeasonId: string | null;
+  /** full: Form + Vorlagen-Liste; push-only: nur Form; templates-only: nur Vorlagen-Liste */
+  variant?: 'full' | 'push-only' | 'templates-only';
 };
 
 type PushRecipientResult = {
@@ -37,7 +40,7 @@ function previewLine(text: string, max = 72): string {
   return `${t.slice(0, max)}…`;
 }
 
-export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId }) => {
+export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'full' }) => {
   const { session, user } = useAuth();
   const { selectedTeamSeason } = useSession();
   const teamId = selectedTeamSeason?.team?.id ?? null;
@@ -104,16 +107,17 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId }) => {
           `Ziele: ${data.totalRecipients ?? 0} · ${data.sent ?? 0} ok · ${data.failed ?? 0} fehlgeschlagen`,
         );
         if ((data.failed ?? 0) > 0 && Array.isArray(data.results)) {
+          console.warn('[PushTeamSendPanel] push partial failure', data.results?.filter((r) => !r.success));
           setDetailResults(data.results.filter((r) => !r.success));
         } else {
           setDetailResults(null);
         }
       } else {
-        setMessage(data.error || 'Senden fehlgeschlagen.');
+        setMessage('Senden war nicht möglich.');
         setDetailResults(null);
       }
     } catch {
-      setMessage('Netzwerkfehler.');
+      setMessage('Senden war nicht möglich.');
       setDetailResults(null);
     } finally {
       setLoading(false);
@@ -176,8 +180,12 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId }) => {
     }
   };
 
+  const showPushForm = variant === 'full' || variant === 'push-only';
+  const showTemplatesList = variant === 'full' || variant === 'templates-only';
+
   return (
     <div className="space-y-4">
+      {showPushForm && (
       <div className="rounded-lg border border-white/10 bg-white/5 p-3">
         <h2 className="text-base font-semibold text-[var(--text-main)]">Team-Push</h2>
         <p className="mt-1 text-xs text-[var(--text-sub)]">
@@ -284,62 +292,9 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId }) => {
         )}
 
         {detailResults && detailResults.length > 0 && (
-          <div
-            className="mt-3 max-h-64 space-y-2 overflow-y-auto rounded-md border border-amber-500/30 bg-amber-950/25 p-2 text-left text-xs text-amber-100"
-            role="region"
-            aria-label="Push-Zustellfehler"
-          >
-            <p className="font-medium text-amber-200/95">Details (fehlgeschlagen)</p>
-            <ul className="space-y-2">
-              {detailResults.map((r, i) => (
-                <li key={`${r.endpointPreview ?? i}-${i}`} className="rounded border border-white/10 bg-black/30 p-2 font-mono text-[11px] leading-snug">
-                  {r.email != null && r.email !== '' && (
-                    <div>
-                      <span className="text-[var(--text-sub)]">E-Mail: </span>
-                      {r.email}
-                    </div>
-                  )}
-                  {r.role != null && r.role !== '' && (
-                    <div>
-                      <span className="text-[var(--text-sub)]">Rolle: </span>
-                      {r.role}
-                    </div>
-                  )}
-                  {r.endpointPreview != null && r.endpointPreview !== '' && (
-                    <div className="break-all">
-                      <span className="text-[var(--text-sub)]">Endpoint: </span>
-                      {r.endpointPreview}
-                    </div>
-                  )}
-                  {r.statusCode != null && (
-                    <div>
-                      <span className="text-[var(--text-sub)]">HTTP: </span>
-                      {r.statusCode}
-                    </div>
-                  )}
-                  {r.error != null && r.error !== '' && (
-                    <div className="mt-1 text-red-200/95">
-                      <span className="text-[var(--text-sub)]">Fehler: </span>
-                      {r.error}
-                      {/VapidPkHashMismatch/i.test(r.error) && (
-                        <span className="mt-1 block text-amber-200/95">
-                          Tipp: In Vercel <code className="rounded bg-black/40 px-1">VITE_VAPID_PUBLIC_KEY</code> und{' '}
-                          <code className="rounded bg-black/40 px-1">VAPID_PUBLIC_KEY</code> müssen identisch sein; Push beim
-                          Empfänger neu aktivieren.
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {r.body != null && r.body !== '' && (
-                    <div className="mt-1 whitespace-pre-wrap break-words text-amber-100/90">
-                      <span className="text-[var(--text-sub)]">Antwort: </span>
-                      {r.body}
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <p className="mt-2 text-sm text-amber-200/90" role="status">
+            Für einige Empfänger konnte Push nicht zugestellt werden.
+          </p>
         )}
 
         <div className="mt-4">
@@ -359,10 +314,21 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId }) => {
           <p className="mt-2 text-xs text-amber-300/90">Kein Team/Saison gewählt.</p>
         )}
       </div>
+      )}
 
+      {showTemplatesList && (
       <div className="rounded-lg border border-white/10 bg-white/5 p-3">
         <h3 className="text-base font-semibold text-[var(--text-main)]">Vorlagen</h3>
         <p className="mt-1 text-xs text-[var(--text-sub)]">Gespeicherte Texte für schnelles Wiederverwenden.</p>
+        {variant === 'templates-only' && (
+          <p className="mt-2 text-xs text-[var(--text-sub)]">
+            Neue Vorlage:{' '}
+            <Link to="/app/mehr/trainer/team-push" className="font-medium text-red-400 underline-offset-2 hover:underline">
+              Team-Push
+            </Link>{' '}
+            öffnen und „Als Vorlage speichern“.
+          </p>
+        )}
 
         {!teamId && (
           <p className="mt-3 text-sm text-white/50">Kein Team gewählt.</p>
@@ -404,6 +370,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId }) => {
           </ul>
         )}
       </div>
+      )}
     </div>
   );
 };
