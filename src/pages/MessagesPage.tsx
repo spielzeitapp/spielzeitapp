@@ -3,7 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
 import { Card } from '../app/components/ui/Card';
 import { supabase } from '../lib/supabaseClient';
-import { countUnreadMessages, readReadSet, writeReadSet } from '../lib/messagesReadState';
+import {
+  countUnreadMessages,
+  notifyMessagesReadChanged,
+  readReadSet,
+  writeReadSet,
+} from '../lib/messagesReadState';
 
 type MessageRow = {
   id: string;
@@ -67,7 +72,22 @@ export const MessagesPage: React.FC = () => {
         setError(error.message || 'Nachrichten konnten nicht geladen werden.');
         return;
       }
-      setItems(Array.isArray(data) ? (data as MessageRow[]) : []);
+      const rows = Array.isArray(data) ? (data as MessageRow[]) : [];
+      setItems(rows);
+
+      if (rows.some((m) => m.read !== true)) {
+        const { error: updErr } = await supabase
+          .from('messages')
+          .update({ read: true })
+          .eq('user_id', user.data.user.id)
+          .eq('read', false);
+        if (updErr) {
+          console.warn('[MessagesPage] mark all read', updErr.message ?? updErr);
+        } else {
+          setItems(rows.map((m) => ({ ...m, read: true })));
+          notifyMessagesReadChanged();
+        }
+      }
     } catch {
       setItems([]);
       setError('Nachrichten konnten nicht geladen werden.');

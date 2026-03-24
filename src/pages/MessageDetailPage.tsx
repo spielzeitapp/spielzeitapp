@@ -4,7 +4,7 @@ import { useSession } from '../auth/useSession';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
 import { supabase } from '../lib/supabaseClient';
-import { readReadSet, writeReadSet } from '../lib/messagesReadState';
+import { notifyMessagesReadChanged, readReadSet, writeReadSet } from '../lib/messagesReadState';
 
 type MessageRow = {
   id: string;
@@ -72,7 +72,25 @@ export const MessageDetailPage: React.FC = () => {
           setItem(null);
           return;
         }
-        setItem((data as MessageRow | null) ?? null);
+        const row = (data as MessageRow | null) ?? null;
+        setItem(row);
+        if (row && row.read !== true) {
+          const { error: uErr } = await supabase
+            .from('messages')
+            .update({ read: true })
+            .eq('id', safeMessageId)
+            .eq('user_id', uid)
+            .eq('read', false);
+          if (uErr) {
+            console.warn('[MessageDetailPage] mark read', uErr.message ?? uErr);
+          } else {
+            setItem({ ...row, read: true });
+            const rs = readReadSet();
+            rs.add(safeMessageId);
+            writeReadSet(rs);
+            notifyMessagesReadChanged();
+          }
+        }
       } catch {
         setError('Nachricht konnte nicht geladen werden.');
         setItem(null);
@@ -86,14 +104,6 @@ export const MessageDetailPage: React.FC = () => {
       cancelled = true;
     };
   }, [safeMessageId, teamId]);
-
-  useEffect(() => {
-    if (!item?.id) return;
-    const set = readReadSet();
-    if (set.has(item.id)) return;
-    set.add(item.id);
-    writeReadSet(set);
-  }, [item?.id]);
 
   const onZumTermin = () => {
     if (!item?.event_id) return;

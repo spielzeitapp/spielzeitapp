@@ -24,15 +24,22 @@ export function writeReadSet(set: Set<string>): void {
   }
 }
 
-/** Ungelesen: DB read !== true und nicht im lokalen Read-Set. */
+export function notifyMessagesReadChanged(): void {
+  try {
+    window.dispatchEvent(new Event(MESSAGES_READ_CHANGED_EVENT));
+  } catch {
+    // ignore
+  }
+}
+
+/** Ungelesen: nur DB-Feld read (kein true). */
 export function countUnreadMessages(
   rows: Array<{ id: string; read?: boolean | null }>,
-  readSet: Set<string>,
+  _readSet?: Set<string>,
 ): number {
   let c = 0;
   for (const m of rows) {
-    if (m.read === true) continue;
-    if (!readSet.has(m.id)) c += 1;
+    if (m.read !== true) c += 1;
   }
   return c;
 }
