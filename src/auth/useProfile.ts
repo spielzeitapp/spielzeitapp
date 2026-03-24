@@ -24,6 +24,44 @@ export interface ProfileRow {
   display_name: string | null;
 }
 
+const PROFILE_SELECT = 'id, first_name, last_name, full_name, display_name';
+
+export const APP_NAME_PLACEHOLDER = /^spielzeitapp$/i;
+
+function isPlaceholderToken(s: string): boolean {
+  const t = s.trim();
+  return t.length === 0 || APP_NAME_PLACEHOLDER.test(t);
+}
+
+/** Anzeige-Vorname: first_name → erstes Wort full_name → display_name. Keine E-Mail. */
+export function getDisplayFirstName(profile: ProfileRow | null): string | null {
+  if (!profile) return null;
+  const fn = (profile.first_name ?? '').trim();
+  if (fn && !isPlaceholderToken(fn)) return fn;
+  const full = (profile.full_name ?? '').trim();
+  if (full) {
+    const w = full.split(/\s+/)[0]?.trim();
+    if (w && !isPlaceholderToken(w)) return w;
+  }
+  const dn = (profile.display_name ?? '').trim();
+  if (dn && !isPlaceholderToken(dn)) return dn;
+  return null;
+}
+
+/** Profil Zeile 1 (ohne E-Mail): first+last, sonst full_name, sonst display_name. */
+export function profileDisplayName(profile: ProfileRow | null): string | null {
+  if (!profile) return null;
+  const first = (profile.first_name ?? '').trim();
+  const last = (profile.last_name ?? '').trim();
+  const combined = [first, last].filter(Boolean).join(' ').trim();
+  if (combined && !isPlaceholderToken(combined)) return combined;
+  const full = (profile.full_name ?? '').trim();
+  if (full && !APP_NAME_PLACEHOLDER.test(full)) return full;
+  const dn = (profile.display_name ?? '').trim();
+  if (dn && !APP_NAME_PLACEHOLDER.test(dn)) return dn;
+  return null;
+}
+
 /**
  * Load current user's profile (first_name, last_name, full_name, display_name). Returns null until loaded or if no user.
  */
@@ -50,19 +88,52 @@ export function useProfile(userId: string | undefined | null): {
 
     void (async () => {
       try {
-        const { data, error: err } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, full_name, display_name')
-          .eq('id', userId)
-          .maybeSingle();
+        const fetchRow = async (): Promise<{ data: ProfileRow | null; error: { message?: string; code?: string } | null }> => {
+          const res = await supabase.from('profiles').select(PROFILE_SELECT).eq('id', userId).maybeSingle();
+          return { data: (res.data as ProfileRow) ?? null, error: res.error };
+        };
+
+        let { data, error: err } = await fetchRow();
         if (cancelled) return;
-        setLoading(false);
+
         if (err) {
+          setLoading(false);
           setError(friendlyProfileFetchError(err.message ?? 'Unbekannter Fehler'));
           setProfile(null);
           return;
         }
-        setProfile((data as ProfileRow) ?? null);
+
+        if (!data) {
+          const { data: authRes } = await supabase.auth.getUser();
+          if (cancelled) return;
+          if (authRes?.user?.id !== userId) {
+            setLoading(false);
+            setProfile(null);
+            setError(null);
+            return;
+          }
+          const ins = await supabase.from('profiles').insert({ id: userId });
+          if (ins.error) {
+            const code = (ins.error as { code?: string }).code;
+            if (code !== '23505') {
+              console.warn('[useProfile] ensure profile row', ins.error.message ?? ins.error);
+            }
+          }
+          const second = await fetchRow();
+          if (cancelled) return;
+          data = second.data;
+          err = second.error;
+          if (err) {
+            setLoading(false);
+            setError(null);
+            setProfile(null);
+            return;
+          }
+        }
+
+        setLoading(false);
+        setError(null);
+        setProfile(data);
       } catch (e: unknown) {
         if (cancelled) return;
         console.error('[useProfile] profile fetch failed', e);
@@ -93,33 +164,14 @@ export function useProfile(userId: string | undefined | null): {
 
 /** Hauptzeile Profil: Vor-/Nachname, sonst full_name, sonst display_name, sonst E-Mail. */
 export function profileHeadingLine(profile: ProfileRow | null, email: string): string {
-  if (!profile) return email || '–';
-  const first = (profile.first_name ?? '').trim();
-  const last = (profile.last_name ?? '').trim();
-  const combined = [first, last].filter(Boolean).join(' ').trim();
-  if (combined) return combined;
-  const full = (profile.full_name ?? '').trim();
-  if (full && !APP_NAME_PLACEHOLDER.test(full)) return full;
-  const dn = (profile.display_name ?? '').trim();
-  if (dn && !APP_NAME_PLACEHOLDER.test(dn)) return dn;
+  const name = profileDisplayName(profile);
+  if (name) return name;
   return email || '–';
 }
 
-export const APP_NAME_PLACEHOLDER = /^spielzeitapp$/i;
-
-/** Home: nur first_name -> erstes Wort full_name; sonst leer (neutraler Gruß). */
+/** Home: Vorname-Anzeige (keine E-Mail). */
 export function welcomeGreetingFromProfile(profile: ProfileRow | null): string {
-  if (!profile) return '';
-  const fn = (profile.first_name ?? '').trim();
-  if (fn && !APP_NAME_PLACEHOLDER.test(fn)) return fn;
-  const full = (profile.full_name ?? '').trim();
-  if (full) {
-    const w = full.split(/\s+/)[0]?.trim();
-    if (w && !APP_NAME_PLACEHOLDER.test(w)) return w;
-  }
-  const dn = (profile.display_name ?? '').trim();
-  if (dn && !APP_NAME_PLACEHOLDER.test(dn)) return dn;
-  return '';
+  return getDisplayFirstName(profile) ?? '';
 }
 
 /** @deprecated Nutze profileHeadingLine */

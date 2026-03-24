@@ -2,7 +2,7 @@ import React, { ChangeEvent, Component, ErrorInfo, ReactNode, useEffect, useMemo
 import { Link, useNavigate } from 'react-router-dom';
 import { useSession, PREVIEW_ROLE_STORAGE_KEY } from '../auth/useSession';
 import { useAuth } from '../auth/AuthProvider';
-import { useProfile, profileHeadingLine } from '../auth/useProfile';
+import { useProfile, profileDisplayName } from '../auth/useProfile';
 import { supabase } from '../lib/supabaseClient';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { PushNotificationsButton } from '../components/PushNotificationsButton';
@@ -115,10 +115,9 @@ export const ProfilePage: React.FC = () => {
 
   const selectedTeamName = getTeamName(selectedTeamSeason);
   const email = authUser?.email?.trim() || '–';
-  const headingMain = profileHeadingLine(profile, email);
-  const emailLo = email.trim().toLowerCase();
-  const headingLo = headingMain.trim().toLowerCase();
-  const showEmailRow = email !== '–' && headingLo !== emailLo;
+  const nameLine = profileDisplayName(profile);
+  const headingMain = nameLine ?? email;
+  const showEmailRow = nameLine != null && email !== '–';
 
   /** Nur Session-Gate; Profil lädt im Hintergrund (kein globales Blockieren). */
   const blockingLoad = !!(authUser && sessionLoading);
