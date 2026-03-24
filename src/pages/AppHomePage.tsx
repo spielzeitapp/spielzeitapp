@@ -221,11 +221,6 @@ export const AppHomePage: React.FC = () => {
                 </div>
               </Card>
             )}
-            {pendingRsvp === false && (
-              <Card className="border-emerald-500/30 bg-emerald-950/20 text-white">
-                <div className="px-4 py-3 text-sm text-emerald-100">Alles erledigt 👍</div>
-              </Card>
-            )}
           </>
         )}
 

@@ -35,13 +35,13 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!teamSeasonId) {
       setRow(null);
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
     try {
       const { data, error: qErr } = await supabase
         .from('team_notification_settings')
@@ -133,10 +133,9 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         return;
       }
       setSaved(true);
-      await load();
+      await load({ silent: true });
     } catch (e) {
       console.warn('[TeamReminderSettings] save', e);
-      setSaveError(true);
     } finally {
       setSaving(false);
     }

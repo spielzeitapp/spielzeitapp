@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '../auth/useSession';
 import { Card } from '../app/components/ui/Card';
 import { supabase } from '../lib/supabaseClient';
+import { countUnreadMessages, readReadSet, writeReadSet } from '../lib/messagesReadState';
 
 type MessageRow = {
   id: string;
@@ -24,28 +25,6 @@ function formatWhen(iso: string): string {
     });
   } catch {
     return iso;
-  }
-}
-
-const READ_STORAGE_KEY = 'spz_read_messages';
-
-function readReadSet(): Set<string> {
-  try {
-    const raw = window.localStorage.getItem(READ_STORAGE_KEY);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return new Set();
-    return new Set(parsed.filter((x) => typeof x === 'string'));
-  } catch {
-    return new Set();
-  }
-}
-
-function writeReadSet(set: Set<string>): void {
-  try {
-    window.localStorage.setItem(READ_STORAGE_KEY, JSON.stringify(Array.from(set)));
-  } catch {
-    // ignore
   }
 }
 
@@ -103,11 +82,7 @@ export const MessagesPage: React.FC = () => {
 
   const unreadCount = useMemo(() => {
     if (!items) return 0;
-    let c = 0;
-    for (const m of items) {
-      if (!readSet.has(m.id)) c += 1;
-    }
-    return c;
+    return countUnreadMessages(items, readSet);
   }, [items, readSet]);
 
   const onOpen = (m: MessageRow) => {

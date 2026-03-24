@@ -18,10 +18,7 @@ export const AppFab: React.FC = () => {
 
   if (!staff) return null;
 
-  const hideFabOnHomeForParentOrPlayer =
-    effectiveRole === 'parent' || effectiveRole === 'player';
-
-  if (pathname === '/app/home' && hideFabOnHomeForParentOrPlayer) return null;
+  if (pathname === '/app/home') return null;
   if (pathname === '/app/profile' || pathname.startsWith('/app/mehr')) return null;
 
   return (

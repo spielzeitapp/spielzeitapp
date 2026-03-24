@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import { CircleDot, LayoutGrid, MoreHorizontal, Radio, Users } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
+import {
+  countUnreadMessages,
+  MESSAGES_READ_CHANGED_EVENT,
+  MESSAGES_READ_STORAGE_KEY,
+  readReadSet,
+} from '../../lib/messagesReadState';
 
 /**
  * Bottom Navigation — nur UI; Routen bleiben unveraendert.
@@ -19,18 +26,76 @@ const publicTabs = [
   { to: '/schedule', end: false as const, label: 'Spielplan', Icon: LayoutGrid, live: false as const },
 ] as const;
 
+function useUnreadMessagesBadgeCount(): number {
+  const { pathname } = useLocation();
+  const [count, setCount] = useState(0);
+
+  const refresh = useCallback(async () => {
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const uid = u?.user?.id;
+      if (!uid) {
+        setCount(0);
+        return;
+      }
+      const { data, error } = await supabase.from('messages').select('id, read').eq('user_id', uid);
+      if (error) {
+        setCount(0);
+        return;
+      }
+      const rows = Array.isArray(data) ? (data as Array<{ id: string; read?: boolean | null }>) : [];
+      setCount(countUnreadMessages(rows, readReadSet()));
+    } catch {
+      setCount(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh, pathname]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      void refresh();
+    };
+    const onVis = () => {
+      if (document.visibilityState === 'visible') void refresh();
+    };
+    const onRead = () => {
+      void refresh();
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === MESSAGES_READ_STORAGE_KEY) void refresh();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener(MESSAGES_READ_CHANGED_EVENT, onRead);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener(MESSAGES_READ_CHANGED_EVENT, onRead);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [refresh]);
+
+  return count;
+}
+
 function NavItem({
   to,
   end,
   label,
   Icon,
   isLiveTab,
+  badgeCount,
 }: {
   to: string;
   end?: boolean;
   label: string;
   Icon: LucideIcon;
   isLiveTab: boolean;
+  badgeCount?: number;
 }) {
   return (
     <NavLink
@@ -42,7 +107,7 @@ function NavItem({
         <>
           <div
             className={[
-              'relative flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200',
+              'relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all duration-200',
               isActive
                 ? 'bg-red-500/10 text-red-500 shadow-[0_0_18px_rgba(239,68,68,0.25)]'
                 : 'text-gray-400 group-hover:bg-white/5',
@@ -56,6 +121,11 @@ function NavItem({
                   isActive ? 'animate-pulse' : '',
                 ].join(' ')}
               />
+            )}
+            {badgeCount != null && badgeCount > 0 && (
+              <span className="absolute -right-1 -top-1 z-[1] flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-[5px] text-[10px] font-bold leading-none text-white ring-2 ring-neutral-900">
+                {badgeCount > 9 ? '9+' : badgeCount}
+              </span>
             )}
             <Icon
               className={[
@@ -82,6 +152,7 @@ function NavItem({
 export const BottomNav: React.FC = () => {
   const { pathname } = useLocation();
   const tabs = pathname.startsWith('/app') ? appTabs : publicTabs;
+  const mehrBadge = useUnreadMessagesBadgeCount();
 
   return (
     <nav
@@ -103,6 +174,7 @@ export const BottomNav: React.FC = () => {
               label={t.label}
               Icon={t.Icon}
               isLiveTab={t.live}
+              badgeCount={t.to === '/app/mehr' ? mehrBadge : undefined}
             />
           ))}
         </div>

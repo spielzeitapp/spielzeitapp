@@ -313,10 +313,10 @@ export const ProfilePage: React.FC = () => {
         boxShadow: 'inset 0 0 120px rgba(120,20,20,0.12)',
       }}
     >
-      <div className="mx-auto max-w-[480px] space-y-6">
+      <div className="mx-auto max-w-[480px] space-y-8">
         <h1 className="text-2xl font-bold text-white tracking-tight">Profil</h1>
 
-        <Card className="text-white">
+        <Card className="text-white shadow-lg shadow-black/20">
           <CardTitle className="text-lg">Profil</CardTitle>
           <p className="mt-2 text-lg font-semibold text-[var(--text-main)]">{headingMain}</p>
           {showEmailRow && (
@@ -327,9 +327,9 @@ export const ProfilePage: React.FC = () => {
 
           {slowLoadBanner}
 
-          {(profileLoading || (!profileLoading && profileError && !profile)) && (
-            <p className="mt-2 text-[11px] leading-relaxed text-white/45" role="status">
-              {profileLoading ? 'Profil wird geladen...' : 'Profilinformationen werden aktualisiert.'}
+          {profileLoading && (
+            <p className="mt-2 text-[10px] leading-relaxed text-white/40" role="status">
+              Profilinformationen werden aktualisiert.
             </p>
           )}
 
@@ -429,7 +429,7 @@ export const ProfilePage: React.FC = () => {
 
         {showTeamPushSend && (
           <ProfileSectionErrorBoundary label="Erinnerungen">
-            <Card className="text-white">
+            <Card className="text-white shadow-lg shadow-black/20">
               <CardTitle className="text-lg">Erinnerungen</CardTitle>
               <p className="mt-1 text-xs text-white/55">Automatische Termin-Erinnerungen für das Team.</p>
               <TeamReminderSettingsPanel teamSeasonId={selectedTeamSeasonId} embedded />

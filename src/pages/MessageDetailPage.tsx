@@ -4,6 +4,7 @@ import { useSession } from '../auth/useSession';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
 import { supabase } from '../lib/supabaseClient';
+import { readReadSet, writeReadSet } from '../lib/messagesReadState';
 
 type MessageRow = {
   id: string;
@@ -25,28 +26,6 @@ function formatWhen(iso: string): string {
     });
   } catch {
     return iso;
-  }
-}
-
-const READ_STORAGE_KEY = 'spz_read_messages';
-
-function readReadSet(): Set<string> {
-  try {
-    const raw = window.localStorage.getItem(READ_STORAGE_KEY);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return new Set();
-    return new Set(parsed.filter((x) => typeof x === 'string'));
-  } catch {
-    return new Set();
-  }
-}
-
-function writeReadSet(set: Set<string>): void {
-  try {
-    window.localStorage.setItem(READ_STORAGE_KEY, JSON.stringify(Array.from(set)));
-  } catch {
-    // ignore
   }
 }
 
