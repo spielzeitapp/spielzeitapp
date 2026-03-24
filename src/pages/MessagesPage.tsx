@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSession } from '../auth/useSession';
+import { useAuth } from '../auth/AuthProvider';
 import { Card } from '../app/components/ui/Card';
 import { supabase } from '../lib/supabaseClient';
 import {
@@ -22,12 +22,16 @@ type MessageRow = {
   read: boolean;
 };
 
-/** Ohne angehängten Pfad (manual_push speichert URL in content). */
+function isTeamPushType(t: string): boolean {
+  return t === 'manual_push' || t === 'team_push';
+}
+
+/** Ohne angehängten Pfad (Team-Push: URL in content oder link). */
 function listBodyPreview(m: MessageRow): string {
   const rawBody = (m.body ?? '').trim();
   if (rawBody) return rawBody;
   const raw = (m.content ?? '').trim();
-  if (m.type !== 'manual_push') return raw || (m.title ?? '').trim();
+  if (!isTeamPushType(m.type)) return raw || (m.title ?? '').trim();
   const idx = raw.lastIndexOf('\n\n');
   if (idx === -1) return raw || (m.title ?? '').trim();
   const tail = raw.slice(idx + 2).trim();
@@ -48,7 +52,7 @@ function formatWhen(iso: string): string {
 
 export const MessagesPage: React.FC = () => {
   const navigate = useNavigate();
-  useSession();
+  const { user } = useAuth();
   const [needsRelogin, setNeedsRelogin] = useState(false);
 
   const [items, setItems] = useState<MessageRow[] | null>(null);
@@ -88,20 +92,6 @@ export const MessagesPage: React.FC = () => {
       }
       const rows = Array.isArray(data) ? (data as MessageRow[]) : [];
       setItems(rows);
-
-      if (rows.some((m) => m.read !== true)) {
-        const { error: updErr } = await supabase
-          .from('messages')
-          .update({ read: true })
-          .eq('user_id', user.data.user.id)
-          .eq('read', false);
-        if (updErr) {
-          console.warn('[MessagesPage] mark all read', updErr.message ?? updErr);
-        } else {
-          setItems(rows.map((m) => ({ ...m, read: true })));
-          notifyMessagesReadChanged();
-        }
-      }
     } catch (e) {
       console.warn('[MessagesPage] load', e);
       setItems([]);
@@ -110,6 +100,20 @@ export const MessagesPage: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    void supabase
+      .from('messages')
+      .update({ read: true })
+      .eq('user_id', user.id)
+      .eq('read', false)
+      .then(({ error }) => {
+        if (error) console.warn('[MessagesPage] mark all read', error.message ?? error);
+        else notifyMessagesReadChanged();
+      });
+  }, [user?.id]);
 
   useEffect(() => {
     void load();

@@ -308,36 +308,29 @@ export default async function handler(req, res) {
     }
 
     let messagesSaved = 0;
-    if (teamIdForNotification) {
-      for (const uid of userIds) {
-        const row = {
-          team_id: teamIdForNotification,
-          user_id: uid,
-          title,
-          body: textBody,
-          content: contentWithLink,
-          type: "manual_push",
-          read: false,
-          ...(related_event_id
-            ? { related_event_id, event_id: related_event_id }
-            : {}),
-        };
-        try {
-          const { error: insErr } = await supabase.from("messages").insert(row);
-          if (insErr) {
-            console.warn(
-              "[push/send-team] messages.insert failed for user",
-              uid,
-              insErr.message || insErr,
-            );
-          } else {
-            messagesSaved += 1;
-          }
-        } catch (e) {
-          console.warn("[push/send-team] messages.insert exception", uid, e?.message || e);
-        }
+    let messagesInsertError = null;
+    if (teamIdForNotification && userIds.length > 0) {
+      const payload = userIds.map((uid) => ({
+        team_id: teamIdForNotification,
+        user_id: uid,
+        title,
+        body: textBody,
+        content: contentWithLink,
+        type: "team_push",
+        read: false,
+        link: url || null,
+        ...(related_event_id
+          ? { related_event_id, event_id: related_event_id }
+          : {}),
+      }));
+      const { error: insertError } = await supabase.from("messages").insert(payload);
+      if (insertError) {
+        console.error("[push/send-team] MESSAGE INSERT ERROR:", insertError);
+        messagesInsertError = insertError.message || String(insertError);
+      } else {
+        messagesSaved = userIds.length;
       }
-    } else {
+    } else if (!teamIdForNotification) {
       console.warn("[push/send-team] no team_id for team_season; skipping messages insert", team_season_id);
     }
 
@@ -490,6 +483,7 @@ export default async function handler(req, res) {
       ...(notificationSaveWarning != null
         ? { notificationSaveWarning }
         : {}),
+      ...(messagesInsertError != null ? { messagesInsertError } : {}),
     });
   } catch (err) {
     console.error("[push/send-team] full error:", err);

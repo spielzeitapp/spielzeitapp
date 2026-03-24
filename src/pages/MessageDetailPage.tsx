@@ -13,6 +13,7 @@ type MessageRow = {
   content: string | null;
   type: string;
   event_id: string | null;
+  link?: string | null;
   created_at: string;
   read: boolean;
 };
@@ -32,6 +33,10 @@ function toAppHref(path: string): string {
   return `/app${p}`;
 }
 
+function isTeamPushType(t: string): boolean {
+  return t === 'manual_push' || t === 'team_push';
+}
+
 function bodyWithoutAppendedPath(
   body: string | null,
   content: string | null,
@@ -39,7 +44,7 @@ function bodyWithoutAppendedPath(
   title: string,
 ): string {
   const rawBody = (body ?? '').trim();
-  if (type !== 'manual_push') return rawBody || (content ?? '').trim() || title.trim();
+  if (!isTeamPushType(type)) return rawBody || (content ?? '').trim() || title.trim();
   if (rawBody) return rawBody;
   const raw = (content ?? '').trim();
   const idx = raw.lastIndexOf('\n\n');
@@ -140,7 +145,10 @@ export const MessageDetailPage: React.FC = () => {
   };
 
   const manualLink =
-    item?.type === 'manual_push' ? extractAppPathFromContent(item.content ?? item.body) : null;
+    item && isTeamPushType(item.type)
+      ? (item.link?.trim() ||
+          extractAppPathFromContent(item.content ?? item.body))
+      : null;
 
   const onOpenInApp = () => {
     if (!manualLink) return;
