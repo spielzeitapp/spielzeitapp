@@ -107,7 +107,7 @@ export function profileHeadingLine(profile: ProfileRow | null, email: string): s
 
 export const APP_NAME_PLACEHOLDER = /^spielzeitapp$/i;
 
-/** Home: nur first_name → erstes Wort full_name; sonst leer (neutraler Gruß). Keine E-Mail, kein display_name. */
+/** Home: nur first_name -> erstes Wort full_name; sonst leer (neutraler Gruß). */
 export function welcomeGreetingFromProfile(profile: ProfileRow | null): string {
   if (!profile) return '';
   const fn = (profile.first_name ?? '').trim();

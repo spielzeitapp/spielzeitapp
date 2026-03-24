@@ -8,7 +8,7 @@ const logo = import.meta.env.BASE_URL + 'logos/nsg-goelsental.png';
 export const HomePage: React.FC = () => {
   const { session } = useAuth();
   const { profile, loading: profileLoading } = useProfile(session?.user?.id ?? null);
-  const welcomeName = !profileLoading ? welcomeGreetingFromProfile(profile) : '';
+  const welcomeName = profileLoading ? '' : welcomeGreetingFromProfile(profile);
 
   return (
     <div

@@ -334,7 +334,7 @@ export const ProfilePage: React.FC = () => {
 
           {(profileLoading || (!profileLoading && profileError && !profile)) && (
             <p className="mt-2 text-[11px] leading-relaxed text-white/45" role="status">
-              {profileLoading ? 'Profil wird geladen…' : 'Profilinformationen werden aktualisiert.'}
+              {profileLoading ? 'Profil wird geladen...' : 'Profilinformationen werden aktualisiert.'}
             </p>
           )}
 

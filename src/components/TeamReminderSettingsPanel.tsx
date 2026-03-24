@@ -60,9 +60,13 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
       if (data) {
         setRow(normalizeRow(data as TeamNotificationSettingsRow));
       } else {
-        setRow(
-          normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }),
-        );
+        const defaults = normalizeRow({
+          team_season_id: teamSeasonId,
+          ...DEFAULT_TEAM_NOTIFICATION_SETTINGS,
+        });
+        setRow(defaults);
+        // Best-effort: beim ersten Laden Default-Datensatz anlegen.
+        await supabase.from('team_notification_settings').insert(defaults).select('id').maybeSingle();
       }
     } catch (e) {
       console.warn('[TeamReminderSettings] load', e);
