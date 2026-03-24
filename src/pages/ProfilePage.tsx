@@ -59,8 +59,8 @@ class ProfileSectionErrorBoundary extends Component<SectionBoundaryProps, { hasE
     if (this.state.hasError) {
       return (
         this.props.fallback ?? (
-          <p className="mt-2 rounded-md border border-red-500/30 bg-red-950/30 px-2 py-2 text-xs text-red-200" role="alert">
-            Dieser Bereich konnte nicht geladen werden ({this.props.label}).
+          <p className="mt-2 rounded-md border border-white/10 bg-white/5 px-2 py-2 text-xs text-white/60">
+            Dieser Bereich ist aktuell nicht verfügbar ({this.props.label}).
           </p>
         )
       );
@@ -114,7 +114,7 @@ export const ProfilePage: React.FC = () => {
     (effectiveRole === 'trainer' || effectiveRole === 'co_trainer' || effectiveRole === 'head_coach' || effectiveRole === 'admin');
 
   const selectedTeamName = getTeamName(selectedTeamSeason);
-  const email = authUser?.email ?? user?.name ?? '–';
+  const email = authUser?.email?.trim() || '–';
   const headingMain = profileHeadingLine(profile, email);
   const emailLo = email.trim().toLowerCase();
   const headingLo = headingMain.trim().toLowerCase();
@@ -300,12 +300,8 @@ export const ProfilePage: React.FC = () => {
   const slowLoadBanner = useMemo(() => {
     if (!profileLoadTimedOut || !blockingLoad) return null;
     return (
-      <div
-        className="mt-2 rounded-md border border-amber-500/50 bg-amber-950/50 px-3 py-3 text-sm text-amber-100"
-        role="alert"
-      >
-        <p className="font-medium">Profil konnte nicht vollständig geladen werden.</p>
-        <p className="mt-1 text-xs text-amber-200/90">Bitte Seite neu laden oder später erneut versuchen.</p>
+      <div className="mt-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/65">
+        Profilinformationen werden weiterhin geladen.
       </div>
     );
   }, [profileLoadTimedOut, blockingLoad]);
@@ -339,8 +335,8 @@ export const ProfilePage: React.FC = () => {
           )}
 
           {membershipError && (
-            <p className="mt-2 rounded-md border border-amber-500/40 bg-amber-950/40 px-2 py-2 text-xs text-amber-200" role="alert">
-              Team-Zuordnung konnte nicht geladen werden. Bitte Seite neu laden oder später erneut versuchen.
+            <p className="mt-2 text-[11px] leading-relaxed text-white/50">
+              Team-Zuordnung wird geladen oder ist kurz nicht verfügbar.
             </p>
           )}
 
@@ -374,7 +370,7 @@ export const ProfilePage: React.FC = () => {
                 {childrenLoading ? (
                   <p className="mt-0.5 text-xs text-[var(--text-sub)]">Lade Kind-Verknüpfung…</p>
                 ) : childrenError ? (
-                  <p className="mt-0.5 text-xs text-red-400">{childrenError}</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-sub)]">Kind-Verknüpfung aktuell nicht verfügbar.</p>
                 ) : linkedChildren.length === 0 ? (
                   <p className="mt-0.5 text-xs text-[var(--text-sub)]">Kein Kind verknüpft.</p>
                 ) : (
@@ -410,7 +406,7 @@ export const ProfilePage: React.FC = () => {
         </Card>
 
         {showPushSection && mountPushUi && (
-          <Card className="text-white">
+          <Card className="text-white shadow-lg shadow-black/20">
             <CardTitle className="text-lg">Benachrichtigungen</CardTitle>
             <ProfileSectionErrorBoundary label="Push-Benachrichtigungen">
               <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
@@ -421,7 +417,7 @@ export const ProfilePage: React.FC = () => {
         )}
 
         {showTeamPushSend && mountPushUi && (
-          <Card className="text-white">
+          <Card className="text-white shadow-lg shadow-black/20">
             <CardTitle className="text-lg">Team-Push</CardTitle>
             <p className="mt-1 text-xs text-white/55">Nachricht an Eltern/Spieler mit Push (manuell).</p>
             <ProfileSectionErrorBoundary label="Team-Push senden">
@@ -444,7 +440,7 @@ export const ProfilePage: React.FC = () => {
 
         {showPreviewSwitch && (
           <ProfileSectionErrorBoundary label="Rollen-Vorschau">
-            <Card className="text-white">
+            <Card className="text-white shadow-lg shadow-black/20">
               <CardTitle className="text-lg">Ansicht testen als</CardTitle>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <select

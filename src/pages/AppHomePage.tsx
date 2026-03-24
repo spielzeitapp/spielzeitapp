@@ -48,12 +48,23 @@ function formatDt(iso: string | null): string {
   }
 }
 
-function eventShortLabel(ev: EventRow): string {
-  const n = ev.notes?.trim()?.split('·')[0]?.trim();
-  if (n) return n;
-  if (ev.kind === 'training') return 'Training';
-  if (ev.kind === 'event') return 'Termin';
-  return ev.opponent?.trim() ? `vs ${ev.opponent.trim()}` : 'Spiel';
+function formatOpenActionWhen(iso: string | null): string {
+  if (!iso) return 'unbekannten Zeitpunkt';
+  try {
+    const d = new Date(iso);
+    const weekday = new Intl.DateTimeFormat('de-DE', { weekday: 'short' }).format(d).replace(/\.$/, '');
+    const date = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: 'long' }).format(d);
+    const time = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' }).format(d);
+    return `${weekday}. ${date}, ${time}`;
+  } catch {
+    return iso;
+  }
+}
+
+function eventOpenActionPhrase(ev: EventRow): string {
+  if (ev.kind === 'training') return 'das Training';
+  if (ev.kind === 'event') return 'den Termin';
+  return 'das Spiel';
 }
 
 export const AppHomePage: React.FC = () => {
@@ -198,10 +209,7 @@ export const AppHomePage: React.FC = () => {
                     Offene Aktion
                   </div>
                   <p className="mt-2 text-sm text-amber-100">
-                    Bitte gib noch deine Zu-/Absage für „{eventShortLabel(next)}“ ab.
-                  </p>
-                  <p className="mt-1 text-xs text-amber-200/80">
-                    Termin: {formatDt(next.starts_at)}
+                    Bitte reagiere auf {eventOpenActionPhrase(next)} am {formatOpenActionWhen(next.starts_at)}.
                   </p>
 
                   <Link
@@ -237,28 +245,21 @@ export const AppHomePage: React.FC = () => {
           </Card>
         ) : latestMessage ? (
           <Card className="border-white/10 bg-white/5 text-white">
-            <CardTitle className="text-base">Letzte wichtige Nachricht</CardTitle>
+            <CardTitle className="text-base">Nachrichten</CardTitle>
             <Link
               to="/app/nachrichten"
               className="-mx-1 mt-2 block rounded-lg p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
             >
-              <p className="text-xs text-white/50">{formatDt(latestMessage.created_at)}</p>
-              <p className="mt-1 font-medium text-white">{latestMessage.title}</p>
+              <p className="font-medium text-white">{latestMessage.title}</p>
               <p className="mt-1 line-clamp-1 text-sm text-white/55">
                 {(latestMessage.body ?? latestMessage.content ?? '').replace(/\s+/g, ' ').trim()}
               </p>
-            </Link>
-            <Link to="/app/nachrichten" className="mt-3 inline-block text-sm text-red-400">
-              Alle Nachrichten →
+              <p className="mt-1.5 text-[11px] text-white/40">{formatDt(latestMessage.created_at)}</p>
             </Link>
           </Card>
         ) : (
-          <div className="rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 text-white">
-            <p className="text-xs font-medium uppercase tracking-wide text-white/45">Letzte wichtige Nachricht</p>
-            <p className="mt-2 text-sm text-white/45">Noch keine Nachrichten.</p>
-            <Link to="/app/nachrichten" className="mt-2 inline-block text-sm text-red-400/90">
-              Zu Nachrichten
-            </Link>
+          <div className="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3 text-white/50">
+            <p className="text-sm">Noch keine Nachrichten.</p>
           </div>
         )}
       </div>

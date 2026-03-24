@@ -117,6 +117,8 @@ export function welcomeGreetingFromProfile(profile: ProfileRow | null): string {
     const w = full.split(/\s+/)[0]?.trim();
     if (w && !APP_NAME_PLACEHOLDER.test(w)) return w;
   }
+  const dn = (profile.display_name ?? '').trim();
+  if (dn && !APP_NAME_PLACEHOLDER.test(dn)) return dn;
   return '';
 }
 

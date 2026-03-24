@@ -33,7 +33,6 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
   const [row, setRow] = useState<TeamNotificationSettingsRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
@@ -43,7 +42,6 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
       return;
     }
     setLoading(true);
-    setSaveError(false);
     try {
       const { data, error: qErr } = await supabase
         .from('team_notification_settings')
@@ -65,8 +63,6 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
           ...DEFAULT_TEAM_NOTIFICATION_SETTINGS,
         });
         setRow(defaults);
-        // Best-effort: beim ersten Laden Default-Datensatz anlegen.
-        await supabase.from('team_notification_settings').insert(defaults).select('id').maybeSingle();
       }
     } catch (e) {
       console.warn('[TeamReminderSettings] load', e);
@@ -83,13 +79,11 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
   const update = <K extends keyof TeamNotificationSettingsRow>(key: K, value: TeamNotificationSettingsRow[K]) => {
     setRow((prev) => (prev ? { ...prev, [key]: value } : prev));
     setSaved(false);
-    setSaveError(false);
   };
 
   const save = async () => {
     if (!teamSeasonId || !row) return;
     setSaving(true);
-    setSaveError(false);
     setSaved(false);
     try {
       const fields = {
@@ -136,7 +130,6 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
 
       if (lastErr) {
         console.warn('[TeamReminderSettings] save', lastErr);
-        setSaveError(true);
         return;
       }
       setSaved(true);
@@ -175,7 +168,6 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         </>
       )}
 
-      {saveError && <p className="mt-2 text-[11px] text-white/40">Bitte später erneut speichern.</p>}
       {saved && <p className="mt-2 text-xs text-emerald-300/90">Gespeichert.</p>}
 
       <div className="mt-3 space-y-3 text-sm">

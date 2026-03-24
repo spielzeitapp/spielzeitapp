@@ -13,19 +13,16 @@ export const AppFab: React.FC = () => {
   const staff =
     backendRole === 'admin' ||
     backendRole === 'trainer' ||
-    backendRole === 'head_coach' ||
-    backendRole === 'co_trainer' ||
     effectiveRole === 'trainer' ||
     effectiveRole === 'admin';
 
   if (!staff) return null;
-  if (
-    pathname === '/app/home' ||
-    pathname === '/app/profile' ||
-    pathname.startsWith('/app/mehr')
-  ) {
-    return null;
-  }
+
+  const hideFabOnHomeForParentOrPlayer =
+    effectiveRole === 'parent' || effectiveRole === 'player';
+
+  if (pathname === '/app/home' && hideFabOnHomeForParentOrPlayer) return null;
+  if (pathname === '/app/profile' || pathname.startsWith('/app/mehr')) return null;
 
   return (
     <button
