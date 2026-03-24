@@ -179,9 +179,6 @@ export default async function handler(req, res) {
       typeof body.url === "string" && body.url.trim() ? body.url.trim() : "/termine";
     if (!url.startsWith("/")) url = `/${url}`;
 
-    const messageTypeRaw =
-      typeof body.message_type === "string" ? body.message_type.trim().toLowerCase() : "";
-    const message_type = messageTypeRaw || "event";
     const related_event_id =
       typeof body.related_event_id === "string" && body.related_event_id.trim()
         ? body.related_event_id.trim()
@@ -326,112 +323,103 @@ export default async function handler(req, res) {
     );
 
     const totalRecipients = rows.length;
-    if (totalRecipients === 0) {
-      return res.status(200).json({
-        ok: true,
-        recipient_group,
-        totalRecipients: 0,
-        sent: 0,
-        failed: 0,
-        results: [],
-        vapidDebug: getVapidSendResponseDebug(),
-      });
-    }
-
-    ensureVapid();
-
-    const payload = JSON.stringify({
-      title,
-      body: textBody,
-      url,
-    });
-
-    logVapidBeforeSend("push/send-team", {
-      payloadJSON: payload,
-      recipientCount: rows.length,
-    });
-
-    const uniqueUids = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
-    const emailMap = new Map();
-    await Promise.all(
-      uniqueUids.map(async (uid) => {
-        try {
-          const { data: uData, error: uErr } =
-            await supabase.auth.admin.getUserById(uid);
-          if (!uErr && uData?.user?.email) {
-            emailMap.set(uid, uData.user.email);
-          }
-        } catch (e) {
-          console.warn("[push/send-team] getUserById failed for", uid, e?.message || e);
-        }
-      }),
-    );
 
     const results = [];
     let sent = 0;
     let failed = 0;
     let obsoleteSubscriptionsRemoved = 0;
 
-    for (const row of rows) {
-      const uid = row.user_id;
-      const email = emailMap.get(uid) ?? null;
-      const role = userIdToRole.get(uid) ?? null;
-      const epPrev = endpointPreview(row.endpoint);
+    if (rows.length > 0) {
+      ensureVapid();
 
-      const baseResult = {
-        email,
-        role,
-        endpointPreview: epPrev,
-      };
+      const payload = JSON.stringify({
+        title,
+        body: textBody,
+        url,
+      });
 
-      try {
-        await webpush.sendNotification(
-          {
-            endpoint: row.endpoint,
-            keys: { p256dh: row.p256dh, auth: row.auth },
-          },
-          payload,
-          { TTL: 3600 },
-        );
-        sent += 1;
-        results.push({
-          ...baseResult,
-          success: true,
-        });
-      } catch (err) {
-        failed += 1;
-        const statusCode = getPushFailureStatusCode(err);
-        const bodyStr = safeErrorBody(err);
-        const rawMsg = err?.message ? String(err.message) : String(err);
-        const formattedError = formatPushSendError(err, bodyStr);
+      logVapidBeforeSend("push/send-team", {
+        payloadJSON: payload,
+        recipientCount: rows.length,
+      });
 
-        let subscriptionRemoved = false;
-        let removalMethod = null;
-        let removalError = null;
+      const uniqueUids = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
+      const emailMap = new Map();
+      await Promise.all(
+        uniqueUids.map(async (uid) => {
+          try {
+            const { data: uData, error: uErr } =
+              await supabase.auth.admin.getUserById(uid);
+            if (!uErr && uData?.user?.email) {
+              emailMap.set(uid, uData.user.email);
+            }
+          } catch (e) {
+            console.warn("[push/send-team] getUserById failed for", uid, e?.message || e);
+          }
+        }),
+      );
 
-        if (shouldRemoveSubscription(statusCode, bodyStr, rawMsg)) {
-          const del = await deletePushSubscriptionRow(supabase, row);
-          subscriptionRemoved = del.removed;
-          removalMethod = del.removalMethod ?? null;
-          removalError = del.deleteError ?? null;
-          if (del.removed) obsoleteSubscriptionsRemoved += 1;
+      for (const row of rows) {
+        const uid = row.user_id;
+        const email = emailMap.get(uid) ?? null;
+        const role = userIdToRole.get(uid) ?? null;
+        const epPrev = endpointPreview(row.endpoint);
+
+        const baseResult = {
+          email,
+          role,
+          endpointPreview: epPrev,
+        };
+
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: row.endpoint,
+              keys: { p256dh: row.p256dh, auth: row.auth },
+            },
+            payload,
+            { TTL: 3600 },
+          );
+          sent += 1;
+          results.push({
+            ...baseResult,
+            success: true,
+          });
+        } catch (err) {
+          failed += 1;
+          const statusCode = getPushFailureStatusCode(err);
+          const bodyStr = safeErrorBody(err);
+          const rawMsg = err?.message ? String(err.message) : String(err);
+          const formattedError = formatPushSendError(err, bodyStr);
+
+          let subscriptionRemoved = false;
+          let removalMethod = null;
+          let removalError = null;
+
+          if (shouldRemoveSubscription(statusCode, bodyStr, rawMsg)) {
+            const del = await deletePushSubscriptionRow(supabase, row);
+            subscriptionRemoved = del.removed;
+            removalMethod = del.removalMethod ?? null;
+            removalError = del.deleteError ?? null;
+            if (del.removed) obsoleteSubscriptionsRemoved += 1;
+          }
+
+          results.push({
+            ...baseResult,
+            success: false,
+            statusCode: statusCode ?? null,
+            error: formattedError,
+            body: bodyStr,
+            subscriptionRemoved,
+            ...(removalMethod != null ? { removalMethod } : {}),
+            ...(removalError != null ? { removalError } : {}),
+          });
         }
-
-        results.push({
-          ...baseResult,
-          success: false,
-          statusCode: statusCode ?? null,
-          error: formattedError,
-          body: bodyStr,
-          subscriptionRemoved,
-          ...(removalMethod != null ? { removalMethod } : {}),
-          ...(removalError != null ? { removalError } : {}),
-        });
       }
     }
 
     let notificationSaveWarning = null;
-    if (rows.length > 0 && teamIdForNotification) {
+    if (userIds.length > 0 && teamIdForNotification) {
       try {
         const { error: nErr } = await supabase.from("notifications").insert({
           team_id: teamIdForNotification,
@@ -448,24 +436,25 @@ export default async function handler(req, res) {
         notificationSaveWarning = e?.message || String(e);
       }
 
-      // MVP: Zusätzlich In-App Nachrichten („messages“) pro Empfänger speichern
       try {
+        const contentWithLink = url ? `${textBody}\n\n${url}` : textBody;
         const messageRows = userIds.map((uid) => ({
           team_id: teamIdForNotification,
           user_id: uid,
           title,
           body: textBody,
-          content: textBody,
-          type: message_type,
-          event_id: related_event_id,
-          related_event_id,
+          content: contentWithLink,
+          type: "manual_push",
           read: false,
+          ...(related_event_id
+            ? { related_event_id, event_id: related_event_id }
+            : {}),
         }));
-        if (messageRows.length > 0) {
-          await supabase.from("messages").insert(messageRows);
+        const { error: mErr } = await supabase.from("messages").insert(messageRows);
+        if (mErr) {
+          console.warn("[push/send-team] messages.insert failed", mErr.message || mErr);
         }
       } catch (e) {
-        // nicht hard-failen: Push ist bereits raus
         console.warn("[push/send-team] messages.insert failed", e?.message || e);
       }
     }

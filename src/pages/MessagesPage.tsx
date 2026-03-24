@@ -132,7 +132,7 @@ export const MessagesPage: React.FC = () => {
         {!loading && items && items.length > 0 && (
           <ul className="space-y-3">
             {items.map((m) => {
-              const isRead = readSet.has(m.id);
+              const isRead = m.read === true || readSet.has(m.id);
               return (
                 <li key={m.id}>
                   <Card
