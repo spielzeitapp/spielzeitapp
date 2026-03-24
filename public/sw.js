@@ -44,7 +44,19 @@ self.addEventListener('push', (event) => {
     data: { url },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    (async () => {
+      await self.registration.showNotification(title, options);
+      try {
+        const nav = self.navigator;
+        if (nav && typeof nav.setAppBadge === 'function') {
+          await nav.setAppBadge(1).catch(() => {});
+        }
+      } catch {
+        /* ignore */
+      }
+    })(),
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {

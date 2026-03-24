@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { syncAppIconBadgeFromUnreadCount } from '../lib/appBadge';
 import { MESSAGES_READ_CHANGED_EVENT, MESSAGES_READ_STORAGE_KEY } from '../lib/messagesReadState';
 
 /**
@@ -61,6 +62,10 @@ export function useUnreadCount(userId: string | undefined | null): number {
       window.removeEventListener('storage', onStorage);
     };
   }, [refresh]);
+
+  useEffect(() => {
+    syncAppIconBadgeFromUnreadCount(count);
+  }, [count]);
 
   return count;
 }
