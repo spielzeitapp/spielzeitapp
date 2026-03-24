@@ -89,7 +89,9 @@ export const InternalLayout: React.FC = () => {
 
       <div className="app min-h-screen bg-black text-white">
         <Header />
-        <main className="app__content appMain pt-24 pb-24">
+        <main
+          className={`app__content appMain pt-24 ${isTouchLayout ? 'pb-36' : 'pb-24'}`}
+        >
           <Outlet />
         </main>
       </div>

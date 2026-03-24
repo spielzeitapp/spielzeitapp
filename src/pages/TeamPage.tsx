@@ -269,6 +269,15 @@ export const TeamPage: React.FC = () => {
     (visibleTabs[0]?.id as TeamTabId) ?? "overview",
   );
 
+  const sortedPlayers = useMemo(() => {
+    return [...players].sort((a, b) => {
+      const ja = a.jersey_number ?? 9999;
+      const jb = b.jersey_number ?? 9999;
+      if (ja !== jb) return ja - jb;
+      return a.display_name.localeCompare(b.display_name, "de");
+    });
+  }, [players]);
+
   return (
     <div className="space-y-3 pb-4">
       <h1 className="text-xl font-semibold">Team</h1>
@@ -401,50 +410,47 @@ export const TeamPage: React.FC = () => {
             </p>
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
-            <ul className="divide-y divide-[var(--border)]">
-              {players.map((p) => (
+            <ul className="mt-1 rounded-lg border border-[var(--border)]/50 bg-[var(--bg)]/30">
+              {sortedPlayers.map((p) => (
                 <li
                   key={p.id}
-                  className="flex items-center justify-between gap-2 py-2 first:pt-0 last:pb-0"
+                  className="flex items-center gap-3 border-b border-[var(--border)]/50 px-3 py-2.5 last:border-b-0"
                 >
-                  <span className="min-w-0 flex-1 truncate text-sm text-[var(--text-main)]">
-                    {p.jersey_number != null ? `#${p.jersey_number} ` : ""}
-                    {p.display_name}
-                  </span>
-                  <span className="flex shrink-0 items-center gap-2">
+                  <div className="flex min-w-0 flex-1 items-baseline gap-2">
+                    <span className="w-9 shrink-0 text-right tabular-nums text-xs text-[var(--muted)]">
+                      {p.jersey_number != null ? `#${p.jersey_number}` : "—"}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--text-main)]">
+                      {p.display_name}
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
                     {p.position != null && p.position.trim() !== "" && (
-                      <span className="rounded bg-[var(--border)]/80 px-1.5 py-0.5 text-[0.65rem] font-medium uppercase text-[var(--muted)]">
+                      <span className="max-w-[4.5rem] truncate rounded-md border border-[var(--border)]/60 bg-white/5 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]">
                         {p.position}
                       </span>
                     )}
                     {canManagePlayers ? (
-                      <span className="flex items-center gap-1">
-                        <Button
+                      <span className="flex items-center gap-0.5">
+                        <button
                           type="button"
-                          variant="ghost"
-                          size="sm"
+                          className="rounded-md px-2 py-1 text-[11px] font-medium text-white/75 hover:bg-white/10 hover:text-white disabled:opacity-40"
                           onClick={() => openEditForm(p)}
                           disabled={deletingId !== null || saving}
                         >
                           Bearbeiten
-                        </Button>
-                        <Button
+                        </button>
+                        <button
                           type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700"
+                          className="rounded-md px-2 py-1 text-[11px] font-medium text-red-400/90 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40"
                           disabled={deletingId !== null || saving}
                           onClick={() => handleRemove(p.id)}
                         >
-                          {deletingId === p.id ? "Entfernen…" : "Entfernen"}
-                        </Button>
+                          {deletingId === p.id ? "…" : "Entfernen"}
+                        </button>
                       </span>
-                    ) : (
-                      <span className="text-[var(--muted)]" aria-hidden>
-                        ›
-                      </span>
-                    )}
-                  </span>
+                    ) : null}
+                  </div>
                 </li>
               ))}
             </ul>

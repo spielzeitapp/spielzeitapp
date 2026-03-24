@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Trash2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import { Card } from '../app/components/ui/Card';
 import { supabase } from '../lib/supabaseClient';
@@ -132,6 +133,25 @@ export const MessagesPage: React.FC = () => {
     navigate(`/app/nachrichten/${m.id}`);
   };
 
+  const onDelete = useCallback(async (e: React.MouseEvent, m: MessageRow) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user?.id || m.user_id !== user.id) return;
+    const { error } = await supabase.from('messages').delete().eq('id', m.id).eq('user_id', user.id);
+    if (error) {
+      console.warn('[MessagesPage] delete', error.message ?? error);
+      return;
+    }
+    setItems((prev) => (prev ? prev.filter((x) => x.id !== m.id) : prev));
+    setReadSet((prev) => {
+      const next = new Set(prev);
+      next.delete(m.id);
+      writeReadSet(next);
+      return next;
+    });
+    notifyMessagesReadChanged();
+  }, [user?.id]);
+
   return (
     <div
       className="page notifications-page min-h-[60vh] w-full px-4 py-6"
@@ -175,32 +195,45 @@ export const MessagesPage: React.FC = () => {
               return (
                 <li key={m.id}>
                   <Card
-                    className={`cursor-pointer transition-colors ${
+                    className={`transition-colors ${
                       isRead
                         ? 'text-white/80 hover:border-white/20 hover:bg-white/[0.06]'
                         : 'border border-red-500/25 bg-red-950/25 text-white hover:border-red-500/35 hover:bg-red-950/35'
                     }`}
-                    onClick={() => onOpen(m)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') onOpen(m);
-                    }}
-                    role="button"
-                    tabIndex={0}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="text-xs text-[var(--text-sub)]">{formatWhen(m.created_at)}</div>
-                      {!isRead && (
-                        <div className="rounded-full bg-red-600/90 px-2 py-0.5 text-[10px] font-semibold text-white">
-                          Neu
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 cursor-pointer text-left"
+                        onClick={() => onOpen(m)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') onOpen(m);
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="text-xs text-[var(--text-sub)]">{formatWhen(m.created_at)}</div>
+                          {!isRead && (
+                            <div className="shrink-0 rounded-full bg-red-600/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                              Neu
+                            </div>
+                          )}
                         </div>
-                      )}
+                        <h2 className={`mt-1 font-semibold ${isRead ? 'text-white/90' : 'text-white'}`}>
+                          {m.title}
+                        </h2>
+                        <p className={`mt-2 line-clamp-2 whitespace-pre-wrap text-sm text-gray-300 ${isRead ? '' : 'text-red-100'}`}>
+                          {listBodyPreview(m)}
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        className="shrink-0 self-start rounded-lg p-2 text-white/35 transition-colors hover:bg-white/10 hover:text-red-300"
+                        aria-label="Nachricht löschen"
+                        onClick={(e) => void onDelete(e, m)}
+                      >
+                        <Trash2 className="h-4 w-4" strokeWidth={2} />
+                      </button>
                     </div>
-                    <h2 className={`mt-1 font-semibold ${isRead ? 'text-white/90' : 'text-white'}`}>
-                      {m.title}
-                    </h2>
-                    <p className={`mt-2 line-clamp-2 whitespace-pre-wrap text-sm text-gray-300 ${isRead ? '' : 'text-red-100'}`}>
-                      {listBodyPreview(m)}
-                    </p>
                   </Card>
                 </li>
               );

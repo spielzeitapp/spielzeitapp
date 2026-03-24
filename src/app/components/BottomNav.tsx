@@ -40,13 +40,13 @@ function NavItem({
     <NavLink
       to={to}
       end={end}
-      className="group flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 focus:outline-none"
+      className="group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 overflow-visible px-0.5 focus:outline-none"
     >
       {({ isActive }) => (
         <>
           <div
             className={[
-              'relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all duration-200',
+              'relative flex h-11 w-11 shrink-0 items-center justify-center overflow-visible rounded-2xl transition-all duration-200',
               isActive
                 ? 'bg-red-500/10 text-red-500 shadow-[0_0_18px_rgba(239,68,68,0.25)]'
                 : 'text-gray-400 group-hover:bg-white/5',
@@ -62,7 +62,7 @@ function NavItem({
               />
             )}
             {badgeCount != null && badgeCount > 0 && (
-              <div className="absolute -right-1 -top-1 z-[1] flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-semibold leading-none text-white">
+              <div className="pointer-events-none absolute right-0 top-0 z-[2] flex min-h-[17px] min-w-[17px] translate-x-[3px] -translate-y-[3px] items-center justify-center rounded-full bg-red-500 px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-neutral-900">
                 {badgeCount > 9 ? '9+' : badgeCount}
               </div>
             )}
@@ -104,9 +104,9 @@ export const BottomNav: React.FC = () => {
       aria-label="Hauptnavigation"
     >
       <div
-        className="pointer-events-auto mx-auto max-w-md h-20 rounded-t-2xl bg-neutral-900/80 backdrop-blur-lg shadow-lg"
+        className="pointer-events-auto mx-auto max-w-md h-20 overflow-visible rounded-t-2xl bg-neutral-900/80 backdrop-blur-lg shadow-lg"
       >
-        <div className="grid h-full grid-cols-5 items-center px-3 py-2">
+        <div className="grid h-full grid-cols-5 items-center overflow-visible px-2 py-2 sm:px-3">
           {tabs.map((t) => (
             <NavItem
               key={t.to}

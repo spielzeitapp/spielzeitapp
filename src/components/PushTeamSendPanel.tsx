@@ -365,32 +365,31 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
         )}
 
         {teamId && templates.length > 0 && (
-          <ul className="mt-3 space-y-3">
+          <ul className="mt-3 divide-y divide-white/10 rounded-lg border border-white/10 bg-black/25">
             {templates.map((t) => (
-              <li
-                key={t.id}
-                className="rounded-lg border border-white/10 bg-black/25 px-3 py-3"
-              >
-                <div className="font-medium text-[var(--text-main)]">{t.title}</div>
-                <p className="mt-1 line-clamp-1 text-xs text-[var(--text-sub)]">{previewLine(t.message)}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    disabled={disabled || loading}
-                    onClick={() => onUseTemplate(t)}
-                    className="rounded-lg border border-red-500/40 bg-red-600/90 px-3 py-2 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-50"
-                  >
-                    Verwenden
-                  </button>
+              <li key={t.id} className="px-3 py-2.5 first:pt-3 last:pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-[var(--text-main)]">{t.title}</div>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-[var(--text-sub)]">{previewLine(t.message, 80)}</p>
+                  </div>
                   <button
                     type="button"
                     disabled={disabled || loading || deletingId === t.id}
                     onClick={() => void onDeleteTemplate(t.id)}
-                    className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-white/80 hover:bg-white/10 disabled:opacity-50"
+                    className="shrink-0 text-xs font-medium text-red-400/90 hover:text-red-300 disabled:opacity-50"
                   >
-                    {deletingId === t.id ? 'Löschen…' : 'Löschen'}
+                    {deletingId === t.id ? '…' : 'Löschen'}
                   </button>
                 </div>
+                <button
+                  type="button"
+                  disabled={disabled || loading}
+                  onClick={() => onUseTemplate(t)}
+                  className="mt-2 text-xs font-medium text-white/70 underline-offset-2 hover:text-white hover:underline disabled:opacity-50"
+                >
+                  Übernehmen
+                </button>
               </li>
             ))}
           </ul>
