@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import { getPendingNotifications, type PendingNotificationItem } from '../src/lib/notifications';
+import { processPushAutomations, type PushAutomationResult } from './pushAutomationDispatch';
 
 function readEnv(key: string): string | undefined {
   const g = globalThis as unknown as { process?: { env?: Record<string, string | undefined> } };
@@ -48,6 +49,7 @@ export type DispatchResult = {
   skipped: number;
   errors: string[];
   details: Array<{ userId: string; eventId: string; type: string; status: string }>;
+  pushAutomations?: PushAutomationResult;
 };
 
 /**
@@ -145,7 +147,25 @@ export async function handleNotificationDispatch(request: Request): Promise<Resp
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const result = await processDueReminders(admin, new Date(), dryRun);
+  const now = new Date();
+  const result = await processDueReminders(admin, now, dryRun);
+
+  let pushAutomations: PushAutomationResult = {
+    automationsFound: 0,
+    messagesSent: 0,
+    pushNotificationsSent: 0,
+    errors: [],
+  };
+  try {
+    pushAutomations = await processPushAutomations(admin, now, dryRun);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn('[pushAutomations] processPushAutomations failed', msg);
+    pushAutomations.errors.push(msg);
+  }
+
+  result.pushAutomations = pushAutomations;
+
   const status = result.ok ? 200 : 500;
   return new Response(JSON.stringify(result), { status, headers: { 'Content-Type': 'application/json' } });
 }
