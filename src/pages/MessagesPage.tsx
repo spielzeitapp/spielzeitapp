@@ -14,6 +14,7 @@ import {
 type MessageRow = {
   id: string;
   user_id: string | null;
+  team_id?: string | null;
   title: string;
   body: string | null;
   content: string | null;
@@ -141,12 +142,15 @@ export const MessagesPage: React.FC = () => {
       if (!uid) return;
 
       const messageId = m.id;
-      const { data, error } = await supabase
+      // Optional extra filter for stricter RLS setups
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const teamId = (m as any)?.team_id as string | null | undefined;
+      const q = supabase
         .from('messages')
         .delete()
         .eq('id', messageId)
-        .eq('user_id', uid)
-        .select('id');
+        .eq('user_id', uid);
+      const { data, error } = await (teamId ? q.eq('team_id', teamId) : q).select('id');
 
       if (error) {
         console.warn('[MessagesPage] delete', error.message ?? error);

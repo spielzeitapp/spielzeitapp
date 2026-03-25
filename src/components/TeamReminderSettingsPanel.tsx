@@ -6,9 +6,9 @@ import {
 } from '../lib/notifications/teamSettings';
 
 const TRAINING_MIN = [60, 120, 180, 360] as const;
-const MATCH_MIN = [360, 720, 1440] as const;
+const MATCH_MIN = [180, 360, 720, 1440] as const;
 const MATCH2_MIN = [60, 120, 180] as const;
-const EVENT_MIN = [720, 1440] as const;
+const EVENT_MIN = [180, 720, 1440] as const;
 
 function nearest(allowed: readonly number[], v: number, fallback: number): number {
   const n = Number(v);
@@ -47,31 +47,19 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         .from('team_notification_settings')
         .select('*')
         .eq('team_season_id', teamSeasonId)
+        .order('id', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
-      if (!qErr && data) {
-        setRow(normalizeRow(data as TeamNotificationSettingsRow));
-        return;
-      }
-
       if (qErr) {
-        // Robust fallback: duplicates (or other) -> take latest row
-        const { data: list, error: listErr } = await supabase
-          .from('team_notification_settings')
-          .select('*')
-          .eq('team_season_id', teamSeasonId)
-          .order('team_season_id', { ascending: false })
-          .limit(1);
-        if (!listErr && Array.isArray(list) && list[0]) {
-          setRow(normalizeRow(list[0] as TeamNotificationSettingsRow));
-          return;
-        }
         console.warn('[TeamReminderSettings]', qErr.message ?? qErr);
       }
 
-      setRow(
-        normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }),
-      );
+      if (data) {
+        setRow(normalizeRow(data as TeamNotificationSettingsRow));
+      } else {
+        setRow(normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }));
+      }
     } catch (e) {
       console.warn('[TeamReminderSettings] load', e);
       setRow(normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }));
