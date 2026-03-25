@@ -20,6 +20,17 @@ type FormState = {
   position: string;
 };
 
+function abbreviatePositionLabel(pos: string | null | undefined): string {
+  const raw = (pos ?? '').trim();
+  if (!raw) return "—";
+  const p = raw.toLowerCase().replaceAll('ü', 'u').replaceAll('ß', 'ss');
+  if (p.includes('tor') || p.includes('torhueter') || p === 'torhuter') return 'TW';
+  if (p.includes('verteid')) return 'VT';
+  if (p.includes('mittelfeld') || p.includes('mitte')) return 'MF';
+  if (p.includes('stuer') || p.includes('stuermer') || p.includes('sturmer')) return 'ST';
+  return raw;
+}
+
 const emptyForm: FormState = {
   first_name: "",
   last_name: "",
@@ -313,7 +324,7 @@ export const TeamPage: React.FC = () => {
       <TeamMembershipRolesCard teamSeasonId={teamSeasonId} />
 
       {/* Kader Card */}
-      <Card className="rounded-3xl border border-white/10 bg-white/[0.04] shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_18px_50px_rgba(0,0,0,0.55)] ring-1 ring-white/[0.04]">
+      <Card className="rounded-3xl border border-red-500/20 bg-[linear-gradient(180deg,rgba(239,68,68,0.12)_0%,rgba(0,0,0,0.25)_100%)] shadow-[0_0_0_1px_rgba(239,68,68,0.10),0_18px_50px_rgba(0,0,0,0.55)] ring-1 ring-red-500/10">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="mt-0">Kader</CardTitle>
           {teamSeasonId != null && canManagePlayers && !plLoading && (
@@ -444,28 +455,27 @@ export const TeamPage: React.FC = () => {
                     }
                   }}
                   className={[
-                    "group flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3",
-                    "transition-all duration-150 hover:bg-white/[0.06] hover:border-white/15",
-                    "active:scale-[0.985] active:bg-white/[0.08]",
+                    "group flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-red-500/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.01)_100%)] px-4 py-3",
+                    "transition-all duration-150 hover:bg-[linear-gradient(180deg,rgba(239,68,68,0.12)_0%,rgba(255,255,255,0.02)_100%)] hover:border-red-500/25",
+                    "active:scale-[0.985] active:bg-[rgba(239,68,68,0.16)]",
                     "focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40",
                   ].join(" ")}
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="shrink-0 text-xs tabular-nums text-white/45">
+                    <div className="shrink-0 text-[10px] tabular-nums text-white/40">
                       {p.jersey_number != null ? `#${p.jersey_number}` : "—"}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-base font-semibold text-white/95">
+                      <div className="line-clamp-2 break-words text-base font-semibold leading-snug text-white/95">
                         {p.display_name}
                       </div>
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center">
                     {(() => {
-                      const pos = p.position?.trim() ?? "";
-                      const label = pos !== "" ? pos : "—";
+                      const label = abbreviatePositionLabel(p.position);
                       return (
-                        <span className="rounded-xl border border-white/15 bg-white/[0.06] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/70 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-sm">
+                        <span className="rounded-xl border border-red-500/25 bg-[rgba(239,68,68,0.10)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/80 backdrop-blur-sm shadow-[0_8px_24px_rgba(239,68,68,0.10)]">
                           {label}
                         </span>
                       );
