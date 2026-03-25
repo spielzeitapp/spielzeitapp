@@ -97,9 +97,11 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
 
     console.log('SAVE PAYLOAD', payload);
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('team_notification_settings')
-      .upsert(payload, { onConflict: 'team_season_id' });
+      .upsert(payload, { onConflict: 'team_season_id' })
+      .select()
+      .single();
 
     if (error) {
       console.error('SAVE ERROR', error);
@@ -107,8 +109,9 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
       return;
     }
 
+    setRow(normalizeRow(data));
+    rowRef.current = normalizeRow(data);
     setSaved(true);
-    await load();
     setSaving(false);
   };
 
