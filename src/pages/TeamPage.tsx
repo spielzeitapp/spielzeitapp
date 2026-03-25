@@ -4,6 +4,7 @@ import { RequireFeature } from "../auth/rbac";
 import { Card, CardTitle } from "../app/components/ui/Card";
 import { Tabs, TabOption } from "../app/components/ui/Tabs";
 import { Button } from "../app/components/ui/Button";
+import { Trash2 } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { roleLabel } from "../utils/roleLabel";
@@ -175,6 +176,7 @@ export const TeamPage: React.FC = () => {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManagePlayers) return;
     const { first_name, last_name, position } = form;
     if (!first_name.trim()) return;
     if (jerseyTaken) {
@@ -349,7 +351,7 @@ export const TeamPage: React.FC = () => {
                     placeholder="Vorname"
                     required
                     className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                    disabled={saving}
+                    disabled={saving || !canManagePlayers}
                   />
                 </label>
                 <label className="flex flex-col gap-0.5">
@@ -361,7 +363,7 @@ export const TeamPage: React.FC = () => {
                     placeholder="Nachname"
                     required
                     className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                    disabled={saving}
+                    disabled={saving || !canManagePlayers}
                   />
                 </label>
                 <label className="flex flex-col gap-0.5">
@@ -374,7 +376,7 @@ export const TeamPage: React.FC = () => {
                     onChange={(e) => setForm((f) => ({ ...f, jersey_number: e.target.value }))}
                     placeholder="—"
                     className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                    disabled={saving}
+                    disabled={saving || !canManagePlayers}
                   />
                   {jerseyErrorMsg && (
                     <span className="text-sm text-red-600" role="alert">
@@ -390,18 +392,36 @@ export const TeamPage: React.FC = () => {
                     onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
                     placeholder="z. B. ST"
                     className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                    disabled={saving}
+                    disabled={saving || !canManagePlayers}
                   />
                 </label>
                 <span className="flex gap-2">
-                  <Button type="submit" disabled={saving || !form.first_name.trim() || jerseyTaken}>
-                    {saving ? "Speichern…" : "Speichern"}
-                  </Button>
+                  {canManagePlayers && (
+                    <Button type="submit" disabled={saving || !form.first_name.trim() || jerseyTaken}>
+                      {saving ? "Speichern…" : "Speichern"}
+                    </Button>
+                  )}
                   <Button type="button" variant="ghost" onClick={closeForm} disabled={saving}>
                     Abbrechen
                   </Button>
                 </span>
               </div>
+
+              {canManagePlayers && mode === "edit" && editingId && (
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => handleRemove(editingId)}
+                    disabled={deletingId !== null || saving}
+                    className="text-red-400 hover:bg-red-950/40 hover:text-red-300"
+                    aria-label="Spieler entfernen"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                  </Button>
+                </div>
+              )}
             </form>
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length === 0 && !showForm && (
@@ -414,42 +434,35 @@ export const TeamPage: React.FC = () => {
               {sortedPlayers.map((p) => (
                 <li
                   key={p.id}
-                  className="flex items-center gap-3 border-b border-[var(--border)]/50 px-3 py-2.5 last:border-b-0"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openEditForm(p)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openEditForm(p);
+                    }
+                  }}
+                  className="flex cursor-pointer items-center justify-between gap-3 border-b border-[var(--border)]/50 px-3 py-2.5 last:border-b-0 hover:bg-white/10 focus:outline-none"
                 >
-                  <div className="flex min-w-0 flex-1 items-baseline gap-2">
-                    <span className="w-9 shrink-0 text-right tabular-nums text-xs text-[var(--muted)]">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <span className="w-10 shrink-0 text-right tabular-nums text-xs text-[var(--muted)]">
                       {p.jersey_number != null ? `#${p.jersey_number}` : "—"}
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--text-main)]">
+                    <span className="min-w-0 flex-1 whitespace-normal break-words text-sm font-medium text-[var(--text-main)]">
                       {p.display_name}
                     </span>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {p.position != null && p.position.trim() !== "" && (
-                      <span className="max-w-[4.5rem] truncate rounded-md border border-[var(--border)]/60 bg-white/5 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]">
-                        {p.position}
-                      </span>
-                    )}
-                    {canManagePlayers ? (
-                      <span className="flex items-center gap-0.5">
-                        <button
-                          type="button"
-                          className="rounded-md px-2 py-1 text-[11px] font-medium text-white/75 hover:bg-white/10 hover:text-white disabled:opacity-40"
-                          onClick={() => openEditForm(p)}
-                          disabled={deletingId !== null || saving}
-                        >
-                          Bearbeiten
-                        </button>
-                        <button
-                          type="button"
-                          className="rounded-md px-2 py-1 text-[11px] font-medium text-red-400/90 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40"
-                          disabled={deletingId !== null || saving}
-                          onClick={() => handleRemove(p.id)}
-                        >
-                          {deletingId === p.id ? "…" : "Entfernen"}
-                        </button>
-                      </span>
-                    ) : null}
+                  <div className="flex shrink-0 items-center">
+                    {(() => {
+                      const pos = p.position?.trim() ?? "";
+                      const label = pos !== "" ? pos : "—";
+                      return (
+                        <span className="rounded-md border border-[var(--border)]/60 bg-white/5 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--muted)] break-words">
+                          {label}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </li>
               ))}

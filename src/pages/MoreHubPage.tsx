@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, ChevronRight, LayoutGrid, Settings, Wrench } from 'lucide-react';
 import { Card } from '../app/components/ui/Card';
 import { useSession } from '../auth/useSession';
+import { useUnreadCount } from '../hooks/useUnreadCount';
 
 const rowClass =
   'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-white transition-colors hover:bg-white/10';
@@ -16,7 +17,7 @@ function isTrainerToolsRole(role: string): boolean {
 }
 
 export const MoreHubPage: React.FC = () => {
-  const { selectedTeamSeason, setSelectedTeamSeasonId, teamSeasons, effectiveRole, backendRole } = useSession();
+  const { selectedTeamSeason, setSelectedTeamSeasonId, teamSeasons, effectiveRole, backendRole, user } = useSession();
   const canSwitchTeam =
     (teamSeasons?.length ?? 0) > 1 &&
     (effectiveRole === 'trainer' ||
@@ -26,6 +27,9 @@ export const MoreHubPage: React.FC = () => {
 
   const showTrainerTools = isTrainerToolsRole(effectiveRole);
   const showPreviewLink = backendRole === 'admin' || backendRole === 'head_coach';
+  const unreadCount = useUnreadCount(user?.id);
+
+  const [trainerToolsOpen, setTrainerToolsOpen] = useState(false);
 
   return (
     <div
@@ -45,6 +49,11 @@ export const MoreHubPage: React.FC = () => {
             <span className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-red-400" aria-hidden />
               <span className="font-medium">Nachrichten</span>
+              {unreadCount > 0 && (
+                <span className="ml-2 inline-flex min-h-[17px] min-w-[17px] translate-y-[-1px] items-center justify-center rounded-full bg-red-500 px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-neutral-900">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </span>
             <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
           </Link>
@@ -58,27 +67,46 @@ export const MoreHubPage: React.FC = () => {
 
           {showTrainerTools && (
             <div className="space-y-1.5 pt-1">
-              <div className="flex items-center gap-2 px-1 pt-1 text-xs font-semibold uppercase tracking-wide text-white/45">
-                <Wrench className="h-4 w-4 text-red-400/90" aria-hidden />
-                Trainer-Tools
-              </div>
-              <Link to="/app/mehr/trainer/team-push" className={subRowClass}>
-                <span>Team-Push</span>
-                <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-              </Link>
-              <Link to="/app/mehr/trainer/vorlagen" className={subRowClass}>
-                <span>Vorlagen</span>
-                <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-              </Link>
-              <Link to="/app/mehr/trainer/erinnerungen" className={subRowClass}>
-                <span>Erinnerungen</span>
-                <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-              </Link>
-              {showPreviewLink && (
-                <Link to="/app/mehr/trainer/preview" className={subRowClass}>
-                  <span>Ansicht testen als</span>
-                  <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                </Link>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 px-1 pt-1 text-left text-xs font-semibold uppercase tracking-wide text-white/45"
+                onClick={() => setTrainerToolsOpen((v) => !v)}
+                aria-expanded={trainerToolsOpen}
+              >
+                <span className="flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-red-400/90" aria-hidden />
+                  Trainer-Tools
+                </span>
+                <ChevronRight
+                  className={[
+                    'h-4 w-4 text-white/35 transition-transform',
+                    trainerToolsOpen ? 'rotate-90' : '',
+                  ].join(' ')}
+                  aria-hidden
+                />
+              </button>
+
+              {trainerToolsOpen && (
+                <>
+                  <Link to="/app/mehr/trainer/team-push" className={subRowClass}>
+                    <span>Team-Push</span>
+                    <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+                  </Link>
+                  <Link to="/app/mehr/trainer/vorlagen" className={subRowClass}>
+                    <span>Vorlagen</span>
+                    <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+                  </Link>
+                  <Link to="/app/mehr/trainer/erinnerungen" className={subRowClass}>
+                    <span>Erinnerungen</span>
+                    <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+                  </Link>
+                  {showPreviewLink && (
+                    <Link to="/app/mehr/trainer/preview" className={subRowClass}>
+                      <span>Ansicht testen als</span>
+                      <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+                    </Link>
+                  )}
+                </>
               )}
             </div>
           )}
