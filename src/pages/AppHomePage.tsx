@@ -257,6 +257,13 @@ export const AppHomePage: React.FC = () => {
             <p className="text-sm">Noch keine Nachrichten.</p>
           </div>
         )}
+
+        <Card className="border-white/10 bg-white/5 text-white/90">
+          <CardTitle className="text-base">Feed (später)</CardTitle>
+          <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/55">
+            Hier kommen später Posts/Beiträge als Karten.
+          </div>
+        </Card>
       </div>
     </div>
   );

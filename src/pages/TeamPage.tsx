@@ -441,7 +441,7 @@ export const TeamPage: React.FC = () => {
             </p>
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
-            <ul className="mt-3 space-y-2">
+            <ul className="mt-3 space-y-2.5">
               {sortedPlayers.map((p) => (
                 <li
                   key={p.id}
@@ -455,14 +455,14 @@ export const TeamPage: React.FC = () => {
                     }
                   }}
                   className={[
-                    "group flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-red-500/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.01)_100%)] px-4 py-3",
+                    "group flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-red-500/20 bg-[linear-gradient(180deg,rgba(239,68,68,0.10)_0%,rgba(0,0,0,0.20)_100%)] px-4 py-3",
                     "transition-transform transition-colors duration-180 ease-out hover:bg-[linear-gradient(180deg,rgba(239,68,68,0.12)_0%,rgba(255,255,255,0.02)_100%)] hover:border-red-500/25",
                     "active:scale-[0.98] active:bg-[rgba(239,68,68,0.18)] active:border-red-500/30 active:shadow-[0_0_0_1px_rgba(239,68,68,0.14),0_12px_28px_rgba(0,0,0,0.35)]",
                     "focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40",
                   ].join(" ")}
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="shrink-0 text-[10px] tabular-nums text-white/40">
+                    <div className="w-9 shrink-0 text-right text-xs tabular-nums font-semibold text-white/65">
                       {p.jersey_number != null ? `#${p.jersey_number}` : "—"}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -475,7 +475,7 @@ export const TeamPage: React.FC = () => {
                     {(() => {
                       const label = abbreviatePositionLabel(p.position);
                       return (
-                        <span className="rounded-xl border border-red-500/25 bg-[rgba(239,68,68,0.10)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/80 backdrop-blur-sm shadow-[0_8px_24px_rgba(239,68,68,0.10)]">
+                        <span className="rounded-lg border border-red-500/25 bg-[rgba(239,68,68,0.10)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/80 backdrop-blur-sm shadow-[0_8px_24px_rgba(239,68,68,0.08)]">
                           {label}
                         </span>
                       );

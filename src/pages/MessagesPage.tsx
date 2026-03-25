@@ -133,24 +133,39 @@ export const MessagesPage: React.FC = () => {
     navigate(`/app/nachrichten/${m.id}`);
   };
 
-  const onDelete = useCallback(async (e: React.MouseEvent, m: MessageRow) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!user?.id || m.user_id !== user.id) return;
-    const { error } = await supabase.from('messages').delete().eq('id', m.id).eq('user_id', user.id);
-    if (error) {
-      console.warn('[MessagesPage] delete', error.message ?? error);
-      return;
-    }
-    setItems((prev) => (prev ? prev.filter((x) => x.id !== m.id) : prev));
-    setReadSet((prev) => {
-      const next = new Set(prev);
-      next.delete(m.id);
-      writeReadSet(next);
-      return next;
-    });
-    notifyMessagesReadChanged();
-  }, [user?.id]);
+  const onDelete = useCallback(
+    async (e: React.MouseEvent, m: MessageRow) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const uid = user?.id;
+      if (!uid) return;
+
+      const messageId = m.id;
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', messageId)
+        .eq('user_id', uid);
+
+      if (error) {
+        console.warn('[MessagesPage] delete', error.message ?? error);
+        return;
+      }
+
+      // Readable and persistent: server reload as source of truth
+      await load();
+
+      setReadSet((prev) => {
+        const next = new Set(prev);
+        next.delete(messageId);
+        writeReadSet(next);
+        return next;
+      });
+
+      notifyMessagesReadChanged();
+    },
+    [load, user?.id],
+  );
 
   return (
     <div
