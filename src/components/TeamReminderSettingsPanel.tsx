@@ -77,53 +77,90 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
     setSaved(false);
   };
 
-  const save = async () => {
-    if (!teamSeasonId || !row) return;
+ const save = async () => {
+  if (!teamSeasonId || !row) return;
 
-    setSaving(true);
-    setSaved(false);
+  setSaving(true);
+  setSaved(false);
 
-    const payload = {
-      team_season_id: teamSeasonId,
-      training_enabled: row.training_enabled,
-      training_minutes_before: row.training_minutes_before,
-      match_enabled: row.match_enabled,
-      match_minutes_before: row.match_minutes_before,
-      match_second_enabled: row.match_second_enabled,
-      match_second_minutes_before: row.match_second_minutes_before,
-      event_enabled: row.event_enabled,
-      event_minutes_before: row.event_minutes_before,
-    };
+  const payload = {
+    training_enabled: row.training_enabled,
+    training_minutes_before: row.training_minutes_before,
+    match_enabled: row.match_enabled,
+    match_minutes_before: row.match_minutes_before,
+    match_second_enabled: row.match_second_enabled,
+    match_second_minutes_before: row.match_second_minutes_before,
+    event_enabled: row.event_enabled,
+    event_minutes_before: row.event_minutes_before,
+  };
 
-    console.log('SAVE PAYLOAD', payload);
+  console.log('SAVE teamSeasonId', teamSeasonId);
+  console.log('SAVE payload', payload);
 
-    const { data, error } = await supabase
+  try {
+    const { data: existing, error: existingError } = await supabase
       .from('team_notification_settings')
-      .upsert(payload, { onConflict: 'team_season_id' })
-      .select()
-      .single();
+      .select('id, team_season_id')
+      .eq('team_season_id', teamSeasonId)
+      .maybeSingle();
 
-    if (error) {
-      console.error('SAVE ERROR', error);
+    if (existingError) {
+      console.error('LOAD EXISTING ERROR', existingError);
       setSaving(false);
       return;
     }
 
-    setRow(normalizeRow(data));
-    rowRef.current = normalizeRow(data);
+    if (existing?.id) {
+      const { error: updateError } = await supabase
+        .from('team_notification_settings')
+        .update(payload)
+        .eq('id', existing.id);
+
+      if (updateError) {
+        console.error('UPDATE ERROR', updateError);
+        setSaving(false);
+        return;
+      }
+    } else {
+      const { error: insertError } = await supabase
+        .from('team_notification_settings')
+        .insert({
+          team_season_id: teamSeasonId,
+          ...payload,
+        });
+
+      if (insertError) {
+        console.error('INSERT ERROR', insertError);
+        setSaving(false);
+        return;
+      }
+    }
+
+    const { data: fresh, error: freshError } = await supabase
+      .from('team_notification_settings')
+      .select('*')
+      .eq('team_season_id', teamSeasonId)
+      .maybeSingle();
+
+    if (freshError) {
+      console.error('RELOAD ERROR', freshError);
+      setSaving(false);
+      return;
+    }
+
+    if (fresh) {
+      const normalized = normalizeRow(fresh);
+      setRow(normalized);
+      rowRef.current = normalized;
+    }
+
     setSaved(true);
+  } catch (e) {
+    console.error('SAVE CATCH ERROR', e);
+  } finally {
     setSaving(false);
-  };
-
-  if (!teamSeasonId) return null;
-
-  if (loading || !row) {
-    return (
-      <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/60">
-        Erinnerungen laden…
-      </div>
-    );
   }
+};
 
   return (
     <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
