@@ -141,14 +141,21 @@ export const MessagesPage: React.FC = () => {
       if (!uid) return;
 
       const messageId = m.id;
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .delete()
         .eq('id', messageId)
-        .eq('user_id', uid);
+        .eq('user_id', uid)
+        .select('id');
 
       if (error) {
         console.warn('[MessagesPage] delete', error.message ?? error);
+        return;
+      }
+      const deleted = Array.isArray(data) ? data : [];
+      if (deleted.length === 0) {
+        console.warn('[MessagesPage] delete: no rows deleted');
+        await load();
         return;
       }
 

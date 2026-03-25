@@ -48,22 +48,30 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         .select('*')
         .eq('team_season_id', teamSeasonId)
         .maybeSingle();
-      if (qErr) {
-        console.warn('[TeamReminderSettings]', qErr.message ?? qErr);
-        setRow(
-          normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }),
-        );
+
+      if (!qErr && data) {
+        setRow(normalizeRow(data as TeamNotificationSettingsRow));
         return;
       }
-      if (data) {
-        setRow(normalizeRow(data as TeamNotificationSettingsRow));
-      } else {
-        const defaults = normalizeRow({
-          team_season_id: teamSeasonId,
-          ...DEFAULT_TEAM_NOTIFICATION_SETTINGS,
-        });
-        setRow(defaults);
+
+      if (qErr) {
+        // Robust fallback: duplicates (or other) -> take latest row
+        const { data: list, error: listErr } = await supabase
+          .from('team_notification_settings')
+          .select('*')
+          .eq('team_season_id', teamSeasonId)
+          .order('team_season_id', { ascending: false })
+          .limit(1);
+        if (!listErr && Array.isArray(list) && list[0]) {
+          setRow(normalizeRow(list[0] as TeamNotificationSettingsRow));
+          return;
+        }
+        console.warn('[TeamReminderSettings]', qErr.message ?? qErr);
       }
+
+      setRow(
+        normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }),
+      );
     } catch (e) {
       console.warn('[TeamReminderSettings] load', e);
       setRow(normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }));
@@ -96,40 +104,18 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         event_reminder_enabled: row.event_reminder_enabled,
         event_reminder_minutes_before: row.event_reminder_minutes_before,
       };
-      const { data: existing, error: exErr } = await supabase
+      const { error: upsertErr } = await supabase
         .from('team_notification_settings')
-        .select('id')
-        .eq('team_season_id', teamSeasonId)
-        .maybeSingle();
-      if (exErr) {
-        console.warn('[TeamReminderSettings] save lookup', exErr.message ?? exErr);
-      }
+        .upsert(
+          {
+            team_season_id: teamSeasonId,
+            ...fields,
+          },
+          { onConflict: 'team_season_id' },
+        );
 
-      let lastErr: { message?: string; code?: string } | null = null;
-      if (existing) {
-        const { error: updErr } = await supabase
-          .from('team_notification_settings')
-          .update(fields)
-          .eq('team_season_id', teamSeasonId);
-        lastErr = updErr;
-      } else {
-        const { error: insErr } = await supabase.from('team_notification_settings').insert({
-          team_season_id: teamSeasonId,
-          ...fields,
-        });
-        lastErr = insErr;
-        const code = (insErr as { code?: string } | null)?.code;
-        if (insErr && (code === '23505' || code === '42P10')) {
-          const { error: upd2 } = await supabase
-            .from('team_notification_settings')
-            .update(fields)
-            .eq('team_season_id', teamSeasonId);
-          lastErr = upd2;
-        }
-      }
-
-      if (lastErr) {
-        console.warn('[TeamReminderSettings] save', lastErr);
+      if (upsertErr) {
+        console.warn('[TeamReminderSettings] save', upsertErr);
         return;
       }
       setSaved(true);
@@ -147,8 +133,8 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
       <div
         className={
           embedded
-            ? 'py-2 text-sm text-white/60'
-            : 'mt-3 rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white/60'
+            ? 'mt-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/60'
+            : 'mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/60'
         }
       >
         Erinnerungen laden…
@@ -156,7 +142,9 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
     );
   }
 
-  const shell = embedded ? 'mt-2' : 'mt-3 rounded-lg border border-white/10 bg-white/5 p-3 text-white';
+  const shell = embedded
+    ? 'mt-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-white'
+    : 'mt-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-white';
 
   return (
     <div className={shell}>

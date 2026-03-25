@@ -9,7 +9,7 @@ const rowClass =
   'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-white transition-colors hover:bg-white/10';
 
 const subRowClass =
-  'flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-2.5 pl-6 text-left text-sm text-white/95 transition-colors hover:bg-white/10';
+  'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 pl-10 text-left text-sm text-white transition-colors hover:bg-white/10';
 
 function isTrainerToolsRole(role: string): boolean {
   const r = (role ?? '').trim().toLowerCase();
@@ -69,17 +69,17 @@ export const MoreHubPage: React.FC = () => {
             <div className="space-y-1.5 pt-1">
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-3 px-1 pt-1 text-left text-xs font-semibold uppercase tracking-wide text-white/45"
+                className={rowClass}
                 onClick={() => setTrainerToolsOpen((v) => !v)}
                 aria-expanded={trainerToolsOpen}
               >
                 <span className="flex items-center gap-2">
-                  <Wrench className="h-4 w-4 text-red-400/90" aria-hidden />
-                  Trainer-Tools
+                  <Wrench className="h-5 w-5 text-red-400" aria-hidden />
+                  <span className="font-medium">Trainer-Tools</span>
                 </span>
                 <ChevronRight
                   className={[
-                    'h-4 w-4 text-white/35 transition-transform',
+                    'h-5 w-5 text-white/40 transition-transform',
                     trainerToolsOpen ? 'rotate-90' : '',
                   ].join(' ')}
                   aria-hidden
