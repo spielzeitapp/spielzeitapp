@@ -36,42 +36,36 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const load = useCallback(async (opts?: { silent?: boolean }) => {
+  const load = useCallback(async () => {
     if (!teamSeasonId) {
       setRow(null);
       setLoading(false);
       return;
     }
-    if (!opts?.silent) setLoading(true);
-    try {
-      const { data, error: qErr } = await supabase
-        .from('team_notification_settings')
-        .select('*')
-        .eq('team_season_id', teamSeasonId)
-        .single();
 
-      if (qErr) {
-        if ((qErr as { code?: string }).code === 'PGRST116') {
-          setRow(normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }));
-        } else {
-          console.warn('[TeamReminderSettings]', qErr.message ?? qErr);
-          setRow(normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }));
-        }
-      } else if (data) {
-        setRow(normalizeRow(data as TeamNotificationSettingsRow));
-      } else {
-        setRow(normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }));
-      }
-    } catch (e) {
-      console.warn('[TeamReminderSettings] load', e);
-      setRow(normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }));
-    } finally {
-      setLoading(false);
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from('team_notification_settings')
+      .select('*')
+      .eq('team_season_id', teamSeasonId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('LOAD ERROR', error);
     }
+
+    if (data) {
+      setRow(normalizeRow(data));
+    } else {
+      setRow(normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }));
+    }
+
+    setLoading(false);
   }, [teamSeasonId]);
 
   useEffect(() => {
-    void load();
+    load();
   }, [load]);
 
   useEffect(() => {
@@ -85,176 +79,107 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
 
   const save = async () => {
     if (!teamSeasonId || !row) return;
+
     setSaving(true);
     setSaved(false);
-    try {
-      const { error } = await supabase
-        .from('team_notification_settings')
-        .upsert(
-          {
-            team_season_id: teamSeasonId,
-            training_enabled: row.training_enabled,
-            training_minutes_before: row.training_minutes_before,
-            match_enabled: row.match_enabled,
-            match_minutes_before: row.match_minutes_before,
-            match_second_enabled: row.match_second_enabled,
-            match_second_minutes_before: row.match_second_minutes_before,
-            event_enabled: row.event_enabled,
-            event_minutes_before: row.event_minutes_before,
-          },
-          { onConflict: 'team_season_id' },
-        );
 
-      if (error) {
-        console.error('SAVE ERROR', error);
-        return;
-      }
-      setSaved(true);
-      await load({ silent: true });
-      console.info('[TeamReminderSettings] values after reload', { row_after_reload: rowRef.current });
-    } catch (e) {
-      console.warn('[TeamReminderSettings] save', e);
-    } finally {
+    const payload = {
+      team_season_id: teamSeasonId,
+      training_enabled: row.training_enabled,
+      training_minutes_before: row.training_minutes_before,
+      match_enabled: row.match_enabled,
+      match_minutes_before: row.match_minutes_before,
+      match_second_enabled: row.match_second_enabled,
+      match_second_minutes_before: row.match_second_minutes_before,
+      event_enabled: row.event_enabled,
+      event_minutes_before: row.event_minutes_before,
+    };
+
+    console.log('SAVE PAYLOAD', payload);
+
+    const { error } = await supabase
+      .from('team_notification_settings')
+      .upsert(payload, { onConflict: 'team_season_id' });
+
+    if (error) {
+      console.error('SAVE ERROR', error);
       setSaving(false);
+      return;
     }
+
+    setSaved(true);
+    await load();
+    setSaving(false);
   };
 
   if (!teamSeasonId) return null;
+
   if (loading || !row) {
     return (
-      <div
-        className={
-          embedded
-            ? 'mt-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/60'
-            : 'mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/60'
-        }
-      >
+      <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/60">
         Erinnerungen laden…
       </div>
     );
   }
 
-  const shell = embedded
-    ? 'mt-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-white'
-    : 'mt-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-white';
-
   return (
-    <div className={shell}>
-      {!embedded && (
-        <>
-          <h3 className="text-sm font-semibold text-white/95">Erinnerungen</h3>
-          <p className="mt-1 text-xs text-white/55">Globale Regeln für dieses Team (automatische Termin-Erinnerungen).</p>
-        </>
-      )}
+    <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
+      <h3 className="text-sm font-semibold">Erinnerungen</h3>
 
-      {saved && <p className="mt-2 text-xs text-emerald-300/90">Gespeichert.</p>}
+      {saved && <p className="mt-2 text-xs text-green-400">Gespeichert</p>}
 
       <div className="mt-3 space-y-3 text-sm">
+
+        {/* TRAINING */}
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={row.training_enabled}
             onChange={(e) => update('training_enabled', e.target.checked)}
-            className="rounded border-white/20"
           />
-          <span>Training erinnern</span>
+          Training erinnern
         </label>
-        <div className="flex flex-wrap items-center gap-2 pl-6">
-          <span className="text-white/60">Vorher</span>
-          <select
-            className="rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-sm"
-            value={row.training_minutes_before}
-            onChange={(e) => update('training_minutes_before', Number(e.target.value))}
-          >
-            {TRAINING_MIN.map((m) => (
-              <option key={m} value={m}>
-                {m} Min
-              </option>
-            ))}
-          </select>
-        </div>
 
+        <select
+          value={row.training_minutes_before}
+          onChange={(e) => update('training_minutes_before', Number(e.target.value))}
+        >
+          {TRAINING_MIN.map((m) => (
+            <option key={m} value={m}>{m} Min</option>
+          ))}
+        </select>
+
+        {/* MATCH */}
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={row.match_enabled}
             onChange={(e) => update('match_enabled', e.target.checked)}
-            className="rounded border-white/20"
           />
-          <span>Spiel erinnern</span>
+          Spiel erinnern
         </label>
-        <div className="flex flex-wrap items-center gap-2 pl-6">
-          <span className="text-white/60">Vorher</span>
-          <select
-            className="rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-sm"
-            value={row.match_minutes_before}
-            onChange={(e) => update('match_minutes_before', Number(e.target.value))}
-          >
-            {MATCH_MIN.map((m) => (
-              <option key={m} value={m}>
-                {m >= 60 ? `${m / 60} h` : `${m} Min`}
-              </option>
-            ))}
-          </select>
-        </div>
 
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={row.match_second_enabled}
-            onChange={(e) => update('match_second_enabled', e.target.checked)}
-            className="rounded border-white/20"
-          />
-          <span>Zweite Spiel-Erinnerung</span>
-        </label>
-        <div className="flex flex-wrap items-center gap-2 pl-6">
-          <span className="text-white/60">Vorher</span>
-          <select
-            className="rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-sm"
-            value={row.match_second_minutes_before}
-            onChange={(e) => update('match_second_minutes_before', Number(e.target.value))}
-          >
-            {MATCH2_MIN.map((m) => (
-              <option key={m} value={m}>
-                {m} Min
-              </option>
-            ))}
-          </select>
-        </div>
+        <select
+          value={row.match_minutes_before}
+          onChange={(e) => update('match_minutes_before', Number(e.target.value))}
+        >
+          {MATCH_MIN.map((m) => (
+            <option key={m} value={m}>
+              {m >= 60 ? `${m / 60} h` : `${m} Min`}
+            </option>
+          ))}
+        </select>
 
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={row.event_enabled}
-            onChange={(e) => update('event_enabled', e.target.checked)}
-            className="rounded border-white/20"
-          />
-          <span>Event erinnern</span>
-        </label>
-        <div className="flex flex-wrap items-center gap-2 pl-6">
-          <span className="text-white/60">Vorher</span>
-          <select
-            className="rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-sm"
-            value={row.event_minutes_before}
-            onChange={(e) => update('event_minutes_before', Number(e.target.value))}
-          >
-            {EVENT_MIN.map((m) => (
-              <option key={m} value={m}>
-                {m / 60} h
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* SAVE BUTTON */}
+        <button
+          onClick={save}
+          disabled={saving}
+          className="mt-3 w-full bg-red-600 rounded-lg py-2"
+        >
+          {saving ? 'Speichern…' : 'Speichern'}
+        </button>
+
       </div>
-
-      <button
-        type="button"
-        disabled={saving}
-        onClick={() => void save()}
-        className="mt-4 w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
-      >
-        {saving ? 'Speichern…' : 'Speichern'}
-      </button>
     </div>
   );
 };
