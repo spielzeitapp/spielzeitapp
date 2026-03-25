@@ -281,7 +281,7 @@ export const TeamPage: React.FC = () => {
   }, [players]);
 
   return (
-    <div className="space-y-3 pb-4">
+    <div className="space-y-3 pb-24">
       <h1 className="text-xl font-semibold">Team</h1>
 
       {/* Team Card */}
@@ -313,7 +313,7 @@ export const TeamPage: React.FC = () => {
       <TeamMembershipRolesCard teamSeasonId={teamSeasonId} />
 
       {/* Kader Card */}
-      <Card>
+      <Card className="rounded-3xl border border-white/10 bg-white/[0.04] shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_18px_50px_rgba(0,0,0,0.55)] ring-1 ring-white/[0.04]">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="mt-0">Kader</CardTitle>
           {teamSeasonId != null && canManagePlayers && !plLoading && (
@@ -430,7 +430,7 @@ export const TeamPage: React.FC = () => {
             </p>
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
-            <ul className="mt-1 rounded-lg border border-[var(--border)]/50 bg-[var(--bg)]/30">
+            <ul className="mt-3 space-y-2">
               {sortedPlayers.map((p) => (
                 <li
                   key={p.id}
@@ -443,22 +443,29 @@ export const TeamPage: React.FC = () => {
                       openEditForm(p);
                     }
                   }}
-                  className="flex cursor-pointer items-center justify-between gap-3 border-b border-[var(--border)]/50 px-3 py-2.5 last:border-b-0 hover:bg-white/10 focus:outline-none"
+                  className={[
+                    "group flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3",
+                    "transition-all duration-150 hover:bg-white/[0.06] hover:border-white/15",
+                    "active:scale-[0.985] active:bg-white/[0.08]",
+                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40",
+                  ].join(" ")}
                 >
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <span className="w-10 shrink-0 text-right tabular-nums text-xs text-[var(--muted)]">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="shrink-0 text-xs tabular-nums text-white/45">
                       {p.jersey_number != null ? `#${p.jersey_number}` : "—"}
-                    </span>
-                    <span className="min-w-0 flex-1 whitespace-normal break-words text-sm font-medium text-[var(--text-main)]">
-                      {p.display_name}
-                    </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-base font-semibold text-white/95">
+                        {p.display_name}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex shrink-0 items-center">
                     {(() => {
                       const pos = p.position?.trim() ?? "";
                       const label = pos !== "" ? pos : "—";
                       return (
-                        <span className="rounded-md border border-[var(--border)]/60 bg-white/5 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--muted)] break-words">
+                        <span className="rounded-xl border border-white/15 bg-white/[0.06] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/70 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-sm">
                           {label}
                         </span>
                       );
