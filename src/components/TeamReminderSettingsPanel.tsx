@@ -56,7 +56,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
     }
 
     if (data) {
-      setRow(normalizeRow(data));
+      setRow(normalizeRow(data as TeamNotificationSettingsRow));
     } else {
       setRow(normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }));
     }
@@ -65,7 +65,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
   }, [teamSeasonId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   useEffect(() => {
@@ -77,149 +77,221 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
     setSaved(false);
   };
 
- const save = async () => {
-  if (!teamSeasonId || !row) return;
+  const save = async () => {
+    if (!teamSeasonId || !row) return;
 
-  setSaving(true);
-  setSaved(false);
+    setSaving(true);
+    setSaved(false);
 
-  const payload = {
-    training_enabled: row.training_enabled,
-    training_minutes_before: row.training_minutes_before,
-    match_enabled: row.match_enabled,
-    match_minutes_before: row.match_minutes_before,
-    match_second_enabled: row.match_second_enabled,
-    match_second_minutes_before: row.match_second_minutes_before,
-    event_enabled: row.event_enabled,
-    event_minutes_before: row.event_minutes_before,
+    const payload = {
+      training_enabled: row.training_enabled,
+      training_minutes_before: row.training_minutes_before,
+      match_enabled: row.match_enabled,
+      match_minutes_before: row.match_minutes_before,
+      match_second_enabled: row.match_second_enabled,
+      match_second_minutes_before: row.match_second_minutes_before,
+      event_enabled: row.event_enabled,
+      event_minutes_before: row.event_minutes_before,
+    };
+
+    try {
+      const { data: existing, error: existingError } = await supabase
+        .from('team_notification_settings')
+        .select('id, team_season_id')
+        .eq('team_season_id', teamSeasonId)
+        .maybeSingle();
+
+      if (existingError) {
+        console.error('LOAD EXISTING ERROR', existingError);
+        return;
+      }
+
+      if (existing?.id) {
+        const { error: updateError } = await supabase
+          .from('team_notification_settings')
+          .update(payload)
+          .eq('id', existing.id);
+
+        if (updateError) {
+          console.error('UPDATE ERROR', updateError);
+          return;
+        }
+      } else {
+        const { error: insertError } = await supabase
+          .from('team_notification_settings')
+          .insert({
+            team_season_id: teamSeasonId,
+            ...payload,
+          });
+
+        if (insertError) {
+          console.error('INSERT ERROR', insertError);
+          return;
+        }
+      }
+
+      const { data: fresh, error: freshError } = await supabase
+        .from('team_notification_settings')
+        .select('*')
+        .eq('team_season_id', teamSeasonId)
+        .maybeSingle();
+
+      if (freshError) {
+        console.error('RELOAD ERROR', freshError);
+        return;
+      }
+
+      if (fresh) {
+        const normalized = normalizeRow(fresh as TeamNotificationSettingsRow);
+        setRow(normalized);
+        rowRef.current = normalized;
+      }
+
+      setSaved(true);
+    } catch (e) {
+      console.error('SAVE CATCH ERROR', e);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  console.log('SAVE teamSeasonId', teamSeasonId);
-  console.log('SAVE payload', payload);
+  if (!teamSeasonId) return null;
 
-  try {
-    const { data: existing, error: existingError } = await supabase
-      .from('team_notification_settings')
-      .select('id, team_season_id')
-      .eq('team_season_id', teamSeasonId)
-      .maybeSingle();
-
-    if (existingError) {
-      console.error('LOAD EXISTING ERROR', existingError);
-      setSaving(false);
-      return;
-    }
-
-    if (existing?.id) {
-      const { error: updateError } = await supabase
-        .from('team_notification_settings')
-        .update(payload)
-        .eq('id', existing.id);
-
-      if (updateError) {
-        console.error('UPDATE ERROR', updateError);
-        setSaving(false);
-        return;
-      }
-    } else {
-      const { error: insertError } = await supabase
-        .from('team_notification_settings')
-        .insert({
-          team_season_id: teamSeasonId,
-          ...payload,
-        });
-
-      if (insertError) {
-        console.error('INSERT ERROR', insertError);
-        setSaving(false);
-        return;
-      }
-    }
-
-    const { data: fresh, error: freshError } = await supabase
-      .from('team_notification_settings')
-      .select('*')
-      .eq('team_season_id', teamSeasonId)
-      .maybeSingle();
-
-    if (freshError) {
-      console.error('RELOAD ERROR', freshError);
-      setSaving(false);
-      return;
-    }
-
-    if (fresh) {
-      const normalized = normalizeRow(fresh);
-      setRow(normalized);
-      rowRef.current = normalized;
-    }
-
-    setSaved(true);
-  } catch (e) {
-    console.error('SAVE CATCH ERROR', e);
-  } finally {
-    setSaving(false);
+  if (loading || !row) {
+    return (
+      <div
+        className={
+          embedded
+            ? 'mt-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/60'
+            : 'mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/60'
+        }
+      >
+        Erinnerungen laden…
+      </div>
+    );
   }
-};
+
+  const shell = embedded
+    ? 'mt-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-white'
+    : 'mt-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-white';
 
   return (
-    <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
-      <h3 className="text-sm font-semibold">Erinnerungen</h3>
+    <div className={shell}>
+      {!embedded && (
+        <>
+          <h3 className="text-sm font-semibold text-white/95">Erinnerungen</h3>
+          <p className="mt-1 text-xs text-white/55">Globale Regeln für dieses Team (automatische Termin-Erinnerungen).</p>
+        </>
+      )}
 
-      {saved && <p className="mt-2 text-xs text-green-400">Gespeichert</p>}
+      {saved && <p className="mt-2 text-xs text-emerald-300/90">Gespeichert.</p>}
 
       <div className="mt-3 space-y-3 text-sm">
-
-        {/* TRAINING */}
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={row.training_enabled}
             onChange={(e) => update('training_enabled', e.target.checked)}
+            className="rounded border-white/20"
           />
-          Training erinnern
+          <span>Training erinnern</span>
         </label>
+        <div className="flex flex-wrap items-center gap-2 pl-6">
+          <span className="text-white/60">Vorher</span>
+          <select
+            className="rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-sm"
+            value={row.training_minutes_before}
+            onChange={(e) => update('training_minutes_before', Number(e.target.value))}
+          >
+            {TRAINING_MIN.map((m) => (
+              <option key={m} value={m}>
+                {m} Min
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <select
-          value={row.training_minutes_before}
-          onChange={(e) => update('training_minutes_before', Number(e.target.value))}
-        >
-          {TRAINING_MIN.map((m) => (
-            <option key={m} value={m}>{m} Min</option>
-          ))}
-        </select>
-
-        {/* MATCH */}
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={row.match_enabled}
             onChange={(e) => update('match_enabled', e.target.checked)}
+            className="rounded border-white/20"
           />
-          Spiel erinnern
+          <span>Spiel erinnern</span>
         </label>
+        <div className="flex flex-wrap items-center gap-2 pl-6">
+          <span className="text-white/60">Vorher</span>
+          <select
+            className="rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-sm"
+            value={row.match_minutes_before}
+            onChange={(e) => update('match_minutes_before', Number(e.target.value))}
+          >
+            {MATCH_MIN.map((m) => (
+              <option key={m} value={m}>
+                {m >= 60 ? `${m / 60} h` : `${m} Min`}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <select
-          value={row.match_minutes_before}
-          onChange={(e) => update('match_minutes_before', Number(e.target.value))}
-        >
-          {MATCH_MIN.map((m) => (
-            <option key={m} value={m}>
-              {m >= 60 ? `${m / 60} h` : `${m} Min`}
-            </option>
-          ))}
-        </select>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={row.match_second_enabled}
+            onChange={(e) => update('match_second_enabled', e.target.checked)}
+            className="rounded border-white/20"
+          />
+          <span>Zweite Spiel-Erinnerung</span>
+        </label>
+        <div className="flex flex-wrap items-center gap-2 pl-6">
+          <span className="text-white/60">Vorher</span>
+          <select
+            className="rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-sm"
+            value={row.match_second_minutes_before}
+            onChange={(e) => update('match_second_minutes_before', Number(e.target.value))}
+          >
+            {MATCH2_MIN.map((m) => (
+              <option key={m} value={m}>
+                {m} Min
+              </option>
+            ))}
+          </select>
+        </div>
 
-        {/* SAVE BUTTON */}
-        <button
-          onClick={save}
-          disabled={saving}
-          className="mt-3 w-full bg-red-600 rounded-lg py-2"
-        >
-          {saving ? 'Speichern…' : 'Speichern'}
-        </button>
-
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={row.event_enabled}
+            onChange={(e) => update('event_enabled', e.target.checked)}
+            className="rounded border-white/20"
+          />
+          <span>Event erinnern</span>
+        </label>
+        <div className="flex flex-wrap items-center gap-2 pl-6">
+          <span className="text-white/60">Vorher</span>
+          <select
+            className="rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-sm"
+            value={row.event_minutes_before}
+            onChange={(e) => update('event_minutes_before', Number(e.target.value))}
+          >
+            {EVENT_MIN.map((m) => (
+              <option key={m} value={m}>
+                {m >= 60 ? `${m / 60} h` : `${m} Min`}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
+
+      <button
+        type="button"
+        disabled={saving}
+        onClick={() => void save()}
+        className="mt-4 w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+      >
+        {saving ? 'Speichern…' : 'Speichern'}
+      </button>
     </div>
   );
 };
