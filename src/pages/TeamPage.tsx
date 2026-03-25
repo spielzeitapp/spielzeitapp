@@ -456,8 +456,8 @@ export const TeamPage: React.FC = () => {
                   }}
                   className={[
                     "group flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-red-500/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.01)_100%)] px-4 py-3",
-                    "transition-all duration-150 hover:bg-[linear-gradient(180deg,rgba(239,68,68,0.12)_0%,rgba(255,255,255,0.02)_100%)] hover:border-red-500/25",
-                    "active:scale-[0.985] active:bg-[rgba(239,68,68,0.16)]",
+                    "transition-transform transition-colors duration-180 ease-out hover:bg-[linear-gradient(180deg,rgba(239,68,68,0.12)_0%,rgba(255,255,255,0.02)_100%)] hover:border-red-500/25",
+                    "active:scale-[0.98] active:bg-[rgba(239,68,68,0.18)] active:border-red-500/30 active:shadow-[0_0_0_1px_rgba(239,68,68,0.14),0_12px_28px_rgba(0,0,0,0.35)]",
                     "focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40",
                   ].join(" ")}
                 >
