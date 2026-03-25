@@ -20,10 +20,10 @@ function nearest(allowed: readonly number[], v: number, fallback: number): numbe
 function normalizeRow(raw: TeamNotificationSettingsRow): TeamNotificationSettingsRow {
   return {
     ...raw,
-    training_reminder_minutes_before: nearest(TRAINING_MIN, raw.training_reminder_minutes_before, 120),
-    match_reminder_minutes_before: nearest(MATCH_MIN, raw.match_reminder_minutes_before, 1440),
-    match_second_reminder_minutes_before: nearest(MATCH2_MIN, raw.match_second_reminder_minutes_before, 120),
-    event_reminder_minutes_before: nearest(EVENT_MIN, raw.event_reminder_minutes_before, 1440),
+    training_minutes_before: nearest(TRAINING_MIN, raw.training_minutes_before, 120),
+    match_minutes_before: nearest(MATCH_MIN, raw.match_minutes_before, 1440),
+    match_second_minutes_before: nearest(MATCH2_MIN, raw.match_second_minutes_before, 120),
+    event_minutes_before: nearest(EVENT_MIN, raw.event_minutes_before, 1440),
   };
 }
 
@@ -92,14 +92,14 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         values_before_save: row,
       });
       const fields = {
-        training_reminder_enabled: row.training_reminder_enabled,
-        training_reminder_minutes_before: row.training_reminder_minutes_before,
-        match_reminder_enabled: row.match_reminder_enabled,
-        match_reminder_minutes_before: row.match_reminder_minutes_before,
-        match_second_reminder_enabled: row.match_second_reminder_enabled,
-        match_second_reminder_minutes_before: row.match_second_reminder_minutes_before,
-        event_reminder_enabled: row.event_reminder_enabled,
-        event_reminder_minutes_before: row.event_reminder_minutes_before,
+        training_enabled: row.training_enabled,
+        training_minutes_before: row.training_minutes_before,
+        match_enabled: row.match_enabled,
+        match_minutes_before: row.match_minutes_before,
+        match_second_enabled: row.match_second_enabled,
+        match_second_minutes_before: row.match_second_minutes_before,
+        event_enabled: row.event_enabled,
+        event_minutes_before: row.event_minutes_before,
       };
       const payload = {
         team_season_id: teamSeasonId,
@@ -160,8 +160,8 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
-            checked={row.training_reminder_enabled}
-            onChange={(e) => update('training_reminder_enabled', e.target.checked)}
+            checked={row.training_enabled}
+            onChange={(e) => update('training_enabled', e.target.checked)}
             className="rounded border-white/20"
           />
           <span>Training erinnern</span>
@@ -170,8 +170,8 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
           <span className="text-white/60">Vorher</span>
           <select
             className="rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-sm"
-            value={row.training_reminder_minutes_before}
-            onChange={(e) => update('training_reminder_minutes_before', Number(e.target.value))}
+            value={row.training_minutes_before}
+            onChange={(e) => update('training_minutes_before', Number(e.target.value))}
           >
             {TRAINING_MIN.map((m) => (
               <option key={m} value={m}>
@@ -184,8 +184,8 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
-            checked={row.match_reminder_enabled}
-            onChange={(e) => update('match_reminder_enabled', e.target.checked)}
+            checked={row.match_enabled}
+            onChange={(e) => update('match_enabled', e.target.checked)}
             className="rounded border-white/20"
           />
           <span>Spiel erinnern</span>
@@ -194,8 +194,8 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
           <span className="text-white/60">Vorher</span>
           <select
             className="rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-sm"
-            value={row.match_reminder_minutes_before}
-            onChange={(e) => update('match_reminder_minutes_before', Number(e.target.value))}
+            value={row.match_minutes_before}
+            onChange={(e) => update('match_minutes_before', Number(e.target.value))}
           >
             {MATCH_MIN.map((m) => (
               <option key={m} value={m}>
@@ -208,8 +208,8 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
-            checked={row.match_second_reminder_enabled}
-            onChange={(e) => update('match_second_reminder_enabled', e.target.checked)}
+            checked={row.match_second_enabled}
+            onChange={(e) => update('match_second_enabled', e.target.checked)}
             className="rounded border-white/20"
           />
           <span>Zweite Spiel-Erinnerung</span>
@@ -218,8 +218,8 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
           <span className="text-white/60">Vorher</span>
           <select
             className="rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-sm"
-            value={row.match_second_reminder_minutes_before}
-            onChange={(e) => update('match_second_reminder_minutes_before', Number(e.target.value))}
+            value={row.match_second_minutes_before}
+            onChange={(e) => update('match_second_minutes_before', Number(e.target.value))}
           >
             {MATCH2_MIN.map((m) => (
               <option key={m} value={m}>
@@ -232,8 +232,8 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
-            checked={row.event_reminder_enabled}
-            onChange={(e) => update('event_reminder_enabled', e.target.checked)}
+            checked={row.event_enabled}
+            onChange={(e) => update('event_enabled', e.target.checked)}
             className="rounded border-white/20"
           />
           <span>Event erinnern</span>
@@ -242,8 +242,8 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
           <span className="text-white/60">Vorher</span>
           <select
             className="rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-sm"
-            value={row.event_reminder_minutes_before}
-            onChange={(e) => update('event_reminder_minutes_before', Number(e.target.value))}
+            value={row.event_minutes_before}
+            onChange={(e) => update('event_minutes_before', Number(e.target.value))}
           >
             {EVENT_MIN.map((m) => (
               <option key={m} value={m}>

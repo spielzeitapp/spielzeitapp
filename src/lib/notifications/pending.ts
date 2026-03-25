@@ -74,8 +74,8 @@ function slotsForEvent(
 ): SlotDef[] {
   const out: SlotDef[] = [];
 
-  if (ctype === 'training' && settings.training_reminder_enabled) {
-    const m = settings.training_reminder_minutes_before;
+  if (ctype === 'training' && settings.training_enabled) {
+    const m = settings.training_minutes_before;
     if (isReminderDue(event.starts_at, m, now)) {
       out.push({
         reminderKey: `training_${m}`,
@@ -87,8 +87,8 @@ function slotsForEvent(
   }
 
   if (ctype === 'game') {
-    if (settings.match_reminder_enabled) {
-      const m = settings.match_reminder_minutes_before;
+    if (settings.match_enabled) {
+      const m = settings.match_minutes_before;
       if (isReminderDue(event.starts_at, m, now)) {
         out.push({
           reminderKey: `match_${m}`,
@@ -98,8 +98,8 @@ function slotsForEvent(
         });
       }
     }
-    if (settings.match_second_reminder_enabled) {
-      const m = settings.match_second_reminder_minutes_before;
+    if (settings.match_second_enabled) {
+      const m = settings.match_second_minutes_before;
       if (isReminderDue(event.starts_at, m, now)) {
         out.push({
           reminderKey: `match_second_${m}`,
@@ -111,8 +111,8 @@ function slotsForEvent(
     }
   }
 
-  if ((ctype === 'event' || ctype === 'other') && settings.event_reminder_enabled) {
-    const m = settings.event_reminder_minutes_before;
+  if ((ctype === 'event' || ctype === 'other') && settings.event_enabled) {
+    const m = settings.event_minutes_before;
     if (isReminderDue(event.starts_at, m, now)) {
       out.push({
         reminderKey: `event_${m}`,
