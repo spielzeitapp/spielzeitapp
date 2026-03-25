@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
@@ -58,6 +58,7 @@ export const MessagesPage: React.FC = () => {
   const [needsRelogin, setNeedsRelogin] = useState(false);
 
   const [items, setItems] = useState<MessageRow[] | null>(null);
+  const itemsRef = useRef<MessageRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,6 +67,10 @@ export const MessagesPage: React.FC = () => {
   useEffect(() => {
     setReadSet(readReadSet());
   }, []);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -94,6 +99,10 @@ export const MessagesPage: React.FC = () => {
       }
       const rows = Array.isArray(data) ? (data as MessageRow[]) : [];
       setItems(rows);
+      console.info('[MessagesPage] load result', {
+        count: rows.length,
+        ids: rows.map((x) => x.id),
+      });
     } catch (e) {
       console.warn('[MessagesPage] load', e);
       setItems([]);
@@ -145,12 +154,23 @@ export const MessagesPage: React.FC = () => {
       // Optional extra filter for stricter RLS setups
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const teamId = (m as any)?.team_id as string | null | undefined;
+      console.info('[MessagesPage] delete click', {
+        messageId,
+        currentUserId: uid,
+        teamId: teamId ?? null,
+      });
       const q = supabase
         .from('messages')
         .delete()
         .eq('id', messageId)
         .eq('user_id', uid);
+      console.info('[MessagesPage] delete conditions', {
+        id: messageId,
+        user_id: uid,
+        team_id: teamId ?? null,
+      });
       const { data, error } = await (teamId ? q.eq('team_id', teamId) : q).select('id');
+      console.info('[MessagesPage] delete result', { data, error });
 
       if (error) {
         console.warn('[MessagesPage] delete', error.message ?? error);
@@ -160,11 +180,19 @@ export const MessagesPage: React.FC = () => {
       if (deleted.length === 0) {
         console.warn('[MessagesPage] delete: no rows deleted');
         await load();
+        console.info('[MessagesPage] list after reload (no rows deleted)', {
+          count: (itemsRef.current ?? []).length,
+          ids: (itemsRef.current ?? []).map((x) => x.id),
+        });
         return;
       }
 
       // Readable and persistent: server reload as source of truth
       await load();
+      console.info('[MessagesPage] list after reload', {
+        count: (itemsRef.current ?? []).length,
+        ids: (itemsRef.current ?? []).map((x) => x.id),
+      });
 
       setReadSet((prev) => {
         const next = new Set(prev);

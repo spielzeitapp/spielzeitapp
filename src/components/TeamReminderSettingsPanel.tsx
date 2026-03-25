@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import {
   DEFAULT_TEAM_NOTIFICATION_SETTINGS,
@@ -31,6 +31,7 @@ type Props = { teamSeasonId: string | null; embedded?: boolean };
 
 export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embedded }) => {
   const [row, setRow] = useState<TeamNotificationSettingsRow | null>(null);
+  const rowRef = useRef<TeamNotificationSettingsRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -72,6 +73,10 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
     void load();
   }, [load]);
 
+  useEffect(() => {
+    rowRef.current = row;
+  }, [row]);
+
   const update = <K extends keyof TeamNotificationSettingsRow>(key: K, value: TeamNotificationSettingsRow[K]) => {
     setRow((prev) => (prev ? { ...prev, [key]: value } : prev));
     setSaved(false);
@@ -82,6 +87,10 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
     setSaving(true);
     setSaved(false);
     try {
+      console.info('[TeamReminderSettings] save click', {
+        team_season_id: teamSeasonId,
+        values_before_save: row,
+      });
       const fields = {
         training_reminder_enabled: row.training_reminder_enabled,
         training_reminder_minutes_before: row.training_reminder_minutes_before,
@@ -92,22 +101,24 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         event_reminder_enabled: row.event_reminder_enabled,
         event_reminder_minutes_before: row.event_reminder_minutes_before,
       };
-      const { error: upsertErr } = await supabase
+      const payload = {
+        team_season_id: teamSeasonId,
+        ...fields,
+      };
+      console.info('[TeamReminderSettings] save payload', payload);
+      const { data: upsertData, error: upsertErr } = await supabase
         .from('team_notification_settings')
-        .upsert(
-          {
-            team_season_id: teamSeasonId,
-            ...fields,
-          },
-          { onConflict: 'team_season_id' },
-        );
+        .upsert(payload, { onConflict: 'team_season_id' })
+        .select('*');
 
+      console.info('[TeamReminderSettings] save result', { data: upsertData, error: upsertErr });
       if (upsertErr) {
         console.warn('[TeamReminderSettings] save', upsertErr);
         return;
       }
       setSaved(true);
       await load({ silent: true });
+      console.info('[TeamReminderSettings] values after reload', { row_after_reload: rowRef.current });
     } catch (e) {
       console.warn('[TeamReminderSettings] save', e);
     } finally {
