@@ -4,6 +4,10 @@
  */
 import { timingSafeEqual } from 'crypto';
 
+export const config = {
+  runtime: 'nodejs',
+};
+
 type IncomingHeaderRecord = Record<string, string | string[] | undefined>;
 
 function getHeader(
@@ -66,11 +70,13 @@ type VercelLikeRes = {
   status: (code: number) => { json: (data: unknown) => void };
 };
 
-export default async function handler(req: VercelLikeReq, res: VercelLikeRes): Promise<void> {
-  console.log('[send-reminders] start', { method: req.method ?? 'unknown' });
+export default async function handler(req: any, res: any): Promise<void> {
+  const r = req as VercelLikeReq;
+  const s = res as VercelLikeRes;
+  console.log('[send-reminders] start', { method: r.method ?? 'unknown' });
 
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
+  if (r.method !== 'POST') {
+    s.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
@@ -80,28 +86,28 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
 
   if (!cronSecret) {
     console.error('[send-reminders] missing env CRON_SECRET');
-    res.status(500).json({ error: 'Server misconfiguration' });
+    s.status(500).json({ error: 'Server misconfiguration' });
     return;
   }
   if (!supabaseUrl || !serviceRole) {
     console.error('[send-reminders] missing env SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-    res.status(500).json({ error: 'Server misconfiguration' });
+    s.status(500).json({ error: 'Server misconfiguration' });
     return;
   }
 
-  const fromBearer = getBearerToken(getHeader(req.headers, 'authorization'));
-  const fromQuery = getQuerySecret(req);
+  const fromBearer = getBearerToken(getHeader(r.headers, 'authorization'));
+  const fromQuery = getQuerySecret(r);
   const provided = fromBearer ?? fromQuery;
 
   if (!provided) {
     console.error('[send-reminders] auth failed: no secret');
-    res.status(401).json({ error: 'Unauthorized' });
+    s.status(401).json({ error: 'Unauthorized' });
     return;
   }
 
   if (!secretEquals(provided, cronSecret)) {
     console.error('[send-reminders] auth failed: invalid secret');
-    res.status(401).json({ error: 'Unauthorized' });
+    s.status(401).json({ error: 'Unauthorized' });
     return;
   }
 
@@ -135,14 +141,14 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
       ok: edgeRes.ok,
     });
 
-    res.status(edgeRes.ok ? 200 : edgeRes.status).json({
+    s.status(edgeRes.ok ? 200 : edgeRes.status).json({
       ok: edgeRes.ok,
       edgeStatus: edgeRes.status,
       body: parsed,
     });
   } catch (e) {
     console.error('[send-reminders] fetch exception', e);
-    res.status(502).json({
+    s.status(502).json({
       ok: false,
       error: e instanceof Error ? e.message : String(e),
     });
