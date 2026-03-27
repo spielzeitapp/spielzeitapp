@@ -1,4 +1,3 @@
-<p>STAGING TEST 123</p>
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
