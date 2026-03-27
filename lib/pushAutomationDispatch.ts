@@ -102,6 +102,14 @@ type AutomationRow = {
   only_unanswered?: boolean;
 };
 
+/** Zeilen aus `notification_subscriptions` für Web-Push (explizit typisiert, kein `never` aus Supabase-Inferenz). */
+type NotificationSubscriptionRow = {
+  id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+};
+
 export async function processPushAutomations(
   admin: SupabaseClient,
   now: Date,
@@ -235,7 +243,8 @@ export async function processPushAutomations(
             .select('player_id, status')
             .eq('event_id', event.id);
           if (attErr) throw attErr;
-          for (const row of attRows ?? []) {
+          const attendanceRows: unknown[] = Array.isArray(attRows) ? attRows : [];
+          for (const row of attendanceRows) {
             const r = row as { player_id: string; status: string };
             attMap.set(r.player_id, r.status);
           }
@@ -382,7 +391,7 @@ async function sendOneAutomationReminder(
   }
 
   let pushCount = 0;
-  let subs: Array<{ id: string; endpoint: string; p256dh: string; auth: string }> | null = null;
+  let subs: NotificationSubscriptionRow[] = [];
   try {
     const { data, error: subErr } = await admin
       .from('notification_subscriptions')
@@ -390,7 +399,8 @@ async function sendOneAutomationReminder(
       .eq('user_id', item.userId)
       .eq('is_active', true);
     if (subErr) throw subErr;
-    subs = data as typeof subs;
+    const raw: unknown = data ?? [];
+    subs = Array.isArray(raw) ? (raw as NotificationSubscriptionRow[]) : [];
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     console.warn('[pushAutomations] subscriptions query', msg);
@@ -398,7 +408,7 @@ async function sendOneAutomationReminder(
     return { messageInserted, pushCount, errors };
   }
 
-  if (!subs?.length) {
+  if (subs.length === 0) {
     return { messageInserted, pushCount, errors };
   }
 
@@ -421,10 +431,10 @@ async function sendOneAutomationReminder(
     try {
       await webpush.sendNotification(
         {
-          endpoint: s.endpoint as string,
+          endpoint: s.endpoint,
           keys: {
-            p256dh: s.p256dh as string,
-            auth: s.auth as string,
+            p256dh: s.p256dh,
+            auth: s.auth,
           },
         },
         payload,
