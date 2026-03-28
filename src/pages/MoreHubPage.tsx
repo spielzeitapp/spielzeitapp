@@ -5,6 +5,8 @@ import { Card } from '../app/components/ui/Card';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 
+const REMINDER_TEST_JOB_ID = '64dda57e-1545-4d94-96cd-79b6b039d7ef';
+
 const rowClass =
   'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-white transition-colors hover:bg-white/10';
 
@@ -30,6 +32,23 @@ export const MoreHubPage: React.FC = () => {
   const unreadCount = useUnreadCount(user?.id);
 
   const [trainerToolsOpen, setTrainerToolsOpen] = useState(false);
+
+  const runReminderTest = () => {
+    fetch('/api/reminder-dispatch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: REMINDER_TEST_JOB_ID }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        console.log('REMINDER RESULT', data);
+        alert('Reminder ausgelöst');
+      })
+      .catch((err) => {
+        console.error(err);
+        alert('Fehler beim Reminder');
+      });
+  };
 
   return (
     <div
@@ -140,6 +159,14 @@ export const MoreHubPage: React.FC = () => {
             </select>
           </Card>
         )}
+
+        <button
+          type="button"
+          onClick={runReminderTest}
+          className={`${rowClass} mt-6 border-red-500/40 bg-red-950/30 hover:bg-red-900/40`}
+        >
+          <span className="font-medium">🔔 Reminder testen</span>
+        </button>
       </div>
     </div>
   );
