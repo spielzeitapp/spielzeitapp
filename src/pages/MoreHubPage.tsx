@@ -33,21 +33,57 @@ export const MoreHubPage: React.FC = () => {
 
   const [trainerToolsOpen, setTrainerToolsOpen] = useState(false);
 
-  const runReminderTest = () => {
-    fetch('/api/reminder-dispatch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId: REMINDER_TEST_JOB_ID }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        console.log('REMINDER RESULT', data);
-        alert('Reminder ausgelöst');
-      })
-      .catch((err) => {
-        console.error(err);
-        alert('Fehler beim Reminder');
+  const runReminderTest = async () => {
+    try {
+      const res = await fetch('/api/reminder-dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId: REMINDER_TEST_JOB_ID }),
       });
+
+      const text = await res.text();
+      let data: Record<string, unknown> | null = null;
+      try {
+        data = text ? (JSON.parse(text) as Record<string, unknown>) : null;
+      } catch {
+        data = { raw: text };
+      }
+
+      console.log('REMINDER API vollständig', {
+        status: res.status,
+        ok: res.ok,
+        statusText: res.statusText,
+        body: data,
+        rawLength: text.length,
+      });
+
+      const errMsg =
+        (data && typeof data.error === 'string' && data.error) ||
+        (data && typeof data.detail === 'string' && data.detail) ||
+        (!res.ok ? `HTTP ${res.status}: ${text.slice(0, 300)}` : null);
+
+      if (!res.ok) {
+        alert(`Reminder Fehler: ${errMsg ?? 'Unbekannt'}`);
+        return;
+      }
+
+      if (data && data.ok === false) {
+        alert(`Reminder Fehler: ${errMsg ?? 'Unbekannt'}`);
+        return;
+      }
+
+      if (data?.skipped === true) {
+        alert(
+          `Reminder: übersprungen (kein Job geclaimt). ${typeof data.hint === 'string' ? data.hint : ''}`,
+        );
+        return;
+      }
+
+      alert('Reminder ausgelöst');
+    } catch (err) {
+      console.error('REMINDER FETCH / PARSE ERROR', err);
+      alert(`Reminder Fehler: ${err instanceof Error ? err.message : String(err)}`);
+    }
   };
 
   return (
