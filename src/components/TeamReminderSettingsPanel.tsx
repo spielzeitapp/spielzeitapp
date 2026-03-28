@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import {
   DEFAULT_TEAM_NOTIFICATION_SETTINGS,
+  mapTeamNotificationSettingsFromDb,
   type TeamNotificationSettingsRow,
 } from '../lib/notifications/teamSettings';
 
@@ -56,7 +57,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
     }
 
     if (data) {
-      setRow(normalizeRow(data as TeamNotificationSettingsRow));
+      setRow(normalizeRow(mapTeamNotificationSettingsFromDb(data as Record<string, unknown>, teamSeasonId)));
     } else {
       setRow(normalizeRow({ team_season_id: teamSeasonId, ...DEFAULT_TEAM_NOTIFICATION_SETTINGS }));
     }
@@ -84,14 +85,14 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
     setSaved(false);
 
     const payload = {
-      training_enabled: row.training_enabled,
-      training_minutes_before: row.training_minutes_before,
-      match_enabled: row.match_enabled,
-      match_minutes_before: row.match_minutes_before,
-      match_second_enabled: row.match_second_enabled,
-      match_second_minutes_before: row.match_second_minutes_before,
-      event_enabled: row.event_enabled,
-      event_minutes_before: row.event_minutes_before,
+      training_reminder_enabled: row.training_enabled,
+      training_reminder_minutes_before: row.training_minutes_before,
+      match_reminder_enabled: row.match_enabled,
+      match_reminder_minutes_before: row.match_minutes_before,
+      match_second_reminder_enabled: row.match_second_enabled,
+      match_second_reminder_minutes_before: row.match_second_minutes_before,
+      event_reminder_enabled: row.event_enabled,
+      event_reminder_minutes_before: row.event_minutes_before,
     };
 
     try {
@@ -142,7 +143,9 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
       }
 
       if (fresh) {
-        const normalized = normalizeRow(fresh as TeamNotificationSettingsRow);
+        const normalized = normalizeRow(
+          mapTeamNotificationSettingsFromDb(fresh as Record<string, unknown>, teamSeasonId),
+        );
         setRow(normalized);
         rowRef.current = normalized;
       }

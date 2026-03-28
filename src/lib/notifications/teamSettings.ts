@@ -34,3 +34,32 @@ export function resolveTeamSettings(
     team_season_id: teamSeasonId,
   };
 }
+
+/**
+ * Mappt DB-Spalten (`training_reminder_*`) und UI-Aliase (`training_*`) auf TeamNotificationSettingsRow.
+ */
+export function mapTeamNotificationSettingsFromDb(
+  raw: Record<string, unknown> | null | undefined,
+  teamSeasonId: string,
+): TeamNotificationSettingsRow {
+  if (!raw) {
+    return resolveTeamSettings(teamSeasonId, undefined);
+  }
+  const r = raw;
+  const row: TeamNotificationSettingsRow = {
+    team_season_id: teamSeasonId,
+    training_enabled: Boolean(r.training_enabled ?? r.training_reminder_enabled ?? true),
+    training_minutes_before: Number(
+      r.training_minutes_before ?? r.training_reminder_minutes_before ?? 120,
+    ),
+    match_enabled: Boolean(r.match_enabled ?? r.match_reminder_enabled ?? true),
+    match_minutes_before: Number(r.match_minutes_before ?? r.match_reminder_minutes_before ?? 1440),
+    match_second_enabled: Boolean(r.match_second_enabled ?? r.match_second_reminder_enabled ?? false),
+    match_second_minutes_before: Number(
+      r.match_second_minutes_before ?? r.match_second_reminder_minutes_before ?? 120,
+    ),
+    event_enabled: Boolean(r.event_enabled ?? r.event_reminder_enabled ?? false),
+    event_minutes_before: Number(r.event_minutes_before ?? r.event_reminder_minutes_before ?? 1440),
+  };
+  return resolveTeamSettings(teamSeasonId, row);
+}

@@ -32,6 +32,8 @@ export type PendingNotificationItem = {
   pushBody: string;
   /** Relativer Pfad unter App-Origin */
   url: string;
+  /** messages.notification_kind (Badge-Filter Termine) */
+  terminReminderKind?: 'match' | 'training' | 'event';
 };
 
 function dispatchKey(userId: string, eventId: string, reminderKey: string): string {
@@ -239,6 +241,9 @@ export async function getPendingNotifications(
         const body = buildReminderInAppBody(titleStr, event.starts_at, locLine, meetupIso);
         const pushBody = buildPushReminderShort(titleStr);
 
+        const terminReminderKind =
+          ctype === 'game' ? 'match' : ctype === 'training' ? 'training' : 'event';
+
         out.push({
           userId,
           eventId: event.id,
@@ -250,6 +255,7 @@ export async function getPendingNotifications(
           eventTitleShort: titleStr,
           pushBody,
           url: `/app/events/${event.id}`,
+          terminReminderKind,
         });
       }
     }

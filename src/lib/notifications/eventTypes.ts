@@ -17,6 +17,8 @@ export type RawEventRow = {
   training_absence_deadline_disabled?: boolean | null;
   meetup_at?: string | null;
   meeting_at?: string | null;
+  /** optionaler Anstoß / Spielbeginn (falls im Schema vorhanden) */
+  kickoff_at?: string | null;
   location?: string | null;
   address?: string | null;
 };

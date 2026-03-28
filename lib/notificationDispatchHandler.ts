@@ -28,7 +28,7 @@ function ensureWebPushVapid(): void {
   vapidConfigured = true;
 }
 
-function verifyCronAuth(request: Request): boolean {
+export function verifyCronAuth(request: Request): boolean {
   const secret =
     readEnv('CRON_SECRET') ||
     readEnv('NOTIFICATION_DISPATCH_SECRET') ||
@@ -96,7 +96,7 @@ export async function processDueReminders(
 
   for (const item of pending) {
     try {
-      const sendResult = await sendOneReminder(admin, item);
+      const sendResult = await sendPendingNotificationReminder(admin, item);
       result.sent += sendResult.sent;
       result.skipped += sendResult.skipped;
       result.details.push(...sendResult.details);
@@ -170,7 +170,8 @@ export async function handleNotificationDispatch(request: Request): Promise<Resp
   return new Response(JSON.stringify(result), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
-async function sendOneReminder(
+/** Einzelner Reminder (In-App + Push); von Job-Worker und Legacy-Dispatch nutzbar. */
+export async function sendPendingNotificationReminder(
   admin: SupabaseClient,
   item: PendingNotificationItem,
 ): Promise<{
@@ -212,6 +213,7 @@ async function sendOneReminder(
     related_event_id: item.eventId,
     reminder_key: item.reminderKey,
     read: false,
+    notification_kind: item.terminReminderKind ?? null,
   });
 
   if (msgErr) {
@@ -332,4 +334,63 @@ async function sendOneReminder(
   });
 
   return { sent, skipped: 0, errors, details };
+}
+
+/** Nur Web Push (kein messages-/notifications-Insert). Für Reminder-Jobs über notification_jobs. */
+export async function sendWebPushForUser(
+  admin: SupabaseClient,
+  opts: { userId: string; title: string; body: string; url: string; tag: string },
+): Promise<{ sent: number; errors: string[] }> {
+  const errors: string[] = [];
+  const { data, error: subErr } = await admin
+    .from('notification_subscriptions')
+    .select('id, endpoint, p256dh, auth')
+    .eq('user_id', opts.userId)
+    .eq('is_active', true);
+
+  if (subErr) {
+    errors.push(subErr.message);
+    return { sent: 0, errors };
+  }
+
+  const raw: unknown = data ?? [];
+  const subs = Array.isArray(raw) ? (raw as { id: string; endpoint: string; p256dh: string; auth: string }[]) : [];
+
+  if (subs.length === 0) {
+    return { sent: 0, errors };
+  }
+
+  try {
+    ensureWebPushVapid();
+  } catch (e: unknown) {
+    errors.push(e instanceof Error ? e.message : String(e));
+    return { sent: 0, errors };
+  }
+
+  const payload = JSON.stringify({
+    title: opts.title,
+    body: opts.body,
+    url: opts.url,
+    tag: opts.tag,
+  });
+
+  let sent = 0;
+  for (const s of subs) {
+    try {
+      await webpush.sendNotification(
+        { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+        payload,
+        { TTL: 3600 },
+      );
+      sent += 1;
+      await admin
+        .from('notification_subscriptions')
+        .update({ last_seen_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('id', s.id);
+    } catch (e: unknown) {
+      errors.push(`${opts.userId}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  return { sent, errors };
 }

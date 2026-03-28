@@ -14,6 +14,7 @@ import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } f
 import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
+import { syncReminderJobsAfterEventWrite } from '../lib/reminders/syncReminderJobsAfterEventWrite';
 import { downloadCalendarIcs, downloadEventIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import type { SeriesEditScope } from '../lib/seriesEditScope';
@@ -340,6 +341,17 @@ export const SchedulePage: React.FC = () => {
       setEditError(eventErr.message);
       setSavingEdit(false);
       return;
+    }
+
+    if (!bulkScope && editEvent?.id) {
+      try {
+        const { data: freshEv } = await supabase.from('events').select('*').eq('id', editEvent.id).maybeSingle();
+        if (freshEv) {
+          await syncReminderJobsAfterEventWrite(supabase, freshEv as Record<string, unknown>);
+        }
+      } catch {
+        /* Reminder-Jobs best-effort */
+      }
     }
 
     // MVP: Automatische Nachricht + Push bei relevanter Termin-Aenderung

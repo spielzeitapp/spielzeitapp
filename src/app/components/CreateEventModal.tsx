@@ -3,6 +3,7 @@ import { Button } from './ui/Button';
 import { Modal } from '../ui/Modal';
 import { supabase } from '../../lib/supabaseClient';
 import { enumerateOccurrenceStarts, type RecurrenceKind } from '../../lib/recurrenceDates';
+import { syncReminderJobsAfterEventWrite } from '../../lib/reminders/syncReminderJobsAfterEventWrite';
 
 /** Leerstring / Whitespace → null (Supabase/Postgres). */
 function nullIfEmpty(s: string | null | undefined): string | null {
@@ -255,7 +256,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       const { data: insertedRows, error: eventErr } = await supabase
         .from('events')
         .insert(rows)
-        .select('id');
+        .select('*');
 
       if (eventErr) {
         const pe = eventErr as { message: string; details?: string; hint?: string; code?: string };
@@ -269,6 +270,33 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         setError(eventErr.message);
         setCreating(false);
         return;
+      }
+
+      let rowsToSync: Record<string, unknown>[] = Array.isArray(insertedRows) ? [...insertedRows] : [];
+      if (rowsToSync.length === 0 && rows.length > 0) {
+        const since = new Date(Date.now() - 20_000).toISOString();
+        const { data: refetched, error: refetchErr } = await supabase
+          .from('events')
+          .select('*')
+          .eq('team_season_id', teamSeasonId)
+          .gte('created_at', since)
+          .order('created_at', { ascending: true });
+        if (refetchErr) {
+          console.error('[CreateEventModal] REMINDER refetch after insert failed', refetchErr.message);
+        } else if (refetched?.length) {
+          console.log('[CreateEventModal] REMINDER using refetched events after empty insert.select', refetched.length);
+          rowsToSync = refetched as Record<string, unknown>[];
+        } else {
+          console.warn('[CreateEventModal] REMINDER no rows from insert.select and refetch empty');
+        }
+      }
+
+      try {
+        for (const row of rowsToSync) {
+          await syncReminderJobsAfterEventWrite(supabase, row);
+        }
+      } catch (e) {
+        console.error('[CreateEventModal] REMINDER sync loop error', e);
       }
 
       // MVP: Automatische Nachricht + Push für „Neuer Termin / Event erstellt“
