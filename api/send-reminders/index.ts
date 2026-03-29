@@ -32,7 +32,7 @@ function jsonBody(req: VercelRequest): string {
   return '{}';
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('SEND REMINDERS START');
   console.log('METHOD:', req.method);
 
