@@ -42,6 +42,152 @@ function getBaseTimeIso(row) {
   return start;
 }
 
+/** Wie mapTeamNotificationSettingsFromDb (src/lib/notifications/teamSettings.ts) */
+function mapSettingsFromDb(raw) {
+  if (!raw) {
+    return {
+      match_enabled: true,
+      match_minutes_before: 1440,
+      match_second_enabled: false,
+      match_second_minutes_before: 120,
+    };
+  }
+  return {
+    match_enabled: Boolean(raw.match_enabled ?? raw.match_reminder_enabled ?? true),
+    match_minutes_before: Number(
+      raw.match_minutes_before ?? raw.match_reminder_minutes_before ?? 1440,
+    ),
+    match_second_enabled: Boolean(
+      raw.match_second_enabled ?? raw.match_second_reminder_enabled ?? false,
+    ),
+    match_second_minutes_before: Number(
+      raw.match_second_minutes_before ?? raw.match_second_reminder_minutes_before ?? 120,
+    ),
+  };
+}
+
+/**
+ * Debug: nächstes Spiel + team_notification_settings + Abo (warum ggf. kein Reminder).
+ */
+async function buildReminderWhyDebug(admin, now, matches) {
+  if (!matches || matches.length === 0) {
+    return {
+      now: now.toISOString(),
+      match: null,
+      baseTime: null,
+      settings: null,
+      firstReminder: null,
+      secondReminder: null,
+      isFirstDue: false,
+      isSecondDue: false,
+      hasSubscription: false,
+      subscription: null,
+      reasons: ['Kein kommendes Spiel in events (Filter: match/game, starts_at > now, nicht canceled).'],
+      codeNote:
+        'Der eigentliche Scan unten nutzt fest 24h vor Basiszeit + 10-Min-Fenster (REMINDER_MS / DUE_WINDOW_MS), unabhängig von team_notification_settings.',
+    };
+  }
+
+  const match = matches[0];
+  console.log('MATCH:', match);
+
+  const meetingIso = nonEmptyIso(match.meetup_at) ?? nonEmptyIso(match.meeting_at);
+  const startIso = nonEmptyIso(match.starts_at);
+  const meetingTime = meetingIso ? safeDate(meetingIso) : null;
+  const startTime = startIso ? safeDate(startIso) : null;
+
+  const baseTime = meetingTime || startTime || null;
+  console.log('BASE TIME:', baseTime ? baseTime.toISOString() : null);
+
+  const { data: settingsRow } = await admin
+    .from('team_notification_settings')
+    .select('*')
+    .eq('team_season_id', match.team_season_id)
+    .maybeSingle();
+
+  const settings = mapSettingsFromDb(settingsRow);
+  console.log('SETTINGS:', settings);
+
+  let firstReminder = null;
+  let secondReminder = null;
+  if (baseTime) {
+    firstReminder = new Date(baseTime.getTime() - settings.match_minutes_before * 60000);
+    secondReminder = new Date(baseTime.getTime() - settings.match_second_minutes_before * 60000);
+    console.log('FIRST REMINDER:', firstReminder.toISOString());
+    console.log('SECOND REMINDER:', secondReminder.toISOString());
+  }
+
+  const isFirstDue = Boolean(baseTime && firstReminder && now >= firstReminder);
+  const isSecondDue = Boolean(baseTime && secondReminder && now >= secondReminder);
+
+  console.log('isFirstDue:', isFirstDue);
+  console.log('isSecondDue:', isSecondDue);
+
+  const { data: subscription } = await admin
+    .from('push_subscriptions')
+    .select('id, user_id, endpoint, p256dh, auth')
+    .not('endpoint', 'is', null)
+    .limit(1)
+    .maybeSingle();
+
+  console.log('SUBSCRIPTION:', subscription);
+
+  const hasSubscription = Boolean(subscription && subscription.id);
+
+  const reasons = [];
+  if (!settings.match_enabled) {
+    reasons.push('match_reminder_enabled / match_enabled ist aus — erste Stufe deaktiviert.');
+  }
+  if (settings.match_second_enabled === false && isSecondDue && !isFirstDue) {
+    reasons.push('Zweite Erinnerung in Settings aus (match_second_reminder_enabled).');
+  }
+  if (baseTime && firstReminder && !isFirstDue && !isSecondDue) {
+    reasons.push(
+      'Jetzt liegt noch vor den berechneten Reminder-Zeitpunkten (first/second vor baseTime).',
+    );
+  }
+  if (!hasSubscription) {
+    reasons.push('Kein Push-Abo in push_subscriptions gefunden (Test-Query limit 1).');
+  }
+  reasons.push(
+    `Hinweis: send-reminders markiert „due“ aktuell nur im ${REMINDER_MS / 3600000}h-vor-Base + ${DUE_WINDOW_MS / 60000}min Fenster — kann von SETTINGS-Minuten abweichen.`,
+  );
+
+  return {
+    now: now.toISOString(),
+    match: {
+      id: match.id,
+      team_season_id: match.team_season_id,
+      start_time: match.starts_at,
+      meeting_time: meetingIso || null,
+      opponent: match.opponent ?? null,
+    },
+    baseTime: baseTime ? baseTime.toISOString() : null,
+    settings: {
+      match_enabled: settings.match_enabled,
+      match_minutes_before: settings.match_minutes_before,
+      match_second_enabled: settings.match_second_enabled,
+      match_second_minutes_before: settings.match_second_minutes_before,
+    },
+    settingsRow: settingsRow || null,
+    firstReminder: firstReminder ? firstReminder.toISOString() : null,
+    secondReminder: secondReminder ? secondReminder.toISOString() : null,
+    isFirstDue,
+    isSecondDue,
+    hasSubscription,
+    subscription: subscription
+      ? {
+          id: subscription.id,
+          user_id: subscription.user_id,
+          endpointPreview: String(subscription.endpoint || '').slice(0, 80),
+        }
+      : null,
+    reasons,
+    codeNote:
+      'dueMatches im Code: base − 24h, Fenster ±10 min — siehe REMINDER_MS / DUE_WINDOW_MS.',
+  };
+}
+
 function ensureVapid() {
   const publicKey = (process.env.VAPID_PUBLIC_KEY || '').trim();
   const privateKey = (process.env.VAPID_PRIVATE_KEY || '').trim();
@@ -283,7 +429,7 @@ module.exports = async (req, res) => {
     }
 
     const now = new Date();
-    console.log('NOW', now.toISOString());
+    console.log('NOW:', now.toISOString());
 
     const supabaseUrl =
       process.env.SUPABASE_URL ||
@@ -324,6 +470,8 @@ module.exports = async (req, res) => {
 
     const matches = Array.isArray(rows) ? rows : [];
     console.log('MATCH COUNT', matches.length);
+
+    const debug = await buildReminderWhyDebug(admin, now, matches);
 
     const dueMatches = [];
     const windowStart = now.getTime() - DUE_WINDOW_MS;
@@ -451,6 +599,7 @@ module.exports = async (req, res) => {
       scanned: matches.length,
       matches: dueMatches,
       results,
+      debug,
     });
   } catch (err) {
     console.error('SEND REMINDERS ERROR', err);
