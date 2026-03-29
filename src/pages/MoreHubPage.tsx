@@ -5,8 +5,6 @@ import { Card } from '../app/components/ui/Card';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 
-const REMINDER_TEST_JOB_ID = '64dda57e-1545-4d94-96cd-79b6b039d7ef';
-
 const rowClass =
   'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-white transition-colors hover:bg-white/10';
 
@@ -35,53 +33,24 @@ export const MoreHubPage: React.FC = () => {
 
   const runReminderTest = async () => {
     try {
-      const res = await fetch('/api/reminder-dispatch', {
+      const res = await fetch('/api/send-reminders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId: REMINDER_TEST_JOB_ID }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
-      const text = await res.text();
-      let data: Record<string, unknown> | null = null;
-      try {
-        data = text ? (JSON.parse(text) as Record<string, unknown>) : null;
-      } catch {
-        data = { raw: text };
-      }
+      const data = (await res.json()) as { error?: string };
 
-      console.log('REMINDER API vollständig', {
-        status: res.status,
-        ok: res.ok,
-        statusText: res.statusText,
-        body: data,
-        rawLength: text.length,
-      });
-
-      const errMsg =
-        (data && typeof data.error === 'string' && data.error) ||
-        (data && typeof data.detail === 'string' && data.detail) ||
-        (!res.ok ? `HTTP ${res.status}: ${text.slice(0, 300)}` : null);
+      console.log('REMINDER RESULT:', data);
 
       if (!res.ok) {
-        alert(`Reminder Fehler: ${errMsg ?? 'Unbekannt'}`);
-        return;
+        alert(`Reminder Fehler: ${data?.error || 'Unknown error'}`);
+      } else {
+        alert('Reminder erfolgreich ausgelöst');
       }
-
-      if (data && data.ok === false) {
-        alert(`Reminder Fehler: ${errMsg ?? 'Unbekannt'}`);
-        return;
-      }
-
-      if (data?.skipped === true) {
-        alert(
-          `Reminder: übersprungen (kein Job geclaimt). ${typeof data.hint === 'string' ? data.hint : ''}`,
-        );
-        return;
-      }
-
-      alert('Reminder ausgelöst');
     } catch (err) {
-      console.error('REMINDER FETCH / PARSE ERROR', err);
+      console.error(err);
       alert(`Reminder Fehler: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
