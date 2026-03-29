@@ -305,7 +305,8 @@ async function sendPushInline(admin, teamSeasonId) {
 }
 
 /**
- * Ein Abo + eine notifications-Zeile + ein Push (gleicher Mechanismus wie send-team Payload).
+ * Ein Abo + eine Zeile in `messages` (wie api/push/send-team) + Push.
+ * MessagesPage liest aus `messages` per user_id — nicht `notifications`.
  */
 async function runForcedPipelineTest(admin, res) {
   const { data: sub, error: subErr } = await admin
@@ -356,29 +357,51 @@ async function runForcedPipelineTest(admin, res) {
     }
   }
 
-  const notificationPayload = {
-    team_id: teamId,
-    user_id: sub.user_id || null,
-    title: TEST_NOTIF_TITLE,
-    message: TEST_NOTIF_BODY,
-    link: TEST_LINK,
-    type: 'auto',
-    read: false,
-  };
+  const url = TEST_LINK.startsWith('/') ? TEST_LINK : `/${TEST_LINK}`;
+  const textBody = TEST_NOTIF_BODY;
+  const contentWithLink = url ? `${textBody}\n\n${url}` : textBody;
 
-  const { data: insRows, error: insErr } = await admin
-    .from('notifications')
-    .insert(notificationPayload)
-    .select('id');
+  /** Gleiches Schema wie api/push/send-team → messages.insert */
+  const inAppTargetTable = 'messages';
+  const messagePayload =
+    teamId && sub.user_id
+      ? {
+          team_id: teamId,
+          user_id: sub.user_id,
+          title: TEST_NOTIF_TITLE,
+          body: textBody,
+          content: contentWithLink,
+          type: 'team_push',
+          read: false,
+          link: url || null,
+        }
+      : null;
 
-  let notificationInserted = false;
-  let notificationId = null;
-  if (insErr) {
-    console.error('[forced-test] notification insert', insErr.message || insErr);
+  console.log('[forced-test] in-app target table:', inAppTargetTable);
+  console.log('[forced-test] messages insert payload:', JSON.stringify(messagePayload));
+
+  let inAppInserted = false;
+  let messageId = null;
+  let messagesInsertError = null;
+  if (!messagePayload) {
+    messagesInsertError =
+      !teamId || !sub.user_id
+        ? 'missing team_id (membership/team_seasons) or user_id — cannot insert messages'
+        : 'unknown';
+    console.error('[forced-test] messages insert skipped:', messagesInsertError);
   } else {
-    notificationInserted = true;
-    notificationId = insRows && insRows[0] ? insRows[0].id : null;
-    console.log('notification insert result', { ok: true, id: notificationId });
+    const { data: msgRows, error: msgErr } = await admin
+      .from('messages')
+      .insert(messagePayload)
+      .select('id');
+    if (msgErr) {
+      messagesInsertError = msgErr.message || String(msgErr);
+      console.error('[forced-test] messages insert error:', messagesInsertError);
+    } else {
+      inAppInserted = true;
+      messageId = msgRows && msgRows[0] ? msgRows[0].id : null;
+      console.log('[forced-test] messages insert result:', { ok: true, id: messageId });
+    }
   }
 
   let pushAttempted = false;
@@ -408,13 +431,14 @@ async function runForcedPipelineTest(admin, res) {
   }
 
   return res.status(200).json({
-    ok: Boolean(notificationInserted || pushOk),
+    ok: Boolean(inAppInserted || pushOk),
     message: 'Forced reminder test sent',
-    notificationInserted,
-    pushAttempted,
+    pushSent: pushOk,
+    inAppInserted,
+    targetTable: inAppTargetTable,
     subscriptionId: sub.id,
-    ...(notificationId ? { notificationId } : {}),
-    ...(insErr ? { notificationError: insErr.message || String(insErr) } : {}),
+    ...(messageId ? { messageId } : {}),
+    ...(messagesInsertError ? { inAppError: messagesInsertError } : {}),
     ...(pushError ? { pushError } : {}),
   });
 }
