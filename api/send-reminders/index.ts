@@ -1,38 +1,58 @@
 /**
  * Vercel Serverless: POST /api/send-reminders
  * Führt die zentrale Reminder-Verarbeitung aus (gleiche Logik wie /api/notifications/dispatch).
+ *
+ * Diagnose: Minimal-Handler aktiv; Legacy-Logik ist in runSendRemindersLegacy_DISABLED gebündelt (nicht ausgeführt).
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { handleNotificationDispatch } from '../../lib/notificationDispatchHandler';
 
 export const config = {
   runtime: 'nodejs',
 };
 
-function safeDate(value: unknown): Date | null {
-  if (value == null || value === '') return null;
-  const d = new Date(value as string | number | Date);
-  if (Number.isNaN(d.getTime())) {
-    console.error('Invalid date:', value);
-    return null;
-  }
-  return d;
-}
-
-function getHeader(req: VercelRequest, key: string): string | undefined {
-  const lower = key.toLowerCase();
-  const direct = req.headers[lower] ?? req.headers[key];
-  if (direct == null) return undefined;
-  return Array.isArray(direct) ? direct[0] : direct;
-}
-
-function jsonBody(req: VercelRequest): string {
-  if (typeof req.body === 'string') return req.body;
-  if (req.body != null) return JSON.stringify(req.body);
-  return '{}';
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log('SEND REMINDERS HANDLER ENTER');
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, error: 'Method not allowed' });
+  }
+
+  return res.status(200).json({
+    ok: true,
+    message: 'send-reminders handler reached',
+  });
+}
+
+/**
+ * Vorherige Produktionslogik – bewusst nicht aufgerufen (Diagnose FUNCTION_INVOCATION_FAILED).
+ * Reaktivierung: obigen Handler-Body durch Aufruf dieser Funktion ersetzen (und dynamischen Import beibehalten oder wieder statisch setzen).
+ */
+async function runSendRemindersLegacy_DISABLED(req: VercelRequest, res: VercelResponse) {
+  const { handleNotificationDispatch } = await import('../../lib/notificationDispatchHandler');
+
+  function safeDate(value: unknown): Date | null {
+    if (value == null || value === '') return null;
+    const d = new Date(value as string | number | Date);
+    if (Number.isNaN(d.getTime())) {
+      console.error('Invalid date:', value);
+      return null;
+    }
+    return d;
+  }
+
+  function getHeader(reqInner: VercelRequest, key: string): string | undefined {
+    const lower = key.toLowerCase();
+    const direct = reqInner.headers[lower] ?? reqInner.headers[key];
+    if (direct == null) return undefined;
+    return Array.isArray(direct) ? direct[0] : direct;
+  }
+
+  function jsonBody(reqInner: VercelRequest): string {
+    if (typeof reqInner.body === 'string') return reqInner.body;
+    if (reqInner.body != null) return JSON.stringify(reqInner.body);
+    return '{}';
+  }
+
   console.log('SEND REMINDERS START');
   console.log('METHOD:', req.method);
 
