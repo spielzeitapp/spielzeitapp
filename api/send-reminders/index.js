@@ -12,6 +12,14 @@ const REMINDER_TITLE = '⚽ Spiel Erinnerung';
 const REMINDER_BODY = 'Morgen Spiel! Bitte Zu-/Absagen nicht vergessen.';
 const REMINDER_URL = '/app/termine';
 
+/** Temporär: Pipeline testen ohne Zeitfenster. `SEND_REMINDERS_FORCE_TEST=false` → normaler Match-Scan. */
+const FORCE_REMINDER_PIPELINE_TEST = process.env.SEND_REMINDERS_FORCE_TEST !== 'false';
+
+const TEST_NOTIF_TITLE = '⚽ Test Spiel-Erinnerung';
+const TEST_NOTIF_BODY = 'Test: Reminder Pipeline funktioniert.';
+/** notifications.link + Push-Payload `url` (wie api/push/send-team Default) */
+const TEST_LINK = '/termine';
+
 function safeDate(value) {
   if (!value) return null;
   const d = new Date(value);
@@ -150,6 +158,121 @@ async function sendPushInline(admin, teamSeasonId) {
   return { sent, failed };
 }
 
+/**
+ * Ein Abo + eine notifications-Zeile + ein Push (gleicher Mechanismus wie send-team Payload).
+ */
+async function runForcedPipelineTest(admin, res) {
+  const { data: sub, error: subErr } = await admin
+    .from('push_subscriptions')
+    .select('id, user_id, endpoint, p256dh, auth')
+    .not('endpoint', 'is', null)
+    .not('p256dh', 'is', null)
+    .not('auth', 'is', null)
+    .limit(1)
+    .maybeSingle();
+
+  if (subErr) {
+    console.error('[forced-test] push_subscriptions', subErr.message || subErr);
+    return res.status(500).json({
+      ok: false,
+      error: subErr.message || 'push_subscriptions query failed',
+    });
+  }
+
+  if (!sub || !sub.id) {
+    return res.status(200).json({
+      ok: false,
+      error: 'No push subscription found',
+    });
+  }
+
+  console.log('found subscription', {
+    id: sub.id,
+    user_id: sub.user_id,
+    endpointPreview: String(sub.endpoint || '').slice(0, 72),
+  });
+
+  let teamId = null;
+  if (sub.user_id) {
+    const { data: mem } = await admin
+      .from('memberships')
+      .select('team_season_id')
+      .eq('user_id', sub.user_id)
+      .limit(1)
+      .maybeSingle();
+    if (mem && mem.team_season_id) {
+      const { data: tsRow } = await admin
+        .from('team_seasons')
+        .select('team_id')
+        .eq('id', mem.team_season_id)
+        .maybeSingle();
+      if (tsRow && tsRow.team_id != null) teamId = tsRow.team_id;
+    }
+  }
+
+  const notificationPayload = {
+    team_id: teamId,
+    user_id: sub.user_id || null,
+    title: TEST_NOTIF_TITLE,
+    message: TEST_NOTIF_BODY,
+    link: TEST_LINK,
+    type: 'auto',
+    read: false,
+  };
+
+  const { data: insRows, error: insErr } = await admin
+    .from('notifications')
+    .insert(notificationPayload)
+    .select('id');
+
+  let notificationInserted = false;
+  let notificationId = null;
+  if (insErr) {
+    console.error('[forced-test] notification insert', insErr.message || insErr);
+  } else {
+    notificationInserted = true;
+    notificationId = insRows && insRows[0] ? insRows[0].id : null;
+    console.log('notification insert result', { ok: true, id: notificationId });
+  }
+
+  let pushAttempted = false;
+  let pushOk = false;
+  let pushError = null;
+  try {
+    pushAttempted = true;
+    ensureVapid();
+    const payload = JSON.stringify({
+      title: TEST_NOTIF_TITLE,
+      body: TEST_NOTIF_BODY,
+      url: TEST_LINK,
+    });
+    await webpush.sendNotification(
+      {
+        endpoint: sub.endpoint,
+        keys: { p256dh: sub.p256dh, auth: sub.auth },
+      },
+      payload,
+      { TTL: 3600 },
+    );
+    pushOk = true;
+    console.log('push result', { ok: true, subscriptionId: sub.id });
+  } catch (e) {
+    pushError = e && e.message ? e.message : String(e);
+    console.error('[forced-test] push result', { ok: false, error: pushError });
+  }
+
+  return res.status(200).json({
+    ok: Boolean(notificationInserted || pushOk),
+    message: 'Forced reminder test sent',
+    notificationInserted,
+    pushAttempted,
+    subscriptionId: sub.id,
+    ...(notificationId ? { notificationId } : {}),
+    ...(insErr ? { notificationError: insErr.message || String(insErr) } : {}),
+    ...(pushError ? { pushError } : {}),
+  });
+}
+
 module.exports = async (req, res) => {
   console.log('SEND REMINDERS START');
   console.log('METHOD', req.method);
@@ -175,6 +298,10 @@ module.exports = async (req, res) => {
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
+
+    if (FORCE_REMINDER_PIPELINE_TEST) {
+      return runForcedPipelineTest(admin, res);
+    }
 
     const nowIso = now.toISOString();
 
