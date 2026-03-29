@@ -9,6 +9,16 @@ export const config = {
   runtime: 'nodejs',
 };
 
+function safeDate(value: unknown): Date | null {
+  if (value == null || value === '') return null;
+  const d = new Date(value as string | number | Date);
+  if (Number.isNaN(d.getTime())) {
+    console.error('Invalid date:', value);
+    return null;
+  }
+  return d;
+}
+
 function getHeader(req: VercelRequest, key: string): string | undefined {
   const lower = key.toLowerCase();
   const direct = req.headers[lower] ?? req.headers[key];
@@ -23,7 +33,11 @@ function jsonBody(req: VercelRequest): string {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  console.log('[send-reminders] incoming', req.method ?? 'UNKNOWN');
+  console.log('🚀 send-reminders START');
+  console.log('Request body:', req.body);
+  console.log('[send-reminders] incoming', req.method ?? 'UNKNOWN', {
+    invokedAt: safeDate(Date.now()),
+  });
 
   try {
     if (req.method !== 'POST') {
@@ -52,11 +66,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     let payload: Record<string, unknown>;
     try {
       payload = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-    } catch (parseErr) {
+    } catch (parseErr: unknown) {
+      console.error('SEND REMINDERS ERROR:', parseErr);
       console.error('[send-reminders] dispatch response not JSON', parseErr, text.slice(0, 300));
+      const pe = parseErr instanceof Error ? parseErr.message : 'Unknown error';
       res.status(500).json({
         ok: false,
-        error: 'Invalid JSON from reminder handler',
+        error: pe || 'Invalid JSON from reminder handler',
         raw: text.slice(0, 500),
       });
       return;
@@ -90,9 +106,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       dryRun: payload.dryRun,
       pushAutomations: payload.pushAutomations,
     });
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.error('[send-reminders] REMINDER DISPATCH ERROR', error);
-    res.status(500).json({ ok: false, error: msg });
+  } catch (err: unknown) {
+    console.error('SEND REMINDERS ERROR:', err);
+    console.error('[send-reminders] REMINDER DISPATCH ERROR', err);
+    const message =
+      err instanceof Error && err.message ? err.message : 'Unknown error';
+    res.status(500).json({
+      ok: false,
+      error: message,
+    });
   }
 }
