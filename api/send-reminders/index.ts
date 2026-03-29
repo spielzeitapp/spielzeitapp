@@ -33,16 +33,15 @@ function jsonBody(req: VercelRequest): string {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  console.log('send-reminders START');
-  console.log('send-reminders method', req.method);
-  console.log('send-reminders body', req.body);
+  console.log('SEND REMINDERS START');
+  console.log('METHOD:', req.method);
 
   try {
     if (req.method !== 'POST') {
-      console.error('[send-reminders] method not allowed:', req.method);
-      res.status(405).json({ ok: false, error: 'Method not allowed' });
-      return;
+      return res.status(405).json({ ok: false, error: 'Method not allowed' });
     }
+
+    console.log('BODY:', req.body);
 
     const auth = getHeader(req, 'authorization');
     const xs = getHeader(req, 'x-cron-secret');
@@ -73,16 +72,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     try {
       payload = text ? (JSON.parse(text) as Record<string, unknown>) : {};
     } catch (parseErr: unknown) {
-      console.error('send-reminders ERROR', parseErr);
+      console.error('SEND REMINDERS ERROR:', parseErr);
       console.error('[send-reminders] dispatch response not JSON', parseErr, text.slice(0, 300));
       const msg =
         parseErr instanceof Error && parseErr.message ? parseErr.message : 'Unknown error';
-      res.status(500).json({
+      return res.status(500).json({
         ok: false,
         error: msg || 'Invalid JSON from reminder handler',
         rawPreview: text.slice(0, 500),
+        stack: parseErr instanceof Error ? parseErr.stack ?? null : null,
       });
-      return;
     }
 
     if (!response.ok || payload.ok === false) {
@@ -91,18 +90,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           ? payload.error
           : 'Reminder dispatch fehlgeschlagen';
       console.error('[send-reminders] dispatch failed', response.status, errMsg, payload);
-      res.status(response.status >= 400 ? response.status : 500).json({
+      return res.status(response.status >= 400 ? response.status : 500).json({
         ok: false,
         error: errMsg,
         ...payload,
       });
-      return;
     }
 
     const processed = typeof payload.processed === 'number' ? payload.processed : 0;
     console.log('[send-reminders] success', { processed, sent: payload.sent, skipped: payload.skipped });
 
-    res.status(200).json({
+    console.log('SEND REMINDERS SUCCESS');
+    return res.status(200).json({
       ok: true,
       message: 'Reminder dispatch erfolgreich',
       processed: typeof processed === 'number' ? processed : 0,
@@ -114,11 +113,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       pushAutomations: payload.pushAutomations,
     });
   } catch (err: unknown) {
-    console.error('send-reminders ERROR', err);
+    console.error('SEND REMINDERS ERROR:', err);
     const message = err instanceof Error && err.message ? err.message : 'Unknown error';
-    res.status(500).json({
+    const stack = err instanceof Error ? err.stack ?? null : null;
+    return res.status(500).json({
       ok: false,
       error: message,
+      stack,
     });
   }
 }
