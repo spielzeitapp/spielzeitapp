@@ -35,20 +35,28 @@ export const MoreHubPage: React.FC = () => {
     try {
       const res = await fetch('/api/send-reminders', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
-      const data = (await res.json()) as { error?: string };
+      const raw = await res.text();
+      console.log('REMINDER STATUS', res.status);
+      console.log('REMINDER RAW RESPONSE', raw);
 
-      console.log('REMINDER RESULT:', data);
+      let data: { error?: string; message?: string; raw?: string } | null = null;
+      try {
+        data = raw ? (JSON.parse(raw) as { error?: string; message?: string; raw?: string }) : null;
+      } catch {
+        data = { raw };
+      }
 
       if (!res.ok) {
-        alert(`Reminder Fehler: ${data?.error || 'Unknown error'}`);
-      } else {
-        alert('Reminder erfolgreich ausgelöst');
+        alert(
+          `Reminder Fehler: ${data?.error || data?.message || data?.raw || `HTTP ${res.status}`}`,
+        );
+        return;
       }
+
+      alert(`Reminder erfolgreich: ${data?.message || 'OK'}`);
     } catch (err) {
       console.error(err);
       alert(`Reminder Fehler: ${err instanceof Error ? err.message : String(err)}`);
