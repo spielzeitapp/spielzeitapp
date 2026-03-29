@@ -1,4 +1,4 @@
-import { getCanonicalEventType, type RawEventRow } from '../notifications/eventTypes';
+import { getCanonicalEventType, getEventDisplayTitle, type RawEventRow } from '../notifications/eventTypes';
 import type { TeamNotificationSettingsRow } from '../notifications/teamSettings';
 import type { NotificationKind } from '../notifications/pending';
 import type { ReminderJobInsert, ReminderJobKind } from './types';
@@ -91,13 +91,9 @@ function jobKindForCanonical(ctype: ReturnType<typeof getCanonicalEventType>): R
   return 'event';
 }
 
-function buildDedupeKey(
-  eventId: string,
-  kind: ReminderJobKind,
-  baseTimeIso: string,
-  offsetMinutes: number,
-): string {
-  return `${eventId}|${kind}|${baseTimeIso}|${offsetMinutes}`;
+/** Stabil: event:<uuid>:match_reminder_1 */
+function buildDedupeKey(eventId: string, semanticReminderKey: string): string {
+  return `event:${eventId}:${semanticReminderKey}`;
 }
 
 /** Mindest-Abstand in die Zukunft, wenn der ideale send_at schon vorbei ist (Termin steht noch bevor). */
@@ -131,6 +127,9 @@ export function buildReminderJobsForEvent(
   const kind = jobKindForCanonical(ctype);
   const slots = getOffsetsForEvent(event, settings);
   const out: ReminderJobInsert[] = [];
+  const eventTitle = getEventDisplayTitle(event);
+  const eventTypeLabel =
+    ctype === 'game' ? 'match' : ctype === 'training' ? 'training' : ctype === 'event' ? 'event' : 'other';
 
   for (const slot of slots) {
     const idealSendAtMs = baseMs - slot.offsetMinutes * 60 * 1000;
@@ -143,10 +142,16 @@ export function buildReminderJobsForEvent(
 
     const payload = {
       reminderKey: slot.reminderKey,
+      reminder_type: slot.reminderKey,
       offsetMinutes: slot.offsetMinutes,
+      minutes_before: slot.offsetMinutes,
       notificationType: slot.notificationType,
       baseTimeIso: baseIso,
       clamped,
+      event_id: event.id,
+      team_id: teamId,
+      event_title: eventTitle,
+      event_type: eventTypeLabel,
     };
 
     out.push({
@@ -156,7 +161,7 @@ export function buildReminderJobsForEvent(
       send_at: toIso(new Date(sendAtMs)),
       payload,
       status: 'pending',
-      dedupe_key: buildDedupeKey(event.id, kind, baseIso, slot.offsetMinutes),
+      dedupe_key: buildDedupeKey(event.id, slot.reminderKey),
     });
   }
 

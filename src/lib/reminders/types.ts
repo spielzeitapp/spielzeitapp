@@ -4,12 +4,18 @@ export type ReminderJobKind = 'match' | 'training' | 'event';
 
 export type NotificationJobPayload = {
   reminderKey: string;
+  /** z. B. match_reminder_1 — gleichbedeutend mit reminderKey, stabil für Dedupe/UI */
+  reminder_type?: string;
   offsetMinutes: number;
   notificationType: NotificationKind;
   /** ISO der Basiszeit (Treff/Anstoß), für Debugging */
   baseTimeIso: string;
   /** true, wenn send_at wegen „Offset schon vorbei“ angehoben wurde */
   clamped?: boolean;
+  minutes_before?: number;
+  event_title?: string;
+  /** match | training | event | game | other */
+  event_type?: string;
 };
 
 export type NotificationJobRow = {

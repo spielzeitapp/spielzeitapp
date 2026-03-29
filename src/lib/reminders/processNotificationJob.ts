@@ -54,13 +54,23 @@ function buildCopyForJob(
 function parsePayload(raw: unknown): NotificationJobPayload | null {
   if (!raw || typeof raw !== 'object') return null;
   const p = raw as Record<string, unknown>;
-  if (typeof p.reminderKey !== 'string' || typeof p.offsetMinutes !== 'number') return null;
+  const reminderKey =
+    typeof p.reminderKey === 'string'
+      ? p.reminderKey
+      : typeof p.reminder_type === 'string'
+        ? p.reminder_type
+        : null;
+  if (!reminderKey || typeof p.offsetMinutes !== 'number') return null;
   if (typeof p.notificationType !== 'string') return null;
   return {
-    reminderKey: p.reminderKey,
+    reminderKey,
+    reminder_type: typeof p.reminder_type === 'string' ? p.reminder_type : reminderKey,
     offsetMinutes: p.offsetMinutes,
     notificationType: p.notificationType as NotificationJobPayload['notificationType'],
     baseTimeIso: typeof p.baseTimeIso === 'string' ? p.baseTimeIso : '',
+    minutes_before: typeof p.minutes_before === 'number' ? p.minutes_before : undefined,
+    event_title: typeof p.event_title === 'string' ? p.event_title : undefined,
+    event_type: typeof p.event_type === 'string' ? p.event_type : undefined,
   };
 }
 
