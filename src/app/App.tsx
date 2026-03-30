@@ -21,8 +21,6 @@ import { TeamPage } from '../pages/TeamPage';
 import { TablePage } from '../pages/TablePage';
 import { NotificationsPage } from '../pages/NotificationsPage';
 import { ProfilePage } from '../pages/ProfilePage';
-import { MessagesPage } from '../pages/MessagesPage';
-import { MessageDetailPage } from '../pages/MessageDetailPage';
 import { TrainerTeamPushPage } from '../pages/TrainerTeamPushPage';
 import { TrainerTemplatesPage } from '../pages/TrainerTemplatesPage';
 import { TrainerRemindersPage } from '../pages/TrainerRemindersPage';
@@ -158,9 +156,8 @@ function InternalRoutes(): React.ReactElement {
         <Route path="profile" element={<ProfilePage />} />
         <Route path="mehr/profile" element={<Navigate to="/app/profile" replace />} />
 
-        {/* MVP Nachrichten */}
-        <Route path="nachrichten" element={<MessagesPage />} />
-        <Route path="nachrichten/:messageId" element={<MessageDetailPage />} />
+        <Route path="nachrichten" element={<NotificationsPage />} />
+        <Route path="nachrichten/:messageId" element={<Navigate to="/app/nachrichten" replace />} />
       </Route>
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
       <Route path="/admin/login" element={<AdminLoginPage />} />

@@ -1,18 +1,19 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth/AuthProvider';
-import { useSession } from '../auth/useSession';
 import { Card } from '../app/components/ui/Card';
 import { formatDateTimeMediumDeVienna } from '../lib/notifications/format';
-
-const API = '/api/notifications';
+import { supabase } from '../lib/supabaseClient';
+import { notifyNotificationsReadChanged } from '../lib/notificationsReadState';
 
 type NotificationRow = {
   id: string;
+  user_id: string | null;
+  event_id: string | null;
   title: string;
   message: string;
   link: string | null;
-  type: string;
+  type?: string | null;
+  read: boolean;
   created_at: string;
 };
 
@@ -32,16 +33,17 @@ function formatWhen(iso: string): string {
 
 export const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { session } = useAuth();
-  const { selectedTeamSeason } = useSession();
-  const teamId = selectedTeamSeason?.team?.id ?? null;
 
   const [items, setItems] = useState<NotificationRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!session?.access_token || !teamId) {
+    const { data: authData } = await supabase.auth.getUser();
+    const uid = authData.user?.id ?? null;
+    setUserId(uid);
+    if (!uid) {
       setItems([]);
       setError(null);
       setLoading(false);
@@ -50,36 +52,86 @@ export const NotificationsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const q = new URLSearchParams({ team_id: String(teamId) });
-      const res = await fetch(`${API}?${q.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-      const data = (await res.json()) as {
-        ok?: boolean;
-        notifications?: NotificationRow[];
-        error?: string;
-      };
-      if (!res.ok || data.ok === false) {
+      const { data, error: qErr } = await supabase
+        .from('notifications')
+        .select('id, user_id, event_id, title, message, link, type, read, created_at')
+        .eq('user_id', uid)
+        .order('created_at', { ascending: false });
+
+      if (qErr) {
         setItems([]);
-        setError(data.error || 'Nachrichten konnten nicht geladen werden.');
+        setError(qErr.message || 'Benachrichtigungen konnten nicht geladen werden.');
         return;
       }
-      setItems(Array.isArray(data.notifications) ? data.notifications : []);
+      setItems(Array.isArray(data) ? (data as NotificationRow[]) : []);
     } catch {
       setItems([]);
-      setError('Nachrichten konnten nicht geladen werden.');
+      setError('Benachrichtigungen konnten nicht geladen werden.');
     } finally {
       setLoading(false);
     }
-  }, [session?.access_token, teamId]);
+  }, []);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const onItemClick = (n: NotificationRow) => {
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`notifications:user:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        () => {
+          void load();
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [userId, load]);
+
+  const unreadCount = useMemo(
+    () => (items ?? []).filter((n) => n.read !== true).length,
+    [items],
+  );
+
+  const onMarkAllRead = async () => {
+    if (!userId || unreadCount <= 0) return;
+    const { error: updErr } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('user_id', userId)
+      .eq('read', false);
+    if (!updErr) {
+      setItems((prev) => (prev ?? []).map((x) => ({ ...x, read: true })));
+      notifyNotificationsReadChanged();
+    }
+  };
+
+  const onItemClick = async (n: NotificationRow) => {
+    if (!userId) return;
+    if (n.read !== true) {
+      const { error: updErr } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', n.id)
+        .eq('user_id', userId)
+        .eq('read', false);
+      if (!updErr) {
+        setItems((prev) =>
+          (prev ?? []).map((x) => (x.id === n.id ? { ...x, read: true } : x)),
+        );
+        notifyNotificationsReadChanged();
+      }
+    }
+
+    if (n.event_id) {
+      navigate(`/app/events/${n.event_id}`);
+      return;
+    }
     const target = resolveAppPath(n.link);
     if (target) navigate(target);
   };
@@ -94,13 +146,33 @@ export const NotificationsPage: React.FC = () => {
       }}
     >
       <div className="mx-auto max-w-[560px] space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight text-white">Nachrichten</h1>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white">Benachrichtigungen</h1>
+            {unreadCount > 0 ? (
+              <p className="mt-1 text-xs text-red-200">{unreadCount > 99 ? '99+' : unreadCount} ungelesen</p>
+            ) : (
+              <p className="mt-1 text-xs text-white/60">Alles gelesen</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <div className="rounded-full bg-red-500 px-2.5 py-1 text-xs font-bold text-white">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => void onMarkAllRead()}
+              disabled={unreadCount <= 0}
+              className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/85 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-white/10"
+            >
+              Alle als gelesen
+            </button>
+          </div>
+        </div>
 
-        {!teamId && (
-          <p className="text-sm text-amber-200/90">Kein Team ausgewählt.</p>
-        )}
-
-        {loading && teamId && (
+        {loading && (
           <p className="text-sm text-white/60">Laden…</p>
         )}
 
@@ -110,19 +182,21 @@ export const NotificationsPage: React.FC = () => {
           </p>
         )}
 
-        {!loading && !error && teamId && items && items.length === 0 && (
-          <p className="text-sm text-white/70">Noch keine Nachrichten vorhanden.</p>
+        {!loading && !error && items && items.length === 0 && (
+          <p className="text-sm text-white/70">Noch keine Benachrichtigungen vorhanden.</p>
         )}
 
         {!loading && items && items.length > 0 && (
           <ul className="space-y-3">
             {items.map((n) => {
-              const href = resolveAppPath(n.link);
-              const interactive = Boolean(href);
+              const interactive = Boolean(n.event_id || resolveAppPath(n.link));
+              const isUnread = n.read !== true;
               return (
                 <li key={n.id}>
                   <Card
                     className={`text-white transition-colors ${
+                      isUnread ? 'border-red-500/30 bg-red-950/25' : ''
+                    } ${
                       interactive
                         ? 'cursor-pointer hover:border-white/25 hover:bg-white/[0.07]'
                         : ''
@@ -139,7 +213,14 @@ export const NotificationsPage: React.FC = () => {
                     role={interactive ? 'button' : undefined}
                     tabIndex={interactive ? 0 : undefined}
                   >
-                    <div className="text-xs text-[var(--text-sub)]">{formatWhen(n.created_at)}</div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="text-xs text-[var(--text-sub)]">{formatWhen(n.created_at)}</div>
+                      {isUnread && (
+                        <div className="shrink-0 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          Neu
+                        </div>
+                      )}
+                    </div>
                     <h2 className="mt-1 text-base font-semibold text-[var(--text-main)]">{n.title}</h2>
                     <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--text-sub)]">{n.message}</p>
                     {interactive && (

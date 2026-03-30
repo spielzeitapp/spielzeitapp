@@ -1,7 +1,7 @@
 /**
  * Supabase Edge Function: fällige notification_jobs verarbeiten.
  * - idempotent per Claim pending -> processing
- * - In-App Nachricht (messages)
+ * - In-App Benachrichtigung (notifications)
  * - Web Push (push_subscriptions)
  * - UTC intern, Textausgabe Europe/Vienna
  */
@@ -127,14 +127,13 @@ async function failJob(admin: SupabaseClient, job: JobRow, err: string) {
   }
 }
 
-async function messageExists(admin: SupabaseClient, userId: string, eventId: string, reminderKey: string) {
+async function notificationExists(admin: SupabaseClient, userId: string, eventId: string, reminderKey: string) {
   const { data, error } = await admin
-    .from("messages")
+    .from("notifications")
     .select("id")
     .eq("user_id", userId)
-    .eq("related_event_id", eventId)
-    .eq("type", "team_push")
-    .eq("reminder_key", reminderKey)
+    .eq("event_id", eventId)
+    .eq("type", `reminder:${reminderKey}`)
     .maybeSingle();
   if (error) throw error;
   return Boolean(data && (data as { id?: string }).id);
@@ -273,8 +272,6 @@ async function processOneJob(
   const title = reminderTitle(label);
   const body = reminderBody(label, event as EventRow, teamName);
   const url = REMINDER_LINK.startsWith("/") ? REMINDER_LINK : `/${REMINDER_LINK}`;
-  const content = `${body}\n\n${url}`;
-
   const recipients = await fetchRecipientsForTeamSeason(admin, (event as EventRow).team_season_id!);
   if (recipients.length === 0) {
     await completeJob(admin, job.id);
@@ -286,21 +283,17 @@ async function processOneJob(
   let pushRemoved = 0;
 
   for (const userId of recipients) {
-    const exists = await messageExists(admin, userId, job.event_id, effectiveReminderKey);
+    const exists = await notificationExists(admin, userId, job.event_id, effectiveReminderKey);
     if (!exists) {
-      const { error: insErr } = await admin.from("messages").insert({
+      const { error: insErr } = await admin.from("notifications").insert({
         team_id: job.team_id,
         user_id: userId,
+        event_id: job.event_id,
         title,
-        body,
-        content,
-        type: "team_push",
+        message: body,
+        type: `reminder:${effectiveReminderKey}`,
         read: false,
         link: url,
-        related_event_id: job.event_id,
-        event_id: job.event_id,
-        reminder_key: effectiveReminderKey,
-        notification_kind: label,
       });
       if (insErr) {
         const err = insErr.message ?? String(insErr);
