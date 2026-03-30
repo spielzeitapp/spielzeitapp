@@ -1,6 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { RawEventRow } from '../notifications/eventTypes';
-import { mapTeamNotificationSettingsFromDb, type TeamNotificationSettingsRow } from '../notifications/teamSettings';
+import {
+  mapTeamNotificationSettingsFromDb,
+  resolveTeamSettings,
+  type TeamNotificationSettingsRow,
+} from '../notifications/teamSettings';
 import { syncEventReminderJobs } from './syncEventReminderJobs';
 
 /**
@@ -71,4 +75,37 @@ export async function syncEventReminderJobsForSavedEvent(
   teamNotificationSettings: TeamNotificationSettingsRow,
 ): Promise<void> {
   await syncReminderJobsAfterEventWrite(client, savedEvent, teamNotificationSettings);
+}
+
+/**
+ * Finaler Auto-Create-Pfad nach Event-Insert:
+ * - training: 2h vorher
+ * - match: 24h + 2h vorher
+ * - event: 24h vorher
+ *
+ * Nutzt dieselbe notification_jobs-Pipeline (kein Sonderweg).
+ */
+export async function createReminderJobs(
+  client: SupabaseClient,
+  eventRow: Record<string, unknown>,
+): Promise<void> {
+  const event = eventRow as RawEventRow & { id: string; team_season_id: string };
+  if (!event?.id || !event.team_season_id) {
+    console.warn('[reminderJobs] createReminderJobs skip: missing event.id or team_season_id', eventRow);
+    return;
+  }
+
+  const forcedSettings = resolveTeamSettings(event.team_season_id, {
+    team_season_id: event.team_season_id,
+    training_enabled: true,
+    training_minutes_before: 120,
+    match_enabled: true,
+    match_minutes_before: 1440,
+    match_second_enabled: true,
+    match_second_minutes_before: 120,
+    event_enabled: true,
+    event_minutes_before: 1440,
+  });
+
+  await syncReminderJobsAfterEventWrite(client, eventRow, forcedSettings);
 }

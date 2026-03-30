@@ -3,7 +3,7 @@ import { Button } from './ui/Button';
 import { Modal } from '../ui/Modal';
 import { supabase } from '../../lib/supabaseClient';
 import { enumerateOccurrenceStarts, type RecurrenceKind } from '../../lib/recurrenceDates';
-import { syncReminderJobsAfterEventWrite } from '../../lib/reminders/syncReminderJobsAfterEventWrite';
+import { createReminderJobs } from '../../lib/reminders/syncReminderJobsAfterEventWrite';
 import {
   meetupUtcIsoOnViennaEventDay,
   parseViennaDateTimeLocalToUtcIso,
@@ -300,7 +300,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       try {
         for (const row of rowsToSync) {
-          await syncReminderJobsAfterEventWrite(supabase, row);
+          await createReminderJobs(supabase, row);
         }
       } catch (e) {
         console.error('[CreateEventModal] REMINDER sync loop error', e);
