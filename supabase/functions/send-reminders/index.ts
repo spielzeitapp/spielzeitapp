@@ -1,7 +1,9 @@
 /**
- * Supabase Edge Function: fällige notification_jobs (Push + messages).
- * Idempotent: Claim pending→processing; Dedupe über messages.reminder_key.
- * Fehler: attempt_count +1, last_error, status failed (kein Retry wie Vercel).
+ * Supabase Edge Function: fällige notification_jobs verarbeiten.
+ * - idempotent per Claim pending -> processing
+ * - In-App Nachricht (messages)
+ * - Web Push (push_subscriptions)
+ * - UTC intern, Textausgabe Europe/Vienna
  */
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -9,157 +11,109 @@ import webpush from "npm:web-push@3.6.7";
 
 const REMINDER_LINK = "/app/termine";
 const JOB_BATCH_LIMIT = 50;
+const VIENNA_TZ = "Europe/Vienna";
+const MEMBER_ROLES = ["trainer", "co_trainer", "head_coach", "admin", "parent", "player"];
 
-function formatTimeDe(iso: string | null | undefined) {
-  if (!iso) return "--:--";
-  try {
-    return new Date(iso).toLocaleTimeString("de-DE", {
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "Europe/Vienna",
-    });
-  } catch {
-    return "--:--";
-  }
-}
+type JobRow = {
+  id: string;
+  team_id: string | null;
+  event_id: string | null;
+  kind: string | null;
+  payload: unknown;
+  attempt_count?: number | null;
+};
 
-function titleForJobKind(kind: string | null | undefined) {
-  if (kind === "match") return "⚽ Spiel-Erinnerung";
-  if (kind === "training") return "🏃 Trainings-Erinnerung";
-  return "📌 Erinnerung";
-}
+type EventRow = {
+  id: string;
+  team_season_id: string | number | null;
+  starts_at: string | null;
+  meetup_at?: string | null;
+  status?: string | null;
+  kind?: string | null;
+  event_type?: string | null;
+  opponent?: string | null;
+  notes?: string | null;
+  location?: string | null;
+};
 
-function buildReminderBody(
-  kind: string | null | undefined,
-  event: { starts_at?: string | null },
-  reminderKey: string,
-) {
-  const t = formatTimeDe(event.starts_at ?? undefined);
-  if (kind === "match") {
-    if (reminderKey === "match_reminder_2") {
-      return `Erinnerung: Treffpunkt bald (Spiel um ${t}).`;
-    }
-    return `Erinnerung: Spiel heute um ${t}`;
-  }
-  if (kind === "training") {
-    return `Erinnerung: Training heute um ${t}`;
-  }
-  return `Erinnerung: Termin heute um ${t}`;
-}
+type TeamRow = { id: string; name: string | null };
 
-function parseJobPayload(raw: unknown) {
-  if (!raw || typeof raw !== "object") return null;
+function parseJobPayload(raw: unknown): { reminderKey: string | null } {
+  if (!raw || typeof raw !== "object") return { reminderKey: null };
   const p = raw as Record<string, unknown>;
-  const rk =
+  const reminderKey =
     typeof p.reminderKey === "string"
       ? p.reminderKey
       : typeof p.reminder_type === "string"
         ? p.reminder_type
         : null;
-  if (typeof rk !== "string" || typeof p.offsetMinutes !== "number") return null;
-  return {
-    reminderKey: rk,
-    offsetMinutes: p.offsetMinutes as number,
-    notificationType: p.notificationType,
-    baseTimeIso: typeof p.baseTimeIso === "string" ? p.baseTimeIso : "",
-  };
+  return { reminderKey };
 }
 
-async function fetchRecipientUserIdsForTeamSeason(
-  admin: SupabaseClient,
-  teamSeasonId: number,
-) {
-  const { data: members, error } = await admin
-    .from("memberships")
-    .select("user_id")
-    .eq("team_season_id", teamSeasonId)
-    .in("role", ["parent", "player"]);
-  if (error) throw error;
-  const ids = (members ?? []).map((m: { user_id: string }) => m.user_id);
-  return [...new Set(ids.filter(Boolean))];
+function isoDateTimeDeVienna(iso: string | null | undefined) {
+  if (!iso) return "unbekannter Zeit";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "unbekannter Zeit";
+  return new Intl.DateTimeFormat("de-DE", {
+    timeZone: VIENNA_TZ,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
 }
 
-async function fetchPlayerIdsForUserInTeamSeason(
-  admin: SupabaseClient,
-  userId: string,
-  teamSeasonId: number,
-) {
-  const { data: players, error: pErr } = await admin
-    .from("players")
-    .select("id")
-    .eq("team_season_id", teamSeasonId)
-    .eq("is_active", true);
-  if (pErr) throw pErr;
-  const rosterIds = new Set((players ?? []).map((p: { id: string }) => p.id));
-
-  const { data: g, error: gErr } = await admin
-    .from("player_guardians")
-    .select("player_id")
-    .eq("user_id", userId);
-  if (gErr) throw gErr;
-  const fromG = (g ?? [])
-    .map((x: { player_id: string }) => x.player_id)
-    .filter((id: string) => rosterIds.has(id));
-
-  const { data: pu, error: puErr } = await admin
-    .from("player_users")
-    .select("player_id")
-    .eq("user_id", userId);
-  if (puErr) throw puErr;
-  const fromPu = (pu ?? [])
-    .map((x: { player_id: string }) => x.player_id)
-    .filter((id: string) => rosterIds.has(id));
-
-  return [...new Set([...fromG, ...fromPu])];
+function eventLabel(kind: string | null | undefined, event: EventRow): "match" | "training" | "event" {
+  const k = (kind ?? event.kind ?? "").toLowerCase().trim();
+  if (k === "match" || k === "game" || k === "spiel") return "match";
+  if (k === "training") return "training";
+  return "event";
 }
 
-function hasAllPlayersAnswered(playerIds: string[], attMap: Map<string, string | null>) {
-  if (playerIds.length === 0) return true;
-  return playerIds.every((pid) => {
-    const s = attMap.get(pid);
-    return s === "yes" || s === "no";
-  });
+function reminderTitle(label: "match" | "training" | "event") {
+  if (label === "match") return "Spiel Erinnerung";
+  if (label === "training") return "Training Erinnerung";
+  return "Event Erinnerung";
 }
 
-async function messageExists(
-  admin: SupabaseClient,
-  userId: string,
-  eventId: string,
-  reminderKey: string,
-) {
-  const { data: ex } = await admin
-    .from("messages")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("related_event_id", eventId)
-    .eq("type", "team_push")
-    .eq("reminder_key", reminderKey)
-    .maybeSingle();
-  return Boolean(ex && (ex as { id?: string }).id);
+function reminderBody(label: "match" | "training" | "event", event: EventRow, teamName: string | null) {
+  const at = isoDateTimeDeVienna(event.starts_at);
+  if (label === "training") {
+    return `Erinnerung: Training heute um ${at} Uhr.`;
+  }
+  if (label === "match") {
+    const vs = (event.opponent ?? "").trim();
+    if (vs) return `Erinnerung: Spiel gegen ${vs} am ${at}.`;
+    return `Erinnerung: Heute steht ein Spiel um ${at} an.`;
+  }
+  const title = (event.notes ?? "").split("·")[0]?.trim();
+  if (title) return `Erinnerung: ${title} steht am ${at} an.`;
+  if (teamName) return `Erinnerung: Ein Team-Event (${teamName}) steht am ${at} an.`;
+  return `Erinnerung: Ein Event steht am ${at} an.`;
 }
 
 async function completeJob(admin: SupabaseClient, jobId: string) {
-  await admin
+  const nowIso = new Date().toISOString();
+  const { error } = await admin
     .from("notification_jobs")
     .update({
       status: "sent",
-      sent_at: new Date().toISOString(),
+      sent_at: nowIso,
       last_error: null,
-      updated_at: new Date().toISOString(),
+      updated_at: nowIso,
     })
     .eq("id", jobId)
     .eq("status", "processing");
+  if (error) {
+    throw new Error(`completeJob failed: ${error.message}`);
+  }
 }
 
-/** Edge: bei Fehler direkt failed (Vergleich: Vercel nutzt Retry bis 3). */
-async function failJobPermanent(
-  admin: SupabaseClient,
-  job: { id: string; attempt_count?: number | null },
-  err: string,
-) {
-  const attempt = (job.attempt_count ?? 0) + 1;
+async function failJob(admin: SupabaseClient, job: JobRow, err: string) {
   const lastErr = String(err).slice(0, 2000);
-  await admin
+  const attempt = (job.attempt_count ?? 0) + 1;
+  const { error } = await admin
     .from("notification_jobs")
     .update({
       status: "failed",
@@ -168,6 +122,35 @@ async function failJobPermanent(
       updated_at: new Date().toISOString(),
     })
     .eq("id", job.id);
+  if (error) {
+    console.error("[send-reminders] failJob update failed", { jobId: job.id, error: error.message });
+  }
+}
+
+async function messageExists(admin: SupabaseClient, userId: string, eventId: string, reminderKey: string) {
+  const { data, error } = await admin
+    .from("messages")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("related_event_id", eventId)
+    .eq("type", "team_push")
+    .eq("reminder_key", reminderKey)
+    .maybeSingle();
+  if (error) throw error;
+  return Boolean(data && (data as { id?: string }).id);
+}
+
+async function fetchRecipientsForTeamSeason(admin: SupabaseClient, teamSeasonId: string | number) {
+  const { data, error } = await admin
+    .from("memberships")
+    .select("user_id, role")
+    .eq("team_season_id", teamSeasonId)
+    .in("role", MEMBER_ROLES);
+  if (error) throw error;
+  const ids = (data ?? [])
+    .map((r: { user_id?: string | null }) => r.user_id ?? null)
+    .filter((id): id is string => Boolean(id));
+  return [...new Set(ids)];
 }
 
 let vapidReady = false;
@@ -183,165 +166,162 @@ function ensureVapid() {
   vapidReady = true;
 }
 
-async function sendOnePush(
-  subRow: { endpoint: string; p256dh: string; auth: string },
+function pushIsGoneError(err: unknown) {
+  const code = Number((err as { statusCode?: unknown })?.statusCode);
+  const status = Number((err as { status?: unknown })?.status);
+  return code === 404 || code === 410 || status === 404 || status === 410;
+}
+
+async function sendPushesForUser(
+  admin: SupabaseClient,
+  userId: string,
   title: string,
   body: string,
   url: string,
-) {
+): Promise<{ sent: number; removed: number }> {
+  const { data: subscriptions, error } = await admin
+    .from("push_subscriptions")
+    .select("endpoint, p256dh, auth")
+    .eq("user_id", userId)
+    .not("endpoint", "is", null);
+  if (error) throw error;
+
+  if (!subscriptions || subscriptions.length === 0) {
+    return { sent: 0, removed: 0 };
+  }
+
   ensureVapid();
   const payload = JSON.stringify({ title, body, url });
-  await webpush.sendNotification(
-    {
-      endpoint: subRow.endpoint,
-      keys: { p256dh: subRow.p256dh, auth: subRow.auth },
-    },
-    payload,
-    { TTL: 3600 },
-  );
-}
+  let sent = 0;
+  let removed = 0;
 
-type JobRow = {
-  id: string;
-  team_id: string;
-  event_id: string;
-  kind: string | null;
-  payload: unknown;
-  attempt_count?: number | null;
-};
+  for (const row of subscriptions as Array<{ endpoint?: string | null; p256dh?: string | null; auth?: string | null }>) {
+    const endpoint = row.endpoint ?? "";
+    const p256dh = row.p256dh ?? "";
+    const auth = row.auth ?? "";
+    if (!endpoint || !p256dh || !auth) continue;
+
+    try {
+      await webpush.sendNotification(
+        { endpoint, keys: { p256dh, auth } },
+        payload,
+        { TTL: 3600 },
+      );
+      sent += 1;
+    } catch (err) {
+      console.error("[send-reminders] push failed", { userId, endpoint, error: err });
+      if (pushIsGoneError(err)) {
+        const { error: delErr } = await admin
+          .from("push_subscriptions")
+          .delete()
+          .eq("user_id", userId)
+          .eq("endpoint", endpoint);
+        if (!delErr) removed += 1;
+      }
+    }
+  }
+
+  return { sent, removed };
+}
 
 async function processOneJob(
   admin: SupabaseClient,
   job: JobRow,
-): Promise<{ ok: boolean; error?: string; inserted?: number; pushSent?: number; skipped?: string }> {
-  const payload = parseJobPayload(job.payload);
-  if (!payload) {
-    const err = "invalid job payload";
-    await failJobPermanent(admin, job, err);
+): Promise<{ ok: boolean; error?: string; inserted?: number; pushSent?: number; pushRemoved?: number }> {
+  if (!job.event_id) {
+    const err = "job has no event_id";
+    await failJob(admin, job, err);
     return { ok: false, error: err };
   }
 
-  const reminderKey = payload.reminderKey;
+  const { reminderKey } = parseJobPayload(job.payload);
+  const effectiveReminderKey = reminderKey ?? `job:${job.id}`;
 
-  const { data: event, error: evErr } = await admin
+  const { data: event, error: eventErr } = await admin
     .from("events")
-    .select("*")
+    .select("id, team_season_id, starts_at, meetup_at, status, kind, event_type, opponent, notes, location")
     .eq("id", job.event_id)
     .maybeSingle();
-
-  if (evErr || !event) {
-    const err = evErr?.message ?? "event not found";
-    await failJobPermanent(admin, job, err);
+  if (eventErr || !event) {
+    const err = eventErr?.message ?? "event not found";
+    await failJob(admin, job, err);
+    return { ok: false, error: err };
+  }
+  if (!(event as EventRow).team_season_id) {
+    const err = "event has no team_season_id";
+    await failJob(admin, job, err);
     return { ok: false, error: err };
   }
 
-  const title = titleForJobKind(job.kind);
-  const textBody = buildReminderBody(job.kind, event as { starts_at?: string }, reminderKey);
-  const url = REMINDER_LINK.startsWith("/") ? REMINDER_LINK : `/${REMINDER_LINK}`;
-  const contentWithLink = `${textBody}\n\n${url}`;
-
-  if ((event.status ?? "upcoming") !== "upcoming") {
+  // Events, die nicht mehr upcoming sind, markieren wir als erledigt.
+  if (((event as EventRow).status ?? "upcoming") !== "upcoming") {
     await completeJob(admin, job.id);
-    return { ok: true, skipped: "event_not_upcoming" };
+    return { ok: true, inserted: 0, pushSent: 0, pushRemoved: 0 };
   }
 
-  const { data: attRows, error: attErr } = await admin
-    .from("event_attendance")
-    .select("player_id, status")
-    .eq("event_id", job.event_id);
-  if (attErr) {
-    await failJobPermanent(admin, job, attErr.message);
-    return { ok: false, error: attErr.message };
+  let teamName: string | null = null;
+  if (job.team_id) {
+    const { data: team } = await admin
+      .from("teams")
+      .select("id, name")
+      .eq("id", job.team_id)
+      .maybeSingle();
+    teamName = (team as TeamRow | null)?.name ?? null;
   }
 
-  const attMap = new Map<string, string | null>();
-  for (const row of attRows ?? []) {
-    const r = row as { player_id: string; status: string | null };
-    attMap.set(r.player_id, r.status);
-  }
+  const label = eventLabel(job.kind, event as EventRow);
+  const title = reminderTitle(label);
+  const body = reminderBody(label, event as EventRow, teamName);
+  const url = REMINDER_LINK.startsWith("/") ? REMINDER_LINK : `/${REMINDER_LINK}`;
+  const content = `${body}\n\n${url}`;
 
-  let userIds: string[];
-  try {
-    userIds = await fetchRecipientUserIdsForTeamSeason(
-      admin,
-      (event as { team_season_id: number }).team_season_id,
-    );
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    await failJobPermanent(admin, job, msg);
-    return { ok: false, error: msg };
-  }
-
-  const recipients: string[] = [];
-  const teamSeasonId = (event as { team_season_id: number }).team_season_id;
-  for (const userId of userIds) {
-    let playerIds: string[];
-    try {
-      playerIds = await fetchPlayerIdsForUserInTeamSeason(admin, userId, teamSeasonId);
-    } catch {
-      continue;
-    }
-    if (playerIds.length === 0) continue;
-    if (hasAllPlayersAnswered(playerIds, attMap)) continue;
-    recipients.push(userId);
-  }
-
+  const recipients = await fetchRecipientsForTeamSeason(admin, (event as EventRow).team_season_id!);
   if (recipients.length === 0) {
     await completeJob(admin, job.id);
-    return { ok: true, inserted: 0, pushSent: 0, skipped: "no_recipients" };
+    return { ok: true, inserted: 0, pushSent: 0, pushRemoved: 0 };
   }
 
   let inserted = 0;
   let pushSent = 0;
+  let pushRemoved = 0;
 
   for (const userId of recipients) {
-    const exists = await messageExists(admin, userId, job.event_id, reminderKey);
-    if (exists) continue;
-
-    const { error: insErr } = await admin.from("messages").insert({
-      team_id: job.team_id,
-      user_id: userId,
-      title,
-      body: textBody,
-      content: contentWithLink,
-      type: "team_push",
-      read: false,
-      link: url,
-      related_event_id: job.event_id,
-      event_id: job.event_id,
-      reminder_key: reminderKey,
-      notification_kind:
-        job.kind === "match" ? "match" : job.kind === "training" ? "training" : "event",
-    });
-
-    if (insErr) {
-      throw new Error(insErr.message ?? String(insErr));
+    const exists = await messageExists(admin, userId, job.event_id, effectiveReminderKey);
+    if (!exists) {
+      const { error: insErr } = await admin.from("messages").insert({
+        team_id: job.team_id,
+        user_id: userId,
+        title,
+        body,
+        content,
+        type: "team_push",
+        read: false,
+        link: url,
+        related_event_id: job.event_id,
+        event_id: job.event_id,
+        reminder_key: effectiveReminderKey,
+        notification_kind: label,
+      });
+      if (insErr) {
+        const err = insErr.message ?? String(insErr);
+        await failJob(admin, job, err);
+        return { ok: false, error: err };
+      }
+      inserted += 1;
     }
-    inserted += 1;
 
-    const { data: sub } = await admin
-      .from("push_subscriptions")
-      .select("endpoint, p256dh, auth")
-      .eq("user_id", userId)
-      .not("endpoint", "is", null)
-      .maybeSingle();
-
-    if (!sub || !sub.endpoint || !sub.p256dh || !sub.auth) continue;
-
+    // Push ist best-effort: einzelne fehlerhafte Subscriptions dürfen den Job nicht töten.
     try {
-      await sendOnePush(sub as { endpoint: string; p256dh: string; auth: string }, title, textBody, url);
-      pushSent += 1;
-    } catch (pe) {
-      console.error(
-        "[send-reminders] push failed",
-        userId,
-        pe instanceof Error ? pe.message : pe,
-      );
+      const pushResult = await sendPushesForUser(admin, userId, title, body, url);
+      pushSent += pushResult.sent;
+      pushRemoved += pushResult.removed;
+    } catch (err) {
+      console.error("[send-reminders] sendPushesForUser failed", { userId, error: err });
     }
   }
 
   await completeJob(admin, job.id);
-  return { ok: true, inserted, pushSent };
+  return { ok: true, inserted, pushSent, pushRemoved };
 }
 
 serve(async (req) => {
@@ -353,22 +333,21 @@ serve(async (req) => {
       });
     }
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!supabaseUrl || !serviceRoleKey) {
       return new Response(JSON.stringify({ ok: false, error: "Missing Supabase env" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
     const nowIso = new Date().toISOString();
-
-    const { data: jobIds, error: qErr } = await admin
+    const { data: dueRows, error: dueErr } = await admin
       .from("notification_jobs")
       .select("id")
       .eq("status", "pending")
@@ -376,23 +355,34 @@ serve(async (req) => {
       .order("send_at", { ascending: true })
       .limit(JOB_BATCH_LIMIT);
 
-    if (qErr) {
-      console.error("SEND REMINDERS ERROR", qErr);
-      return new Response(JSON.stringify({ ok: false, error: qErr.message ?? "query failed" }), {
+    if (dueErr) {
+      console.error("[send-reminders] query due jobs failed", dueErr);
+      return new Response(JSON.stringify({ ok: false, error: dueErr.message }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    const ids = (jobIds ?? []).map((r: { id: string }) => r.id).filter(Boolean);
-    console.log("due job ids count", ids.length, ids);
+    const ids = (dueRows ?? []).map((r: { id: string }) => r.id).filter(Boolean);
+    console.log("[send-reminders] due jobs", { count: ids.length, ids });
 
+    if (ids.length === 0) {
+      return new Response(JSON.stringify({ ok: true, processed: 0, sent: 0, failed: 0 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const claimedInRun = new Set<string>();
+    const errors: Array<{ jobId: string; error: string }> = [];
     let processed = 0;
     let sent = 0;
     let failed = 0;
-    const errors: { jobId: string; error: string }[] = [];
 
     for (const id of ids) {
+      if (claimedInRun.has(id)) continue;
+      claimedInRun.add(id);
+
       const { data: claimed, error: claimErr } = await admin
         .from("notification_jobs")
         .update({
@@ -401,37 +391,40 @@ serve(async (req) => {
         })
         .eq("id", id)
         .eq("status", "pending")
-        .select("*")
+        .select("id, team_id, event_id, kind, payload, attempt_count")
         .maybeSingle();
 
       if (claimErr) {
-        console.error("[send-reminders] claim", id, claimErr.message);
+        console.error("[send-reminders] claim failed", { jobId: id, error: claimErr.message });
         failed += 1;
         continue;
       }
-      if (!claimed) continue;
+      if (!claimed) continue; // wurde parallel bereits geclaimt
 
       processed += 1;
       const job = claimed as JobRow;
+
       try {
-        const r = await processOneJob(admin, job);
-        if (r.ok) sent += 1;
-        else failed += 1;
-        if (r.error) errors.push({ jobId: id, error: r.error });
-        console.log("[send-reminders] job result", id, r);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        console.error("SEND REMINDERS ERROR job", id, msg, e instanceof Error ? e.stack : "");
-        await failJobPermanent(admin, job, msg);
+        const result = await processOneJob(admin, job);
+        if (result.ok) {
+          sent += 1;
+        } else {
+          failed += 1;
+          if (result.error) errors.push({ jobId: id, error: result.error });
+        }
+        console.log("[send-reminders] job result", { jobId: id, result });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("[send-reminders] unhandled job error", { jobId: id, message, err });
+        await failJob(admin, job, message);
         failed += 1;
-        errors.push({ jobId: id, error: msg });
+        errors.push({ jobId: id, error: message });
       }
     }
 
     return new Response(
       JSON.stringify({
         ok: true,
-        message: "Reminder jobs processed",
         processed,
         sent,
         failed,
@@ -440,10 +433,11 @@ serve(async (req) => {
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err) {
-    console.error("SEND REMINDERS ERROR", err);
-    return new Response(
-      JSON.stringify({ ok: false, error: err instanceof Error ? err.message : String(err) }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[send-reminders] fatal", { message, err });
+    return new Response(JSON.stringify({ ok: false, error: message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 });
