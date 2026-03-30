@@ -1,6 +1,6 @@
 /**
- * Reminder-Jobs: `send_at` und `payload.baseTimeIso` sind UTC (ISO 8601 mit Z).
- * Basiszeiten kommen aus DB-Feldern `starts_at` / `meetup_at` / … (timestamptz → UTC).
+ * Reminder-Jobs: `send_at` und `payload.baseTimeIso` sind UTC (ISO 8601).
+ * Basis-Instant für Offsets: siehe `getBaseTimeForEvent` (Spiel: Kickoff/Start, nicht Treffpunkt).
  * Vergleiche `baseMs` / `nowMs` sind reine UTC-Instants; keine Browser-Lokalzone nötig.
  */
 import { getCanonicalEventType, getEventDisplayTitle, type RawEventRow } from '../notifications/eventTypes';
@@ -19,10 +19,25 @@ function nonEmptyIso(iso: string | null | undefined): string | null {
 }
 
 /**
- * Basiszeit für Reminder-Offset (Projektfelder: meetup_at / meeting_at, kickoff_at, starts_at).
- * MATCH: Treff → Kickoff → Start
- * TRAINING: Treff → Start
- * EVENT / other: starts_at
+ * UTC-Instant aus DB-ISO parsen. Fehlt ein Offset (untypisch für timestamptz), wird Z angenommen.
+ */
+function parseUtcInstantMs(iso: string): number {
+  const t = String(iso).trim();
+  if (!t) return NaN;
+  const hasTz = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(t);
+  const normalized = hasTz ? t : `${t}Z`;
+  return new Date(normalized).getTime();
+}
+
+/**
+ * Basiszeit für Reminder-Offset (UTC-Instants aus der DB).
+ *
+ * Wichtig (Europe/Vienna): Offsets beziehen sich auf den **Termin-/Spielbeginn**, nicht auf den
+ * optionalen Treffpunkt — sonst wäre z. B. „24h vor Spiel“ fälschlich „24h vor Treff“.
+ *
+ * - Spiel: kickoff_at → starts_at (Treffpunkt nur inhaltlich, nicht als Offset-Anker)
+ * - Training: starts_at → Treff (Fallback, wenn kein Start gesetzt)
+ * - Event / other: starts_at
  */
 export function getBaseTimeForEvent(event: RawEventRow): string {
   const meet = nonEmptyIso(event.meetup_at) ?? nonEmptyIso(event.meeting_at);
@@ -30,11 +45,11 @@ export function getBaseTimeForEvent(event: RawEventRow): string {
   const start = nonEmptyIso(event.starts_at) ?? '';
   const ctype = getCanonicalEventType(event);
   if (ctype === 'game') {
-    if (meet) return meet;
     if (kickoff) return kickoff;
     return start;
   }
   if (ctype === 'training') {
+    if (start) return start;
     if (meet) return meet;
     return start;
   }
@@ -120,7 +135,7 @@ export function buildReminderJobsForEvent(
   }
 
   const baseIso = getBaseTimeForEvent(event);
-  const baseMs = new Date(baseIso).getTime();
+  const baseMs = parseUtcInstantMs(baseIso);
   if (Number.isNaN(baseMs)) return [];
 
   const nowMs = now.getTime();

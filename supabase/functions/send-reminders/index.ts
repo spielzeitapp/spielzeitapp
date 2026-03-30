@@ -133,6 +133,8 @@ async function notificationAlreadyDispatched(
   eventId: string,
   reminderKey: string,
 ) {
+  // Kein maybeSingle: bei historischen Duplikaten würde >1 Zeile einen Fehler werfen und
+  // die In-App-Zustellung komplett blockieren.
   const { data, error } = await admin
     .from("notification_dispatch_log")
     .select("id")
@@ -140,9 +142,9 @@ async function notificationAlreadyDispatched(
     .eq("event_id", eventId)
     .eq("reminder_key", reminderKey)
     .eq("channel", "in_app")
-    .maybeSingle();
+    .limit(1);
   if (error) throw error;
-  return Boolean(data && (data as { id?: string }).id);
+  return Boolean(data && data.length > 0);
 }
 
 async function fetchRecipientsForTeamSeason(admin: SupabaseClient, teamSeasonId: string | number) {
@@ -306,10 +308,14 @@ async function processOneJob(
         });
         if (insErr) {
           recipientErrors += 1;
+          const errObj = insErr as { message?: string; code?: string; details?: string; hint?: string };
           console.error("[send-reminders] notification insert failed", {
             jobId: job.id,
             userId,
-            error: insErr.message ?? String(insErr),
+            error: errObj.message ?? String(insErr),
+            code: errObj.code,
+            details: errObj.details,
+            hint: errObj.hint,
           });
         } else {
           inserted += 1;
