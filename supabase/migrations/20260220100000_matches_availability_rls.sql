@@ -39,7 +39,7 @@ CREATE TRIGGER trg_availability_updated_at
   BEFORE UPDATE ON public.availability
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
--- Alte Availability-Policies entfernen (falls mit guardian_user_id)
+-- Alte Availability-Policies entfernen (falls mit veraltetem player_guardians-Schema)
 DROP POLICY IF EXISTS "availability_select_team_members" ON public.availability;
 DROP POLICY IF EXISTS "availability_insert_trainer_or_parent" ON public.availability;
 DROP POLICY IF EXISTS "availability_update_trainer_or_parent" ON public.availability;

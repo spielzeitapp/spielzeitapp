@@ -3,7 +3,7 @@
 --   availability.match_id → matches.id
 --   availability.player_id → players.id
 --   memberships: user_id, team_season_id, role
---   player_guardians: guardian_user_id, player_id
+--   player_guardians: user_id (Guardian), player_id
 --
 -- SELECT: Jeder mit Membership in der team_season darf Availability der Matches
 --         dieser team_season sehen.
@@ -48,7 +48,7 @@ WITH CHECK (
     EXISTS (
       SELECT 1
       FROM public.player_guardians pg
-      WHERE pg.guardian_user_id = auth.uid()
+      WHERE pg.user_id = auth.uid()
         AND pg.player_id = availability.player_id
     )
   )
@@ -75,7 +75,7 @@ USING (
     EXISTS (
       SELECT 1
       FROM public.player_guardians pg
-      WHERE pg.guardian_user_id = auth.uid()
+      WHERE pg.user_id = auth.uid()
         AND pg.player_id = availability.player_id
     )
   )
@@ -100,7 +100,7 @@ USING (
   EXISTS (
     SELECT 1
     FROM public.player_guardians pg
-    WHERE pg.guardian_user_id = auth.uid()
+    WHERE pg.user_id = auth.uid()
       AND pg.player_id = availability.player_id
   )
 );
