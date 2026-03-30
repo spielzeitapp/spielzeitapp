@@ -28,7 +28,7 @@ CREATE POLICY match_rsvps_insert_team_staff
       SELECT 1 FROM public.matches m
       JOIN public.memberships ms ON ms.team_season_id = m.team_season_id
       WHERE m.id = match_rsvps.match_id AND ms.user_id = auth.uid()
-        AND ms.role IN ('trainer', 'admin')
+        AND ms.role IN ('trainer', 'co_trainer', 'head_coach')
     )
   );
 
@@ -48,7 +48,7 @@ CREATE POLICY match_rsvps_update_team_staff
       SELECT 1 FROM public.matches m
       JOIN public.memberships ms ON ms.team_season_id = m.team_season_id
       WHERE m.id = match_rsvps.match_id AND ms.user_id = auth.uid()
-        AND ms.role IN ('trainer', 'admin')
+        AND ms.role IN ('trainer', 'co_trainer', 'head_coach')
     )
   );
 

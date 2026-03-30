@@ -70,7 +70,7 @@ CREATE POLICY availability_write_trainer_admin ON public.availability
       JOIN public.memberships ms ON ms.team_season_id = m.team_season_id
       WHERE m.id = availability.match_id
         AND ms.user_id = auth.uid()
-        AND ms.role IN ('trainer', 'admin')
+        AND ms.role IN ('trainer', 'co_trainer', 'head_coach')
     )
   )
   WITH CHECK (
@@ -80,7 +80,7 @@ CREATE POLICY availability_write_trainer_admin ON public.availability
       JOIN public.memberships ms ON ms.team_season_id = m.team_season_id
       WHERE m.id = availability.match_id
         AND ms.user_id = auth.uid()
-        AND ms.role IN ('trainer', 'admin')
+        AND ms.role IN ('trainer', 'co_trainer', 'head_coach')
     )
   );
 
