@@ -32,7 +32,7 @@ export type PendingNotificationItem = {
   pushBody: string;
   /** Relativer Pfad unter App-Origin */
   url: string;
-  /** messages.notification_kind (Badge-Filter Termine) */
+  /** optional: Klassifikation (Anzeige); Persistenz über `notifications.event_type` */
   terminReminderKind?: 'match' | 'training' | 'event';
 };
 
@@ -130,7 +130,7 @@ function slotsForEvent(
 
 /**
  * Fällige Reminder (In-App + Push folgt im Dispatch-Handler).
- * Duplikate: notification_dispatch_log (channel=in_app) + unique messages.
+ * Duplikate: notification_dispatch_log (channel=in_app).
  */
 export async function getPendingNotifications(
   admin: SupabaseClient,

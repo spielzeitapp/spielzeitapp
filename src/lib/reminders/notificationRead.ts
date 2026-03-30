@@ -1,16 +1,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * Setzt messages.read und read_at (RLS: nur eigene Zeilen).
+ * Setzt `notifications.read` (RLS: nur eigene Zeilen).
  */
 export async function markNotificationAsRead(
   client: SupabaseClient,
   notificationId: string,
 ): Promise<{ error: Error | null }> {
-  const now = new Date().toISOString();
   const { error } = await client
-    .from('messages')
-    .update({ read: true, read_at: now })
+    .from('notifications')
+    .update({ read: true })
     .eq('id', notificationId);
 
   if (error) {
@@ -19,16 +18,16 @@ export async function markNotificationAsRead(
   return { error: null };
 }
 
-/** Ungelesene Nachrichten (gesamte App) — zählt Zeilen mit read ≠ true */
+/** Ungelesene In-App-Einträge (`notifications.read = false`). */
 export async function countUnreadMessagesForUser(
   client: SupabaseClient,
   userId: string,
 ): Promise<{ count: number; error: Error | null }> {
   const { count, error } = await client
-    .from('messages')
+    .from('notifications')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
-    .or('read.is.null,read.eq.false');
+    .eq('read', false);
 
   if (error) {
     return { count: 0, error: new Error(error.message) };
@@ -36,17 +35,17 @@ export async function countUnreadMessagesForUser(
   return { count: count ?? 0, error: null };
 }
 
-/** Nur Termine: notification_kind match | training | event */
+/** Termin-Reminder (In-App), entspricht `event_type = 'reminder'`. */
 export async function countUnreadTerminMessagesForUser(
   client: SupabaseClient,
   userId: string,
 ): Promise<{ count: number; error: Error | null }> {
   const { count, error } = await client
-    .from('messages')
+    .from('notifications')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
-    .or('read.is.null,read.eq.false')
-    .in('notification_kind', ['match', 'training', 'event']);
+    .eq('read', false)
+    .eq('event_type', 'reminder');
 
   if (error) {
     return { count: 0, error: new Error(error.message) };

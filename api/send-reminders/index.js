@@ -1,6 +1,6 @@
 /**
  * Vercel: POST /api/send-reminders (CommonJS)
- * Verarbeitet fällige Zeilen in public.notification_jobs (Push + messages).
+ * Verarbeitet fällige Zeilen in public.notification_jobs (Push + notifications).
  */
 const { createClient } = require('@supabase/supabase-js');
 const webpush = require('web-push');
@@ -195,7 +195,7 @@ async function sendOnePush(subRow, title, body, url) {
 }
 
 /**
- * Ein Job: Empfänger wie processNotificationJob (Attendance) → messages + push_subscriptions.
+ * Ein Job: Empfänger wie processNotificationJob (Attendance) → notifications + push_subscriptions.
  */
 async function processOneJob(admin, job) {
   const payload = parseJobPayload(job.payload);
@@ -222,7 +222,6 @@ async function processOneJob(admin, job) {
   const title = titleForJobKind(job.kind);
   const textBody = buildReminderBody(job.kind, event, reminderKey);
   const url = REMINDER_LINK.startsWith('/') ? REMINDER_LINK : `/${REMINDER_LINK}`;
-  const contentWithLink = `${textBody}\n\n${url}`;
 
   if ((event.status ?? 'upcoming') !== 'upcoming') {
     await completeJob(admin, job.id);
@@ -274,28 +273,38 @@ async function processOneJob(admin, job) {
   let pushSent = 0;
 
   for (const userId of recipients) {
-    const exists = await messageExists(admin, userId, job.event_id, reminderKey);
+    const exists = await notificationAlreadyDispatched(admin, userId, job.event_id, reminderKey);
     if (exists) continue;
 
-    const { error: insErr } = await admin.from('messages').insert({
+    const { error: insErr } = await admin.from('notifications').insert({
       team_id: job.team_id,
       user_id: userId,
+      event_id: job.event_id,
       title,
-      body: textBody,
-      content: contentWithLink,
-      type: 'team_push',
+      message: textBody,
+      type: 'auto',
+      event_type: 'reminder',
       read: false,
       link: url,
-      related_event_id: job.event_id,
-      event_id: job.event_id,
-      reminder_key: reminderKey,
-      notification_kind: job.kind === 'match' ? 'match' : job.kind === 'training' ? 'training' : 'event',
     });
 
     if (insErr) {
       throw new Error(insErr.message || String(insErr));
     }
     inserted += 1;
+
+    const { error: dispErr } = await admin.from('notification_dispatch_log').insert({
+      user_id: userId,
+      event_id: job.event_id,
+      reminder_key: reminderKey,
+      channel: 'in_app',
+    });
+    if (dispErr) {
+      const code = dispErr.code;
+      if (code !== '23505') {
+        console.warn('[send-reminders] notification_dispatch_log insert failed', dispErr.message || dispErr);
+      }
+    }
 
     const { data: sub } = await admin
       .from('push_subscriptions')

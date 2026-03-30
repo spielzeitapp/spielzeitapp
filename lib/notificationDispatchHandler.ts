@@ -183,16 +183,16 @@ export async function sendPendingNotificationReminder(
   const details: DispatchResult['details'] = [];
   const errors: string[] = [];
 
-  const { data: dupInApp } = await admin
+  const { data: dupRows, error: dupErr } = await admin
     .from('notification_dispatch_log')
     .select('id')
     .eq('user_id', item.userId)
     .eq('event_id', item.eventId)
     .eq('reminder_key', item.reminderKey)
     .eq('channel', 'in_app')
-    .maybeSingle();
-
-  if (dupInApp) {
+    .limit(1);
+  if (dupErr) throw dupErr;
+  if (dupRows && dupRows.length > 0) {
     details.push({
       userId: item.userId,
       eventId: item.eventId,
@@ -202,39 +202,37 @@ export async function sendPendingNotificationReminder(
     return { sent: 0, skipped: 1, errors, details };
   }
 
-  const { error: msgErr } = await admin.from('messages').insert({
+  const { error: nErr } = await admin.from('notifications').insert({
     team_id: item.teamId,
     user_id: item.userId,
     title: item.title,
-    body: item.body,
-    content: item.body,
-    type: 'event_reminder',
-    event_id: item.eventId,
-    related_event_id: item.eventId,
-    reminder_key: item.reminderKey,
+    message: item.body,
+    type: 'auto',
+    event_type: 'reminder',
     read: false,
-    notification_kind: item.terminReminderKind ?? null,
-  });
-
-  if (msgErr) {
-    const code = (msgErr as { code?: string }).code;
-    if (code !== '23505') {
-      console.warn('[notificationDispatch] messages.insert failed', msgErr.message || msgErr);
-      throw msgErr;
-    }
-  }
-
-  const { error: dispErr } = await admin.from('notification_dispatch_log').insert({
-    user_id: item.userId,
     event_id: item.eventId,
-    reminder_key: item.reminderKey,
-    channel: 'in_app',
+    link: '/app/termine',
   });
 
-  if (dispErr) {
-    const code = (dispErr as { code?: string }).code;
+  if (nErr) {
+    const code = (nErr as { code?: string }).code;
     if (code !== '23505') {
-      console.warn('[notificationDispatch] notification_dispatch_log in_app failed', dispErr.message || dispErr);
+      console.warn('[notificationDispatch] notifications.insert failed', nErr.message || nErr);
+      throw nErr;
+    }
+  } else {
+    const { error: dispErr } = await admin.from('notification_dispatch_log').insert({
+      user_id: item.userId,
+      event_id: item.eventId,
+      reminder_key: item.reminderKey,
+      channel: 'in_app',
+    });
+
+    if (dispErr) {
+      const code = (dispErr as { code?: string }).code;
+      if (code !== '23505') {
+        console.warn('[notificationDispatch] notification_dispatch_log in_app failed', dispErr.message || dispErr);
+      }
     }
   }
 
