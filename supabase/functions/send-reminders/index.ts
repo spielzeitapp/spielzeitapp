@@ -12,7 +12,7 @@ import webpush from "npm:web-push@3.6.7";
 const REMINDER_LINK = "/app/termine";
 const JOB_BATCH_LIMIT = 50;
 const VIENNA_TZ = "Europe/Vienna";
-const MEMBER_ROLES = ["trainer", "co_trainer", "head_coach", "admin", "parent", "player"];
+const MEMBER_ROLES = ["trainer", "co_trainer", "head_coach", "parent", "player"];
 
 type JobRow = {
   id: string;
@@ -179,6 +179,51 @@ function pushIsGoneError(err: unknown) {
   return code === 404 || code === 410 || status === 404 || status === 410;
 }
 
+/**
+ * Optional: Legacy-Zeile in `messages` (gleiches Muster wie api/send-reminders).
+ * Fehler werden nur geloggt — Job und `notifications`-Pfad bleiben gültig.
+ */
+async function insertMessageOptional(
+  admin: SupabaseClient,
+  meta: {
+    teamId: string | null;
+    userId: string;
+    eventId: string;
+    title: string;
+    body: string;
+    link: string;
+    reminderKey: string;
+  },
+): Promise<void> {
+  if (!meta.teamId) return;
+  try {
+    const { error } = await admin.from("messages").insert({
+      team_id: meta.teamId,
+      user_id: meta.userId,
+      title: meta.title,
+      body: meta.body,
+      content: `${meta.body}\n\n${meta.link}`,
+      type: "team_push",
+      read: false,
+      link: meta.link,
+      related_event_id: meta.eventId,
+      event_id: meta.eventId,
+      reminder_key: meta.reminderKey,
+    });
+    if (error) {
+      console.warn("[send-reminders] optional messages.insert skipped", {
+        userId: meta.userId,
+        message: error.message,
+        code: (error as { code?: string }).code,
+      });
+    } else {
+      console.log("[send-reminders] messages row created (optional)", { userId: meta.userId, eventId: meta.eventId });
+    }
+  } catch (e) {
+    console.warn("[send-reminders] optional messages.insert failed", { userId: meta.userId, error: e });
+  }
+}
+
 async function sendPushesForUser(
   admin: SupabaseClient,
   userId: string,
@@ -281,6 +326,11 @@ async function processOneJob(
   const body = reminderBody(label, event as EventRow, teamName);
   const url = REMINDER_LINK.startsWith("/") ? REMINDER_LINK : `/${REMINDER_LINK}`;
   const recipients = await fetchRecipientsForTeamSeason(admin, (event as EventRow).team_season_id!);
+  console.log("[send-reminders] job recipients resolved", {
+    jobId: job.id,
+    eventId: job.event_id,
+    recipientCount: recipients.length,
+  });
   if (recipients.length === 0) {
     await completeJob(admin, job.id);
     return { ok: true, inserted: 0, pushSent: 0, pushRemoved: 0 };
@@ -295,6 +345,8 @@ async function processOneJob(
     try {
       const exists = await notificationAlreadyDispatched(admin, userId, job.event_id, effectiveReminderKey);
       if (!exists) {
+        const nowIso = new Date().toISOString();
+        // notifications.type CHECK erlaubt nur 'manual' | 'auto'; Reminder-Semantik über event_type.
         const { error: insErr } = await admin.from("notifications").insert({
           team_id: job.team_id,
           user_id: userId,
@@ -305,6 +357,7 @@ async function processOneJob(
           event_type: "reminder",
           read: false,
           link: url,
+          created_at: nowIso,
         });
         if (insErr) {
           recipientErrors += 1;
@@ -319,6 +372,13 @@ async function processOneJob(
           });
         } else {
           inserted += 1;
+          console.log("[send-reminders] notifications row created", {
+            jobId: job.id,
+            userId,
+            eventId: job.event_id,
+            reminderKey: effectiveReminderKey,
+            kind: "reminder",
+          });
           const { error: dispErr } = await admin.from("notification_dispatch_log").insert({
             user_id: userId,
             event_id: job.event_id,
@@ -335,6 +395,15 @@ async function processOneJob(
               });
             }
           }
+          await insertMessageOptional(admin, {
+            teamId: job.team_id,
+            userId,
+            eventId: job.event_id!,
+            title,
+            body,
+            link: url,
+            reminderKey: effectiveReminderKey,
+          });
         }
       }
 
@@ -355,7 +424,18 @@ async function processOneJob(
     return { ok: false, error: err, inserted, pushSent, pushRemoved };
   }
 
+  console.log("[send-reminders] job delivery summary", {
+    jobId: job.id,
+    eventId: job.event_id,
+    usersInScope: recipients.length,
+    notificationRowsInserted: inserted,
+    pushNotificationsSent: pushSent,
+    pushSubscriptionsRemoved: pushRemoved,
+    recipientErrors,
+  });
+
   await completeJob(admin, job.id);
+  console.log("[send-reminders] job marked sent", { jobId: job.id, sentAt: new Date().toISOString() });
   return { ok: true, inserted, pushSent, pushRemoved };
 }
 
