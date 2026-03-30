@@ -2,10 +2,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { syncAppIconBadgeFromUnreadCount } from '../lib/appBadge';
+import {
+  fetchTeamIdsForUser,
+  notificationsInboxOrFilter,
+} from '../lib/notifications/inboxScope';
 import { NOTIFICATIONS_READ_CHANGED_EVENT } from '../lib/notificationsReadState';
+import { useNotificationsInboxRealtime } from './useNotificationsInboxRealtime';
 
 /**
- * Ungelesene Benachrichtigungen (notifications.read = false) für den User.
+ * Ungelesene Benachrichtigungen (`notifications.read = false`).
+ * Gleiche Sicht wie RLS: user-spezifische Zeilen + teamweite (`user_id` NULL) für die Mannschaften des Users.
  */
 export function useUnreadCount(userId: string | undefined | null): number {
   const { pathname } = useLocation();
@@ -17,10 +23,12 @@ export function useUnreadCount(userId: string | undefined | null): number {
       return;
     }
     try {
+      const teamIds = await fetchTeamIdsForUser(supabase, userId);
+      const inboxOr = notificationsInboxOrFilter(userId, teamIds);
       const { count: n, error } = await supabase
         .from('notifications')
         .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
+        .or(inboxOr)
         .eq('read', false);
       if (error) {
         console.warn('[useUnreadCount]', error.message ?? error);
@@ -58,22 +66,7 @@ export function useUnreadCount(userId: string | undefined | null): number {
     };
   }, [refresh]);
 
-  useEffect(() => {
-    if (!userId) return;
-    const channel = supabase
-      .channel(`notifications:unread:${userId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-        () => {
-          void refresh();
-        },
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [userId, refresh]);
+  useNotificationsInboxRealtime(userId ?? null, refresh, 'badge');
 
   useEffect(() => {
     syncAppIconBadgeFromUnreadCount(count);

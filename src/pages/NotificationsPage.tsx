@@ -1,13 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../app/components/ui/Card';
+import { useNotificationsInboxRealtime } from '../hooks/useNotificationsInboxRealtime';
 import { formatDateTimeMediumDeVienna } from '../lib/notifications/format';
+import {
+  fetchTeamIdsForUser,
+  notificationsInboxOrFilter,
+} from '../lib/notifications/inboxScope';
 import { supabase } from '../lib/supabaseClient';
 import { notifyNotificationsReadChanged } from '../lib/notificationsReadState';
 
 type NotificationRow = {
   id: string;
   user_id: string | null;
+  team_id?: string | null;
   event_id: string | null;
   title: string;
   message: string;
@@ -52,10 +58,12 @@ export const NotificationsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      const teamIds = await fetchTeamIdsForUser(supabase, uid);
+      const inboxOr = notificationsInboxOrFilter(uid, teamIds);
       const { data, error: qErr } = await supabase
         .from('notifications')
-        .select('id, user_id, event_id, title, message, link, type, read, created_at')
-        .eq('user_id', uid)
+        .select('id, user_id, team_id, event_id, title, message, link, type, read, created_at')
+        .or(inboxOr)
         .order('created_at', { ascending: false });
 
       if (qErr) {
@@ -76,22 +84,7 @@ export const NotificationsPage: React.FC = () => {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    if (!userId) return;
-    const channel = supabase
-      .channel(`notifications:user:${userId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-        () => {
-          void load();
-        },
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [userId, load]);
+  useNotificationsInboxRealtime(userId, load, 'list');
 
   const unreadCount = useMemo(
     () => (items ?? []).filter((n) => n.read !== true).length,
@@ -118,7 +111,6 @@ export const NotificationsPage: React.FC = () => {
         .from('notifications')
         .update({ read: true })
         .eq('id', n.id)
-        .eq('user_id', userId)
         .eq('read', false);
       if (!updErr) {
         setItems((prev) =>
