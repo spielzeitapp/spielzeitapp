@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { useSession } from '../auth/useSession';
 import { Card } from '../app/components/ui/Card';
+import { formatDateTimeMediumDeVienna } from '../lib/notifications/format';
 
 const API = '/api/notifications';
 
@@ -26,14 +27,7 @@ function resolveAppPath(link: string | null | undefined): string | null {
 }
 
 function formatWhen(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString('de-DE', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    });
-  } catch {
-    return iso;
-  }
+  return formatDateTimeMediumDeVienna(iso);
 }
 
 export const NotificationsPage: React.FC = () => {

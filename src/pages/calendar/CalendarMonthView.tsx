@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { CalendarEvent } from './calendarTypes';
 import { formatMeetingPoint, formatTimeRange, formatTrainingTimeRange, toLocalDayKey } from './calendarUtils';
+import { getDateTimePartsInTimeZone, VIENNA_TZ } from '../../lib/viennaTime';
 
 type Props = {
   days: Date[];
@@ -20,6 +21,7 @@ export const CalendarMonthView: React.FC<Props> = ({
 }) => {
   const navigate = useNavigate();
   const weekdayLabels = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  const currentMonthParts = getDateTimePartsInTimeZone(currentMonth, VIENNA_TZ);
 
   return (
     <div className="mt-2">
@@ -35,7 +37,9 @@ export const CalendarMonthView: React.FC<Props> = ({
         {days.map((day) => {
           const key = toLocalDayKey(day);
           const dayEvents = eventsByDay.get(key) ?? [];
-          const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
+          const dayParts = getDateTimePartsInTimeZone(day, VIENNA_TZ);
+          const isCurrentMonth =
+            currentMonthParts && dayParts ? dayParts.month === currentMonthParts.month : day.getMonth() === currentMonth.getMonth();
           const isToday = key === todayKey;
 
           return (
@@ -48,7 +52,7 @@ export const CalendarMonthView: React.FC<Props> = ({
               } ${isToday ? 'ring-2 ring-yellow-400/30' : ''}`}
             >
               <div className="mb-1 text-right text-[11px] font-semibold text-white/80">
-                {day.getDate()}
+                {dayParts ? dayParts.day : day.getDate()}
               </div>
               <div className="space-y-0.5">
                 {dayEvents.map((ev) => {

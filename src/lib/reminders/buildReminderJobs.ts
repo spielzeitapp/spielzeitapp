@@ -1,3 +1,8 @@
+/**
+ * Reminder-Jobs: `send_at` und `payload.baseTimeIso` sind UTC (ISO 8601 mit Z).
+ * Basiszeiten kommen aus DB-Feldern `starts_at` / `meetup_at` / … (timestamptz → UTC).
+ * Vergleiche `baseMs` / `nowMs` sind reine UTC-Instants; keine Browser-Lokalzone nötig.
+ */
 import { getCanonicalEventType, getEventDisplayTitle, type RawEventRow } from '../notifications/eventTypes';
 import type { TeamNotificationSettingsRow } from '../notifications/teamSettings';
 import type { NotificationKind } from '../notifications/pending';

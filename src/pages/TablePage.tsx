@@ -10,14 +10,18 @@ import {
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { useMatches } from "../hooks/useMatches";
 import { Card, CardTitle } from "../app/components/ui/Card";
+import { VIENNA_TZ } from "../lib/viennaTime";
 
 function formatMatchDate(startsAt: string | null | undefined): string {
   if (!startsAt) return "Termin offen";
   try {
-    return new Date(startsAt).toLocaleString("de-AT", {
+    const d = new Date(startsAt);
+    if (Number.isNaN(d.getTime())) return "Termin offen";
+    return new Intl.DateTimeFormat("de-AT", {
+      timeZone: VIENNA_TZ,
       dateStyle: "short",
       timeStyle: "short",
-    });
+    }).format(d);
   } catch {
     return "Termin offen";
   }

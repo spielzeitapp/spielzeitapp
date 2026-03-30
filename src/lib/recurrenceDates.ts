@@ -1,24 +1,30 @@
+import { addViennaCalendarDaysToUtcIso } from './viennaTime';
+
 /** Wiederholungstyp für Termin-Erstellung (kein RRULE in DB – echte Zeilen pro Termin). */
 export type RecurrenceKind = 'once' | 'weekly' | 'biweekly';
 
 /**
- * Erzeugt Start-Zeitpunkte für alle Vorkommen zwischen erstem Start und Stichtag (inkl.).
+ * Start-Zeitpunkte zwischen erstem Start und Stichtag (inkl.), wöchentlich/14-tägig in **Europe/Vienna**.
+ * @param firstStartUtcIso Erster Beginn als UTC-ISO (aus `parseViennaDateTimeLocalToUtcIso`)
+ * @param untilInclusiveUtcIso Obergrenze inkl. (z. B. `viennaDateOnlyEndOfDayUtcIso` des „bis“-Datums)
  */
 export function enumerateOccurrenceStarts(
-  firstStart: Date,
+  firstStartUtcIso: string,
   recurrence: RecurrenceKind,
-  untilInclusive: Date,
+  untilInclusiveUtcIso: string,
   max = 120,
 ): Date[] {
-  if (recurrence === 'once') return [new Date(firstStart.getTime())];
+  if (recurrence === 'once') return [new Date(firstStartUtcIso)];
+
   const step = recurrence === 'weekly' ? 7 : 14;
   const out: Date[] = [];
-  const end = new Date(untilInclusive);
-  end.setHours(23, 59, 59, 999);
-  let cur = new Date(firstStart.getTime());
-  while (cur <= end && out.length < max) {
-    out.push(new Date(cur.getTime()));
-    cur.setDate(cur.getDate() + step);
+  const endMs = new Date(untilInclusiveUtcIso).getTime();
+  let curIso = firstStartUtcIso;
+
+  while (new Date(curIso).getTime() <= endMs && out.length < max) {
+    out.push(new Date(curIso));
+    curIso = addViennaCalendarDaysToUtcIso(curIso, step);
   }
+
   return out;
 }

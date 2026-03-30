@@ -10,6 +10,7 @@ import {
   readReadSet,
   writeReadSet,
 } from '../lib/messagesReadState';
+import { formatDateTimeMediumDeVienna } from '../lib/notifications/format';
 
 type MessageRow = {
   id: string;
@@ -42,14 +43,7 @@ function listBodyPreview(m: MessageRow): string {
 }
 
 function formatWhen(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString('de-DE', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    });
-  } catch {
-    return iso;
-  }
+  return formatDateTimeMediumDeVienna(iso);
 }
 
 export const MessagesPage: React.FC = () => {

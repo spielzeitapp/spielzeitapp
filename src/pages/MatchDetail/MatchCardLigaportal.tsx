@@ -2,6 +2,7 @@ import React from 'react';
 import { getClubLogoUrl } from '../../utils/logoResolver';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import type { EventKind, EventStatus } from '../../hooks/useEvents';
+import { VIENNA_TZ } from '../../lib/viennaTime';
 
 /** Spielart (match_type) → Anzeige-Label. */
 const MATCH_TYPE_LABELS: Record<string, string> = {
@@ -19,31 +20,26 @@ function getMatchTypeLabel(matchType: string | null | undefined): string | null 
   return MATCH_TYPE_LABELS[key] ?? matchType;
 }
 
-/** Wochentag kurz für DE (Sa., So., Mo., …). */
-const WEEKDAY_SHORT_DE: Record<number, string> = {
-  0: 'So.',
-  1: 'Mo.',
-  2: 'Di.',
-  3: 'Mi.',
-  4: 'Do.',
-  5: 'Fr.',
-  6: 'Sa.',
-};
-
-/** Datum kurz: "Sa. 06.06.2026" (ohne Beistrich). */
+/** Datum kurz in Europe/Vienna. */
 function formatDateShortDE(date: Date): string {
-  const w = date.getDay();
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${WEEKDAY_SHORT_DE[w] ?? ''} ${day}.${month}.${year}`;
+  return new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
 }
 
-/** Treffpunkt-Datum → nur Uhrzeit "HH:mm Uhr". */
+/** Treffpunkt → nur Uhrzeit "HH:mm Uhr" (Vienna). */
 function formatMeetupTimeOnly(iso: string | null | undefined): string {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+  if (Number.isNaN(d.getTime())) return '';
+  return (
+    new Intl.DateTimeFormat('de-AT', { timeZone: VIENNA_TZ, hour: '2-digit', minute: '2-digit' }).format(d) +
+    ' Uhr'
+  );
 }
 
 /** Erstes Token = prefix, Rest = name. Kein Leerzeichen → prefix="", name=kompletter String. */
@@ -191,16 +187,21 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const date = startsAt ? new Date(startsAt) : null;
   const dateLabelLong = date
-    ? date.toLocaleDateString('de-AT', {
+    ? new Intl.DateTimeFormat('de-AT', {
+        timeZone: VIENNA_TZ,
         weekday: 'long',
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
-      })
+      }).format(date)
     : null;
   const dateLabelShort = date ? formatDateShortDE(date) : null;
   const timeStr = date
-    ? date.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
+    ? new Intl.DateTimeFormat('de-AT', {
+        timeZone: VIENNA_TZ,
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(date)
     : '–';
 
   const hasScore = status === 'live' || status === 'finished';

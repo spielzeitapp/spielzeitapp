@@ -9,6 +9,7 @@ import {
   startOfWeekMonday,
   toLocalDayKey,
 } from './calendarUtils';
+import { getDateTimePartsInTimeZone, VIENNA_TZ } from '../../lib/viennaTime';
 
 type Props = {
   weekAnchor: Date;
@@ -56,7 +57,8 @@ export const CalendarWeekView: React.FC<Props> = ({
     if (!scrollRef.current) return;
 
     const now = new Date();
-    const minutes = now.getHours() * 60 + now.getMinutes();
+    const nowParts = getDateTimePartsInTimeZone(now, VIENNA_TZ);
+    const minutes = nowParts ? nowParts.hour * 60 + nowParts.minute : now.getHours() * 60 + now.getMinutes();
     const axisStart = AXIS_START_HOUR * 60;
     const axisEnd = AXIS_END_HOUR * 60;
     if (minutes < axisStart || minutes > axisEnd) return;
@@ -82,6 +84,7 @@ export const CalendarWeekView: React.FC<Props> = ({
             {weekDays.map((d) => {
               const key = toLocalDayKey(d);
               const isToday = key === todayKey;
+              const dp = getDateTimePartsInTimeZone(d, VIENNA_TZ);
               return (
                 <div
                   key={key}
@@ -90,9 +93,9 @@ export const CalendarWeekView: React.FC<Props> = ({
                   }`}
                 >
                   <div className="font-semibold text-white/80">
-                    {d.toLocaleDateString('de-AT', { weekday: 'short' })}
+                    {new Intl.DateTimeFormat('de-AT', { timeZone: VIENNA_TZ, weekday: 'short' }).format(d)}
                   </div>
-                  <div className="text-[11px] text-white/60">{d.getDate()}</div>
+                  <div className="text-[11px] text-white/60">{dp ? dp.day : d.getDate()}</div>
                 </div>
               );
             })}
@@ -136,8 +139,10 @@ export const CalendarWeekView: React.FC<Props> = ({
                           const start = new Date(ev.starts_at);
                           const end = ev.end_at ? new Date(ev.end_at) : new Date(start.getTime() + 90 * 60 * 1000);
 
-                          const startMinutes = start.getHours() * 60 + start.getMinutes();
-                          const endMinutes = end.getHours() * 60 + end.getMinutes();
+                          const sp = getDateTimePartsInTimeZone(start, VIENNA_TZ);
+                          const ep = getDateTimePartsInTimeZone(end, VIENNA_TZ);
+                          const startMinutes = sp ? sp.hour * 60 + sp.minute : start.getHours() * 60 + start.getMinutes();
+                          const endMinutes = ep ? ep.hour * 60 + ep.minute : end.getHours() * 60 + end.getMinutes();
 
                           const axisStartMinutes = AXIS_START_HOUR * 60;
                           const axisEndMinutes = AXIS_END_HOUR * 60;

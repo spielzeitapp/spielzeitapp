@@ -18,6 +18,7 @@ import { useMatchLineup } from '../../hooks/useMatchLineup';
 import { Card, CardTitle } from '../../app/components/ui/Card';
 import { Button } from '../../app/components/ui/Button';
 import { isStartelfCompleteForLive } from './lineupGuards';
+import { VIENNA_TZ } from '../../lib/viennaTime';
 
 type MatchRow = {
   id: string;
@@ -374,8 +375,15 @@ export const MatchDetailPage: React.FC = () => {
   }
 
   const kickoff = new Date(localMatch.kickoffISO);
-  const dateStr = kickoff.toLocaleDateString(undefined, { dateStyle: 'medium' });
-  const timeStr = kickoff.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  const dateStr = new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    dateStyle: 'medium',
+  }).format(kickoff);
+  const timeStr = new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(kickoff);
 
   return (
     <div className="page pb-4">

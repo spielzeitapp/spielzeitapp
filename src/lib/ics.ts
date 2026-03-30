@@ -117,7 +117,13 @@ export function generateEventIcs(
           ? `${notesTitle ?? e.title ?? 'Event'}`
           : `${notesTitle ?? e.title ?? 'Termin'}`;
 
-  const meetupTimeOnly = e.meetup_at ? new Date(e.meetup_at).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' }) : null;
+  const meetupTimeOnly = e.meetup_at
+    ? new Intl.DateTimeFormat('de-AT', {
+        timeZone: 'Europe/Vienna',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date(e.meetup_at))
+    : null;
   const location =
     fullLocationForIcs(e.location, e.address) ||
     (e.location ?? '').trim() ||

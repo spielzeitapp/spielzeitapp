@@ -9,6 +9,7 @@ import { Button } from '../app/components/ui/Button';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
 import { supabase } from '../lib/supabaseClient';
+import { VIENNA_TZ } from '../lib/viennaTime';
 import type { PlayerItem } from '../hooks/usePlayers';
 
 type TabId = 'info' | 'live' | 'kader';
@@ -54,8 +55,17 @@ function formatTime(ms: number): string {
 function formatMatchDateTime(iso: string | null): { dateStr: string; timeStr: string } {
   if (!iso) return { dateStr: '–', timeStr: '–' };
   const d = new Date(iso);
-  const dateStr = d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const timeStr = d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(d);
+  const timeStr = new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(d);
   return { dateStr, timeStr };
 }
 

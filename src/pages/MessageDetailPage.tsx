@@ -4,6 +4,7 @@ import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
 import { supabase } from '../lib/supabaseClient';
 import { notifyMessagesReadChanged, readReadSet, writeReadSet } from '../lib/messagesReadState';
+import { formatDateTimeMediumDeVienna } from '../lib/notifications/format';
 
 type MessageRow = {
   id: string;
@@ -55,14 +56,7 @@ function bodyWithoutAppendedPath(
 }
 
 function formatWhen(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString('de-DE', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    });
-  } catch {
-    return iso;
-  }
+  return formatDateTimeMediumDeVienna(iso);
 }
 
 export const MessageDetailPage: React.FC = () => {

@@ -21,6 +21,18 @@ export function formatEventDateVienna(startsAtIso: string): string {
   }).format(d);
 }
 
+export function formatEventDateLongVienna(startsAtIso: string): string {
+  const d = new Date(startsAtIso);
+  if (Number.isNaN(d.getTime())) return '–';
+  return new Intl.DateTimeFormat('de-DE', {
+    timeZone: VIENNA_TZ,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(d);
+}
+
 export function buildTrainingReminderBody(title: string, startsAtIso: string): string {
   const t = formatEventTimeVienna(startsAtIso);
   return `${title} um ${t}. Bitte bis 12:00 absagen, falls ihr fehlt.`;
@@ -42,25 +54,31 @@ export function buildReminderInAppBody(
   if (Number.isNaN(d.getTime())) {
     return `Bitte gib noch deine Zu- oder Absage für '${titleStr || 'Termin'}' ab.`;
   }
-  const dateStr = d.toLocaleDateString('de-DE', {
+  const dateStr = new Intl.DateTimeFormat('de-DE', {
+    timeZone: VIENNA_TZ,
     weekday: 'short',
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-  });
-  const timeStr = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  }).format(d);
+  const timeStr = new Intl.DateTimeFormat('de-DE', {
+    timeZone: VIENNA_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(d);
   let body = `Bitte gib noch deine Zu- oder Absage für '${titleStr || 'Termin'}' am ${dateStr} um ${timeStr} ab.`;
   const ort = (location ?? '').trim();
   if (ort) body += ` Ort: ${ort}.`;
   if (meetupAtIso) {
     const mu = new Date(meetupAtIso);
     if (!Number.isNaN(mu.getTime())) {
-      body += ` Treffpunkt: ${mu.toLocaleString('de-DE', {
+      body += ` Treffpunkt: ${new Intl.DateTimeFormat('de-DE', {
+        timeZone: VIENNA_TZ,
         day: 'numeric',
         month: 'short',
         hour: '2-digit',
         minute: '2-digit',
-      })}.`;
+      }).format(mu)}.`;
     }
   }
   return body;
@@ -69,4 +87,29 @@ export function buildReminderInAppBody(
 export function buildPushReminderShort(eventTitle: string): string {
   const t = (eventTitle ?? '').trim() || 'den Termin';
   return `Bitte gib noch deine Zu-/Absage für ${t} ab.`;
+}
+
+/** Einheitliche Anzeige für Nachrichten-Listen / Home (Datum+Zeit in Vienna). */
+export function formatDateTimeDeVienna(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return new Intl.DateTimeFormat('de-DE', {
+    timeZone: VIENNA_TZ,
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(d);
+}
+
+/** Wie bisherige `toLocaleString` mit dateStyle/timeStyle – fest Europe/Vienna. */
+export function formatDateTimeMediumDeVienna(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return new Intl.DateTimeFormat('de-DE', {
+    timeZone: VIENNA_TZ,
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(d);
 }

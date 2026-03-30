@@ -1,11 +1,19 @@
 import type { CalendarEvent, CalendarEventType } from './calendarTypes';
+import {
+  getDateTimePartsInTimeZone,
+  toViennaDayKeyFromDate,
+  toViennaDayKeyFromUtcIso,
+  VIENNA_TZ,
+  zonedWallTimeToUtcMillis,
+} from '../../lib/viennaTime';
 
-export function toLocalDayKey(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+/** Gruppierung nach Kalendertag in Europe/Vienna (`Date`-Instant oder UTC-ISO). */
+export function toViennaDayKey(input: Date | string): string {
+  return typeof input === 'string' ? toViennaDayKeyFromUtcIso(input) : toViennaDayKeyFromDate(input);
 }
+
+/** @deprecated Verwende `toViennaDayKey` – gleiche Semantik wie bisheriger Name. */
+export const toLocalDayKey = toViennaDayKey;
 
 export function startOfWeekMonday(date: Date): Date {
   const d = new Date(date);
@@ -42,10 +50,19 @@ export function resolveEndAtFromNotes(args: {
 
   const parsed = parseEndTimeFromNotes(args.notes);
   if (parsed) {
-    // Interpreting "ende: HH:MM uhr" as local time in the same zone as DTSTART display (Browser/local).
-    // This avoids server UTC shifting issues.
-    const end = new Date(start.getFullYear(), start.getMonth(), start.getDate(), parsed.hh, parsed.mm, 0, 0);
-    return end.toISOString();
+    const startParts = getDateTimePartsInTimeZone(start, VIENNA_TZ);
+    if (!startParts) return null;
+    const ms = zonedWallTimeToUtcMillis(
+      {
+        year: startParts.year,
+        month: startParts.month,
+        day: startParts.day,
+        hour: parsed.hh,
+        minute: parsed.mm,
+      },
+      VIENNA_TZ,
+    );
+    return new Date(ms).toISOString();
   }
 
   const addMin = args.eventType === 'event' ? 60 : 90;
@@ -63,7 +80,11 @@ export function getEventTypeLabel(type: CalendarEvent['event_type']): string {
 export function formatTime(iso: string): string {
   const d = new Date(iso);
   if (!d || isNaN(d.getTime())) return '';
-  return d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' });
+  return new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(d);
 }
 
 export function formatTimeRange(startIso: string, endIso?: string | null): string {

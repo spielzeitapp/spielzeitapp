@@ -18,6 +18,13 @@ import { syncReminderJobsAfterEventWrite } from '../lib/reminders/syncReminderJo
 import { downloadCalendarIcs, downloadEventIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import type { SeriesEditScope } from '../lib/seriesEditScope';
+import {
+  meetupUtcIsoOnViennaEventDay,
+  parseViennaDateTimeLocalToUtcIso,
+  utcIsoToViennaDateTimeLocal,
+  utcIsoToViennaTimeHHmm,
+} from '../lib/viennaTime';
+import { formatDateTimeDeVienna } from '../lib/notifications/format';
 
 type TabId = 'upcoming' | 'live' | 'finished';
 type KindFilterId = 'all' | 'match' | 'training' | 'event';
@@ -52,27 +59,6 @@ function getTimeBucket(e: EventRow, now: Date): TimeFilterId {
   if (starts && starts.getTime() < now.getTime()) return 'past';
   return 'upcoming';
 }
-
-/** ISO-String → Wert für input type="datetime-local" (lokale Zeit). */
-function isoToDateTimeLocal(iso: string | null): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  const y = d.getFullYear();
-  const mo = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const h = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${y}-${mo}-${day}T${h}:${min}`;
-}
-
-function isoToTimeLocal(iso: string | null): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  const h = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${h}:${min}`;
-}
-
 
 export const SchedulePage: React.FC = () => {
   const navigate = useNavigate();
@@ -152,10 +138,10 @@ export const SchedulePage: React.FC = () => {
     }
     setEditEvent(e);
     setEditOpponent(e.opponent ?? '');
-    setEditDateTime(isoToDateTimeLocal(e.starts_at));
+    setEditDateTime(utcIsoToViennaDateTimeLocal(e.starts_at));
     setEditLocation(e.location ?? '');
     setEditAddress(e.address ?? '');
-    setEditMeetupAt(isoToTimeLocal(e.meetup_at));
+    setEditMeetupAt(utcIsoToViennaTimeHHmm(e.meetup_at ?? ''));
     setEditTrainingDeadlineDisabled(e.training_absence_deadline_disabled ?? false);
     setEditSeriesScope('single');
     setEditError(null);
@@ -286,16 +272,17 @@ export const SchedulePage: React.FC = () => {
     }
     setEditError(null);
     setSavingEdit(true);
-    const startsDate = new Date(editDateTime.trim());
-    const startsAt = startsDate.toISOString();
+    const startsAt = parseViennaDateTimeLocalToUtcIso(editDateTime.trim());
+    if (!startsAt) {
+      setEditError('Ungültiges Datumsformat.');
+      setSavingEdit(false);
+      return;
+    }
     const locationVal = editLocation.trim() || null;
     const addressVal = editAddress.trim() || null;
     let meetupAt: string | null = null;
     if (editMeetupAt.trim()) {
-      const [hh, mm] = editMeetupAt.split(':');
-      const meetup = new Date(startsDate);
-      meetup.setHours(Number(hh) || 0, Number(mm) || 0, 0, 0);
-      meetupAt = meetup.toISOString();
+      meetupAt = meetupUtcIsoOnViennaEventDay(startsAt, editMeetupAt.trim());
     }
 
     const hasSeries = Boolean(editEvent.series_id);
@@ -891,15 +878,7 @@ export const SchedulePage: React.FC = () => {
                     ? attendanceModalEvent.notes.split(' · ')[0] ?? 'Termin'
                     : attendanceModalEvent.opponent ?? 'Termin'}{' '}
                   ·{' '}
-                  {attendanceModalEvent.starts_at
-                    ? new Date(attendanceModalEvent.starts_at).toLocaleDateString('de-DE', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    : ''}
+                  {attendanceModalEvent.starts_at ? formatDateTimeDeVienna(attendanceModalEvent.starts_at) : ''}
                 </p>
               )}
 

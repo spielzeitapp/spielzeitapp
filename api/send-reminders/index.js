@@ -6,26 +6,45 @@ const { createClient } = require('@supabase/supabase-js');
 const webpush = require('web-push');
 
 const REMINDER_LINK = '/app/termine';
-const JOB_BATCH_LIMIT = 20;
+/** Idempotente Batches; mehrfaches Aufrufen möglich (Claim + messages-Dedupe). */
+const JOB_BATCH_LIMIT = 50;
 
-const COPY = {
-  match_reminder_1: {
-    title: '⚽ Spiel-Erinnerung',
-    body: 'Bitte Zu-/Absage abgeben.',
-  },
-  match_reminder_2: {
-    title: '⚽ Spiel-Erinnerung',
-    body: 'Erinnerung: Treffpunkt bald.',
-  },
-  training_reminder: {
-    title: '🏃 Trainings-Erinnerung',
-    body: 'Training startet bald.',
-  },
-  event_reminder: {
-    title: '📌 Erinnerung',
-    body: 'Ein Termin startet bald.',
-  },
-};
+function formatTimeDe(iso) {
+  if (!iso) return '--:--';
+  try {
+    return new Date(iso).toLocaleTimeString('de-DE', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/Vienna',
+    });
+  } catch (_) {
+    return '--:--';
+  }
+}
+
+/** Titel nach Job-Typ (match / training / event). */
+function titleForJobKind(kind) {
+  if (kind === 'match') return '⚽ Spiel-Erinnerung';
+  if (kind === 'training') return '🏃 Trainings-Erinnerung';
+  return '📌 Erinnerung';
+}
+
+/**
+ * Fließtext z. B. „Erinnerung: Spiel heute um XX:XX“ (starts_at, Europe/Vienna).
+ */
+function buildReminderBody(kind, event, reminderKey) {
+  const t = formatTimeDe(event.starts_at);
+  if (kind === 'match') {
+    if (reminderKey === 'match_reminder_2') {
+      return `Erinnerung: Treffpunkt bald (Spiel um ${t}).`;
+    }
+    return `Erinnerung: Spiel heute um ${t}`;
+  }
+  if (kind === 'training') {
+    return `Erinnerung: Training heute um ${t}`;
+  }
+  return `Erinnerung: Termin heute um ${t}`;
+}
 
 function parseBody(req) {
   try {
@@ -162,10 +181,6 @@ async function failJobWithRetry(admin, job, err) {
   }
 }
 
-function getCopy(reminderKey) {
-  return COPY[reminderKey] || { title: 'SpielzeitApp', body: 'Erinnerung.' };
-}
-
 async function sendOnePush(subRow, title, body, url) {
   ensureVapid();
   const payload = JSON.stringify({ title, body, url });
@@ -191,9 +206,6 @@ async function processOneJob(admin, job) {
   }
 
   const reminderKey = payload.reminderKey;
-  const { title, body: textBody } = getCopy(reminderKey);
-  const url = REMINDER_LINK.startsWith('/') ? REMINDER_LINK : `/${REMINDER_LINK}`;
-  const contentWithLink = `${textBody}\n\n${url}`;
 
   const { data: event, error: evErr } = await admin
     .from('events')
@@ -206,6 +218,11 @@ async function processOneJob(admin, job) {
     await failJobWithRetry(admin, job, err);
     return { ok: false, error: err };
   }
+
+  const title = titleForJobKind(job.kind);
+  const textBody = buildReminderBody(job.kind, event, reminderKey);
+  const url = REMINDER_LINK.startsWith('/') ? REMINDER_LINK : `/${REMINDER_LINK}`;
+  const contentWithLink = `${textBody}\n\n${url}`;
 
   if ((event.status ?? 'upcoming') !== 'upcoming') {
     await completeJob(admin, job.id);

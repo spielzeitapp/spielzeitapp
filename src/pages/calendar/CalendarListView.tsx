@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { CalendarEvent } from './calendarTypes';
+import { formatEventDateLongVienna } from '../../lib/notifications/format';
 import {
   formatMeetingPoint,
   formatTimeRange,
   formatTrainingTimeRange,
-  toLocalDayKey,
+  toViennaDayKey,
 } from './calendarUtils';
 
 type Props = {
@@ -26,8 +27,7 @@ export const CalendarListView: React.FC<Props> = ({
   const groups = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
     for (const ev of events) {
-      const d = new Date(ev.starts_at);
-      const key = toLocalDayKey(d);
+      const key = toViennaDayKey(ev.starts_at);
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(ev);
     }
@@ -54,12 +54,9 @@ export const CalendarListView: React.FC<Props> = ({
         ) : null}
 
         {groups.map(({ key, list }) => {
-          const d = new Date(list[0] ? list[0].starts_at : `${key}T00:00:00`);
-          const heading = d.toLocaleDateString('de-AT', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-          });
+          const heading = list[0]
+            ? formatEventDateLongVienna(list[0].starts_at)
+            : '';
           const isToday = key === todayKey;
 
           return (

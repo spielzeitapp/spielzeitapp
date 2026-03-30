@@ -6,6 +6,8 @@ import { useProfile, welcomeGreetingFromProfile } from '../auth/useProfile';
 import { useEvents, type EventRow } from '../hooks/useEvents';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { supabase } from '../lib/supabaseClient';
+import { formatDateTimeDeVienna, formatEventTimeVienna } from '../lib/notifications/format';
+import { VIENNA_TZ } from '../lib/viennaTime';
 
 type MessageRow = {
   id: string;
@@ -35,26 +37,23 @@ function nextUpcoming(events: EventRow[], now: Date): EventRow | null {
 
 function formatDt(iso: string | null): string {
   if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString('de-DE', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return iso;
-  }
+  return formatDateTimeDeVienna(iso);
 }
 
 function formatOpenActionWhen(iso: string | null): string {
   if (!iso) return 'unbekannten Zeitpunkt';
   try {
     const d = new Date(iso);
-    const weekday = new Intl.DateTimeFormat('de-DE', { weekday: 'short' }).format(d).replace(/\.$/, '');
-    const date = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: 'long' }).format(d);
-    const time = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' }).format(d);
+    if (Number.isNaN(d.getTime())) return iso;
+    const weekday = new Intl.DateTimeFormat('de-DE', { timeZone: VIENNA_TZ, weekday: 'short' })
+      .format(d)
+      .replace(/\.$/, '');
+    const date = new Intl.DateTimeFormat('de-DE', {
+      timeZone: VIENNA_TZ,
+      day: '2-digit',
+      month: 'long',
+    }).format(d);
+    const time = formatEventTimeVienna(iso);
     return `${weekday}. ${date}, ${time}`;
   } catch {
     return iso;

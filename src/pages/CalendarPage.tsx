@@ -6,7 +6,13 @@ import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { buildTeamIcsFeedUrl } from '../lib/calendarFeed';
 import type { CalendarEvent, CalendarView } from './calendar/calendarTypes';
-import { notesTitleAndDescription, resolveEndAtFromNotes, toLocalDayKey, addDays, startOfWeekMonday } from './calendar/calendarUtils';
+import {
+  notesTitleAndDescription,
+  resolveEndAtFromNotes,
+  toViennaDayKey,
+  addDays,
+  startOfWeekMonday,
+} from './calendar/calendarUtils';
 import { formatFullLocation } from '../lib/eventLocation';
 import { CalendarListView } from './calendar/CalendarListView';
 import { CalendarWeekView } from './calendar/CalendarWeekView';
@@ -244,8 +250,7 @@ export const CalendarPage: React.FC = () => {
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
     for (const ev of events) {
-      const d = new Date(ev.starts_at);
-      const key = toLocalDayKey(d);
+      const key = toViennaDayKey(ev.starts_at);
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(ev);
     }
@@ -257,7 +262,7 @@ export const CalendarPage: React.FC = () => {
     year: 'numeric',
   });
 
-  const todayKey = toLocalDayKey(new Date());
+  const todayKey = toViennaDayKey(new Date());
   const weekStart = startOfWeekMonday(weekAnchor);
   const weekEnd = addDays(weekStart, 6);
   const weekLabel = `${weekStart.toLocaleDateString('de-AT', {

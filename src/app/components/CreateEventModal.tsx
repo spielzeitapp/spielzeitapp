@@ -4,6 +4,12 @@ import { Modal } from '../ui/Modal';
 import { supabase } from '../../lib/supabaseClient';
 import { enumerateOccurrenceStarts, type RecurrenceKind } from '../../lib/recurrenceDates';
 import { syncReminderJobsAfterEventWrite } from '../../lib/reminders/syncReminderJobsAfterEventWrite';
+import {
+  meetupUtcIsoOnViennaEventDay,
+  parseViennaDateTimeLocalToUtcIso,
+  viennaDateOnlyEndOfDayUtcIso,
+} from '../../lib/viennaTime';
+import { formatEventDateVienna, formatEventTimeVienna } from '../../lib/notifications/format';
 
 /** Leerstring / Whitespace → null (Supabase/Postgres). */
 function nullIfEmpty(s: string | null | undefined): string | null {
@@ -146,12 +152,13 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const startDate = new Date(startsAtRaw);
-      if (isNaN(startDate.getTime())) {
+      const firstStartUtcIso = parseViennaDateTimeLocalToUtcIso(startsAtRaw);
+      if (!firstStartUtcIso) {
         setError('Ungültiges Datumsformat.');
         setCreating(false);
         return;
       }
+      const startDate = new Date(firstStartUtcIso);
 
       const locationVal = form.location.trim() || null;
       const addressVal = form.address.trim() || null;
@@ -176,10 +183,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       const meetupIsoForStart = (d: Date): string | null => {
         if (!form.meetup_time.trim()) return null;
-        const [hh, mm] = form.meetup_time.split(':');
-        const meetup = new Date(d);
-        meetup.setHours(Number(hh) || 0, Number(mm) || 0, 0, 0);
-        return meetup.toISOString();
+        return meetupUtcIsoOnViennaEventDay(d.toISOString(), form.meetup_time.trim());
       };
 
       const canRecur =
@@ -197,15 +201,18 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           setCreating(false);
           return;
         }
-        const untilDate = new Date(`${untilRaw}T23:59:59`);
-        const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-        const untilDay = new Date(untilDate.getFullYear(), untilDate.getMonth(), untilDate.getDate());
-        if (untilDay < startDay) {
+        const untilEndIso = viennaDateOnlyEndOfDayUtcIso(untilRaw);
+        if (!untilEndIso) {
+          setError('Ungültiges Enddatum.');
+          setCreating(false);
+          return;
+        }
+        if (new Date(untilEndIso).getTime() < new Date(firstStartUtcIso).getTime()) {
           setError('Enddatum muss am oder nach dem ersten Termin liegen.');
           setCreating(false);
           return;
         }
-        occurrenceStarts = enumerateOccurrenceStarts(startDate, recurrence, untilDate);
+        occurrenceStarts = enumerateOccurrenceStarts(firstStartUtcIso, recurrence, untilEndIso);
         if (occurrenceStarts.length === 0) {
           setError('Keine Termine im gewählten Zeitraum.');
           setCreating(false);
@@ -305,15 +312,8 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         const accessToken = sessionRes.session?.access_token;
         if (accessToken && teamSeasonId) {
           const firstEventId = (Array.isArray(insertedRows) ? insertedRows[0] : null)?.id ?? null;
-          const dateStr = startDate.toLocaleDateString('de-DE', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          });
-          const timeStr = startDate.toLocaleTimeString('de-DE', {
-            hour: '2-digit',
-            minute: '2-digit',
-          });
+          const dateStr = formatEventDateVienna(startDate.toISOString());
+          const timeStr = formatEventTimeVienna(startDate.toISOString());
 
           const ortVal = (form.location.trim() || form.address.trim()).trim();
           const treffpunktVal = form.meetup_time.trim();

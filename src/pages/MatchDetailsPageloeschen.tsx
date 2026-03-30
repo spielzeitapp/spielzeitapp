@@ -11,6 +11,7 @@ import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
 import { useMatchRsvps } from '../hooks/useMatchRsvps';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
+import { VIENNA_TZ } from '../lib/viennaTime';
 
 type MatchInfo = {
   id: string;
@@ -178,8 +179,12 @@ export const MatchDetailsPage: React.FC = () => {
   }
 
   const kickoff = match.match_date ? new Date(match.match_date) : null;
-  const dateStr = kickoff ? kickoff.toLocaleDateString('de-AT') : '–';
-  const timeStr = kickoff ? kickoff.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' }) : '–';
+  const dateStr = kickoff
+    ? new Intl.DateTimeFormat('de-AT', { timeZone: VIENNA_TZ, dateStyle: 'medium' }).format(kickoff)
+    : '–';
+  const timeStr = kickoff
+    ? new Intl.DateTimeFormat('de-AT', { timeZone: VIENNA_TZ, hour: '2-digit', minute: '2-digit' }).format(kickoff)
+    : '–';
 
   const handleToggleStartPause = () => {
     if (!state) return;
