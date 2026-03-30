@@ -127,13 +127,19 @@ async function failJob(admin: SupabaseClient, job: JobRow, err: string) {
   }
 }
 
-async function notificationExists(admin: SupabaseClient, userId: string, eventId: string, reminderKey: string) {
+async function notificationAlreadyDispatched(
+  admin: SupabaseClient,
+  userId: string,
+  eventId: string,
+  reminderKey: string,
+) {
   const { data, error } = await admin
-    .from("notifications")
+    .from("notification_dispatch_log")
     .select("id")
     .eq("user_id", userId)
     .eq("event_id", eventId)
-    .eq("type", `reminder:${reminderKey}`)
+    .eq("reminder_key", reminderKey)
+    .eq("channel", "in_app")
     .maybeSingle();
   if (error) throw error;
   return Boolean(data && (data as { id?: string }).id);
@@ -281,36 +287,66 @@ async function processOneJob(
   let inserted = 0;
   let pushSent = 0;
   let pushRemoved = 0;
+  let recipientErrors = 0;
 
   for (const userId of recipients) {
-    const exists = await notificationExists(admin, userId, job.event_id, effectiveReminderKey);
-    if (!exists) {
-      const { error: insErr } = await admin.from("notifications").insert({
-        team_id: job.team_id,
-        user_id: userId,
-        event_id: job.event_id,
-        title,
-        message: body,
-        type: `reminder:${effectiveReminderKey}`,
-        read: false,
-        link: url,
-      });
-      if (insErr) {
-        const err = insErr.message ?? String(insErr);
-        await failJob(admin, job, err);
-        return { ok: false, error: err };
-      }
-      inserted += 1;
-    }
-
-    // Push ist best-effort: einzelne fehlerhafte Subscriptions dürfen den Job nicht töten.
     try {
+      const exists = await notificationAlreadyDispatched(admin, userId, job.event_id, effectiveReminderKey);
+      if (!exists) {
+        const { error: insErr } = await admin.from("notifications").insert({
+          team_id: job.team_id,
+          user_id: userId,
+          event_id: job.event_id,
+          title,
+          message: body,
+          type: "auto",
+          event_type: "reminder",
+          read: false,
+          link: url,
+        });
+        if (insErr) {
+          recipientErrors += 1;
+          console.error("[send-reminders] notification insert failed", {
+            jobId: job.id,
+            userId,
+            error: insErr.message ?? String(insErr),
+          });
+        } else {
+          inserted += 1;
+          const { error: dispErr } = await admin.from("notification_dispatch_log").insert({
+            user_id: userId,
+            event_id: job.event_id,
+            reminder_key: effectiveReminderKey,
+            channel: "in_app",
+          });
+          if (dispErr) {
+            const code = (dispErr as { code?: string }).code;
+            if (code !== "23505") {
+              console.error("[send-reminders] dispatch log insert failed", {
+                userId,
+                reminderKey: effectiveReminderKey,
+                error: dispErr.message,
+              });
+            }
+          }
+        }
+      }
+
+      // Push ist best-effort: einzelne fehlerhafte Subscriptions dürfen den Job nicht töten.
       const pushResult = await sendPushesForUser(admin, userId, title, body, url);
       pushSent += pushResult.sent;
       pushRemoved += pushResult.removed;
     } catch (err) {
+      recipientErrors += 1;
       console.error("[send-reminders] sendPushesForUser failed", { userId, error: err });
     }
+  }
+
+  // Nur wenn ALLE Empfänger fehlschlagen, markieren wir den Job als failed.
+  if (inserted === 0 && recipientErrors >= recipients.length) {
+    const err = "all recipient deliveries failed";
+    await failJob(admin, job, err);
+    return { ok: false, error: err, inserted, pushSent, pushRemoved };
   }
 
   await completeJob(admin, job.id);
