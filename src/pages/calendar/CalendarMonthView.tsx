@@ -74,9 +74,9 @@ export const CalendarMonthView: React.FC<Props> = ({
                       {ev.location ? (
                         <div className="text-[9px] text-white/80 truncate">{ev.location}</div>
                       ) : null}
-                      {formatMeetingPoint(ev.meetup_at) ? (
+                      {formatMeetingPoint(ev.meeting_at) ? (
                         <div className="text-[9px] text-yellow-200/90 truncate">
-                          {formatMeetingPoint(ev.meetup_at)}
+                          {formatMeetingPoint(ev.meeting_at)}
                         </div>
                       ) : ev.description ? (
                         <div className="text-[9px] text-white/70 truncate">{ev.description}</div>

@@ -68,7 +68,7 @@ export const CalendarListView: React.FC<Props> = ({
 
               <div className="space-y-2">
                 {list.map((ev) => {
-                  const meetingPointLine = formatMeetingPoint(ev.meetup_at);
+                  const meetingPointLine = formatMeetingPoint(ev.meeting_at);
                   return (
                     <button
                       key={ev.id}

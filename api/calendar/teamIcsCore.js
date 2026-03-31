@@ -66,7 +66,7 @@ function parseEndTimeFromNotes(notes) {
 }
 
 function effectiveType(ev) {
-  const raw = (ev.event_type ?? '').trim().toLowerCase();
+  const raw = (ev.type ?? '').trim().toLowerCase();
   if (raw === 'game' || raw === 'training' || raw === 'event' || raw === 'other') return raw;
   if ((ev.kind ?? '').trim().toLowerCase() === 'training') return 'training';
   if ((ev.kind ?? '').trim().toLowerCase() === 'event') return 'event';
@@ -168,10 +168,7 @@ function buildSummary(ev, teamName) {
 
 function buildLocation(ev) {
   const place = (ev.location ?? '').trim();
-  const addr = (ev.address ?? '').trim();
-  if (place && addr) return `${place}, ${addr}`;
   if (place) return place;
-  if (addr) return addr;
   const notes = notesTitleAndDescription(ev.notes);
   return notes.description ?? null;
 }
@@ -190,7 +187,7 @@ function formatViennaTime(isoString) {
 
 function buildDescription(ev, appBaseUrl) {
   const notes = notesTitleAndDescription(ev.notes);
-  const meetup = ev.meetup_at ? formatViennaTime(ev.meetup_at) : null;
+  const meetup = ev.meeting_at ? formatViennaTime(ev.meeting_at) : null;
   const eventUrl = `${appBaseUrl}/app/events/${ev.id}`;
   const lines = [];
   if (meetup) lines.push(`Treffpunkt: ${meetup}`);
@@ -278,7 +275,7 @@ async function teamIcsHandler(req, res) {
     });
     const { data: events, error: evError } = await admin
       .from('events')
-      .select('id, team_season_id, kind, event_type, opponent, location, address, starts_at, meetup_at, notes')
+      .select('id, team_season_id, kind, type, opponent, location, starts_at, meeting_at, notes')
       .in('team_season_id', teamSeasonIds.length ? teamSeasonIds : ['00000000-0000-0000-0000-000000000000'])
       .gte('starts_at', nowIso)
       .order('starts_at', { ascending: true });

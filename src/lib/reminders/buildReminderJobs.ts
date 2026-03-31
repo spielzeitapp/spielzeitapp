@@ -40,7 +40,7 @@ function parseUtcInstantMs(iso: string): number {
  * - Event / other: starts_at
  */
 export function getBaseTimeForEvent(event: RawEventRow): string {
-  const meet = nonEmptyIso(event.meetup_at) ?? nonEmptyIso(event.meeting_at);
+  const meet = nonEmptyIso(event.meeting_at);
   const kickoff = nonEmptyIso(event.kickoff_at);
   const start = nonEmptyIso(event.starts_at) ?? '';
   const ctype = getCanonicalEventType(event);

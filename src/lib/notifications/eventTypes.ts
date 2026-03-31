@@ -5,21 +5,19 @@ export type RawEventRow = {
   id: string;
   team_season_id: string;
   kind?: string | null;
-  /** Legacy / alternativ */
   type?: string | null;
   starts_at: string;
   status?: string | null;
-  participation_mode?: string | null;
   attendance_mode?: string | null;
   notes?: string | null;
   opponent?: string | null;
-  training_absence_deadline_disabled?: boolean | null;
-  meetup_at?: string | null;
   meeting_at?: string | null;
-  /** optionaler Anstoß / Spielbeginn (falls im Schema vorhanden) */
-  kickoff_at?: string | null;
   location?: string | null;
-  address?: string | null;
+  is_home?: boolean | null;
+  match_id?: string | null;
+  created_by?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 export type CanonicalEventType = 'training' | 'game' | 'event' | 'other';
@@ -39,7 +37,7 @@ export function getCanonicalEventType(row: RawEventRow): CanonicalEventType {
 }
 
 export function getParticipationMode(row: RawEventRow): 'opt_in' | 'opt_out' {
-  const p = (row.participation_mode ?? row.attendance_mode ?? 'opt_in').toLowerCase().trim();
+  const p = (row.attendance_mode ?? 'opt_in').toLowerCase().trim();
   return p === 'opt_out' ? 'opt_out' : 'opt_in';
 }
 

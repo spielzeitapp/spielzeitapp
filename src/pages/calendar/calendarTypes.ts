@@ -6,9 +6,8 @@ export type CalendarEvent = {
   type: CalendarEventType;
   starts_at: string;
   end_at?: string | null;
-  meetup_at?: string | null;
+  meeting_at?: string | null;
   location: string | null;
-  address?: string | null;
   opponent?: string | null;
   notes?: string | null;
   description?: string | null;

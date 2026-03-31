@@ -162,7 +162,7 @@ export const CalendarWeekView: React.FC<Props> = ({
                             : ev.description
                               ? ev.description
                               : null;
-                          const meetingPointLine = formatMeetingPoint(ev.meetup_at);
+                          const meetingPointLine = formatMeetingPoint(ev.meeting_at);
                           const descriptionLine =
                             !meetingPointLine && ev.description
                               ? ev.description

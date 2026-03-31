@@ -5,15 +5,18 @@ export type IcsEventLike = {
   team_season_id?: string | null;
   kind?: string | null;
   type?: string | null;
-  match_type?: string | null;
   opponent?: string | null;
   is_home?: boolean | null;
   title?: string | null;
   notes?: string | null;
   location?: string | null;
-  address?: string | null;
-  meetup_at?: string | null;
+  meeting_at?: string | null;
   starts_at?: string | null;
+  match_id?: string | null;
+  attendance_mode?: string | null;
+  created_by?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
   // For "stable UID"; others optional
   status?: string | null;
 };
@@ -117,17 +120,16 @@ export function generateEventIcs(
           ? `${notesTitle ?? e.title ?? 'Event'}`
           : `${notesTitle ?? e.title ?? 'Termin'}`;
 
-  const meetupTimeOnly = e.meetup_at
+  const meetupTimeOnly = e.meeting_at
     ? new Intl.DateTimeFormat('de-AT', {
         timeZone: 'Europe/Vienna',
         hour: '2-digit',
         minute: '2-digit',
-      }).format(new Date(e.meetup_at))
+      }).format(new Date(e.meeting_at))
     : null;
   const location =
-    fullLocationForIcs(e.location, e.address) ||
+    fullLocationForIcs(e.location, e.location) ||
     (e.location ?? '').trim() ||
-    (e.address ?? '').trim() ||
     (descriptionText ?? '').trim() ||
     null;
 

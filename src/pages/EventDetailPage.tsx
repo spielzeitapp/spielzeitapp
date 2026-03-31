@@ -24,21 +24,19 @@ type EventDbRow = {
   opponent: string | null;
   is_home: boolean | null;
   location: string | null;
-  address: string | null;
-  series_id: string | null;
   starts_at: string;
-  meetup_at: string | null;
+  meeting_at: string | null;
   status: string | null;
-  participation_mode: string | null;
+  attendance_mode: string | null;
   notes: string | null;
-  training_absence_deadline_disabled: boolean | null;
+  match_id: string | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
 
 const EVENTS_SELECT =
-  'id, team_season_id, kind, type, opponent, is_home, location, address, series_id, starts_at, meetup_at, status, participation_mode, notes, created_by, created_at, updated_at';
+  'id, team_season_id, kind, type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, created_by, created_at, updated_at';
 
 function normalizeEventStatus(s: string | null): EventStatus {
   const v = (s ?? '').trim().toLowerCase();
@@ -63,18 +61,15 @@ function mapRowToEventRow(r: EventDbRow): EventRow {
     team_season_id: r.team_season_id,
     kind: (r.kind === 'match' || r.kind === 'training' || r.kind === 'event' ? r.kind : 'event') as EventKind,
     type,
-    match_type: null,
     opponent: r.opponent ?? null,
     is_home: r.is_home ?? null,
     location: r.location ?? null,
-    address: r.address ?? null,
-    series_id: r.series_id ?? null,
     starts_at: r.starts_at,
-    meetup_at: r.meetup_at ?? null,
+    meeting_at: r.meeting_at ?? null,
     status: normalizeEventStatus(r.status),
-    participation_mode: (r.participation_mode === 'opt_out' ? 'opt_out' : 'opt_in') as 'opt_in' | 'opt_out',
+    attendance_mode: (r.attendance_mode === 'opt_out' ? 'opt_out' : 'opt_in') as 'opt_in' | 'opt_out',
     notes: r.notes ?? null,
-    training_absence_deadline_disabled: r.training_absence_deadline_disabled ?? false,
+    match_id: r.match_id ?? null,
     created_by: r.created_by ?? null,
     created_at: r.created_at ?? null,
     updated_at: r.updated_at ?? null,
@@ -378,8 +373,8 @@ export const EventDetailPage: React.FC = () => {
             eventType={(event as any).type ?? undefined}
             notes={event.notes}
             location={event.location}
-            address={event.address}
-            meetupAt={event.meetup_at}
+            address={event.location}
+            meetupAt={event.meeting_at}
             showMeetup={showMeetup}
             isPublicView={true}
           />

@@ -27,10 +27,9 @@ type EventRow = {
   id: string;
   team_season_id: string | number | null;
   starts_at: string | null;
-  meetup_at?: string | null;
   status?: string | null;
   kind?: string | null;
-  event_type?: string | null;
+  type?: string | null;
   opponent?: string | null;
   notes?: string | null;
   location?: string | null;
@@ -65,7 +64,7 @@ function isoDateTimeDeVienna(iso: string | null | undefined) {
 }
 
 function eventLabel(kind: string | null | undefined, event: EventRow): "match" | "training" | "event" {
-  const k = (kind ?? event.kind ?? "").toLowerCase().trim();
+  const k = (kind ?? event.kind ?? event.type ?? "").toLowerCase().trim();
   if (k === "match" || k === "game" || k === "spiel") return "match";
   if (k === "training") return "training";
   return "event";
@@ -291,7 +290,7 @@ async function processOneJob(
 
   const { data: event, error: eventErr } = await admin
     .from("events")
-    .select("id, team_season_id, starts_at, meetup_at, status, kind, event_type, opponent, notes, location")
+    .select("id, team_season_id, starts_at, meeting_at, status, kind, type, opponent, notes, location")
     .eq("id", job.event_id)
     .maybeSingle();
   if (eventErr || !event) {

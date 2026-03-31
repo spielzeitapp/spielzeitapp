@@ -140,8 +140,8 @@ export const SchedulePage: React.FC = () => {
     setEditOpponent(e.opponent ?? '');
     setEditDateTime(utcIsoToViennaDateTimeLocal(e.starts_at));
     setEditLocation(e.location ?? '');
-    setEditAddress(e.address ?? '');
-    setEditMeetupAt(utcIsoToViennaTimeHHmm(e.meetup_at ?? ''));
+    setEditAddress(e.location ?? '');
+    setEditMeetupAt(utcIsoToViennaTimeHHmm(e.meeting_at ?? ''));
     setEditTrainingDeadlineDisabled(e.training_absence_deadline_disabled ?? false);
     setEditSeriesScope('single');
     setEditError(null);
@@ -280,31 +280,24 @@ export const SchedulePage: React.FC = () => {
     }
     const locationVal = editLocation.trim() || null;
     const addressVal = editAddress.trim() || null;
-    let meetupAt: string | null = null;
+    let meetingAt: string | null = null;
     if (editMeetupAt.trim()) {
-      meetupAt = meetupUtcIsoOnViennaEventDay(startsAt, editMeetupAt.trim());
+      meetingAt = meetupUtcIsoOnViennaEventDay(startsAt, editMeetupAt.trim());
     }
 
     const hasSeries = Boolean(editEvent.series_id);
     const bulkScope = hasSeries && editSeriesScope !== 'single';
 
-    const trainingExtra =
-      editEvent.kind === 'training' ? { training_absence_deadline_disabled: editTrainingDeadlineDisabled } : {};
-
     const fullPayload = {
       opponent: opponent || null,
       starts_at: startsAt,
-      location: locationVal,
-      address: addressVal,
-      meetup_at: meetupAt,
-      ...trainingExtra,
+      location: locationVal ?? addressVal,
+      meeting_at: meetingAt,
     };
 
     const sharedPayload = {
       opponent: opponent || null,
-      location: locationVal,
-      address: addressVal,
-      ...trainingExtra,
+      location: locationVal ?? addressVal,
     };
 
     let eventErr: { message: string } | null = null;
@@ -344,12 +337,10 @@ export const SchedulePage: React.FC = () => {
     // MVP: Automatische Nachricht + Push bei relevanter Termin-Aenderung
     try {
       const oldLoc = (editEvent.location ?? '').toString();
-      const oldAddr = (editEvent.address ?? '').toString();
       const newLoc = (locationVal ?? '').toString();
-      const newAddr = (addressVal ?? '').toString();
-      const locationChanged = oldLoc !== newLoc || oldAddr !== newAddr;
+      const locationChanged = oldLoc !== newLoc;
       const startsChanged = (editEvent.starts_at ?? '') !== startsAt;
-      const meetupChanged = (editEvent.meetup_at ?? '') !== (meetupAt ?? '');
+      const meetupChanged = (editEvent.meeting_at ?? '') !== (meetingAt ?? '');
       const relevantChanged = locationChanged || startsChanged || meetupChanged;
 
       if (relevantChanged && teamSeasonId) {
@@ -644,10 +635,10 @@ export const SchedulePage: React.FC = () => {
                         kind={ev.kind}
                         eventType={et}
                         notes={ev.notes}
-                        matchType={ev.match_type}
+                        matchType={ev.type}
                         location={ev.location}
-                        address={ev.address}
-                        meetupAt={ev.meetup_at}
+                        address={ev.location}
+                        meetupAt={ev.meeting_at}
                         showMeetup={showMeetupForRole}
                         eventId={forcePublicView ? undefined : ev.id}
                         onNavigate={forcePublicView ? undefined : (id) => navigate(`/app/events/${id}`)}

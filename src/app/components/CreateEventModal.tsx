@@ -24,14 +24,10 @@ function nullIfEmpty(s: string | null | undefined): string | null {
  */
 function sanitizeEventsInsertRow(row: Record<string, unknown>): Record<string, unknown> {
   const nullableStringKeys = new Set([
-    'series_id',
-    'address',
     'location',
     'opponent',
     'notes',
-    'meetup_at',
     'meeting_at',
-    'match_type',
     'created_by',
   ]);
   const out: Record<string, unknown> = {};
@@ -59,13 +55,11 @@ const MATCH_TYPE_OPTIONS: { value: string; label: string }[] = [
 ];
 
 export type CreateEventFormValues = {
-  match_type: string;
   opponent: string;
   is_home: boolean;
   location: string;
-  address: string;
   starts_at: string;
-  meetup_time: string;
+  meeting_time: string;
   participation_mode: 'opt_in' | 'opt_out';
   title: string;
   end_time: string;
@@ -77,13 +71,11 @@ export type CreateEventFormValues = {
 };
 
 const defaultForm: CreateEventFormValues = {
-  match_type: 'friendly',
   opponent: '',
   is_home: true,
   location: '',
-  address: '',
   starts_at: '',
-  meetup_time: '',
+  meeting_time: '',
   participation_mode: 'opt_in',
   title: '',
   end_time: '',
@@ -169,7 +161,6 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           : eventTypeLocal === 'training'
             ? 'training'
             : 'event';
-      const matchTypeVal = nullIfEmpty(form.match_type);
 
       const buildNotes = (): string | null => {
         if (eventTypeLocal !== 'training' && eventTypeLocal !== 'event' && eventTypeLocal !== 'other') return null;
@@ -226,27 +217,20 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       const recurrenceUntilNormalized = nullIfEmpty(form.until_date);
 
       const buildPayloadForStart = (d: Date): Record<string, unknown> => {
-        const sid = nullIfEmpty(seriesId ?? '');
         const payload: Record<string, unknown> = {
           team_season_id: teamSeasonId,
           kind: matchKind,
           type: matchKind,
           opponent: eventTypeLocal === 'game' ? nullIfEmpty(opponentVal) : null,
           is_home: eventTypeLocal === 'game' ? form.is_home : null,
-          location: locationVal,
-          address: addressVal,
+          location: locationVal ?? addressVal,
           starts_at: d.toISOString(),
-          meetup_at: meetupIsoForStart(d),
+          meeting_at: meetupIsoForStart(d),
           status: 'upcoming',
-          participation_mode: form.participation_mode,
+          attendance_mode: form.participation_mode,
           created_by: user?.id ?? null,
         };
-        payload.series_id = sid;
-        if (eventTypeLocal === 'game' && matchTypeVal != null) payload.match_type = matchTypeVal;
         if (notesVal) payload.notes = notesVal;
-        if (eventTypeLocal === 'training') {
-          payload.training_absence_deadline_disabled = Boolean(form.training_absence_deadline_disabled);
-        }
         return sanitizeEventsInsertRow(payload);
       };
 

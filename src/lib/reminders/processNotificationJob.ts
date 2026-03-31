@@ -14,10 +14,7 @@ function hasAllPlayersAnswered(playerIds: string[], attendanceByPlayerId: Map<st
 }
 
 function locationLineForBody(ev: RawEventRow): string | null {
-  const loc = (ev.location ?? '').trim();
-  const addr = (ev.address ?? '').trim();
-  if (loc && addr) return `${loc} (${addr})`;
-  return loc || addr || null;
+  return (ev.location ?? '').trim() || null;
 }
 
 function buildCopyForJob(
@@ -25,7 +22,7 @@ function buildCopyForJob(
   event: RawEventRow,
 ): { title: string; body: string; pushBody: string } {
   const titleStr = getEventDisplayTitle(event);
-  const meetIso = event.meetup_at ?? event.meeting_at ?? null;
+  const meetIso = event.meeting_at ?? null;
   const startsIso = event.starts_at;
   const locLine = locationLineForBody(event);
   const meetForBody = meetIso && String(meetIso).trim() ? meetIso : null;

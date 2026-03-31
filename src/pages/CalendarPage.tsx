@@ -134,16 +134,16 @@ export const CalendarPage: React.FC = () => {
         let loadError: string | null = null;
         let first = await supabase
           .from('events')
-          .select('id, team_season_id, type, kind, opponent, notes, meetup_at, location, address, starts_at')
+          .select('id, team_season_id, type, kind, opponent, notes, meeting_at, location, starts_at')
           .in('team_season_id', teamSeasonIds)
           .gte('starts_at', start.toISOString())
           .lte('starts_at', end.toISOString())
           .order('starts_at', { ascending: true });
 
-        if (first.error && String(first.error.message ?? '').toLowerCase().includes('address')) {
+        if (first.error && String(first.error.message ?? '').toLowerCase().includes('meeting_at')) {
           first = await supabase
             .from('events')
-            .select('id, team_season_id, type, kind, opponent, notes, meetup_at, location, starts_at')
+            .select('id, team_season_id, type, kind, opponent, notes, location, starts_at')
             .in('team_season_id', teamSeasonIds)
             .gte('starts_at', start.toISOString())
             .lte('starts_at', end.toISOString())
@@ -154,7 +154,7 @@ export const CalendarPage: React.FC = () => {
           // Fallback: nur mit kind (alte DB)
           const second = await supabase
             .from('events')
-            .select('id, team_season_id, kind, opponent, notes, meetup_at, location, starts_at')
+            .select('id, team_season_id, kind, opponent, notes, location, starts_at')
             .in('team_season_id', teamSeasonIds)
             .gte('starts_at', start.toISOString())
             .lte('starts_at', end.toISOString())
@@ -192,7 +192,7 @@ export const CalendarPage: React.FC = () => {
 
             const startsAt = r.starts_at as string;
             const notes: string | null = (r.notes as string | null) ?? null;
-            const meetupAt: string | null = (r.meetup_at as string | null) ?? null;
+            const meetupAt: string | null = (r.meeting_at as string | null) ?? null;
             const opponent: string | null = (r.opponent as string | null) ?? null;
             let title = '';
             if (t === 'game') {
@@ -208,8 +208,7 @@ export const CalendarPage: React.FC = () => {
 
             const { description } = notesTitleAndDescription(notes);
             const place = (r.location as string | null) ?? null;
-            const addr = (r.address as string | null) ?? null;
-            const locationDisplay = formatFullLocation(place, addr) || place;
+            const locationDisplay = place;
 
             return {
               id: r.id,
@@ -221,9 +220,8 @@ export const CalendarPage: React.FC = () => {
                 eventType: t,
                 notes,
               }),
-              meetup_at: meetupAt,
+              meeting_at: meetupAt,
               location: locationDisplay,
-              address: addr,
               opponent,
               notes,
               description: description ?? null,

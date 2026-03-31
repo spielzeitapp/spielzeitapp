@@ -55,10 +55,7 @@ function hasAllPlayersAnswered(playerIds: string[], attendanceByPlayerId: Map<st
 }
 
 function locationLineForBody(ev: RawEventRow): string | null {
-  const loc = (ev.location ?? '').trim();
-  const addr = (ev.address ?? '').trim();
-  if (loc && addr) return `${loc} (${addr})`;
-  return loc || addr || null;
+  return (ev.location ?? '').trim() || null;
 }
 
 type SlotDef = {
@@ -210,7 +207,7 @@ export async function getPendingNotifications(
     const settings = resolveTeamSettings(event.team_season_id, settingsBySeason.get(event.team_season_id));
     const ctype = getCanonicalEventType(event);
     const titleStr = getEventDisplayTitle(event);
-    const meetupIso = event.meetup_at ?? event.meeting_at ?? null;
+    const meetupIso = event.meeting_at ?? null;
     const locLine = locationLineForBody(event);
 
     const slots = slotsForEvent(ctype, settings, event, now);
