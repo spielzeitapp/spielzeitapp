@@ -13,7 +13,6 @@ import {
   addDays,
   startOfWeekMonday,
 } from './calendar/calendarUtils';
-import { formatFullLocation } from '../lib/eventLocation';
 import { CalendarListView } from './calendar/CalendarListView';
 import { CalendarWeekView } from './calendar/CalendarWeekView';
 import { CalendarMonthView } from './calendar/CalendarMonthView';
@@ -324,57 +323,18 @@ export const CalendarPage: React.FC = () => {
   };
 
   return (
-    <div className="page relative min-h-[60vh] px-4 pt-6">
-      <div className="mx-auto max-w-5xl space-y-4">
+    <div className="page relative min-h-[60vh] px-4 pt-4">
+      <div className="mx-auto max-w-5xl space-y-3">
         <div className="space-y-2">
           <button
             type="button"
             onClick={() => navigate('/app/termine')}
-            className="text-sm text-white/80 hover:text-white"
+            className="-ml-0.5 text-sm text-white/75 hover:text-white"
           >
             ← Termine
           </button>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h1 className="text-2xl font-bold text-white tracking-tight">Kalender</h1>
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-md px-2 py-1 text-xs"
-                onClick={() => {
-                  if (view === 'week') {
-                    const next = new Date(weekAnchor);
-                    next.setDate(next.getDate() - 7);
-                    setWeekAnchor(next);
-                    setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
-                  } else {
-                    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-                  }
-                }}
-              >
-                ←
-              </Button>
-              <span className="text-xs text-white/80 min-w-[140px] text-center">{headerLabel}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-md px-2 py-1 text-xs"
-                onClick={() => {
-                  if (view === 'week') {
-                    const next = new Date(weekAnchor);
-                    next.setDate(next.getDate() + 7);
-                    setWeekAnchor(next);
-                    setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
-                  } else {
-                    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-                  }
-                }}
-              >
-                →
-              </Button>
-            </div>
-          </div>
-          <div className="inline-flex items-center rounded-lg border border-white/10 bg-black/30 p-1">
+          <h1 className="text-2xl font-bold text-white tracking-tight">Kalender</h1>
+          <div className="flex w-full max-w-md items-center rounded-lg border border-white/10 bg-black/30 p-1">
             {([
               ['list', 'Liste'],
               ['week', 'Woche'],
@@ -384,7 +344,7 @@ export const CalendarPage: React.FC = () => {
                 key={key}
                 type="button"
                 onClick={() => setView(key)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
+                className={`flex-1 px-2.5 py-1.5 text-xs font-medium rounded-md transition ${
                   view === key
                     ? 'bg-red-500/15 text-white border border-red-500/30'
                     : 'text-white/70 hover:bg-white/10 border border-transparent'
@@ -394,23 +354,60 @@ export const CalendarPage: React.FC = () => {
               </button>
             ))}
           </div>
+          <div className="flex items-center justify-center gap-1.5 sm:justify-start">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 min-w-[2rem] rounded-md px-2 text-xs"
+              onClick={() => {
+                if (view === 'week') {
+                  const next = new Date(weekAnchor);
+                  next.setDate(next.getDate() - 7);
+                  setWeekAnchor(next);
+                  setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
+                } else {
+                  setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+                }
+              }}
+            >
+              ←
+            </Button>
+            <span className="min-w-[10rem] text-center text-xs text-white/75">{headerLabel}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 min-w-[2rem] rounded-md px-2 text-xs"
+              onClick={() => {
+                if (view === 'week') {
+                  const next = new Date(weekAnchor);
+                  next.setDate(next.getDate() + 7);
+                  setWeekAnchor(next);
+                  setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
+                } else {
+                  setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+                }
+              }}
+            >
+              →
+            </Button>
+          </div>
         </div>
 
-        {!loading && !isFan && (
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        {!loading && !isFan && (accessibleTeamSeasons.length > 1 || loadingEvents) ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
             {accessibleTeamSeasons.length > 1 ? (
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
                 <label
                   htmlFor="calendar-team-filter"
-                  className="text-xs font-medium text-white/70"
+                  className="shrink-0 text-xs font-medium text-white/60"
                 >
-                  Mannschaft:
+                  Mannschaft
                 </label>
                 <select
                   id="calendar-team-filter"
                   value={selectedTeamSeasonId}
                   onChange={(e) => setSelectedTeamSeasonId(e.target.value as any)}
-                  className="rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white"
+                  className="min-w-0 flex-1 rounded-md border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white"
                 >
                   {canSeeAllTeams && (
                     <option value="all">Alle Teams</option>
@@ -422,16 +419,12 @@ export const CalendarPage: React.FC = () => {
                   ))}
                 </select>
               </div>
-            ) : (
-              <div />
-            )}
-            <div className="flex items-center gap-2">
-              {loadingEvents && (
-                <p className="text-xs text-white/60">Lade Termine…</p>
-              )}
-            </div>
+            ) : null}
+            {loadingEvents ? (
+              <p className="text-xs text-white/50">Lade Termine…</p>
+            ) : null}
           </div>
-        )}
+        ) : null}
 
         {error && (
           <p className="text-sm text-red-400" role="alert">
