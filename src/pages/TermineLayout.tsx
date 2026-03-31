@@ -11,14 +11,14 @@ export const TermineLayout: React.FC = () => {
   const isFan = effectiveRole === 'fan';
 
   const tabClass = (active: boolean) =>
-    `flex-1 rounded-lg px-3 py-2 text-center text-sm font-medium transition-colors ${
-      active ? 'bg-red-600 text-white shadow' : 'bg-white/5 text-white/70 hover:bg-white/10'
+    `flex-1 rounded-md px-2.5 py-1.5 text-center text-xs font-medium transition-colors ${
+      active ? 'bg-red-600/90 text-white' : 'bg-white/5 text-white/65 hover:bg-white/10'
     }`;
 
   return (
     <div className="w-full">
       {!isFan && (
-        <div className="mx-auto mb-4 flex max-w-[560px] gap-2 px-4">
+        <div className="mx-auto mb-2 flex max-w-[420px] gap-1.5 px-4">
           <NavLink to="/app/termine" end className={({ isActive }) => tabClass(isActive)}>
             Liste
           </NavLink>

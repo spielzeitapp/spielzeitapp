@@ -10,6 +10,7 @@ import {
   viennaDateOnlyEndOfDayUtcIso,
 } from '../../lib/viennaTime';
 import { formatEventDateVienna, formatEventTimeVienna } from '../../lib/notifications/format';
+import { combineLocationParts, formatFullLocation } from '../../lib/eventLocation';
 
 /** Leerstring / Whitespace → null (Supabase/Postgres). */
 function nullIfEmpty(s: string | null | undefined): string | null {
@@ -58,6 +59,7 @@ export type CreateEventFormValues = {
   opponent: string;
   is_home: boolean;
   location: string;
+  location_address: string;
   starts_at: string;
   meetup_time: string;
   participation_mode: 'opt_in' | 'opt_out';
@@ -75,6 +77,7 @@ const defaultForm: CreateEventFormValues = {
   opponent: '',
   is_home: true,
   location: '',
+  location_address: '',
   starts_at: '',
   meetup_time: '',
   participation_mode: 'opt_in',
@@ -154,7 +157,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       }
       const startDate = new Date(firstStartUtcIso);
 
-      const locationVal = (form.location ?? '').trim() || null;
+      const locationVal = combineLocationParts(form.location, form.location_address);
 
       const matchKind: 'match' | 'training' | 'event' =
         eventTypeLocal === 'game'
@@ -300,7 +303,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           const dateStr = formatEventDateVienna(startDate.toISOString());
           const timeStr = formatEventTimeVienna(startDate.toISOString());
 
-          const ortVal = (form.location ?? '').trim();
+          const ortVal = formatFullLocation(form.location, form.location_address);
           const treffpunktVal = (form.meetup_time ?? '').trim();
           let titleForMsg = '';
           let contentForMsg = '';
@@ -541,7 +544,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         )}
         <div>
           <label htmlFor="create-event-location" className={labelClass}>
-            Adresse / Ort / Platzname (optional)
+            Platzname / Ort (optional)
           </label>
           <input
             id="create-event-location"
@@ -549,7 +552,20 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             value={form.location}
             onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
             className={inputClass}
-            placeholder="z. B. Sportplatz Rohrbach, Sportplatzstraße 1"
+            placeholder="z. B. Sportplatz Rohrbach"
+          />
+        </div>
+        <div>
+          <label htmlFor="create-event-location-address" className={labelClass}>
+            Adresse / PLZ / Ort (optional)
+          </label>
+          <input
+            id="create-event-location-address"
+            type="text"
+            value={form.location_address}
+            onChange={(e) => setForm((f) => ({ ...f, location_address: e.target.value }))}
+            className={inputClass}
+            placeholder="z. B. Sportplatzstraße 1, 3163 Rohrbach"
           />
         </div>
         <div>

@@ -26,6 +26,7 @@ import {
 } from '../lib/viennaTime';
 import { formatDateTimeDeVienna } from '../lib/notifications/format';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
+import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
 
 type TabId = 'upcoming' | 'live' | 'finished';
 type KindFilterId = 'all' | 'match' | 'training' | 'event';
@@ -112,6 +113,7 @@ export const SchedulePage: React.FC = () => {
   const [editOpponent, setEditOpponent] = useState('');
   const [editDateTime, setEditDateTime] = useState('');
   const [editLocation, setEditLocation] = useState('');
+  const [editLocationAddress, setEditLocationAddress] = useState('');
   const [editMeetupAt, setEditMeetupAt] = useState('');
   const [editTrainingDeadlineDisabled, setEditTrainingDeadlineDisabled] = useState(false);
   const [editSeriesScope, setEditSeriesScope] = useState<SeriesEditScope>('single');
@@ -139,7 +141,9 @@ export const SchedulePage: React.FC = () => {
     setEditEvent(e);
     setEditOpponent(e.opponent ?? '');
     setEditDateTime(utcIsoToViennaDateTimeLocal(e.starts_at));
-    setEditLocation(e.location ?? '');
+    const parsedLocation = splitCombinedLocation(e.location ?? '');
+    setEditLocation(parsedLocation.place);
+    setEditLocationAddress(parsedLocation.address);
     setEditMeetupAt(utcIsoToViennaTimeHHmm(e.meeting_at ?? ''));
     setEditTrainingDeadlineDisabled(e.training_absence_deadline_disabled ?? false);
     setEditSeriesScope('single');
@@ -258,6 +262,7 @@ export const SchedulePage: React.FC = () => {
     setEditOpponent('');
     setEditDateTime('');
     setEditLocation('');
+    setEditLocationAddress('');
     setEditMeetupAt('');
     setEditSeriesScope('single');
     setEditError(null);
@@ -279,7 +284,7 @@ export const SchedulePage: React.FC = () => {
       setSavingEdit(false);
       return;
     }
-    const locationVal = (editLocation ?? '').trim() || null;
+    const locationVal = combineLocationParts(editLocation, editLocationAddress);
     let meetingAt: string | null = null;
     const meetupRaw = (editMeetupAt ?? '').trim();
     if (meetupRaw) {
@@ -470,41 +475,43 @@ export const SchedulePage: React.FC = () => {
               ← Start
             </Link>
           )}
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-2">
             <div>
-              <h1 className="text-4xl font-bold text-white tracking-tight [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
+              <h1 className="text-4xl font-bold text-white tracking-tight leading-none [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
                 {normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine'}
               </h1>
               <p className="text-sm text-white/70 mt-2">
                 {teamSeasonSubtitle}
               </p>
             </div>
-            {canManage && (
-              <Button
-                variant="primary"
-                size="sm"
-                className="rounded-xl border border-red-500/30 bg-red-500/15 shadow-[0_0_20px_rgba(255,0,0,0.20)] hover:bg-red-500/25"
-                onClick={() => setCreateModalOpen(true)}
-                disabled={!teamSeasonId}
-              >
-                Termin anlegen
-              </Button>
-            )}
-            {teamSeasonId && !pageLoading && displayEvents.length > 0 && (
-              <Button
-                variant="soft"
-                size="sm"
-                className="rounded-xl"
-                onClick={() =>
-                  downloadCalendarIcs(displayEvents, {
-                    appBaseUrl: window.location.origin,
-                    calendarName: normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine',
-                  })
-                }
-              >
-                Kalender exportieren
-              </Button>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {canManage && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="rounded-lg border border-red-500/30 bg-red-500/15 hover:bg-red-500/25"
+                  onClick={() => setCreateModalOpen(true)}
+                  disabled={!teamSeasonId}
+                >
+                  Termin anlegen
+                </Button>
+              )}
+              {teamSeasonId && !pageLoading && displayEvents.length > 0 && (
+                <Button
+                  variant="soft"
+                  size="sm"
+                  className="rounded-lg"
+                  onClick={() =>
+                    downloadCalendarIcs(displayEvents, {
+                      appBaseUrl: window.location.origin,
+                      calendarName: normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine',
+                    })
+                  }
+                >
+                  Kalender exportieren
+                </Button>
+              )}
+            </div>
           </div>
 
           {normalizedUiRole === 'fan' ? (
@@ -771,7 +778,7 @@ export const SchedulePage: React.FC = () => {
           </div>
           <div>
             <label htmlFor="edit-location" className="block text-sm font-medium text-[var(--text-main)] mb-1">
-              Adresse / Ort / Platzname (optional)
+              Platzname / Ort (optional)
             </label>
             <input
               id="edit-location"
@@ -779,7 +786,20 @@ export const SchedulePage: React.FC = () => {
               value={editLocation}
               onChange={(e) => setEditLocation(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
-              placeholder="z. B. Sportplatz Rohrbach, Sportplatzstraße 1"
+              placeholder="z. B. Sportplatz Rohrbach"
+            />
+          </div>
+          <div>
+            <label htmlFor="edit-location-address" className="block text-sm font-medium text-[var(--text-main)] mb-1">
+              Adresse / PLZ / Ort (optional)
+            </label>
+            <input
+              id="edit-location-address"
+              type="text"
+              value={editLocationAddress}
+              onChange={(e) => setEditLocationAddress(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
+              placeholder="z. B. Sportplatzstraße 1, 3163 Rohrbach"
             />
           </div>
           <div>

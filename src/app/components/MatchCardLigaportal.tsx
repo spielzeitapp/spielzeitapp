@@ -2,7 +2,7 @@ import React from 'react';
 import { getClubLogoUrl } from '../../utils/logoResolver';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import type { EventKind, EventStatus } from '../../hooks/useEvents';
-import { formatFullLocation } from '../../lib/eventLocation';
+import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 
 /** Spielart (match_type) → Anzeige-Label. */
@@ -56,6 +56,10 @@ function splitPrefixAndName(full: string): { prefix: string; name: string } {
 function formatLocationLines(loc: string): { line1: string; line2: string | null } {
   const s = (loc ?? '').trim();
   if (!s) return { line1: '', line2: null };
+  if (s.includes('\n')) {
+    const parsed = splitCombinedLocation(s);
+    return { line1: parsed.place || parsed.address, line2: parsed.place ? parsed.address || null : null };
+  }
   const prefix = 'Sportplatz ';
   if (s.toLowerCase().startsWith(prefix.toLowerCase())) {
     const rest = s.slice(prefix.length).trim();
@@ -215,7 +219,10 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const canSeeSensitiveInfo = showMeetup;
   const matchTypeLabel = getMatchTypeLabel(matchType);
   const meetupTimeOnly = formatMeetupTimeOnly(meetupAt);
-  const locationForKickoff = formatFullLocation(location, address) || null;
+  const parsedLocation = splitCombinedLocation(location);
+  const placeLine = parsedLocation.place;
+  const addressLine = parsedLocation.address || (address ?? '').trim();
+  const locationForKickoff = formatFullLocation(placeLine, addressLine) || null;
 
   const effectiveEventType: 'game' | 'training' | 'event' | 'other' =
     eventType ??
@@ -473,14 +480,14 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               headerLabel="BEGINN"
             />
 
-            {location?.trim() ? (
+            {placeLine ? (
               <div className="mt-1 flex min-h-9 max-w-[320px] items-center justify-center rounded-full bg-white/10 border border-white/15 px-5 py-2 text-sm font-medium text-white/90">
-                <span className="break-words line-clamp-2">{location.trim()}</span>
+                <span className="break-words line-clamp-2">{placeLine}</span>
               </div>
             ) : null}
-            {address?.trim() ? (
+            {addressLine && addressLine.toLowerCase() !== placeLine.toLowerCase() ? (
               <div className="mt-1 flex min-h-9 max-w-[320px] items-center justify-center rounded-full bg-white/5 border border-white/10 px-5 py-2 text-xs font-medium text-white/80">
-                <span className="break-words line-clamp-3 text-center">{address.trim()}</span>
+                <span className="break-words line-clamp-3 text-center">{addressLine}</span>
               </div>
             ) : null}
 
