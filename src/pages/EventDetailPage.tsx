@@ -39,6 +39,35 @@ type EventDbRow = {
 const EVENTS_SELECT =
   'id, team_season_id, kind, type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, created_by, created_at, updated_at';
 
+function getDomainEventLabel(event: EventRow): string {
+  const t = (event.type ?? '').trim().toLowerCase();
+  if (event.kind === 'match') {
+    if (!t || t === 'game') return 'Meisterschaftsspiel';
+    if (t === 'friendly') return 'Freundschaftsspiel';
+    if (t === 'cup') return 'Pokal';
+    if (t === 'tournament') return 'Turnier';
+    if (t === 'test') return 'Testspiel';
+    return 'Spiel';
+  }
+  if (t === 'training' || event.kind === 'training') return 'Training';
+  if (t === 'event' || event.kind === 'event') return 'Event';
+  return 'Termin';
+}
+
+function formatEventDateTimeLabel(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return new Intl.DateTimeFormat('de-AT', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Vienna',
+  }).format(d);
+}
+
 function normalizeEventStatus(s: string | null): EventStatus {
   const v = (s ?? '').trim().toLowerCase();
   if (v === 'live') return 'live';
@@ -187,18 +216,16 @@ export const EventDetailPage: React.FC = () => {
     setLoadingEventAttendance(true);
     const { data, error: err } = await supabase
       .from('event_attendance')
-      .select('player_id, status, reason')
+      .select('player_id, status')
       .eq('event_id', eventId);
     if (!err && data) {
         const byPlayer: Record<string, 'yes' | 'no'> = {};
-        const byReason: Record<string, string | null> = {};
-        for (const row of data as { player_id: string; status: string; reason?: string | null }[]) {
+        for (const row of data as { player_id: string; status: string }[]) {
           const pid = (row.player_id ?? '').toLowerCase();
           if (row.status === 'yes' || row.status === 'no') byPlayer[pid] = row.status as 'yes' | 'no';
-          if (row.reason != null && String(row.reason).trim()) byReason[pid] = String(row.reason).trim();
         }
         setEventAttendanceByPlayerId(byPlayer);
-        setEventAttendanceReasonByPlayerId(byReason);
+        setEventAttendanceReasonByPlayerId({});
       } else {
         setEventAttendanceByPlayerId({});
         setEventAttendanceReasonByPlayerId({});
@@ -251,7 +278,7 @@ export const EventDetailPage: React.FC = () => {
 
       if (result.error) return;
       setRsvpStatus(status);
-      setEventAttendanceByPlayerId((prev) => ({ ...prev, [resolvedPlayerId!]: status }));
+      setEventAttendanceByPlayerId((prev) => ({ ...prev, [(resolvedPlayerId ?? '').toLowerCase()]: status }));
       setAttendanceModalOpen(false);
       setCancelReason('');
       await loadEventAttendance();
@@ -302,7 +329,7 @@ export const EventDetailPage: React.FC = () => {
       });
       const result = await upsertEventAttendanceMinimal(supabase, payload);
       if (result.error) return;
-      setEventAttendanceByPlayerId((prev) => ({ ...prev, [targetPlayerId]: status }));
+      setEventAttendanceByPlayerId((prev) => ({ ...prev, [(targetPlayerId ?? '').toLowerCase()]: status }));
       await loadEventAttendance();
     },
     [eventId, event?.kind, isTrainerOrAdmin, loadEventAttendance]
@@ -377,6 +404,11 @@ export const EventDetailPage: React.FC = () => {
             status={event.status}
             kind={event.kind}
             eventType={(event as any).type ?? undefined}
+            matchType={
+              event.kind === 'match'
+                ? (!event.type || event.type === 'game' ? 'league' : event.type)
+                : null
+            }
             notes={event.notes}
             location={event.location}
             address={event.location}
@@ -384,6 +416,12 @@ export const EventDetailPage: React.FC = () => {
             showMeetup={showMeetup}
             isPublicView={true}
           />
+        </div>
+
+        <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">
+          <p className="text-xs uppercase tracking-wide text-white/60">{getDomainEventLabel(event)}</p>
+          <p className="text-sm font-medium text-white">{formatEventDateTimeLabel(event.starts_at)}</p>
+          {event.location ? <p className="text-xs text-white/70">{event.location}</p> : null}
         </div>
 
         {!isFan && (
@@ -414,7 +452,7 @@ export const EventDetailPage: React.FC = () => {
                     </span>
                   </div>
                 )}
-                <div className="mt-4 space-y-2">
+                <div className="mt-4 border-t border-white/10 pt-3 space-y-2">
                   {(playersLoading || loadingEventAttendance) && (
                     <p className="text-sm text-[var(--text-sub)]">Lade…</p>
                   )}
