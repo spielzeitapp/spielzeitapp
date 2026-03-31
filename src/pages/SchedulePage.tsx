@@ -34,7 +34,7 @@ type TimeFilterId = 'upcoming' | 'past';
 
 const viewTabClass = (active: boolean) =>
   `flex-1 rounded-md px-2.5 py-1.5 text-center text-xs font-medium transition-colors ${
-    active ? 'bg-red-600/90 text-white' : 'bg-white/5 text-white/65 hover:bg-white/10'
+    active ? 'bg-red-500/15 text-white border border-red-500/30' : 'bg-black/30 text-white/65 border border-white/10 hover:bg-white/10'
   }`;
 
 const TAB_OPTIONS: { id: TabId; label: string }[] = [
@@ -482,10 +482,25 @@ export const SchedulePage: React.FC = () => {
           )}
           <div className="space-y-2">
             <div>
-              <p className="text-sm text-white/70 mt-2">
-                {teamSeasonSubtitle}
-              </p>
+              <div
+                className="mt-2 inline-flex max-w-full items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-white/85"
+                role="button"
+                aria-label="Team-Auswahl (vorbereitet)"
+              >
+                <span className="truncate">{teamSeasonSubtitle}</span>
+                <span className="text-white/60 shrink-0">▾</span>
+              </div>
             </div>
+            {normalizedUiRole !== 'fan' && (
+              <div className="mx-auto flex max-w-[420px] gap-1.5">
+                <NavLink to="/app/termine" end className={({ isActive }) => viewTabClass(isActive)}>
+                  Liste
+                </NavLink>
+                <NavLink to="/app/termine/calendar" className={({ isActive }) => viewTabClass(isActive)}>
+                  Kalender
+                </NavLink>
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               {canManage && (
                 <Button
@@ -514,16 +529,6 @@ export const SchedulePage: React.FC = () => {
                 </Button>
               )}
             </div>
-            {normalizedUiRole !== 'fan' && (
-              <div className="mx-auto flex max-w-[420px] gap-1.5">
-                <NavLink to="/app/termine" end className={({ isActive }) => viewTabClass(isActive)}>
-                  Liste
-                </NavLink>
-                <NavLink to="/app/termine/calendar" className={({ isActive }) => viewTabClass(isActive)}>
-                  Kalender
-                </NavLink>
-              </div>
-            )}
           </div>
 
           {normalizedUiRole === 'fan' ? (
