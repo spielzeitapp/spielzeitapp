@@ -34,7 +34,7 @@ type TimeFilterId = 'upcoming' | 'past';
 
 const viewTabClass = (active: boolean) =>
   `flex-1 rounded-md px-2.5 py-1.5 text-center text-xs font-medium transition-colors ${
-    active ? 'bg-red-500/15 text-white border border-red-500/30' : 'bg-black/30 text-white/65 border border-white/10 hover:bg-white/10'
+    active ? 'bg-red-500/15 text-white border border-red-500/30' : 'bg-black/25 text-white/65 border border-white/10 hover:bg-white/10'
   }`;
 
 const TAB_OPTIONS: { id: TabId; label: string }[] = [
@@ -482,8 +482,25 @@ export const SchedulePage: React.FC = () => {
           )}
           <div className="space-y-2">
             <div>
+              <div className="flex items-center justify-between gap-2">
+                <h1 className="text-4xl font-bold text-white tracking-tight leading-none [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
+                  {normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine'}
+                </h1>
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => setCreateModalOpen(true)}
+                    disabled={!teamSeasonId}
+                    className="h-9 w-9 shrink-0 rounded-full border border-red-500/35 bg-red-500/15 text-white text-lg leading-none disabled:opacity-50 hover:bg-red-500/25"
+                    aria-label="Termin anlegen"
+                    title="Termin anlegen"
+                  >
+                    +
+                  </button>
+                )}
+              </div>
               <div
-                className="mt-2 inline-flex max-w-full items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-white/85"
+                className="mt-1 inline-flex max-w-full items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-white/85"
                 role="button"
                 aria-label="Team-Auswahl (vorbereitet)"
               >
@@ -491,28 +508,7 @@ export const SchedulePage: React.FC = () => {
                 <span className="text-white/60 shrink-0">▾</span>
               </div>
             </div>
-            {normalizedUiRole !== 'fan' && (
-              <div className="mx-auto flex max-w-[420px] gap-1.5">
-                <NavLink to="/app/termine" end className={({ isActive }) => viewTabClass(isActive)}>
-                  Liste
-                </NavLink>
-                <NavLink to="/app/termine/calendar" className={({ isActive }) => viewTabClass(isActive)}>
-                  Kalender
-                </NavLink>
-              </div>
-            )}
             <div className="flex flex-wrap items-center gap-2">
-              {canManage && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="rounded-lg border border-red-500/30 bg-red-500/15 hover:bg-red-500/25"
-                  onClick={() => setCreateModalOpen(true)}
-                  disabled={!teamSeasonId}
-                >
-                  Termin anlegen
-                </Button>
-              )}
               {teamSeasonId && !pageLoading && displayEvents.length > 0 && (
                 <Button
                   variant="soft"
@@ -529,6 +525,16 @@ export const SchedulePage: React.FC = () => {
                 </Button>
               )}
             </div>
+            {normalizedUiRole !== 'fan' && (
+              <div className="mx-auto flex max-w-[420px] gap-1 rounded-lg border border-white/10 bg-black/30 p-1">
+                <NavLink to="/app/termine" end className={({ isActive }) => viewTabClass(isActive)}>
+                  Liste
+                </NavLink>
+                <NavLink to="/app/termine/calendar" className={({ isActive }) => viewTabClass(isActive)}>
+                  Kalender
+                </NavLink>
+              </div>
+            )}
           </div>
 
           {normalizedUiRole === 'fan' ? (
