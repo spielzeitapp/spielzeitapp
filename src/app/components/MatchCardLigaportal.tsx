@@ -7,6 +7,7 @@ import { VIENNA_TZ } from '../../lib/viennaTime';
 
 /** Spielart (match_type) → Anzeige-Label. */
 const MATCH_TYPE_LABELS: Record<string, string> = {
+  game: 'Meisterschaftsspiel',
   league: 'Meisterschaftsspiel',
   friendly: 'Freundschaftsspiel',
   tournament: 'Turnier',
@@ -333,11 +334,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const showAttendanceCounts = canManage && attendanceCounts != null;
 
   const dateRow = (
-    <div className="flex items-center justify-between gap-2 mb-3">
-      <span className="text-lg font-semibold text-white whitespace-nowrap min-w-0 truncate">
+    <div className="mb-3">
+      <span className="block text-lg font-semibold text-white min-w-0 truncate">
         {date ? dateLabelShort : ''}
       </span>
-      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end" onClick={(e) => e.stopPropagation()}>
+      <div className="mt-2 flex items-center gap-2 shrink-0 flex-wrap justify-end" onClick={(e) => e.stopPropagation()}>
         {showAttendanceCounts && (
           isTrainingCard ? (
             <div className="flex items-center gap-1.5" aria-label="Trainings-Teilnahme">

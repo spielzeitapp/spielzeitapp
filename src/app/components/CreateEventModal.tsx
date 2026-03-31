@@ -541,7 +541,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         )}
         <div>
           <label htmlFor="create-event-location" className={labelClass}>
-            Ort / Platzname (optional)
+            Adresse / Ort / Platzname (optional)
           </label>
           <input
             id="create-event-location"
@@ -549,7 +549,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             value={form.location}
             onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
             className={inputClass}
-            placeholder="z. B. Sportplatz Rohrbach"
+            placeholder="z. B. Sportplatz Rohrbach, Sportplatzstraße 1"
           />
         </div>
         <div>

@@ -771,7 +771,7 @@ export const SchedulePage: React.FC = () => {
           </div>
           <div>
             <label htmlFor="edit-location" className="block text-sm font-medium text-[var(--text-main)] mb-1">
-              Ort / Platzname (optional)
+              Adresse / Ort / Platzname (optional)
             </label>
             <input
               id="edit-location"
@@ -779,7 +779,7 @@ export const SchedulePage: React.FC = () => {
               value={editLocation}
               onChange={(e) => setEditLocation(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
-              placeholder="z. B. Sportplatz Rohrbach"
+              placeholder="z. B. Sportplatz Rohrbach, Sportplatzstraße 1"
             />
           </div>
           <div>
