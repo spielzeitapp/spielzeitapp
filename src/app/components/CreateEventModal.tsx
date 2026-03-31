@@ -255,7 +255,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       if (eventErr) {
         const pe = eventErr as { message: string; details?: string; hint?: string; code?: string };
-        console.error('[CreateEventModal] Supabase events.insert error', {
+        console.error('[reminderPipeline] events.insert failed', {
           message: pe.message,
           details: pe.details,
           hint: pe.hint,
@@ -266,6 +266,11 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         setCreating(false);
         return;
       }
+
+      console.log('[reminderPipeline] events.insert ok', {
+        rowCount: Array.isArray(insertedRows) ? insertedRows.length : 0,
+        ids: Array.isArray(insertedRows) ? insertedRows.map((r: { id?: string }) => r.id).filter(Boolean) : [],
+      });
 
       let rowsToSync: Record<string, unknown>[] = Array.isArray(insertedRows) ? [...insertedRows] : [];
       if (rowsToSync.length === 0 && rows.length > 0) {
@@ -288,10 +293,15 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       try {
         for (const row of rowsToSync) {
-          await createReminderJobs(supabase, row);
+          const syncRes = await createReminderJobs(supabase, row);
+          console.log('[reminderPipeline] event created → reminder jobs sync', {
+            eventId: (row as { id?: string }).id,
+            inserted: syncRes?.inserted,
+            error: syncRes?.error ?? null,
+          });
         }
       } catch (e) {
-        console.error('[CreateEventModal] REMINDER sync loop error', e);
+        console.error('[reminderPipeline] reminder sync loop error', e);
       }
 
       // MVP: Automatische Nachricht + Push für „Neuer Termin / Event erstellt“

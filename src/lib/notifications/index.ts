@@ -29,7 +29,11 @@ export {
   type PendingNotificationItem,
   type NotificationKind,
 } from './pending';
-export { fetchPlayerIdsForUserInTeamSeason, fetchRecipientUserIdsForTeamSeason } from './users';
+export {
+  fetchPlayerIdsForUserInTeamSeason,
+  fetchRecipientUserIdsForTeamSeason,
+  fetchReminderRecipientUserIdsForTeamSeason,
+} from './users';
 export {
   buildGameReminderBody,
   buildTrainingReminderBody,

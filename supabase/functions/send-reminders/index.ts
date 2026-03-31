@@ -463,11 +463,17 @@ serve(async (req) => {
     const nowIso = new Date().toISOString();
     const { data: dueRows, error: dueErr } = await admin
       .from("notification_jobs")
-      .select("id")
+      .select("id, send_at, event_id, status")
       .eq("status", "pending")
       .lte("send_at", nowIso)
       .order("send_at", { ascending: true })
       .limit(JOB_BATCH_LIMIT);
+
+    console.log("[reminderPipeline] due jobs query", {
+      nowIso,
+      pendingDueCount: (dueRows ?? []).length,
+      sample: (dueRows ?? []).slice(0, 5),
+    });
 
     if (dueErr) {
       console.error("[send-reminders] query due jobs failed", dueErr);

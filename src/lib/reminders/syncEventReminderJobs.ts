@@ -14,13 +14,15 @@ export async function syncEventReminderJobs(
   teamId: string,
   now: Date = new Date(),
 ): Promise<{ deleted: boolean; inserted: number; error: string | null }> {
-  console.log('REMINDER SYNC EVENT', event);
-  console.log('REMINDER SYNC SETTINGS', settings);
-
   const jobs = buildReminderJobsForEvent(event, settings, teamId, now);
-  console.log('REMINDER BUILT JOBS', jobs);
-
-  console.log('[reminderJobs] delete pending/failed for event_id', event.id);
+  console.log('[reminderPipeline] event → built jobs', {
+    eventId: event.id,
+    kind: event.kind,
+    type: event.type,
+    status: event.status,
+    jobCount: jobs.length,
+    sendAtPreview: jobs.slice(0, 3).map((j) => j.send_at),
+  });
   const { error: delErr } = await client
     .from('notification_jobs')
     .delete()
@@ -28,21 +30,21 @@ export async function syncEventReminderJobs(
     .in('status', ['pending', 'failed']);
 
   if (delErr) {
-    console.error('[reminderJobs] delete error', delErr.message, delErr);
+    console.error('[reminderPipeline] notification_jobs delete error', delErr.message, delErr);
     return { deleted: false, inserted: 0, error: delErr.message };
   }
 
   if (jobs.length === 0) {
-    console.log('[reminderJobs] no jobs to insert (0 slots or event not upcoming / in past)');
+    console.log('[reminderPipeline] no jobs to insert (canonical type has no offsets, not upcoming, or base time in past)');
     return { deleted: true, inserted: 0, error: null };
   }
 
   const { error: insErr } = await client.from('notification_jobs').insert(jobs);
   if (insErr) {
-    console.error('[reminderJobs] insert error', insErr.message, insErr);
+    console.error('[reminderPipeline] notification_jobs insert error', insErr.message, insErr);
     return { deleted: true, inserted: 0, error: insErr.message };
   }
 
-  console.log('[reminderJobs] insert ok, count', jobs.length, '→ public.notification_jobs');
+  console.log('[reminderPipeline] notification_jobs insert ok', { count: jobs.length, eventId: event.id });
   return { deleted: true, inserted: jobs.length, error: null };
 }

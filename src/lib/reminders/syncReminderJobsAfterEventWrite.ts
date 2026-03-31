@@ -16,12 +16,12 @@ export async function syncReminderJobsAfterEventWrite(
   client: SupabaseClient,
   eventRow: Record<string, unknown>,
   teamNotificationSettings?: TeamNotificationSettingsRow | null,
-): Promise<void> {
+): Promise<{ inserted: number; error: string | null } | undefined> {
   try {
     const event = eventRow as RawEventRow & { id: string; team_season_id: string };
     if (!event?.id || !event.team_season_id) {
-      console.warn('[reminderJobs] skip sync: missing event.id or team_season_id', eventRow);
-      return;
+      console.warn('[reminderPipeline] skip sync: missing event.id or team_season_id', eventRow);
+      return { inserted: 0, error: 'missing id or team_season_id' };
     }
 
     const { data: ts, error: tsErr } = await client
@@ -31,8 +31,8 @@ export async function syncReminderJobsAfterEventWrite(
       .maybeSingle();
 
     if (tsErr || !ts || !(ts as { team_id?: string }).team_id) {
-      console.error('[reminderJobs] team_seasons.team_id missing', tsErr?.message, tsErr);
-      return;
+      console.error('[reminderPipeline] team_seasons.team_id missing', tsErr?.message, tsErr);
+      return { inserted: 0, error: tsErr?.message ?? 'team_id missing' };
     }
 
     const teamId = (ts as { team_id: string }).team_id;
@@ -48,7 +48,7 @@ export async function syncReminderJobsAfterEventWrite(
         .maybeSingle();
 
       if (setErr) {
-        console.warn('[reminderJobs] settings load failed (use defaults)', setErr.message);
+        console.warn('[reminderPipeline] settings load failed (use defaults)', setErr.message);
       }
       settings = mapTeamNotificationSettingsFromDb(
         settingsRaw as Record<string, unknown> | null,
@@ -58,10 +58,18 @@ export async function syncReminderJobsAfterEventWrite(
 
     const res = await syncEventReminderJobs(client, event, settings, teamId);
     if (res.error) {
-      console.error('[reminderJobs] sync failed', event.id, res.error);
+      console.error('[reminderPipeline] sync failed', { eventId: event.id, error: res.error });
+    } else {
+      console.log('[reminderPipeline] sync ok', {
+        eventId: event.id,
+        inserted: res.inserted,
+        clearedOldPendingOrFailed: res.deleted,
+      });
     }
+    return { inserted: res.inserted, error: res.error };
   } catch (e) {
-    console.error('[reminderJobs] syncReminderJobsAfterEventWrite', e);
+    console.error('[reminderPipeline] syncReminderJobsAfterEventWrite', e);
+    return { inserted: 0, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
@@ -88,11 +96,11 @@ export async function syncEventReminderJobsForSavedEvent(
 export async function createReminderJobs(
   client: SupabaseClient,
   eventRow: Record<string, unknown>,
-): Promise<void> {
+): Promise<{ inserted: number; error: string | null } | undefined> {
   const event = eventRow as RawEventRow & { id: string; team_season_id: string };
   if (!event?.id || !event.team_season_id) {
-    console.warn('[reminderJobs] createReminderJobs skip: missing event.id or team_season_id', eventRow);
-    return;
+    console.warn('[reminderPipeline] createReminderJobs skip: missing event.id or team_season_id', eventRow);
+    return { inserted: 0, error: 'missing id or team_season_id' };
   }
 
   const forcedSettings = resolveTeamSettings(event.team_season_id, {
@@ -107,5 +115,5 @@ export async function createReminderJobs(
     event_minutes_before: 1440,
   });
 
-  await syncReminderJobsAfterEventWrite(client, eventRow, forcedSettings);
+  return syncReminderJobsAfterEventWrite(client, eventRow, forcedSettings);
 }

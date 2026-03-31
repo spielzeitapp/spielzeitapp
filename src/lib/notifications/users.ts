@@ -34,7 +34,28 @@ export async function fetchPlayerIdsForUserInTeamSeason(
   return Array.from(new Set([...fromG, ...fromPu]));
 }
 
-/** User mit Membership parent/player für diese Saison (Reminder-Empfänger). */
+/** Rollen, die zeitbasierte Termin-Erinnerungen erhalten (wie Edge send-reminders). */
+const REMINDER_TEAM_ROLES = ['trainer', 'co_trainer', 'head_coach', 'parent', 'player'] as const;
+
+/**
+ * Empfänger für Erinnerungs-Jobs: Trainer + Eltern + Spieler (kein Fan).
+ * Nicht mit Teilnahme-/Kader-Filtern eingeschränkt — das ist Absicht (Push/In-App „Termin steht an“).
+ */
+export async function fetchReminderRecipientUserIdsForTeamSeason(
+  admin: SupabaseClient,
+  teamSeasonId: string,
+): Promise<string[]> {
+  const { data: members, error } = await admin
+    .from('memberships')
+    .select('user_id')
+    .eq('team_season_id', teamSeasonId)
+    .in('role', [...REMINDER_TEAM_ROLES]);
+  if (error) throw error;
+  const ids = (members ?? []).map((m: { user_id: string }) => m.user_id).filter(Boolean);
+  return Array.from(new Set(ids));
+}
+
+/** User mit Membership parent/player für diese Saison (Legacy: nur Parent/Spieler). */
 export async function fetchRecipientUserIdsForTeamSeason(
   admin: SupabaseClient,
   teamSeasonId: string,

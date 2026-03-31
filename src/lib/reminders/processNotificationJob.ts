@@ -1,17 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getEventDisplayTitle, type RawEventRow } from '../notifications/eventTypes';
-import { fetchPlayerIdsForUserInTeamSeason, fetchRecipientUserIdsForTeamSeason } from '../notifications/users';
+import { fetchReminderRecipientUserIdsForTeamSeason } from '../notifications/users';
 import { buildPushReminderShort, buildReminderInAppBody, formatEventTimeVienna } from '../notifications/format';
 import { sendWebPushForUser } from '../../../lib/notificationDispatchHandler';
 import type { NotificationJobPayload, NotificationJobRow } from './types';
-
-function hasAllPlayersAnswered(playerIds: string[], attendanceByPlayerId: Map<string, string>): boolean {
-  if (playerIds.length === 0) return true;
-  return playerIds.every((pid) => {
-    const s = attendanceByPlayerId.get(pid);
-    return s === 'yes' || s === 'no';
-  });
-}
 
 function locationLineForBody(ev: RawEventRow): string | null {
   return (ev.location ?? '').trim() || null;
@@ -57,12 +49,15 @@ function parsePayload(raw: unknown): NotificationJobPayload | null {
       : typeof p.reminder_type === 'string'
         ? p.reminder_type
         : null;
-  if (!reminderKey || typeof p.offsetMinutes !== 'number') return null;
+  const om = p.offsetMinutes;
+  const offsetMinutes =
+    typeof om === 'number' ? om : typeof om === 'string' ? Number(om) : Number.NaN;
+  if (!reminderKey || !Number.isFinite(offsetMinutes)) return null;
   if (typeof p.notificationType !== 'string') return null;
   return {
     reminderKey,
     reminder_type: typeof p.reminder_type === 'string' ? p.reminder_type : reminderKey,
-    offsetMinutes: p.offsetMinutes,
+    offsetMinutes,
     notificationType: p.notificationType as NotificationJobPayload['notificationType'],
     baseTimeIso: typeof p.baseTimeIso === 'string' ? p.baseTimeIso : '',
     minutes_before: typeof p.minutes_before === 'number' ? p.minutes_before : undefined,
@@ -126,6 +121,11 @@ export async function processNotificationJob(
 
   const ev = event as RawEventRow;
   if ((ev.status ?? 'upcoming') !== 'upcoming') {
+    console.log('[reminderPipeline] processNotificationJob skip: event not upcoming', {
+      jobId: job.id,
+      eventId: job.event_id,
+      status: ev.status,
+    });
     await completeJob(admin, job.id);
     return { ok: true };
   }
@@ -133,45 +133,31 @@ export async function processNotificationJob(
   const { title, body, pushBody } = buildCopyForJob(job.kind, ev);
   const linkPath = `/app/events/${job.event_id}`;
 
-  const { data: attRows, error: attErr } = await admin
-    .from('event_attendance')
-    .select('player_id, status')
-    .eq('event_id', job.event_id);
-  if (attErr) {
-    const err = attErr.message;
-    await failJob(admin, job.id, err);
-    return { ok: false, error: err };
-  }
-
-  const attMap = new Map<string, string>();
-  for (const row of attRows ?? []) {
-    const r = row as { player_id: string; status: string };
-    attMap.set(r.player_id, r.status);
-  }
-
-  let userIds: string[];
+  let recipients: string[];
   try {
-    userIds = await fetchRecipientUserIdsForTeamSeason(admin, ev.team_season_id);
+    recipients = await fetchReminderRecipientUserIdsForTeamSeason(admin, ev.team_season_id);
   } catch (e: unknown) {
     const err = e instanceof Error ? e.message : String(e);
     await failJob(admin, job.id, err);
     return { ok: false, error: err };
   }
 
-  const recipients: string[] = [];
-  for (const userId of userIds) {
-    let playerIds: string[];
-    try {
-      playerIds = await fetchPlayerIdsForUserInTeamSeason(admin, userId, ev.team_season_id);
-    } catch {
-      continue;
-    }
-    if (playerIds.length === 0) continue;
-    if (hasAllPlayersAnswered(playerIds, attMap)) continue;
-    recipients.push(userId);
-  }
+  console.log('[reminderPipeline] processNotificationJob recipients', {
+    jobId: job.id,
+    eventId: job.event_id,
+    teamSeasonId: ev.team_season_id,
+    count: recipients.length,
+  });
 
-  console.log('RECIPIENTS', recipients);
+  if (recipients.length === 0) {
+    console.log('[reminderPipeline] processNotificationJob: no recipients (memberships empty)', {
+      jobId: job.id,
+      eventId: job.event_id,
+      teamSeasonId: ev.team_season_id,
+    });
+    await completeJob(admin, job.id);
+    return { ok: true };
+  }
 
   try {
     for (const userId of recipients) {

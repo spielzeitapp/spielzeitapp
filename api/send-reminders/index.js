@@ -68,78 +68,46 @@ function ensureVapid() {
   webpush.setVapidDetails(subject, publicKey, privateKey);
 }
 
-async function fetchRecipientUserIdsForTeamSeason(admin, teamSeasonId) {
+/** Wie Supabase Edge send-reminders: Trainer + Eltern + Spieler (kein Fan). */
+const REMINDER_TEAM_ROLES = ['trainer', 'co_trainer', 'head_coach', 'parent', 'player'];
+
+async function fetchReminderRecipientUserIdsForTeamSeason(admin, teamSeasonId) {
   const { data: members, error } = await admin
     .from('memberships')
     .select('user_id')
     .eq('team_season_id', teamSeasonId)
-    .in('role', ['parent', 'player']);
+    .in('role', REMINDER_TEAM_ROLES);
   if (error) throw error;
   const ids = (members || []).map((m) => m.user_id);
   return [...new Set(ids.filter(Boolean))];
-}
-
-async function fetchPlayerIdsForUserInTeamSeason(admin, userId, teamSeasonId) {
-  const { data: players, error: pErr } = await admin
-    .from('players')
-    .select('id')
-    .eq('team_season_id', teamSeasonId)
-    .eq('is_active', true);
-  if (pErr) throw pErr;
-  const rosterIds = new Set((players || []).map((p) => p.id));
-
-  const { data: g, error: gErr } = await admin
-    .from('player_guardians')
-    .select('player_id')
-    .eq('user_id', userId);
-  if (gErr) throw gErr;
-  const fromG = (g || [])
-    .map((x) => x.player_id)
-    .filter((id) => rosterIds.has(id));
-
-  const { data: pu, error: puErr } = await admin
-    .from('player_users')
-    .select('player_id')
-    .eq('user_id', userId);
-  if (puErr) throw puErr;
-  const fromPu = (pu || [])
-    .map((x) => x.player_id)
-    .filter((id) => rosterIds.has(id));
-
-  return [...new Set([...fromG, ...fromPu])];
-}
-
-function hasAllPlayersAnswered(playerIds, attMap) {
-  if (playerIds.length === 0) return true;
-  return playerIds.every((pid) => {
-    const s = attMap.get(pid);
-    return s === 'yes' || s === 'no';
-  });
 }
 
 function parseJobPayload(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const p = raw;
   const rk = typeof p.reminderKey === 'string' ? p.reminderKey : p.reminder_type;
-  if (typeof rk !== 'string' || typeof p.offsetMinutes !== 'number') return null;
+  const om = p.offsetMinutes;
+  const offsetMinutes = typeof om === 'number' ? om : typeof om === 'string' ? Number(om) : NaN;
+  if (typeof rk !== 'string' || !Number.isFinite(offsetMinutes)) return null;
   return {
     reminderKey: rk,
-    offsetMinutes: p.offsetMinutes,
+    offsetMinutes,
     notificationType: p.notificationType,
     baseTimeIso: typeof p.baseTimeIso === 'string' ? p.baseTimeIso : '',
   };
 }
 
-async function messageExists(admin, userId, eventId, reminderKey) {
-  const { data: ex } = await admin
-    .from('messages')
+async function notificationAlreadyDispatched(admin, userId, eventId, reminderKey) {
+  const { data, error } = await admin
+    .from('notification_dispatch_log')
     .select('id')
     .eq('user_id', userId)
-    .eq('related_event_id', eventId)
-    .eq('type', 'team_push')
+    .eq('event_id', eventId)
     .eq('reminder_key', reminderKey)
-    .maybeSingle();
-  return Boolean(ex && ex.id);
+    .eq('channel', 'in_app')
+    .limit(1);
+  if (error) throw error;
+  return Boolean(data && data.length > 0);
 }
 
 async function completeJob(admin, jobId) {
@@ -181,21 +149,51 @@ async function failJobWithRetry(admin, job, err) {
   }
 }
 
-async function sendOnePush(subRow, title, body, url) {
+function pushIsGoneError(err) {
+  const code = Number(err && err.statusCode);
+  const status = Number(err && err.status);
+  return code === 404 || code === 410 || status === 404 || status === 410;
+}
+
+async function sendPushesForUser(admin, userId, title, body, url) {
+  const { data: subscriptions, error } = await admin
+    .from('push_subscriptions')
+    .select('endpoint, p256dh, auth')
+    .eq('user_id', userId)
+    .not('endpoint', 'is', null);
+  if (error) throw error;
+  if (!subscriptions || subscriptions.length === 0) {
+    return { sent: 0, removed: 0 };
+  }
   ensureVapid();
   const payload = JSON.stringify({ title, body, url });
-  await webpush.sendNotification(
-    {
-      endpoint: subRow.endpoint,
-      keys: { p256dh: subRow.p256dh, auth: subRow.auth },
-    },
-    payload,
-    { TTL: 3600 },
-  );
+  let sent = 0;
+  let removed = 0;
+  for (const row of subscriptions) {
+    const endpoint = row.endpoint || '';
+    const p256dh = row.p256dh || '';
+    const auth = row.auth || '';
+    if (!endpoint || !p256dh || !auth) continue;
+    try {
+      await webpush.sendNotification({ endpoint, keys: { p256dh, auth } }, payload, { TTL: 3600 });
+      sent += 1;
+    } catch (err) {
+      console.error('[reminderPipeline] push failed', { userId, endpoint, error: err });
+      if (pushIsGoneError(err)) {
+        const { error: delErr } = await admin
+          .from('push_subscriptions')
+          .delete()
+          .eq('user_id', userId)
+          .eq('endpoint', endpoint);
+        if (!delErr) removed += 1;
+      }
+    }
+  }
+  return { sent, removed };
 }
 
 /**
- * Ein Job: Empfänger wie processNotificationJob (Attendance) → notifications + push_subscriptions.
+ * Ein Job: Empfänger wie Edge send-reminders (Trainer + Eltern + Spieler, kein Teilnahme-Filter).
  */
 async function processOneJob(admin, job) {
   const payload = parseJobPayload(job.payload);
@@ -224,47 +222,28 @@ async function processOneJob(admin, job) {
   const url = REMINDER_LINK.startsWith('/') ? REMINDER_LINK : `/${REMINDER_LINK}`;
 
   if ((event.status ?? 'upcoming') !== 'upcoming') {
+    console.log('[reminderPipeline] skip: event not upcoming', { jobId: job.id, eventId: job.event_id });
     await completeJob(admin, job.id);
     return { ok: true, skipped: 'event_not_upcoming' };
   }
 
-  const { data: attRows, error: attErr } = await admin
-    .from('event_attendance')
-    .select('player_id, status')
-    .eq('event_id', job.event_id);
-  if (attErr) {
-    await failJobWithRetry(admin, job, attErr.message);
-    return { ok: false, error: attErr.message };
-  }
-
-  const attMap = new Map();
-  for (const row of attRows || []) {
-    attMap.set(row.player_id, row.status);
-  }
-
-  let userIds;
+  let recipients;
   try {
-    userIds = await fetchRecipientUserIdsForTeamSeason(admin, event.team_season_id);
+    recipients = await fetchReminderRecipientUserIdsForTeamSeason(admin, event.team_season_id);
   } catch (e) {
     const msg = e && e.message ? e.message : String(e);
     await failJobWithRetry(admin, job, msg);
     return { ok: false, error: msg };
   }
 
-  const recipients = [];
-  for (const userId of userIds) {
-    let playerIds;
-    try {
-      playerIds = await fetchPlayerIdsForUserInTeamSeason(admin, userId, event.team_season_id);
-    } catch {
-      continue;
-    }
-    if (playerIds.length === 0) continue;
-    if (hasAllPlayersAnswered(playerIds, attMap)) continue;
-    recipients.push(userId);
-  }
+  console.log('[reminderPipeline] job recipients resolved', {
+    jobId: job.id,
+    eventId: job.event_id,
+    recipientCount: recipients.length,
+  });
 
   if (recipients.length === 0) {
+    console.log('[reminderPipeline] no recipients (empty memberships)', { jobId: job.id, eventId: job.event_id });
     await completeJob(admin, job.id);
     return { ok: true, inserted: 0, pushSent: 0, skipped: 'no_recipients' };
   }
@@ -292,6 +271,7 @@ async function processOneJob(admin, job) {
       throw new Error(insErr.message || String(insErr));
     }
     inserted += 1;
+    console.log('[reminderPipeline] notifications row created', { jobId: job.id, userId, eventId: job.event_id });
 
     const { error: dispErr } = await admin.from('notification_dispatch_log').insert({
       user_id: userId,
@@ -306,21 +286,14 @@ async function processOneJob(admin, job) {
       }
     }
 
-    const { data: sub } = await admin
-      .from('push_subscriptions')
-      .select('endpoint, p256dh, auth')
-      .eq('user_id', userId)
-      .not('endpoint', 'is', null)
-      .maybeSingle();
-
-    if (!sub || !sub.endpoint || !sub.p256dh || !sub.auth) continue;
-
-    try {
-      await sendOnePush(sub, title, textBody, url);
-      pushSent += 1;
-    } catch (pe) {
-      console.error('[send-reminders] push failed', userId, pe && pe.message ? pe.message : pe);
-    }
+    const pushRes = await sendPushesForUser(admin, userId, title, textBody, url);
+    pushSent += pushRes.sent;
+    console.log('[reminderPipeline] push attempt', {
+      jobId: job.id,
+      userId,
+      sent: pushRes.sent,
+      removed: pushRes.removed,
+    });
   }
 
   await completeJob(admin, job.id);
@@ -359,7 +332,7 @@ module.exports = async (req, res) => {
 
     const { data: jobIds, error: qErr } = await admin
       .from('notification_jobs')
-      .select('id')
+      .select('id, send_at, event_id, status')
       .eq('status', 'pending')
       .lte('send_at', nowIso)
       .order('send_at', { ascending: true })
@@ -371,7 +344,12 @@ module.exports = async (req, res) => {
     }
 
     const ids = (jobIds || []).map((r) => r.id).filter(Boolean);
-    console.log('due job ids count', ids.length, ids);
+    console.log('[reminderPipeline] due jobs selected', {
+      nowIso,
+      count: ids.length,
+      ids,
+      sampleRows: (jobIds || []).slice(0, 5),
+    });
 
     let processed = 0;
     let sent = 0;
