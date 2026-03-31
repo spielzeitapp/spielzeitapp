@@ -22,6 +22,20 @@ function formatTimeDe(iso) {
   }
 }
 
+/** Nur Debug-Logs: UTC-ISO → Europe/Vienna (keine Rechenbasis). */
+function viennaDateTimeDebug(iso) {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleString('de-AT', {
+      timeZone: 'Europe/Vienna',
+      dateStyle: 'short',
+      timeStyle: 'short',
+    });
+  } catch (_) {
+    return String(iso);
+  }
+}
+
 /** Titel nach Job-Typ (match / training / event). */
 function titleForJobKind(kind) {
   if (kind === 'match') return '⚽ Spiel-Erinnerung';
@@ -196,6 +210,16 @@ async function sendPushesForUser(admin, userId, title, body, url) {
  * Ein Job: Empfänger wie Edge send-reminders (Trainer + Eltern + Spieler, kein Teilnahme-Filter).
  */
 async function processOneJob(admin, job) {
+  const nowIso = new Date().toISOString();
+  console.log('[reminderTz] process job (UTC compare)', {
+    jobId: job.id,
+    eventId: job.event_id,
+    send_at_utc: job.send_at || null,
+    send_at_vienna: viennaDateTimeDebug(job.send_at),
+    now_utc: nowIso,
+    now_vienna: viennaDateTimeDebug(nowIso),
+  });
+
   const payload = parseJobPayload(job.payload);
   if (!payload) {
     const err = new Error('invalid job payload');
@@ -216,6 +240,14 @@ async function processOneJob(admin, job) {
     await failJobWithRetry(admin, job, err);
     return { ok: false, error: err };
   }
+
+  console.log('[reminderTz] event row (stored UTC)', {
+    eventId: event.id,
+    starts_at_raw: event.starts_at,
+    meeting_at_raw: event.meeting_at,
+    starts_at_vienna_debug: viennaDateTimeDebug(event.starts_at),
+    meeting_at_vienna_debug: event.meeting_at ? viennaDateTimeDebug(event.meeting_at) : null,
+  });
 
   const title = titleForJobKind(job.kind);
   const textBody = buildReminderBody(job.kind, event, reminderKey);
@@ -346,9 +378,13 @@ module.exports = async (req, res) => {
     const ids = (jobIds || []).map((r) => r.id).filter(Boolean);
     console.log('[reminderPipeline] due jobs selected', {
       nowIso,
+      nowVienna: viennaDateTimeDebug(nowIso),
       count: ids.length,
       ids,
-      sampleRows: (jobIds || []).slice(0, 5),
+      sampleRows: (jobIds || []).slice(0, 5).map((r) => ({
+        ...r,
+        send_at_vienna: viennaDateTimeDebug(r.send_at),
+      })),
     });
 
     let processed = 0;
@@ -373,7 +409,10 @@ module.exports = async (req, res) => {
         failed += 1;
         continue;
       }
-      if (!claimed) continue;
+      if (!claimed) {
+        console.log('[reminderTz] claim skipped (race or row no longer pending)', { jobId: id, nowUtc: nowIso });
+        continue;
+      }
 
       processed += 1;
       const job = claimed;

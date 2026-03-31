@@ -1,12 +1,20 @@
 /**
- * Reminder-Jobs: `send_at` und `payload.baseTimeIso` sind UTC (ISO 8601).
- * Basis-Instant für Offsets: siehe `getBaseTimeForEvent` (Spiel: Kickoff/Start, nicht Treffpunkt).
- * Vergleiche `baseMs` / `nowMs` sind reine UTC-Instants; keine Browser-Lokalzone nötig.
+ * Reminder-Jobs: `send_at` und `payload.baseTimeIso` sind **UTC** (ISO 8601, DB timestamptz).
+ *
+ * Nutzer geben Zeiten in Europe/Vienna ein; Speicherung ist UTC. Reminder-Offsets werden von
+ * dieser UTC-Basis abgezogen — **keine** Umrechnung über lokale Datumsstrings, nur Instants (ms).
+ *
+ * Basiszeit für Offsets (`getReminderBaseTimeMeta`):
+ * - **Spiel**: `kickoff_at` falls gesetzt, sonst `starts_at`. `meeting_at` ist **kein** Reminder-Anker.
+ * - **Training**: `starts_at`, sonst Fallback `meeting_at`.
+ * - **Event / other**: `starts_at`.
  */
 import { getCanonicalEventType, getEventDisplayTitle, type RawEventRow } from '../notifications/eventTypes';
 import type { TeamNotificationSettingsRow } from '../notifications/teamSettings';
 import type { NotificationKind } from '../notifications/pending';
 import type { ReminderJobInsert, ReminderJobKind } from './types';
+
+const VIENNA_TZ_DEBUG = 'Europe/Vienna';
 
 function toIso(d: Date): string {
   return d.toISOString();
@@ -18,42 +26,65 @@ function nonEmptyIso(iso: string | null | undefined): string | null {
   return t === '' ? null : t;
 }
 
-/**
- * UTC-Instant aus DB-ISO parsen. Fehlt ein Offset (untypisch für timestamptz), wird Z angenommen.
- */
-function parseUtcInstantMs(iso: string): number {
-  const t = String(iso).trim();
-  if (!t) return NaN;
-  const hasTz = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(t);
-  const normalized = hasTz ? t : `${t}Z`;
-  return new Date(normalized).getTime();
+/** Nur für Logs: UTC-ISO → lesbare Vienna-Zeit (nicht als Rechenbasis). */
+export function formatUtcIsoAsViennaDebug(isoUtc: string | null | undefined): string {
+  const s = (isoUtc ?? '').trim();
+  if (!s) return '(leer)';
+  const ms = parseUtcInstantMs(s);
+  if (Number.isNaN(ms)) return `(ungültig: ${isoUtc})`;
+  return new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ_DEBUG,
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(ms));
 }
 
 /**
- * Basiszeit für Reminder-Offset (UTC-Instants aus der DB).
- *
- * Wichtig (Europe/Vienna): Offsets beziehen sich auf den **Termin-/Spielbeginn**, nicht auf den
- * optionalen Treffpunkt — sonst wäre z. B. „24h vor Spiel“ fälschlich „24h vor Treff“.
- *
- * - Spiel: kickoff_at → starts_at (Treffpunkt nur inhaltlich, nicht als Offset-Anker)
- * - Training: starts_at → Treff (Fallback, wenn kein Start gesetzt)
- * - Event / other: starts_at
+ * UTC-Instant (ms) aus DB-ISO. timestamptz kommt meist mit Offset/Z; ohne Offset wird **UTC** angenommen
+ * (kein `Date`-Parsing lokaler Strings ohne Z, das je nach Engine falsch wäre).
  */
-export function getBaseTimeForEvent(event: RawEventRow): string {
+export function parseUtcInstantMs(iso: string): number {
+  let t = String(iso).trim();
+  if (!t) return NaN;
+  if (/^\d{4}-\d{2}-\d{2} \d/.test(t)) {
+    t = t.replace(' ', 'T');
+  }
+  const hasTz = /[zZ]\s*$|[+-]\d{2}:\d{2}(?::\d{2})?\s*$/.test(t);
+  const normalized = hasTz ? t : `${t}Z`;
+  const ms = new Date(normalized).getTime();
+  return Number.isFinite(ms) ? ms : NaN;
+}
+
+export type ReminderBaseTimeReason =
+  | 'game_kickoff'
+  | 'game_starts'
+  | 'training_starts'
+  | 'training_meeting_fallback'
+  | 'event_starts';
+
+/**
+ * Basis-Instant und Herkunft für Reminder-Offsets (alles aus gespeicherten UTC-Strings).
+ */
+export function getReminderBaseTimeMeta(event: RawEventRow): { baseIso: string; reason: ReminderBaseTimeReason } {
   const meet = nonEmptyIso(event.meeting_at);
   const kickoff = nonEmptyIso(event.kickoff_at);
   const start = nonEmptyIso(event.starts_at) ?? '';
   const ctype = getCanonicalEventType(event);
   if (ctype === 'game') {
-    if (kickoff) return kickoff;
-    return start;
+    if (kickoff) return { baseIso: kickoff, reason: 'game_kickoff' };
+    return { baseIso: start, reason: 'game_starts' };
   }
   if (ctype === 'training') {
-    if (start) return start;
-    if (meet) return meet;
-    return start;
+    if (start) return { baseIso: start, reason: 'training_starts' };
+    if (meet) return { baseIso: meet, reason: 'training_meeting_fallback' };
+    return { baseIso: start, reason: 'training_starts' };
   }
-  return start;
+  return { baseIso: start, reason: 'event_starts' };
+}
+
+/** Liefert nur die Basis-ISO; für Ursache siehe `getReminderBaseTimeMeta`. */
+export function getBaseTimeForEvent(event: RawEventRow): string {
+  return getReminderBaseTimeMeta(event).baseIso;
 }
 
 export type OffsetSlot = {
@@ -130,16 +161,48 @@ export function buildReminderJobsForEvent(
   teamId: string,
   now: Date = new Date(),
 ): ReminderJobInsert[] {
+  const { baseIso, reason: baseReason } = getReminderBaseTimeMeta(event);
+  const startsRaw = (event as RawEventRow).starts_at;
+  const meetingRaw = (event as RawEventRow).meeting_at;
+  const kickoffRaw = (event as RawEventRow).kickoff_at;
+
   if ((event.status ?? 'upcoming') !== 'upcoming') {
+    console.log('[reminderTz] skip jobs: event not upcoming', {
+      eventId: event.id,
+      status: event.status,
+      starts_at_utc: startsRaw,
+      meeting_at_utc: meetingRaw,
+      kickoff_at_utc: kickoffRaw ?? null,
+    });
     return [];
   }
 
-  const baseIso = getBaseTimeForEvent(event);
   const baseMs = parseUtcInstantMs(baseIso);
-  if (Number.isNaN(baseMs)) return [];
+  if (Number.isNaN(baseMs)) {
+    console.log('[reminderTz] skip jobs: base time unparseable', {
+      eventId: event.id,
+      baseIso,
+      baseReason,
+      starts_at_utc: startsRaw,
+      meeting_at_utc: meetingRaw,
+      kickoff_at_utc: kickoffRaw ?? null,
+    });
+    return [];
+  }
 
   const nowMs = now.getTime();
   if (baseMs <= nowMs) {
+    console.log('[reminderTz] skip jobs: base instant in the past (UTC)', {
+      eventId: event.id,
+      baseTimeUtc: baseIso,
+      baseReason,
+      baseViennaDebug: formatUtcIsoAsViennaDebug(baseIso),
+      nowUtc: toIso(now),
+      nowViennaDebug: formatUtcIsoAsViennaDebug(toIso(now)),
+      starts_at_utc: startsRaw,
+      meeting_at_utc: meetingRaw,
+      kickoff_at_utc: kickoffRaw ?? null,
+    });
     return [];
   }
 
@@ -151,6 +214,27 @@ export function buildReminderJobsForEvent(
   const eventTypeLabel =
     ctype === 'game' ? 'match' : ctype === 'training' ? 'training' : ctype === 'event' ? 'event' : 'other';
 
+  console.log('[reminderTz] build jobs (UTC math)', {
+    eventId: event.id,
+    canonicalType: ctype,
+    baseTimeUtc: baseIso,
+    baseReason,
+    baseViennaDebug: formatUtcIsoAsViennaDebug(baseIso),
+    starts_at_utc: startsRaw,
+    meeting_at_utc: meetingRaw,
+    kickoff_at_utc: kickoffRaw ?? null,
+    startsViennaDebug: formatUtcIsoAsViennaDebug(startsRaw),
+    meetingViennaDebug: meetingRaw ? formatUtcIsoAsViennaDebug(meetingRaw) : null,
+    nowUtc: toIso(now),
+    nowViennaDebug: formatUtcIsoAsViennaDebug(toIso(now)),
+    slotCount: slots.length,
+  });
+
+  if (slots.length === 0) {
+    console.log('[reminderTz] skip jobs: no reminder offsets (type/settings)', { eventId: event.id, ctype });
+    return [];
+  }
+
   for (const slot of slots) {
     const idealSendAtMs = baseMs - slot.offsetMinutes * 60 * 1000;
     let sendAtMs = idealSendAtMs;
@@ -160,6 +244,18 @@ export function buildReminderJobsForEvent(
       clamped = true;
     }
 
+    const sendAtIso = toIso(new Date(sendAtMs));
+    console.log('[reminderTz] slot → scheduled send_at (UTC)', {
+      eventId: event.id,
+      reminderKey: slot.reminderKey,
+      offsetMinutes: slot.offsetMinutes,
+      idealSendAtUtc: toIso(new Date(idealSendAtMs)),
+      idealSendAtViennaDebug: formatUtcIsoAsViennaDebug(toIso(new Date(idealSendAtMs))),
+      sendAtUtc: sendAtIso,
+      sendAtViennaDebug: formatUtcIsoAsViennaDebug(sendAtIso),
+      clamped,
+    });
+
     const payload = {
       reminderKey: slot.reminderKey,
       reminder_type: slot.reminderKey,
@@ -167,6 +263,7 @@ export function buildReminderJobsForEvent(
       minutes_before: slot.offsetMinutes,
       notificationType: slot.notificationType,
       baseTimeIso: baseIso,
+      baseReason,
       clamped,
       event_id: event.id,
       team_id: teamId,

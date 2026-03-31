@@ -21,6 +21,8 @@ type JobRow = {
   kind: string | null;
   payload: unknown;
   attempt_count?: number | null;
+  /** UTC ISO — fällig wenn <= now (UTC) */
+  send_at?: string | null;
 };
 
 type EventRow = {
@@ -279,6 +281,16 @@ async function processOneJob(
   admin: SupabaseClient,
   job: JobRow,
 ): Promise<{ ok: boolean; error?: string; inserted?: number; pushSent?: number; pushRemoved?: number }> {
+  const nowUtc = new Date().toISOString();
+  console.log("[reminderTz] process job (UTC compare)", {
+    jobId: job.id,
+    eventId: job.event_id,
+    send_at_utc: job.send_at ?? null,
+    send_at_vienna: job.send_at ? isoDateTimeDeVienna(job.send_at) : null,
+    now_utc: nowUtc,
+    now_vienna: isoDateTimeDeVienna(nowUtc),
+  });
+
   if (!job.event_id) {
     const err = "job has no event_id";
     await failJob(admin, job, err);
@@ -298,6 +310,16 @@ async function processOneJob(
     await failJob(admin, job, err);
     return { ok: false, error: err };
   }
+
+  const ev = event as EventRow & { starts_at?: string | null; meeting_at?: string | null };
+  console.log("[reminderTz] event row (stored UTC)", {
+    eventId: ev.id,
+    starts_at_raw: ev.starts_at ?? null,
+    meeting_at_raw: ev.meeting_at ?? null,
+    starts_at_vienna_debug: ev.starts_at ? isoDateTimeDeVienna(ev.starts_at) : null,
+    meeting_at_vienna_debug: ev.meeting_at ? isoDateTimeDeVienna(ev.meeting_at) : null,
+  });
+
   if (!(event as EventRow).team_season_id) {
     const err = "event has no team_season_id";
     await failJob(admin, job, err);
@@ -306,6 +328,11 @@ async function processOneJob(
 
   // Events, die nicht mehr upcoming sind, markieren wir als erledigt.
   if (((event as EventRow).status ?? "upcoming") !== "upcoming") {
+    console.log("[reminderTz] skip delivery: event status not upcoming", {
+      jobId: job.id,
+      eventId: job.event_id,
+      status: (event as EventRow).status,
+    });
     await completeJob(admin, job.id);
     return { ok: true, inserted: 0, pushSent: 0, pushRemoved: 0 };
   }
@@ -471,8 +498,14 @@ serve(async (req) => {
 
     console.log("[reminderPipeline] due jobs query", {
       nowIso,
+      nowVienna: isoDateTimeDeVienna(nowIso),
       pendingDueCount: (dueRows ?? []).length,
-      sample: (dueRows ?? []).slice(0, 5),
+      sample: (dueRows ?? []).slice(0, 5).map((r: { id?: string; send_at?: string; event_id?: string }) => ({
+        id: r.id,
+        event_id: r.event_id,
+        send_at_utc: r.send_at,
+        send_at_vienna: r.send_at ? isoDateTimeDeVienna(r.send_at) : null,
+      })),
     });
 
     if (dueErr) {
@@ -511,7 +544,7 @@ serve(async (req) => {
         })
         .eq("id", id)
         .eq("status", "pending")
-        .select("id, team_id, event_id, kind, payload, attempt_count")
+        .select("id, team_id, event_id, kind, payload, attempt_count, send_at")
         .maybeSingle();
 
       if (claimErr) {
@@ -519,7 +552,13 @@ serve(async (req) => {
         failed += 1;
         continue;
       }
-      if (!claimed) continue; // wurde parallel bereits geclaimt
+      if (!claimed) {
+        console.log("[reminderTz] claim skipped (race or row no longer pending)", {
+          jobId: id,
+          nowUtc: nowIso,
+        });
+        continue;
+      }
 
       processed += 1;
       const job = claimed as JobRow;

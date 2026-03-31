@@ -7,6 +7,8 @@ export type RawEventRow = {
   kind?: string | null;
   type?: string | null;
   starts_at: string;
+  /** Optional: eigener Kickoff (UTC), sonst Reminder-Basis = starts_at */
+  kickoff_at?: string | null;
   status?: string | null;
   attendance_mode?: string | null;
   notes?: string | null;

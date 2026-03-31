@@ -10,6 +10,8 @@ export type NotificationJobPayload = {
   notificationType: NotificationKind;
   /** ISO der Basiszeit (Treff/Anstoß), für Debugging */
   baseTimeIso: string;
+  /** z. B. game_kickoff | game_starts | training_starts — nur Metadaten */
+  baseReason?: string;
   /** true, wenn send_at wegen „Offset schon vorbei“ angehoben wurde */
   clamped?: boolean;
   minutes_before?: number;
