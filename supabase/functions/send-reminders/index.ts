@@ -478,7 +478,9 @@ async function processOneJob(
 
 serve(async (req) => {
   try {
-    if (req.method !== "POST") {
+    const method = (req.method || "GET").toUpperCase();
+    // pg_net / Cron-Setups nutzen teils GET. Wir erlauben GET+POST, um "silent 405" zu vermeiden.
+    if (method !== "POST" && method !== "GET") {
       return new Response(JSON.stringify({ ok: false, error: "Method not allowed" }), {
         status: 405,
         headers: { "Content-Type": "application/json" },
@@ -499,6 +501,7 @@ serve(async (req) => {
     });
 
     const nowIso = new Date().toISOString();
+    console.log("[notificationJobsWorker] start", { method, nowIso, nowVienna: isoDateTimeDeVienna(nowIso) });
 
     const { count: pendingDueApprox, error: countErr } = await admin
       .from("notification_jobs")
