@@ -111,7 +111,6 @@ export const SchedulePage: React.FC = () => {
   const [editOpponent, setEditOpponent] = useState('');
   const [editDateTime, setEditDateTime] = useState('');
   const [editLocation, setEditLocation] = useState('');
-  const [editAddress, setEditAddress] = useState('');
   const [editMeetupAt, setEditMeetupAt] = useState('');
   const [editTrainingDeadlineDisabled, setEditTrainingDeadlineDisabled] = useState(false);
   const [editSeriesScope, setEditSeriesScope] = useState<SeriesEditScope>('single');
@@ -140,7 +139,6 @@ export const SchedulePage: React.FC = () => {
     setEditOpponent(e.opponent ?? '');
     setEditDateTime(utcIsoToViennaDateTimeLocal(e.starts_at));
     setEditLocation(e.location ?? '');
-    setEditAddress(e.location ?? '');
     setEditMeetupAt(utcIsoToViennaTimeHHmm(e.meeting_at ?? ''));
     setEditTrainingDeadlineDisabled(e.training_absence_deadline_disabled ?? false);
     setEditSeriesScope('single');
@@ -256,7 +254,6 @@ export const SchedulePage: React.FC = () => {
     setEditOpponent('');
     setEditDateTime('');
     setEditLocation('');
-    setEditAddress('');
     setEditMeetupAt('');
     setEditSeriesScope('single');
     setEditError(null);
@@ -265,24 +262,24 @@ export const SchedulePage: React.FC = () => {
   const handleEditSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!editEvent) return;
-    const opponent = editOpponent.trim();
-    if (!editDateTime.trim()) {
+    const opponent = (editOpponent ?? '').trim();
+    if (!(editDateTime ?? '').trim()) {
       setEditError('Beginn ist Pflicht.');
       return;
     }
     setEditError(null);
     setSavingEdit(true);
-    const startsAt = parseViennaDateTimeLocalToUtcIso(editDateTime.trim());
+    const startsAt = parseViennaDateTimeLocalToUtcIso((editDateTime ?? '').trim());
     if (!startsAt) {
       setEditError('Ungültiges Datumsformat.');
       setSavingEdit(false);
       return;
     }
-    const locationVal = editLocation.trim() || null;
-    const addressVal = editAddress.trim() || null;
+    const locationVal = (editLocation ?? '').trim() || null;
     let meetingAt: string | null = null;
-    if (editMeetupAt.trim()) {
-      meetingAt = meetupUtcIsoOnViennaEventDay(startsAt, editMeetupAt.trim());
+    const meetupRaw = (editMeetupAt ?? '').trim();
+    if (meetupRaw) {
+      meetingAt = meetupUtcIsoOnViennaEventDay(startsAt, meetupRaw);
     }
 
     const hasSeries = Boolean(editEvent.series_id);
@@ -291,13 +288,13 @@ export const SchedulePage: React.FC = () => {
     const fullPayload = {
       opponent: opponent || null,
       starts_at: startsAt,
-      location: locationVal ?? addressVal,
+      location: locationVal,
       meeting_at: meetingAt,
     };
 
     const sharedPayload = {
       opponent: opponent || null,
-      location: locationVal ?? addressVal,
+      location: locationVal,
     };
 
     let eventErr: { message: string } | null = null;
@@ -722,7 +719,7 @@ export const SchedulePage: React.FC = () => {
                   checked={editSeriesScope === 'future'}
                   onChange={() => setEditSeriesScope('future')}
                 />
-                Alle zukünftigen Termine ändern (Ort, Adresse, Bezeichnung, Trainings-Frist)
+                Alle zukünftigen Termine ändern (Ort, Bezeichnung, Trainings-Frist)
               </label>
               <label className="flex items-center gap-2 text-sm text-[var(--text-main)] cursor-pointer">
                 <input
@@ -731,7 +728,7 @@ export const SchedulePage: React.FC = () => {
                   checked={editSeriesScope === 'series'}
                   onChange={() => setEditSeriesScope('series')}
                 />
-                Gesamte Serie ändern (Ort, Adresse, Bezeichnung, Trainings-Frist)
+                Gesamte Serie ändern (Ort, Bezeichnung, Trainings-Frist)
               </label>
               {editSeriesScope !== 'single' && (
                 <p className="text-xs text-[var(--text-sub)]">
@@ -779,19 +776,6 @@ export const SchedulePage: React.FC = () => {
               onChange={(e) => setEditLocation(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
               placeholder="z. B. Sportplatz Rohrbach"
-            />
-          </div>
-          <div>
-            <label htmlFor="edit-address" className="block text-sm font-medium text-[var(--text-main)] mb-1">
-              Adresse (optional)
-            </label>
-            <input
-              id="edit-address"
-              type="text"
-              value={editAddress}
-              onChange={(e) => setEditAddress(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
-              placeholder="z. B. Sportplatzstraße 1, 3163 Rohrbach"
             />
           </div>
           <div>

@@ -20,7 +20,7 @@ function nullIfEmpty(s: string | null | undefined): string | null {
 
 /**
  * Entfernt undefined, wandelt "" in null für optionale DB-Felder.
- * recurrence / recurrence_until / cancellation_deadline: nur Formular – im Insert nicht; meeting_point = meetup_at; description = notes.
+ * recurrence / recurrence_until / cancellation_deadline: nur Formular – im Insert nicht; meeting_point = meeting_at; description = notes.
  */
 function sanitizeEventsInsertRow(row: Record<string, unknown>): Record<string, unknown> {
   const nullableStringKeys = new Set([
@@ -44,7 +44,7 @@ function sanitizeEventsInsertRow(row: Record<string, unknown>): Record<string, u
   return out;
 }
 
-/** Spielart → match_type in DB. UI: "Meisterschaftsspiel" statt "Liga". */
+/** Spielart-Auswahl (nur UI-seitig). */
 const MATCH_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'friendly', label: 'Freundschaftsspiel' },
   { value: 'league', label: 'Meisterschaftsspiel' },
@@ -59,8 +59,9 @@ export type CreateEventFormValues = {
   is_home: boolean;
   location: string;
   starts_at: string;
-  meeting_time: string;
+  meetup_time: string;
   participation_mode: 'opt_in' | 'opt_out';
+  match_type: string;
   title: string;
   end_time: string;
   description: string;
@@ -75,8 +76,9 @@ const defaultForm: CreateEventFormValues = {
   is_home: true,
   location: '',
   starts_at: '',
-  meeting_time: '',
+  meetup_time: '',
   participation_mode: 'opt_in',
+  match_type: 'friendly',
   title: '',
   end_time: '',
   description: '',
@@ -123,9 +125,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       setError('Keine Mannschaftssaison ausgewählt.');
       return;
     }
-    const startsAtRaw = form.starts_at.trim();
-    const opponentVal = form.opponent.trim();
-    const titleVal = form.title.trim();
+    const startsAtRaw = (form.starts_at ?? '').trim();
+    const opponentVal = (form.opponent ?? '').trim();
+    const titleVal = (form.title ?? '').trim();
 
     if (!startsAtRaw) {
       setError('Beginn ist Pflicht.');
@@ -152,8 +154,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       }
       const startDate = new Date(firstStartUtcIso);
 
-      const locationVal = form.location.trim() || null;
-      const addressVal = form.address.trim() || null;
+      const locationVal = (form.location ?? '').trim() || null;
 
       const matchKind: 'match' | 'training' | 'event' =
         eventTypeLocal === 'game'
@@ -166,15 +167,16 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         if (eventTypeLocal !== 'training' && eventTypeLocal !== 'event' && eventTypeLocal !== 'other') return null;
         const noteParts: string[] = [];
         if (titleVal) noteParts.push(titleVal);
-        if (form.end_time.trim()) noteParts.push(`Ende: ${form.end_time.trim()} Uhr`);
+        if ((form.end_time ?? '').trim()) noteParts.push(`Ende: ${(form.end_time ?? '').trim()} Uhr`);
         const desc = nullIfEmpty(form.description);
         if (desc) noteParts.push(desc);
         return noteParts.length > 0 ? noteParts.join(' · ') : null;
       };
 
       const meetupIsoForStart = (d: Date): string | null => {
-        if (!form.meetup_time.trim()) return null;
-        return meetupUtcIsoOnViennaEventDay(d.toISOString(), form.meetup_time.trim());
+        const meetup = (form.meetup_time ?? '').trim();
+        if (!meetup) return null;
+        return meetupUtcIsoOnViennaEventDay(d.toISOString(), meetup);
       };
 
       const canRecur =
@@ -186,7 +188,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       let seriesId: string | null = null;
 
       if (canRecur && recurrence !== 'once') {
-        const untilRaw = form.until_date.trim();
+        const untilRaw = (form.until_date ?? '').trim();
         if (!untilRaw) {
           setError('Bitte „Wiederholen bis“ angeben oder auf Einmalig stellen.');
           setCreating(false);
@@ -223,7 +225,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           type: matchKind,
           opponent: eventTypeLocal === 'game' ? nullIfEmpty(opponentVal) : null,
           is_home: eventTypeLocal === 'game' ? form.is_home : null,
-          location: locationVal ?? addressVal,
+          location: locationVal,
           starts_at: d.toISOString(),
           meeting_at: meetupIsoForStart(d),
           status: 'upcoming',
@@ -298,8 +300,8 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           const dateStr = formatEventDateVienna(startDate.toISOString());
           const timeStr = formatEventTimeVienna(startDate.toISOString());
 
-          const ortVal = (form.location.trim() || form.address.trim()).trim();
-          const treffpunktVal = form.meetup_time.trim();
+          const ortVal = (form.location ?? '').trim();
+          const treffpunktVal = (form.meetup_time ?? '').trim();
           let titleForMsg = '';
           let contentForMsg = '';
           if (eventTypeLocal === 'training') {
@@ -548,19 +550,6 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
             className={inputClass}
             placeholder="z. B. Sportplatz Rohrbach"
-          />
-        </div>
-        <div>
-          <label htmlFor="create-event-address" className={labelClass}>
-            Adresse (optional)
-          </label>
-          <input
-            id="create-event-address"
-            type="text"
-            value={form.address}
-            onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-            className={inputClass}
-            placeholder="z. B. Sportplatzstraße 1, 3163 Rohrbach an der Gölsen"
           />
         </div>
         <div>
