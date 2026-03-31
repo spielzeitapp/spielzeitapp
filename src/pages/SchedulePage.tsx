@@ -25,6 +25,7 @@ import {
   utcIsoToViennaTimeHHmm,
 } from '../lib/viennaTime';
 import { formatDateTimeDeVienna } from '../lib/notifications/format';
+import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 
 type TabId = 'upcoming' | 'live' | 'finished';
 type KindFilterId = 'all' | 'match' | 'training' | 'event';
@@ -150,7 +151,7 @@ export const SchedulePage: React.FC = () => {
    * Speichert Zusage/Absage in event_attendance (event_id, player_id, status, updated_by).
    * Parent: linked children (player_guardians). Player: self (player_users). Trainer: via EventDetailPage.
    */
-  const setAttendance = async (eventId: string, status: 'yes' | 'no', reason?: string) => {
+  const setAttendance = async (eventId: string, status: 'yes' | 'no', _reason?: string) => {
     console.log('[ATTENDANCE FLOW] setAttendance invoked', {
       caller: 'SchedulePage.setAttendance',
       table: 'event_attendance',
@@ -158,8 +159,6 @@ export const SchedulePage: React.FC = () => {
       status,
       uiRole,
     });
-    const { data: userRes } = await supabase.auth.getUser();
-    const userId = userRes?.user?.id ?? null;
     let playerId = myAttendancePlayerIds[0] ?? null;
     if (!playerId && userId) {
       const byGuardian = await supabase.from('player_guardians').select('player_id').eq('user_id', userId);
@@ -216,12 +215,10 @@ export const SchedulePage: React.FC = () => {
         return next;
       });
     } else {
-      const payload: any = {
+      const payload = {
         event_id: eventId,
         player_id: playerId,
         status,
-        ...(userId && { updated_by: userId }),
-        ...(reason?.trim() ? { reason: reason.trim() } : {}),
       };
       console.log('[ATTENDANCE FLOW] upsert request', {
         table: 'event_attendance',
@@ -230,21 +227,8 @@ export const SchedulePage: React.FC = () => {
         payloadKeys: Object.keys(payload),
       });
 
-      let result = await supabase
-        .from('event_attendance')
-        .upsert(payload, { onConflict: 'event_id,player_id' })
-        .select('event_id, player_id, status');
-
+      const result = await upsertEventAttendanceMinimal(supabase, payload);
       console.log('[ATTENDANCE SAVE RESULT]', { data: result.data, error: result.error });
-
-      // Best-effort: falls `reason`-Spalte nicht existiert → Retry ohne reason
-      if (result.error && reason?.trim()) {
-        const { reason: _r, ...payloadWithoutReason } = payload;
-        result = await supabase
-          .from('event_attendance')
-          .upsert(payloadWithoutReason, { onConflict: 'event_id,player_id' })
-          .select('event_id, player_id, status');
-      }
 
       if (result.error) {
         console.error('[ATTENDANCE SAVE ERROR]', {

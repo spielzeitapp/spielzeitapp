@@ -15,6 +15,7 @@ import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
 import { downloadEventIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
+import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 
 type EventDbRow = {
   id: string;
@@ -210,7 +211,7 @@ export const EventDetailPage: React.FC = () => {
   }, [loadEventAttendance]);
 
   const handleRsvp = useCallback(
-    async (status: 'yes' | 'no', reason?: string) => {
+    async (status: 'yes' | 'no', _reason?: string) => {
       console.log('[ATTENDANCE FLOW] handleRsvp invoked', {
         caller: 'EventDetailPage.handleRsvp',
         table: 'event_attendance',
@@ -235,14 +236,10 @@ export const EventDetailPage: React.FC = () => {
       }
       if (!resolvedPlayerId) return;
 
-      const { data: userRes } = await supabase.auth.getUser();
-      const userId = userRes?.user?.id ?? null;
-      const payload: any = {
+      const payload = {
         event_id: eventId,
         player_id: resolvedPlayerId,
         status,
-        ...(userId && { updated_by: userId }),
-        ...(reason?.trim() ? { reason: reason.trim() } : {}),
       };
       console.log('[ATTENDANCE FLOW] upsert request', {
         table: 'event_attendance',
@@ -250,19 +247,7 @@ export const EventDetailPage: React.FC = () => {
         payload,
         payloadKeys: Object.keys(payload),
       });
-      let result = await supabase
-        .from('event_attendance')
-        .upsert(payload, { onConflict: 'event_id,player_id' })
-        .select('event_id, player_id, status');
-
-      // Best-effort: falls es keine `reason`-Spalte gibt, ohne Grund erneut speichern.
-      if (result.error && reason?.trim()) {
-        const { reason: _r, ...payloadWithoutReason } = payload;
-        result = await supabase
-          .from('event_attendance')
-          .upsert(payloadWithoutReason, { onConflict: 'event_id,player_id' })
-          .select('event_id, player_id, status');
-      }
+      const result = await upsertEventAttendanceMinimal(supabase, payload);
 
       if (result.error) return;
       setRsvpStatus(status);
@@ -285,8 +270,6 @@ export const EventDetailPage: React.FC = () => {
         status,
       });
       if (!eventId || !isTrainerOrAdmin) return;
-      const { data: userRes } = await supabase.auth.getUser();
-      const userId = userRes?.user?.id ?? null;
       if (event?.kind === 'training' && status === 'yes') {
         console.log('[ATTENDANCE FLOW] trainer delete request', {
           table: 'event_attendance',
@@ -310,7 +293,6 @@ export const EventDetailPage: React.FC = () => {
         event_id: eventId,
         player_id: targetPlayerId,
         status,
-        ...(userId && { updated_by: userId }),
       };
       console.log('[ATTENDANCE FLOW] trainer upsert request', {
         table: 'event_attendance',
@@ -318,10 +300,7 @@ export const EventDetailPage: React.FC = () => {
         payload,
         payloadKeys: Object.keys(payload),
       });
-      const result = await supabase
-        .from('event_attendance')
-        .upsert(payload, { onConflict: 'event_id,player_id' })
-        .select('event_id, player_id, status');
+      const result = await upsertEventAttendanceMinimal(supabase, payload);
       if (result.error) return;
       setEventAttendanceByPlayerId((prev) => ({ ...prev, [targetPlayerId]: status }));
       await loadEventAttendance();
