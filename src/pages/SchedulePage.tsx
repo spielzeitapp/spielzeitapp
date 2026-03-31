@@ -67,6 +67,18 @@ function getTimeBucket(e: EventRow, now: Date): TimeFilterId {
   return 'upcoming';
 }
 
+/** Titel-Zeile in notes (Training/Event) wie CreateEventModal: erster Teil vor „ · “. */
+function mergeTitleIntoNotes(existingNotes: string | null | undefined, newTitle: string): string | null {
+  const title = newTitle.trim();
+  const raw = (existingNotes ?? '').trim();
+  if (!raw) return title || null;
+  const parts = raw.split(' · ');
+  const rest = parts.slice(1).filter(Boolean);
+  if (!title && rest.length === 0) return null;
+  if (!title) return rest.join(' · ');
+  return rest.length ? `${title} · ${rest.join(' · ')}` : title;
+}
+
 export const SchedulePage: React.FC = () => {
   const navigate = useNavigate();
   const { teamLabel, teamSeasonId, role: roleFromHook, loading: tsLoading, error: tsError } =
@@ -299,33 +311,86 @@ export const SchedulePage: React.FC = () => {
     const hasSeries = Boolean(editEvent.series_id);
     const bulkScope = hasSeries && editSeriesScope !== 'single';
 
-    const fullPayload = {
-      opponent: opponent || null,
-      starts_at: startsAt,
-      location: locationVal,
-      meeting_at: meetingAt,
-    };
+    const eff = getEffectiveEventType(editEvent);
 
-    const sharedPayload = {
-      opponent: opponent || null,
+    const fullPayload: Record<string, unknown> = {
+      starts_at: startsAt,
+      meeting_at: meetingAt,
       location: locationVal,
     };
+    if (eff === 'game') {
+      fullPayload.opponent = opponent || null;
+    } else {
+      fullPayload.opponent = null;
+      fullPayload.notes = mergeTitleIntoNotes(editEvent.notes, opponent);
+    }
+    if (editEvent.kind === 'training') {
+      fullPayload.training_absence_deadline_disabled = editTrainingDeadlineDisabled;
+    }
+
+    const sharedPayload: Record<string, unknown> = {
+      location: locationVal,
+    };
+    if (eff === 'game') {
+      sharedPayload.opponent = opponent || null;
+    } else {
+      sharedPayload.opponent = null;
+      sharedPayload.notes = mergeTitleIntoNotes(editEvent.notes, opponent);
+    }
+    if (editEvent.kind === 'training') {
+      sharedPayload.training_absence_deadline_disabled = editTrainingDeadlineDisabled;
+    }
+
+    const updateSelect = 'id, starts_at, meeting_at, location, opponent, notes';
 
     let eventErr: { message: string } | null = null;
 
     if (!bulkScope) {
-      const r = await supabase.from('events').update(fullPayload).eq('id', editEvent.id);
+      console.log('event update payload', fullPayload);
+      console.log('event update id', editEvent.id);
+      const r = await supabase
+        .from('events')
+        .update(fullPayload)
+        .eq('id', editEvent.id)
+        .select(updateSelect);
+      console.log('event update result', r.data, r.error);
       eventErr = r.error;
+      if (!r.error && (!r.data || r.data.length === 0)) {
+        setEditError('Speichern fehlgeschlagen: Keine Zeile aktualisiert (Berechtigung oder ID).');
+        setSavingEdit(false);
+        return;
+      }
     } else if (editSeriesScope === 'future' && editEvent.series_id) {
+      console.log('event bulk update (future) payload', sharedPayload);
+      console.log('event bulk update series_id', editEvent.series_id);
       const r = await supabase
         .from('events')
         .update(sharedPayload)
         .eq('series_id', editEvent.series_id)
-        .gte('starts_at', editEvent.starts_at);
+        .gte('starts_at', editEvent.starts_at)
+        .select('id');
+      console.log('event bulk update result', r.data, r.error);
       eventErr = r.error;
+      if (!r.error && (!r.data || r.data.length === 0)) {
+        setEditError('Speichern fehlgeschlagen: Keine Termine der Serie aktualisiert.');
+        setSavingEdit(false);
+        return;
+      }
     } else if (editSeriesScope === 'series' && editEvent.series_id) {
-      const r = await supabase.from('events').update(sharedPayload).eq('series_id', editEvent.series_id);
+      console.log('event bulk update (series) payload', sharedPayload);
+      console.log('event bulk update series_id', editEvent.series_id);
+      const r = await supabase
+        .from('events')
+        .update(sharedPayload)
+        .eq('series_id', editEvent.series_id)
+        .select('id');
+      console.log('event bulk update result', r.data, r.error);
       eventErr = r.error;
+      if (!r.error && (!r.data || r.data.length === 0)) {
+        setEditError('Speichern fehlgeschlagen: Keine Termine der Serie aktualisiert.');
+        setSavingEdit(false);
+        return;
+      }
     }
 
     if (eventErr) {

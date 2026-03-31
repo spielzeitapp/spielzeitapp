@@ -118,7 +118,8 @@ export function isViennaLocalTimeInRange(
   return minutes >= start && minutes < end;
 }
 
-const DT_LOCAL_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
+/** datetime-local: mit/ohne Sekunden (Browser variieren, z. B. …T02:00:00). */
+const DT_LOCAL_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2})?(?:\.\d+)?$/;
 const TIME_HM_RE = /^(\d{1,2}):(\d{2})$/;
 const YMD_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 

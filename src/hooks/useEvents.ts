@@ -22,12 +22,18 @@ export type EventRow = {
   opponent: string | null;
   is_home: boolean | null;
   location: string | null;
+  /** Optional: ältere DB ohne Spalte */
+  address?: string | null;
   starts_at: string;
   meeting_at: string | null;
   status: EventStatus;
   attendance_mode: ParticipationMode;
   notes: string | null;
   match_id: string | null;
+  /** Wiederholungsserien (optional) */
+  series_id?: string | null;
+  /** Optional: Migration 20260315120000 */
+  training_absence_deadline_disabled?: boolean | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -41,22 +47,25 @@ type EventDbRow = {
   opponent: string | null;
   is_home: boolean | null;
   location: string | null;
+  address?: string | null;
   starts_at: string;
   meeting_at: string | null;
   status: string | null;
   attendance_mode: string | null;
   notes: string | null;
   match_id: string | null;
+  series_id?: string | null;
+  training_absence_deadline_disabled?: boolean | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
 
-/** Aktueller events-Select (nur gültige Spalten). */
+/** Aktueller events-Select inkl. Serien + optionaler Spalten (Fallback bei alter DB). */
 const EVENTS_SELECT =
-  "id, team_season_id, kind, type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, created_by, created_at, updated_at";
+  "id, team_season_id, kind, type, opponent, is_home, location, address, starts_at, meeting_at, status, attendance_mode, notes, match_id, series_id, training_absence_deadline_disabled, created_by, created_at, updated_at";
 
-/** Ohne training_absence_deadline_disabled (alte DB). */
+/** Ohne address / series_id / training_absence_deadline_disabled. */
 const EVENTS_SELECT_LEGACY =
   "id, team_season_id, kind, type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, created_by, created_at, updated_at";
 
@@ -80,7 +89,7 @@ export function useEvents(teamSeasonId: string | null) {
       .eq("team_season_id", teamSeasonId)
       .order("starts_at", { ascending: true });
 
-    if (res.error && /training_absence_deadline_disabled|column/i.test(String(res.error.message ?? ""))) {
+    if (res.error && /training_absence_deadline_disabled|series_id|address|column/i.test(String(res.error.message ?? ""))) {
       res = await supabase
         .from("events")
         .select(EVENTS_SELECT_LEGACY)
@@ -109,12 +118,15 @@ export function useEvents(teamSeasonId: string | null) {
         opponent: r.opponent ?? null,
         is_home: r.is_home ?? null,
         location: r.location ?? null,
+        address: r.address ?? null,
         starts_at: r.starts_at,
         meeting_at: r.meeting_at ?? null,
         status: normalizeEventStatus(r.status),
         attendance_mode: (r.attendance_mode === "opt_out" ? "opt_out" : "opt_in") as ParticipationMode,
         notes: r.notes ?? null,
         match_id: r.match_id ?? null,
+        series_id: r.series_id ?? null,
+        training_absence_deadline_disabled: r.training_absence_deadline_disabled ?? null,
         created_by: r.created_by ?? null,
         created_at: r.created_at ?? null,
         updated_at: r.updated_at ?? null,
