@@ -326,86 +326,106 @@ export const CalendarPage: React.FC = () => {
   return (
     <div className="page relative min-h-[60vh] px-4 pt-6">
       <div className="mx-auto max-w-5xl space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => navigate('/app/termine')}
+            className="text-sm text-white/80 hover:text-white"
+          >
+            ← Termine
+          </button>
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h1 className="text-2xl font-bold text-white tracking-tight">Kalender</h1>
-            <p className="mt-1 text-sm text-white/70">
-              Termine für Spiele, Trainings und Events.
-            </p>
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-md px-2 py-1 text-xs"
+                onClick={() => {
+                  if (view === 'week') {
+                    const next = new Date(weekAnchor);
+                    next.setDate(next.getDate() - 7);
+                    setWeekAnchor(next);
+                    setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
+                  } else {
+                    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+                  }
+                }}
+              >
+                ←
+              </Button>
+              <span className="text-xs text-white/80 min-w-[140px] text-center">{headerLabel}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-md px-2 py-1 text-xs"
+                onClick={() => {
+                  if (view === 'week') {
+                    const next = new Date(weekAnchor);
+                    next.setDate(next.getDate() + 7);
+                    setWeekAnchor(next);
+                    setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
+                  } else {
+                    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+                  }
+                }}
+              >
+                →
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                if (view === 'week') {
-                  const next = new Date(weekAnchor);
-                  next.setDate(next.getDate() - 7);
-                  setWeekAnchor(next);
-                  setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
-                } else {
-                  setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-                }
-              }}
-            >
-              ←
-            </Button>
-            <span className="text-sm text-white/80 min-w-[160px] text-center">{headerLabel}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                if (view === 'week') {
-                  const next = new Date(weekAnchor);
-                  next.setDate(next.getDate() + 7);
-                  setWeekAnchor(next);
-                  setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
-                } else {
-                  setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-                }
-              }}
-            >
-              →
-            </Button>
+          <div className="inline-flex items-center rounded-lg border border-white/10 bg-black/30 p-1">
+            {([
+              ['list', 'Liste'],
+              ['week', 'Woche'],
+              ['month', 'Monat'],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setView(key)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
+                  view === key
+                    ? 'bg-red-500/15 text-white border border-red-500/30'
+                    : 'text-white/70 hover:bg-white/10 border border-transparent'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
         {!loading && !isFan && (
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <label
-                htmlFor="calendar-team-filter"
-                className="text-xs font-medium text-white/70"
-              >
-                Mannschaft:
-              </label>
-              <select
-                id="calendar-team-filter"
-                value={selectedTeamSeasonId}
-                onChange={(e) => setSelectedTeamSeasonId(e.target.value as any)}
-                className="rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white"
-              >
-                {canSeeAllTeams && (
-                  <option value="all">Alle Teams</option>
-                )}
-                {accessibleTeamSeasons.map((ts: any) => (
-                  <option key={ts.id} value={ts.id}>
-                    {ts.teams?.name ?? 'Team'} {ts.seasons?.name ? `(${ts.seasons.name})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              {feedUrl && (
-                <Button
-                  variant="soft"
-                  size="sm"
-                  className="rounded-xl"
-                  onClick={handleSubscribeCalendar}
+            {accessibleTeamSeasons.length > 1 ? (
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="calendar-team-filter"
+                  className="text-xs font-medium text-white/70"
                 >
-                  Kalender abonnieren
-                </Button>
-              )}
+                  Mannschaft:
+                </label>
+                <select
+                  id="calendar-team-filter"
+                  value={selectedTeamSeasonId}
+                  onChange={(e) => setSelectedTeamSeasonId(e.target.value as any)}
+                  className="rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white"
+                >
+                  {canSeeAllTeams && (
+                    <option value="all">Alle Teams</option>
+                  )}
+                  {accessibleTeamSeasons.map((ts: any) => (
+                    <option key={ts.id} value={ts.id}>
+                      {ts.teams?.name ?? 'Team'} {ts.seasons?.name ? `(${ts.seasons.name})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div />
+            )}
+            <div className="flex items-center gap-2">
               {loadingEvents && (
                 <p className="text-xs text-white/60">Lade Termine…</p>
               )}
@@ -420,32 +440,6 @@ export const CalendarPage: React.FC = () => {
         )}
 
         <div className="mt-2 rounded-2xl border border-white/10 bg-black/30 p-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-            <div className="inline-flex items-center rounded-xl border border-white/10 bg-black/20 p-1">
-              {([
-                ['list', 'Liste'],
-                ['week', 'Woche'],
-                ['month', 'Monat'],
-              ] as const).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setView(key)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
-                    view === key
-                      ? 'bg-white/15 text-white border border-white/20'
-                      : 'text-white/70 hover:bg-white/10'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div className="text-xs text-white/60">
-              {view === 'week' ? '7-Tage-Ansicht' : view === 'month' ? 'Monatsansicht' : 'Agenda'}
-            </div>
-          </div>
 
           {view === 'list' ? (
             <CalendarListView events={events} getEventColorClass={getEventColorClass} todayKey={todayKey} />
@@ -466,6 +460,19 @@ export const CalendarPage: React.FC = () => {
             />
           )}
         </div>
+
+        {feedUrl && (
+          <div className="flex justify-end">
+            <Button
+              variant="soft"
+              size="sm"
+              className="rounded-lg px-3 py-1.5 text-xs"
+              onClick={handleSubscribeCalendar}
+            >
+              Kalender abonnieren
+            </Button>
+          </div>
+        )}
 
         <Modal
           isOpen={subscribeModalOpen}
