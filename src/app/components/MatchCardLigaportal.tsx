@@ -52,20 +52,32 @@ function splitPrefixAndName(full: string): { prefix: string; name: string } {
   return { prefix: trimmed.slice(0, i), name: trimmed.slice(i + 1) };
 }
 
-/** Spielort: Zeile 1 "Sportplatz", Zeile 2 Ortsname (kein Buchstaben-Umbruch). */
-function formatLocationLines(loc: string): { line1: string; line2: string | null } {
+/** Spielort heuristisch in bis zu 3 Zeilen aufteilen. */
+function formatLocationLines(loc: string): { line1: string; line2: string | null; line3: string | null } {
   const s = (loc ?? '').trim();
-  if (!s) return { line1: '', line2: null };
+  if (!s) return { line1: '', line2: null, line3: null };
   if (s.includes('\n')) {
     const parsed = splitCombinedLocation(s);
-    return { line1: parsed.place || parsed.address, line2: parsed.place ? parsed.address || null : null };
+    if (!parsed.place && parsed.address) return { line1: parsed.address, line2: null, line3: null };
+    const parts = parsed.address.split(',').map((p) => p.trim()).filter(Boolean);
+    if (parts.length >= 2) return { line1: parsed.place, line2: parts[0], line3: parts.slice(1).join(', ') };
+    return { line1: parsed.place, line2: parsed.address || null, line3: null };
   }
+  const commaParts = s.split(',').map((p) => p.trim()).filter(Boolean);
+  if (commaParts.length >= 3) {
+    return {
+      line1: commaParts[0],
+      line2: commaParts[1],
+      line3: commaParts.slice(2).join(', '),
+    };
+  }
+  if (commaParts.length === 2) return { line1: commaParts[0], line2: commaParts[1], line3: null };
   const prefix = 'Sportplatz ';
   if (s.toLowerCase().startsWith(prefix.toLowerCase())) {
     const rest = s.slice(prefix.length).trim();
-    return { line1: 'Sportplatz', line2: rest || null };
+    return { line1: 'Sportplatz', line2: rest || null, line3: null };
   }
-  return { line1: s, line2: null };
+  return { line1: s, line2: null, line3: null };
 }
 
 type MatchCardLigaportalProps = {
@@ -156,7 +168,9 @@ type KickoffBlockProps = {
 
 function KickoffBlock({ timeDisplay, showUhr, location, headerLabel }: KickoffBlockProps) {
   const hasLocation = location != null && location.trim() !== '';
-  const locationLines = hasLocation ? formatLocationLines(location) : { line1: '', line2: null as string | null };
+  const locationLines = hasLocation
+    ? formatLocationLines(location)
+    : { line1: '', line2: null as string | null, line3: null as string | null };
 
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
@@ -170,12 +184,18 @@ function KickoffBlock({ timeDisplay, showUhr, location, headerLabel }: KickoffBl
         <div className="mt-1 text-white font-medium">Uhr</div>
       ) : null}
       {hasLocation ? (
-        <div className="mt-1 text-[15px] font-medium text-white leading-tight text-center break-words line-clamp-2 min-w-0 max-w-[200px]">
+        <div className="mt-1 text-[14px] font-medium text-white/95 leading-tight text-center break-words line-clamp-3 min-w-0 max-w-[220px]">
           {locationLines.line2 ? (
             <>
               {locationLines.line1}
               <br />
               {locationLines.line2}
+              {locationLines.line3 ? (
+                <>
+                  <br />
+                  {locationLines.line3}
+                </>
+              ) : null}
             </>
           ) : (
             locationLines.line1 || location.trim()
@@ -320,13 +340,13 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   /* Pill wie Bearbeiten/Löschen: gleiche Höhe/Radius (rounded-full px-3 py-1 text-sm), farblich passend */
   const attendanceChipClass = isTrainingCard
     ? attendanceStatus === 'no'
-      ? 'rounded-full px-3 py-1 text-sm font-semibold text-white bg-red-700 border border-red-600/50 shrink-0'
-      : 'rounded-full px-3 py-1 text-sm font-semibold text-white bg-green-600 border border-green-500/50 shrink-0'
+      ? 'rounded-full px-2.5 py-0.5 text-xs font-semibold text-white bg-red-700 border border-red-600/50 shrink-0'
+      : 'rounded-full px-2.5 py-0.5 text-xs font-semibold text-white bg-green-600 border border-green-500/50 shrink-0'
     : attendanceStatus === 'yes'
-      ? 'rounded-full px-3 py-1 text-sm font-semibold text-white bg-green-600 border border-green-500/50 shrink-0'
+      ? 'rounded-full px-2.5 py-0.5 text-xs font-semibold text-white bg-green-600 border border-green-500/50 shrink-0'
       : attendanceStatus === 'no'
-        ? 'rounded-full px-3 py-1 text-sm font-semibold text-white bg-red-700 border border-red-600/50 shrink-0'
-        : 'rounded-full px-3 py-1 text-sm font-semibold text-white border border-white/40 bg-white/10 hover:bg-white/20 shrink-0 transition-colors';
+        ? 'rounded-full px-2.5 py-0.5 text-xs font-semibold text-white bg-red-700 border border-red-600/50 shrink-0'
+        : 'rounded-full px-2.5 py-0.5 text-xs font-semibold text-white border border-white/40 bg-white/10 hover:bg-white/20 shrink-0 transition-colors';
 
   const attendanceChipLabel = isTrainingCard
     ? attendanceStatus === 'no'
@@ -340,31 +360,33 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const showAttendanceCounts = canManage && attendanceCounts != null;
 
+  const compactParentRow = showAttendanceChip && !showAttendanceCounts && !showManageButtons;
   const dateRow = (
-    <div className="mb-3">
-      <span className="block text-lg font-semibold text-white min-w-0 truncate">
+    <div className="mb-2">
+      <div className={`${compactParentRow ? 'flex items-center justify-between gap-2' : ''}`}>
+      <span className="block text-base font-semibold text-white min-w-0 truncate">
         {date ? dateLabelShort : ''}
       </span>
-      <div className="mt-2 flex items-center gap-2 shrink-0 flex-wrap justify-end" onClick={(e) => e.stopPropagation()}>
+      <div className={`${compactParentRow ? '' : 'mt-1.5'} flex items-center gap-1.5 shrink-0 flex-wrap justify-end`} onClick={(e) => e.stopPropagation()}>
         {showAttendanceCounts && (
           isTrainingCard ? (
             <div className="flex items-center gap-1.5" aria-label="Trainings-Teilnahme">
-              <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abwesend">
+              <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abwesend">
                 {attendanceCounts.no}
               </span>
-              <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Dabei">
+              <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Dabei">
                 {attendanceCounts.yes + attendanceCounts.open}
               </span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5" aria-label="Zu-/Absagen">
-              <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Zugesagt">
+              <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Zugesagt">
                 {attendanceCounts.yes}
               </span>
-              <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abgesagt">
+              <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abgesagt">
                 {attendanceCounts.no}
               </span>
-              <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30 whitespace-nowrap" title="Offen">
+              <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30 whitespace-nowrap" title="Offen">
                 {attendanceCounts.open}
               </span>
             </div>
@@ -376,7 +398,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                className="rounded-full bg-red-700 px-3 py-1 text-sm text-white shrink-0"
+                className="rounded-full bg-red-700/80 px-2.5 py-0.5 text-xs text-white shrink-0"
               >
                 Bearbeiten
               </button>
@@ -385,7 +407,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                className="rounded-full bg-red-800 px-3 py-1 text-sm text-white shrink-0"
+                className="rounded-full bg-red-800/80 px-2.5 py-0.5 text-xs text-white shrink-0"
               >
                 Löschen
               </button>
@@ -401,6 +423,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           {attendanceChipLabel}
         </button>
         )}
+      </div>
       </div>
     </div>
   );

@@ -17,8 +17,13 @@ export const TermineLayout: React.FC = () => {
 
   return (
     <div className="w-full">
+      <div className="mx-auto max-w-[720px] px-4 pt-2">
+        <h1 className="text-4xl font-bold text-white tracking-tight leading-none [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
+          {isFan ? 'Spielplan' : 'Termine'}
+        </h1>
+      </div>
       {!isFan && (
-        <div className="mx-auto mb-2 flex max-w-[420px] gap-1.5 px-4">
+        <div className="mx-auto mt-2 mb-2 flex max-w-[420px] gap-1.5 px-4">
           <NavLink to="/app/termine" end className={({ isActive }) => tabClass(isActive)}>
             Liste
           </NavLink>
