@@ -25,6 +25,12 @@ type JobRow = {
   send_at?: string | null;
 };
 
+function rowsFromRpcClaim(data: unknown): JobRow[] {
+  if (data == null) return [];
+  if (Array.isArray(data)) return data as JobRow[];
+  return [data as JobRow];
+}
+
 type EventRow = {
   id: string;
   team_season_id: string | number | null;
@@ -109,22 +115,25 @@ async function completeJob(admin: SupabaseClient, jobId: string) {
   if (error) {
     throw new Error(`completeJob failed: ${error.message}`);
   }
+  console.log("[notificationJobsWorker] status → sent", { jobId, sent_at: nowIso });
 }
 
+/** attempt_count wurde bereits durch claim_notification_job erhöht — hier kein zweites Increment. */
 async function failJob(admin: SupabaseClient, job: JobRow, err: string) {
   const lastErr = String(err).slice(0, 2000);
-  const attempt = (job.attempt_count ?? 0) + 1;
   const { error } = await admin
     .from("notification_jobs")
     .update({
       status: "failed",
-      attempt_count: attempt,
       last_error: lastErr,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", job.id);
+    .eq("id", job.id)
+    .eq("status", "processing");
   if (error) {
     console.error("[send-reminders] failJob update failed", { jobId: job.id, error: error.message });
+  } else {
+    console.log("[notificationJobsWorker] status → failed", { jobId: job.id, attempt_count: job.attempt_count });
   }
 }
 
@@ -488,6 +497,22 @@ serve(async (req) => {
     });
 
     const nowIso = new Date().toISOString();
+
+    const { count: pendingDueApprox, error: countErr } = await admin
+      .from("notification_jobs")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending")
+      .lte("send_at", nowIso);
+
+    if (countErr) {
+      console.warn("[notificationJobsWorker] pending count query", countErr.message);
+    }
+
+    console.log("[notificationJobsWorker] utc now", nowIso, {
+      pendingDueOrBeforeNow: pendingDueApprox ?? null,
+      column: "send_at (timestamptz)",
+    });
+
     const { data: dueRows, error: dueErr } = await admin
       .from("notification_jobs")
       .select("id, send_at, event_id, status")
@@ -536,32 +561,35 @@ serve(async (req) => {
       if (claimedInRun.has(id)) continue;
       claimedInRun.add(id);
 
-      const { data: claimed, error: claimErr } = await admin
-        .from("notification_jobs")
-        .update({
-          status: "processing",
-          updated_at: nowIso,
-        })
-        .eq("id", id)
-        .eq("status", "pending")
-        .select("id, team_id, event_id, kind, payload, attempt_count, send_at")
-        .maybeSingle();
+      const { data: claimedRows, error: claimErr } = await admin.rpc("claim_notification_job", {
+        p_job_id: id,
+      });
 
       if (claimErr) {
-        console.error("[send-reminders] claim failed", { jobId: id, error: claimErr.message });
+        console.error("[send-reminders] claim_notification_job rpc failed", { jobId: id, error: claimErr.message });
         failed += 1;
         continue;
       }
+
+      const claimedRowsArr = rowsFromRpcClaim(claimedRows);
+      const claimed = claimedRowsArr.length > 0 ? claimedRowsArr[0] : null;
+
       if (!claimed) {
-        console.log("[reminderTz] claim skipped (race or row no longer pending)", {
+        console.log("[notificationJobsWorker] claim skipped (not due, max attempts, or race)", {
           jobId: id,
           nowUtc: nowIso,
         });
         continue;
       }
 
+      console.log("[notificationJobsWorker] status → processing", {
+        jobId: claimed.id,
+        attempt_count: claimed.attempt_count,
+        send_at_utc: claimed.send_at,
+      });
+
       processed += 1;
-      const job = claimed as JobRow;
+      const job = claimed;
 
       try {
         const result = await processOneJob(admin, job);

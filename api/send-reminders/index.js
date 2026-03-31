@@ -125,42 +125,70 @@ async function notificationAlreadyDispatched(admin, userId, eventId, reminderKey
 }
 
 async function completeJob(admin, jobId) {
-  await admin
+  const sentAt = new Date().toISOString();
+  const { error } = await admin
     .from('notification_jobs')
     .update({
       status: 'sent',
-      sent_at: new Date().toISOString(),
+      sent_at: sentAt,
       last_error: null,
-      updated_at: new Date().toISOString(),
+      updated_at: sentAt,
     })
     .eq('id', jobId)
     .eq('status', 'processing');
+  if (!error) {
+    console.log('[notificationJobsWorker] status → sent', { jobId, sent_at: sentAt });
+  }
+  return error;
 }
 
+/**
+ * Nach claim_notification_job ist attempt_count bereits erhöht.
+ * Bei Fehler: zurück auf pending solange Versuche < 3, sonst failed.
+ */
 async function failJobWithRetry(admin, job, err) {
-  const attempt = (job.attempt_count || 0) + 1;
   const lastErr = String(err).slice(0, 2000);
-  if (attempt < 3) {
-    await admin
+  const ac = job.attempt_count ?? 0;
+  if (ac < 3) {
+    const { error } = await admin
       .from('notification_jobs')
       .update({
         status: 'pending',
-        attempt_count: attempt,
         last_error: lastErr,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', job.id);
+      .eq('id', job.id)
+      .eq('status', 'processing');
+    if (!error) {
+      console.log('[notificationJobsWorker] status → pending (retry)', { jobId: job.id, attempt_count: ac });
+    }
   } else {
-    await admin
+    const { error } = await admin
       .from('notification_jobs')
       .update({
         status: 'failed',
-        attempt_count: attempt,
         last_error: lastErr,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', job.id);
+      .eq('id', job.id)
+      .eq('status', 'processing');
+    if (!error) {
+      console.log('[notificationJobsWorker] status → failed', { jobId: job.id, attempt_count: ac });
+    }
   }
+}
+
+/** GET: Vercel Cron (x-vercel-cron) oder CRON_SECRET; POST: weiterhin offen für manuelle Tests. */
+function allowCronGet(req) {
+  if ((req.headers['x-vercel-cron'] || req.headers['X-Vercel-Cron']) === '1') return true;
+  const secret =
+    process.env.CRON_SECRET || process.env.NOTIFICATION_DISPATCH_SECRET || process.env.REMINDER_PROCESS_SECRET;
+  if (!secret) return false;
+  const auth = req.headers.authorization || req.headers.Authorization;
+  const bearer = typeof auth === 'string' ? auth.replace(/^Bearer\s+/i, '').trim() : '';
+  if (bearer === secret) return true;
+  const xs = req.headers['x-cron-secret'] || req.headers['X-Cron-Secret'];
+  return xs === secret;
 }
 
 function pushIsGoneError(err) {
@@ -332,18 +360,124 @@ async function processOneJob(admin, job) {
   return { ok: true, inserted, pushSent, skippedUsers: recipients.length - inserted };
 }
 
+/**
+ * Fällige Jobs: send_at <= now (UTC), status = pending.
+ * Claim über DB-RPC claim_notification_job (attempt_count++, Status processing).
+ */
+async function runNotificationJobsWorker(admin) {
+  const nowIso = new Date().toISOString();
+
+  const { count: pendingTotal, error: countErr } = await admin
+    .from('notification_jobs')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'pending')
+    .lte('send_at', nowIso);
+
+  if (countErr) {
+    console.warn('[notificationJobsWorker] pending count query', countErr.message);
+  }
+
+  console.log('[notificationJobsWorker] utc now', nowIso, {
+    pendingDueOrBeforeNow: pendingTotal ?? null,
+    note: 'Spalte send_at (nicht scheduled_for); Vergleich mit UTC-ISO',
+  });
+
+  const { data: jobIds, error: qErr } = await admin
+    .from('notification_jobs')
+    .select('id, send_at, event_id, status')
+    .eq('status', 'pending')
+    .lte('send_at', nowIso)
+    .order('send_at', { ascending: true })
+    .limit(JOB_BATCH_LIMIT);
+
+  if (qErr) {
+    console.error('[notificationJobsWorker] due query failed', qErr);
+    throw new Error(qErr.message || 'due query failed');
+  }
+
+  const ids = (jobIds || []).map((r) => r.id).filter(Boolean);
+  console.log('[reminderPipeline] due jobs selected', {
+    nowIso,
+    nowVienna: viennaDateTimeDebug(nowIso),
+    dueCount: ids.length,
+    ids,
+    jobs: (jobIds || []).map((r) => ({
+      id: r.id,
+      send_at_utc: r.send_at,
+      send_at_vienna: viennaDateTimeDebug(r.send_at),
+      event_id: r.event_id,
+    })),
+  });
+
+  let processed = 0;
+  let sent = 0;
+  let failed = 0;
+  const errors = [];
+
+  for (const id of ids) {
+    const { data: claimedRows, error: claimErr } = await admin.rpc('claim_notification_job', { p_job_id: id });
+
+    if (claimErr) {
+      console.error('[notificationJobsWorker] claim rpc failed', { jobId: id, error: claimErr.message });
+      failed += 1;
+      continue;
+    }
+
+    const arr =
+      claimedRows == null ? [] : Array.isArray(claimedRows) ? claimedRows : [claimedRows];
+    const claimed = arr[0] ?? null;
+    if (!claimed) {
+      console.log('[notificationJobsWorker] claim skipped (not due, max attempts, or race)', {
+        jobId: id,
+        nowUtc: nowIso,
+      });
+      continue;
+    }
+
+    console.log('[notificationJobsWorker] status → processing', {
+      jobId: claimed.id,
+      attempt_count: claimed.attempt_count,
+      send_at_utc: claimed.send_at,
+    });
+
+    processed += 1;
+    const job = claimed;
+    try {
+      const r = await processOneJob(admin, job);
+      if (r.ok) sent += 1;
+      else failed += 1;
+      if (r.error) errors.push({ jobId: id, error: r.error });
+      console.log('[send-reminders] job result', id, r);
+    } catch (e) {
+      const msg = e && e.message ? e.message : String(e);
+      console.error('SEND REMINDERS ERROR job', id, msg, e && e.stack);
+      await failJobWithRetry(admin, job, msg);
+      failed += 1;
+      errors.push({ jobId: id, error: msg });
+    }
+  }
+
+  return { processed, sent, failed, errors };
+}
+
 module.exports = async (req, res) => {
-  console.log('SEND REMINDERS START');
-  console.log('METHOD', req.method);
+  console.log('SEND REMINDERS START', { method: req.method });
 
   try {
-    if (req.method !== 'POST') {
+    const method = req.method;
+    if (method === 'GET') {
+      if (!allowCronGet(req)) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized (cron: x-vercel-cron oder CRON_SECRET)' });
+      }
+    } else if (method !== 'POST') {
       return res.status(405).json({ ok: false, error: 'Method not allowed' });
     }
 
-    const body = parseBody(req);
-    if (body.manualTest === true) {
-      console.log('[send-reminders] manualTest trigger (same job worker)');
+    if (method === 'POST') {
+      const body = parseBody(req);
+      if (body.manualTest === true) {
+        console.log('[send-reminders] manualTest trigger (same job worker)');
+      }
     }
 
     const supabaseUrl =
@@ -360,76 +494,7 @@ module.exports = async (req, res) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const nowIso = new Date().toISOString();
-
-    const { data: jobIds, error: qErr } = await admin
-      .from('notification_jobs')
-      .select('id, send_at, event_id, status')
-      .eq('status', 'pending')
-      .lte('send_at', nowIso)
-      .order('send_at', { ascending: true })
-      .limit(JOB_BATCH_LIMIT);
-
-    if (qErr) {
-      console.error('SEND REMINDERS ERROR', qErr);
-      return res.status(500).json({ ok: false, error: qErr.message || 'query failed' });
-    }
-
-    const ids = (jobIds || []).map((r) => r.id).filter(Boolean);
-    console.log('[reminderPipeline] due jobs selected', {
-      nowIso,
-      nowVienna: viennaDateTimeDebug(nowIso),
-      count: ids.length,
-      ids,
-      sampleRows: (jobIds || []).slice(0, 5).map((r) => ({
-        ...r,
-        send_at_vienna: viennaDateTimeDebug(r.send_at),
-      })),
-    });
-
-    let processed = 0;
-    let sent = 0;
-    let failed = 0;
-    const errors = [];
-
-    for (const id of ids) {
-      const { data: claimed, error: claimErr } = await admin
-        .from('notification_jobs')
-        .update({
-          status: 'processing',
-          updated_at: nowIso,
-        })
-        .eq('id', id)
-        .eq('status', 'pending')
-        .select('*')
-        .maybeSingle();
-
-      if (claimErr) {
-        console.error('[send-reminders] claim', id, claimErr.message);
-        failed += 1;
-        continue;
-      }
-      if (!claimed) {
-        console.log('[reminderTz] claim skipped (race or row no longer pending)', { jobId: id, nowUtc: nowIso });
-        continue;
-      }
-
-      processed += 1;
-      const job = claimed;
-      try {
-        const r = await processOneJob(admin, job);
-        if (r.ok) sent += 1;
-        else failed += 1;
-        if (r.error) errors.push({ jobId: id, error: r.error });
-        console.log('[send-reminders] job result', id, r);
-      } catch (e) {
-        const msg = e && e.message ? e.message : String(e);
-        console.error('SEND REMINDERS ERROR job', id, msg, e && e.stack);
-        await failJobWithRetry(admin, job, msg);
-        failed += 1;
-        errors.push({ jobId: id, error: msg });
-      }
-    }
+    const { processed, sent, failed, errors } = await runNotificationJobsWorker(admin);
 
     return res.status(200).json({
       ok: true,
