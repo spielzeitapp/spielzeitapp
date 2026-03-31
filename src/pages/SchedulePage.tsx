@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { CreateEventModal } from '../app/components/CreateEventModal';
@@ -31,6 +31,11 @@ import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocatio
 type TabId = 'upcoming' | 'live' | 'finished';
 type KindFilterId = 'all' | 'match' | 'training' | 'event';
 type TimeFilterId = 'upcoming' | 'past';
+
+const viewTabClass = (active: boolean) =>
+  `flex-1 rounded-md px-2.5 py-1.5 text-center text-xs font-medium transition-colors ${
+    active ? 'bg-red-600/90 text-white' : 'bg-white/5 text-white/65 hover:bg-white/10'
+  }`;
 
 const TAB_OPTIONS: { id: TabId; label: string }[] = [
   { id: 'upcoming', label: 'Bevorstehend' },
@@ -509,6 +514,16 @@ export const SchedulePage: React.FC = () => {
                 </Button>
               )}
             </div>
+            {normalizedUiRole !== 'fan' && (
+              <div className="mx-auto flex max-w-[420px] gap-1.5">
+                <NavLink to="/app/termine" end className={({ isActive }) => viewTabClass(isActive)}>
+                  Liste
+                </NavLink>
+                <NavLink to="/app/termine/calendar" className={({ isActive }) => viewTabClass(isActive)}>
+                  Kalender
+                </NavLink>
+              </div>
+            )}
           </div>
 
           {normalizedUiRole === 'fan' ? (
