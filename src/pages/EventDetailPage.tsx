@@ -230,13 +230,11 @@ export const EventDetailPage: React.FC = () => {
 
       const { data: userRes } = await supabase.auth.getUser();
       const userId = userRes?.user?.id ?? null;
-      const sourceRole = (effectiveRole === 'parent' || effectiveRole === 'player') ? effectiveRole : null;
       const payload: any = {
         event_id: eventId,
         player_id: resolvedPlayerId,
         status,
         ...(userId && { updated_by: userId }),
-        ...(sourceRole && { source_role: sourceRole }),
         ...(reason?.trim() ? { reason: reason.trim() } : {}),
       };
       let result = await supabase
@@ -289,7 +287,6 @@ export const EventDetailPage: React.FC = () => {
         player_id: targetPlayerId,
         status,
         ...(userId && { updated_by: userId }),
-        source_role: 'trainer',
       };
       const result = await supabase
         .from('event_attendance')

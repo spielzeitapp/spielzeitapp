@@ -147,7 +147,7 @@ export const SchedulePage: React.FC = () => {
   };
 
   /**
-   * Speichert Zusage/Absage in event_attendance (event_id, player_id, status, updated_by, source_role).
+   * Speichert Zusage/Absage in event_attendance (event_id, player_id, status, updated_by).
    * Parent: linked children (player_guardians). Player: self (player_users). Trainer: via EventDetailPage.
    */
   const setAttendance = async (eventId: string, status: 'yes' | 'no', reason?: string) => {
@@ -169,8 +169,6 @@ export const SchedulePage: React.FC = () => {
       setTrainingCancelReason('');
       return;
     }
-
-    const sourceRole = (normalizedUiRole === 'parent' || normalizedUiRole === 'player' || normalizedUiRole === 'trainer') ? normalizedUiRole : null;
 
     const evRow = events.find((x) => x.id === eventId);
     const isTrainingEv = evRow != null && getEffectiveEventType(evRow) === 'training';
@@ -212,7 +210,6 @@ export const SchedulePage: React.FC = () => {
         player_id: playerId,
         status,
         ...(userId && { updated_by: userId }),
-        ...(sourceRole && { source_role: sourceRole }),
         ...(reason?.trim() ? { reason: reason.trim() } : {}),
       };
 
