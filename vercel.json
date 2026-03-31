@@ -4,12 +4,6 @@
   },
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "crons": [
-    {
-      "path": "/api/send-reminders",
-      "schedule": "*/5 * * * *"
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/calendar/team/(.*)\\.ics",

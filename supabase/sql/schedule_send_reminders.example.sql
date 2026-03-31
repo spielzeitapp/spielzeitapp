@@ -1,0 +1,47 @@
+-- =============================================================================
+-- OPTIONAL: Manuell im Supabase SQL Editor ausführen (wird NICHT auto-migriert).
+-- Automatische Reminder-Verarbeitung NUR über Supabase Edge Function send-reminders.
+-- Keine Vercel-Cron-Abhängigkeit.
+-- =============================================================================
+--
+-- VORAUSSETZUNGEN
+-- 1) Edge Function deployen: supabase functions deploy send-reminders
+-- 2) Dashboard → Database → Extensions: "pg_cron" und "pg_net" aktivieren
+--    (je nach Plan; falls nicht verfügbar: stattdessen Dashboard-Schritte unten)
+-- 3) Project URL + API Keys: Settings → API
+--
+-- EMPFOHLEN (ohne SQL): Supabase Dashboard
+-- - Edge Functions → send-reminders → ggf. "Invocations" / "Schedules" / Cron-UI
+--   (Bezeichnung je nach Dashboard-Version; siehe https://supabase.com/docs/guides/functions )
+-- - Intervall: alle 1–5 Minuten (Cron: */5 * * * * oder häufiger bei Bedarf)
+-- - Methode: POST, URL: https://<PROJECT_REF>.supabase.co/functions/v1/send-reminders
+-- - Header: Authorization: Bearer <ANON_KEY oder Service Role; Service Role nur sicher speichern>
+-- - Body: {} (leeres JSON)
+--
+-- ALTERNATIVE: pg_cron + pg_net (nach Extension-Aktivierung)
+-- Platzhalter ersetzen: PROJECT_REF, ANON_OR_SERVICE_JWT
+--
+-- SELECT cron.schedule(
+--   'invoke-send-reminders',
+--   '*/5 * * * *',
+--   $$
+--   SELECT net.http_post(
+--     url := 'https://PROJECT_REF.supabase.co/functions/v1/send-reminders',
+--     headers := jsonb_build_object(
+--       'Content-Type', 'application/json',
+--       'Authorization', 'Bearer ANON_OR_SERVICE_JWT'
+--     ),
+--     body := '{}'::jsonb
+--   ) AS request_id;
+--   $$
+-- );
+--
+-- Job prüfen / entfernen:
+-- SELECT * FROM cron.job;
+-- SELECT cron.unschedule('invoke-send-reminders');
+--
+-- Hinweis: Service Role Key niemals dauerhaft im Klartext in SQL ablegen;
+-- besser Vault/Secrets oder nur Anon-Key, sofern die Function mit verify_jwt passt.
+-- =============================================================================
+
+SELECT 1; -- Platzhalter: Datei absichtlich ohne automatische Side-Effects

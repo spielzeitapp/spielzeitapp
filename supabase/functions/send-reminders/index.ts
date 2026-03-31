@@ -1,8 +1,10 @@
 /**
  * Supabase Edge Function: fällige notification_jobs verarbeiten.
- * - idempotent per Claim pending -> processing
- * - In-App Benachrichtigung (notifications)
- * - Web Push (push_subscriptions)
+ * Zeitsteuerung: ausschließlich über Supabase (Cron/Schedule im Dashboard oder pg_cron+pg_net),
+ * siehe supabase/sql/schedule_send_reminders.example.sql — nicht über Vercel-Cron.
+ *
+ * - Claim: RPC claim_notification_job (attempt_count, send_at <= now)
+ * - In-App (notifications) + Web Push (push_subscriptions)
  * - UTC intern, Textausgabe Europe/Vienna
  */
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";

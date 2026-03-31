@@ -178,19 +178,6 @@ async function failJobWithRetry(admin, job, err) {
   }
 }
 
-/** GET: Vercel Cron (x-vercel-cron) oder CRON_SECRET; POST: weiterhin offen für manuelle Tests. */
-function allowCronGet(req) {
-  if ((req.headers['x-vercel-cron'] || req.headers['X-Vercel-Cron']) === '1') return true;
-  const secret =
-    process.env.CRON_SECRET || process.env.NOTIFICATION_DISPATCH_SECRET || process.env.REMINDER_PROCESS_SECRET;
-  if (!secret) return false;
-  const auth = req.headers.authorization || req.headers.Authorization;
-  const bearer = typeof auth === 'string' ? auth.replace(/^Bearer\s+/i, '').trim() : '';
-  if (bearer === secret) return true;
-  const xs = req.headers['x-cron-secret'] || req.headers['X-Cron-Secret'];
-  return xs === secret;
-}
-
 function pushIsGoneError(err) {
   const code = Number(err && err.statusCode);
   const status = Number(err && err.status);
@@ -464,20 +451,13 @@ module.exports = async (req, res) => {
   console.log('SEND REMINDERS START', { method: req.method });
 
   try {
-    const method = req.method;
-    if (method === 'GET') {
-      if (!allowCronGet(req)) {
-        return res.status(401).json({ ok: false, error: 'Unauthorized (cron: x-vercel-cron oder CRON_SECRET)' });
-      }
-    } else if (method !== 'POST') {
+    if (req.method !== 'POST') {
       return res.status(405).json({ ok: false, error: 'Method not allowed' });
     }
 
-    if (method === 'POST') {
-      const body = parseBody(req);
-      if (body.manualTest === true) {
-        console.log('[send-reminders] manualTest trigger (same job worker)');
-      }
+    const body = parseBody(req);
+    if (body.manualTest === true) {
+      console.log('[send-reminders] manualTest trigger (same job worker)');
     }
 
     const supabaseUrl =
