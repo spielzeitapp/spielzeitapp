@@ -151,6 +151,13 @@ export const SchedulePage: React.FC = () => {
    * Parent: linked children (player_guardians). Player: self (player_users). Trainer: via EventDetailPage.
    */
   const setAttendance = async (eventId: string, status: 'yes' | 'no', reason?: string) => {
+    console.log('[ATTENDANCE FLOW] setAttendance invoked', {
+      caller: 'SchedulePage.setAttendance',
+      table: 'event_attendance',
+      eventId,
+      status,
+      uiRole,
+    });
     const { data: userRes } = await supabase.auth.getUser();
     const userId = userRes?.user?.id ?? null;
     let playerId = myAttendancePlayerIds[0] ?? null;
@@ -183,6 +190,10 @@ export const SchedulePage: React.FC = () => {
     let result;
     if (currentLocal === status) {
       // Aktuell bereits dieser Status → löschen = neutral
+      console.log('[ATTENDANCE FLOW] delete request', {
+        table: 'event_attendance',
+        where: { event_id: eventId, player_id: playerId },
+      });
       result = await supabase
         .from('event_attendance')
         .delete()
@@ -212,6 +223,12 @@ export const SchedulePage: React.FC = () => {
         ...(userId && { updated_by: userId }),
         ...(reason?.trim() ? { reason: reason.trim() } : {}),
       };
+      console.log('[ATTENDANCE FLOW] upsert request', {
+        table: 'event_attendance',
+        onConflict: 'event_id,player_id',
+        payload,
+        payloadKeys: Object.keys(payload),
+      });
 
       let result = await supabase
         .from('event_attendance')
@@ -230,7 +247,13 @@ export const SchedulePage: React.FC = () => {
       }
 
       if (result.error) {
-        console.error('[ATTENDANCE SAVE ERROR]', result.error);
+        console.error('[ATTENDANCE SAVE ERROR]', {
+          message: result.error.message,
+          details: (result.error as any).details,
+          hint: (result.error as any).hint,
+          code: (result.error as any).code,
+          raw: result.error,
+        });
         setToastMessage(result.error.message ?? 'Speichern fehlgeschlagen.');
         setAttendanceModalEvent(null);
         setTrainingCancelReason('');

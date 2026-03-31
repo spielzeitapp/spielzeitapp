@@ -211,6 +211,13 @@ export const EventDetailPage: React.FC = () => {
 
   const handleRsvp = useCallback(
     async (status: 'yes' | 'no', reason?: string) => {
+      console.log('[ATTENDANCE FLOW] handleRsvp invoked', {
+        caller: 'EventDetailPage.handleRsvp',
+        table: 'event_attendance',
+        eventId,
+        status,
+        effectiveRole,
+      });
       if (event?.kind === 'training' && status === 'yes') return;
       let resolvedPlayerId = playerId ?? null;
       if (!eventId) return;
@@ -237,6 +244,12 @@ export const EventDetailPage: React.FC = () => {
         ...(userId && { updated_by: userId }),
         ...(reason?.trim() ? { reason: reason.trim() } : {}),
       };
+      console.log('[ATTENDANCE FLOW] upsert request', {
+        table: 'event_attendance',
+        onConflict: 'event_id,player_id',
+        payload,
+        payloadKeys: Object.keys(payload),
+      });
       let result = await supabase
         .from('event_attendance')
         .upsert(payload, { onConflict: 'event_id,player_id' })
@@ -264,10 +277,21 @@ export const EventDetailPage: React.FC = () => {
   /** Trainer/Admin: RSVP für einen beliebigen Spieler des Teams setzen. Training: „Dabei“ = Eintrag löschen (nur Absagen speichern). */
   const handleTrainerRsvp = useCallback(
     async (targetPlayerId: string, status: 'yes' | 'no') => {
+      console.log('[ATTENDANCE FLOW] handleTrainerRsvp invoked', {
+        caller: 'EventDetailPage.handleTrainerRsvp',
+        table: 'event_attendance',
+        eventId,
+        targetPlayerId,
+        status,
+      });
       if (!eventId || !isTrainerOrAdmin) return;
       const { data: userRes } = await supabase.auth.getUser();
       const userId = userRes?.user?.id ?? null;
       if (event?.kind === 'training' && status === 'yes') {
+        console.log('[ATTENDANCE FLOW] trainer delete request', {
+          table: 'event_attendance',
+          where: { event_id: eventId, player_id: targetPlayerId },
+        });
         const del = await supabase
           .from('event_attendance')
           .delete()
@@ -288,6 +312,12 @@ export const EventDetailPage: React.FC = () => {
         status,
         ...(userId && { updated_by: userId }),
       };
+      console.log('[ATTENDANCE FLOW] trainer upsert request', {
+        table: 'event_attendance',
+        onConflict: 'event_id,player_id',
+        payload,
+        payloadKeys: Object.keys(payload),
+      });
       const result = await supabase
         .from('event_attendance')
         .upsert(payload, { onConflict: 'event_id,player_id' })
