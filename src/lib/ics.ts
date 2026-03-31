@@ -4,7 +4,7 @@ export type IcsEventLike = {
   id: string;
   team_season_id?: string | null;
   kind?: string | null;
-  event_type?: string | null;
+  type?: string | null;
   match_type?: string | null;
   opponent?: string | null;
   is_home?: boolean | null;
@@ -46,7 +46,7 @@ function parseEndTimeFromNotes(notes: string | null | undefined): string | null 
 }
 
 function getEffectiveEventType(e: IcsEventLike): IcsEventType {
-  const raw = ((e.event_type ?? '') as string).trim().toLowerCase();
+  const raw = ((e.type ?? '') as string).trim().toLowerCase();
   if (raw === 'game' || raw === 'training' || raw === 'event' || raw === 'other') return raw;
   if (e.kind === 'training') return 'training';
   if (e.kind === 'event') return 'event';

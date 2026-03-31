@@ -70,7 +70,7 @@ export function resolveEndAtFromNotes(args: {
   return end.toISOString();
 }
 
-export function getEventTypeLabel(type: CalendarEvent['event_type']): string {
+export function getEventTypeLabel(type: CalendarEvent['type']): string {
   if (type === 'game') return 'Spiel';
   if (type === 'training') return 'Training';
   if (type === 'event') return 'Event';

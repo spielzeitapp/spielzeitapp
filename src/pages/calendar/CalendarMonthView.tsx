@@ -8,7 +8,7 @@ type Props = {
   days: Date[];
   currentMonth: Date;
   eventsByDay: Map<string, CalendarEvent[]>;
-  getEventColorClass: (type: CalendarEvent['event_type']) => string;
+  getEventColorClass: (type: CalendarEvent['type']) => string;
   todayKey: string;
 };
 
@@ -62,12 +62,12 @@ export const CalendarMonthView: React.FC<Props> = ({
                       type="button"
                       onClick={() => navigate(`/app/events/${ev.id}`)}
                       className={`flex flex-col rounded-md px-1 py-0.5 text-left ${getEventColorClass(
-                        ev.event_type,
+                        ev.type,
                       )}`}
                     >
                       <div className="text-[10px] font-semibold truncate">{ev.title}</div>
                       <div className="text-[10px] font-semibold tabular-nums truncate">
-                        {ev.event_type === 'training'
+                        {ev.type === 'training'
                           ? formatTrainingTimeRange(ev.starts_at, ev.end_at)
                           : formatTimeRange(ev.starts_at, ev.end_at)}
                       </div>

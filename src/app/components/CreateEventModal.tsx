@@ -231,7 +231,6 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           team_season_id: teamSeasonId,
           kind: matchKind,
           type: matchKind,
-          event_type: eventTypeLocal,
           opponent: eventTypeLocal === 'game' ? nullIfEmpty(opponentVal) : null,
           is_home: eventTypeLocal === 'game' ? form.is_home : null,
           location: locationVal,

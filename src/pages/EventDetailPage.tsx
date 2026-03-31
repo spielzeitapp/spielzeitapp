@@ -20,7 +20,7 @@ type EventDbRow = {
   id: string;
   team_season_id: string;
   kind: string;
-  event_type?: string | null;
+  type?: string | null;
   opponent: string | null;
   is_home: boolean | null;
   location: string | null;
@@ -38,7 +38,7 @@ type EventDbRow = {
 };
 
 const EVENTS_SELECT =
-  'id, team_season_id, kind, event_type, opponent, is_home, location, address, series_id, starts_at, meetup_at, status, participation_mode, notes, created_by, created_at, updated_at';
+  'id, team_season_id, kind, type, opponent, is_home, location, address, series_id, starts_at, meetup_at, status, participation_mode, notes, created_by, created_at, updated_at';
 
 function normalizeEventStatus(s: string | null): EventStatus {
   const v = (s ?? '').trim().toLowerCase();
@@ -49,8 +49,8 @@ function normalizeEventStatus(s: string | null): EventStatus {
 }
 
 function mapRowToEventRow(r: EventDbRow): EventRow {
-  const etRaw = (r.event_type ?? '').trim().toLowerCase();
-  const event_type: EventRow['event_type'] =
+  const etRaw = (r.type ?? '').trim().toLowerCase();
+  const type: EventRow['type'] =
     etRaw === 'game' || etRaw === 'training' || etRaw === 'event' || etRaw === 'other'
       ? etRaw
       : r.kind === 'match'
@@ -62,7 +62,7 @@ function mapRowToEventRow(r: EventDbRow): EventRow {
     id: r.id,
     team_season_id: r.team_season_id,
     kind: (r.kind === 'match' || r.kind === 'training' || r.kind === 'event' ? r.kind : 'event') as EventKind,
-    event_type,
+    type,
     match_type: null,
     opponent: r.opponent ?? null,
     is_home: r.is_home ?? null,
@@ -375,7 +375,7 @@ export const EventDetailPage: React.FC = () => {
             startsAt={event.starts_at}
             status={event.status}
             kind={event.kind}
-            eventType={(event as any).event_type ?? undefined}
+            eventType={(event as any).type ?? undefined}
             notes={event.notes}
             location={event.location}
             address={event.address}

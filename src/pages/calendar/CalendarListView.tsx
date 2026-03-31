@@ -11,7 +11,7 @@ import {
 
 type Props = {
   events: CalendarEvent[];
-  getEventColorClass: (type: CalendarEvent['event_type']) => string;
+  getEventColorClass: (type: CalendarEvent['type']) => string;
   todayKey: string;
   onEventClick?: (eventId: string) => void;
 };
@@ -75,7 +75,7 @@ export const CalendarListView: React.FC<Props> = ({
                       type="button"
                       onClick={() => handleClick(ev.id)}
                       className={`w-full text-left rounded-xl px-3 py-2 border border-white/10 bg-black/25 ${getEventColorClass(
-                        ev.event_type,
+                        ev.type,
                       )}`}
                     >
                       <div className="space-y-0.5">
@@ -83,7 +83,7 @@ export const CalendarListView: React.FC<Props> = ({
                           <span className="truncate text-xs font-semibold">{ev.title}</span>
                         </div>
                         <div className="text-[11px] font-semibold tabular-nums truncate">
-                          {ev.event_type === 'training'
+                          {ev.type === 'training'
                             ? formatTrainingTimeRange(ev.starts_at, ev.end_at)
                             : formatTimeRange(ev.starts_at, ev.end_at)}
                         </div>

@@ -171,7 +171,7 @@ export function buildReminderJobsForEvent(
       event_id: event.id,
       team_id: teamId,
       event_title: eventTitle,
-      event_type: eventTypeLabel,
+      type: eventTypeLabel,
     };
 
     out.push({

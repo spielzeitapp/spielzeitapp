@@ -70,7 +70,7 @@ function parsePayload(raw: unknown): NotificationJobPayload | null {
     baseTimeIso: typeof p.baseTimeIso === 'string' ? p.baseTimeIso : '',
     minutes_before: typeof p.minutes_before === 'number' ? p.minutes_before : undefined,
     event_title: typeof p.event_title === 'string' ? p.event_title : undefined,
-    event_type: typeof p.event_type === 'string' ? p.event_type : undefined,
+    type: typeof p.type === 'string' ? p.type : undefined,
   };
 }
 

@@ -14,7 +14,7 @@ import { getDateTimePartsInTimeZone, VIENNA_TZ } from '../../lib/viennaTime';
 type Props = {
   weekAnchor: Date;
   events: CalendarEvent[];
-  getEventColorClass: (type: CalendarEvent['event_type']) => string;
+  getEventColorClass: (type: CalendarEvent['type']) => string;
   todayKey: string;
   onEventClick?: (eventId: string) => void;
 };
@@ -154,7 +154,7 @@ export const CalendarWeekView: React.FC<Props> = ({
                           const height = Math.max(18, (clampedEnd - clampedStart) * PX_PER_MINUTE);
 
                           const timeText =
-                            ev.event_type === 'training'
+                            ev.type === 'training'
                               ? formatTrainingTimeRange(ev.starts_at, ev.end_at)
                               : formatTimeRange(ev.starts_at, ev.end_at);
                           const locationLine = ev.location
@@ -174,7 +174,7 @@ export const CalendarWeekView: React.FC<Props> = ({
                               type="button"
                               onClick={() => handleClick(ev.id)}
                               className={`absolute left-2 right-2 rounded-lg px-2 py-1 border border-white/15 text-left shadow-sm ${getEventColorClass(
-                                ev.event_type,
+                                ev.type,
                               )}`}
                               style={{ top, height }}
                             >

@@ -1,5 +1,5 @@
 /**
- * Normalisiert DB-Zeilen (kind/type/event_type, attendance_mode/participation_mode).
+ * Normalisiert DB-Zeilen (kind/type, attendance_mode/participation_mode).
  */
 export type RawEventRow = {
   id: string;
@@ -7,7 +7,6 @@ export type RawEventRow = {
   kind?: string | null;
   /** Legacy / alternativ */
   type?: string | null;
-  event_type?: string | null;
   starts_at: string;
   status?: string | null;
   participation_mode?: string | null;
@@ -26,12 +25,6 @@ export type RawEventRow = {
 export type CanonicalEventType = 'training' | 'game' | 'event' | 'other';
 
 export function getCanonicalEventType(row: RawEventRow): CanonicalEventType {
-  const et = (row.event_type ?? '').toLowerCase().trim();
-  if (et === 'game') return 'game';
-  if (et === 'spiel') return 'game';
-  if (et === 'training') return 'training';
-  if (et === 'event') return 'event';
-  if (et === 'other') return 'other';
   const t = (row.type ?? '').toLowerCase().trim();
   if (t === 'match') return 'game';
   if (t === 'spiel') return 'game';

@@ -15,7 +15,7 @@ export type NotificationJobPayload = {
   minutes_before?: number;
   event_title?: string;
   /** match | training | event | game | other */
-  event_type?: string;
+  type?: string;
 };
 
 export type NotificationJobRow = {

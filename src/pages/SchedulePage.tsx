@@ -44,7 +44,7 @@ function getEventTab(e: EventRow): TabId {
 }
 
 function getEffectiveEventType(e: EventRow): 'game' | 'training' | 'event' | 'other' {
-  const raw = ((e as any).event_type as string | undefined) ?? '';
+  const raw = ((e as any).type as string | undefined) ?? '';
   const t = raw.trim().toLowerCase();
   if (t === 'game' || t === 'training' || t === 'event' || t === 'other') return t;
   if (e.kind === 'training') return 'training';
@@ -751,7 +751,7 @@ export const SchedulePage: React.FC = () => {
           ) : null}
           <div>
             <label htmlFor="edit-opponent" className="block text-sm font-medium text-[var(--text-main)] mb-1">
-              {editEvent?.event_type === 'training' || editEvent?.event_type === 'event' || editEvent?.event_type === 'other'
+              {editEvent?.type === 'training' || editEvent?.type === 'event' || editEvent?.type === 'other'
                 ? 'Titel'
                 : 'Gegner / Bezeichnung'}
             </label>
@@ -842,7 +842,7 @@ export const SchedulePage: React.FC = () => {
             isOpen={attendanceModalEvent != null}
             title={
               attendanceModalEvent
-                ? attendanceModalEvent.event_type === 'training'
+                ? attendanceModalEvent.type === 'training'
                   ? `Absage (Training): ${
                       ((attendanceModalEvent.notes ?? '').split(' · ')[0]?.trim() || attendanceModalEvent.opponent) ??
                       'Termin'
@@ -882,7 +882,7 @@ export const SchedulePage: React.FC = () => {
                 </p>
               )}
 
-              {attendanceModalEvent?.event_type === 'training' ? (
+              {attendanceModalEvent?.type === 'training' ? (
                 <>
                   {(() => {
                     const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();

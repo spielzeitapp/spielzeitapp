@@ -129,12 +129,12 @@ export const CalendarPage: React.FC = () => {
             ? accessibleTeamSeasons.map((ts) => ts.id)
             : [selectedTeamSeasonId];
 
-        // Erster Versuch: mit event_type-Spalte laden
+        // Events über `type`-Spalte laden
         let data: any[] | null = null;
         let loadError: string | null = null;
         let first = await supabase
           .from('events')
-          .select('id, team_season_id, event_type, kind, opponent, notes, meetup_at, location, address, starts_at')
+          .select('id, team_season_id, type, kind, opponent, notes, meetup_at, location, address, starts_at')
           .in('team_season_id', teamSeasonIds)
           .gte('starts_at', start.toISOString())
           .lte('starts_at', end.toISOString())
@@ -143,15 +143,15 @@ export const CalendarPage: React.FC = () => {
         if (first.error && String(first.error.message ?? '').toLowerCase().includes('address')) {
           first = await supabase
             .from('events')
-            .select('id, team_season_id, event_type, kind, opponent, notes, meetup_at, location, starts_at')
+            .select('id, team_season_id, type, kind, opponent, notes, meetup_at, location, starts_at')
             .in('team_season_id', teamSeasonIds)
             .gte('starts_at', start.toISOString())
             .lte('starts_at', end.toISOString())
             .order('starts_at', { ascending: true });
         }
 
-        if (first.error && first.error.message?.includes('event_type')) {
-          // Fallback: ohne event_type-Spalte (alte DB)
+        if (first.error && first.error.message?.includes('type')) {
+          // Fallback: nur mit kind (alte DB)
           const second = await supabase
             .from('events')
             .select('id, team_season_id, kind, opponent, notes, meetup_at, location, starts_at')
@@ -175,9 +175,9 @@ export const CalendarPage: React.FC = () => {
           setEvents([]);
         } else {
           const mapped: CalendarEvent[] = (data ?? []).map((r: any) => {
-            const rawType = (r.event_type ?? '').trim().toLowerCase();
+            const rawType = (r.type ?? '').trim().toLowerCase();
             const kind = (r.kind ?? '').trim().toLowerCase();
-            let t: CalendarEvent['event_type'];
+            let t: CalendarEvent['type'];
             if (rawType === 'game' || rawType === 'training' || rawType === 'event' || rawType === 'other') {
               t = rawType;
             } else if (kind === 'match') {
@@ -214,7 +214,7 @@ export const CalendarPage: React.FC = () => {
             return {
               id: r.id,
               team_season_id: r.team_season_id,
-              event_type: t,
+              type: t,
               starts_at: startsAt,
               end_at: resolveEndAtFromNotes({
                 startsAtIso: startsAt,
@@ -272,7 +272,7 @@ export const CalendarPage: React.FC = () => {
   })} – ${weekEnd.toLocaleDateString('de-AT', { day: 'numeric', month: 'long' })}`;
   const headerLabel = view === 'week' ? weekLabel : monthLabel;
 
-  const getEventColorClass = (type: CalendarEvent['event_type']) => {
+  const getEventColorClass = (type: CalendarEvent['type']) => {
     if (type === 'game') return 'bg-red-600/80 text-white';
     if (type === 'training') return 'bg-green-600/80 text-white';
     if (type === 'event') return 'bg-white/10 text-white/90';
