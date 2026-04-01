@@ -13,7 +13,7 @@
 -- EMPFOHLEN (ohne SQL): Supabase Dashboard
 -- - Edge Functions → send-reminders → ggf. "Invocations" / "Schedules" / Cron-UI
 --   (Bezeichnung je nach Dashboard-Version; siehe https://supabase.com/docs/guides/functions )
--- - Intervall: alle 1–5 Minuten (Cron: */5 * * * * oder häufiger bei Bedarf)
+-- - Intervall: jede Minute (Cron: * * * * *)
 -- - Methode: POST, URL: https://<PROJECT_REF>.supabase.co/functions/v1/send-reminders
 -- - Header: Authorization: Bearer <ANON_KEY oder Service Role; Service Role nur sicher speichern>
 -- - Body: {} (leeres JSON)
@@ -23,7 +23,7 @@
 --
 -- SELECT cron.schedule(
 --   'invoke-send-reminders',
---   '*/5 * * * *',
+--   '* * * * *',
 --   $$
 --   SELECT net.http_post(
 --     url := 'https://PROJECT_REF.supabase.co/functions/v1/send-reminders',
