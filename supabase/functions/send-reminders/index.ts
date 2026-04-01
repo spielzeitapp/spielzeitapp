@@ -4,7 +4,7 @@
  *
  * - Claim: RPC claim_notification_job (attempt_count++, send_at <= now)
  * - In-App: notifications + notification_dispatch_log
- * - Push: best-effort; fehlende Subscriptions / VAPID / 404/410 sind KEIN Job-Failed
+ * - Push: best-effort; fehlende Subscriptions / VAPID / 404/410 sind kein Job-Failed
  *
  * DB: notification_jobs.status CHECK nur ('pending','processing','sent','failed') — kein "skipped".
  */
