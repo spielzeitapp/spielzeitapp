@@ -1,11 +1,12 @@
 /**
  * Supabase Edge Function: fällige notification_jobs verarbeiten.
- * Zeitsteuerung: ausschließlich über Supabase (Cron/Schedule im Dashboard oder pg_cron+pg_net),
- * siehe supabase/sql/schedule_send_reminders.example.sql — nicht über Vercel-Cron.
+ * Zeitsteuerung: pg_cron + pg_net / Dashboard (siehe supabase/sql/schedule_send_reminders.example.sql).
  *
- * - Claim: RPC claim_notification_job (attempt_count, send_at <= now)
- * - In-App (notifications) + Web Push (push_subscriptions)
- * - UTC intern, Textausgabe Europe/Vienna
+ * - Claim: RPC claim_notification_job (attempt_count++, send_at <= now)
+ * - In-App: notifications + notification_dispatch_log
+ * - Push: best-effort; fehlende Subscriptions / VAPID / 404/410 sind KEIN Job-Failed
+ *
+ * DB: notification_jobs.status CHECK nur ('pending','processing','sent','failed') — kein "skipped".
  */
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -23,7 +24,6 @@ type JobRow = {
   kind: string | null;
   payload: unknown;
   attempt_count?: number | null;
-  /** UTC ISO — fällig wenn <= now (UTC) */
   send_at?: string | null;
 };
 
@@ -102,6 +102,22 @@ function reminderBody(label: "match" | "training" | "event", event: EventRow, te
   return `Erinnerung: Ein Event steht am ${at} an.`;
 }
 
+/** web-push Fehler → HTTP-Status / statusCode für Logs */
+function pushErrorHttpDetails(err: unknown): { statusCode?: number; status?: number; message: string; stack?: string } {
+  const e = err as Record<string, unknown>;
+  const statusCode = typeof e?.statusCode === "number" ? e.statusCode : undefined;
+  const status = typeof e?.status === "number" ? e.status : undefined;
+  const message = err instanceof Error ? err.message : String(err);
+  const stack = err instanceof Error ? err.stack : undefined;
+  return { statusCode, status, message, stack };
+}
+
+function pushIsGoneError(err: unknown): boolean {
+  const { statusCode, status } = pushErrorHttpDetails(err);
+  const code = Number(statusCode ?? status);
+  return code === 404 || code === 410;
+}
+
 async function completeJob(admin: SupabaseClient, jobId: string) {
   const nowIso = new Date().toISOString();
   const { error } = await admin
@@ -120,7 +136,7 @@ async function completeJob(admin: SupabaseClient, jobId: string) {
   console.log("[notificationJobsWorker] status → sent", { jobId, sent_at: nowIso });
 }
 
-/** attempt_count wurde bereits durch claim_notification_job erhöht — hier kein zweites Increment. */
+/** Nur bei echten Konfigurations-/Datenfehlern (kein „nur kein Push“). */
 async function failJob(admin: SupabaseClient, job: JobRow, err: string) {
   const lastErr = String(err).slice(0, 2000);
   const { error } = await admin
@@ -135,7 +151,7 @@ async function failJob(admin: SupabaseClient, job: JobRow, err: string) {
   if (error) {
     console.error("[send-reminders] failJob update failed", { jobId: job.id, error: error.message });
   } else {
-    console.log("[notificationJobsWorker] status → failed", { jobId: job.id, attempt_count: job.attempt_count });
+    console.log("[notificationJobsWorker] status → failed", { jobId: job.id, last_error: lastErr });
   }
 }
 
@@ -145,8 +161,6 @@ async function notificationAlreadyDispatched(
   eventId: string,
   reminderKey: string,
 ) {
-  // Kein maybeSingle: bei historischen Duplikaten würde >1 Zeile einen Fehler werfen und
-  // die In-App-Zustellung komplett blockieren.
   const { data, error } = await admin
     .from("notification_dispatch_log")
     .select("id")
@@ -173,7 +187,7 @@ async function fetchRecipientsForTeamSeason(admin: SupabaseClient, teamSeasonId:
 }
 
 let vapidReady = false;
-function ensureVapid() {
+function ensureVapidOrThrow(): void {
   if (vapidReady) return;
   const publicKey = (Deno.env.get("VAPID_PUBLIC_KEY") ?? "").trim();
   const privateKey = (Deno.env.get("VAPID_PRIVATE_KEY") ?? "").trim();
@@ -185,16 +199,109 @@ function ensureVapid() {
   vapidReady = true;
 }
 
-function pushIsGoneError(err: unknown) {
-  const code = Number((err as { statusCode?: unknown })?.statusCode);
-  const status = Number((err as { status?: unknown })?.status);
-  return code === 404 || code === 410 || status === 404 || status === 410;
+/**
+ * Push nur best-effort; wirft nicht (Job bleibt über In-App-Logik „sent“/„failed“).
+ * Loggt pro Endpoint Statuscodes (404/410 bei weg-Subscription).
+ */
+async function sendPushesForUser(
+  admin: SupabaseClient,
+  jobId: string,
+  userId: string,
+  title: string,
+  body: string,
+  url: string,
+): Promise<{ sent: number; removed: number; subscriptionCount: number; vapidSkipped: boolean; errors: string[] }> {
+  const errors: string[] = [];
+  const { data: subscriptions, error } = await admin
+    .from("push_subscriptions")
+    .select("endpoint, p256dh, auth")
+    .eq("user_id", userId)
+    .not("endpoint", "is", null);
+
+  if (error) {
+    const msg = `[push_subscriptions query] ${error.message}`;
+    console.error("[send-reminders] push_subscriptions select failed", { jobId, userId, error });
+    errors.push(msg);
+    return { sent: 0, removed: 0, subscriptionCount: 0, vapidSkipped: false, errors };
+  }
+
+  const rows = (subscriptions ?? []) as Array<{ endpoint?: string | null; p256dh?: string | null; auth?: string | null }>;
+  const subscriptionCount = rows.length;
+
+  console.log("[send-reminders] push_subscriptions for user", {
+    jobId,
+    userId,
+    subscriptionCount,
+  });
+
+  if (subscriptionCount === 0) {
+    console.log("[send-reminders] no push subscriptions (OK — in-app kann trotzdem geliefert werden)", { jobId, userId });
+    return { sent: 0, removed: 0, subscriptionCount: 0, vapidSkipped: false, errors };
+  }
+
+  try {
+    ensureVapidOrThrow();
+  } catch (vapidErr) {
+    const msg = vapidErr instanceof Error ? vapidErr.message : String(vapidErr);
+    console.error("[send-reminders] VAPID not configured — push skipped for user", {
+      jobId,
+      userId,
+      error: msg,
+      stack: vapidErr instanceof Error ? vapidErr.stack : undefined,
+    });
+    errors.push(`vapid: ${msg}`);
+    return { sent: 0, removed: 0, subscriptionCount, vapidSkipped: true, errors };
+  }
+
+  const payload = JSON.stringify({ title, body, url });
+  let sent = 0;
+  let removed = 0;
+
+  for (const row of rows) {
+    const endpoint = row.endpoint ?? "";
+    const p256dh = row.p256dh ?? "";
+    const auth = row.auth ?? "";
+    if (!endpoint || !p256dh || !auth) {
+      console.warn("[send-reminders] push row skipped (incomplete keys)", { jobId, userId, endpoint: endpoint.slice(0, 40) });
+      continue;
+    }
+
+    try {
+      await webpush.sendNotification({ endpoint, keys: { p256dh, auth } }, payload, { TTL: 3600 });
+      sent += 1;
+      console.log("[send-reminders] push ok", { jobId, userId, endpoint: endpoint.slice(0, 48) + "…" });
+    } catch (err) {
+      const det = pushErrorHttpDetails(err);
+      console.error("[send-reminders] push sendNotification failed", {
+        jobId,
+        userId,
+        endpoint: endpoint.slice(0, 48) + "…",
+        httpStatusCode: det.statusCode ?? det.status ?? null,
+        message: det.message,
+        stack: det.stack,
+        raw: String(err),
+      });
+      errors.push(`push ${endpoint.slice(0, 30)}…: ${det.message} (http=${det.statusCode ?? det.status ?? "?"})`);
+
+      if (pushIsGoneError(err)) {
+        const { error: delErr } = await admin
+          .from("push_subscriptions")
+          .delete()
+          .eq("user_id", userId)
+          .eq("endpoint", endpoint);
+        if (!delErr) {
+          removed += 1;
+          console.log("[send-reminders] removed dead subscription (404/410)", { jobId, userId });
+        } else {
+          console.error("[send-reminders] delete dead subscription failed", { jobId, userId, error: delErr.message });
+        }
+      }
+    }
+  }
+
+  return { sent, removed, subscriptionCount, vapidSkipped: false, errors };
 }
 
-/**
- * Optional: Legacy-Zeile in `messages` (gleiches Muster wie api/send-reminders).
- * Fehler werden nur geloggt — Job und `notifications`-Pfad bleiben gültig.
- */
 async function insertMessageOptional(
   admin: SupabaseClient,
   meta: {
@@ -232,60 +339,12 @@ async function insertMessageOptional(
       console.log("[send-reminders] messages row created (optional)", { userId: meta.userId, eventId: meta.eventId });
     }
   } catch (e) {
-    console.warn("[send-reminders] optional messages.insert failed", { userId: meta.userId, error: e });
+    console.warn("[send-reminders] optional messages.insert failed", {
+      userId: meta.userId,
+      error: e instanceof Error ? e.message : String(e),
+      stack: e instanceof Error ? e.stack : undefined,
+    });
   }
-}
-
-async function sendPushesForUser(
-  admin: SupabaseClient,
-  userId: string,
-  title: string,
-  body: string,
-  url: string,
-): Promise<{ sent: number; removed: number }> {
-  const { data: subscriptions, error } = await admin
-    .from("push_subscriptions")
-    .select("endpoint, p256dh, auth")
-    .eq("user_id", userId)
-    .not("endpoint", "is", null);
-  if (error) throw error;
-
-  if (!subscriptions || subscriptions.length === 0) {
-    return { sent: 0, removed: 0 };
-  }
-
-  ensureVapid();
-  const payload = JSON.stringify({ title, body, url });
-  let sent = 0;
-  let removed = 0;
-
-  for (const row of subscriptions as Array<{ endpoint?: string | null; p256dh?: string | null; auth?: string | null }>) {
-    const endpoint = row.endpoint ?? "";
-    const p256dh = row.p256dh ?? "";
-    const auth = row.auth ?? "";
-    if (!endpoint || !p256dh || !auth) continue;
-
-    try {
-      await webpush.sendNotification(
-        { endpoint, keys: { p256dh, auth } },
-        payload,
-        { TTL: 3600 },
-      );
-      sent += 1;
-    } catch (err) {
-      console.error("[send-reminders] push failed", { userId, endpoint, error: err });
-      if (pushIsGoneError(err)) {
-        const { error: delErr } = await admin
-          .from("push_subscriptions")
-          .delete()
-          .eq("user_id", userId)
-          .eq("endpoint", endpoint);
-        if (!delErr) removed += 1;
-      }
-    }
-  }
-
-  return { sent, removed };
 }
 
 async function processOneJob(
@@ -293,13 +352,11 @@ async function processOneJob(
   job: JobRow,
 ): Promise<{ ok: boolean; error?: string; inserted?: number; pushSent?: number; pushRemoved?: number }> {
   const nowUtc = new Date().toISOString();
-  console.log("[reminderTz] process job (UTC compare)", {
+  console.log("[send-reminders] processOneJob start", {
     jobId: job.id,
     eventId: job.event_id,
     send_at_utc: job.send_at ?? null,
-    send_at_vienna: job.send_at ? isoDateTimeDeVienna(job.send_at) : null,
     now_utc: nowUtc,
-    now_vienna: isoDateTimeDeVienna(nowUtc),
   });
 
   if (!job.event_id) {
@@ -318,18 +375,10 @@ async function processOneJob(
     .maybeSingle();
   if (eventErr || !event) {
     const err = eventErr?.message ?? "event not found";
+    console.error("[send-reminders] event load failed", { jobId: job.id, error: err, eventErr });
     await failJob(admin, job, err);
     return { ok: false, error: err };
   }
-
-  const ev = event as EventRow & { starts_at?: string | null; meeting_at?: string | null };
-  console.log("[reminderTz] event row (stored UTC)", {
-    eventId: ev.id,
-    starts_at_raw: ev.starts_at ?? null,
-    meeting_at_raw: ev.meeting_at ?? null,
-    starts_at_vienna_debug: ev.starts_at ? isoDateTimeDeVienna(ev.starts_at) : null,
-    meeting_at_vienna_debug: ev.meeting_at ? isoDateTimeDeVienna(ev.meeting_at) : null,
-  });
 
   if (!(event as EventRow).team_season_id) {
     const err = "event has no team_season_id";
@@ -337,11 +386,9 @@ async function processOneJob(
     return { ok: false, error: err };
   }
 
-  // Events, die nicht mehr upcoming sind, markieren wir als erledigt.
   if (((event as EventRow).status ?? "upcoming") !== "upcoming") {
-    console.log("[reminderTz] skip delivery: event status not upcoming", {
+    console.log("[send-reminders] skip: event not upcoming → completeJob", {
       jobId: job.id,
-      eventId: job.event_id,
       status: (event as EventRow).status,
     });
     await completeJob(admin, job.id);
@@ -362,28 +409,32 @@ async function processOneJob(
   const title = reminderTitle(label);
   const body = reminderBody(label, event as EventRow, teamName);
   const url = REMINDER_LINK.startsWith("/") ? REMINDER_LINK : `/${REMINDER_LINK}`;
+
   const recipients = await fetchRecipientsForTeamSeason(admin, (event as EventRow).team_season_id!);
-  console.log("[send-reminders] job recipients resolved", {
-    jobId: job.id,
-    eventId: job.event_id,
-    recipientCount: recipients.length,
-  });
+  console.log("[send-reminders] recipients", { jobId: job.id, eventId: job.event_id, count: recipients.length, userIds: recipients });
+
   if (recipients.length === 0) {
+    console.log("[send-reminders] no recipients → completeJob (sent, no deliveries)", { jobId: job.id });
     await completeJob(admin, job.id);
     return { ok: true, inserted: 0, pushSent: 0, pushRemoved: 0 };
   }
 
   let inserted = 0;
+  let duplicateSkips = 0;
+  let notificationInsertFailed = 0;
   let pushSent = 0;
   let pushRemoved = 0;
-  let recipientErrors = 0;
 
   for (const userId of recipients) {
+    console.log("[send-reminders] recipient iteration", { jobId: job.id, userId });
+
     try {
       const exists = await notificationAlreadyDispatched(admin, userId, job.event_id, effectiveReminderKey);
-      if (!exists) {
+      if (exists) {
+        duplicateSkips += 1;
+        console.log("[send-reminders] in_app already dispatched (duplicate skip)", { jobId: job.id, userId });
+      } else {
         const nowIso = new Date().toISOString();
-        // notifications.type CHECK erlaubt nur 'manual' | 'auto'; Reminder-Semantik über event_type.
         const { error: insErr } = await admin.from("notifications").insert({
           team_id: job.team_id,
           user_id: userId,
@@ -397,9 +448,9 @@ async function processOneJob(
           created_at: nowIso,
         });
         if (insErr) {
-          recipientErrors += 1;
+          notificationInsertFailed += 1;
           const errObj = insErr as { message?: string; code?: string; details?: string; hint?: string };
-          console.error("[send-reminders] notification insert failed", {
+          console.error("[send-reminders] notifications insert FAILED (in_app)", {
             jobId: job.id,
             userId,
             error: errObj.message ?? String(insErr),
@@ -409,13 +460,8 @@ async function processOneJob(
           });
         } else {
           inserted += 1;
-          console.log("[send-reminders] notifications row created", {
-            jobId: job.id,
-            userId,
-            eventId: job.event_id,
-            reminderKey: effectiveReminderKey,
-            kind: "reminder",
-          });
+          console.log("[send-reminders] notifications insert OK", { jobId: job.id, userId, eventId: job.event_id });
+
           const { error: dispErr } = await admin.from("notification_dispatch_log").insert({
             user_id: userId,
             event_id: job.event_id,
@@ -425,10 +471,11 @@ async function processOneJob(
           if (dispErr) {
             const code = (dispErr as { code?: string }).code;
             if (code !== "23505") {
-              console.error("[send-reminders] dispatch log insert failed", {
+              console.error("[send-reminders] notification_dispatch_log insert failed", {
+                jobId: job.id,
                 userId,
-                reminderKey: effectiveReminderKey,
                 error: dispErr.message,
+                code,
               });
             }
           }
@@ -444,42 +491,58 @@ async function processOneJob(
         }
       }
 
-      // Push ist best-effort: einzelne fehlerhafte Subscriptions dürfen den Job nicht töten.
-      const pushResult = await sendPushesForUser(admin, userId, title, body, url);
+      const pushResult = await sendPushesForUser(admin, job.id, userId, title, body, url);
       pushSent += pushResult.sent;
       pushRemoved += pushResult.removed;
+      if (pushResult.errors.length) {
+        console.warn("[send-reminders] push best-effort notes (job NOT failed)", {
+          jobId: job.id,
+          userId,
+          notes: pushResult.errors,
+        });
+      }
     } catch (err) {
-      recipientErrors += 1;
-      console.error("[send-reminders] sendPushesForUser failed", { userId, error: err });
+      console.error("[send-reminders] recipient loop UNEXPECTED error (counts as in_app failure)", {
+        jobId: job.id,
+        userId,
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+        err,
+      });
+      notificationInsertFailed += 1;
     }
   }
 
-  // Nur wenn ALLE Empfänger fehlschlagen, markieren wir den Job als failed.
-  if (inserted === 0 && recipientErrors >= recipients.length) {
-    const err = "all recipient deliveries failed";
-    await failJob(admin, job, err);
-    return { ok: false, error: err, inserted, pushSent, pushRemoved };
-  }
+  const allInAppFailed =
+    recipients.length > 0 && notificationInsertFailed === recipients.length && inserted === 0 && duplicateSkips === 0;
 
   console.log("[send-reminders] job delivery summary", {
     jobId: job.id,
     eventId: job.event_id,
-    usersInScope: recipients.length,
-    notificationRowsInserted: inserted,
-    pushNotificationsSent: pushSent,
-    pushSubscriptionsRemoved: pushRemoved,
-    recipientErrors,
+    recipients: recipients.length,
+    inserted,
+    duplicateSkips,
+    notificationInsertFailed,
+    pushSent,
+    pushRemoved,
+    allInAppFailed,
   });
 
+  if (allInAppFailed) {
+    const err = `all in_app notification inserts failed (${notificationInsertFailed}/${recipients.length})`;
+    console.error("[send-reminders] → failJob", { jobId: job.id, reason: err });
+    await failJob(admin, job, err);
+    return { ok: false, error: err, inserted, pushSent, pushRemoved };
+  }
+
   await completeJob(admin, job.id);
-  console.log("[send-reminders] job marked sent", { jobId: job.id, sentAt: new Date().toISOString() });
+  console.log("[send-reminders] job completed sent", { jobId: job.id, inserted, duplicateSkips, pushSent });
   return { ok: true, inserted, pushSent, pushRemoved };
 }
 
 serve(async (req) => {
   try {
     const method = (req.method || "GET").toUpperCase();
-    // pg_net / Cron-Setups nutzen teils GET. Wir erlauben GET+POST, um "silent 405" zu vermeiden.
     if (method !== "POST" && method !== "GET") {
       return new Response(JSON.stringify({ ok: false, error: "Method not allowed" }), {
         status: 405,
@@ -500,22 +563,11 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const nowIso = new Date().toISOString();
-    console.log("[notificationJobsWorker] start", { method, nowIso, nowVienna: isoDateTimeDeVienna(nowIso) });
-
-    const { count: pendingDueApprox, error: countErr } = await admin
-      .from("notification_jobs")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pending")
-      .lte("send_at", nowIso);
-
-    if (countErr) {
-      console.warn("[notificationJobsWorker] pending count query", countErr.message);
-    }
-
-    console.log("[notificationJobsWorker] utc now", nowIso, {
-      pendingDueOrBeforeNow: pendingDueApprox ?? null,
-      column: "send_at (timestamptz)",
+    const nowIso = new Date().toISOString(); // UTC ISO-8601
+    console.log("[send-reminders] due jobs select START", {
+      method,
+      nowIso,
+      criteria: "status='pending' AND send_at <= nowIso",
     });
 
     const { data: dueRows, error: dueErr } = await admin
@@ -526,18 +578,6 @@ serve(async (req) => {
       .order("send_at", { ascending: true })
       .limit(JOB_BATCH_LIMIT);
 
-    console.log("[reminderPipeline] due jobs query", {
-      nowIso,
-      nowVienna: isoDateTimeDeVienna(nowIso),
-      pendingDueCount: (dueRows ?? []).length,
-      sample: (dueRows ?? []).slice(0, 5).map((r: { id?: string; send_at?: string; event_id?: string }) => ({
-        id: r.id,
-        event_id: r.event_id,
-        send_at_utc: r.send_at,
-        send_at_vienna: r.send_at ? isoDateTimeDeVienna(r.send_at) : null,
-      })),
-    });
-
     if (dueErr) {
       console.error("[send-reminders] query due jobs failed", dueErr);
       return new Response(JSON.stringify({ ok: false, error: dueErr.message }), {
@@ -547,7 +587,11 @@ serve(async (req) => {
     }
 
     const ids = (dueRows ?? []).map((r: { id: string }) => r.id).filter(Boolean);
-    console.log("[send-reminders] due jobs", { count: ids.length, ids });
+    console.log("[send-reminders] due jobs select DONE", {
+      nowIso,
+      foundCount: ids.length,
+      ids,
+    });
 
     if (ids.length === 0) {
       return new Response(JSON.stringify({ ok: true, processed: 0, sent: 0, failed: 0 }), {
@@ -580,10 +624,7 @@ serve(async (req) => {
       const claimed = claimedRowsArr.length > 0 ? claimedRowsArr[0] : null;
 
       if (!claimed) {
-        console.log("[notificationJobsWorker] claim skipped (not due, max attempts, or race)", {
-          jobId: id,
-          nowUtc: nowIso,
-        });
+        console.log("[notificationJobsWorker] claim skipped", { jobId: id, nowUtc: nowIso });
         continue;
       }
 
@@ -607,7 +648,12 @@ serve(async (req) => {
         console.log("[send-reminders] job result", { jobId: id, result });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        console.error("[send-reminders] unhandled job error", { jobId: id, message, err });
+        console.error("[send-reminders] unhandled job error", {
+          jobId: id,
+          message,
+          stack: err instanceof Error ? err.stack : undefined,
+          err,
+        });
         await failJob(admin, job, message);
         failed += 1;
         errors.push({ jobId: id, error: message });
@@ -626,7 +672,7 @@ serve(async (req) => {
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[send-reminders] fatal", { message, err });
+    console.error("[send-reminders] fatal", { message, stack: err instanceof Error ? err.stack : undefined, err });
     return new Response(JSON.stringify({ ok: false, error: message }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
