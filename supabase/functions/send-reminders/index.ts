@@ -370,7 +370,7 @@ async function processOneJob(
 
   const { data: event, error: eventErr } = await admin
     .from("events")
-    .select("id, team_season_id, starts_at, meeting_at, status, kind, type, opponent, notes, location")
+    .select("id, team_season_id, starts_at, status, kind, type, opponent, notes, location")
     .eq("id", job.event_id)
     .maybeSingle();
   if (eventErr || !event) {
