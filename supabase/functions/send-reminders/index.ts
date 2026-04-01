@@ -37,6 +37,7 @@ type EventRow = {
   id: string;
   team_season_id: string | number | null;
   starts_at: string | null;
+  meeting_at?: string | null;
   status?: string | null;
   kind?: string | null;
   type?: string | null;
@@ -86,8 +87,12 @@ function reminderTitle(label: "match" | "training" | "event") {
   return "Event Erinnerung";
 }
 
+function reminderReferenceIso(event: EventRow): string | null {
+  return event.meeting_at ?? event.starts_at ?? null;
+}
+
 function reminderBody(label: "match" | "training" | "event", event: EventRow, teamName: string | null) {
-  const at = isoDateTimeDeVienna(event.starts_at);
+  const at = isoDateTimeDeVienna(reminderReferenceIso(event));
   if (label === "training") {
     return `Erinnerung: Training heute um ${at} Uhr.`;
   }
@@ -370,7 +375,7 @@ async function processOneJob(
 
   const { data: event, error: eventErr } = await admin
     .from("events")
-    .select("id, team_season_id, starts_at, status, kind, type, opponent, notes, location")
+    .select("id, team_season_id, starts_at, meeting_at, status, kind, type, opponent, notes, location")
     .eq("id", job.event_id)
     .maybeSingle();
   if (eventErr || !event) {
