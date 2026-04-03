@@ -1,7 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { RawEventRow } from '../notifications/eventTypes';
 import type { TeamNotificationSettingsRow } from '../notifications/teamSettings';
+import type { ReminderJobInsert } from './types';
 import { buildReminderJobsForEvent } from './buildReminderJobs';
+
+/** Entfernt undefined / nicht-JSON-Werte — PostgREST kann sonst 400 bei jsonb/payload liefern. */
+function sanitizeJobsForDbInsert(jobs: ReminderJobInsert[]): ReminderJobInsert[] {
+  return JSON.parse(JSON.stringify(jobs)) as ReminderJobInsert[];
+}
 
 /**
  * EINZIGER Ort, der notification_jobs per App-Client einfügt (nach Event-Insert/Update).
@@ -36,7 +42,14 @@ export async function syncEventReminderJobs(
     .select('id');
 
   if (delErr) {
-    console.error('[reminderPipeline] notification_jobs delete error', delErr.message, delErr);
+    const de = delErr as { message?: string; code?: string; details?: string; hint?: string };
+    console.error('[reminderPipeline] notification_jobs delete error (kann HTTP 400 sein)', {
+      message: de.message,
+      code: de.code,
+      details: de.details,
+      hint: de.hint,
+      raw: delErr,
+    });
     return { deleted: false, inserted: 0, error: delErr.message };
   }
 
@@ -53,22 +66,31 @@ export async function syncEventReminderJobs(
     return { deleted: true, inserted: 0, error: null };
   }
 
-  console.log('[reminderPipeline] jobs.length before DB insert', jobs.length, {
+  const jobsToWrite = sanitizeJobsForDbInsert(jobs);
+  console.log('[reminderPipeline] jobs.length before DB insert', jobsToWrite.length, {
     eventId: event.id,
-    kinds: jobs.map((j) => j.kind),
-    sendAts: jobs.map((j) => j.send_at),
+    kinds: jobsToWrite.map((j) => j.kind),
+    sendAts: jobsToWrite.map((j) => j.send_at),
+    payloadPreview: jobsToWrite.map((j) => j.payload),
   });
 
-  const { error: insErr } = await client.from('notification_jobs').insert(jobs);
+  const { error: insErr } = await client.from('notification_jobs').insert(jobsToWrite);
   if (insErr) {
-    console.error('[reminderPipeline] notification_jobs insert error', insErr.message, insErr);
+    const errObj = insErr as { message?: string; code?: string; details?: string; hint?: string };
+    console.error('[reminderPipeline] notification_jobs insert error (HTTP oft 400 von PostgREST)', {
+      message: errObj.message,
+      code: errObj.code,
+      details: errObj.details,
+      hint: errObj.hint,
+      raw: insErr,
+    });
     return { deleted: true, inserted: 0, error: insErr.message };
   }
 
   console.log('[reminderPipeline] AUDIT insert ok — single writer path', {
     eventId: event.id,
-    jobsWritten: jobs.length,
-    jobs: jobs.map((j) => ({
+    jobsWritten: jobsToWrite.length,
+    jobs: jobsToWrite.map((j) => ({
       kind: j.kind,
       reminderKey: (j.payload as { reminderKey?: string }).reminderKey,
       minutesBefore: (j.payload as { offsetMinutes?: number }).offsetMinutes,
@@ -76,5 +98,5 @@ export async function syncEventReminderJobs(
       send_at: j.send_at,
     })),
   });
-  return { deleted: true, inserted: jobs.length, error: null };
+  return { deleted: true, inserted: jobsToWrite.length, error: null };
 }

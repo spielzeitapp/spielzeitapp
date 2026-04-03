@@ -350,22 +350,40 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             contentForMsg += ` Treffpunkt: ${treffpunktVal}.`;
           }
 
-          await fetch('/api/push/send-team', {
+          const pushPayload = {
+            team_season_id: String(teamSeasonId).trim(),
+            recipient_group: 'all' as const,
+            title: titleForMsg,
+            body: contentForMsg,
+            url: '/app/nachrichten',
+            message_type: 'event_created',
+            ...(firstEventId ? { related_event_id: firstEventId } : {}),
+          };
+          console.log('[reminderPipeline] POST /api/push/send-team payload', pushPayload);
+          const pushRes = await fetch('/api/push/send-team', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${accessToken}`,
             },
-            body: JSON.stringify({
-              team_season_id: teamSeasonId,
-              recipient_group: 'all',
-              title: titleForMsg,
-              body: contentForMsg,
-              url: '/app/nachrichten',
-              message_type: 'event_created',
-              related_event_id: firstEventId,
-            }),
+            body: JSON.stringify(pushPayload),
           });
+          if (!pushRes.ok) {
+            let pushErrBody: unknown = null;
+            try {
+              pushErrBody = await pushRes.json();
+            } catch {
+              try {
+                pushErrBody = await pushRes.text();
+              } catch {
+                pushErrBody = null;
+              }
+            }
+            console.error('[reminderPipeline] /api/push/send-team HTTP error', {
+              status: pushRes.status,
+              body: pushErrBody,
+            });
+          }
         }
       } catch {
         // best-effort: Nachricht/Push darf nicht das Event anlegen blockieren
