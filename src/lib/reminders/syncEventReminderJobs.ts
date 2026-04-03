@@ -4,8 +4,9 @@ import type { TeamNotificationSettingsRow } from '../notifications/teamSettings'
 import { buildReminderJobsForEvent } from './buildReminderJobs';
 
 /**
- * Aktualisiert notification_jobs für ein Event: alte pending/failed entfernen, neue einfügen.
- * Duplikate werden über dedupe_key verhindert (Unique); nach Delete sollte Insert sauber sein.
+ * Single Source of Truth (Client nach Event-Write): ersetzt alle pending/failed Jobs für dieses Event,
+ * dann Insert mit deterministischem dedupe_key (event:{id}:{kind}:{reminderKey}).
+ * Kein zweiter Pfad (DB-Trigger) — sonst doppelte Jobs.
  */
 export async function syncEventReminderJobs(
   client: SupabaseClient,
@@ -23,6 +24,7 @@ export async function syncEventReminderJobs(
     jobCount: jobs.length,
     sendAtPreview: jobs.slice(0, 3).map((j) => j.send_at),
   });
+  // Ersetzt Jobs für dieses Event (erneuter Speichern = neue send_at, keine Duplikate)
   const { error: delErr } = await client
     .from('notification_jobs')
     .delete()

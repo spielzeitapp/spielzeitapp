@@ -3,13 +3,11 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { syncAppIconBadgeFromUnreadCount } from '../lib/appBadge';
 import { fetchTeamIdsForUser } from '../lib/notifications/inboxScope';
-import { readNotificationReadSet } from '../lib/notificationsInAppRead';
 import { NOTIFICATIONS_READ_CHANGED_EVENT } from '../lib/notificationsReadState';
 import { useNotificationsInboxRealtime } from './useNotificationsInboxRealtime';
 
 /**
- * Ungelesene Benachrichtigungen: gleiche team_id-Sicht wie Liste, „gelesen“ per localStorage
- * (kompatibel ohne DB-Spalten `user_id` / `read`).
+ * Nur `public.notifications` mit read = false (keine messages-Tabelle).
  */
 export function useUnreadCount(userId: string | undefined | null): number {
   const { pathname } = useLocation();
@@ -26,19 +24,17 @@ export function useUnreadCount(userId: string | undefined | null): number {
         setCount(0);
         return;
       }
-      const { data, error } = await supabase
+      const { count: n, error } = await supabase
         .from('notifications')
-        .select('id')
-        .in('team_id', teamIds);
+        .select('id', { count: 'exact', head: true })
+        .in('team_id', teamIds)
+        .eq('read', false);
       if (error) {
         console.warn('[useUnreadCount]', error.message ?? error);
         setCount(0);
         return;
       }
-      const readSet = readNotificationReadSet(userId);
-      const rows = data ?? [];
-      const unread = rows.filter((r) => !readSet.has((r as { id: string }).id)).length;
-      setCount(unread);
+      setCount(n ?? 0);
     } catch (e) {
       console.warn('[useUnreadCount]', e);
       setCount(0);

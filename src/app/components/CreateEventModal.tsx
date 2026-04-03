@@ -292,6 +292,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       }
 
       try {
+        // Pro Event-Zeile genau ein sync (syncEventReminderJobs ersetzt pending/failed Jobs für diese event_id)
         for (const row of rowsToSync) {
           const syncRes = await createReminderJobs(supabase, row);
           console.log('[reminderPipeline] event created → reminder jobs sync', {

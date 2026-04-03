@@ -4,11 +4,6 @@ import { Card } from '../app/components/ui/Card';
 import { useNotificationsInboxRealtime } from '../hooks/useNotificationsInboxRealtime';
 import { formatDateTimeMediumDeVienna } from '../lib/notifications/format';
 import { fetchTeamIdsForUser } from '../lib/notifications/inboxScope';
-import {
-  markAllNotificationsReadLocal,
-  markNotificationReadLocal,
-  readNotificationReadSet,
-} from '../lib/notificationsInAppRead';
 import { supabase } from '../lib/supabaseClient';
 import { notifyNotificationsReadChanged } from '../lib/notificationsReadState';
 
@@ -20,12 +15,12 @@ type NotificationRow = {
   link: string | null;
   type?: string | null;
   event_type?: string | null;
+  event_id?: string | null;
   created_at: string;
-  /** Client-only (localStorage), Schema ohne `read` / `user_id` in Prod */
   read: boolean;
 };
 
-/** Event-UUID aus Link, z. B. `/app/events/<uuid>` (ohne DB-Spalte `event_id`). */
+/** Event-UUID aus Link, falls kein event_id in der Zeile (ältere Einträge). */
 function extractEventIdFromLink(link: string | null | undefined): string | null {
   if (link == null || !String(link).trim()) return null;
   const p = String(link).trim();
@@ -76,7 +71,7 @@ export const NotificationsPage: React.FC = () => {
       }
       const { data, error: qErr } = await supabase
         .from('notifications')
-        .select('id, team_id, title, message, link, type, event_type, created_at')
+        .select('id, team_id, title, message, link, type, event_type, event_id, created_at, read')
         .in('team_id', teamIds)
         .order('created_at', { ascending: false });
 
@@ -85,12 +80,11 @@ export const NotificationsPage: React.FC = () => {
         setError(qErr.message || 'Benachrichtigungen konnten nicht geladen werden.');
         return;
       }
-      const readSet = readNotificationReadSet(uid);
       const rows = Array.isArray(data) ? data : [];
       setItems(
         rows.map((r) => ({
-          ...(r as Omit<NotificationRow, 'read'>),
-          read: readSet.has((r as { id: string }).id),
+          ...(r as NotificationRow),
+          read: (r as { read?: boolean | null }).read === true,
         })),
       );
     } catch {
@@ -112,29 +106,46 @@ export const NotificationsPage: React.FC = () => {
     [items],
   );
 
-  const onMarkAllRead = () => {
+  const onMarkAllRead = async () => {
     if (!userId || unreadCount <= 0 || !items?.length) return;
-    markAllNotificationsReadLocal(
-      userId,
-      items.map((x) => x.id),
-    );
-    setItems((prev) => (prev ?? []).map((x) => ({ ...x, read: true })));
-    notifyNotificationsReadChanged();
-  };
-
-  const onItemClick = (n: NotificationRow) => {
-    if (!userId) return;
-    if (n.read !== true) {
-      markNotificationReadLocal(userId, n.id);
-      setItems((prev) =>
-        (prev ?? []).map((x) => (x.id === n.id ? { ...x, read: true } : x)),
-      );
+    const unreadIds = items.filter((n) => n.read !== true).map((n) => n.id);
+    if (unreadIds.length === 0) return;
+    const { error: updErr } = await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
+    if (!updErr) {
+      setItems((prev) => (prev ?? []).map((x) => ({ ...x, read: true })));
       notifyNotificationsReadChanged();
     }
+  };
 
-    const eventId = extractEventIdFromLink(n.link);
-    if (eventId) {
-      navigate(`/app/events/${eventId}`);
+  const onDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const { error: delErr } = await supabase.from('notifications').delete().eq('id', id);
+    if (!delErr) {
+      setItems((prev) => (prev ?? []).filter((x) => x.id !== id));
+      notifyNotificationsReadChanged();
+    }
+  };
+
+  const onItemClick = async (n: NotificationRow) => {
+    if (!userId) return;
+    if (n.read !== true) {
+      const { error: updErr } = await supabase.from('notifications').update({ read: true }).eq('id', n.id);
+      if (!updErr) {
+        setItems((prev) =>
+          (prev ?? []).map((x) => (x.id === n.id ? { ...x, read: true } : x)),
+        );
+        notifyNotificationsReadChanged();
+      }
+    }
+
+    if (n.event_id) {
+      navigate(`/app/events/${n.event_id}`);
+      return;
+    }
+    const fromLink = extractEventIdFromLink(n.link);
+    if (fromLink) {
+      navigate(`/app/events/${fromLink}`);
       return;
     }
     const target = resolveAppPath(n.link);
@@ -168,7 +179,7 @@ export const NotificationsPage: React.FC = () => {
             )}
             <button
               type="button"
-              onClick={() => onMarkAllRead()}
+              onClick={() => void onMarkAllRead()}
               disabled={unreadCount <= 0}
               className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/85 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-white/10"
             >
@@ -195,7 +206,7 @@ export const NotificationsPage: React.FC = () => {
           <ul className="space-y-3">
             {items.map((n) => {
               const eventFromLink = extractEventIdFromLink(n.link);
-              const interactive = Boolean(eventFromLink || resolveAppPath(n.link));
+              const interactive = Boolean(n.event_id || eventFromLink || resolveAppPath(n.link));
               const isUnread = n.read !== true;
               return (
                 <li key={n.id}>
@@ -208,12 +219,12 @@ export const NotificationsPage: React.FC = () => {
                         : ''
                     }`}
                     onClick={() => {
-                      if (interactive) onItemClick(n);
+                      if (interactive) void onItemClick(n);
                     }}
                     onKeyDown={(e) => {
                       if (interactive && (e.key === 'Enter' || e.key === ' ')) {
                         e.preventDefault();
-                        onItemClick(n);
+                        void onItemClick(n);
                       }
                     }}
                     role={interactive ? 'button' : undefined}
@@ -221,11 +232,21 @@ export const NotificationsPage: React.FC = () => {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="text-xs text-[var(--text-sub)]">{formatWhen(n.created_at)}</div>
-                      {isUnread && (
-                        <div className="shrink-0 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-                          Neu
-                        </div>
-                      )}
+                      <div className="flex shrink-0 items-center gap-2">
+                        {isUnread && (
+                          <div className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                            Neu
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          className="rounded-md border border-white/20 px-2 py-0.5 text-[10px] font-medium text-white/80 hover:bg-white/10"
+                          onClick={(e) => void onDelete(e, n.id)}
+                          aria-label="Benachrichtigung löschen"
+                        >
+                          Löschen
+                        </button>
+                      </div>
                     </div>
                     <h2 className="mt-1 text-base font-semibold text-[var(--text-main)]">{n.title}</h2>
                     <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--text-sub)]">{n.message}</p>

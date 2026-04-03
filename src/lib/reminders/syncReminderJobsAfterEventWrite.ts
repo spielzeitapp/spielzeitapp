@@ -9,6 +9,7 @@ import { syncEventReminderJobs } from './syncEventReminderJobs';
 
 /**
  * Lädt team_id + Einstellungen und synchronisiert Jobs (Client nach Insert/Update).
+ * Pro Save-Flow ein Aufruf pro gespeicherter Event-Zeile — kein paralleler DB-Trigger zu notification_jobs.
  * Optional: `teamNotificationSettings` bereits geladen → erspart einen Select.
  * Fehler loggen, UI nicht blockieren.
  */

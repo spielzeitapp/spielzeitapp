@@ -142,9 +142,12 @@ function jobKindForCanonical(ctype: ReturnType<typeof getCanonicalEventType>): R
   return 'event';
 }
 
-/** Stabil: event:<uuid>:match_reminder_1 */
-function buildDedupeKey(eventId: string, semanticReminderKey: string): string {
-  return `event:${eventId}:${semanticReminderKey}`;
+/**
+ * Deterministisch, ein Job pro Event + Reminder-Stufe (keine Zufallswerte).
+ * Format: event:{eventId}:{kind}:{reminderKey} — entspricht UNIQUE notification_jobs.dedupe_key
+ */
+function buildDedupeKey(eventId: string, kind: ReminderJobKind, semanticReminderKey: string): string {
+  return `event:${eventId}:${kind}:${semanticReminderKey}`;
 }
 
 /** Mindest-Abstand in die Zukunft, wenn der ideale send_at schon vorbei ist (Termin steht noch bevor). */
@@ -278,7 +281,7 @@ export function buildReminderJobsForEvent(
       send_at: toIso(new Date(sendAtMs)),
       payload,
       status: 'pending',
-      dedupe_key: buildDedupeKey(event.id, slot.reminderKey),
+      dedupe_key: buildDedupeKey(event.id, kind, slot.reminderKey),
     });
   }
 
