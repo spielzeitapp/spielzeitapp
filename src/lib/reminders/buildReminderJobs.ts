@@ -255,9 +255,9 @@ export function buildReminderJobsForEvent(
       meeting_at_utc: meetingRaw,
       kickoff_at_utc: kickoffRaw ?? null,
     });
-    console.log('REMINDER DEBUG - event:', event.id);
-    console.log('REMINDER DEBUG - starts_at:', event.starts_at);
-    console.log('REMINDER DEBUG - jobs:', []);
+    console.log("REMINDER DEBUG - event:", event.id);
+    console.log("REMINDER DEBUG - starts_at:", event.starts_at);
+    console.log("REMINDER DEBUG - jobs:", []);
     return [];
   }
 
@@ -271,9 +271,9 @@ export function buildReminderJobsForEvent(
       meeting_at_utc: meetingRaw,
       kickoff_at_utc: kickoffRaw ?? null,
     });
-    console.log('REMINDER DEBUG - event:', event.id);
-    console.log('REMINDER DEBUG - starts_at:', event.starts_at);
-    console.log('REMINDER DEBUG - jobs:', []);
+    console.log("REMINDER DEBUG - event:", event.id);
+    console.log("REMINDER DEBUG - starts_at:", event.starts_at);
+    console.log("REMINDER DEBUG - jobs:", []);
     return [];
   }
 
@@ -290,16 +290,16 @@ export function buildReminderJobsForEvent(
       meeting_at_utc: meetingRaw,
       kickoff_at_utc: kickoffRaw ?? null,
     });
-    console.log('REMINDER DEBUG - event:', event.id);
-    console.log('REMINDER DEBUG - starts_at:', event.starts_at);
-    console.log('REMINDER DEBUG - jobs:', []);
+    console.log("REMINDER DEBUG - event:", event.id);
+    console.log("REMINDER DEBUG - starts_at:", event.starts_at);
+    console.log("REMINDER DEBUG - jobs:", []);
     return [];
   }
 
   const ctype = getCanonicalEventType(event);
   const kind = jobKindForCanonical(ctype);
   const slots = getOffsetsForEvent(event, settings);
-  const out: ReminderJobInsert[] = [];
+  const jobs: ReminderJobInsert[] = [];
   const dedupeSeen = new Set<string>();
   const eventTitle = getEventDisplayTitle(event);
   const eventTypeLabel =
@@ -362,7 +362,7 @@ export function buildReminderJobsForEvent(
         type: eventTypeLabel,
       };
 
-      out.push({
+      jobs.push({
         event_id: event.id,
         team_id: teamId,
         kind,
@@ -374,8 +374,8 @@ export function buildReminderJobsForEvent(
     }
   }
 
-  if (out.length === 0) {
-    out.push(
+  if (jobs.length === 0) {
+    jobs.push(
       buildFallbackReminderJob(
         event,
         teamId,
@@ -391,9 +391,8 @@ export function buildReminderJobsForEvent(
     );
   }
 
-  console.log('REMINDER DEBUG - event:', event.id);
-  console.log('REMINDER DEBUG - starts_at:', event.starts_at);
-  console.log('REMINDER DEBUG - jobs:', out);
-  console.log('REMINDER DEBUG - jobs.length:', out.length, '(expected > 0)');
-  return out;
+  console.log("REMINDER DEBUG - event:", event.id);
+  console.log("REMINDER DEBUG - starts_at:", event.starts_at);
+  console.log("REMINDER DEBUG - jobs:", jobs);
+  return jobs;
 }
