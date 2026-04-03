@@ -344,6 +344,7 @@ export const SchedulePage: React.FC = () => {
     const updateSelect = 'id, starts_at, meeting_at, location, opponent, notes';
 
     let eventErr: { message: string } | null = null;
+    let updatedEventIds: string[] = [];
 
     if (!bulkScope) {
       console.log('event update payload', fullPayload);
@@ -359,6 +360,9 @@ export const SchedulePage: React.FC = () => {
         setEditError('Speichern fehlgeschlagen: Keine Zeile aktualisiert (Berechtigung oder ID).');
         setSavingEdit(false);
         return;
+      }
+      if (!r.error && r.data?.length) {
+        updatedEventIds = r.data.map((row: { id: string }) => row.id);
       }
     } else if (editSeriesScope === 'future' && editEvent.series_id) {
       console.log('event bulk update (future) payload', sharedPayload);
@@ -376,6 +380,9 @@ export const SchedulePage: React.FC = () => {
         setSavingEdit(false);
         return;
       }
+      if (!r.error && r.data?.length) {
+        updatedEventIds = r.data.map((row: { id: string }) => row.id);
+      }
     } else if (editSeriesScope === 'series' && editEvent.series_id) {
       console.log('event bulk update (series) payload', sharedPayload);
       console.log('event bulk update series_id', editEvent.series_id);
@@ -391,6 +398,9 @@ export const SchedulePage: React.FC = () => {
         setSavingEdit(false);
         return;
       }
+      if (!r.error && r.data?.length) {
+        updatedEventIds = r.data.map((row: { id: string }) => row.id);
+      }
     }
 
     if (eventErr) {
@@ -399,15 +409,19 @@ export const SchedulePage: React.FC = () => {
       return;
     }
 
-    if (!bulkScope && editEvent?.id) {
-      try {
-        const { data: freshEv } = await supabase.from('events').select('*').eq('id', editEvent.id).maybeSingle();
+    try {
+      console.log('[reminderPipeline] SchedulePage edit save → reminder job sync', {
+        eventCount: updatedEventIds.length,
+        bulkScope,
+      });
+      for (const eventId of updatedEventIds) {
+        const { data: freshEv } = await supabase.from('events').select('*').eq('id', eventId).maybeSingle();
         if (freshEv) {
           await syncReminderJobsAfterEventWrite(supabase, freshEv as Record<string, unknown>);
         }
-      } catch {
-        /* Reminder-Jobs best-effort */
       }
+    } catch {
+      /* Reminder-Jobs best-effort */
     }
 
     // MVP: Automatische Nachricht + Push bei relevanter Termin-Aenderung

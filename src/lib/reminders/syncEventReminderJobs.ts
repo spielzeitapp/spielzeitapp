@@ -24,16 +24,25 @@ export async function syncEventReminderJobs(
     jobCount: jobs.length,
     sendAtPreview: jobs.slice(0, 3).map((j) => j.send_at),
   });
-  // Ersetzt Jobs für dieses Event (erneuter Speichern = neue send_at, keine Duplikate)
-  const { error: delErr } = await client
+  // Ersetzt alle pending/failed für dieses Event (inkl. Legacy-dedupe_key vom alten DB-Trigger)
+  const { data: removedRows, error: delErr } = await client
     .from('notification_jobs')
     .delete()
     .eq('event_id', event.id)
-    .in('status', ['pending', 'failed']);
+    .in('status', ['pending', 'failed'])
+    .select('id');
 
   if (delErr) {
     console.error('[reminderPipeline] notification_jobs delete error', delErr.message, delErr);
     return { deleted: false, inserted: 0, error: delErr.message };
+  }
+
+  const removedCount = Array.isArray(removedRows) ? removedRows.length : 0;
+  if (removedCount > 0) {
+    console.log('[reminderPipeline] removed old pending/failed notification_jobs', {
+      eventId: event.id,
+      removedCount,
+    });
   }
 
   if (jobs.length === 0) {
@@ -47,6 +56,10 @@ export async function syncEventReminderJobs(
     return { deleted: true, inserted: 0, error: insErr.message };
   }
 
-  console.log('[reminderPipeline] notification_jobs insert ok', { count: jobs.length, eventId: event.id });
+  console.log('[reminderPipeline] notification_jobs insert ok', {
+    writtenForEvent: jobs.length,
+    eventId: event.id,
+    dedupeKeys: jobs.map((j) => j.dedupe_key),
+  });
   return { deleted: true, inserted: jobs.length, error: null };
 }

@@ -144,7 +144,8 @@ function jobKindForCanonical(ctype: ReturnType<typeof getCanonicalEventType>): R
 
 /**
  * Deterministisch, ein Job pro Event + Reminder-Stufe (keine Zufallswerte).
- * Format: event:{eventId}:{kind}:{reminderKey} — entspricht UNIQUE notification_jobs.dedupe_key
+ * Beispiel Spiel: event:{uuid}:match:match_1440 — UNIQUE notification_jobs.dedupe_key.
+ * (Nicht das alte Trigger-Format event:{uuid}:match_1440 ohne Kind-Segment.)
  */
 function buildDedupeKey(eventId: string, kind: ReminderJobKind, semanticReminderKey: string): string {
   return `event:${eventId}:${kind}:${semanticReminderKey}`;

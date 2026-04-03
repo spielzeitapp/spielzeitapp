@@ -1,10 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { RawEventRow } from '../notifications/eventTypes';
-import {
-  mapTeamNotificationSettingsFromDb,
-  resolveTeamSettings,
-  type TeamNotificationSettingsRow,
-} from '../notifications/teamSettings';
+import { mapTeamNotificationSettingsFromDb, type TeamNotificationSettingsRow } from '../notifications/teamSettings';
 import { syncEventReminderJobs } from './syncEventReminderJobs';
 
 /**
@@ -87,12 +83,8 @@ export async function syncEventReminderJobsForSavedEvent(
 }
 
 /**
- * Finaler Auto-Create-Pfad nach Event-Insert:
- * - training: 2h vorher
- * - match: 24h + 2h vorher
- * - event: 24h vorher
- *
- * Nutzt dieselbe notification_jobs-Pipeline (kein Sonderweg).
+ * Nach Event-Insert: dieselbe Pipeline wie beim Bearbeiten — Team-Settings aus DB
+ * (`team_notification_settings` / Defaults), kein erzwungenes „zweites Spiel-Reminder“.
  */
 export async function createReminderJobs(
   client: SupabaseClient,
@@ -104,17 +96,6 @@ export async function createReminderJobs(
     return { inserted: 0, error: 'missing id or team_season_id' };
   }
 
-  const forcedSettings = resolveTeamSettings(event.team_season_id, {
-    team_season_id: event.team_season_id,
-    training_enabled: true,
-    training_minutes_before: 120,
-    match_enabled: true,
-    match_minutes_before: 1440,
-    match_second_enabled: true,
-    match_second_minutes_before: 120,
-    event_enabled: true,
-    event_minutes_before: 1440,
-  });
-
-  return syncReminderJobsAfterEventWrite(client, eventRow, forcedSettings);
+  console.log('[reminderPipeline] createReminderJobs → syncReminderJobsAfterEventWrite (DB team settings)');
+  return syncReminderJobsAfterEventWrite(client, eventRow);
 }
