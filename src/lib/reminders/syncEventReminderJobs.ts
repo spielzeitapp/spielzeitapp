@@ -50,13 +50,15 @@ export async function syncEventReminderJobs(
     return { deleted: true, inserted: 0, error: null };
   }
 
-  const { error: insErr } = await client.from('notification_jobs').insert(jobs);
+  const { error: insErr } = await client.from('notification_jobs').upsert(jobs, {
+    onConflict: 'event_id,kind,send_at',
+  });
   if (insErr) {
-    console.error('[reminderPipeline] notification_jobs insert error', insErr.message, insErr);
+    console.error('[reminderPipeline] notification_jobs upsert error', insErr.message, insErr);
     return { deleted: true, inserted: 0, error: insErr.message };
   }
 
-  console.log('[reminderPipeline] AUDIT insert ok — single writer path', {
+  console.log('[reminderPipeline] AUDIT upsert ok — single writer path', {
     eventId: event.id,
     jobsWritten: jobs.length,
     jobs: jobs.map((j) => ({
