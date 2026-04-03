@@ -164,8 +164,72 @@ function buildDedupeKey(
   return key;
 }
 
-/** Mindest-Abstand in die Zukunft, wenn der ideale send_at schon vorbei ist (Termin steht noch bevor). */
+/** Mindest-Abstand in die Zukunft, wenn der ideale Zeitpunkt (base − offset) schon vorbei ist (Termin steht noch bevor). */
 const CLAMP_SOON_MS = 120_000;
+
+function notificationTypeForCanonical(ctype: ReturnType<typeof getCanonicalEventType>): NotificationKind {
+  if (ctype === 'game') return 'game_reminder';
+  if (ctype === 'training') return 'training_reminder';
+  return 'event_reminder';
+}
+
+/** Wenn keine Offsets aktiv sind, ein gültiger Job (send_at als ISO aus starts_at bzw. „bald“). */
+function buildFallbackReminderJob(
+  event: RawEventRow & { id: string },
+  teamId: string,
+  baseIso: string,
+  baseReason: ReminderBaseTimeReason,
+  now: Date,
+  dedupeSeen: Set<string>,
+  kind: ReminderJobKind,
+  eventTypeLabel: string,
+  eventTitle: string,
+  ctype: ReturnType<typeof getCanonicalEventType>,
+): ReminderJobInsert {
+  const nowMs = now.getTime();
+  const rawStart = nonEmptyIso(event.starts_at);
+  let sendAtIso: string;
+  if (rawStart) {
+    const startMs = parseUtcInstantMs(rawStart);
+    if (!Number.isNaN(startMs)) {
+      sendAtIso = new Date(startMs).toISOString();
+    } else {
+      sendAtIso = new Date(nowMs + CLAMP_SOON_MS).toISOString();
+    }
+  } else {
+    sendAtIso = new Date(nowMs + CLAMP_SOON_MS).toISOString();
+  }
+  const sendMs = new Date(sendAtIso).getTime();
+  if (sendMs <= nowMs) {
+    sendAtIso = new Date(nowMs + CLAMP_SOON_MS).toISOString();
+  }
+
+  const reminderKey = `fallback_${kind}`;
+  const payload: ReminderJobInsert['payload'] = {
+    reminderKey,
+    reminder_type: reminderKey,
+    offsetMinutes: 0,
+    notificationType: notificationTypeForCanonical(ctype),
+    baseTimeIso: baseIso,
+    baseReason,
+    clamped: true,
+    minutes_before: 0,
+    event_id: event.id,
+    team_id: teamId,
+    event_title: eventTitle,
+    type: eventTypeLabel,
+  };
+
+  return {
+    event_id: event.id,
+    team_id: teamId,
+    kind,
+    send_at: sendAtIso,
+    payload,
+    status: 'pending',
+    dedupe_key: buildDedupeKey(event.id, kind, 0, reminderKey, dedupeSeen),
+  };
+}
 
 /**
  * Erzeugt Jobs mit send_at in der Zukunft. Liegt der ideale Zeitpunkt (base − offset) schon in der
@@ -191,6 +255,9 @@ export function buildReminderJobsForEvent(
       meeting_at_utc: meetingRaw,
       kickoff_at_utc: kickoffRaw ?? null,
     });
+    console.log('REMINDER DEBUG - event:', event.id);
+    console.log('REMINDER DEBUG - starts_at:', event.starts_at);
+    console.log('REMINDER DEBUG - jobs:', []);
     return [];
   }
 
@@ -204,6 +271,9 @@ export function buildReminderJobsForEvent(
       meeting_at_utc: meetingRaw,
       kickoff_at_utc: kickoffRaw ?? null,
     });
+    console.log('REMINDER DEBUG - event:', event.id);
+    console.log('REMINDER DEBUG - starts_at:', event.starts_at);
+    console.log('REMINDER DEBUG - jobs:', []);
     return [];
   }
 
@@ -220,6 +290,9 @@ export function buildReminderJobsForEvent(
       meeting_at_utc: meetingRaw,
       kickoff_at_utc: kickoffRaw ?? null,
     });
+    console.log('REMINDER DEBUG - event:', event.id);
+    console.log('REMINDER DEBUG - starts_at:', event.starts_at);
+    console.log('REMINDER DEBUG - jobs:', []);
     return [];
   }
 
@@ -249,56 +322,78 @@ export function buildReminderJobsForEvent(
   });
 
   if (slots.length === 0) {
-    console.log('[reminderTz] skip jobs: no reminder offsets (type/settings)', { eventId: event.id, ctype });
-    return [];
+    console.log('[reminderTz] no reminder offsets (type/settings) — using fallback job', { eventId: event.id, ctype });
   }
 
-  for (const slot of slots) {
-    const idealSendAtMs = baseMs - slot.offsetMinutes * 60 * 1000;
-    let sendAtMs = idealSendAtMs;
-    let clamped = false;
-    if (sendAtMs <= nowMs) {
-      sendAtMs = nowMs + CLAMP_SOON_MS;
-      clamped = true;
+  if (slots.length > 0) {
+    for (const slot of slots) {
+      const idealSendAtMs = baseMs - slot.offsetMinutes * 60 * 1000;
+      let sendAtMs = idealSendAtMs;
+      let clamped = false;
+      if (sendAtMs <= nowMs) {
+        sendAtMs = nowMs + CLAMP_SOON_MS;
+        clamped = true;
+      }
+
+      const sendAtIso = toIso(new Date(sendAtMs));
+      console.log('[reminderTz] slot → scheduled send_at (UTC)', {
+        eventId: event.id,
+        reminderKey: slot.reminderKey,
+        offsetMinutes: slot.offsetMinutes,
+        idealSendAtUtc: toIso(new Date(idealSendAtMs)),
+        idealSendAtViennaDebug: formatUtcIsoAsViennaDebug(toIso(new Date(idealSendAtMs))),
+        sendAtUtc: sendAtIso,
+        sendAtViennaDebug: formatUtcIsoAsViennaDebug(sendAtIso),
+        clamped,
+      });
+
+      const payload = {
+        reminderKey: slot.reminderKey,
+        reminder_type: slot.reminderKey,
+        offsetMinutes: slot.offsetMinutes,
+        minutes_before: slot.offsetMinutes,
+        notificationType: slot.notificationType,
+        baseTimeIso: baseIso,
+        baseReason,
+        clamped,
+        event_id: event.id,
+        team_id: teamId,
+        event_title: eventTitle,
+        type: eventTypeLabel,
+      };
+
+      out.push({
+        event_id: event.id,
+        team_id: teamId,
+        kind,
+        send_at: toIso(new Date(sendAtMs)),
+        payload,
+        status: 'pending',
+        dedupe_key: buildDedupeKey(event.id, kind, slot.offsetMinutes, slot.reminderKey, dedupeSeen),
+      });
     }
-
-    const sendAtIso = toIso(new Date(sendAtMs));
-    console.log('[reminderTz] slot → scheduled send_at (UTC)', {
-      eventId: event.id,
-      reminderKey: slot.reminderKey,
-      offsetMinutes: slot.offsetMinutes,
-      idealSendAtUtc: toIso(new Date(idealSendAtMs)),
-      idealSendAtViennaDebug: formatUtcIsoAsViennaDebug(toIso(new Date(idealSendAtMs))),
-      sendAtUtc: sendAtIso,
-      sendAtViennaDebug: formatUtcIsoAsViennaDebug(sendAtIso),
-      clamped,
-    });
-
-    const payload = {
-      reminderKey: slot.reminderKey,
-      reminder_type: slot.reminderKey,
-      offsetMinutes: slot.offsetMinutes,
-      minutes_before: slot.offsetMinutes,
-      notificationType: slot.notificationType,
-      baseTimeIso: baseIso,
-      baseReason,
-      clamped,
-      event_id: event.id,
-      team_id: teamId,
-      event_title: eventTitle,
-      type: eventTypeLabel,
-    };
-
-    out.push({
-      event_id: event.id,
-      team_id: teamId,
-      kind,
-      send_at: toIso(new Date(sendAtMs)),
-      payload,
-      status: 'pending',
-      dedupe_key: buildDedupeKey(event.id, kind, slot.offsetMinutes, slot.reminderKey, dedupeSeen),
-    });
   }
 
+  if (out.length === 0) {
+    out.push(
+      buildFallbackReminderJob(
+        event,
+        teamId,
+        baseIso,
+        baseReason,
+        now,
+        dedupeSeen,
+        kind,
+        eventTypeLabel,
+        eventTitle,
+        ctype,
+      ),
+    );
+  }
+
+  console.log('REMINDER DEBUG - event:', event.id);
+  console.log('REMINDER DEBUG - starts_at:', event.starts_at);
+  console.log('REMINDER DEBUG - jobs:', out);
+  console.log('REMINDER DEBUG - jobs.length:', out.length, '(expected > 0)');
   return out;
 }
