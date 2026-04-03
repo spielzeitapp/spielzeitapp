@@ -3,27 +3,38 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../app/components/ui/Card';
 import { useNotificationsInboxRealtime } from '../hooks/useNotificationsInboxRealtime';
 import { formatDateTimeMediumDeVienna } from '../lib/notifications/format';
+import { fetchTeamIdsForUser } from '../lib/notifications/inboxScope';
 import {
-  fetchTeamIdsForUser,
-  notificationsInboxOrFilter,
-} from '../lib/notifications/inboxScope';
+  markAllNotificationsReadLocal,
+  markNotificationReadLocal,
+  readNotificationReadSet,
+} from '../lib/notificationsInAppRead';
 import { supabase } from '../lib/supabaseClient';
 import { notifyNotificationsReadChanged } from '../lib/notificationsReadState';
 
 type NotificationRow = {
   id: string;
-  user_id: string | null;
-  team_id?: string | null;
-  event_id: string | null;
+  team_id: string | null;
   title: string;
   message: string;
   link: string | null;
   type?: string | null;
-  read: boolean;
+  event_type?: string | null;
   created_at: string;
+  /** Client-only (localStorage), Schema ohne `read` / `user_id` in Prod */
+  read: boolean;
 };
 
-/** Interne App-Links: /termine → Spielplan */
+/** Event-UUID aus Link, z. B. `/app/events/<uuid>` (ohne DB-Spalte `event_id`). */
+function extractEventIdFromLink(link: string | null | undefined): string | null {
+  if (link == null || !String(link).trim()) return null;
+  const p = String(link).trim();
+  const idx = p.indexOf('/app/events/');
+  if (idx === -1) return null;
+  const rest = p.slice(idx + '/app/events/'.length).split(/[?#/]/)[0]?.trim() ?? '';
+  return /^[0-9a-f-]{36}$/i.test(rest) ? rest : null;
+}
+
 function resolveAppPath(link: string | null | undefined): string | null {
   if (link == null || !String(link).trim()) return null;
   const p = String(link).trim();
@@ -59,11 +70,14 @@ export const NotificationsPage: React.FC = () => {
     setError(null);
     try {
       const teamIds = await fetchTeamIdsForUser(supabase, uid);
-      const inboxOr = notificationsInboxOrFilter(uid, teamIds);
+      if (teamIds.length === 0) {
+        setItems([]);
+        return;
+      }
       const { data, error: qErr } = await supabase
         .from('notifications')
-        .select('id, user_id, team_id, event_id, title, message, link, type, read, created_at')
-        .or(inboxOr)
+        .select('id, team_id, title, message, link, type, event_type, created_at')
+        .in('team_id', teamIds)
         .order('created_at', { ascending: false });
 
       if (qErr) {
@@ -71,7 +85,14 @@ export const NotificationsPage: React.FC = () => {
         setError(qErr.message || 'Benachrichtigungen konnten nicht geladen werden.');
         return;
       }
-      setItems(Array.isArray(data) ? (data as NotificationRow[]) : []);
+      const readSet = readNotificationReadSet(uid);
+      const rows = Array.isArray(data) ? data : [];
+      setItems(
+        rows.map((r) => ({
+          ...(r as Omit<NotificationRow, 'read'>),
+          read: readSet.has((r as { id: string }).id),
+        })),
+      );
     } catch {
       setItems([]);
       setError('Benachrichtigungen konnten nicht geladen werden.');
@@ -91,37 +112,29 @@ export const NotificationsPage: React.FC = () => {
     [items],
   );
 
-  const onMarkAllRead = async () => {
-    if (!userId || unreadCount <= 0) return;
-    const { error: updErr } = await supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('user_id', userId)
-      .eq('read', false);
-    if (!updErr) {
-      setItems((prev) => (prev ?? []).map((x) => ({ ...x, read: true })));
-      notifyNotificationsReadChanged();
-    }
+  const onMarkAllRead = () => {
+    if (!userId || unreadCount <= 0 || !items?.length) return;
+    markAllNotificationsReadLocal(
+      userId,
+      items.map((x) => x.id),
+    );
+    setItems((prev) => (prev ?? []).map((x) => ({ ...x, read: true })));
+    notifyNotificationsReadChanged();
   };
 
-  const onItemClick = async (n: NotificationRow) => {
+  const onItemClick = (n: NotificationRow) => {
     if (!userId) return;
     if (n.read !== true) {
-      const { error: updErr } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', n.id)
-        .eq('read', false);
-      if (!updErr) {
-        setItems((prev) =>
-          (prev ?? []).map((x) => (x.id === n.id ? { ...x, read: true } : x)),
-        );
-        notifyNotificationsReadChanged();
-      }
+      markNotificationReadLocal(userId, n.id);
+      setItems((prev) =>
+        (prev ?? []).map((x) => (x.id === n.id ? { ...x, read: true } : x)),
+      );
+      notifyNotificationsReadChanged();
     }
 
-    if (n.event_id) {
-      navigate(`/app/events/${n.event_id}`);
+    const eventId = extractEventIdFromLink(n.link);
+    if (eventId) {
+      navigate(`/app/events/${eventId}`);
       return;
     }
     const target = resolveAppPath(n.link);
@@ -155,7 +168,7 @@ export const NotificationsPage: React.FC = () => {
             )}
             <button
               type="button"
-              onClick={() => void onMarkAllRead()}
+              onClick={() => onMarkAllRead()}
               disabled={unreadCount <= 0}
               className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/85 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-white/10"
             >
@@ -181,7 +194,8 @@ export const NotificationsPage: React.FC = () => {
         {!loading && items && items.length > 0 && (
           <ul className="space-y-3">
             {items.map((n) => {
-              const interactive = Boolean(n.event_id || resolveAppPath(n.link));
+              const eventFromLink = extractEventIdFromLink(n.link);
+              const interactive = Boolean(eventFromLink || resolveAppPath(n.link));
               const isUnread = n.read !== true;
               return (
                 <li key={n.id}>

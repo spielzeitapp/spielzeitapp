@@ -2,16 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { syncAppIconBadgeFromUnreadCount } from '../lib/appBadge';
-import {
-  fetchTeamIdsForUser,
-  notificationsInboxOrFilter,
-} from '../lib/notifications/inboxScope';
+import { fetchTeamIdsForUser } from '../lib/notifications/inboxScope';
+import { readNotificationReadSet } from '../lib/notificationsInAppRead';
 import { NOTIFICATIONS_READ_CHANGED_EVENT } from '../lib/notificationsReadState';
 import { useNotificationsInboxRealtime } from './useNotificationsInboxRealtime';
 
 /**
- * Ungelesene Benachrichtigungen (`notifications.read = false`).
- * Gleiche Sicht wie RLS: user-spezifische Zeilen + teamweite (`user_id` NULL) für die Mannschaften des Users.
+ * Ungelesene Benachrichtigungen: gleiche team_id-Sicht wie Liste, „gelesen“ per localStorage
+ * (kompatibel ohne DB-Spalten `user_id` / `read`).
  */
 export function useUnreadCount(userId: string | undefined | null): number {
   const { pathname } = useLocation();
@@ -24,18 +22,23 @@ export function useUnreadCount(userId: string | undefined | null): number {
     }
     try {
       const teamIds = await fetchTeamIdsForUser(supabase, userId);
-      const inboxOr = notificationsInboxOrFilter(userId, teamIds);
-      const { count: n, error } = await supabase
+      if (teamIds.length === 0) {
+        setCount(0);
+        return;
+      }
+      const { data, error } = await supabase
         .from('notifications')
-        .select('id', { count: 'exact', head: true })
-        .or(inboxOr)
-        .eq('read', false);
+        .select('id')
+        .in('team_id', teamIds);
       if (error) {
         console.warn('[useUnreadCount]', error.message ?? error);
         setCount(0);
         return;
       }
-      setCount(n ?? 0);
+      const readSet = readNotificationReadSet(userId);
+      const rows = data ?? [];
+      const unread = rows.filter((r) => !readSet.has((r as { id: string }).id)).length;
+      setCount(unread);
     } catch (e) {
       console.warn('[useUnreadCount]', e);
       setCount(0);

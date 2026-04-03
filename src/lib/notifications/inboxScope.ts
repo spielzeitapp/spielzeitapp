@@ -1,12 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * Inbox-Filter für `public.notifications` (gleiches Modell wie RLS):
- * - Zeilen mit `user_id = aktueller User` (z. B. Reminder pro Empfänger)
- * - teamweite Zeilen (`user_id` IS NULL) für Mannschaften, in denen der User Mitglied ist
- *
- * Entspricht dem älteren API-Pfad GET /api/notifications?team_id=… (teambezogen)
- * plus den neuen user-spezifischen Reminder-Zeilen — ohne zweite Tabelle.
+ * Inbox für `public.notifications` (Schema wie Migration notifications_center):
+ * Sichtbarkeit über `team_id` + Mitgliedschaft — keine Spalte `user_id` nötig.
  */
 export async function fetchTeamIdsForUser(
   client: SupabaseClient,
@@ -30,13 +26,3 @@ export async function fetchTeamIdsForUser(
   return [...ids];
 }
 
-/**
- * PostgREST-`.or()`-String: sichtbare Einträge für Badge + Liste.
- */
-export function notificationsInboxOrFilter(userId: string, teamIds: string[]): string {
-  if (teamIds.length === 0) {
-    return `user_id.eq.${userId}`;
-  }
-  const inList = teamIds.join(',');
-  return `user_id.eq.${userId},and(user_id.is.null,team_id.in.(${inList}))`;
-}

@@ -3,9 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { fetchTeamIdsForUser } from '../lib/notifications/inboxScope';
 
 /**
- * Postgres-Realtime für dieselbe Inbox wie Badge + Liste: Änderungen an user-spezifischen
- * Zeilen (`user_id`) und an teambezogenen Zeilen (`team_id` der Mitgliedschaften).
- * `scope` macht Kanalnamen eindeutig (z. B. badge vs. list).
+ * Realtime für dieselbe Inbox wie Badge + Liste: nur `team_id` (kein `user_id` in Prod-Schema).
  */
 export function useNotificationsInboxRealtime(
   userId: string | null | undefined,
@@ -31,16 +29,6 @@ export function useNotificationsInboxRealtime(
     const run = async () => {
       const teamIds = await fetchTeamIdsForUser(supabase, userId);
       if (cancelled) return;
-
-      const chSelf = supabase
-        .channel(`notifications:${scope}:${userId}:self`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-          schedule,
-        )
-        .subscribe();
-      channelsRef.current.push(chSelf);
 
       for (const tid of teamIds) {
         if (cancelled) break;
