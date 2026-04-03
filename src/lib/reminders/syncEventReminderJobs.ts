@@ -50,9 +50,7 @@ export async function syncEventReminderJobs(
     return { deleted: true, inserted: 0, error: null };
   }
 
-  const { error: insErr } = await client.from('notification_jobs').upsert(jobs, {
-    onConflict: 'event_id,kind,send_at',
-  });
+  const { error: insErr } = await client.from('notification_jobs').insert(jobs);
   if (insErr) {
     console.error('[reminderPipeline] notification_jobs upsert error', insErr.message, insErr);
     return { deleted: true, inserted: 0, error: insErr.message };
