@@ -292,11 +292,15 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       }
 
       try {
-        // Pro Event-Zeile genau ein sync (syncEventReminderJobs ersetzt pending/failed Jobs für diese event_id)
+        // Pro Event-ID höchstens ein sync (verhindert Doppel-Lauf bei insert.select + Refetch-Überlappung)
+        const syncedEventIds = new Set<string>();
         for (const row of rowsToSync) {
+          const eid = (row as { id?: string }).id;
+          if (!eid || syncedEventIds.has(eid)) continue;
+          syncedEventIds.add(eid);
           const syncRes = await createReminderJobs(supabase, row);
           console.log('[reminderPipeline] event created → reminder jobs sync', {
-            eventId: (row as { id?: string }).id,
+            eventId: eid,
             inserted: syncRes?.inserted,
             error: syncRes?.error ?? null,
           });

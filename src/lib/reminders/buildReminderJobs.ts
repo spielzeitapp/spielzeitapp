@@ -144,11 +144,24 @@ function jobKindForCanonical(ctype: ReturnType<typeof getCanonicalEventType>): R
 
 /**
  * Deterministisch, ein Job pro Event + Reminder-Stufe (keine Zufallswerte).
- * Beispiel Spiel: event:{uuid}:match:match_1440 — UNIQUE notification_jobs.dedupe_key.
- * (Nicht das alte Trigger-Format event:{uuid}:match_1440 ohne Kind-Segment.)
+ * Format: event:{eventId}:kind:{kind}:reminder:{minutesBefore}
+ * Wenn zwei Reminder dieselbe Minute + denselben kind haben (z. B. zwei Spiel-Reminders bei 120 Min),
+ * wird stabil angehängt: :r:{reminderKey} (match_120 vs. match_second_120).
  */
-function buildDedupeKey(eventId: string, kind: ReminderJobKind, semanticReminderKey: string): string {
-  return `event:${eventId}:${kind}:${semanticReminderKey}`;
+function buildDedupeKey(
+  eventId: string,
+  kind: ReminderJobKind,
+  offsetMinutes: number,
+  reminderKey: string,
+  seenKeys: Set<string>,
+): string {
+  const base = `event:${eventId}:kind:${kind}:reminder:${offsetMinutes}`;
+  let key = base;
+  if (seenKeys.has(key)) {
+    key = `${base}:r:${reminderKey}`;
+  }
+  seenKeys.add(key);
+  return key;
 }
 
 /** Mindest-Abstand in die Zukunft, wenn der ideale send_at schon vorbei ist (Termin steht noch bevor). */
@@ -214,6 +227,7 @@ export function buildReminderJobsForEvent(
   const kind = jobKindForCanonical(ctype);
   const slots = getOffsetsForEvent(event, settings);
   const out: ReminderJobInsert[] = [];
+  const dedupeSeen = new Set<string>();
   const eventTitle = getEventDisplayTitle(event);
   const eventTypeLabel =
     ctype === 'game' ? 'match' : ctype === 'training' ? 'training' : ctype === 'event' ? 'event' : 'other';
@@ -282,7 +296,7 @@ export function buildReminderJobsForEvent(
       send_at: toIso(new Date(sendAtMs)),
       payload,
       status: 'pending',
-      dedupe_key: buildDedupeKey(event.id, kind, slot.reminderKey),
+      dedupe_key: buildDedupeKey(event.id, kind, slot.offsetMinutes, slot.reminderKey, dedupeSeen),
     });
   }
 

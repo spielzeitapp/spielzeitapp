@@ -4,9 +4,11 @@ import type { TeamNotificationSettingsRow } from '../notifications/teamSettings'
 import { buildReminderJobsForEvent } from './buildReminderJobs';
 
 /**
- * Single Source of Truth (Client nach Event-Write): ersetzt alle pending/failed Jobs für dieses Event,
- * dann Insert mit deterministischem dedupe_key (event:{id}:{kind}:{reminderKey}).
- * Kein zweiter Pfad (DB-Trigger) — sonst doppelte Jobs.
+ * EINZIGER Ort, der notification_jobs per App-Client einfügt (nach Event-Insert/Update).
+ * Vorher: DELETE pending/failed für event_id (räumt auch Legacy-Keys vom DB-Trigger weg).
+ * dedupe_key: event:{id}:kind:{kind}:reminder:{minutes}[:r:{reminderKey} bei Kollision]
+ *
+ * Kein zweiter Writer: Migrationen entfernen trg_events_sync_notification_jobs (Supabase-seitig).
  */
 export async function syncEventReminderJobs(
   client: SupabaseClient,
@@ -16,7 +18,7 @@ export async function syncEventReminderJobs(
   now: Date = new Date(),
 ): Promise<{ deleted: boolean; inserted: number; error: string | null }> {
   const jobs = buildReminderJobsForEvent(event, settings, teamId, now);
-  console.log('[reminderPipeline] event → built jobs', {
+  console.log('[reminderPipeline] AUDIT buildReminderJobsForEvent', {
     eventId: event.id,
     kind: event.kind,
     type: event.type,
@@ -38,12 +40,10 @@ export async function syncEventReminderJobs(
   }
 
   const removedCount = Array.isArray(removedRows) ? removedRows.length : 0;
-  if (removedCount > 0) {
-    console.log('[reminderPipeline] removed old pending/failed notification_jobs', {
-      eventId: event.id,
-      removedCount,
-    });
-  }
+  console.log('[reminderPipeline] AUDIT delete-before-insert', {
+    eventId: event.id,
+    removedPendingOrFailedCount: removedCount,
+  });
 
   if (jobs.length === 0) {
     console.log('[reminderPipeline] no jobs to insert (canonical type has no offsets, not upcoming, or base time in past)');
@@ -56,10 +56,16 @@ export async function syncEventReminderJobs(
     return { deleted: true, inserted: 0, error: insErr.message };
   }
 
-  console.log('[reminderPipeline] notification_jobs insert ok', {
-    writtenForEvent: jobs.length,
+  console.log('[reminderPipeline] AUDIT insert ok — single writer path', {
     eventId: event.id,
-    dedupeKeys: jobs.map((j) => j.dedupe_key),
+    jobsWritten: jobs.length,
+    jobs: jobs.map((j) => ({
+      kind: j.kind,
+      reminderKey: (j.payload as { reminderKey?: string }).reminderKey,
+      minutesBefore: (j.payload as { offsetMinutes?: number }).offsetMinutes,
+      dedupe_key: j.dedupe_key,
+      send_at: j.send_at,
+    })),
   });
   return { deleted: true, inserted: jobs.length, error: null };
 }
