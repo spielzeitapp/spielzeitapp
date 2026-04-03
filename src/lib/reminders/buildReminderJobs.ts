@@ -64,14 +64,25 @@ export type ReminderBaseTimeReason =
 
 /**
  * Basis-Instant und Herkunft für Reminder-Offsets (alles aus gespeicherten UTC-Strings).
+ * Spiel: `kickoff_at` nur nutzen, wenn es **in der Zukunft** liegt (referenceNow); sonst `starts_at`.
+ * Sonst: kickoff in der Vergangenheit → Reminder-Berechnung bricht mit 0 Jobs ab, obwohl der Termin noch bevorsteht.
  */
-export function getReminderBaseTimeMeta(event: RawEventRow): { baseIso: string; reason: ReminderBaseTimeReason } {
+export function getReminderBaseTimeMeta(
+  event: RawEventRow,
+  referenceNow?: Date,
+): { baseIso: string; reason: ReminderBaseTimeReason } {
   const meet = nonEmptyIso(event.meeting_at);
   const kickoff = nonEmptyIso(event.kickoff_at);
   const start = nonEmptyIso(event.starts_at) ?? '';
   const ctype = getCanonicalEventType(event);
+  const nowMs = referenceNow?.getTime() ?? Date.now();
   if (ctype === 'game') {
-    if (kickoff) return { baseIso: kickoff, reason: 'game_kickoff' };
+    if (kickoff) {
+      const km = parseUtcInstantMs(kickoff);
+      if (!Number.isNaN(km) && km > nowMs) {
+        return { baseIso: kickoff, reason: 'game_kickoff' };
+      }
+    }
     return { baseIso: start, reason: 'game_starts' };
   }
   if (ctype === 'training') {
@@ -84,7 +95,7 @@ export function getReminderBaseTimeMeta(event: RawEventRow): { baseIso: string; 
 
 /** Liefert nur die Basis-ISO; für Ursache siehe `getReminderBaseTimeMeta`. */
 export function getBaseTimeForEvent(event: RawEventRow): string {
-  return getReminderBaseTimeMeta(event).baseIso;
+  return getReminderBaseTimeMeta(event, new Date()).baseIso;
 }
 
 export type OffsetSlot = {
@@ -242,7 +253,8 @@ export function buildReminderJobsForEvent(
   teamId: string,
   now: Date = new Date(),
 ): ReminderJobInsert[] {
-  const { baseIso, reason: baseReason } = getReminderBaseTimeMeta(event);
+  console.log('[reminderPipeline] buildReminderJobsForEvent start', { eventId: event.id, status: event.status });
+  const { baseIso, reason: baseReason } = getReminderBaseTimeMeta(event, now);
   const startsRaw = (event as RawEventRow).starts_at;
   const meetingRaw = (event as RawEventRow).meeting_at;
   const kickoffRaw = (event as RawEventRow).kickoff_at;

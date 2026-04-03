@@ -17,6 +17,7 @@ export async function syncEventReminderJobs(
   teamId: string,
   now: Date = new Date(),
 ): Promise<{ deleted: boolean; inserted: number; error: string | null }> {
+  console.log('[reminderPipeline] syncEventReminderJobs called', { eventId: event.id, teamSeasonId: event.team_season_id });
   const jobs = buildReminderJobsForEvent(event, settings, teamId, now);
   console.log('[reminderPipeline] AUDIT buildReminderJobsForEvent', {
     eventId: event.id,
@@ -46,17 +47,25 @@ export async function syncEventReminderJobs(
   });
 
   if (jobs.length === 0) {
-    console.log('[reminderPipeline] no jobs to insert (canonical type has no offsets, not upcoming, or base time in past)');
+    console.warn('[reminderPipeline] ZERO jobs — nothing written (event skipped or buildReminderJobsForEvent returned []). Check status, base time, settings.', {
+      eventId: event.id,
+    });
     return { deleted: true, inserted: 0, error: null };
   }
 
+  console.log('[reminderPipeline] jobs.length before DB insert', jobs.length, {
+    eventId: event.id,
+    kinds: jobs.map((j) => j.kind),
+    sendAts: jobs.map((j) => j.send_at),
+  });
+
   const { error: insErr } = await client.from('notification_jobs').insert(jobs);
   if (insErr) {
-    console.error('[reminderPipeline] notification_jobs upsert error', insErr.message, insErr);
+    console.error('[reminderPipeline] notification_jobs insert error', insErr.message, insErr);
     return { deleted: true, inserted: 0, error: insErr.message };
   }
 
-  console.log('[reminderPipeline] AUDIT upsert ok — single writer path', {
+  console.log('[reminderPipeline] AUDIT insert ok — single writer path', {
     eventId: event.id,
     jobsWritten: jobs.length,
     jobs: jobs.map((j) => ({

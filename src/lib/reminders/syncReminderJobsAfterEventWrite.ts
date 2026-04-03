@@ -15,6 +15,10 @@ export async function syncReminderJobsAfterEventWrite(
   teamNotificationSettings?: TeamNotificationSettingsRow | null,
 ): Promise<{ inserted: number; error: string | null } | undefined> {
   try {
+    console.log('[reminderPipeline] syncReminderJobsAfterEventWrite', {
+      eventId: (eventRow as { id?: string }).id,
+      teamSeasonId: (eventRow as { team_season_id?: string }).team_season_id,
+    });
     const event = eventRow as RawEventRow & { id: string; team_season_id: string };
     if (!event?.id || !event.team_season_id) {
       console.warn('[reminderPipeline] skip sync: missing event.id or team_season_id', eventRow);

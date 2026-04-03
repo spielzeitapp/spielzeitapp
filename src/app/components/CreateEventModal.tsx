@@ -274,22 +274,29 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       let rowsToSync: Record<string, unknown>[] = Array.isArray(insertedRows) ? [...insertedRows] : [];
       if (rowsToSync.length === 0 && rows.length > 0) {
-        const since = new Date(Date.now() - 20_000).toISOString();
+        const since = new Date(Date.now() - 120_000).toISOString();
         const { data: refetched, error: refetchErr } = await supabase
           .from('events')
           .select('*')
           .eq('team_season_id', teamSeasonId)
           .gte('created_at', since)
-          .order('created_at', { ascending: true });
+          .order('created_at', { ascending: false })
+          .limit(rows.length);
         if (refetchErr) {
           console.error('[CreateEventModal] REMINDER refetch after insert failed', refetchErr.message);
         } else if (refetched?.length) {
-          console.log('[CreateEventModal] REMINDER using refetched events after empty insert.select', refetched.length);
-          rowsToSync = refetched as Record<string, unknown>[];
+          const chronological = [...refetched].reverse();
+          console.log('[CreateEventModal] REMINDER using refetched events after empty insert.select', chronological.length);
+          rowsToSync = chronological as Record<string, unknown>[];
         } else {
-          console.warn('[CreateEventModal] REMINDER no rows from insert.select and refetch empty');
+          console.warn('[CreateEventModal] REMINDER no rows from insert.select and refetch empty (120s window)');
         }
       }
+
+      console.log('[reminderPipeline] CreateEventModal: event saved → reminder sync', {
+        rowsToSyncCount: rowsToSync.length,
+        occurrenceCount: rows.length,
+      });
 
       try {
         // Pro Event-ID höchstens ein sync (verhindert Doppel-Lauf bei insert.select + Refetch-Überlappung)
