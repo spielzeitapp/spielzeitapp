@@ -274,40 +274,28 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       let rowsToSync: Record<string, unknown>[] = Array.isArray(insertedRows) ? [...insertedRows] : [];
       if (rowsToSync.length === 0 && rows.length > 0) {
-        const since = new Date(Date.now() - 120_000).toISOString();
+        const since = new Date(Date.now() - 20_000).toISOString();
         const { data: refetched, error: refetchErr } = await supabase
           .from('events')
           .select('*')
           .eq('team_season_id', teamSeasonId)
           .gte('created_at', since)
-          .order('created_at', { ascending: false })
-          .limit(rows.length);
+          .order('created_at', { ascending: true });
         if (refetchErr) {
           console.error('[CreateEventModal] REMINDER refetch after insert failed', refetchErr.message);
         } else if (refetched?.length) {
-          const chronological = [...refetched].reverse();
-          console.log('[CreateEventModal] REMINDER using refetched events after empty insert.select', chronological.length);
-          rowsToSync = chronological as Record<string, unknown>[];
+          console.log('[CreateEventModal] REMINDER using refetched events after empty insert.select', refetched.length);
+          rowsToSync = refetched as Record<string, unknown>[];
         } else {
-          console.warn('[CreateEventModal] REMINDER no rows from insert.select and refetch empty (120s window)');
+          console.warn('[CreateEventModal] REMINDER no rows from insert.select and refetch empty');
         }
       }
 
-      console.log('[reminderPipeline] CreateEventModal: event saved → reminder sync', {
-        rowsToSyncCount: rowsToSync.length,
-        occurrenceCount: rows.length,
-      });
-
       try {
-        // Pro Event-ID höchstens ein sync (verhindert Doppel-Lauf bei insert.select + Refetch-Überlappung)
-        const syncedEventIds = new Set<string>();
         for (const row of rowsToSync) {
-          const eid = (row as { id?: string }).id;
-          if (!eid || syncedEventIds.has(eid)) continue;
-          syncedEventIds.add(eid);
           const syncRes = await createReminderJobs(supabase, row);
           console.log('[reminderPipeline] event created → reminder jobs sync', {
-            eventId: eid,
+            eventId: (row as { id?: string }).id,
             inserted: syncRes?.inserted,
             error: syncRes?.error ?? null,
           });
@@ -350,40 +338,22 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             contentForMsg += ` Treffpunkt: ${treffpunktVal}.`;
           }
 
-          const pushPayload = {
-            team_season_id: String(teamSeasonId).trim(),
-            recipient_group: 'all' as const,
-            title: titleForMsg,
-            body: contentForMsg,
-            url: '/app/nachrichten',
-            message_type: 'event_created',
-            ...(firstEventId ? { related_event_id: firstEventId } : {}),
-          };
-          console.log('[reminderPipeline] POST /api/push/send-team payload', pushPayload);
-          const pushRes = await fetch('/api/push/send-team', {
+          await fetch('/api/push/send-team', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${accessToken}`,
             },
-            body: JSON.stringify(pushPayload),
+            body: JSON.stringify({
+              team_season_id: teamSeasonId,
+              recipient_group: 'all',
+              title: titleForMsg,
+              body: contentForMsg,
+              url: '/app/nachrichten',
+              message_type: 'event_created',
+              related_event_id: firstEventId,
+            }),
           });
-          if (!pushRes.ok) {
-            let pushErrBody: unknown = null;
-            try {
-              pushErrBody = await pushRes.json();
-            } catch {
-              try {
-                pushErrBody = await pushRes.text();
-              } catch {
-                pushErrBody = null;
-              }
-            }
-            console.error('[reminderPipeline] /api/push/send-team HTTP error', {
-              status: pushRes.status,
-              body: pushErrBody,
-            });
-          }
         }
       } catch {
         // best-effort: Nachricht/Push darf nicht das Event anlegen blockieren

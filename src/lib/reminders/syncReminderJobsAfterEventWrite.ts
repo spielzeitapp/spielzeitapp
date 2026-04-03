@@ -5,7 +5,6 @@ import { syncEventReminderJobs } from './syncEventReminderJobs';
 
 /**
  * Lädt team_id + Einstellungen und synchronisiert Jobs (Client nach Insert/Update).
- * Pro Save-Flow ein Aufruf pro gespeicherter Event-Zeile — kein paralleler DB-Trigger zu notification_jobs.
  * Optional: `teamNotificationSettings` bereits geladen → erspart einen Select.
  * Fehler loggen, UI nicht blockieren.
  */
@@ -15,10 +14,6 @@ export async function syncReminderJobsAfterEventWrite(
   teamNotificationSettings?: TeamNotificationSettingsRow | null,
 ): Promise<{ inserted: number; error: string | null } | undefined> {
   try {
-    console.log('[reminderPipeline] syncReminderJobsAfterEventWrite', {
-      eventId: (eventRow as { id?: string }).id,
-      teamSeasonId: (eventRow as { team_season_id?: string }).team_season_id,
-    });
     const event = eventRow as RawEventRow & { id: string; team_season_id: string };
     if (!event?.id || !event.team_season_id) {
       console.warn('[reminderPipeline] skip sync: missing event.id or team_season_id', eventRow);
@@ -87,8 +82,9 @@ export async function syncEventReminderJobsForSavedEvent(
 }
 
 /**
- * Nach Event-Insert: dieselbe Pipeline wie beim Bearbeiten — Team-Settings aus DB
- * (`team_notification_settings` / Defaults), kein erzwungenes „zweites Spiel-Reminder“.
+ * Nach Event-Insert: dieselbe Pipeline wie beim Bearbeiten (team_notification_settings aus DB).
+ * Minimal gegen Duplikate: kein erzwungenes zweites Spiel-Reminder; zweiter Job-Erzeuger war zusätzlich
+ * der DB-Trigger auf events — Migrationen 20260402160000 / 20260403120000 / 20260404180000 droppen ihn.
  */
 export async function createReminderJobs(
   client: SupabaseClient,
@@ -100,6 +96,5 @@ export async function createReminderJobs(
     return { inserted: 0, error: 'missing id or team_season_id' };
   }
 
-  console.log('[reminderPipeline] createReminderJobs → syncReminderJobsAfterEventWrite (DB team settings)');
   return syncReminderJobsAfterEventWrite(client, eventRow);
 }
