@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { syncAppIconBadgeFromUnreadCount } from '../lib/appBadge';
-import { fetchTeamIdsForUser } from '../lib/notifications/inboxScope';
 import { NOTIFICATIONS_READ_CHANGED_EVENT } from '../lib/notificationsReadState';
 import { useNotificationsInboxRealtime } from './useNotificationsInboxRealtime';
 
@@ -19,15 +18,10 @@ export function useUnreadCount(userId: string | undefined | null): number {
       return;
     }
     try {
-      const teamIds = await fetchTeamIdsForUser(supabase, userId);
-      if (teamIds.length === 0) {
-        setCount(0);
-        return;
-      }
       const { count: n, error } = await supabase
         .from('notifications')
         .select('id', { count: 'exact', head: true })
-        .in('team_id', teamIds)
+        .eq('user_id', userId)
         .eq('read', false);
       if (error) {
         console.warn('[useUnreadCount]', error.message ?? error);

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../app/components/ui/Card';
 import { useNotificationsInboxRealtime } from '../hooks/useNotificationsInboxRealtime';
 import { formatDateTimeMediumDeVienna } from '../lib/notifications/format';
-import { fetchTeamIdsForUser } from '../lib/notifications/inboxScope';
 import { supabase } from '../lib/supabaseClient';
 import { notifyNotificationsReadChanged } from '../lib/notificationsReadState';
 
@@ -64,15 +63,10 @@ export const NotificationsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const teamIds = await fetchTeamIdsForUser(supabase, uid);
-      if (teamIds.length === 0) {
-        setItems([]);
-        return;
-      }
       const { data, error: qErr } = await supabase
         .from('notifications')
         .select('id, team_id, title, message, link, type, event_type, event_id, created_at, read')
-        .in('team_id', teamIds)
+        .eq('user_id', uid)
         .order('created_at', { ascending: false });
 
       if (qErr) {
@@ -110,7 +104,11 @@ export const NotificationsPage: React.FC = () => {
     if (!userId || unreadCount <= 0 || !items?.length) return;
     const unreadIds = items.filter((n) => n.read !== true).map((n) => n.id);
     if (unreadIds.length === 0) return;
-    const { error: updErr } = await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
+    const { error: updErr } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('user_id', userId)
+      .in('id', unreadIds);
     if (!updErr) {
       setItems((prev) => (prev ?? []).map((x) => ({ ...x, read: true })));
       notifyNotificationsReadChanged();
@@ -120,7 +118,8 @@ export const NotificationsPage: React.FC = () => {
   const onDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     e.preventDefault();
-    const { error: delErr } = await supabase.from('notifications').delete().eq('id', id);
+    if (!userId) return;
+    const { error: delErr } = await supabase.from('notifications').delete().eq('id', id).eq('user_id', userId);
     if (!delErr) {
       setItems((prev) => (prev ?? []).filter((x) => x.id !== id));
       notifyNotificationsReadChanged();
@@ -130,7 +129,11 @@ export const NotificationsPage: React.FC = () => {
   const onItemClick = async (n: NotificationRow) => {
     if (!userId) return;
     if (n.read !== true) {
-      const { error: updErr } = await supabase.from('notifications').update({ read: true }).eq('id', n.id);
+      const { error: updErr } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', n.id)
+        .eq('user_id', userId);
       if (!updErr) {
         setItems((prev) =>
           (prev ?? []).map((x) => (x.id === n.id ? { ...x, read: true } : x)),

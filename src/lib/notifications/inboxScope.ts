@@ -1,8 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * Inbox für `public.notifications` (Schema wie Migration notifications_center):
- * Sichtbarkeit über `team_id` + Mitgliedschaft — keine Spalte `user_id` nötig.
+ * Hilfsfunktion: Team-IDs des Users (Memberships). Wird nicht mehr für die Notifications-Inbox
+ * verwendet — Inbox läuft strikt über `notifications.user_id = auth.uid()` in Queries und RLS.
  */
 export async function fetchTeamIdsForUser(
   client: SupabaseClient,

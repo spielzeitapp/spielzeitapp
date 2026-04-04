@@ -92,6 +92,7 @@ export default async function handler(req, res) {
       .from("notifications")
       .select("id, title, message, link, type, created_at")
       .eq("team_id", teamIdRaw)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (notifErr) {

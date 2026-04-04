@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { fetchTeamIdsForUser } from '../lib/notifications/inboxScope';
 
 /**
- * Realtime für dieselbe Inbox wie Badge + Liste: nur `team_id` (kein `user_id` in Prod-Schema).
+ * Realtime für dieselbe Inbox wie Badge + Liste: nur Zeilen mit user_id = aktueller User.
  */
 export function useNotificationsInboxRealtime(
   userId: string | null | undefined,
@@ -15,7 +14,6 @@ export function useNotificationsInboxRealtime(
 
   useEffect(() => {
     if (!userId) return;
-    let cancelled = false;
     channelsRef.current = [];
 
     const schedule = () => {
@@ -26,31 +24,25 @@ export function useNotificationsInboxRealtime(
       }, 200);
     };
 
-    const run = async () => {
-      const teamIds = await fetchTeamIdsForUser(supabase, userId);
-      if (cancelled) return;
-
-      for (const tid of teamIds) {
-        if (cancelled) break;
-        const chTeam = supabase
-          .channel(`notifications:${scope}:${userId}:team:${tid}`)
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'notifications', filter: `team_id=eq.${tid}` },
-            schedule,
-          )
-          .subscribe();
-        channelsRef.current.push(chTeam);
-      }
-    };
-
-    void run();
+    const ch = supabase
+      .channel(`notifications:${scope}:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        schedule,
+      )
+      .subscribe();
+    channelsRef.current.push(ch);
 
     return () => {
-      cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      for (const ch of channelsRef.current) {
-        void supabase.removeChannel(ch);
+      for (const c of channelsRef.current) {
+        void supabase.removeChannel(c);
       }
       channelsRef.current = [];
     };
