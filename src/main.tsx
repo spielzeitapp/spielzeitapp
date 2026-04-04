@@ -6,6 +6,9 @@ import { ManifestSync } from './app/ManifestSync';
 import './index.css';
 import { SessionProvider } from './auth/useSession';
 import { AuthProvider } from './auth/AuthProvider';
+import { registerServiceWorkerInboxBridge } from './lib/pushInboxBridge';
+
+registerServiceWorkerInboxBridge();
 
 /** Wird in index.html vor dem React-Load gesetzt: app.spielzeitapp.at = true, sonst false. */
 const isInternalDomain =

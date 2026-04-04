@@ -48,9 +48,9 @@ self.addEventListener('push', (event) => {
     (async () => {
       await self.registration.showNotification(title, options);
       try {
-        const nav = self.navigator;
-        if (nav && typeof nav.setAppBadge === 'function') {
-          await nav.setAppBadge(1).catch(() => {});
+        const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        for (const client of clients) {
+          client.postMessage({ type: 'SPZ_PUSH_RECEIVED' });
         }
       } catch {
         /* ignore */
@@ -78,6 +78,16 @@ self.addEventListener('notificationclick', (event) => {
         type: 'window',
         includeUncontrolled: true,
       });
+
+      try {
+        for (const client of list) {
+          if (client.url && client.url.startsWith(origin)) {
+            client.postMessage({ type: 'SPZ_NOTIFICATION_CLICK' });
+          }
+        }
+      } catch {
+        /* ignore */
+      }
 
       for (const client of list) {
         if (!('focus' in client) || !client.url.startsWith(origin)) continue;

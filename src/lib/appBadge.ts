@@ -1,4 +1,4 @@
-/** Badging API (PWA / installiertes iPhone): optional, stiller Fallback. */
+/** PWA / installiertes Home-Screen (z. B. iPhone): Badging API — optional, stiller Fallback. */
 
 const BADGE_CAP = 99;
 
@@ -18,12 +18,20 @@ function safeClearAppBadge(): void {
   });
 }
 
-/** Synchron mit Unread-Count (eine Quelle). */
-export function syncAppIconBadgeFromUnreadCount(unreadCount: number): void {
+/**
+ * Eine zentrale Stelle: OS-/PWA-Badge = Unread-Count des eingeloggten Users.
+ * Keine Reminder-Logik — nur Anzeige.
+ */
+export function syncNotificationBadge(count: number): void {
   try {
-    if (unreadCount > 0) safeSetAppBadge(unreadCount);
+    if (count > 0) safeSetAppBadge(count);
     else safeClearAppBadge();
   } catch (e) {
-    console.warn('[appBadge] sync', e);
+    console.warn('[appBadge] syncNotificationBadge', e);
   }
+}
+
+/** @deprecated Alias — nutze syncNotificationBadge */
+export function syncAppIconBadgeFromUnreadCount(unreadCount: number): void {
+  syncNotificationBadge(unreadCount);
 }

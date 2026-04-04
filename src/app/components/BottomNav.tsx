@@ -63,7 +63,7 @@ function NavItem({
             )}
             {badgeCount != null && badgeCount > 0 && (
               <div className="pointer-events-none absolute right-0 top-0 z-[2] flex min-h-[17px] min-w-[17px] translate-x-[3px] -translate-y-[3px] items-center justify-center rounded-full bg-red-500 px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-neutral-900">
-                {badgeCount > 9 ? '9+' : badgeCount}
+                {badgeCount > 99 ? '99+' : badgeCount}
               </div>
             )}
             <Icon

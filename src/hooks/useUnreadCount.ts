@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { syncAppIconBadgeFromUnreadCount } from '../lib/appBadge';
+import { syncNotificationBadge } from '../lib/appBadge';
 import { NOTIFICATIONS_READ_CHANGED_EVENT } from '../lib/notificationsReadState';
 import { useNotificationsInboxRealtime } from './useNotificationsInboxRealtime';
 
@@ -62,7 +62,7 @@ export function useUnreadCount(userId: string | undefined | null): number {
   useNotificationsInboxRealtime(userId ?? null, refresh, 'badge');
 
   useEffect(() => {
-    syncAppIconBadgeFromUnreadCount(count);
+    syncNotificationBadge(count);
   }, [count]);
 
   return count;
