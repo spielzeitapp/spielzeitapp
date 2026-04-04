@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getEventDisplayTitle, type RawEventRow } from '../notifications/eventTypes';
-import { dedupeRecipientUserIds } from '../notifications/pending';
+import { dedupeRecipientUserIds, reminderNotificationDedupeFingerprint } from '../notifications/pending';
 import { fetchReminderRecipientUserIdsForTeamSeason } from '../notifications/users';
 import { buildPushReminderShort, buildReminderInAppBody, formatEventTimeVienna } from '../notifications/format';
 import { sendWebPushForUser } from '../../../lib/notificationDispatchHandler';
@@ -152,7 +152,14 @@ export async function processNotificationJob(
     return { ok: false, error: err };
   }
 
+  const recipientCountBeforeDedupe = recipients.length;
   recipients = dedupeRecipientUserIds(recipients);
+  console.log('[notificationsDedup] job recipients', {
+    jobId: job.id,
+    eventId: job.event_id,
+    rawCount: recipientCountBeforeDedupe,
+    afterDedupeCount: recipients.length,
+  });
 
   /** Pro Job genau ein Dispatch-Log pro User (Unique auf reminder_key); unabhängig von Payload-Varianten. */
   const dispatchLogReminderKey = `job:${job.id}`;
@@ -189,7 +196,14 @@ export async function processNotificationJob(
 
       if (logInsErr) {
         const code = (logInsErr as { code?: string }).code;
-        if (code === '23505') continue;
+        if (code === '23505') {
+          console.log('[notificationsDedup] dispatch_log insert skipped (duplicate)', {
+            jobId: job.id,
+            userId,
+            reminderKey: dispatchLogReminderKey,
+          });
+          continue;
+        }
         throw new Error(logInsErr.message || String(logInsErr));
       }
       const logId = logRow?.id as string | undefined;
@@ -205,12 +219,24 @@ export async function processNotificationJob(
         type: 'auto',
         link: linkPath,
         event_type: 'reminder',
+        source_notification_job_id: job.id,
       });
 
       if (nErr) {
+        const nCode = (nErr as { code?: string }).code;
+        if (nCode === '23505') {
+          console.log('[notificationsDedup] notification insert skipped (idempotent unique)', {
+            jobId: job.id,
+            userId,
+            fingerprint: reminderNotificationDedupeFingerprint(job.id, userId),
+          });
+          continue;
+        }
         await admin.from('notification_dispatch_log').delete().eq('id', logId);
         throw new Error(nErr.message || String(nErr));
       }
+
+      console.log('[notificationsDedup] notification inserted', { jobId: job.id, userId });
 
       const pushTag = `reminder-${payload.reminderKey}-${job.event_id}`;
       const pushRes = await sendWebPushForUser(admin, {

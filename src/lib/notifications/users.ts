@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { dedupeRecipientUserIds } from './pending';
 
 /**
  * Spieler-IDs dieses Users, die im Kader dieser team_season sind (Guardian + player_users).
@@ -45,14 +46,36 @@ export async function fetchReminderRecipientUserIdsForTeamSeason(
   admin: SupabaseClient,
   teamSeasonId: string,
 ): Promise<string[]> {
-  const { data: members, error } = await admin
-    .from('memberships')
-    .select('user_id')
-    .eq('team_season_id', teamSeasonId)
-    .in('role', [...REMINDER_TEAM_ROLES]);
-  if (error) throw error;
-  const ids = (members ?? []).map((m: { user_id: string }) => m.user_id).filter(Boolean);
-  return Array.from(new Set(ids));
+  const { data: rpcRows, error: rpcErr } = await admin.rpc('distinct_reminder_recipient_user_ids', {
+    p_team_season_id: teamSeasonId,
+  });
+
+  let ids: string[] = [];
+  if (rpcErr) {
+    console.warn('[notificationsDedup] distinct_reminder_recipient_user_ids RPC failed, fallback memberships', {
+      teamSeasonId,
+      message: rpcErr.message,
+    });
+    const { data: members, error } = await admin
+      .from('memberships')
+      .select('user_id')
+      .eq('team_season_id', teamSeasonId)
+      .in('role', [...REMINDER_TEAM_ROLES]);
+    if (error) throw error;
+    ids = (members ?? []).map((m: { user_id: string }) => m.user_id).filter(Boolean);
+  } else {
+    const rows = (rpcRows ?? []) as Array<{ user_id?: string | null }>;
+    ids = rows.map((r) => r.user_id).filter((id): id is string => Boolean(id));
+  }
+
+  const fromQueryCount = ids.length;
+  const out = dedupeRecipientUserIds(ids);
+  console.log('[notificationsDedup] recipients from memberships', {
+    teamSeasonId,
+    rowOrDistinctCount: fromQueryCount,
+    afterClientDedupe: out.length,
+  });
+  return out;
 }
 
 /** User mit Membership parent/player für diese Saison (Legacy: nur Parent/Spieler). */

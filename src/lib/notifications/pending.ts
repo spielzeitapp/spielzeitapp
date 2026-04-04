@@ -16,6 +16,11 @@ export function dedupeRecipientUserIds(ids: string[]): string[] {
   return out;
 }
 
+/** Log/Debug: stabiler Fingerabdruck pro Job + Empfänger (entspricht DB-Unique source_notification_job_id + user_id). */
+export function reminderNotificationDedupeFingerprint(jobId: string, userId: string): string {
+  return `job:${jobId}:user:${userId}`;
+}
+
 export type NotificationKind =
   | 'training_reminder'
   | 'game_reminder'

@@ -85,15 +85,8 @@ function ensureVapid() {
 /** Wie Supabase Edge send-reminders: Trainer + Eltern + Spieler (kein Fan). */
 const REMINDER_TEAM_ROLES = ['trainer', 'co_trainer', 'head_coach', 'parent', 'player'];
 
-async function fetchReminderRecipientUserIdsForTeamSeason(admin, teamSeasonId) {
-  const { data: members, error } = await admin
-    .from('memberships')
-    .select('user_id')
-    .eq('team_season_id', teamSeasonId)
-    .in('role', REMINDER_TEAM_ROLES);
-  if (error) throw error;
-  const ids = (members || []).map((m) => m.user_id);
-  return [...new Set(ids.filter(Boolean))];
+function reminderNotificationDedupeFingerprint(jobId, userId) {
+  return `job:${jobId}:user:${userId}`;
 }
 
 /** Stabile Deduplizierung (erstes Vorkommen), analog zu src/lib/notifications/pending.ts */
@@ -106,6 +99,38 @@ function dedupeRecipientUserIds(ids) {
     seen.add(id);
     out.push(id);
   }
+  return out;
+}
+
+async function fetchReminderRecipientUserIdsForTeamSeason(admin, teamSeasonId) {
+  const { data: rpcRows, error: rpcErr } = await admin.rpc('distinct_reminder_recipient_user_ids', {
+    p_team_season_id: teamSeasonId,
+  });
+
+  let ids = [];
+  if (rpcErr) {
+    console.warn('[notificationsDedup] distinct_reminder_recipient_user_ids RPC failed, fallback memberships', {
+      teamSeasonId,
+      message: rpcErr.message,
+    });
+    const { data: members, error } = await admin
+      .from('memberships')
+      .select('user_id')
+      .eq('team_season_id', teamSeasonId)
+      .in('role', REMINDER_TEAM_ROLES);
+    if (error) throw error;
+    ids = (members || []).map((m) => m.user_id).filter(Boolean);
+  } else {
+    ids = (rpcRows || []).map((r) => r.user_id).filter(Boolean);
+  }
+
+  const fromQueryCount = ids.length;
+  const out = dedupeRecipientUserIds(ids);
+  console.log('[notificationsDedup] recipients from memberships', {
+    teamSeasonId,
+    rowOrDistinctCount: fromQueryCount,
+    afterClientDedupe: out.length,
+  });
   return out;
 }
 
@@ -295,7 +320,14 @@ async function processOneJob(admin, job) {
     return { ok: true, inserted: 0, pushSent: 0, skipped: 'no_recipients' };
   }
 
+  const recipientCountBeforeDedupe = recipients.length;
   recipients = dedupeRecipientUserIds(recipients);
+  console.log('[notificationsDedup] job recipients', {
+    jobId: job.id,
+    eventId: job.event_id,
+    rawCount: recipientCountBeforeDedupe,
+    afterDedupeCount: recipients.length,
+  });
 
   /** Pro Job ein Dispatch-Log pro User; verhindert Doppel-Inserts bei abweichenden Payload-reminder_keys. */
   const dispatchLogReminderKey = `job:${job.id}`;
@@ -316,7 +348,14 @@ async function processOneJob(admin, job) {
       .maybeSingle();
 
     if (logInsErr) {
-      if (logInsErr.code === '23505') continue;
+      if (logInsErr.code === '23505') {
+        console.log('[notificationsDedup] dispatch_log insert skipped (duplicate)', {
+          jobId: job.id,
+          userId,
+          reminderKey: dispatchLogReminderKey,
+        });
+        continue;
+      }
       throw new Error(logInsErr.message || String(logInsErr));
     }
     const logId = logRow && logRow.id;
@@ -332,13 +371,23 @@ async function processOneJob(admin, job) {
       event_type: 'reminder',
       read: false,
       link: url,
+      source_notification_job_id: job.id,
     });
 
     if (insErr) {
+      if (insErr.code === '23505') {
+        console.log('[notificationsDedup] notification insert skipped (idempotent unique)', {
+          jobId: job.id,
+          userId,
+          fingerprint: reminderNotificationDedupeFingerprint(job.id, userId),
+        });
+        continue;
+      }
       await admin.from('notification_dispatch_log').delete().eq('id', logId);
       throw new Error(insErr.message || String(insErr));
     }
     inserted += 1;
+    console.log('[notificationsDedup] notification inserted', { jobId: job.id, userId });
     console.log('[reminderPipeline] notifications row created', { jobId: job.id, userId, eventId: job.event_id });
 
     const pushRes = await sendPushesForUser(admin, userId, title, textBody, url);

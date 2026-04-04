@@ -155,17 +155,8 @@ async function failJob(admin: SupabaseClient, job: JobRow, err: string) {
   }
 }
 
-async function fetchRecipientsForTeamSeason(admin: SupabaseClient, teamSeasonId: string | number) {
-  const { data, error } = await admin
-    .from("memberships")
-    .select("user_id, role")
-    .eq("team_season_id", teamSeasonId)
-    .in("role", MEMBER_ROLES);
-  if (error) throw error;
-  const ids = (data ?? [])
-    .map((r: { user_id?: string | null }) => r.user_id ?? null)
-    .filter((id): id is string => Boolean(id));
-  return [...new Set(ids)];
+function reminderNotificationDedupeFingerprint(jobId: string, userId: string): string {
+  return `job:${jobId}:user:${userId}`;
 }
 
 function dedupeRecipientUserIds(ids: string[]): string[] {
@@ -177,6 +168,43 @@ function dedupeRecipientUserIds(ids: string[]): string[] {
     seen.add(id);
     out.push(id);
   }
+  return out;
+}
+
+async function fetchRecipientsForTeamSeason(admin: SupabaseClient, teamSeasonId: string | number) {
+  const ts = String(teamSeasonId);
+  const { data: rpcRows, error: rpcErr } = await admin.rpc("distinct_reminder_recipient_user_ids", {
+    p_team_season_id: ts,
+  });
+
+  let ids: string[] = [];
+  if (rpcErr) {
+    console.warn("[notificationsDedup] distinct_reminder_recipient_user_ids RPC failed, fallback memberships", {
+      teamSeasonId: ts,
+      message: rpcErr.message,
+    });
+    const { data, error } = await admin
+      .from("memberships")
+      .select("user_id, role")
+      .eq("team_season_id", ts)
+      .in("role", MEMBER_ROLES);
+    if (error) throw error;
+    ids = (data ?? [])
+      .map((r: { user_id?: string | null }) => r.user_id ?? null)
+      .filter((id): id is string => Boolean(id));
+  } else {
+    ids = (rpcRows ?? [])
+      .map((r: { user_id?: string | null }) => r.user_id ?? null)
+      .filter((id): id is string => Boolean(id));
+  }
+
+  const fromQueryCount = ids.length;
+  const out = dedupeRecipientUserIds(ids);
+  console.log("[notificationsDedup] recipients from memberships", {
+    teamSeasonId: ts,
+    rowOrDistinctCount: fromQueryCount,
+    afterClientDedupe: out.length,
+  });
   return out;
 }
 
@@ -314,7 +342,14 @@ async function processOneJob(
   const deepLink = `/app/events/${eventId}`;
 
   let recipients = await fetchRecipientsForTeamSeason(admin, (event as EventRow).team_season_id!);
+  const recipientCountBeforeDedupe = recipients.length;
   recipients = dedupeRecipientUserIds(recipients);
+  console.log("[notificationsDedup] job recipients", {
+    jobId: job.id,
+    eventId,
+    rawCount: recipientCountBeforeDedupe,
+    afterDedupeCount: recipients.length,
+  });
   console.log("[send-reminders] recipients", { jobId: job.id, count: recipients.length });
 
   if (recipients.length === 0) {
@@ -325,6 +360,7 @@ async function processOneJob(
   let inserted = 0;
   let notificationInsertFailed = 0;
   let duplicateSkips = 0;
+  let notificationIdempotentSkips = 0;
   let pushSent = 0;
 
   for (const userId of recipients) {
@@ -343,10 +379,10 @@ async function processOneJob(
       if (logInsErr) {
         if (logInsErr.code === "23505") {
           duplicateSkips += 1;
-          console.log("[send-reminders] skip duplicate (dispatch log unique)", {
+          console.log("[notificationsDedup] dispatch_log insert skipped (duplicate)", {
             jobId: job.id,
             userId,
-            dispatchLogReminderKey,
+            reminderKey: dispatchLogReminderKey,
             payloadReminderKey,
           });
           continue;
@@ -368,9 +404,19 @@ async function processOneJob(
         read: false,
         link: deepLink,
         created_at: nowIso,
+        source_notification_job_id: job.id,
       });
 
       if (insErr) {
+        if (insErr.code === "23505") {
+          notificationIdempotentSkips += 1;
+          console.log("[notificationsDedup] notification insert skipped (idempotent unique)", {
+            jobId: job.id,
+            userId,
+            fingerprint: reminderNotificationDedupeFingerprint(job.id, userId),
+          });
+          continue;
+        }
         await admin.from("notification_dispatch_log").delete().eq("id", logId);
         notificationInsertFailed += 1;
         console.error("[send-reminders] notifications insert failed", { jobId: job.id, userId, error: insErr.message });
@@ -378,6 +424,7 @@ async function processOneJob(
       }
 
       inserted += 1;
+      console.log("[notificationsDedup] notification inserted", { jobId: job.id, userId });
 
       const pushResult = await sendPushesForUser(admin, job.id, userId, title, body, deepLink);
       pushSent += pushResult.sent;
@@ -387,16 +434,18 @@ async function processOneJob(
     }
   }
 
+  const anySoftSuccess = inserted > 0 || duplicateSkips > 0 || notificationIdempotentSkips > 0;
   const allInAppFailed =
     recipients.length > 0 &&
-    notificationInsertFailed === recipients.length &&
     inserted === 0 &&
-    duplicateSkips === 0;
+    !anySoftSuccess &&
+    notificationInsertFailed === recipients.length;
 
   console.log("[send-reminders] summary", {
     jobId: job.id,
     inserted,
     duplicateSkips,
+    notificationIdempotentSkips,
     notificationInsertFailed,
     pushSent,
     allInAppFailed,
