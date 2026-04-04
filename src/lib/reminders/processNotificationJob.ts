@@ -3,7 +3,7 @@ import { getEventDisplayTitle, type RawEventRow } from '../notifications/eventTy
 import { fetchReminderRecipientUserIdsForTeamSeason } from '../notifications/users';
 import { buildPushReminderShort, buildReminderInAppBody, formatEventTimeVienna } from '../notifications/format';
 import { sendWebPushForUser } from '../../../lib/notificationDispatchHandler';
-import type { NotificationJobPayload, NotificationJobRow } from './types';
+import type { NotificationJobPayload, NotificationJobRow, ReminderJobKind } from './types';
 
 function locationLineForBody(ev: RawEventRow): string | null {
   return (ev.location ?? '').trim() || null;
@@ -40,7 +40,13 @@ function buildCopyForJob(
   return { title, body, pushBody: buildPushReminderShort(titleStr) };
 }
 
-function parsePayload(raw: unknown): NotificationJobPayload | null {
+function notificationTypeFromJobKind(kind: ReminderJobKind): NotificationJobPayload['notificationType'] {
+  if (kind === 'match') return 'game_reminder';
+  if (kind === 'training') return 'training_reminder';
+  return 'event_reminder';
+}
+
+function parsePayload(raw: unknown, jobKind: ReminderJobKind): NotificationJobPayload | null {
   if (!raw || typeof raw !== 'object') return null;
   const p = raw as Record<string, unknown>;
   const reminderKey =
@@ -53,12 +59,15 @@ function parsePayload(raw: unknown): NotificationJobPayload | null {
   const offsetMinutes =
     typeof om === 'number' ? om : typeof om === 'string' ? Number(om) : Number.NaN;
   if (!reminderKey || !Number.isFinite(offsetMinutes)) return null;
-  if (typeof p.notificationType !== 'string') return null;
+  const notificationType =
+    typeof p.notificationType === 'string'
+      ? (p.notificationType as NotificationJobPayload['notificationType'])
+      : notificationTypeFromJobKind(jobKind);
   return {
     reminderKey,
     reminder_type: typeof p.reminder_type === 'string' ? p.reminder_type : reminderKey,
     offsetMinutes,
-    notificationType: p.notificationType as NotificationJobPayload['notificationType'],
+    notificationType,
     baseTimeIso: typeof p.baseTimeIso === 'string' ? p.baseTimeIso : '',
     minutes_before: typeof p.minutes_before === 'number' ? p.minutes_before : undefined,
     event_title: typeof p.event_title === 'string' ? p.event_title : undefined,
@@ -101,7 +110,7 @@ export async function processNotificationJob(
 ): Promise<{ ok: boolean; error?: string }> {
   console.log('PROCESS JOB', job.id);
 
-  const payload = parsePayload(job.payload);
+  const payload = parsePayload(job.payload, job.kind);
   if (!payload) {
     const err = 'invalid job payload';
     await failJob(admin, job.id, err);
@@ -161,16 +170,24 @@ export async function processNotificationJob(
 
   try {
     for (const userId of recipients) {
-      const { data: dup } = await admin
+      const { data: logRow, error: logInsErr } = await admin
         .from('notification_dispatch_log')
+        .insert({
+          user_id: userId,
+          event_id: job.event_id,
+          reminder_key: payload.reminderKey,
+          channel: 'in_app',
+        })
         .select('id')
-        .eq('user_id', userId)
-        .eq('event_id', job.event_id)
-        .eq('reminder_key', payload.reminderKey)
-        .eq('channel', 'in_app')
         .maybeSingle();
 
-      if (dup) continue;
+      if (logInsErr) {
+        const code = (logInsErr as { code?: string }).code;
+        if (code === '23505') continue;
+        throw new Error(logInsErr.message || String(logInsErr));
+      }
+      const logId = logRow?.id as string | undefined;
+      if (!logId) continue;
 
       const { error: nErr } = await admin.from('notifications').insert({
         user_id: userId,
@@ -185,20 +202,8 @@ export async function processNotificationJob(
       });
 
       if (nErr) {
+        await admin.from('notification_dispatch_log').delete().eq('id', logId);
         throw new Error(nErr.message || String(nErr));
-      }
-
-      const { error: dispErr } = await admin.from('notification_dispatch_log').insert({
-        user_id: userId,
-        event_id: job.event_id,
-        reminder_key: payload.reminderKey,
-        channel: 'in_app',
-      });
-      if (dispErr) {
-        const code = (dispErr as { code?: string }).code;
-        if (code !== '23505') {
-          console.warn('[processNotificationJob] notification_dispatch_log in_app', dispErr.message);
-        }
       }
 
       const pushTag = `reminder-${payload.reminderKey}-${job.event_id}`;

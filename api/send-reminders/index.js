@@ -111,19 +111,6 @@ function parseJobPayload(raw) {
   };
 }
 
-async function notificationAlreadyDispatched(admin, userId, eventId, reminderKey) {
-  const { data, error } = await admin
-    .from('notification_dispatch_log')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('event_id', eventId)
-    .eq('reminder_key', reminderKey)
-    .eq('channel', 'in_app')
-    .limit(1);
-  if (error) throw error;
-  return Boolean(data && data.length > 0);
-}
-
 async function completeJob(admin, jobId) {
   const sentAt = new Date().toISOString();
   const { error } = await admin
@@ -299,8 +286,23 @@ async function processOneJob(admin, job) {
   let pushSent = 0;
 
   for (const userId of recipients) {
-    const exists = await notificationAlreadyDispatched(admin, userId, job.event_id, reminderKey);
-    if (exists) continue;
+    const { data: logRow, error: logInsErr } = await admin
+      .from('notification_dispatch_log')
+      .insert({
+        user_id: userId,
+        event_id: job.event_id,
+        reminder_key: reminderKey,
+        channel: 'in_app',
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (logInsErr) {
+      if (logInsErr.code === '23505') continue;
+      throw new Error(logInsErr.message || String(logInsErr));
+    }
+    const logId = logRow && logRow.id;
+    if (!logId) continue;
 
     const { error: insErr } = await admin.from('notifications').insert({
       team_id: job.team_id,
@@ -315,23 +317,11 @@ async function processOneJob(admin, job) {
     });
 
     if (insErr) {
+      await admin.from('notification_dispatch_log').delete().eq('id', logId);
       throw new Error(insErr.message || String(insErr));
     }
     inserted += 1;
     console.log('[reminderPipeline] notifications row created', { jobId: job.id, userId, eventId: job.event_id });
-
-    const { error: dispErr } = await admin.from('notification_dispatch_log').insert({
-      user_id: userId,
-      event_id: job.event_id,
-      reminder_key: reminderKey,
-      channel: 'in_app',
-    });
-    if (dispErr) {
-      const code = dispErr.code;
-      if (code !== '23505') {
-        console.warn('[send-reminders] notification_dispatch_log insert failed', dispErr.message || dispErr);
-      }
-    }
 
     const pushRes = await sendPushesForUser(admin, userId, title, textBody, url);
     pushSent += pushRes.sent;

@@ -155,25 +155,6 @@ async function failJob(admin: SupabaseClient, job: JobRow, err: string) {
   }
 }
 
-/** Duplikat-Schutz: gleicher Reminder nicht zweimal in-app (notification_dispatch_log) */
-async function inAppReminderAlreadyDispatched(
-  admin: SupabaseClient,
-  userId: string,
-  eventId: string,
-  reminderKey: string,
-): Promise<boolean> {
-  const { data, error } = await admin
-    .from("notification_dispatch_log")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("event_id", eventId)
-    .eq("reminder_key", reminderKey)
-    .eq("channel", "in_app")
-    .limit(1);
-  if (error) throw error;
-  return Boolean(data && data.length > 0);
-}
-
 async function fetchRecipientsForTeamSeason(admin: SupabaseClient, teamSeasonId: string | number) {
   const { data, error } = await admin
     .from("memberships")
@@ -334,12 +315,31 @@ async function processOneJob(
 
   for (const userId of recipients) {
     try {
-      const already = await inAppReminderAlreadyDispatched(admin, userId, eventId, effectiveReminderKey);
-      if (already) {
-        duplicateSkips += 1;
-        console.log("[send-reminders] skip duplicate (dispatch log)", { jobId: job.id, userId, effectiveReminderKey });
-        continue;
+      const { data: logRow, error: logInsErr } = await admin
+        .from("notification_dispatch_log")
+        .insert({
+          user_id: userId,
+          event_id: eventId,
+          reminder_key: effectiveReminderKey,
+          channel: "in_app",
+        })
+        .select("id")
+        .maybeSingle();
+
+      if (logInsErr) {
+        if (logInsErr.code === "23505") {
+          duplicateSkips += 1;
+          console.log("[send-reminders] skip duplicate (dispatch log unique)", {
+            jobId: job.id,
+            userId,
+            effectiveReminderKey,
+          });
+          continue;
+        }
+        throw logInsErr;
       }
+      const logId = logRow?.id;
+      if (!logId) continue;
 
       const nowIso = new Date().toISOString();
       const { error: insErr } = await admin.from("notifications").insert({
@@ -356,22 +356,13 @@ async function processOneJob(
       });
 
       if (insErr) {
+        await admin.from("notification_dispatch_log").delete().eq("id", logId);
         notificationInsertFailed += 1;
         console.error("[send-reminders] notifications insert failed", { jobId: job.id, userId, error: insErr.message });
         continue;
       }
 
       inserted += 1;
-
-      const { error: logErr } = await admin.from("notification_dispatch_log").insert({
-        user_id: userId,
-        event_id: eventId,
-        reminder_key: effectiveReminderKey,
-        channel: "in_app",
-      });
-      if (logErr) {
-        console.error("[send-reminders] dispatch_log insert failed", { jobId: job.id, userId, error: logErr.message });
-      }
 
       const pushResult = await sendPushesForUser(admin, job.id, userId, title, body, deepLink);
       pushSent += pushResult.sent;
