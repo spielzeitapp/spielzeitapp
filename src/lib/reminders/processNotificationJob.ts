@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getEventDisplayTitle, type RawEventRow } from '../notifications/eventTypes';
+import { dedupeRecipientUserIds } from '../notifications/pending';
 import { fetchReminderRecipientUserIdsForTeamSeason } from '../notifications/users';
 import { buildPushReminderShort, buildReminderInAppBody, formatEventTimeVienna } from '../notifications/format';
 import { sendWebPushForUser } from '../../../lib/notificationDispatchHandler';
@@ -151,6 +152,11 @@ export async function processNotificationJob(
     return { ok: false, error: err };
   }
 
+  recipients = dedupeRecipientUserIds(recipients);
+
+  /** Pro Job genau ein Dispatch-Log pro User (Unique auf reminder_key); unabhängig von Payload-Varianten. */
+  const dispatchLogReminderKey = `job:${job.id}`;
+
   console.log('[reminderPipeline] processNotificationJob recipients', {
     jobId: job.id,
     eventId: job.event_id,
@@ -175,7 +181,7 @@ export async function processNotificationJob(
         .insert({
           user_id: userId,
           event_id: job.event_id,
-          reminder_key: payload.reminderKey,
+          reminder_key: dispatchLogReminderKey,
           channel: 'in_app',
         })
         .select('id')
@@ -218,7 +224,7 @@ export async function processNotificationJob(
         const { error: pushLogErr } = await admin.from('notification_dispatch_log').insert({
           user_id: userId,
           event_id: job.event_id,
-          reminder_key: payload.reminderKey,
+          reminder_key: dispatchLogReminderKey,
           channel: 'push',
         });
         if (pushLogErr) {

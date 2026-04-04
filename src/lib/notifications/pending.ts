@@ -1,5 +1,21 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+/**
+ * Empfänger-UUIDs vor dem Versand deduplizieren (stabile Reihenfolge: erstes Vorkommen).
+ * Mehrere Membership-Zeilen oder Join-Pfade dürfen nicht zu doppelten Benachrichtigungen führen.
+ */
+export function dedupeRecipientUserIds(ids: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of ids) {
+    const id = typeof raw === 'string' ? raw.trim() : '';
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
 export type NotificationKind =
   | 'training_reminder'
   | 'game_reminder'

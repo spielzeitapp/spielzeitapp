@@ -96,6 +96,19 @@ async function fetchReminderRecipientUserIdsForTeamSeason(admin, teamSeasonId) {
   return [...new Set(ids.filter(Boolean))];
 }
 
+/** Stabile Deduplizierung (erstes Vorkommen), analog zu src/lib/notifications/pending.ts */
+function dedupeRecipientUserIds(ids) {
+  const out = [];
+  const seen = new Set();
+  for (const raw of ids || []) {
+    const id = typeof raw === 'string' ? raw.trim() : '';
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
 function parseJobPayload(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const p = raw;
@@ -282,6 +295,11 @@ async function processOneJob(admin, job) {
     return { ok: true, inserted: 0, pushSent: 0, skipped: 'no_recipients' };
   }
 
+  recipients = dedupeRecipientUserIds(recipients);
+
+  /** Pro Job ein Dispatch-Log pro User; verhindert Doppel-Inserts bei abweichenden Payload-reminder_keys. */
+  const dispatchLogReminderKey = `job:${job.id}`;
+
   let inserted = 0;
   let pushSent = 0;
 
@@ -291,7 +309,7 @@ async function processOneJob(admin, job) {
       .insert({
         user_id: userId,
         event_id: job.event_id,
-        reminder_key: reminderKey,
+        reminder_key: dispatchLogReminderKey,
         channel: 'in_app',
       })
       .select('id')

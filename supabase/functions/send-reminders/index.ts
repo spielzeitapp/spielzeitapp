@@ -3,7 +3,7 @@
  *
  * - Claim: claim_notification_job (nur pending/failed, send_at <= now)
  * - In-App: nur public.notifications + notification_dispatch_log (keine legacy messages)
- * - Duplikat-Schutz: vor Insert prüfen ob (user_id, event_id, reminder_key, in_app) bereits im Log
+ * - Duplikat-Schutz: notification_dispatch_log mit reminder_key = job:<job_id> (pro User/Event/Kanal eindeutig)
  * - Push: best-effort (kein Fehler bei fehlenden Subscriptions / VAPID)
  */
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
@@ -168,6 +168,18 @@ async function fetchRecipientsForTeamSeason(admin: SupabaseClient, teamSeasonId:
   return [...new Set(ids)];
 }
 
+function dedupeRecipientUserIds(ids: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of ids) {
+    const id = typeof raw === "string" ? raw.trim() : "";
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
 let vapidReady = false;
 function ensureVapidOrThrow(): void {
   if (vapidReady) return;
@@ -258,8 +270,9 @@ async function processOneJob(
     return { ok: false, error: err };
   }
 
-  const { reminderKey } = parseJobPayload(job.payload);
-  const effectiveReminderKey = reminderKey ?? `job:${job.id}`;
+  const { reminderKey: payloadReminderKey } = parseJobPayload(job.payload);
+  /** Unique-Key im Dispatch-Log = pro notification_job; verhindert doppelte notifications bei abweichenden Payload-Keys. */
+  const dispatchLogReminderKey = `job:${job.id}`;
 
   const { data: event, error: eventErr } = await admin
     .from("events")
@@ -300,7 +313,8 @@ async function processOneJob(
   const eventId = job.event_id;
   const deepLink = `/app/events/${eventId}`;
 
-  const recipients = await fetchRecipientsForTeamSeason(admin, (event as EventRow).team_season_id!);
+  let recipients = await fetchRecipientsForTeamSeason(admin, (event as EventRow).team_season_id!);
+  recipients = dedupeRecipientUserIds(recipients);
   console.log("[send-reminders] recipients", { jobId: job.id, count: recipients.length });
 
   if (recipients.length === 0) {
@@ -320,7 +334,7 @@ async function processOneJob(
         .insert({
           user_id: userId,
           event_id: eventId,
-          reminder_key: effectiveReminderKey,
+          reminder_key: dispatchLogReminderKey,
           channel: "in_app",
         })
         .select("id")
@@ -332,7 +346,8 @@ async function processOneJob(
           console.log("[send-reminders] skip duplicate (dispatch log unique)", {
             jobId: job.id,
             userId,
-            effectiveReminderKey,
+            dispatchLogReminderKey,
+            payloadReminderKey,
           });
           continue;
         }
