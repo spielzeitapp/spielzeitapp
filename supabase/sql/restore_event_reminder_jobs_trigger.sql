@@ -134,7 +134,7 @@ BEGIN
       'pending',
       'event:' || v_event.id::text || ':training_' || v_training_minutes
     )
-    ON CONFLICT (dedupe_key) DO NOTHING;
+    ON CONFLICT (event_id, kind, send_at) DO NOTHING;
     RAISE LOG '[reminderPipeline] job created event_id=% send_at_utc=% reminder=training_%',
       v_event.id, v_send_at, v_training_minutes;
   END IF;
@@ -157,7 +157,7 @@ BEGIN
         'pending',
         'event:' || v_event.id::text || ':match_' || v_match_minutes
       )
-      ON CONFLICT (dedupe_key) DO NOTHING;
+      ON CONFLICT (event_id, kind, send_at) DO NOTHING;
       RAISE LOG '[reminderPipeline] job created event_id=% send_at_utc=% reminder=match_%',
         v_event.id, v_send_at, v_match_minutes;
     END IF;
@@ -179,7 +179,7 @@ BEGIN
         'pending',
         'event:' || v_event.id::text || ':match_second_' || v_match_second_minutes
       )
-      ON CONFLICT (dedupe_key) DO NOTHING;
+      ON CONFLICT (event_id, kind, send_at) DO NOTHING;
       RAISE LOG '[reminderPipeline] job created event_id=% send_at_utc=% reminder=match_second_%',
         v_event.id, v_send_at, v_match_second_minutes;
     END IF;
@@ -202,7 +202,7 @@ BEGIN
       'pending',
       'event:' || v_event.id::text || ':event_' || v_event_minutes
     )
-    ON CONFLICT (dedupe_key) DO NOTHING;
+    ON CONFLICT (event_id, kind, send_at) DO NOTHING;
     RAISE LOG '[reminderPipeline] job created event_id=% send_at_utc=% reminder=event_%',
       v_event.id, v_send_at, v_event_minutes;
   END IF;

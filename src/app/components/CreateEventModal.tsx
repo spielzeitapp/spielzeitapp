@@ -3,7 +3,6 @@ import { Button } from './ui/Button';
 import { Modal } from '../ui/Modal';
 import { supabase } from '../../lib/supabaseClient';
 import { enumerateOccurrenceStarts, type RecurrenceKind } from '../../lib/recurrenceDates';
-import { createReminderJobs } from '../../lib/reminders/syncReminderJobsAfterEventWrite';
 import {
   meetupUtcIsoOnViennaEventDay,
   parseViennaDateTimeLocalToUtcIso,
@@ -271,38 +270,6 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         rowCount: Array.isArray(insertedRows) ? insertedRows.length : 0,
         ids: Array.isArray(insertedRows) ? insertedRows.map((r: { id?: string }) => r.id).filter(Boolean) : [],
       });
-
-      let rowsToSync: Record<string, unknown>[] = Array.isArray(insertedRows) ? [...insertedRows] : [];
-      if (rowsToSync.length === 0 && rows.length > 0) {
-        const since = new Date(Date.now() - 20_000).toISOString();
-        const { data: refetched, error: refetchErr } = await supabase
-          .from('events')
-          .select('*')
-          .eq('team_season_id', teamSeasonId)
-          .gte('created_at', since)
-          .order('created_at', { ascending: true });
-        if (refetchErr) {
-          console.error('[CreateEventModal] REMINDER refetch after insert failed', refetchErr.message);
-        } else if (refetched?.length) {
-          console.log('[CreateEventModal] REMINDER using refetched events after empty insert.select', refetched.length);
-          rowsToSync = refetched as Record<string, unknown>[];
-        } else {
-          console.warn('[CreateEventModal] REMINDER no rows from insert.select and refetch empty');
-        }
-      }
-
-      try {
-        for (const row of rowsToSync) {
-          const syncRes = await createReminderJobs(supabase, row);
-          console.log('[reminderPipeline] event created → reminder jobs sync', {
-            eventId: (row as { id?: string }).id,
-            inserted: syncRes?.inserted,
-            error: syncRes?.error ?? null,
-          });
-        }
-      } catch (e) {
-        console.error('[reminderPipeline] reminder sync loop error', e);
-      }
 
       // MVP: Automatische Nachricht + Push für „Neuer Termin / Event erstellt“
       try {

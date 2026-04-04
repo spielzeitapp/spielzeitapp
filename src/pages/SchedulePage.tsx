@@ -14,7 +14,6 @@ import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } f
 import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
-import { syncReminderJobsAfterEventWrite } from '../lib/reminders/syncReminderJobsAfterEventWrite';
 import { downloadCalendarIcs, downloadEventIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import type { SeriesEditScope } from '../lib/seriesEditScope';
@@ -344,7 +343,6 @@ export const SchedulePage: React.FC = () => {
     const updateSelect = 'id, starts_at, meeting_at, location, opponent, notes';
 
     let eventErr: { message: string } | null = null;
-    let updatedEventIds: string[] = [];
 
     if (!bulkScope) {
       console.log('event update payload', fullPayload);
@@ -360,9 +358,6 @@ export const SchedulePage: React.FC = () => {
         setEditError('Speichern fehlgeschlagen: Keine Zeile aktualisiert (Berechtigung oder ID).');
         setSavingEdit(false);
         return;
-      }
-      if (!r.error && r.data?.length) {
-        updatedEventIds = r.data.map((row: { id: string }) => row.id);
       }
     } else if (editSeriesScope === 'future' && editEvent.series_id) {
       console.log('event bulk update (future) payload', sharedPayload);
@@ -380,9 +375,6 @@ export const SchedulePage: React.FC = () => {
         setSavingEdit(false);
         return;
       }
-      if (!r.error && r.data?.length) {
-        updatedEventIds = r.data.map((row: { id: string }) => row.id);
-      }
     } else if (editSeriesScope === 'series' && editEvent.series_id) {
       console.log('event bulk update (series) payload', sharedPayload);
       console.log('event bulk update series_id', editEvent.series_id);
@@ -398,30 +390,12 @@ export const SchedulePage: React.FC = () => {
         setSavingEdit(false);
         return;
       }
-      if (!r.error && r.data?.length) {
-        updatedEventIds = r.data.map((row: { id: string }) => row.id);
-      }
     }
 
     if (eventErr) {
       setEditError(eventErr.message);
       setSavingEdit(false);
       return;
-    }
-
-    try {
-      console.log('[reminderPipeline] SchedulePage edit save → reminder job sync', {
-        eventCount: updatedEventIds.length,
-        bulkScope,
-      });
-      for (const eventId of updatedEventIds) {
-        const { data: freshEv } = await supabase.from('events').select('*').eq('id', eventId).maybeSingle();
-        if (freshEv) {
-          await syncReminderJobsAfterEventWrite(supabase, freshEv as Record<string, unknown>);
-        }
-      }
-    } catch {
-      /* Reminder-Jobs best-effort */
     }
 
     // MVP: Automatische Nachricht + Push bei relevanter Termin-Aenderung
