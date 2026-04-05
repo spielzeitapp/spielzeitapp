@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+/**
+ * Gleiche Bibliothek wie `api/push/send-team.js` (Vercel).
+ * Edge Secrets: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (wie Backend).
+ */
+import webpush from "npm:web-push@3.6.7";
 
 const JOB_BATCH_LIMIT = 50;
 const VIENNA_TZ = "Europe/Vienna";
@@ -22,6 +27,142 @@ type EventRow = {
   notes?: string | null;
   match_id?: string | null;
 };
+
+type SubRow = {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  user_id: string;
+};
+
+let vapidConfigured = false;
+
+function ensureVapid(): boolean {
+  if (vapidConfigured) return true;
+  const publicKey = (Deno.env.get("VAPID_PUBLIC_KEY") ?? "").trim();
+  const privateKey = (Deno.env.get("VAPID_PRIVATE_KEY") ?? "").trim();
+  const subject = (Deno.env.get("VAPID_SUBJECT") ?? "").trim();
+  if (!publicKey || !privateKey || !subject) {
+    console.warn(
+      "[send-reminders] VAPID fehlt — kein Web Push (Secrets: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT)",
+    );
+    return false;
+  }
+  webpush.setVapidDetails(subject, publicKey, privateKey);
+  vapidConfigured = true;
+  return true;
+}
+
+function getPushFailureStatusCode(err: unknown): number | undefined {
+  const e = err as { statusCode?: number; status_code?: number };
+  const n = Number(e?.statusCode ?? e?.status_code);
+  if (Number.isFinite(n) && n >= 100 && n <= 599) return n;
+  return undefined;
+}
+
+function shouldRemoveSubscription(statusCode: number | undefined, errMsg: string): boolean {
+  if (statusCode === 404 || statusCode === 410) return true;
+  const m = `${errMsg}`;
+  if (/VapidPkHashMismatch/i.test(m)) return true;
+  if (/BadJwtToken/i.test(m)) return true;
+  return false;
+}
+
+/**
+ * Wie `api/push/send-team.js`: push_subscriptions + JSON-Payload + webpush.sendNotification,
+ * ungültige Subscriptions entfernen (410/404 / VAPID-Mismatch).
+ */
+async function sendReminderWebPushes(
+  supabase: ReturnType<typeof createClient>,
+  userIds: string[],
+  title: string,
+  body: string,
+  url: string,
+  jobId: string,
+): Promise<void> {
+  if (!ensureVapid() || userIds.length === 0) return;
+
+  const { data: subRows, error: subErr } = await supabase
+    .from("push_subscriptions")
+    .select("endpoint, p256dh, auth, user_id")
+    .in("user_id", userIds)
+    .not("endpoint", "is", null);
+
+  if (subErr) {
+    console.error("[send-reminders] push_subscriptions:", subErr.message);
+    return;
+  }
+
+  const rows = (subRows ?? []).filter(
+    (r: SubRow) => r.endpoint && r.p256dh && r.auth,
+  ) as SubRow[];
+
+  const batchTs = Date.now();
+
+  for (const row of rows) {
+    const uid = row.user_id;
+    let unreadForBadge: number | null = null;
+    try {
+      const { count, error: cErr } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", uid)
+        .eq("read", false);
+      if (!cErr && count != null) {
+        unreadForBadge = Math.min(99, Math.max(0, Math.floor(Number(count))));
+      }
+    } catch {
+      /* ignore */
+    }
+
+    const pushTag = `reminder-edge-${jobId}-${batchTs}-${uid}`;
+    const payloadObj: Record<string, unknown> = {
+      title: title.trim() || "SpielzeitApp",
+      body: body.trim() || "Neue Benachrichtigung",
+      url,
+      tag: pushTag,
+      icon: "/icon-192.png",
+      badge: "/badge-72.png",
+      vibrate: [200, 100, 200],
+      data: { url },
+    };
+    if (unreadForBadge != null) {
+      payloadObj.appBadgeCount = unreadForBadge;
+      payloadObj.unread_count = unreadForBadge;
+      payloadObj.badge_count = unreadForBadge;
+      payloadObj.data = {
+        url,
+        unread_count: unreadForBadge,
+        badge_count: unreadForBadge,
+      };
+    }
+    const payload = JSON.stringify(payloadObj);
+
+    try {
+      await webpush.sendNotification(
+        {
+          endpoint: row.endpoint,
+          keys: { p256dh: row.p256dh, auth: row.auth },
+        },
+        payload,
+        { TTL: 86400 },
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const statusCode = getPushFailureStatusCode(err);
+      console.error("[send-reminders] webpush failed", { uid, statusCode, msg });
+      if (shouldRemoveSubscription(statusCode, msg)) {
+        const { error: delErr } = await supabase
+          .from("push_subscriptions")
+          .delete()
+          .eq("endpoint", row.endpoint.trim());
+        if (delErr) {
+          console.error("[send-reminders] delete push_subscriptions", delErr.message);
+        }
+      }
+    }
+  }
+}
 
 function formatTimeDe(iso: string | null) {
   if (!iso) return "--:--";
@@ -93,14 +234,14 @@ function buildReminderUxCopy(
   };
 }
 
-async function completeJob(admin: any, id: string) {
+async function completeJob(admin: ReturnType<typeof createClient>, id: string) {
   await admin.from("notification_jobs").update({
     status: "sent",
     sent_at: new Date().toISOString(),
   }).eq("id", id);
 }
 
-async function failJob(admin: any, id: string, error: string) {
+async function failJob(admin: ReturnType<typeof createClient>, id: string, error: string) {
   await admin.from("notification_jobs").update({
     status: "failed",
     last_error: error,
@@ -111,12 +252,11 @@ serve(async () => {
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     const now = new Date().toISOString();
 
-    // Jobs holen
     const { data: jobs } = await supabase
       .from("notification_jobs")
       .select("*")
@@ -132,7 +272,6 @@ serve(async () => {
 
     for (const job of jobs as JobRow[]) {
       try {
-        // Event laden
         const { data: event } = await supabase
           .from("events")
           .select(
@@ -148,7 +287,6 @@ serve(async () => {
           continue;
         }
 
-        // Empfänger holen
         const { data: members } = await supabase
           .from("memberships")
           .select("user_id")
@@ -159,12 +297,11 @@ serve(async () => {
           continue;
         }
 
-        // 🔥 WICHTIG: DEDUPE USER IDS
         const uniqueUserIds = [
           ...new Set(
             members
-              .map((m) => m.user_id)
-              .filter((id) => !!id)
+              .map((m: { user_id: string }) => m.user_id)
+              .filter((id: string) => !!id),
           ),
         ];
 
@@ -185,7 +322,6 @@ serve(async () => {
         );
         const linkPath = reminderAppDeepLink(jobKind, event as EventRow);
 
-        // 🔥 WICHTIG: UPSERT + SOURCE JOB ID
         const rows = uniqueUserIds.map((userId) => ({
           user_id: userId,
           team_id: job.team_id,
@@ -206,21 +342,29 @@ serve(async () => {
 
         if (error) throw error;
 
-        console.log("Job erledigt:", job.id);
+        await sendReminderWebPushes(
+          supabase,
+          uniqueUserIds,
+          uxTitle,
+          uxMessage,
+          linkPath,
+          job.id,
+        );
 
+        console.log("Job erledigt (DB + Push-Versuch):", job.id);
         await completeJob(supabase, job.id);
-
-      } catch (err: any) {
-        console.error("Job Fehler:", err.message);
-        await failJob(supabase, job.id, err.message);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("Job Fehler:", msg);
+        await failJob(supabase, job.id, msg);
       }
     }
 
     return new Response(JSON.stringify({ ok: true }));
-
-  } catch (err: any) {
-    console.error("FATAL:", err.message);
-    return new Response(JSON.stringify({ ok: false, error: err.message }), {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("FATAL:", msg);
+    return new Response(JSON.stringify({ ok: false, error: msg }), {
       status: 500,
     });
   }
