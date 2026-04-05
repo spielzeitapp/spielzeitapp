@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import {
+  buildTeamNotificationSettingsPayload,
   DEFAULT_TEAM_NOTIFICATION_SETTINGS,
   mapTeamNotificationSettingsFromDb,
   type TeamNotificationSettingsRow,
@@ -88,17 +89,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
     setSaved(false);
     setSaveError(null);
 
-    /** Vollständige Zeile laut DB-Schema (Migration): alle Reminder-Felder explizit. */
-    const payload = {
-      training_reminder_enabled: row.training_enabled,
-      training_reminder_minutes_before: row.training_minutes_before,
-      match_reminder_enabled: row.match_enabled,
-      match_reminder_minutes_before: row.match_minutes_before,
-      match_second_reminder_enabled: row.match_second_enabled,
-      match_second_reminder_minutes_before: row.match_second_minutes_before,
-      event_reminder_enabled: row.event_enabled,
-      event_reminder_minutes_before: row.event_minutes_before,
-    };
+    const payload = buildTeamNotificationSettingsPayload(row);
 
     try {
       const { data: existing, error: existingError } = await supabase

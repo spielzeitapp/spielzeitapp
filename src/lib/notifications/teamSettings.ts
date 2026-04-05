@@ -107,3 +107,51 @@ export function mapTeamNotificationSettingsFromDb(
   };
   return resolveTeamSettings(teamSeasonId, row);
 }
+
+/**
+ * Payload für INSERT/UPDATE: schreibt kanonische `*_reminder_*`-Spalten **und** Kurz-Aliase
+ * (`match_second_enabled`, …), damit Dashboards und Deployments mit nur Kurz-Spalten denselben Wert sehen.
+ * Keine abgeleiteten Booleans aus Minuten — nur explizite Checkbox-Werte.
+ */
+export function buildTeamNotificationSettingsPayload(
+  row: Pick<
+    TeamNotificationSettingsRow,
+    | 'training_enabled'
+    | 'training_minutes_before'
+    | 'match_enabled'
+    | 'match_minutes_before'
+    | 'match_second_enabled'
+    | 'match_second_minutes_before'
+    | 'event_enabled'
+    | 'event_minutes_before'
+  >,
+): Record<string, boolean | number> {
+  const {
+    training_enabled: te,
+    training_minutes_before: tm,
+    match_enabled: me,
+    match_minutes_before: mm,
+    match_second_enabled: m2e,
+    match_second_minutes_before: m2m,
+    event_enabled: ee,
+    event_minutes_before: em,
+  } = row;
+  return {
+    training_reminder_enabled: te,
+    training_reminder_minutes_before: tm,
+    match_reminder_enabled: me,
+    match_reminder_minutes_before: mm,
+    match_second_reminder_enabled: m2e,
+    match_second_reminder_minutes_before: m2m,
+    event_reminder_enabled: ee,
+    event_reminder_minutes_before: em,
+    training_enabled: te,
+    training_minutes_before: tm,
+    match_enabled: me,
+    match_minutes_before: mm,
+    match_second_enabled: m2e,
+    match_second_minutes_before: m2m,
+    event_enabled: ee,
+    event_minutes_before: em,
+  };
+}
