@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import { getPendingNotifications, type PendingNotificationItem } from '../src/lib/notifications';
 import { processPushAutomations, type PushAutomationResult } from './pushAutomationDispatch';
+import { buildWebPushJsonPayload } from './webPushPayload';
 
 function readEnv(key: string): string | undefined {
   const g = globalThis as unknown as { process?: { env?: Record<string, string | undefined> } };
@@ -277,11 +278,13 @@ export async function sendPendingNotificationReminder(
     return { sent: 0, skipped: 0, errors, details };
   }
 
-  const payload = JSON.stringify({
+  const unreadForBadge = await countUnreadNotificationsForUser(admin, item.userId);
+  const payload = buildWebPushJsonPayload({
     title: 'SpielzeitApp Erinnerung',
     body: item.pushBody,
     url: item.url,
     tag: `reminder-${item.reminderKey}-${item.eventId}`,
+    appBadgeCount: unreadForBadge,
   });
 
   let sent = 0;
@@ -387,16 +390,13 @@ export async function sendWebPushForUser(
     return { sent: 0, errors };
   }
 
-  const payloadObj: Record<string, unknown> = {
+  const payload = buildWebPushJsonPayload({
     title: opts.title,
     body: opts.body,
     url: opts.url,
     tag: opts.tag,
-  };
-  if (typeof opts.appBadgeCount === 'number' && Number.isFinite(opts.appBadgeCount)) {
-    payloadObj.appBadgeCount = Math.min(99, Math.max(0, Math.floor(opts.appBadgeCount)));
-  }
-  const payload = JSON.stringify(payloadObj);
+    appBadgeCount: opts.appBadgeCount,
+  });
 
   let sent = 0;
   for (const s of subs) {

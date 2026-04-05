@@ -178,6 +178,11 @@ export default async function handler(req, res) {
     let url =
       typeof body.url === "string" && body.url.trim() ? body.url.trim() : "/termine";
     if (!url.startsWith("/")) url = `/${url}`;
+    if (url === "/termine" || url.startsWith("/termine?") || url.startsWith("/termine#")) {
+      url = `/app/termine${url.slice("/termine".length)}`;
+    } else if (url === "/nachrichten" || url.startsWith("/nachrichten?") || url.startsWith("/nachrichten#")) {
+      url = `/app/nachrichten${url.slice("/nachrichten".length)}`;
+    }
 
     const related_event_id =
       typeof body.related_event_id === "string" && body.related_event_id.trim()
@@ -362,10 +367,16 @@ export default async function handler(req, res) {
     if (rows.length > 0) {
       ensureVapid();
 
+      const pushTag = `team-push-${team_season_id}-${Date.now()}`;
       const payload = JSON.stringify({
         title,
         body: textBody,
         url,
+        tag: pushTag,
+        icon: "/icon-192.png",
+        badge: "/icon-192.png",
+        vibrate: [160, 100, 160, 100, 280],
+        data: { url },
       });
 
       logVapidBeforeSend("push/send-team", {

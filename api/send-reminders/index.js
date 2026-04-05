@@ -241,7 +241,7 @@ async function countUnreadNotificationsForUser(admin, userId) {
   return count ?? 0;
 }
 
-async function sendPushesForUser(admin, userId, title, body, url, appBadgeCount) {
+async function sendPushesForUser(admin, userId, title, body, url, appBadgeCount, tag) {
   const { data: subscriptions, error } = await admin
     .from('push_subscriptions')
     .select('endpoint, p256dh, auth')
@@ -252,7 +252,27 @@ async function sendPushesForUser(admin, userId, title, body, url, appBadgeCount)
     return { sent: 0, removed: 0 };
   }
   ensureVapid();
-  const payloadObj = { title, body, url };
+  let path =
+    typeof url === 'string' && url.trim()
+      ? url.trim().startsWith('/')
+        ? url.trim()
+        : `/${url.trim()}`
+      : '/app/nachrichten';
+  if (path === '/termine' || path.startsWith('/termine?') || path.startsWith('/termine#')) {
+    path = `/app/termine${path.slice('/termine'.length)}`;
+  }
+  const pushTag =
+    typeof tag === 'string' && tag.trim() ? tag.trim() : `push-${userId}-${Date.now()}`;
+  const payloadObj = {
+    title,
+    body,
+    url: path,
+    tag: pushTag,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    vibrate: [160, 100, 160, 100, 280],
+    data: { url: path },
+  };
   if (typeof appBadgeCount === 'number' && Number.isFinite(appBadgeCount)) {
     payloadObj.appBadgeCount = Math.min(99, Math.max(0, Math.floor(appBadgeCount)));
   }
@@ -426,7 +446,16 @@ async function processOneJob(admin, job) {
     console.log('[reminderPipeline] notifications row created', { jobId: job.id, userId, eventId: job.event_id });
 
     const unreadForBadge = await countUnreadNotificationsForUser(admin, userId);
-    const pushRes = await sendPushesForUser(admin, userId, title, textBody, url, unreadForBadge);
+    const pushTag = `reminder-job-${job.id}-${userId}`;
+    const pushRes = await sendPushesForUser(
+      admin,
+      userId,
+      title,
+      textBody,
+      url,
+      unreadForBadge,
+      pushTag,
+    );
     pushSent += pushRes.sent;
     console.log('[reminderPipeline] push attempt', {
       jobId: job.id,

@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 /**
  * Service Worker: Web Push empfangen und System-Benachrichtigung anzeigen.
- * Klick öffnet die App-URL aus data.url (z. B. /app/events/<id>).
+ * Klick öffnet data.url bzw. Payload-URL (z. B. /app/termine).
  */
 self.addEventListener('push', (event) => {
   let payload = {};
@@ -20,35 +20,64 @@ self.addEventListener('push', (event) => {
 
   const title =
     typeof payload.title === 'string' && payload.title.trim()
-      ? payload.title
+      ? payload.title.trim()
       : 'Spielzeit';
+
   const body =
     typeof payload.body === 'string' && payload.body.trim()
-      ? payload.body
+      ? payload.body.trim()
       : 'Neue Benachrichtigung';
-  const url =
-    typeof payload.url === 'string' && payload.url.startsWith('/')
-      ? payload.url
-      : '/app/schedule';
+
+  const fromData =
+    payload.data && typeof payload.data === 'object' && typeof payload.data.url === 'string'
+      ? payload.data.url.trim()
+      : '';
+  const fromTop = typeof payload.url === 'string' ? payload.url.trim() : '';
+  let path = fromTop || fromData || '/app/nachrichten';
+  if (!path.startsWith('/') && !/^https?:\/\//i.test(path)) {
+    path = `/${path}`;
+  }
+
   const tag =
     typeof payload.tag === 'string' && payload.tag.trim()
-      ? payload.tag
+      ? payload.tag.trim()
       : 'spielzeit-notification';
+
+  const defaultIcon = '/icon-192.png';
+  const icon =
+    typeof payload.icon === 'string' && payload.icon.trim() ? payload.icon.trim() : defaultIcon;
+  const badge =
+    typeof payload.badge === 'string' && payload.badge.trim() ? payload.badge.trim() : defaultIcon;
+
+  let vibrate = [160, 100, 160, 100, 280];
+  if (Array.isArray(payload.vibrate) && payload.vibrate.length > 0) {
+    const nums = payload.vibrate.map((n) => Number(n)).filter((n) => Number.isFinite(n) && n >= 0);
+    if (nums.length > 0) vibrate = nums;
+  }
+
+  const dataPayload =
+    payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)
+      ? Object.assign({}, payload.data, { url: path })
+      : { url: path };
 
   const options = {
     body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon,
+    badge,
     tag,
+    vibrate,
     renotify: true,
-    data: { url },
+    silent: false,
+    requireInteraction: false,
+    data: dataPayload,
   };
 
-  /** iOS/PWA: Homescreen-Badge sofort (ohne App zu öffnen), Wert kommt vom Server = unread notifications. */
+  /** Nur wenn der Server eine Zahl schickt = gleiche Quelle wie In-App-Unread (notifications). */
   function applyAppBadgeFromPayload(p) {
     try {
       const nav = self.navigator;
-      if (!nav || typeof nav.setAppBadge !== 'function' || typeof nav.clearAppBadge !== 'function') return;
+      if (!nav || typeof nav.setAppBadge !== 'function' || typeof nav.clearAppBadge !== 'function')
+        return;
       const raw = p && typeof p.appBadgeCount === 'number' ? p.appBadgeCount : NaN;
       if (!Number.isFinite(raw)) return;
       const n = Math.floor(raw);
@@ -81,9 +110,8 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  /** URL aus showNotification({ data: { url } }) – gleiches Format wie Push-Payload (z. B. /termine). */
   const data = event.notification.data;
-  let path = '/app/schedule';
+  let path = '/app/nachrichten';
   if (data && typeof data === 'object' && typeof data.url === 'string' && data.url.trim()) {
     path = data.url.trim();
   }
@@ -91,7 +119,7 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     (async () => {
       const origin = self.location.origin;
-      const absolute = path.startsWith('http') ? path : origin + path;
+      const absolute = path.startsWith('http') ? path : origin + (path.startsWith('/') ? path : `/${path}`);
 
       const list = await self.clients.matchAll({
         type: 'window',
@@ -108,18 +136,23 @@ self.addEventListener('notificationclick', (event) => {
         /* ignore */
       }
 
-      for (const client of list) {
-        if (!('focus' in client) || !client.url.startsWith(origin)) continue;
+      const sameOrigin = list.filter((c) => c.url && c.url.startsWith(origin));
+      const target =
+        sameOrigin.find((c) => 'focused' in c && c.focused) ||
+        sameOrigin.find((c) => 'visibilityState' in c && c.visibilityState === 'visible') ||
+        sameOrigin[0];
+
+      if (target && 'focus' in target) {
         try {
-          if (typeof client.navigate === 'function') {
-            await client.navigate(absolute);
+          if (typeof target.navigate === 'function') {
+            await target.navigate(absolute);
           }
-          return await client.focus();
+          return await target.focus();
         } catch {
-          /* navigate nicht unterstützt oder fehlgeschlagen → neues Fenster */
-          break;
+          /* neues Fenster */
         }
       }
+
       if (self.clients.openWindow) {
         return self.clients.openWindow(absolute);
       }

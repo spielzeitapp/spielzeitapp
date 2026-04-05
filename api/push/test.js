@@ -86,10 +86,16 @@ async function runBroadcastTest(req, res) {
     });
   }
 
+  const pathUrl = "/app/termine";
   const payload = JSON.stringify({
     title: "SpielzeitApp Test",
     body: "Push funktioniert ✅",
-    url: "/termine",
+    url: pathUrl,
+    tag: `spielzeit-test-${Date.now()}`,
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    vibrate: [160, 100, 160, 100, 280],
+    data: { url: pathUrl },
   });
 
   let sent = 0;

@@ -6,6 +6,7 @@ import {
   type RawEventRow,
 } from '../src/lib/notifications/eventTypes';
 import { fetchPlayerIdsForUserInTeamSeason, fetchPlayerUserIdsForTeamSeason } from '../src/lib/notifications/users';
+import { buildWebPushJsonPayload } from './webPushPayload';
 
 function readEnv(key: string): string | undefined {
   const g = globalThis as unknown as { process?: { env?: Record<string, string | undefined> } };
@@ -420,7 +421,7 @@ async function sendOneAutomationReminder(
     return { messageInserted, pushCount, errors };
   }
 
-  const payload = JSON.stringify({
+  const payload = buildWebPushJsonPayload({
     title: item.title,
     body: item.body,
     url: item.url,
