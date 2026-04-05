@@ -83,13 +83,14 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
   };
 
   const save = async () => {
-    if (!teamSeasonId || !row) return;
+    const snapshot = rowRef.current ?? row;
+    if (!teamSeasonId || !snapshot) return;
 
     setSaving(true);
     setSaved(false);
     setSaveError(null);
 
-    const payload = buildTeamNotificationSettingsPayload(row);
+    const payload = buildTeamNotificationSettingsPayload(snapshot);
 
     try {
       const { data: existing, error: existingError } = await supabase

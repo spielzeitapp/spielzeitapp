@@ -39,16 +39,31 @@ export function resolveTeamSettings(
   };
 }
 
+/** Liest Zellen, die als boolean, String ('true'/'t'/…) oder 0/1 aus der API kommen können. */
+function cellToBoolean(v: unknown): boolean | null {
+  if (v === true || v === false) return v;
+  if (typeof v === 'string') {
+    const s = v.trim().toLowerCase();
+    if (s === 'true' || s === 't' || s === '1' || s === 'yes') return true;
+    if (s === 'false' || s === 'f' || s === '0' || s === '' || s === 'no') return false;
+  }
+  if (typeof v === 'number' && Number.isFinite(v)) {
+    if (v === 1) return true;
+    if (v === 0) return false;
+  }
+  return null;
+}
+
 function readBoolFromDb(
   r: Record<string, unknown>,
   reminderKey: string,
   shortKey: string,
   defaultVal: boolean,
 ): boolean {
-  const rem = r[reminderKey];
-  if (typeof rem === 'boolean') return rem;
-  const sh = r[shortKey];
-  if (typeof sh === 'boolean') return sh;
+  const a = cellToBoolean(r[reminderKey]);
+  if (a !== null) return a;
+  const b = cellToBoolean(r[shortKey]);
+  if (b !== null) return b;
   return defaultVal;
 }
 
@@ -110,8 +125,7 @@ export function mapTeamNotificationSettingsFromDb(
 
 /**
  * Payload für INSERT/UPDATE: schreibt kanonische `*_reminder_*`-Spalten **und** Kurz-Aliase
- * (`match_second_enabled`, …), damit Dashboards und Deployments mit nur Kurz-Spalten denselben Wert sehen.
- * Keine abgeleiteten Booleans aus Minuten — nur explizite Checkbox-Werte.
+ * (`match_second_enabled`, …). Checkbox-Werte kommen 1:1 aus dem UI-State — **nicht** aus Minuten abgeleitet.
  */
 export function buildTeamNotificationSettingsPayload(
   row: Pick<
@@ -131,26 +145,28 @@ export function buildTeamNotificationSettingsPayload(
     training_minutes_before: tm,
     match_enabled: me,
     match_minutes_before: mm,
-    match_second_enabled: m2e,
-    match_second_minutes_before: m2m,
     event_enabled: ee,
     event_minutes_before: em,
   } = row;
+
+  const matchSecondEnabled = cellToBoolean(row.match_second_enabled) ?? false;
+  const matchSecondMinutes = row.match_second_minutes_before;
+
   return {
     training_reminder_enabled: te,
     training_reminder_minutes_before: tm,
     match_reminder_enabled: me,
     match_reminder_minutes_before: mm,
-    match_second_reminder_enabled: m2e,
-    match_second_reminder_minutes_before: m2m,
+    match_second_reminder_enabled: matchSecondEnabled,
+    match_second_reminder_minutes_before: matchSecondMinutes,
     event_reminder_enabled: ee,
     event_reminder_minutes_before: em,
     training_enabled: te,
     training_minutes_before: tm,
     match_enabled: me,
     match_minutes_before: mm,
-    match_second_enabled: m2e,
-    match_second_minutes_before: m2m,
+    match_second_enabled: matchSecondEnabled,
+    match_second_minutes_before: matchSecondMinutes,
     event_enabled: ee,
     event_minutes_before: em,
   };
