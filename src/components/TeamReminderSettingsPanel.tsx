@@ -93,45 +93,19 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
     const payload = buildTeamNotificationSettingsPayload(snapshot);
 
     try {
-      const { data: existing, error: existingError } = await supabase
-        .from('team_notification_settings')
-        .select('id, team_season_id')
-        .eq('team_season_id', teamSeasonId)
-        .maybeSingle();
+      const { error: upsertError } = await supabase.from('team_notification_settings').upsert(
+        {
+          team_season_id: teamSeasonId,
+          ...payload,
+        },
+        { onConflict: 'team_season_id' },
+      );
 
-      if (existingError) {
-        const msg = existingError.message || String(existingError);
-        console.error('LOAD EXISTING ERROR', existingError);
-        setSaveError(`Vor dem Speichern: ${msg}`);
+      if (upsertError) {
+        const msg = upsertError.message || String(upsertError);
+        console.error('UPSERT ERROR', upsertError);
+        setSaveError(`Speichern fehlgeschlagen: ${msg}`);
         return;
-      }
-
-      if (existing?.id) {
-        const { error: updateError } = await supabase
-          .from('team_notification_settings')
-          .update(payload)
-          .eq('id', existing.id);
-
-        if (updateError) {
-          const msg = updateError.message || String(updateError);
-          console.error('UPDATE ERROR', updateError);
-          setSaveError(`Speichern fehlgeschlagen: ${msg}`);
-          return;
-        }
-      } else {
-        const { error: insertError } = await supabase
-          .from('team_notification_settings')
-          .insert({
-            team_season_id: teamSeasonId,
-            ...payload,
-          });
-
-        if (insertError) {
-          const msg = insertError.message || String(insertError);
-          console.error('INSERT ERROR', insertError);
-          setSaveError(`Speichern fehlgeschlagen: ${msg}`);
-          return;
-        }
       }
 
       const { data: fresh, error: freshError } = await supabase
