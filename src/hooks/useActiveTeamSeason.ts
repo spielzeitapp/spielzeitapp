@@ -10,14 +10,31 @@ function pickName(
   return one?.name ?? "";
 }
 
+type TeamSeasonEmbed = {
+  id?: string;
+  team?: { name?: string } | { name?: string }[];
+  season?: { name?: string } | { name?: string }[];
+};
+
 type TeamSeasonRow = {
   role?: string | null;
-  team_season?: {
-    id: string;
-    team?: { name?: string } | { name?: string }[];
-    season?: { name?: string } | { name?: string }[];
-  } | null;
+  team_season?: TeamSeasonEmbed | TeamSeasonEmbed[] | null;
 } | null;
+
+/** Join kann Objekt oder 1-Element-Array sein; liefert erstes embed mit gültiger id. */
+function firstValidTeamSeason(
+  row: TeamSeasonRow,
+): { id: string; team?: TeamSeasonEmbed["team"]; season?: TeamSeasonEmbed["season"] } | null {
+  const raw = row?.team_season;
+  if (raw == null) return null;
+  const candidates = Array.isArray(raw) ? raw : [raw];
+  for (const ts of candidates) {
+    if (!ts || typeof ts !== "object") continue;
+    const id = ts.id != null ? String(ts.id).trim() : "";
+    if (id !== "") return { id, team: ts.team, season: ts.season };
+  }
+  return null;
+}
 
 export function useActiveTeamSeason() {
   const [loading, setLoading] = useState(true);
@@ -92,33 +109,33 @@ export function useActiveTeamSeason() {
       }
 
       const list = (rows ?? []) as TeamSeasonRow[];
-      const trainerLike = (roleVal: string | null | undefined): boolean => {
-        const s = (roleVal ?? "").toString().trim().toLowerCase();
-        return (
-          s === "trainer" ||
-          s === "co_trainer" ||
-          s === "co-trainer" ||
-          s === "head_coach" ||
-          s === "head" ||
-          s === "assistant"
-        );
-      };
-      const trainerRow = list.find((r) => trainerLike(r?.role ?? null));
-      const row = trainerRow ?? list[0] ?? null;
-      const roleVal = row?.role ?? null;
-      const ts = row?.team_season;
-      const id = ts?.id ?? null;
-      const teamName = ts ? pickName(ts.team) || "Team" : "Team";
-      const seasonName = ts ? pickName(ts.season) : "";
-      const label =
-        seasonName.trim() !== ""
-          ? `${teamName} (${seasonName})`
-          : teamName;
 
-      const role = (roleVal ?? "").toString().trim().toLowerCase() || null;
-      setRole(role);
-      setTeamSeasonId(id);
-      setTeamLabel(row ? label : null);
+      let chosen: { row: NonNullable<TeamSeasonRow>; ts: NonNullable<ReturnType<typeof firstValidTeamSeason>> } | null =
+        null;
+      for (const r of list) {
+        if (!r) continue;
+        const ts = firstValidTeamSeason(r);
+        if (ts) {
+          chosen = { row: r, ts };
+          break;
+        }
+      }
+
+      if (chosen) {
+        const roleVal = chosen.row.role ?? null;
+        const teamName = pickName(chosen.ts.team) || "Team";
+        const seasonName = pickName(chosen.ts.season);
+        const label =
+          seasonName.trim() !== "" ? `${teamName} (${seasonName})` : teamName;
+        const roleNorm = (roleVal ?? "").toString().trim().toLowerCase() || null;
+        setRole(roleNorm);
+        setTeamSeasonId(chosen.ts.id);
+        setTeamLabel(label);
+      } else {
+        setRole(null);
+        setTeamSeasonId(null);
+        setTeamLabel(null);
+      }
       setLoading(false);
     }
 
