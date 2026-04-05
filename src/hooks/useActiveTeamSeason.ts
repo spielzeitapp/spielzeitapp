@@ -92,7 +92,19 @@ export function useActiveTeamSeason() {
       }
 
       const list = (rows ?? []) as TeamSeasonRow[];
-      const row = list[0] ?? null;
+      const trainerLike = (roleVal: string | null | undefined): boolean => {
+        const s = (roleVal ?? "").toString().trim().toLowerCase();
+        return (
+          s === "trainer" ||
+          s === "co_trainer" ||
+          s === "co-trainer" ||
+          s === "head_coach" ||
+          s === "head" ||
+          s === "assistant"
+        );
+      };
+      const trainerRow = list.find((r) => trainerLike(r?.role ?? null));
+      const row = trainerRow ?? list[0] ?? null;
       const roleVal = row?.role ?? null;
       const ts = row?.team_season;
       const id = ts?.id ?? null;

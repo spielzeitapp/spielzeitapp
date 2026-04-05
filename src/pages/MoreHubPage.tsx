@@ -13,17 +13,14 @@ const subRowClass =
 
 function isTrainerToolsRole(role: string): boolean {
   const r = (role ?? '').trim().toLowerCase();
-  return r === 'trainer' || r === 'co_trainer' || r === 'head_coach' || r === 'admin';
+  return r === 'trainer' || r === 'co_trainer' || r === 'head_coach';
 }
 
 export const MoreHubPage: React.FC = () => {
   const { selectedTeamSeason, setSelectedTeamSeasonId, teamSeasons, effectiveRole, backendRole, user } = useSession();
   const canSwitchTeam =
     (teamSeasons?.length ?? 0) > 1 &&
-    (effectiveRole === 'trainer' ||
-      effectiveRole === 'admin' ||
-      effectiveRole === 'head_coach' ||
-      effectiveRole === 'co_trainer');
+    (effectiveRole === 'trainer' || effectiveRole === 'head_coach' || effectiveRole === 'co_trainer');
 
   const showTrainerTools = isTrainerToolsRole(effectiveRole);
   const showPreviewLink = backendRole === 'admin' || backendRole === 'head_coach';

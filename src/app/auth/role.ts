@@ -11,7 +11,7 @@ const DEV_UI_ROLE_KEY = 'dev_ui_role';
 const DEV_ROLE_SWITCH_KEY = 'dev_role_switch';
 
 /** Backend-Rollen (rbac/Session); "admin" für spätere Erweiterung. */
-const BACKEND_ROLES_ALLOWING_OVERRIDE = ['admin', 'head_coach'];
+export const BACKEND_ROLES_ALLOWING_DEV_UI_OVERRIDE = ['admin', 'head_coach'] as const;
 
 function getStored(key: string): string | null {
   if (typeof window === 'undefined') return null;
@@ -71,6 +71,40 @@ export function normalizeToUiRole(backendRole: string): UiRole {
 }
 
 /**
+ * Mappt Session-effectiveRole (+ Fallback aus user_roles) auf UiRole.
+ * Globales admin in user_roles wird nicht priorisiert, wenn Memberships existieren aber effectiveRole leer ist
+ * (verhindert Admin-UI statt Trainer/Eltern bei Test-Usern mit admin + Team-Membership).
+ */
+export function effectiveRoleToUiRole(
+  effectiveRole: string,
+  fallbackBackend: string,
+  hasMemberships: boolean,
+): UiRole {
+  const e = (effectiveRole ?? '').trim().toLowerCase();
+  if (e === 'trainer' || e === 'co_trainer') return 'trainer';
+  if (e === 'head_coach') return 'head';
+  if (e === 'parent') return 'parent';
+  if (e === 'admin') return 'admin';
+  if (e === 'fan' || e === 'player') return 'viewer';
+  const fb = normalizeToUiRole(fallbackBackend || '');
+  if (!e && hasMemberships && fb === 'admin') return 'viewer';
+  return fb;
+}
+
+/** DEV-Testrolle aus localStorage, nur wenn erlaubt; sonst null. */
+export function readDevUiOverrideIfAllowed(): UiRole | null {
+  if (!isDevMode()) return null;
+  const backend = getBackendRole();
+  if (!backend || !BACKEND_ROLES_ALLOWING_DEV_UI_OVERRIDE.includes(backend as 'admin' | 'head_coach'))
+    return null;
+  const override = getStored(DEV_UI_ROLE_KEY);
+  if (override && ['viewer', 'parent', 'trainer', 'head', 'admin'].includes(override)) {
+    return override as UiRole;
+  }
+  return null;
+}
+
+/**
  * DEV_MODE ist aktiv wenn:
  * - import.meta.env.MODE !== 'production'
  * - ODER URL hat ?dev=1
@@ -89,17 +123,10 @@ export function isDevMode(): boolean {
  * UI-Rolle: DEV-Override (nur wenn DEV_MODE und Backend admin/head) oder normalisierte Backend-Rolle.
  */
 export function getUiRole(): UiRole {
+  const dev = readDevUiOverrideIfAllowed();
+  if (dev) return dev;
   const backend = getBackendRole();
-  const normalized = normalizeToUiRole(backend || '');
-
-  if (!isDevMode()) return normalized;
-  if (!backend || !BACKEND_ROLES_ALLOWING_OVERRIDE.includes(backend)) return normalized;
-
-  const override = getStored(DEV_UI_ROLE_KEY);
-  if (override && ['viewer', 'parent', 'trainer', 'head', 'admin'].includes(override)) {
-    return override as UiRole;
-  }
-  return normalized;
+  return normalizeToUiRole(backend || '');
 }
 
 export function setDevUiRole(role: UiRole): void {
@@ -122,7 +149,7 @@ export function canUseLiveControls(role: string): boolean {
 export function hasDevOverride(): boolean {
   if (!isDevMode()) return false;
   const backend = getBackendRole();
-  if (!BACKEND_ROLES_ALLOWING_OVERRIDE.includes(backend)) return false;
+  if (!BACKEND_ROLES_ALLOWING_DEV_UI_OVERRIDE.includes(backend as 'admin' | 'head_coach')) return false;
   const override = getStored(DEV_UI_ROLE_KEY);
   return override != null && override !== '' && override !== normalizeToUiRole(backend);
 }

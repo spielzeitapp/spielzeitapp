@@ -5,7 +5,7 @@ import { PushTeamSendPanel } from '../components/PushTeamSendPanel';
 
 function isTrainerToolsRole(role: string): boolean {
   const r = (role ?? '').trim().toLowerCase();
-  return r === 'trainer' || r === 'co_trainer' || r === 'head_coach' || r === 'admin';
+  return r === 'trainer' || r === 'co_trainer' || r === 'head_coach';
 }
 
 export const TrainerTemplatesPage: React.FC = () => {

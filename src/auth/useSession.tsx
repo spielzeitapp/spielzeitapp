@@ -237,7 +237,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return (g ?? '') || '';
     }
 
-    // Memberships vorhanden, aber keine Zeile für selectedTeamSeasonId → kein Fallback auf user_roles
+    // Memberships vorhanden, aber keine Zeile für selectedTeamSeasonId: erste Trainer-Membership (kein globales admin)
+    const trainerMember = memberships.find((m) => normalizeRole(m.role) === 'trainer');
+    if (trainerMember) {
+      return toRole(trainerMember.role);
+    }
     return '';
   }, [
     authUser,
@@ -247,7 +251,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     selectedTeamSeasonId,
     roleFromUserRoles,
     hasPendingPlayerRequest,
-    memberships.length,
+    memberships,
   ]);
 
   const selectedMembershipRoleForDebug = selectedMembership?.role ?? null;
@@ -422,13 +426,28 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setTeamSeasons(normalized);
 
         if (normalized.length > 0) {
+          const trainerMembership = list.find((m) => normalizeRole(m.role) === 'trainer');
           let selectedId: string;
           try {
             const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID);
-            const valid = stored != null && normalized.some((ts) => ts.id === stored);
-            selectedId = valid && stored != null ? stored : normalized[0].id;
+            const storedValid = stored != null && normalized.some((ts) => ts.id === stored);
+            const storedMembership = storedValid && stored ? list.find((m) => m.team_season_id === stored) : null;
+
+            if (trainerMembership) {
+              if (!storedValid || stored == null) {
+                selectedId = trainerMembership.team_season_id;
+              } else if (storedMembership && normalizeRole(storedMembership.role) !== 'trainer') {
+                selectedId = trainerMembership.team_season_id;
+              } else {
+                selectedId = stored;
+              }
+            } else if (storedValid && stored != null) {
+              selectedId = stored;
+            } else {
+              selectedId = normalized[0].id;
+            }
           } catch {
-            selectedId = normalized[0].id;
+            selectedId = trainerMembership?.team_season_id ?? normalized[0].id;
           }
           setSelectedTeamSeasonIdState(selectedId);
           try {

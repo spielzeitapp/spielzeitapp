@@ -1,5 +1,6 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useSession } from '../../auth/useSession';
 import {
   getUiRole,
   getBackendRole,
@@ -8,6 +9,8 @@ import {
   isDevMode,
   canEditSchedule,
   canUseLiveControls,
+  readDevUiOverrideIfAllowed,
+  effectiveRoleToUiRole,
   type UiRole,
 } from '../auth/role';
 
@@ -27,7 +30,18 @@ interface RoleContextValue {
 const RoleContext = createContext<RoleContextValue | undefined>(undefined);
 
 export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { effectiveRole, backendRole, loading: sessionLoading, memberships } = useSession();
   const [role, setRoleState] = useState<UiRole>(() => getUiRole());
+
+  useEffect(() => {
+    if (sessionLoading) return;
+    const devOv = readDevUiOverrideIfAllowed();
+    if (devOv) {
+      setRoleState(devOv);
+      return;
+    }
+    setRoleState(effectiveRoleToUiRole(effectiveRole, backendRole, memberships.length > 0));
+  }, [sessionLoading, effectiveRole, backendRole, memberships.length]);
 
   const setRole = useCallback((next: UiRole) => {
     if (!isDevMode()) return;

@@ -5,7 +5,7 @@ import { TeamReminderSettingsPanel } from '../components/TeamReminderSettingsPan
 
 function isTrainerToolsRole(role: string): boolean {
   const r = (role ?? '').trim().toLowerCase();
-  return r === 'trainer' || r === 'co_trainer' || r === 'head_coach' || r === 'admin';
+  return r === 'trainer' || r === 'co_trainer' || r === 'head_coach';
 }
 
 export const TrainerRemindersPage: React.FC = () => {
