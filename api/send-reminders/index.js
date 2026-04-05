@@ -257,24 +257,28 @@ async function sendPushesForUser(admin, userId, title, body, url, appBadgeCount,
       ? url.trim().startsWith('/')
         ? url.trim()
         : `/${url.trim()}`
-      : '/app/nachrichten';
+      : '/app/termine';
   if (path === '/termine' || path.startsWith('/termine?') || path.startsWith('/termine#')) {
     path = `/app/termine${path.slice('/termine'.length)}`;
   }
   const pushTag =
     typeof tag === 'string' && tag.trim() ? tag.trim() : `push-${userId}-${Date.now()}`;
   const payloadObj = {
-    title,
-    body,
+    title: title && String(title).trim() ? String(title).trim() : 'SpielzeitApp',
+    body: body && String(body).trim() ? String(body).trim() : 'Neue Benachrichtigung',
     url: path,
     tag: pushTag,
     icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    vibrate: [160, 100, 160, 100, 280],
+    badge: '/badge-72.png',
+    vibrate: [200, 100, 200],
     data: { url: path },
   };
   if (typeof appBadgeCount === 'number' && Number.isFinite(appBadgeCount)) {
-    payloadObj.appBadgeCount = Math.min(99, Math.max(0, Math.floor(appBadgeCount)));
+    const c = Math.min(99, Math.max(0, Math.floor(appBadgeCount)));
+    payloadObj.appBadgeCount = c;
+    payloadObj.unread_count = c;
+    payloadObj.badge_count = c;
+    payloadObj.data = { url: path, unread_count: c, badge_count: c };
   }
   const payload = JSON.stringify(payloadObj);
   let sent = 0;
@@ -285,7 +289,7 @@ async function sendPushesForUser(admin, userId, title, body, url, appBadgeCount,
     const auth = row.auth || '';
     if (!endpoint || !p256dh || !auth) continue;
     try {
-      await webpush.sendNotification({ endpoint, keys: { p256dh, auth } }, payload, { TTL: 3600 });
+      await webpush.sendNotification({ endpoint, keys: { p256dh, auth } }, payload, { TTL: 86400 });
       sent += 1;
     } catch (err) {
       console.error('[reminderPipeline] push failed', { userId, endpoint, error: err });

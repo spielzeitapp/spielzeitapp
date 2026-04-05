@@ -439,7 +439,7 @@ async function sendOneAutomationReminder(
           },
         },
         payload,
-        { TTL: 3600 },
+        { TTL: 86400 },
       );
       pushCount += 1;
       await admin

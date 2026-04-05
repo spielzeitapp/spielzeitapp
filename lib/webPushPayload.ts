@@ -4,18 +4,18 @@
  */
 
 export const DEFAULT_PUSH_ICON = '/icon-192.png';
-/** Gleiche Datei wie Icon ok; OS maskiert fürs Status-Badge wo unterstützt. */
-export const DEFAULT_PUSH_BADGE = '/icon-192.png';
+/** Monochromes kleines Icon für Statusleiste / iOS (72×72). */
+export const DEFAULT_PUSH_BADGE = '/badge-72.png';
 
-/** Kurzes Doppel-Pattern (näher an „neue Nachricht“ als ein langer Summton). */
-export const DEFAULT_PUSH_VIBRATE: readonly number[] = [160, 100, 160, 100, 280];
+/** Kurzes Muster – iOS ignoriert vibrate teils, Android nutzt es. */
+export const DEFAULT_PUSH_VIBRATE: readonly number[] = [200, 100, 200];
 
 /**
  * Relative Pfade in die SPA unter /app/... bringen (alte Links wie /termine).
  */
 export function normalizeWebPushAppPath(url: string | undefined | null): string {
   let t = (url ?? '').trim();
-  if (!t) return '/app/nachrichten';
+  if (!t) return '/app/termine';
   if (/^https?:\/\//i.test(t)) return t;
   if (!t.startsWith('/')) t = `/${t}`;
   if (t === '/termine' || t.startsWith('/termine?') || t.startsWith('/termine#')) {
@@ -39,18 +39,25 @@ export function buildWebPushJsonPayload(parts: {
   appBadgeCount?: number;
 }): string {
   const path = normalizeWebPushAppPath(parts.url);
+  const title = (parts.title || 'SpielzeitApp').trim() || 'SpielzeitApp';
+  const body = (parts.body || 'Neue Benachrichtigung').trim() || 'Neue Benachrichtigung';
+  const tag = (parts.tag || 'spielzeitapp').trim() || 'spielzeitapp';
   const o: Record<string, unknown> = {
-    title: parts.title,
-    body: parts.body,
+    title,
+    body,
     url: path,
-    tag: parts.tag,
+    tag,
     icon: DEFAULT_PUSH_ICON,
     badge: DEFAULT_PUSH_BADGE,
     vibrate: [...DEFAULT_PUSH_VIBRATE],
     data: { url: path },
   };
   if (typeof parts.appBadgeCount === 'number' && Number.isFinite(parts.appBadgeCount)) {
-    o.appBadgeCount = Math.min(99, Math.max(0, Math.floor(parts.appBadgeCount)));
+    const c = Math.min(99, Math.max(0, Math.floor(parts.appBadgeCount)));
+    o.appBadgeCount = c;
+    o.unread_count = c;
+    o.badge_count = c;
+    o.data = { url: path, unread_count: c, badge_count: c };
   }
   return JSON.stringify(o);
 }

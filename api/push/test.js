@@ -87,15 +87,19 @@ async function runBroadcastTest(req, res) {
   }
 
   const pathUrl = "/app/termine";
+  const demoBadge = 1;
   const payload = JSON.stringify({
     title: "SpielzeitApp Test",
     body: "Push funktioniert ✅",
     url: pathUrl,
     tag: `spielzeit-test-${Date.now()}`,
     icon: "/icon-192.png",
-    badge: "/icon-192.png",
-    vibrate: [160, 100, 160, 100, 280],
-    data: { url: pathUrl },
+    badge: "/badge-72.png",
+    vibrate: [200, 100, 200],
+    appBadgeCount: demoBadge,
+    unread_count: demoBadge,
+    badge_count: demoBadge,
+    data: { url: pathUrl, unread_count: demoBadge, badge_count: demoBadge },
   });
 
   let sent = 0;
@@ -123,7 +127,7 @@ async function runBroadcastTest(req, res) {
           keys: { p256dh: row.p256dh, auth: row.auth },
         },
         payload,
-        { TTL: 3600 }
+        { TTL: 86400 }
       );
       sent += 1;
       const okCode =

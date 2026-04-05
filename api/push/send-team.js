@@ -367,20 +367,9 @@ export default async function handler(req, res) {
     if (rows.length > 0) {
       ensureVapid();
 
-      const pushTag = `team-push-${team_season_id}-${Date.now()}`;
-      const payload = JSON.stringify({
-        title,
-        body: textBody,
-        url,
-        tag: pushTag,
-        icon: "/icon-192.png",
-        badge: "/icon-192.png",
-        vibrate: [160, 100, 160, 100, 280],
-        data: { url },
-      });
-
+      const batchTs = Date.now();
       logVapidBeforeSend("push/send-team", {
-        payloadJSON: payload,
+        mode: "per-recipient-payload",
         recipientCount: rows.length,
       });
 
@@ -413,13 +402,50 @@ export default async function handler(req, res) {
         };
 
         try {
+          let unreadForBadge = null;
+          try {
+            const { count, error: cntErr } = await supabase
+              .from("notifications")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", uid)
+              .eq("read", false);
+            if (!cntErr && count != null) {
+              unreadForBadge = Math.min(99, Math.max(0, Math.floor(Number(count))));
+            }
+          } catch (_) {
+            /* ignore */
+          }
+
+          const pushTag = `team-push-${team_season_id}-${batchTs}-${uid}`;
+          const payloadObj = {
+            title: title && String(title).trim() ? String(title).trim() : "SpielzeitApp",
+            body: textBody && String(textBody).trim() ? String(textBody).trim() : "Neue Benachrichtigung",
+            url,
+            tag: pushTag,
+            icon: "/icon-192.png",
+            badge: "/badge-72.png",
+            vibrate: [200, 100, 200],
+            data: { url },
+          };
+          if (unreadForBadge != null) {
+            payloadObj.appBadgeCount = unreadForBadge;
+            payloadObj.unread_count = unreadForBadge;
+            payloadObj.badge_count = unreadForBadge;
+            payloadObj.data = {
+              url,
+              unread_count: unreadForBadge,
+              badge_count: unreadForBadge,
+            };
+          }
+          const payload = JSON.stringify(payloadObj);
+
           await webpush.sendNotification(
             {
               endpoint: row.endpoint,
               keys: { p256dh: row.p256dh, auth: row.auth },
             },
             payload,
-            { TTL: 3600 },
+            { TTL: 86400 },
           );
           sent += 1;
           results.push({

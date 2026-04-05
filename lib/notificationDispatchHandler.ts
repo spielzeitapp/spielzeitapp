@@ -299,7 +299,7 @@ export async function sendPendingNotificationReminder(
           },
         },
         payload,
-        { TTL: 3600 },
+        { TTL: 86400 },
       );
       sent += 1;
       await admin
@@ -404,7 +404,7 @@ export async function sendWebPushForUser(
       await webpush.sendNotification(
         { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
         payload,
-        { TTL: 3600 },
+        { TTL: 86400 },
       );
       sent += 1;
       await admin
