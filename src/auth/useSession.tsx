@@ -156,15 +156,6 @@ const LOCAL_STORAGE_KEY_TEAM_SEASON_ID = 'spielzeit_team_season_id';
 
 const defaultTeamId = 'u11';
 
-function readPreviewRole(): string | null {
-  try {
-    const stored = window.localStorage.getItem(PREVIEW_ROLE_STORAGE_KEY);
-    return stored ? toRole(stored) : null;
-  } catch {
-    return null;
-  }
-}
-
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user: authUser, loading: authLoading, signOut } = useAuth();
   const [roleFromUserRoles, setRoleFromUserRoles] = useState<Role | null>(null);
@@ -174,7 +165,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [membershipLoading, setMembershipLoading] = useState(false);
   const [memberships, setMemberships] = useState<MembershipWithJoin[]>([]);
   const [membershipError, setMembershipError] = useState<string | null>(null);
-  const [previewRole, setPreviewRoleState] = useState<string | null>(readPreviewRole);
+  /** Kein Restore aus localStorage: Preview darf den Login-Flow nicht überschreiben. */
+  const [previewRole, setPreviewRoleState] = useState<string | null>(null);
   const [hasPendingPlayerRequest, setHasPendingPlayerRequest] = useState(false);
 
   const selectedTeamSeason = useMemo(
@@ -203,13 +195,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
    * user_roles (backendRole) steuert nur Admin-/Staff-Features, ersetzt keine Team-Rolle.
    */
   const effectiveRole = useMemo((): string => {
-    const fromPreview = previewRole ? toRole(previewRole) : '';
-    if (fromPreview) {
-      return fromPreview;
-    }
-
     if (authUser && membershipLoading) {
       return '';
+    }
+
+    // Nur ohne Team-Membership: gewählte Rolle aus Role-Choice / Preview (nicht aus localStorage beim Start)
+    if (memberships.length === 0 && previewRole) {
+      const p = toRole(previewRole);
+      if (p) return p;
     }
 
     const fromMembership =
@@ -230,28 +223,36 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return 'fan';
     }
 
-    // Keine Memberships: nur dann globale Rolle (Fan/Admin ohne Team) — nicht zur Überschreibung einer Team-Rolle
+    // Keine Memberships: globale Rolle, aber kein Admin als App-Einstieg
     if (memberships.length === 0) {
       const g = roleFromUserRoles ? toRole(roleFromUserRoles) : null;
-      if (g === 'player') return '';
+      if (g === 'player' || g === 'admin') return '';
       return (g ?? '') || '';
     }
 
-    // Memberships vorhanden, aber keine Zeile für selectedTeamSeasonId: erste Trainer-Membership (kein globales admin)
-    const trainerMember = memberships.find((m) => normalizeRole(m.role) === 'trainer');
-    if (trainerMember) {
-      return toRole(trainerMember.role);
-    }
+    // Memberships da, aber selectedTeamSeasonId passt zu keiner Zeile: Rolle aus Membership (Trainer > Eltern > erste)
+    const validSeasonIds = new Set(teamSeasons.map((ts) => ts.id));
+    const firstTrainer = memberships.find(
+      (m) => normalizeRole(m.role) === 'trainer' && validSeasonIds.has(m.team_season_id),
+    );
+    if (firstTrainer) return toRole(firstTrainer.role);
+    const firstParent = memberships.find(
+      (m) => normalizeRole(m.role) === 'parent' && validSeasonIds.has(m.team_season_id),
+    );
+    if (firstParent) return toRole(firstParent.role);
+    const firstAny = memberships.find((m) => validSeasonIds.has(m.team_season_id));
+    if (firstAny) return toRole(firstAny.role);
     return '';
   }, [
     authUser,
     membershipLoading,
-    previewRole,
     selectedMembership?.role,
     selectedTeamSeasonId,
     roleFromUserRoles,
     hasPendingPlayerRequest,
     memberships,
+    teamSeasons,
+    previewRole,
   ]);
 
   const selectedMembershipRoleForDebug = selectedMembership?.role ?? null;
@@ -265,7 +266,6 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       membershipCount: memberships.length,
       selectedTeamSeasonId,
       selectedMembershipRole: selectedMembershipRoleForDebug,
-      previewRole,
       membershipLoading,
       finalRole: effectiveRole,
     });
@@ -275,7 +275,6 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     memberships.length,
     selectedTeamSeasonId,
     selectedMembershipRoleForDebug,
-    previewRole,
     membershipLoading,
     effectiveRole,
   ]);
@@ -426,29 +425,21 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setTeamSeasons(normalized);
 
         if (normalized.length > 0) {
-          const trainerMembership = list.find((m) => normalizeRole(m.role) === 'trainer');
-          let selectedId: string;
-          try {
-            const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID);
-            const storedValid = stored != null && normalized.some((ts) => ts.id === stored);
-            const storedMembership = storedValid && stored ? list.find((m) => m.team_season_id === stored) : null;
-
-            if (trainerMembership) {
-              if (!storedValid || stored == null) {
-                selectedId = trainerMembership.team_season_id;
-              } else if (storedMembership && normalizeRole(storedMembership.role) !== 'trainer') {
-                selectedId = trainerMembership.team_season_id;
-              } else {
-                selectedId = stored;
-              }
-            } else if (storedValid && stored != null) {
-              selectedId = stored;
-            } else {
-              selectedId = normalized[0].id;
-            }
-          } catch {
-            selectedId = trainerMembership?.team_season_id ?? normalized[0].id;
-          }
+          const validIds = new Set(normalized.map((ts) => ts.id));
+          const pickPreferredTeamSeasonId = (): string => {
+            const t = list.find(
+              (m) => normalizeRole(m.role) === 'trainer' && validIds.has(m.team_season_id),
+            );
+            if (t) return t.team_season_id;
+            const p = list.find(
+              (m) => normalizeRole(m.role) === 'parent' && validIds.has(m.team_season_id),
+            );
+            if (p) return p.team_season_id;
+            const any = list.find((m) => validIds.has(m.team_season_id));
+            if (any) return any.team_season_id;
+            return normalized[0].id;
+          };
+          const selectedId = pickPreferredTeamSeasonId();
           setSelectedTeamSeasonIdState(selectedId);
           try {
             window.localStorage.setItem(LOCAL_STORAGE_KEY_TEAM_SEASON_ID, selectedId);

@@ -86,8 +86,9 @@ export function effectiveRoleToUiRole(
   if (e === 'parent') return 'parent';
   if (e === 'admin') return 'admin';
   if (e === 'fan' || e === 'player') return 'viewer';
+  if (!e && hasMemberships) return 'viewer';
   const fb = normalizeToUiRole(fallbackBackend || '');
-  if (!e && hasMemberships && fb === 'admin') return 'viewer';
+  if (!e && fb === 'admin') return 'viewer';
   return fb;
 }
 

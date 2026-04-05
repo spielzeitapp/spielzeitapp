@@ -35,12 +35,17 @@ export const RoleProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     if (sessionLoading) return;
+    const hasM = memberships.length > 0;
+    if (hasM) {
+      setRoleState(effectiveRoleToUiRole(effectiveRole, backendRole, true));
+      return;
+    }
     const devOv = readDevUiOverrideIfAllowed();
     if (devOv) {
       setRoleState(devOv);
       return;
     }
-    setRoleState(effectiveRoleToUiRole(effectiveRole, backendRole, memberships.length > 0));
+    setRoleState(effectiveRoleToUiRole(effectiveRole, backendRole, false));
   }, [sessionLoading, effectiveRole, backendRole, memberships.length]);
 
   const setRole = useCallback((next: UiRole) => {
