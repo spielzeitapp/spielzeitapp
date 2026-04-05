@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
-import { useSession } from '../auth/useSession';
 import { normalizeRole, canSeeMeetup } from '../lib/roles';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
@@ -141,8 +140,7 @@ export const EventDetailPage: React.FC = () => {
   const [loadingEventAttendance, setLoadingEventAttendance] = useState(false);
 
   const { teamLabel, role: roleFromHook } = useActiveTeamSeason();
-  const { previewRole } = useSession();
-  const effectiveRole = normalizeRole(previewRole ?? roleFromHook);
+  const effectiveRole = normalizeRole(roleFromHook);
   const showMeetup = canSeeMeetup(effectiveRole);
   const isFan = effectiveRole === 'fan';
   const isTrainerOrAdmin = effectiveRole === 'trainer' || effectiveRole === 'admin';

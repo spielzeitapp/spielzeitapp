@@ -84,7 +84,7 @@ export const SchedulePage: React.FC = () => {
     useActiveTeamSeason();
   const { teamSeasonId: publicTeamId, teamLabel: publicLabel, loading: publicLoading } =
     usePublicTeamSeason();
-  const { selectedMembership, previewRole } = useSession();
+  const { selectedMembership } = useSession();
   const effectiveTeamSeasonId = teamSeasonId ?? publicTeamId;
   const { events, loading: eLoading, error: eError, refetch } = useEvents(effectiveTeamSeasonId);
 
@@ -105,7 +105,7 @@ export const SchedulePage: React.FC = () => {
   const forcePublicView =
     pathname === '/schedule' || pathname === '/live' || !pathname.startsWith('/app');
   const backendRole = normalizeRole(roleFromHook);
-  const uiRoleRaw = forcePublicView ? null : (previewRole ?? backendRole ?? null);
+  const uiRoleRaw = forcePublicView ? null : (backendRole ?? null);
   const normalizedUiRole = normalizeRole(uiRoleRaw);
   const uiRole = normalizedUiRole === 'fan' ? null : normalizedUiRole;
   const canManage = forcePublicView ? false : canManageMatches(normalizedUiRole);

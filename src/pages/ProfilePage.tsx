@@ -1,6 +1,11 @@
 import React, { Component, ErrorInfo, ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useSession } from '../auth/useSession';
+import {
+  useSession,
+  getTeamNameFromMembership,
+  getSeasonLabelFromMembership,
+  normalizeRole,
+} from '../auth/useSession';
 import { useAuth } from '../auth/AuthProvider';
 import { useProfile, profileDisplayName } from '../auth/useProfile';
 import { supabase } from '../lib/supabaseClient';
@@ -62,6 +67,7 @@ export const ProfilePage: React.FC = () => {
     backendRole,
     effectiveRole,
     selectedTeamSeason,
+    selectedMembership,
     signOut,
     hasPendingPlayerRequest,
     loading: sessionLoading,
@@ -89,7 +95,24 @@ export const ProfilePage: React.FC = () => {
       effectiveRole === 'head_coach' ||
       effectiveRole === 'admin');
 
-  const selectedTeamName = getTeamName(selectedTeamSeason);
+  const selectedTeamName = useMemo(() => {
+    const fromTs = getTeamName(selectedTeamSeason);
+    if (fromTs && fromTs !== '–') return fromTs;
+    const t = getTeamNameFromMembership(selectedMembership)?.trim();
+    const s = getSeasonLabelFromMembership(selectedMembership)?.trim();
+    if (t && s && s !== '—') return `${t} (${s})`;
+    if (t) return t;
+    return '–';
+  }, [selectedTeamSeason, selectedMembership]);
+
+  const profileBackendRoleLabel = useMemo(() => {
+    const mr = selectedMembership?.role;
+    if (mr && String(mr).trim() !== '') {
+      const n = normalizeRole(String(mr));
+      return n !== '' ? n : String(mr).trim();
+    }
+    return backendRole || '–';
+  }, [selectedMembership, backendRole]);
   const email = authUser?.email?.trim() || '–';
   const nameLine = profileDisplayName(profile);
   const headingMain = nameLine ?? email;
@@ -117,15 +140,6 @@ export const ProfilePage: React.FC = () => {
       console.log('[ProfilePage] memberships / session slice loaded', { membershipError });
     }
   }, [sessionLoading, membershipError]);
-
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(PREVIEW_ROLE_STORAGE_KEY);
-      if (raw) console.log('[ProfilePage] preview role restored from storage', raw);
-    } catch (e) {
-      console.warn('[ProfilePage] preview role storage read failed', e);
-    }
-  }, []);
 
   useEffect(() => {
     if (!blockingLoad && authUser) {
@@ -296,11 +310,15 @@ export const ProfilePage: React.FC = () => {
           )}
 
           <p className="mt-3 text-sm text-[var(--text-sub)]">
-            Backend-Rolle: <span className="font-medium text-[var(--text-main)]">{backendRole}</span>
+            Backend-Rolle:{' '}
+            <span className="font-medium text-[var(--text-main)]">{profileBackendRoleLabel}</span>
           </p>
 
           <p className="mt-1 text-sm text-[var(--text-sub)]">
-            UI-Ansicht: <span className="font-medium text-[var(--text-main)]">{effectiveRole}</span>
+            UI-Ansicht:{' '}
+            <span className="font-medium text-[var(--text-main)]">
+              {effectiveRole !== '' ? effectiveRole : '–'}
+            </span>
           </p>
 
           {hasPendingPlayerRequest && effectiveRole === 'fan' && (
