@@ -23,6 +23,7 @@ function normalizeRow(raw: TeamNotificationSettingsRow): TeamNotificationSetting
     ...raw,
     training_minutes_before: nearest(TRAINING_MIN, raw.training_minutes_before, 120),
     match_minutes_before: nearest(MATCH_MIN, raw.match_minutes_before, 1440),
+    // Nur Minuten auf erlaubte Werte runden; Checkboxen bleiben unverändert.
     match_second_minutes_before: nearest(MATCH2_MIN, raw.match_second_minutes_before, 120),
     event_minutes_before: nearest(EVENT_MIN, raw.event_minutes_before, 1440),
   };
@@ -36,6 +37,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!teamSeasonId) {
@@ -76,6 +78,7 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
   const update = <K extends keyof TeamNotificationSettingsRow>(key: K, value: TeamNotificationSettingsRow[K]) => {
     setRow((prev) => (prev ? { ...prev, [key]: value } : prev));
     setSaved(false);
+    setSaveError(null);
   };
 
   const save = async () => {
@@ -83,7 +86,9 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
 
     setSaving(true);
     setSaved(false);
+    setSaveError(null);
 
+    /** Vollständige Zeile laut DB-Schema (Migration): alle Reminder-Felder explizit. */
     const payload = {
       training_reminder_enabled: row.training_enabled,
       training_reminder_minutes_before: row.training_minutes_before,
@@ -103,7 +108,9 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         .maybeSingle();
 
       if (existingError) {
+        const msg = existingError.message || String(existingError);
         console.error('LOAD EXISTING ERROR', existingError);
+        setSaveError(`Vor dem Speichern: ${msg}`);
         return;
       }
 
@@ -114,7 +121,9 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
           .eq('id', existing.id);
 
         if (updateError) {
+          const msg = updateError.message || String(updateError);
           console.error('UPDATE ERROR', updateError);
+          setSaveError(`Speichern fehlgeschlagen: ${msg}`);
           return;
         }
       } else {
@@ -126,7 +135,9 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
           });
 
         if (insertError) {
+          const msg = insertError.message || String(insertError);
           console.error('INSERT ERROR', insertError);
+          setSaveError(`Speichern fehlgeschlagen: ${msg}`);
           return;
         }
       }
@@ -138,7 +149,9 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         .maybeSingle();
 
       if (freshError) {
+        const msg = freshError.message || String(freshError);
         console.error('RELOAD ERROR', freshError);
+        setSaveError(`Gespeichert, aber Neuladen fehlgeschlagen: ${msg}`);
         return;
       }
 
@@ -148,11 +161,13 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         );
         setRow(normalized);
         rowRef.current = normalized;
+        setSaved(true);
+      } else {
+        setSaveError('Nach dem Speichern wurde keine Zeile zurückgeliefert (Berechtigung oder Filter prüfen).');
       }
-
-      setSaved(true);
     } catch (e) {
       console.error('SAVE CATCH ERROR', e);
+      setSaveError(`Speichern fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setSaving(false);
     }
@@ -187,7 +202,12 @@ export const TeamReminderSettingsPanel: React.FC<Props> = ({ teamSeasonId, embed
         </>
       )}
 
-      {saved && <p className="mt-2 text-xs text-emerald-300/90">Gespeichert.</p>}
+      {saveError && (
+        <p className="mt-2 text-xs text-red-300/95" role="alert">
+          {saveError}
+        </p>
+      )}
+      {saved && !saveError && <p className="mt-2 text-xs text-emerald-300/90">Gespeichert.</p>}
 
       <div className="mt-3 space-y-3 text-sm">
         <label className="flex items-center gap-2">
