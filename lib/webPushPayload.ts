@@ -41,12 +41,11 @@ export function buildWebPushJsonPayload(parts: {
   const path = normalizeWebPushAppPath(parts.url);
   const title = (parts.title || 'SpielzeitApp').trim() || 'SpielzeitApp';
   const body = (parts.body || 'Neue Benachrichtigung').trim() || 'Neue Benachrichtigung';
-  const tag = (parts.tag || 'spielzeitapp').trim() || 'spielzeitapp';
   const o: Record<string, unknown> = {
     title,
     body,
     url: path,
-    tag,
+    tag: 'spielzeitapp',
     icon: DEFAULT_PUSH_ICON,
     badge: DEFAULT_PUSH_BADGE,
     vibrate: [...DEFAULT_PUSH_VIBRATE],

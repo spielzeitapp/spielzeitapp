@@ -74,6 +74,15 @@ function resolveOpenUrl(pathOrUrl) {
   return new URL(path, self.location.origin).href;
 }
 
+/** iOS PWA: Icon/Badge-URLs absolut (relative Pfade schlagen im SW-Kontext fehl). */
+function absoluteAssetUrl(pathOrUrl) {
+  const s = (pathOrUrl || '').trim();
+  if (!s) return new URL(DEFAULT_ICON, self.location.origin).href;
+  if (/^https?:\/\//i.test(s)) return s;
+  const p = s.startsWith('/') ? s : `/${s}`;
+  return new URL(p, self.location.origin).href;
+}
+
 self.addEventListener('push', (event) => {
   const payload = parsePushPayload(event);
 
@@ -95,22 +104,18 @@ self.addEventListener('push', (event) => {
     path = `/${path}`;
   }
 
-  const tag =
-    typeof payload.tag === 'string' && payload.tag.trim() ? payload.tag.trim() : DEFAULT_TAG;
-
-  const icon =
+  const iconRel =
     typeof payload.icon === 'string' && payload.icon.trim() ? payload.icon.trim() : DEFAULT_ICON;
-  const badge =
+  const badgeRel =
     typeof payload.badge === 'string' && payload.badge.trim() ? payload.badge.trim() : DEFAULT_BADGE;
 
-  let vibrate = DEFAULT_VIBRATE;
-  if (Array.isArray(payload.vibrate) && payload.vibrate.length > 0) {
-    const nums = payload.vibrate.map((n) => Number(n)).filter((n) => Number.isFinite(n) && n >= 0);
-    if (nums.length > 0) vibrate = nums;
-  }
+  const icon = absoluteAssetUrl(iconRel);
+  const badge = absoluteAssetUrl(badgeRel);
+
+  const vibrate = DEFAULT_VIBRATE;
 
   const badgeCount = readBadgeCountFromPayload(payload);
-  const dataPayload = Object.assign({}, dataObj, { url: path });
+  const dataPayload = { url: path };
   if (Number.isFinite(badgeCount)) {
     dataPayload.unread_count = badgeCount;
     dataPayload.badge_count = badgeCount;
@@ -120,7 +125,7 @@ self.addEventListener('push', (event) => {
     body,
     icon,
     badge,
-    tag,
+    tag: DEFAULT_TAG,
     vibrate,
     lang: 'de',
     renotify: true,
