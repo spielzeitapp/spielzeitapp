@@ -8,7 +8,6 @@ import {
   parseViennaDateTimeLocalToUtcIso,
   viennaDateOnlyEndOfDayUtcIso,
 } from '../../lib/viennaTime';
-import { formatEventDateVienna, formatEventTimeVienna } from '../../lib/notifications/format';
 import { combineLocationParts, formatFullLocation } from '../../lib/eventLocation';
 
 /** Leerstring / Whitespace → null (Supabase/Postgres). */
@@ -271,60 +270,8 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
         ids: Array.isArray(insertedRows) ? insertedRows.map((r: { id?: string }) => r.id).filter(Boolean) : [],
       });
 
-      // MVP: Automatische Nachricht + Push für „Neuer Termin / Event erstellt“
-      try {
-        const { data: sessionRes } = await supabase.auth.getSession();
-        const accessToken = sessionRes.session?.access_token;
-        if (accessToken && teamSeasonId) {
-          const firstEventId = (Array.isArray(insertedRows) ? insertedRows[0] : null)?.id ?? null;
-          const dateStr = formatEventDateVienna(startDate.toISOString());
-          const timeStr = formatEventTimeVienna(startDate.toISOString());
-
-          const ortVal = formatFullLocation(form.location, form.location_address);
-          const treffpunktVal = (form.meetup_time ?? '').trim();
-          let titleForMsg = '';
-          let contentForMsg = '';
-          if (eventTypeLocal === 'training') {
-            titleForMsg = 'Neues Training';
-            contentForMsg = `Für dein Team wurde ein neuer Termin erstellt: Training am ${dateStr} um ${timeStr}.`;
-          } else if (eventTypeLocal === 'game') {
-            titleForMsg = 'Neues Spiel';
-            contentForMsg = `Für dein Team wurde ein neuer Termin erstellt: Spiel am ${dateStr} um ${timeStr}.`;
-          } else if (eventTypeLocal === 'event') {
-            titleForMsg = 'Neues Event';
-            contentForMsg = `Für dein Team wurde ein neuer Termin erstellt: Event am ${dateStr} um ${timeStr}.`;
-          } else {
-            titleForMsg = 'Neues Event';
-            contentForMsg = `Für dein Team wurde ein neuer Termin erstellt: Termin am ${dateStr} um ${timeStr}.`;
-          }
-
-          if (ortVal) {
-            contentForMsg += ` Ort: ${ortVal}.`;
-          }
-          if (treffpunktVal) {
-            contentForMsg += ` Treffpunkt: ${treffpunktVal}.`;
-          }
-
-          await fetch('/api/push/send-team', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify({
-              team_season_id: teamSeasonId,
-              recipient_group: 'all',
-              title: titleForMsg,
-              body: contentForMsg,
-              url: '/app/nachrichten',
-              message_type: 'event_created',
-              related_event_id: firstEventId,
-            }),
-          });
-        }
-      } catch {
-        // best-effort: Nachricht/Push darf nicht das Event anlegen blockieren
-      }
+      // Kein Sofort-Push beim Anlegen: Erinnerungen laufen nur über notification_jobs + send-reminders
+      // (In-App + Web-Push zum Reminder-Zeitpunkt). Manuelle Team-Pushes bleiben über Trainer-Team-Push.
 
       handleClose();
       await onSuccess();

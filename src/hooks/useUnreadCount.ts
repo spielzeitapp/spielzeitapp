@@ -15,8 +15,10 @@ export function useUnreadCount(userId: string | undefined | null): number {
   const refresh = useCallback(async () => {
     if (!userId) {
       setCount(0);
+      void syncAppBadge(0);
       return;
     }
+    let next = 0;
     try {
       const { count: n, error } = await supabase
         .from('notifications')
@@ -25,14 +27,17 @@ export function useUnreadCount(userId: string | undefined | null): number {
         .eq('read', false);
       if (error) {
         console.warn('[useUnreadCount]', error.message ?? error);
-        setCount(0);
-        return;
+        next = 0;
+      } else {
+        next = n ?? 0;
       }
-      setCount(n ?? 0);
+      setCount(next);
     } catch (e) {
       console.warn('[useUnreadCount]', e);
+      next = 0;
       setCount(0);
     }
+    void syncAppBadge(next);
   }, [userId]);
 
   useEffect(() => {
@@ -60,10 +65,6 @@ export function useUnreadCount(userId: string | undefined | null): number {
   }, [refresh]);
 
   useNotificationsInboxRealtime(userId ?? null, refresh, 'badge');
-
-  useEffect(() => {
-    void syncAppBadge(count);
-  }, [count]);
 
   return count;
 }

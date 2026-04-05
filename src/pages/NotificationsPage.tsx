@@ -64,6 +64,7 @@ export const NotificationsPage: React.FC = () => {
       setItems([]);
       setError(null);
       setLoading(false);
+      notifyNotificationsReadChanged();
       return;
     }
     setLoading(true);
@@ -87,6 +88,7 @@ export const NotificationsPage: React.FC = () => {
           read: (r as { read?: boolean | null }).read === true,
         })),
       );
+      notifyNotificationsReadChanged();
     } catch {
       setItems([]);
       setError('Benachrichtigungen konnten nicht geladen werden.');
