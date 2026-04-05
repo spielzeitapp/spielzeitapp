@@ -1,45 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getEventDisplayTitle, type RawEventRow } from '../notifications/eventTypes';
+import type { RawEventRow } from '../notifications/eventTypes';
 import { dedupeRecipientUserIds, reminderNotificationDedupeFingerprint } from '../notifications/pending';
 import { fetchReminderRecipientUserIdsForTeamSeason } from '../notifications/users';
-import { buildPushReminderShort, buildReminderInAppBody, formatEventTimeVienna } from '../notifications/format';
 import { sendWebPushForUser } from '../../../lib/notificationDispatchHandler';
 import type { NotificationJobPayload, NotificationJobRow, ReminderJobKind } from './types';
-
-function locationLineForBody(ev: RawEventRow): string | null {
-  return (ev.location ?? '').trim() || null;
-}
-
-function buildCopyForJob(
-  jobKind: NotificationJobRow['kind'],
-  event: RawEventRow,
-): { title: string; body: string; pushBody: string } {
-  const titleStr = getEventDisplayTitle(event);
-  const meetIso = event.meeting_at ?? null;
-  const startsIso = event.starts_at;
-  const locLine = locationLineForBody(event);
-  const meetForBody = meetIso && String(meetIso).trim() ? meetIso : null;
-
-  if (jobKind === 'match') {
-    const tIso = meetForBody ?? startsIso;
-    const hhmm = formatEventTimeVienna(tIso);
-    const title = `Erinnerung: Treffpunkt heute um ${hhmm} Uhr`;
-    const body = buildReminderInAppBody(titleStr, startsIso, locLine, meetForBody);
-    return { title, body, pushBody: buildPushReminderShort(titleStr) };
-  }
-
-  if (jobKind === 'training') {
-    const hhmm = formatEventTimeVienna(startsIso);
-    const title = `Training heute um ${hhmm} Uhr`;
-    const body = buildReminderInAppBody(titleStr, startsIso, locLine, meetForBody);
-    return { title, body, pushBody: buildPushReminderShort(titleStr) };
-  }
-
-  const hhmm = formatEventTimeVienna(startsIso);
-  const title = `Termin heute um ${hhmm} Uhr`;
-  const body = buildReminderInAppBody(titleStr, startsIso, locLine, meetForBody);
-  return { title, body, pushBody: buildPushReminderShort(titleStr) };
-}
+import { buildReminderUxCopy, reminderAppDeepLink } from './reminderUxCopy';
 
 function notificationTypeFromJobKind(kind: ReminderJobKind): NotificationJobPayload['notificationType'] {
   if (kind === 'match') return 'game_reminder';
@@ -140,8 +105,8 @@ export async function processNotificationJob(
     return { ok: true };
   }
 
-  const { title, body, pushBody } = buildCopyForJob(job.kind, ev);
-  const linkPath = `/app/events/${job.event_id}`;
+  const { title, message } = buildReminderUxCopy(job.kind, ev, payload.reminderKey);
+  const linkPath = reminderAppDeepLink(job.kind, ev);
 
   let recipients: string[];
   try {
@@ -214,7 +179,7 @@ export async function processNotificationJob(
         team_id: job.team_id,
         event_id: job.event_id,
         title,
-        message: body,
+        message,
         read: false,
         type: 'auto',
         link: linkPath,
@@ -241,8 +206,8 @@ export async function processNotificationJob(
       const pushTag = `reminder-${payload.reminderKey}-${job.event_id}`;
       const pushRes = await sendWebPushForUser(admin, {
         userId,
-        title: 'SpielzeitApp Erinnerung',
-        body: pushBody,
+        title,
+        body: message,
         url: linkPath,
         tag: pushTag,
       });

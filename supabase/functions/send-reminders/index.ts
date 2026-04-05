@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const REMINDER_LINK = "/app/termine";
 const JOB_BATCH_LIMIT = 50;
 const VIENNA_TZ = "Europe/Vienna";
 
@@ -9,7 +8,8 @@ type JobRow = {
   id: string;
   team_id: string | null;
   event_id: string | null;
-  payload: any;
+  kind?: string | null;
+  payload: Record<string, unknown> | null;
 };
 
 type EventRow = {
@@ -20,28 +20,77 @@ type EventRow = {
   status?: string | null;
   opponent?: string | null;
   notes?: string | null;
+  match_id?: string | null;
 };
 
-function formatVienna(iso: string | null) {
-  if (!iso) return "unbekannt";
-
-  return new Intl.DateTimeFormat("de-DE", {
-    timeZone: VIENNA_TZ,
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
+function formatTimeDe(iso: string | null) {
+  if (!iso) return "--:--";
+  try {
+    return new Intl.DateTimeFormat("de-DE", {
+      timeZone: VIENNA_TZ,
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(iso));
+  } catch {
+    return "--:--";
+  }
 }
 
-function buildMessage(event: EventRow) {
-  const time = formatVienna(event.starts_at);
-
-  if (event.opponent) {
-    return `Erinnerung: Spiel gegen ${event.opponent} um ${time}`;
+function formatDateShortDe(iso: string | null) {
+  if (!iso) return "";
+  try {
+    return new Intl.DateTimeFormat("de-AT", {
+      timeZone: VIENNA_TZ,
+      weekday: "short",
+      day: "numeric",
+      month: "numeric",
+    }).format(new Date(iso));
+  } catch {
+    return "";
   }
+}
 
-  return `Erinnerung: Termin um ${time}`;
+function reminderAppDeepLink(kind: string, event: EventRow): string {
+  if (kind === "match" && event.match_id) return `/app/match/${event.match_id}`;
+  if (kind === "match") return `/app/events/${event.id}`;
+  return `/app/events/${event.id}`;
+}
+
+function buildReminderUxCopy(
+  kind: string,
+  event: EventRow,
+  reminderKey: string | undefined,
+): { title: string; message: string } {
+  const meetOrStart =
+    event.meeting_at && String(event.meeting_at).trim()
+      ? event.meeting_at
+      : event.starts_at;
+  const timeStr = formatTimeDe(meetOrStart);
+  if (kind === "match") {
+    const opp = (event.opponent ?? "").trim();
+    const gegner = opp || "Gegner";
+    const title = `⚽ Spiel gegen ${gegner}`;
+    const isSecond =
+      reminderKey === "match_reminder_2" ||
+      reminderKey === "match_second_reminder" ||
+      (typeof reminderKey === "string" && reminderKey.includes("second"));
+    const message = isSecond
+      ? `Heute ${timeStr} – Gleich Treffpunkt`
+      : `Heute ${timeStr} – Treffpunkt nicht vergessen`;
+    return { title, message };
+  }
+  if (kind === "training") {
+    return {
+      title: "🏃 Training",
+      message: `Heute ${timeStr} – Wir sehen uns am Platz`,
+    };
+  }
+  const dateStr = formatDateShortDe(event.starts_at);
+  const startTime = formatTimeDe(event.starts_at);
+  return {
+    title: "📅 Termin",
+    message: `${dateStr} ${startTime} – Erinnerung`,
+  };
 }
 
 async function completeJob(admin: any, id: string) {
@@ -86,7 +135,9 @@ serve(async () => {
         // Event laden
         const { data: event } = await supabase
           .from("events")
-          .select("id, team_season_id, starts_at, meeting_at, opponent, notes, status")
+          .select(
+            "id, team_season_id, starts_at, meeting_at, opponent, notes, status, match_id",
+          )
           .eq("id", job.event_id)
           .single();
 
@@ -117,18 +168,33 @@ serve(async () => {
           ),
         ];
 
-        const message = buildMessage(event);
+        const jobKind = (job.kind as string) || "event";
+        const p = job.payload && typeof job.payload === "object"
+          ? (job.payload as Record<string, unknown>)
+          : {};
+        const reminderKey =
+          typeof p.reminderKey === "string"
+            ? p.reminderKey
+            : typeof p.reminder_type === "string"
+              ? p.reminder_type
+              : undefined;
+        const { title: uxTitle, message: uxMessage } = buildReminderUxCopy(
+          jobKind,
+          event as EventRow,
+          reminderKey,
+        );
+        const linkPath = reminderAppDeepLink(jobKind, event as EventRow);
 
         // 🔥 WICHTIG: UPSERT + SOURCE JOB ID
         const rows = uniqueUserIds.map((userId) => ({
           user_id: userId,
           team_id: job.team_id,
           event_id: event.id,
-          title: "Erinnerung",
-          message,
+          title: uxTitle,
+          message: uxMessage,
           type: "auto",
           read: false,
-          link: REMINDER_LINK,
+          link: linkPath,
           source_notification_job_id: job.id,
         }));
 

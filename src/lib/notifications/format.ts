@@ -113,3 +113,35 @@ export function formatDateTimeMediumDeVienna(iso: string): string {
     timeStyle: 'short',
   }).format(d);
 }
+
+/** Listen-Timestamp: Heute/Gestern/kurzes Datum + Uhrzeit (Europe/Vienna). */
+export function formatRelativeNotificationTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '–';
+  const now = new Date();
+  const dayKey = (x: Date) =>
+    new Intl.DateTimeFormat('de-AT', {
+      timeZone: VIENNA_TZ,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(x);
+  const dk = dayKey(d);
+  const dkNow = dayKey(now);
+  const y = new Date(now);
+  y.setDate(y.getDate() - 1);
+  const dkYest = dayKey(y);
+  const hm = new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(d);
+  if (dk === dkNow) return `Heute, ${hm}`;
+  if (dk === dkYest) return `Gestern, ${hm}`;
+  const shortDate = new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    day: '2-digit',
+    month: '2-digit',
+  }).format(d);
+  return `${shortDate}, ${hm}`;
+}

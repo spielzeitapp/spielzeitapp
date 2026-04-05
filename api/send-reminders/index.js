@@ -5,7 +5,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const webpush = require('web-push');
 
-const REMINDER_LINK = '/app/termine';
 /** Idempotente Batches; mehrfaches Aufrufen möglich (Claim + messages-Dedupe). */
 const JOB_BATCH_LIMIT = 50;
 
@@ -36,28 +35,51 @@ function viennaDateTimeDebug(iso) {
   }
 }
 
-/** Titel nach Job-Typ (match / training / event). */
-function titleForJobKind(kind) {
-  if (kind === 'match') return '⚽ Spiel-Erinnerung';
-  if (kind === 'training') return '🏃 Trainings-Erinnerung';
-  return '📌 Erinnerung';
+function reminderAppDeepLink(kind, event) {
+  const mid = event.match_id;
+  if (kind === 'match' && mid) return `/app/match/${mid}`;
+  if (kind === 'match') return `/app/events/${event.id}`;
+  return `/app/events/${event.id}`;
 }
 
-/**
- * Fließtext z. B. „Erinnerung: Spiel heute um XX:XX“ (starts_at, Europe/Vienna).
- */
-function buildReminderBody(kind, event, reminderKey) {
-  const t = formatTimeDe(event.starts_at);
+function formatDateShortDeVienna(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleDateString('de-AT', {
+      timeZone: 'Europe/Vienna',
+      weekday: 'short',
+      day: 'numeric',
+      month: 'numeric',
+    });
+  } catch (_) {
+    return '';
+  }
+}
+
+/** Kurze iPhone-ähnliche Texte für In-App + Push. */
+function buildReminderUxCopy(kind, event, reminderKey) {
+  const meetOrStart =
+    event.meeting_at && String(event.meeting_at).trim() ? event.meeting_at : event.starts_at;
+  const timeStr = formatTimeDe(meetOrStart);
   if (kind === 'match') {
-    if (reminderKey === 'match_reminder_2') {
-      return `Erinnerung: Treffpunkt bald (Spiel um ${t}).`;
-    }
-    return `Erinnerung: Spiel heute um ${t}`;
+    const opp = (event.opponent || '').trim();
+    const gegner = opp || 'Gegner';
+    const title = `⚽ Spiel gegen ${gegner}`;
+    const isSecond =
+      reminderKey === 'match_reminder_2' ||
+      reminderKey === 'match_second_reminder' ||
+      (typeof reminderKey === 'string' && reminderKey.includes('second'));
+    const message = isSecond
+      ? `Heute ${timeStr} – Gleich Treffpunkt`
+      : `Heute ${timeStr} – Treffpunkt nicht vergessen`;
+    return { title, message };
   }
   if (kind === 'training') {
-    return `Erinnerung: Training heute um ${t}`;
+    return { title: '🏃 Training', message: `Heute ${timeStr} – Wir sehen uns am Platz` };
   }
-  return `Erinnerung: Termin heute um ${t}`;
+  const dateStr = formatDateShortDeVienna(event.starts_at);
+  const startTime = formatTimeDe(event.starts_at);
+  return { title: '📅 Termin', message: `${dateStr} ${startTime} – Erinnerung` };
 }
 
 function parseBody(req) {
@@ -289,9 +311,8 @@ async function processOneJob(admin, job) {
     meeting_at_vienna_debug: event.meeting_at ? viennaDateTimeDebug(event.meeting_at) : null,
   });
 
-  const title = titleForJobKind(job.kind);
-  const textBody = buildReminderBody(job.kind, event, reminderKey);
-  const url = REMINDER_LINK.startsWith('/') ? REMINDER_LINK : `/${REMINDER_LINK}`;
+  const { title, message: textBody } = buildReminderUxCopy(job.kind, event, reminderKey);
+  const url = reminderAppDeepLink(job.kind, event);
 
   if ((event.status ?? 'upcoming') !== 'upcoming') {
     console.log('[reminderPipeline] skip: event not upcoming', { jobId: job.id, eventId: job.event_id });
