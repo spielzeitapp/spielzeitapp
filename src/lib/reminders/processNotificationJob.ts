@@ -2,7 +2,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { RawEventRow } from '../notifications/eventTypes';
 import { dedupeRecipientUserIds, reminderNotificationDedupeFingerprint } from '../notifications/pending';
 import { fetchReminderRecipientUserIdsForTeamSeason } from '../notifications/users';
-import { sendWebPushForUser } from '../../../lib/notificationDispatchHandler';
+import {
+  countUnreadNotificationsForUser,
+  sendWebPushForUser,
+} from '../../../lib/notificationDispatchHandler';
 import type { NotificationJobPayload, NotificationJobRow, ReminderJobKind } from './types';
 import { buildReminderUxCopy, reminderAppDeepLink } from './reminderUxCopy';
 
@@ -203,6 +206,7 @@ export async function processNotificationJob(
 
       console.log('[notificationsDedup] notification inserted', { jobId: job.id, userId });
 
+      const unreadForBadge = await countUnreadNotificationsForUser(admin, userId);
       const pushTag = `reminder-${payload.reminderKey}-${job.event_id}`;
       const pushRes = await sendWebPushForUser(admin, {
         userId,
@@ -210,6 +214,7 @@ export async function processNotificationJob(
         body: message,
         url: linkPath,
         tag: pushTag,
+        appBadgeCount: unreadForBadge,
       });
       if (pushRes.sent > 0) {
         const { error: pushLogErr } = await admin.from('notification_dispatch_log').insert({

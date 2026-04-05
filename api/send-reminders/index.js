@@ -231,7 +231,17 @@ function pushIsGoneError(err) {
   return code === 404 || code === 410 || status === 404 || status === 410;
 }
 
-async function sendPushesForUser(admin, userId, title, body, url) {
+async function countUnreadNotificationsForUser(admin, userId) {
+  const { count, error } = await admin
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('read', false);
+  if (error) return 0;
+  return count ?? 0;
+}
+
+async function sendPushesForUser(admin, userId, title, body, url, appBadgeCount) {
   const { data: subscriptions, error } = await admin
     .from('push_subscriptions')
     .select('endpoint, p256dh, auth')
@@ -242,7 +252,11 @@ async function sendPushesForUser(admin, userId, title, body, url) {
     return { sent: 0, removed: 0 };
   }
   ensureVapid();
-  const payload = JSON.stringify({ title, body, url });
+  const payloadObj = { title, body, url };
+  if (typeof appBadgeCount === 'number' && Number.isFinite(appBadgeCount)) {
+    payloadObj.appBadgeCount = Math.min(99, Math.max(0, Math.floor(appBadgeCount)));
+  }
+  const payload = JSON.stringify(payloadObj);
   let sent = 0;
   let removed = 0;
   for (const row of subscriptions) {
@@ -411,7 +425,8 @@ async function processOneJob(admin, job) {
     console.log('[notificationsDedup] notification inserted', { jobId: job.id, userId });
     console.log('[reminderPipeline] notifications row created', { jobId: job.id, userId, eventId: job.event_id });
 
-    const pushRes = await sendPushesForUser(admin, userId, title, textBody, url);
+    const unreadForBadge = await countUnreadNotificationsForUser(admin, userId);
+    const pushRes = await sendPushesForUser(admin, userId, title, textBody, url, unreadForBadge);
     pushSent += pushRes.sent;
     console.log('[reminderPipeline] push attempt', {
       jobId: job.id,

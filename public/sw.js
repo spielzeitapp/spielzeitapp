@@ -44,8 +44,27 @@ self.addEventListener('push', (event) => {
     data: { url },
   };
 
+  /** iOS/PWA: Homescreen-Badge sofort (ohne App zu öffnen), Wert kommt vom Server = unread notifications. */
+  function applyAppBadgeFromPayload(p) {
+    try {
+      const nav = self.navigator;
+      if (!nav || typeof nav.setAppBadge !== 'function' || typeof nav.clearAppBadge !== 'function') return;
+      const raw = p && typeof p.appBadgeCount === 'number' ? p.appBadgeCount : NaN;
+      if (!Number.isFinite(raw)) return;
+      const n = Math.floor(raw);
+      if (n <= 0) {
+        void nav.clearAppBadge().catch(() => {});
+        return;
+      }
+      void nav.setAppBadge(Math.min(99, n)).catch(() => {});
+    } catch {
+      /* ignore */
+    }
+  }
+
   event.waitUntil(
     (async () => {
+      applyAppBadgeFromPayload(payload);
       await self.registration.showNotification(title, options);
       try {
         const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });

@@ -334,10 +334,32 @@ export async function sendPendingNotificationReminder(
   return { sent, skipped: 0, errors, details };
 }
 
+/** Ungelesene Zeilen in public.notifications für genau diesen User (Homescreen-Badge). */
+export async function countUnreadNotificationsForUser(
+  admin: SupabaseClient,
+  userId: string,
+): Promise<number> {
+  const { count, error } = await admin
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('read', false);
+  if (error) return 0;
+  return count ?? 0;
+}
+
 /** Nur Web Push (kein messages-/notifications-Insert). Für Reminder-Jobs über notification_jobs. */
 export async function sendWebPushForUser(
   admin: SupabaseClient,
-  opts: { userId: string; title: string; body: string; url: string; tag: string },
+  opts: {
+    userId: string;
+    title: string;
+    body: string;
+    url: string;
+    tag: string;
+    /** Optional: iOS/PWA Homescreen-Badge sofort im SW (ohne App öffnen). */
+    appBadgeCount?: number;
+  },
 ): Promise<{ sent: number; errors: string[] }> {
   const errors: string[] = [];
   const { data, error: subErr } = await admin
@@ -365,12 +387,16 @@ export async function sendWebPushForUser(
     return { sent: 0, errors };
   }
 
-  const payload = JSON.stringify({
+  const payloadObj: Record<string, unknown> = {
     title: opts.title,
     body: opts.body,
     url: opts.url,
     tag: opts.tag,
-  });
+  };
+  if (typeof opts.appBadgeCount === 'number' && Number.isFinite(opts.appBadgeCount)) {
+    payloadObj.appBadgeCount = Math.min(99, Math.max(0, Math.floor(opts.appBadgeCount)));
+  }
+  const payload = JSON.stringify(payloadObj);
 
   let sent = 0;
   for (const s of subs) {
