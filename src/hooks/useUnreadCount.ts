@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { syncAppBadge } from '../lib/notifications/appBadge';
 import { NOTIFICATIONS_READ_CHANGED_EVENT } from '../lib/notificationsReadState';
@@ -7,9 +6,9 @@ import { useNotificationsInboxRealtime } from './useNotificationsInboxRealtime';
 
 /**
  * Nur `public.notifications` mit read = false (keine messages-Tabelle).
+ * Homescreen-Badge nicht bei Fokus/Visibility/Route wegsyncen — nur bei echtem Count oder Read-Events.
  */
 export function useUnreadCount(userId: string | undefined | null): number {
-  const { pathname } = useLocation();
   const [count, setCount] = useState(0);
 
   const refresh = useCallback(async () => {
@@ -18,7 +17,6 @@ export function useUnreadCount(userId: string | undefined | null): number {
       void syncAppBadge(0);
       return;
     }
-    let next = 0;
     try {
       const { count: n, error } = await supabase
         .from('notifications')
@@ -27,39 +25,26 @@ export function useUnreadCount(userId: string | undefined | null): number {
         .eq('read', false);
       if (error) {
         console.warn('[useUnreadCount]', error.message ?? error);
-        next = 0;
-      } else {
-        next = n ?? 0;
+        return;
       }
+      const next = n ?? 0;
       setCount(next);
+      void syncAppBadge(next);
     } catch (e) {
       console.warn('[useUnreadCount]', e);
-      next = 0;
-      setCount(0);
     }
-    void syncAppBadge(next);
   }, [userId]);
 
   useEffect(() => {
     void refresh();
-  }, [refresh, pathname]);
+  }, [refresh]);
 
   useEffect(() => {
-    const onFocus = () => {
-      void refresh();
-    };
-    const onVis = () => {
-      if (document.visibilityState === 'visible') void refresh();
-    };
     const onReadChanged = () => {
       void refresh();
     };
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onVis);
     window.addEventListener(NOTIFICATIONS_READ_CHANGED_EVENT, onReadChanged);
     return () => {
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener(NOTIFICATIONS_READ_CHANGED_EVENT, onReadChanged);
     };
   }, [refresh]);
