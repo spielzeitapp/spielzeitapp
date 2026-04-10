@@ -11,7 +11,6 @@ import {
   pickHomeMatchCard,
 } from './homeFeedBuilder';
 import { HomeHeader } from './HomeHeader';
-import { HomeQuickActions } from './HomeQuickActions';
 
 const FEED_DEMO = import.meta.env.VITE_HOME_FEED_DEMO === '1';
 
@@ -84,8 +83,6 @@ export const HomePage: React.FC = () => {
             </Link>
           </div>
         )}
-
-        {(showContent || (!teamSeasonId && !FEED_DEMO && !loading)) && <HomeQuickActions />}
       </div>
     </div>
   );

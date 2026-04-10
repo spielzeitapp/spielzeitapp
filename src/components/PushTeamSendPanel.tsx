@@ -21,6 +21,9 @@ import {
 const API = '/api/push/send-team';
 const DEFAULT_TEAM_PUSH_LINK = '/app/nachrichten';
 
+/** MVP: Termin-Dropdown + Hilfetext ausblenden; Platzhalter-Logik bleibt im Code (z. B. auf true setzen). */
+const SHOW_TEAM_PUSH_EVENT_PICKER = false;
+
 type Props = {
   teamSeasonId: string | null;
   /** full: Form + Vorlagen-Liste; push-only: nur Form; templates-only: nur Vorlagen-Liste */
@@ -383,30 +386,34 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
           ))}
         </select>
 
-        <label className="mt-3 block text-xs font-medium text-[var(--text-sub)]" htmlFor="push-event-pick">
-          Termin (Platzhalter)
-        </label>
-        <select
-          id="push-event-pick"
-          value={selectedEventId}
-          onChange={(e) => setSelectedEventId(e.target.value)}
-          disabled={disabled || loading || !teamSeasonId}
-          className="mt-1 w-full rounded-md border border-[var(--border)] bg-black/40 px-2 py-2 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-        >
-          <option value="">Kein Termin</option>
-          {upcomingPushEvents.map((ev) => (
-            <option key={ev.id} value={ev.id}>
-              {pushEventOptionLabel(ev)}
-            </option>
-          ))}
-        </select>
-        <p className="mt-1 text-[11px] leading-snug text-[var(--text-sub)]">
-          Mit Termin:{' '}
-          <span className="text-white/50">
-            {'{team}'}, {'{gegner}'}, {'{treffpunkt}'}, {'{anpfiff}'}, {'{datum}'}, {'{uhrzeit}'}
-          </span>{' '}
-          — ohne Termin bleiben Platzhalter leer beim Senden.
-        </p>
+        {SHOW_TEAM_PUSH_EVENT_PICKER && (
+          <>
+            <label className="mt-3 block text-xs font-medium text-[var(--text-sub)]" htmlFor="push-event-pick">
+              Termin (Platzhalter)
+            </label>
+            <select
+              id="push-event-pick"
+              value={selectedEventId}
+              onChange={(e) => setSelectedEventId(e.target.value)}
+              disabled={disabled || loading || !teamSeasonId}
+              className="mt-1 w-full rounded-md border border-[var(--border)] bg-black/40 px-2 py-2 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            >
+              <option value="">Kein Termin</option>
+              {upcomingPushEvents.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {pushEventOptionLabel(ev)}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-[11px] leading-snug text-[var(--text-sub)]">
+              Mit Termin:{' '}
+              <span className="text-white/50">
+                {'{team}'}, {'{gegner}'}, {'{treffpunkt}'}, {'{anpfiff}'}, {'{datum}'}, {'{uhrzeit}'}
+              </span>{' '}
+              — ohne Termin bleiben Platzhalter leer beim Senden.
+            </p>
+          </>
+        )}
 
         <label className="mt-3 block text-xs font-medium text-[var(--text-sub)]" htmlFor="push-title">
           Titel
