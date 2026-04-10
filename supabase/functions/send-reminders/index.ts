@@ -78,6 +78,46 @@ function endpointPrefix(endpoint: string, max = 96): string {
   return `${t.slice(0, max)}…`;
 }
 
+/** Wie `api/push/send-team.js`: konsistente App-Pfade für Web-Push / sw.js */
+function normalizePushAppUrl(raw: string): string {
+  let url = (raw ?? "").trim() || "/app/termine";
+  if (!url.startsWith("/")) url = `/${url}`;
+  if (url === "/termine" || url.startsWith("/termine?") || url.startsWith("/termine#")) {
+    return `/app/termine${url.slice("/termine".length)}`;
+  }
+  if (url === "/nachrichten" || url.startsWith("/nachrichten?") || url.startsWith("/nachrichten#")) {
+    return `/app/nachrichten${url.slice("/nachrichten".length)}`;
+  }
+  return url;
+}
+
+/**
+ * Einheitlicher JSON-Push wie Team-Push (nur diese Top-Level-Felder + data).
+ * Badge-Zahl immer in `data` (auch 0), damit sw.js und Clients identisch reagieren.
+ */
+function buildTeamAlignedPushPayload(
+  title: string,
+  body: string,
+  urlRaw: string,
+  unreadCount: number,
+): string {
+  const url = normalizePushAppUrl(urlRaw);
+  const c = Math.min(99, Math.max(0, Math.floor(Number(unreadCount)) || 0));
+  return JSON.stringify({
+    title: title.trim() || "SpielzeitApp",
+    body: body.trim() || "Neue Benachrichtigung",
+    url,
+    icon: "/icon-192.png",
+    badge: "/badge-72.png",
+    vibrate: [200, 100, 200],
+    data: {
+      url,
+      unread_count: c,
+      badge_count: c,
+    },
+  });
+}
+
 function formatWebPushError(err: unknown): string {
   if (err instanceof Error) {
     const e = err as Error & { body?: string; statusCode?: number };
@@ -102,28 +142,22 @@ async function sendReminderWebPushes(
   userIds: string[],
   title: string,
   body: string,
-  url: string,
+  urlRaw: string,
   jobId: string,
-  eventId: string,
-  reminderKeyForTag: string,
 ): Promise<void> {
-  console.log("sendReminderWebPushes start", {
-    jobId,
-    userIdsLength: userIds.length,
-    userIds,
-  });
+  const url = normalizePushAppUrl(urlRaw);
+  console.log("Reminder send:", { jobId, title, userCount: userIds.length });
 
   const vapidOk = ensureVapid();
   if (!vapidOk) {
     console.warn(
-      "sendReminderWebPushes early exit: VAPID missing (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT)",
+      "[send-reminders] VAPID fehlt — kein Web Push (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT)",
     );
-    console.log("sendReminderWebPushes done", { jobId, reason: "no_vapid", sentOk: 0, sentFail: 0 });
+    console.log("[send-reminders] push skip", { jobId, reason: "no_vapid" });
     return;
   }
   if (userIds.length === 0) {
-    console.log("sendReminderWebPushes early exit: userIds empty");
-    console.log("sendReminderWebPushes done", { jobId, reason: "no_user_ids", sentOk: 0, sentFail: 0 });
+    console.log("[send-reminders] push skip", { jobId, reason: "no_user_ids" });
     return;
   }
 
@@ -135,34 +169,40 @@ async function sendReminderWebPushes(
 
   if (subErr) {
     console.error("[send-reminders] push_subscriptions query error", {
+      jobId,
       message: subErr.message,
       details: (subErr as { details?: string }).details,
-      hint: (subErr as { hint?: string }).hint,
       code: (subErr as { code?: string }).code,
     });
-    console.log("sendReminderWebPushes done", { jobId, reason: "query_error", sentOk: 0, sentFail: 0 });
     return;
   }
 
-  const rows = (subRows ?? []).filter(
+  const rawRows = (subRows ?? []).filter(
     (r: SubRow) => r.endpoint && r.p256dh && r.auth,
   ) as SubRow[];
 
-  console.log("sendReminderWebPushes subscriptions", {
+  /** Gleicher Endpoint nicht zweimal (kein doppeltes sendNotification). */
+  const seenEndpoints = new Set<string>();
+  const rows: SubRow[] = [];
+  for (const r of rawRows) {
+    const ep = String(r.endpoint).trim();
+    if (seenEndpoints.has(ep)) continue;
+    seenEndpoints.add(ep);
+    rows.push(r);
+  }
+
+  console.log("[send-reminders] push subscriptions", {
     jobId,
-    rawRowCount: (subRows ?? []).length,
-    usableRowCount: rows.length,
+    rawRowCount: rawRows.length,
+    dedupedRowCount: rows.length,
   });
 
   let sentOk = 0;
   let sentFail = 0;
 
-  const rk = String(reminderKeyForTag || "r").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 48);
-  const stableTag = `spz-reminder-${eventId}-${rk}`;
-
   for (const row of rows) {
     const uid = row.user_id;
-    let unreadForBadge: number | null = null;
+    let unreadForBadge = 0;
     try {
       const { count, error: cErr } = await supabase
         .from("notifications")
@@ -176,37 +216,10 @@ async function sendReminderWebPushes(
       /* ignore */
     }
 
-    const payloadObj: Record<string, unknown> = {
-      title: title.trim() || "SpielzeitApp",
-      body: body.trim() || "Neue Benachrichtigung",
-      url,
-      tag: stableTag,
-      requireInteraction: true,
-      icon: "/icon-192.png",
-      badge: "/badge-72.png",
-      vibrate: [200, 100, 200],
-      data: {
-        url,
-        kind: "reminder",
-        event_id: eventId,
-      },
-    };
-    if (unreadForBadge != null) {
-      payloadObj.appBadgeCount = unreadForBadge;
-      payloadObj.unread_count = unreadForBadge;
-      payloadObj.badge_count = unreadForBadge;
-      payloadObj.data = {
-        url,
-        kind: "reminder",
-        event_id: eventId,
-        unread_count: unreadForBadge,
-        badge_count: unreadForBadge,
-      };
-    }
-    const payload = JSON.stringify(payloadObj);
+    const payload = buildTeamAlignedPushPayload(title, body, url, unreadForBadge);
 
     const epPrefix = endpointPrefix(row.endpoint);
-    console.log("sendReminderWebPushes send attempt", { jobId, userId: uid, endpointPrefix: epPrefix });
+    console.log("[send-reminders] webpush attempt", { jobId, userId: uid, endpointPrefix: epPrefix });
 
     try {
       await webpush.sendNotification(
@@ -218,12 +231,12 @@ async function sendReminderWebPushes(
         { TTL: 86400 },
       );
       sentOk += 1;
-      console.log("sendReminderWebPushes send success", { jobId, userId: uid, endpointPrefix: epPrefix });
+      console.log("[send-reminders] webpush ok", { jobId, userId: uid, endpointPrefix: epPrefix });
     } catch (err: unknown) {
       sentFail += 1;
       const msg = formatWebPushError(err);
       const statusCode = getPushFailureStatusCode(err);
-      console.error("sendReminderWebPushes send failed", {
+      console.error("[send-reminders] webpush failed", {
         jobId,
         userId: uid,
         endpointPrefix: epPrefix,
@@ -238,13 +251,13 @@ async function sendReminderWebPushes(
         if (delErr) {
           console.error("[send-reminders] delete push_subscriptions", delErr.message);
         } else {
-          console.log("sendReminderWebPushes removed dead subscription", { endpointPrefix: epPrefix });
+          console.log("[send-reminders] removed dead subscription", { endpointPrefix: epPrefix });
         }
       }
     }
   }
 
-  console.log("sendReminderWebPushes done", { jobId, sentOk, sentFail, subscriptionRows: rows.length });
+  console.log("[send-reminders] webpush batch done", { jobId, sentOk, sentFail, subscriptionRows: rows.length });
 }
 
 function formatTimeDe(iso: string | null) {
@@ -322,14 +335,16 @@ async function completeJob(admin: ReturnType<typeof createClient>, id: string) {
   await admin.from("notification_jobs").update({
     status: "sent",
     sent_at: new Date().toISOString(),
-  }).eq("id", id);
+    updated_at: new Date().toISOString(),
+  }).eq("id", id).eq("status", "processing");
 }
 
 async function failJob(admin: ReturnType<typeof createClient>, id: string, error: string) {
   await admin.from("notification_jobs").update({
     status: "failed",
-    last_error: error,
-  }).eq("id", id);
+    last_error: error.slice(0, 2000),
+    updated_at: new Date().toISOString(),
+  }).eq("id", id).eq("status", "processing");
 }
 
 serve(async () => {
@@ -355,19 +370,41 @@ serve(async () => {
     console.log("Jobs gefunden:", jobs.length);
 
     for (const job of jobs as JobRow[]) {
+      const { data: claimed, error: claimErr } = await supabase
+        .from("notification_jobs")
+        .update({
+          status: "processing",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", job.id)
+        .eq("status", "pending")
+        .select("*")
+        .maybeSingle();
+
+      if (claimErr) {
+        console.error("[send-reminders] claim error", { jobId: job.id, message: claimErr.message });
+        continue;
+      }
+      if (!claimed) {
+        console.log("[send-reminders] skip job (already claimed or not pending)", { jobId: job.id });
+        continue;
+      }
+
+      const locked = claimed as JobRow;
+
       try {
         const { data: event } = await supabase
           .from("events")
           .select(
             "id, team_season_id, starts_at, meeting_at, opponent, notes, status, match_id",
           )
-          .eq("id", job.event_id)
+          .eq("id", locked.event_id)
           .single();
 
         if (!event) throw new Error("Event nicht gefunden");
 
         if (event.status !== "upcoming") {
-          await completeJob(supabase, job.id);
+          await completeJob(supabase, locked.id);
           continue;
         }
 
@@ -377,7 +414,7 @@ serve(async () => {
           .eq("team_season_id", event.team_season_id);
 
         if (!members || members.length === 0) {
-          await completeJob(supabase, job.id);
+          await completeJob(supabase, locked.id);
           continue;
         }
 
@@ -389,9 +426,9 @@ serve(async () => {
           ),
         ];
 
-        const jobKind = (job.kind as string) || "event";
-        const p = job.payload && typeof job.payload === "object"
-          ? (job.payload as Record<string, unknown>)
+        const jobKind = (locked.kind as string) || "event";
+        const p = locked.payload && typeof locked.payload === "object"
+          ? (locked.payload as Record<string, unknown>)
           : {};
         const reminderKey =
           typeof p.reminderKey === "string"
@@ -406,47 +443,41 @@ serve(async () => {
         );
         const linkPath = reminderAppDeepLink(jobKind, event as EventRow);
 
-        const rows = uniqueUserIds.map((userId) => ({
+        const notifRows = uniqueUserIds.map((userId) => ({
           user_id: userId,
-          team_id: job.team_id,
+          team_id: locked.team_id,
           event_id: event.id,
           title: uxTitle,
           message: uxMessage,
           type: "auto",
           read: false,
           link: linkPath,
-          source_notification_job_id: job.id,
+          source_notification_job_id: locked.id,
         }));
 
         const { error } = await supabase
           .from("notifications")
-          .upsert(rows, {
+          .upsert(notifRows, {
             onConflict: "source_notification_job_id,user_id",
           });
 
         if (error) throw error;
 
-        console.log("send-reminders invoking sendReminderWebPushes", {
-          jobId: job.id,
-          uniqueUserIdsCount: uniqueUserIds.length,
-        });
         await sendReminderWebPushes(
           supabase,
           uniqueUserIds,
           uxTitle,
           uxMessage,
           linkPath,
-          job.id,
-          event.id,
-          reminderKey ?? "reminder",
+          locked.id,
         );
 
-        console.log("Job erledigt (DB + Push-Versuch):", job.id);
-        await completeJob(supabase, job.id);
+        console.log("[send-reminders] job complete", { jobId: locked.id });
+        await completeJob(supabase, locked.id);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        console.error("Job Fehler:", msg);
-        await failJob(supabase, job.id, msg);
+        console.error("[send-reminders] job failed", { jobId: locked.id, error: msg });
+        await failJob(supabase, locked.id, msg);
       }
     }
 
