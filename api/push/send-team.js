@@ -350,7 +350,6 @@ export default async function handler(req, res) {
         link: url,
         type: "manual",
         read: false,
-        created_by: user.id,
       }));
       const { error: nInsErr } = await supabase.from("notifications").insert(notifRows);
       if (nInsErr) {
