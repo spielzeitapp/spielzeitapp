@@ -1,10 +1,14 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { useAuth } from '../auth/AuthProvider';
 import { useSession } from '../auth/useSession';
+import { useEvents, type EventRow } from '../hooks/useEvents';
+import { isUpcomingRelevant } from '../features/home/homeFeedBuilder';
+import { formatEventDateVienna, formatEventTimeVienna } from '../lib/notifications/format';
+import { applyPushTemplatePlaceholders } from '../lib/pushTemplatePlaceholders';
 import {
   createTemplate,
   deleteTemplate,
@@ -51,9 +55,18 @@ function previewLine(text: string, max = 72): string {
   return `${t.slice(0, max)}…`;
 }
 
+function pushEventOptionLabel(ev: EventRow): string {
+  const kind = ev.kind === 'match' ? 'Spiel' : ev.kind === 'training' ? 'Training' : 'Termin';
+  const d = formatEventDateVienna(ev.starts_at);
+  const t = formatEventTimeVienna(ev.starts_at);
+  return `${kind} · ${d} · ${t}`;
+}
+
 export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'full' }) => {
   const { session, user } = useAuth();
   const { selectedTeamSeason } = useSession();
+  const teamDisplayName = (selectedTeamSeason?.team?.name ?? '').trim() || 'Team';
+  const { events } = useEvents(teamSeasonId);
   const teamIdFromSession = selectedTeamSeason?.team?.id != null ? String(selectedTeamSeason.team.id) : null;
   const [teamIdResolved, setTeamIdResolved] = useState<string | null>(null);
   const teamId = teamIdFromSession ?? teamIdResolved;
@@ -73,6 +86,24 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState('');
+  /** Rohtext der zuletzt aus einer Vorlage geladenen Felder (mit Platzhaltern), für Termin-Wechsel. */
+  const templateRawRef = useRef<{ title: string; message: string } | null>(null);
+
+  const upcomingPushEvents = useMemo(() => {
+    const now = new Date();
+    return (events ?? [])
+      .filter(
+        (e) =>
+          (e.kind === 'match' || e.kind === 'training') && isUpcomingRelevant(e, now),
+      )
+      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+  }, [events]);
+
+  const selectedPushEvent = useMemo(() => {
+    if (!selectedEventId) return null;
+    return upcomingPushEvents.find((e) => e.id === selectedEventId) ?? null;
+  }, [selectedEventId, upcomingPushEvents]);
 
   const reloadTemplates = useCallback(async () => {
     if (!teamId) {
@@ -85,8 +116,27 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
   useEffect(() => {
     setTemplateSelect('');
     setEditingTemplateId(null);
+    setSelectedEventId('');
+    templateRawRef.current = null;
     void reloadTemplates();
   }, [reloadTemplates]);
+
+  useEffect(() => {
+    const raw = templateRawRef.current;
+    if (!raw) return;
+    const ev = selectedEventId
+      ? upcomingPushEvents.find((e) => e.id === selectedEventId) ?? null
+      : null;
+    setTitle(applyPushTemplatePlaceholders(raw.title, ev, teamDisplayName));
+    setBody(applyPushTemplatePlaceholders(raw.message, ev, teamDisplayName));
+  }, [selectedEventId, upcomingPushEvents, teamDisplayName]);
+
+  useEffect(() => {
+    if (!selectedEventId) return;
+    if (!upcomingPushEvents.some((e) => e.id === selectedEventId)) {
+      setSelectedEventId('');
+    }
+  }, [selectedEventId, upcomingPushEvents]);
 
   useEffect(() => {
     if (teamIdFromSession) {
@@ -121,6 +171,9 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
     try {
       let path = url.trim() || DEFAULT_TEAM_PUSH_LINK;
       if (!path.startsWith('/')) path = `/${path}`;
+      const evForSend = selectedPushEvent;
+      const titleOut = applyPushTemplatePlaceholders(title.trim(), evForSend, teamDisplayName);
+      const bodyOut = applyPushTemplatePlaceholders(body.trim(), evForSend, teamDisplayName);
       const res = await fetch(API, {
         method: 'POST',
         headers: {
@@ -130,8 +183,8 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
         body: JSON.stringify({
           team_season_id: teamSeasonId,
           recipient_group: recipientGroup,
-          title: title.trim(),
-          body: body.trim(),
+          title: titleOut,
+          body: bodyOut,
           url: path,
         }),
       });
@@ -174,6 +227,8 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
         setRecipientGroup('all');
         setTemplateSelect('');
         setEditingTemplateId(null);
+        setSelectedEventId('');
+        templateRawRef.current = null;
       } else {
         setMessage(`Teilerfolg: ${sent} Push(s) ok, ${failed} fehlgeschlagen (${total} Ziele). In-App: ${notifN}.`);
       }
@@ -189,13 +244,16 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
     setTemplateSelect(id);
     if (!id) {
       setEditingTemplateId(null);
+      templateRawRef.current = null;
       return;
     }
     setEditingTemplateId(id);
     const t = templates.find((x) => x.id === id);
     if (!t) return;
-    setTitle(t.title);
-    setBody(t.message);
+    templateRawRef.current = { title: t.title, message: t.message };
+    const ev = selectedPushEvent;
+    setTitle(applyPushTemplatePlaceholders(t.title, ev, teamDisplayName));
+    setBody(applyPushTemplatePlaceholders(t.message, ev, teamDisplayName));
     setUrl(t.link?.trim() ? t.link.trim() : DEFAULT_TEAM_PUSH_LINK);
   };
 
@@ -255,8 +313,10 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
   };
 
   const onUseTemplate = (t: PushTemplateRow) => {
-    setTitle(t.title);
-    setBody(t.message);
+    templateRawRef.current = { title: t.title, message: t.message };
+    const ev = selectedPushEvent;
+    setTitle(applyPushTemplatePlaceholders(t.title, ev, teamDisplayName));
+    setBody(applyPushTemplatePlaceholders(t.message, ev, teamDisplayName));
     setUrl(t.link?.trim() ? t.link.trim() : DEFAULT_TEAM_PUSH_LINK);
     setTemplateSelect(t.id);
     setEditingTemplateId(t.id);
@@ -323,6 +383,31 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
           ))}
         </select>
 
+        <label className="mt-3 block text-xs font-medium text-[var(--text-sub)]" htmlFor="push-event-pick">
+          Termin (Platzhalter)
+        </label>
+        <select
+          id="push-event-pick"
+          value={selectedEventId}
+          onChange={(e) => setSelectedEventId(e.target.value)}
+          disabled={disabled || loading || !teamSeasonId}
+          className="mt-1 w-full rounded-md border border-[var(--border)] bg-black/40 px-2 py-2 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+        >
+          <option value="">Kein Termin</option>
+          {upcomingPushEvents.map((ev) => (
+            <option key={ev.id} value={ev.id}>
+              {pushEventOptionLabel(ev)}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-[11px] leading-snug text-[var(--text-sub)]">
+          Mit Termin:{' '}
+          <span className="text-white/50">
+            {'{team}'}, {'{gegner}'}, {'{treffpunkt}'}, {'{anpfiff}'}, {'{datum}'}, {'{uhrzeit}'}
+          </span>{' '}
+          — ohne Termin bleiben Platzhalter leer beim Senden.
+        </p>
+
         <label className="mt-3 block text-xs font-medium text-[var(--text-sub)]" htmlFor="push-title">
           Titel
         </label>
@@ -330,7 +415,10 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
           id="push-title"
           type="text"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => {
+            templateRawRef.current = null;
+            setTitle(e.target.value);
+          }}
           disabled={disabled || loading}
           placeholder="Kurzer Titel"
           className="mt-1 w-full rounded-md border border-[var(--border)] bg-black/40 px-2 py-2 text-sm text-[var(--text-main)] placeholder:text-[var(--text-sub)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
@@ -342,7 +430,10 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
         <textarea
           id="push-body"
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={(e) => {
+            templateRawRef.current = null;
+            setBody(e.target.value);
+          }}
           disabled={disabled || loading}
           rows={3}
           placeholder="Nachrichtentext"
