@@ -17,6 +17,16 @@ function isTrainerToolsRole(role: string): boolean {
   return r === 'trainer' || r === 'co_trainer' || r === 'head_coach';
 }
 
+/** Reminder-/Push-Debug nur Admin oder Trainer (effectiveRole ist nach normalizeRole u. a. „trainer“ für Co/Head). */
+function showMehrHubDebugButtons(backendRole: string, effectiveRole: string): boolean {
+  const br = (backendRole ?? '').trim().toLowerCase();
+  const er = (effectiveRole ?? '').trim().toLowerCase();
+  if (br === 'admin') return true;
+  if (er === 'trainer') return true;
+  // Erweiterbar: z. B. import.meta.env.DEV && import.meta.env.VITE_SHOW_DEBUG_HUB_BUTTONS === 'true'
+  return false;
+}
+
 export const MoreHubPage: React.FC = () => {
   const {
     selectedTeamSeason,
@@ -33,6 +43,7 @@ export const MoreHubPage: React.FC = () => {
 
   const showTrainerTools = isTrainerToolsRole(effectiveRole);
   const showPreviewLink = backendRole === 'admin' || backendRole === 'head_coach';
+  const showDebugHubButtons = showMehrHubDebugButtons(backendRole, effectiveRole);
   const unreadCount = useUnreadCount(user?.id);
 
   const [trainerToolsOpen, setTrainerToolsOpen] = useState(false);
@@ -203,10 +214,12 @@ export const MoreHubPage: React.FC = () => {
                     <span>Vorlagen</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
                   </Link>
-                  <button type="button" onClick={runParentsPushDebug} className={subRowClass}>
-                    <span>Direkt-Push Debug</span>
-                    <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
-                  </button>
+                  {showDebugHubButtons && (
+                    <button type="button" onClick={runParentsPushDebug} className={subRowClass}>
+                      <span>Direkt-Push Debug</span>
+                      <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+                    </button>
+                  )}
                   <Link to="/app/mehr/trainer/erinnerungen" className={subRowClass}>
                     <span>Erinnerungen</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
@@ -252,13 +265,15 @@ export const MoreHubPage: React.FC = () => {
           </Card>
         )}
 
-        <button
-          type="button"
-          onClick={runReminderTest}
-          className={`${rowClass} mt-6 border-red-500/40 bg-red-950/30 hover:bg-red-900/40`}
-        >
-          <span className="font-medium">🔔 Reminder testen</span>
-        </button>
+        {showDebugHubButtons && (
+          <button
+            type="button"
+            onClick={runReminderTest}
+            className={`${rowClass} mt-6 border-red-500/40 bg-red-950/30 hover:bg-red-900/40`}
+          >
+            <span className="font-medium">🔔 Reminder testen</span>
+          </button>
+        )}
       </div>
     </div>
   );
