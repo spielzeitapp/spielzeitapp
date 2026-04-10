@@ -8,8 +8,11 @@ const DEFAULT_BODY = 'Neue Benachrichtigung';
 const DEFAULT_URL_PATH = '/app/termine';
 const DEFAULT_ICON = '/icon-192.png';
 const DEFAULT_BADGE = '/badge-72.png';
-const DEFAULT_TAG = 'spielzeitapp';
+const DEFAULT_TAG_FALLBACK = 'spielzeitapp';
 const DEFAULT_VIBRATE = [200, 100, 200];
+
+/** Kategorien, die als „wichtig“ gelten (Banner bleibt länger sichtbar). */
+const REQUIRE_INTERACTION_KINDS = new Set(['reminder', 'team_push', 'manual_push', 'debug_parent_push']);
 
 function parsePayloadData(raw) {
   if (raw == null) return {};
@@ -83,6 +86,36 @@ function absoluteAssetUrl(pathOrUrl) {
   return new URL(p, self.location.origin).href;
 }
 
+/** Stabiler Tag: Server-`tag` oder aus Deep-Link / event_id (ohne pro-Gerät-Zufall). */
+function resolveNotificationTag(payload, dataObj, path) {
+  const fromPayload = typeof payload.tag === 'string' ? payload.tag.trim() : '';
+  if (fromPayload) return fromPayload.slice(0, 128);
+  const ev = dataObj.event_id;
+  if (typeof ev === 'string' && /^[0-9a-f-]{36}$/i.test(ev.trim())) {
+    return `spz-ev-${ev.trim()}`;
+  }
+  const p = (path || DEFAULT_URL_PATH).replace(/^\/+/, '').replace(/[^a-zA-Z0-9/_-]/g, '_').slice(0, 80);
+  if (p) return `spz-${p}`;
+  return DEFAULT_TAG_FALLBACK;
+}
+
+function resolveVibrate(payload) {
+  const v = payload.vibrate;
+  if (Array.isArray(v) && v.length > 0) {
+    const nums = v.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n >= 0 && n <= 10_000);
+    if (nums.length > 0) return nums;
+  }
+  return DEFAULT_VIBRATE;
+}
+
+function shouldRequireInteraction(payload, dataObj) {
+  if (payload.requireInteraction === true) return true;
+  if (payload.requireInteraction === false) return false;
+  const kind = typeof dataObj.kind === 'string' ? dataObj.kind.trim() : '';
+  if (kind && REQUIRE_INTERACTION_KINDS.has(kind)) return true;
+  return false;
+}
+
 self.addEventListener('push', (event) => {
   const payload = parsePushPayload(event);
 
@@ -112,25 +145,29 @@ self.addEventListener('push', (event) => {
   const icon = absoluteAssetUrl(iconRel);
   const badge = absoluteAssetUrl(badgeRel);
 
-  const vibrate = DEFAULT_VIBRATE;
+  const vibrate = resolveVibrate(payload);
 
   const badgeCount = readBadgeCountFromPayload(payload);
-  const dataPayload = { url: path };
+  const notificationTag = resolveNotificationTag(payload, dataObj, path);
+
+  const dataPayload = { ...dataObj, url: path };
   if (Number.isFinite(badgeCount)) {
     dataPayload.unread_count = badgeCount;
     dataPayload.badge_count = badgeCount;
   }
 
+  const requireInteraction = shouldRequireInteraction(payload, dataObj);
+
   const options = {
     body,
     icon,
     badge,
-    tag: DEFAULT_TAG,
+    tag: notificationTag,
     vibrate,
     lang: 'de',
     renotify: true,
     silent: false,
-    requireInteraction: false,
+    requireInteraction,
     data: dataPayload,
   };
 
