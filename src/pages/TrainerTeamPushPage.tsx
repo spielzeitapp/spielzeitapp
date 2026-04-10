@@ -9,9 +9,11 @@ function isTrainerToolsRole(role: string): boolean {
 }
 
 export const TrainerTeamPushPage: React.FC = () => {
-  const { effectiveRole, selectedTeamSeasonId } = useSession();
+  const { effectiveRole, backendRole, selectedTeamSeasonId } = useSession();
+  const isAdmin = (backendRole ?? '').trim().toLowerCase() === 'admin';
+  const canSend = isAdmin || isTrainerToolsRole(effectiveRole);
 
-  if (!isTrainerToolsRole(effectiveRole)) {
+  if (!canSend) {
     return <Navigate to="/app/mehr" replace />;
   }
 

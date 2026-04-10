@@ -1,8 +1,12 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 /**
- * Gleiche Bibliothek wie `api/push/send-team.js` (Vercel).
+ * Produktiv: `notification_jobs` → `notifications` + Web Push über `push_subscriptions`
+ * (gleicher Stack wie `api/push/send-team.js` / Direkt-Push).
  * Edge Secrets: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (wie Backend).
+ *
+ * Hinweis: Nur einen Scheduler nutzen (Supabase-Cron auf diese Function **oder** Vercel-Cron auf
+ * `/api/send-reminders`) — sonst doppelte Pushes.
  */
 import webpush from "npm:web-push@3.6.7";
 

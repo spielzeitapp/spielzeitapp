@@ -1,6 +1,9 @@
 /**
  * Vercel: POST /api/send-reminders (CommonJS)
- * Verarbeitet fällige Zeilen in public.notification_jobs (Push + notifications).
+ * Verarbeitet fällige `notification_jobs` → `notifications` + Web Push über `push_subscriptions`
+ * (gleicher Pfad wie Team-Push / Direkt-Push).
+ *
+ * Nur einen Cron einplanen (dieser Endpoint **oder** Supabase Edge `send-reminders`), sonst Doppelversand.
  */
 const { createClient } = require('@supabase/supabase-js');
 const webpush = require('web-push');

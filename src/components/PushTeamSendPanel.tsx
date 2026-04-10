@@ -14,6 +14,7 @@ import {
 } from '../lib/pushTemplates';
 
 const API = '/api/push/send-team';
+const DEFAULT_TEAM_PUSH_LINK = '/app/nachrichten';
 
 type Props = {
   teamSeasonId: string | null;
@@ -36,6 +37,9 @@ type SendTeamResponse = {
   totalRecipients?: number;
   sent?: number;
   failed?: number;
+  messagesSaved?: number;
+  notificationsInserted?: number;
+  notificationsInsertError?: string;
   results?: PushRecipientResult[];
   error?: string;
 };
@@ -56,7 +60,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
   const [recipientGroup, setRecipientGroup] = useState<'parents' | 'players' | 'all'>('all');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [url, setUrl] = useState('/termine');
+  const [url, setUrl] = useState(DEFAULT_TEAM_PUSH_LINK);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [detailResults, setDetailResults] = useState<PushRecipientResult[] | null>(null);
@@ -111,7 +115,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
     setMessage(null);
     setDetailResults(null);
     try {
-      let path = url.trim() || '/termine';
+      let path = url.trim() || DEFAULT_TEAM_PUSH_LINK;
       if (!path.startsWith('/')) path = `/${path}`;
       const res = await fetch(API, {
         method: 'POST',
@@ -128,19 +132,45 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
         }),
       });
       const data = (await res.json()) as SendTeamResponse;
-      if (data.ok) {
-        setMessage(
-          `Ziele: ${data.totalRecipients ?? 0} · ${data.sent ?? 0} ok · ${data.failed ?? 0} fehlgeschlagen`,
-        );
-        if ((data.failed ?? 0) > 0 && Array.isArray(data.results)) {
-          console.warn('[PushTeamSendPanel] push partial failure', data.results?.filter((r) => !r.success));
-          setDetailResults(data.results.filter((r) => !r.success));
-        } else {
-          setDetailResults(null);
-        }
-      } else {
-        setMessage('Senden war nicht möglich.');
+      if (!res.ok || data.ok === false) {
+        setMessage(typeof data.error === 'string' && data.error.trim() ? data.error.trim() : `Senden fehlgeschlagen (HTTP ${res.status}).`);
         setDetailResults(null);
+        return;
+      }
+
+      const total = data.totalRecipients ?? 0;
+      const sent = data.sent ?? 0;
+      const failed = data.failed ?? 0;
+      const msgSaved = data.messagesSaved ?? 0;
+      const notifN = data.notificationsInserted ?? 0;
+
+      if (failed > 0 && Array.isArray(data.results)) {
+        console.warn('[PushTeamSendPanel] push partial failure', data.results.filter((r) => !r.success));
+        setDetailResults(data.results.filter((r) => !r.success));
+      } else {
+        setDetailResults(null);
+      }
+
+      if (typeof data.notificationsInsertError === 'string' && data.notificationsInsertError.trim()) {
+        setMessage(
+          `Push: ${sent}/${total} zugestellt. Hinweis In-App-Inbox: ${data.notificationsInsertError.trim()}`,
+        );
+        return;
+      }
+
+      if (failed === 0) {
+        setMessage(
+          total === 0
+            ? `Kein aktives Push-Gerät bei den Empfängern. ${msgSaved} Team-Nachricht(en) gespeichert, ${notifN} In-App-Benachrichtigung(en).`
+            : `Erfolgreich: ${sent} Push(s) gesendet, ${notifN} In-App-Benachrichtigung(en), ${msgSaved} Eintrag/Einträge im Team-Postfach.`,
+        );
+        setTitle('');
+        setBody('');
+        setUrl(DEFAULT_TEAM_PUSH_LINK);
+        setRecipientGroup('all');
+        setTemplateSelect('');
+      } else {
+        setMessage(`Teilerfolg: ${sent} Push(s) ok, ${failed} fehlgeschlagen (${total} Ziele). In-App: ${notifN}.`);
       }
     } catch {
       setMessage('Senden war nicht möglich.');
@@ -157,7 +187,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
     if (!t) return;
     setTitle(t.title);
     setBody(t.message);
-    setUrl(t.link?.trim() ? t.link.trim() : '/termine');
+    setUrl(t.link?.trim() ? t.link.trim() : DEFAULT_TEAM_PUSH_LINK);
   };
 
   const onSaveTemplate = async () => {
@@ -179,7 +209,8 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
         setToast('Vorlage gespeichert');
         window.setTimeout(() => setToast(null), 3200);
         await reloadTemplates();
-        setTemplateSelect('');
+        if (res.id) setTemplateSelect(res.id);
+        else setTemplateSelect('');
       }
     } finally {
       setSavingTemplate(false);
@@ -189,7 +220,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
   const onUseTemplate = (t: PushTemplateRow) => {
     setTitle(t.title);
     setBody(t.message);
-    setUrl(t.link?.trim() ? t.link.trim() : '/termine');
+    setUrl(t.link?.trim() ? t.link.trim() : DEFAULT_TEAM_PUSH_LINK);
     setTemplateSelect(t.id);
   };
 
@@ -215,7 +246,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
       <div className="rounded-lg border border-white/10 bg-white/5 p-3">
         <h2 className="text-base font-semibold text-[var(--text-main)]">Team-Push</h2>
         <p className="mt-1 text-xs text-[var(--text-sub)]">
-          Push an Eltern und/oder Spieler des aktuellen Teams (nur Trainer/Admin).
+          Push an Eltern und/oder Spieler des aktuellen Teams. Senden nur für Trainer oder Admin.
         </p>
 
         <label className="mt-3 block text-xs font-medium text-[var(--text-sub)]" htmlFor="push-recipient">
@@ -230,9 +261,9 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
           disabled={disabled || loading}
           className="mt-1 w-full rounded-md border border-[var(--border)] bg-black/40 px-2 py-2 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
         >
-          <option value="parents">Eltern</option>
-          <option value="players">Spieler</option>
-          <option value="all">Alle</option>
+          <option value="all">Alle (Eltern + Spieler)</option>
+          <option value="parents">Nur Eltern</option>
+          <option value="players">Nur Spieler</option>
         </select>
 
         <label className="mt-3 block text-xs font-medium text-[var(--text-sub)]" htmlFor="push-template-pick">
@@ -288,7 +319,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           disabled={disabled || loading}
-          placeholder="/termine"
+          placeholder="/app/nachrichten oder /app/termine"
           className="mt-1 w-full rounded-md border border-[var(--border)] bg-black/40 px-2 py-2 text-sm text-[var(--text-main)] placeholder:text-[var(--text-sub)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
         />
 
@@ -312,7 +343,18 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
         </div>
 
         {message && (
-          <p className="mt-2 text-sm text-[var(--text-sub)]" role="status">
+          <p
+            className={`mt-2 text-sm ${
+              message.startsWith('Erfolgreich')
+                ? 'rounded-md border border-emerald-500/35 bg-emerald-950/35 px-3 py-2 text-emerald-100'
+                : message.startsWith('Teilerfolg') || message.startsWith('Hinweis') || message.startsWith('Push:')
+                  ? 'rounded-md border border-amber-500/30 bg-amber-950/25 px-3 py-2 text-amber-100/95'
+                  : message.startsWith('Kein aktives')
+                    ? 'rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white/85'
+                    : 'text-[var(--text-sub)]'
+            }`}
+            role="status"
+          >
             {message}
           </p>
         )}

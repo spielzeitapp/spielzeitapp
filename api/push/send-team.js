@@ -339,6 +339,28 @@ export default async function handler(req, res) {
       console.warn("[push/send-team] no team_id for team_season; skipping messages insert", team_season_id);
     }
 
+    let notificationsInserted = 0;
+    let notificationsInsertError = null;
+    if (userIds.length > 0 && teamIdForNotification) {
+      const notifRows = userIds.map((uid) => ({
+        user_id: uid,
+        team_id: teamIdForNotification,
+        title,
+        message: textBody,
+        link: url,
+        type: "manual",
+        read: false,
+        created_by: user.id,
+      }));
+      const { error: nInsErr } = await supabase.from("notifications").insert(notifRows);
+      if (nInsErr) {
+        notificationsInsertError = nInsErr.message || String(nInsErr);
+        console.error("[push/send-team] notifications insert error:", notificationsInsertError);
+      } else {
+        notificationsInserted = notifRows.length;
+      }
+    }
+
     const { data: subRows, error: subErr } = await supabase
       .from("push_subscriptions")
       .select("endpoint, p256dh, auth, user_id")
@@ -487,25 +509,6 @@ export default async function handler(req, res) {
       }
     }
 
-    let notificationSaveWarning = null;
-    if (userIds.length > 0 && teamIdForNotification) {
-      try {
-        const { error: nErr } = await supabase.from("notifications").insert({
-          team_id: teamIdForNotification,
-          title,
-          message: textBody,
-          link: url,
-          type: "manual",
-          created_by: user.id,
-        });
-        if (nErr) {
-          notificationSaveWarning = nErr.message || String(nErr);
-        }
-      } catch (e) {
-        notificationSaveWarning = e?.message || String(e);
-      }
-    }
-
     return res.status(200).json({
       ok: true,
       recipient_group,
@@ -513,15 +516,14 @@ export default async function handler(req, res) {
       sent,
       failed,
       messagesSaved,
+      notificationsInserted,
       results,
       obsoleteSubscriptionsRemoved,
       vapidDebug: {
         ...getVapidSendResponseDebug(),
         obsoleteSubscriptionsRemoved,
       },
-      ...(notificationSaveWarning != null
-        ? { notificationSaveWarning }
-        : {}),
+      ...(notificationsInsertError != null ? { notificationsInsertError } : {}),
       ...(messagesInsertError != null ? { messagesInsertError } : {}),
     });
   } catch (err) {
