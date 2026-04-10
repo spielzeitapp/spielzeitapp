@@ -425,7 +425,10 @@ async function sendOneAutomationReminder(
     title: item.title,
     body: item.body,
     url: item.url,
-    tag: `${item.reminderKey}-${item.eventId}`,
+    tag: `spz-reminder-${item.eventId}-${String(item.reminderKey || 'r').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 48)}`,
+    requireInteraction: true,
+    kind: 'reminder',
+    eventId: item.eventId,
   });
 
   for (const s of subs) {

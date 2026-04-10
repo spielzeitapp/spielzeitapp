@@ -41,15 +41,15 @@ export function buildReminderUxCopy(
 
   if (kind === 'training') {
     return {
-      title: '🏃 Training',
-      message: `Heute ${timeStr} – Wir sehen uns am Platz`,
+      title: 'Training',
+      message: `Heute ${timeStr} – Treffpunkt nicht vergessen`,
     };
   }
 
   const dateStr = formatEventDateVienna(ev.starts_at);
   const startTime = formatEventTimeVienna(ev.starts_at);
   return {
-    title: '📅 Termin',
-    message: `${dateStr} ${startTime} – Erinnerung`,
+    title: 'Termin',
+    message: `${dateStr} ${startTime} – Treffpunkt nicht vergessen`,
   };
 }

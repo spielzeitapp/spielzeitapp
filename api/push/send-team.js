@@ -422,10 +422,11 @@ export default async function handler(req, res) {
             body: textBody && String(textBody).trim() ? String(textBody).trim() : "Neue Benachrichtigung",
             url,
             tag: pushTag,
+            requireInteraction: true,
             icon: "/icon-192.png",
             badge: "/badge-72.png",
             vibrate: [200, 100, 200],
-            data: { url },
+            data: { url, kind: "team_push" },
           };
           if (unreadForBadge != null) {
             payloadObj.appBadgeCount = unreadForBadge;
@@ -433,6 +434,7 @@ export default async function handler(req, res) {
             payloadObj.badge_count = unreadForBadge;
             payloadObj.data = {
               url,
+              kind: "team_push",
               unread_count: unreadForBadge,
               badge_count: unreadForBadge,
             };

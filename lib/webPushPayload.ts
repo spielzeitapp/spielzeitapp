@@ -37,26 +37,44 @@ export function buildWebPushJsonPayload(parts: {
   tag: string;
   /** Nur setzen, wenn aus derselben Quelle wie useUnreadCount (notifications.read). */
   appBadgeCount?: number;
+  /** Banner bleibt sichtbar bis Nutzer tippt (iOS/Android). */
+  requireInteraction?: boolean;
+  /** Für sw.js: requireInteraction-Heuristik + stabiler Tag-Fallback. */
+  kind?: string;
+  eventId?: string;
 }): string {
   const path = normalizeWebPushAppPath(parts.url);
   const title = (parts.title || 'SpielzeitApp').trim() || 'SpielzeitApp';
   const body = (parts.body || 'Neue Benachrichtigung').trim() || 'Neue Benachrichtigung';
+  const tag =
+    typeof parts.tag === 'string' && parts.tag.trim() ? parts.tag.trim().slice(0, 128) : 'spielzeitapp';
+
+  const data: Record<string, unknown> = { url: path };
+  if (parts.kind && String(parts.kind).trim()) {
+    data.kind = String(parts.kind).trim();
+  }
+  if (parts.eventId && String(parts.eventId).trim()) {
+    data.event_id = String(parts.eventId).trim();
+  }
+
   const o: Record<string, unknown> = {
     title,
     body,
     url: path,
-    tag: 'spielzeitapp',
+    tag,
+    requireInteraction: parts.requireInteraction === true,
     icon: DEFAULT_PUSH_ICON,
     badge: DEFAULT_PUSH_BADGE,
     vibrate: [...DEFAULT_PUSH_VIBRATE],
-    data: { url: path },
+    data: { ...data },
   };
+
   if (typeof parts.appBadgeCount === 'number' && Number.isFinite(parts.appBadgeCount)) {
     const c = Math.min(99, Math.max(0, Math.floor(parts.appBadgeCount)));
     o.appBadgeCount = c;
     o.unread_count = c;
     o.badge_count = c;
-    o.data = { url: path, unread_count: c, badge_count: c };
+    o.data = { ...data, unread_count: c, badge_count: c };
   }
   return JSON.stringify(o);
 }

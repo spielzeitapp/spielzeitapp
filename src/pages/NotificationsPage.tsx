@@ -4,7 +4,7 @@ import { Card } from '../app/components/ui/Card';
 import { useNotificationsInboxRealtime } from '../hooks/useNotificationsInboxRealtime';
 import { formatRelativeNotificationTime } from '../lib/notifications/format';
 import { supabase } from '../lib/supabaseClient';
-import { notifyNotificationsReadChanged } from '../lib/notificationsReadState';
+import { INBOX_SYNC_EVENT, notifyNotificationsReadChanged } from '../lib/notificationsReadState';
 
 type NotificationRow = {
   id: string;
@@ -64,7 +64,6 @@ export const NotificationsPage: React.FC = () => {
       setItems([]);
       setError(null);
       setLoading(false);
-      notifyNotificationsReadChanged();
       return;
     }
     setLoading(true);
@@ -88,7 +87,6 @@ export const NotificationsPage: React.FC = () => {
           read: (r as { read?: boolean | null }).read === true,
         })),
       );
-      notifyNotificationsReadChanged();
     } catch {
       setItems([]);
       setError('Benachrichtigungen konnten nicht geladen werden.');
@@ -99,6 +97,14 @@ export const NotificationsPage: React.FC = () => {
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  useEffect(() => {
+    const onInboxSync = () => {
+      void load();
+    };
+    window.addEventListener(INBOX_SYNC_EVENT, onInboxSync);
+    return () => window.removeEventListener(INBOX_SYNC_EVENT, onInboxSync);
   }, [load]);
 
   useNotificationsInboxRealtime(userId, load, 'list');

@@ -207,7 +207,8 @@ export async function processNotificationJob(
       console.log('[notificationsDedup] notification inserted', { jobId: job.id, userId });
 
       const unreadForBadge = await countUnreadNotificationsForUser(admin, userId);
-      const pushTag = `reminder-${payload.reminderKey}-${job.event_id}`;
+      const rk = String(payload.reminderKey || 'r').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 48);
+      const pushTag = `spz-reminder-${job.event_id}-${rk}`;
       const pushRes = await sendWebPushForUser(admin, {
         userId,
         title,
@@ -215,6 +216,9 @@ export async function processNotificationJob(
         url: linkPath,
         tag: pushTag,
         appBadgeCount: unreadForBadge,
+        requireInteraction: true,
+        kind: 'reminder',
+        eventId: job.event_id,
       });
       if (pushRes.sent > 0) {
         const { error: pushLogErr } = await admin.from('notification_dispatch_log').insert({

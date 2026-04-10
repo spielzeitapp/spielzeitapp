@@ -100,6 +100,8 @@ async function sendReminderWebPushes(
   body: string,
   url: string,
   jobId: string,
+  eventId: string,
+  reminderKeyForTag: string,
 ): Promise<void> {
   console.log("sendReminderWebPushes start", {
     jobId,
@@ -148,9 +150,11 @@ async function sendReminderWebPushes(
     usableRowCount: rows.length,
   });
 
-  const batchTs = Date.now();
   let sentOk = 0;
   let sentFail = 0;
+
+  const rk = String(reminderKeyForTag || "r").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 48);
+  const stableTag = `spz-reminder-${eventId}-${rk}`;
 
   for (const row of rows) {
     const uid = row.user_id;
@@ -168,16 +172,20 @@ async function sendReminderWebPushes(
       /* ignore */
     }
 
-    const pushTag = `reminder-edge-${jobId}-${batchTs}-${uid}`;
     const payloadObj: Record<string, unknown> = {
       title: title.trim() || "SpielzeitApp",
       body: body.trim() || "Neue Benachrichtigung",
       url,
-      tag: pushTag,
+      tag: stableTag,
+      requireInteraction: true,
       icon: "/icon-192.png",
       badge: "/badge-72.png",
       vibrate: [200, 100, 200],
-      data: { url },
+      data: {
+        url,
+        kind: "reminder",
+        event_id: eventId,
+      },
     };
     if (unreadForBadge != null) {
       payloadObj.appBadgeCount = unreadForBadge;
@@ -185,6 +193,8 @@ async function sendReminderWebPushes(
       payloadObj.badge_count = unreadForBadge;
       payloadObj.data = {
         url,
+        kind: "reminder",
+        event_id: eventId,
         unread_count: unreadForBadge,
         badge_count: unreadForBadge,
       };
@@ -236,10 +246,11 @@ async function sendReminderWebPushes(
 function formatTimeDe(iso: string | null) {
   if (!iso) return "--:--";
   try {
-    return new Intl.DateTimeFormat("de-DE", {
+    return new Intl.DateTimeFormat("de-AT", {
       timeZone: VIENNA_TZ,
       hour: "2-digit",
       minute: "2-digit",
+      hour12: false,
     }).format(new Date(iso));
   } catch {
     return "--:--";
@@ -291,15 +302,15 @@ function buildReminderUxCopy(
   }
   if (kind === "training") {
     return {
-      title: "🏃 Training",
-      message: `Heute ${timeStr} – Wir sehen uns am Platz`,
+      title: "Training",
+      message: `Heute ${timeStr} – Treffpunkt nicht vergessen`,
     };
   }
   const dateStr = formatDateShortDe(event.starts_at);
   const startTime = formatTimeDe(event.starts_at);
   return {
-    title: "📅 Termin",
-    message: `${dateStr} ${startTime} – Erinnerung`,
+    title: "Termin",
+    message: `${dateStr} ${startTime} – Treffpunkt nicht vergessen`,
   };
 }
 
@@ -422,6 +433,8 @@ serve(async () => {
           uxMessage,
           linkPath,
           job.id,
+          event.id,
+          reminderKey ?? "reminder",
         );
 
         console.log("Job erledigt (DB + Push-Versuch):", job.id);

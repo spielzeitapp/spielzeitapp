@@ -283,8 +283,11 @@ export async function sendPendingNotificationReminder(
     title: 'SpielzeitApp Erinnerung',
     body: item.pushBody,
     url: item.url,
-    tag: `reminder-${item.reminderKey}-${item.eventId}`,
+    tag: `spz-reminder-${item.eventId}-${String(item.reminderKey || 'r').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 48)}`,
     appBadgeCount: unreadForBadge,
+    requireInteraction: true,
+    kind: 'reminder',
+    eventId: item.eventId,
   });
 
   let sent = 0;
@@ -362,6 +365,9 @@ export async function sendWebPushForUser(
     tag: string;
     /** Optional: iOS/PWA Homescreen-Badge sofort im SW (ohne App öffnen). */
     appBadgeCount?: number;
+    requireInteraction?: boolean;
+    kind?: string;
+    eventId?: string;
   },
 ): Promise<{ sent: number; errors: string[] }> {
   const errors: string[] = [];
@@ -396,6 +402,9 @@ export async function sendWebPushForUser(
     url: opts.url,
     tag: opts.tag,
     appBadgeCount: opts.appBadgeCount,
+    requireInteraction: opts.requireInteraction,
+    kind: opts.kind,
+    eventId: opts.eventId,
   });
 
   let sent = 0;

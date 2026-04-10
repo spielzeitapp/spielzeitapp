@@ -11,11 +11,12 @@ const JOB_BATCH_LIMIT = 50;
 function formatTimeDe(iso) {
   if (!iso) return '--:--';
   try {
-    return new Date(iso).toLocaleTimeString('de-DE', {
+    return new Intl.DateTimeFormat('de-AT', {
+      timeZone: 'Europe/Vienna',
       hour: '2-digit',
       minute: '2-digit',
-      timeZone: 'Europe/Vienna',
-    });
+      hour12: false,
+    }).format(new Date(iso));
   } catch (_) {
     return '--:--';
   }
@@ -75,11 +76,11 @@ function buildReminderUxCopy(kind, event, reminderKey) {
     return { title, message };
   }
   if (kind === 'training') {
-    return { title: '🏃 Training', message: `Heute ${timeStr} – Wir sehen uns am Platz` };
+    return { title: 'Training', message: `Heute ${timeStr} – Treffpunkt nicht vergessen` };
   }
   const dateStr = formatDateShortDeVienna(event.starts_at);
   const startTime = formatTimeDe(event.starts_at);
-  return { title: '📅 Termin', message: `${dateStr} ${startTime} – Erinnerung` };
+  return { title: 'Termin', message: `${dateStr} ${startTime} – Treffpunkt nicht vergessen` };
 }
 
 function parseBody(req) {
@@ -241,7 +242,7 @@ async function countUnreadNotificationsForUser(admin, userId) {
   return count ?? 0;
 }
 
-async function sendPushesForUser(admin, userId, title, body, url, appBadgeCount, tag) {
+async function sendPushesForUser(admin, userId, title, body, url, appBadgeCount, tag, eventId) {
   const { data: subscriptions, error } = await admin
     .from('push_subscriptions')
     .select('endpoint, p256dh, auth')
@@ -263,22 +264,30 @@ async function sendPushesForUser(admin, userId, title, body, url, appBadgeCount,
   }
   const pushTag =
     typeof tag === 'string' && tag.trim() ? tag.trim() : `push-${userId}-${Date.now()}`;
+  const evId = typeof eventId === 'string' && eventId.trim() ? eventId.trim() : '';
   const payloadObj = {
     title: title && String(title).trim() ? String(title).trim() : 'SpielzeitApp',
     body: body && String(body).trim() ? String(body).trim() : 'Neue Benachrichtigung',
     url: path,
     tag: pushTag,
+    requireInteraction: true,
     icon: '/icon-192.png',
     badge: '/badge-72.png',
     vibrate: [200, 100, 200],
-    data: { url: path },
+    data: { url: path, kind: 'reminder', ...(evId ? { event_id: evId } : {}) },
   };
   if (typeof appBadgeCount === 'number' && Number.isFinite(appBadgeCount)) {
     const c = Math.min(99, Math.max(0, Math.floor(appBadgeCount)));
     payloadObj.appBadgeCount = c;
     payloadObj.unread_count = c;
     payloadObj.badge_count = c;
-    payloadObj.data = { url: path, unread_count: c, badge_count: c };
+    payloadObj.data = {
+      url: path,
+      kind: 'reminder',
+      unread_count: c,
+      badge_count: c,
+      ...(evId ? { event_id: evId } : {}),
+    };
   }
   const payload = JSON.stringify(payloadObj);
   let sent = 0;
@@ -450,7 +459,8 @@ async function processOneJob(admin, job) {
     console.log('[reminderPipeline] notifications row created', { jobId: job.id, userId, eventId: job.event_id });
 
     const unreadForBadge = await countUnreadNotificationsForUser(admin, userId);
-    const pushTag = `reminder-job-${job.id}-${userId}`;
+    const rk = String(reminderKey || 'r').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 48);
+    const pushTag = `spz-reminder-${job.event_id}-${rk}`;
     const pushRes = await sendPushesForUser(
       admin,
       userId,
@@ -459,6 +469,7 @@ async function processOneJob(admin, job) {
       url,
       unreadForBadge,
       pushTag,
+      job.event_id,
     );
     pushSent += pushRes.sent;
     console.log('[reminderPipeline] push attempt', {

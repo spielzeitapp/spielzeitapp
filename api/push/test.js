@@ -298,10 +298,11 @@ async function runParentsDebugTest(req, res, body) {
         body: DIRECT_SELF_BODY,
         url: DIRECT_SELF_URL,
         tag: pushTag,
+        requireInteraction: true,
         icon: "/icon-192.png",
         badge: "/badge-72.png",
         vibrate: [200, 100, 200],
-        data: { url: DIRECT_SELF_URL },
+        data: { url: DIRECT_SELF_URL, kind: "debug_parent_push" },
       };
       if (unreadForBadge != null) {
         payloadObj.appBadgeCount = unreadForBadge;
@@ -309,6 +310,7 @@ async function runParentsDebugTest(req, res, body) {
         payloadObj.badge_count = unreadForBadge;
         payloadObj.data = {
           url: DIRECT_SELF_URL,
+          kind: "debug_parent_push",
           unread_count: unreadForBadge,
           badge_count: unreadForBadge,
         };
@@ -444,13 +446,19 @@ async function runBroadcastTest(req, res) {
     body: "Push funktioniert ✅",
     url: pathUrl,
     tag: `spielzeit-test-${Date.now()}`,
+    requireInteraction: false,
     icon: "/icon-192.png",
     badge: "/badge-72.png",
     vibrate: [200, 100, 200],
     appBadgeCount: demoBadge,
     unread_count: demoBadge,
     badge_count: demoBadge,
-    data: { url: pathUrl, unread_count: demoBadge, badge_count: demoBadge },
+    data: {
+      url: pathUrl,
+      kind: "broadcast_test",
+      unread_count: demoBadge,
+      badge_count: demoBadge,
+    },
   });
 
   let sent = 0;

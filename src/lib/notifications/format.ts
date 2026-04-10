@@ -7,6 +7,7 @@ export function formatEventTimeVienna(startsAtIso: string): string {
     timeZone: VIENNA_TZ,
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   }).format(d);
 }
 

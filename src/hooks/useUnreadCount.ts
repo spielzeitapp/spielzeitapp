@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { syncAppBadge } from '../lib/notifications/appBadge';
-import { NOTIFICATIONS_READ_CHANGED_EVENT } from '../lib/notificationsReadState';
+import {
+  INBOX_SYNC_EVENT,
+  NOTIFICATIONS_READ_CHANGED_EVENT,
+  requestInboxSync,
+} from '../lib/notificationsReadState';
 import { useNotificationsInboxRealtime } from './useNotificationsInboxRealtime';
 
 /**
@@ -39,13 +43,30 @@ export function useUnreadCount(userId: string | undefined | null): number {
     void refresh();
   }, [refresh]);
 
+  /** PWA wieder sichtbar: Badge + offene Nachrichten-Liste aus Supabase (kein automatisches Gelesen). */
+  useEffect(() => {
+    if (!userId) return;
+    const onVisibility = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        requestInboxSync();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [userId]);
+
   useEffect(() => {
     const onReadChanged = () => {
       void refresh();
     };
+    const onInboxSync = () => {
+      void refresh();
+    };
     window.addEventListener(NOTIFICATIONS_READ_CHANGED_EVENT, onReadChanged);
+    window.addEventListener(INBOX_SYNC_EVENT, onInboxSync);
     return () => {
       window.removeEventListener(NOTIFICATIONS_READ_CHANGED_EVENT, onReadChanged);
+      window.removeEventListener(INBOX_SYNC_EVENT, onInboxSync);
     };
   }, [refresh]);
 
