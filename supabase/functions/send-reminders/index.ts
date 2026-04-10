@@ -68,6 +68,27 @@ function shouldRemoveSubscription(statusCode: number | undefined, errMsg: string
   return false;
 }
 
+function endpointPrefix(endpoint: string, max = 96): string {
+  const t = (endpoint ?? "").trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max)}…`;
+}
+
+function formatWebPushError(err: unknown): string {
+  if (err instanceof Error) {
+    const e = err as Error & { body?: string; statusCode?: number };
+    const parts = [e.message];
+    if (e.body != null && String(e.body).trim() !== "") parts.push(`body=${String(e.body)}`);
+    if (e.statusCode != null) parts.push(`statusCode=${e.statusCode}`);
+    return parts.join(" | ");
+  }
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+
 /**
  * Wie `api/push/send-team.js`: push_subscriptions + JSON-Payload + webpush.sendNotification,
  * ungültige Subscriptions entfernen (410/404 / VAPID-Mismatch).
@@ -80,7 +101,25 @@ async function sendReminderWebPushes(
   url: string,
   jobId: string,
 ): Promise<void> {
-  if (!ensureVapid() || userIds.length === 0) return;
+  console.log("sendReminderWebPushes start", {
+    jobId,
+    userIdsLength: userIds.length,
+    userIds,
+  });
+
+  const vapidOk = ensureVapid();
+  if (!vapidOk) {
+    console.warn(
+      "sendReminderWebPushes early exit: VAPID missing (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT)",
+    );
+    console.log("sendReminderWebPushes done", { jobId, reason: "no_vapid", sentOk: 0, sentFail: 0 });
+    return;
+  }
+  if (userIds.length === 0) {
+    console.log("sendReminderWebPushes early exit: userIds empty");
+    console.log("sendReminderWebPushes done", { jobId, reason: "no_user_ids", sentOk: 0, sentFail: 0 });
+    return;
+  }
 
   const { data: subRows, error: subErr } = await supabase
     .from("push_subscriptions")
@@ -89,7 +128,13 @@ async function sendReminderWebPushes(
     .not("endpoint", "is", null);
 
   if (subErr) {
-    console.error("[send-reminders] push_subscriptions:", subErr.message);
+    console.error("[send-reminders] push_subscriptions query error", {
+      message: subErr.message,
+      details: (subErr as { details?: string }).details,
+      hint: (subErr as { hint?: string }).hint,
+      code: (subErr as { code?: string }).code,
+    });
+    console.log("sendReminderWebPushes done", { jobId, reason: "query_error", sentOk: 0, sentFail: 0 });
     return;
   }
 
@@ -97,7 +142,15 @@ async function sendReminderWebPushes(
     (r: SubRow) => r.endpoint && r.p256dh && r.auth,
   ) as SubRow[];
 
+  console.log("sendReminderWebPushes subscriptions", {
+    jobId,
+    rawRowCount: (subRows ?? []).length,
+    usableRowCount: rows.length,
+  });
+
   const batchTs = Date.now();
+  let sentOk = 0;
+  let sentFail = 0;
 
   for (const row of rows) {
     const uid = row.user_id;
@@ -138,6 +191,9 @@ async function sendReminderWebPushes(
     }
     const payload = JSON.stringify(payloadObj);
 
+    const epPrefix = endpointPrefix(row.endpoint);
+    console.log("sendReminderWebPushes send attempt", { jobId, userId: uid, endpointPrefix: epPrefix });
+
     try {
       await webpush.sendNotification(
         {
@@ -147,10 +203,19 @@ async function sendReminderWebPushes(
         payload,
         { TTL: 86400 },
       );
+      sentOk += 1;
+      console.log("sendReminderWebPushes send success", { jobId, userId: uid, endpointPrefix: epPrefix });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
+      sentFail += 1;
+      const msg = formatWebPushError(err);
       const statusCode = getPushFailureStatusCode(err);
-      console.error("[send-reminders] webpush failed", { uid, statusCode, msg });
+      console.error("sendReminderWebPushes send failed", {
+        jobId,
+        userId: uid,
+        endpointPrefix: epPrefix,
+        statusCode: statusCode ?? null,
+        errorMessage: msg,
+      });
       if (shouldRemoveSubscription(statusCode, msg)) {
         const { error: delErr } = await supabase
           .from("push_subscriptions")
@@ -158,10 +223,14 @@ async function sendReminderWebPushes(
           .eq("endpoint", row.endpoint.trim());
         if (delErr) {
           console.error("[send-reminders] delete push_subscriptions", delErr.message);
+        } else {
+          console.log("sendReminderWebPushes removed dead subscription", { endpointPrefix: epPrefix });
         }
       }
     }
   }
+
+  console.log("sendReminderWebPushes done", { jobId, sentOk, sentFail, subscriptionRows: rows.length });
 }
 
 function formatTimeDe(iso: string | null) {
@@ -342,6 +411,10 @@ serve(async () => {
 
         if (error) throw error;
 
+        console.log("send-reminders invoking sendReminderWebPushes", {
+          jobId: job.id,
+          uniqueUserIdsCount: uniqueUserIds.length,
+        });
         await sendReminderWebPushes(
           supabase,
           uniqueUserIds,

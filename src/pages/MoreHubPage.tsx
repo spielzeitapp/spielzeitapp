@@ -4,6 +4,7 @@ import { Bell, ChevronRight, LayoutGrid, Settings, Wrench } from 'lucide-react';
 import { Card } from '../app/components/ui/Card';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
+import { supabase } from '../lib/supabaseClient';
 
 const rowClass =
   'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-white transition-colors hover:bg-white/10';
@@ -27,6 +28,59 @@ export const MoreHubPage: React.FC = () => {
   const unreadCount = useUnreadCount(user?.id);
 
   const [trainerToolsOpen, setTrainerToolsOpen] = useState(false);
+
+  const runDirectPushTest = async () => {
+    console.log('[direct-push] direct push start');
+    try {
+      const { data: sessionRes } = await supabase.auth.getSession();
+      const accessToken = sessionRes.session?.access_token;
+      const uid = sessionRes.session?.user?.id;
+      console.log('[direct-push] current user id', uid);
+      if (!accessToken) {
+        console.error('[direct-push] no access token');
+        alert('Nicht angemeldet.');
+        return;
+      }
+      const res = await fetch('/api/push/test-direct', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({}),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        logs?: string[];
+        pushed?: number;
+        notificationInserted?: boolean;
+        sendErrors?: { error?: string }[];
+      };
+      console.log('[direct-push] response status', res.status);
+      console.log('[direct-push] response body', data);
+      if (data.logs && Array.isArray(data.logs)) {
+        for (const line of data.logs) {
+          console.log('[direct-push]', line);
+        }
+      }
+      if (data.sendErrors?.length) {
+        for (const e of data.sendErrors) {
+          console.error('[direct-push] send error', e);
+        }
+      }
+      if (!res.ok) {
+        alert(data.error || `HTTP ${res.status}`);
+        return;
+      }
+      alert(
+        `Direkt-Push: ${data.pushed ?? 0} gesendet. In-App-Benachrichtigung: ${data.notificationInserted ? 'ja' : 'nein'}`,
+      );
+    } catch (err) {
+      console.error('[direct-push] exception', err);
+      alert(`Direkt-Push Fehler: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
 
   const runReminderTest = async () => {
     try {
@@ -125,6 +179,10 @@ export const MoreHubPage: React.FC = () => {
                     <span>Vorlagen</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
                   </Link>
+                  <button type="button" onClick={runDirectPushTest} className={subRowClass}>
+                    <span>Direkt-Push testen</span>
+                    <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+                  </button>
                   <Link to="/app/mehr/trainer/erinnerungen" className={subRowClass}>
                     <span>Erinnerungen</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
