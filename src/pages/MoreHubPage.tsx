@@ -41,13 +41,13 @@ export const MoreHubPage: React.FC = () => {
         alert('Nicht angemeldet.');
         return;
       }
-      const res = await fetch('/api/push/test-direct', {
+      const res = await fetch('/api/push/test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ directSelf: true }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
