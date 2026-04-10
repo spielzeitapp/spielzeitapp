@@ -1,5 +1,10 @@
 import type { EventRow } from '../../hooks/useEvents';
-import { getDateTimePartsInTimeZone, VIENNA_TZ } from '../../lib/viennaTime';
+import {
+  getDateTimePartsInTimeZone,
+  isNextViennaCalendarDay,
+  isSameViennaCalendarDay,
+  VIENNA_TZ,
+} from '../../lib/viennaTime';
 
 export type HomeMessage = {
   id: string;
@@ -168,6 +173,45 @@ export function eventKindLabel(kind: EventRow['kind']): string {
   if (kind === 'training') return 'Training';
   if (kind === 'event') return 'Termin';
   return 'Spiel';
+}
+
+/** Home Match-Card: nur `kind === match`, Priorität heute → morgen → nächstes Spiel. */
+export type HomeMatchCardPick = {
+  event: EventRow;
+  status: 'today' | 'tomorrow' | 'next';
+};
+
+export const HOME_MATCH_STATUS_LABEL: Record<HomeMatchCardPick['status'], string> = {
+  today: 'HEUTE IST MATCHDAY',
+  tomorrow: 'MORGEN IST MATCHDAY',
+  next: 'NÄCHSTES SPIEL',
+};
+
+export function pickHomeMatchCard(events: EventRow[], now: Date): HomeMatchCardPick | null {
+  const matches = events
+    .filter((e) => {
+      if (e.kind !== 'match') return false;
+      const st = e.status ?? 'upcoming';
+      if (st === 'finished' || st === 'canceled') return false;
+      const t = e.starts_at ? new Date(e.starts_at).getTime() : 0;
+      return t >= now.getTime() - 60_000;
+    })
+    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+
+  if (matches.length === 0) return null;
+
+  const today = matches.find((e) => isSameViennaCalendarDay(new Date(e.starts_at), now));
+  if (today) return { event: today, status: 'today' };
+
+  const tomorrow = matches.find((e) => isNextViennaCalendarDay(new Date(e.starts_at), now));
+  if (tomorrow) return { event: tomorrow, status: 'tomorrow' };
+
+  return { event: matches[0], status: 'next' };
+}
+
+/** Demo: nur Match-Events für Home (VITE_HOME_FEED_DEMO). */
+export function buildDemoHomeMatchEvents(now: Date): EventRow[] {
+  return buildDemoHomeFeedArgs(now).events.filter((e) => e.kind === 'match');
 }
 
 /** Demo-Seed für VITE_HOME_FEED_DEMO=1 (Mockup ohne DB). */

@@ -6,9 +6,15 @@ import { formatEventTimeVienna } from '../../lib/notifications/format';
 type MatchdayCardProps = {
   event: EventRow;
   teamName: string;
+  /** z. B. HEUTE IST MATCHDAY / MORGEN IST MATCHDAY / NÄCHSTES SPIEL */
+  statusLabel?: string;
 };
 
-export const MatchdayCard: React.FC<MatchdayCardProps> = ({ event, teamName }) => {
+export const MatchdayCard: React.FC<MatchdayCardProps> = ({
+  event,
+  teamName,
+  statusLabel = 'HEUTE IST MATCHDAY',
+}) => {
   const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
   const homeLabel = event.is_home === false ? 'Auswärts' : 'Heim';
   const kickoff = formatEventTimeVienna(event.starts_at);
@@ -30,9 +36,7 @@ export const MatchdayCard: React.FC<MatchdayCardProps> = ({ event, teamName }) =
         }}
       />
       <div className="relative z-[1] space-y-4">
-        <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-red-400/95">
-          HEUTE IST MATCHDAY
-        </p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-red-400/95">{statusLabel}</p>
 
         <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1">
