@@ -1,26 +1,10 @@
 import React from 'react';
-import { getClubLogoUrl } from '../../utils/logoResolver';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import type { EventKind, EventStatus } from '../../hooks/useEvents';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
-
-/** Spielart (match_type) → Anzeige-Label. */
-const MATCH_TYPE_LABELS: Record<string, string> = {
-  game: 'Meisterschaftsspiel',
-  league: 'Meisterschaftsspiel',
-  friendly: 'Freundschaftsspiel',
-  tournament: 'Turnier',
-  test: 'Testspiel',
-  cup: 'Pokal',
-  other: 'Sonstiges',
-};
-
-function getMatchTypeLabel(matchType: string | null | undefined): string | null {
-  if (!matchType || !matchType.trim()) return null;
-  const key = matchType.trim().toLowerCase();
-  return MATCH_TYPE_LABELS[key] ?? matchType;
-}
+import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../../components/match/matchCardLabels';
+import { MatchCardGameCore, MatchCardKickoffBlock } from '../../components/match/MatchCardGameCore';
 
 /** Datum kurz in Europe/Vienna (z. B. Sa. 06.06.2026). */
 function formatDateShortDE(date: Date): string {
@@ -31,53 +15,6 @@ function formatDateShortDE(date: Date): string {
     month: '2-digit',
     year: 'numeric',
   }).format(date);
-}
-
-/** Treffpunkt → nur Uhrzeit "HH:mm Uhr" (Vienna). */
-function formatMeetupTimeOnly(iso: string | null | undefined): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return (
-    new Intl.DateTimeFormat('de-AT', { timeZone: VIENNA_TZ, hour: '2-digit', minute: '2-digit' }).format(d) +
-    ' Uhr'
-  );
-}
-
-/** Erstes Token = prefix, Rest = name. Kein Leerzeichen → prefix="", name=kompletter String. */
-function splitPrefixAndName(full: string): { prefix: string; name: string } {
-  const trimmed = (full || '').trim();
-  const i = trimmed.indexOf(' ');
-  if (i === -1) return { prefix: '', name: trimmed };
-  return { prefix: trimmed.slice(0, i), name: trimmed.slice(i + 1) };
-}
-
-/** Spielort heuristisch in bis zu 3 Zeilen aufteilen. */
-function formatLocationLines(loc: string): { line1: string; line2: string | null; line3: string | null } {
-  const s = (loc ?? '').trim();
-  if (!s) return { line1: '', line2: null, line3: null };
-  if (s.includes('\n')) {
-    const parsed = splitCombinedLocation(s);
-    if (!parsed.place && parsed.address) return { line1: parsed.address, line2: null, line3: null };
-    const parts = parsed.address.split(',').map((p) => p.trim()).filter(Boolean);
-    if (parts.length >= 2) return { line1: parsed.place, line2: parts[0], line3: parts.slice(1).join(', ') };
-    return { line1: parsed.place, line2: parsed.address || null, line3: null };
-  }
-  const commaParts = s.split(',').map((p) => p.trim()).filter(Boolean);
-  if (commaParts.length >= 3) {
-    return {
-      line1: commaParts[0],
-      line2: commaParts[1],
-      line3: commaParts.slice(2).join(', '),
-    };
-  }
-  if (commaParts.length === 2) return { line1: commaParts[0], line2: commaParts[1], line3: null };
-  const prefix = 'Sportplatz ';
-  if (s.toLowerCase().startsWith(prefix.toLowerCase())) {
-    const rest = s.slice(prefix.length).trim();
-    return { line1: 'Sportplatz', line2: rest || null, line3: null };
-  }
-  return { line1: s, line2: null, line3: null };
 }
 
 type MatchCardLigaportalProps = {
@@ -119,93 +56,6 @@ type MatchCardLigaportalProps = {
   isPublicView?: boolean;
 };
 
-/** Logo-URL aus Anzeige-Namen (slugify nur für Pfad); Anzeige-Name bleibt unverändert. */
-function getLogoSrcForDisplayName(displayName: string, optionalUrl?: string | null): string {
-  if (optionalUrl && typeof optionalUrl === 'string' && optionalUrl.trim().startsWith('http'))
-    return optionalUrl.trim();
-  return getClubLogoUrl(displayName);
-}
-
-/** TeamBlock: Logo + Prefix + Vereinsname, mittig, responsive (Mobile kompakt). */
-type TeamBlockProps = {
-  logoUrl?: string | null;
-  prefix?: string;
-  name: string;
-};
-
-function TeamBlock({ logoUrl, prefix, name }: TeamBlockProps) {
-  return (
-    <div className="flex min-w-0 flex-col items-center text-center">
-      {logoUrl ? (
-        <img
-          src={logoUrl}
-          alt={name}
-          className="h-12 w-12 sm:h-14 sm:w-14 object-contain mx-auto"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-        />
-      ) : (
-        <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-white/10 mx-auto" />
-      )}
-      {prefix ? (
-        <div className="mt-2 text-[14px] font-semibold text-white tracking-wide">
-          {prefix}
-        </div>
-      ) : null}
-      <div className="mt-1 text-[15px] font-semibold text-white text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[130px]">
-        {name || '–'}
-      </div>
-    </div>
-  );
-}
-
-/** KickoffBlock: ANPFIFF + Zeit + Uhr + Spielort, zentriert, responsive. */
-type KickoffBlockProps = {
-  timeDisplay: string;
-  showUhr: boolean;
-  location: string | null | undefined;
-  headerLabel?: string;
-};
-
-function KickoffBlock({ timeDisplay, showUhr, location, headerLabel }: KickoffBlockProps) {
-  const hasLocation = location != null && location.trim() !== '';
-  const locationLines = hasLocation
-    ? formatLocationLines(location)
-    : { line1: '', line2: null as string | null, line3: null as string | null };
-
-  return (
-    <div className="flex min-w-0 flex-col items-center text-center">
-      <div className="text-[14px] tracking-[0.35em] text-red-300 font-semibold">
-        {headerLabel ?? 'ANPFIFF'}
-      </div>
-      <div className="mt-2 text-[34px] sm:text-[44px] font-extrabold leading-[1] text-white tabular-nums">
-        {timeDisplay}
-      </div>
-      {showUhr ? (
-        <div className="mt-1 text-white font-medium">Uhr</div>
-      ) : null}
-      {hasLocation ? (
-        <div className="mt-1 text-[14px] font-medium text-white/95 leading-tight text-center break-words line-clamp-3 min-w-0 max-w-[220px]">
-          {locationLines.line2 ? (
-            <>
-              {locationLines.line1}
-              <br />
-              {locationLines.line2}
-              {locationLines.line3 ? (
-                <>
-                  <br />
-                  {locationLines.line3}
-                </>
-              ) : null}
-            </>
-          ) : (
-            locationLines.line1 || location.trim()
-          )}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   ourTeamName,
   opponent,
@@ -238,7 +88,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const ourClubName = getOurTeamDisplayName();
   const canSeeSensitiveInfo = showMeetup;
   const matchTypeLabel = getMatchTypeLabel(matchType);
-  const meetupTimeOnly = formatMeetupTimeOnly(meetupAt);
+  const meetupTimeOnly = formatMeetupTimeOnlyDe(meetupAt);
   const parsedLocation = splitCombinedLocation(location);
   const placeLine = parsedLocation.place;
   const addressLine = parsedLocation.address || (address ?? '').trim();
@@ -324,15 +174,6 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const isClickable = !isPublicView && Boolean(eventId && onNavigate);
   const rightLogoOverride = opponentLogoUrl ?? null;
-
-  const leftSplit = splitPrefixAndName(leftName ?? '');
-  const rightSplit = splitPrefixAndName(rightName ?? '');
-  const homePrefix = leftSplit.prefix;
-  const homeName = leftSplit.name;
-  const awayPrefix = rightSplit.prefix;
-  const awayName = rightSplit.name;
-  const homeLogoUrl = getLogoSrcForDisplayName(leftName ?? '', null);
-  const awayLogoUrl = getLogoSrcForDisplayName(rightName ?? '', rightLogoOverride);
 
   const showManageButtons = canManage && (onEdit || onDelete);
   const showAttendanceChip = (role === 'parent' || role === 'player') && onOpenAttendance;
@@ -440,63 +281,28 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       )}
 
       {effectiveEventType === 'game' ? (
-        <>
-          {/* ANPFIFF-Block: 1fr_auto_1fr, Mitte nie verschoben, Mobile kompakt */}
-          <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-x-4">
-            <div className="min-w-0 flex flex-col items-center text-center">
-              <TeamBlock
-                logoUrl={homeLogoUrl}
-                prefix={homePrefix || undefined}
-                name={homeName || '–'}
-              />
-            </div>
-
-            <div className="min-w-0 flex flex-col items-center text-center">
-              <KickoffBlock
-                timeDisplay={isMatch && showScore ? `${home} : ${away}` : timeStr}
-                showUhr={!isMatch || !showScore}
-                location={locationForKickoff}
-                headerLabel="ANPFIFF"
-              />
-            </div>
-
-            <div className="min-w-0 px-2 flex flex-col items-center text-center">
-              <TeamBlock
-                logoUrl={awayLogoUrl}
-                prefix={awayPrefix || undefined}
-                name={awayName || '–'}
-              />
-            </div>
-          </div>
-
-          {/* Treffpunkt: sekundärer CTA, einheitliche Höhe damit kein Layout-Sprung */}
-          <div className="mt-5 flex min-h-[36px] justify-center">
-            {canSeeSensitiveInfo && meetupTimeOnly ? (
-              <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-red-800/80 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800/90">
-                <span className="whitespace-nowrap">Treffpunkt: {meetupTimeOnly}</span>
-              </div>
-            ) : null}
-          </div>
-
-              {endTimeLabel ? (
-                <div className="mt-2 flex min-h-[36px] justify-center">
-                  <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-white/10 border border-white/15 px-5 py-2 text-sm font-medium text-white/90">
-                    <span className="whitespace-nowrap">Ende: {endTimeLabel}</span>
-                  </div>
-                </div>
-              ) : null}
-
-              {descriptionText ? (
-                <div className="mt-2 text-[13px] leading-snug text-white/75 font-semibold line-clamp-2 max-w-[320px]">
-                  {descriptionText}
-                </div>
-              ) : null}
-        </>
+        <MatchCardGameCore
+          headerTitle={headerTitle}
+          leftName={leftName}
+          rightName={rightName}
+          opponentLogoUrl={rightLogoOverride}
+          timeDisplay={timeStr}
+          isMatch={isMatch}
+          showScore={showScore}
+          homeScore={home}
+          awayScore={away}
+          kickoffLocation={locationForKickoff}
+          meetupTimeOnly={meetupTimeOnly}
+          showMeetupPill={Boolean(canSeeSensitiveInfo && meetupTimeOnly)}
+          endTimeLabel={endTimeLabel}
+          descriptionText={descriptionText}
+          variant="schedule"
+        />
       ) : (
         <>
           {/* TRAINING / EVENT: kein Team-/Opponent-Grid, dafür kompakte Pills/Badges */}
           <div className="mt-4 flex flex-col items-center text-center gap-2">
-            <KickoffBlock
+            <MatchCardKickoffBlock
               timeDisplay={timeStr}
               showUhr
               location={null}
