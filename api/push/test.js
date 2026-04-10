@@ -1,7 +1,7 @@
 /**
  * GET  /api/push/test — Readiness + VAPID-Debug (kein Versand)
  * POST /api/push/test — Test-Push an alle Zeilen in public.push_subscriptions
- * POST + Body { "directSelf": true } + Bearer — nur aktueller User (Trainer/Admin), + notifications-Zeile
+ * POST + Body { "debugParents": true, "teamSeasonId": "<uuid>" } + Bearer — Eltern des Teams, + notifications
  * Bei 404/410 wird die Subscription gelöscht (nur Broadcast-Zweig).
  */
 import { createClient } from "@supabase/supabase-js";
@@ -39,6 +39,7 @@ function normalizeMembershipRole(roleStr) {
     s === "trainer"
   )
     return "trainer";
+  if (s === "parent" || s === "eltern") return "parent";
   return null;
 }
 
@@ -53,43 +54,79 @@ function safeErrorBody(err) {
   return s;
 }
 
-async function canUseTrainerDirectPush(supabase, userId) {
+async function canTrainerSendForTeamSeason(supabase, userId, teamSeasonId) {
   const { data: gr } = await supabase
     .from("user_roles")
     .select("role")
     .eq("user_id", userId)
     .maybeSingle();
   if (normalizeMembershipRole(gr?.role) === "admin") return true;
-  const { data: mems } = await supabase
+  const { data: senderMem } = await supabase
     .from("memberships")
     .select("role")
-    .eq("user_id", userId);
-  for (const m of mems ?? []) {
-    const r = normalizeMembershipRole(m.role);
-    if (r === "trainer") return true;
-  }
-  return false;
+    .eq("user_id", userId)
+    .eq("team_season_id", teamSeasonId)
+    .maybeSingle();
+  return normalizeMembershipRole(senderMem?.role) === "trainer";
 }
 
-async function runDirectSelfTest(req, res) {
+async function runParentsDebugTest(req, res, body) {
   const lines = [];
   const log = (msg, data) => {
     const entry = data !== undefined ? `${msg} ${JSON.stringify(data)}` : msg;
     lines.push(entry);
-    console.log(`[push/test] directSelf ${msg}`, data !== undefined ? data : "");
+    console.log(`[push/test] debugParents ${msg}`, data !== undefined ? data : "");
   };
+
+  const teamSeasonIdEarly =
+    (typeof body?.teamSeasonId === "string" && body.teamSeasonId.trim()) ||
+    (typeof body?.team_season_id === "string" && body.team_season_id.trim()) ||
+    "";
+
+  const stats = (ts, parents, subs, attempted, sent, errExact) => ({
+    teamSeasonId: ts || "",
+    parentUserCount: parents,
+    subscriptionsFoundCount: subs,
+    pushAttempted: attempted,
+    pushSentCount: sent,
+    pushErrorExact: errExact,
+  });
 
   try {
     log("direct push start");
 
     if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return res.status(500).json({ ok: false, step: "env", error: "Missing Supabase env", logs: lines });
+      return res.status(500).json({
+        ok: false,
+        step: "env",
+        error: "Missing Supabase env",
+        ...stats(teamSeasonIdEarly, 0, 0, false, 0, null),
+        logs: lines,
+      });
     }
+
+    const teamSeasonId = teamSeasonIdEarly;
+    if (!teamSeasonId) {
+      log("bad request", "missing teamSeasonId");
+      return res.status(400).json({
+        ok: false,
+        error: "teamSeasonId required",
+        ...stats("", 0, 0, false, 0, null),
+        logs: lines,
+      });
+    }
+
+    log("teamSeasonId", teamSeasonId);
 
     const authHeader = req.headers.authorization || "";
     const token = authHeader.replace(/^Bearer\s+/i, "").trim();
     if (!token) {
-      return res.status(401).json({ ok: false, error: "Unauthorized", logs: lines });
+      return res.status(401).json({
+        ok: false,
+        error: "Unauthorized",
+        ...stats(teamSeasonId, 0, 0, false, 0, null),
+        logs: lines,
+      });
     }
 
     const supabase = createClient(
@@ -104,52 +141,63 @@ async function runDirectSelfTest(req, res) {
     } = await supabase.auth.getUser(token);
     if (userErr || !user?.id) {
       log("auth failed", userErr?.message ?? "no user");
-      return res.status(401).json({ ok: false, error: "Invalid session", logs: lines });
+      return res.status(401).json({
+        ok: false,
+        error: "Invalid session",
+        ...stats(teamSeasonId, 0, 0, false, 0, null),
+        logs: lines,
+      });
     }
 
-    const userId = user.id;
-    log("current user id", userId);
+    log("current user id", user.id);
 
-    const allowed = await canUseTrainerDirectPush(supabase, userId);
+    const allowed = await canTrainerSendForTeamSeason(supabase, user.id, teamSeasonId);
     if (!allowed) {
-      log("forbidden", "not trainer/admin");
-      return res.status(403).json({ ok: false, error: "Forbidden: trainer tools only", logs: lines });
+      log("forbidden", "not trainer/admin for this team season");
+      return res.status(403).json({
+        ok: false,
+        error: "Forbidden: trainer or admin for this team only",
+        ...stats(teamSeasonId, 0, 0, false, 0, null),
+        logs: lines,
+      });
     }
 
-    const { data: subRows, error: subErr } = await supabase
-      .from("push_subscriptions")
-      .select("endpoint, p256dh, auth, user_id")
-      .eq("user_id", userId)
-      .not("endpoint", "is", null);
+    const { data: tsRow } = await supabase
+      .from("team_seasons")
+      .select("team_id")
+      .eq("id", teamSeasonId)
+      .maybeSingle();
+    const teamId = tsRow?.team_id ?? null;
 
-    if (subErr) {
-      log("push_subscriptions query error", subErr.message);
-      return res.status(500).json({ ok: false, step: "push_subscriptions", error: subErr.message, logs: lines });
+    const { data: memRows, error: memErr } = await supabase
+      .from("memberships")
+      .select("user_id, role")
+      .eq("team_season_id", teamSeasonId);
+
+    if (memErr) {
+      log("memberships error", memErr.message);
+      return res.status(500).json({
+        ok: false,
+        error: memErr.message,
+        ...stats(teamSeasonId, 0, 0, false, 0, null),
+        logs: lines,
+      });
     }
 
-    const rows = (subRows || []).filter((r) => r.endpoint && r.p256dh && r.auth);
-    log("subscriptions found count", rows.length);
+    const parentUserIds = [
+      ...new Set(
+        (memRows || [])
+          .filter((m) => normalizeMembershipRole(m.role) === "parent")
+          .map((m) => m.user_id)
+          .filter(Boolean),
+      ),
+    ];
 
-    let notificationOk = false;
-    let notificationError = null;
-    try {
-      const { data: mem } = await supabase
-        .from("memberships")
-        .select("team_season_id")
-        .eq("user_id", userId)
-        .limit(1)
-        .maybeSingle();
-      let teamId = null;
-      if (mem?.team_season_id) {
-        const { data: ts } = await supabase
-          .from("team_seasons")
-          .select("team_id")
-          .eq("id", mem.team_season_id)
-          .maybeSingle();
-        teamId = ts?.team_id ?? null;
-      }
+    log("parent user count", parentUserIds.length);
+
+    for (const uid of parentUserIds) {
       const ins = {
-        user_id: userId,
+        user_id: uid,
         title: DIRECT_SELF_TITLE,
         message: DIRECT_SELF_BODY,
         read: false,
@@ -159,25 +207,45 @@ async function runDirectSelfTest(req, res) {
       };
       const { error: nErr } = await supabase.from("notifications").insert(ins);
       if (nErr) {
-        notificationError = nErr.message || String(nErr);
-        log("notification insert error", notificationError);
+        log("notification insert error", { user_id: uid, message: nErr.message || String(nErr) });
       } else {
-        notificationOk = true;
-        log("notification insert ok", true);
+        log("notification insert ok", uid);
       }
-    } catch (e) {
-      notificationError = e instanceof Error ? e.message : String(e);
-      log("notification insert exception", notificationError);
     }
 
-    if (rows.length === 0) {
-      log("send skipped", "no push_subscriptions for user");
+    if (parentUserIds.length === 0) {
+      log("send skipped", "no parents in team season");
       return res.status(200).json({
         ok: true,
-        pushed: 0,
-        message: "No subscriptions — enable Push in Profil",
-        notificationInserted: notificationOk,
-        notificationError,
+        ...stats(teamSeasonId, 0, 0, false, 0, null),
+        logs: lines,
+      });
+    }
+
+    const { data: subRows, error: subErr } = await supabase
+      .from("push_subscriptions")
+      .select("endpoint, p256dh, auth, user_id")
+      .in("user_id", parentUserIds)
+      .not("endpoint", "is", null);
+
+    if (subErr) {
+      log("push_subscriptions query error", subErr.message);
+      return res.status(500).json({
+        ok: false,
+        error: subErr.message,
+        ...stats(teamSeasonId, parentUserIds.length, 0, false, 0, null),
+        logs: lines,
+      });
+    }
+
+    const rows = (subRows || []).filter((r) => r.endpoint && r.p256dh && r.auth);
+    log("subscriptions found count", rows.length);
+
+    if (rows.length === 0) {
+      log("send skipped", "no push_subscriptions for parents");
+      return res.status(200).json({
+        ok: true,
+        ...stats(teamSeasonId, parentUserIds.length, 0, false, 0, null),
         logs: lines,
       });
     }
@@ -191,19 +259,19 @@ async function runDirectSelfTest(req, res) {
         ok: false,
         step: "vapid",
         error: msg,
-        notificationInserted: notificationOk,
-        notificationError,
+        ...stats(teamSeasonId, parentUserIds.length, rows.length, false, 0, null),
         logs: lines,
       });
     }
 
-    logVapidBeforeSend("push/test", { mode: "directSelf", recipientCount: rows.length });
+    logVapidBeforeSend("push/test", { mode: "debugParents", recipientCount: rows.length });
 
     const batchTs = Date.now();
     let sentOk = 0;
     const sendErrors = [];
 
     for (const row of rows) {
+      const recipientUserId = row.user_id;
       const epPrev =
         typeof row.endpoint === "string" && row.endpoint.length > 72
           ? `${row.endpoint.slice(0, 72)}…`
@@ -215,7 +283,7 @@ async function runDirectSelfTest(req, res) {
         const { count, error: cErr } = await supabase
           .from("notifications")
           .select("id", { count: "exact", head: true })
-          .eq("user_id", userId)
+          .eq("user_id", recipientUserId)
           .eq("read", false);
         if (!cErr && count != null) {
           unreadForBadge = Math.min(99, Math.max(0, Math.floor(Number(count))));
@@ -224,7 +292,7 @@ async function runDirectSelfTest(req, res) {
         /* ignore */
       }
 
-      const pushTag = `direct-test-${batchTs}`;
+      const pushTag = `debug-parents-${teamSeasonId}-${batchTs}`;
       const payloadObj = {
         title: DIRECT_SELF_TITLE,
         body: DIRECT_SELF_BODY,
@@ -268,21 +336,25 @@ async function runDirectSelfTest(req, res) {
       }
     }
 
+    const pushErrorExact = sendErrors.length ? sendErrors.map((e) => e.error).join(" | ") : null;
+
     log("direct push done", { sendSuccessCount: sentOk, subscriptionsTotal: rows.length });
 
     return res.status(200).json({
       ok: true,
-      pushed: sentOk,
-      attempted: rows.length,
+      ...stats(teamSeasonId, parentUserIds.length, rows.length, true, sentOk, pushErrorExact),
       sendErrors,
-      notificationInserted: notificationOk,
-      notificationError,
       logs: lines,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[push/test] directSelf FATAL", msg);
-    return res.status(500).json({ ok: false, error: msg, logs: lines });
+    console.error("[push/test] debugParents FATAL", msg);
+    return res.status(500).json({
+      ok: false,
+      error: msg,
+      ...stats(teamSeasonIdEarly, 0, 0, false, 0, msg),
+      logs: lines,
+    });
   }
 }
 
@@ -457,8 +529,8 @@ export default async function handler(req, res) {
     }
 
     const body = parseBody(req);
-    if (body && body.directSelf === true) {
-      return await runDirectSelfTest(req, res);
+    if (body && body.debugParents === true) {
+      return await runParentsDebugTest(req, res, body);
     }
 
     return await runBroadcastTest(req, res);

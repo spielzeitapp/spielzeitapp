@@ -18,7 +18,15 @@ function isTrainerToolsRole(role: string): boolean {
 }
 
 export const MoreHubPage: React.FC = () => {
-  const { selectedTeamSeason, setSelectedTeamSeasonId, teamSeasons, effectiveRole, backendRole, user } = useSession();
+  const {
+    selectedTeamSeason,
+    selectedTeamSeasonId,
+    setSelectedTeamSeasonId,
+    teamSeasons,
+    effectiveRole,
+    backendRole,
+    user,
+  } = useSession();
   const canSwitchTeam =
     (teamSeasons?.length ?? 0) > 1 &&
     (effectiveRole === 'trainer' || effectiveRole === 'head_coach' || effectiveRole === 'co_trainer');
@@ -29,15 +37,20 @@ export const MoreHubPage: React.FC = () => {
 
   const [trainerToolsOpen, setTrainerToolsOpen] = useState(false);
 
-  const runDirectPushTest = async () => {
-    console.log('[direct-push] direct push start');
+  const runParentsPushDebug = async () => {
+    console.log('[direct-push-debug] direct push start');
+    const teamSeasonId = selectedTeamSeasonId ?? selectedTeamSeason?.id ?? '';
+    if (!teamSeasonId) {
+      alert('Keine aktive Team-Saison gewählt.');
+      return;
+    }
     try {
       const { data: sessionRes } = await supabase.auth.getSession();
       const accessToken = sessionRes.session?.access_token;
       const uid = sessionRes.session?.user?.id;
-      console.log('[direct-push] current user id', uid);
+      console.log('[direct-push-debug] current user id (Trainer)', uid);
       if (!accessToken) {
-        console.error('[direct-push] no access token');
+        console.error('[direct-push-debug] no access token');
         alert('Nicht angemeldet.');
         return;
       }
@@ -47,38 +60,49 @@ export const MoreHubPage: React.FC = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ directSelf: true }),
+        body: JSON.stringify({ debugParents: true, teamSeasonId }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
         error?: string;
         logs?: string[];
-        pushed?: number;
-        notificationInserted?: boolean;
+        teamSeasonId?: string;
+        parentUserCount?: number;
+        subscriptionsFoundCount?: number;
+        pushAttempted?: boolean;
+        pushSentCount?: number;
+        pushErrorExact?: string | null;
         sendErrors?: { error?: string }[];
       };
-      console.log('[direct-push] response status', res.status);
-      console.log('[direct-push] response body', data);
+      console.log('[direct-push-debug] response status', res.status);
+      console.log('[direct-push-debug] response body', data);
       if (data.logs && Array.isArray(data.logs)) {
         for (const line of data.logs) {
-          console.log('[direct-push]', line);
+          console.log('[direct-push-debug]', line);
         }
       }
       if (data.sendErrors?.length) {
         for (const e of data.sendErrors) {
-          console.error('[direct-push] send error', e);
+          console.error('[direct-push-debug] send error', e);
         }
       }
+      const errText = data.pushErrorExact?.trim() || data.error?.trim() || '';
+      const lines = [
+        `teamSeasonId: ${data.teamSeasonId ?? teamSeasonId}`,
+        `Eltern (User): ${data.parentUserCount ?? '—'}`,
+        `Subscriptions: ${data.subscriptionsFoundCount ?? '—'}`,
+        `Push versucht: ${data.pushAttempted ? 'ja' : 'nein'}`,
+        `Gesendet: ${data.pushSentCount ?? '—'}`,
+      ];
+      if (errText) lines.push(`Fehler: ${errText}`);
       if (!res.ok) {
-        alert(data.error || `HTTP ${res.status}`);
+        alert(lines.join('\n'));
         return;
       }
-      alert(
-        `Direkt-Push: ${data.pushed ?? 0} gesendet. In-App-Benachrichtigung: ${data.notificationInserted ? 'ja' : 'nein'}`,
-      );
+      alert(lines.join('\n'));
     } catch (err) {
-      console.error('[direct-push] exception', err);
-      alert(`Direkt-Push Fehler: ${err instanceof Error ? err.message : String(err)}`);
+      console.error('[direct-push-debug] exception', err);
+      alert(`Direkt-Push-Debug Fehler: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -179,8 +203,8 @@ export const MoreHubPage: React.FC = () => {
                     <span>Vorlagen</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
                   </Link>
-                  <button type="button" onClick={runDirectPushTest} className={subRowClass}>
-                    <span>Direkt-Push testen</span>
+                  <button type="button" onClick={runParentsPushDebug} className={subRowClass}>
+                    <span>Direkt-Push Debug</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
                   </button>
                   <Link to="/app/mehr/trainer/erinnerungen" className={subRowClass}>
