@@ -63,6 +63,35 @@ export async function createTemplate(opts: {
   return { ok: true, id: (data as { id?: string })?.id };
 }
 
+export async function updateTemplate(opts: {
+  id: string;
+  teamId: string;
+  title: string;
+  message: string;
+  link: string | null;
+}): Promise<{ ok: boolean }> {
+  const { data, error } = await supabase
+    .from('push_templates')
+    .update({
+      title: opts.title.trim(),
+      message: opts.message.trim(),
+      link: opts.link?.trim() ? opts.link.trim() : null,
+    })
+    .eq('id', opts.id)
+    .eq('team_id', opts.teamId)
+    .select('id')
+    .maybeSingle();
+  if (error) {
+    console.warn('[updateTemplate]', error.message);
+    return { ok: false };
+  }
+  if (!data) {
+    console.warn('[updateTemplate] no row updated (id/team mismatch or RLS)');
+    return { ok: false };
+  }
+  return { ok: true };
+}
+
 export async function deleteTemplate(id: string): Promise<boolean> {
   const { error } = await supabase.from('push_templates').delete().eq('id', id);
   if (error) {

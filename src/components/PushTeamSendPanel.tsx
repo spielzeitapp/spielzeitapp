@@ -10,6 +10,7 @@ import {
   deleteTemplate,
   fetchTemplates,
   resolveTeamIdFromSeasonId,
+  updateTemplate,
   type PushTemplateRow,
 } from '../lib/pushTemplates';
 
@@ -67,6 +68,8 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
 
   const [templates, setTemplates] = useState<PushTemplateRow[]>([]);
   const [templateSelect, setTemplateSelect] = useState('');
+  /** Gesetztes Template beim „Übernehmen“ / Dropdown — Speichern = UPDATE statt INSERT. */
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -81,6 +84,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
 
   useEffect(() => {
     setTemplateSelect('');
+    setEditingTemplateId(null);
     void reloadTemplates();
   }, [reloadTemplates]);
 
@@ -169,6 +173,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
         setUrl(DEFAULT_TEAM_PUSH_LINK);
         setRecipientGroup('all');
         setTemplateSelect('');
+        setEditingTemplateId(null);
       } else {
         setMessage(`Teilerfolg: ${sent} Push(s) ok, ${failed} fehlgeschlagen (${total} Ziele). In-App: ${notifN}.`);
       }
@@ -182,7 +187,11 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
 
   const onTemplateChange = (id: string) => {
     setTemplateSelect(id);
-    if (!id) return;
+    if (!id) {
+      setEditingTemplateId(null);
+      return;
+    }
+    setEditingTemplateId(id);
     const t = templates.find((x) => x.id === id);
     if (!t) return;
     setTitle(t.title);
@@ -198,19 +207,47 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
     }
     setSavingTemplate(true);
     try {
-      const res = await createTemplate({
-        teamId,
-        userId: user.id,
-        title: title.trim(),
-        message: body.trim(),
-        link: url.trim() || null,
-      });
-      if (res.ok) {
-        setToast('Vorlage gespeichert');
-        window.setTimeout(() => setToast(null), 3200);
-        await reloadTemplates();
-        if (res.id) setTemplateSelect(res.id);
-        else setTemplateSelect('');
+      const linkVal = url.trim() || null;
+      if (editingTemplateId) {
+        const ok = await updateTemplate({
+          id: editingTemplateId,
+          teamId,
+          title: title.trim(),
+          message: body.trim(),
+          link: linkVal,
+        });
+        if (ok) {
+          setToast('Vorlage aktualisiert');
+          window.setTimeout(() => setToast(null), 3200);
+          await reloadTemplates();
+          setTemplateSelect(editingTemplateId);
+        } else {
+          setToast('Vorlage konnte nicht aktualisiert werden.');
+          window.setTimeout(() => setToast(null), 4200);
+        }
+      } else {
+        const res = await createTemplate({
+          teamId,
+          userId: user.id,
+          title: title.trim(),
+          message: body.trim(),
+          link: linkVal,
+        });
+        if (res.ok) {
+          setToast('Vorlage gespeichert');
+          window.setTimeout(() => setToast(null), 3200);
+          await reloadTemplates();
+          if (res.id) {
+            setTemplateSelect(res.id);
+            setEditingTemplateId(res.id);
+          } else {
+            setTemplateSelect('');
+            setEditingTemplateId(null);
+          }
+        } else {
+          setToast('Vorlage konnte nicht gespeichert werden.');
+          window.setTimeout(() => setToast(null), 4200);
+        }
       }
     } finally {
       setSavingTemplate(false);
@@ -222,6 +259,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
     setBody(t.message);
     setUrl(t.link?.trim() ? t.link.trim() : DEFAULT_TEAM_PUSH_LINK);
     setTemplateSelect(t.id);
+    setEditingTemplateId(t.id);
   };
 
   const onDeleteTemplate = async (id: string) => {
@@ -231,6 +269,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
       if (ok) {
         await reloadTemplates();
         if (templateSelect === id) setTemplateSelect('');
+        if (editingTemplateId === id) setEditingTemplateId(null);
       }
     } finally {
       setDeletingId(null);
@@ -338,7 +377,11 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
             onClick={() => void onSaveTemplate()}
             className="!border-white/20 !bg-zinc-800/60 !text-zinc-200 hover:!bg-zinc-700/70"
           >
-            {savingTemplate ? 'Speichern…' : 'Als Vorlage speichern'}
+            {savingTemplate
+              ? 'Speichern…'
+              : editingTemplateId
+                ? 'Vorlage aktualisieren'
+                : 'Als Vorlage speichern'}
           </Button>
         </div>
 
@@ -394,7 +437,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
             <Link to="/app/mehr/trainer/team-push" className="font-medium text-red-400 underline-offset-2 hover:underline">
               Team-Push
             </Link>{' '}
-            öffnen und „Als Vorlage speichern“.
+            öffnen und „Als Vorlage speichern“ bzw. „Vorlage aktualisieren“.
           </p>
         )}
 
