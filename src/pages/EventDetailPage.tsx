@@ -846,6 +846,14 @@ export const EventDetailPage: React.FC = () => {
           </Card>
         )}
 
+        <div className="mx-4 mt-6 mb-24 rounded-2xl border border-red-500 bg-neutral-900 p-4 text-white">
+          <div className="text-lg font-bold">MATCH SETUP DEBUG</div>
+          <div className="mt-2 text-sm text-neutral-300">Dieser Block muss sichtbar sein.</div>
+          <button className="mt-4 w-full rounded-xl bg-red-600 px-4 py-3 font-semibold text-white">
+            Live starten
+          </button>
+        </div>
+
         {event.kind === 'match' && event.match_id && isTrainerOrAdmin && (
           <EventMatchSetupBlock matchId={event.match_id} players={players} />
         )}
