@@ -286,10 +286,10 @@ function EventMatchSetupBlock({ matchId, players }: { matchId: string; players: 
   };
 
   return (
-    <Card>
+    <Card className="flex flex-col gap-3">
       <CardTitle>Match Setup</CardTitle>
 
-      {loadingLineup && <p className="mt-2 text-sm text-[var(--text-sub)]">Lade Kader…</p>}
+      {loadingLineup && <p className="text-sm text-[var(--text-sub)]">Lade Kader…</p>}
       {setupError && (
         <p className="mt-2 text-sm text-red-500" role="alert">
           {setupError}
@@ -297,9 +297,9 @@ function EventMatchSetupBlock({ matchId, players }: { matchId: string; players: 
       )}
 
       {!loadingLineup && (
-        <>
-          <p className="mt-3 text-sm font-semibold text-[var(--text-main)]">Matchkader</p>
-          <ul className="mt-2 divide-y divide-white/10 border border-white/10 rounded-lg">
+        <div className="flex flex-col gap-3">
+          <p className="text-sm font-semibold text-[var(--text-main)]">Matchkader</p>
+          <ul className="flex flex-col divide-y divide-white/10 border border-white/10 rounded-lg">
             {sortedPlayers.map((p) => (
               <li key={p.id} className="flex items-center gap-3 px-3 py-2">
                 <input
@@ -316,13 +316,13 @@ function EventMatchSetupBlock({ matchId, players }: { matchId: string; players: 
             ))}
           </ul>
 
-          <p className="mt-4 text-sm font-semibold text-[var(--text-main)]">
+          <p className="text-sm font-semibold text-[var(--text-main)]">
             Startelf ({starterCount}/{MATCH_SETUP_STARTERS_MAX})
           </p>
           {squadPlayersSorted.length === 0 ? (
-            <p className="mt-2 text-sm text-[var(--text-sub)]">Zuerst Spieler im Matchkader auswählen.</p>
+            <p className="text-sm text-[var(--text-sub)]">Zuerst Spieler im Matchkader auswählen.</p>
           ) : (
-            <ul className="mt-2 divide-y divide-white/10 border border-white/10 rounded-lg">
+            <ul className="flex flex-col divide-y divide-white/10 border border-white/10 rounded-lg">
               {squadPlayersSorted.map((p) => {
                 const isSt = starterIdSet.has(p.id);
                 const blockMore = !isSt && starterCount >= MATCH_SETUP_STARTERS_MAX;
@@ -345,18 +345,16 @@ function EventMatchSetupBlock({ matchId, players }: { matchId: string; players: 
             </ul>
           )}
 
-          <div className="mt-4">
-            <Button
-              type="button"
-              variant="primary"
-              className="w-full"
-              disabled={savingLive || starterCount !== MATCH_SETUP_STARTERS_MAX}
-              onClick={() => void onLiveStart()}
-            >
-              {savingLive ? 'Speichern…' : 'Live starten'}
-            </Button>
-          </div>
-        </>
+          <Button
+            type="button"
+            variant="primary"
+            className="w-full"
+            disabled={savingLive || starterCount !== MATCH_SETUP_STARTERS_MAX}
+            onClick={() => void onLiveStart()}
+          >
+            {savingLive ? 'Speichern…' : 'Live starten'}
+          </Button>
+        </div>
       )}
     </Card>
   );
@@ -578,49 +576,51 @@ export const EventDetailPage: React.FC = () => {
 
   if (!eventId) {
     return (
-      <div className="page pb-4">
-        <p>Keine Event-ID angegeben.</p>
-        <Link to="/app/termine" className="mt-2 inline-block text-sm text-white/80 hover:text-white">
-          ← Zurück zum Spielplan
-        </Link>
+      <div className="min-h-screen bg-black text-white">
+        <div className="mx-auto flex max-w-md flex-col gap-4 p-4">
+          <p>Keine Event-ID angegeben.</p>
+          <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
+            ← Zurück zum Spielplan
+          </Link>
+        </div>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="page pb-4">
-        <p>Lade Termin…</p>
+      <div className="min-h-screen bg-black text-white">
+        <div className="mx-auto flex max-w-md flex-col gap-4 p-4">
+          <p>Lade Termin…</p>
+        </div>
       </div>
     );
   }
 
   if (error || !event) {
     return (
-      <div className="page pb-4 space-y-3">
-        <p>{error ?? 'Termin nicht gefunden.'}</p>
-        <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
-          ← Zurück zum Spielplan
-        </Link>
+      <div className="min-h-screen bg-black text-white">
+        <div className="mx-auto flex max-w-md flex-col gap-4 p-4">
+          <p>{error ?? 'Termin nicht gefunden.'}</p>
+          <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
+            ← Zurück zum Spielplan
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="page pb-4">
-      <div className="mx-auto max-w-[720px] space-y-4 px-4">
-        <Link
-          to="/app/termine"
-          className="inline-block text-sm text-white/80 hover:text-white"
-        >
-          ← Zurück zum Spielplan
-        </Link>
-
-        <div className="flex justify-end">
+    <div className="min-h-screen bg-black text-white">
+      <div className="mx-auto flex max-w-md flex-col gap-4 p-4">
+        <div className="flex flex-col gap-3">
+          <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
+            ← Zurück zum Spielplan
+          </Link>
           <Button
             variant="soft"
             size="sm"
-            className="rounded-xl"
+            className="w-full rounded-xl sm:w-auto sm:self-end"
             onClick={() =>
               downloadEventIcs(event as any, {
                 appBaseUrl: window.location.origin,
@@ -631,8 +631,9 @@ export const EventDetailPage: React.FC = () => {
           </Button>
         </div>
 
-        <div className="w-full">
+        <div className="flex w-full min-w-0 flex-col">
           <MatchCardLigaportal
+            className="!overflow-visible w-full max-w-none rounded-2xl"
             ourTeamName={ourTeamName}
             opponent={event.opponent}
             isHome={event.is_home}
@@ -654,20 +655,20 @@ export const EventDetailPage: React.FC = () => {
           />
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">
+        <div className="flex flex-col rounded-xl border border-white/10 bg-black/25 px-3 py-2">
           <p className="text-xs uppercase tracking-wide text-white/60">{getDomainEventLabel(event)}</p>
           <p className="text-sm font-medium text-white">{formatEventDateTimeLabel(event.starts_at)}</p>
           {event.location ? <p className="text-xs text-white/70">{event.location}</p> : null}
         </div>
 
         {!isFan && (
-          <Card>
+          <Card className="flex flex-col gap-3">
             <CardTitle>{isTraining ? 'Training-Teilnahme' : 'Zu-/Absagen'}</CardTitle>
 
-            {isTrainerOrAdmin && (
-              <>
+            {isTrainerOrAdmin ? (
+              <div className="flex flex-col gap-3">
                 {isTraining ? (
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <span className="rounded-full px-3 py-1 text-sm font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
                       Dabei: {Math.max(0, players.length - Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length)}
                     </span>
@@ -688,7 +689,7 @@ export const EventDetailPage: React.FC = () => {
                     </span>
                   </div>
                 )}
-                <div className="mt-4 border-t border-white/10 pt-3 space-y-2">
+                <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
                   {(playersLoading || loadingEventAttendance) && (
                     <p className="text-sm text-[var(--text-sub)]">Lade…</p>
                   )}
@@ -696,7 +697,7 @@ export const EventDetailPage: React.FC = () => {
                     <p className="text-sm text-[var(--text-sub)]">Keine Spieler im Kader.</p>
                   )}
                   {!playersLoading && !loadingEventAttendance && players.length > 0 && (
-                    <ul className="space-y-2">
+                    <ul className="flex flex-col gap-0">
                       {sortPlayersByAttendanceStatus(players, getAttendanceStatus, isTraining).map((player) => {
                         const status = getAttendanceStatus(player.id);
                         const chipClass = isTraining
@@ -721,17 +722,17 @@ export const EventDetailPage: React.FC = () => {
                         return (
                           <li
                             key={player.id}
-                            className="flex flex-col gap-1 py-2 border-b border-white/10 last:border-0 sm:flex-row sm:items-center sm:justify-between"
+                            className="flex flex-col gap-2 border-b border-white/10 py-3 last:border-b-0"
                           >
                             <div className="min-w-0 flex-1">
-                              <span className="text-[var(--text-main)] font-medium truncate block">{player.display_name}</span>
+                              <span className="block font-medium text-[var(--text-main)]">{player.display_name}</span>
                               {isTraining && status === 'no' && eventAttendanceReasonByPlayerId[(player.id ?? '').toLowerCase()] ? (
                                 <span className="text-xs text-[var(--text-sub)]">
                                   Grund: {eventAttendanceReasonByPlayerId[(player.id ?? '').toLowerCase()]}
                                 </span>
                               ) : null}
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex flex-wrap items-center gap-2">
                               <span className={chipClass}>{chipLabel}</span>
                               {isTraining ? (
                                 <>
@@ -781,21 +782,19 @@ export const EventDetailPage: React.FC = () => {
                     </ul>
                   )}
                 </div>
-              </>
-            )}
-
-            {!isTrainerOrAdmin && (effectiveRole === 'player' || effectiveRole === 'parent') && (
-              <>
-                <p className="mt-2 text-sm text-[var(--text-sub)]">Dein Teilnahme-Status für diesen Termin.</p>
+              </div>
+            ) : (effectiveRole === 'player' || effectiveRole === 'parent') ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm text-[var(--text-sub)]">Dein Teilnahme-Status für diesen Termin.</p>
                 {!playerId ? (
-                  <p className="mt-2 text-sm text-[var(--text-main)]">Kein Spieler zugeordnet. Bitte beim Trainer melden.</p>
+                  <p className="text-sm text-[var(--text-main)]">Kein Spieler zugeordnet. Bitte beim Trainer melden.</p>
                 ) : loadingRsvp ? (
-                  <p className="mt-2 text-sm text-[var(--text-sub)]">Lade Status…</p>
+                  <p className="text-sm text-[var(--text-sub)]">Lade Status…</p>
                 ) : (
-                  <>
+                  <div className="flex flex-col gap-2">
                     {isTraining ? (
                       <>
-                        <p className="mt-2 text-sm text-[var(--text-main)] font-medium">
+                        <p className="text-sm font-medium text-[var(--text-main)]">
                           Status: {rsvpStatus === 'no' ? 'Abwesend' : 'Dabei'}
                         </p>
                         <p className="mt-1 text-xs text-[var(--text-sub)]">
@@ -824,13 +823,13 @@ export const EventDetailPage: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <p className="mt-2 text-sm text-[var(--text-main)]">
+                        <p className="text-sm text-[var(--text-main)]">
                           Status: {rsvpStatus === 'yes' ? 'Zugesagt' : rsvpStatus === 'no' ? 'Abgesagt' : 'Offen'}
                         </p>
                         <Button
                           variant={rsvpStatus === 'yes' || rsvpStatus === 'no' ? 'primary' : 'secondary'}
                           size="sm"
-                          className={`mt-3 ${
+                          className={`${
                             rsvpStatus === 'yes' ? 'bg-green-600 hover:bg-green-500' : rsvpStatus === 'no' ? 'bg-red-600 hover:bg-red-500' : ''
                           }`}
                           onClick={() => { setCancelReason(''); setAttendanceModalOpen(true); }}
@@ -839,20 +838,12 @@ export const EventDetailPage: React.FC = () => {
                         </Button>
                       </>
                     )}
-                  </>
+                  </div>
                 )}
-              </>
-            )}
+              </div>
+            ) : null}
           </Card>
         )}
-
-        <div className="mx-4 mt-6 mb-24 rounded-2xl border border-red-500 bg-neutral-900 p-4 text-white">
-          <div className="text-lg font-bold">MATCH SETUP DEBUG</div>
-          <div className="mt-2 text-sm text-neutral-300">Dieser Block muss sichtbar sein.</div>
-          <button className="mt-4 w-full rounded-xl bg-red-600 px-4 py-3 font-semibold text-white">
-            Live starten
-          </button>
-        </div>
 
         {event.kind === 'match' && event.match_id && isTrainerOrAdmin && (
           <EventMatchSetupBlock matchId={event.match_id} players={players} />
@@ -943,6 +934,14 @@ export const EventDetailPage: React.FC = () => {
             Nur Matchinformationen. Zu-/Absage steht nur Spielern, Eltern und Trainern zur Verfügung.
           </p>
         )}
+
+        <div className="mb-24 mt-2 flex w-full flex-col rounded-2xl border border-red-500 bg-neutral-900 p-4 text-white">
+          <div className="text-lg font-bold">MATCH SETUP DEBUG</div>
+          <div className="mt-2 text-sm text-neutral-300">Dieser Block muss sichtbar sein.</div>
+          <button type="button" className="mt-4 w-full rounded-xl bg-red-600 px-4 py-3 font-semibold text-white">
+            Live starten
+          </button>
+        </div>
       </div>
     </div>
   );
