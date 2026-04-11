@@ -281,8 +281,14 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       ) : null}
 
       {effectiveEventType === 'game' ? (
-        <MatchCardGameCore
-          headerTitle={headerTitle}
+        <>
+          {headerTitle ? (
+            <div className="flex justify-center">
+              <p className="text-xl font-semibold text-white">{headerTitle}</p>
+            </div>
+          ) : null}
+          <MatchCardGameCore
+          headerTitle={null}
           leftName={leftName}
           rightName={rightName}
           opponentLogoUrl={rightLogoOverride}
@@ -298,6 +304,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           descriptionText={descriptionText}
           variant="schedule"
         />
+        </>
       ) : (
         <>
           {/* TRAINING / EVENT: kein Team-/Opponent-Grid, dafür kompakte Pills/Badges */}
