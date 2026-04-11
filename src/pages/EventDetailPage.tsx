@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
@@ -15,6 +15,8 @@ import type { PlayerItem } from '../hooks/usePlayers';
 import { downloadEventIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
+import { LIVE_FIELD_SLOT_ORDER, replaceMatchLineupAndBench } from '../lib/liveMatchService';
+import type { FieldSlotId } from '../types/match';
 
 type EventDbRow = {
   id: string;
@@ -122,6 +124,242 @@ function sortPlayersByAttendanceStatus(
     return rank(sa) - rank(sb);
   };
   return [...players].sort(order);
+}
+
+const MATCH_SETUP_STARTERS_MAX = 7;
+
+function emptyMatchSetupStarters(): Record<FieldSlotId, string | null> {
+  const o = {} as Record<FieldSlotId, string | null>;
+  for (const s of LIVE_FIELD_SLOT_ORDER) o[s] = null;
+  return o;
+}
+
+/** Trainer: Kader + Startelf, Speichern beim Klick auf Live starten (nur diese Datei, kein Layout-Change oben). */
+function EventMatchSetupBlock({ matchId, players }: { matchId: string; players: PlayerItem[] }) {
+  const navigate = useNavigate();
+  const sortedPlayers = useMemo(
+    () =>
+      [...players].sort(
+        (a, b) =>
+          (a.jersey_number ?? 9999) - (b.jersey_number ?? 9999) ||
+          a.display_name.localeCompare(b.display_name, 'de'),
+      ),
+    [players],
+  );
+
+  const [squad, setSquad] = useState<Set<string>>(() => new Set());
+  const [startersBySlot, setStartersBySlot] = useState<Record<FieldSlotId, string | null>>(emptyMatchSetupStarters);
+  const [loadingLineup, setLoadingLineup] = useState(true);
+  const [savingLive, setSavingLive] = useState(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
+
+  const validPlayerIds = useMemo(() => new Set(players.map((p) => p.id)), [players]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingLineup(true);
+      setSetupError(null);
+      const [lineupRes, benchRes] = await Promise.all([
+        supabase.from('match_lineup').select('slot, player_id').eq('match_id', matchId),
+        supabase.from('match_bench').select('player_id').eq('match_id', matchId),
+      ]);
+      if (cancelled) return;
+      if (lineupRes.error || benchRes.error) {
+        setSetupError(lineupRes.error?.message ?? benchRes.error?.message ?? 'Aufstellung laden fehlgeschlagen.');
+        setLoadingLineup(false);
+        return;
+      }
+      const nextStarters = emptyMatchSetupStarters();
+      for (const r of (lineupRes.data ?? []) as { slot: FieldSlotId; player_id: string | null }[]) {
+        if (LIVE_FIELD_SLOT_ORDER.includes(r.slot) && r.player_id) {
+          nextStarters[r.slot] = r.player_id;
+        }
+      }
+      const nextSquad = new Set<string>();
+      for (const row of (benchRes.data ?? []) as { player_id: string }[]) {
+        if (row.player_id) nextSquad.add(row.player_id);
+      }
+      for (const slot of LIVE_FIELD_SLOT_ORDER) {
+        const pid = nextStarters[slot];
+        if (pid) nextSquad.add(pid);
+      }
+      setStartersBySlot(nextStarters);
+      setSquad(nextSquad);
+      setLoadingLineup(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [matchId]);
+
+  useEffect(() => {
+    if (validPlayerIds.size === 0) return;
+    setSquad((prev) => new Set([...prev].filter((id) => validPlayerIds.has(id))));
+    setStartersBySlot((prev) => {
+      const next = { ...prev };
+      for (const s of LIVE_FIELD_SLOT_ORDER) {
+        const pid = next[s];
+        if (pid && !validPlayerIds.has(pid)) next[s] = null;
+      }
+      return next;
+    });
+  }, [players, validPlayerIds]);
+
+  const starterCount = useMemo(
+    () => LIVE_FIELD_SLOT_ORDER.filter((s) => startersBySlot[s] != null).length,
+    [startersBySlot],
+  );
+
+  const starterIdSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of LIVE_FIELD_SLOT_ORDER) {
+      const pid = startersBySlot[s];
+      if (pid) set.add(pid);
+    }
+    return set;
+  }, [startersBySlot]);
+
+  const toggleSquad = (playerId: string) => {
+    setSquad((prev) => {
+      const next = new Set(prev);
+      if (next.has(playerId)) {
+        next.delete(playerId);
+        setStartersBySlot((st) => {
+          const o = { ...st };
+          for (const s of LIVE_FIELD_SLOT_ORDER) {
+            if (o[s] === playerId) o[s] = null;
+          }
+          return o;
+        });
+      } else {
+        next.add(playerId);
+      }
+      return next;
+    });
+  };
+
+  const toggleStarter = (playerId: string) => {
+    if (!squad.has(playerId)) return;
+    setStartersBySlot((prev) => {
+      const next = { ...prev };
+      let isStarter = false;
+      for (const s of LIVE_FIELD_SLOT_ORDER) {
+        if (next[s] === playerId) isStarter = true;
+      }
+      if (isStarter) {
+        for (const s of LIVE_FIELD_SLOT_ORDER) {
+          if (next[s] === playerId) next[s] = null;
+        }
+        return next;
+      }
+      const count = LIVE_FIELD_SLOT_ORDER.filter((s) => next[s] != null).length;
+      if (count >= MATCH_SETUP_STARTERS_MAX) return prev;
+      const emptySlot = LIVE_FIELD_SLOT_ORDER.find((s) => next[s] == null);
+      if (!emptySlot) return prev;
+      for (const s of LIVE_FIELD_SLOT_ORDER) {
+        if (next[s] === playerId) next[s] = null;
+      }
+      next[emptySlot] = playerId;
+      return next;
+    });
+  };
+
+  const squadPlayersSorted = useMemo(
+    () => sortedPlayers.filter((p) => squad.has(p.id)),
+    [sortedPlayers, squad],
+  );
+
+  const onLiveStart = async () => {
+    if (starterCount !== MATCH_SETUP_STARTERS_MAX) return;
+    setSavingLive(true);
+    setSetupError(null);
+    const ordered = LIVE_FIELD_SLOT_ORDER.map((s) => startersBySlot[s] ?? null);
+    const squadArr = [...squad].filter((pid) => validPlayerIds.has(pid));
+    const { error } = await replaceMatchLineupAndBench(matchId, ordered, squadArr);
+    setSavingLive(false);
+    if (error) {
+      setSetupError(error);
+      return;
+    }
+    navigate(`/live?matchId=${matchId}`);
+  };
+
+  return (
+    <Card>
+      <CardTitle>Match Setup</CardTitle>
+
+      {loadingLineup && <p className="mt-2 text-sm text-[var(--text-sub)]">Lade Kader…</p>}
+      {setupError && (
+        <p className="mt-2 text-sm text-red-500" role="alert">
+          {setupError}
+        </p>
+      )}
+
+      {!loadingLineup && (
+        <>
+          <p className="mt-3 text-sm font-semibold text-[var(--text-main)]">Matchkader</p>
+          <ul className="mt-2 divide-y divide-white/10 border border-white/10 rounded-lg">
+            {sortedPlayers.map((p) => (
+              <li key={p.id} className="flex items-center gap-3 px-3 py-2">
+                <input
+                  type="checkbox"
+                  checked={squad.has(p.id)}
+                  onChange={() => toggleSquad(p.id)}
+                  className="h-4 w-4 shrink-0 rounded border-white/30"
+                />
+                <span className="min-w-0 flex-1 text-sm text-[var(--text-main)]">
+                  {p.jersey_number != null ? `${p.jersey_number} · ` : ''}
+                  {p.display_name}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <p className="mt-4 text-sm font-semibold text-[var(--text-main)]">
+            Startelf ({starterCount}/{MATCH_SETUP_STARTERS_MAX})
+          </p>
+          {squadPlayersSorted.length === 0 ? (
+            <p className="mt-2 text-sm text-[var(--text-sub)]">Zuerst Spieler im Matchkader auswählen.</p>
+          ) : (
+            <ul className="mt-2 divide-y divide-white/10 border border-white/10 rounded-lg">
+              {squadPlayersSorted.map((p) => {
+                const isSt = starterIdSet.has(p.id);
+                const blockMore = !isSt && starterCount >= MATCH_SETUP_STARTERS_MAX;
+                return (
+                  <li key={p.id} className="flex items-center gap-3 px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={isSt}
+                      disabled={blockMore}
+                      onChange={() => toggleStarter(p.id)}
+                      className="h-4 w-4 shrink-0 rounded border-white/30 disabled:opacity-40"
+                    />
+                    <span className="min-w-0 flex-1 text-sm text-[var(--text-main)]">
+                      {p.jersey_number != null ? `${p.jersey_number} · ` : ''}
+                      {p.display_name}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          <div className="mt-4">
+            <Button
+              type="button"
+              variant="primary"
+              className="w-full"
+              disabled={savingLive || starterCount !== MATCH_SETUP_STARTERS_MAX}
+              onClick={() => void onLiveStart()}
+            >
+              {savingLive ? 'Speichern…' : 'Live starten'}
+            </Button>
+          </div>
+        </>
+      )}
+    </Card>
+  );
 }
 
 export const EventDetailPage: React.FC = () => {
@@ -606,6 +844,10 @@ export const EventDetailPage: React.FC = () => {
               </>
             )}
           </Card>
+        )}
+
+        {event.kind === 'match' && event.match_id && isTrainerOrAdmin && (
+          <EventMatchSetupBlock matchId={event.match_id} players={players} />
         )}
 
         <Modal
