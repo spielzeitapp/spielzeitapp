@@ -243,11 +243,14 @@ export async function upsertMatchForSetup(params: {
 /** Lineup + Bank komplett ersetzen (7 Slots + bench). */
 export async function replaceMatchLineupAndBench(
   matchId: string,
-  startingPlayerIds: string[],
+  startingPlayerIds: Array<string | null | undefined>,
   squadPlayerIds: string[],
 ): Promise<{ error: string | null }> {
-  const starters = startingPlayerIds.slice(0, LIVE_FIELD_SLOT_ORDER.length);
-  const starterSet = new Set(starters);
+  const starters = LIVE_FIELD_SLOT_ORDER.map((_, i) => {
+    const raw = startingPlayerIds[i];
+    return typeof raw === 'string' && raw.length > 0 ? raw : null;
+  });
+  const starterSet = new Set(starters.filter((id): id is string => Boolean(id)));
   const benchIds = squadPlayerIds.filter((id) => !starterSet.has(id));
 
   const delLineup = await supabase.from('match_lineup').delete().eq('match_id', matchId);

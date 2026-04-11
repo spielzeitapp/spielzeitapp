@@ -217,6 +217,7 @@ export function useMatchLineup(matchId: string | null) {
     setSlot,
     toggleBench,
     clearPlayerEverywhere,
+    reloadLineup: load,
     loading,
     error,
     saving,

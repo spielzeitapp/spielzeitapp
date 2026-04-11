@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import type { Match, MatchEvent } from '../../types/match';
 import type { FieldSlotId } from '../../types/match';
 import { supabase } from '../../lib/supabaseClient';
@@ -7,6 +7,7 @@ import { MatchTimeline } from './components/MatchTimeline';
 import { LiveControls } from './components/LiveControls';
 import { MatchStatsTable } from './components/MatchStatsTable';
 import { MatchFieldSlots } from './components/MatchFieldSlots';
+import { TrainerMatchLineupMvp } from './components/TrainerMatchLineupMvp';
 import { createEvent } from '../../services/eventFactory';
 import { useRole } from '../../app/role/RoleContext';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
@@ -19,6 +20,7 @@ import { Card, CardTitle } from '../../app/components/ui/Card';
 import { Button } from '../../app/components/ui/Button';
 import { isStartelfCompleteForLive } from './lineupGuards';
 import { VIENNA_TZ } from '../../lib/viennaTime';
+import { LIVE_FIELD_SLOT_ORDER } from '../../lib/liveMatchService';
 
 type MatchRow = {
   id: string;
@@ -63,7 +65,6 @@ function mapRowToMatch(row: MatchRow | null): Match | null {
 }
 
 export const MatchDetailPage: React.FC = () => {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const matchId = id ?? null;
 
@@ -87,7 +88,19 @@ export const MatchDetailPage: React.FC = () => {
   const { players, loading: playersLoading, error: playersError } = usePlayers(effectiveTeamSeasonId);
   const { getAvailability, setAvailability, loading: availLoading, error: availError, saving } = useMatchAvailability(matchId);
   const perms = useAvailabilityPermissions({ role: activeRoleNormalized, teamSeasonId: effectiveTeamSeasonId });
-  const { setSlot, clearPlayerEverywhere: clearPlayerFromLineupAndBench } = useMatchLineup(matchId);
+  const { setSlot, clearPlayerEverywhere: clearPlayerFromLineupAndBench, reloadLineup } = useMatchLineup(matchId);
+
+  const syncFieldFromStartersBySlot = useCallback((bySlot: Record<FieldSlotId, string | null>) => {
+    setLocalMatch((prev) => {
+      if (!prev) return prev;
+      const home: Partial<Record<FieldSlotId, string>> = {};
+      for (const slot of LIVE_FIELD_SLOT_ORDER) {
+        const pid = bySlot[slot];
+        if (pid) home[slot] = pid;
+      }
+      return { ...prev, field: { ...prev.field, home } };
+    });
+  }, []);
 
   useEffect(() => {
     if (!id) {
@@ -213,7 +226,11 @@ export const MatchDetailPage: React.FC = () => {
 
   const dbStatus = (matchRow?.status ?? 'upcoming') as 'upcoming' | 'live' | 'finished';
 
-  const canManageStatus = activeRoleNormalized === 'trainer' || activeRoleNormalized === 'admin';
+  const canManageStatus =
+    activeRoleNormalized === 'trainer' ||
+    activeRoleNormalized === 'admin' ||
+    activeRoleNormalized === 'head_coach' ||
+    activeRoleNormalized === 'co_trainer';
   const canSeeLiveControls = localMatch?.status === 'live' && canUseLiveControls(uiRole) && operatorMode;
 
   const handleSetMatchStatus = async (nextStatus: 'upcoming' | 'live' | 'finished') => {
@@ -395,16 +412,6 @@ export const MatchDetailPage: React.FC = () => {
             <Link to="/app/termine" className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">
               ← Zurück
             </Link>
-            {matchId && canManageStatus && (
-              <Button
-                type="button"
-                size="sm"
-                variant="primary"
-                onClick={() => navigate(`/live?matchId=${matchId}`)}
-              >
-                Live starten
-              </Button>
-            )}
           </div>
 
           {localMatch.status === 'live' ? (
@@ -533,6 +540,17 @@ export const MatchDetailPage: React.FC = () => {
               })}
             </div>
           </Card>
+        )}
+
+        {matchId && canManageStatus && !(operatorMode && localMatch.status === 'live') && (
+          <TrainerMatchLineupMvp
+            matchId={matchId}
+            players={players}
+            onFieldSynced={syncFieldFromStartersBySlot}
+            onLineupPersisted={() => {
+              void reloadLineup();
+            }}
+          />
         )}
 
         {/* MOTM (placeholder UI only) */}
