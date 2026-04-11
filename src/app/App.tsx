@@ -17,6 +17,8 @@ import { RoleChoicePage } from '../pages/RoleChoicePage';
 import { MatchDetailPage } from '../pages/MatchDetail/MatchDetailPage';
 import { EventDetailPage } from '../pages/EventDetailPage';
 import { LivePage } from '../pages/LivePage';
+import { LiveMatchScreen } from '../pages/live/LiveMatchScreen';
+import { MatchSetupScreen } from '../pages/live/MatchSetupScreen';
 import { TeamPage } from '../pages/TeamPage';
 import { TablePage } from '../pages/TablePage';
 import { NotificationsPage } from '../pages/NotificationsPage';
@@ -137,6 +139,8 @@ function InternalRoutes(): React.ReactElement {
         <Route path="set-password" element={<SetPasswordPage />} />
         <Route path="events/:eventId" element={<EventDetailPage />} />
         <Route path="match/:id" element={<MatchDetailPage />} />
+        <Route path="live/match" element={<LiveMatchScreen />} />
+        <Route path="live/setup" element={<MatchSetupScreen />} />
         <Route path="live" element={<LivePage />} />
         <Route path="live/:id" element={<LivePage />} />
         <Route path="team" element={<TeamPage />} />

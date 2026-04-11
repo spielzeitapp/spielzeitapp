@@ -1,75 +1,72 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
-import type { Match } from '../types/match';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { MATCH_HALF_DURATION_SEC } from '../lib/matchEngine';
 
-export function useMatchTimer(
-  match: Match | null,
-  setMatch: React.Dispatch<React.SetStateAction<Match | null>>,
-) {
-  const [currentSeconds, setCurrentSeconds] = useState<number>(0);
-  const prevIsRunningRef = useRef<boolean>(false);
+export type UseMatchTimerResult = {
+  currentMatchSeconds: number;
+  isRunning: boolean;
+  matchHasEnded: boolean;
+  half: 1 | 2;
+  startMatch: () => void;
+  pauseMatch: () => void;
+  resumeMatch: () => void;
+  endMatch: () => void;
+  /** Setzt die Uhr mindestens auf Beginn 2. HZ (25:00), z. B. nach Halbzeitpfiff. */
+  startSecondHalf: () => void;
+};
+
+/**
+ * Einfache Spieluhr: tickt nur bei isRunning; nach endMatch kein resume.
+ */
+export function useMatchTimer(): UseMatchTimerResult {
+  const [currentMatchSeconds, setCurrentMatchSeconds] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const [matchHasEnded, setMatchHasEnded] = useState(false);
+
+  const half = useMemo<1 | 2>(
+    () => (currentMatchSeconds < MATCH_HALF_DURATION_SEC ? 1 : 2),
+    [currentMatchSeconds],
+  );
 
   useEffect(() => {
-    if (!match?.timer) {
-      setCurrentSeconds(0);
-      return;
-    }
-
-    const { isRunning, startedAtISO, accumulatedSeconds } = match.timer;
-
-    if (!isRunning || !startedAtISO) {
-      setCurrentSeconds(accumulatedSeconds);
-      return;
-    }
-
-    const startMs = new Date(startedAtISO).getTime();
-    const base = accumulatedSeconds;
-
-    const update = () => {
-      const now = Date.now();
-      const diffSec = Math.max(0, Math.floor((now - startMs) / 1000));
-      setCurrentSeconds(base + diffSec);
-    };
-
-    update();
-
-    const id = window.setInterval(update, 1000);
+    if (!isRunning || matchHasEnded) return;
+    const id = window.setInterval(() => {
+      setCurrentMatchSeconds((s) => s + 1);
+    }, 1000);
     return () => window.clearInterval(id);
-  }, [match?.timer?.isRunning, match?.timer?.startedAtISO, match?.timer?.accumulatedSeconds]);
+  }, [isRunning, matchHasEnded]);
 
-  useEffect(() => {
-    const isRunning = match?.timer?.isRunning ?? false;
-    const prev = prevIsRunningRef.current;
-    prevIsRunningRef.current = isRunning;
+  const startMatch = useCallback(() => {
+    if (matchHasEnded) return;
+    setIsRunning(true);
+  }, [matchHasEnded]);
 
-    if (!match?.timer) return;
+  const pauseMatch = useCallback(() => {
+    setIsRunning(false);
+  }, []);
 
-    if (prev && !isRunning && match.timer.startedAtISO) {
-      const startMs = new Date(match.timer.startedAtISO).getTime();
-      const now = Date.now();
-      const diffSec = Math.max(0, Math.floor((now - startMs) / 1000));
+  const resumeMatch = useCallback(() => {
+    if (matchHasEnded) return;
+    setIsRunning(true);
+  }, [matchHasEnded]);
 
-      setMatch((prevMatch) => {
-        if (!prevMatch || !prevMatch.timer || prevMatch.id !== match.id) return prevMatch;
-        return {
-          ...prevMatch,
-          timer: {
-            ...prevMatch.timer,
-            accumulatedSeconds: prevMatch.timer.accumulatedSeconds + diffSec,
-            startedAtISO: null,
-          },
-        };
-      });
-    }
-  }, [match?.timer?.isRunning, match?.timer?.startedAtISO, match?.timer?.accumulatedSeconds, match?.id, setMatch]);
+  const endMatch = useCallback(() => {
+    setIsRunning(false);
+    setMatchHasEnded(true);
+  }, []);
 
-  const currentMinute = useMemo(() => Math.floor(currentSeconds / 60), [currentSeconds]);
+  const startSecondHalf = useCallback(() => {
+    setCurrentMatchSeconds((s) => Math.max(s, MATCH_HALF_DURATION_SEC));
+  }, []);
 
-  const formattedTime = useMemo(() => {
-    const mm = String(Math.floor(currentSeconds / 60)).padStart(2, '0');
-    const ss = String(currentSeconds % 60).padStart(2, '0');
-    return `${mm}:${ss}`;
-  }, [currentSeconds]);
-
-  return { currentSeconds, currentMinute, formattedTime };
+  return {
+    currentMatchSeconds,
+    isRunning,
+    matchHasEnded,
+    half,
+    startMatch,
+    pauseMatch,
+    resumeMatch,
+    endMatch,
+    startSecondHalf,
+  };
 }
-
