@@ -134,8 +134,15 @@ function emptyMatchSetupStarters(): Record<FieldSlotId, string | null> {
   return o;
 }
 
-/** Trainer: Kader + Startelf, Speichern beim Klick auf Live starten (nur diese Datei, kein Layout-Change oben). */
-function EventMatchSetupBlock({ matchId, players }: { matchId: string; players: PlayerItem[] }) {
+const trainerRowBase =
+  'flex w-full min-h-[56px] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors';
+const trainerRowUnselected = 'border-white/10 bg-white/[0.05] text-white hover:bg-white/[0.08]';
+const trainerRowSquad = 'border-red-500/35 bg-red-950/25 text-white';
+const trainerRowStarter = 'border-emerald-500/45 bg-emerald-950/35 text-white';
+const trainerRowDisabled = 'cursor-not-allowed opacity-45 hover:bg-white/[0.05]';
+
+/** Trainer: Kader + Startelf + Bank; Live starten speichert match_lineup und navigiert zu /app/live. */
+function TrainerMatchSetupBlock({ matchId, players }: { matchId: string; players: PlayerItem[] }) {
   const navigate = useNavigate();
   const sortedPlayers = useMemo(
     () =>
@@ -270,6 +277,11 @@ function EventMatchSetupBlock({ matchId, players }: { matchId: string; players: 
     [sortedPlayers, squad],
   );
 
+  const bankPlayers = useMemo(
+    () => squadPlayersSorted.filter((p) => !starterIdSet.has(p.id)),
+    [squadPlayersSorted, starterIdSet],
+  );
+
   const onLiveStart = async () => {
     if (starterCount !== MATCH_SETUP_STARTERS_MAX) return;
     setSavingLive(true);
@@ -282,73 +294,135 @@ function EventMatchSetupBlock({ matchId, players }: { matchId: string; players: 
       setSetupError(error);
       return;
     }
-    navigate(`/live?matchId=${matchId}`);
+    navigate(`/app/live?matchId=${encodeURIComponent(matchId)}`);
   };
 
   return (
-    <Card className="flex flex-col gap-3">
-      <CardTitle>Match Setup</CardTitle>
-
-      {loadingLineup && <p className="text-sm text-[var(--text-sub)]">Lade Kader…</p>}
+    <div className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-black/45 p-4 shadow-lg">
+      {loadingLineup && <p className="text-sm text-white/55">Lade gespeicherte Aufstellung…</p>}
       {setupError && (
-        <p className="mt-2 text-sm text-red-500" role="alert">
+        <p className="text-sm text-red-400" role="alert">
           {setupError}
         </p>
       )}
 
       {!loadingLineup && (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-semibold text-[var(--text-main)]">Matchkader</p>
-          <ul className="flex flex-col divide-y divide-white/10 border border-white/10 rounded-lg">
-            {sortedPlayers.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 px-3 py-2">
-                <input
-                  type="checkbox"
-                  checked={squad.has(p.id)}
-                  onChange={() => toggleSquad(p.id)}
-                  className="h-4 w-4 shrink-0 rounded border-white/30"
-                />
-                <span className="min-w-0 flex-1 text-sm text-[var(--text-main)]">
-                  {p.jersey_number != null ? `${p.jersey_number} · ` : ''}
-                  {p.display_name}
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          <p className="text-sm font-semibold text-[var(--text-main)]">
-            Startelf ({starterCount}/{MATCH_SETUP_STARTERS_MAX})
-          </p>
-          {squadPlayersSorted.length === 0 ? (
-            <p className="text-sm text-[var(--text-sub)]">Zuerst Spieler im Matchkader auswählen.</p>
-          ) : (
-            <ul className="flex flex-col divide-y divide-white/10 border border-white/10 rounded-lg">
-              {squadPlayersSorted.map((p) => {
-                const isSt = starterIdSet.has(p.id);
-                const blockMore = !isSt && starterCount >= MATCH_SETUP_STARTERS_MAX;
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-0.5">
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/45">Matchkader</p>
+              <p className="text-xs text-white/50">Tippe eine Zeile, um den Spieler für dieses Spiel zu wählen.</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              {sortedPlayers.map((p) => {
+                const inSquad = squad.has(p.id);
                 return (
-                  <li key={p.id} className="flex items-center gap-3 px-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={isSt}
-                      disabled={blockMore}
-                      onChange={() => toggleStarter(p.id)}
-                      className="h-4 w-4 shrink-0 rounded border-white/30 disabled:opacity-40"
-                    />
-                    <span className="min-w-0 flex-1 text-sm text-[var(--text-main)]">
-                      {p.jersey_number != null ? `${p.jersey_number} · ` : ''}
-                      {p.display_name}
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => toggleSquad(p.id)}
+                    className={`${trainerRowBase} ${inSquad ? trainerRowSquad : trainerRowUnselected}`}
+                  >
+                    {p.jersey_number != null ? (
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-black/40 text-base font-black text-white/90">
+                        {p.jersey_number}
+                      </span>
+                    ) : (
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-black/40 text-sm font-bold text-white/50">
+                        –
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1 text-base font-semibold text-white">{p.display_name}</span>
+                    <span
+                      className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
+                        inSquad ? 'bg-red-600 text-white' : 'bg-white/10 text-white/55'
+                      }`}
+                    >
+                      {inSquad ? 'Im Kader' : 'Nein'}
                     </span>
-                  </li>
+                  </button>
                 );
               })}
-            </ul>
-          )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-0.5">
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/45">
+                Startelf ({starterCount}/{MATCH_SETUP_STARTERS_MAX})
+              </p>
+              <p className="text-xs text-white/50">Nur Kader-Spieler. Maximal sieben in der Startelf.</p>
+            </div>
+            {squadPlayersSorted.length === 0 ? (
+              <p className="text-sm text-white/55">Zuerst Spieler im Matchkader auswählen.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {squadPlayersSorted.map((p) => {
+                  const isSt = starterIdSet.has(p.id);
+                  const blockMore = !isSt && starterCount >= MATCH_SETUP_STARTERS_MAX;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      disabled={blockMore}
+                      onClick={() => toggleStarter(p.id)}
+                      className={`${trainerRowBase} ${
+                        blockMore ? `${trainerRowUnselected} ${trainerRowDisabled}` : isSt ? trainerRowStarter : trainerRowUnselected
+                      }`}
+                    >
+                      {p.jersey_number != null ? (
+                        <span
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-black ${
+                            isSt ? 'bg-emerald-600/30 text-emerald-200' : 'bg-black/40 text-white/70'
+                          }`}
+                        >
+                          {p.jersey_number}
+                        </span>
+                      ) : (
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-black/40 text-sm font-bold text-white/50">
+                          –
+                        </span>
+                      )}
+                      <span className="min-w-0 flex-1 text-base font-semibold text-white">{p.display_name}</span>
+                      <span
+                        className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
+                          isSt ? 'bg-emerald-600 text-white' : 'bg-white/10 text-white/55'
+                        }`}
+                      >
+                        {isSt ? 'Startelf' : 'Bank'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/45">Bank</p>
+            {bankPlayers.length === 0 ? (
+              <p className="text-sm text-white/55">Keine Spieler auf der Bank (alle in der Startelf oder kein Kader).</p>
+            ) : (
+              <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/30 p-3">
+                {bankPlayers.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-3 border-b border-white/5 py-2 last:border-b-0 last:pb-0"
+                  >
+                    <span className="w-8 text-center text-sm font-black text-white/40">
+                      {p.jersey_number != null ? p.jersey_number : '–'}
+                    </span>
+                    <span className="text-sm font-medium text-white/85">{p.display_name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <Button
             type="button"
             variant="primary"
-            className="w-full"
+            className="min-h-[52px] w-full rounded-2xl text-base font-bold"
             disabled={savingLive || starterCount !== MATCH_SETUP_STARTERS_MAX}
             onClick={() => void onLiveStart()}
           >
@@ -356,7 +430,7 @@ function EventMatchSetupBlock({ matchId, players }: { matchId: string; players: 
           </Button>
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -577,7 +651,7 @@ export const EventDetailPage: React.FC = () => {
   if (!eventId) {
     return (
       <div className="min-h-screen bg-black text-white">
-        <div className="mx-auto flex max-w-md flex-col gap-4 p-4">
+        <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pb-12">
           <p>Keine Event-ID angegeben.</p>
           <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
             ← Zurück zum Spielplan
@@ -590,7 +664,7 @@ export const EventDetailPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white">
-        <div className="mx-auto flex max-w-md flex-col gap-4 p-4">
+        <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pb-12">
           <p>Lade Termin…</p>
         </div>
       </div>
@@ -600,7 +674,7 @@ export const EventDetailPage: React.FC = () => {
   if (error || !event) {
     return (
       <div className="min-h-screen bg-black text-white">
-        <div className="mx-auto flex max-w-md flex-col gap-4 p-4">
+        <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pb-12">
           <p>{error ?? 'Termin nicht gefunden.'}</p>
           <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
             ← Zurück zum Spielplan
@@ -612,7 +686,7 @@ export const EventDetailPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto flex max-w-md flex-col gap-4 p-4">
+      <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pb-12">
         <div className="flex flex-col gap-3">
           <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
             ← Zurück zum Spielplan
@@ -656,7 +730,9 @@ export const EventDetailPage: React.FC = () => {
         </div>
 
         <div className="flex flex-col rounded-xl border border-white/10 bg-black/25 px-3 py-2">
-          <p className="text-xs uppercase tracking-wide text-white/60">{getDomainEventLabel(event)}</p>
+          {event.kind !== 'match' ? (
+            <p className="text-xs uppercase tracking-wide text-white/60">{getDomainEventLabel(event)}</p>
+          ) : null}
           <p className="text-sm font-medium text-white">{formatEventDateTimeLabel(event.starts_at)}</p>
           {event.location ? <p className="text-xs text-white/70">{event.location}</p> : null}
         </div>
@@ -846,7 +922,7 @@ export const EventDetailPage: React.FC = () => {
         )}
 
         {event.kind === 'match' && event.match_id && isTrainerOrAdmin && (
-          <EventMatchSetupBlock matchId={event.match_id} players={players} />
+          <TrainerMatchSetupBlock matchId={event.match_id} players={players} />
         )}
 
         <Modal
@@ -934,14 +1010,6 @@ export const EventDetailPage: React.FC = () => {
             Nur Matchinformationen. Zu-/Absage steht nur Spielern, Eltern und Trainern zur Verfügung.
           </p>
         )}
-
-        <div className="mb-24 mt-2 flex w-full flex-col rounded-2xl border border-red-500 bg-neutral-900 p-4 text-white">
-          <div className="text-lg font-bold">MATCH SETUP DEBUG</div>
-          <div className="mt-2 text-sm text-neutral-300">Dieser Block muss sichtbar sein.</div>
-          <button type="button" className="mt-4 w-full rounded-xl bg-red-600 px-4 py-3 font-semibold text-white">
-            Live starten
-          </button>
-        </div>
       </div>
     </div>
   );
