@@ -271,14 +271,14 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const cardContent = (
     <>
-      {/* Spielart: weiß, font-medium */}
-      {headerTitle && (
+      {/* Spielart nur hier bei Training/Event; bei Spielen zeigt MatchCardGameCore den Titel genau einmal. */}
+      {effectiveEventType !== 'game' && headerTitle ? (
         <div className="flex justify-center">
           <p className="text-xl font-semibold text-white">
             {headerTitle}
           </p>
         </div>
-      )}
+      ) : null}
 
       {effectiveEventType === 'game' ? (
         <MatchCardGameCore
