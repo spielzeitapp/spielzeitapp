@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Clock, ChevronRight, MapPin } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
@@ -15,6 +16,14 @@ type MatchdayCardProps = {
   statusLabel?: string;
 };
 
+/** Letztes Wort für große Hero-Zeile, Rest darüber klein (ohne Textänderung). */
+function splitStatusForHero(statusLabel: string): { lead: string; emphasis: string } {
+  const parts = statusLabel.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { lead: '', emphasis: '' };
+  if (parts.length === 1) return { lead: '', emphasis: parts[0] ?? '' };
+  return { lead: parts.slice(0, -1).join(' '), emphasis: parts[parts.length - 1] ?? '' };
+}
+
 export const MatchdayCard: React.FC<MatchdayCardProps> = ({
   event,
   statusLabel = 'HEUTE IST MATCHDAY',
@@ -28,6 +37,12 @@ export const MatchdayCard: React.FC<MatchdayCardProps> = ({
     if (isHome === false) return { leftName: opponent, rightName: ourClubName };
     return { leftName: ourClubName, rightName: opponent };
   }, [ourClubName, opponent, isHome]);
+
+  const { leftColumnLabel, rightColumnLabel } = useMemo(() => {
+    if (isHome === true) return { leftColumnLabel: 'Heim', rightColumnLabel: 'Gegner' };
+    if (isHome === false) return { leftColumnLabel: 'Gegner', rightColumnLabel: 'Heim' };
+    return { leftColumnLabel: 'Team', rightColumnLabel: 'Gegner' };
+  }, [isHome]);
 
   const date = event.starts_at ? new Date(event.starts_at) : null;
   const timeStr = date
@@ -62,48 +77,120 @@ export const MatchdayCard: React.FC<MatchdayCardProps> = ({
   const headerTitle = getMatchTypeLabel(event.type);
   const meetupTimeOnly = formatMeetupTimeOnlyDe(event.meeting_at);
 
-  return (
-    <div className="space-y-3">
-      <p className="text-center text-[11px] font-bold uppercase tracking-[0.28em] text-red-400/95">
-        {statusLabel}
-      </p>
+  const { lead, emphasis } = splitStatusForHero(statusLabel);
+  const subline =
+    opponent && opponent !== 'Gegner' ? `Gegen ${opponent}` : null;
 
-      <div className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-b from-black to-red-900 px-4 py-5 shadow-xl sm:px-6 sm:py-6">
-        <MatchCardGameCore
-          headerTitle={headerTitle}
-          leftName={leftName}
-          rightName={rightName}
-          opponentLogoUrl={null}
-          timeDisplay={timeStr}
-          isMatch
-          showScore={showScore}
-          homeScore={homeScore}
-          awayScore={awayScore}
-          kickoffLocation={null}
-          meetupTimeOnly={meetupTimeOnly}
-          showMeetupPill={false}
-          endTimeLabel={endTimeLabel}
-          descriptionText={descriptionText}
-          variant="home-hero"
+  return (
+    <div
+      className="relative w-full rounded-3xl border border-red-500/40 p-[1px] shadow-2xl"
+      style={{
+        boxShadow:
+          '0 0 0 1px rgba(220, 38, 38, 0.12), 0 28px 56px -16px rgba(0, 0, 0, 0.85), 0 0 80px -28px rgba(220, 38, 38, 0.22)',
+      }}
+    >
+      <div
+        className="relative overflow-hidden rounded-[1.4rem] px-5 pb-7 pt-8 sm:px-7 sm:pb-9 sm:pt-10"
+        style={{
+          background:
+            'radial-gradient(ellipse 100% 70% at 50% -30%, rgba(220, 38, 38, 0.18) 0%, transparent 52%), radial-gradient(ellipse 80% 50% at 100% 100%, rgba(80, 20, 20, 0.35) 0%, transparent 45%), linear-gradient(168deg, #1a0a0a 0%, #0c0c0c 38%, #080404 100%)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+        }}
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-[1.4rem] opacity-[0.35]"
+          style={{
+            background: 'radial-gradient(circle at 50% 0%, rgba(248, 113, 113, 0.12) 0%, transparent 42%)',
+          }}
         />
 
-        <div className="mt-5 grid grid-cols-1 gap-2 border-t border-white/10 pt-4 text-sm text-white/85 sm:grid-cols-2">
-          <div>
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-white/45">Treffpunkt</span>
-            <p className="mt-0.5 font-medium text-white">{meetLine}</p>
-          </div>
-          <div>
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-white/45">Ort</span>
-            <p className="mt-0.5 font-medium leading-snug text-white">{ortLine}</p>
-          </div>
-        </div>
+        <div className="relative flex flex-col gap-8">
+          <header className="flex flex-col items-center gap-4 text-center">
+            {lead ? (
+              <p className="text-[10px] font-bold uppercase leading-relaxed tracking-[0.32em] text-red-400/90 sm:text-[11px] sm:tracking-[0.36em]">
+                {lead}
+              </p>
+            ) : null}
+            <p className="text-[clamp(1.85rem,8vw,2.65rem)] font-black leading-[0.95] tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+              {emphasis || statusLabel}
+            </p>
+            {subline ? (
+              <p className="max-w-[280px] text-sm font-medium leading-snug text-white/50">{subline}</p>
+            ) : null}
+          </header>
 
-        <Link
-          to={`/app/events/${event.id}`}
-          className="mt-5 flex min-h-[52px] w-full items-center justify-center rounded-xl bg-red-500 px-4 py-3.5 text-base font-semibold text-white transition-colors hover:bg-red-600 active:bg-red-700"
-        >
-          Details &amp; Zu-/Absage
-        </Link>
+          <div className="relative">
+            <MatchCardGameCore
+              headerTitle={headerTitle}
+              leftName={leftName}
+              rightName={rightName}
+              opponentLogoUrl={null}
+              timeDisplay={timeStr}
+              isMatch
+              showScore={showScore}
+              homeScore={homeScore}
+              awayScore={awayScore}
+              kickoffLocation={null}
+              meetupTimeOnly={meetupTimeOnly}
+              showMeetupPill={false}
+              endTimeLabel={endTimeLabel}
+              descriptionText={descriptionText}
+              variant="home-hero"
+              leftColumnLabel={leftColumnLabel}
+              rightColumnLabel={rightColumnLabel}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+            <div className="flex min-h-[4.5rem] flex-col justify-center rounded-2xl border border-white/[0.08] bg-black/35 px-4 py-3.5 backdrop-blur-sm">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-600/20 text-red-400">
+                  <Clock className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Treffpunkt</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-white">{meetLine}</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex min-h-[4.5rem] flex-col justify-center rounded-2xl border border-white/[0.08] bg-black/35 px-4 py-3.5 backdrop-blur-sm">
+              <div className="flex items-start gap-2.5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-600/20 text-red-400">
+                  <MapPin className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Ort</p>
+                  <p className="mt-1 text-sm font-semibold leading-snug text-white">{ortLine}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Link
+            to={`/app/events/${event.id}`}
+            className="group relative flex min-h-[56px] w-full items-center justify-center gap-2 overflow-hidden rounded-2xl px-5 text-base font-bold text-white transition-all duration-200 active:brightness-95 sm:min-h-[58px] sm:rounded-3xl sm:text-[1.05rem]"
+            style={{
+              background: 'linear-gradient(180deg, #ef4444 0%, #b91c1c 48%, #991b1b 100%)',
+              boxShadow:
+                '0 4px 20px rgba(220, 38, 38, 0.45), 0 1px 0 rgba(255,255,255,0.12) inset, 0 -1px 0 rgba(0,0,0,0.2) inset',
+            }}
+          >
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              style={{
+                background: 'radial-gradient(circle at 50% 0%, rgba(255,255,255,0.2) 0%, transparent 55%)',
+              }}
+            />
+            <span className="relative">Details &amp; Zu-/Absage</span>
+            <ChevronRight
+              className="relative h-5 w-5 shrink-0 opacity-90 transition-transform duration-200 group-hover:translate-x-0.5"
+              strokeWidth={2.5}
+              aria-hidden
+            />
+          </Link>
+        </div>
       </div>
     </div>
   );

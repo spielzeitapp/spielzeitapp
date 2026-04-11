@@ -53,9 +53,9 @@ type TeamBlockProps = {
 };
 
 function TeamBlock({ logoUrl, prefix, name, hero }: TeamBlockProps) {
-  const imgClass = hero ? 'h-14 w-14 sm:h-16 sm:w-16' : 'h-12 w-12 sm:h-14 sm:w-14';
+  const imgClass = hero ? 'h-[52px] w-[52px] sm:h-[60px] sm:w-[60px]' : 'h-12 w-12 sm:h-14 sm:w-14';
   const nameClass = hero
-    ? 'mt-1 text-[16px] sm:text-[17px] font-semibold text-white text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[140px] sm:max-w-[160px]'
+    ? 'mt-2 text-[15px] sm:text-base font-bold text-white text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[132px] sm:max-w-[152px] leading-tight'
     : 'mt-1 text-[15px] font-semibold text-white text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[130px]';
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
@@ -63,16 +63,16 @@ function TeamBlock({ logoUrl, prefix, name, hero }: TeamBlockProps) {
         <img
           src={logoUrl}
           alt={name}
-          className={`${imgClass} object-contain mx-auto`}
+          className={`${imgClass} mx-auto object-contain`}
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = 'none';
           }}
         />
       ) : (
-        <div className={`${imgClass} rounded-full bg-white/10 mx-auto`} />
+        <div className={`${imgClass} mx-auto rounded-2xl border border-white/10 bg-white/[0.06]`} />
       )}
       {prefix ? (
-        <div className={`mt-2 ${hero ? 'text-[15px]' : 'text-[14px]'} font-semibold text-white tracking-wide`}>
+        <div className={`${hero ? 'mt-2 text-[11px] sm:text-xs' : 'mt-2 text-[14px]'} font-semibold uppercase tracking-wide text-white/55`}>
           {prefix}
         </div>
       ) : null}
@@ -97,12 +97,16 @@ export function MatchCardKickoffBlock({ timeDisplay, showUhr, location, headerLa
     : { line1: '', line2: null as string | null, line3: null as string | null };
 
   const timeClass = hero
-    ? 'mt-2 text-[40px] sm:text-[52px] font-extrabold leading-[1] text-white tabular-nums'
+    ? 'mt-3 text-[2.75rem] sm:text-[3.35rem] font-black leading-none tracking-tight text-white tabular-nums drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]'
     : 'mt-2 text-[34px] sm:text-[44px] font-extrabold leading-[1] text-white tabular-nums';
 
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
-      <div className={`${hero ? 'text-[15px] tracking-[0.38em]' : 'text-[14px] tracking-[0.35em]'} text-red-300 font-semibold`}>
+      <div
+        className={`${
+          hero ? 'text-[10px] sm:text-[11px] tracking-[0.42em]' : 'text-[14px] tracking-[0.35em]'
+        } font-bold uppercase text-red-400/95`}
+      >
         {headerLabel ?? 'ANPFIFF'}
       </div>
       <div className={timeClass}>{timeDisplay}</div>
@@ -147,6 +151,9 @@ export type MatchCardGameCoreProps = {
   endTimeLabel?: string | null;
   descriptionText?: string | null;
   variant?: 'schedule' | 'home-hero';
+  /** Nur home-hero: kleine Spalten-Überschriften (z. B. Heim / Gegner). */
+  leftColumnLabel?: string;
+  rightColumnLabel?: string;
 };
 
 /**
@@ -169,6 +176,8 @@ export function MatchCardGameCore({
   endTimeLabel,
   descriptionText,
   variant = 'schedule',
+  leftColumnLabel,
+  rightColumnLabel,
 }: MatchCardGameCoreProps) {
   const hero = variant === 'home-hero';
   const leftSplit = splitPrefixAndName(leftName ?? '');
@@ -176,22 +185,33 @@ export function MatchCardGameCore({
   const leftLogoUrl = getLogoSrcForDisplayName(leftName ?? '', null);
   const rightLogoUrl = getLogoSrcForDisplayName(rightName ?? '', opponentLogoUrl ?? null);
 
-  const gridMt = hero ? 'mt-5' : 'mt-4';
-  const gridGap = hero ? 'gap-x-5' : 'gap-x-4';
+  const gridMt = hero ? 'mt-8' : 'mt-4';
+  const gridGap = hero ? 'gap-x-2 sm:gap-x-4' : 'gap-x-4';
   const meetupMt = hero ? 'mt-6' : 'mt-5';
 
   return (
     <>
       {headerTitle ? (
         <div className="flex justify-center">
-          <p className={hero ? 'text-2xl font-semibold text-white' : 'text-xl font-semibold text-white'}>
+          <p
+            className={
+              hero
+                ? 'text-lg font-semibold tracking-tight text-white/95 sm:text-xl'
+                : 'text-xl font-semibold text-white'
+            }
+          >
             {headerTitle}
           </p>
         </div>
       ) : null}
 
-      <div className={`${gridMt} grid grid-cols-[1fr_auto_1fr] items-center ${gridGap}`}>
-        <div className="min-w-0 flex flex-col items-center text-center">
+      <div
+        className={`${gridMt} grid grid-cols-[1fr_auto_1fr] items-center ${gridGap} ${hero ? 'min-h-[140px] sm:min-h-[160px]' : ''}`}
+      >
+        <div className="flex min-w-0 flex-col items-center border-r border-white/[0.12] py-2 pr-3 text-center sm:pr-5">
+          {hero && leftColumnLabel ? (
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-white/40">{leftColumnLabel}</p>
+          ) : null}
           <TeamBlock
             logoUrl={leftLogoUrl}
             prefix={leftSplit.prefix || undefined}
@@ -200,7 +220,7 @@ export function MatchCardGameCore({
           />
         </div>
 
-        <div className="min-w-0 flex flex-col items-center text-center">
+        <div className="flex min-w-0 flex-col items-center px-1 text-center sm:px-3">
           <MatchCardKickoffBlock
             timeDisplay={isMatch && showScore ? `${homeScore} : ${awayScore}` : timeDisplay}
             showUhr={!isMatch || !showScore}
@@ -210,7 +230,10 @@ export function MatchCardGameCore({
           />
         </div>
 
-        <div className="min-w-0 px-2 flex flex-col items-center text-center">
+        <div className="flex min-w-0 flex-col items-center border-l border-white/[0.12] py-2 pl-3 text-center sm:pl-5">
+          {hero && rightColumnLabel ? (
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-white/40">{rightColumnLabel}</p>
+          ) : null}
           <TeamBlock
             logoUrl={rightLogoUrl}
             prefix={rightSplit.prefix || undefined}
