@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { usePlayers } from '../../hooks/usePlayers';
-import { LIVE_MATCH_SETUP_STORAGE_KEY, type LiveMatchSetupPayload } from '../../lib/liveMatchSetup';
+import { type LiveMatchSetupPayload } from '../../lib/liveMatchSetup';
+import { replaceMatchLineupAndBench, upsertMatchForSetup } from '../../lib/liveMatchService';
 import { playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 
 /** @deprecated Nutze RosterPlayer — nur für ältere Imports. */
@@ -42,6 +43,9 @@ export const MatchSetupScreen: React.FC = () => {
   const [isHome, setIsHome] = useState(true);
   const [locationNote, setLocationNote] = useState('');
   const [hasCreatedMatch, setHasCreatedMatch] = useState(false);
+  const [savedMatchId, setSavedMatchId] = useState<string | null>(null);
+  const [setupSaving, setSetupSaving] = useState(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
 
   const [selectedSquadPlayerIds, setSelectedSquadPlayerIds] = useState<string[]>([]);
   const [selectedStartingPlayerIds, setSelectedStartingPlayerIds] = useState<string[]>([]);
@@ -130,21 +134,67 @@ export const MatchSetupScreen: React.FC = () => {
     startingPlayerIds: [...selectedStartingPlayerIds],
   });
 
-  const onSave = () => {
-    const snap = buildSnapshot();
-    console.info('[MatchSetup] save ( später Supabase )', snap);
+  const persistMatchAndLineup = useCallback(async (): Promise<string | null> => {
+    if (!selectedTeamSeasonId) {
+      setSetupError('Keine Mannschaftssaison.');
+      return null;
+    }
+    if (!opponent.trim() || !matchDate.trim() || !matchTime.trim()) {
+      setSetupError('Gegner, Datum und Uhrzeit sind Pflicht.');
+      return null;
+    }
+    if (selectedSquadPlayerIds.length === 0) {
+      setSetupError('Mindestens ein Spieler im Kader.');
+      return null;
+    }
+    setSetupSaving(true);
+    setSetupError(null);
+    const { matchId, error: upErr } = await upsertMatchForSetup({
+      matchId: savedMatchId,
+      teamSeasonId: selectedTeamSeasonId,
+      opponent: opponent.trim(),
+      matchDate,
+      matchTime,
+      locationNote: locationNote.trim(),
+    });
+    if (upErr || !matchId) {
+      setSetupSaving(false);
+      setSetupError(upErr ?? 'Match speichern fehlgeschlagen.');
+      return null;
+    }
+    setSavedMatchId(matchId);
+    const { error: lineErr } = await replaceMatchLineupAndBench(
+      matchId,
+      selectedStartingPlayerIds,
+      selectedSquadPlayerIds,
+    );
+    setSetupSaving(false);
+    if (lineErr) {
+      setSetupError(lineErr);
+      return null;
+    }
+    setHasCreatedMatch(true);
+    return matchId;
+  }, [
+    selectedTeamSeasonId,
+    opponent,
+    matchDate,
+    matchTime,
+    locationNote,
+    savedMatchId,
+    selectedStartingPlayerIds,
+    selectedSquadPlayerIds,
+  ]);
+
+  const onSave = async () => {
+    await persistMatchAndLineup();
   };
 
-  const onLiveMatch = () => {
+  const onLiveMatch = async () => {
     if (!canGoLive) return;
-    const snap = buildSnapshot();
-    try {
-      sessionStorage.setItem(LIVE_MATCH_SETUP_STORAGE_KEY, JSON.stringify(snap));
-    } catch {
-      /* ignore */
-    }
-    console.info('[MatchSetup] live start ( später Supabase + navigate mit match id )', snap);
-    navigate('/app/live/match');
+    const id = await persistMatchAndLineup();
+    if (!id) return;
+    navigate(`/live?matchId=${id}`);
   };
 
   const onCreateMatch = () => {
@@ -185,6 +235,11 @@ export const MatchSetupScreen: React.FC = () => {
         )}
         {!selectedTeamSeasonId && (
           <p className="text-center text-sm text-white/55">Keine Mannschaftssaison gewählt.</p>
+        )}
+        {setupError && (
+          <p className="text-center text-sm text-amber-400" role="alert">
+            {setupError}
+          </p>
         )}
 
         {/* Match Basis */}
@@ -440,18 +495,19 @@ export const MatchSetupScreen: React.FC = () => {
         <div className="mx-auto flex max-w-lg flex-col gap-3">
           <button
             type="button"
-            disabled={!canGoLive}
-            onClick={onLiveMatch}
+            disabled={!canGoLive || setupSaving}
+            onClick={() => void onLiveMatch()}
             className="flex min-h-[56px] w-full items-center justify-center rounded-2xl bg-emerald-600 text-lg font-bold text-white shadow-lg shadow-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-35 active:scale-[0.99]"
           >
-            Live Match starten
+            {setupSaving ? 'Speichern…' : 'Live Match starten'}
           </button>
           <button
             type="button"
-            onClick={onSave}
-            className="flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/20 text-base font-semibold text-white/90 active:bg-white/5"
+            disabled={setupSaving || !selectedTeamSeasonId}
+            onClick={() => void onSave()}
+            className="flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/20 text-base font-semibold text-white/90 active:bg-white/5 disabled:opacity-40"
           >
-            Speichern
+            {setupSaving ? 'Speichern…' : 'Speichern'}
           </button>
         </div>
       </footer>

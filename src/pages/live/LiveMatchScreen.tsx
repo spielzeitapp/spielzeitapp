@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { usePlayers } from '../../hooks/usePlayers';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
@@ -8,10 +9,21 @@ import {
   getCurrentOnFieldPlayers,
   getPlaytimeStatus,
   handleSubstitution,
+  sortMatchEventsChronologically,
   type MatchEngineEvent,
   type MatchEventType,
 } from '../../lib/matchEngine';
-import { LIVE_MATCH_SETUP_STORAGE_KEY, type LiveMatchSetupPayload } from '../../lib/liveMatchSetup';
+import {
+  engineEventToInsertPayload,
+  fetchFirstLiveMatch,
+  fetchLineupForLiveMatch,
+  fetchMatchById,
+  fetchMatchEvents,
+  saveMatchEvent,
+  saveMatchEvents,
+  updateMatchRow,
+  type LiveMatchRow,
+} from '../../lib/liveMatchService';
 import { playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 
 const HOME_FALLBACK = 'Unser Team';
@@ -53,8 +65,90 @@ function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
 }
 
 export const LiveMatchScreen: React.FC = () => {
-  const { selectedTeamSeasonId, selectedTeamSeason } = useSession();
-  const { players, loading: playersLoading, error: playersError } = usePlayers(selectedTeamSeasonId);
+  const [searchParams] = useSearchParams();
+  const matchIdParam = searchParams.get('matchId');
+
+  const [effectiveMatchId, setEffectiveMatchId] = useState<string | null>(null);
+  const [matchRow, setMatchRow] = useState<LiveMatchRow | null>(null);
+  const [lineupData, setLineupData] = useState<{
+    startingPlayerIds: string[];
+    squadPlayerIds: string[];
+  } | null>(null);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const [squadPlayerIds, setSquadPlayerIds] = useState<string[]>([]);
+  const [startingPlayerIds, setStartingPlayerIds] = useState<string[]>([]);
+  const [events, setEvents] = useState<MatchEngineEvent[]>([]);
+  const [opponentLabel, setOpponentLabel] = useState('Gegner');
+  const [scoreHome, setScoreHome] = useState(0);
+  const [scoreAway, setScoreAway] = useState(0);
+
+  const { selectedTeamSeason } = useSession();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setPageLoading(true);
+      setPageError(null);
+      let resolvedId = matchIdParam?.trim() || null;
+      if (resolvedId === 'local-setup') resolvedId = null;
+      if (!resolvedId) {
+        const { data: live, error: liveErr } = await fetchFirstLiveMatch();
+        if (cancelled) return;
+        if (liveErr) {
+          setPageError(liveErr);
+          setEffectiveMatchId(null);
+          setMatchRow(null);
+          setLineupData(null);
+          setPageLoading(false);
+          return;
+        }
+        resolvedId = live?.id ?? null;
+      }
+      if (!resolvedId) {
+        setEffectiveMatchId(null);
+        setMatchRow(null);
+        setLineupData(null);
+        setEvents([]);
+        setPageLoading(false);
+        return;
+      }
+
+      console.info('Live Match ID:', resolvedId);
+
+      const [mRes, lineRes, evRes] = await Promise.all([
+        fetchMatchById(resolvedId),
+        fetchLineupForLiveMatch(resolvedId),
+        fetchMatchEvents(resolvedId),
+      ]);
+      if (cancelled) return;
+      if (mRes.error || !mRes.data) {
+        setPageError(mRes.error ?? 'Spiel nicht gefunden.');
+        setEffectiveMatchId(null);
+        setMatchRow(null);
+        setLineupData(null);
+        setEvents([]);
+        setPageLoading(false);
+        return;
+      }
+      setEffectiveMatchId(resolvedId);
+      setMatchRow(mRes.data);
+      setLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
+      const sorted = sortMatchEventsChronologically(evRes.data);
+      setEvents([...sorted].reverse());
+      if (lineRes.error) setSaveError(lineRes.error);
+      if (evRes.error) setSaveError(evRes.error);
+      setPageLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [matchIdParam]);
+
+  const teamSeasonForRoster = matchRow?.team_season_id ?? null;
+  const { players, loading: playersLoading, error: playersError } = usePlayers(teamSeasonForRoster);
 
   const roster = useMemo(() => sortRosterByNumber(players.map(playerItemToRoster)), [players]);
   const rosterById = useMemo(() => {
@@ -62,12 +156,6 @@ export const LiveMatchScreen: React.FC = () => {
     roster.forEach((p) => m.set(p.id, p));
     return m;
   }, [roster]);
-
-  const [squadPlayerIds, setSquadPlayerIds] = useState<string[]>([]);
-  const [startingPlayerIds, setStartingPlayerIds] = useState<string[]>([]);
-  const [events, setEvents] = useState<MatchEngineEvent[]>([]);
-  const [opponentLabel, setOpponentLabel] = useState('Gegner');
-  const setupAppliedRef = useRef(false);
 
   const {
     currentMatchSeconds,
@@ -82,60 +170,36 @@ export const LiveMatchScreen: React.FC = () => {
   } = useMatchTimer();
 
   useEffect(() => {
-    setupAppliedRef.current = false;
-  }, [selectedTeamSeasonId]);
+    if (!matchRow) return;
+    const o = matchRow.opponent?.trim();
+    setOpponentLabel(o || 'Gegner');
+    setScoreHome(Number(matchRow.score_home ?? 0));
+    setScoreAway(Number(matchRow.score_away ?? 0));
+  }, [matchRow]);
 
   useEffect(() => {
-    if (players.length === 0) {
-      setSquadPlayerIds([]);
-      setStartingPlayerIds([]);
-      return;
-    }
-
+    if (!matchRow || playersLoading) return;
     const valid = new Set(players.map((p) => p.id));
-
-    if (!setupAppliedRef.current) {
-      setupAppliedRef.current = true;
-
-      let squad = players.map((p) => p.id);
-      let starting = players.slice(0, Math.min(7, players.length)).map((p) => p.id);
-      const raw = sessionStorage.getItem(LIVE_MATCH_SETUP_STORAGE_KEY);
-
-      if (raw) {
-        try {
-          const p = JSON.parse(raw) as LiveMatchSetupPayload;
-          if (p.opponent?.trim()) setOpponentLabel(p.opponent.trim());
-
-          if (p.squadPlayerIds?.length) {
-            const f = p.squadPlayerIds.filter((id) => valid.has(id));
-            if (f.length > 0) squad = f;
-          }
-          if (p.startingPlayerIds?.length === 7) {
-            const st = p.startingPlayerIds.filter((id) => squad.includes(id));
-            if (st.length === 7) starting = st;
-          }
-        } catch {
-          /* ignore */
-        }
-        sessionStorage.removeItem(LIVE_MATCH_SETUP_STORAGE_KEY);
-      }
-
-      setSquadPlayerIds(squad);
-      setStartingPlayerIds(starting.slice(0, 7));
-      return;
+    const fromDb = lineupData;
+    let squad: string[] = [];
+    let starting: string[] = [];
+    if (fromDb && fromDb.squadPlayerIds.length > 0) {
+      squad = fromDb.squadPlayerIds.filter((id) => valid.has(id));
+      starting = fromDb.startingPlayerIds.filter((id) => valid.has(id)).slice(0, 7);
     }
-
-    setSquadPlayerIds((prev) => {
-      const next = prev.filter((id) => valid.has(id));
-      return next.length > 0 ? next : [...valid];
-    });
-    setStartingPlayerIds((prev) => prev.filter((id) => valid.has(id)));
-  }, [players]);
+    if (squad.length === 0 && players.length > 0) {
+      squad = players.map((p) => p.id);
+      starting = players.slice(0, Math.min(7, players.length)).map((p) => p.id);
+    } else if (starting.length === 0 && squad.length > 0) {
+      starting = squad.slice(0, 7);
+    }
+    setSquadPlayerIds(squad);
+    setStartingPlayerIds(starting);
+  }, [matchRow, lineupData, players, playersLoading]);
 
   const homeName = selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
 
-  const [scoreHome, setScoreHome] = useState(0);
-  const [scoreAway, setScoreAway] = useState(0);
+  const headerOpponent = opponentLabel;
   const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
 
@@ -169,39 +233,69 @@ export const LiveMatchScreen: React.FC = () => {
     [startingPlayerIds, squadPlayerIds, events, currentMatchSeconds],
   );
 
-  const pushEvents = useCallback((evs: MatchEngineEvent[]) => {
-    setEvents((prev) => [...evs, ...prev]);
-  }, []);
-
-  const pushSingle = useCallback(
-    (partial: Omit<MatchEngineEvent, 'id'>) => {
-      const row: MatchEngineEvent = { ...partial, id: newEventId() };
-      pushEvents([row]);
+  const persistSingle = useCallback(
+    async (partial: Omit<MatchEngineEvent, 'id'>): Promise<boolean> => {
+      if (!effectiveMatchId) return false;
+      setSaveError(null);
+      const tempId = newEventId();
+      const optimistic: MatchEngineEvent = { ...partial, id: tempId };
+      setEvents((prev) => [optimistic, ...prev]);
+      const payload = engineEventToInsertPayload(effectiveMatchId, partial, half);
+      const { id, error } = await saveMatchEvent(payload);
+      if (error || !id) {
+        console.error('[LiveMatch] saveMatchEvent', error);
+        setSaveError(error ?? 'Ereignis konnte nicht gespeichert werden.');
+        setEvents((prev) => prev.filter((e) => e.id !== tempId));
+        return false;
+      }
+      setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...partial, id } : e)));
+      return true;
     },
-    [pushEvents],
+    [effectiveMatchId, half],
   );
 
-  const onStartClick = () => {
-    if (matchHasEnded || isRunning) return;
+  const onStartClick = async () => {
+    if (matchHasEnded || isRunning || !effectiveMatchId) return;
     if (!hasClockStarted) {
-      pushSingle({ type: 'start', timestamp: 0 });
+      const ok = await persistSingle({ type: 'start', timestamp: 0 });
+      if (!ok) return;
       startMatch();
+      const { error } = await updateMatchRow(effectiveMatchId, {
+        status: 'live',
+        live_started_at: new Date().toISOString(),
+        live_is_running: true,
+      });
+      if (error) setSaveError(error);
     } else {
-      pushSingle({ type: 'resume', timestamp: currentMatchSeconds });
+      const ok = await persistSingle({ type: 'resume', timestamp: currentMatchSeconds });
+      if (!ok) return;
       resumeMatch();
     }
   };
 
-  const onPauseClick = () => {
-    if (!isRunning || matchHasEnded) return;
-    pushSingle({ type: 'pause', timestamp: currentMatchSeconds });
+  const onPauseClick = async () => {
+    if (!isRunning || matchHasEnded || !effectiveMatchId) return;
+    const ok = await persistSingle({ type: 'pause', timestamp: currentMatchSeconds });
+    if (!ok) return;
     pauseMatch();
+    const { error } = await updateMatchRow(effectiveMatchId, {
+      live_elapsed_seconds: currentMatchSeconds,
+      live_is_running: false,
+    });
+    if (error) setSaveError(error);
   };
 
-  const onEndClick = () => {
-    if (matchHasEnded) return;
-    pushSingle({ type: 'end', timestamp: currentMatchSeconds });
+  const onEndClick = async () => {
+    if (matchHasEnded || !effectiveMatchId) return;
+    const ok = await persistSingle({ type: 'end', timestamp: currentMatchSeconds });
+    if (!ok) return;
     endMatch();
+    const { error } = await updateMatchRow(effectiveMatchId, {
+      status: 'finished',
+      live_is_running: false,
+      live_elapsed_seconds: currentMatchSeconds,
+    });
+    if (error) setSaveError(error);
   };
 
   const openSubFromPlayer = (p: RosterPlayer) => {
@@ -215,33 +309,72 @@ export const LiveMatchScreen: React.FC = () => {
     }
   };
 
-  const confirmSub = () => {
-    const result = handleSubstitution({
-      outgoingPlayerId: subOutId,
-      incomingPlayerId: subInId,
-      currentTimestamp: currentMatchSeconds,
-      events,
-      currentOnFieldPlayerIds: onFieldIds,
-      generateId: newEventId,
-    });
-    if (!result.ok) return;
-    pushEvents([...result.events].reverse());
+  const persistSubstitution = useCallback(
+    async (outgoingPlayerId: string, incomingPlayerId: string): Promise<boolean> => {
+      if (!effectiveMatchId) return false;
+      const check = handleSubstitution({
+        outgoingPlayerId,
+        incomingPlayerId,
+        currentTimestamp: currentMatchSeconds,
+        events,
+        currentOnFieldPlayerIds: onFieldIds,
+        generateId: newEventId,
+      });
+      if (!check.ok) return false;
+
+      setSaveError(null);
+      const ts = currentMatchSeconds;
+      const outPartial: Omit<MatchEngineEvent, 'id'> = {
+        type: 'sub_out',
+        timestamp: ts,
+        playerId: outgoingPlayerId,
+      };
+      const inPartial: Omit<MatchEngineEvent, 'id'> = {
+        type: 'sub_in',
+        timestamp: ts,
+        playerId: incomingPlayerId,
+      };
+      const tempOut = newEventId();
+      const tempIn = newEventId();
+      setEvents((prev) => [
+        { ...inPartial, id: tempIn },
+        { ...outPartial, id: tempOut },
+        ...prev,
+      ]);
+      const payloads = [
+        engineEventToInsertPayload(effectiveMatchId, outPartial, half),
+        engineEventToInsertPayload(effectiveMatchId, inPartial, half),
+      ];
+      const { ids, error } = await saveMatchEvents(payloads);
+      if (error || ids.length < 2) {
+        console.error('[LiveMatch] saveMatchEvents subs', error);
+        setSaveError(error ?? 'Wechsel speichern fehlgeschlagen.');
+        setEvents((prev) => prev.filter((e) => e.id !== tempOut && e.id !== tempIn));
+        return false;
+      }
+      setEvents((prev) =>
+        prev.map((e) => {
+          if (e.id === tempOut) return { ...outPartial, id: ids[0] };
+          if (e.id === tempIn) return { ...inPartial, id: ids[1] };
+          return e;
+        }),
+      );
+      return true;
+    },
+    [effectiveMatchId, currentMatchSeconds, events, onFieldIds, half],
+  );
+
+  const confirmSub = async () => {
+    const ok = await persistSubstitution(subOutId, subInId);
+    if (!ok) return;
     setSubOpen(false);
     setSubOutId('');
     setSubInId('');
   };
 
-  const confirmWechselSection = () => {
-    const result = handleSubstitution({
-      outgoingPlayerId: wechselOutId,
-      incomingPlayerId: wechselInId,
-      currentTimestamp: currentMatchSeconds,
-      events,
-      currentOnFieldPlayerIds: onFieldIds,
-      generateId: newEventId,
-    });
-    if (!result.ok) return;
-    pushEvents([...result.events].reverse());
+  const confirmWechselSection = async () => {
+    const ok = await persistSubstitution(wechselOutId, wechselInId);
+    if (!ok) return;
     setWechselOutId('');
     setWechselInId('');
   };
@@ -281,6 +414,29 @@ export const LiveMatchScreen: React.FC = () => {
   const ampelDot = (s: ReturnType<typeof getPlaytimeStatus>) =>
     s === 'red' ? 'bg-red-500' : s === 'yellow' ? 'bg-amber-400' : 'bg-emerald-500';
 
+  if (pageLoading) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0a] text-white">
+        <p className="text-sm text-white/60">Lade Live-Daten…</p>
+      </div>
+    );
+  }
+
+  if (!effectiveMatchId) {
+    return (
+      <div className="min-h-[100dvh] bg-[#0a0a0a] p-4 text-white">
+        {pageError ? (
+          <p className="text-sm text-red-400">{pageError}</p>
+        ) : (
+          <p>Kein Live-Spiel aktiv</p>
+        )}
+        <Link to="/app/termine" className="mt-4 inline-block text-sm font-semibold text-emerald-400 underline">
+          Zum Spielplan
+        </Link>
+      </div>
+    );
+  }
+
   if (playersLoading && roster.length === 0) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0a] text-white">
@@ -298,11 +454,27 @@ export const LiveMatchScreen: React.FC = () => {
     );
   }
 
-  if (!selectedTeamSeasonId || roster.length === 0) {
+  if (!teamSeasonForRoster) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-2 bg-[#0a0a0a] px-4 text-center text-white">
-        <p className="text-sm text-white/70">Kein Team / keine Spieler.</p>
-        <p className="text-xs text-white/45">Wähle eine Mannschaftssaison oder lege Spieler im Team an.</p>
+        <p className="text-sm text-white/70">Spiel hat keine Mannschaftssaison.</p>
+        <Link to="/app/termine" className="text-sm font-semibold text-emerald-400 underline">
+          Zum Spielplan
+        </Link>
+      </div>
+    );
+  }
+
+  if (roster.length === 0) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-2 bg-[#0a0a0a] px-4 text-center text-white">
+        <p className="text-sm text-white/70">Kein Team / keine Spieler für dieses Spiel.</p>
+        <p className="text-xs text-white/45">
+          Wähle die passende Mannschaftssaison oder lege Spieler im Team an.
+        </p>
+        <Link to="/app/termine" className="mt-2 text-sm font-semibold text-emerald-400 underline">
+          Zum Spielplan
+        </Link>
       </div>
     );
   }
@@ -313,8 +485,13 @@ export const LiveMatchScreen: React.FC = () => {
         <div className="mx-auto max-w-lg">
           <p className="text-center text-xs font-medium uppercase tracking-wider text-white/50">Live</p>
           <h1 className="mt-1 text-center text-base font-bold leading-tight sm:text-lg">
-            {homeName} <span className="text-white/40">vs</span> {opponentLabel}
+            {homeName} <span className="text-white/40">vs</span> {headerOpponent}
           </h1>
+          {saveError && (
+            <p className="mt-2 text-center text-xs font-medium text-amber-400/95" role="alert">
+              {saveError}
+            </p>
+          )}
           <div className="mt-3 flex items-center justify-center gap-2">
             <span className="text-4xl font-black tabular-nums text-white sm:text-5xl">{scoreHome}</span>
             <span className="text-2xl font-light text-white/40">:</span>
@@ -331,13 +508,18 @@ export const LiveMatchScreen: React.FC = () => {
           <div className="mt-3 flex gap-2">
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 const scorer = fieldPlayers[0];
-                setScoreHome((s) => s + 1);
-                pushSingle({
+                const ok = await persistSingle({
                   type: 'goal',
                   timestamp: currentMatchSeconds,
                   playerId: scorer?.id,
+                });
+                if (!ok) return;
+                setScoreHome((s) => {
+                  const n = s + 1;
+                  if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_home: n });
+                  return n;
                 });
               }}
               className="min-h-[44px] flex-1 rounded-xl bg-white/10 py-2 text-sm font-bold text-emerald-400 active:bg-white/15"
@@ -346,11 +528,16 @@ export const LiveMatchScreen: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setScoreAway((s) => s + 1);
-                pushSingle({
+              onClick={async () => {
+                const ok = await persistSingle({
                   type: 'goal',
                   timestamp: currentMatchSeconds,
+                });
+                if (!ok) return;
+                setScoreAway((s) => {
+                  const n = s + 1;
+                  if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: n });
+                  return n;
                 });
               }}
               className="min-h-[44px] flex-1 rounded-xl bg-white/10 py-2 text-sm font-bold text-amber-200/90 active:bg-white/15"

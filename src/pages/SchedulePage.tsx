@@ -736,7 +736,20 @@ export const SchedulePage: React.FC = () => {
                         onOpenAttendance={(uiRole === 'parent' || uiRole === 'player') ? () => setAttendanceModalEvent(ev) : undefined}
                         attendanceCounts={canManage ? countsForCard : undefined}
                       />
-                      <div className="mt-2 flex justify-end">
+                      <div className="mt-2 flex flex-wrap justify-end gap-2">
+                        {canManage && et === 'game' && ev.match_id && (
+                          <Button
+                            variant="primary"
+                            size="xs"
+                            className="rounded-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/live?matchId=${ev.match_id}`);
+                            }}
+                          >
+                            Live starten
+                          </Button>
+                        )}
                         <Button
                           variant="soft"
                           size="xs"

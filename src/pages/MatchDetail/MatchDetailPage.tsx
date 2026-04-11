@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { Match, MatchEvent } from '../../types/match';
 import type { FieldSlotId } from '../../types/match';
 import { supabase } from '../../lib/supabaseClient';
@@ -63,6 +63,7 @@ function mapRowToMatch(row: MatchRow | null): Match | null {
 }
 
 export const MatchDetailPage: React.FC = () => {
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const matchId = id ?? null;
 
@@ -390,7 +391,21 @@ export const MatchDetailPage: React.FC = () => {
       <div className="space-y-4 lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
         {/* Links: Scoreboard, Controls, Aufstellung (Mobile: oben, ab lg: linke Spalte) */}
         <div className="space-y-4 lg:col-span-5">
-          <Link to="/app/termine" className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">← Zurück</Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link to="/app/termine" className="text-sm text-[var(--text-sub)] hover:text-[var(--text-main)]">
+              ← Zurück
+            </Link>
+            {matchId && canManageStatus && (
+              <Button
+                type="button"
+                size="sm"
+                variant="primary"
+                onClick={() => navigate(`/live?matchId=${matchId}`)}
+              >
+                Live starten
+              </Button>
+            )}
+          </div>
 
           {localMatch.status === 'live' ? (
           <section className="live-panel card space-y-3" aria-label="Live">

@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode, useEffect } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useSearchParams } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { InternalLayout } from './layout/InternalLayout.tsx';
 import { RoleProvider } from './role/RoleContext';
@@ -16,9 +16,9 @@ import { PlayerOnboardingPage } from '../pages/PlayerOnboardingPage';
 import { RoleChoicePage } from '../pages/RoleChoicePage';
 import { MatchDetailPage } from '../pages/MatchDetail/MatchDetailPage';
 import { EventDetailPage } from '../pages/EventDetailPage';
-import { LivePage } from '../pages/LivePage';
 import { LiveMatchScreen } from '../pages/live/LiveMatchScreen';
 import { MatchSetupScreen } from '../pages/live/MatchSetupScreen';
+import { LivePage } from '../pages/LivePage';
 import { TeamPage } from '../pages/TeamPage';
 import { TablePage } from '../pages/TablePage';
 import { NotificationsPage } from '../pages/NotificationsPage';
@@ -77,6 +77,13 @@ function AppErrorFallback(): React.ReactElement {
   );
 }
 
+/** Kurz-URL `/live?…` → `/app/live?…` (Query beibehalten, z. B. matchId). */
+function LiveShortcutRedirect(): React.ReactElement {
+  const [sp] = useSearchParams();
+  const q = sp.toString();
+  return <Navigate to={q ? `/app/live?${q}` : '/app/live'} replace />;
+}
+
 /** /app: sofortiger Redirect auf Termine (kein Warten auf Session/Memberships). */
 function StartupRedirectToTermine(): React.ReactElement {
   useEffect(() => {
@@ -123,7 +130,7 @@ function InternalRoutes(): React.ReactElement {
       <Route path="register" element={<RegisterPage />} />
       <Route path="forgot-password" element={<ForgotPasswordPage />} />
       <Route path="schedule" element={<Navigate to="/app/termine" replace />} />
-      <Route path="live" element={<Navigate to="/app/live" replace />} />
+      <Route path="live" element={<LiveShortcutRedirect />} />
       <Route path="app" element={<RequireAuth><InternalLayout /></RequireAuth>}>
         <Route index element={<StartupRedirectToTermine />} />
         <Route path="home" element={<AppHomePage />} />
@@ -139,9 +146,9 @@ function InternalRoutes(): React.ReactElement {
         <Route path="set-password" element={<SetPasswordPage />} />
         <Route path="events/:eventId" element={<EventDetailPage />} />
         <Route path="match/:id" element={<MatchDetailPage />} />
-        <Route path="live/match" element={<LiveMatchScreen />} />
+        <Route path="live/match" element={<Navigate to="/app/live/setup" replace />} />
         <Route path="live/setup" element={<MatchSetupScreen />} />
-        <Route path="live" element={<LivePage />} />
+        <Route path="live" element={<LiveMatchScreen />} />
         <Route path="live/:id" element={<LivePage />} />
         <Route path="team" element={<TeamPage />} />
         <Route path="table" element={<TablePage />} />
