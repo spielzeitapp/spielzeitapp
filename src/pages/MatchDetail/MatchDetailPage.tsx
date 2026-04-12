@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { TrainerMatchSetupBlock } from '../TrainerMatchSetupBlock';
 import { Link, useParams } from 'react-router-dom';
 import type { Match, MatchEvent } from '../../types/match';
 import type { FieldSlotId } from '../../types/match';
@@ -202,6 +203,16 @@ export const MatchDetailPage: React.FC = () => {
     const m: Record<string, 'yes' | 'no' | 'maybe' | null> = {};
     players.forEach((p) => (m[p.id] = getAvailability(p.id) ?? null));
     return m;
+  }, [players, getAvailability]);
+
+  /** Gleiches Filter-Format wie Event-Detail (event_attendance): nur yes/no, Keys lowercased. */
+  const matchDetailAttendanceByPlayerId = useMemo(() => {
+    const out: Record<string, 'yes' | 'no'> = {};
+    for (const p of players) {
+      const s = getAvailability(p.id);
+      if (s === 'yes' || s === 'no') out[(p.id ?? '').toLowerCase()] = s;
+    }
+    return out;
   }, [players, getAvailability]);
 
   const playersInLineupIds = useMemo(() => {
@@ -540,6 +551,14 @@ export const MatchDetailPage: React.FC = () => {
               })}
             </div>
           </Card>
+        )}
+
+        {matchId && canManageStatus && !(operatorMode && localMatch.status === 'live') && (
+          <TrainerMatchSetupBlock
+            matchId={matchId}
+            players={players}
+            attendanceByPlayerId={matchDetailAttendanceByPlayerId}
+          />
         )}
 
         {matchId && canManageStatus && !(operatorMode && localMatch.status === 'live') && (
