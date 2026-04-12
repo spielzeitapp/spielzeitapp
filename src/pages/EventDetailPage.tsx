@@ -164,6 +164,7 @@ export const EventDetailPage: React.FC = () => {
   const [opponentLogo, setOpponentLogo] = useState('');
   const [title, setTitle] = useState('');
   const [subline, setSubline] = useState('');
+  const [feedSectionExpanded, setFeedSectionExpanded] = useState(false);
 
   const { teamLabel, role: roleFromHook } = useActiveTeamSeason();
   const effectiveRole = normalizeRole(roleFromHook);
@@ -784,79 +785,93 @@ export const EventDetailPage: React.FC = () => {
         )}
 
         {event.kind === 'match' && isTrainerOrAdmin && (
-          <Card className="flex flex-col gap-3">
-            <CardTitle>Feed / Spieltag (Home)</CardTitle>
-            <p className="text-xs leading-snug text-[var(--text-sub)]">
-              Wenn dieses Spiel auf der Startseite als nächstes Match erscheint, kann die große Hero-Karte hier
-              vorbereitet werden (nur URL-Eingaben, kein Upload).
-            </p>
-            {feedLoading ? <p className="text-sm text-[var(--text-sub)]">Lade Feed-Einstellungen…</p> : null}
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-main)]">
-              <input
-                type="checkbox"
-                checked={showInFeed}
-                onChange={(e) => setShowInFeed(e.target.checked)}
-                className="h-4 w-4 rounded border border-white/25 bg-black/30"
-              />
-              Im Home Feed anzeigen
-            </label>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Template</label>
-              <select
-                value={template}
-                onChange={(e) => setTemplate(normalizeMatchFeedTemplateKey(e.target.value))}
-                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
-              >
-                {MATCH_FEED_TEMPLATE_KEYS.map((k) => (
-                  <option key={k} value={k}>
-                    {MATCH_FEED_TEMPLATE_LABELS[k]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Spielerbild URL (optional)</label>
-              <input
-                type="url"
-                value={playerImage}
-                onChange={(e) => setPlayerImage(e.target.value)}
-                placeholder="https://…"
-                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Gegnerlogo URL (optional)</label>
-              <input
-                type="url"
-                value={opponentLogo}
-                onChange={(e) => setOpponentLogo(e.target.value)}
-                placeholder="https://…"
-                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Überschrift (optional)</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Leer = Standard (z. B. SPIELTAG)"
-                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Subline (optional)</label>
-              <input
-                type="text"
-                value={subline}
-                onChange={(e) => setSubline(e.target.value)}
-                placeholder="Leer = z. B. Gegen …"
-                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
-              />
-            </div>
-            <Button variant="primary" size="sm" onClick={() => void saveFeedSettings()}>
-              {feedSaving ? 'Speichern…' : 'Feed-Einstellungen speichern'}
-            </Button>
+          <Card className="flex flex-col gap-2 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setFeedSectionExpanded((v) => !v)}
+              aria-expanded={feedSectionExpanded}
+              className="flex w-full min-h-[48px] items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.07] active:bg-white/[0.05]"
+            >
+              <span className="text-base font-semibold text-[var(--text-main)]">Feed / Spieltag (optional)</span>
+              <span className="shrink-0 text-sm text-white/50" aria-hidden>
+                {feedSectionExpanded ? '▾' : '▸'}
+              </span>
+            </button>
+            {feedSectionExpanded ? (
+              <div className="flex flex-col gap-3 pt-1">
+                <p className="text-xs leading-snug text-[var(--text-sub)]">
+                  Wenn dieses Spiel auf der Startseite als nächstes Match erscheint, kann die große Hero-Karte hier
+                  vorbereitet werden (nur URL-Eingaben, kein Upload).
+                </p>
+                {feedLoading ? <p className="text-sm text-[var(--text-sub)]">Lade Feed-Einstellungen…</p> : null}
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-main)]">
+                  <input
+                    type="checkbox"
+                    checked={showInFeed}
+                    onChange={(e) => setShowInFeed(e.target.checked)}
+                    className="h-4 w-4 rounded border border-white/25 bg-black/30"
+                  />
+                  Im Home Feed anzeigen
+                </label>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Template</label>
+                  <select
+                    value={template}
+                    onChange={(e) => setTemplate(normalizeMatchFeedTemplateKey(e.target.value))}
+                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+                  >
+                    {MATCH_FEED_TEMPLATE_KEYS.map((k) => (
+                      <option key={k} value={k}>
+                        {MATCH_FEED_TEMPLATE_LABELS[k]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Spielerbild URL (optional)</label>
+                  <input
+                    type="url"
+                    value={playerImage}
+                    onChange={(e) => setPlayerImage(e.target.value)}
+                    placeholder="https://…"
+                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Gegnerlogo URL (optional)</label>
+                  <input
+                    type="url"
+                    value={opponentLogo}
+                    onChange={(e) => setOpponentLogo(e.target.value)}
+                    placeholder="https://…"
+                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Überschrift (optional)</label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Leer = Standard (z. B. SPIELTAG)"
+                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Subline (optional)</label>
+                  <input
+                    type="text"
+                    value={subline}
+                    onChange={(e) => setSubline(e.target.value)}
+                    placeholder="Leer = z. B. Gegen …"
+                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+                  />
+                </div>
+                <Button variant="primary" size="sm" onClick={() => void saveFeedSettings()}>
+                  {feedSaving ? 'Speichern…' : 'Feed-Einstellungen speichern'}
+                </Button>
+              </div>
+            ) : null}
           </Card>
         )}
 

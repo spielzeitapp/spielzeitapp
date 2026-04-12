@@ -61,16 +61,27 @@ export function TrainerMatchSetupBlock({
   const [loadingLineup, setLoadingLineup] = useState(true);
   const [savingLive, setSavingLive] = useState(false);
   const [savingSquad, setSavingSquad] = useState(false);
+  const [savingLineup, setSavingLineup] = useState(false);
   const [squadSaveMsg, setSquadSaveMsg] = useState<string | null>(null);
+  const [lineupSaveMsg, setLineupSaveMsg] = useState<string | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
+  /** >0: erneut aus DB laden ohne vollständigen Ladezustand (z. B. nach Speichern). */
+  const [lineupReloadTick, setLineupReloadTick] = useState(0);
 
   const validPlayerIds = useMemo(() => new Set(poolPlayers.map((p) => p.id)), [poolPlayers]);
 
   useEffect(() => {
+    setLineupReloadTick(0);
+  }, [matchId]);
+
+  useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoadingLineup(true);
-      setSetupError(null);
+      const showFullLoading = lineupReloadTick === 0;
+      if (showFullLoading) {
+        setLoadingLineup(true);
+        setSetupError(null);
+      }
       const [lineupRes, benchRes] = await Promise.all([
         supabase.from('match_lineup').select('slot, player_id').eq('match_id', matchId),
         supabase.from('match_bench').select('player_id').eq('match_id', matchId),
@@ -78,7 +89,7 @@ export function TrainerMatchSetupBlock({
       if (cancelled) return;
       if (lineupRes.error || benchRes.error) {
         setSetupError(lineupRes.error?.message ?? benchRes.error?.message ?? 'Aufstellung laden fehlgeschlagen.');
-        setLoadingLineup(false);
+        if (showFullLoading) setLoadingLineup(false);
         return;
       }
       const nextStarters = emptyMatchSetupStarters();
@@ -97,12 +108,12 @@ export function TrainerMatchSetupBlock({
       }
       setStartersBySlot(nextStarters);
       setSquad(nextSquad);
-      setLoadingLineup(false);
+      if (showFullLoading) setLoadingLineup(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [matchId]);
+  }, [matchId, lineupReloadTick]);
 
   useEffect(() => {
     if (validPlayerIds.size === 0) return;
@@ -212,7 +223,26 @@ export function TrainerMatchSetupBlock({
       return;
     }
     setSquadSaveMsg('Kader gespeichert.');
+    setLineupReloadTick((t) => t + 1);
     window.setTimeout(() => setSquadSaveMsg(null), 3500);
+  };
+
+  const onSaveLineupAndBench = async () => {
+    setLineupSaveMsg(null);
+    setSavingLineup(true);
+    setSetupError(null);
+    const ordered = LIVE_FIELD_SLOT_ORDER.map((s) => startersBySlot[s] ?? null);
+    const squadArr = [...squad].filter((pid) => validPlayerIds.has(pid));
+    const { error } = await replaceMatchLineupAndBench(matchId, ordered, squadArr);
+    setSavingLineup(false);
+    if (error) {
+      setSetupError(error);
+      return;
+    }
+    setSetupError(null);
+    setLineupSaveMsg('Aufstellung gespeichert.');
+    setLineupReloadTick((t) => t + 1);
+    window.setTimeout(() => setLineupSaveMsg(null), 3500);
   };
 
   return (
@@ -266,7 +296,7 @@ export function TrainerMatchSetupBlock({
               type="button"
               variant="secondary"
               className="min-h-[48px] w-full rounded-2xl text-sm font-bold"
-              disabled={savingSquad || savingLive}
+              disabled={savingSquad || savingLive || savingLineup}
               onClick={() => void onSaveSquadOnly()}
             >
               {savingSquad ? 'Speichern…' : 'Kader speichern'}
@@ -356,9 +386,30 @@ export function TrainerMatchSetupBlock({
 
           <Button
             type="button"
+            variant="secondary"
+            className="min-h-[48px] w-full rounded-2xl text-sm font-bold"
+            disabled={savingLive || savingSquad || savingLineup}
+            onClick={() => void onSaveLineupAndBench()}
+          >
+            {savingLineup ? 'Speichern…' : 'Aufstellung speichern'}
+          </Button>
+          {lineupSaveMsg && (
+            <p
+              className={`text-center text-xs font-medium ${lineupSaveMsg.includes('gespeichert') ? 'text-emerald-300' : 'text-red-400'}`}
+              role="status"
+            >
+              {lineupSaveMsg}
+            </p>
+          )}
+          <p className="text-center text-xs text-white/45">
+            „Aufstellung speichern“: Startelf + Bank. „Kader speichern“: nur Bank (Startelf in der DB unverändert).
+          </p>
+
+          <Button
+            type="button"
             variant="primary"
             className="min-h-[52px] w-full rounded-2xl text-base font-bold"
-            disabled={savingLive || starterCount !== MATCH_SETUP_STARTERS_MAX}
+            disabled={savingLive || savingSquad || savingLineup || starterCount !== MATCH_SETUP_STARTERS_MAX}
             onClick={() => void onLiveStart()}
           >
             {savingLive ? 'Speichern…' : 'Live starten'}
