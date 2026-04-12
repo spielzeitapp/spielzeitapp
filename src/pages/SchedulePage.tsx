@@ -719,7 +719,7 @@ export const SchedulePage: React.FC = () => {
                         kind={ev.kind}
                         eventType={et}
                         notes={ev.notes}
-                        matchType={ev.type}
+                        matchType={ev.match_type}
                         location={ev.location}
                         address={ev.location}
                         meetupAt={ev.meeting_at}

@@ -19,6 +19,8 @@ export type EventRow = {
   team_season_id: string;
   kind: EventKind;
   type: 'game' | 'training' | 'event' | 'other';
+  /** DB `events.match_type` (Spielart); bei Nicht-Spielen typischerweise null. */
+  match_type: string | null;
   opponent: string | null;
   is_home: boolean | null;
   location: string | null;
@@ -44,6 +46,7 @@ type EventDbRow = {
   team_season_id: string;
   kind: string;
   type?: string | null;
+  match_type?: string | null;
   opponent: string | null;
   is_home: boolean | null;
   location: string | null;
@@ -63,9 +66,9 @@ type EventDbRow = {
 
 /** Aktueller events-Select inkl. Serien + optionaler Spalten (Fallback bei alter DB). */
 const EVENTS_SELECT =
-  "id, team_season_id, kind, type, opponent, is_home, location, address, starts_at, meeting_at, status, attendance_mode, notes, match_id, series_id, training_absence_deadline_disabled, created_by, created_at, updated_at";
+  "id, team_season_id, kind, type, match_type, opponent, is_home, location, address, starts_at, meeting_at, status, attendance_mode, notes, match_id, series_id, training_absence_deadline_disabled, created_by, created_at, updated_at";
 
-/** Ohne address / series_id / training_absence_deadline_disabled. */
+/** Ohne address / series_id / training_absence_deadline_disabled / match_type. */
 const EVENTS_SELECT_LEGACY =
   "id, team_season_id, kind, type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, created_by, created_at, updated_at";
 
@@ -89,7 +92,10 @@ export function useEvents(teamSeasonId: string | null) {
       .eq("team_season_id", teamSeasonId)
       .order("starts_at", { ascending: true });
 
-    if (res.error && /training_absence_deadline_disabled|series_id|address|column/i.test(String(res.error.message ?? ""))) {
+    if (
+      res.error &&
+      /training_absence_deadline_disabled|series_id|address|match_type|column/i.test(String(res.error.message ?? ""))
+    ) {
       res = await supabase
         .from("events")
         .select(EVENTS_SELECT_LEGACY)
@@ -114,6 +120,10 @@ export function useEvents(teamSeasonId: string | null) {
           if (r.kind === "training") return "training";
           if (r.kind === "event") return "event";
           return "other";
+        })(),
+        match_type: (() => {
+          const s = String(r.match_type ?? "").trim();
+          return s === "" ? null : s;
         })(),
         opponent: r.opponent ?? null,
         is_home: r.is_home ?? null,
