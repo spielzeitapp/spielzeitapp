@@ -53,6 +53,9 @@ const MATCH_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'other', label: 'Sonstiges' },
 ];
 
+/** Nur diese Werte werden bei Spiel-Terminen in `events.match_type` geschrieben. */
+const MATCH_TYPE_SAVE_VALUES = ['friendly', 'league', 'tournament', 'test'] as const;
+
 export type CreateEventFormValues = {
   opponent: string;
   is_home: boolean;
@@ -220,10 +223,16 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       const recurrenceUntilNormalized = nullIfEmpty(form.until_date);
 
       const buildPayloadForStart = (d: Date): Record<string, unknown> => {
+        const mtRaw = String(form.match_type ?? '').trim().toLowerCase();
+        const match_type: string | null =
+          eventTypeLocal === 'game' && (MATCH_TYPE_SAVE_VALUES as readonly string[]).includes(mtRaw)
+            ? mtRaw
+            : null;
         const payload: Record<string, unknown> = {
           team_season_id: teamSeasonId,
           kind: matchKind,
           type: matchKind,
+          match_type,
           opponent: eventTypeLocal === 'game' ? nullIfEmpty(opponentVal) : null,
           is_home: eventTypeLocal === 'game' ? form.is_home : null,
           location: locationVal,
