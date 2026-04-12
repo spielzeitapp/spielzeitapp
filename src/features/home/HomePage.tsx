@@ -1,20 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { useProfile, welcomeGreetingFromProfile } from '../../auth/useProfile';
 import { useAuth } from '../../auth/AuthProvider';
 import { useEvents } from '../../hooks/useEvents';
 import { MatchdayCard } from '../../components/feed/MatchdayCard';
+import { MatchdayHeroCard } from '../../components/feed/MatchdayHeroCard';
+import { useMatchFeedSettingsMap } from '../../hooks/useMatchFeedSettingsMap';
 import {
   buildDemoHomeMatchEvents,
   HOME_MATCH_STATUS_LABEL,
   pickHomeMatchCard,
 } from './homeFeedBuilder';
 import { HomeHeader } from './HomeHeader';
+import { buildMatchdayHeroCardProps } from './matchdayHeroProps';
 
 const FEED_DEMO = import.meta.env.VITE_HOME_FEED_DEMO === '1';
 
 export const HomePage: React.FC = () => {
+  const location = useLocation();
   const { selectedTeamSeasonId: teamSeasonId, loading: sessionLoading, selectedTeamSeason } = useSession();
   const { events, loading: evLoading } = useEvents(teamSeasonId);
   const { session } = useAuth();
@@ -37,6 +41,36 @@ export const HomePage: React.FC = () => {
     return pickHomeMatchCard(source, now);
   }, [events, now]);
 
+  const matchEventIds = useMemo(() => {
+    const source = FEED_DEMO ? buildDemoHomeMatchEvents(now) : (events ?? []);
+    return source.filter((e) => e.kind === 'match').map((e) => e.id);
+  }, [events, now]);
+
+  const { byEventId: feedByEventId } = useMatchFeedSettingsMap(matchEventIds, location.key);
+
+  const homeMatchCardEl = useMemo(() => {
+    if (!matchPick) return null;
+    const feed = feedByEventId[matchPick.event.id];
+    if (feed?.is_feed_enabled) {
+      return (
+        <MatchdayHeroCard
+          {...buildMatchdayHeroCardProps({
+            event: matchPick.event,
+            feed,
+            statusLabel: HOME_MATCH_STATUS_LABEL[matchPick.status],
+          })}
+        />
+      );
+    }
+    return (
+      <MatchdayCard
+        event={matchPick.event}
+        teamName={teamName}
+        statusLabel={HOME_MATCH_STATUS_LABEL[matchPick.status]}
+      />
+    );
+  }, [matchPick, feedByEventId, teamName]);
+
   const loading = sessionLoading || evLoading;
   const showContent = teamSeasonId || FEED_DEMO;
 
@@ -58,13 +92,7 @@ export const HomePage: React.FC = () => {
           </div>
         )}
 
-        {!loading && showContent && matchPick && (
-          <MatchdayCard
-            event={matchPick.event}
-            teamName={teamName}
-            statusLabel={HOME_MATCH_STATUS_LABEL[matchPick.status]}
-          />
-        )}
+        {!loading && showContent && homeMatchCardEl}
 
         {!loading && showContent && !matchPick && (
           <div

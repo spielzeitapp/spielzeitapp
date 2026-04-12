@@ -187,6 +187,14 @@ export const HOME_MATCH_STATUS_LABEL: Record<HomeMatchCardPick['status'], string
   next: 'NÄCHSTES SPIEL',
 };
 
+/** Kleine Zeile + große Hero-Zeile aus Status-Label (z. B. Home / MatchdayHeroCard). */
+export function splitStatusForHero(statusLabel: string): { lead: string; emphasis: string } {
+  const parts = statusLabel.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { lead: '', emphasis: '' };
+  if (parts.length === 1) return { lead: '', emphasis: parts[0] ?? '' };
+  return { lead: parts.slice(0, -1).join(' '), emphasis: parts[parts.length - 1] ?? '' };
+}
+
 export function pickHomeMatchCard(events: EventRow[], now: Date): HomeMatchCardPick | null {
   const matches = events
     .filter((e) => {
@@ -222,6 +230,7 @@ export function buildDemoHomeFeedArgs(now: Date): BuildHomeFeedArgs {
     team_season_id: teamSeasonId,
     kind: partial.kind,
     type: partial.kind === 'match' ? 'game' : partial.kind === 'training' ? 'training' : 'event',
+    match_type: partial.match_type ?? null,
     opponent: partial.opponent ?? null,
     is_home: partial.is_home ?? true,
     location: partial.location ?? 'Sporthalle Mitte',

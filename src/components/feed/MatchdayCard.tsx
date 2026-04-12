@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, ChevronRight, MapPin } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
+import { splitStatusForHero } from '../../features/home/homeFeedBuilder';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
@@ -15,14 +16,6 @@ type MatchdayCardProps = {
   /** z. B. HEUTE IST MATCHDAY / MORGEN IST MATCHDAY / NÄCHSTES SPIEL */
   statusLabel?: string;
 };
-
-/** Letztes Wort für große Hero-Zeile, Rest darüber klein (ohne Textänderung). */
-function splitStatusForHero(statusLabel: string): { lead: string; emphasis: string } {
-  const parts = statusLabel.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return { lead: '', emphasis: '' };
-  if (parts.length === 1) return { lead: '', emphasis: parts[0] ?? '' };
-  return { lead: parts.slice(0, -1).join(' '), emphasis: parts[parts.length - 1] ?? '' };
-}
 
 export const MatchdayCard: React.FC<MatchdayCardProps> = ({
   event,
@@ -74,7 +67,7 @@ export const MatchdayCard: React.FC<MatchdayCardProps> = ({
   const ortLine = (formatFullLocation(placeLine, addressLine) || '').trim() || '—';
   const meetLine = formatMeetupTimeOnlyDe(event.meeting_at) || '—';
 
-  const headerTitle = getMatchTypeLabel(event.type);
+  const headerTitle = getMatchTypeLabel(event.match_type ?? event.type);
   const meetupTimeOnly = formatMeetupTimeOnlyDe(event.meeting_at);
 
   const { lead, emphasis } = splitStatusForHero(statusLabel);

@@ -17,12 +17,20 @@ import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { LIVE_FIELD_SLOT_ORDER, replaceMatchLineupAndBench } from '../lib/liveMatchService';
 import type { FieldSlotId } from '../types/match';
+import {
+  MATCH_FEED_TEMPLATE_KEYS,
+  MATCH_FEED_TEMPLATE_LABELS,
+  normalizeMatchFeedTemplateKey,
+  type MatchFeedTemplateKey,
+} from '../features/home/feedTemplates';
+import type { MatchFeedSettingsRow } from '../types/matchFeedSettings';
 
 type EventDbRow = {
   id: string;
   team_season_id: string;
   kind: string;
   type?: string | null;
+  match_type?: string | null;
   opponent: string | null;
   is_home: boolean | null;
   location: string | null;
@@ -32,13 +40,14 @@ type EventDbRow = {
   attendance_mode: string | null;
   notes: string | null;
   match_id: string | null;
+  training_absence_deadline_disabled?: boolean | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
 
 const EVENTS_SELECT =
-  'id, team_season_id, kind, type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, created_by, created_at, updated_at';
+  'id, team_season_id, kind, type, match_type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, training_absence_deadline_disabled, created_by, created_at, updated_at';
 
 function getDomainEventLabel(event: EventRow): string {
   const t = (event.type ?? '').trim().toLowerCase();
@@ -77,6 +86,21 @@ function normalizeEventStatus(s: string | null): EventStatus {
   return 'upcoming';
 }
 
+function mapMatchFeedSettingsRow(r: Record<string, unknown>): MatchFeedSettingsRow {
+  return {
+    id: String(r.id),
+    event_id: String(r.event_id),
+    is_feed_enabled: Boolean(r.is_feed_enabled),
+    template_key: normalizeMatchFeedTemplateKey(String(r.template_key ?? '')),
+    player_image_url: r.player_image_url != null ? String(r.player_image_url) : null,
+    opponent_logo_url: r.opponent_logo_url != null ? String(r.opponent_logo_url) : null,
+    headline_override: r.headline_override != null ? String(r.headline_override) : null,
+    subline_override: r.subline_override != null ? String(r.subline_override) : null,
+    created_at: String(r.created_at ?? ''),
+    updated_at: String(r.updated_at ?? ''),
+  };
+}
+
 function mapRowToEventRow(r: EventDbRow): EventRow {
   const etRaw = (r.type ?? '').trim().toLowerCase();
   const type: EventRow['type'] =
@@ -92,6 +116,10 @@ function mapRowToEventRow(r: EventDbRow): EventRow {
     team_season_id: r.team_season_id,
     kind: (r.kind === 'match' || r.kind === 'training' || r.kind === 'event' ? r.kind : 'event') as EventKind,
     type,
+    match_type: (() => {
+      const s = String(r.match_type ?? '').trim();
+      return s === '' ? null : s;
+    })(),
     opponent: r.opponent ?? null,
     is_home: r.is_home ?? null,
     location: r.location ?? null,
@@ -101,6 +129,7 @@ function mapRowToEventRow(r: EventDbRow): EventRow {
     attendance_mode: (r.attendance_mode === 'opt_out' ? 'opt_out' : 'opt_in') as 'opt_in' | 'opt_out',
     notes: r.notes ?? null,
     match_id: r.match_id ?? null,
+    training_absence_deadline_disabled: r.training_absence_deadline_disabled ?? null,
     created_by: r.created_by ?? null,
     created_at: r.created_at ?? null,
     updated_at: r.updated_at ?? null,
@@ -449,6 +478,15 @@ export const EventDetailPage: React.FC = () => {
   const [eventAttendanceReasonByPlayerId, setEventAttendanceReasonByPlayerId] = useState<Record<string, string | null>>({});
   const [loadingEventAttendance, setLoadingEventAttendance] = useState(false);
 
+  const [feedLoading, setFeedLoading] = useState(false);
+  const [feedSaving, setFeedSaving] = useState(false);
+  const [feedEnabled, setFeedEnabled] = useState(false);
+  const [feedTemplate, setFeedTemplate] = useState<MatchFeedTemplateKey>('hero_clean');
+  const [feedPlayerUrl, setFeedPlayerUrl] = useState('');
+  const [feedOppLogoUrl, setFeedOppLogoUrl] = useState('');
+  const [feedHeadline, setFeedHeadline] = useState('');
+  const [feedSubline, setFeedSubline] = useState('');
+
   const { teamLabel, role: roleFromHook } = useActiveTeamSeason();
   const effectiveRole = normalizeRole(roleFromHook);
   const showMeetup = canSeeMeetup(effectiveRole);
@@ -494,6 +532,37 @@ export const EventDetailPage: React.FC = () => {
     loadEvent();
   }, [loadEvent]);
 
+  const loadFeedSettings = useCallback(async () => {
+    if (!eventId) return;
+    setFeedLoading(true);
+    const { data, error } = await supabase.from('match_feed_settings').select('*').eq('event_id', eventId).maybeSingle();
+    setFeedLoading(false);
+    if (error) {
+      console.warn('[EventDetailPage] match_feed_settings', error.message);
+      return;
+    }
+    if (!data) {
+      setFeedEnabled(false);
+      setFeedTemplate('hero_clean');
+      setFeedPlayerUrl('');
+      setFeedOppLogoUrl('');
+      setFeedHeadline('');
+      setFeedSubline('');
+      return;
+    }
+    const row = mapMatchFeedSettingsRow(data as Record<string, unknown>);
+    setFeedEnabled(row.is_feed_enabled);
+    setFeedTemplate(row.template_key);
+    setFeedPlayerUrl(row.player_image_url ?? '');
+    setFeedOppLogoUrl(row.opponent_logo_url ?? '');
+    setFeedHeadline(row.headline_override ?? '');
+    setFeedSubline(row.subline_override ?? '');
+  }, [eventId]);
+
+  useEffect(() => {
+    if (event?.kind === 'match') loadFeedSettings().catch(() => {});
+  }, [event?.kind, loadFeedSettings]);
+
   useEffect(() => {
     const loadRsvp = async () => {
       if (!eventId || !playerId) {
@@ -518,6 +587,38 @@ export const EventDetailPage: React.FC = () => {
     };
     loadRsvp();
   }, [eventId, playerId]);
+
+  const saveFeedSettings = useCallback(async () => {
+    if (!eventId || !isTrainerOrAdmin || event?.kind !== 'match') return;
+    setFeedSaving(true);
+    const payload = {
+      event_id: eventId,
+      is_feed_enabled: feedEnabled,
+      template_key: feedTemplate,
+      player_image_url: feedPlayerUrl.trim() === '' ? null : feedPlayerUrl.trim(),
+      opponent_logo_url: feedOppLogoUrl.trim() === '' ? null : feedOppLogoUrl.trim(),
+      headline_override: feedHeadline.trim() === '' ? null : feedHeadline.trim(),
+      subline_override: feedSubline.trim() === '' ? null : feedSubline.trim(),
+    };
+    const { error } = await supabase.from('match_feed_settings').upsert(payload, { onConflict: 'event_id' });
+    setFeedSaving(false);
+    if (error) {
+      console.warn('[EventDetailPage] feed save', error.message);
+      return;
+    }
+    await loadFeedSettings();
+  }, [
+    eventId,
+    event?.kind,
+    isTrainerOrAdmin,
+    feedEnabled,
+    feedTemplate,
+    feedPlayerUrl,
+    feedOppLogoUrl,
+    feedHeadline,
+    feedSubline,
+    loadFeedSettings,
+  ]);
 
   const loadEventAttendance = useCallback(async () => {
     if (!eventId) return;
@@ -717,7 +818,8 @@ export const EventDetailPage: React.FC = () => {
             eventType={(event as any).type ?? undefined}
             matchType={
               event.kind === 'match'
-                ? (!event.type || event.type === 'game' ? 'league' : event.type)
+                ? (event.match_type ??
+                    (!event.type || event.type === 'game' ? 'league' : event.type))
                 : null
             }
             notes={event.notes}
@@ -923,6 +1025,83 @@ export const EventDetailPage: React.FC = () => {
 
         {event.kind === 'match' && event.match_id && isTrainerOrAdmin && (
           <TrainerMatchSetupBlock matchId={event.match_id} players={players} />
+        )}
+
+        {event.kind === 'match' && isTrainerOrAdmin && (
+          <Card className="flex flex-col gap-3">
+            <CardTitle>Feed / Spieltag (Home)</CardTitle>
+            <p className="text-xs leading-snug text-[var(--text-sub)]">
+              Wenn dieses Spiel auf der Startseite als nächstes Match erscheint, kann die große Hero-Karte hier
+              vorbereitet werden (nur URL-Eingaben, kein Upload).
+            </p>
+            {feedLoading ? <p className="text-sm text-[var(--text-sub)]">Lade Feed-Einstellungen…</p> : null}
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-main)]">
+              <input
+                type="checkbox"
+                checked={feedEnabled}
+                onChange={(e) => setFeedEnabled(e.target.checked)}
+                className="h-4 w-4 rounded border border-white/25 bg-black/30"
+              />
+              Im Home Feed anzeigen
+            </label>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Template</label>
+              <select
+                value={feedTemplate}
+                onChange={(e) => setFeedTemplate(normalizeMatchFeedTemplateKey(e.target.value))}
+                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+              >
+                {MATCH_FEED_TEMPLATE_KEYS.map((k) => (
+                  <option key={k} value={k}>
+                    {MATCH_FEED_TEMPLATE_LABELS[k]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Spielerbild URL (optional)</label>
+              <input
+                type="url"
+                value={feedPlayerUrl}
+                onChange={(e) => setFeedPlayerUrl(e.target.value)}
+                placeholder="https://…"
+                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Gegnerlogo URL (optional)</label>
+              <input
+                type="url"
+                value={feedOppLogoUrl}
+                onChange={(e) => setFeedOppLogoUrl(e.target.value)}
+                placeholder="https://…"
+                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Überschrift (optional)</label>
+              <input
+                type="text"
+                value={feedHeadline}
+                onChange={(e) => setFeedHeadline(e.target.value)}
+                placeholder="Leer = Standard (z. B. MATCHDAY)"
+                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Subline (optional)</label>
+              <input
+                type="text"
+                value={feedSubline}
+                onChange={(e) => setFeedSubline(e.target.value)}
+                placeholder="Leer = z. B. Gegen …"
+                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
+              />
+            </div>
+            <Button variant="primary" size="sm" disabled={feedSaving} onClick={() => void saveFeedSettings()}>
+              {feedSaving ? 'Speichern…' : 'Feed-Einstellungen speichern'}
+            </Button>
+          </Card>
         )}
 
         <Modal
