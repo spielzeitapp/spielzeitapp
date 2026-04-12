@@ -9,6 +9,7 @@ import { MatchdayHeroCard } from '../../components/feed/MatchdayHeroCard';
 import { useMatchFeedSettingsMap } from '../../hooks/useMatchFeedSettingsMap';
 import {
   buildDemoHomeMatchEvents,
+  HOME_FEED_HERO_STATUS_LABEL,
   HOME_MATCH_STATUS_LABEL,
   pickHomeMatchCard,
 } from './homeFeedBuilder';
@@ -57,7 +58,7 @@ export const HomePage: React.FC = () => {
           {...buildMatchdayHeroCardProps({
             event: matchPick.event,
             feed,
-            statusLabel: HOME_MATCH_STATUS_LABEL[matchPick.status],
+            statusLabel: HOME_FEED_HERO_STATUS_LABEL[matchPick.status],
           })}
         />
       );

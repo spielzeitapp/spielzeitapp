@@ -7,6 +7,9 @@ import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../../components/matc
 import type { MatchdayHeroCardProps } from '../../components/feed/MatchdayHeroCard';
 import { splitStatusForHero } from './homeFeedBuilder';
 
+/** Platzhalter wenn in den Event-Daten kein Gegner-Name gesetzt ist (kein fester Vereinsname). */
+const MISSING_NAME = '–';
+
 function formatKickoffTime(startsAt: string | null): string {
   if (!startsAt) return '–';
   const d = new Date(startsAt);
@@ -28,7 +31,8 @@ export function buildMatchdayHeroCardProps(args: {
 }): MatchdayHeroCardProps {
   const { event, feed, statusLabel } = args;
   const ourClubName = getOurTeamDisplayName();
-  const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
+  const oppRaw = (event.opponent ?? '').trim();
+  const opponentDisplay = oppRaw || MISSING_NAME;
   const isHome = event.is_home;
 
   let homeTeam: string;
@@ -40,23 +44,23 @@ export function buildMatchdayHeroCardProps(args: {
 
   if (isHome === true) {
     homeTeam = ourClubName;
-    awayTeamLabel = opponent;
+    awayTeamLabel = opponentDisplay;
     matchLeftName = ourClubName;
-    matchRightName = opponent;
+    matchRightName = opponentDisplay;
     matchLeftColLabel = 'Heim';
     matchRightColLabel = 'Gegner';
   } else if (isHome === false) {
     homeTeam = ourClubName;
-    awayTeamLabel = opponent;
-    matchLeftName = opponent;
+    awayTeamLabel = opponentDisplay;
+    matchLeftName = opponentDisplay;
     matchRightName = ourClubName;
     matchLeftColLabel = 'Gegner';
     matchRightColLabel = 'Heim';
   } else {
     homeTeam = ourClubName;
-    awayTeamLabel = opponent;
+    awayTeamLabel = opponentDisplay;
     matchLeftName = ourClubName;
-    matchRightName = opponent;
+    matchRightName = opponentDisplay;
     matchLeftColLabel = 'Team';
     matchRightColLabel = 'Gegner';
   }
@@ -66,15 +70,16 @@ export function buildMatchdayHeroCardProps(args: {
   const sublineOv = (feed.subline_override ?? '').trim();
   const title = headline || emphasis || statusLabel;
   const titleLead = headline ? null : lead || null;
-  const subtitle =
-    sublineOv ||
-    (opponent && opponent !== 'Gegner' ? `Gegen ${opponent}` : null);
+  const subtitle = sublineOv || (oppRaw ? `Gegen ${oppRaw}` : null);
 
   const parsedLocation = splitCombinedLocation(event.location);
   const placeLine = parsedLocation.place;
   const addressLine = parsedLocation.address || (event.address ?? '').trim();
-  const location = (formatFullLocation(placeLine, addressLine) || '').trim() || '—';
-  const meetup = formatMeetupTimeOnlyDe(event.meeting_at) || '—';
+  const locCombined = (formatFullLocation(placeLine, addressLine) || '').trim();
+  const location = locCombined.length > 0 ? locCombined : null;
+
+  const meetupFormatted = formatMeetupTimeOnlyDe(event.meeting_at).trim();
+  const meetup = meetupFormatted.length > 0 ? meetupFormatted : null;
   const kickoff = formatKickoffTime(event.starts_at);
 
   const noteParts = (event.notes ?? '')

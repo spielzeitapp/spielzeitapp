@@ -3,8 +3,8 @@ CREATE TABLE IF NOT EXISTS public.match_feed_settings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id uuid NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
   is_feed_enabled boolean NOT NULL DEFAULT false,
-  template_key text NOT NULL DEFAULT 'hero_clean'
-    CHECK (template_key IN ('hero_red_player_right', 'hero_clean')),
+  template_key text NOT NULL DEFAULT 'spieltag_clean'
+    CHECK (template_key IN ('spieltag_hero_player_right', 'spieltag_clean')),
   player_image_url text NULL,
   opponent_logo_url text NULL,
   headline_override text NULL,

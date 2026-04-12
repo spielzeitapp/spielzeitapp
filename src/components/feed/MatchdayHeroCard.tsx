@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, ChevronRight, MapPin } from 'lucide-react';
 import type { MatchFeedTemplateKey } from '../../features/home/feedTemplates';
@@ -18,8 +18,10 @@ export type MatchdayHeroCardProps = {
   matchLeftColLabel: string;
   matchRightColLabel: string;
   kickoff: string;
-  meetup: string;
-  location: string;
+  /** null = Treffpunkt-Box ausblenden */
+  meetup: string | null;
+  /** null = Ort-Box ausblenden */
+  location: string | null;
   teamLogoUrl?: string | null;
   opponentLogoUrl?: string | null;
   playerImageUrl?: string | null;
@@ -67,7 +69,14 @@ export const MatchdayHeroCard: React.FC<MatchdayHeroCardProps> = ({
   eventId,
   ctaLabel,
 }) => {
-  const showPlayer = templateKey === 'hero_red_player_right' && Boolean(playerImageUrl?.trim());
+  const [playerImgFailed, setPlayerImgFailed] = useState(false);
+  const playerUrl = playerImageUrl?.trim() ?? '';
+  const wantsPlayer =
+    templateKey === 'spieltag_hero_player_right' && Boolean(playerUrl) && !playerImgFailed;
+
+  useEffect(() => {
+    setPlayerImgFailed(false);
+  }, [playerUrl, templateKey]);
 
   const headerBlock = (
     <header className="flex min-w-0 flex-col items-center gap-4 text-center">
@@ -91,7 +100,7 @@ export const MatchdayHeroCard: React.FC<MatchdayHeroCardProps> = ({
         headerTitle={matchTypeLine ?? null}
         leftName={matchLeftName}
         rightName={matchRightName}
-        opponentLogoUrl={opponentLogoUrl ?? null}
+        opponentLogoUrl={opponentLogoUrl?.trim() ? opponentLogoUrl : null}
         timeDisplay={kickoff}
         isMatch
         showScore={false}
@@ -109,32 +118,40 @@ export const MatchdayHeroCard: React.FC<MatchdayHeroCardProps> = ({
     </div>
   );
 
-  const metaGrid = (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-      <div className="flex min-h-[4.5rem] flex-col justify-center rounded-2xl border border-white/[0.08] bg-black/35 px-4 py-3.5 backdrop-blur-sm">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-600/20 text-red-400">
-            <Clock className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1 text-left">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Treffpunkt</p>
-            <p className="mt-1 truncate text-sm font-semibold text-white">{meetup}</p>
+  const showMeta = meetup != null || location != null;
+
+  const metaGrid = showMeta ? (
+    <div
+      className={`grid gap-3 ${meetup != null && location != null ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}
+    >
+      {meetup != null ? (
+        <div className="flex min-h-[4.5rem] flex-col justify-center rounded-2xl border border-white/[0.08] bg-black/35 px-4 py-3.5 backdrop-blur-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-600/20 text-red-400">
+              <Clock className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Treffpunkt</p>
+              <p className="mt-1 truncate text-sm font-semibold text-white">{meetup}</p>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="flex min-h-[4.5rem] flex-col justify-center rounded-2xl border border-white/[0.08] bg-black/35 px-4 py-3.5 backdrop-blur-sm">
-        <div className="flex items-start gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-600/20 text-red-400">
-            <MapPin className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1 text-left">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Ort</p>
-            <p className="mt-1 text-sm font-semibold leading-snug text-white">{location}</p>
+      ) : null}
+      {location != null ? (
+        <div className="flex min-h-[4.5rem] flex-col justify-center rounded-2xl border border-white/[0.08] bg-black/35 px-4 py-3.5 backdrop-blur-sm">
+          <div className="flex items-start gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-600/20 text-red-400">
+              <MapPin className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/45">Ort</p>
+              <p className="mt-1 text-sm font-semibold leading-snug text-white">{location}</p>
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
-  );
+  ) : null;
 
   const cta = (
     <Link
@@ -180,7 +197,7 @@ export const MatchdayHeroCard: React.FC<MatchdayHeroCardProps> = ({
         />
 
         <div className="relative flex flex-col gap-8">
-          {showPlayer ? (
+          {wantsPlayer ? (
             <div className="flex flex-row items-start gap-4">
               <div className="flex min-w-0 flex-1 flex-col gap-8">
                 {headerBlock}
@@ -188,12 +205,10 @@ export const MatchdayHeroCard: React.FC<MatchdayHeroCardProps> = ({
               </div>
               <div className="shrink-0 pt-1">
                 <img
-                  src={playerImageUrl!.trim()}
+                  src={playerUrl}
                   alt=""
                   className="h-[132px] w-[96px] rounded-2xl border border-white/15 object-cover shadow-lg sm:h-[152px] sm:w-[108px]"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = 'none';
-                  }}
+                  onError={() => setPlayerImgFailed(true)}
                 />
               </div>
             </div>

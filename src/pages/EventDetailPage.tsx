@@ -480,7 +480,7 @@ export const EventDetailPage: React.FC = () => {
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedSaving, setFeedSaving] = useState(false);
   const [feedEnabled, setFeedEnabled] = useState(false);
-  const [feedTemplate, setFeedTemplate] = useState<MatchFeedTemplateKey>('hero_clean');
+  const [feedTemplate, setFeedTemplate] = useState<MatchFeedTemplateKey>('spieltag_clean');
   const [feedPlayerUrl, setFeedPlayerUrl] = useState('');
   const [feedOppLogoUrl, setFeedOppLogoUrl] = useState('');
   const [feedHeadline, setFeedHeadline] = useState('');
@@ -542,7 +542,7 @@ export const EventDetailPage: React.FC = () => {
     }
     if (!data) {
       setFeedEnabled(false);
-      setFeedTemplate('hero_clean');
+      setFeedTemplate('spieltag_clean');
       setFeedPlayerUrl('');
       setFeedOppLogoUrl('');
       setFeedHeadline('');
@@ -1083,7 +1083,7 @@ export const EventDetailPage: React.FC = () => {
                 type="text"
                 value={feedHeadline}
                 onChange={(e) => setFeedHeadline(e.target.value)}
-                placeholder="Leer = Standard (z. B. MATCHDAY)"
+                placeholder="Leer = Standard (z. B. SPIELTAG)"
                 className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
               />
             </div>

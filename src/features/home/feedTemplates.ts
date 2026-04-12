@@ -1,17 +1,19 @@
-export type MatchFeedTemplateKey = 'hero_red_player_right' | 'hero_clean';
+export type MatchFeedTemplateKey = 'spieltag_hero_player_right' | 'spieltag_clean';
 
 export const MATCH_FEED_TEMPLATE_KEYS: MatchFeedTemplateKey[] = [
-  'hero_red_player_right',
-  'hero_clean',
+  'spieltag_hero_player_right',
+  'spieltag_clean',
 ];
 
 export const MATCH_FEED_TEMPLATE_LABELS: Record<MatchFeedTemplateKey, string> = {
-  hero_red_player_right: 'Hero mit Spieler rechts',
-  hero_clean: 'Hero clean (ohne Spielerbild)',
+  spieltag_hero_player_right: 'Spieltag Hero mit Spieler rechts',
+  spieltag_clean: 'Spieltag clean (ohne Spielerbild)',
 };
 
+/** Akzeptiert neue Keys und Legacy-Keys aus älteren DB-Zeilen. */
 export function normalizeMatchFeedTemplateKey(raw: string | null | undefined): MatchFeedTemplateKey {
   const k = String(raw ?? '').trim().toLowerCase();
-  if (k === 'hero_red_player_right') return 'hero_red_player_right';
-  return 'hero_clean';
+  if (k === 'spieltag_hero_player_right' || k === 'hero_red_player_right') return 'spieltag_hero_player_right';
+  if (k === 'spieltag_clean' || k === 'hero_clean') return 'spieltag_clean';
+  return 'spieltag_clean';
 }

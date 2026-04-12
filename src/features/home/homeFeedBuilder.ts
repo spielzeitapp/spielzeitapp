@@ -187,6 +187,13 @@ export const HOME_MATCH_STATUS_LABEL: Record<HomeMatchCardPick['status'], string
   next: 'NÄCHSTES SPIEL',
 };
 
+/** Statuszeilen für die Home Feed Hero Card (SPIELTAG statt MATCHDAY). */
+export const HOME_FEED_HERO_STATUS_LABEL: Record<HomeMatchCardPick['status'], string> = {
+  today: 'HEUTE IST SPIELTAG',
+  tomorrow: 'MORGEN IST SPIELTAG',
+  next: 'NÄCHSTES SPIEL',
+};
+
 /** Kleine Zeile + große Hero-Zeile aus Status-Label (z. B. Home / MatchdayHeroCard). */
 export function splitStatusForHero(statusLabel: string): { lead: string; emphasis: string } {
   const parts = statusLabel.trim().split(/\s+/).filter(Boolean);
