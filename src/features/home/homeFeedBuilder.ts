@@ -181,17 +181,17 @@ export type HomeMatchCardPick = {
   status: 'today' | 'tomorrow' | 'next';
 };
 
-export const HOME_MATCH_STATUS_LABEL: Record<HomeMatchCardPick['status'], string> = {
-  today: 'HEUTE IST MATCHDAY',
-  tomorrow: 'MORGEN IST MATCHDAY',
-  next: 'NÄCHSTES SPIEL',
-};
-
 /** Statuszeilen für die Home Feed Hero Card (SPIELTAG statt MATCHDAY). */
 export const HOME_FEED_HERO_STATUS_LABEL: Record<HomeMatchCardPick['status'], string> = {
   today: 'HEUTE IST SPIELTAG',
   tomorrow: 'MORGEN IST SPIELTAG',
   next: 'NÄCHSTES SPIEL',
+};
+
+/** Home: sachliche Überschrift wenn kein Spieltag (heute) – keine SPIELTAG-/MATCHDAY-Emotion. */
+export const HOME_NEXT_MATCH_ORG_LABEL: Record<'tomorrow' | 'next', string> = {
+  tomorrow: 'Spiel morgen',
+  next: 'Nächstes Spiel',
 };
 
 /** Kleine Zeile + große Hero-Zeile aus Status-Label (z. B. Home / MatchdayHeroCard). */

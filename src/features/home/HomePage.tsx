@@ -10,7 +10,7 @@ import { useMatchFeedSettingsMap } from '../../hooks/useMatchFeedSettingsMap';
 import {
   buildDemoHomeMatchEvents,
   HOME_FEED_HERO_STATUS_LABEL,
-  HOME_MATCH_STATUS_LABEL,
+  HOME_NEXT_MATCH_ORG_LABEL,
   pickHomeMatchCard,
 } from './homeFeedBuilder';
 import { HomeHeader } from './HomeHeader';
@@ -52,22 +52,38 @@ export const HomePage: React.FC = () => {
   const homeMatchCardEl = useMemo(() => {
     if (!matchPick) return null;
     const feed = feedByEventId[matchPick.event.id];
-    if (feed?.is_feed_enabled) {
+    const isSpieltagHeute = matchPick.status === 'today';
+
+    if (isSpieltagHeute) {
+      if (feed?.is_feed_enabled) {
+        return (
+          <MatchdayHeroCard
+            {...buildMatchdayHeroCardProps({
+              event: matchPick.event,
+              feed,
+              statusLabel: HOME_FEED_HERO_STATUS_LABEL.today,
+            })}
+          />
+        );
+      }
       return (
-        <MatchdayHeroCard
-          {...buildMatchdayHeroCardProps({
-            event: matchPick.event,
-            feed,
-            statusLabel: HOME_FEED_HERO_STATUS_LABEL[matchPick.status],
-          })}
+        <MatchdayCard
+          event={matchPick.event}
+          teamName={teamName}
+          statusLabel={HOME_FEED_HERO_STATUS_LABEL.today}
         />
       );
     }
+
+    const orgLabel =
+      matchPick.status === 'tomorrow'
+        ? HOME_NEXT_MATCH_ORG_LABEL.tomorrow
+        : HOME_NEXT_MATCH_ORG_LABEL.next;
     return (
       <MatchdayCard
         event={matchPick.event}
         teamName={teamName}
-        statusLabel={HOME_MATCH_STATUS_LABEL[matchPick.status]}
+        statusLabel={orgLabel}
       />
     );
   }, [matchPick, feedByEventId, teamName]);
