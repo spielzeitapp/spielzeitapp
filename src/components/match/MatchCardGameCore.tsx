@@ -86,11 +86,20 @@ type KickoffBlockProps = {
   showUhr: boolean;
   location: string | null | undefined;
   headerLabel?: string;
+  /** Eine Zeile direkt oberhalb von `headerLabel` (z. B. Spielart aus `match_type`). */
+  subtitleAboveHeader?: string | null;
   hero?: boolean;
 };
 
 /** Für Training/Event-Zeile in derselben Karte (Termine). */
-export function MatchCardKickoffBlock({ timeDisplay, showUhr, location, headerLabel, hero }: KickoffBlockProps) {
+export function MatchCardKickoffBlock({
+  timeDisplay,
+  showUhr,
+  location,
+  headerLabel,
+  subtitleAboveHeader,
+  hero,
+}: KickoffBlockProps) {
   const hasLocation = location != null && location.trim() !== '';
   const locationLines = hasLocation
     ? formatLocationLines(location)
@@ -102,6 +111,17 @@ export function MatchCardKickoffBlock({ timeDisplay, showUhr, location, headerLa
 
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
+      {subtitleAboveHeader ? (
+        <div
+          className={
+            hero
+              ? 'mb-1 max-w-[min(220px,85vw)] text-base font-semibold leading-tight text-white sm:text-lg'
+              : 'mb-0.5 max-w-[200px] text-[15px] font-semibold leading-tight text-white sm:text-base'
+          }
+        >
+          {subtitleAboveHeader}
+        </div>
+      ) : null}
       <div
         className={`${
           hero ? 'text-[10px] sm:text-[11px] tracking-[0.42em]' : 'text-[14px] tracking-[0.35em]'
@@ -154,6 +174,8 @@ export type MatchCardGameCoreProps = {
   /** Nur home-hero: kleine Spalten-Überschriften (z. B. Heim / Gegner). */
   leftColumnLabel?: string;
   rightColumnLabel?: string;
+  /** Termine: Spielart (`match_type`) direkt oberhalb „ANPFIFF“ in der Mittelspalte. */
+  kickoffSubtitleAboveHeader?: string | null;
 };
 
 /**
@@ -178,6 +200,7 @@ export function MatchCardGameCore({
   variant = 'schedule',
   leftColumnLabel,
   rightColumnLabel,
+  kickoffSubtitleAboveHeader,
 }: MatchCardGameCoreProps) {
   const hero = variant === 'home-hero';
   const leftSplit = splitPrefixAndName(leftName ?? '');
@@ -226,6 +249,7 @@ export function MatchCardGameCore({
             showUhr={!isMatch || !showScore}
             location={kickoffLocation}
             headerLabel="ANPFIFF"
+            subtitleAboveHeader={kickoffSubtitleAboveHeader}
             hero={hero}
           />
         </div>
