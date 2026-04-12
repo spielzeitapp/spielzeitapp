@@ -1,6 +1,6 @@
 import type { MatchFeedTemplateKey } from '../features/home/feedTemplates';
 
-/** Zeile aus `public.match_feed_settings`. */
+/** Logische Feed-Einstellungen (Quelle: `events`-Spalten show_in_feed / feed_template / …). */
 export type MatchFeedSettingsRow = {
   id: string;
   event_id: string;

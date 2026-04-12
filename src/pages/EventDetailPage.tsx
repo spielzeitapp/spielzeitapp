@@ -23,8 +23,6 @@ import {
   normalizeMatchFeedTemplateKey,
   type MatchFeedTemplateKey,
 } from '../features/home/feedTemplates';
-import type { MatchFeedSettingsRow } from '../types/matchFeedSettings';
-
 type EventDbRow = {
   id: string;
   team_season_id: string;
@@ -83,21 +81,6 @@ function normalizeEventStatus(s: string | null): EventStatus {
   if (v === 'finished') return 'finished';
   if (v === 'canceled') return 'canceled';
   return 'upcoming';
-}
-
-function mapMatchFeedSettingsRow(r: Record<string, unknown>): MatchFeedSettingsRow {
-  return {
-    id: String(r.id),
-    event_id: String(r.event_id),
-    is_feed_enabled: Boolean(r.is_feed_enabled),
-    template_key: normalizeMatchFeedTemplateKey(String(r.template_key ?? '')),
-    player_image_url: r.player_image_url != null ? String(r.player_image_url) : null,
-    opponent_logo_url: r.opponent_logo_url != null ? String(r.opponent_logo_url) : null,
-    headline_override: r.headline_override != null ? String(r.headline_override) : null,
-    subline_override: r.subline_override != null ? String(r.subline_override) : null,
-    created_at: String(r.created_at ?? ''),
-    updated_at: String(r.updated_at ?? ''),
-  };
 }
 
 function mapRowToEventRow(r: EventDbRow): EventRow {
@@ -175,12 +158,12 @@ export const EventDetailPage: React.FC = () => {
 
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedSaving, setFeedSaving] = useState(false);
-  const [feedEnabled, setFeedEnabled] = useState(false);
-  const [feedTemplate, setFeedTemplate] = useState<MatchFeedTemplateKey>('spieltag_clean');
-  const [feedPlayerUrl, setFeedPlayerUrl] = useState('');
-  const [feedOppLogoUrl, setFeedOppLogoUrl] = useState('');
-  const [feedHeadline, setFeedHeadline] = useState('');
-  const [feedSubline, setFeedSubline] = useState('');
+  const [showInFeed, setShowInFeed] = useState(false);
+  const [template, setTemplate] = useState<MatchFeedTemplateKey>('spieltag_clean');
+  const [playerImage, setPlayerImage] = useState('');
+  const [opponentLogo, setOpponentLogo] = useState('');
+  const [title, setTitle] = useState('');
+  const [subline, setSubline] = useState('');
 
   const { teamLabel, role: roleFromHook } = useActiveTeamSeason();
   const effectiveRole = normalizeRole(roleFromHook);
@@ -227,36 +210,29 @@ export const EventDetailPage: React.FC = () => {
     loadEvent();
   }, [loadEvent]);
 
-  const loadFeedSettings = useCallback(async () => {
+  const loadFeedFromEvent = useCallback(async () => {
     if (!eventId) return;
     setFeedLoading(true);
-    const { data, error } = await supabase.from('match_feed_settings').select('*').eq('event_id', eventId).maybeSingle();
+    const { data, error } = await supabase.from('events').select('*').eq('id', eventId).single();
     setFeedLoading(false);
     if (error) {
-      console.warn('[EventDetailPage] match_feed_settings', error.message);
+      console.error('[EventDetailPage] feed load events', error);
       return;
     }
-    if (!data) {
-      setFeedEnabled(false);
-      setFeedTemplate('spieltag_clean');
-      setFeedPlayerUrl('');
-      setFeedOppLogoUrl('');
-      setFeedHeadline('');
-      setFeedSubline('');
-      return;
-    }
-    const row = mapMatchFeedSettingsRow(data as Record<string, unknown>);
-    setFeedEnabled(row.is_feed_enabled);
-    setFeedTemplate(row.template_key);
-    setFeedPlayerUrl(row.player_image_url ?? '');
-    setFeedOppLogoUrl(row.opponent_logo_url ?? '');
-    setFeedHeadline(row.headline_override ?? '');
-    setFeedSubline(row.subline_override ?? '');
+    if (!data) return;
+    const d = data as Record<string, unknown>;
+    setShowInFeed(Boolean(d.show_in_feed));
+    setTemplate(normalizeMatchFeedTemplateKey(String(d.feed_template ?? '')));
+    setPlayerImage(d.player_image_url != null ? String(d.player_image_url) : '');
+    setOpponentLogo(d.opponent_logo_url != null ? String(d.opponent_logo_url) : '');
+    setTitle(d.feed_title != null ? String(d.feed_title) : '');
+    setSubline(d.feed_subline != null ? String(d.feed_subline) : '');
   }, [eventId]);
 
   useEffect(() => {
-    if (event?.kind === 'match') loadFeedSettings().catch(() => {});
-  }, [event?.kind, loadFeedSettings]);
+    if (!eventId || event?.kind !== 'match') return;
+    void loadFeedFromEvent();
+  }, [eventId, event?.kind, loadFeedFromEvent]);
 
   useEffect(() => {
     if (!event || event.kind !== 'match' || !isTrainerOrAdmin || event.match_id) {
@@ -356,33 +332,34 @@ export const EventDetailPage: React.FC = () => {
   const saveFeedSettings = useCallback(async () => {
     if (!eventId || !isTrainerOrAdmin || event?.kind !== 'match') return;
     setFeedSaving(true);
-    const payload = {
-      event_id: eventId,
-      is_feed_enabled: feedEnabled,
-      template_key: feedTemplate,
-      player_image_url: feedPlayerUrl.trim() === '' ? null : feedPlayerUrl.trim(),
-      opponent_logo_url: feedOppLogoUrl.trim() === '' ? null : feedOppLogoUrl.trim(),
-      headline_override: feedHeadline.trim() === '' ? null : feedHeadline.trim(),
-      subline_override: feedSubline.trim() === '' ? null : feedSubline.trim(),
-    };
-    const { error } = await supabase.from('match_feed_settings').upsert(payload, { onConflict: 'event_id' });
+    const { error } = await supabase
+      .from('events')
+      .update({
+        show_in_feed: showInFeed,
+        feed_template: template,
+        player_image_url: playerImage.trim() === '' ? null : playerImage.trim(),
+        opponent_logo_url: opponentLogo.trim() === '' ? null : opponentLogo.trim(),
+        feed_title: title.trim() === '' ? null : title.trim(),
+        feed_subline: subline.trim() === '' ? null : subline.trim(),
+      })
+      .eq('id', eventId);
     setFeedSaving(false);
     if (error) {
-      console.warn('[EventDetailPage] feed save', error.message);
+      console.error('[EventDetailPage] feed save events', error);
       return;
     }
-    await loadFeedSettings();
+    await loadFeedFromEvent();
   }, [
     eventId,
     event?.kind,
     isTrainerOrAdmin,
-    feedEnabled,
-    feedTemplate,
-    feedPlayerUrl,
-    feedOppLogoUrl,
-    feedHeadline,
-    feedSubline,
-    loadFeedSettings,
+    showInFeed,
+    template,
+    playerImage,
+    opponentLogo,
+    title,
+    subline,
+    loadFeedFromEvent,
   ]);
 
   const loadEventAttendance = useCallback(async () => {
@@ -817,8 +794,8 @@ export const EventDetailPage: React.FC = () => {
             <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-main)]">
               <input
                 type="checkbox"
-                checked={feedEnabled}
-                onChange={(e) => setFeedEnabled(e.target.checked)}
+                checked={showInFeed}
+                onChange={(e) => setShowInFeed(e.target.checked)}
                 className="h-4 w-4 rounded border border-white/25 bg-black/30"
               />
               Im Home Feed anzeigen
@@ -826,8 +803,8 @@ export const EventDetailPage: React.FC = () => {
             <div>
               <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Template</label>
               <select
-                value={feedTemplate}
-                onChange={(e) => setFeedTemplate(normalizeMatchFeedTemplateKey(e.target.value))}
+                value={template}
+                onChange={(e) => setTemplate(normalizeMatchFeedTemplateKey(e.target.value))}
                 className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
               >
                 {MATCH_FEED_TEMPLATE_KEYS.map((k) => (
@@ -841,8 +818,8 @@ export const EventDetailPage: React.FC = () => {
               <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Spielerbild URL (optional)</label>
               <input
                 type="url"
-                value={feedPlayerUrl}
-                onChange={(e) => setFeedPlayerUrl(e.target.value)}
+                value={playerImage}
+                onChange={(e) => setPlayerImage(e.target.value)}
                 placeholder="https://…"
                 className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
               />
@@ -851,8 +828,8 @@ export const EventDetailPage: React.FC = () => {
               <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Gegnerlogo URL (optional)</label>
               <input
                 type="url"
-                value={feedOppLogoUrl}
-                onChange={(e) => setFeedOppLogoUrl(e.target.value)}
+                value={opponentLogo}
+                onChange={(e) => setOpponentLogo(e.target.value)}
                 placeholder="https://…"
                 className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
               />
@@ -861,8 +838,8 @@ export const EventDetailPage: React.FC = () => {
               <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Überschrift (optional)</label>
               <input
                 type="text"
-                value={feedHeadline}
-                onChange={(e) => setFeedHeadline(e.target.value)}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="Leer = Standard (z. B. SPIELTAG)"
                 className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
               />
@@ -871,13 +848,13 @@ export const EventDetailPage: React.FC = () => {
               <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Subline (optional)</label>
               <input
                 type="text"
-                value={feedSubline}
-                onChange={(e) => setFeedSubline(e.target.value)}
+                value={subline}
+                onChange={(e) => setSubline(e.target.value)}
                 placeholder="Leer = z. B. Gegen …"
                 className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-main)]"
               />
             </div>
-            <Button variant="primary" size="sm" disabled={feedSaving} onClick={() => void saveFeedSettings()}>
+            <Button variant="primary" size="sm" onClick={() => void saveFeedSettings()}>
               {feedSaving ? 'Speichern…' : 'Feed-Einstellungen speichern'}
             </Button>
           </Card>
