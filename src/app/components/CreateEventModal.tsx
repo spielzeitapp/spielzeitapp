@@ -47,10 +47,8 @@ function sanitizeEventsInsertRow(row: Record<string, unknown>): Record<string, u
 const MATCH_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'friendly', label: 'Freundschaftsspiel' },
   { value: 'league', label: 'Meisterschaftsspiel' },
-  { value: 'cup', label: 'Pokal' },
   { value: 'tournament', label: 'Turnier' },
   { value: 'test', label: 'Testspiel' },
-  { value: 'other', label: 'Sonstiges' },
 ];
 
 /** Nur diese Werte werden bei Spiel-Terminen in `events.match_type` geschrieben. */
