@@ -303,12 +303,50 @@ export async function replaceMatchLineupAndBench(
   }));
 
   const insLineup = await supabase.from('match_lineup').insert(lineupRows);
-  if (insLineup.error) return { error: insLineup.error.message };
+  if (insLineup.error) {
+    console.error('[liveMatchService] replaceMatchLineupAndBench match_lineup', insLineup.error);
+    return { error: insLineup.error.message };
+  }
 
   if (benchIds.length > 0) {
     const benchRows = benchIds.map((player_id) => ({ match_id: matchId, player_id }));
     const insBench = await supabase.from('match_bench').insert(benchRows);
-    if (insBench.error) return { error: insBench.error.message };
+    if (insBench.error) {
+      console.error('[liveMatchService] replaceMatchLineupAndBench match_bench', insBench.error);
+      return { error: insBench.error.message };
+    }
+  }
+
+  return { error: null };
+}
+
+/** Nach Aufstellung: Match auf „live“ setzen + Anpfiff-Event (Sekunde 0). */
+export async function persistLiveMatchBegin(matchId: string): Promise<{ error: string | null }> {
+  const now = new Date().toISOString();
+  const { error: uErr } = await updateMatchRow(matchId, {
+    status: 'live',
+    live_started_at: now,
+    live_is_running: true,
+    live_elapsed_seconds: 0,
+    score_home: 0,
+    score_away: 0,
+    live_period: 1,
+  });
+  if (uErr) {
+    console.error('[liveMatchService] persistLiveMatchBegin matches', uErr);
+    return { error: uErr };
+  }
+
+  const { error: eErr } = await saveMatchEvent({
+    match_id: matchId,
+    type: 'start',
+    minute: 0,
+    period: 1,
+    player_id: null,
+  });
+  if (eErr) {
+    console.error('[liveMatchService] persistLiveMatchBegin match_events', eErr);
+    return { error: eErr };
   }
 
   return { error: null };

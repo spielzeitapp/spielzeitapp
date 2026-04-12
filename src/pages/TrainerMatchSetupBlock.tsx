@@ -5,6 +5,7 @@ import { Button } from '../app/components/ui/Button';
 import type { PlayerItem } from '../hooks/usePlayers';
 import {
   LIVE_FIELD_SLOT_ORDER,
+  persistLiveMatchBegin,
   replaceMatchLineupAndBench,
   saveMatchSquadOnly,
 } from '../lib/liveMatchService';
@@ -203,10 +204,16 @@ export function TrainerMatchSetupBlock({
     setSetupError(null);
     const ordered = LIVE_FIELD_SLOT_ORDER.map((s) => startersBySlot[s] ?? null);
     const squadArr = [...squad].filter((pid) => validPlayerIds.has(pid));
-    const { error } = await replaceMatchLineupAndBench(matchId, ordered, squadArr);
+    const { error: lineupErr } = await replaceMatchLineupAndBench(matchId, ordered, squadArr);
+    if (lineupErr) {
+      setSetupError(lineupErr);
+      setSavingLive(false);
+      return;
+    }
+    const { error: liveErr } = await persistLiveMatchBegin(matchId);
     setSavingLive(false);
-    if (error) {
-      setSetupError(error);
+    if (liveErr) {
+      setSetupError(liveErr);
       return;
     }
     navigate(`/app/live?matchId=${encodeURIComponent(matchId)}`);
