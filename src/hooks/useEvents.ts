@@ -68,9 +68,9 @@ type EventDbRow = {
 const EVENTS_SELECT =
   "id, team_season_id, kind, type, match_type, opponent, is_home, location, address, starts_at, meeting_at, status, attendance_mode, notes, match_id, series_id, training_absence_deadline_disabled, created_by, created_at, updated_at";
 
-/** Ohne address / series_id / training_absence_deadline_disabled / match_type. */
+/** Ohne address / series_id / training_absence_deadline_disabled (match_type bleibt drin). */
 const EVENTS_SELECT_LEGACY =
-  "id, team_season_id, kind, type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, created_by, created_at, updated_at";
+  "id, team_season_id, kind, type, match_type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, created_by, created_at, updated_at";
 
 export function useEvents(teamSeasonId: string | null) {
   const [events, setEvents] = useState<EventRow[]>([]);
