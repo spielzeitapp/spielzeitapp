@@ -15,7 +15,7 @@ import type { PlayerItem } from '../hooks/usePlayers';
 import { downloadEventIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
-import { LIVE_FIELD_SLOT_ORDER, replaceMatchLineupAndBench } from '../lib/liveMatchService';
+import { LIVE_FIELD_SLOT_ORDER, replaceMatchLineupAndBench, saveMatchSquadOnly } from '../lib/liveMatchService';
 import type { FieldSlotId } from '../types/match';
 import {
   MATCH_FEED_TEMPLATE_KEYS,
@@ -170,25 +170,45 @@ const trainerRowStarter = 'border-emerald-500/45 bg-emerald-950/35 text-white';
 const trainerRowDisabled = 'cursor-not-allowed opacity-45 hover:bg-white/[0.05]';
 
 /** Trainer: Kader + Startelf + Bank; Live starten speichert match_lineup und navigiert zu /app/live. */
-function TrainerMatchSetupBlock({ matchId, players }: { matchId: string; players: PlayerItem[] }) {
+function TrainerMatchSetupBlock({
+  matchId,
+  players,
+  attendanceByPlayerId,
+}: {
+  matchId: string;
+  players: PlayerItem[];
+  /** Nur Anzeige-Filter: wenn mind. eine Zu-/Absage und mind. ein „ja“, nur Zugesagte im Kader-Pool. */
+  attendanceByPlayerId?: Record<string, 'yes' | 'no'>;
+}) {
   const navigate = useNavigate();
+
+  const poolPlayers = useMemo(() => {
+    const raw = attendanceByPlayerId ?? {};
+    const hasRows = Object.keys(raw).length > 0;
+    const hasYes = Object.values(raw).some((s) => s === 'yes');
+    if (!hasRows || !hasYes) return players;
+    return players.filter((p) => raw[(p.id ?? '').toLowerCase()] === 'yes');
+  }, [players, attendanceByPlayerId]);
+
   const sortedPlayers = useMemo(
     () =>
-      [...players].sort(
+      [...poolPlayers].sort(
         (a, b) =>
           (a.jersey_number ?? 9999) - (b.jersey_number ?? 9999) ||
           a.display_name.localeCompare(b.display_name, 'de'),
       ),
-    [players],
+    [poolPlayers],
   );
 
   const [squad, setSquad] = useState<Set<string>>(() => new Set());
   const [startersBySlot, setStartersBySlot] = useState<Record<FieldSlotId, string | null>>(emptyMatchSetupStarters);
   const [loadingLineup, setLoadingLineup] = useState(true);
   const [savingLive, setSavingLive] = useState(false);
+  const [savingSquad, setSavingSquad] = useState(false);
+  const [squadSaveMsg, setSquadSaveMsg] = useState<string | null>(null);
   const [setupError, setSetupError] = useState<string | null>(null);
 
-  const validPlayerIds = useMemo(() => new Set(players.map((p) => p.id)), [players]);
+  const validPlayerIds = useMemo(() => new Set(poolPlayers.map((p) => p.id)), [poolPlayers]);
 
   useEffect(() => {
     let cancelled = false;
@@ -239,7 +259,7 @@ function TrainerMatchSetupBlock({ matchId, players }: { matchId: string; players
       }
       return next;
     });
-  }, [players, validPlayerIds]);
+  }, [poolPlayers, validPlayerIds]);
 
   const starterCount = useMemo(
     () => LIVE_FIELD_SLOT_ORDER.filter((s) => startersBySlot[s] != null).length,
@@ -325,6 +345,20 @@ function TrainerMatchSetupBlock({ matchId, players }: { matchId: string; players
     navigate(`/app/live?matchId=${encodeURIComponent(matchId)}`);
   };
 
+  const onSaveSquadOnly = async () => {
+    setSquadSaveMsg(null);
+    setSavingSquad(true);
+    const ids = [...squad].filter((pid) => validPlayerIds.has(pid));
+    const { error } = await saveMatchSquadOnly(matchId, ids);
+    setSavingSquad(false);
+    if (error) {
+      setSquadSaveMsg(error);
+      return;
+    }
+    setSquadSaveMsg('Kader gespeichert.');
+    window.setTimeout(() => setSquadSaveMsg(null), 3500);
+  };
+
   return (
     <div className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-black/45 p-4 shadow-lg">
       {loadingLineup && <p className="text-sm text-white/55">Lade gespeicherte Aufstellung…</p>}
@@ -372,6 +406,23 @@ function TrainerMatchSetupBlock({ matchId, players }: { matchId: string; players
                 );
               })}
             </div>
+            <Button
+              type="button"
+              variant="secondary"
+              className="min-h-[48px] w-full rounded-2xl text-sm font-bold"
+              disabled={savingSquad || savingLive}
+              onClick={() => void onSaveSquadOnly()}
+            >
+              {savingSquad ? 'Speichern…' : 'Kader speichern'}
+            </Button>
+            {squadSaveMsg && (
+              <p
+                className={`text-center text-xs font-medium ${squadSaveMsg.includes('gespeichert') ? 'text-emerald-300' : 'text-red-400'}`}
+                role="status"
+              >
+                {squadSaveMsg}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-3">
@@ -1023,7 +1074,7 @@ export const EventDetailPage: React.FC = () => {
         )}
 
         {event.kind === 'match' && event.match_id && isTrainerOrAdmin && (
-          <TrainerMatchSetupBlock matchId={event.match_id} players={players} />
+          <TrainerMatchSetupBlock matchId={event.match_id} players={players} attendanceByPlayerId={eventAttendanceByPlayerId} />
         )}
 
         {event.kind === 'match' && isTrainerOrAdmin && (

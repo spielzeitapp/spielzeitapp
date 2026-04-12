@@ -240,6 +240,43 @@ export async function upsertMatchForSetup(params: {
   return { matchId: id, error: null };
 }
 
+/**
+ * Nur Match-Kader (Bank) speichern — ohne `match_lineup` anzutasten.
+ * Bank-Zeilen = Kader minus aktuelle Startelf aus `match_lineup`.
+ */
+export async function saveMatchSquadOnly(
+  matchId: string,
+  squadPlayerIds: string[],
+): Promise<{ error: string | null }> {
+  const uniqueSquad = [...new Set(squadPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean))];
+
+  const { data: lineupRows, error: lineupErr } = await supabase
+    .from('match_lineup')
+    .select('player_id')
+    .eq('match_id', matchId);
+
+  if (lineupErr) return { error: lineupErr.message };
+
+  const starterIds = new Set(
+    (lineupRows ?? [])
+      .map((r: { player_id: string | null }) => r.player_id)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0),
+  );
+
+  const benchIds = uniqueSquad.filter((id) => !starterIds.has(id));
+
+  const delBench = await supabase.from('match_bench').delete().eq('match_id', matchId);
+  if (delBench.error) return { error: delBench.error.message };
+
+  if (benchIds.length > 0) {
+    const benchRows = benchIds.map((player_id) => ({ match_id: matchId, player_id }));
+    const insBench = await supabase.from('match_bench').insert(benchRows);
+    if (insBench.error) return { error: insBench.error.message };
+  }
+
+  return { error: null };
+}
+
 /** Lineup + Bank komplett ersetzen (7 Slots + bench). */
 export async function replaceMatchLineupAndBench(
   matchId: string,
