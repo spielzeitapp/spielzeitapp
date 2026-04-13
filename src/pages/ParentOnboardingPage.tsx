@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { membershipRoleForSupabaseWrite } from '../lib/roles';
 import { Button } from '../app/components/ui/Button';
 import { Card, CardTitle } from '../app/components/ui/Card';
 
@@ -229,7 +230,7 @@ export const ParentOnboardingPage: React.FC = () => {
         {
           user_id: userId,
           team_season_id: selectedTeamSeasonId,
-          role: 'parent',
+          role: membershipRoleForSupabaseWrite('parent'),
         },
         { onConflict: 'user_id,team_season_id' }
       )

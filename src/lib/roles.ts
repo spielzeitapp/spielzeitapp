@@ -17,6 +17,35 @@ const CANONICAL_ROLES: RoleKey[] = ['admin', 'trainer', 'parent', 'player', 'fan
 
 const LEGACY_HEAD_COACH_ALIAS = ['h', 'e', 'a', 'd'].join('');
 
+/** Werte von `public.membership_role` (Postgres-Enum); kein Kurz-Alias `head`. */
+export type MembershipRoleEnum =
+  | 'fan'
+  | 'parent'
+  | 'player'
+  | 'trainer'
+  | 'co_trainer'
+  | 'head_coach';
+
+const MEMBERSHIP_ROLE_DB = new Set<MembershipRoleEnum>([
+  'fan',
+  'parent',
+  'player',
+  'trainer',
+  'co_trainer',
+  'head_coach',
+]);
+
+/**
+ * Wert fuer `memberships.role` vor Insert/Upsert/Update — mappt historische Aliasnamen und blockiert `head`.
+ * Verhindert PostgREST/Postgres: invalid input value for enum membership_role: "head".
+ */
+export function membershipRoleForSupabaseWrite(raw: string | null | undefined): MembershipRoleEnum {
+  const s = String(raw ?? '').trim().toLowerCase();
+  if (s === 'head' || s === LEGACY_HEAD_COACH_ALIAS) return 'head_coach';
+  if (MEMBERSHIP_ROLE_DB.has(s as MembershipRoleEnum)) return s as MembershipRoleEnum;
+  return 'fan';
+}
+
 /**
  * Normalisiert einen Rohtext aus der DB auf einen RoleKey (oder null bei leer/unbekannt).
  * - trim + lowercase

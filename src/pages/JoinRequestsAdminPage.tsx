@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { membershipRoleForSupabaseWrite } from '../lib/roles';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
 
@@ -98,6 +99,7 @@ export const JoinRequestsAdminPage: React.FC = () => {
           console.warn('[JOIN REQUESTS ADMIN] team_seasons lookup error', tsError);
         } else if (tsRows && tsRows.length > 0) {
           const roleToSet = req.requested_role === 'parent' ? 'parent' : 'player';
+          const roleForDb = membershipRoleForSupabaseWrite(roleToSet);
           // Für alle Saisons des Teams sicherstellen, dass Membership existiert
           for (const row of tsRows as { id: string }[]) {
             const teamSeasonId = row.id;
@@ -107,7 +109,7 @@ export const JoinRequestsAdminPage: React.FC = () => {
                 {
                   user_id: req.user_id,
                   team_season_id: teamSeasonId,
-                  role: roleToSet,
+                  role: roleForDb,
                 },
                 { onConflict: 'user_id,team_season_id' }
               );
