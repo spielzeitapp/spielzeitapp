@@ -17,7 +17,7 @@ import {
 interface RoleContextValue {
   /** Aktive UI-Rolle (Backend oder DEV-Testrolle). */
   role: UiRole;
-  /** Setzt UI-Testrolle (nur wirksam in DEV und wenn Backend admin/head). */
+  /** Setzt UI-Testrolle (nur wirksam in DEV und wenn Backend admin/head_coach). */
   setRole: (role: UiRole) => void;
   /** Setzt Testrolle zurück auf Backend-Rolle. */
   clearDevUiRole: () => void;

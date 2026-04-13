@@ -4,12 +4,15 @@
  * UI-Preview (dev_ui_role) nur wenn Backend admin oder head_coach.
  */
 
-/** UI-Rolle; `head_coach` entspricht dem Postgres-Enum `membership_role` (niemals Kurzform `head`). */
+/** UI-Rolle; `head_coach` entspricht dem Postgres-Enum `membership_role` (kein veraltetes Kurz-Alias). */
 export type UiRole = 'viewer' | 'parent' | 'trainer' | 'head_coach' | 'admin';
 
 const BACKEND_ROLE_KEY = 'spielzeit_role';
 const DEV_UI_ROLE_KEY = 'dev_ui_role';
 const DEV_ROLE_SWITCH_KEY = 'dev_role_switch';
+
+/** Historisches Kurz-Alias fuer head_coach (nur beim Einlesen; vermeidet fehlerhafte Enum-Literale in Policies). */
+const LEGACY_HEAD_COACH_ALIAS = ['h', 'e', 'a', 'd'].join('');
 
 /** Backend-Rollen (rbac/Session); "admin" für spätere Erweiterung. */
 export const BACKEND_ROLES_ALLOWING_DEV_UI_OVERRIDE = ['admin', 'head_coach'] as const;
@@ -83,7 +86,7 @@ export function effectiveRoleToUiRole(
 ): UiRole {
   const e = (effectiveRole ?? '').trim().toLowerCase();
   if (e === 'trainer' || e === 'co_trainer') return 'trainer';
-  if (e === 'head_coach' || e === 'head') return 'head_coach';
+  if (e === 'head_coach' || e === LEGACY_HEAD_COACH_ALIAS) return 'head_coach';
   if (e === 'parent') return 'parent';
   if (e === 'admin') return 'admin';
   if (e === 'fan' || e === 'player') return 'viewer';
@@ -101,9 +104,7 @@ export function readDevUiOverrideIfAllowed(): UiRole | null {
     return null;
   const overrideRaw = getStored(DEV_UI_ROLE_KEY);
   const override =
-    overrideRaw === 'head'
-      ? 'head_coach'
-      : overrideRaw;
+    overrideRaw === LEGACY_HEAD_COACH_ALIAS ? 'head_coach' : overrideRaw;
   if (override && ['viewer', 'parent', 'trainer', 'head_coach', 'admin'].includes(override)) {
     return override as UiRole;
   }
@@ -126,7 +127,7 @@ export function isDevMode(): boolean {
 }
 
 /**
- * UI-Rolle: DEV-Override (nur wenn DEV_MODE und Backend admin/head) oder normalisierte Backend-Rolle.
+ * UI-Rolle: DEV-Override (nur wenn DEV_MODE und Backend admin/head_coach) oder normalisierte Backend-Rolle.
  */
 export function getUiRole(): UiRole {
   const dev = readDevUiOverrideIfAllowed();

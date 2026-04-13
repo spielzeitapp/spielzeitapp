@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import type { PlayerItem } from '../../../hooks/usePlayers';
 import type { FieldSlotId } from '../../../types/match';
 import { supabase } from '../../../lib/supabaseClient';
-import { LIVE_FIELD_SLOT_ORDER, replaceMatchLineupAndBench } from '../../../lib/liveMatchService';
+import {
+  LIVE_FIELD_SLOT_ORDER,
+  lineupRowsToSlotMap,
+  replaceMatchLineupAndBench,
+} from '../../../lib/liveMatchService';
 import { Card, CardTitle } from '../../../app/components/ui/Card';
 import { Button } from '../../../app/components/ui/Button';
 
@@ -78,11 +82,12 @@ export const TrainerMatchLineupMvp: React.FC<TrainerMatchLineupMvpProps> = ({
         return;
       }
 
+      const slotMap = lineupRowsToSlotMap(
+        (lineupRes.data ?? []) as { slot: FieldSlotId; player_id: string | null }[],
+      );
       const nextStarters = emptyStarters();
-      for (const r of (lineupRes.data ?? []) as { slot: FieldSlotId; player_id: string | null }[]) {
-        if (LIVE_FIELD_SLOT_ORDER.includes(r.slot) && r.player_id) {
-          nextStarters[r.slot] = r.player_id;
-        }
+      for (const s of LIVE_FIELD_SLOT_ORDER) {
+        nextStarters[s] = slotMap[s] ?? null;
       }
 
       const benchIds = ((benchRes.data ?? []) as { player_id: string }[]).map((x) => x.player_id);

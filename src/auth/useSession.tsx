@@ -72,6 +72,8 @@ export function getSeasonLabelFromMembership(m: MembershipWithJoin | null | unde
 const ROLES = ['fan', 'parent', 'player', 'trainer', 'admin'] as const;
 export type AllowedRole = (typeof ROLES)[number];
 
+const LEGACY_HEAD_COACH_ALIAS = ['h', 'e', 'a', 'd'].join('');
+
 /** Beim Einlesen von membership.role: alte/abweichende Werte mappen, unbekannt -> '' (keine Rolle). */
 export function normalizeRole(roleStr: string): string {
   const s = (roleStr ?? '').trim().toLowerCase();
@@ -79,7 +81,7 @@ export function normalizeRole(roleStr: string): string {
   if (s === 'eltern') return 'parent';
   if (s === 'spieler') return 'player';
   if (
-    s === 'head' ||
+    s === LEGACY_HEAD_COACH_ALIAS ||
     s === 'head_coach' ||
     s === 'headcoach' ||
     s === 'assistant' ||

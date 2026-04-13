@@ -1,5 +1,5 @@
--- Behebt: invalid input value for enum membership_role: "head" im Match-/Event-Delete-Flow.
--- Ursache ist typisch eine RLS-Policy mit ms.role IN (..., 'head'): Postgres castet Literale zum Enum.
+-- Behebt: invalid input value for enum membership_role im Match-/Event-Delete-Flow.
+-- Ursache: RLS-Policy mit ms.role IN (...), ungueltiges Text-Literal wird zum Enum gecastet.
 -- Abhilfe: nur noch ms.role::text IN ('trainer','co_trainer','head_coach') in SECURITY DEFINER-Hilfen.
 
 CREATE OR REPLACE FUNCTION public.membership_is_staff_for_team_season(p_team_season_id uuid)

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { lineupRowsToSlotMap } from "../lib/liveMatchService";
 import type { FieldSlotId } from "../types/match";
 
 type LineupRow = {
@@ -22,7 +23,8 @@ export function useMatchLineup(matchId: string | null) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true;
     if (!matchId) {
       setSlots({});
       setBenchIds([]);
@@ -30,7 +32,7 @@ export function useMatchLineup(matchId: string | null) {
       setError(null);
       return;
     }
-    setLoading(true);
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const [lineupRes, benchRes] = await Promise.all([
@@ -64,7 +66,7 @@ export function useMatchLineup(matchId: string | null) {
       setSlots({});
       setBenchIds([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [matchId]);
 
@@ -160,6 +162,7 @@ export function useMatchLineup(matchId: string | null) {
             .upsert({ match_id: matchId, player_id: playerId }, { onConflict: "match_id,player_id" });
           if (insErr) throw insErr;
         }
+        await load({ silent: true });
       } catch (e) {
         setError(e instanceof Error ? e.message : "Speichern fehlgeschlagen – bitte erneut versuchen.");
         await load();
@@ -201,6 +204,7 @@ export function useMatchLineup(matchId: string | null) {
         ]);
         if (delSlotsErr) throw delSlotsErr;
         if (delBenchErr) throw delBenchErr;
+        await load({ silent: true });
       } catch (e) {
         setError(e instanceof Error ? e.message : "Speichern fehlgeschlagen – bitte erneut versuchen.");
         await load();

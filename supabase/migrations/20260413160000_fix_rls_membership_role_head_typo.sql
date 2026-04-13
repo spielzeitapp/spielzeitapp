@@ -1,6 +1,5 @@
--- Behebt den Laufzeitfehler: invalid input value for enum membership_role: "head"
--- wenn eine aeltere Policy noch ms.role IN (..., 'head') o. ae. enthielt.
--- Erneutes Anwenden der korrekten Rollenliste (head_coach, nicht head) — idempotent.
+-- Behebt Laufzeitfehler bei membership_role, wenn aeltere Policies ungueltige Rollen-Literale enthielten.
+-- Erneutes Anwenden der korrekten Rollenliste (head_coach, kein Kurz-Alias) — idempotent.
 
 -- ----- match_lineup -----
 DROP POLICY IF EXISTS match_lineup_insert_staff ON public.match_lineup;

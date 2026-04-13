@@ -2,8 +2,28 @@ import { supabase } from './supabaseClient';
 import type { FieldSlotId } from '../types/match';
 import type { MatchEngineEvent, MatchEventType } from './matchEngine';
 
+/**
+ * Single Source of Truth (Supabase):
+ * - matches: Metadaten, Status, Scores, Live-Felder
+ * - match_lineup: nur Startelf (7 Slots)
+ * - match_bench: nur Bank / restlicher Kader
+ * - match_events: nur Live-Ereignisse
+ */
+
 /** Reihenfolge der Slots = Startelf-Reihenfolge (7er). */
 export const LIVE_FIELD_SLOT_ORDER: FieldSlotId[] = ['GK', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'];
+
+/** Pro Slot höchstens ein Eintrag für die UI (historische Duplikate: erste passende Zeile). */
+export function lineupRowsToSlotMap(
+  rows: Array<{ slot: FieldSlotId; player_id: string | null }>,
+): Partial<Record<FieldSlotId, string | null>> {
+  const out: Partial<Record<FieldSlotId, string | null>> = {};
+  for (const slot of LIVE_FIELD_SLOT_ORDER) {
+    const hit = rows.find((r) => r.slot === slot);
+    if (hit) out[slot] = hit.player_id;
+  }
+  return out;
+}
 
 export type LiveMatchRow = {
   id: string;
@@ -158,10 +178,9 @@ export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: 
   if (lineupRes.error) return { data: { startingPlayerIds: [], squadPlayerIds: [] }, error: lineupRes.error.message };
   if (benchRes.error) return { data: { startingPlayerIds: [], squadPlayerIds: [] }, error: benchRes.error.message };
 
-  const slotToPlayer: Partial<Record<FieldSlotId, string | null>> = {};
-  for (const r of (lineupRes.data ?? []) as { slot: FieldSlotId; player_id: string | null }[]) {
-    slotToPlayer[r.slot] = r.player_id;
-  }
+  const slotToPlayer = lineupRowsToSlotMap(
+    (lineupRes.data ?? []) as { slot: FieldSlotId; player_id: string | null }[],
+  );
 
   const startingPlayerIds = LIVE_FIELD_SLOT_ORDER.map((s) => slotToPlayer[s]).filter(
     (id): id is string => typeof id === 'string' && id.length > 0,
@@ -279,16 +298,11 @@ export async function saveMatchSquadOnly(
   const mergedSquad = normalizeUniquePlayerIds([...uniqueSquad, ...[...starterIds]]);
   const benchIds = mergedSquad.filter((id) => !starterIds.has(id));
 
-  const delBench = await supabase.from('match_bench').delete().eq('match_id', matchId);
-  if (delBench.error) return { error: delBench.error.message };
-
-  if (benchIds.length > 0) {
-    const benchRows = benchIds.map((player_id) => ({ match_id: matchId, player_id }));
-    const insBench = await supabase.from('match_bench').upsert(benchRows, {
-      onConflict: 'match_id,player_id',
-    });
-    if (insBench.error) return { error: insBench.error.message };
-  }
+  const { error: rpcErr } = await supabase.rpc('replace_match_bench_only', {
+    p_match_id: matchId,
+    p_bench_player_ids: benchIds,
+  });
+  if (rpcErr) return { error: rpcErr.message };
 
   return { error: null };
 }
