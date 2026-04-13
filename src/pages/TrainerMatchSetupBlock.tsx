@@ -102,14 +102,14 @@ export function TrainerMatchSetupBlock({
         for (const s of LIVE_FIELD_SLOT_ORDER) {
           nextStarters[s] = slotMap[s] ?? null;
         }
-        /** Matchkader = strikt UNION(match_lineup-Spieler, match_bench) — kein zweiter Schnitt mit lokalem Roster-State. */
+        /** Kader = UNION aller player_id aus match_lineup + match_bench (nicht nur aus Slot-Map — sonst fehlen Starter, wenn Slot-Strings nicht gemappt werden). */
         const nextSquad = new Set<string>();
         for (const row of (benchRes.data ?? []) as { player_id: string }[]) {
           const pid = String(row.player_id ?? '').trim();
           if (pid) nextSquad.add(nid(pid));
         }
-        for (const slot of LIVE_FIELD_SLOT_ORDER) {
-          const pid = nextStarters[slot];
+        for (const row of (lineupRes.data ?? []) as { player_id: string | null }[]) {
+          const pid = String(row.player_id ?? '').trim();
           if (pid) nextSquad.add(nid(pid));
         }
         console.log('[TrainerMatchSetup] Reload aus DB', {

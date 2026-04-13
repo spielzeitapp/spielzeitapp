@@ -24,15 +24,31 @@ export function lineupRowsToSlotMap(
   rows: Array<{ slot: FieldSlotId | string; player_id: string | null }>,
 ): Partial<Record<FieldSlotId, string | null>> {
   const out: Partial<Record<FieldSlotId, string | null>> = {};
+  const normPid = (raw: string | null | undefined): string | null =>
+    raw != null && String(raw).trim() !== '' ? String(raw).trim().toLowerCase() : null;
+
   for (const slot of LIVE_FIELD_SLOT_ORDER) {
     const hit = rows.find((r) => normalizeFieldSlotId(String(r.slot)) === slot);
     if (hit) {
-      out[slot] =
-        hit.player_id != null && String(hit.player_id).trim() !== ''
-          ? String(hit.player_id).trim().toLowerCase()
-          : null;
+      out[slot] = normPid(hit.player_id);
     }
   }
+
+  const used = new Set(
+    LIVE_FIELD_SLOT_ORDER.map((s) => out[s]).filter((x): x is string => Boolean(x)),
+  );
+  for (const r of rows) {
+    const p = normPid(r.player_id);
+    if (!p || used.has(p)) continue;
+    const emptySlot = LIVE_FIELD_SLOT_ORDER.find((s) => {
+      const v = out[s];
+      return v == null || String(v).trim() === '';
+    });
+    if (!emptySlot) break;
+    out[emptySlot] = p;
+    used.add(p);
+  }
+
   return out;
 }
 
