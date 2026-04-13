@@ -445,14 +445,54 @@ export const SchedulePage: React.FC = () => {
 
   const handleDelete = async (event: EventRow) => {
     if (!window.confirm('Termin wirklich löschen?')) return;
+    const cleanupMatchesAfterEventDelete = async (matchIdsRaw: Array<string | null | undefined>) => {
+      const matchIds = [...new Set(matchIdsRaw.map((id) => String(id ?? '').trim()).filter(Boolean))];
+      if (matchIds.length === 0) return null;
+
+      const refs = await supabase.from('events').select('match_id').in('match_id', matchIds);
+      if (refs.error) return refs.error.message;
+
+      const stillReferenced = new Set(
+        ((refs.data ?? []) as Array<{ match_id: string | null }>).map((r) => r.match_id).filter((v): v is string => !!v),
+      );
+      const orphanMatchIds = matchIds.filter((id) => !stillReferenced.has(id));
+      if (orphanMatchIds.length === 0) return null;
+
+      const delEvents = await supabase.from('match_events').delete().in('match_id', orphanMatchIds);
+      if (delEvents.error) return delEvents.error.message;
+      const delBench = await supabase.from('match_bench').delete().in('match_id', orphanMatchIds);
+      if (delBench.error) return delBench.error.message;
+      const delLineup = await supabase.from('match_lineup').delete().in('match_id', orphanMatchIds);
+      if (delLineup.error) return delLineup.error.message;
+      const delMatches = await supabase.from('matches').delete().in('id', orphanMatchIds);
+      if (delMatches.error) return delMatches.error.message;
+
+      return null;
+    };
+
     if (event.series_id) {
       const delAll = window.confirm(
         'Alle Wiederholungen dieser Serie löschen?\n\nOK = gesamte Serie\nAbbrechen = nur dieser eine Termin',
       );
       if (delAll) {
+        const seriesRows = await supabase
+          .from('events')
+          .select('id, match_id')
+          .eq('series_id', event.series_id);
+        if (seriesRows.error) {
+          alert(seriesRows.error.message);
+          return;
+        }
+        const seriesMatchIds = ((seriesRows.data ?? []) as Array<{ match_id: string | null }>).map((r) => r.match_id);
+
         const { error } = await supabase.from('events').delete().eq('series_id', event.series_id);
         if (error) {
           alert(error.message);
+          return;
+        }
+        const cleanupErr = await cleanupMatchesAfterEventDelete(seriesMatchIds);
+        if (cleanupErr) {
+          alert(cleanupErr);
           return;
         }
         await refetch();
@@ -462,6 +502,11 @@ export const SchedulePage: React.FC = () => {
     const { error } = await supabase.from('events').delete().eq('id', event.id);
     if (error) {
       alert(error.message);
+      return;
+    }
+    const cleanupErr = await cleanupMatchesAfterEventDelete([event.match_id]);
+    if (cleanupErr) {
+      alert(cleanupErr);
       return;
     }
     await refetch();
