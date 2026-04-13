@@ -30,6 +30,18 @@ export type MatchEventDbRow = {
   created_at: string;
 };
 
+function normalizeUniquePlayerIds(ids: Array<string | null | undefined>): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of ids) {
+    const id = String(raw ?? '').trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
 const ENGINE_TYPES = new Set<MatchEventType>([
   'start',
   'pause',
@@ -104,7 +116,8 @@ export async function fetchFirstLiveMatch(): Promise<{ data: LiveMatchRow | null
     .select(
       'id, team_season_id, opponent, match_date, location, status, score_home, score_away, live_started_at, live_elapsed_seconds, live_is_running, live_period',
     )
-    .eq('status', 'live')
+    .or('status.eq.live,live_is_running.eq.true')
+    .order('live_started_at', { ascending: false, nullsFirst: false })
     .order('match_date', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -248,7 +261,7 @@ export async function saveMatchSquadOnly(
   matchId: string,
   squadPlayerIds: string[],
 ): Promise<{ error: string | null }> {
-  const uniqueSquad = [...new Set(squadPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean))];
+  const uniqueSquad = normalizeUniquePlayerIds(squadPlayerIds);
 
   const { data: lineupRows, error: lineupErr } = await supabase
     .from('match_lineup')
@@ -288,7 +301,8 @@ export async function replaceMatchLineupAndBench(
     return typeof raw === 'string' && raw.length > 0 ? raw : null;
   });
   const starterSet = new Set(starters.filter((id): id is string => Boolean(id)));
-  const benchIds = squadPlayerIds.filter((id) => !starterSet.has(id));
+  const normalizedSquad = normalizeUniquePlayerIds(squadPlayerIds);
+  const benchIds = normalizedSquad.filter((id) => !starterSet.has(id));
 
   const delLineup = await supabase.from('match_lineup').delete().eq('match_id', matchId);
   if (delLineup.error) return { error: delLineup.error.message };

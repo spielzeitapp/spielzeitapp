@@ -253,7 +253,7 @@ export function TrainerMatchSetupBlock({
   };
 
   return (
-    <div className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-black/45 p-4 shadow-lg">
+    <div className="flex flex-col gap-6 rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.07] to-black/45 p-4 shadow-lg">
       {loadingLineup && <p className="text-sm text-white/55">Lade gespeicherte Aufstellung…</p>}
       {setupError && (
         <p className="text-sm text-red-400" role="alert">
@@ -302,7 +302,7 @@ export function TrainerMatchSetupBlock({
             <Button
               type="button"
               variant="secondary"
-              className="min-h-[48px] w-full rounded-2xl text-sm font-bold"
+              className="min-h-[52px] w-full rounded-2xl text-sm font-bold"
               disabled={savingSquad || savingLive || savingLineup}
               onClick={() => void onSaveSquadOnly()}
             >
@@ -394,7 +394,7 @@ export function TrainerMatchSetupBlock({
           <Button
             type="button"
             variant="secondary"
-            className="min-h-[48px] w-full rounded-2xl text-sm font-bold"
+            className="min-h-[52px] w-full rounded-2xl text-sm font-bold"
             disabled={savingLive || savingSquad || savingLineup}
             onClick={() => void onSaveLineupAndBench()}
           >
