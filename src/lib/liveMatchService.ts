@@ -13,14 +13,25 @@ import type { MatchEngineEvent, MatchEventType } from './matchEngine';
 /** Reihenfolge der Slots = Startelf-Reihenfolge (7er). */
 export const LIVE_FIELD_SLOT_ORDER: FieldSlotId[] = ['GK', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'];
 
+/** DB / RPC liefert `slot` oft als text — Schreibweise kann von FieldSlotId abweichen; sonst bleibt Startelf leer und der Kader nur aus match_bench. */
+export function normalizeFieldSlotId(raw: string | null | undefined): FieldSlotId | null {
+  const u = String(raw ?? '').trim().toUpperCase();
+  return (LIVE_FIELD_SLOT_ORDER as readonly string[]).includes(u) ? (u as FieldSlotId) : null;
+}
+
 /** Pro Slot höchstens ein Eintrag für die UI (historische Duplikate: erste passende Zeile). */
 export function lineupRowsToSlotMap(
-  rows: Array<{ slot: FieldSlotId; player_id: string | null }>,
+  rows: Array<{ slot: FieldSlotId | string; player_id: string | null }>,
 ): Partial<Record<FieldSlotId, string | null>> {
   const out: Partial<Record<FieldSlotId, string | null>> = {};
   for (const slot of LIVE_FIELD_SLOT_ORDER) {
-    const hit = rows.find((r) => r.slot === slot);
-    if (hit) out[slot] = hit.player_id;
+    const hit = rows.find((r) => normalizeFieldSlotId(String(r.slot)) === slot);
+    if (hit) {
+      out[slot] =
+        hit.player_id != null && String(hit.player_id).trim() !== ''
+          ? String(hit.player_id).trim().toLowerCase()
+          : null;
+    }
   }
   return out;
 }
@@ -54,7 +65,7 @@ function normalizeUniquePlayerIds(ids: Array<string | null | undefined>): string
   const out: string[] = [];
   const seen = new Set<string>();
   for (const raw of ids) {
-    const id = String(raw ?? '').trim();
+    const id = String(raw ?? '').trim().toLowerCase();
     if (!id || seen.has(id)) continue;
     seen.add(id);
     out.push(id);
@@ -290,9 +301,9 @@ export async function saveMatchSquadOnly(
   if (lineupErr) return { error: lineupErr.message };
 
   const starterIds = new Set(
-    (lineupRows ?? [])
-      .map((r: { player_id: string | null }) => r.player_id)
-      .filter((id): id is string => typeof id === 'string' && id.length > 0),
+    normalizeUniquePlayerIds(
+      (lineupRows ?? []).map((r: { player_id: string | null }) => r.player_id),
+    ),
   );
 
   const mergedSquad = normalizeUniquePlayerIds([...uniqueSquad, ...[...starterIds]]);
@@ -315,10 +326,11 @@ export async function replaceMatchLineupAndBench(
 ): Promise<{ error: string | null }> {
   const starters = LIVE_FIELD_SLOT_ORDER.map((_, i) => {
     const raw = startingPlayerIds[i];
-    return typeof raw === 'string' && raw.length > 0 ? raw : null;
+    const id = String(raw ?? '').trim().toLowerCase();
+    return id.length > 0 ? id : null;
   });
   const starterSet = new Set(starters.filter((id): id is string => Boolean(id)));
-  /** Kader immer als Vereinigung aus expliziter Liste + Startelf (verhindert leere Bank bei vergessenen Nicht-Startern in `squadPlayerIds`). */
+  /** Kader = squad (Source of Truth); Bank = Kader minus Startelf — IDs case-normalisiert (Supabase vs. Client). */
   const normalizedSquad = normalizeUniquePlayerIds([
     ...squadPlayerIds,
     ...[...starterSet],
