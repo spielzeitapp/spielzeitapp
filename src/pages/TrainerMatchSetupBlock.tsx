@@ -20,6 +20,11 @@ function emptyMatchSetupStarters(): Record<FieldSlotId, string | null> {
   return o;
 }
 
+/** UUID/Vergleich: DB oft lowercase, Client kann abweichen — sonst `squad.has(p.id)` false trotz DB-Kader. */
+function nid(id: string): string {
+  return id.trim().toLowerCase();
+}
+
 const trainerRowBase =
   'flex w-full min-h-[56px] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors';
 const trainerRowUnselected = 'border-white/10 bg-white/[0.05] text-white hover:bg-white/[0.08]';
@@ -100,12 +105,18 @@ export function TrainerMatchSetupBlock({
         /** Matchkader = strikt UNION(match_lineup-Spieler, match_bench) — kein zweiter Schnitt mit lokalem Roster-State. */
         const nextSquad = new Set<string>();
         for (const row of (benchRes.data ?? []) as { player_id: string }[]) {
-          if (row.player_id) nextSquad.add(row.player_id);
+          const pid = String(row.player_id ?? '').trim();
+          if (pid) nextSquad.add(nid(pid));
         }
         for (const slot of LIVE_FIELD_SLOT_ORDER) {
           const pid = nextStarters[slot];
-          if (pid) nextSquad.add(pid);
+          if (pid) nextSquad.add(nid(pid));
         }
+        console.log('[TrainerMatchSetup] Reload aus DB', {
+          lineupRows: lineupRes.data,
+          benchRows: benchRes.data,
+          squadUnion: [...nextSquad],
+        });
         setStartersBySlot(nextStarters);
         setSquad(nextSquad);
       } finally {
@@ -132,35 +143,37 @@ export function TrainerMatchSetupBlock({
   }, [startersBySlot]);
 
   const toggleSquad = (playerId: string) => {
+    const id = nid(playerId);
     setSquad((prev) => {
       const next = new Set(prev);
-      if (next.has(playerId)) {
-        next.delete(playerId);
+      if (next.has(id)) {
+        next.delete(id);
         setStartersBySlot((st) => {
           const o = { ...st };
           for (const s of LIVE_FIELD_SLOT_ORDER) {
-            if (o[s] === playerId) o[s] = null;
+            if (o[s] != null && nid(String(o[s])) === id) o[s] = null;
           }
           return o;
         });
       } else {
-        next.add(playerId);
+        next.add(id);
       }
       return next;
     });
   };
 
   const toggleStarter = (playerId: string) => {
-    if (!squad.has(playerId)) return;
+    const id = nid(playerId);
+    if (!squad.has(id)) return;
     setStartersBySlot((prev) => {
       const next = { ...prev };
       let isStarter = false;
       for (const s of LIVE_FIELD_SLOT_ORDER) {
-        if (next[s] === playerId) isStarter = true;
+        if (next[s] != null && nid(String(next[s])) === id) isStarter = true;
       }
       if (isStarter) {
         for (const s of LIVE_FIELD_SLOT_ORDER) {
-          if (next[s] === playerId) next[s] = null;
+          if (next[s] != null && nid(String(next[s])) === id) next[s] = null;
         }
         return next;
       }
@@ -169,9 +182,9 @@ export function TrainerMatchSetupBlock({
       const emptySlot = LIVE_FIELD_SLOT_ORDER.find((s) => next[s] == null);
       if (!emptySlot) return prev;
       for (const s of LIVE_FIELD_SLOT_ORDER) {
-        if (next[s] === playerId) next[s] = null;
+        if (next[s] != null && nid(String(next[s])) === id) next[s] = null;
       }
-      next[emptySlot] = playerId;
+      next[emptySlot] = id;
       return next;
     });
   };
@@ -179,7 +192,7 @@ export function TrainerMatchSetupBlock({
   const squadPlayersSorted = useMemo(
     () =>
       [...players]
-        .filter((p) => squad.has(p.id))
+        .filter((p) => squad.has(nid(p.id)))
         .sort(
           (a, b) =>
             (a.jersey_number ?? 9999) - (b.jersey_number ?? 9999) ||
@@ -189,7 +202,7 @@ export function TrainerMatchSetupBlock({
   );
 
   const bankPlayers = useMemo(
-    () => squadPlayersSorted.filter((p) => !starterIdSet.has(p.id)),
+    () => squadPlayersSorted.filter((p) => !starterIdSet.has(nid(p.id))),
     [squadPlayersSorted, starterIdSet],
   );
 
@@ -233,14 +246,46 @@ export function TrainerMatchSetupBlock({
     setLineupSaveMsg(null);
     setSavingLineup(true);
     setSetupError(null);
-    const ordered = LIVE_FIELD_SLOT_ORDER.map((s) => startersBySlot[s] ?? null);
-    const squadArr = [...squad];
-    const { error } = await replaceMatchLineupAndBench(matchId, ordered, squadArr);
+    const lineupPlayerIds = LIVE_FIELD_SLOT_ORDER.map((s) => startersBySlot[s] ?? null);
+    const squadIds = [...squad];
+    const starterSetForBench = new Set(
+      lineupPlayerIds.filter((x): x is string => typeof x === 'string' && x.length > 0).map((x) => nid(x)),
+    );
+    const benchPlayerIds = squadIds.filter((id) => !starterSetForBench.has(id));
+    console.log('[TrainerMatchSetup] Aufstellung speichern VOR save', {
+      squadIds,
+      lineupPlayerIds,
+      benchPlayerIds,
+    });
+
+    const { error } = await replaceMatchLineupAndBench(matchId, lineupPlayerIds, squadIds);
     setSavingLineup(false);
     if (error) {
       setSetupError(error);
       return;
     }
+
+    const [lr, br] = await Promise.all([
+      supabase.from('match_lineup').select('slot, player_id').eq('match_id', matchId),
+      supabase.from('match_bench').select('player_id').eq('match_id', matchId),
+    ]);
+    const lineupRows = lr.data ?? [];
+    const benchRows = br.data ?? [];
+    const squadFromDb = new Set<string>();
+    for (const row of benchRows as { player_id: string }[]) {
+      const pid = String(row.player_id ?? '').trim();
+      if (pid) squadFromDb.add(nid(pid));
+    }
+    for (const r of lineupRows as { player_id: string | null }[]) {
+      const pid = String(r.player_id ?? '').trim();
+      if (pid) squadFromDb.add(nid(pid));
+    }
+    console.log('[TrainerMatchSetup] Aufstellung speichern NACH save (DB read)', {
+      lineupRows,
+      benchRows,
+      squadFromDb: [...squadFromDb],
+    });
+
     setSetupError(null);
     setLineupSaveMsg('Aufstellung gespeichert.');
     setLineupReloadTick((t) => t + 1);
@@ -265,7 +310,7 @@ export function TrainerMatchSetupBlock({
             </div>
             <div className="flex flex-col gap-2">
               {sortedPlayers.map((p) => {
-                const inSquad = squad.has(p.id);
+                const inSquad = squad.has(nid(p.id));
                 return (
                   <button
                     key={p.id}
@@ -325,7 +370,7 @@ export function TrainerMatchSetupBlock({
             ) : (
               <div className="flex flex-col gap-2">
                 {squadPlayersSorted.map((p) => {
-                  const isSt = starterIdSet.has(p.id);
+                  const isSt = starterIdSet.has(nid(p.id));
                   const blockMore = !isSt && starterCount >= MATCH_SETUP_STARTERS_MAX;
                   return (
                     <button
