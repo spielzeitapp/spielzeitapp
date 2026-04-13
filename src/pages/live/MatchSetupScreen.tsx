@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { usePlayers } from '../../hooks/usePlayers';
 import { type LiveMatchSetupPayload } from '../../lib/liveMatchSetup';
-import { replaceMatchLineupAndBench, upsertMatchForSetup } from '../../lib/liveMatchService';
+import { persistLiveMatchBegin, replaceMatchLineupAndBench, upsertMatchForSetup } from '../../lib/liveMatchService';
 import { playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 
 /** @deprecated Nutze RosterPlayer — nur für ältere Imports. */
@@ -194,6 +194,11 @@ export const MatchSetupScreen: React.FC = () => {
     if (!canGoLive) return;
     const id = await persistMatchAndLineup();
     if (!id) return;
+    const { error } = await persistLiveMatchBegin(id);
+    if (error) {
+      setSetupError(error);
+      return;
+    }
     navigate(`/live?matchId=${id}`);
   };
 

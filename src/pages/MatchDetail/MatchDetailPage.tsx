@@ -8,7 +8,6 @@ import { MatchTimeline } from './components/MatchTimeline';
 import { LiveControls } from './components/LiveControls';
 import { MatchStatsTable } from './components/MatchStatsTable';
 import { MatchFieldSlots } from './components/MatchFieldSlots';
-import { TrainerMatchLineupMvp } from './components/TrainerMatchLineupMvp';
 import { createEvent } from '../../services/eventFactory';
 import { useRole } from '../../app/role/RoleContext';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
@@ -558,17 +557,6 @@ export const MatchDetailPage: React.FC = () => {
             matchId={matchId}
             players={players}
             attendanceByPlayerId={matchDetailAttendanceByPlayerId}
-          />
-        )}
-
-        {matchId && canManageStatus && !(operatorMode && localMatch.status === 'live') && (
-          <TrainerMatchLineupMvp
-            matchId={matchId}
-            players={players}
-            onFieldSynced={syncFieldFromStartersBySlot}
-            onLineupPersisted={() => {
-              void reloadLineup();
-            }}
           />
         )}
 
