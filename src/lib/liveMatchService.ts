@@ -284,7 +284,9 @@ export async function saveMatchSquadOnly(
 
   if (benchIds.length > 0) {
     const benchRows = benchIds.map((player_id) => ({ match_id: matchId, player_id }));
-    const insBench = await supabase.from('match_bench').insert(benchRows);
+    const insBench = await supabase.from('match_bench').upsert(benchRows, {
+      onConflict: 'match_id,player_id',
+    });
     if (insBench.error) return { error: insBench.error.message };
   }
 
@@ -321,7 +323,9 @@ export async function replaceMatchLineupAndBench(
     player_id: starters[i] ?? null,
   }));
 
-  const insLineup = await supabase.from('match_lineup').insert(lineupRows);
+  const insLineup = await supabase.from('match_lineup').upsert(lineupRows, {
+    onConflict: 'match_id,slot',
+  });
   if (insLineup.error) {
     console.error('[liveMatchService] replaceMatchLineupAndBench match_lineup', insLineup.error);
     return { error: insLineup.error.message };
@@ -329,7 +333,9 @@ export async function replaceMatchLineupAndBench(
 
   if (benchIds.length > 0) {
     const benchRows = benchIds.map((player_id) => ({ match_id: matchId, player_id }));
-    const insBench = await supabase.from('match_bench').insert(benchRows);
+    const insBench = await supabase.from('match_bench').upsert(benchRows, {
+      onConflict: 'match_id,player_id',
+    });
     if (insBench.error) {
       console.error('[liveMatchService] replaceMatchLineupAndBench match_bench', insBench.error);
       return { error: insBench.error.message };
