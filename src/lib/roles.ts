@@ -28,7 +28,7 @@ export function normalizeRole(input: string | null | undefined): RoleKey | null 
   if (!s) return null;
   if (s === 'administrator') return 'admin';
   if (s === 'admin') return 'admin';
-  if (s === 'head_coach' || s === 'headcoach') return 'trainer';
+  if (s === 'head' || s === 'head_coach' || s === 'headcoach') return 'trainer';
   if (s === 'coach') return 'trainer';
   if (s === 'co_trainer' || s === 'co-trainer' || s === 'co trainer') return 'trainer';
   if (s === 'trainer') return 'trainer';

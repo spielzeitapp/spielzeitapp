@@ -464,6 +464,10 @@ export const SchedulePage: React.FC = () => {
       if (delBench.error) return delBench.error.message;
       const delLineup = await supabase.from('match_lineup').delete().in('match_id', orphanMatchIds);
       if (delLineup.error) return delLineup.error.message;
+      const delAvail = await supabase.from('availability').delete().in('match_id', orphanMatchIds);
+      if (delAvail.error) return delAvail.error.message;
+      const delRsvp = await supabase.from('match_rsvps').delete().in('match_id', orphanMatchIds);
+      if (delRsvp.error) return delRsvp.error.message;
       const delMatches = await supabase.from('matches').delete().in('id', orphanMatchIds);
       if (delMatches.error) return delMatches.error.message;
 

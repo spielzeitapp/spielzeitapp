@@ -276,7 +276,8 @@ export async function saveMatchSquadOnly(
       .filter((id): id is string => typeof id === 'string' && id.length > 0),
   );
 
-  const benchIds = uniqueSquad.filter((id) => !starterIds.has(id));
+  const mergedSquad = normalizeUniquePlayerIds([...uniqueSquad, ...[...starterIds]]);
+  const benchIds = mergedSquad.filter((id) => !starterIds.has(id));
 
   const delBench = await supabase.from('match_bench').delete().eq('match_id', matchId);
   if (delBench.error) return { error: delBench.error.message };
@@ -301,7 +302,11 @@ export async function replaceMatchLineupAndBench(
     return typeof raw === 'string' && raw.length > 0 ? raw : null;
   });
   const starterSet = new Set(starters.filter((id): id is string => Boolean(id)));
-  const normalizedSquad = normalizeUniquePlayerIds(squadPlayerIds);
+  /** Kader immer als Vereinigung aus expliziter Liste + Startelf (verhindert leere Bank bei vergessenen Nicht-Startern in `squadPlayerIds`). */
+  const normalizedSquad = normalizeUniquePlayerIds([
+    ...squadPlayerIds,
+    ...[...starterSet],
+  ]);
   const benchIds = normalizedSquad.filter((id) => !starterSet.has(id));
 
   const delLineup = await supabase.from('match_lineup').delete().eq('match_id', matchId);

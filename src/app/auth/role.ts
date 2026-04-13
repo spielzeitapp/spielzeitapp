@@ -4,7 +4,8 @@
  * UI-Preview (dev_ui_role) nur wenn Backend admin oder head_coach.
  */
 
-export type UiRole = 'viewer' | 'parent' | 'trainer' | 'head' | 'admin';
+/** UI-Rolle; `head_coach` entspricht dem Postgres-Enum `membership_role` (niemals Kurzform `head`). */
+export type UiRole = 'viewer' | 'parent' | 'trainer' | 'head_coach' | 'admin';
 
 const BACKEND_ROLE_KEY = 'spielzeit_role';
 const DEV_UI_ROLE_KEY = 'dev_ui_role';
@@ -58,7 +59,7 @@ export function normalizeToUiRole(backendRole: string): UiRole {
     case 'co_trainer':
       return 'trainer';
     case 'head_coach':
-      return 'head';
+      return 'head_coach';
     case 'admin':
       return 'admin';
     case 'parent':
@@ -82,7 +83,7 @@ export function effectiveRoleToUiRole(
 ): UiRole {
   const e = (effectiveRole ?? '').trim().toLowerCase();
   if (e === 'trainer' || e === 'co_trainer') return 'trainer';
-  if (e === 'head_coach') return 'head';
+  if (e === 'head_coach' || e === 'head') return 'head_coach';
   if (e === 'parent') return 'parent';
   if (e === 'admin') return 'admin';
   if (e === 'fan' || e === 'player') return 'viewer';
@@ -98,8 +99,12 @@ export function readDevUiOverrideIfAllowed(): UiRole | null {
   const backend = getBackendRole();
   if (!backend || !BACKEND_ROLES_ALLOWING_DEV_UI_OVERRIDE.includes(backend as 'admin' | 'head_coach'))
     return null;
-  const override = getStored(DEV_UI_ROLE_KEY);
-  if (override && ['viewer', 'parent', 'trainer', 'head', 'admin'].includes(override)) {
+  const overrideRaw = getStored(DEV_UI_ROLE_KEY);
+  const override =
+    overrideRaw === 'head'
+      ? 'head_coach'
+      : overrideRaw;
+  if (override && ['viewer', 'parent', 'trainer', 'head_coach', 'admin'].includes(override)) {
     return override as UiRole;
   }
   return null;
@@ -139,11 +144,11 @@ export function clearDevUiRole(): void {
 }
 
 export function canEditSchedule(role: string): boolean {
-  return role === 'trainer' || role === 'head' || role === 'admin';
+  return role === 'trainer' || role === 'head_coach' || role === 'admin';
 }
 
 export function canUseLiveControls(role: string): boolean {
-  return role === 'trainer' || role === 'head' || role === 'admin';
+  return role === 'trainer' || role === 'head_coach' || role === 'admin';
 }
 
 /** Prüft, ob aktuell eine DEV-Testrolle aktiv ist (uiRole !== normalized backend). */
