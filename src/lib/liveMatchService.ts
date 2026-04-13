@@ -52,6 +52,58 @@ export function lineupRowsToSlotMap(
   return out;
 }
 
+function emptyStartersRecord(): Record<FieldSlotId, string | null> {
+  const o = {} as Record<FieldSlotId, string | null>;
+  for (const s of LIVE_FIELD_SLOT_ORDER) o[s] = null;
+  return o;
+}
+
+function normPlayerId(id: string): string {
+  return id.trim().toLowerCase();
+}
+
+/**
+ * Lädt match_lineup + match_bench frisch und baut die Match-Setup-States ausschließlich daraus
+ * (Startelf pro Slot, Kader = UNION aller Lineup- und Bank-spieler_ids).
+ */
+export async function reloadMatchSetupFromDb(matchId: string): Promise<{
+  error: string | null;
+  startersBySlot: Record<FieldSlotId, string | null>;
+  squadIds: string[];
+}> {
+  const [lineupRes, benchRes] = await Promise.all([
+    supabase.from('match_lineup').select('slot, player_id').eq('match_id', matchId),
+    supabase.from('match_bench').select('player_id').eq('match_id', matchId),
+  ]);
+
+  if (lineupRes.error) {
+    return { error: lineupRes.error.message, startersBySlot: emptyStartersRecord(), squadIds: [] };
+  }
+  if (benchRes.error) {
+    return { error: benchRes.error.message, startersBySlot: emptyStartersRecord(), squadIds: [] };
+  }
+
+  const slotMap = lineupRowsToSlotMap(
+    (lineupRes.data ?? []) as Array<{ slot: FieldSlotId | string; player_id: string | null }>,
+  );
+  const startersBySlot = emptyStartersRecord();
+  for (const s of LIVE_FIELD_SLOT_ORDER) {
+    startersBySlot[s] = slotMap[s] ?? null;
+  }
+
+  const squad = new Set<string>();
+  for (const row of (benchRes.data ?? []) as Array<{ player_id: string }>) {
+    const pid = String(row.player_id ?? '').trim();
+    if (pid) squad.add(normPlayerId(pid));
+  }
+  for (const row of (lineupRes.data ?? []) as Array<{ player_id: string | null }>) {
+    const pid = String(row.player_id ?? '').trim();
+    if (pid) squad.add(normPlayerId(pid));
+  }
+
+  return { error: null, startersBySlot, squadIds: [...squad] };
+}
+
 export type LiveMatchRow = {
   id: string;
   team_season_id: string;
