@@ -6,6 +6,7 @@ export type UseMatchTimerResult = {
   isRunning: boolean;
   matchHasEnded: boolean;
   half: 1 | 2;
+  hydrateTimer: (snapshot: { seconds?: number | null; isRunning?: boolean | null; hasEnded?: boolean | null }) => void;
   startMatch: () => void;
   pauseMatch: () => void;
   resumeMatch: () => void;
@@ -35,6 +36,17 @@ export function useMatchTimer(): UseMatchTimerResult {
     return () => window.clearInterval(id);
   }, [isRunning, matchHasEnded]);
 
+  const hydrateTimer = useCallback(
+    (snapshot: { seconds?: number | null; isRunning?: boolean | null; hasEnded?: boolean | null }) => {
+      const safeSeconds = Math.max(0, Number(snapshot.seconds ?? 0) || 0);
+      const ended = Boolean(snapshot.hasEnded);
+      setCurrentMatchSeconds(safeSeconds);
+      setMatchHasEnded(ended);
+      setIsRunning(!ended && Boolean(snapshot.isRunning));
+    },
+    [],
+  );
+
   const startMatch = useCallback(() => {
     if (matchHasEnded) return;
     setIsRunning(true);
@@ -63,6 +75,7 @@ export function useMatchTimer(): UseMatchTimerResult {
     isRunning,
     matchHasEnded,
     half,
+    hydrateTimer,
     startMatch,
     pauseMatch,
     resumeMatch,

@@ -337,16 +337,30 @@ export async function persistLiveMatchBegin(matchId: string): Promise<{ error: s
     return { error: uErr };
   }
 
-  const { error: eErr } = await saveMatchEvent({
-    match_id: matchId,
-    type: 'start',
-    minute: 0,
-    period: 1,
-    player_id: null,
-  });
-  if (eErr) {
-    console.error('[liveMatchService] persistLiveMatchBegin match_events', eErr);
-    return { error: eErr };
+  const existingStart = await supabase
+    .from('match_events')
+    .select('id')
+    .eq('match_id', matchId)
+    .eq('type', 'start')
+    .limit(1)
+    .maybeSingle();
+  if (existingStart.error) {
+    console.error('[liveMatchService] persistLiveMatchBegin match_events check', existingStart.error);
+    return { error: existingStart.error.message };
+  }
+
+  if (!existingStart.data) {
+    const { error: eErr } = await saveMatchEvent({
+      match_id: matchId,
+      type: 'start',
+      minute: 0,
+      period: 1,
+      player_id: null,
+    });
+    if (eErr) {
+      console.error('[liveMatchService] persistLiveMatchBegin match_events', eErr);
+      return { error: eErr };
+    }
   }
 
   return { error: null };

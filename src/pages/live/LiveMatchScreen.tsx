@@ -162,12 +162,14 @@ export const LiveMatchScreen: React.FC = () => {
     isRunning,
     matchHasEnded,
     half,
+    hydrateTimer,
     startMatch,
     pauseMatch,
     resumeMatch,
     endMatch,
     startSecondHalf,
   } = useMatchTimer();
+  const [hydratedMatchId, setHydratedMatchId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!matchRow) return;
@@ -176,6 +178,21 @@ export const LiveMatchScreen: React.FC = () => {
     setScoreHome(Number(matchRow.score_home ?? 0));
     setScoreAway(Number(matchRow.score_away ?? 0));
   }, [matchRow]);
+
+  useEffect(() => {
+    if (!effectiveMatchId || hydratedMatchId === effectiveMatchId) return;
+    if (!matchRow) return;
+    const hasEndEvent = events.some((ev) => ev.type === 'end');
+    const ended = hasEndEvent || matchRow.status === 'finished';
+    const maxEventTimestamp = events.reduce((acc, ev) => Math.max(acc, ev.timestamp || 0), 0);
+    const savedSeconds = Math.max(Number(matchRow.live_elapsed_seconds ?? 0) || 0, maxEventTimestamp);
+    hydrateTimer({
+      seconds: savedSeconds,
+      isRunning: matchRow.live_is_running === true,
+      hasEnded: ended,
+    });
+    setHydratedMatchId(effectiveMatchId);
+  }, [effectiveMatchId, hydratedMatchId, matchRow, events, hydrateTimer]);
 
   useEffect(() => {
     if (!matchRow || playersLoading) return;
