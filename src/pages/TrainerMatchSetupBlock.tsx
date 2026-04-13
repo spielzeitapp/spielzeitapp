@@ -5,6 +5,7 @@ import { Button } from '../app/components/ui/Button';
 import type { PlayerItem } from '../hooks/usePlayers';
 import {
   LIVE_FIELD_SLOT_ORDER,
+  lineupRowsToSlotMap,
   persistLiveMatchBegin,
   replaceMatchLineupAndBench,
   saveMatchSquadOnly,
@@ -69,9 +70,6 @@ export function TrainerMatchSetupBlock({
   /** >0: erneut aus DB laden ohne vollständigen Ladezustand (z. B. nach Speichern). */
   const [lineupReloadTick, setLineupReloadTick] = useState(0);
 
-  /** Volle Mannschaft (nicht attendance-gefiltert): muss mit DB-Zeilen abgleichen, sonst werden gespeicherte Spieler nach dem Re-Fetch aus dem State geworfen. */
-  const teamRosterIds = useMemo(() => new Set(players.map((p) => p.id)), [players]);
-
   useEffect(() => {
     setLineupReloadTick(0);
   }, [matchId]);
@@ -92,12 +90,14 @@ export function TrainerMatchSetupBlock({
           setSetupError(lineupRes.error?.message ?? benchRes.error?.message ?? 'Aufstellung laden fehlgeschlagen.');
           return;
         }
+        const slotMap = lineupRowsToSlotMap(
+          (lineupRes.data ?? []) as { slot: FieldSlotId; player_id: string | null }[],
+        );
         const nextStarters = emptyMatchSetupStarters();
-        for (const r of (lineupRes.data ?? []) as { slot: FieldSlotId; player_id: string | null }[]) {
-          if (LIVE_FIELD_SLOT_ORDER.includes(r.slot) && r.player_id) {
-            nextStarters[r.slot] = r.player_id;
-          }
+        for (const s of LIVE_FIELD_SLOT_ORDER) {
+          nextStarters[s] = slotMap[s] ?? null;
         }
+        /** Matchkader = strikt UNION(match_lineup-Spieler, match_bench) — kein zweiter Schnitt mit lokalem Roster-State. */
         const nextSquad = new Set<string>();
         for (const row of (benchRes.data ?? []) as { player_id: string }[]) {
           if (row.player_id) nextSquad.add(row.player_id);
@@ -116,19 +116,6 @@ export function TrainerMatchSetupBlock({
       cancelled = true;
     };
   }, [matchId, lineupReloadTick]);
-
-  useEffect(() => {
-    if (teamRosterIds.size === 0) return;
-    setSquad((prev) => new Set([...prev].filter((id) => teamRosterIds.has(id))));
-    setStartersBySlot((prev) => {
-      const next = { ...prev };
-      for (const s of LIVE_FIELD_SLOT_ORDER) {
-        const pid = next[s];
-        if (pid && !teamRosterIds.has(pid)) next[s] = null;
-      }
-      return next;
-    });
-  }, [players, teamRosterIds]);
 
   const starterCount = useMemo(
     () => LIVE_FIELD_SLOT_ORDER.filter((s) => startersBySlot[s] != null).length,
@@ -211,7 +198,7 @@ export function TrainerMatchSetupBlock({
     setSavingLive(true);
     setSetupError(null);
     const ordered = LIVE_FIELD_SLOT_ORDER.map((s) => startersBySlot[s] ?? null);
-    const squadArr = [...squad].filter((pid) => teamRosterIds.has(pid));
+    const squadArr = [...squad];
     const { error: lineupErr } = await replaceMatchLineupAndBench(matchId, ordered, squadArr);
     if (lineupErr) {
       setSetupError(lineupErr);
@@ -230,7 +217,7 @@ export function TrainerMatchSetupBlock({
   const onSaveSquadOnly = async () => {
     setSquadSaveMsg(null);
     setSavingSquad(true);
-    const ids = [...squad].filter((pid) => teamRosterIds.has(pid));
+    const ids = [...squad];
     const { error } = await saveMatchSquadOnly(matchId, ids);
     setSavingSquad(false);
     if (error) {
@@ -247,7 +234,7 @@ export function TrainerMatchSetupBlock({
     setSavingLineup(true);
     setSetupError(null);
     const ordered = LIVE_FIELD_SLOT_ORDER.map((s) => startersBySlot[s] ?? null);
-    const squadArr = [...squad].filter((pid) => teamRosterIds.has(pid));
+    const squadArr = [...squad];
     const { error } = await replaceMatchLineupAndBench(matchId, ordered, squadArr);
     setSavingLineup(false);
     if (error) {
