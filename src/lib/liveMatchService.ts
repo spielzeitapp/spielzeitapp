@@ -293,7 +293,7 @@ export async function saveMatchSquadOnly(
   return { error: null };
 }
 
-/** Lineup + Bank komplett ersetzen (7 Slots + bench). */
+/** Lineup + Bank komplett ersetzen (7 Slots + bench) — atomar via `replace_match_lineup_and_bench`. */
 export async function replaceMatchLineupAndBench(
   matchId: string,
   startingPlayerIds: Array<string | null | undefined>,
@@ -311,35 +311,20 @@ export async function replaceMatchLineupAndBench(
   ]);
   const benchIds = normalizedSquad.filter((id) => !starterSet.has(id));
 
-  const delLineup = await supabase.from('match_lineup').delete().eq('match_id', matchId);
-  if (delLineup.error) return { error: delLineup.error.message };
-
-  const delBench = await supabase.from('match_bench').delete().eq('match_id', matchId);
-  if (delBench.error) return { error: delBench.error.message };
-
-  const lineupRows = LIVE_FIELD_SLOT_ORDER.map((slot, i) => ({
-    match_id: matchId,
+  const p_lineup = LIVE_FIELD_SLOT_ORDER.map((slot, i) => ({
     slot,
     player_id: starters[i] ?? null,
   }));
 
-  const insLineup = await supabase.from('match_lineup').upsert(lineupRows, {
-    onConflict: 'match_id,slot',
+  const { error } = await supabase.rpc('replace_match_lineup_and_bench', {
+    p_match_id: matchId,
+    p_lineup,
+    p_bench_player_ids: benchIds,
   });
-  if (insLineup.error) {
-    console.error('[liveMatchService] replaceMatchLineupAndBench match_lineup', insLineup.error);
-    return { error: insLineup.error.message };
-  }
 
-  if (benchIds.length > 0) {
-    const benchRows = benchIds.map((player_id) => ({ match_id: matchId, player_id }));
-    const insBench = await supabase.from('match_bench').upsert(benchRows, {
-      onConflict: 'match_id,player_id',
-    });
-    if (insBench.error) {
-      console.error('[liveMatchService] replaceMatchLineupAndBench match_bench', insBench.error);
-      return { error: insBench.error.message };
-    }
+  if (error) {
+    console.error('[liveMatchService] replaceMatchLineupAndBench rpc', error);
+    return { error: error.message };
   }
 
   return { error: null };
