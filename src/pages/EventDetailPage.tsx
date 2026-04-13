@@ -155,6 +155,8 @@ export const EventDetailPage: React.FC = () => {
   /** Spiel-Termine ohne events.match_id: einmalig Match-Zeile anlegen und verknüpfen (RLS: matches_insert). */
   const [matchLinkBusy, setMatchLinkBusy] = useState(false);
   const [matchLinkError, setMatchLinkError] = useState<string | null>(null);
+  /** matches.team_season_id des verknüpften Spiels — für Spielerliste muss sie mit Lineup/Bank übereinstimmen (events.team_season_id kann abweichen). */
+  const [linkedMatchTeamSeasonId, setLinkedMatchTeamSeasonId] = useState<string | null>(null);
 
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedSaving, setFeedSaving] = useState(false);
@@ -174,7 +176,35 @@ export const EventDetailPage: React.FC = () => {
   const ourTeamName = teamLabel ?? getOurTeamDisplayName();
 
   const teamSeasonId = event?.team_season_id ?? null;
-  const { players, loading: playersLoading } = usePlayers(teamSeasonId);
+
+  useEffect(() => {
+    const mid = event?.match_id ?? null;
+    if (!mid) {
+      setLinkedMatchTeamSeasonId(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const { data, error: qErr } = await supabase
+        .from('matches')
+        .select('team_season_id')
+        .eq('id', mid)
+        .maybeSingle();
+      if (cancelled) return;
+      if (qErr || !data) {
+        setLinkedMatchTeamSeasonId(null);
+        return;
+      }
+      const ts = (data as { team_season_id: string }).team_season_id;
+      setLinkedMatchTeamSeasonId(ts != null ? String(ts) : null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [event?.match_id]);
+
+  const playersTeamSeasonId = linkedMatchTeamSeasonId ?? teamSeasonId;
+  const { players, loading: playersLoading } = usePlayers(playersTeamSeasonId);
   const { myAttendancePlayerIds } = useAvailabilityPermissions({
     role: effectiveRole,
     teamSeasonId,
@@ -779,6 +809,8 @@ export const EventDetailPage: React.FC = () => {
                 matchId={event.match_id}
                 players={players}
                 attendanceByPlayerId={eventAttendanceByPlayerId}
+                eventTeamSeasonId={event.team_season_id}
+                linkedMatchTeamSeasonId={linkedMatchTeamSeasonId}
               />
             ) : null}
           </div>

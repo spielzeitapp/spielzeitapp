@@ -37,11 +37,17 @@ export function TrainerMatchSetupBlock({
   matchId,
   players,
   attendanceByPlayerId,
+  eventTeamSeasonId = null,
+  linkedMatchTeamSeasonId = null,
 }: {
   matchId: string;
   players: PlayerItem[];
   /** Nur Anzeige-Filter: wenn mind. eine Zu-/Absage und mind. ein „ja“, nur Zugesagte im Kader-Pool. */
   attendanceByPlayerId?: Record<string, 'yes' | 'no'>;
+  /** events.team_season_id (Kontext); kann von matches.team_season_id abweichen. */
+  eventTeamSeasonId?: string | null;
+  /** matches.team_season_id des verknüpften Spiels (wenn von Parent geladen). */
+  linkedMatchTeamSeasonId?: string | null;
 }) {
   const navigate = useNavigate();
 
@@ -112,11 +118,6 @@ export function TrainerMatchSetupBlock({
           const pid = String(row.player_id ?? '').trim();
           if (pid) nextSquad.add(nid(pid));
         }
-        console.log('[TrainerMatchSetup] Reload aus DB', {
-          lineupRows: lineupRes.data,
-          benchRows: benchRes.data,
-          squadUnion: [...nextSquad],
-        });
         setStartersBySlot(nextStarters);
         setSquad(nextSquad);
       } finally {
@@ -127,6 +128,33 @@ export function TrainerMatchSetupBlock({
       cancelled = true;
     };
   }, [matchId, lineupReloadTick]);
+
+  useEffect(() => {
+    if (loadingLineup) return;
+    const squadUnionIds = [...squad].map(nid).sort();
+    const playersIds = [...new Set(players.map((p) => nid(p.id)))].sort();
+    const squadIdsNotInPlayersList = squadUnionIds.filter((id) => !playersIds.includes(id));
+
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase.from('matches').select('team_season_id').eq('id', matchId).maybeSingle();
+      if (cancelled) return;
+      const matchTeamSeasonIdFromDb =
+        data != null ? String((data as { team_season_id: string }).team_season_id) : null;
+      console.log('[TrainerMatchSetup] Roster-Pfad: matchId, team_seasons, squadUnion vs players', {
+        matchId,
+        matchTeamSeasonIdFromDb,
+        eventTeamSeasonId,
+        linkedMatchTeamSeasonIdProp: linkedMatchTeamSeasonId,
+        squadUnionIds,
+        playersIds,
+        squadIdsNotInPlayersList,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadingLineup, squad, players, matchId, eventTeamSeasonId, linkedMatchTeamSeasonId]);
 
   const starterCount = useMemo(
     () => LIVE_FIELD_SLOT_ORDER.filter((s) => startersBySlot[s] != null).length,

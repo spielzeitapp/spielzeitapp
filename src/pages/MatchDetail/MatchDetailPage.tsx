@@ -557,6 +557,8 @@ export const MatchDetailPage: React.FC = () => {
             matchId={matchId}
             players={players}
             attendanceByPlayerId={matchDetailAttendanceByPlayerId}
+            eventTeamSeasonId={null}
+            linkedMatchTeamSeasonId={matchRow?.team_season_id ?? null}
           />
         )}
 
