@@ -160,35 +160,39 @@ export function TrainerMatchSetupBlock({
   }, [startersBySlot]);
 
   const toggleSquad = (playerId: string) => {
+    const pid = normalizeId(playerId);
+    if (!pid) return;
     setSquad((prev) => {
       const next = new Set(prev);
-      if (next.has(playerId)) {
-        next.delete(playerId);
+      if (next.has(pid)) {
+        next.delete(pid);
         setStartersBySlot((st) => {
           const o = { ...st };
           for (const s of LIVE_FIELD_SLOT_ORDER) {
-            if (o[s] === playerId) o[s] = null;
+            if (o[s] === pid) o[s] = null;
           }
           return o;
         });
       } else {
-        next.add(playerId);
+        next.add(pid);
       }
       return next;
     });
   };
 
   const toggleStarter = (playerId: string) => {
-    if (!squad.has(playerId)) return;
+    const pid = normalizeId(playerId);
+    if (!pid) return;
+    if (!squad.has(pid)) return;
     setStartersBySlot((prev) => {
       const next = { ...prev };
       let isStarter = false;
       for (const s of LIVE_FIELD_SLOT_ORDER) {
-        if (next[s] === playerId) isStarter = true;
+        if (next[s] === pid) isStarter = true;
       }
       if (isStarter) {
         for (const s of LIVE_FIELD_SLOT_ORDER) {
-          if (next[s] === playerId) next[s] = null;
+          if (next[s] === pid) next[s] = null;
         }
         return next;
       }
@@ -197,9 +201,9 @@ export function TrainerMatchSetupBlock({
       const emptySlot = LIVE_FIELD_SLOT_ORDER.find((s) => next[s] == null);
       if (!emptySlot) return prev;
       for (const s of LIVE_FIELD_SLOT_ORDER) {
-        if (next[s] === playerId) next[s] = null;
+        if (next[s] === pid) next[s] = null;
       }
-      next[emptySlot] = playerId;
+      next[emptySlot] = pid;
       return next;
     });
   };
@@ -354,7 +358,8 @@ export function TrainerMatchSetupBlock({
             ) : (
               <div className="flex flex-col gap-2">
                 {squadPlayersSorted.map((p) => {
-                  const isSt = starterIdSet.has(p.id);
+                  const pid = normalizeId(p.id);
+                  const isSt = pid ? starterIdSet.has(pid) : false;
                   const blockMore = !isSt && starterCount >= MATCH_SETUP_STARTERS_MAX;
                   return (
                     <button
