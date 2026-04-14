@@ -19,6 +19,11 @@ function emptyMatchSetupStarters(): Record<FieldSlotId, string | null> {
   return o;
 }
 
+const normalizeId = (id: string | null | undefined): string | null => {
+  const v = String(id ?? '').trim();
+  return v.length > 0 ? v : null;
+};
+
 const trainerRowBase =
   'flex w-full min-h-[56px] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors';
 const trainerRowUnselected = 'border-white/10 bg-white/[0.05] text-white hover:bg-white/[0.08]';
@@ -69,7 +74,10 @@ export function TrainerMatchSetupBlock({
   /** >0: erneut aus DB laden ohne vollständigen Ladezustand (z. B. nach Speichern). */
   const [lineupReloadTick, setLineupReloadTick] = useState(0);
 
-  const validPlayerIds = useMemo(() => new Set(poolPlayers.map((p) => p.id)), [poolPlayers]);
+  const validPlayerIds = useMemo(
+    () => new Set(poolPlayers.map((p) => normalizeId(p.id))),
+    [poolPlayers],
+  );
 
   useEffect(() => {
     setLineupReloadTick(0);
@@ -118,12 +126,12 @@ export function TrainerMatchSetupBlock({
 
   useEffect(() => {
     if (validPlayerIds.size === 0) return;
-    setSquad((prev) => new Set([...prev].filter((id) => validPlayerIds.has(id))));
+    setSquad((prev) => new Set([...prev].filter((id) => validPlayerIds.has(normalizeId(id)))));
     setStartersBySlot((prev) => {
       const next = { ...prev };
       for (const s of LIVE_FIELD_SLOT_ORDER) {
         const pid = next[s];
-        if (pid && !validPlayerIds.has(pid)) next[s] = null;
+        if (pid && !validPlayerIds.has(normalizeId(pid))) next[s] = null;
       }
       return next;
     });
