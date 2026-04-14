@@ -125,13 +125,12 @@ export function TrainerMatchSetupBlock({
   }, [matchId, lineupReloadTick]);
 
   useEffect(() => {
-    if (validPlayerIds.size === 0) return;
-    setSquad((prev) => new Set([...prev].filter((id) => validPlayerIds.has(normalizeId(id)))));
+    setSquad((prev) => new Set([...prev].map((id) => normalizeId(id)).filter((id): id is string => Boolean(id))));
     setStartersBySlot((prev) => {
       const next = { ...prev };
       for (const s of LIVE_FIELD_SLOT_ORDER) {
         const pid = next[s];
-        if (pid && !validPlayerIds.has(normalizeId(pid))) next[s] = null;
+        next[s] = normalizeId(pid);
       }
       return next;
     });
