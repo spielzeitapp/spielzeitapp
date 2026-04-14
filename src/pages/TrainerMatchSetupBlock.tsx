@@ -65,6 +65,16 @@ export function TrainerMatchSetupBlock({
     [poolPlayers],
   );
 
+  const sortedAllPlayers = useMemo(
+    () =>
+      [...players].sort(
+        (a, b) =>
+          (a.jersey_number ?? 9999) - (b.jersey_number ?? 9999) ||
+          a.display_name.localeCompare(b.display_name, 'de'),
+      ),
+    [players],
+  );
+
   const [squad, setSquad] = useState<Set<string>>(() => new Set());
   const [startersBySlot, setStartersBySlot] = useState<Record<FieldSlotId, string | null>>(emptyMatchSetupStarters);
   const [loadingLineup, setLoadingLineup] = useState(true);
@@ -78,8 +88,8 @@ export function TrainerMatchSetupBlock({
   const [lineupReloadTick, setLineupReloadTick] = useState(0);
 
   const validPlayerIds = useMemo(
-    () => new Set(poolPlayers.map((p) => normalizeId(p.id))),
-    [poolPlayers],
+    () => new Set(players.map((p) => normalizeId(p.id)).filter((id): id is string => Boolean(id))),
+    [players],
   );
 
   useEffect(() => {
@@ -210,11 +220,11 @@ export function TrainerMatchSetupBlock({
 
   const squadPlayersSorted = useMemo(
     () =>
-      sortedPlayers.filter((p) => {
+      sortedAllPlayers.filter((p) => {
         const id = normalizeId(p.id);
         return id ? squad.has(id) : false;
       }),
-    [sortedPlayers, squad],
+    [sortedAllPlayers, squad],
   );
 
   const bankPlayers = useMemo(

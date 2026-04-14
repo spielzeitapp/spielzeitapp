@@ -147,7 +147,10 @@ export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: 
 
   const slotToPlayer: Partial<Record<FieldSlotId, string | null>> = {};
   for (const r of (lineupRes.data ?? []) as { slot: FieldSlotId; player_id: string | null }[]) {
-    slotToPlayer[r.slot] = r.player_id;
+    const slot = String(r.slot ?? '').trim().toUpperCase();
+    if (LIVE_FIELD_SLOT_ORDER.includes(slot as any)) {
+      slotToPlayer[slot as FieldSlotId] = r.player_id;
+    }
   }
 
   const startingPlayerIds = LIVE_FIELD_SLOT_ORDER.map((s) => slotToPlayer[s]).filter(
