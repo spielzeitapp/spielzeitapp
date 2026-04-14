@@ -103,17 +103,23 @@ export function TrainerMatchSetupBlock({
       }
       const nextStarters = emptyMatchSetupStarters();
       for (const r of (lineupRes.data ?? []) as { slot: FieldSlotId; player_id: string | null }[]) {
-        if (LIVE_FIELD_SLOT_ORDER.includes(r.slot) && r.player_id) {
-          nextStarters[r.slot] = r.player_id;
+        const slot = String(r.slot ?? '').trim().toUpperCase();
+        if (LIVE_FIELD_SLOT_ORDER.includes(slot as any) && r.player_id) {
+          nextStarters[slot as any] = normalizeId(r.player_id);
         }
       }
       const nextSquad = new Set<string>();
+
+      // Bench
       for (const row of (benchRes.data ?? []) as { player_id: string }[]) {
-        if (row.player_id) nextSquad.add(row.player_id);
+        const id = normalizeId(row.player_id);
+        if (id) nextSquad.add(id);
       }
-      for (const slot of LIVE_FIELD_SLOT_ORDER) {
-        const pid = nextStarters[slot];
-        if (pid) nextSquad.add(pid);
+
+      // Starter IMMER übernehmen (auch wenn Slot Probleme hatte)
+      for (const r of (lineupRes.data ?? []) as { slot: FieldSlotId; player_id: string | null }[]) {
+        const id = normalizeId(r.player_id);
+        if (id) nextSquad.add(id);
       }
       setStartersBySlot(nextStarters);
       setSquad(nextSquad);
