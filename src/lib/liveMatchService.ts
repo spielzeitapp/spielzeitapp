@@ -283,12 +283,17 @@ export async function replaceMatchLineupAndBench(
   startingPlayerIds: Array<string | null | undefined>,
   squadPlayerIds: string[],
 ): Promise<{ error: string | null }> {
-  const starters = LIVE_FIELD_SLOT_ORDER.map((_, i) => {
-    const raw = startingPlayerIds[i];
-    return typeof raw === 'string' && raw.length > 0 ? raw : null;
-  });
-  const starterSet = new Set(starters.filter((id): id is string => Boolean(id)));
-  const benchIds = squadPlayerIds.filter((id) => !starterSet.has(id));
+  const normalizeId = (raw: string | null | undefined): string | null => {
+    const v = String(raw ?? '').trim();
+    return v.length > 0 ? v : null;
+  };
+
+  const starters = LIVE_FIELD_SLOT_ORDER.map((_, i) => normalizeId(startingPlayerIds[i]));
+  const lineup = starters.filter((id): id is string => Boolean(id));
+  const lineupSet = new Set(lineup);
+  const kader = [...new Set(squadPlayerIds.map((id) => normalizeId(id)).filter((id): id is string => Boolean(id)))];
+  // Bench immer aus aktuellem UI-State berechnen: bench = kader - lineup
+  const benchIds = kader.filter((id) => !lineupSet.has(id));
 
   const delLineup = await supabase.from('match_lineup').delete().eq('match_id', matchId);
   if (delLineup.error) return { error: delLineup.error.message };
