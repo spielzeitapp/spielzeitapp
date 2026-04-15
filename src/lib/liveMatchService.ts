@@ -304,11 +304,17 @@ export async function replaceMatchLineupAndBench(
   const delBench = await supabase.from('match_bench').delete().eq('match_id', matchId);
   if (delBench.error) return { error: delBench.error.message };
 
-  const lineupRows = LIVE_FIELD_SLOT_ORDER.map((slot, i) => ({
-    match_id: matchId,
-    slot,
-    player_id: starters[i] ?? null,
-  }));
+  const lineupRows = LIVE_FIELD_SLOT_ORDER
+    .map((slot, i) => {
+      const playerId = starters[i];
+      if (!playerId) return null;
+      return {
+        match_id: matchId,
+        slot,
+        player_id: playerId,
+      };
+    })
+    .filter((row): row is { match_id: string; slot: FieldSlotId; player_id: string } => row !== null);
 
   const insLineup = await supabase.from('match_lineup').insert(lineupRows);
   if (insLineup.error) {
