@@ -50,8 +50,8 @@ export function TrainerMatchSetupBlock({
     const hasYes = Object.values(raw).some((s) => s === 'yes');
     if (!hasRows || !hasYes) return players;
     return players.filter((p) => {
-      const id = normalizeId(p.id);
-      return id ? raw[id] === 'yes' : false;
+      const playerId = normalizeId(p.id);
+      return playerId ? raw[playerId] === 'yes' : false;
     });
   }, [players, attendanceByPlayerId]);
 
@@ -253,8 +253,8 @@ export function TrainerMatchSetupBlock({
   const squadPlayersSorted = useMemo(
     () =>
       sortedAllPlayers.filter((p) => {
-        const id = normalizeId(p.id);
-        return id ? squad.has(id) : false;
+        const playerId = normalizeId(p.id);
+        return playerId ? squad.has(playerId) : false;
       }),
     [sortedAllPlayers, squad],
   );
@@ -262,8 +262,8 @@ export function TrainerMatchSetupBlock({
   const starterPlayersSorted = useMemo(
     () =>
       sortedAllPlayers.filter((p) => {
-        const id = normalizeId(p.id);
-        return id ? starterIdSet.has(id) : false;
+        const playerId = normalizeId(p.id);
+        return playerId ? starterIdSet.has(playerId) : false;
       }),
     [sortedAllPlayers, starterIdSet],
   );
@@ -271,8 +271,8 @@ export function TrainerMatchSetupBlock({
   const bankPlayers = useMemo(
     () =>
       sortedAllPlayers.filter((p) => {
-        const id = normalizeId(p.id);
-        return id ? benchIdSet.has(id) : false;
+        const playerId = normalizeId(p.id);
+        return playerId ? benchIdSet.has(playerId) : false;
       }),
     [sortedAllPlayers, benchIdSet],
   );
@@ -353,13 +353,13 @@ export function TrainerMatchSetupBlock({
             </div>
             <div className="flex flex-col gap-2">
               {sortedPlayers.map((p) => {
-                const pid = normalizeId(p.id);
-                const inSquad = pid ? squad.has(pid) : false;
+                const playerId = normalizeId(p.id);
+                const inSquad = playerId ? squad.has(playerId) : false;
                 return (
                   <button
-                    key={p.id}
+                    key={playerId ?? String(p.id)}
                     type="button"
-                    onClick={() => toggleSquad(p.id)}
+                    onClick={() => playerId && toggleSquad(playerId)}
                     className={`${trainerRowBase} ${inSquad ? trainerRowSquad : trainerRowUnselected}`}
                   >
                     {p.jersey_number != null ? (
@@ -414,15 +414,15 @@ export function TrainerMatchSetupBlock({
             ) : (
               <div className="flex flex-col gap-2">
                 {squadPlayersSorted.map((p) => {
-                  const pid = normalizeId(p.id);
-                  const isSt = pid ? starterIdSet.has(pid) : false;
+                  const playerId = normalizeId(p.id);
+                  const isSt = playerId ? starterIdSet.has(playerId) : false;
                   const blockMore = !isSt && starterCount >= MATCH_SETUP_STARTERS_MAX;
                   return (
                     <button
-                      key={p.id}
+                      key={playerId ?? String(p.id)}
                       type="button"
                       disabled={blockMore}
-                      onClick={() => toggleStarter(p.id)}
+                      onClick={() => playerId && toggleStarter(playerId)}
                       className={`${trainerRowBase} ${
                         blockMore ? `${trainerRowUnselected} ${trainerRowDisabled}` : isSt ? trainerRowStarter : trainerRowUnselected
                       }`}
@@ -461,9 +461,11 @@ export function TrainerMatchSetupBlock({
               <p className="text-sm text-white/55">Keine Spieler auf der Bank (alle in der Startelf oder kein Kader).</p>
             ) : (
               <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/30 p-3">
-                {bankPlayers.map((p) => (
+                {bankPlayers.map((p) => {
+                  const playerId = normalizeId(p.id);
+                  return (
                   <div
-                    key={p.id}
+                    key={playerId ?? String(p.id)}
                     className="flex items-center gap-3 border-b border-white/5 py-2 last:border-b-0 last:pb-0"
                   >
                     <span className="w-8 text-center text-sm font-black text-white/40">
@@ -471,7 +473,8 @@ export function TrainerMatchSetupBlock({
                     </span>
                     <span className="text-sm font-medium text-white/85">{p.display_name}</span>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
