@@ -77,6 +77,7 @@ export function TrainerMatchSetupBlock({
 
   const [squad, setSquad] = useState<Set<string>>(() => new Set());
   const [startersBySlot, setStartersBySlot] = useState<Record<FieldSlotId, string | null>>(emptyMatchSetupStarters);
+  const [benchIdSet, setBenchIdSet] = useState<Set<string>>(() => new Set());
   const [loadingLineup, setLoadingLineup] = useState(true);
   const [savingLive, setSavingLive] = useState(false);
   const [savingSquad, setSavingSquad] = useState(false);
@@ -121,20 +122,19 @@ export function TrainerMatchSetupBlock({
           nextStarters[slot as any] = normalizeId(r.player_id);
         }
       }
-      const nextSquad = new Set<string>();
-
-      // Bench
+      const nextBenchIds = new Set<string>();
       for (const row of (benchRes.data ?? []) as { player_id: string }[]) {
         const id = normalizeId(row.player_id);
-        if (id) nextSquad.add(id);
+        if (id) nextBenchIds.add(id);
       }
 
-      // Starter IMMER übernehmen (auch wenn Slot Probleme hatte)
+      const nextSquad = new Set<string>(nextBenchIds);
       for (const r of (lineupRes.data ?? []) as { slot: FieldSlotId; player_id: string | null }[]) {
         const id = normalizeId(r.player_id);
         if (id) nextSquad.add(id);
       }
       setStartersBySlot(nextStarters);
+      setBenchIdSet(nextBenchIds);
       setSquad(nextSquad);
       if (showFullLoading) setLoadingLineup(false);
     })();
@@ -164,6 +164,11 @@ export function TrainerMatchSetupBlock({
       const next = new Set(prev);
       if (next.has(pid)) {
         next.delete(pid);
+        setBenchIdSet((prevBench) => {
+          const nextBench = new Set(prevBench);
+          nextBench.delete(pid);
+          return nextBench;
+        });
         setStartersBySlot((st) => {
           const o = { ...st };
           for (const s of LIVE_FIELD_SLOT_ORDER) {
@@ -173,6 +178,11 @@ export function TrainerMatchSetupBlock({
         });
       } else {
         next.add(pid);
+        setBenchIdSet((prevBench) => {
+          const nextBench = new Set(prevBench);
+          nextBench.add(pid);
+          return nextBench;
+        });
       }
       return next;
     });
@@ -192,6 +202,11 @@ export function TrainerMatchSetupBlock({
         for (const s of LIVE_FIELD_SLOT_ORDER) {
           if (next[s] === pid) next[s] = null;
         }
+        setBenchIdSet((prevBench) => {
+          const nextBench = new Set(prevBench);
+          nextBench.add(pid);
+          return nextBench;
+        });
         return next;
       }
       const count = LIVE_FIELD_SLOT_ORDER.filter((s) => next[s] != null).length;
@@ -202,6 +217,11 @@ export function TrainerMatchSetupBlock({
         if (next[s] === pid) next[s] = null;
       }
       next[emptySlot] = pid;
+      setBenchIdSet((prevBench) => {
+        const nextBench = new Set(prevBench);
+        nextBench.delete(pid);
+        return nextBench;
+      });
       return next;
     });
   };
@@ -215,13 +235,22 @@ export function TrainerMatchSetupBlock({
     [sortedAllPlayers, squad],
   );
 
+  const starterPlayersSorted = useMemo(
+    () =>
+      sortedAllPlayers.filter((p) => {
+        const id = normalizeId(p.id);
+        return id ? starterIdSet.has(id) : false;
+      }),
+    [sortedAllPlayers, starterIdSet],
+  );
+
   const bankPlayers = useMemo(
     () =>
-      squadPlayersSorted.filter((p) => {
+      sortedAllPlayers.filter((p) => {
         const id = normalizeId(p.id);
-        return id ? !starterIdSet.has(id) : false;
+        return id ? benchIdSet.has(id) : false;
       }),
-    [squadPlayersSorted, starterIdSet],
+    [sortedAllPlayers, benchIdSet],
   );
 
   const onLiveStart = async () => {
