@@ -143,18 +143,6 @@ export function TrainerMatchSetupBlock({
     };
   }, [matchId, lineupReloadTick]);
 
-  useEffect(() => {
-    setSquad((prev) => new Set([...prev].map((id) => normalizeId(id)).filter((id): id is string => Boolean(id))));
-    setStartersBySlot((prev) => {
-      const next = { ...prev };
-      for (const s of LIVE_FIELD_SLOT_ORDER) {
-        const pid = next[s];
-        next[s] = normalizeId(pid);
-      }
-      return next;
-    });
-  }, [poolPlayers, validPlayerIds]);
-
   const starterCount = useMemo(
     () => LIVE_FIELD_SLOT_ORDER.filter((s) => startersBySlot[s] != null).length,
     [startersBySlot],
