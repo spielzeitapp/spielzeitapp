@@ -319,6 +319,11 @@ export function TrainerMatchSetupBlock({
     setSetupError(null);
     const ordered = LIVE_FIELD_SLOT_ORDER.map((s) => startersBySlot[s] ?? null);
     const squadArr = [...squad].filter((pid) => validPlayerIds.has(pid));
+    console.log('[TrainerMatchSetupBlock][save-lineup-click]', {
+      matchId,
+      ordered,
+      squadArr,
+    });
     const { error } = await replaceMatchLineupAndBench(matchId, ordered, squadArr);
     setSavingLineup(false);
     if (error) {

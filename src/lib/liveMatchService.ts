@@ -297,13 +297,6 @@ export async function replaceMatchLineupAndBench(
   const kader = [...new Set(squadPlayerIds.map((id) => normalizeId(id)).filter((id): id is string => Boolean(id)))];
   // Bench immer aus aktuellem UI-State berechnen: bench = kader - lineup
   const benchIds = kader.filter((id) => !lineupSet.has(id));
-
-  const delLineup = await supabase.from('match_lineup').delete().eq('match_id', matchId);
-  if (delLineup.error) return { error: delLineup.error.message };
-
-  const delBench = await supabase.from('match_bench').delete().eq('match_id', matchId);
-  if (delBench.error) return { error: delBench.error.message };
-
   const lineupRows = LIVE_FIELD_SLOT_ORDER
     .map((slot, i) => {
       const playerId = starters[i];
@@ -316,7 +309,29 @@ export async function replaceMatchLineupAndBench(
     })
     .filter((row): row is { match_id: string; slot: FieldSlotId; player_id: string } => row !== null);
 
+  console.log('[replaceMatchLineupAndBench][input]', {
+    matchId,
+    startingPlayerIds,
+    squadPlayerIds,
+  });
+
+  console.log('[replaceMatchLineupAndBench][derived]', {
+    starters,
+    lineupRows,
+    benchIds,
+  });
+
+  const delLineup = await supabase.from('match_lineup').delete().eq('match_id', matchId);
+  if (delLineup.error) return { error: delLineup.error.message };
+
+  const delBench = await supabase.from('match_bench').delete().eq('match_id', matchId);
+  if (delBench.error) return { error: delBench.error.message };
+
   const insLineup = await supabase.from('match_lineup').insert(lineupRows);
+  console.log('[replaceMatchLineupAndBench][insert-lineup-result]', {
+    error: insLineup.error ?? null,
+    lineupRowsCount: lineupRows.length,
+  });
   if (insLineup.error) {
     console.error('[liveMatchService] replaceMatchLineupAndBench match_lineup', insLineup.error);
     return { error: insLineup.error.message };
@@ -330,6 +345,9 @@ export async function replaceMatchLineupAndBench(
       return { error: insBench.error.message };
     }
   }
+  console.log('[replaceMatchLineupAndBench][insert-bench-result]', {
+    benchIdsCount: benchIds.length,
+  });
 
   return { error: null };
 }
