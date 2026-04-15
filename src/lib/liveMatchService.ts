@@ -308,6 +308,7 @@ export async function replaceMatchLineupAndBench(
       };
     })
     .filter((row): row is { match_id: string; slot: FieldSlotId; player_id: string } => row !== null);
+  console.log('[replaceMatchLineupAndBench][LINEUP_ROWS]', lineupRows);
 
   console.log('[replaceMatchLineupAndBench][input]', {
     matchId,
@@ -327,6 +328,11 @@ export async function replaceMatchLineupAndBench(
   const delBench = await supabase.from('match_bench').delete().eq('match_id', matchId);
   if (delBench.error) return { error: delBench.error.message };
 
+  console.log('[replaceMatchLineupAndBench][INPUT]', {
+    matchId,
+    starters,
+    benchIds,
+  });
   const insLineup = await supabase.from('match_lineup').insert(lineupRows);
   console.log('[replaceMatchLineupAndBench][insert-lineup-result]', {
     error: insLineup.error ?? null,
