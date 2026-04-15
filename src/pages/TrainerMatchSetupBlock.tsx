@@ -133,6 +133,30 @@ export function TrainerMatchSetupBlock({
         const id = normalizeId(r.player_id);
         if (id) nextSquad.add(id);
       }
+      const lineupIdsFromDb = [...new Set(
+        ((lineupRes.data ?? []) as { player_id: string | null }[])
+          .map((r) => normalizeId(r.player_id))
+          .filter((id): id is string => Boolean(id)),
+      )];
+      const benchIdsFromDb = [...nextBenchIds];
+      const squadIdsFromDb = [...nextSquad];
+      const allPlayerIdsFromPlayers = [...new Set(
+        players
+          .map((p) => normalizeId(p.id))
+          .filter((id): id is string => Boolean(id)),
+      )];
+      const playersIdSet = new Set(allPlayerIdsFromPlayers);
+      const missingLineupIds = lineupIdsFromDb.filter((id) => !playersIdSet.has(id));
+      const missingBenchIds = benchIdsFromDb.filter((id) => !playersIdSet.has(id));
+      console.log('[TrainerMatchSetupBlock][reload-debug]', {
+        matchId,
+        lineupIdsFromDb,
+        benchIdsFromDb,
+        squadIdsFromDb,
+        allPlayerIdsFromPlayers,
+        missingLineupIds,
+        missingBenchIds,
+      });
       setStartersBySlot(nextStarters);
       setBenchIdSet(nextBenchIds);
       setSquad(nextSquad);
@@ -141,7 +165,7 @@ export function TrainerMatchSetupBlock({
     return () => {
       cancelled = true;
     };
-  }, [matchId, lineupReloadTick]);
+  }, [matchId, lineupReloadTick, players]);
 
   const starterCount = useMemo(
     () => LIVE_FIELD_SLOT_ORDER.filter((s) => startersBySlot[s] != null).length,
