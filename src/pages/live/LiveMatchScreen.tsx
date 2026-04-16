@@ -85,7 +85,9 @@ export const LiveMatchScreen: React.FC = () => {
   const [scoreHome, setScoreHome] = useState(0);
   const [scoreAway, setScoreAway] = useState(0);
 
-  const { selectedTeamSeason } = useSession();
+  const { selectedTeamSeason, canAccess, backendRole } = useSession();
+  const canControlLiveMatch =
+    canAccess('match_admin') || String(backendRole ?? '').trim().toLowerCase() === 'admin';
 
   useEffect(() => {
     let cancelled = false;
@@ -214,11 +216,14 @@ export const LiveMatchScreen: React.FC = () => {
 
   const [wechselOutId, setWechselOutId] = useState<string>('');
   const [wechselInId, setWechselInId] = useState<string>('');
+  const [homeGoalScorerId, setHomeGoalScorerId] = useState<string>('');
 
   const hasClockStarted = useMemo(
     () => Boolean(matchRow?.live_started_at) || events.some((e) => e.type === 'start'),
     [matchRow?.live_started_at, events],
   );
+
+  const matchIsFinished = matchHasEnded || matchRow?.status === 'finished';
 
   const onFieldIds = useMemo(
     () => getCurrentOnFieldPlayers(startingPlayerIds, events, currentMatchSeconds),
@@ -235,6 +240,16 @@ export const LiveMatchScreen: React.FC = () => {
     const set = new Set(ids);
     return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
   }, [squadPlayerIds, onFieldIds, roster]);
+
+  const squadRosterSorted = useMemo(
+    () => sortRosterByNumber(roster.filter((p) => squadPlayerIds.includes(p.id))),
+    [roster, squadPlayerIds],
+  );
+
+  useEffect(() => {
+    if (!homeGoalScorerId) return;
+    if (!squadRosterSorted.some((p) => p.id === homeGoalScorerId)) setHomeGoalScorerId('');
+  }, [homeGoalScorerId, squadRosterSorted]);
 
   const playtimes = useMemo(
     () => calculatePlayerPlaytimes(startingPlayerIds, squadPlayerIds, events, currentMatchSeconds),
@@ -266,7 +281,7 @@ export const LiveMatchScreen: React.FC = () => {
   );
 
   const onStartClick = async () => {
-    if (matchHasEnded || isRunning || !effectiveMatchId) return;
+    if (!canControlLiveMatch || matchIsFinished || isRunning || !effectiveMatchId) return;
     if (!hasClockStarted) {
       const ok = await persistSingle({ type: 'start', timestamp: 0 });
       if (!ok) return;
@@ -292,7 +307,7 @@ export const LiveMatchScreen: React.FC = () => {
   };
 
   const onPauseClick = async () => {
-    if (!isRunning || matchHasEnded || !effectiveMatchId) return;
+    if (!canControlLiveMatch || !isRunning || matchIsFinished || !effectiveMatchId) return;
     const ok = await persistSingle({ type: 'pause', timestamp: currentMatchSeconds });
     if (!ok) return;
     pauseMatch();
@@ -304,7 +319,7 @@ export const LiveMatchScreen: React.FC = () => {
   };
 
   const onEndClick = async () => {
-    if (matchHasEnded || !effectiveMatchId) return;
+    if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId) return;
     const ok = await persistSingle({ type: 'end', timestamp: currentMatchSeconds });
     if (!ok) return;
     endMatch();
@@ -315,9 +330,22 @@ export const LiveMatchScreen: React.FC = () => {
       live_period: half,
     });
     if (error) setSaveError(error);
+    else
+      setMatchRow((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: 'finished',
+              live_is_running: false,
+              live_elapsed_seconds: currentMatchSeconds,
+              live_period: half,
+            }
+          : null,
+      );
   };
 
   const openSubFromPlayer = (p: RosterPlayer) => {
+    if (!canControlLiveMatch || matchIsFinished) return;
     setSubOpen(true);
     if (onFieldIds.includes(p.id)) {
       setSubOutId(p.id);
@@ -330,7 +358,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const persistSubstitution = useCallback(
     async (outgoingPlayerId: string, incomingPlayerId: string): Promise<boolean> => {
-      if (!effectiveMatchId) return false;
+      if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId) return false;
       const check = handleSubstitution({
         outgoingPlayerId,
         incomingPlayerId,
@@ -380,10 +408,11 @@ export const LiveMatchScreen: React.FC = () => {
       );
       return true;
     },
-    [effectiveMatchId, currentMatchSeconds, events, onFieldIds, half],
+    [canControlLiveMatch, matchIsFinished, effectiveMatchId, currentMatchSeconds, events, onFieldIds, half],
   );
 
   const confirmSub = async () => {
+    if (matchIsFinished) return;
     const ok = await persistSubstitution(subOutId, subInId);
     if (!ok) return;
     setSubOpen(false);
@@ -392,6 +421,7 @@ export const LiveMatchScreen: React.FC = () => {
   };
 
   const confirmWechselSection = async () => {
+    if (matchIsFinished) return;
     const ok = await persistSubstitution(wechselOutId, wechselInId);
     if (!ok) return;
     setWechselOutId('');
@@ -411,7 +441,8 @@ export const LiveMatchScreen: React.FC = () => {
       case 'start':
         return 'Anpfiff';
       case 'goal':
-        return `Tor${name ? ` · ${name}` : ''}`;
+        if (!ev.playerId) return 'Tor Gast';
+        return `Tor · ${name ?? '?'}`;
       case 'sub_out':
         return `Raus${name ? `: ${name}` : ''}`;
       case 'sub_in':
@@ -501,104 +532,178 @@ export const LiveMatchScreen: React.FC = () => {
   return (
     <div className="min-h-[100dvh] bg-[#0a0a0a] pb-28 text-white">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0f0f0f]/95 px-3 pt-3 pb-4 backdrop-blur-md">
-        <div className="mx-auto max-w-lg">
-          <p className="text-center text-xs font-medium uppercase tracking-wider text-white/50">Live</p>
-          <h1 className="mt-1 text-center text-base font-bold leading-tight sm:text-lg">
-            {homeName} <span className="text-white/40">vs</span> {headerOpponent}
-          </h1>
+        <div className="mx-auto max-w-lg rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-4 shadow-lg shadow-black/25">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600/25 text-sm font-black text-emerald-200"
+                aria-hidden
+              >
+                {(homeName.slice(0, 1) || 'H').toUpperCase()}
+              </div>
+              <div className="min-w-0 text-left">
+                <p className="truncate text-xs font-semibold text-white/90">{homeName}</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-white/40">Heim</p>
+              </div>
+            </div>
+            <div
+              className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                matchIsFinished
+                  ? 'bg-white/15 text-white/70'
+                  : hasClockStarted
+                    ? 'bg-emerald-600/30 text-emerald-200'
+                    : 'bg-white/10 text-white/55'
+              }`}
+            >
+              {matchIsFinished ? 'Beendet' : hasClockStarted ? 'Live' : 'Bereit'}
+            </div>
+            <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+              <div className="min-w-0 text-right">
+                <p className="truncate text-xs font-semibold text-white/90">{headerOpponent}</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-white/40">Gast</p>
+              </div>
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-sm font-black text-amber-100"
+                aria-hidden
+              >
+                {(headerOpponent.slice(0, 1) || 'G').toUpperCase()}
+              </div>
+            </div>
+          </div>
+          {!canControlLiveMatch && (
+            <p className="mt-3 text-center text-[11px] text-white/45">
+              Zuschaueransicht · Anzeige nur, kein Ticker
+            </p>
+          )}
           {saveError && (
             <p className="mt-2 text-center text-xs font-medium text-amber-400/95" role="alert">
               {saveError}
             </p>
           )}
-          <div className="mt-3 flex items-center justify-center gap-2">
+          <div className="mt-4 flex items-center justify-center gap-2">
             <span className="text-4xl font-black tabular-nums text-white sm:text-5xl">{scoreHome}</span>
             <span className="text-2xl font-light text-white/40">:</span>
             <span className="text-4xl font-black tabular-nums text-white sm:text-5xl">{scoreAway}</span>
           </div>
-          <p className="mt-2 text-center text-sm font-semibold text-emerald-400/90">{half}. Halbzeit</p>
+          <p className="mt-2 text-center text-sm font-semibold">
+            {matchIsFinished ? (
+              <span className="text-white/60">Spiel beendet</span>
+            ) : (
+              <span className="text-emerald-400/90">{half}. Halbzeit</span>
+            )}
+          </p>
           <div
             className={`mt-2 text-center text-3xl font-mono font-bold tabular-nums sm:text-4xl ${
-              isRunning ? 'text-emerald-400' : 'text-white/60'
+              matchIsFinished ? 'text-white/50' : isRunning ? 'text-emerald-400' : 'text-white/60'
             }`}
           >
             {formatClock(currentMatchSeconds)}
           </div>
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              onClick={async () => {
-                const scorer = fieldPlayers[0];
-                const ok = await persistSingle({
-                  type: 'goal',
-                  timestamp: currentMatchSeconds,
-                  playerId: scorer?.id,
-                });
-                if (!ok) return;
-                setScoreHome((s) => {
-                  const n = s + 1;
-                  if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_home: n });
-                  return n;
-                });
-              }}
-              className="min-h-[44px] flex-1 rounded-xl bg-white/10 py-2 text-sm font-bold text-emerald-400 active:bg-white/15"
-            >
-              + Tor Heim
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                const ok = await persistSingle({
-                  type: 'goal',
-                  timestamp: currentMatchSeconds,
-                });
-                if (!ok) return;
-                setScoreAway((s) => {
-                  const n = s + 1;
-                  if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: n });
-                  return n;
-                });
-              }}
-              className="min-h-[44px] flex-1 rounded-xl bg-white/10 py-2 text-sm font-bold text-amber-200/90 active:bg-white/15"
-            >
-              + Tor Gast
-            </button>
-          </div>
+          {canControlLiveMatch && (
+            <>
+              <div className="mt-3">
+                <label
+                  className="text-[10px] font-bold uppercase tracking-wider text-white/45"
+                  htmlFor="heim-tor-schuetze"
+                >
+                  Torschütze · Heim
+                </label>
+                <select
+                  id="heim-tor-schuetze"
+                  className={selectClass}
+                  value={homeGoalScorerId}
+                  onChange={(e) => setHomeGoalScorerId(e.target.value)}
+                  disabled={matchIsFinished}
+                >
+                  <option value="">Spieler wählen…</option>
+                  {squadRosterSorted.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.number} · {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  disabled={matchIsFinished || !homeGoalScorerId}
+                  onClick={async () => {
+                    const ok = await persistSingle({
+                      type: 'goal',
+                      timestamp: currentMatchSeconds,
+                      playerId: homeGoalScorerId,
+                    });
+                    if (!ok) return;
+                    setScoreHome((s) => {
+                      const n = s + 1;
+                      if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_home: n });
+                      return n;
+                    });
+                  }}
+                  className="min-h-[44px] flex-1 rounded-xl bg-white/10 py-2 text-sm font-bold text-emerald-400 active:bg-white/15 disabled:opacity-35"
+                >
+                  + Tor Heim
+                </button>
+                <button
+                  type="button"
+                  disabled={matchIsFinished}
+                  onClick={async () => {
+                    const ok = await persistSingle({
+                      type: 'goal',
+                      timestamp: currentMatchSeconds,
+                    });
+                    if (!ok) return;
+                    setScoreAway((s) => {
+                      const n = s + 1;
+                      if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: n });
+                      return n;
+                    });
+                  }}
+                  className="min-h-[44px] flex-1 rounded-xl bg-white/10 py-2 text-sm font-bold text-amber-200/90 active:bg-white/15 disabled:opacity-35"
+                >
+                  + Tor Gast
+                </button>
+              </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={onStartClick}
-              disabled={isRunning || matchHasEnded}
-              className="min-h-[48px] flex-1 rounded-2xl bg-emerald-600 px-3 text-base font-bold text-white shadow-lg shadow-emerald-900/40 disabled:opacity-40 active:scale-[0.98]"
-            >
-              {!hasClockStarted ? 'Anpfiff' : 'Weiter'}
-            </button>
-            <button
-              type="button"
-              onClick={onPauseClick}
-              disabled={!isRunning || matchHasEnded}
-              className="min-h-[48px] flex-1 rounded-2xl bg-amber-600 px-3 text-base font-bold text-white disabled:opacity-40 active:scale-[0.98]"
-            >
-              Pause
-            </button>
-            <button
-              type="button"
-              onClick={onEndClick}
-              disabled={matchHasEnded}
-              className="min-h-[48px] flex-1 rounded-2xl bg-red-700 px-3 text-base font-bold text-white disabled:opacity-40 active:scale-[0.98]"
-            >
-              Ende
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={startSecondHalf}
-            disabled={matchHasEnded}
-            className="mt-2 w-full min-h-[40px] rounded-xl border border-white/15 text-sm font-semibold text-white/70 active:bg-white/5 disabled:opacity-35"
-          >
-            2. Halbzeit (Uhr ≥ 25:00)
-          </button>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={onStartClick}
+                  disabled={isRunning || matchIsFinished}
+                  className="min-h-[48px] flex-1 rounded-2xl bg-emerald-600 px-3 text-base font-bold text-white shadow-lg shadow-emerald-900/40 disabled:opacity-40 active:scale-[0.98]"
+                >
+                  {!hasClockStarted ? 'Anpfiff' : 'Weiter'}
+                </button>
+                <button
+                  type="button"
+                  onClick={onPauseClick}
+                  disabled={!isRunning || matchIsFinished}
+                  className="min-h-[48px] flex-1 rounded-2xl bg-amber-600 px-3 text-base font-bold text-white disabled:opacity-40 active:scale-[0.98]"
+                >
+                  Pause
+                </button>
+                <button
+                  type="button"
+                  onClick={onEndClick}
+                  disabled={matchIsFinished}
+                  className="min-h-[48px] flex-1 rounded-2xl bg-red-700 px-3 text-base font-bold text-white disabled:opacity-40 active:scale-[0.98]"
+                >
+                  Ende
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (matchIsFinished) return;
+                  startSecondHalf();
+                }}
+                disabled={matchIsFinished}
+                className="mt-2 w-full min-h-[40px] rounded-xl border border-white/15 text-sm font-semibold text-white/70 active:bg-white/5 disabled:opacity-35"
+              >
+                2. Halbzeit (Uhr ≥ 25:00)
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -638,6 +743,7 @@ export const LiveMatchScreen: React.FC = () => {
       <div className="mx-auto max-w-lg px-3 py-4">
         {mainTab === 'overview' && (
           <div className="space-y-6">
+            {canControlLiveMatch && (
             <section>
               <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-white/45">Wechsel</h2>
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-4">
@@ -650,6 +756,7 @@ export const LiveMatchScreen: React.FC = () => {
                     className={selectClass}
                     value={wechselOutId}
                     onChange={(e) => setWechselOutId(e.target.value)}
+                    disabled={matchIsFinished}
                   >
                     <option value="">Spieler wählen…</option>
                     {fieldPlayers.map((p) => (
@@ -668,6 +775,7 @@ export const LiveMatchScreen: React.FC = () => {
                     className={selectClass}
                     value={wechselInId}
                     onChange={(e) => setWechselInId(e.target.value)}
+                    disabled={matchIsFinished}
                   >
                     <option value="">Spieler wählen…</option>
                     {benchPlayers.map((p) => (
@@ -680,13 +788,14 @@ export const LiveMatchScreen: React.FC = () => {
                 <button
                   type="button"
                   onClick={confirmWechselSection}
-                  disabled={!wechselOutId || !wechselInId}
+                  disabled={matchIsFinished || !wechselOutId || !wechselInId}
                   className="flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-emerald-600 text-base font-bold text-white disabled:opacity-35 active:scale-[0.99]"
                 >
                   Wechsel bestätigen
                 </button>
               </div>
             </section>
+            )}
 
             <section>
               <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-white/45">Spielzeit</h2>
@@ -766,23 +875,35 @@ export const LiveMatchScreen: React.FC = () => {
 
         {mainTab === 'lineup' && (
           <div className="space-y-4">
-            <p className="text-sm text-white/55">Tippe einen Spieler für Wechsel.</p>
+            {canControlLiveMatch && (
+              <p className="text-sm text-white/55">Tippe einen Spieler für Wechsel.</p>
+            )}
             <div>
               <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Am Feld</h3>
               <ul className="space-y-2">
                 {fieldPlayers.map((p) => (
                   <li key={p.id}>
-                    <button
-                      type="button"
-                      onClick={() => openSubFromPlayer(p)}
-                      className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3 text-left active:bg-emerald-900/40"
-                    >
-                      <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
-                      <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
-                      <span className="rounded-full bg-emerald-600/30 px-2 py-1 text-xs font-bold text-emerald-300">
-                        AM FELD
-                      </span>
-                    </button>
+                    {canControlLiveMatch ? (
+                      <button
+                        type="button"
+                        onClick={() => openSubFromPlayer(p)}
+                        className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3 text-left active:bg-emerald-900/40"
+                      >
+                        <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
+                        <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
+                        <span className="rounded-full bg-emerald-600/30 px-2 py-1 text-xs font-bold text-emerald-300">
+                          AM FELD
+                        </span>
+                      </button>
+                    ) : (
+                      <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/30 bg-emerald-950/20 px-4 py-3">
+                        <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
+                        <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
+                        <span className="rounded-full bg-emerald-600/20 px-2 py-1 text-xs font-bold text-emerald-300/90">
+                          AM FELD
+                        </span>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -792,17 +913,27 @@ export const LiveMatchScreen: React.FC = () => {
               <ul className="space-y-2">
                 {benchPlayers.map((p) => (
                   <li key={p.id}>
-                    <button
-                      type="button"
-                      onClick={() => openSubFromPlayer(p)}
-                      className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left active:bg-white/10"
-                    >
-                      <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
-                      <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
-                      <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-white/50">
-                        BANK
-                      </span>
-                    </button>
+                    {canControlLiveMatch ? (
+                      <button
+                        type="button"
+                        onClick={() => openSubFromPlayer(p)}
+                        className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left active:bg-white/10"
+                      >
+                        <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
+                        <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
+                        <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-white/50">
+                          BANK
+                        </span>
+                      </button>
+                    ) : (
+                      <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 opacity-90">
+                        <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
+                        <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
+                        <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-white/50">
+                          BANK
+                        </span>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -933,7 +1064,7 @@ export const LiveMatchScreen: React.FC = () => {
 
             <button
               type="button"
-              disabled={!subOutId || !subInId}
+              disabled={matchIsFinished || !subOutId || !subInId}
               onClick={confirmSub}
               className="mt-6 flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-emerald-600 text-lg font-bold text-white disabled:opacity-35 active:scale-[0.99]"
             >
