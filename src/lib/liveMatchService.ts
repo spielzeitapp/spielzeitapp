@@ -417,17 +417,5 @@ export async function persistLiveMatchBegin(matchId: string): Promise<{ error: s
     return { error: uErr };
   }
 
-  const { error: eErr } = await saveMatchEvent({
-    match_id: matchId,
-    type: 'start',
-    minute: 0,
-    period: 1,
-    player_id: null,
-  });
-  if (eErr) {
-    console.error('[liveMatchService] persistLiveMatchBegin match_events', eErr);
-    return { error: eErr };
-  }
-
   return { error: null };
 }

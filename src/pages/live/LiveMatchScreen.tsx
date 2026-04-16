@@ -215,7 +215,10 @@ export const LiveMatchScreen: React.FC = () => {
   const [wechselOutId, setWechselOutId] = useState<string>('');
   const [wechselInId, setWechselInId] = useState<string>('');
 
-  const hasClockStarted = useMemo(() => events.some((e) => e.type === 'start'), [events]);
+  const hasClockStarted = useMemo(
+    () => Boolean(matchRow?.live_started_at) || events.some((e) => e.type === 'start'),
+    [matchRow?.live_started_at, events],
+  );
 
   const onFieldIds = useMemo(
     () => getCurrentOnFieldPlayers(startingPlayerIds, events, currentMatchSeconds),
@@ -245,6 +248,9 @@ export const LiveMatchScreen: React.FC = () => {
       const tempId = newEventId();
       const optimistic: MatchEngineEvent = { ...partial, id: tempId };
       setEvents((prev) => [optimistic, ...prev]);
+      if (partial.type === 'start' || partial.type === 'pause' || partial.type === 'resume' || partial.type === 'end') {
+        return true;
+      }
       const payload = engineEventToInsertPayload(effectiveMatchId, partial, half);
       const { id, error } = await saveMatchEvent(payload);
       if (error || !id) {
