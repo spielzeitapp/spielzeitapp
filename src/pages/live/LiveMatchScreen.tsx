@@ -167,7 +167,12 @@ export const LiveMatchScreen: React.FC = () => {
     resumeMatch,
     endMatch,
     startSecondHalf,
-  } = useMatchTimer();
+  } = useMatchTimer({
+    elapsedSeconds: matchRow?.live_elapsed_seconds ?? 0,
+    isRunning: matchRow?.live_is_running ?? false,
+    hasEnded: matchRow?.status === 'finished',
+    startedAtISO: matchRow?.live_started_at ?? null,
+  });
 
   useEffect(() => {
     if (!matchRow) return;
@@ -270,6 +275,13 @@ export const LiveMatchScreen: React.FC = () => {
       const ok = await persistSingle({ type: 'resume', timestamp: currentMatchSeconds });
       if (!ok) return;
       resumeMatch();
+      const { error } = await updateMatchRow(effectiveMatchId, {
+        status: 'live',
+        live_started_at: new Date().toISOString(),
+        live_is_running: true,
+        live_elapsed_seconds: currentMatchSeconds,
+      });
+      if (error) setSaveError(error);
     }
   };
 
@@ -294,6 +306,7 @@ export const LiveMatchScreen: React.FC = () => {
       status: 'finished',
       live_is_running: false,
       live_elapsed_seconds: currentMatchSeconds,
+      live_period: half,
     });
     if (error) setSaveError(error);
   };

@@ -14,10 +14,17 @@ export type UseMatchTimerResult = {
   startSecondHalf: () => void;
 };
 
+type PersistedTimerState = {
+  elapsedSeconds?: number | null;
+  isRunning?: boolean | null;
+  hasEnded?: boolean | null;
+  startedAtISO?: string | null;
+};
+
 /**
  * Einfache Spieluhr: tickt nur bei isRunning; nach endMatch kein resume.
  */
-export function useMatchTimer(): UseMatchTimerResult {
+export function useMatchTimer(persisted?: PersistedTimerState): UseMatchTimerResult {
   const [currentMatchSeconds, setCurrentMatchSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [matchHasEnded, setMatchHasEnded] = useState(false);
@@ -34,6 +41,22 @@ export function useMatchTimer(): UseMatchTimerResult {
     }, 1000);
     return () => window.clearInterval(id);
   }, [isRunning, matchHasEnded]);
+
+  useEffect(() => {
+    const baseElapsed = Math.max(0, Number(persisted?.elapsedSeconds ?? 0) || 0);
+    const running = Boolean(persisted?.isRunning);
+    const ended = Boolean(persisted?.hasEnded);
+    let nextElapsed = baseElapsed;
+    if (running && persisted?.startedAtISO) {
+      const startedAtMs = new Date(persisted.startedAtISO).getTime();
+      if (!Number.isNaN(startedAtMs)) {
+        nextElapsed += Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000));
+      }
+    }
+    setCurrentMatchSeconds(nextElapsed);
+    setIsRunning(running && !ended);
+    setMatchHasEnded(ended);
+  }, [persisted?.elapsedSeconds, persisted?.isRunning, persisted?.hasEnded, persisted?.startedAtISO]);
 
   const startMatch = useCallback(() => {
     if (matchHasEnded) return;
