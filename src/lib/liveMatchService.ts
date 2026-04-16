@@ -44,6 +44,38 @@ const ENGINE_TYPES = new Set<MatchEventType>([
  * DB-Spalte `minute` speichert hier Spielsekunden seit Anpfiff (nicht Anzeige-Minute).
  */
 export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent | null {
+  if (row.type === 'kickoff') {
+    return {
+      id: row.id,
+      type: 'start',
+      timestamp: row.minute ?? 0,
+      playerId: undefined,
+    };
+  }
+  if (row.type === 'final_whistle') {
+    return {
+      id: row.id,
+      type: 'end',
+      timestamp: row.minute ?? 0,
+      playerId: undefined,
+    };
+  }
+  if (row.type === 'period_start') {
+    return {
+      id: row.id,
+      type: 'resume',
+      timestamp: row.minute ?? 0,
+      playerId: undefined,
+    };
+  }
+  if (row.type === 'period_end') {
+    return {
+      id: row.id,
+      type: 'pause',
+      timestamp: row.minute ?? 0,
+      playerId: undefined,
+    };
+  }
   if (row.type === 'goal_away') {
     return {
       id: row.id,
@@ -74,9 +106,21 @@ export function engineEventToInsertPayload(
   ev: Omit<MatchEngineEvent, 'id'>,
   period?: number | null,
 ): InsertMatchEventPayload {
+  const dbType =
+    ev.type === 'start'
+      ? 'kickoff'
+      : ev.type === 'end'
+        ? 'final_whistle'
+        : ev.type === 'pause'
+          ? 'period_end'
+          : ev.type === 'resume'
+            ? 'period_start'
+            : ev.type === 'goal' && !ev.playerId
+              ? 'goal'
+              : ev.type;
   const base: InsertMatchEventPayload = {
     match_id: matchId,
-    type: ev.type === 'goal' && !ev.playerId ? 'goal_away' : ev.type,
+    type: dbType,
     minute: ev.timestamp,
     period: period ?? null,
     player_id: ev.playerId ?? null,
@@ -383,7 +427,7 @@ export async function persistLiveMatchBegin(matchId: string): Promise<{ error: s
 
   const { error: eErr } = await saveMatchEvent({
     match_id: matchId,
-    type: 'start',
+    type: 'kickoff',
     minute: 0,
     period: 1,
     player_id: null,
