@@ -338,6 +338,12 @@ export async function replaceMatchLineupAndBench(
     error: insLineup.error ?? null,
     lineupRowsCount: lineupRows.length,
   });
+  console.log('[replaceMatchLineupAndBench][insert-lineup-error-detail]', {
+    message: insLineup.error?.message ?? null,
+    details: insLineup.error?.details ?? null,
+    hint: insLineup.error?.hint ?? null,
+    code: insLineup.error?.code ?? null,
+  });
   if (insLineup.error) {
     console.error('[liveMatchService] replaceMatchLineupAndBench match_lineup', insLineup.error);
     return { error: insLineup.error.message };
