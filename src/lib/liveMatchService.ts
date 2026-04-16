@@ -107,17 +107,9 @@ export function engineEventToInsertPayload(
   period?: number | null,
 ): InsertMatchEventPayload {
   const dbType =
-    ev.type === 'start'
-      ? 'kickoff'
-      : ev.type === 'end'
-        ? 'final_whistle'
-        : ev.type === 'pause'
-          ? 'period_end'
-          : ev.type === 'resume'
-            ? 'period_start'
-            : ev.type === 'goal' && !ev.playerId
-              ? 'goal'
-              : ev.type;
+    ev.type === 'goal' && !ev.playerId
+      ? 'goal'
+      : ev.type;
   const base: InsertMatchEventPayload = {
     match_id: matchId,
     type: dbType,
@@ -427,7 +419,7 @@ export async function persistLiveMatchBegin(matchId: string): Promise<{ error: s
 
   const { error: eErr } = await saveMatchEvent({
     match_id: matchId,
-    type: 'kickoff',
+    type: 'start',
     minute: 0,
     period: 1,
     player_id: null,
