@@ -450,19 +450,72 @@ export const SchedulePage: React.FC = () => {
         'Alle Wiederholungen dieser Serie löschen?\n\nOK = gesamte Serie\nAbbrechen = nur dieser eine Termin',
       );
       if (delAll) {
+        const { data: seriesEvents, error: seriesReadError } = await supabase
+          .from('events')
+          .select('id, match_id')
+          .eq('series_id', event.series_id);
+        if (seriesReadError) {
+          alert(seriesReadError.message);
+          return;
+        }
+        const matchIds = [
+          ...new Set(
+            ((seriesEvents ?? []) as { id: string; match_id: string | null }[])
+              .map((row) => row.match_id)
+              .filter((id): id is string => typeof id === 'string' && id.length > 0),
+          ),
+        ];
+
         const { error } = await supabase.from('events').delete().eq('series_id', event.series_id);
         if (error) {
           alert(error.message);
           return;
         }
+        for (const matchId of matchIds) {
+          const { data: refs, error: refsErr } = await supabase
+            .from('events')
+            .select('id')
+            .eq('match_id', matchId)
+            .limit(1);
+          if (refsErr) {
+            alert(refsErr.message);
+            return;
+          }
+          if ((refs ?? []).length === 0) {
+            const { error: delMatchErr } = await supabase.from('matches').delete().eq('id', matchId);
+            if (delMatchErr) {
+              alert(delMatchErr.message);
+              return;
+            }
+          }
+        }
         await refetch();
         return;
       }
     }
+    const matchIds = event.match_id ? [event.match_id] : [];
     const { error } = await supabase.from('events').delete().eq('id', event.id);
     if (error) {
       alert(error.message);
       return;
+    }
+    for (const matchId of matchIds) {
+      const { data: refs, error: refsErr } = await supabase
+        .from('events')
+        .select('id')
+        .eq('match_id', matchId)
+        .limit(1);
+      if (refsErr) {
+        alert(refsErr.message);
+        return;
+      }
+      if ((refs ?? []).length === 0) {
+        const { error: delMatchErr } = await supabase.from('matches').delete().eq('id', matchId);
+        if (delMatchErr) {
+          alert(delMatchErr.message);
+          return;
+        }
+      }
     }
     await refetch();
   };
