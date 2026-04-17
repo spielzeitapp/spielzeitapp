@@ -329,6 +329,8 @@ export const LiveMatchScreen: React.FC = () => {
       live_is_running: false,
       live_elapsed_seconds: currentMatchSeconds,
       live_period: half,
+      score_home: scoreHome,
+      score_away: scoreAway,
     });
     if (error) setSaveError(error);
     else {
@@ -345,6 +347,8 @@ export const LiveMatchScreen: React.FC = () => {
               live_is_running: false,
               live_elapsed_seconds: currentMatchSeconds,
               live_period: half,
+              score_home: scoreHome,
+              score_away: scoreAway,
             }
           : null,
       );
@@ -577,7 +581,7 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
             </div>
           </div>
-          {!canControlLiveMatch && (
+          {(!canControlLiveMatch || matchIsFinished) && (
             <p className="mt-3 text-center text-[11px] text-white/45">
               Zuschaueransicht · Anzeige nur, kein Ticker
             </p>
@@ -606,7 +610,7 @@ export const LiveMatchScreen: React.FC = () => {
           >
             {formatClock(currentMatchSeconds)}
           </div>
-          {canControlLiveMatch && (
+          {canControlLiveMatch && !matchIsFinished && (
             <>
               <div className="mt-3">
                 <label
@@ -750,7 +754,7 @@ export const LiveMatchScreen: React.FC = () => {
       <div className="mx-auto max-w-lg px-3 py-4">
         {mainTab === 'overview' && (
           <div className="space-y-6">
-            {canControlLiveMatch && (
+            {canControlLiveMatch && !matchIsFinished && (
             <section>
               <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-white/45">Wechsel</h2>
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-4">
@@ -890,7 +894,7 @@ export const LiveMatchScreen: React.FC = () => {
               <ul className="space-y-2">
                 {fieldPlayers.map((p) => (
                   <li key={p.id}>
-                    {canControlLiveMatch ? (
+                    {canControlLiveMatch && !matchIsFinished ? (
                       <button
                         type="button"
                         onClick={() => openSubFromPlayer(p)}
@@ -920,7 +924,7 @@ export const LiveMatchScreen: React.FC = () => {
               <ul className="space-y-2">
                 {benchPlayers.map((p) => (
                   <li key={p.id}>
-                    {canControlLiveMatch ? (
+                    {canControlLiveMatch && !matchIsFinished ? (
                       <button
                         type="button"
                         onClick={() => openSubFromPlayer(p)}

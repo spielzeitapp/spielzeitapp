@@ -783,6 +783,7 @@ export const SchedulePage: React.FC = () => {
                       ? (attendanceStatusByEventId[ev.id] ?? myStatusFromDb ?? null)
                       : undefined;
                   const matchScore = ev.match_id ? matchScoreById[ev.match_id] : undefined;
+                  const isFinishedMatch = et === 'game' && ev.status === 'finished' && Boolean(ev.match_id);
                   return (
                     <div
                       key={ev.id}
@@ -816,19 +817,32 @@ export const SchedulePage: React.FC = () => {
                         meetupAt={ev.meeting_at}
                         showMeetup={showMeetupForRole}
                         eventId={forcePublicView ? undefined : ev.id}
-                        onNavigate={forcePublicView ? undefined : (id) => navigate(`/app/events/${id}`)}
+                        onNavigate={
+                          forcePublicView
+                            ? undefined
+                            : (id) =>
+                                isFinishedMatch && ev.match_id
+                                  ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
+                                  : navigate(`/app/events/${id}`)
+                        }
                         isPublicView={forcePublicView}
                         opponentLogoUrl={ev.opponent_logo_url}
                         canManage={canManage}
                         onEdit={canManage ? () => openEditModal(ev) : undefined}
                         onDelete={canManage ? () => handleDelete(ev) : undefined}
                         role={uiRole ?? undefined}
-                        attendanceStatus={attendanceStatusMerged}
-                        onOpenAttendance={(uiRole === 'parent' || uiRole === 'player') ? () => setAttendanceModalEvent(ev) : undefined}
-                        attendanceCounts={canManage ? countsForCard : undefined}
+                        attendanceStatus={isFinishedMatch ? undefined : attendanceStatusMerged}
+                        onOpenAttendance={
+                          isFinishedMatch
+                            ? undefined
+                            : (uiRole === 'parent' || uiRole === 'player')
+                              ? () => setAttendanceModalEvent(ev)
+                              : undefined
+                        }
+                        attendanceCounts={isFinishedMatch ? undefined : canManage ? countsForCard : undefined}
                       />
                       <div className="mt-2 flex flex-wrap justify-end gap-2">
-                        {canManage && et === 'game' && ev.match_id && (
+                        {canManage && et === 'game' && ev.match_id && ev.status !== 'finished' && (
                           <Button
                             variant="primary"
                             size="xs"
@@ -841,19 +855,21 @@ export const SchedulePage: React.FC = () => {
                             Live starten
                           </Button>
                         )}
-                        <Button
-                          variant="soft"
-                          size="xs"
-                          className="rounded-full"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            downloadEventIcs(ev, {
-                              appBaseUrl: window.location.origin,
-                            });
-                          }}
-                        >
-                          Zum Kalender hinzufügen
-                        </Button>
+                        {ev.status !== 'finished' && (
+                          <Button
+                            variant="soft"
+                            size="xs"
+                            className="rounded-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              downloadEventIcs(ev, {
+                                appBaseUrl: window.location.origin,
+                              });
+                            }}
+                          >
+                            Zum Kalender hinzufügen
+                          </Button>
+                        )}
                       </div>
                     </div>
                   );
