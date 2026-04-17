@@ -536,38 +536,38 @@ export const LiveMatchScreen: React.FC = () => {
   return (
     <div className="min-h-[100dvh] bg-[#0a0a0a] pb-28 text-white">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0f0f0f]/95 px-3 pt-3 pb-4 backdrop-blur-md">
-        <div className="mx-auto max-w-lg rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-4 shadow-lg shadow-black/25">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="mx-auto max-w-lg rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] px-4 py-5 shadow-xl shadow-black/40">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3 border-r border-white/10 pr-3">
               <div
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600/25 text-sm font-black text-emerald-200"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/20 text-sm font-black text-emerald-200 ring-1 ring-emerald-400/25"
                 aria-hidden
               >
                 {(homeName.slice(0, 1) || 'H').toUpperCase()}
               </div>
               <div className="min-w-0 text-left">
-                <p className="truncate text-xs font-semibold text-white/90">{homeName}</p>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-white/40">Heim</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400/80">Heim</p>
+                <p className="truncate text-sm font-bold leading-tight text-white">{homeName}</p>
               </div>
             </div>
             <div
-              className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+              className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide ${
                 matchIsFinished
-                  ? 'bg-white/15 text-white/70'
+                  ? 'border-white/10 bg-zinc-600/25 text-zinc-200'
                   : hasClockStarted
-                    ? 'bg-emerald-600/30 text-emerald-200'
-                    : 'bg-white/10 text-white/55'
+                    ? 'border-emerald-400/40 bg-emerald-500/20 text-emerald-200 shadow-[0_0_14px_rgba(16,185,129,0.22)]'
+                    : 'border-white/10 bg-white/10 text-white/60'
               }`}
             >
               {matchIsFinished ? 'Beendet' : hasClockStarted ? 'Live' : 'Bereit'}
             </div>
-            <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+            <div className="flex min-w-0 flex-1 items-center justify-end gap-3 border-l border-white/10 pl-3">
               <div className="min-w-0 text-right">
-                <p className="truncate text-xs font-semibold text-white/90">{headerOpponent}</p>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-white/40">Gast</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-200/70">Gast</p>
+                <p className="truncate text-sm font-bold leading-tight text-white">{headerOpponent}</p>
               </div>
               <div
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-sm font-black text-amber-100"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 text-sm font-black text-amber-100 ring-1 ring-amber-400/20"
                 aria-hidden
               >
                 {(headerOpponent.slice(0, 1) || 'G').toUpperCase()}
@@ -584,28 +584,28 @@ export const LiveMatchScreen: React.FC = () => {
               {saveError}
             </p>
           )}
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <span className="text-4xl font-black tabular-nums text-white sm:text-5xl">{scoreHome}</span>
-            <span className="text-2xl font-light text-white/40">:</span>
-            <span className="text-4xl font-black tabular-nums text-white sm:text-5xl">{scoreAway}</span>
+          <div className="my-6 flex items-baseline justify-center gap-2 sm:gap-3">
+            <span className="text-5xl font-black tabular-nums tracking-tight text-white sm:text-6xl">{scoreHome}</span>
+            <span className="pb-1 text-3xl font-light text-white/35 sm:text-4xl">:</span>
+            <span className="text-5xl font-black tabular-nums tracking-tight text-white sm:text-6xl">{scoreAway}</span>
           </div>
-          <p className="mt-2 text-center text-sm font-semibold">
+          <p className="text-center text-xs font-semibold text-white/55">
             {matchIsFinished ? (
-              <span className="text-white/60">Spiel beendet</span>
+              <span className="text-zinc-400">Spiel beendet</span>
             ) : (
-              <span className="text-emerald-400/90">{half}. Halbzeit</span>
+              <span className="text-emerald-400/80">{half}. Halbzeit</span>
             )}
           </p>
           <div
-            className={`mt-2 text-center text-3xl font-mono font-bold tabular-nums sm:text-4xl ${
-              matchIsFinished ? 'text-white/50' : isRunning ? 'text-emerald-400' : 'text-white/60'
+            className={`mt-1 text-center text-lg font-mono font-semibold tabular-nums sm:text-xl ${
+              matchIsFinished ? 'text-white/40' : isRunning ? 'text-emerald-400/90' : 'text-white/45'
             }`}
           >
             {formatClock(currentMatchSeconds)}
           </div>
           {canControlLiveMatch && !matchIsFinished && (
             <>
-              <div className="mt-3 flex gap-2">
+              <div className="mt-4 flex gap-2">
                 <button
                   type="button"
                   disabled={matchIsFinished}
@@ -613,7 +613,7 @@ export const LiveMatchScreen: React.FC = () => {
                     setHomeGoalPickId('');
                     setHomeGoalModalOpen(true);
                   }}
-                  className="min-h-[44px] flex-1 rounded-xl bg-white/10 py-2 text-sm font-bold text-emerald-400 active:bg-white/15 disabled:opacity-35"
+                  className="min-h-[40px] flex-1 rounded-lg bg-white/[0.07] py-2 text-xs font-semibold text-emerald-300/95 ring-1 ring-white/10 active:bg-white/12 disabled:opacity-35"
                 >
                   + Tor Heim
                 </button>
@@ -632,18 +632,18 @@ export const LiveMatchScreen: React.FC = () => {
                       return n;
                     });
                   }}
-                  className="min-h-[44px] flex-1 rounded-xl bg-white/10 py-2 text-sm font-bold text-amber-200/90 active:bg-white/15 disabled:opacity-35"
+                  className="min-h-[40px] flex-1 rounded-lg bg-white/[0.07] py-2 text-xs font-semibold text-amber-200/90 ring-1 ring-white/10 active:bg-white/12 disabled:opacity-35"
                 >
                   + Tor Gast
                 </button>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-1.5">
                 <button
                   type="button"
                   onClick={onStartClick}
                   disabled={isRunning || matchIsFinished}
-                  className="min-h-[48px] flex-1 rounded-2xl bg-emerald-600 px-3 text-base font-bold text-white shadow-lg shadow-emerald-900/40 disabled:opacity-40 active:scale-[0.98]"
+                  className="min-h-[40px] flex-1 rounded-xl bg-emerald-600/90 px-2.5 text-sm font-semibold text-white shadow-md shadow-black/20 disabled:opacity-40 active:scale-[0.99]"
                 >
                   {!hasClockStarted ? 'Anpfiff' : 'Weiter'}
                 </button>
@@ -651,7 +651,7 @@ export const LiveMatchScreen: React.FC = () => {
                   type="button"
                   onClick={onPauseClick}
                   disabled={!isRunning || matchIsFinished}
-                  className="min-h-[48px] flex-1 rounded-2xl bg-amber-600 px-3 text-base font-bold text-white disabled:opacity-40 active:scale-[0.98]"
+                  className="min-h-[40px] flex-1 rounded-xl bg-amber-600/90 px-2.5 text-sm font-semibold text-white shadow-md shadow-black/20 disabled:opacity-40 active:scale-[0.99]"
                 >
                   Pause
                 </button>
@@ -659,7 +659,7 @@ export const LiveMatchScreen: React.FC = () => {
                   type="button"
                   onClick={onEndClick}
                   disabled={matchIsFinished}
-                  className="min-h-[48px] flex-1 rounded-2xl bg-red-700 px-3 text-base font-bold text-white disabled:opacity-40 active:scale-[0.98]"
+                  className="min-h-[40px] flex-1 rounded-xl bg-red-800/90 px-2.5 text-sm font-semibold text-white shadow-md shadow-black/25 disabled:opacity-40 active:scale-[0.99]"
                 >
                   Ende
                 </button>
@@ -671,7 +671,7 @@ export const LiveMatchScreen: React.FC = () => {
                   startSecondHalf();
                 }}
                 disabled={matchIsFinished}
-                className="mt-2 w-full min-h-[40px] rounded-xl border border-white/15 text-sm font-semibold text-white/70 active:bg-white/5 disabled:opacity-35"
+                className="mt-2 w-full min-h-[36px] rounded-lg border border-white/10 bg-white/[0.03] text-xs font-medium text-white/55 active:bg-white/5 disabled:opacity-35"
               >
                 2. Halbzeit (Uhr ≥ 25:00)
               </button>
@@ -772,7 +772,7 @@ export const LiveMatchScreen: React.FC = () => {
 
             <section>
               <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-white/45">Spielzeit</h2>
-              <ul className="space-y-2">
+              <ul className="space-y-3">
                 {sortRosterByNumber(roster.filter((p) => squadPlayerIds.includes(p.id))).map((p) => {
                   const sec = playtimes[p.id] ?? 0;
                   const st = getPlaytimeStatus(sec, currentMatchSeconds, squadPlayerIds.length);
@@ -780,18 +780,26 @@ export const LiveMatchScreen: React.FC = () => {
                   return (
                     <li
                       key={p.id}
-                      className={`flex min-h-[56px] items-center gap-3 rounded-2xl border px-4 py-3 ${
-                        onF ? 'border-emerald-500/35 bg-emerald-950/25' : 'border-white/10 bg-white/[0.04] opacity-80'
+                      className={`flex min-h-[60px] items-center gap-3 rounded-2xl border px-4 py-3.5 ${
+                        onF
+                          ? 'border-emerald-400/40 bg-emerald-950/40 ring-1 ring-emerald-500/20 shadow-[inset_0_1px_0_rgba(16,185,129,0.12)]'
+                          : 'border-white/[0.08] bg-black/25 opacity-75'
                       }`}
                     >
                       <span className={`h-3 w-3 shrink-0 rounded-full ${ampelDot(st)}`} aria-hidden />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold">
+                        <p className="truncate font-semibold text-white">
                           {p.number || '–'} · {p.name}
                         </p>
-                        <p className="text-xs text-white/45">{onF ? 'Am Feld' : 'Bank / außerhalb'}</p>
+                        <p
+                          className={`text-[11px] font-semibold uppercase tracking-wide ${
+                            onF ? 'text-emerald-400/85' : 'text-white/35'
+                          }`}
+                        >
+                          {onF ? 'Am Feld' : 'Bank'}
+                        </p>
                       </div>
-                      <span className="font-mono text-lg font-bold tabular-nums text-emerald-400">
+                      <span className="shrink-0 font-mono text-xl font-bold tabular-nums text-white/95">
                         {formatClock(sec)}
                       </span>
                     </li>
@@ -802,7 +810,7 @@ export const LiveMatchScreen: React.FC = () => {
 
             <section>
               <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-white/45">Spielverlauf</h2>
-              <ul className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-2">
+              <ul className="space-y-2.5 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                 {events
                   .filter((e) => e.type !== 'pause')
                   .sort((a, b) => b.timestamp - a.timestamp)
@@ -810,13 +818,23 @@ export const LiveMatchScreen: React.FC = () => {
                   .map((ev) => (
                     <li
                       key={ev.id}
-                      className="flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2 text-sm active:bg-white/5"
+                      className="flex min-h-[52px] items-center gap-3 rounded-xl border border-white/[0.06] bg-black/20 px-3 py-2.5 text-sm active:bg-white/[0.04]"
                     >
-                      <span className="w-10 shrink-0 font-mono text-xs text-white/50">
+                      <span className="w-11 shrink-0 text-right font-mono text-sm font-bold tabular-nums text-white/70">
                         {formatMinute(ev.timestamp)}
                       </span>
-                      <span className="text-lg">{eventIcon(ev.type)}</span>
-                      <span className="min-w-0 flex-1 font-medium leading-snug">{eventLabel(ev)}</span>
+                      <span
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base ${
+                          ev.type === 'goal'
+                            ? 'bg-emerald-500/15 ring-1 ring-emerald-400/25'
+                            : ev.type === 'sub_out' || ev.type === 'sub_in'
+                              ? 'bg-amber-500/10 ring-1 ring-amber-400/20'
+                              : 'bg-white/5 ring-1 ring-white/10'
+                        }`}
+                      >
+                        {eventIcon(ev.type)}
+                      </span>
+                      <span className="min-w-0 flex-1 font-medium leading-snug text-white/95">{eventLabel(ev)}</span>
                     </li>
                   ))}
               </ul>
@@ -936,15 +954,27 @@ export const LiveMatchScreen: React.FC = () => {
                 </button>
               ))}
             </div>
-            <ul className="max-h-[60vh] space-y-2 overflow-y-auto rounded-2xl border border-white/10 bg-white/[0.03] p-2">
+            <ul className="max-h-[60vh] space-y-2.5 overflow-y-auto rounded-2xl border border-white/10 bg-white/[0.03] p-3">
               {filteredEvents.map((ev) => (
                 <li
                   key={ev.id}
-                  className="flex min-h-[52px] items-center gap-3 rounded-xl border-b border-white/5 px-3 py-2 last:border-0"
+                  className="flex min-h-[54px] items-center gap-3 rounded-xl border border-white/[0.06] bg-black/20 px-3 py-2.5 last:mb-0"
                 >
-                  <span className="w-10 font-mono text-xs text-white/45">{formatMinute(ev.timestamp)}</span>
-                  <span className="text-lg">{eventIcon(ev.type)}</span>
-                  <span className="flex-1 text-sm font-medium">{eventLabel(ev)}</span>
+                  <span className="w-11 shrink-0 text-right font-mono text-sm font-bold tabular-nums text-white/70">
+                    {formatMinute(ev.timestamp)}
+                  </span>
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base ${
+                      ev.type === 'goal'
+                        ? 'bg-emerald-500/15 ring-1 ring-emerald-400/25'
+                        : ev.type === 'sub_out' || ev.type === 'sub_in'
+                          ? 'bg-amber-500/10 ring-1 ring-amber-400/20'
+                          : 'bg-white/5 ring-1 ring-white/10'
+                    }`}
+                  >
+                    {eventIcon(ev.type)}
+                  </span>
+                  <span className="flex-1 text-sm font-medium text-white/95">{eventLabel(ev)}</span>
                 </li>
               ))}
             </ul>
@@ -954,7 +984,7 @@ export const LiveMatchScreen: React.FC = () => {
         {mainTab === 'time' && (
           <div className="space-y-2">
             <p className="mb-2 text-sm text-white/55">Effektive Spielzeit (ohne Pausen)</p>
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {sortRosterByNumber(roster.filter((p) => squadPlayerIds.includes(p.id))).map((p) => {
                 const sec = playtimes[p.id] ?? 0;
                 const st = getPlaytimeStatus(sec, currentMatchSeconds, squadPlayerIds.length);
@@ -962,18 +992,26 @@ export const LiveMatchScreen: React.FC = () => {
                 return (
                   <li
                     key={p.id}
-                    className={`flex min-h-[56px] items-center gap-3 rounded-2xl border px-4 py-3 ${
-                      onF ? 'border-emerald-500/35 bg-emerald-950/20' : 'border-white/10 bg-white/[0.04] opacity-85'
+                    className={`flex min-h-[60px] items-center gap-3 rounded-2xl border px-4 py-3.5 ${
+                      onF
+                        ? 'border-emerald-400/40 bg-emerald-950/40 ring-1 ring-emerald-500/20 shadow-[inset_0_1px_0_rgba(16,185,129,0.12)]'
+                        : 'border-white/[0.08] bg-black/25 opacity-75'
                     }`}
                   >
                     <span className={`h-3 w-3 shrink-0 rounded-full ${ampelDot(st)}`} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold">
+                      <p className="truncate font-semibold text-white">
                         {p.number || '–'} · {p.name}
                       </p>
-                      <p className="text-xs text-white/45">{onF ? 'Am Feld' : 'Bank'}</p>
+                      <p
+                        className={`text-[11px] font-semibold uppercase tracking-wide ${
+                          onF ? 'text-emerald-400/85' : 'text-white/35'
+                        }`}
+                      >
+                        {onF ? 'Am Feld' : 'Bank'}
+                      </p>
                     </div>
-                    <span className="font-mono text-lg font-bold tabular-nums text-emerald-400">
+                    <span className="shrink-0 font-mono text-xl font-bold tabular-nums text-white/95">
                       {formatClock(sec)}
                     </span>
                   </li>
