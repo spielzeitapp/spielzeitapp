@@ -167,6 +167,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const home = scoreHome ?? 0;
   const away = scoreAway ?? 0;
   const isMatch = effectiveEventType === 'game';
+  const kickoffHeaderLabel = showScore && status === 'finished' ? 'ENDSTAND' : 'ANPFIFF';
 
   const handleCardClick = () => {
     if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
@@ -285,6 +286,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           <MatchCardGameCore
           headerTitle={null}
           kickoffSubtitleAboveHeader={matchTypeLabel}
+          kickoffHeaderLabel={kickoffHeaderLabel}
           leftName={leftName}
           rightName={rightName}
           opponentLogoUrl={rightLogoOverride}

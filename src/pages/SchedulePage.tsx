@@ -136,6 +136,7 @@ export const SchedulePage: React.FC = () => {
   const [editError, setEditError] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [matchScoreById, setMatchScoreById] = useState<Record<string, { scoreHome: number; scoreAway: number }>>({});
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -553,6 +554,40 @@ export const SchedulePage: React.FC = () => {
     return sorted.filter((e) => getTimeBucket(e, now) === timeFilter);
   }, [events, activeTab, kindFilter, normalizedUiRole, timeFilter]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const matchIds = Array.from(
+      new Set(
+        displayEvents
+          .filter((e) => getEffectiveEventType(e) === 'game')
+          .map((e) => e.match_id)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0),
+      ),
+    );
+    if (matchIds.length === 0) {
+      setMatchScoreById({});
+      return;
+    }
+    (async () => {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('id, score_home, score_away')
+        .in('id', matchIds);
+      if (cancelled || error) return;
+      const next: Record<string, { scoreHome: number; scoreAway: number }> = {};
+      for (const row of (data ?? []) as Array<{ id: string; score_home: number | null; score_away: number | null }>) {
+        next[row.id] = {
+          scoreHome: Number(row.score_home ?? 0),
+          scoreAway: Number(row.score_away ?? 0),
+        };
+      }
+      setMatchScoreById(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [displayEvents]);
+
   const displayEventIds = useMemo(() => displayEvents.map((e) => e.id), [displayEvents]);
   const { byEventId: attendanceByEventId, loading: attendanceLoading, refresh: refreshAttendance } = useEventsAttendance(displayEventIds);
   const { players } = usePlayers(effectiveTeamSeasonId);
@@ -747,6 +782,7 @@ export const SchedulePage: React.FC = () => {
                     (uiRole === 'parent' || uiRole === 'player')
                       ? (attendanceStatusByEventId[ev.id] ?? myStatusFromDb ?? null)
                       : undefined;
+                  const matchScore = ev.match_id ? matchScoreById[ev.match_id] : undefined;
                   return (
                     <div
                       key={ev.id}
@@ -769,6 +805,8 @@ export const SchedulePage: React.FC = () => {
                         isHome={ev.is_home}
                         startsAt={ev.starts_at}
                         status={ev.status}
+                        scoreHome={matchScore?.scoreHome}
+                        scoreAway={matchScore?.scoreAway}
                         kind={ev.kind}
                         eventType={et}
                         notes={ev.notes}

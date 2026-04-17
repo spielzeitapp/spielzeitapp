@@ -176,6 +176,8 @@ export type MatchCardGameCoreProps = {
   rightColumnLabel?: string;
   /** Termine: Spielart (`match_type`) direkt oberhalb „ANPFIFF“ in der Mittelspalte. */
   kickoffSubtitleAboveHeader?: string | null;
+  /** Optionales Label in der Mittelspalte (z. B. ENDSTAND statt ANPFIFF). */
+  kickoffHeaderLabel?: string | null;
 };
 
 /**
@@ -201,6 +203,7 @@ export function MatchCardGameCore({
   leftColumnLabel,
   rightColumnLabel,
   kickoffSubtitleAboveHeader,
+  kickoffHeaderLabel,
 }: MatchCardGameCoreProps) {
   const hero = variant === 'home-hero';
   const leftSplit = splitPrefixAndName(leftName ?? '');
@@ -248,7 +251,7 @@ export function MatchCardGameCore({
             timeDisplay={isMatch && showScore ? `${homeScore} : ${awayScore}` : timeDisplay}
             showUhr={!isMatch || !showScore}
             location={kickoffLocation}
-            headerLabel="ANPFIFF"
+            headerLabel={kickoffHeaderLabel ?? 'ANPFIFF'}
             subtitleAboveHeader={kickoffSubtitleAboveHeader}
             hero={hero}
           />
