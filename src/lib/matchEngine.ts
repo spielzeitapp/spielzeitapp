@@ -66,6 +66,19 @@ function isClockRunningAt(matchSecond: number, allSorted: MatchEngineEvent[]): b
   return clockStateAfterEvents(relevant).running;
 }
 
+function isClockRunningAtImplicitStart(matchSecond: number, allSorted: MatchEngineEvent[]): boolean {
+  const capped = Math.max(0, matchSecond);
+  const relevant = allSorted.filter((e) => e.timestamp <= capped);
+  let running = true;
+  let ended = false;
+  for (const e of relevant) {
+    if (e.type === 'pause') running = false;
+    else if (e.type === 'resume') running = true;
+    else if (e.type === 'end') ended = true;
+  }
+  return running && !ended;
+}
+
 /** Startelf ab Sekunde 0; Wechsel bis einschließlich `atMatchSecond` angewendet. */
 export function getCurrentOnFieldPlayers(
   startingPlayerIds: string[],
@@ -117,6 +130,7 @@ export function calculatePlayerPlaytimes(
   const hasClockControlEvents = sorted.some(
     (e) => e.type === 'start' || e.type === 'resume' || e.type === 'pause' || e.type === 'end',
   );
+  const hasExplicitStart = sorted.some((e) => e.type === 'start');
 
   const seconds: PlayerPlaytimeMap = {};
   for (const id of squadPlayerIds) seconds[id] = 0;
@@ -134,7 +148,13 @@ export function calculatePlayerPlaytimes(
     if (len <= 0) continue;
     // Fallback: Wenn keine Clock-Control-Events vorhanden sind (DB speichert oft nur Tor/Wechsel),
     // interpretieren wir `currentMatchSeconds` als effektive Spielzeit und zählen [0..cap] durch.
-    if (hasClockControlEvents && !isClockRunningAt(a, sorted)) continue;
+    // Falls Pause/Resume vorhanden sind, aber kein explizites Start-Event, nehmen wir impliziten Start ab 0 an.
+    const runningAtA = !hasClockControlEvents
+      ? true
+      : hasExplicitStart
+        ? isClockRunningAt(a, sorted)
+        : isClockRunningAtImplicitStart(a, sorted);
+    if (!runningAtA) continue;
     const onField = getCurrentOnFieldPlayers(startingPlayerIds, sorted, a);
     for (const pid of onField) {
       if (seconds[pid] !== undefined) seconds[pid] += len;
