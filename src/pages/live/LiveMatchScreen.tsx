@@ -242,15 +242,12 @@ export const LiveMatchScreen: React.FC = () => {
     return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
   }, [squadPlayerIds, onFieldIds, roster]);
 
-  const squadRosterSorted = useMemo(
-    () => sortRosterByNumber(roster.filter((p) => squadPlayerIds.includes(p.id))),
-    [roster, squadPlayerIds],
-  );
+  const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
 
   useEffect(() => {
     if (!homeGoalScorerId) return;
-    if (!squadRosterSorted.some((p) => p.id === homeGoalScorerId)) setHomeGoalScorerId('');
-  }, [homeGoalScorerId, squadRosterSorted]);
+    if (!homeScorerCandidates.some((p) => p.id === homeGoalScorerId)) setHomeGoalScorerId('');
+  }, [homeGoalScorerId, homeScorerCandidates]);
 
   const playtimes = useMemo(
     () => calculatePlayerPlaytimes(startingPlayerIds, squadPlayerIds, events, currentMatchSeconds),
@@ -627,7 +624,7 @@ export const LiveMatchScreen: React.FC = () => {
                   disabled={matchIsFinished}
                 >
                   <option value="">Spieler wählen…</option>
-                  {squadRosterSorted.map((p) => (
+                  {homeScorerCandidates.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.number} · {p.name}
                     </option>
