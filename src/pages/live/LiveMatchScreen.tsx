@@ -217,7 +217,8 @@ export const LiveMatchScreen: React.FC = () => {
 
   const [wechselOutId, setWechselOutId] = useState<string>('');
   const [wechselInId, setWechselInId] = useState<string>('');
-  const [homeGoalScorerId, setHomeGoalScorerId] = useState<string>('');
+  const [homeGoalModalOpen, setHomeGoalModalOpen] = useState(false);
+  const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
 
   const hasClockStarted = useMemo(
     () => Boolean(matchRow?.live_started_at) || events.some((e) => e.type === 'start'),
@@ -243,11 +244,6 @@ export const LiveMatchScreen: React.FC = () => {
   }, [squadPlayerIds, onFieldIds, roster]);
 
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
-
-  useEffect(() => {
-    if (!homeGoalScorerId) return;
-    if (!homeScorerCandidates.some((p) => p.id === homeGoalScorerId)) setHomeGoalScorerId('');
-  }, [homeGoalScorerId, homeScorerCandidates]);
 
   const playtimes = useMemo(
     () => calculatePlayerPlaytimes(startingPlayerIds, squadPlayerIds, events, currentMatchSeconds),
@@ -609,44 +605,13 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
           {canControlLiveMatch && !matchIsFinished && (
             <>
-              <div className="mt-3">
-                <label
-                  className="text-[10px] font-bold uppercase tracking-wider text-white/45"
-                  htmlFor="heim-tor-schuetze"
-                >
-                  Torschütze · Heim
-                </label>
-                <select
-                  id="heim-tor-schuetze"
-                  className={selectClass}
-                  value={homeGoalScorerId}
-                  onChange={(e) => setHomeGoalScorerId(e.target.value)}
-                  disabled={matchIsFinished}
-                >
-                  <option value="">Spieler wählen…</option>
-                  {homeScorerCandidates.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.number} · {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
-                  disabled={matchIsFinished || !homeGoalScorerId}
-                  onClick={async () => {
-                    const ok = await persistSingle({
-                      type: 'goal',
-                      timestamp: currentMatchSeconds,
-                      playerId: homeGoalScorerId,
-                    });
-                    if (!ok) return;
-                    setScoreHome((s) => {
-                      const n = s + 1;
-                      if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_home: n });
-                      return n;
-                    });
+                  disabled={matchIsFinished}
+                  onClick={() => {
+                    setHomeGoalPickId('');
+                    setHomeGoalModalOpen(true);
                   }}
                   className="min-h-[44px] flex-1 rounded-xl bg-white/10 py-2 text-sm font-bold text-emerald-400 active:bg-white/15 disabled:opacity-35"
                 >
@@ -1018,6 +983,74 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
         )}
       </div>
+
+      {homeGoalModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-black/70 backdrop-blur-sm"
+          role="presentation"
+          onClick={() => setHomeGoalModalOpen(false)}
+        >
+          <div
+            className="max-h-[85vh] overflow-y-auto rounded-t-3xl border border-white/10 bg-[#141414] px-4 pb-8 pt-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
+            <h3 className="text-center text-lg font-bold">Heimtor</h3>
+            <p className="mt-1 text-center text-sm text-white/50">Torschütze wählen, dann bestätigen</p>
+
+            <div className="mt-5">
+              <p className="mb-2 text-xs font-bold uppercase text-emerald-400/90">Am Feld</p>
+              <div className="flex flex-wrap gap-2">
+                {homeScorerCandidates.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setHomeGoalPickId(p.id)}
+                    className={`min-h-[48px] min-w-[100px] flex-1 rounded-xl px-3 py-2 text-sm font-bold ${
+                      homeGoalPickId === p.id
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-white/10 text-white active:bg-white/20'
+                    }`}
+                  >
+                    {p.number || '–'} {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={!homeGoalPickId}
+              onClick={async () => {
+                if (!homeGoalPickId || !effectiveMatchId) return;
+                const ok = await persistSingle({
+                  type: 'goal',
+                  timestamp: currentMatchSeconds,
+                  playerId: homeGoalPickId,
+                });
+                if (!ok) return;
+                setScoreHome((s) => {
+                  const n = s + 1;
+                  if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_home: n });
+                  return n;
+                });
+                setHomeGoalModalOpen(false);
+                setHomeGoalPickId('');
+              }}
+              className="mt-6 flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-emerald-600 text-lg font-bold text-white disabled:opacity-35 active:scale-[0.99]"
+            >
+              Tor bestätigen
+            </button>
+            <button
+              type="button"
+              onClick={() => setHomeGoalModalOpen(false)}
+              className="mt-3 w-full min-h-[48px] rounded-2xl border border-white/15 text-base font-semibold text-white/80"
+            >
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      )}
 
       {subOpen && (
         <div
