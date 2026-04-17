@@ -114,6 +114,9 @@ export function calculatePlayerPlaytimes(
 ): PlayerPlaytimeMap {
   const sorted = sortMatchEventsChronologically(events);
   const cap = Math.max(0, currentMatchSeconds);
+  const hasClockControlEvents = sorted.some(
+    (e) => e.type === 'start' || e.type === 'resume' || e.type === 'pause' || e.type === 'end',
+  );
 
   const seconds: PlayerPlaytimeMap = {};
   for (const id of squadPlayerIds) seconds[id] = 0;
@@ -129,7 +132,9 @@ export function calculatePlayerPlaytimes(
     const b = breaks[i + 1];
     const len = b - a;
     if (len <= 0) continue;
-    if (!isClockRunningAt(a, sorted)) continue;
+    // Fallback: Wenn keine Clock-Control-Events vorhanden sind (DB speichert oft nur Tor/Wechsel),
+    // interpretieren wir `currentMatchSeconds` als effektive Spielzeit und zählen [0..cap] durch.
+    if (hasClockControlEvents && !isClockRunningAt(a, sorted)) continue;
     const onField = getCurrentOnFieldPlayers(startingPlayerIds, sorted, a);
     for (const pid of onField) {
       if (seconds[pid] !== undefined) seconds[pid] += len;
