@@ -41,9 +41,9 @@ function formatMinute(ts: number): string {
 }
 
 const tabBtn =
-  'flex-1 min-h-[44px] px-1 text-xs font-semibold transition-colors sm:text-sm border-b-2 pb-2.5 pt-1';
+  'flex-1 px-0.5 pb-3 pt-2 text-[11px] font-semibold tracking-wide transition-colors sm:px-1 sm:text-xs border-b-[3px] min-h-[48px]';
 const tabActive = 'border-red-500 text-white';
-const tabIdle = 'border-transparent text-white/45 hover:text-white/75';
+const tabIdle = 'border-transparent text-white/40 hover:text-white/70';
 
 function eventIcon(t: MatchEventType): string {
   if (t === 'goal') return '⚽';
@@ -439,6 +439,22 @@ export const LiveMatchScreen: React.FC = () => {
     return list;
   }, [events, eventsFilter]);
 
+  /** Nur für UI: Stand nach jedem Tor (chronologisch), kein Einfluss auf Persistenz. */
+  const goalScoreBadgeByEventId = useMemo(() => {
+    const sorted = sortMatchEventsChronologically(events);
+    let h = 0;
+    let a = 0;
+    const map = new Map<string, string>();
+    for (const ev of sorted) {
+      if (ev.type === 'goal') {
+        if (ev.playerId) h += 1;
+        else a += 1;
+        map.set(ev.id, `${h}:${a}`);
+      }
+    }
+    return map;
+  }, [events]);
+
   const eventLabel = (ev: MatchEngineEvent): string => {
     const name = ev.playerId ? rosterById.get(ev.playerId)?.name : undefined;
     switch (ev.type) {
@@ -460,6 +476,98 @@ export const LiveMatchScreen: React.FC = () => {
       default:
         return ev.type;
     }
+  };
+
+  const renderTimelineRow = (
+    ev: MatchEngineEvent,
+    index: number,
+    listLength: number,
+    showGoalScoreBadge: boolean,
+  ) => {
+    const isGoal = ev.type === 'goal';
+    const isSub = ev.type === 'sub_out' || ev.type === 'sub_in';
+    const pl = ev.playerId ? rosterById.get(ev.playerId) : undefined;
+    const scoreStr =
+      showGoalScoreBadge && isGoal ? goalScoreBadgeByEventId.get(ev.id) ?? null : null;
+    const iconTile = isGoal
+      ? 'bg-gradient-to-b from-red-950 to-black text-red-100 shadow-[inset_0_1px_0_rgba(248,113,113,0.2)] ring-1 ring-red-600/50'
+      : isSub
+        ? 'bg-zinc-900 text-red-400 shadow-inner ring-1 ring-red-800/45'
+        : 'bg-zinc-900/85 text-white/55 ring-1 ring-white/12';
+
+    return (
+      <li key={ev.id} className="relative flex gap-0 pb-5 last:pb-0">
+        <div className="flex w-14 shrink-0 flex-col items-end pr-2 pt-1 sm:w-[3.75rem]">
+          <span className="text-lg font-black tabular-nums leading-none text-white sm:text-xl">
+            {formatMinute(ev.timestamp)}
+          </span>
+        </div>
+        <div className="relative flex w-5 shrink-0 flex-col items-center pt-2">
+          {index < listLength - 1 ? (
+            <div
+              className="absolute top-3 bottom-0 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-red-600/55 via-red-900/35 to-red-950/20"
+              aria-hidden
+            />
+          ) : null}
+          <div
+            className="relative z-10 h-2.5 w-2.5 shrink-0 rounded-full bg-red-600 shadow-[0_0_12px_rgba(220,38,38,0.65)] ring-2 ring-black"
+            aria-hidden
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div
+            className={`flex min-h-[4.25rem] items-stretch gap-3 rounded-xl border border-white/[0.07] bg-gradient-to-br from-zinc-950/98 to-black px-3.5 py-3 shadow-[0_12px_32px_rgba(0,0,0,0.45)] ${
+              isGoal ? 'border-red-800/30' : isSub ? 'border-red-950/25' : ''
+            }`}
+          >
+            <div
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg ${iconTile}`}
+              aria-hidden
+            >
+              {eventIcon(ev.type)}
+            </div>
+            <div className="min-w-0 flex-1 py-0.5">
+              {isGoal && ev.playerId ? (
+                <>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-red-500">Tor Heim</p>
+                  <p className="mt-1 text-sm font-semibold leading-snug text-white">
+                    {pl?.name ?? '?'}
+                    {pl?.number != null && String(pl.number).trim() !== '' ? (
+                      <span className="text-white/45"> ({pl.number})</span>
+                    ) : null}
+                  </p>
+                </>
+              ) : isGoal && !ev.playerId ? (
+                <>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-red-400">Tor Gast</p>
+                  <p className="mt-1 text-xs text-white/50">Gegentor</p>
+                </>
+              ) : isSub ? (
+                <>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/55">Wechsel</p>
+                  <p
+                    className={`mt-1 text-sm font-semibold leading-snug ${
+                      ev.type === 'sub_out' ? 'text-red-400' : 'text-emerald-400'
+                    }`}
+                  >
+                    {eventLabel(ev)}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm font-medium text-white/90">{eventLabel(ev)}</p>
+              )}
+            </div>
+            {scoreStr ? (
+              <div className="flex shrink-0 items-start pt-0.5">
+                <span className="rounded-md border border-red-600/45 bg-red-950/55 px-2 py-0.5 font-mono text-[11px] font-bold tabular-nums text-red-100">
+                  {scoreStr}
+                </span>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </li>
+    );
   };
 
   const selectClass =
@@ -535,59 +643,67 @@ export const LiveMatchScreen: React.FC = () => {
 
   return (
     <div className="min-h-[100dvh] bg-black pb-28 text-white">
-      <header className="sticky top-0 z-40 border-b border-red-950/40 bg-black/90 px-3 pt-3 pb-3 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-red-950/50 bg-black/95 px-3 pt-3 pb-3 backdrop-blur-md">
         <div
-          className="relative mx-auto max-w-lg overflow-hidden rounded-2xl border border-red-900/35 bg-gradient-to-b from-zinc-950 via-black to-black px-3 py-4 shadow-[0_0_32px_rgba(185,28,28,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] sm:px-4 sm:py-5"
+          className="relative mx-auto max-w-lg overflow-hidden rounded-2xl border border-red-600/45 bg-black px-3 py-5 shadow-[0_0_48px_rgba(220,38,38,0.22),0_0_1px_rgba(248,113,113,0.35),inset_0_1px_0_rgba(255,255,255,0.07)] sm:px-5 sm:py-6"
           style={{
             backgroundImage:
-              'radial-gradient(ellipse 120% 80% at 50% -20%, rgba(127,29,29,0.35), transparent 55%), linear-gradient(180deg, rgba(24,24,27,0.9) 0%, rgba(0,0,0,0.98) 100%)',
+              'radial-gradient(ellipse 130% 90% at 50% -25%, rgba(153,27,27,0.45), transparent 50%), radial-gradient(ellipse 80% 50% at 80% 100%, rgba(127,29,29,0.2), transparent 45%), linear-gradient(180deg, rgba(9,9,11,0.97) 0%, rgba(0,0,0,1) 100%)',
           }}
         >
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-red-950/20 to-transparent"
+            className="pointer-events-none absolute inset-0 opacity-40 mix-blend-screen"
+            style={{
+              backgroundImage:
+                'repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(127,29,29,0.03) 2px, rgba(127,29,29,0.03) 4px)',
+            }}
             aria-hidden
           />
-          <div className="relative grid grid-cols-[1fr_auto_1fr] items-start gap-x-1 sm:gap-x-2">
-            <div className="flex min-w-0 items-start gap-2">
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-red-950/35 via-transparent to-transparent"
+            aria-hidden
+          />
+          <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 sm:gap-x-3">
+            <div className="flex min-w-0 items-center gap-3">
               <div
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-950 text-xs font-black text-white ring-1 ring-red-900/50 sm:h-12 sm:w-12"
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-zinc-950 text-sm font-black text-white shadow-inner ring-2 ring-red-900/55 sm:h-[4.5rem] sm:w-[4.5rem] sm:text-base"
                 aria-hidden
               >
                 {(homeName.slice(0, 1) || 'H').toUpperCase()}
               </div>
-              <div className="min-w-0 pt-0.5 text-left">
-                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-red-500 sm:text-[10px]">Heim</p>
-                <p className="truncate text-[11px] font-bold leading-snug text-white sm:text-xs">{homeName}</p>
+              <div className="min-w-0 py-0.5 text-left">
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-red-500 sm:text-[11px]">Heim</p>
+                <p className="line-clamp-2 text-sm font-bold leading-tight text-white sm:text-[15px]">{homeName}</p>
               </div>
             </div>
 
-            <div className="flex min-w-0 flex-col items-center px-0.5 sm:px-1">
+            <div className="flex min-w-0 flex-col items-center px-1 sm:px-2">
               <div
-                className={`mb-2 flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider sm:text-[10px] ${
+                className={`mb-2.5 flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] shadow-sm sm:text-[11px] ${
                   matchIsFinished
-                    ? 'bg-zinc-800/90 text-zinc-300 ring-1 ring-white/10'
+                    ? 'bg-zinc-700/95 text-zinc-200 ring-1 ring-white/15'
                     : hasClockStarted
-                      ? 'bg-red-700 text-white shadow-[0_0_14px_rgba(220,38,38,0.45)] ring-1 ring-red-500/60'
-                      : 'bg-zinc-800/80 text-zinc-400 ring-1 ring-white/10'
+                      ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(239,68,68,0.45)] ring-1 ring-red-400/70'
+                      : 'bg-zinc-800/90 text-zinc-400 ring-1 ring-white/10'
                 }`}
               >
                 {!matchIsFinished && hasClockStarted ? (
-                  <span className="text-[10px] leading-none" aria-hidden>
+                  <span className="text-[11px] leading-none text-white" aria-hidden>
                     ●
                   </span>
                 ) : null}
                 {matchIsFinished ? 'Beendet' : hasClockStarted ? 'Live' : 'Bereit'}
               </div>
-              <div className="flex items-baseline justify-center gap-1 sm:gap-1.5">
-                <span className="text-4xl font-black tabular-nums tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] sm:text-5xl">
+              <div className="flex items-baseline justify-center gap-1.5 sm:gap-2">
+                <span className="text-5xl font-black tabular-nums tracking-tighter text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)] sm:text-6xl">
                   {scoreHome}
                 </span>
-                <span className="pb-0.5 text-2xl font-extralight text-white/30 sm:text-3xl">:</span>
-                <span className="text-4xl font-black tabular-nums tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] sm:text-5xl">
+                <span className="pb-1 text-3xl font-extralight text-white/25 sm:text-4xl">:</span>
+                <span className="text-5xl font-black tabular-nums tracking-tighter text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)] sm:text-6xl">
                   {scoreAway}
                 </span>
               </div>
-              <p className="mt-1.5 text-center text-[10px] font-medium text-zinc-500 sm:text-xs">
+              <p className="mt-2 text-center text-[11px] font-medium text-zinc-500 sm:text-xs">
                 {matchIsFinished ? (
                   <span className="text-zinc-500">Spiel beendet</span>
                 ) : (
@@ -595,21 +711,21 @@ export const LiveMatchScreen: React.FC = () => {
                 )}
               </p>
               <div
-                className={`mt-0.5 text-center text-base font-mono font-bold tabular-nums sm:text-lg ${
-                  matchIsFinished ? 'text-zinc-500' : hasClockStarted && isRunning ? 'text-red-500' : 'text-red-600/70'
+                className={`mt-1 text-center text-lg font-mono font-bold tabular-nums sm:text-xl ${
+                  matchIsFinished ? 'text-zinc-500' : hasClockStarted && isRunning ? 'text-red-500' : 'text-red-500/75'
                 }`}
               >
                 {formatClock(currentMatchSeconds)}
               </div>
             </div>
 
-            <div className="flex min-w-0 items-start justify-end gap-2">
-              <div className="min-w-0 pt-0.5 text-right">
-                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-500 sm:text-[10px]">Gast</p>
-                <p className="truncate text-[11px] font-bold leading-snug text-white sm:text-xs">{headerOpponent}</p>
+            <div className="flex min-w-0 items-center justify-end gap-3">
+              <div className="min-w-0 py-0.5 text-right">
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500 sm:text-[11px]">Gast</p>
+                <p className="line-clamp-2 text-sm font-bold leading-tight text-white sm:text-[15px]">{headerOpponent}</p>
               </div>
               <div
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-xs font-black text-amber-100 ring-1 ring-red-900/40 sm:h-12 sm:w-12"
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-zinc-900 text-sm font-black text-amber-100 shadow-inner ring-2 ring-red-900/50 sm:h-[4.5rem] sm:w-[4.5rem] sm:text-base"
                 aria-hidden
               >
                 {(headerOpponent.slice(0, 1) || 'G').toUpperCase()}
@@ -628,7 +744,7 @@ export const LiveMatchScreen: React.FC = () => {
 
           {canControlLiveMatch && !matchIsFinished && (
             <>
-              <div className="relative mt-4 flex gap-1.5">
+              <div className="relative mt-5 flex gap-2">
                 <button
                   type="button"
                   disabled={matchIsFinished}
@@ -636,9 +752,11 @@ export const LiveMatchScreen: React.FC = () => {
                     setHomeGoalPickId('');
                     setHomeGoalModalOpen(true);
                   }}
-                  className="flex min-h-[38px] min-w-0 flex-1 items-center justify-center gap-1 rounded-lg bg-gradient-to-b from-red-800 to-red-950 px-1.5 text-[10px] font-semibold text-white shadow-[0_0_16px_rgba(185,28,28,0.35)] ring-1 ring-red-600/50 active:opacity-90 disabled:opacity-35 sm:text-xs"
+                  className="flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-b from-red-600 to-red-800 px-2 text-[10px] font-bold text-white shadow-[0_4px_20px_rgba(220,38,38,0.4)] ring-1 ring-red-400/50 active:brightness-95 disabled:opacity-35 sm:text-xs"
                 >
-                  <span aria-hidden>⚽</span>
+                  <span className="text-sm brightness-110 contrast-125" aria-hidden>
+                    ⚽
+                  </span>
                   <span className="truncate">+ Tor Heim</span>
                 </button>
                 <button
@@ -656,27 +774,33 @@ export const LiveMatchScreen: React.FC = () => {
                       return n;
                     });
                   }}
-                  className="flex min-h-[38px] min-w-0 flex-1 items-center justify-center gap-1 rounded-lg border border-red-800/60 bg-zinc-950/90 px-1.5 text-[10px] font-semibold text-white/95 active:bg-zinc-900 disabled:opacity-35 sm:text-xs"
+                  className="flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-zinc-600 bg-zinc-900/95 px-2 text-[10px] font-bold text-white shadow-inner active:bg-zinc-800 disabled:opacity-35 sm:text-xs"
                 >
-                  <span aria-hidden>⚽</span>
+                  <span className="text-sm text-white drop-shadow-sm" aria-hidden>
+                    ⚽
+                  </span>
                   <span className="truncate">+ Tor Gast</span>
                 </button>
                 <button
                   type="button"
                   disabled={matchIsFinished}
                   onClick={() => setMainTab('overview')}
-                  className="flex min-h-[38px] min-w-0 flex-1 items-center justify-center gap-1 rounded-lg border border-red-800/60 bg-zinc-950/90 px-1.5 text-[10px] font-semibold text-white/95 active:bg-zinc-900 disabled:opacity-35 sm:text-xs"
+                  className="flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-red-900/50 bg-zinc-950 px-2 text-[10px] font-bold text-white/95 active:bg-zinc-900 disabled:opacity-35 sm:text-xs"
                 >
-                  <span aria-hidden>🔁</span>
+                  <span className="text-sm text-red-500" aria-hidden>
+                    🔁
+                  </span>
                   <span className="truncate">Wechsel</span>
                 </button>
                 <button
                   type="button"
                   onClick={onEndClick}
                   disabled={matchIsFinished}
-                  className="flex min-h-[38px] min-w-0 flex-1 items-center justify-center gap-1 rounded-lg border border-red-800/60 bg-zinc-950/90 px-1.5 text-[10px] font-semibold text-white/95 active:bg-zinc-900 disabled:opacity-35 sm:text-xs"
+                  className="flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border-2 border-red-600/70 bg-zinc-950 px-2 text-[10px] font-bold text-red-200 active:bg-red-950/30 disabled:opacity-35 sm:text-xs"
                 >
-                  <span aria-hidden>⏹</span>
+                  <span className="text-sm text-red-500" aria-hidden>
+                    ⏹
+                  </span>
                   <span className="truncate">Spiel beenden</span>
                 </button>
               </div>
@@ -715,8 +839,8 @@ export const LiveMatchScreen: React.FC = () => {
         </div>
       </header>
 
-      <div className="sticky top-[var(--live-header-h,auto)] z-30 border-b border-white/10 bg-black px-3 py-2">
-        <div className="mx-auto flex max-w-lg items-end gap-0 sm:gap-1">
+      <div className="sticky top-[var(--live-header-h,auto)] z-30 border-b border-red-950/35 bg-black/98 px-3 pt-1 pb-0">
+        <div className="mx-auto flex max-w-lg items-end justify-between gap-0">
           <button
             type="button"
             className={`${tabBtn} ${mainTab === 'overview' ? tabActive : tabIdle}`}
@@ -815,26 +939,30 @@ export const LiveMatchScreen: React.FC = () => {
                   return (
                     <li
                       key={p.id}
-                      className={`flex min-h-[60px] items-center gap-3 rounded-2xl border px-4 py-3.5 ${
+                      className={`flex min-h-[64px] items-center gap-4 rounded-2xl border px-4 py-4 ${
                         onF
-                          ? 'border-emerald-400/40 bg-emerald-950/40 ring-1 ring-emerald-500/20 shadow-[inset_0_1px_0_rgba(16,185,129,0.12)]'
-                          : 'border-white/[0.08] bg-black/25 opacity-75'
+                          ? 'border-emerald-500/35 bg-gradient-to-br from-emerald-950/55 via-black/40 to-black shadow-[0_0_28px_rgba(16,185,129,0.08),inset_0_1px_0_rgba(16,185,129,0.18)] ring-1 ring-emerald-500/25'
+                          : 'border-white/[0.06] bg-zinc-950/50 opacity-85 ring-1 ring-white/[0.04]'
                       }`}
                     >
-                      <span className={`h-3 w-3 shrink-0 rounded-full ${ampelDot(st)}`} aria-hidden />
+                      <span className={`h-3.5 w-3.5 shrink-0 rounded-full ${ampelDot(st)}`} aria-hidden />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold text-white">
+                        <p className="truncate text-[15px] font-semibold text-white">
                           {p.number || '–'} · {p.name}
                         </p>
                         <p
-                          className={`text-[11px] font-semibold uppercase tracking-wide ${
-                            onF ? 'text-emerald-400/85' : 'text-white/35'
+                          className={`mt-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
+                            onF ? 'text-emerald-400' : 'text-white/38'
                           }`}
                         >
-                          {onF ? 'Am Feld' : 'Bank'}
+                          {onF ? 'Am Feld' : 'Auf der Bank'}
                         </p>
                       </div>
-                      <span className="shrink-0 font-mono text-xl font-bold tabular-nums text-white/95">
+                      <span
+                        className={`shrink-0 font-mono text-2xl font-black tabular-nums tracking-tight ${
+                          onF ? 'text-red-500' : 'text-white/40'
+                        }`}
+                      >
                         {formatClock(sec)}
                       </span>
                     </li>
@@ -844,55 +972,72 @@ export const LiveMatchScreen: React.FC = () => {
             </section>
 
             <section>
+              <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-white/45">Wechsel-Vorschläge</h2>
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-emerald-800/35 bg-gradient-to-br from-emerald-950/35 to-black/80 p-4 ring-1 ring-emerald-700/15">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-400/95">
+                    Spielzeit erreicht
+                  </p>
+                  <p className="mt-3 text-sm text-white/40">Hinweise zu Einwechslungen erscheinen hier.</p>
+                </div>
+                <div className="rounded-2xl border border-amber-800/35 bg-gradient-to-br from-amber-950/25 to-black/80 p-4 ring-1 ring-amber-700/15">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-400/95">
+                    Wenig Spielzeit
+                  </p>
+                  <p className="mt-3 text-sm text-white/40">Optionen für mehr Einsatzzeit erscheinen hier.</p>
+                </div>
+              </div>
+            </section>
+
+            <section>
               <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-white/45">Spielverlauf</h2>
-              <ul className="space-y-2.5 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+              <ul className="rounded-2xl border border-red-950/30 bg-black/50 px-1 py-4 sm:px-2">
                 {events
                   .filter((e) => e.type !== 'pause')
                   .sort((a, b) => b.timestamp - a.timestamp)
                   .slice(0, 12)
-                  .map((ev) => (
-                    <li
-                      key={ev.id}
-                      className="flex min-h-[52px] items-center gap-3 rounded-xl border border-white/[0.06] bg-black/20 px-3 py-2.5 text-sm active:bg-white/[0.04]"
-                    >
-                      <span className="w-11 shrink-0 text-right font-mono text-sm font-bold tabular-nums text-white/70">
-                        {formatMinute(ev.timestamp)}
-                      </span>
-                      <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base ${
-                          ev.type === 'goal'
-                            ? 'bg-emerald-500/15 ring-1 ring-emerald-400/25'
-                            : ev.type === 'sub_out' || ev.type === 'sub_in'
-                              ? 'bg-amber-500/10 ring-1 ring-amber-400/20'
-                              : 'bg-white/5 ring-1 ring-white/10'
-                        }`}
-                      >
-                        {eventIcon(ev.type)}
-                      </span>
-                      <span className="min-w-0 flex-1 font-medium leading-snug text-white/95">{eventLabel(ev)}</span>
-                    </li>
-                  ))}
+                  .map((ev, i, arr) => renderTimelineRow(ev, i, arr.length, true))}
               </ul>
             </section>
 
             <section>
-              <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-white/45">Am Feld (7)</h2>
-              <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-b from-emerald-950/40 to-black/80 p-4">
-                <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-emerald-500/80">
+              <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-white/45">
+                Am Feld ({fieldPlayers.length})
+              </h2>
+              <div className="relative overflow-hidden rounded-2xl border-2 border-red-900/40 bg-gradient-to-b from-[#0a100a] via-[#050805] to-black p-4 shadow-[0_0_36px_rgba(127,29,29,0.2)]">
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-[0.07]"
+                  style={{
+                    backgroundImage:
+                      'repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(220,38,38,0.35) 10px, rgba(220,38,38,0.35) 11px)',
+                  }}
+                  aria-hidden
+                />
+                <p className="relative mb-4 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-red-500/90">
                   Mini-Spielfeld
                 </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {fieldPlayers.slice(0, 7).map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex w-[30%] min-w-[92px] max-w-[120px] flex-col items-center justify-center rounded-xl border border-white/10 bg-black/40 px-1 py-3"
-                    >
-                      <span className="text-lg font-black text-emerald-400">{p.number || '–'}</span>
-                      <span className="mt-1 max-w-full truncate text-center text-xs font-semibold text-white">
-                        {p.name}
-                      </span>
-                    </div>
-                  ))}
+                <div className="relative mx-auto max-w-sm rounded-lg border border-red-800/50 bg-[#071207] p-3 ring-1 ring-red-950/60">
+                  <div
+                    className="pointer-events-none absolute inset-2 rounded-md border border-dashed border-red-800/35"
+                    aria-hidden
+                  />
+                  <div
+                    className="pointer-events-none absolute left-1/2 top-2 bottom-2 w-px -translate-x-1/2 bg-red-700/40"
+                    aria-hidden
+                  />
+                  <div className="relative flex flex-wrap justify-center gap-2">
+                    {fieldPlayers.slice(0, 7).map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex w-[30%] min-w-[88px] max-w-[118px] flex-col items-center justify-center rounded-2xl border border-red-900/45 bg-black/70 px-1.5 py-2.5 shadow-[0_0_14px_rgba(220,38,38,0.12)] ring-1 ring-black"
+                      >
+                        <span className="text-base font-black tabular-nums text-red-400">{p.number || '–'}</span>
+                        <span className="mt-1 max-w-full truncate text-center text-[11px] font-semibold leading-tight text-white">
+                          {p.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </section>
@@ -969,7 +1114,7 @@ export const LiveMatchScreen: React.FC = () => {
 
         {mainTab === 'events' && (
           <div className="space-y-3">
-            <div className="flex gap-2">
+            <div className="flex gap-1.5 sm:gap-2">
               {(
                 [
                   ['all', 'Alle'],
@@ -981,38 +1126,25 @@ export const LiveMatchScreen: React.FC = () => {
                   key={key}
                   type="button"
                   onClick={() => setEventsFilter(key)}
-                  className={`min-h-[44px] flex-1 rounded-xl px-2 text-sm font-bold ${
-                    eventsFilter === key ? 'bg-emerald-600 text-white' : 'bg-white/10 text-white/70'
+                  className={`min-h-[34px] flex-1 rounded-full px-2 py-1.5 text-[11px] font-bold tracking-wide transition-colors sm:min-h-[36px] sm:text-xs ${
+                    eventsFilter === key
+                      ? 'bg-red-600 text-white shadow-[0_0_18px_rgba(220,38,38,0.35)] ring-1 ring-red-400/45'
+                      : 'bg-zinc-950 text-white/42 ring-1 ring-white/[0.07] hover:text-white/65'
                   }`}
                 >
                   {label}
                 </button>
               ))}
             </div>
-            <ul className="max-h-[60vh] space-y-2.5 overflow-y-auto rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              {filteredEvents.map((ev) => (
-                <li
-                  key={ev.id}
-                  className="flex min-h-[54px] items-center gap-3 rounded-xl border border-white/[0.06] bg-black/20 px-3 py-2.5 last:mb-0"
-                >
-                  <span className="w-11 shrink-0 text-right font-mono text-sm font-bold tabular-nums text-white/70">
-                    {formatMinute(ev.timestamp)}
-                  </span>
-                  <span
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base ${
-                      ev.type === 'goal'
-                        ? 'bg-emerald-500/15 ring-1 ring-emerald-400/25'
-                        : ev.type === 'sub_out' || ev.type === 'sub_in'
-                          ? 'bg-amber-500/10 ring-1 ring-amber-400/20'
-                          : 'bg-white/5 ring-1 ring-white/10'
-                    }`}
-                  >
-                    {eventIcon(ev.type)}
-                  </span>
-                  <span className="flex-1 text-sm font-medium text-white/95">{eventLabel(ev)}</span>
-                </li>
-              ))}
-            </ul>
+            {filteredEvents.length === 0 ? (
+              <p className="rounded-2xl border border-white/[0.06] bg-zinc-950/40 px-4 py-8 text-center text-sm text-white/45">
+                Keine Events für diesen Filter.
+              </p>
+            ) : (
+              <ul className="max-h-[60vh] overflow-y-auto rounded-2xl border border-red-950/30 bg-black/50 px-1 py-4 sm:px-2">
+                {filteredEvents.map((ev, i, arr) => renderTimelineRow(ev, i, arr.length, true))}
+              </ul>
+            )}
           </div>
         )}
 
@@ -1027,26 +1159,30 @@ export const LiveMatchScreen: React.FC = () => {
                 return (
                   <li
                     key={p.id}
-                    className={`flex min-h-[60px] items-center gap-3 rounded-2xl border px-4 py-3.5 ${
+                    className={`flex min-h-[64px] items-center gap-4 rounded-2xl border px-4 py-4 ${
                       onF
-                        ? 'border-emerald-400/40 bg-emerald-950/40 ring-1 ring-emerald-500/20 shadow-[inset_0_1px_0_rgba(16,185,129,0.12)]'
-                        : 'border-white/[0.08] bg-black/25 opacity-75'
+                        ? 'border-emerald-500/35 bg-gradient-to-br from-emerald-950/55 via-black/40 to-black shadow-[0_0_28px_rgba(16,185,129,0.08),inset_0_1px_0_rgba(16,185,129,0.18)] ring-1 ring-emerald-500/25'
+                        : 'border-white/[0.06] bg-zinc-950/50 opacity-85 ring-1 ring-white/[0.04]'
                     }`}
                   >
-                    <span className={`h-3 w-3 shrink-0 rounded-full ${ampelDot(st)}`} />
+                    <span className={`h-3.5 w-3.5 shrink-0 rounded-full ${ampelDot(st)}`} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-white">
+                      <p className="truncate text-[15px] font-semibold text-white">
                         {p.number || '–'} · {p.name}
                       </p>
                       <p
-                        className={`text-[11px] font-semibold uppercase tracking-wide ${
-                          onF ? 'text-emerald-400/85' : 'text-white/35'
+                        className={`mt-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
+                          onF ? 'text-emerald-400' : 'text-white/38'
                         }`}
                       >
-                        {onF ? 'Am Feld' : 'Bank'}
+                        {onF ? 'Am Feld' : 'Auf der Bank'}
                       </p>
                     </div>
-                    <span className="shrink-0 font-mono text-xl font-bold tabular-nums text-white/95">
+                    <span
+                      className={`shrink-0 font-mono text-2xl font-black tabular-nums tracking-tight ${
+                        onF ? 'text-red-500' : 'text-white/40'
+                      }`}
+                    >
                       {formatClock(sec)}
                     </span>
                   </li>
