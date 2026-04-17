@@ -25,6 +25,7 @@ import {
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
 import { playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
+import { supabase } from '../../lib/supabaseClient';
 
 const HOME_FALLBACK = 'Unser Team';
 
@@ -330,7 +331,12 @@ export const LiveMatchScreen: React.FC = () => {
       live_period: half,
     });
     if (error) setSaveError(error);
-    else
+    else {
+      const { error: eventStatusError } = await supabase
+        .from('events')
+        .update({ status: 'finished' })
+        .eq('match_id', effectiveMatchId);
+      if (eventStatusError) setSaveError(eventStatusError.message);
       setMatchRow((prev) =>
         prev
           ? {
@@ -342,6 +348,7 @@ export const LiveMatchScreen: React.FC = () => {
             }
           : null,
       );
+    }
   };
 
   const openSubFromPlayer = (p: RosterPlayer) => {
