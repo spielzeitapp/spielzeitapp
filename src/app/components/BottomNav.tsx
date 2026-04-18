@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
+import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 
 /** Akzent wie Zielbild / Welcome (#FF2D2D, weich nutzbar). */
@@ -34,6 +35,7 @@ function NavItem({
   label,
   iconFile,
   isLiveTab,
+  liveDotPulse,
   badgeCount,
 }: {
   to: string;
@@ -41,6 +43,7 @@ function NavItem({
   label: string;
   iconFile: string;
   isLiveTab: boolean;
+  liveDotPulse?: boolean;
   badgeCount?: number;
 }) {
   const base = navAssetBase();
@@ -82,7 +85,9 @@ function NavItem({
             >
               {label}
             </span>
-            {isLiveTab ? <div className="live-dot" /> : null}
+            {isLiveTab ? (
+              <div className={liveDotPulse ? 'live-dot live-dot--pulse' : 'live-dot'} />
+            ) : null}
           </div>
           <span
             className={[
@@ -105,6 +110,7 @@ export const BottomNav: React.FC = () => {
   const tabs = pathname.startsWith('/app') ? appTabs : publicTabs;
   const mehrBadge = unreadCount;
   const isApp = pathname.startsWith('/app');
+  const hasLiveMatch = useAppHasLiveMatch();
 
   return (
     <nav
@@ -152,6 +158,7 @@ export const BottomNav: React.FC = () => {
               label={t.label}
               iconFile={t.iconFile}
               isLiveTab={t.live}
+              liveDotPulse={t.live ? hasLiveMatch : undefined}
               badgeCount={t.to === '/app/mehr' ? mehrBadge : undefined}
             />
           ))}
