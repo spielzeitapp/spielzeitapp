@@ -35,7 +35,7 @@ function NavItem({
   label,
   iconFile,
   isLiveTab,
-  liveDotPulse,
+  liveMatchActive,
   badgeCount,
 }: {
   to: string;
@@ -43,7 +43,8 @@ function NavItem({
   label: string;
   iconFile: string;
   isLiveTab: boolean;
-  liveDotPulse?: boolean;
+  /** Echtes Live-Spiel: roter Punkt + optional Hinweis */
+  liveMatchActive?: boolean;
   badgeCount?: number;
 }) {
   const base = navAssetBase();
@@ -70,6 +71,17 @@ function NavItem({
                 {badgeCount > 99 ? '99+' : badgeCount}
               </div>
             ) : null}
+            {isLiveTab && liveMatchActive ? (
+              <span
+                className="pointer-events-none absolute left-1/2 top-0 z-[4] whitespace-nowrap text-[7px] font-bold uppercase leading-none tracking-[0.14em] text-[#FF2D2D] sm:text-[8px]"
+                style={{
+                  transform: 'translate(-50%, calc(-100% - 3px))',
+                  textShadow: '0 0 10px rgba(255, 0, 0, 0.72)',
+                }}
+              >
+                LIVE JETZT
+              </span>
+            ) : null}
             <img
               src={`${base}icons/${iconFile}`}
               className="nav-icon"
@@ -85,9 +97,7 @@ function NavItem({
             >
               {label}
             </span>
-            {isLiveTab ? (
-              <div className={liveDotPulse ? 'live-dot live-dot--pulse' : 'live-dot'} />
-            ) : null}
+            {isLiveTab && liveMatchActive ? <div className="live-dot" /> : null}
           </div>
           <span
             className={[
@@ -158,7 +168,7 @@ export const BottomNav: React.FC = () => {
               label={t.label}
               iconFile={t.iconFile}
               isLiveTab={t.live}
-              liveDotPulse={t.live ? hasLiveMatch : undefined}
+              liveMatchActive={t.live ? hasLiveMatch : undefined}
               badgeCount={t.to === '/app/mehr' ? mehrBadge : undefined}
             />
           ))}

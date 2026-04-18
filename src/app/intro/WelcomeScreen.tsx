@@ -28,11 +28,14 @@ function appIconBase(): string {
 
 function PremiumIntroButton({
   pulseGlow,
+  liveActive,
   children,
   onClick,
 }: {
   /** Liveticker: dezentes Pulsieren des roten Glows */
   pulseGlow?: boolean;
+  /** Liveticker: verstärkter Live-Zustand (Glow, Border, Verlauf) */
+  liveActive?: boolean;
   children: React.ReactNode;
   onClick: () => void;
 }) {
@@ -42,6 +45,7 @@ function PremiumIntroButton({
       onClick={onClick}
       className={[
         'welcome-intro-cta group relative flex w-full min-h-[40px] items-center gap-2.5 overflow-hidden rounded-xl px-4 py-2 text-left',
+        liveActive ? 'welcome-intro-cta--live' : '',
         pulseGlow ? 'welcome-intro-cta--pulse' : '',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
       ]
@@ -125,6 +129,36 @@ export const WelcomeScreen: React.FC = () => {
             0 0 44px rgba(255, 0, 0, 0.48),
             inset 0 0 14px rgba(255, 0, 0, 0.16);
         }
+        .welcome-intro-cta--live {
+          background: linear-gradient(180deg, #420c0c 0%, #180303 100%);
+          border: 1px solid rgba(255, 45, 45, 0.58);
+          box-shadow:
+            0 0 20px rgba(255, 0, 0, 0.4),
+            0 0 36px rgba(255, 0, 0, 0.32),
+            0 1px 0 rgba(255, 255, 255, 0.06),
+            inset 0 0 18px rgba(255, 0, 0, 0.14);
+        }
+        @media (hover: hover) and (pointer: fine) {
+          .welcome-intro-cta--live:hover {
+            box-shadow:
+              0 0 24px rgba(255, 0, 0, 0.48),
+              0 0 44px rgba(255, 0, 0, 0.38),
+              0 1px 0 rgba(255, 255, 255, 0.07),
+              inset 0 0 22px rgba(255, 0, 0, 0.18);
+          }
+          .welcome-intro-cta--live:hover:active {
+            box-shadow:
+              0 0 22px rgba(255, 0, 0, 0.45),
+              0 0 40px rgba(255, 0, 0, 0.36),
+              inset 0 0 14px rgba(255, 0, 0, 0.18);
+          }
+        }
+        .welcome-intro-cta--live:active {
+          box-shadow:
+            0 0 22px rgba(255, 0, 0, 0.45),
+            0 0 40px rgba(255, 0, 0, 0.36),
+            inset 0 0 14px rgba(255, 0, 0, 0.18);
+        }
         .welcome-intro-icon-shell {
           width: 68px;
           height: 68px;
@@ -143,15 +177,17 @@ export const WelcomeScreen: React.FC = () => {
           0%,
           100% {
             box-shadow:
-              0 0 32px rgba(255, 0, 0, 0.34),
-              0 1px 0 rgba(255, 255, 255, 0.05),
-              inset 0 0 16px rgba(255, 0, 0, 0.1);
+              0 0 20px rgba(255, 0, 0, 0.38),
+              0 0 34px rgba(255, 0, 0, 0.3),
+              0 1px 0 rgba(255, 255, 255, 0.06),
+              inset 0 0 16px rgba(255, 0, 0, 0.12);
           }
           50% {
             box-shadow:
-              0 0 42px rgba(255, 0, 0, 0.45),
-              0 1px 0 rgba(255, 255, 255, 0.06),
-              inset 0 0 22px rgba(255, 0, 0, 0.16);
+              0 0 26px rgba(255, 0, 0, 0.52),
+              0 0 46px rgba(255, 0, 0, 0.38),
+              0 1px 0 rgba(255, 255, 255, 0.07),
+              inset 0 0 22px rgba(255, 0, 0, 0.2);
           }
         }
         .welcome-intro-cta--pulse {
@@ -160,6 +196,7 @@ export const WelcomeScreen: React.FC = () => {
         .welcome-intro-cta--pulse:hover {
           animation: none;
           box-shadow:
+            0 0 20px rgba(255, 0, 0, 0.4),
             0 0 40px rgba(255, 0, 0, 0.42),
             0 1px 0 rgba(255, 255, 255, 0.06),
             inset 0 0 20px rgba(255, 0, 0, 0.14);
@@ -168,7 +205,8 @@ export const WelcomeScreen: React.FC = () => {
           .welcome-intro-cta--pulse:hover {
             transform: translateY(-2px);
             box-shadow:
-              0 0 46px rgba(255, 0, 0, 0.48),
+              0 0 24px rgba(255, 0, 0, 0.48),
+              0 0 48px rgba(255, 0, 0, 0.44),
               0 1px 0 rgba(255, 255, 255, 0.06),
               inset 0 0 22px rgba(255, 0, 0, 0.16);
           }
@@ -176,29 +214,60 @@ export const WelcomeScreen: React.FC = () => {
             transform: translateY(-2px) scale(0.97);
             filter: brightness(1.07);
           }
+          .welcome-intro-cta--live.welcome-intro-cta--pulse:hover {
+            box-shadow:
+              0 0 26px rgba(255, 0, 0, 0.52),
+              0 0 50px rgba(255, 0, 0, 0.46),
+              0 1px 0 rgba(255, 255, 255, 0.07),
+              inset 0 0 22px rgba(255, 0, 0, 0.18);
+          }
         }
         .welcome-intro-cta--pulse:active {
           animation: none;
           transform: scale(0.97);
           filter: brightness(1.07);
           box-shadow:
-            0 0 44px rgba(255, 0, 0, 0.48),
-            inset 0 0 14px rgba(255, 0, 0, 0.16);
+            0 0 22px rgba(255, 0, 0, 0.45),
+            0 0 40px rgba(255, 0, 0, 0.36),
+            inset 0 0 14px rgba(255, 0, 0, 0.18);
         }
-        @keyframes welcome-when-live-pulse {
+        @keyframes welcome-live-badge-pulse {
           0%,
           100% {
             transform: scale(1);
-            opacity: 0.8;
+            opacity: 0.7;
           }
           50% {
             transform: scale(1.05);
             opacity: 1;
           }
         }
-        .welcome-when-live-pulse {
-          animation: welcome-when-live-pulse 1.6s ease-in-out infinite;
+        .welcome-live-badge {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          border-radius: 0.375rem;
+          border: 1px solid rgba(255, 90, 90, 0.55);
+          background: linear-gradient(180deg, #dc2626 0%, #991b1b 55%, #7f1d1d 100%);
+          padding: 0.4rem 0.65rem;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: #fef2f2;
+          box-shadow:
+            0 0 12px rgba(255, 0, 0, 0.6),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14);
           transform-origin: center center;
+        }
+        @media (min-width: 640px) {
+          .welcome-live-badge {
+            font-size: 11px;
+            padding: 0.45rem 0.7rem;
+          }
+        }
+        .welcome-live-badge--anim {
+          animation: welcome-live-badge-pulse 1.2s ease-in-out infinite;
         }
       `}</style>
       {/* —— Vollbild-Foto —— */}
@@ -342,13 +411,9 @@ export const WelcomeScreen: React.FC = () => {
             />
           </PremiumIntroButton>
 
-          <PremiumIntroButton pulseGlow={hasLiveMatch} onClick={goLive}>
+          <PremiumIntroButton pulseGlow={hasLiveMatch} liveActive={hasLiveMatch} onClick={goLive}>
             <span className="relative z-10 flex shrink-0 items-center gap-2.5">
-              <span
-                className={['welcome-intro-icon-shell', hasLiveMatch ? 'welcome-when-live-pulse' : '']
-                  .filter(Boolean)
-                  .join(' ')}
-              >
+              <span className="welcome-intro-icon-shell">
                 <img
                   src={`${iconBase}icons/live.svg`}
                   className="h-8 w-8 shrink-0 opacity-95 sm:h-9 sm:w-9"
@@ -359,16 +424,15 @@ export const WelcomeScreen: React.FC = () => {
                   draggable={false}
                 />
               </span>
-              <span
-                className={[
-                  'flex items-center gap-1 rounded border border-red-500/40 bg-red-950/70 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_12px_rgba(220,38,38,0.25)]',
-                  hasLiveMatch ? 'welcome-when-live-pulse' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                <span className="text-[10px] leading-none text-red-300">●</span> Live
-              </span>
+              {hasLiveMatch ? (
+                <span className="welcome-live-badge welcome-live-badge--anim">
+                  <span className="text-[11px] leading-none text-red-100 sm:text-xs">●</span> Live
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 rounded border border-red-500/40 bg-red-950/70 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_12px_rgba(220,38,38,0.25)]">
+                  <span className="text-[10px] leading-none text-red-300">●</span> Live
+                </span>
+              )}
             </span>
             <span className="relative z-10 min-w-0 flex-1 text-[16px] font-bold leading-tight text-white/95 sm:text-[17px]">
               Liveticker
