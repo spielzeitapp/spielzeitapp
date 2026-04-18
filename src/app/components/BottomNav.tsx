@@ -3,34 +3,34 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import {
-  NavBroadcastIcon,
-  NavMoreDotsIcon,
-  NavSoccerBallIcon,
-  NavSoccerFieldIcon,
-  NavTeamGroupIcon,
-  type FootballIconProps,
-} from './footballIcons';
+  BroadcastIcon,
+  MoreIcon,
+  PitchIcon,
+  SoccerBallIcon,
+  TeamIcon,
+  type NavGlyphProps,
+} from '../../components/icons';
 
 /** Akzent wie Zielbild / Welcome (#FF2D2D, weich nutzbar). */
 const ACCENT = '#FF2D2D';
 
-type TabIcon = React.FC<FootballIconProps>;
+type TabIcon = React.FC<NavGlyphProps>;
 
 /**
  * Bottom Navigation — nur UI.
  * Reihenfolge: Home | Termine | Team | Live | Mehr
  */
 const appTabs = [
-  { to: '/app/home', end: true as const, label: 'Home', Icon: NavSoccerBallIcon, live: false as const },
-  { to: '/app/termine', end: false as const, label: 'Termine', Icon: NavSoccerFieldIcon, live: false as const },
-  { to: '/app/team', end: true as const, label: 'Team', Icon: NavTeamGroupIcon, live: false as const },
-  { to: '/app/live', end: false as const, label: 'Live', Icon: NavBroadcastIcon, live: true as const },
-  { to: '/app/mehr', end: false as const, label: 'Mehr', Icon: NavMoreDotsIcon, live: false as const },
+  { to: '/app/home', end: true as const, label: 'Home', Icon: SoccerBallIcon, live: false as const },
+  { to: '/app/termine', end: false as const, label: 'Termine', Icon: PitchIcon, live: false as const },
+  { to: '/app/team', end: true as const, label: 'Team', Icon: TeamIcon, live: false as const },
+  { to: '/app/live', end: false as const, label: 'Live', Icon: BroadcastIcon, live: true as const },
+  { to: '/app/mehr', end: false as const, label: 'Mehr', Icon: MoreIcon, live: false as const },
 ] as const;
 
 const publicTabs = [
-  { to: '/', end: true as const, label: 'Home', Icon: NavSoccerBallIcon, live: false as const },
-  { to: '/schedule', end: false as const, label: 'Spielplan', Icon: NavSoccerFieldIcon, live: false as const },
+  { to: '/', end: true as const, label: 'Home', Icon: SoccerBallIcon, live: false as const },
+  { to: '/schedule', end: false as const, label: 'Spielplan', Icon: PitchIcon, live: false as const },
 ] as const;
 
 function NavItem({
@@ -48,8 +48,9 @@ function NavItem({
   isLiveTab: boolean;
   badgeCount?: number;
 }) {
-  const strokeInactive = 2.15;
-  const strokeActive = 2.35;
+  /** Mockup: einheitlich ~1,6–1,8px; aktiv minimal kräftiger */
+  const strokeInactive = 1.75;
+  const strokeActive = 1.85;
 
   return (
     <NavLink
