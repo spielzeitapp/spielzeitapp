@@ -1,7 +1,7 @@
 import React from 'react';
 import type { NavGlyphProps } from './types';
 
-/** Spielfeld von oben: Außenlinie, Mittellinie, Mittelkreis, Torräume — einheitliche Strichstärke. */
+/** Spielfeld von oben — groß im ViewBox, optisch vergleichbar mit dem Ball. */
 export function PitchIcon({ className, strokeWidth = 1.8 }: NavGlyphProps) {
   const sw = strokeWidth;
   return (
@@ -14,11 +14,11 @@ export function PitchIcon({ className, strokeWidth = 1.8 }: NavGlyphProps) {
       strokeLinejoin="round"
       aria-hidden
     >
-      <rect x="3" y="5" width="18" height="14" rx="2" strokeWidth={sw} />
-      <line x1="12" y1="5" x2="12" y2="19" strokeWidth={sw} />
-      <circle cx="12" cy="12" r="2.2" strokeWidth={sw} />
-      <rect x="3" y="9" width="3" height="6" strokeWidth={sw} />
-      <rect x="18" y="9" width="3" height="6" strokeWidth={sw} />
+      <rect x="2.25" y="4.25" width="19.5" height="15.5" rx="2" strokeWidth={sw} />
+      <line x1="12" y1="4.25" x2="12" y2="19.75" strokeWidth={sw} />
+      <circle cx="12" cy="12" r="2.9" strokeWidth={sw} />
+      <rect x="2.25" y="8.1" width="4.25" height="7.8" strokeWidth={sw} />
+      <rect x="17.5" y="8.1" width="4.25" height="7.8" strokeWidth={sw} />
     </svg>
   );
 }

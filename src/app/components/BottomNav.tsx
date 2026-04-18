@@ -14,6 +14,9 @@ import {
 /** Akzent wie Zielbild / Welcome (#FF2D2D, weich nutzbar). */
 const ACCENT = '#FF2D2D';
 
+/** Live-Badge: Mockup-Farbe, kein Glow */
+const LIVE_DOT = '#ff2d2d';
+
 type TabIcon = React.FC<NavGlyphProps>;
 
 /**
@@ -48,15 +51,13 @@ function NavItem({
   isLiveTab: boolean;
   badgeCount?: number;
 }) {
-  /** Mockup: einheitlich ~1,6–1,8px; aktiv minimal kräftiger */
-  const strokeInactive = 1.75;
-  const strokeActive = 1.85;
+  const stroke = 1.8;
 
   return (
     <NavLink
       to={to}
       end={end}
-      className="group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-visible px-0.5 pb-1 pt-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2D2D]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+      className="group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 overflow-visible px-0.5 pb-1 pt-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2D2D]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
     >
       {({ isActive }) => (
         <>
@@ -65,7 +66,7 @@ function NavItem({
               'relative flex h-11 w-11 shrink-0 items-center justify-center overflow-visible rounded-2xl transition-all duration-200 ease-out',
               isActive
                 ? 'text-white shadow-[0_0_32px_-5px_rgba(255,45,45,0.48),0_0_0_1px_rgba(255,45,45,0.14)]'
-                : 'text-[#777777] group-hover:bg-white/[0.03] group-hover:text-[#8a8a8a]',
+                : 'text-zinc-400 group-hover:bg-white/[0.03] group-hover:text-zinc-300',
             ].join(' ')}
             aria-hidden
           >
@@ -75,15 +76,24 @@ function NavItem({
                 aria-hidden
               />
             ) : null}
-            {isLiveTab && (
+            {isLiveTab ? (
               <span
                 className={[
-                  'absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-[#0a0a0a]',
+                  'pointer-events-none absolute z-[2] rounded-full',
                   isActive ? 'animate-pulse' : '',
                 ].join(' ')}
-                style={{ backgroundColor: ACCENT }}
+                style={{
+                  width: 7,
+                  height: 7,
+                  top: 0,
+                  right: 0,
+                  backgroundColor: LIVE_DOT,
+                  transform: 'translate(1px, -1px)',
+                  boxShadow: 'none',
+                }}
+                aria-hidden
               />
-            )}
+            ) : null}
             {badgeCount != null && badgeCount > 0 && (
               <div
                 className="pointer-events-none absolute right-0 top-0 z-[2] flex min-h-[17px] min-w-[17px] translate-x-[3px] -translate-y-[3px] items-center justify-center rounded-full px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-[#0a0a0a]"
@@ -95,23 +105,23 @@ function NavItem({
             <span
               className={[
                 'relative z-[1] flex shrink-0 items-center justify-center transition-transform duration-200 ease-out',
-                isActive ? 'scale-[1.09]' : 'scale-100',
+                isActive ? 'scale-[1.15]' : 'scale-100',
               ].join(' ')}
             >
-              <Icon className="h-6 w-6" strokeWidth={isActive ? strokeActive : strokeInactive} />
+              <Icon className="h-[26px] w-[26px]" strokeWidth={stroke} />
             </span>
           </div>
           <span
             className={[
               'max-w-[4.5rem] text-center text-[11px] font-medium leading-none tracking-tight transition-colors duration-200 sm:text-xs sm:font-semibold',
-              isActive ? 'font-semibold text-white' : 'text-[#777777] group-hover:text-[#8a8a8a]',
+              isActive ? 'font-semibold text-white' : 'text-zinc-400 group-hover:text-zinc-300',
             ].join(' ')}
           >
             {label}
           </span>
           <span
             className={[
-              'mt-0.5 h-1 w-5 shrink-0 rounded-[2px] transition-opacity duration-200',
+              'mt-1 h-1 w-5 shrink-0 rounded-[2px] transition-opacity duration-200',
               isActive ? 'opacity-100 shadow-[0_0_12px_rgba(255,45,45,0.35)]' : 'bg-transparent opacity-0',
             ].join(' ')}
             style={isActive ? { backgroundColor: ACCENT, height: '4px', width: '20px' } : undefined}

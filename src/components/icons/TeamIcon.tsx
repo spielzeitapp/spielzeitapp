@@ -1,7 +1,7 @@
 import React from 'react';
 import type { NavGlyphProps } from './types';
 
-/** Drei Figuren, eine zentral vorn — gleiche Strichstärke, ohne Transparenz-Mix. */
+/** Drei Figuren — skaliert für ähnliche optische Fläche wie Ball/Spielfeld, Strich 1.8. */
 export function TeamIcon({ className, strokeWidth = 1.8 }: NavGlyphProps) {
   const sw = strokeWidth;
   return (
@@ -14,14 +14,14 @@ export function TeamIcon({ className, strokeWidth = 1.8 }: NavGlyphProps) {
       strokeLinejoin="round"
       aria-hidden
     >
-      <circle cx="12" cy="9" r="2.2" strokeWidth={sw} />
-      <path d="M8.5 15c1.2-2 5.8-2 7 0" strokeWidth={sw} />
+      <circle cx="12" cy="8.55" r="2.38" strokeWidth={sw} />
+      <path d="M7.65 15.35c1.45-2.15 7.25-2.15 8.7 0" strokeWidth={sw} />
 
-      <circle cx="7" cy="10" r="1.8" strokeWidth={sw} />
-      <path d="M4.5 15c0.8-1.5 3.5-1.8 4.5-0.5" strokeWidth={sw} />
+      <circle cx="7.15" cy="9.65" r="1.98" strokeWidth={sw} />
+      <path d="M4.05 15.35c0.95-1.65 4.15-1.95 5.15-0.55" strokeWidth={sw} />
 
-      <circle cx="17" cy="10" r="1.8" strokeWidth={sw} />
-      <path d="M15 14.5c1-1.3 3.7-1 4.5 0.5" strokeWidth={sw} />
+      <circle cx="16.85" cy="9.65" r="1.98" strokeWidth={sw} />
+      <path d="M14.1 15c1.05-1.45 4.05-1.15 4.95 0.45" strokeWidth={sw} />
     </svg>
   );
 }

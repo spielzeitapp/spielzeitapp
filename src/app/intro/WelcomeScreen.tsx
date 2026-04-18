@@ -203,8 +203,8 @@ export const WelcomeScreen: React.FC = () => {
           <PremiumIntroButton variant="primary" onClick={goHome}>
             <span className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-black/60 ring-1 ring-white/12">
               <SoccerBallIcon
-                className="h-[27px] w-[27px] text-white drop-shadow-[0_0_16px_rgba(255,45,45,0.4)]"
-                strokeWidth={1.85}
+                className="h-7 w-7 text-white drop-shadow-[0_0_16px_rgba(255,45,45,0.4)]"
+                strokeWidth={1.8}
               />
             </span>
             <span className="relative z-10 min-w-0 flex-1 text-[17px] font-bold text-white">Zur App</span>
@@ -218,7 +218,7 @@ export const WelcomeScreen: React.FC = () => {
           <PremiumIntroButton variant="secondary" onClick={goLive}>
             <span className="relative z-10 flex shrink-0 items-center gap-2.5">
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-black/65 ring-1 ring-red-900/55">
-                <BroadcastIcon className="h-5 w-5 text-white/92" strokeWidth={1.85} />
+                <BroadcastIcon className="h-5 w-5 text-white/92" strokeWidth={1.8} />
               </span>
               <span className="flex items-center gap-1 rounded border border-red-500/40 bg-red-950/70 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_12px_rgba(220,38,38,0.25)]">
                 <span className="text-[10px] leading-none text-red-300">●</span> Live
