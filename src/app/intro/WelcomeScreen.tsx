@@ -40,7 +40,7 @@ function PremiumIntroButton({
       type="button"
       onClick={onClick}
       className={[
-        'welcome-intro-cta group relative flex w-full min-h-[50px] items-center gap-3 overflow-hidden rounded-2xl px-4 py-3 text-left',
+        'welcome-intro-cta group relative flex w-full min-h-[44px] items-center gap-2.5 overflow-hidden rounded-2xl px-4 py-2.5 text-left',
         pulseGlow ? 'welcome-intro-cta--pulse' : '',
         'active:scale-[0.99]',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
@@ -72,8 +72,8 @@ export const WelcomeScreen: React.FC = () => {
     <div
       className="fixed inset-0 z-[90] flex max-h-[100dvh] flex-col overflow-x-hidden overflow-y-hidden text-white"
       style={{
-        paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))',
-        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
+        paddingTop: 'max(0.375rem, env(safe-area-inset-top, 0px))',
+        paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom, 0px))',
       }}
     >
       <style>{`
@@ -192,13 +192,13 @@ export const WelcomeScreen: React.FC = () => {
         aria-hidden
       />
 
-      <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-2 pt-4">
+      <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-1 pt-3">
         <header className="flex shrink-0 flex-col items-center text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.38em] text-white/78 [text-shadow:0_1px_0_rgba(0,0,0,0.85),0_2px_14px_rgba(0,0,0,0.75)]">
             Willkommen in der
           </p>
 
-          <h1 className="mt-2 font-black italic leading-[0.95] tracking-tight" style={{ transform: 'skewX(-5deg)' }}>
+          <h1 className="mt-1.5 font-black italic leading-[0.95] tracking-tight" style={{ transform: 'skewX(-5deg)' }}>
             <span
               className="text-[clamp(2.35rem,9.2vw,3.25rem)] text-[#fafafa]"
               style={{
@@ -219,12 +219,12 @@ export const WelcomeScreen: React.FC = () => {
             </span>
           </h1>
 
-          <p className="mt-2.5 max-w-[300px] text-[15px] font-medium leading-snug text-white/88 [text-shadow:0_1px_2px_rgba(0,0,0,0.9),0_3px_16px_rgba(0,0,0,0.65)]">
+          <p className="mt-2 max-w-[300px] text-[15px] font-medium leading-snug text-white/88 [text-shadow:0_1px_2px_rgba(0,0,0,0.9),0_3px_16px_rgba(0,0,0,0.65)]">
             Alle Termine. Alle Infos.
           </p>
 
           <p
-            className="mt-3 text-[12px] font-bold uppercase italic tracking-[0.1em] text-white/94 [text-shadow:0_2px_12px_rgba(0,0,0,0.88)] sm:text-[13px]"
+            className="mt-2.5 text-[12px] font-bold uppercase italic tracking-[0.1em] text-white/94 [text-shadow:0_2px_12px_rgba(0,0,0,0.88)] sm:text-[13px]"
             style={{ transform: 'skewX(-3deg)' }}
           >
             <span className="text-white">#GEMEINSAM</span>
@@ -235,12 +235,12 @@ export const WelcomeScreen: React.FC = () => {
         {/* Flexibler Luftpolster — schrumpft auf kleinen Viewports, kein Scroll */}
         <div className="min-h-0 flex-1 basis-0" aria-hidden />
 
-        <div className="relative mt-auto w-full shrink-0 space-y-2.5 pt-1">
+        <div className="relative mt-auto w-full shrink-0 space-y-[7px] pt-0.5">
           <PremiumIntroButton onClick={goHome}>
             <span className="welcome-intro-icon-shell relative z-10">
               <img
                 src={`${iconBase}icons/home-ball.png`}
-                className="h-11 w-11 max-h-[44px] max-w-[44px] object-contain sm:h-12 sm:w-12 sm:max-h-[48px] sm:max-w-[48px]"
+                className="h-10 w-10 max-h-[40px] max-w-[40px] object-contain sm:h-12 sm:w-12 sm:max-h-[48px] sm:max-w-[48px]"
                 alt=""
                 width={48}
                 height={48}
@@ -286,14 +286,14 @@ export const WelcomeScreen: React.FC = () => {
           </PremiumIntroButton>
         </div>
 
-        <footer className="relative mt-5 flex shrink-0 flex-col items-center gap-2 px-1 pb-0.5">
-          <div className="flex w-full max-w-[320px] items-center gap-2.5">
+        <footer className="relative mt-3.5 flex shrink-0 flex-col items-center gap-1.5 px-1 pb-0">
+          <div className="flex w-full max-w-[320px] items-center gap-2">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/14 to-white/5" />
             <Trophy className="h-3.5 w-3.5 shrink-0 text-red-500/80 sm:h-4 sm:w-4" strokeWidth={2} aria-hidden />
             <div className="h-px flex-1 bg-gradient-to-l from-transparent via-white/14 to-white/5" />
           </div>
-          <div className="flex max-w-[320px] items-start gap-2 text-left text-[11px] leading-snug text-zinc-400 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-relaxed">
-            <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400 sm:h-[1.05rem] sm:w-[1.05rem]" strokeWidth={2.15} aria-hidden />
+          <div className="flex max-w-[320px] items-start gap-1.5 text-left text-[11px] leading-[1.35] text-zinc-400 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
+            <Smartphone className="mt-px h-3.5 w-3.5 shrink-0 text-zinc-400 sm:mt-0.5 sm:h-4 sm:w-4 md:h-[1.05rem] md:w-[1.05rem]" strokeWidth={2.15} aria-hidden />
             <p>
               <span className="font-semibold text-red-500">Tipp:</span> Zum Home-Bildschirm hinzufügen für den vollen
               App-Modus.
