@@ -44,6 +44,7 @@ function NavItem({
   badgeCount?: number;
 }) {
   const base = navAssetBase();
+  const isHomeBall = iconFile === 'home-ball.png';
 
   return (
     <NavLink
@@ -66,10 +67,8 @@ function NavItem({
             ) : null}
             <img
               src={`${base}icons/${iconFile}`}
-              className="nav-icon"
+              className={isHomeBall ? 'nav-icon nav-icon--home' : 'nav-icon'}
               alt=""
-              width={28}
-              height={28}
               decoding="async"
               draggable={false}
             />

@@ -68,21 +68,44 @@
    ========================= */
 
 .nav-icon {
-  width: 28px;
-  height: 28px;
-  transition: all 0.2s ease;
+  width: 26px;
+  height: 26px;
+  display: block;
+  object-fit: contain;
+  transition:
+    width 0.2s ease,
+    height 0.2s ease,
+    transform 0.2s ease,
+    opacity 0.2s ease,
+    filter 0.2s ease;
 }
 
-/* Aktiv */
+/* Home (Ball-PNG): etwas größer */
+.nav-icon.nav-icon--home {
+  width: 28px;
+  height: 28px;
+}
+
+/* Aktiv: Standard-Tabs 30px + leichter Scale, roter Glow */
 .nav-item.active .nav-icon {
+  width: 30px;
+  height: 30px;
   opacity: 1;
-  transform: scale(1.1);
+  transform: scale(1.05);
   filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.6));
+}
+
+/* Aktiv: Home 32px */
+.nav-item.active .nav-icon.nav-icon--home {
+  width: 32px;
+  height: 32px;
 }
 
 /* Inaktiv */
 .nav-item.inactive .nav-icon {
   opacity: 0.5;
+  transform: none;
+  filter: none;
 }
 
 /* =========================
