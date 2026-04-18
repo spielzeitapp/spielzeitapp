@@ -6,7 +6,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 
 /**
- * Bottom Navigation — nur UI; Routen bleiben unveraendert.
+ * Bottom Navigation — nur UI; Routen und Reihenfolge bleiben unveraendert.
  */
 const appTabs = [
   { to: '/app/home', end: true as const, label: 'Home', Icon: CircleDot, live: false as const },
@@ -40,48 +40,61 @@ function NavItem({
     <NavLink
       to={to}
       end={end}
-      className="group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 overflow-visible px-0.5 focus:outline-none"
+      className="group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-visible px-0.5 pb-1 pt-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/35 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
     >
       {({ isActive }) => (
         <>
           <div
             className={[
-              'relative flex h-11 w-11 shrink-0 items-center justify-center overflow-visible rounded-2xl transition-all duration-200',
+              'relative flex h-11 w-11 shrink-0 items-center justify-center overflow-visible rounded-2xl transition-all duration-200 ease-out',
               isActive
-                ? 'bg-red-500/10 text-red-500 shadow-[0_0_18px_rgba(239,68,68,0.25)]'
-                : 'text-gray-400 group-hover:bg-white/5',
+                ? 'text-white shadow-[0_0_22px_-2px_rgba(220,38,38,0.45),0_0_0_1px_rgba(248,113,113,0.12)]'
+                : 'text-[#777777] group-hover:bg-white/[0.04] group-hover:text-zinc-400',
             ].join(' ')}
             aria-hidden
           >
+            {isActive ? (
+              <span
+                className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-red-500/18 to-red-950/10 opacity-90"
+                aria-hidden
+              />
+            ) : null}
             {isLiveTab && (
               <span
                 className={[
-                  'absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-neutral-900',
+                  'absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[#0a0a0a]',
                   isActive ? 'animate-pulse' : '',
                 ].join(' ')}
               />
             )}
             {badgeCount != null && badgeCount > 0 && (
-              <div className="pointer-events-none absolute right-0 top-0 z-[2] flex min-h-[17px] min-w-[17px] translate-x-[3px] -translate-y-[3px] items-center justify-center rounded-full bg-red-500 px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-neutral-900">
+              <div className="pointer-events-none absolute right-0 top-0 z-[2] flex min-h-[17px] min-w-[17px] translate-x-[3px] -translate-y-[3px] items-center justify-center rounded-full bg-red-500 px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-[#0a0a0a]">
                 {badgeCount > 99 ? '99+' : badgeCount}
               </div>
             )}
             <Icon
               className={[
-                'shrink-0 transition-all duration-200',
-                isActive ? 'h-6 w-6 scale-110' : 'h-5.5 w-5.5',
+                'relative z-[1] shrink-0 transition-all duration-200 ease-out',
+                isActive ? 'h-[1.65rem] w-[1.65rem]' : 'h-6 w-6',
               ].join(' ')}
-              strokeWidth={isActive ? 2.4 : isLiveTab ? 2.25 : 2.1}
+              strokeWidth={isActive ? 2.35 : isLiveTab ? 2.15 : 2.05}
             />
           </div>
           <span
             className={[
-              'text-center text-xs font-semibold leading-none transition-colors',
-              isActive ? 'text-red-500' : 'text-gray-400 group-hover:text-gray-300',
+              'text-center text-[11px] font-medium leading-none tracking-tight transition-colors duration-200',
+              isActive ? 'text-white' : 'text-[#777777] group-hover:text-zinc-400',
             ].join(' ')}
           >
             {label}
           </span>
+          <span
+            className={[
+              'mt-0.5 h-1 w-5 shrink-0 rounded-full transition-opacity duration-200',
+              isActive ? 'bg-red-500 opacity-100 shadow-[0_0_10px_rgba(239,68,68,0.35)]' : 'bg-transparent opacity-0',
+            ].join(' ')}
+            aria-hidden
+          />
         </>
       )}
     </NavLink>
@@ -94,6 +107,7 @@ export const BottomNav: React.FC = () => {
   const unreadCount = useUnreadCount(user?.id);
   const tabs = pathname.startsWith('/app') ? appTabs : publicTabs;
   const mehrBadge = unreadCount;
+  const isApp = pathname.startsWith('/app');
 
   return (
     <nav
@@ -104,9 +118,27 @@ export const BottomNav: React.FC = () => {
       aria-label="Hauptnavigation"
     >
       <div
-        className="pointer-events-auto mx-auto max-w-md h-20 overflow-visible rounded-t-2xl bg-neutral-900/80 backdrop-blur-lg shadow-lg"
+        className={[
+          'pointer-events-auto relative mx-auto max-w-md overflow-visible rounded-[1.75rem] border border-white/[0.06]',
+          'bg-[rgba(10,10,10,0.88)] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.05),0_0_0_1px_rgba(0,0,0,0.65)]',
+          'backdrop-blur-[20px] backdrop-saturate-150',
+          isApp ? 'min-h-[76px]' : 'min-h-[68px]',
+        ].join(' ')}
       >
-        <div className="grid h-full grid-cols-5 items-center overflow-visible px-2 py-2 sm:px-3">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[1.75rem] bg-gradient-to-r from-transparent via-red-500/25 to-transparent"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-x-3 top-0 h-8 rounded-full bg-gradient-to-b from-red-500/12 to-transparent blur-xl"
+          aria-hidden
+        />
+        <div
+          className={[
+            'relative grid h-full min-h-[inherit] items-center overflow-visible px-1.5 py-2 sm:px-2',
+            isApp ? 'grid-cols-5' : 'grid-cols-2',
+          ].join(' ')}
+        >
           {tabs.map((t) => (
             <NavItem
               key={t.to}
