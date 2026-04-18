@@ -208,7 +208,7 @@ export const WelcomeScreen: React.FC = () => {
           <PremiumIntroButton variant="primary" onClick={goHome}>
             <span className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-black/60 ring-1 ring-white/12">
               <img
-                src={`${iconBase}icons/home.svg`}
+                src={`${iconBase}icons/home-ball.png`}
                 className="button-icon"
                 alt=""
                 width={28}

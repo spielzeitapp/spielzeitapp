@@ -16,7 +16,7 @@ function navAssetBase(): string {
  * Reihenfolge: Home | Termine | Team | Live | Mehr
  */
 const appTabs = [
-  { to: '/app/home', end: true as const, label: 'Home', iconFile: 'home.svg', live: false as const },
+  { to: '/app/home', end: true as const, label: 'Home', iconFile: 'home-ball.png', live: false as const },
   { to: '/app/termine', end: false as const, label: 'Termine', iconFile: 'pitch.svg', live: false as const },
   { to: '/app/team', end: true as const, label: 'Team', iconFile: 'team.svg', live: false as const },
   { to: '/app/live', end: false as const, label: 'Live', iconFile: 'live.svg', live: true as const },
@@ -24,7 +24,7 @@ const appTabs = [
 ] as const;
 
 const publicTabs = [
-  { to: '/', end: true as const, label: 'Home', iconFile: 'home.svg', live: false as const },
+  { to: '/', end: true as const, label: 'Home', iconFile: 'home-ball.png', live: false as const },
   { to: '/schedule', end: false as const, label: 'Spielplan', iconFile: 'pitch.svg', live: false as const },
 ] as const;
 
