@@ -9,15 +9,6 @@ const ROUTE_APP_HOME = '/app/home';
 /** Liveticker: gleiche Route wie BottomNav „Live“ (`LiveMatchScreen`). */
 const ROUTE_LIVE_TICKER = '/app/live';
 
-/**
- * Vollbild-Hintergrund: `public/intro/welcome-hero.png` (reines Stadion-/Spieler-Motiv, ohne Text im Bild).
- */
-function welcomeHeroSrc(): string {
-  const base = import.meta.env.BASE_URL || '/';
-  const path = 'intro/welcome-hero.png';
-  return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`;
-}
-
 function appIconBase(): string {
   const b = import.meta.env.BASE_URL || '/';
   return b.endsWith('/') ? b : `${b}/`;
@@ -85,7 +76,6 @@ function PremiumIntroButton({
 
 export const WelcomeScreen: React.FC = () => {
   const navigate = useNavigate();
-  const heroSrc = welcomeHeroSrc();
   const iconBase = appIconBase();
 
   const goHome = () => {
@@ -107,7 +97,7 @@ export const WelcomeScreen: React.FC = () => {
       }}
     >
       <img
-        src={heroSrc}
+        src="/intro/welcome-hero.png"
         alt=""
         className="pointer-events-none fixed inset-0 h-full min-h-[100dvh] w-full object-cover object-[center_40%] sm:object-[center_42%]"
         decoding="async"
