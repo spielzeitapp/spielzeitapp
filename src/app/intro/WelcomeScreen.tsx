@@ -119,7 +119,7 @@ export const WelcomeScreen: React.FC = () => {
       <img
         src={heroSrc}
         alt=""
-        className="pointer-events-none fixed inset-0 h-full min-h-[100dvh] w-full object-cover object-[center_42%] sm:object-[center_44%]"
+        className="pointer-events-none fixed inset-0 h-full min-h-[100dvh] w-full object-cover object-[center_43%] sm:object-[center_45%]"
         decoding="async"
         fetchPriority="high"
       />
@@ -140,12 +140,22 @@ export const WelcomeScreen: React.FC = () => {
         aria-hidden
       />
 
-      {/* Rot eher mittig / emotional, weniger flächiger Wash */}
+      {/* Rot eher mittig / emotional, oben etwas ruhiger */}
       <div
         className="pointer-events-none fixed inset-0"
         style={{
           background:
-            'radial-gradient(ellipse 118% 68% at 50% 50%, rgba(220,38,38,0.34), transparent 58%), radial-gradient(ellipse 70% 48% at 88% 44%, rgba(127,29,29,0.16), transparent 50%), radial-gradient(ellipse 65% 45% at 10% 42%, rgba(69,10,10,0.2), transparent 48%)',
+            'radial-gradient(ellipse 118% 68% at 50% 52%, rgba(220,38,38,0.32), transparent 58%), radial-gradient(ellipse 70% 48% at 88% 48%, rgba(127,29,29,0.11), transparent 50%), radial-gradient(ellipse 65% 45% at 10% 46%, rgba(69,10,10,0.14), transparent 48%)',
+        }}
+        aria-hidden
+      />
+
+      {/* Zusätzliche Abdunkelung oben: Lesbarkeit Branding, weniger „busy“ */}
+      <div
+        className="pointer-events-none fixed inset-0"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.16) 12%, rgba(0,0,0,0.06) 24%, transparent 38%)',
         }}
         aria-hidden
       />
