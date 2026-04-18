@@ -20,7 +20,7 @@ const appTabs = [
   { to: '/app/termine', end: false as const, label: 'Termine', iconFile: 'pitch.svg', live: false as const },
   { to: '/app/team', end: true as const, label: 'Team', iconFile: 'team.svg', live: false as const },
   { to: '/app/live', end: false as const, label: 'Live', iconFile: 'live.svg', live: true as const },
-  { to: '/app/mehr', end: false as const, label: 'Mehr', iconFile: 'mehr.svg', live: false as const },
+  { to: '/app/mehr', end: false as const, label: 'Mehr', iconFile: 'more.svg', live: false as const },
 ] as const;
 
 const publicTabs = [
@@ -54,10 +54,7 @@ function NavItem({
       {({ isActive }) => (
         <>
           <div
-            className={[
-              'nav-item flex min-w-0 flex-col items-center gap-1',
-              isActive ? 'active' : 'inactive',
-            ].join(' ')}
+            className={`nav-item ${isActive ? 'active' : 'inactive'} flex min-w-0 flex-col items-center gap-1`}
           >
             {badgeCount != null && badgeCount > 0 ? (
               <div
@@ -69,7 +66,7 @@ function NavItem({
             ) : null}
             <img
               src={`${base}icons/${iconFile}`}
-              className="nav-icon shrink-0"
+              className="nav-icon"
               alt=""
               width={28}
               height={28}
@@ -84,7 +81,7 @@ function NavItem({
             >
               {label}
             </span>
-            {isLiveTab ? <div className="live-dot" aria-hidden /> : null}
+            {isLiveTab ? <div className="live-dot" /> : null}
           </div>
           <span
             className={[

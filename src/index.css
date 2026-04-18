@@ -104,3 +104,12 @@
   box-shadow: 0 0 6px rgba(255, 0, 0, 0.8);
 }
 
+/* Welcome „Zur App“ — gleiche Grafik wie Nav Home */
+.button-icon {
+  width: 28px;
+  height: 28px;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 12px rgba(255, 45, 45, 0.45));
+}
+
