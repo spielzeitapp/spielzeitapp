@@ -32,11 +32,33 @@
 @keyframes introSplashMark {
   from {
     opacity: 0;
-    transform: scale(0.97) translateY(6px);
+    transform: scale(0.96) translateY(8px);
+    filter: blur(2px);
   }
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
+    filter: blur(0);
   }
+}
+
+@keyframes introSplashLine {
+  from {
+    opacity: 0;
+    transform: scaleX(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.intro-splash-mark {
+  animation: introSplashMark 0.82s cubic-bezier(0.22, 1, 0.32, 1) forwards;
+}
+
+.intro-splash-line {
+  animation: introSplashLine 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+  opacity: 0;
 }
 
