@@ -43,12 +43,13 @@ function NavItem({
   label: string;
   iconFile: string;
   isLiveTab: boolean;
-  /** Echtes Live-Spiel: roter Punkt + optional Hinweis */
+  /** Nur true bei Tab „Live“ UND DB-Status `live` (kein Puls/Label bei beendetem Spiel). */
   liveMatchActive?: boolean;
   badgeCount?: number;
 }) {
   const base = navAssetBase();
   const isHomeBall = iconFile === 'home-ball.png';
+  const showLiveIndicators = Boolean(isLiveTab && liveMatchActive);
 
   return (
     <NavLink
@@ -71,7 +72,7 @@ function NavItem({
                 {badgeCount > 99 ? '99+' : badgeCount}
               </div>
             ) : null}
-            {isLiveTab && liveMatchActive ? (
+            {showLiveIndicators ? (
               <span
                 className="pointer-events-none absolute left-1/2 top-0 z-[4] whitespace-nowrap text-[7px] font-bold uppercase leading-none tracking-[0.14em] text-[#FF2D2D] sm:text-[8px]"
                 style={{
@@ -97,7 +98,7 @@ function NavItem({
             >
               {label}
             </span>
-            {isLiveTab && liveMatchActive ? <div className="live-dot live-dot--pulse" /> : null}
+            {showLiveIndicators ? <div className="live-dot live-dot--pulse" aria-hidden /> : null}
           </div>
           <span
             className={[
@@ -120,6 +121,7 @@ export const BottomNav: React.FC = () => {
   const tabs = pathname.startsWith('/app') ? appTabs : publicTabs;
   const mehrBadge = unreadCount;
   const isApp = pathname.startsWith('/app');
+  /** Echtes laufendes Spiel: eine Zeile mit status === 'live' (beendet → kein Eintrag, Indikatoren aus). */
   const hasLiveMatch = useAppHasLiveMatch();
 
   return (
@@ -168,7 +170,7 @@ export const BottomNav: React.FC = () => {
               label={t.label}
               iconFile={t.iconFile}
               isLiveTab={t.live}
-              liveMatchActive={t.live ? hasLiveMatch : undefined}
+              liveMatchActive={t.live ? hasLiveMatch : false}
               badgeCount={t.to === '/app/mehr' ? mehrBadge : undefined}
             />
           ))}

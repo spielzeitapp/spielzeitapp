@@ -3,7 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 
 /**
- * True, wenn mindestens ein Spiel mit DB-Status `live` existiert (wie LivePage / fetchFirstLiveMatch).
+ * True genau dann, wenn mindestens ein Spiel mit DB-Status `live` existiert (wie LivePage / fetchFirstLiveMatch).
+ * Beendet / nicht live → false → keine Nav-Pulse, kein „LIVE JETZT“, normale statische Live-Zelle.
  * Standard: nur unter `/app/*` (BottomNav). Mit `fetchOutsideApp: true` auch z. B. auf Intro/Welcome.
  */
 export function useAppHasLiveMatch(options?: { fetchOutsideApp?: boolean }): boolean {
