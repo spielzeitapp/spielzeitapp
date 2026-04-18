@@ -7,8 +7,8 @@ export type FootballIconProps = {
 };
 
 /**
- * Klassischer Telstar-/Panel-Look: Kreis + zentrales Pentagon + Nähte entlang der Strahlen.
- * In 24px gut lesbar, ohne verspielte Kurven — klar „Fußball“, nicht Rad/Segment-Icon.
+ * Klassischer Panel-Fußball: Kreis + zentrales Pentagon + leicht gewölbte Nähte (keine geraden Speichen).
+ * Wirkt in 24px klar als Ball, nicht als technisches Rad-/Segment-Icon.
  */
 export function NavSoccerBallIcon({ className, strokeWidth = 2 }: FootballIconProps) {
   const sw = strokeWidth;
@@ -23,21 +23,21 @@ export function NavSoccerBallIcon({ className, strokeWidth = 2 }: FootballIconPr
       aria-hidden
     >
       <circle cx="12" cy="12" r="8.15" strokeWidth={sw} />
-      {/* Reguläres Zentrumspolygon (Telstar-typisch), Spitze nach oben */}
       <path
         d="M12 8.95 14.9 11.06 13.79 14.47 10.21 14.47 9.1 11.06Z"
         strokeWidth={sw}
       />
-      {/* Nähte bis zum Außenkreis, entlang der Eck-Richtung vom Mittelpunkt */}
       <path
-        d="M12 8.95V3.85M14.9 11.06l4.87-1.58M13.79 14.47l3 4.14M10.21 14.47l-3 4.14M9.1 11.06l-4.87-1.58"
+        d="M12 8.95 Q13.1 6.35 12 3.85M14.9 11.06 Q17.85 10.55 19.72 9.45M13.79 14.47 Q16.15 17.05 16.78 18.62M10.21 14.47 Q7.85 17.05 7.22 18.62M9.1 11.06 Q6.15 10.55 4.28 9.45"
         strokeWidth={sw}
       />
     </svg>
   );
 }
 
-/** Spielfeld von oben: Rand, Mittellinie, Mittelkreis, Tore als klar erkennbare Kästen. */
+/**
+ * Spielfeld (Zielbild): Hochformat, Mittellinie waagerecht, Mittelkreis, kleine Torräume oben/unten.
+ */
 export function NavSoccerFieldIcon({ className, strokeWidth = 2 }: FootballIconProps) {
   const sw = strokeWidth;
   return (
@@ -50,11 +50,10 @@ export function NavSoccerFieldIcon({ className, strokeWidth = 2 }: FootballIconP
       strokeLinejoin="round"
       aria-hidden
     >
-      <rect x="3.25" y="5.25" width="17.5" height="13.5" rx="1.15" strokeWidth={sw} />
-      <path d="M12 5.25v13.5" strokeWidth={sw} />
-      <circle cx="12" cy="12" r="2.85" strokeWidth={sw} />
-      {/* Torraum links / rechts (von der Grundlinie ins Feld) */}
-      <path d="M3.25 9h4.25v6H3.25M16.5 9h4.25v6H16.5" strokeWidth={sw} />
+      <rect x="7" y="3.75" width="10" height="16.5" rx="1.05" strokeWidth={sw} />
+      <path d="M7 12h10" strokeWidth={sw} />
+      <circle cx="12" cy="12" r="2.65" strokeWidth={sw} />
+      <path d="M9 3.75h6v2.6H9zM9 17.65h6v2.6H9z" strokeWidth={sw} />
     </svg>
   );
 }
