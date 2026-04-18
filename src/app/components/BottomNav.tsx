@@ -97,7 +97,7 @@ function NavItem({
             >
               {label}
             </span>
-            {isLiveTab && liveMatchActive ? <div className="live-dot" /> : null}
+            {isLiveTab && liveMatchActive ? <div className="live-dot live-dot--pulse" /> : null}
           </div>
           <span
             className={[

@@ -111,6 +111,10 @@
   top: 4px;
   right: 10px;
   transform-origin: center;
+}
+
+/* Nur bei echtem Live-Spiel (Klasse gesetzt von BottomNav) */
+.live-dot--pulse {
   animation: livePulse 1.2s ease-in-out infinite;
 }
 
