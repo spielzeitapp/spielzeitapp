@@ -55,7 +55,9 @@ function NavItem({
       {({ isActive }) => (
         <>
           <div
-            className={`nav-item ${isActive ? 'active' : 'inactive'} flex min-w-0 flex-col items-center gap-1`}
+            className={['tab', 'flex', 'min-w-0', 'flex-col', 'items-center', 'gap-1', isHomeBall ? 'home' : '', isActive ? 'active' : '']
+              .filter(Boolean)
+              .join(' ')}
           >
             {badgeCount != null && badgeCount > 0 ? (
               <div
@@ -67,7 +69,7 @@ function NavItem({
             ) : null}
             <img
               src={`${base}icons/${iconFile}`}
-              className={isHomeBall ? 'nav-icon nav-icon--home' : 'nav-icon'}
+              className="nav-icon"
               alt=""
               decoding="async"
               draggable={false}
