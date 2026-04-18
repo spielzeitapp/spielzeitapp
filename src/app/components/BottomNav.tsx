@@ -1,25 +1,71 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
-import { Home, LayoutGrid, MoreHorizontal, Radio, Users } from 'lucide-react';
+import { MoreHorizontal, Radio, UsersRound } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
+
+/** Props wie Lucide-Icons (Outline, currentColor). */
+type TabIconProps = {
+  className?: string;
+  strokeWidth?: number;
+};
+
+type TabIcon = LucideIcon | React.FC<TabIconProps>;
+
+function SoccerBallOutline({ className, strokeWidth = 2 }: TabIconProps) {
+  const sw = strokeWidth;
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="9" strokeWidth={sw} />
+      <path d="M12 3v18M6.1 8.4l11.8 7.2M17.9 8.4L6.1 15.6" strokeWidth={sw} />
+    </svg>
+  );
+}
+
+function SoccerFieldOutline({ className, strokeWidth = 2 }: TabIconProps) {
+  const sw = strokeWidth;
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="3.5" y="5" width="17" height="14" rx="0.75" strokeWidth={sw} />
+      <path d="M12 5v14" strokeWidth={sw} />
+      <circle cx="12" cy="12" r="2.75" strokeWidth={sw} />
+      <path d="M3.5 9.25h2.25M3.5 14.75h2.25M18.25 9.25H20.5M18.25 14.75H20.5" strokeWidth={sw} />
+    </svg>
+  );
+}
 
 /**
  * Bottom Navigation — nur UI.
  * Reihenfolge: Home | Termine | Team | Live | Mehr
  */
 const appTabs = [
-  { to: '/app/home', end: true as const, label: 'Home', Icon: Home, live: false as const },
-  { to: '/app/termine', end: false as const, label: 'Termine', Icon: LayoutGrid, live: false as const },
-  { to: '/app/team', end: true as const, label: 'Team', Icon: Users, live: false as const },
+  { to: '/app/home', end: true as const, label: 'Home', Icon: SoccerBallOutline, live: false as const },
+  { to: '/app/termine', end: false as const, label: 'Termine', Icon: SoccerFieldOutline, live: false as const },
+  { to: '/app/team', end: true as const, label: 'Team', Icon: UsersRound, live: false as const },
   { to: '/app/live', end: false as const, label: 'Live', Icon: Radio, live: true as const },
   { to: '/app/mehr', end: false as const, label: 'Mehr', Icon: MoreHorizontal, live: false as const },
 ] as const;
 
 const publicTabs = [
-  { to: '/', end: true as const, label: 'Home', Icon: Home, live: false as const },
-  { to: '/schedule', end: false as const, label: 'Spielplan', Icon: LayoutGrid, live: false as const },
+  { to: '/', end: true as const, label: 'Home', Icon: SoccerBallOutline, live: false as const },
+  { to: '/schedule', end: false as const, label: 'Spielplan', Icon: SoccerFieldOutline, live: false as const },
 ] as const;
 
 function NavItem({
@@ -33,7 +79,7 @@ function NavItem({
   to: string;
   end?: boolean;
   label: string;
-  Icon: LucideIcon;
+  Icon: TabIcon;
   isLiveTab: boolean;
   badgeCount?: number;
 }) {
@@ -53,7 +99,7 @@ function NavItem({
               'relative flex h-11 w-11 shrink-0 items-center justify-center overflow-visible rounded-2xl transition-all duration-200 ease-out',
               isActive
                 ? 'text-white shadow-[0_0_36px_-6px_rgba(220,38,38,0.52),0_0_0_1px_rgba(248,113,113,0.18)]'
-                : 'text-[#4a4a4a] group-hover:bg-white/[0.035] group-hover:text-[#6b6b6b]',
+                : 'text-[#777777] group-hover:bg-white/[0.035] group-hover:text-[#8e8e8e]',
             ].join(' ')}
             aria-hidden
           >
@@ -87,7 +133,7 @@ function NavItem({
           <span
             className={[
               'text-center text-[11px] font-medium leading-none tracking-tight transition-colors duration-200',
-              isActive ? 'text-white' : 'text-[#4a4a4a] group-hover:text-[#6b6b6b]',
+              isActive ? 'text-white' : 'text-[#777777] group-hover:text-[#8e8e8e]',
             ].join(' ')}
           >
             {label}
