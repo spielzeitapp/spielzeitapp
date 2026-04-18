@@ -48,8 +48,8 @@ function NavItem({
   isLiveTab: boolean;
   badgeCount?: number;
 }) {
-  const strokeInactive = 2.05;
-  const strokeActive = 2.25;
+  const strokeInactive = 2.15;
+  const strokeActive = 2.35;
 
   return (
     <NavLink

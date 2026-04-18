@@ -204,7 +204,7 @@ export const WelcomeScreen: React.FC = () => {
             <span className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-black/60 ring-1 ring-white/12">
               <NavSoccerBallIcon
                 className="h-7 w-7 text-white drop-shadow-[0_0_16px_rgba(255,45,45,0.4)]"
-                strokeWidth={2.15}
+                strokeWidth={2.35}
               />
             </span>
             <span className="relative z-10 min-w-0 flex-1 text-[17px] font-bold text-white">Zur App</span>
