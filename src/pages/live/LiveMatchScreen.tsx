@@ -26,15 +26,40 @@ import {
 } from '../../lib/liveMatchService';
 import { playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 import { supabase } from '../../lib/supabaseClient';
-import { getClubLogoUrl } from '../../utils/logoResolver';
+import { getClubLogo, getOurTeamDisplayName, getTeamInitials } from '../../lib/teamLogos';
 
 const HOME_FALLBACK = 'Unser Team';
 
-function logoSrcForTeamName(displayName: string, optionalHttp?: string | null): string {
-  if (optionalHttp && typeof optionalHttp === 'string' && optionalHttp.trim().startsWith('http')) {
-    return optionalHttp.trim();
-  }
-  return getClubLogoUrl(displayName);
+/** Logo-Kachel: gleiche Größe/Stil wie Gegner; bei Fehler Initialen (wie Match-Karten-Fallback). */
+function LiveMatchLogoTile({
+  src,
+  initialsFrom,
+  liveGlow,
+}: {
+  src: string;
+  initialsFrom: string;
+  liveGlow: boolean;
+}) {
+  const [failed, setFailed] = useState(false);
+  const glow = liveGlow ? 'shadow-[0_0_12px_rgba(255,0,0,0.3)]' : '';
+  return (
+    <div
+      className={`flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-red-500/40 bg-zinc-950/95 sm:h-[3.75rem] sm:w-[3.75rem] ${glow}`}
+    >
+      {!failed ? (
+        <img
+          src={src}
+          alt=""
+          className="max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span className="select-none text-base font-black tabular-nums text-white sm:text-lg" aria-hidden>
+          {getTeamInitials(initialsFrom)}
+        </span>
+      )}
+    </div>
+  );
 }
 
 function formatClock(totalSec: number): string {
@@ -661,8 +686,13 @@ export const LiveMatchScreen: React.FC = () => {
     );
   }
 
-  const homeLogoSrc = logoSrcForTeamName(homeName);
-  const awayLogoSrc = logoSrcForTeamName(headerOpponent);
+  const homeLogoLookupName =
+    selectedTeamSeason?.team?.name?.trim() && selectedTeamSeason.team.name.trim() !== HOME_FALLBACK
+      ? selectedTeamSeason.team.name.trim()
+      : getOurTeamDisplayName();
+  const homeLogoSrc = getClubLogo(homeLogoLookupName);
+  const awayLogoSrc = getClubLogo(headerOpponent);
+  const logoLiveGlow = !matchIsFinished;
 
   return (
     <div className="min-h-[100dvh] bg-black pb-28 text-white">
@@ -707,17 +737,10 @@ export const LiveMatchScreen: React.FC = () => {
             </p>
           </div>
 
-          <div className="relative mt-1 grid grid-cols-[1fr_auto_1fr] items-end gap-x-2 sm:gap-x-4">
-            <div className="flex min-w-0 flex-col items-center border-r border-white/[0.12] py-2 pr-2 text-center sm:pr-4">
-              <img
-                src={homeLogoSrc}
-                alt=""
-                className="h-12 w-12 object-contain sm:h-14 sm:w-14"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = 'none';
-                }}
-              />
-              <p className="mt-1.5 line-clamp-2 max-w-[132px] text-[13px] font-semibold leading-tight text-white sm:max-w-[152px] sm:text-[15px]">
+          <div className="relative mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 sm:gap-x-4">
+            <div className="flex min-w-0 flex-col items-center border-r border-white/[0.12] py-2 pr-2 text-center sm:pr-5">
+              <LiveMatchLogoTile src={homeLogoSrc} initialsFrom={homeLogoLookupName} liveGlow={logoLiveGlow} />
+              <p className="mt-2 line-clamp-2 max-w-[132px] text-[13px] font-semibold leading-tight text-white sm:max-w-[152px] sm:text-[15px]">
                 {homeName}
               </p>
             </div>
@@ -734,16 +757,9 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex min-w-0 flex-col items-center border-l border-white/[0.12] py-2 pl-2 text-center sm:pl-4">
-              <img
-                src={awayLogoSrc}
-                alt=""
-                className="h-12 w-12 object-contain sm:h-14 sm:w-14"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = 'none';
-                }}
-              />
-              <p className="mt-1.5 line-clamp-2 max-w-[132px] text-[13px] font-semibold leading-tight text-white sm:max-w-[152px] sm:text-[15px]">
+            <div className="flex min-w-0 flex-col items-center border-l border-white/[0.12] py-2 pl-2 text-center sm:pl-5">
+              <LiveMatchLogoTile src={awayLogoSrc} initialsFrom={headerOpponent} liveGlow={logoLiveGlow} />
+              <p className="mt-2 line-clamp-2 max-w-[132px] text-[13px] font-semibold leading-tight text-white sm:max-w-[152px] sm:text-[15px]">
                 {headerOpponent}
               </p>
             </div>
