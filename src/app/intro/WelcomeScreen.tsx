@@ -40,7 +40,7 @@ function PremiumIntroButton({
       type="button"
       onClick={onClick}
       className={[
-        'welcome-intro-cta group relative flex w-full min-h-[44px] items-center gap-2.5 overflow-hidden rounded-2xl px-4 py-2.5 text-left',
+        'welcome-intro-cta group relative flex w-full min-h-[40px] items-center gap-2.5 overflow-hidden rounded-xl px-4 py-2 text-left',
         pulseGlow ? 'welcome-intro-cta--pulse' : '',
         'active:scale-[0.99]',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
@@ -81,19 +81,21 @@ export const WelcomeScreen: React.FC = () => {
           background: linear-gradient(180deg, #2a0000 0%, #120000 100%);
           border: 1px solid rgba(255, 0, 0, 0.25);
           box-shadow:
-            0 0 25px rgba(255, 0, 0, 0.25),
-            inset 0 0 20px rgba(255, 0, 0, 0.15);
+            0 0 32px rgba(255, 0, 0, 0.34),
+            0 1px 0 rgba(255, 255, 255, 0.05),
+            inset 0 0 16px rgba(255, 0, 0, 0.1);
           transition: box-shadow 0.2s ease, filter 0.2s ease;
         }
         .welcome-intro-cta:hover {
           box-shadow:
-            0 0 34px rgba(255, 0, 0, 0.38),
-            inset 0 0 24px rgba(255, 0, 0, 0.22);
+            0 0 40px rgba(255, 0, 0, 0.42),
+            0 1px 0 rgba(255, 255, 255, 0.06),
+            inset 0 0 20px rgba(255, 0, 0, 0.14);
         }
         .welcome-intro-cta:active {
           box-shadow:
-            0 0 40px rgba(255, 0, 0, 0.45),
-            inset 0 0 18px rgba(255, 0, 0, 0.2);
+            0 0 44px rgba(255, 0, 0, 0.48),
+            inset 0 0 14px rgba(255, 0, 0, 0.16);
         }
         .welcome-intro-icon-shell {
           width: 68px;
@@ -103,22 +105,25 @@ export const WelcomeScreen: React.FC = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(0, 0, 0, 0.35);
+          background: rgba(32, 14, 14, 0.45);
           box-shadow:
             0 0 20px rgba(255, 0, 0, 0.4),
-            inset 0 0 10px rgba(255, 0, 0, 0.2);
+            inset 0 0 14px rgba(255, 70, 60, 0.14),
+            inset 0 2px 18px rgba(255, 120, 100, 0.07);
         }
         @keyframes pulse-red {
           0%,
           100% {
             box-shadow:
-              0 0 25px rgba(255, 0, 0, 0.25),
-              inset 0 0 20px rgba(255, 0, 0, 0.15);
+              0 0 32px rgba(255, 0, 0, 0.34),
+              0 1px 0 rgba(255, 255, 255, 0.05),
+              inset 0 0 16px rgba(255, 0, 0, 0.1);
           }
           50% {
             box-shadow:
-              0 0 36px rgba(255, 0, 0, 0.4),
-              inset 0 0 26px rgba(255, 0, 0, 0.26);
+              0 0 42px rgba(255, 0, 0, 0.45),
+              0 1px 0 rgba(255, 255, 255, 0.06),
+              inset 0 0 22px rgba(255, 0, 0, 0.16);
           }
         }
         .welcome-intro-cta--pulse {
@@ -127,14 +132,15 @@ export const WelcomeScreen: React.FC = () => {
         .welcome-intro-cta--pulse:hover {
           animation: none;
           box-shadow:
-            0 0 34px rgba(255, 0, 0, 0.38),
-            inset 0 0 24px rgba(255, 0, 0, 0.22);
+            0 0 40px rgba(255, 0, 0, 0.42),
+            0 1px 0 rgba(255, 255, 255, 0.06),
+            inset 0 0 20px rgba(255, 0, 0, 0.14);
         }
         .welcome-intro-cta--pulse:active {
           animation: none;
           box-shadow:
-            0 0 40px rgba(255, 0, 0, 0.45),
-            inset 0 0 18px rgba(255, 0, 0, 0.2);
+            0 0 44px rgba(255, 0, 0, 0.48),
+            inset 0 0 14px rgba(255, 0, 0, 0.16);
         }
       `}</style>
       {/* —— Vollbild-Foto —— */}
@@ -192,6 +198,16 @@ export const WelcomeScreen: React.FC = () => {
         aria-hidden
       />
 
+      {/* Dezent: Hintergrund zurücknehmen, CTAs visuell nach vorne */}
+      <div
+        className="pointer-events-none fixed inset-0"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.09) 72%, rgba(0,0,0,0.14) 100%)',
+        }}
+        aria-hidden
+      />
+
       <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-1 pt-3">
         <header className="flex shrink-0 flex-col items-center text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.38em] text-white/78 [text-shadow:0_1px_0_rgba(0,0,0,0.85),0_2px_14px_rgba(0,0,0,0.75)]">
@@ -235,12 +251,12 @@ export const WelcomeScreen: React.FC = () => {
         {/* Flexibler Luftpolster — schrumpft auf kleinen Viewports, kein Scroll */}
         <div className="min-h-0 flex-1 basis-0" aria-hidden />
 
-        <div className="relative mt-auto w-full shrink-0 space-y-[7px] pt-0.5">
+        <div className="relative mt-auto w-full shrink-0 space-y-[7px] pt-0">
           <PremiumIntroButton onClick={goHome}>
             <span className="welcome-intro-icon-shell relative z-10">
               <img
                 src={`${iconBase}icons/home-ball.png`}
-                className="h-10 w-10 max-h-[40px] max-w-[40px] object-contain sm:h-12 sm:w-12 sm:max-h-[48px] sm:max-w-[48px]"
+                className="-translate-y-px object-contain h-11 w-11 max-h-[44px] max-w-[44px] sm:h-[52px] sm:w-[52px] sm:max-h-[52px] sm:max-w-[52px]"
                 alt=""
                 width={48}
                 height={48}
@@ -286,14 +302,14 @@ export const WelcomeScreen: React.FC = () => {
           </PremiumIntroButton>
         </div>
 
-        <footer className="relative mt-3.5 flex shrink-0 flex-col items-center gap-1.5 px-1 pb-0">
+        <footer className="relative mt-4 flex shrink-0 flex-col items-center gap-1.5 px-1 pb-0">
           <div className="flex w-full max-w-[320px] items-center gap-2">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/14 to-white/5" />
             <Trophy className="h-3.5 w-3.5 shrink-0 text-red-500/80 sm:h-4 sm:w-4" strokeWidth={2} aria-hidden />
             <div className="h-px flex-1 bg-gradient-to-l from-transparent via-white/14 to-white/5" />
           </div>
-          <div className="flex max-w-[320px] items-start gap-1.5 text-left text-[11px] leading-[1.35] text-zinc-400 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
-            <Smartphone className="mt-px h-3.5 w-3.5 shrink-0 text-zinc-400 sm:mt-0.5 sm:h-4 sm:w-4 md:h-[1.05rem] md:w-[1.05rem]" strokeWidth={2.15} aria-hidden />
+          <div className="flex max-w-[320px] items-start gap-1.5 text-left text-[11px] leading-[1.35] text-zinc-300 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-snug">
+            <Smartphone className="mt-px h-3.5 w-3.5 shrink-0 text-zinc-300 sm:mt-0.5 sm:h-4 sm:w-4" strokeWidth={2.15} aria-hidden />
             <p>
               <span className="font-semibold text-red-500">Tipp:</span> Zum Home-Bildschirm hinzufügen für den vollen
               App-Modus.
