@@ -4,15 +4,16 @@ import { supabase } from '../lib/supabaseClient';
 
 /**
  * True, wenn mindestens ein Spiel mit DB-Status `live` existiert (wie LivePage / fetchFirstLiveMatch).
- * Nur unter `/app/*` aktiv; sonst false ohne Request.
+ * Standard: nur unter `/app/*` (BottomNav). Mit `fetchOutsideApp: true` auch z. B. auf Intro/Welcome.
  */
-export function useAppHasLiveMatch(): boolean {
+export function useAppHasLiveMatch(options?: { fetchOutsideApp?: boolean }): boolean {
   const { pathname } = useLocation();
   const isApp = pathname.startsWith('/app');
+  const fetchEnabled = isApp || Boolean(options?.fetchOutsideApp);
   const [hasLive, setHasLive] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (!isApp) {
+    if (!fetchEnabled) {
       setHasLive(false);
       return;
     }
@@ -28,14 +29,14 @@ export function useAppHasLiveMatch(): boolean {
       return;
     }
     setHasLive(Boolean(data?.id));
-  }, [isApp]);
+  }, [fetchEnabled]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
   useEffect(() => {
-    if (!isApp) return;
+    if (!fetchEnabled) return;
     const id = window.setInterval(() => {
       void refresh();
     }, 25000);
@@ -47,7 +48,7 @@ export function useAppHasLiveMatch(): boolean {
       window.clearInterval(id);
       document.removeEventListener('visibilitychange', onVis);
     };
-  }, [isApp, refresh]);
+  }, [fetchEnabled, refresh]);
 
   return hasLive;
 }

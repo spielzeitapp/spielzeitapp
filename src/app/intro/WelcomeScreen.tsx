@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Smartphone, Trophy } from 'lucide-react';
+import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
 import { markIntroFlowCompleted } from './introFlowSession';
 
 /** Primär „Zur App“: gleiche Route wie BottomNav „Home“ (`AppHomePage`). */
@@ -42,7 +43,6 @@ function PremiumIntroButton({
       className={[
         'welcome-intro-cta group relative flex w-full min-h-[40px] items-center gap-2.5 overflow-hidden rounded-xl px-4 py-2 text-left',
         pulseGlow ? 'welcome-intro-cta--pulse' : '',
-        'active:scale-[0.99]',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
       ]
         .filter(Boolean)
@@ -57,6 +57,20 @@ export const WelcomeScreen: React.FC = () => {
   const navigate = useNavigate();
   const heroSrc = welcomeHeroSrc();
   const iconBase = appIconBase();
+  const hasLiveMatch = useAppHasLiveMatch({ fetchOutsideApp: true });
+  const [welcomeEntered, setWelcomeEntered] = useState(false);
+
+  useEffect(() => {
+    let raf1 = 0;
+    let raf2 = 0;
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setWelcomeEntered(true));
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, []);
 
   const goHome = () => {
     markIntroFlowCompleted();
@@ -84,15 +98,29 @@ export const WelcomeScreen: React.FC = () => {
             0 0 32px rgba(255, 0, 0, 0.34),
             0 1px 0 rgba(255, 255, 255, 0.05),
             inset 0 0 16px rgba(255, 0, 0, 0.1);
-          transition: box-shadow 0.2s ease, filter 0.2s ease;
+          transition: transform 120ms ease-out, filter 120ms ease-out, box-shadow 0.2s ease;
+          transform: translateY(0) scale(1);
+          filter: brightness(1);
         }
-        .welcome-intro-cta:hover {
-          box-shadow:
-            0 0 40px rgba(255, 0, 0, 0.42),
-            0 1px 0 rgba(255, 255, 255, 0.06),
-            inset 0 0 20px rgba(255, 0, 0, 0.14);
+        @media (hover: hover) and (pointer: fine) {
+          .welcome-intro-cta:hover {
+            transform: translateY(-2px);
+            box-shadow:
+              0 0 44px rgba(255, 0, 0, 0.46),
+              0 1px 0 rgba(255, 255, 255, 0.06),
+              inset 0 0 22px rgba(255, 0, 0, 0.15);
+          }
+          .welcome-intro-cta:hover:active {
+            transform: translateY(-2px) scale(0.97);
+            filter: brightness(1.07);
+            box-shadow:
+              0 0 44px rgba(255, 0, 0, 0.48),
+              inset 0 0 14px rgba(255, 0, 0, 0.16);
+          }
         }
         .welcome-intro-cta:active {
+          transform: scale(0.97);
+          filter: brightness(1.07);
           box-shadow:
             0 0 44px rgba(255, 0, 0, 0.48),
             inset 0 0 14px rgba(255, 0, 0, 0.16);
@@ -136,11 +164,41 @@ export const WelcomeScreen: React.FC = () => {
             0 1px 0 rgba(255, 255, 255, 0.06),
             inset 0 0 20px rgba(255, 0, 0, 0.14);
         }
+        @media (hover: hover) and (pointer: fine) {
+          .welcome-intro-cta--pulse:hover {
+            transform: translateY(-2px);
+            box-shadow:
+              0 0 46px rgba(255, 0, 0, 0.48),
+              0 1px 0 rgba(255, 255, 255, 0.06),
+              inset 0 0 22px rgba(255, 0, 0, 0.16);
+          }
+          .welcome-intro-cta--pulse:hover:active {
+            transform: translateY(-2px) scale(0.97);
+            filter: brightness(1.07);
+          }
+        }
         .welcome-intro-cta--pulse:active {
           animation: none;
+          transform: scale(0.97);
+          filter: brightness(1.07);
           box-shadow:
             0 0 44px rgba(255, 0, 0, 0.48),
             inset 0 0 14px rgba(255, 0, 0, 0.16);
+        }
+        @keyframes welcome-when-live-pulse {
+          0%,
+          100% {
+            transform: scale(1);
+            opacity: 0.8;
+          }
+          50% {
+            transform: scale(1.05);
+            opacity: 1;
+          }
+        }
+        .welcome-when-live-pulse {
+          animation: welcome-when-live-pulse 1.6s ease-in-out infinite;
+          transform-origin: center center;
         }
       `}</style>
       {/* —— Vollbild-Foto —— */}
@@ -209,7 +267,12 @@ export const WelcomeScreen: React.FC = () => {
       />
 
       <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-1 pt-3">
-        <header className="flex shrink-0 flex-col items-center text-center">
+        <header
+          className={[
+            'flex shrink-0 flex-col items-center text-center transition-[opacity,transform] duration-300 ease-out',
+            welcomeEntered ? 'translate-y-0 opacity-100' : 'translate-y-[10px] opacity-0',
+          ].join(' ')}
+        >
           <p className="text-[10px] font-semibold uppercase tracking-[0.38em] text-white/78 [text-shadow:0_1px_0_rgba(0,0,0,0.85),0_2px_14px_rgba(0,0,0,0.75)]">
             Willkommen in der
           </p>
@@ -251,7 +314,12 @@ export const WelcomeScreen: React.FC = () => {
         {/* Flexibler Luftpolster — schrumpft auf kleinen Viewports, kein Scroll */}
         <div className="min-h-0 flex-1 basis-0" aria-hidden />
 
-        <div className="relative mt-auto w-full shrink-0 space-y-[7px] pt-0">
+        <div
+          className={[
+            'relative mt-auto w-full shrink-0 space-y-[7px] pt-0 transition-[opacity,transform] duration-300 ease-out delay-75',
+            welcomeEntered ? 'translate-y-0 opacity-100' : 'translate-y-[10px] opacity-0',
+          ].join(' ')}
+        >
           <PremiumIntroButton onClick={goHome}>
             <span className="welcome-intro-icon-shell relative z-10">
               <img
@@ -274,9 +342,13 @@ export const WelcomeScreen: React.FC = () => {
             />
           </PremiumIntroButton>
 
-          <PremiumIntroButton pulseGlow onClick={goLive}>
+          <PremiumIntroButton pulseGlow={hasLiveMatch} onClick={goLive}>
             <span className="relative z-10 flex shrink-0 items-center gap-2.5">
-              <span className="welcome-intro-icon-shell">
+              <span
+                className={['welcome-intro-icon-shell', hasLiveMatch ? 'welcome-when-live-pulse' : '']
+                  .filter(Boolean)
+                  .join(' ')}
+              >
                 <img
                   src={`${iconBase}icons/live.svg`}
                   className="h-8 w-8 shrink-0 opacity-95 sm:h-9 sm:w-9"
@@ -287,7 +359,14 @@ export const WelcomeScreen: React.FC = () => {
                   draggable={false}
                 />
               </span>
-              <span className="flex items-center gap-1 rounded border border-red-500/40 bg-red-950/70 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_12px_rgba(220,38,38,0.25)]">
+              <span
+                className={[
+                  'flex items-center gap-1 rounded border border-red-500/40 bg-red-950/70 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_12px_rgba(220,38,38,0.25)]',
+                  hasLiveMatch ? 'welcome-when-live-pulse' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
                 <span className="text-[10px] leading-none text-red-300">●</span> Live
               </span>
             </span>
