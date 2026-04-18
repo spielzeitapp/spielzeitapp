@@ -1,7 +1,11 @@
-import React, { Component, ErrorInfo, ReactNode, useEffect } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Navigate, Route, Routes, useSearchParams } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { InternalLayout } from './layout/InternalLayout.tsx';
+import { IntroAppOutlet } from './intro/IntroAppOutlet';
+import { IntroEntryRedirect } from './intro/IntroEntryRedirect';
+import { SplashScreen } from './intro/SplashScreen';
+import { WelcomeScreen } from './intro/WelcomeScreen';
 import { RoleProvider } from './role/RoleContext';
 import { RequireAuth } from '../auth/RequireAuth';
 import { HomePage } from '../pages/HomePage';
@@ -84,14 +88,6 @@ function LiveShortcutRedirect(): React.ReactElement {
   return <Navigate to={q ? `/app/live?${q}` : '/app/live'} replace />;
 }
 
-/** /app: sofortiger Redirect auf Termine (kein Warten auf Session/Memberships). */
-function StartupRedirectToTermine(): React.ReactElement {
-  useEffect(() => {
-    console.info('[startup] redirect target: /app/termine');
-  }, []);
-  return <Navigate to="/app/termine" replace />;
-}
-
 class AppErrorBoundary extends Component<
   { children: ReactNode },
   { hasError: boolean }
@@ -131,8 +127,11 @@ function InternalRoutes(): React.ReactElement {
       <Route path="forgot-password" element={<ForgotPasswordPage />} />
       <Route path="schedule" element={<Navigate to="/app/termine" replace />} />
       <Route path="live" element={<LiveShortcutRedirect />} />
-      <Route path="app" element={<RequireAuth><InternalLayout /></RequireAuth>}>
-        <Route index element={<StartupRedirectToTermine />} />
+      <Route path="app" element={<RequireAuth><IntroAppOutlet /></RequireAuth>}>
+        <Route index element={<IntroEntryRedirect />} />
+        <Route path="intro/splash" element={<SplashScreen />} />
+        <Route path="intro/welcome" element={<WelcomeScreen />} />
+        <Route element={<InternalLayout />}>
         <Route path="home" element={<AppHomePage />} />
         <Route path="termine" element={<TermineLayout />}>
           <Route index element={<SchedulePage />} />
@@ -169,6 +168,7 @@ function InternalRoutes(): React.ReactElement {
 
         <Route path="nachrichten" element={<NotificationsPage />} />
         <Route path="nachrichten/:messageId" element={<Navigate to="/app/nachrichten" replace />} />
+        </Route>
       </Route>
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
       <Route path="/admin/login" element={<AdminLoginPage />} />
