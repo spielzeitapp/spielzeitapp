@@ -26,58 +26,28 @@ function appIconBase(): string {
 }
 
 function PremiumIntroButton({
-  variant,
+  pulseGlow,
   children,
   onClick,
 }: {
-  variant: 'primary' | 'secondary';
+  /** Liveticker: dezentes Pulsieren des roten Glows */
+  pulseGlow?: boolean;
   children: React.ReactNode;
   onClick: () => void;
 }) {
-  const isPrimary = variant === 'primary';
   return (
     <button
       type="button"
       onClick={onClick}
       className={[
-        'group relative flex w-full min-h-[58px] items-center gap-3.5 overflow-hidden rounded-2xl px-4 py-4 text-left transition',
-        'active:scale-[0.99] active:brightness-[0.96]',
+        'welcome-intro-cta group relative flex w-full min-h-[58px] items-center gap-3.5 overflow-hidden rounded-2xl px-4 py-4 text-left',
+        pulseGlow ? 'welcome-intro-cta--pulse' : '',
+        'active:scale-[0.99]',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
-        isPrimary
-          ? [
-              'border border-red-500/38',
-              'bg-gradient-to-b from-[#202024] via-[#0e0e11] to-[#030303]',
-              'shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-2px_0_rgba(0,0,0,0.62),0_0_0_1px_rgba(0,0,0,0.85),0_14px_40px_-5px_rgba(0,0,0,0.9),0_22px_64px_-10px_rgba(220,38,38,0.34)]',
-            ].join(' ')
-          : [
-              'border border-red-600/34',
-              'bg-gradient-to-b from-[#16161a] to-[#010101]',
-              'shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-2px_0_rgba(0,0,0,0.55),0_0_0_1px_rgba(0,0,0,0.8),0_16px_48px_-7px_rgba(0,0,0,0.93),0_18px_56px_-11px_rgba(127,29,29,0.28)]',
-            ].join(' '),
-      ].join(' ')}
+      ]
+        .filter(Boolean)
+        .join(' ')}
     >
-      <span
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/28 to-transparent"
-        aria-hidden
-      />
-      {isPrimary ? (
-        <span
-          className="pointer-events-none absolute inset-x-2 -top-2 h-[5.5rem] bg-gradient-to-b from-red-500/18 via-red-800/7 to-transparent blur-[2.25rem]"
-          aria-hidden
-        />
-      ) : (
-        <span
-          className="pointer-events-none absolute inset-x-6 top-0 h-[3.75rem] bg-gradient-to-b from-red-600/13 to-transparent blur-[1.35rem]"
-          aria-hidden
-        />
-      )}
-      <span
-        className={[
-          'pointer-events-none absolute -inset-px rounded-2xl',
-          isPrimary ? 'shadow-[inset_0_0_0_1px_rgba(252,165,165,0.14)]' : 'shadow-[inset_0_0_0_1px_rgba(185,28,28,0.12)]',
-        ].join(' ')}
-        aria-hidden
-      />
       {children}
     </button>
   );
@@ -106,6 +76,67 @@ export const WelcomeScreen: React.FC = () => {
         paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
       }}
     >
+      <style>{`
+        .welcome-intro-cta {
+          background: linear-gradient(180deg, #2a0000 0%, #120000 100%);
+          border: 1px solid rgba(255, 0, 0, 0.25);
+          box-shadow:
+            0 0 25px rgba(255, 0, 0, 0.25),
+            inset 0 0 20px rgba(255, 0, 0, 0.15);
+          transition: box-shadow 0.2s ease, filter 0.2s ease;
+        }
+        .welcome-intro-cta:hover {
+          box-shadow:
+            0 0 34px rgba(255, 0, 0, 0.38),
+            inset 0 0 24px rgba(255, 0, 0, 0.22);
+        }
+        .welcome-intro-cta:active {
+          box-shadow:
+            0 0 40px rgba(255, 0, 0, 0.45),
+            inset 0 0 18px rgba(255, 0, 0, 0.2);
+        }
+        .welcome-intro-icon-shell {
+          width: 80px;
+          height: 80px;
+          flex-shrink: 0;
+          border-radius: 0.75rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(0, 0, 0, 0.35);
+          box-shadow:
+            0 0 20px rgba(255, 0, 0, 0.4),
+            inset 0 0 10px rgba(255, 0, 0, 0.2);
+        }
+        @keyframes pulse-red {
+          0%,
+          100% {
+            box-shadow:
+              0 0 25px rgba(255, 0, 0, 0.25),
+              inset 0 0 20px rgba(255, 0, 0, 0.15);
+          }
+          50% {
+            box-shadow:
+              0 0 36px rgba(255, 0, 0, 0.4),
+              inset 0 0 26px rgba(255, 0, 0, 0.26);
+          }
+        }
+        .welcome-intro-cta--pulse {
+          animation: pulse-red 2s ease-in-out infinite;
+        }
+        .welcome-intro-cta--pulse:hover {
+          animation: none;
+          box-shadow:
+            0 0 34px rgba(255, 0, 0, 0.38),
+            inset 0 0 24px rgba(255, 0, 0, 0.22);
+        }
+        .welcome-intro-cta--pulse:active {
+          animation: none;
+          box-shadow:
+            0 0 40px rgba(255, 0, 0, 0.45),
+            inset 0 0 18px rgba(255, 0, 0, 0.2);
+        }
+      `}</style>
       {/* —— Vollbild-Foto —— */}
       <img
         src={heroSrc}
@@ -205,14 +236,14 @@ export const WelcomeScreen: React.FC = () => {
         <div className="min-h-[min(28vh,220px)] flex-1" aria-hidden />
 
         <div className="relative mt-auto w-full space-y-3.5 pt-2">
-          <PremiumIntroButton variant="primary" onClick={goHome}>
-            <span className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-black/60 ring-1 ring-white/12">
+          <PremiumIntroButton onClick={goHome}>
+            <span className="welcome-intro-icon-shell relative z-10">
               <img
                 src={`${iconBase}icons/home-ball.png`}
-                className="button-icon"
+                className="h-12 w-12 max-h-[48px] max-w-[48px] object-contain"
                 alt=""
-                width={28}
-                height={28}
+                width={48}
+                height={48}
                 decoding="async"
                 draggable={false}
               />
@@ -225,15 +256,15 @@ export const WelcomeScreen: React.FC = () => {
             />
           </PremiumIntroButton>
 
-          <PremiumIntroButton variant="secondary" onClick={goLive}>
+          <PremiumIntroButton pulseGlow onClick={goLive}>
             <span className="relative z-10 flex shrink-0 items-center gap-2.5">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-black/65 ring-1 ring-red-900/55">
+              <span className="welcome-intro-icon-shell">
                 <img
                   src={`${iconBase}icons/live.svg`}
-                  className="h-5 w-5 shrink-0 opacity-90"
+                  className="h-9 w-9 shrink-0 opacity-95"
                   alt=""
-                  width={20}
-                  height={20}
+                  width={36}
+                  height={36}
                   decoding="async"
                   draggable={false}
                 />
