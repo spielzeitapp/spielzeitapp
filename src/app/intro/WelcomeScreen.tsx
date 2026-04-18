@@ -55,14 +55,14 @@ function PremiumIntroButton({
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
         isPrimary
           ? [
-              'border border-red-500/40',
-              'bg-gradient-to-b from-[#1e1e22] via-[#0f0f12] to-[#040404]',
-              'shadow-[inset_0_1px_0_rgba(255,255,255,0.095),inset_0_-2px_0_rgba(0,0,0,0.58),0_0_0_1px_rgba(0,0,0,0.82),0_12px_36px_-6px_rgba(0,0,0,0.88),0_20px_60px_-10px_rgba(220,38,38,0.38)]',
+              'border border-red-500/38',
+              'bg-gradient-to-b from-[#202024] via-[#0e0e11] to-[#030303]',
+              'shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-2px_0_rgba(0,0,0,0.62),0_0_0_1px_rgba(0,0,0,0.85),0_14px_40px_-5px_rgba(0,0,0,0.9),0_22px_64px_-10px_rgba(220,38,38,0.34)]',
             ].join(' ')
           : [
-              'border border-red-600/36',
-              'bg-gradient-to-b from-[#151518] to-[#020202]',
-              'shadow-[inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-2px_0_rgba(0,0,0,0.52),0_0_0_1px_rgba(0,0,0,0.78),0_14px_44px_-8px_rgba(0,0,0,0.92),0_16px_52px_-12px_rgba(127,29,29,0.32)]',
+              'border border-red-600/34',
+              'bg-gradient-to-b from-[#16161a] to-[#010101]',
+              'shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-2px_0_rgba(0,0,0,0.55),0_0_0_1px_rgba(0,0,0,0.8),0_16px_48px_-7px_rgba(0,0,0,0.93),0_18px_56px_-11px_rgba(127,29,29,0.28)]',
             ].join(' '),
       ].join(' ')}
     >
@@ -72,12 +72,12 @@ function PremiumIntroButton({
       />
       {isPrimary ? (
         <span
-          className="pointer-events-none absolute inset-x-3 -top-2 h-[5.25rem] bg-gradient-to-b from-red-500/20 via-red-700/8 to-transparent blur-2xl"
+          className="pointer-events-none absolute inset-x-2 -top-2 h-[5.5rem] bg-gradient-to-b from-red-500/18 via-red-800/7 to-transparent blur-[2.25rem]"
           aria-hidden
         />
       ) : (
         <span
-          className="pointer-events-none absolute inset-x-7 top-0 h-14 bg-gradient-to-b from-red-600/14 to-transparent blur-xl"
+          className="pointer-events-none absolute inset-x-6 top-0 h-[3.75rem] bg-gradient-to-b from-red-600/13 to-transparent blur-[1.35rem]"
           aria-hidden
         />
       )}
@@ -119,35 +119,43 @@ export const WelcomeScreen: React.FC = () => {
       <img
         src={heroSrc}
         alt=""
-        className="pointer-events-none fixed inset-0 h-full min-h-[100dvh] w-full object-cover object-[center_36%] sm:object-[center_40%]"
+        className="pointer-events-none fixed inset-0 h-full min-h-[100dvh] w-full object-cover object-[center_42%] sm:object-[center_44%]"
         decoding="async"
         fetchPriority="high"
       />
 
-      {/* Basis-Abdunkelung — dunkler, emotionaler */}
+      {/* Basis-Abdunkelung */}
       <div
-        className="pointer-events-none fixed inset-0 bg-black/56"
+        className="pointer-events-none fixed inset-0 bg-black/54"
         style={{ mixBlendMode: 'multiply' }}
         aria-hidden
       />
-      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-black/82 via-black/42 to-black/[0.91]" aria-hidden />
-
-      {/* Roter Premium-Nacht-Look */}
+      {/* Tiefenstaffelung: oben schwärzer — Mitte emotional — unten wieder dunkel */}
       <div
         className="pointer-events-none fixed inset-0"
         style={{
           background:
-            'radial-gradient(ellipse 128% 78% at 50% 8%, rgba(220,38,38,0.42), transparent 54%), radial-gradient(ellipse 100% 60% at 90% 26%, rgba(127,29,29,0.32), transparent 48%), radial-gradient(ellipse 88% 55% at 6% 30%, rgba(69,10,10,0.45), transparent 46%)',
+            'linear-gradient(180deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.52) 18%, rgba(0,0,0,0.22) 38%, rgba(0,0,0,0.28) 58%, rgba(0,0,0,0.78) 78%, rgba(0,0,0,0.94) 100%)',
         }}
         aria-hidden
       />
 
-      {/* Vignette + Lesbarkeit unten */}
+      {/* Rot eher mittig / emotional, weniger flächiger Wash */}
       <div
         className="pointer-events-none fixed inset-0"
         style={{
           background:
-            'radial-gradient(ellipse 96% 88% at 50% 38%, transparent 18%, rgba(0,0,0,0.62) 100%), linear-gradient(180deg, transparent 0%, transparent 38%, rgba(0,0,0,0.86) 100%)',
+            'radial-gradient(ellipse 118% 68% at 50% 50%, rgba(220,38,38,0.34), transparent 58%), radial-gradient(ellipse 70% 48% at 88% 44%, rgba(127,29,29,0.16), transparent 50%), radial-gradient(ellipse 65% 45% at 10% 42%, rgba(69,10,10,0.2), transparent 48%)',
+        }}
+        aria-hidden
+      />
+
+      {/* Vignette verstärkt + unterer Lesbarkeits-Gradient */}
+      <div
+        className="pointer-events-none fixed inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 94% 92% at 50% 40%, transparent 12%, rgba(0,0,0,0.72) 100%), linear-gradient(180deg, transparent 0%, transparent 32%, rgba(0,0,0,0.88) 100%)',
         }}
         aria-hidden
       />
@@ -158,12 +166,23 @@ export const WelcomeScreen: React.FC = () => {
             Willkommen in der
           </p>
 
-          <h1
-            className="mt-3 font-black italic leading-[0.95] tracking-tight [text-shadow:0_2px_0_rgba(0,0,0,0.55),0_6px_28px_rgba(0,0,0,0.92)]"
-            style={{ transform: 'skewX(-5deg)' }}
-          >
-            <span className="text-[clamp(2.45rem,9.5vw,3.35rem)] text-[#fafafa]">Spielzeit</span>
-            <span className="text-[clamp(2.45rem,9.5vw,3.35rem)] text-[#f87171] [text-shadow:0_0_28px_rgba(185,28,28,0.35)]">
+          <h1 className="mt-3 font-black italic leading-[0.95] tracking-tight" style={{ transform: 'skewX(-5deg)' }}>
+            <span
+              className="text-[clamp(2.45rem,9.5vw,3.35rem)] text-[#fafafa]"
+              style={{
+                textShadow:
+                  '0 1px 0 rgba(0,0,0,0.55), 0 3px 12px rgba(0,0,0,0.75), 0 8px 32px rgba(0,0,0,0.88), 0 0 1px rgba(255,255,255,0.06)',
+              }}
+            >
+              Spielzeit
+            </span>
+            <span
+              className="text-[clamp(2.45rem,9.5vw,3.35rem)] text-[#f87171]"
+              style={{
+                textShadow:
+                  '0 1px 0 rgba(0,0,0,0.45), 0 4px 18px rgba(0,0,0,0.82), 0 0 22px rgba(220,38,38,0.22), 0 0 40px rgba(127,29,29,0.12)',
+              }}
+            >
               App
             </span>
           </h1>
@@ -221,8 +240,8 @@ export const WelcomeScreen: React.FC = () => {
             <Trophy className="h-4 w-4 shrink-0 text-red-500/80" strokeWidth={2} aria-hidden />
             <div className="h-px flex-1 bg-gradient-to-l from-transparent via-white/14 to-white/5" />
           </div>
-          <div className="flex max-w-[320px] items-start gap-2.5 text-left text-[12px] leading-relaxed text-zinc-500 [text-shadow:0_1px_8px_rgba(0,0,0,0.88)]">
-            <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500/95" strokeWidth={2} aria-hidden />
+          <div className="flex max-w-[320px] items-start gap-2.5 text-left text-[12px] leading-relaxed text-zinc-400 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)]">
+            <Smartphone className="mt-0.5 h-[1.05rem] w-[1.05rem] shrink-0 text-zinc-400" strokeWidth={2.15} aria-hidden />
             <p>
               <span className="font-semibold text-red-500">Tipp:</span> Zum Home-Bildschirm hinzufügen für den vollen
               App-Modus.
