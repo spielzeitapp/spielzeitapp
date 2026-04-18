@@ -40,7 +40,7 @@ function PremiumIntroButton({
       type="button"
       onClick={onClick}
       className={[
-        'welcome-intro-cta group relative flex w-full min-h-[58px] items-center gap-3.5 overflow-hidden rounded-2xl px-4 py-4 text-left',
+        'welcome-intro-cta group relative flex w-full min-h-[50px] items-center gap-3 overflow-hidden rounded-2xl px-4 py-3 text-left',
         pulseGlow ? 'welcome-intro-cta--pulse' : '',
         'active:scale-[0.99]',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
@@ -70,10 +70,10 @@ export const WelcomeScreen: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex flex-col overflow-y-auto overflow-x-hidden text-white"
+      className="fixed inset-0 z-[90] flex max-h-[100dvh] flex-col overflow-x-hidden overflow-y-hidden text-white"
       style={{
-        paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))',
-        paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
+        paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))',
+        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
       }}
     >
       <style>{`
@@ -96,8 +96,8 @@ export const WelcomeScreen: React.FC = () => {
             inset 0 0 18px rgba(255, 0, 0, 0.2);
         }
         .welcome-intro-icon-shell {
-          width: 80px;
-          height: 80px;
+          width: 68px;
+          height: 68px;
           flex-shrink: 0;
           border-radius: 0.75rem;
           display: flex;
@@ -192,15 +192,15 @@ export const WelcomeScreen: React.FC = () => {
         aria-hidden
       />
 
-      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-md flex-1 flex-col px-5 pb-3 pt-6">
-        <header className="flex flex-col items-center text-center">
+      <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-2 pt-4">
+        <header className="flex shrink-0 flex-col items-center text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.38em] text-white/78 [text-shadow:0_1px_0_rgba(0,0,0,0.85),0_2px_14px_rgba(0,0,0,0.75)]">
             Willkommen in der
           </p>
 
-          <h1 className="mt-3 font-black italic leading-[0.95] tracking-tight" style={{ transform: 'skewX(-5deg)' }}>
+          <h1 className="mt-2 font-black italic leading-[0.95] tracking-tight" style={{ transform: 'skewX(-5deg)' }}>
             <span
-              className="text-[clamp(2.45rem,9.5vw,3.35rem)] text-[#fafafa]"
+              className="text-[clamp(2.35rem,9.2vw,3.25rem)] text-[#fafafa]"
               style={{
                 textShadow:
                   '0 1px 0 rgba(0,0,0,0.55), 0 3px 12px rgba(0,0,0,0.75), 0 8px 32px rgba(0,0,0,0.88), 0 0 1px rgba(255,255,255,0.06)',
@@ -209,7 +209,7 @@ export const WelcomeScreen: React.FC = () => {
               Spielzeit
             </span>
             <span
-              className="text-[clamp(2.45rem,9.5vw,3.35rem)] text-[#f87171]"
+              className="text-[clamp(2.35rem,9.2vw,3.25rem)] text-[#f87171]"
               style={{
                 textShadow:
                   '0 1px 0 rgba(0,0,0,0.45), 0 4px 18px rgba(0,0,0,0.82), 0 0 22px rgba(220,38,38,0.22), 0 0 40px rgba(127,29,29,0.12)',
@@ -219,12 +219,12 @@ export const WelcomeScreen: React.FC = () => {
             </span>
           </h1>
 
-          <p className="mt-4 max-w-[300px] text-[15px] font-medium leading-snug text-white/88 [text-shadow:0_1px_2px_rgba(0,0,0,0.9),0_3px_16px_rgba(0,0,0,0.65)]">
+          <p className="mt-2.5 max-w-[300px] text-[15px] font-medium leading-snug text-white/88 [text-shadow:0_1px_2px_rgba(0,0,0,0.9),0_3px_16px_rgba(0,0,0,0.65)]">
             Alle Termine. Alle Infos.
           </p>
 
           <p
-            className="mt-5 text-[12px] font-bold uppercase italic tracking-[0.1em] text-white/94 [text-shadow:0_2px_12px_rgba(0,0,0,0.88)] sm:text-[13px]"
+            className="mt-3 text-[12px] font-bold uppercase italic tracking-[0.1em] text-white/94 [text-shadow:0_2px_12px_rgba(0,0,0,0.88)] sm:text-[13px]"
             style={{ transform: 'skewX(-3deg)' }}
           >
             <span className="text-white">#GEMEINSAM</span>
@@ -232,15 +232,15 @@ export const WelcomeScreen: React.FC = () => {
           </p>
         </header>
 
-        {/* Platz für Bildwirkung / Atmosphäre — kein SVG-Icon */}
-        <div className="min-h-[min(28vh,220px)] flex-1" aria-hidden />
+        {/* Flexibler Luftpolster — schrumpft auf kleinen Viewports, kein Scroll */}
+        <div className="min-h-0 flex-1 basis-0" aria-hidden />
 
-        <div className="relative mt-auto w-full space-y-3.5 pt-2">
+        <div className="relative mt-auto w-full shrink-0 space-y-2.5 pt-1">
           <PremiumIntroButton onClick={goHome}>
             <span className="welcome-intro-icon-shell relative z-10">
               <img
                 src={`${iconBase}icons/home-ball.png`}
-                className="h-12 w-12 max-h-[48px] max-w-[48px] object-contain"
+                className="h-11 w-11 max-h-[44px] max-w-[44px] object-contain sm:h-12 sm:w-12 sm:max-h-[48px] sm:max-w-[48px]"
                 alt=""
                 width={48}
                 height={48}
@@ -248,7 +248,9 @@ export const WelcomeScreen: React.FC = () => {
                 draggable={false}
               />
             </span>
-            <span className="relative z-10 min-w-0 flex-1 text-[17px] font-bold text-white">Zur App</span>
+            <span className="relative z-10 min-w-0 flex-1 text-[16px] font-bold leading-tight text-white sm:text-[17px]">
+              Zur App
+            </span>
             <ChevronRight
               className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
               strokeWidth={2.6}
@@ -261,7 +263,7 @@ export const WelcomeScreen: React.FC = () => {
               <span className="welcome-intro-icon-shell">
                 <img
                   src={`${iconBase}icons/live.svg`}
-                  className="h-9 w-9 shrink-0 opacity-95"
+                  className="h-8 w-8 shrink-0 opacity-95 sm:h-9 sm:w-9"
                   alt=""
                   width={36}
                   height={36}
@@ -273,7 +275,9 @@ export const WelcomeScreen: React.FC = () => {
                 <span className="text-[10px] leading-none text-red-300">●</span> Live
               </span>
             </span>
-            <span className="relative z-10 min-w-0 flex-1 text-[17px] font-bold text-white/95">Liveticker</span>
+            <span className="relative z-10 min-w-0 flex-1 text-[16px] font-bold leading-tight text-white/95 sm:text-[17px]">
+              Liveticker
+            </span>
             <ChevronRight
               className="relative z-10 h-5 w-5 shrink-0 text-white/45 transition group-hover:text-white/80"
               strokeWidth={2.6}
@@ -282,14 +286,14 @@ export const WelcomeScreen: React.FC = () => {
           </PremiumIntroButton>
         </div>
 
-        <footer className="relative mt-10 flex flex-col items-center gap-3.5 px-1 pb-1">
-          <div className="flex w-full max-w-[320px] items-center gap-3">
+        <footer className="relative mt-5 flex shrink-0 flex-col items-center gap-2 px-1 pb-0.5">
+          <div className="flex w-full max-w-[320px] items-center gap-2.5">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/14 to-white/5" />
-            <Trophy className="h-4 w-4 shrink-0 text-red-500/80" strokeWidth={2} aria-hidden />
+            <Trophy className="h-3.5 w-3.5 shrink-0 text-red-500/80 sm:h-4 sm:w-4" strokeWidth={2} aria-hidden />
             <div className="h-px flex-1 bg-gradient-to-l from-transparent via-white/14 to-white/5" />
           </div>
-          <div className="flex max-w-[320px] items-start gap-2.5 text-left text-[12px] leading-relaxed text-zinc-400 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)]">
-            <Smartphone className="mt-0.5 h-[1.05rem] w-[1.05rem] shrink-0 text-zinc-400" strokeWidth={2.15} aria-hidden />
+          <div className="flex max-w-[320px] items-start gap-2 text-left text-[11px] leading-snug text-zinc-400 [text-shadow:0_1px_10px_rgba(0,0,0,0.9)] sm:text-[12px] sm:leading-relaxed">
+            <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400 sm:h-[1.05rem] sm:w-[1.05rem]" strokeWidth={2.15} aria-hidden />
             <p>
               <span className="font-semibold text-red-500">Tipp:</span> Zum Home-Bildschirm hinzufügen für den vollen
               App-Modus.
