@@ -115,10 +115,10 @@
 
 /* Welcome „Zur App“ — gleiche Grafik wie Nav Home */
 .button-icon {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   display: block;
   flex-shrink: 0;
-  filter: drop-shadow(0 0 12px rgba(255, 45, 45, 0.45));
+  filter: drop-shadow(0 0 14px rgba(255, 45, 45, 0.42));
 }
 
