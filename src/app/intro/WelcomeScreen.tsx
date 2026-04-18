@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Radio, Smartphone, Trophy } from 'lucide-react';
+import { ChevronRight, Smartphone, Trophy } from 'lucide-react';
+import { NavBroadcastIcon, NavSoccerBallIcon } from '../components/footballIcons';
 import { markIntroFlowCompleted } from './introFlowSession';
 
 /** Primär „Zur App“: gleiche Route wie BottomNav „Home“ (`AppHomePage`). */
@@ -18,21 +19,6 @@ function welcomeHeroSrc(): string {
   const base = import.meta.env.BASE_URL || '/';
   const path = 'intro/welcome-hero.PNG';
   return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`;
-}
-
-function SoccerBallIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" className="text-white/95" />
-      <path
-        d="M12 3.5v17M5.8 7.4l12.4 9.2M18.2 7.4L5.8 16.6"
-        stroke="currentColor"
-        strokeWidth="1.1"
-        strokeLinecap="round"
-        className="text-white/78"
-      />
-    </svg>
-  );
 }
 
 function PremiumIntroButton({
@@ -215,8 +201,11 @@ export const WelcomeScreen: React.FC = () => {
 
         <div className="relative mt-auto w-full space-y-3.5 pt-2">
           <PremiumIntroButton variant="primary" onClick={goHome}>
-            <span className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-black/60 ring-1 ring-white/12">
-              <SoccerBallIcon className="h-6 w-6" />
+            <span className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-black/60 ring-1 ring-white/12">
+              <NavSoccerBallIcon
+                className="h-7 w-7 text-white drop-shadow-[0_0_16px_rgba(255,45,45,0.4)]"
+                strokeWidth={2.15}
+              />
             </span>
             <span className="relative z-10 min-w-0 flex-1 text-[17px] font-bold text-white">Zur App</span>
             <ChevronRight
@@ -229,7 +218,7 @@ export const WelcomeScreen: React.FC = () => {
           <PremiumIntroButton variant="secondary" onClick={goLive}>
             <span className="relative z-10 flex shrink-0 items-center gap-2.5">
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-black/65 ring-1 ring-red-900/55">
-                <Radio className="h-5 w-5 text-white/92" strokeWidth={2.25} aria-hidden />
+                <NavBroadcastIcon className="h-5 w-5 text-white/92" strokeWidth={2.25} />
               </span>
               <span className="flex items-center gap-1 rounded border border-red-500/40 bg-red-950/70 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_12px_rgba(220,38,38,0.25)]">
                 <span className="text-[10px] leading-none text-red-300">●</span> Live
