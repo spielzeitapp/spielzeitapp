@@ -2,56 +2,48 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
-import {
-  BroadcastIcon,
-  MoreIcon,
-  PitchIcon,
-  SoccerBallIcon,
-  TeamIcon,
-  type NavGlyphProps,
-} from '../../components/icons';
 
 /** Akzent wie Zielbild / Welcome (#FF2D2D, weich nutzbar). */
 const ACCENT = '#FF2D2D';
 
-/** Live-Badge: Mockup-Farbe, kein Glow */
-const LIVE_DOT = '#ff2d2d';
-
-type TabIcon = React.FC<NavGlyphProps>;
+function navAssetBase(): string {
+  const b = import.meta.env.BASE_URL || '/';
+  return b.endsWith('/') ? b : `${b}/`;
+}
 
 /**
  * Bottom Navigation — nur UI.
  * Reihenfolge: Home | Termine | Team | Live | Mehr
  */
 const appTabs = [
-  { to: '/app/home', end: true as const, label: 'Home', Icon: SoccerBallIcon, live: false as const },
-  { to: '/app/termine', end: false as const, label: 'Termine', Icon: PitchIcon, live: false as const },
-  { to: '/app/team', end: true as const, label: 'Team', Icon: TeamIcon, live: false as const },
-  { to: '/app/live', end: false as const, label: 'Live', Icon: BroadcastIcon, live: true as const },
-  { to: '/app/mehr', end: false as const, label: 'Mehr', Icon: MoreIcon, live: false as const },
+  { to: '/app/home', end: true as const, label: 'Home', iconFile: 'home.svg', live: false as const },
+  { to: '/app/termine', end: false as const, label: 'Termine', iconFile: 'pitch.svg', live: false as const },
+  { to: '/app/team', end: true as const, label: 'Team', iconFile: 'team.svg', live: false as const },
+  { to: '/app/live', end: false as const, label: 'Live', iconFile: 'live.svg', live: true as const },
+  { to: '/app/mehr', end: false as const, label: 'Mehr', iconFile: 'mehr.svg', live: false as const },
 ] as const;
 
 const publicTabs = [
-  { to: '/', end: true as const, label: 'Home', Icon: SoccerBallIcon, live: false as const },
-  { to: '/schedule', end: false as const, label: 'Spielplan', Icon: PitchIcon, live: false as const },
+  { to: '/', end: true as const, label: 'Home', iconFile: 'home.svg', live: false as const },
+  { to: '/schedule', end: false as const, label: 'Spielplan', iconFile: 'pitch.svg', live: false as const },
 ] as const;
 
 function NavItem({
   to,
   end,
   label,
-  Icon,
+  iconFile,
   isLiveTab,
   badgeCount,
 }: {
   to: string;
   end?: boolean;
   label: string;
-  Icon: TabIcon;
+  iconFile: string;
   isLiveTab: boolean;
   badgeCount?: number;
 }) {
-  const stroke = 1.8;
+  const base = navAssetBase();
 
   return (
     <NavLink
@@ -63,62 +55,37 @@ function NavItem({
         <>
           <div
             className={[
-              'relative flex h-11 w-11 shrink-0 items-center justify-center overflow-visible rounded-2xl transition-all duration-200 ease-out',
-              isActive
-                ? 'text-white shadow-[0_0_32px_-5px_rgba(255,45,45,0.48),0_0_0_1px_rgba(255,45,45,0.14)]'
-                : 'text-zinc-400 group-hover:bg-white/[0.03] group-hover:text-zinc-300',
+              'nav-item flex min-w-0 flex-col items-center gap-1',
+              isActive ? 'active' : 'inactive',
             ].join(' ')}
-            aria-hidden
           >
-            {isActive ? (
-              <span
-                className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-[#FF2D2D]/18 to-red-950/12 opacity-95"
-                aria-hidden
-              />
-            ) : null}
-            {isLiveTab ? (
-              <span
-                className={[
-                  'pointer-events-none absolute z-[2] rounded-full',
-                  isActive ? 'animate-pulse' : '',
-                ].join(' ')}
-                style={{
-                  width: 7,
-                  height: 7,
-                  top: 0,
-                  right: 0,
-                  backgroundColor: LIVE_DOT,
-                  transform: 'translate(1px, -1px)',
-                  boxShadow: 'none',
-                }}
-                aria-hidden
-              />
-            ) : null}
-            {badgeCount != null && badgeCount > 0 && (
+            {badgeCount != null && badgeCount > 0 ? (
               <div
-                className="pointer-events-none absolute right-0 top-0 z-[2] flex min-h-[17px] min-w-[17px] translate-x-[3px] -translate-y-[3px] items-center justify-center rounded-full px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-[#0a0a0a]"
+                className="pointer-events-none absolute right-0 top-0 z-[3] flex min-h-[17px] min-w-[17px] translate-x-[3px] -translate-y-[3px] items-center justify-center rounded-full px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-[#0a0a0a]"
                 style={{ backgroundColor: ACCENT }}
               >
                 {badgeCount > 99 ? '99+' : badgeCount}
               </div>
-            )}
+            ) : null}
+            <img
+              src={`${base}icons/${iconFile}`}
+              className="nav-icon shrink-0"
+              alt=""
+              width={28}
+              height={28}
+              decoding="async"
+              draggable={false}
+            />
             <span
               className={[
-                'relative z-[1] flex shrink-0 items-center justify-center transition-transform duration-200 ease-out',
-                isActive ? 'scale-[1.15]' : 'scale-100',
+                'max-w-[4.5rem] text-center text-[11px] font-medium leading-none tracking-tight transition-colors duration-200 sm:text-xs sm:font-semibold',
+                isActive ? 'font-semibold text-white' : 'text-zinc-400 group-hover:text-zinc-300',
               ].join(' ')}
             >
-              <Icon className="h-[26px] w-[26px]" strokeWidth={stroke} />
+              {label}
             </span>
+            {isLiveTab ? <div className="live-dot" aria-hidden /> : null}
           </div>
-          <span
-            className={[
-              'max-w-[4.5rem] text-center text-[11px] font-medium leading-none tracking-tight transition-colors duration-200 sm:text-xs sm:font-semibold',
-              isActive ? 'font-semibold text-white' : 'text-zinc-400 group-hover:text-zinc-300',
-            ].join(' ')}
-          >
-            {label}
-          </span>
           <span
             className={[
               'mt-1 h-1 w-5 shrink-0 rounded-[2px] transition-opacity duration-200',
@@ -185,7 +152,7 @@ export const BottomNav: React.FC = () => {
               to={t.to}
               end={t.end}
               label={t.label}
-              Icon={t.Icon}
+              iconFile={t.iconFile}
               isLiveTab={t.live}
               badgeCount={t.to === '/app/mehr' ? mehrBadge : undefined}
             />

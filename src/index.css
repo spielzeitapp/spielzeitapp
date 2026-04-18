@@ -63,3 +63,44 @@
   transform-origin: center;
 }
 
+/* =========================
+   NAV ICONS FINAL
+   ========================= */
+
+.nav-icon {
+  width: 28px;
+  height: 28px;
+  transition: all 0.2s ease;
+}
+
+/* Aktiv */
+.nav-item.active .nav-icon {
+  opacity: 1;
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.6));
+}
+
+/* Inaktiv */
+.nav-item.inactive .nav-icon {
+  opacity: 0.5;
+}
+
+/* =========================
+   LIVE DOT
+   ========================= */
+
+.nav-item {
+  position: relative;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background: #ff2d2d;
+  border-radius: 50%;
+  position: absolute;
+  top: -2px;
+  right: 6px;
+  box-shadow: 0 0 6px rgba(255, 0, 0, 0.8);
+}
+
