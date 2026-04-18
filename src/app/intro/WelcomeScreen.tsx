@@ -10,13 +10,13 @@ const ROUTE_APP_HOME = '/app/home';
 const ROUTE_LIVE_TICKER = '/app/live';
 
 /**
- * Vollbild-Hintergrund: `public/intro/welcome-hero.jpg` (einfach ersetzbar).
+ * Vollbild-Hintergrund: `public/intro/welcome-hero.PNG` (einfach ersetzbar).
  * Motiv: Stadion/Fußball, Nacht, emotional — roter Look kommt aus den UI-Overlays.
  * Kein App-Screenshot, nur Foto unter Text und Buttons.
  */
 function welcomeHeroSrc(): string {
   const base = import.meta.env.BASE_URL || '/';
-  const path = 'intro/welcome-hero.jpg';
+  const path = 'intro/welcome-hero.PNG';
   return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`;
 }
 
@@ -55,14 +55,14 @@ function PremiumIntroButton({
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
         isPrimary
           ? [
-              'border border-red-500/45',
-              'bg-gradient-to-b from-[#222226] via-[#121214] to-[#050505]',
-              'shadow-[inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-2px_0_rgba(0,0,0,0.55),0_0_0_1px_rgba(0,0,0,0.8),0_10px_32px_-6px_rgba(0,0,0,0.85),0_18px_56px_-10px_rgba(220,38,38,0.42)]',
+              'border border-red-500/40',
+              'bg-gradient-to-b from-[#1e1e22] via-[#0f0f12] to-[#040404]',
+              'shadow-[inset_0_1px_0_rgba(255,255,255,0.095),inset_0_-2px_0_rgba(0,0,0,0.58),0_0_0_1px_rgba(0,0,0,0.82),0_12px_36px_-6px_rgba(0,0,0,0.88),0_20px_60px_-10px_rgba(220,38,38,0.38)]',
             ].join(' ')
           : [
-              'border border-red-600/40',
-              'bg-gradient-to-b from-[#18181b] to-[#030303]',
-              'shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-2px_0_rgba(0,0,0,0.5),0_0_0_1px_rgba(0,0,0,0.75),0_12px_40px_-8px_rgba(0,0,0,0.9),0_14px_48px_-12px_rgba(127,29,29,0.28)]',
+              'border border-red-600/36',
+              'bg-gradient-to-b from-[#151518] to-[#020202]',
+              'shadow-[inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-2px_0_rgba(0,0,0,0.52),0_0_0_1px_rgba(0,0,0,0.78),0_14px_44px_-8px_rgba(0,0,0,0.92),0_16px_52px_-12px_rgba(127,29,29,0.32)]',
             ].join(' '),
       ].join(' ')}
     >
@@ -72,19 +72,19 @@ function PremiumIntroButton({
       />
       {isPrimary ? (
         <span
-          className="pointer-events-none absolute inset-x-4 -top-2 h-20 bg-gradient-to-b from-red-500/22 via-red-600/10 to-transparent blur-2xl"
+          className="pointer-events-none absolute inset-x-3 -top-2 h-[5.25rem] bg-gradient-to-b from-red-500/20 via-red-700/8 to-transparent blur-2xl"
           aria-hidden
         />
       ) : (
         <span
-          className="pointer-events-none absolute inset-x-8 top-0 h-12 bg-gradient-to-b from-red-600/12 to-transparent blur-xl"
+          className="pointer-events-none absolute inset-x-7 top-0 h-14 bg-gradient-to-b from-red-600/14 to-transparent blur-xl"
           aria-hidden
         />
       )}
       <span
         className={[
           'pointer-events-none absolute -inset-px rounded-2xl',
-          isPrimary ? 'shadow-[inset_0_0_0_1px_rgba(248,113,113,0.18)]' : 'shadow-[inset_0_0_0_1px_rgba(185,28,28,0.14)]',
+          isPrimary ? 'shadow-[inset_0_0_0_1px_rgba(252,165,165,0.14)]' : 'shadow-[inset_0_0_0_1px_rgba(185,28,28,0.12)]',
         ].join(' ')}
         aria-hidden
       />
@@ -119,59 +119,61 @@ export const WelcomeScreen: React.FC = () => {
       <img
         src={heroSrc}
         alt=""
-        className="pointer-events-none fixed inset-0 h-full min-h-[100dvh] w-full object-cover object-[center_38%] sm:object-center"
+        className="pointer-events-none fixed inset-0 h-full min-h-[100dvh] w-full object-cover object-[center_36%] sm:object-[center_40%]"
         decoding="async"
         fetchPriority="high"
       />
 
-      {/* Basis-Abdunkelung */}
+      {/* Basis-Abdunkelung — dunkler, emotionaler */}
       <div
-        className="pointer-events-none fixed inset-0 bg-black/50"
+        className="pointer-events-none fixed inset-0 bg-black/56"
         style={{ mixBlendMode: 'multiply' }}
         aria-hidden
       />
-      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-black/75 via-black/35 to-black/88" aria-hidden />
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-black/82 via-black/42 to-black/[0.91]" aria-hidden />
 
-      {/* Roter Stadion-Glow */}
+      {/* Roter Premium-Nacht-Look */}
       <div
         className="pointer-events-none fixed inset-0"
         style={{
           background:
-            'radial-gradient(ellipse 125% 75% at 50% 10%, rgba(220,38,38,0.38), transparent 52%), radial-gradient(ellipse 95% 58% at 88% 28%, rgba(127,29,29,0.28), transparent 46%), radial-gradient(ellipse 85% 52% at 8% 32%, rgba(69,10,10,0.4), transparent 44%)',
+            'radial-gradient(ellipse 128% 78% at 50% 8%, rgba(220,38,38,0.42), transparent 54%), radial-gradient(ellipse 100% 60% at 90% 26%, rgba(127,29,29,0.32), transparent 48%), radial-gradient(ellipse 88% 55% at 6% 30%, rgba(69,10,10,0.45), transparent 46%)',
         }}
         aria-hidden
       />
 
-      {/* Vignette + Lesbarkeit unten für Buttons */}
+      {/* Vignette + Lesbarkeit unten */}
       <div
         className="pointer-events-none fixed inset-0"
         style={{
           background:
-            'radial-gradient(ellipse 95% 85% at 50% 40%, transparent 22%, rgba(0,0,0,0.55) 100%), linear-gradient(180deg, transparent 0%, transparent 42%, rgba(0,0,0,0.82) 100%)',
+            'radial-gradient(ellipse 96% 88% at 50% 38%, transparent 18%, rgba(0,0,0,0.62) 100%), linear-gradient(180deg, transparent 0%, transparent 38%, rgba(0,0,0,0.86) 100%)',
         }}
         aria-hidden
       />
 
       <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-md flex-1 flex-col px-5 pb-3 pt-6">
         <header className="flex flex-col items-center text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.38em] text-white/75 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.38em] text-white/78 [text-shadow:0_1px_0_rgba(0,0,0,0.85),0_2px_14px_rgba(0,0,0,0.75)]">
             Willkommen in der
           </p>
 
           <h1
-            className="mt-3 font-black italic leading-[0.95] tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)]"
+            className="mt-3 font-black italic leading-[0.95] tracking-tight [text-shadow:0_2px_0_rgba(0,0,0,0.55),0_6px_28px_rgba(0,0,0,0.92)]"
             style={{ transform: 'skewX(-5deg)' }}
           >
-            <span className="text-[clamp(2.45rem,9.5vw,3.35rem)] text-white">Spielzeit</span>
-            <span className="text-[clamp(2.45rem,9.5vw,3.35rem)] text-[#f87171]">App</span>
+            <span className="text-[clamp(2.45rem,9.5vw,3.35rem)] text-[#fafafa]">Spielzeit</span>
+            <span className="text-[clamp(2.45rem,9.5vw,3.35rem)] text-[#f87171] [text-shadow:0_0_28px_rgba(185,28,28,0.35)]">
+              App
+            </span>
           </h1>
 
-          <p className="mt-4 max-w-[300px] text-[15px] font-medium leading-snug text-white/85 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
+          <p className="mt-4 max-w-[300px] text-[15px] font-medium leading-snug text-white/88 [text-shadow:0_1px_2px_rgba(0,0,0,0.9),0_3px_16px_rgba(0,0,0,0.65)]">
             Alle Termine. Alle Infos.
           </p>
 
           <p
-            className="mt-5 text-[12px] font-bold uppercase italic tracking-[0.1em] text-white/92 drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)] sm:text-[13px]"
+            className="mt-5 text-[12px] font-bold uppercase italic tracking-[0.1em] text-white/94 [text-shadow:0_2px_12px_rgba(0,0,0,0.88)] sm:text-[13px]"
             style={{ transform: 'skewX(-3deg)' }}
           >
             <span className="text-white">#GEMEINSAM</span>
@@ -215,12 +217,12 @@ export const WelcomeScreen: React.FC = () => {
 
         <footer className="relative mt-10 flex flex-col items-center gap-3.5 px-1 pb-1">
           <div className="flex w-full max-w-[320px] items-center gap-3">
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/18 to-white/6" />
-            <Trophy className="h-4 w-4 shrink-0 text-red-500/85" strokeWidth={2} aria-hidden />
-            <div className="h-px flex-1 bg-gradient-to-l from-transparent via-white/18 to-white/6" />
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/14 to-white/5" />
+            <Trophy className="h-4 w-4 shrink-0 text-red-500/80" strokeWidth={2} aria-hidden />
+            <div className="h-px flex-1 bg-gradient-to-l from-transparent via-white/14 to-white/5" />
           </div>
-          <div className="flex max-w-[320px] items-start gap-2.5 text-left text-[12px] leading-relaxed text-zinc-400 drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
-            <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" strokeWidth={2} aria-hidden />
+          <div className="flex max-w-[320px] items-start gap-2.5 text-left text-[12px] leading-relaxed text-zinc-500 [text-shadow:0_1px_8px_rgba(0,0,0,0.88)]">
+            <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500/95" strokeWidth={2} aria-hidden />
             <p>
               <span className="font-semibold text-red-500">Tipp:</span> Zum Home-Bildschirm hinzufügen für den vollen
               App-Modus.

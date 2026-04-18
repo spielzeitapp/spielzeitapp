@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-/** Kurzer Marken-Beat (900–1100 ms), danach nur Welcome — nie direkt Home. */
+/** Kurzer Marken-Beat (~1000 ms), danach nur Welcome — nie direkt Home. */
 const SPLASH_MS = 1000;
 
 /**
- * Premium-Splash: dunkel, roter Glow, Wortmarke „SpielzeitApp“, feine Linie.
- * Keine Buttons, keine Hero-Szene; emotionaler Einstieg folgt auf WelcomeScreen.
+ * Premium-Splash: tiefschwarz, weicher Rot-Glow oben/mitte, dezente Vignette,
+ * Wortmarke + feine Linie. Keine Buttons, keine Hero-Szene.
  */
 export const SplashScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -20,62 +20,65 @@ export const SplashScreen: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-[#020202] text-white"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-[#010101] text-white"
       style={{
         paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))',
         paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))',
       }}
     >
-      {/* Atmosphäre */}
+      {/* Tiefschwarz + weicher Rot-Glow (oben / mitte) */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            'radial-gradient(ellipse 100% 72% at 50% 18%, rgba(185,28,28,0.38), transparent 56%), radial-gradient(ellipse 75% 50% at 75% 85%, rgba(69,10,10,0.32), transparent 52%), linear-gradient(180deg, #0c0a0a 0%, #000 55%, #030303 100%)',
+            'radial-gradient(ellipse 95% 70% at 50% 22%, rgba(127,29,29,0.28), transparent 58%), radial-gradient(ellipse 70% 45% at 50% 8%, rgba(220,38,38,0.12), transparent 50%), linear-gradient(180deg, #080606 0%, #010101 45%, #000 100%)',
         }}
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-[48%] bg-gradient-to-b from-red-600/14 to-transparent blur-3xl"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[44%] bg-gradient-to-b from-red-600/11 to-transparent blur-[2.75rem]"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.055]"
+        className="pointer-events-none absolute inset-0 opacity-[0.035]"
         style={{
           backgroundImage:
-            'repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(255,255,255,0.035) 5px, rgba(255,255,255,0.035) 6px)',
+            'repeating-linear-gradient(90deg, transparent, transparent 6px, rgba(255,255,255,0.028) 6px, rgba(255,255,255,0.028) 7px)',
         }}
         aria-hidden
       />
+      {/* Sehr dezente Vignette */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: 'radial-gradient(ellipse 88% 78% at 50% 48%, transparent 32%, rgba(0,0,0,0.72) 100%)',
+          background: 'radial-gradient(ellipse 92% 82% at 50% 50%, transparent 38%, rgba(0,0,0,0.58) 100%)',
         }}
         aria-hidden
       />
 
-      {/* Markenkern */}
       <div className="intro-splash-mark relative z-10 flex flex-col items-center text-center">
         <div
-          className="pointer-events-none absolute left-1/2 top-1/2 h-44 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-70"
+          className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-[13rem] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-75"
           style={{
-            background: 'radial-gradient(ellipse closest-side, rgba(220,38,38,0.14), transparent 70%)',
-            filter: 'blur(18px)',
+            background: 'radial-gradient(ellipse closest-side, rgba(220,38,38,0.11), transparent 72%)',
+            filter: 'blur(20px)',
           }}
           aria-hidden
         />
 
         <h1
-          className="relative font-black italic leading-none tracking-tight drop-shadow-[0_4px_28px_rgba(0,0,0,0.85)]"
-          style={{ transform: 'skewX(-4deg)' }}
+          className="relative font-black italic leading-none tracking-tight"
+          style={{
+            transform: 'skewX(-3.5deg)',
+            textShadow: '0 2px 24px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.35)',
+          }}
         >
-          <span className="text-[clamp(1.65rem,7vw,2.15rem)] text-white">Spielzeit</span>
-          <span className="text-[clamp(1.65rem,7vw,2.15rem)] text-[#f87171]">App</span>
+          <span className="text-[clamp(1.7rem,7.2vw,2.2rem)] text-[#fafafa]">Spielzeit</span>
+          <span className="text-[clamp(1.7rem,7.2vw,2.2rem)] text-[#ef4444]">App</span>
         </h1>
 
         <div
-          className="intro-splash-line relative mx-auto mt-5 h-px w-[5.5rem] bg-gradient-to-r from-transparent via-red-500/55 to-transparent sm:w-24"
+          className="intro-splash-line relative mx-auto mt-[1.35rem] h-px w-[6rem] max-w-[88vw] bg-gradient-to-r from-transparent via-red-500/48 to-transparent sm:w-[6.25rem]"
           aria-hidden
         />
       </div>
