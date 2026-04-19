@@ -127,10 +127,13 @@ function buildPeriodScoreLine(events: MatchEngineEvent[], currentMatchSeconds: n
   return `(${s1} | ${s2} | ${s3})`;
 }
 
+/** Flache Tab-Leiste (ÖFB-Richtung): unten Akzent, weniger „Pill“-Gewicht. */
+const tabNavWrap =
+  'flex w-full gap-0 overflow-x-auto border-b border-neutral-800 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 const tabNavBtnBase =
-  'shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors md:flex-1';
-const tabNavBtnActive = 'bg-red-500 text-white hover:bg-red-400';
-const tabNavBtnIdle = 'bg-neutral-800 text-gray-300 hover:bg-neutral-700 hover:text-white';
+  'shrink-0 whitespace-nowrap border-b-2 border-transparent px-2.5 py-2 text-xs font-semibold text-gray-500 transition-colors sm:px-3 sm:text-sm md:flex-1 md:px-2 md:text-center';
+const tabNavBtnActive = 'border-red-500 text-white';
+const tabNavBtnIdle = 'hover:text-gray-300';
 
 function eventIcon(t: MatchEventType): string {
   if (t === 'goal') return '⚽';
@@ -301,6 +304,12 @@ export const LiveMatchScreen: React.FC = () => {
   const matchTypeDisplay = 'Freundschaftsspiel';
   const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
+
+  useEffect(() => {
+    if (!canControlLiveMatch && mainTab === 'time') {
+      setMainTab('overview');
+    }
+  }, [canControlLiveMatch, mainTab]);
 
   const [subOpen, setSubOpen] = useState(false);
   const [subOutId, setSubOutId] = useState<string>('');
@@ -531,6 +540,15 @@ export const LiveMatchScreen: React.FC = () => {
     return list;
   }, [events, eventsFilter]);
 
+  /** Eltern-Liveticker: ohne Pausen-Häufchen, chronologisch neu → alt. */
+  const parentLivetickerList = useMemo(
+    () =>
+      [...events]
+        .filter((e) => e.type !== 'pause')
+        .sort((a, b) => b.timestamp - a.timestamp),
+    [events],
+  );
+
   /** Nur für UI: Stand nach jedem Tor (chronologisch), kein Einfluss auf Persistenz. */
   const goalScoreBadgeByEventId = useMemo(() => {
     const sorted = sortMatchEventsChronologically(events);
@@ -582,11 +600,35 @@ export const LiveMatchScreen: React.FC = () => {
     }
   };
 
+  const parentLiveEventDescription = (ev: MatchEngineEvent): string => {
+    const name = ev.playerId ? rosterById.get(ev.playerId)?.name : undefined;
+    switch (ev.type) {
+      case 'start':
+        return 'Spielbeginn';
+      case 'resume':
+        return 'Weiter nach Pause';
+      case 'end':
+        return 'Spiel zu Ende';
+      case 'goal':
+        if (!ev.playerId) return `Tor für ${awayDisplayName || 'Gast'}`;
+        return name ? `${name} trifft` : 'Tor für uns';
+      case 'sub_out':
+        return name ? `${name} wechselt aus` : 'Auswechslung';
+      case 'sub_in':
+        return name ? `${name} wechselt ein` : 'Einwechslung';
+      case 'pause':
+        return 'Pause';
+      default:
+        return ev.type;
+    }
+  };
+
   const renderTimelineRow = (
     ev: MatchEngineEvent,
     index: number,
     listLength: number,
     showGoalScoreBadge: boolean,
+    friendlyFeed = false,
   ) => {
     const isGoal = ev.type === 'goal';
     const isSub = ev.type === 'sub_out' || ev.type === 'sub_in';
@@ -660,17 +702,21 @@ export const LiveMatchScreen: React.FC = () => {
                 </>
               ) : isSub ? (
                 <>
-                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-400">Wechsel</p>
+                  {!friendlyFeed ? (
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-400">Wechsel</p>
+                  ) : null}
                   <p
-                    className={`mt-1 text-sm font-semibold leading-snug ${
+                    className={`${friendlyFeed ? '' : 'mt-1 '}text-sm font-semibold leading-snug ${
                       ev.type === 'sub_out' ? 'text-red-300' : 'text-emerald-300'
                     }`}
                   >
-                    {eventLabel(ev)}
+                    {friendlyFeed ? parentLiveEventDescription(ev) : eventLabel(ev)}
                   </p>
                 </>
               ) : (
-                <p className="text-sm font-semibold text-white/90">{eventLabel(ev)}</p>
+                <p className="text-sm font-semibold text-white/90">
+                  {friendlyFeed ? parentLiveEventDescription(ev) : eventLabel(ev)}
+                </p>
               )}
             </div>
             {scoreStr ? (
@@ -857,11 +903,6 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
               </div>
 
-              {(!canControlLiveMatch || matchIsFinished) && (
-                <p className="mt-2 text-center text-[10px] font-semibold uppercase tracking-wide text-gray-300">
-                  Zuschaueransicht
-                </p>
-              )}
               {saveError && (
                 <p className="mt-1 text-center text-xs font-medium text-amber-400" role="alert">
                   {saveError}
@@ -945,7 +986,7 @@ export const LiveMatchScreen: React.FC = () => {
           )}
 
           <nav
-            className={`flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${mainTab === 'overview' ? 'mt-3' : 'mt-2'} md:gap-2`}
+            className={`${tabNavWrap} ${mainTab === 'overview' ? 'mt-3' : 'mt-2'}`}
             aria-label="Live-Ansicht"
           >
             <button
@@ -960,22 +1001,24 @@ export const LiveMatchScreen: React.FC = () => {
               className={`${tabNavBtnBase} ${mainTab === 'lineup' ? tabNavBtnActive : tabNavBtnIdle}`}
               onClick={() => setMainTab('lineup')}
             >
-              Aufstellung
+              {canControlLiveMatch ? 'Aufstellung' : 'Kader'}
             </button>
             <button
               type="button"
               className={`${tabNavBtnBase} ${mainTab === 'events' ? tabNavBtnActive : tabNavBtnIdle}`}
               onClick={() => setMainTab('events')}
             >
-              Events
+              Liveticker
             </button>
-            <button
-              type="button"
-              className={`${tabNavBtnBase} ${mainTab === 'time' ? tabNavBtnActive : tabNavBtnIdle}`}
-              onClick={() => setMainTab('time')}
-            >
-              Statistik
-            </button>
+            {canControlLiveMatch ? (
+              <button
+                type="button"
+                className={`${tabNavBtnBase} ${mainTab === 'time' ? tabNavBtnActive : tabNavBtnIdle}`}
+                onClick={() => setMainTab('time')}
+              >
+                Statistik
+              </button>
+            ) : null}
           </nav>
         </div>
       </header>
@@ -983,178 +1026,219 @@ export const LiveMatchScreen: React.FC = () => {
       <div className={`${layoutShell} px-2 py-3 md:px-5 md:py-4`}>
         {mainTab === 'overview' && (
           <div className="space-y-3">
-            {canControlLiveMatch && !matchIsFinished && (
-            <section id="live-wechsel-section">
-              <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Wechsel</h2>
-              <div className="space-y-3 rounded-xl border border-red-500/30 bg-black p-3">
-                <div>
-                  <label className="text-xs font-bold uppercase text-red-400/90" htmlFor="wechsel-raus">
-                    Raus
-                  </label>
-                  <select
-                    id="wechsel-raus"
-                    className={selectClass}
-                    value={wechselOutId}
-                    onChange={(e) => setWechselOutId(e.target.value)}
-                    disabled={matchIsFinished}
-                  >
-                    <option value="">Spieler wählen…</option>
-                    {fieldPlayers.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.number} · {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold uppercase text-emerald-400/90" htmlFor="wechsel-rein">
-                    Rein
-                  </label>
-                  <select
-                    id="wechsel-rein"
-                    className={selectClass}
-                    value={wechselInId}
-                    onChange={(e) => setWechselInId(e.target.value)}
-                    disabled={matchIsFinished}
-                  >
-                    <option value="">Spieler wählen…</option>
-                    {benchPlayers.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.number} · {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  type="button"
-                  onClick={confirmWechselSection}
-                  disabled={matchIsFinished || !wechselOutId || !wechselInId}
-                  className="flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-emerald-600 text-base font-bold text-white disabled:opacity-35 active:scale-[0.99]"
-                >
-                  Wechsel bestätigen
-                </button>
-              </div>
-            </section>
-            )}
+            {canControlLiveMatch ? (
+              <>
+                {canControlLiveMatch && !matchIsFinished && (
+                  <section id="live-wechsel-section">
+                    <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Wechsel</h2>
+                    <div className="space-y-3 rounded-xl border border-red-500/30 bg-black p-3">
+                      <div>
+                        <label className="text-xs font-bold uppercase text-red-400/90" htmlFor="wechsel-raus">
+                          Raus
+                        </label>
+                        <select
+                          id="wechsel-raus"
+                          className={selectClass}
+                          value={wechselOutId}
+                          onChange={(e) => setWechselOutId(e.target.value)}
+                          disabled={matchIsFinished}
+                        >
+                          <option value="">Spieler wählen…</option>
+                          {fieldPlayers.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.number} · {p.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold uppercase text-emerald-400/90" htmlFor="wechsel-rein">
+                          Rein
+                        </label>
+                        <select
+                          id="wechsel-rein"
+                          className={selectClass}
+                          value={wechselInId}
+                          onChange={(e) => setWechselInId(e.target.value)}
+                          disabled={matchIsFinished}
+                        >
+                          <option value="">Spieler wählen…</option>
+                          {benchPlayers.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.number} · {p.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={confirmWechselSection}
+                        disabled={matchIsFinished || !wechselOutId || !wechselInId}
+                        className="flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-emerald-600 text-base font-bold text-white disabled:opacity-35 active:scale-[0.99]"
+                      >
+                        Wechsel bestätigen
+                      </button>
+                    </div>
+                  </section>
+                )}
 
-            <section>
-              <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Spielzeit</h2>
-              <ul className="space-y-3">
-                {sortRosterByNumber(roster.filter((p) => squadPlayerIds.includes(p.id))).map((p) => {
-                  const sec = playtimes[p.id] ?? 0;
-                  const st = getPlaytimeStatus(sec, currentMatchSeconds, squadPlayerIds.length);
-                  const onF = onFieldIds.includes(p.id);
-                  return (
-                    <li
-                      key={p.id}
-                      className={`flex min-h-[52px] items-center gap-2 rounded-xl border px-3 py-2.5 ${
-                        onF
-                          ? 'border-emerald-600/40 bg-zinc-950'
-                          : 'border-red-500/20 bg-zinc-950/80 opacity-90'
-                      }`}
-                    >
-                      <span className={`h-3.5 w-3.5 shrink-0 rounded-full ${ampelDot(st)}`} aria-hidden />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[15px] font-semibold text-white">
-                          {p.number || '–'} · {p.name}
-                        </p>
-                        <p
-                          className={`mt-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
-                            onF ? 'text-emerald-400' : 'text-white/38'
+                <section>
+                  <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Spielzeit</h2>
+                  <ul className="space-y-3">
+                    {sortRosterByNumber(roster.filter((p) => squadPlayerIds.includes(p.id))).map((p) => {
+                      const sec = playtimes[p.id] ?? 0;
+                      const st = getPlaytimeStatus(sec, currentMatchSeconds, squadPlayerIds.length);
+                      const onF = onFieldIds.includes(p.id);
+                      return (
+                        <li
+                          key={p.id}
+                          className={`flex min-h-[52px] items-center gap-2 rounded-xl border px-3 py-2.5 ${
+                            onF
+                              ? 'border-emerald-600/40 bg-zinc-950'
+                              : 'border-red-500/20 bg-zinc-950/80 opacity-90'
                           }`}
                         >
-                          {onF ? 'Am Feld' : 'Auf der Bank'}
-                        </p>
-                      </div>
-                      <span
-                        className={`shrink-0 font-mono text-2xl font-black tabular-nums tracking-tight ${
-                          onF ? 'text-red-500' : 'text-white/40'
-                        }`}
-                      >
-                        {formatClock(sec)}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
+                          <span className={`h-3.5 w-3.5 shrink-0 rounded-full ${ampelDot(st)}`} aria-hidden />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[15px] font-semibold text-white">
+                              {p.number || '–'} · {p.name}
+                            </p>
+                            <p
+                              className={`mt-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
+                                onF ? 'text-emerald-400' : 'text-white/38'
+                              }`}
+                            >
+                              {onF ? 'Am Feld' : 'Auf der Bank'}
+                            </p>
+                          </div>
+                          <span
+                            className={`shrink-0 font-mono text-2xl font-black tabular-nums tracking-tight ${
+                              onF ? 'text-red-500' : 'text-white/40'
+                            }`}
+                          >
+                            {formatClock(sec)}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
 
-            <section>
-              <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Wechsel-Vorschläge</h2>
-              <div className="space-y-3">
-                <div className="rounded-2xl border border-emerald-800/35 bg-gradient-to-br from-emerald-950/35 to-black/80 p-4 ring-1 ring-emerald-700/15">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-400/95">
-                    Spielzeit erreicht
-                  </p>
-                  <p className="mt-3 text-sm text-white/40">Hinweise zu Einwechslungen erscheinen hier.</p>
-                </div>
-                <div className="rounded-2xl border border-amber-800/35 bg-gradient-to-br from-amber-950/25 to-black/80 p-4 ring-1 ring-amber-700/15">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-400/95">
-                    Wenig Spielzeit
-                  </p>
-                  <p className="mt-3 text-sm text-white/40">Optionen für mehr Einsatzzeit erscheinen hier.</p>
-                </div>
-              </div>
-            </section>
-
-            <section>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Liveticker</h2>
-              </div>
-              <ul className="rounded-xl border border-red-500/30 bg-black px-1 py-2 sm:px-2 sm:py-3">
-                {events
-                  .filter((e) => e.type !== 'pause')
-                  .sort((a, b) => b.timestamp - a.timestamp)
-                  .slice(0, 12)
-                  .map((ev, i, arr) => renderTimelineRow(ev, i, arr.length, true))}
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">
-                Am Feld ({fieldPlayers.length})
-              </h2>
-              <div className="relative overflow-hidden rounded-xl border border-red-500/30 bg-black p-3">
-                <div
-                  className="pointer-events-none absolute inset-0 opacity-[0.05]"
-                  style={{
-                    backgroundImage:
-                      'repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(220,38,38,0.35) 10px, rgba(220,38,38,0.35) 11px)',
-                  }}
-                  aria-hidden
-                />
-                <div className="relative mx-auto max-w-sm rounded-lg border border-red-500/25 bg-zinc-950 p-2">
-                  <div
-                    className="pointer-events-none absolute inset-2 rounded-md border border-dashed border-red-800/35"
-                    aria-hidden
-                  />
-                  <div
-                    className="pointer-events-none absolute left-1/2 top-2 bottom-2 w-px -translate-x-1/2 bg-red-700/40"
-                    aria-hidden
-                  />
-                  <div className="relative flex flex-wrap justify-center gap-2">
-                    {fieldPlayers.slice(0, 7).map((p) => (
-                      <div
-                        key={p.id}
-                        className="flex w-[30%] min-w-[80px] max-w-[108px] flex-col items-center justify-center rounded-lg border border-red-500/25 bg-black px-1 py-2"
-                      >
-                        <span className="text-base font-black tabular-nums text-red-400">{p.number || '–'}</span>
-                        <span className="mt-1 max-w-full truncate text-center text-[11px] font-semibold leading-tight text-white">
-                          {p.name}
-                        </span>
-                      </div>
-                    ))}
+                <section>
+                  <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Wechsel-Vorschläge</h2>
+                  <div className="space-y-3">
+                    <div className="rounded-2xl border border-emerald-800/35 bg-gradient-to-br from-emerald-950/35 to-black/80 p-4 ring-1 ring-emerald-700/15">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-400/95">
+                        Spielzeit erreicht
+                      </p>
+                      <p className="mt-3 text-sm text-white/40">Hinweise zu Einwechslungen erscheinen hier.</p>
+                    </div>
+                    <div className="rounded-2xl border border-amber-800/35 bg-gradient-to-br from-amber-950/25 to-black/80 p-4 ring-1 ring-amber-700/15">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-400/95">
+                        Wenig Spielzeit
+                      </p>
+                      <p className="mt-3 text-sm text-white/40">Optionen für mehr Einsatzzeit erscheinen hier.</p>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </section>
+                </section>
+
+                <section>
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Liveticker</h2>
+                  </div>
+                  <ul className="rounded-xl border border-red-500/30 bg-black px-1 py-2 sm:px-2 sm:py-3">
+                    {events
+                      .filter((e) => e.type !== 'pause')
+                      .sort((a, b) => b.timestamp - a.timestamp)
+                      .slice(0, 12)
+                      .map((ev, i, arr) => renderTimelineRow(ev, i, arr.length, true))}
+                  </ul>
+                </section>
+
+                <section>
+                  <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">
+                    Am Feld ({fieldPlayers.length})
+                  </h2>
+                  <div className="relative overflow-hidden rounded-xl border border-red-500/30 bg-black p-3">
+                    <div
+                      className="pointer-events-none absolute inset-0 opacity-[0.05]"
+                      style={{
+                        backgroundImage:
+                          'repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(220,38,38,0.35) 10px, rgba(220,38,38,0.35) 11px)',
+                      }}
+                      aria-hidden
+                    />
+                    <div className="relative mx-auto max-w-sm rounded-lg border border-red-500/25 bg-zinc-950 p-2">
+                      <div
+                        className="pointer-events-none absolute inset-2 rounded-md border border-dashed border-red-800/35"
+                        aria-hidden
+                      />
+                      <div
+                        className="pointer-events-none absolute left-1/2 top-2 bottom-2 w-px -translate-x-1/2 bg-red-700/40"
+                        aria-hidden
+                      />
+                      <div className="relative flex flex-wrap justify-center gap-2">
+                        {fieldPlayers.slice(0, 7).map((p) => (
+                          <div
+                            key={p.id}
+                            className="flex w-[30%] min-w-[80px] max-w-[108px] flex-col items-center justify-center rounded-lg border border-red-500/25 bg-black px-1 py-2"
+                          >
+                            <span className="text-base font-black tabular-nums text-red-400">{p.number || '–'}</span>
+                            <span className="mt-1 max-w-full truncate text-center text-[11px] font-semibold leading-tight text-white">
+                              {p.name}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </>
+            ) : (
+              <>
+                <section className="rounded-xl border border-red-500/30 bg-black p-3">
+                  <p className="text-center text-sm font-semibold text-white">
+                    {matchIsFinished ? 'Spiel beendet' : hasClockStarted ? 'Spiel läuft' : 'Spiel steht bevor'}
+                  </p>
+                  <p className="mt-2 text-center text-xs text-gray-300">{matchTypeDisplay}</p>
+                  <p className="mt-1 text-center text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                    {periodDisplayLine}
+                  </p>
+                  <p className="mt-2 text-center font-mono text-[11px] tabular-nums text-gray-500">{periodScoreLine}</p>
+                </section>
+                <section>
+                  <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Aktuell am Feld</h2>
+                  {fieldPlayers.length === 0 ? (
+                    <p className="rounded-lg border border-red-500/20 px-3 py-4 text-center text-sm text-gray-400">
+                      Sobald die Aufstellung feststeht, siehst du hier die Spielerinnen und Spieler auf dem Feld.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {fieldPlayers.map((p) => (
+                        <li
+                          key={p.id}
+                          className="flex items-center gap-3 rounded-lg border border-red-500/20 bg-zinc-950 px-3 py-2.5"
+                        >
+                          <span className="w-8 shrink-0 text-center text-base font-black tabular-nums text-red-400">
+                            {p.number || '–'}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">{p.name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              </>
+            )}
           </div>
         )}
 
         {mainTab === 'lineup' && (
           <div className="space-y-3">
-            {canControlLiveMatch && (
-              <p className="text-sm text-white/55">Tippe einen Spieler für Wechsel.</p>
+            {canControlLiveMatch ? (
+              <p className="text-sm text-gray-400">Tippe einen Spieler für Wechsel.</p>
+            ) : (
+              <p className="text-sm text-gray-400">Gemeldete Spielerinnen und Spieler – wer ist dabei.</p>
             )}
             <div>
               <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Am Feld</h3>
@@ -1174,11 +1258,25 @@ export const LiveMatchScreen: React.FC = () => {
                         </span>
                       </button>
                     ) : (
-                      <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/30 bg-emerald-950/20 px-4 py-3">
-                        <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
-                        <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
-                        <span className="rounded-full bg-emerald-600/20 px-2 py-1 text-xs font-bold text-emerald-300/90">
-                          AM FELD
+                      <div
+                        className={`flex min-h-[52px] w-full items-center justify-between rounded-xl border px-3 py-2.5 ${
+                          canControlLiveMatch
+                            ? 'border-emerald-600/30 bg-emerald-950/20'
+                            : 'border-red-500/20 bg-zinc-950'
+                        }`}
+                      >
+                        <span
+                          className={`text-lg font-bold ${canControlLiveMatch ? 'text-emerald-400' : 'text-white'}`}
+                        >
+                          {p.number || '–'}
+                        </span>
+                        <span className="flex-1 px-3 text-sm font-semibold text-white">{p.name}</span>
+                        <span
+                          className={`shrink-0 text-[10px] font-semibold uppercase tracking-wide ${
+                            canControlLiveMatch ? 'text-emerald-300/90' : 'text-gray-500'
+                          }`}
+                        >
+                          {canControlLiveMatch ? 'Am Feld' : 'Am Feld'}
                         </span>
                       </div>
                     )}
@@ -1187,7 +1285,9 @@ export const LiveMatchScreen: React.FC = () => {
               </ul>
             </div>
             <div>
-              <h3 className="mb-2 text-xs font-bold uppercase text-white/40">Bank</h3>
+              <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">
+                {canControlLiveMatch ? 'Bank' : 'Reserve & Bank'}
+              </h3>
               <ul className="space-y-2">
                 {benchPlayers.map((p) => (
                   <li key={p.id}>
@@ -1204,11 +1304,11 @@ export const LiveMatchScreen: React.FC = () => {
                         </span>
                       </button>
                     ) : (
-                      <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 opacity-90">
-                        <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
-                        <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
-                        <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-white/50">
-                          BANK
+                      <div className="flex min-h-[52px] w-full items-center justify-between rounded-xl border border-red-500/20 bg-zinc-950 px-3 py-2.5 opacity-95">
+                        <span className="text-lg font-bold text-gray-400">{p.number || '–'}</span>
+                        <span className="flex-1 px-3 text-sm font-semibold text-white">{p.name}</span>
+                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                          Ersatz
                         </span>
                       </div>
                     )}
@@ -1221,43 +1321,49 @@ export const LiveMatchScreen: React.FC = () => {
 
         {mainTab === 'events' && (
           <div className="space-y-3">
-            <div className="flex gap-1.5 sm:gap-2">
-              {(
-                [
-                  ['all', 'Alle'],
-                  ['goals', 'Tore'],
-                  ['subs', 'Wechsel'],
-                ] as const
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setEventsFilter(key)}
-                  className={`min-h-[36px] flex-1 rounded-full px-2 py-1.5 text-xs font-bold tracking-wide transition-colors sm:text-sm ${
-                    eventsFilter === key
-                      ? 'bg-red-500 text-white'
-                      : 'border border-red-500/20 bg-neutral-800 text-gray-300 hover:text-white'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {filteredEvents.length === 0 ? (
-              <p className="rounded-2xl border border-white/[0.06] bg-zinc-950/40 px-4 py-8 text-center text-sm text-white/45">
-                Keine Events für diesen Filter.
+            {canControlLiveMatch ? (
+              <div className="flex gap-1.5 sm:gap-2">
+                {(
+                  [
+                    ['all', 'Alle'],
+                    ['goals', 'Tore'],
+                    ['subs', 'Wechsel'],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setEventsFilter(key)}
+                    className={`min-h-[36px] flex-1 rounded-lg px-2 py-1.5 text-xs font-bold tracking-wide transition-colors sm:text-sm ${
+                      eventsFilter === key
+                        ? 'bg-red-500 text-white'
+                        : 'border border-red-500/20 bg-neutral-900 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">Tore, Wechsel und Spielphasen im Überblick.</p>
+            )}
+            {(canControlLiveMatch ? filteredEvents : parentLivetickerList).length === 0 ? (
+              <p className="rounded-xl border border-red-500/20 bg-zinc-950/50 px-4 py-8 text-center text-sm text-gray-400">
+                {canControlLiveMatch ? 'Keine Einträge für diesen Filter.' : 'Noch keine Spielereignisse.'}
               </p>
             ) : (
               <ul className="max-h-[60vh] overflow-y-auto rounded-xl border border-red-500/30 bg-black px-1 py-2 sm:px-2 sm:py-3">
-                {filteredEvents.map((ev, i, arr) => renderTimelineRow(ev, i, arr.length, true))}
+                {(canControlLiveMatch ? filteredEvents : parentLivetickerList).map((ev, i, arr) =>
+                  renderTimelineRow(ev, i, arr.length, true, !canControlLiveMatch),
+                )}
               </ul>
             )}
           </div>
         )}
 
-        {mainTab === 'time' && (
+        {canControlLiveMatch && mainTab === 'time' && (
           <div className="space-y-2">
-            <p className="mb-2 text-sm text-white/55">Effektive Spielzeit (ohne Pausen)</p>
+            <p className="mb-2 text-sm text-gray-400">Effektive Spielzeit (ohne Pausen)</p>
             <ul className="space-y-3">
               {sortRosterByNumber(roster.filter((p) => squadPlayerIds.includes(p.id))).map((p) => {
                 const sec = playtimes[p.id] ?? 0;
@@ -1305,7 +1411,7 @@ export const LiveMatchScreen: React.FC = () => {
           type="button"
           className="pointer-events-auto fixed bottom-24 right-3 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-red-500/30 bg-neutral-900 text-base font-bold text-white shadow-sm hover:bg-neutral-800 md:bottom-28 md:right-5"
           onClick={() => setMainTab('events')}
-          aria-label="Alle Events"
+          aria-label="Zum Liveticker"
         >
           →
         </button>
