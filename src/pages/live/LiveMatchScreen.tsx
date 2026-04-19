@@ -149,7 +149,7 @@ const tabNavBtnIdle = 'hover:text-gray-300';
 
 /** Eltern/Fan/Spieler: Pill-Tabs (Anschluss an Termine-/Kader-Filter). */
 const spectatorTabWrap =
-  'mt-0.5 flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+  'mt-0 flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 const spectatorTabBtnBase =
   'flex h-9 min-h-9 shrink-0 flex-1 items-center justify-center rounded-full border px-2 text-center text-xs font-semibold transition-colors sm:text-sm';
 const spectatorTabBtnActive = 'border-red-600/60 bg-red-600 text-white shadow-sm';
@@ -934,10 +934,14 @@ export const LiveMatchScreen: React.FC = () => {
           : 'min-h-[100dvh] bg-black pb-28 text-white'
       }
     >
-      <header className="sticky top-0 z-40 shrink-0 border-b border-red-500/30 bg-black backdrop-blur-md">
+      <header
+        className={`sticky top-0 z-50 shrink-0 border-b border-red-500/30 bg-black shadow-[0_1px_0_rgba(0,0,0,1)] ${
+          spectatorView ? '' : 'backdrop-blur-md'
+        }`}
+      >
         <div
           className={`${layoutShell} ${
-            spectatorView ? 'px-2 pb-1.5 pt-0.5 md:px-4 md:pb-1.5 md:pt-1' : 'px-2 pb-2 pt-1 md:px-4 md:pb-2 md:pt-1.5'
+            spectatorView ? 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0' : 'px-2 pb-2 pt-1 md:px-4 md:pb-2 md:pt-1.5'
           }`}
         >
           {matchboardVisible && (
@@ -1200,7 +1204,7 @@ export const LiveMatchScreen: React.FC = () => {
       <div
         className={
           spectatorView
-            ? `min-h-0 flex-1 overflow-y-auto overscroll-y-contain ${layoutShell} px-2 pb-24 pt-2`
+            ? `min-h-0 flex-1 overflow-y-auto overscroll-y-contain ${layoutShell} px-2 pb-24 pt-1`
             : `${layoutShell} px-2 py-3 md:px-5 md:py-4 pb-28`
         }
       >
@@ -1375,22 +1379,22 @@ export const LiveMatchScreen: React.FC = () => {
                 </section>
               </>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <section>
-                  <h2 className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
+                  <h2 className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
                     Letzte Aktion
                   </h2>
                   {spectatorLastActionEvent ? (
-                    <div className={`px-3 py-3 ${liveCardShell} border-red-500/20`}>
+                    <div className={`px-3 py-2.5 ${liveCardShell} border-red-500/20`}>
                       <div className="flex items-start gap-3">
                         <div
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-black/40 text-lg"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-black/50 text-base"
                           aria-hidden
                         >
                           {eventIcon(spectatorLastActionEvent.type)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-mono text-xs font-bold tabular-nums text-gray-400">
+                          <p className="font-mono text-[11px] font-bold tabular-nums text-gray-400">
                             {formatMinute(spectatorLastActionEvent.timestamp)}
                           </p>
                           {spectatorLastActionEvent.type === 'goal' && spectatorLastActionEvent.playerId ? (
@@ -1398,27 +1402,48 @@ export const LiveMatchScreen: React.FC = () => {
                               <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-green-400">
                                 Tor
                               </p>
-                              <p className="truncate text-base font-bold text-white">
+                              <p className="truncate text-sm font-bold text-white">
                                 {rosterById.get(spectatorLastActionEvent.playerId)?.name ?? '?'}
                               </p>
-                              <p className="text-xs text-gray-500">{homeDisplayName}</p>
+                              <p className="text-[11px] text-gray-500">{homeDisplayName}</p>
                             </>
                           ) : spectatorLastActionEvent.type === 'goal' ? (
                             <>
                               <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-green-400">
                                 Tor
                               </p>
-                              <p className="text-base font-bold text-white">{awayDisplayName}</p>
+                              <p className="text-sm font-bold text-white">{awayDisplayName}</p>
+                            </>
+                          ) : spectatorLastActionEvent.type === 'sub_out' ||
+                            spectatorLastActionEvent.type === 'sub_in' ? (
+                            <>
+                              <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-sky-400">
+                                Wechsel
+                              </p>
+                              <p className="mt-0.5 text-sm font-semibold leading-snug text-white">
+                                {parentLiveEventDescription(spectatorLastActionEvent)}
+                              </p>
                             </>
                           ) : (
-                            <p className="mt-1 text-sm font-semibold leading-snug text-white">
-                              {parentLiveEventDescription(spectatorLastActionEvent)}
-                            </p>
+                            <>
+                              <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-gray-400">
+                                {spectatorLastActionEvent.type === 'start'
+                                  ? 'Spiel'
+                                  : spectatorLastActionEvent.type === 'end'
+                                    ? 'Ende'
+                                    : spectatorLastActionEvent.type === 'resume'
+                                      ? 'Weiter'
+                                      : 'Ereignis'}
+                              </p>
+                              <p className="mt-0.5 text-sm font-semibold leading-snug text-white">
+                                {parentLiveEventDescription(spectatorLastActionEvent)}
+                              </p>
+                            </>
                           )}
                         </div>
                         {spectatorLastActionEvent.type === 'goal' &&
                         goalScoreBadgeByEventId.get(spectatorLastActionEvent.id) ? (
-                          <span className="shrink-0 rounded-full border border-green-600/80 bg-green-950/90 px-2 py-1 font-mono text-xs font-black tabular-nums text-green-100">
+                          <span className="shrink-0 self-start rounded-full border border-green-600/80 bg-green-950/90 px-2 py-0.5 font-mono text-[11px] font-black tabular-nums text-green-100">
                             {goalScoreBadgeByEventId.get(spectatorLastActionEvent.id)}
                           </span>
                         ) : null}
@@ -1426,28 +1451,28 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   ) : (
                     <p
-                      className={`px-3 py-3 text-center text-sm text-gray-500 ${liveCardShell} border-red-500/15`}
+                      className={`px-3 py-2.5 text-center text-xs text-gray-500 ${liveCardShell} border-red-500/15`}
                     >
                       Sobald etwas passiert, erscheint hier die letzte wichtige Spielaktion.
                     </p>
                   )}
                 </section>
                 <section>
-                  <h2 className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
-                    Kurzinfo
+                  <h2 className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
+                    Spielinfo
                   </h2>
-                  <div className={`space-y-2 px-3 py-2.5 ${liveCardShell} border-red-500/15`}>
-                    <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-2 last:border-0 last:pb-0">
+                  <div className={`space-y-1.5 px-3 py-2 ${liveCardShell} border-red-500/15`}>
+                    <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-1.5">
                       <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                         Wettbewerb
                       </span>
-                      <span className="max-w-[65%] text-right text-sm font-medium text-white">{matchTypeDisplay}</span>
+                      <span className="max-w-[65%] text-right text-xs font-medium text-white">{matchTypeDisplay}</span>
                     </div>
-                    <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-2 last:border-0 last:pb-0">
+                    <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-1.5">
                       <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                         Abschnitt
                       </span>
-                      <span className="max-w-[65%] text-right text-sm font-medium text-gray-200">
+                      <span className="max-w-[65%] text-right text-xs font-medium text-gray-200">
                         {periodDisplayLine}
                       </span>
                     </div>
@@ -1455,7 +1480,7 @@ export const LiveMatchScreen: React.FC = () => {
                       <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                         Laufzeit
                       </span>
-                      <span className="font-mono text-sm font-bold tabular-nums text-[#ef4444]">
+                      <span className="font-mono text-xs font-bold tabular-nums text-[#ef4444]">
                         {formatClock(currentMatchSeconds)}
                       </span>
                     </div>
