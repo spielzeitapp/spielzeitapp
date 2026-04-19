@@ -47,11 +47,11 @@ function LiveMatchLogoTile({
   const glow = liveGlow ? 'shadow-[0_0_12px_rgba(255,0,0,0.3)]' : '';
   const box =
     size === 'hero'
-      ? 'h-16 w-16 sm:h-[4.25rem] sm:w-[4.25rem]'
+      ? 'h-[3.625rem] w-[3.625rem] sm:h-16 sm:w-16'
       : 'h-14 w-14 sm:h-[3.75rem] sm:w-[3.75rem]';
   const imgClass =
     size === 'hero'
-      ? 'max-h-[3.25rem] max-w-[3.25rem] object-contain p-0.5 sm:max-h-[3.5rem] sm:max-w-[3.5rem]'
+      ? 'max-h-[3.1rem] max-w-[3.1rem] object-contain p-0.5 sm:max-h-[3.35rem] sm:max-w-[3.35rem]'
       : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
   return (
     <div
@@ -84,7 +84,7 @@ function formatMinute(ts: number): string {
   return `${min}'`;
 }
 
-/** Anzeige ohne Jugend-Staffel (z. B. „U11“, „(U11)“, „ - U11“). */
+/** Anzeige ohne Jugend-Staffel (inkl. U11 / u11 / Klammern). */
 function cleanTeamDisplayName(name: string): string {
   const raw = (name || '').trim();
   if (!raw) return '';
@@ -93,6 +93,7 @@ function cleanTeamDisplayName(name: string): string {
     .replace(/\s*-\s*U\d{1,2}\b.*$/i, '')
     .replace(/\s+U\d{1,2}\b.*$/i, '')
     .replace(/\bU\d{1,2}\b/gi, '')
+    .replace(/\bu\d{1,2}\b/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
   t = t.replace(/[\s\-–]+$/g, '').trim();
@@ -773,27 +774,27 @@ export const LiveMatchScreen: React.FC = () => {
 
   return (
     <div className="min-h-[100dvh] bg-black pb-28 text-white">
-      <header className="sticky top-0 z-40 border-b border-red-950/40 bg-black/95 px-3 pt-2 pb-3 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-red-950/40 bg-black/95 px-3 pt-1.5 pb-2 backdrop-blur-md">
         <div
           className={[
-            'relative mx-auto max-w-lg overflow-hidden rounded-2xl bg-gradient-to-b from-black via-black to-red-950/40',
-            'px-[15px] pt-3 pb-4 sm:pb-5',
+            'relative mx-auto max-w-lg overflow-hidden rounded-2xl bg-gradient-to-b from-black via-zinc-950 to-red-950/35',
+            'px-3 pt-2 pb-3 sm:px-[14px] sm:pb-3.5',
             matchIsFinished
               ? 'border border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
-              : 'border-2 border-red-500/55 shadow-[0_0_56px_rgba(255,0,0,0.42),0_0_1px_rgba(255,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_0_32px_rgba(127,29,29,0.2)]',
+              : 'border-2 border-red-500/70 shadow-[0_0_64px_rgba(239,68,68,0.48),0_0_1px_rgba(254,202,202,0.5),0_12px_40px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-28px_48px_rgba(127,29,29,0.18)]',
           ].join(' ')}
         >
           <div
-            className="pointer-events-none absolute inset-0 opacity-[0.38]"
+            className="pointer-events-none absolute inset-0 opacity-[0.42]"
             style={{
               backgroundImage:
-                'radial-gradient(ellipse 120% 80% at 50% -20%, rgba(153,27,27,0.4), transparent 55%)',
+                'radial-gradient(ellipse 115% 70% at 50% -15%, rgba(220,38,38,0.38), transparent 52%)',
             }}
             aria-hidden
           />
-          <div className="relative flex flex-col items-center gap-1.5 pb-2 text-center">
+          <div className="relative flex flex-col items-center gap-1 pb-1 text-center">
             <div
-              className={`flex items-center justify-center gap-1.5 rounded-full px-5 py-2 text-[10px] font-black uppercase tracking-[0.26em] sm:text-[11px] ${
+              className={`flex items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.26em] sm:text-[11px] ${
                 matchIsFinished
                   ? 'bg-zinc-800 text-zinc-200 ring-1 ring-white/18'
                   : hasClockStarted
@@ -808,24 +809,24 @@ export const LiveMatchScreen: React.FC = () => {
               ) : null}
               {matchIsFinished ? 'ENDSTAND' : hasClockStarted ? 'LIVE' : 'BEREIT'}
             </div>
-            <p className="text-sm font-bold tracking-wide text-white sm:text-[15px]">{matchTypeDisplay}</p>
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-red-500 drop-shadow-[0_0_14px_rgba(239,68,68,0.55)] sm:text-xs">
+            <p className="text-[13px] font-bold tracking-wide text-white sm:text-sm">{matchTypeDisplay}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-red-500 drop-shadow-[0_0_14px_rgba(239,68,68,0.55)] sm:text-[11px]">
               {periodDisplayLine}
             </p>
           </div>
 
-          {/* Hauptbereich: immer 3 Spalten — Score fix zentral */}
-          <div className="relative mt-4 rounded-xl bg-black/35 px-1 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-12px_28px_rgba(0,0,0,0.35)] ring-1 ring-white/[0.06] sm:px-2 sm:py-4">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-x-1.5 sm:gap-x-3">
-              {/* Links: Logo, Name, Tor */}
-              <div className="flex min-w-0 flex-col items-center pt-0.5 text-center">
+          {/* Hauptbereich: 3 Spalten, Score absoluter Mittelpunkt */}
+          <div className="relative mt-2 rounded-xl bg-black/40 px-0.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-8px_20px_rgba(0,0,0,0.45)] ring-1 ring-white/[0.05] sm:py-2.5">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-x-1 sm:gap-x-2">
+              {/* Links */}
+              <div className="flex min-w-0 flex-col items-center text-center">
                 <LiveMatchLogoTile
                   src={homeLogoSrc}
                   initialsFrom={homeLogoLookupName}
                   liveGlow={logoLiveGlow}
                   size="hero"
                 />
-                <p className="mt-2 line-clamp-3 w-full px-0.5 text-[13px] font-bold leading-snug text-white sm:text-[14px]">
+                <p className="mt-1 line-clamp-2 w-full px-0.5 text-[12px] font-bold leading-tight text-white sm:text-[13px]">
                   {homeDisplayName}
                 </p>
                 {canControlLiveMatch && !matchIsFinished ? (
@@ -835,9 +836,9 @@ export const LiveMatchScreen: React.FC = () => {
                       setHomeGoalPickId('');
                       setHomeGoalModalOpen(true);
                     }}
-                    className="mt-2 flex min-h-[46px] w-full max-w-[10.75rem] items-center justify-center gap-1 rounded-xl bg-gradient-to-b from-emerald-400 via-emerald-600 to-emerald-950 px-2 text-[12px] font-black uppercase tracking-wide text-white shadow-[0_0_26px_rgba(34,197,94,0.5),inset_0_1px_0_rgba(255,255,255,0.22)] active:scale-[0.98] sm:min-h-[48px] sm:text-[13px]"
+                    className="mt-1 flex h-[44px] w-full max-w-[10.25rem] items-center justify-center gap-1 rounded-xl bg-gradient-to-b from-[#16a34a] via-[#1a9f48] to-[#22c55e] px-2 text-[11px] font-black uppercase tracking-wide text-white shadow-[0_0_32px_rgba(34,197,94,0.55),0_0_12px_rgba(22,163,74,0.45),inset_0_1px_0_rgba(255,255,255,0.28)] active:scale-[0.98] sm:h-[46px] sm:text-[12px]"
                   >
-                    <span className="text-[15px] leading-none" aria-hidden>
+                    <span className="text-[14px] leading-none" aria-hidden>
                       ⚽
                     </span>
                     + TOR
@@ -845,52 +846,55 @@ export const LiveMatchScreen: React.FC = () => {
                 ) : null}
               </div>
 
-              {/* Mitte: Score, Drittel, Ort, Zeit */}
-              <div className="flex min-w-[8.5rem] max-w-[11.5rem] flex-col items-center justify-start px-0.5 text-center sm:min-w-[9.5rem] sm:max-w-[13rem] sm:px-1">
-                <div className="flex items-baseline justify-center gap-5 sm:gap-7">
-                  <span className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)] sm:text-[3.6rem]">
+              {/* Mitte: Score (+ rot leuchten), Zeit, Drittel, Ort */}
+              <div className="flex min-w-[9rem] max-w-[12rem] flex-col items-center px-0.5 text-center sm:min-w-[10rem] sm:max-w-[13.5rem]">
+                <div
+                  className={[
+                    'flex items-baseline justify-center gap-6 sm:gap-8',
+                    matchIsFinished ? '' : 'drop-shadow-[0_0_28px_rgba(239,68,68,0.35)] drop-shadow-[0_0_56px_rgba(220,38,38,0.2)]',
+                  ].join(' ')}
+                >
+                  <span className="text-[3.35rem] font-black tabular-nums leading-none tracking-tight text-white sm:text-[4rem]">
                     {scoreHome}
                   </span>
                   <span
-                    className="select-none px-0.5 pb-0.5 text-4xl font-extralight leading-none text-white/40 sm:text-[3.1rem]"
+                    className="select-none px-1 pb-0.5 text-[2.85rem] font-extralight leading-none text-white/35 sm:text-[3.4rem]"
                     aria-hidden
                   >
                     :
                   </span>
-                  <span className="text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)] sm:text-[3.6rem]">
+                  <span className="text-[3.35rem] font-black tabular-nums leading-none tracking-tight text-white sm:text-[4rem]">
                     {scoreAway}
                   </span>
                 </div>
-                <p className="mt-2.5 w-full text-center font-mono text-[10px] font-bold leading-tight tracking-wide text-white/85 sm:text-[11px]">
+                <p
+                  className={`mt-1 font-mono text-[2rem] font-black tabular-nums leading-none tracking-tight sm:text-[2.25rem] ${
+                    matchIsFinished ? 'text-zinc-500' : 'text-[#ef4444]'
+                  } ${!matchIsFinished ? 'drop-shadow-[0_0_22px_rgba(239,68,68,0.65)]' : ''}`}
+                >
+                  ⏱ {formatClock(currentMatchSeconds)}
+                </p>
+                <p className="mt-1.5 w-full text-center font-mono text-[9px] font-bold leading-tight tracking-wide text-white/70 sm:text-[10px]">
                   {periodScoreLine}
                 </p>
-                <div className="mt-3 w-full space-y-1.5 border-t border-white/[0.08] pt-2.5">
-                  {matchRow?.location ? (
-                    <p className="text-[12px] font-semibold leading-snug text-zinc-200 sm:text-[13px]">📍 {matchRow.location}</p>
-                  ) : (
-                    <p className="text-[12px] font-semibold text-zinc-400 sm:text-[13px]">📍 —</p>
-                  )}
-                  <p
-                    className={`font-mono text-[1.65rem] font-black tabular-nums leading-none tracking-tight sm:text-[1.95rem] ${
-                      matchIsFinished
-                        ? 'text-zinc-500'
-                        : 'text-red-500 drop-shadow-[0_0_20px_rgba(239,68,68,0.55)]'
-                    }`}
-                  >
-                    ⏱ {formatClock(currentMatchSeconds)}
+                {matchRow?.location ? (
+                  <p className="mt-1 line-clamp-2 max-w-full px-0.5 text-center text-[10px] font-medium leading-snug text-zinc-500 sm:text-[11px]">
+                    📍 {matchRow.location}
                   </p>
-                </div>
+                ) : (
+                  <p className="mt-1 text-[10px] font-medium text-zinc-600 sm:text-[11px]">📍 —</p>
+                )}
               </div>
 
-              {/* Rechts: Logo, Name, Tor */}
-              <div className="flex min-w-0 flex-col items-center pt-0.5 text-center">
+              {/* Rechts */}
+              <div className="flex min-w-0 flex-col items-center text-center">
                 <LiveMatchLogoTile
                   src={awayLogoSrc}
                   initialsFrom={headerOpponent}
                   liveGlow={logoLiveGlow}
                   size="hero"
                 />
-                <p className="mt-2 line-clamp-3 w-full px-0.5 text-[13px] font-bold leading-snug text-white sm:text-[14px]">
+                <p className="mt-1 line-clamp-2 w-full px-0.5 text-[12px] font-bold leading-tight text-white sm:text-[13px]">
                   {awayDisplayName}
                 </p>
                 {canControlLiveMatch && !matchIsFinished ? (
@@ -908,9 +912,9 @@ export const LiveMatchScreen: React.FC = () => {
                         return n;
                       });
                     }}
-                    className="mt-2 flex min-h-[46px] w-full max-w-[10.75rem] items-center justify-center gap-1 rounded-xl bg-gradient-to-b from-red-500 via-red-700 to-red-950 px-2 text-[12px] font-black uppercase tracking-wide text-white shadow-[0_0_28px_rgba(239,68,68,0.55),inset_0_1px_0_rgba(255,255,255,0.15)] active:scale-[0.98] sm:min-h-[48px] sm:text-[13px]"
+                    className="mt-1 flex h-[44px] w-full max-w-[10.25rem] items-center justify-center gap-1 rounded-xl bg-gradient-to-b from-[#dc2626] via-[#e11d48] to-[#ef4444] px-2 text-[11px] font-black uppercase tracking-wide text-white shadow-[0_0_34px_rgba(239,68,68,0.55),0_0_14px_rgba(220,38,38,0.45),inset_0_1px_0_rgba(255,255,255,0.22)] active:scale-[0.98] sm:h-[46px] sm:text-[12px]"
                   >
-                    <span className="text-[15px] leading-none" aria-hidden>
+                    <span className="text-[14px] leading-none" aria-hidden>
                       ⚽
                     </span>
                     + TOR
@@ -933,18 +937,16 @@ export const LiveMatchScreen: React.FC = () => {
 
           {canControlLiveMatch && !matchIsFinished && (
             <>
-              <div className="relative mt-4 flex gap-2.5">
+              <div className="relative mt-2.5 flex w-full overflow-hidden rounded-xl border-2 border-zinc-700/90 bg-zinc-950 shadow-[0_10px_36px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.05)]">
                 <button
                   type="button"
                   onClick={onStartClick}
                   disabled={isRunning || matchIsFinished}
                   className={[
-                    'min-h-[54px] flex-1 rounded-xl px-1.5 text-[12px] font-black uppercase tracking-wide shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] active:scale-[0.98] sm:min-h-[56px] sm:text-[13px]',
+                    'flex min-h-[50px] flex-1 items-center justify-center border-r border-black/50 px-1 text-[11px] font-black uppercase tracking-wide transition-colors active:scale-[0.99] sm:min-h-[52px] sm:text-[12px]',
                     isRunning || matchIsFinished
-                      ? 'border-2 border-emerald-950/70 bg-emerald-950/50 text-emerald-200/35'
-                      : !hasClockStarted
-                        ? 'border-2 border-emerald-400/70 bg-gradient-to-b from-emerald-500 to-emerald-950 text-white shadow-[0_0_28px_rgba(16,185,129,0.45)]'
-                        : 'border-2 border-emerald-600/50 bg-gradient-to-b from-emerald-800 to-emerald-950 text-emerald-50 shadow-[0_0_18px_rgba(16,185,129,0.2)]',
+                      ? 'bg-emerald-950/95 text-emerald-900/30'
+                      : 'bg-gradient-to-b from-emerald-950 via-emerald-950 to-black text-emerald-100/95 shadow-[inset_0_1px_0_rgba(16,185,129,0.12)]',
                   ].join(' ')}
                 >
                   {!hasClockStarted ? 'BEGINN' : 'WEITER'}
@@ -954,10 +956,10 @@ export const LiveMatchScreen: React.FC = () => {
                   onClick={onPauseClick}
                   disabled={!isRunning || matchIsFinished}
                   className={[
-                    'min-h-[54px] flex-1 rounded-xl px-1.5 text-[12px] font-black uppercase tracking-wide shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] active:scale-[0.98] sm:min-h-[56px] sm:text-[13px]',
+                    'flex min-h-[50px] flex-1 items-center justify-center border-r border-black/50 px-1 text-[11px] font-black uppercase tracking-wide transition-colors active:scale-[0.99] sm:min-h-[52px] sm:text-[12px]',
                     isRunning && !matchIsFinished
-                      ? 'border-2 border-amber-300/90 bg-gradient-to-b from-amber-400 to-amber-800 text-black shadow-[0_0_32px_rgba(245,158,11,0.55)]'
-                      : 'border-2 border-amber-950/60 bg-amber-950/40 text-amber-200/30',
+                      ? 'bg-gradient-to-b from-amber-400 to-amber-700 text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_0_28px_rgba(249,115,22,0.45)]'
+                      : 'bg-amber-950/50 text-amber-800/35',
                   ].join(' ')}
                 >
                   PAUSE
@@ -970,10 +972,10 @@ export const LiveMatchScreen: React.FC = () => {
                   }}
                   disabled={matchIsFinished || currentMatchSeconds >= MATCH_HALF_DURATION_SEC}
                   className={[
-                    'min-h-[54px] flex-1 rounded-xl px-1.5 text-[12px] font-black uppercase tracking-wide shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:scale-[0.98] sm:min-h-[56px] sm:text-[13px]',
+                    'flex min-h-[50px] flex-1 items-center justify-center px-1 text-[11px] font-black uppercase tracking-wide transition-colors active:scale-[0.99] sm:min-h-[52px] sm:text-[12px]',
                     matchIsFinished || currentMatchSeconds >= MATCH_HALF_DURATION_SEC
-                      ? 'border-2 border-red-950/70 bg-red-950/35 text-red-300/25'
-                      : 'border-2 border-red-500/60 bg-gradient-to-b from-red-700 to-red-950 text-red-50 shadow-[0_0_24px_rgba(220,38,38,0.35)]',
+                      ? 'bg-red-950/60 text-red-900/35'
+                      : 'bg-gradient-to-b from-red-900 to-red-950 text-red-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_20px_rgba(220,38,38,0.25)]',
                   ].join(' ')}
                 >
                   ENDE
@@ -983,9 +985,9 @@ export const LiveMatchScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setMainTab('overview')}
-                className="relative mt-3 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl border border-zinc-600/50 bg-zinc-950 text-[13px] font-black uppercase tracking-wide text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] active:scale-[0.99] sm:min-h-[54px] sm:text-[14px]"
+                className="relative mt-2 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-zinc-600/50 bg-zinc-950 text-[12px] font-black uppercase tracking-wide text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] active:scale-[0.99] sm:min-h-[50px] sm:text-[13px]"
               >
-                <span className="text-lg text-white" aria-hidden>
+                <span className="text-base text-white" aria-hidden>
                   ⇄
                 </span>
                 WECHSEL
@@ -994,7 +996,7 @@ export const LiveMatchScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setEndMatchConfirmOpen(true)}
-                className="relative mt-2.5 flex min-h-[50px] w-full items-center justify-center gap-2 rounded-xl border-2 border-red-500 bg-black/30 text-[12px] font-bold uppercase tracking-wide text-red-500 shadow-none active:scale-[0.99] sm:min-h-[52px] sm:text-[13px]"
+                className="relative mt-2 flex min-h-[46px] w-full items-center justify-center gap-2 rounded-xl border-2 border-red-500 bg-black/30 text-[11px] font-bold uppercase tracking-wide text-red-500 shadow-none active:scale-[0.99] sm:min-h-[48px] sm:text-[12px]"
               >
                 <span className="text-base" aria-hidden>
                   🚩
