@@ -147,13 +147,17 @@ const tabNavBtnBase =
 const tabNavBtnActive = 'border-red-500 text-white';
 const tabNavBtnIdle = 'hover:text-gray-300';
 
-/** Eltern/Fan/Spieler: kompakte Pill-Tabs unter dem Matchboard. */
+/** Eltern/Fan/Spieler: Pill-Tabs (Anschluss an Termine-/Kader-Filter). */
 const spectatorTabWrap =
-  'mt-1 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+  'mt-0.5 flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 const spectatorTabBtnBase =
-  'min-h-[36px] shrink-0 flex-1 rounded-full px-3 py-1.5 text-center text-xs font-semibold transition-colors sm:text-sm';
-const spectatorTabBtnActive = 'bg-red-600 text-white';
-const spectatorTabBtnIdle = 'bg-neutral-800 text-gray-200 hover:bg-neutral-700';
+  'flex h-9 min-h-9 shrink-0 flex-1 items-center justify-center rounded-full border px-2 text-center text-xs font-semibold transition-colors sm:text-sm';
+const spectatorTabBtnActive = 'border-red-600/60 bg-red-600 text-white shadow-sm';
+const spectatorTabBtnIdle =
+  'border-white/[0.08] bg-zinc-900/95 text-gray-300 hover:border-red-500/25 hover:bg-zinc-800 hover:text-white';
+
+const liveCardShell =
+  'rounded-2xl border border-white/[0.08] bg-gradient-to-br from-zinc-950/95 via-zinc-950/80 to-black shadow-[0_6px_28px_rgba(0,0,0,0.35)]';
 
 function eventIcon(t: MatchEventType): string {
   if (t === 'goal') return '⚽';
@@ -167,6 +171,25 @@ function eventIcon(t: MatchEventType): string {
 
 function newEventId(): string {
   return `e_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+/** Liveticker-Zeilen für Zuschauer: chronologisch, Wechsel-Paar an gleicher Minute zusammen. */
+function buildSpectatorTickerRows(events: MatchEngineEvent[]): { key: string; items: MatchEngineEvent[] }[] {
+  const asc = sortMatchEventsChronologically(events);
+  const rows: { key: string; items: MatchEngineEvent[] }[] = [];
+  let i = 0;
+  while (i < asc.length) {
+    const e = asc[i];
+    const n = asc[i + 1];
+    if (e.type === 'sub_out' && n?.type === 'sub_in' && n.timestamp === e.timestamp) {
+      rows.push({ key: `subpair_${e.id}_${n.id}`, items: [e, n] });
+      i += 2;
+    } else {
+      rows.push({ key: e.id, items: [e] });
+      i += 1;
+    }
+  }
+  return rows;
 }
 
 type EventsFilter = 'all' | 'goals' | 'subs';
@@ -340,8 +363,6 @@ export const LiveMatchScreen: React.FC = () => {
   const [homeGoalModalOpen, setHomeGoalModalOpen] = useState(false);
   const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
   const [endMatchConfirmOpen, setEndMatchConfirmOpen] = useState(false);
-  const [spectatorKaderSegment, setSpectatorKaderSegment] = useState<'dabei' | 'nichtdabei'>('dabei');
-
   const hasClockStarted = useMemo(
     () => Boolean(matchRow?.live_started_at) || events.some((e) => e.type === 'start'),
     [matchRow?.live_started_at, events],
@@ -364,11 +385,6 @@ export const LiveMatchScreen: React.FC = () => {
     const set = new Set(ids);
     return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
   }, [squadPlayerIds, onFieldIds, roster]);
-
-  const notInSquadPlayers = useMemo(
-    () => sortRosterByNumber(roster.filter((p) => !squadPlayerIds.includes(p.id))),
-    [roster, squadPlayerIds],
-  );
 
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
 
@@ -566,11 +582,7 @@ export const LiveMatchScreen: React.FC = () => {
     return list;
   }, [events, eventsFilter]);
 
-  /** Eltern-Liveticker: chronologisch alt → neu (Lesen wie Spielverlauf). */
-  const parentLivetickerList = useMemo(
-    () => [...events].sort((a, b) => a.timestamp - b.timestamp || a.id.localeCompare(b.id)),
-    [events],
-  );
+  const spectatorTickerRows = useMemo(() => buildSpectatorTickerRows(events), [events]);
 
   const spectatorLastActionEvent = useMemo(() => {
     const ranked = events.filter((e) => e.type !== 'pause');
@@ -637,7 +649,7 @@ export const LiveMatchScreen: React.FC = () => {
       case 'resume':
         return 'Weiter nach Pause';
       case 'end':
-        return 'Spiel zu Ende';
+        return 'Schlusspfiff';
       case 'goal':
         if (!ev.playerId) return `Tor für ${awayDisplayName || 'Gast'}`;
         return name ? `${name} trifft` : 'Tor für uns';
@@ -775,6 +787,63 @@ export const LiveMatchScreen: React.FC = () => {
     );
   };
 
+  const renderSpectatorTickerRow = (
+    row: { key: string; items: MatchEngineEvent[] },
+    index: number,
+    rowCount: number,
+  ) => {
+    const ev = row.items[0];
+    const minute = formatMinute(ev.timestamp);
+    const isLast = index === rowCount - 1;
+    const lineEl = !isLast ? (
+      <div className="absolute top-2 bottom-0 left-1/2 w-px -translate-x-1/2 bg-red-600/35" aria-hidden />
+    ) : null;
+
+    let body: React.ReactNode;
+    if (row.items.length === 2 && row.items[0].type === 'sub_out' && row.items[1].type === 'sub_in') {
+      const outP = rosterById.get(row.items[0].playerId ?? '')?.name ?? '?';
+      const inP = rosterById.get(row.items[1].playerId ?? '')?.name ?? '?';
+      body = (
+        <>
+          <p className="text-[10px] font-black uppercase tracking-wide text-sky-400">Wechsel</p>
+          <p className="mt-1 text-[13px] font-bold leading-snug text-emerald-400">IN {inP}</p>
+          <p className="mt-0.5 text-[13px] font-bold leading-snug text-red-300">OUT {outP}</p>
+        </>
+      );
+    } else if (ev.type === 'goal') {
+      const pl = ev.playerId ? rosterById.get(ev.playerId) : undefined;
+      const badge = goalScoreBadgeByEventId.get(ev.id);
+      body = (
+        <>
+          <p className="text-[10px] font-black uppercase tracking-wide text-green-400">Tor</p>
+          {ev.playerId ? (
+            <p className="mt-1 truncate text-sm font-bold text-white">{pl?.name ?? '?'}</p>
+          ) : (
+            <p className="mt-1 truncate text-sm font-bold text-white">{awayDisplayName}</p>
+          )}
+          {badge ? (
+            <p className="mt-1 font-mono text-sm font-black tabular-nums text-white">{badge}</p>
+          ) : null}
+        </>
+      );
+    } else {
+      body = (
+        <p className="text-[13px] font-semibold leading-snug text-gray-200">{parentLiveEventDescription(ev)}</p>
+      );
+    }
+
+    return (
+      <li key={row.key} className="flex gap-2 pb-2 last:pb-0">
+        <div className="w-10 shrink-0 pt-1 text-right text-xs font-bold tabular-nums text-gray-400">{minute}</div>
+        <div className="relative flex w-3 shrink-0 flex-col items-center pt-1">
+          {lineEl}
+          <div className="relative z-10 mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" aria-hidden />
+        </div>
+        <div className={`min-w-0 flex-1 px-3 py-2 ${liveCardShell}`}>{body}</div>
+      </li>
+    );
+  };
+
   const selectClass =
     'mt-1 w-full min-h-[52px] rounded-2xl border border-white/15 bg-black/50 px-3 text-base text-white focus:border-red-500/60 focus:outline-none focus:ring-1 focus:ring-red-500/40';
 
@@ -873,8 +942,10 @@ export const LiveMatchScreen: React.FC = () => {
         >
           {matchboardVisible && (
             <div
-              className={`mx-auto mb-0 w-full max-w-md rounded-xl border border-red-500/30 bg-black ${
-                spectatorView ? 'p-2 md:p-3' : 'p-3 md:p-4'
+              className={`mx-auto mb-0 w-full max-w-md ${
+                spectatorView
+                  ? `${liveCardShell} border-red-500/25 p-2 md:p-2.5`
+                  : 'rounded-xl border border-red-500/30 bg-black p-3 md:p-4'
               }`}
             >
               <div
@@ -1078,7 +1149,7 @@ export const LiveMatchScreen: React.FC = () => {
                 className={`${spectatorTabBtnBase} ${mainTab === 'lineup' ? spectatorTabBtnActive : spectatorTabBtnIdle}`}
                 onClick={() => setMainTab('lineup')}
               >
-                Kader
+                Aufstellung
               </button>
               <button
                 type="button"
@@ -1304,58 +1375,92 @@ export const LiveMatchScreen: React.FC = () => {
                 </section>
               </>
             ) : (
-              <div className="space-y-3">
-                {spectatorLastActionEvent ? (
-                  <section>
-                    <h2 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
-                      Letzte Aktion
-                    </h2>
-                    <div className="rounded-xl border border-red-500/20 bg-zinc-950 px-3 py-3">
-                      <div className="flex gap-3">
+              <div className="space-y-2">
+                <section>
+                  <h2 className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
+                    Letzte Aktion
+                  </h2>
+                  {spectatorLastActionEvent ? (
+                    <div className={`px-3 py-3 ${liveCardShell} border-red-500/20`}>
+                      <div className="flex items-start gap-3">
                         <div
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-lg"
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-black/40 text-lg"
                           aria-hidden
                         >
                           {eventIcon(spectatorLastActionEvent.type)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[11px] font-semibold text-gray-400">
+                          <p className="font-mono text-xs font-bold tabular-nums text-gray-400">
                             {formatMinute(spectatorLastActionEvent.timestamp)}
                           </p>
                           {spectatorLastActionEvent.type === 'goal' && spectatorLastActionEvent.playerId ? (
                             <>
-                              <p className="mt-0.5 text-xs font-black uppercase tracking-wide text-green-400">Tor</p>
-                              <p className="text-sm font-semibold text-white">
+                              <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-green-400">
+                                Tor
+                              </p>
+                              <p className="truncate text-base font-bold text-white">
                                 {rosterById.get(spectatorLastActionEvent.playerId)?.name ?? '?'}
                               </p>
-                              <p className="text-xs text-gray-400">für {homeDisplayName}</p>
+                              <p className="text-xs text-gray-500">{homeDisplayName}</p>
                             </>
                           ) : spectatorLastActionEvent.type === 'goal' ? (
                             <>
-                              <p className="mt-0.5 text-xs font-black uppercase tracking-wide text-green-400">Tor</p>
-                              <p className="text-sm font-semibold text-white">für {awayDisplayName}</p>
+                              <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-green-400">
+                                Tor
+                              </p>
+                              <p className="text-base font-bold text-white">{awayDisplayName}</p>
                             </>
                           ) : (
-                            <p className="mt-0.5 text-sm font-semibold leading-snug text-white">
+                            <p className="mt-1 text-sm font-semibold leading-snug text-white">
                               {parentLiveEventDescription(spectatorLastActionEvent)}
                             </p>
                           )}
                         </div>
                         {spectatorLastActionEvent.type === 'goal' &&
                         goalScoreBadgeByEventId.get(spectatorLastActionEvent.id) ? (
-                          <span className="shrink-0 rounded-full border border-green-600 bg-green-950/90 px-2 py-0.5 font-mono text-[10px] font-black tabular-nums text-green-100">
+                          <span className="shrink-0 rounded-full border border-green-600/80 bg-green-950/90 px-2 py-1 font-mono text-xs font-black tabular-nums text-green-100">
                             {goalScoreBadgeByEventId.get(spectatorLastActionEvent.id)}
                           </span>
                         ) : null}
                       </div>
                     </div>
-                  </section>
-                ) : null}
-                {!spectatorLastActionEvent ? (
-                  <p className="rounded-lg border border-red-500/15 bg-zinc-950/50 px-3 py-3 text-center text-sm text-gray-500">
-                    Sobald etwas passiert, siehst du hier die letzte wichtige Aktion zum Spiel.
-                  </p>
-                ) : null}
+                  ) : (
+                    <p
+                      className={`px-3 py-3 text-center text-sm text-gray-500 ${liveCardShell} border-red-500/15`}
+                    >
+                      Sobald etwas passiert, erscheint hier die letzte wichtige Spielaktion.
+                    </p>
+                  )}
+                </section>
+                <section>
+                  <h2 className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
+                    Kurzinfo
+                  </h2>
+                  <div className={`space-y-2 px-3 py-2.5 ${liveCardShell} border-red-500/15`}>
+                    <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-2 last:border-0 last:pb-0">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                        Wettbewerb
+                      </span>
+                      <span className="max-w-[65%] text-right text-sm font-medium text-white">{matchTypeDisplay}</span>
+                    </div>
+                    <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-2 last:border-0 last:pb-0">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                        Abschnitt
+                      </span>
+                      <span className="max-w-[65%] text-right text-sm font-medium text-gray-200">
+                        {periodDisplayLine}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                        Laufzeit
+                      </span>
+                      <span className="font-mono text-sm font-bold tabular-nums text-[#ef4444]">
+                        {formatClock(currentMatchSeconds)}
+                      </span>
+                    </div>
+                  </div>
+                </section>
               </div>
             )}
           </div>
@@ -1428,97 +1533,56 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
               </>
             ) : (
-              <>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className={`${spectatorTabBtnBase} ${spectatorKaderSegment === 'dabei' ? spectatorTabBtnActive : spectatorTabBtnIdle}`}
-                    onClick={() => setSpectatorKaderSegment('dabei')}
-                  >
-                    Dabei ({squadPlayerIds.length})
-                  </button>
-                  <button
-                    type="button"
-                    className={`${spectatorTabBtnBase} ${spectatorKaderSegment === 'nichtdabei' ? spectatorTabBtnActive : spectatorTabBtnIdle}`}
-                    onClick={() => setSpectatorKaderSegment('nichtdabei')}
-                  >
-                    Nicht dabei ({notInSquadPlayers.length})
-                  </button>
+              <div className="space-y-3">
+                <div>
+                  <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                    Startaufstellung
+                  </h3>
+                  {fieldPlayers.length === 0 ? (
+                    <p className={`px-3 py-3 text-sm text-gray-500 ${liveCardShell}`}>Noch keine Startaufstellung.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {fieldPlayers.map((p) => (
+                        <li
+                          key={p.id}
+                          className={`flex min-h-[52px] items-center gap-3 px-4 py-3 ${liveCardShell} border-red-500/20`}
+                        >
+                          <span className="w-9 shrink-0 text-center text-lg font-black tabular-nums text-red-500">
+                            {p.number || '–'}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">{p.name}</span>
+                          <span className="shrink-0 rounded-full border border-red-500/30 bg-red-950/40 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-red-200/90">
+                            Feld
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-                {spectatorKaderSegment === 'dabei' ? (
-                  <>
-                    <div>
-                      <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
-                        Startelf
-                      </h3>
-                      {fieldPlayers.length === 0 ? (
-                        <p className="text-sm text-gray-500">Startelf wird noch festgelegt.</p>
-                      ) : (
-                        <ul className="space-y-1.5">
-                          {fieldPlayers.map((p) => (
-                            <li
-                              key={p.id}
-                              className="flex items-center gap-3 rounded-lg border border-red-500/20 bg-zinc-950 px-3 py-2"
-                            >
-                              <span className="w-8 shrink-0 text-center text-sm font-black tabular-nums text-red-500">
-                                {p.number || '–'}
-                              </span>
-                              <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">{p.name}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
-                        Ersatz / Bank
-                      </h3>
-                      {benchPlayers.length === 0 ? (
-                        <p className="text-sm text-gray-500">Keine Ersatzspielerinnen und -spieler gemeldet.</p>
-                      ) : (
-                        <ul className="space-y-1.5">
-                          {benchPlayers.map((p) => (
-                            <li
-                              key={p.id}
-                              className="flex items-center gap-3 rounded-lg border border-red-500/15 bg-black/60 px-3 py-2"
-                            >
-                              <span className="w-8 shrink-0 text-center text-sm font-black tabular-nums text-gray-400">
-                                {p.number || '–'}
-                              </span>
-                              <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-200">{p.name}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div>
-                    <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
-                      Nicht im Spiel-Kader
-                    </h3>
-                    {notInSquadPlayers.length === 0 ? (
-                      <p className="text-sm text-gray-500">
-                        Für dieses Spiel sind alle Mannschaftsspielerinnen und -spieler im Kader.
-                      </p>
-                    ) : (
-                      <ul className="space-y-1.5">
-                        {notInSquadPlayers.map((p) => (
-                          <li
-                            key={p.id}
-                            className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-zinc-950/80 px-3 py-2"
-                          >
-                            <span className="w-8 shrink-0 text-center text-sm font-bold tabular-nums text-gray-500">
-                              {p.number || '–'}
-                            </span>
-                            <span className="min-w-0 flex-1 truncate text-sm text-gray-400">{p.name}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
-              </>
+                <div>
+                  <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">Ersatzbank</h3>
+                  {benchPlayers.length === 0 ? (
+                    <p className={`px-3 py-3 text-sm text-gray-500 ${liveCardShell}`}>Keine Ersatzspielerinnen und -spieler gemeldet.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {benchPlayers.map((p) => (
+                        <li
+                          key={p.id}
+                          className={`flex min-h-[52px] items-center gap-3 px-4 py-3 ${liveCardShell} border-white/[0.06]`}
+                        >
+                          <span className="w-9 shrink-0 text-center text-lg font-black tabular-nums text-gray-400">
+                            {p.number || '–'}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-100">{p.name}</span>
+                          <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                            Bank
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -1549,18 +1613,18 @@ export const LiveMatchScreen: React.FC = () => {
                 ))}
               </div>
             ) : null}
-            {(canControlLiveMatch ? filteredEvents : parentLivetickerList).length === 0 ? (
-              <p className="rounded-xl border border-red-500/20 bg-zinc-950/50 px-4 py-8 text-center text-sm text-gray-400">
+            {(canControlLiveMatch ? filteredEvents : spectatorTickerRows).length === 0 ? (
+              <p className={`px-4 py-8 text-center text-sm text-gray-400 ${liveCardShell} border-red-500/20`}>
                 {canControlLiveMatch ? 'Keine Einträge für diesen Filter.' : 'Noch keine Spielereignisse.'}
               </p>
+            ) : canControlLiveMatch ? (
+              <ul className="max-h-[60vh] overflow-y-auto rounded-xl border border-red-500/30 bg-black px-1 py-2 sm:px-2 sm:py-3">
+                {filteredEvents.map((ev, i, arr) => renderTimelineRow(ev, i, arr.length, true))}
+              </ul>
             ) : (
-              <ul
-                className={`overflow-y-auto rounded-xl border border-red-500/30 bg-black px-1 py-2 sm:px-2 sm:py-3 ${
-                  spectatorView ? '' : 'max-h-[60vh]'
-                }`}
-              >
-                {(canControlLiveMatch ? filteredEvents : parentLivetickerList).map((ev, i, arr) =>
-                  renderTimelineRow(ev, i, arr.length, true, !canControlLiveMatch),
+              <ul className="rounded-xl border border-red-500/25 bg-black/40 px-1 py-2">
+                {spectatorTickerRows.map((row, i) =>
+                  renderSpectatorTickerRow(row, i, spectatorTickerRows.length),
                 )}
               </ul>
             )}
