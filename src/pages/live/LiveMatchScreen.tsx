@@ -41,18 +41,30 @@ function LiveMatchLogoTile({
   src: string;
   initialsFrom: string;
   liveGlow: boolean;
-  size?: 'md' | 'hero';
+  size?: 'md' | 'hero' | 'heroLg';
 }) {
   const [failed, setFailed] = useState(false);
   const glow = liveGlow ? 'shadow-[0_0_12px_rgba(255,0,0,0.3)]' : '';
-  const box = size === 'hero' ? 'h-14 w-14' : 'h-14 w-14 sm:h-[3.75rem] sm:w-[3.75rem]';
+  const round = size === 'heroLg' ? 'rounded-full' : 'rounded-xl';
+  const box =
+    size === 'heroLg'
+      ? 'h-[4.25rem] w-[4.25rem] sm:h-[4.75rem] sm:w-[4.75rem]'
+      : size === 'hero'
+        ? 'h-14 w-14'
+        : 'h-14 w-14 sm:h-[3.75rem] sm:w-[3.75rem]';
   const imgClass =
-    size === 'hero'
-      ? 'max-h-11 max-w-11 object-contain p-0.5'
-      : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
+    size === 'heroLg'
+      ? 'max-h-[3.35rem] max-w-[3.35rem] object-contain p-0.5 sm:max-h-[3.65rem] sm:max-w-[3.65rem]'
+      : size === 'hero'
+        ? 'max-h-11 max-w-11 object-contain p-0.5'
+        : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
+  const initialsClass =
+    size === 'heroLg'
+      ? 'select-none text-lg font-black tabular-nums text-white sm:text-xl'
+      : 'select-none text-base font-black tabular-nums text-white sm:text-lg';
   return (
     <div
-      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-red-500/30 bg-zinc-950/95 ${box} ${glow}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden border border-red-500/30 bg-zinc-950/95 ${round} ${box} ${glow}`}
     >
       {!failed ? (
         <img
@@ -62,7 +74,7 @@ function LiveMatchLogoTile({
           onError={() => setFailed(true)}
         />
       ) : (
-        <span className="select-none text-base font-black tabular-nums text-white sm:text-lg" aria-hidden>
+        <span className={initialsClass} aria-hidden>
           {getTeamInitials(initialsFrom)}
         </span>
       )}
@@ -134,6 +146,14 @@ const tabNavBtnBase =
   'shrink-0 whitespace-nowrap border-b-2 border-transparent px-2.5 py-2 text-xs font-semibold text-gray-500 transition-colors sm:px-3 sm:text-sm md:flex-1 md:px-2 md:text-center';
 const tabNavBtnActive = 'border-red-500 text-white';
 const tabNavBtnIdle = 'hover:text-gray-300';
+
+/** Eltern/Fan/Spieler: kompakte Pill-Tabs unter dem Matchboard. */
+const spectatorTabWrap =
+  'mt-1 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+const spectatorTabBtnBase =
+  'min-h-[36px] shrink-0 flex-1 rounded-full px-3 py-1.5 text-center text-xs font-semibold transition-colors sm:text-sm';
+const spectatorTabBtnActive = 'bg-red-600 text-white';
+const spectatorTabBtnIdle = 'bg-neutral-800 text-gray-200 hover:bg-neutral-700';
 
 function eventIcon(t: MatchEventType): string {
   if (t === 'goal') return '⚽';
@@ -320,6 +340,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [homeGoalModalOpen, setHomeGoalModalOpen] = useState(false);
   const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
   const [endMatchConfirmOpen, setEndMatchConfirmOpen] = useState(false);
+  const [spectatorKaderSegment, setSpectatorKaderSegment] = useState<'dabei' | 'nichtdabei'>('dabei');
 
   const hasClockStarted = useMemo(
     () => Boolean(matchRow?.live_started_at) || events.some((e) => e.type === 'start'),
@@ -343,6 +364,11 @@ export const LiveMatchScreen: React.FC = () => {
     const set = new Set(ids);
     return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
   }, [squadPlayerIds, onFieldIds, roster]);
+
+  const notInSquadPlayers = useMemo(
+    () => sortRosterByNumber(roster.filter((p) => !squadPlayerIds.includes(p.id))),
+    [roster, squadPlayerIds],
+  );
 
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
 
@@ -540,14 +566,17 @@ export const LiveMatchScreen: React.FC = () => {
     return list;
   }, [events, eventsFilter]);
 
-  /** Eltern-Liveticker: ohne Pausen-Häufchen, chronologisch neu → alt. */
+  /** Eltern-Liveticker: chronologisch alt → neu (Lesen wie Spielverlauf). */
   const parentLivetickerList = useMemo(
-    () =>
-      [...events]
-        .filter((e) => e.type !== 'pause')
-        .sort((a, b) => b.timestamp - a.timestamp),
+    () => [...events].sort((a, b) => a.timestamp - b.timestamp || a.id.localeCompare(b.id)),
     [events],
   );
+
+  const spectatorLastActionEvent = useMemo(() => {
+    const ranked = events.filter((e) => e.type !== 'pause');
+    if (ranked.length === 0) return null;
+    return [...ranked].sort((a, b) => b.timestamp - a.timestamp || a.id.localeCompare(b.id))[0] ?? null;
+  }, [events]);
 
   /** Nur für UI: Stand nach jedem Tor (chronologisch), kein Einfluss auf Persistenz. */
   const goalScoreBadgeByEventId = useMemo(() => {
@@ -604,7 +633,7 @@ export const LiveMatchScreen: React.FC = () => {
     const name = ev.playerId ? rosterById.get(ev.playerId)?.name : undefined;
     switch (ev.type) {
       case 'start':
-        return 'Spielbeginn';
+        return ev.timestamp === 0 ? 'Anpfiff' : 'Weiter im Spiel';
       case 'resume':
         return 'Weiter nach Pause';
       case 'end':
@@ -617,7 +646,7 @@ export const LiveMatchScreen: React.FC = () => {
       case 'sub_in':
         return name ? `${name} wechselt ein` : 'Einwechslung';
       case 'pause':
-        return 'Pause';
+        return 'Kurze Unterbrechung';
       default:
         return ev.type;
     }
@@ -642,7 +671,9 @@ export const LiveMatchScreen: React.FC = () => {
       : isAwayGoal
         ? 'bg-red-700 text-white'
         : isSub
-          ? 'bg-zinc-800 text-zinc-200'
+          ? friendlyFeed
+            ? 'bg-sky-900 text-sky-100'
+            : 'bg-zinc-800 text-zinc-200'
           : 'bg-zinc-800 text-zinc-400';
 
     const cardBorder = isHomeGoal
@@ -650,7 +681,9 @@ export const LiveMatchScreen: React.FC = () => {
       : isAwayGoal
         ? 'border-red-600/50'
         : isSub
-          ? 'border-zinc-600'
+          ? friendlyFeed
+            ? 'border-sky-700/40'
+            : 'border-zinc-600'
           : 'border-zinc-700';
 
     const scorePillClass = isHomeGoal
@@ -666,7 +699,12 @@ export const LiveMatchScreen: React.FC = () => {
         </div>
         <div className="relative flex w-3 shrink-0 flex-col items-center pt-1 md:w-4">
           {index < listLength - 1 ? (
-            <div className="absolute top-2.5 bottom-0 left-1/2 w-1 -translate-x-1/2 rounded-full bg-zinc-700" aria-hidden />
+            <div
+              className={`absolute top-2.5 bottom-0 left-1/2 w-1 -translate-x-1/2 rounded-full ${
+                friendlyFeed ? 'bg-red-600/35' : 'bg-zinc-700'
+              }`}
+              aria-hidden
+            />
           ) : null}
           <div className="relative z-10 h-2 w-2 shrink-0 rounded-full bg-red-600" aria-hidden />
         </div>
@@ -686,6 +724,9 @@ export const LiveMatchScreen: React.FC = () => {
                   <span className="inline-flex rounded-full border border-green-600 bg-green-950/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-green-100">
                     Tor
                   </span>
+                  {friendlyFeed ? (
+                    <p className="mt-0.5 text-[11px] font-semibold text-gray-300">für {homeDisplayName}</p>
+                  ) : null}
                   <p className="mt-1 truncate text-sm font-semibold leading-snug text-white">
                     {pl?.name ?? '?'}
                     {pl?.number != null && String(pl.number).trim() !== '' ? (
@@ -698,7 +739,11 @@ export const LiveMatchScreen: React.FC = () => {
                   <span className="inline-flex rounded-full border border-green-600 bg-green-950/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-green-100">
                     Tor
                   </span>
-                  <p className="mt-1 truncate text-xs font-semibold text-gray-300">{awayDisplayName}</p>
+                  {friendlyFeed ? (
+                    <p className="mt-0.5 text-[11px] font-semibold text-white">für {awayDisplayName}!</p>
+                  ) : (
+                    <p className="mt-1 truncate text-xs font-semibold text-gray-300">{awayDisplayName}</p>
+                  )}
                 </>
               ) : isSub ? (
                 <>
@@ -809,14 +854,34 @@ export const LiveMatchScreen: React.FC = () => {
   const awayLogoSrc = getClubLogo(headerOpponent);
 
   const layoutShell = 'mx-auto w-full max-w-lg md:max-w-2xl lg:max-w-3xl';
+  const spectatorView = !canControlLiveMatch;
+  const matchboardVisible = spectatorView || (canControlLiveMatch && mainTab === 'overview');
 
   return (
-    <div className="min-h-[100dvh] bg-black pb-28 text-white">
-      <header className="sticky top-0 z-40 border-b border-red-500/30 bg-black backdrop-blur-md">
-        <div className={`${layoutShell} px-2 pb-2 pt-1 md:px-4 md:pb-2 md:pt-1.5`}>
-          {mainTab === 'overview' && (
-            <div className="mx-auto mb-0 w-full max-w-md rounded-xl border border-red-500/30 bg-black p-3 md:p-4">
-              <div className="flex flex-col items-center gap-0.5 pb-1 text-center">
+    <div
+      className={
+        spectatorView
+          ? 'flex min-h-[100dvh] flex-col bg-black text-white'
+          : 'min-h-[100dvh] bg-black pb-28 text-white'
+      }
+    >
+      <header className="sticky top-0 z-40 shrink-0 border-b border-red-500/30 bg-black backdrop-blur-md">
+        <div
+          className={`${layoutShell} ${
+            spectatorView ? 'px-2 pb-1.5 pt-0.5 md:px-4 md:pb-1.5 md:pt-1' : 'px-2 pb-2 pt-1 md:px-4 md:pb-2 md:pt-1.5'
+          }`}
+        >
+          {matchboardVisible && (
+            <div
+              className={`mx-auto mb-0 w-full max-w-md rounded-xl border border-red-500/30 bg-black ${
+                spectatorView ? 'p-2 md:p-3' : 'p-3 md:p-4'
+              }`}
+            >
+              <div
+                className={`flex flex-col items-center text-center ${
+                  spectatorView ? 'gap-0 pb-0.5' : 'gap-0.5 pb-1'
+                }`}
+              >
                 <div
                   className={`flex items-center justify-center gap-1 rounded-full px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
                     matchIsFinished
@@ -837,9 +902,18 @@ export const LiveMatchScreen: React.FC = () => {
                 <p className="text-[10px] font-medium uppercase tracking-wide text-gray-300">{periodDisplayLine}</p>
               </div>
 
-              <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-x-2">
+              <div
+                className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start ${
+                  spectatorView ? 'mt-0.5 gap-x-1' : 'mt-1 gap-x-2'
+                }`}
+              >
                 <div className="flex min-w-0 flex-col items-center text-center">
-                  <LiveMatchLogoTile src={homeLogoSrc} initialsFrom={homeLogoLookupName} liveGlow={false} size="hero" />
+                  <LiveMatchLogoTile
+                    src={homeLogoSrc}
+                    initialsFrom={homeLogoLookupName}
+                    liveGlow={false}
+                    size={spectatorView ? 'heroLg' : 'hero'}
+                  />
                   <p className="mt-1 line-clamp-2 w-full max-w-[9rem] break-words text-xs font-semibold leading-tight text-white">
                     {homeDisplayName}
                   </p>
@@ -876,7 +950,12 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
 
                 <div className="flex min-w-0 flex-col items-center text-center">
-                  <LiveMatchLogoTile src={awayLogoSrc} initialsFrom={headerOpponent} liveGlow={false} size="hero" />
+                  <LiveMatchLogoTile
+                    src={awayLogoSrc}
+                    initialsFrom={headerOpponent}
+                    liveGlow={false}
+                    size={spectatorView ? 'heroLg' : 'hero'}
+                  />
                   <p className="mt-1 line-clamp-2 w-full max-w-[9rem] break-words text-xs font-semibold leading-tight text-white">
                     {awayDisplayName}
                   </p>
@@ -985,32 +1064,56 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
           )}
 
-          <nav
-            className={`${tabNavWrap} ${mainTab === 'overview' ? 'mt-3' : 'mt-2'}`}
-            aria-label="Live-Ansicht"
-          >
-            <button
-              type="button"
-              className={`${tabNavBtnBase} ${mainTab === 'overview' ? tabNavBtnActive : tabNavBtnIdle}`}
-              onClick={() => setMainTab('overview')}
+          {spectatorView ? (
+            <nav className={spectatorTabWrap} aria-label="Live-Ansicht">
+              <button
+                type="button"
+                className={`${spectatorTabBtnBase} ${mainTab === 'overview' ? spectatorTabBtnActive : spectatorTabBtnIdle}`}
+                onClick={() => setMainTab('overview')}
+              >
+                Übersicht
+              </button>
+              <button
+                type="button"
+                className={`${spectatorTabBtnBase} ${mainTab === 'lineup' ? spectatorTabBtnActive : spectatorTabBtnIdle}`}
+                onClick={() => setMainTab('lineup')}
+              >
+                Kader
+              </button>
+              <button
+                type="button"
+                className={`${spectatorTabBtnBase} ${mainTab === 'events' ? spectatorTabBtnActive : spectatorTabBtnIdle}`}
+                onClick={() => setMainTab('events')}
+              >
+                Liveticker
+              </button>
+            </nav>
+          ) : (
+            <nav
+              className={`${tabNavWrap} ${mainTab === 'overview' ? 'mt-3' : 'mt-2'}`}
+              aria-label="Live-Ansicht"
             >
-              Übersicht
-            </button>
-            <button
-              type="button"
-              className={`${tabNavBtnBase} ${mainTab === 'lineup' ? tabNavBtnActive : tabNavBtnIdle}`}
-              onClick={() => setMainTab('lineup')}
-            >
-              {canControlLiveMatch ? 'Aufstellung' : 'Kader'}
-            </button>
-            <button
-              type="button"
-              className={`${tabNavBtnBase} ${mainTab === 'events' ? tabNavBtnActive : tabNavBtnIdle}`}
-              onClick={() => setMainTab('events')}
-            >
-              Liveticker
-            </button>
-            {canControlLiveMatch ? (
+              <button
+                type="button"
+                className={`${tabNavBtnBase} ${mainTab === 'overview' ? tabNavBtnActive : tabNavBtnIdle}`}
+                onClick={() => setMainTab('overview')}
+              >
+                Übersicht
+              </button>
+              <button
+                type="button"
+                className={`${tabNavBtnBase} ${mainTab === 'lineup' ? tabNavBtnActive : tabNavBtnIdle}`}
+                onClick={() => setMainTab('lineup')}
+              >
+                Aufstellung
+              </button>
+              <button
+                type="button"
+                className={`${tabNavBtnBase} ${mainTab === 'events' ? tabNavBtnActive : tabNavBtnIdle}`}
+                onClick={() => setMainTab('events')}
+              >
+                Liveticker
+              </button>
               <button
                 type="button"
                 className={`${tabNavBtnBase} ${mainTab === 'time' ? tabNavBtnActive : tabNavBtnIdle}`}
@@ -1018,12 +1121,18 @@ export const LiveMatchScreen: React.FC = () => {
               >
                 Statistik
               </button>
-            ) : null}
-          </nav>
+            </nav>
+          )}
         </div>
       </header>
 
-      <div className={`${layoutShell} px-2 py-3 md:px-5 md:py-4`}>
+      <div
+        className={
+          spectatorView
+            ? `min-h-0 flex-1 overflow-y-auto overscroll-y-contain ${layoutShell} px-2 pb-24 pt-2`
+            : `${layoutShell} px-2 py-3 md:px-5 md:py-4 pb-28`
+        }
+      >
         {mainTab === 'overview' && (
           <div className="space-y-3">
             {canControlLiveMatch ? (
@@ -1195,40 +1304,59 @@ export const LiveMatchScreen: React.FC = () => {
                 </section>
               </>
             ) : (
-              <>
-                <section className="rounded-xl border border-red-500/30 bg-black p-3">
-                  <p className="text-center text-sm font-semibold text-white">
-                    {matchIsFinished ? 'Spiel beendet' : hasClockStarted ? 'Spiel läuft' : 'Spiel steht bevor'}
-                  </p>
-                  <p className="mt-2 text-center text-xs text-gray-300">{matchTypeDisplay}</p>
-                  <p className="mt-1 text-center text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                    {periodDisplayLine}
-                  </p>
-                  <p className="mt-2 text-center font-mono text-[11px] tabular-nums text-gray-500">{periodScoreLine}</p>
-                </section>
-                <section>
-                  <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Aktuell am Feld</h2>
-                  {fieldPlayers.length === 0 ? (
-                    <p className="rounded-lg border border-red-500/20 px-3 py-4 text-center text-sm text-gray-400">
-                      Sobald die Aufstellung feststeht, siehst du hier die Spielerinnen und Spieler auf dem Feld.
-                    </p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {fieldPlayers.map((p) => (
-                        <li
-                          key={p.id}
-                          className="flex items-center gap-3 rounded-lg border border-red-500/20 bg-zinc-950 px-3 py-2.5"
+              <div className="space-y-3">
+                {spectatorLastActionEvent ? (
+                  <section>
+                    <h2 className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
+                      Letzte Aktion
+                    </h2>
+                    <div className="rounded-xl border border-red-500/20 bg-zinc-950 px-3 py-3">
+                      <div className="flex gap-3">
+                        <div
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-lg"
+                          aria-hidden
                         >
-                          <span className="w-8 shrink-0 text-center text-base font-black tabular-nums text-red-400">
-                            {p.number || '–'}
+                          {eventIcon(spectatorLastActionEvent.type)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-semibold text-gray-400">
+                            {formatMinute(spectatorLastActionEvent.timestamp)}
+                          </p>
+                          {spectatorLastActionEvent.type === 'goal' && spectatorLastActionEvent.playerId ? (
+                            <>
+                              <p className="mt-0.5 text-xs font-black uppercase tracking-wide text-green-400">Tor</p>
+                              <p className="text-sm font-semibold text-white">
+                                {rosterById.get(spectatorLastActionEvent.playerId)?.name ?? '?'}
+                              </p>
+                              <p className="text-xs text-gray-400">für {homeDisplayName}</p>
+                            </>
+                          ) : spectatorLastActionEvent.type === 'goal' ? (
+                            <>
+                              <p className="mt-0.5 text-xs font-black uppercase tracking-wide text-green-400">Tor</p>
+                              <p className="text-sm font-semibold text-white">für {awayDisplayName}</p>
+                            </>
+                          ) : (
+                            <p className="mt-0.5 text-sm font-semibold leading-snug text-white">
+                              {parentLiveEventDescription(spectatorLastActionEvent)}
+                            </p>
+                          )}
+                        </div>
+                        {spectatorLastActionEvent.type === 'goal' &&
+                        goalScoreBadgeByEventId.get(spectatorLastActionEvent.id) ? (
+                          <span className="shrink-0 rounded-full border border-green-600 bg-green-950/90 px-2 py-0.5 font-mono text-[10px] font-black tabular-nums text-green-100">
+                            {goalScoreBadgeByEventId.get(spectatorLastActionEvent.id)}
                           </span>
-                          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">{p.name}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-              </>
+                        ) : null}
+                      </div>
+                    </div>
+                  </section>
+                ) : null}
+                {!spectatorLastActionEvent ? (
+                  <p className="rounded-lg border border-red-500/15 bg-zinc-950/50 px-3 py-3 text-center text-sm text-gray-500">
+                    Sobald etwas passiert, siehst du hier die letzte wichtige Aktion zum Spiel.
+                  </p>
+                ) : null}
+              </div>
             )}
           </div>
         )}
@@ -1236,86 +1364,162 @@ export const LiveMatchScreen: React.FC = () => {
         {mainTab === 'lineup' && (
           <div className="space-y-3">
             {canControlLiveMatch ? (
-              <p className="text-sm text-gray-400">Tippe einen Spieler für Wechsel.</p>
+              <>
+                <p className="text-sm text-gray-400">Tippe einen Spieler für Wechsel.</p>
+                <div>
+                  <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Am Feld</h3>
+                  <ul className="space-y-2">
+                    {fieldPlayers.map((p) => (
+                      <li key={p.id}>
+                        {!matchIsFinished ? (
+                          <button
+                            type="button"
+                            onClick={() => openSubFromPlayer(p)}
+                            className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3 text-left active:bg-emerald-900/40"
+                          >
+                            <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
+                            <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
+                            <span className="rounded-full bg-emerald-600/30 px-2 py-1 text-xs font-bold text-emerald-300">
+                              AM FELD
+                            </span>
+                          </button>
+                        ) : (
+                          <div className="flex min-h-[52px] w-full items-center justify-between rounded-xl border border-emerald-600/30 bg-emerald-950/20 px-3 py-2.5">
+                            <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
+                            <span className="flex-1 px-3 text-sm font-semibold text-white">{p.name}</span>
+                            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-emerald-300/90">
+                              AM FELD
+                            </span>
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">Bank</h3>
+                  <ul className="space-y-2">
+                    {benchPlayers.map((p) => (
+                      <li key={p.id}>
+                        {!matchIsFinished ? (
+                          <button
+                            type="button"
+                            onClick={() => openSubFromPlayer(p)}
+                            className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left active:bg-white/10"
+                          >
+                            <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
+                            <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
+                            <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-white/50">
+                              BANK
+                            </span>
+                          </button>
+                        ) : (
+                          <div className="flex min-h-[52px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 opacity-90">
+                            <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
+                            <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
+                            <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-white/50">
+                              BANK
+                            </span>
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </>
             ) : (
-              <p className="text-sm text-gray-400">Gemeldete Spielerinnen und Spieler – wer ist dabei.</p>
+              <>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className={`${spectatorTabBtnBase} ${spectatorKaderSegment === 'dabei' ? spectatorTabBtnActive : spectatorTabBtnIdle}`}
+                    onClick={() => setSpectatorKaderSegment('dabei')}
+                  >
+                    Dabei ({squadPlayerIds.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`${spectatorTabBtnBase} ${spectatorKaderSegment === 'nichtdabei' ? spectatorTabBtnActive : spectatorTabBtnIdle}`}
+                    onClick={() => setSpectatorKaderSegment('nichtdabei')}
+                  >
+                    Nicht dabei ({notInSquadPlayers.length})
+                  </button>
+                </div>
+                {spectatorKaderSegment === 'dabei' ? (
+                  <>
+                    <div>
+                      <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                        Startelf
+                      </h3>
+                      {fieldPlayers.length === 0 ? (
+                        <p className="text-sm text-gray-500">Startelf wird noch festgelegt.</p>
+                      ) : (
+                        <ul className="space-y-1.5">
+                          {fieldPlayers.map((p) => (
+                            <li
+                              key={p.id}
+                              className="flex items-center gap-3 rounded-lg border border-red-500/20 bg-zinc-950 px-3 py-2"
+                            >
+                              <span className="w-8 shrink-0 text-center text-sm font-black tabular-nums text-red-500">
+                                {p.number || '–'}
+                              </span>
+                              <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">{p.name}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                        Ersatz / Bank
+                      </h3>
+                      {benchPlayers.length === 0 ? (
+                        <p className="text-sm text-gray-500">Keine Ersatzspielerinnen und -spieler gemeldet.</p>
+                      ) : (
+                        <ul className="space-y-1.5">
+                          {benchPlayers.map((p) => (
+                            <li
+                              key={p.id}
+                              className="flex items-center gap-3 rounded-lg border border-red-500/15 bg-black/60 px-3 py-2"
+                            >
+                              <span className="w-8 shrink-0 text-center text-sm font-black tabular-nums text-gray-400">
+                                {p.number || '–'}
+                              </span>
+                              <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-200">{p.name}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                      Nicht im Spiel-Kader
+                    </h3>
+                    {notInSquadPlayers.length === 0 ? (
+                      <p className="text-sm text-gray-500">
+                        Für dieses Spiel sind alle Mannschaftsspielerinnen und -spieler im Kader.
+                      </p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {notInSquadPlayers.map((p) => (
+                          <li
+                            key={p.id}
+                            className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-zinc-950/80 px-3 py-2"
+                          >
+                            <span className="w-8 shrink-0 text-center text-sm font-bold tabular-nums text-gray-500">
+                              {p.number || '–'}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate text-sm text-gray-400">{p.name}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </>
             )}
-            <div>
-              <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Am Feld</h3>
-              <ul className="space-y-2">
-                {fieldPlayers.map((p) => (
-                  <li key={p.id}>
-                    {canControlLiveMatch && !matchIsFinished ? (
-                      <button
-                        type="button"
-                        onClick={() => openSubFromPlayer(p)}
-                        className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3 text-left active:bg-emerald-900/40"
-                      >
-                        <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
-                        <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
-                        <span className="rounded-full bg-emerald-600/30 px-2 py-1 text-xs font-bold text-emerald-300">
-                          AM FELD
-                        </span>
-                      </button>
-                    ) : (
-                      <div
-                        className={`flex min-h-[52px] w-full items-center justify-between rounded-xl border px-3 py-2.5 ${
-                          canControlLiveMatch
-                            ? 'border-emerald-600/30 bg-emerald-950/20'
-                            : 'border-red-500/20 bg-zinc-950'
-                        }`}
-                      >
-                        <span
-                          className={`text-lg font-bold ${canControlLiveMatch ? 'text-emerald-400' : 'text-white'}`}
-                        >
-                          {p.number || '–'}
-                        </span>
-                        <span className="flex-1 px-3 text-sm font-semibold text-white">{p.name}</span>
-                        <span
-                          className={`shrink-0 text-[10px] font-semibold uppercase tracking-wide ${
-                            canControlLiveMatch ? 'text-emerald-300/90' : 'text-gray-500'
-                          }`}
-                        >
-                          {canControlLiveMatch ? 'Am Feld' : 'Am Feld'}
-                        </span>
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">
-                {canControlLiveMatch ? 'Bank' : 'Reserve & Bank'}
-              </h3>
-              <ul className="space-y-2">
-                {benchPlayers.map((p) => (
-                  <li key={p.id}>
-                    {canControlLiveMatch && !matchIsFinished ? (
-                      <button
-                        type="button"
-                        onClick={() => openSubFromPlayer(p)}
-                        className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left active:bg-white/10"
-                      >
-                        <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
-                        <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
-                        <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-white/50">
-                          BANK
-                        </span>
-                      </button>
-                    ) : (
-                      <div className="flex min-h-[52px] w-full items-center justify-between rounded-xl border border-red-500/20 bg-zinc-950 px-3 py-2.5 opacity-95">
-                        <span className="text-lg font-bold text-gray-400">{p.number || '–'}</span>
-                        <span className="flex-1 px-3 text-sm font-semibold text-white">{p.name}</span>
-                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                          Ersatz
-                        </span>
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
           </div>
         )}
 
@@ -1344,15 +1548,17 @@ export const LiveMatchScreen: React.FC = () => {
                   </button>
                 ))}
               </div>
-            ) : (
-              <p className="text-sm text-gray-400">Tore, Wechsel und Spielphasen im Überblick.</p>
-            )}
+            ) : null}
             {(canControlLiveMatch ? filteredEvents : parentLivetickerList).length === 0 ? (
               <p className="rounded-xl border border-red-500/20 bg-zinc-950/50 px-4 py-8 text-center text-sm text-gray-400">
                 {canControlLiveMatch ? 'Keine Einträge für diesen Filter.' : 'Noch keine Spielereignisse.'}
               </p>
             ) : (
-              <ul className="max-h-[60vh] overflow-y-auto rounded-xl border border-red-500/30 bg-black px-1 py-2 sm:px-2 sm:py-3">
+              <ul
+                className={`overflow-y-auto rounded-xl border border-red-500/30 bg-black px-1 py-2 sm:px-2 sm:py-3 ${
+                  spectatorView ? '' : 'max-h-[60vh]'
+                }`}
+              >
                 {(canControlLiveMatch ? filteredEvents : parentLivetickerList).map((ev, i, arr) =>
                   renderTimelineRow(ev, i, arr.length, true, !canControlLiveMatch),
                 )}
