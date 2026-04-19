@@ -84,20 +84,6 @@ function formatMinute(ts: number): string {
   return `${min}'`;
 }
 
-/** Kurze Spielstätte: erste Zeile, bei Komma meist nur erster Teil (ohne volle Adresse). */
-function shortVenueLabel(raw: string | null | undefined): string {
-  if (!raw?.trim()) return '';
-  const oneLine = raw.split(/\r?\n/)[0].trim();
-  const comma = oneLine.indexOf(',');
-  if (comma > 0 && comma < oneLine.length - 1) {
-    const first = oneLine.slice(0, comma).trim();
-    if (first.length >= 3 && first.length <= 44) return first;
-  }
-  if (oneLine.length <= 38) return oneLine;
-  const cut = oneLine.slice(0, 35).trimEnd();
-  return `${cut}…`;
-}
-
 /** Anzeige ohne Jugend-Staffel (inkl. U11 / u11 / Klammern). */
 function cleanTeamDisplayName(name: string): string {
   const raw = (name || '').trim();
@@ -145,15 +131,15 @@ function buildPeriodScoreLine(events: MatchEngineEvent[], currentMatchSeconds: n
 }
 
 const tabPillBase =
-  'min-w-[4.75rem] shrink-0 rounded-full border px-2 py-1.5 text-[9px] font-bold uppercase tracking-wide transition-all md:min-w-0 md:flex-1 md:px-3 md:py-2.5 md:text-[10px] lg:min-h-[48px] lg:text-[11px]';
+  'min-w-[4.5rem] shrink-0 rounded-full border px-2 py-1.5 text-[9px] font-bold uppercase tracking-wide transition-colors md:min-w-0 md:flex-1 md:px-3 md:py-2 md:text-[10px] lg:py-2.5 lg:text-[11px]';
 const tabPillActive =
-  'border-red-500/80 bg-gradient-to-b from-red-600 to-red-950 text-white shadow-[0_6px_20px_rgba(220,38,38,0.45),inset_0_1px_0_rgba(255,255,255,0.14)] md:shadow-[0_8px_26px_rgba(220,38,38,0.5)]';
+  'border-red-600 bg-red-600 text-white shadow-sm hover:bg-red-500 md:shadow-[0_0_16px_rgba(220,38,38,0.35)]';
 const tabPillIdle =
-  'border-zinc-500/55 bg-zinc-900 text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] hover:border-zinc-400 hover:text-white';
+  'border-zinc-700 bg-zinc-800 text-zinc-200 hover:border-zinc-600 hover:bg-zinc-700 hover:text-white';
 
 function eventIcon(t: MatchEventType): string {
   if (t === 'goal') return '⚽';
-  if (t === 'sub_out' || t === 'sub_in') return '🔁';
+  if (t === 'sub_out' || t === 'sub_in') return '⇄';
   if (t === 'start') return '▶';
   if (t === 'pause') return '⏸';
   if (t === 'resume') return '▶';
@@ -574,11 +560,9 @@ export const LiveMatchScreen: React.FC = () => {
   const periodDisplayLine = useMemo(() => {
     if (matchIsFinished) return 'SPIEL BEENDET';
     const lp = matchRow?.live_period;
-    if (typeof lp === 'number' && lp >= 1 && lp <= 3) return `${lp}. DRITTEL`;
-    return `${half}. HALBZEIT`;
+    if (typeof lp === 'number' && lp >= 1 && lp <= 3) return `${lp}. Drittel`;
+    return `${half}. Drittel`;
   }, [matchIsFinished, matchRow?.live_period, half]);
-
-  const venueShort = useMemo(() => shortVenueLabel(matchRow?.location), [matchRow?.location]);
 
   const eventLabel = (ev: MatchEngineEvent): string => {
     const name = ev.playerId ? rosterById.get(ev.playerId)?.name : undefined;
@@ -617,24 +601,24 @@ export const LiveMatchScreen: React.FC = () => {
     const scoreStr =
       showGoalScoreBadge && isGoal ? goalScoreBadgeByEventId.get(ev.id) ?? null : null;
     const iconTile = isHomeGoal
-      ? 'bg-gradient-to-b from-emerald-800 to-emerald-950 text-white shadow-[inset_0_1px_0_rgba(167,243,208,0.25)] ring-1 ring-emerald-400/55'
+      ? 'bg-green-700 text-white'
       : isAwayGoal
-        ? 'bg-gradient-to-b from-red-800 to-black text-red-100 shadow-[inset_0_1px_0_rgba(248,113,113,0.2)] ring-1 ring-red-500/55'
+        ? 'bg-red-700 text-white'
         : isSub
-          ? 'bg-zinc-800 text-zinc-200 shadow-inner ring-1 ring-white/15'
-          : 'bg-zinc-900/85 text-white/55 ring-1 ring-white/12';
+          ? 'bg-zinc-800 text-zinc-200'
+          : 'bg-zinc-800 text-zinc-400';
 
     const cardBorder = isHomeGoal
-      ? 'border-emerald-500/45 shadow-[0_0_20px_rgba(16,185,129,0.12)]'
+      ? 'border-green-600/50'
       : isAwayGoal
-        ? 'border-red-600/45 shadow-[0_0_20px_rgba(220,38,38,0.14)]'
+        ? 'border-red-600/50'
         : isSub
-          ? 'border-white/12'
-          : 'border-white/[0.08]';
+          ? 'border-zinc-600'
+          : 'border-zinc-700';
 
     const scorePillClass = isHomeGoal
-      ? 'rounded-full border border-emerald-400/50 bg-emerald-950/80 px-2.5 py-1 font-mono text-[11px] font-black tabular-nums text-emerald-100 shadow-[0_0_14px_rgba(16,185,129,0.25)]'
-      : 'rounded-full border border-red-500/50 bg-red-950/80 px-2.5 py-1 font-mono text-[11px] font-black tabular-nums text-red-100 shadow-[0_0_14px_rgba(220,38,38,0.25)]';
+      ? 'rounded-full border border-green-600 bg-green-950/90 px-2 py-0.5 font-mono text-[10px] font-black tabular-nums text-green-100 md:px-2.5 md:py-1 md:text-[11px]'
+      : 'rounded-full border border-red-600 bg-red-950/90 px-2 py-0.5 font-mono text-[10px] font-black tabular-nums text-red-100 md:px-2.5 md:py-1 md:text-[11px]';
 
     return (
       <li key={ev.id} className="relative flex gap-0 pb-3.5 last:pb-0 md:pb-5">
@@ -657,7 +641,7 @@ export const LiveMatchScreen: React.FC = () => {
         </div>
         <div className="min-w-0 flex-1">
           <div
-            className={`flex min-h-[3.5rem] items-stretch gap-2 rounded-xl border-2 bg-gradient-to-br from-zinc-950 to-black px-2.5 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.5)] md:min-h-[4.25rem] md:gap-3 md:rounded-2xl md:px-3.5 md:py-3 md:shadow-[0_12px_32px_rgba(0,0,0,0.55)] ${cardBorder}`}
+            className={`flex min-h-[3.5rem] items-stretch gap-2 rounded-xl border bg-zinc-950 px-2.5 py-2 md:min-h-[4rem] md:gap-3 md:rounded-xl md:px-3.5 md:py-2.5 ${cardBorder}`}
           >
             <div
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base md:h-11 md:w-11 md:rounded-xl md:text-lg ${iconTile}`}
@@ -792,286 +776,241 @@ export const LiveMatchScreen: React.FC = () => {
 
   return (
     <div className="min-h-[100dvh] bg-black pb-28 text-white">
-      <header className="sticky top-0 z-40 border-b border-red-950/40 bg-black/95 px-2 pt-1 pb-1.5 backdrop-blur-md md:px-5 md:pb-2 md:pt-1.5">
-        <div className={layoutShell}>
-        <div
-          className={[
-            'relative w-full overflow-hidden rounded-2xl bg-gradient-to-b from-black via-zinc-950 to-red-950/35',
-            'px-2.5 pt-1.5 pb-2 md:px-5 md:pt-3 md:pb-4',
-            matchIsFinished
-              ? 'border border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
-              : 'border-2 border-red-500/70 shadow-[0_0_64px_rgba(239,68,68,0.48),0_0_1px_rgba(254,202,202,0.5),0_12px_40px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-28px_48px_rgba(127,29,29,0.18)]',
-          ].join(' ')}
-        >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.42]"
-            style={{
-              backgroundImage:
-                'radial-gradient(ellipse 115% 70% at 50% -15%, rgba(220,38,38,0.38), transparent 52%)',
-            }}
-            aria-hidden
-          />
-          <div className="relative flex flex-col items-center gap-0.5 pb-0.5 text-center md:gap-1 md:pb-1">
+      <header className="sticky top-0 z-40 border-b border-zinc-800 bg-black/95 backdrop-blur-md">
+        <div className={`${layoutShell} px-2 pb-2 pt-1 md:px-5 md:pb-3 md:pt-2`}>
+          {mainTab === 'overview' && (
             <div
-              className={`flex items-center justify-center gap-1.5 rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-[0.26em] md:px-4 md:py-1.5 md:text-[10px] ${
-                matchIsFinished
-                  ? 'bg-zinc-800 text-zinc-200 ring-1 ring-white/18'
-                  : hasClockStarted
-                    ? 'bg-gradient-to-b from-red-600 to-red-950 text-white shadow-[0_0_28px_rgba(239,68,68,0.65),0_0_48px_rgba(220,38,38,0.25)] ring-2 ring-red-400/65'
-                    : 'bg-zinc-900 text-zinc-400 ring-1 ring-white/14'
-              }`}
+              className={[
+                'relative mb-2 w-full overflow-hidden rounded-xl border bg-gradient-to-b from-zinc-950 to-black md:rounded-2xl md:px-1 md:pb-1',
+                matchIsFinished ? 'border-zinc-700' : 'border-red-600/50',
+              ].join(' ')}
             >
-              {!matchIsFinished && hasClockStarted ? (
-                <span className="text-[12px] leading-none text-red-100" aria-hidden>
-                  ●
-                </span>
-              ) : null}
-              {matchIsFinished ? 'ENDSTAND' : hasClockStarted ? 'LIVE' : 'BEREIT'}
-            </div>
-            <p className="text-[12px] font-bold tracking-wide text-white md:text-sm">{matchTypeDisplay}</p>
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-red-500 drop-shadow-[0_0_12px_rgba(239,68,68,0.5)] md:text-[10px]">
-              {periodDisplayLine}
-            </p>
-            {hasClockStarted && !isRunning && !matchIsFinished ? (
-              <p className="mt-0.5 max-w-[18rem] text-[9px] font-bold uppercase leading-tight tracking-wide text-amber-400 md:max-w-none md:text-[10px]">
-                Pause · laufendes Drittel unterbrochen · mit WEITER weiter
-              </p>
-            ) : null}
-          </div>
-
-          {/* Hauptbereich: 3 Spalten, Score absoluter Mittelpunkt */}
-          <div className="relative mt-1.5 rounded-lg bg-black/45 px-0.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-6px_16px_rgba(0,0,0,0.4)] ring-1 ring-white/[0.06] md:mt-2 md:rounded-xl md:px-2 md:py-3">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-x-1 md:gap-x-3 lg:gap-x-5">
-              {/* Links */}
-              <div className="flex min-w-0 flex-col items-center text-center">
-                <LiveMatchLogoTile
-                  src={homeLogoSrc}
-                  initialsFrom={homeLogoLookupName}
-                  liveGlow={logoLiveGlow}
-                  size="hero"
-                />
-                <p className="mt-0.5 line-clamp-2 w-full px-0.5 text-[11px] font-bold leading-tight text-white md:mt-1 md:text-[13px] lg:text-[14px]">
-                  {homeDisplayName}
+              <div className="relative flex flex-col items-center gap-0.5 px-2 pb-1 pt-1.5 text-center md:gap-1 md:px-4 md:pb-2 md:pt-2">
+                <div
+                  className={`flex items-center justify-center gap-1 rounded-full px-3 py-0.5 text-[8px] font-black uppercase tracking-[0.2em] md:text-[9px] ${
+                    matchIsFinished
+                      ? 'bg-zinc-800 text-zinc-300'
+                      : hasClockStarted
+                        ? 'bg-red-600 text-white'
+                        : 'bg-zinc-800 text-zinc-400'
+                  }`}
+                >
+                  {!matchIsFinished && hasClockStarted ? (
+                    <span className="text-[10px] leading-none" aria-hidden>
+                      ●
+                    </span>
+                  ) : null}
+                  {matchIsFinished ? 'ENDSTAND' : hasClockStarted ? 'LIVE' : 'BEREIT'}
+                </div>
+                <p className="text-[11px] font-semibold text-white md:text-sm">{matchTypeDisplay}</p>
+                <p className="text-[9px] font-semibold uppercase tracking-wide text-red-500 md:text-[10px]">
+                  {periodDisplayLine}
                 </p>
-                {canControlLiveMatch && !matchIsFinished ? (
+              </div>
+
+              <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-x-1 px-1 pb-1 md:gap-x-4 md:px-3 md:pb-2">
+                <div className="flex min-w-0 flex-col items-center text-center">
+                  <LiveMatchLogoTile
+                    src={homeLogoSrc}
+                    initialsFrom={homeLogoLookupName}
+                    liveGlow={false}
+                    size="hero"
+                  />
+                  <p className="mt-0.5 line-clamp-2 w-full px-0.5 text-[10px] font-bold leading-tight text-white md:text-[13px]">
+                    {homeDisplayName}
+                  </p>
+                  {canControlLiveMatch && !matchIsFinished ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHomeGoalPickId('');
+                        setHomeGoalModalOpen(true);
+                      }}
+                      className="mt-0.5 flex h-10 w-full max-w-[9rem] items-center justify-center rounded-xl bg-green-600 px-2 text-[10px] font-bold uppercase tracking-wide text-white hover:bg-green-500 active:bg-green-700 md:mt-1 md:max-w-[11rem] md:text-[11px] lg:max-w-[12rem]"
+                    >
+                      + TOR
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="flex min-w-[6.5rem] max-w-[9rem] flex-col items-center px-0.5 text-center md:min-w-[9.5rem] md:max-w-[12rem] lg:min-w-[11rem] lg:max-w-[14rem]">
+                  <div className="flex items-baseline justify-center gap-3 md:gap-5 lg:gap-6">
+                    <span className="text-5xl font-black tabular-nums leading-none text-white md:text-6xl lg:text-[4rem]">
+                      {scoreHome}
+                    </span>
+                    <span className="select-none px-0.5 text-4xl font-light leading-none text-white/50 md:text-5xl" aria-hidden>
+                      :
+                    </span>
+                    <span className="text-5xl font-black tabular-nums leading-none text-white md:text-6xl lg:text-[4rem]">
+                      {scoreAway}
+                    </span>
+                  </div>
+                  <p
+                    className={`mt-0.5 font-mono text-xl font-bold tabular-nums leading-none md:mt-1.5 md:text-2xl ${
+                      matchIsFinished ? 'text-zinc-500' : 'text-red-600'
+                    }`}
+                  >
+                    {formatClock(currentMatchSeconds)}
+                  </p>
+                  <p className="mt-1 font-mono text-[8px] font-medium leading-tight text-zinc-500 md:mt-1.5 md:text-[9px] lg:text-[10px]">
+                    {periodScoreLine}
+                  </p>
+                </div>
+
+                <div className="flex min-w-0 flex-col items-center text-center">
+                  <LiveMatchLogoTile src={awayLogoSrc} initialsFrom={headerOpponent} liveGlow={false} size="hero" />
+                  <p className="mt-0.5 line-clamp-2 w-full px-0.5 text-[10px] font-bold leading-tight text-white md:text-[13px]">
+                    {awayDisplayName}
+                  </p>
+                  {canControlLiveMatch && !matchIsFinished ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const ok = await persistSingle({
+                          type: 'goal',
+                          timestamp: currentMatchSeconds,
+                        });
+                        if (!ok) return;
+                        setScoreAway((s) => {
+                          const n = s + 1;
+                          if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: n });
+                          return n;
+                        });
+                      }}
+                      className="mt-0.5 flex h-10 w-full max-w-[9rem] items-center justify-center rounded-xl bg-red-600 px-2 text-[10px] font-bold uppercase tracking-wide text-white hover:bg-red-500 active:bg-red-700 md:mt-1 md:max-w-[11rem] md:text-[11px] lg:max-w-[12rem]"
+                    >
+                      + TOR
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              {(!canControlLiveMatch || matchIsFinished) && (
+                <p className="px-2 pb-2 text-center text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+                  Zuschaueransicht
+                </p>
+              )}
+              {saveError && (
+                <p className="px-2 pb-2 text-center text-xs font-medium text-amber-400" role="alert">
+                  {saveError}
+                </p>
+              )}
+
+              {canControlLiveMatch && !matchIsFinished && (
+                <div className="space-y-1.5 border-t border-zinc-800/80 px-2 pb-2 pt-1.5 md:space-y-2 md:px-3 md:pb-3 md:pt-2">
+                  <div className="flex h-10 w-full overflow-hidden rounded-lg border border-zinc-700 md:h-11 md:rounded-xl">
+                    <button
+                      type="button"
+                      onClick={onStartClick}
+                      disabled={isRunning || matchIsFinished}
+                      className={[
+                        'flex flex-1 flex-col items-center justify-center gap-0 border-r border-zinc-900 text-[9px] font-bold uppercase leading-tight text-white md:text-[10px]',
+                        isRunning || matchIsFinished ? 'bg-neutral-900 text-zinc-600' : 'bg-neutral-800 hover:bg-neutral-700',
+                      ].join(' ')}
+                    >
+                      <span className="text-sm leading-none md:text-base" aria-hidden>
+                        ▶
+                      </span>
+                      {!hasClockStarted ? 'Beginn' : 'Weiter'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onPauseClick}
+                      disabled={!isRunning || matchIsFinished}
+                      className={[
+                        'flex flex-1 flex-col items-center justify-center gap-0 border-r border-zinc-900 text-[9px] font-bold uppercase leading-tight md:text-[10px]',
+                        isRunning && !matchIsFinished
+                          ? 'bg-yellow-500 text-black hover:bg-yellow-400'
+                          : 'bg-neutral-900 text-zinc-600',
+                      ].join(' ')}
+                    >
+                      <span className="text-sm leading-none md:text-base" aria-hidden>
+                        ⏸
+                      </span>
+                      Pause
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (matchIsFinished) return;
+                        startSecondHalf();
+                      }}
+                      disabled={matchIsFinished || currentMatchSeconds >= MATCH_HALF_DURATION_SEC}
+                      className={[
+                        'flex flex-1 flex-col items-center justify-center gap-0 text-[9px] font-bold uppercase leading-tight text-white md:text-[10px]',
+                        matchIsFinished || currentMatchSeconds >= MATCH_HALF_DURATION_SEC
+                          ? 'bg-neutral-900 text-zinc-600'
+                          : 'bg-red-600 hover:bg-red-500',
+                      ].join(' ')}
+                    >
+                      <span className="text-sm leading-none md:text-base" aria-hidden>
+                        ■
+                      </span>
+                      Ende
+                    </button>
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => {
-                      setHomeGoalPickId('');
-                      setHomeGoalModalOpen(true);
+                      setMainTab('overview');
+                      window.requestAnimationFrame(() => {
+                        document.getElementById('live-wechsel-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      });
                     }}
-                    className="mt-0.5 flex h-10 w-full max-w-[9.25rem] items-center justify-center gap-0.5 rounded-lg bg-gradient-to-b from-[#16a34a] to-[#22c55e] px-1.5 text-[10px] font-black uppercase tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_2px_12px_rgba(22,163,74,0.35)] active:scale-[0.98] md:mt-1 md:h-11 md:max-w-[11.5rem] md:gap-1 md:rounded-xl md:px-2 md:text-[11px] lg:h-12 lg:max-w-[13rem] lg:text-[12px] lg:shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_22px_rgba(34,197,94,0.4)]"
+                    className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-red-500 bg-neutral-900 text-[11px] font-bold uppercase tracking-wide text-white hover:bg-neutral-800 md:h-11 md:text-xs"
                   >
-                    <span className="text-[12px] leading-none md:text-[14px]" aria-hidden>
-                      ⚽
-                    </span>
-                    + TOR
+                    <span aria-hidden>⇄</span>
+                    Wechsel
                   </button>
-                ) : null}
-              </div>
 
-              {/* Mitte: Score, Timer, Drittel, kurze Location */}
-              <div className="relative flex min-w-[7.25rem] max-w-[9.5rem] flex-col items-center border-white/[0.06] px-0.5 text-center md:min-w-[11rem] md:max-w-[15rem] md:border-x md:px-2 lg:min-w-[12.5rem] lg:max-w-[17rem] lg:px-3">
-                <div
-                  className={[
-                    'flex items-baseline justify-center gap-3.5 md:gap-8 lg:gap-10',
-                    matchIsFinished ? '' : 'drop-shadow-[0_0_18px_rgba(239,68,68,0.28)] md:drop-shadow-[0_0_32px_rgba(239,68,68,0.38)]',
-                  ].join(' ')}
-                >
-                  <span className="text-[2.55rem] font-black tabular-nums leading-none tracking-tight text-white md:text-[3.65rem] lg:text-[4.15rem]">
-                    {scoreHome}
-                  </span>
-                  <span
-                    className="select-none px-0.5 pb-0.5 text-[2.1rem] font-extralight leading-none text-white/40 md:text-[3.1rem] lg:text-[3.45rem]"
-                    aria-hidden
-                  >
-                    :
-                  </span>
-                  <span className="text-[2.55rem] font-black tabular-nums leading-none tracking-tight text-white md:text-[3.65rem] lg:text-[4.15rem]">
-                    {scoreAway}
-                  </span>
-                </div>
-                <p
-                  className={`mt-0.5 font-mono text-[1.2rem] font-black tabular-nums leading-none tracking-tight md:mt-2 md:text-[2.1rem] lg:text-[2.45rem] ${
-                    matchIsFinished ? 'text-zinc-500' : 'text-[#ef4444]'
-                  } ${!matchIsFinished ? 'md:drop-shadow-[0_0_18px_rgba(239,68,68,0.55)]' : ''}`}
-                >
-                  {formatClock(currentMatchSeconds)}
-                </p>
-                <p className="mt-1 w-full text-center font-mono text-[8px] font-semibold leading-tight tracking-wide text-zinc-400 md:mt-2 md:text-[9px] lg:text-[10px]">
-                  {periodScoreLine}
-                </p>
-                {venueShort ? (
-                  <p className="mt-0.5 line-clamp-2 max-w-full px-0.5 text-center text-[9px] font-medium leading-snug text-zinc-400 md:mt-1.5 md:text-[10px] lg:text-[11px]">
-                    📍 {venueShort}
-                  </p>
-                ) : (
-                  <p className="mt-0.5 text-[9px] font-medium text-zinc-500 md:text-[10px]">📍 —</p>
-                )}
-              </div>
-
-              {/* Rechts */}
-              <div className="flex min-w-0 flex-col items-center text-center">
-                <LiveMatchLogoTile
-                  src={awayLogoSrc}
-                  initialsFrom={headerOpponent}
-                  liveGlow={logoLiveGlow}
-                  size="hero"
-                />
-                <p className="mt-0.5 line-clamp-2 w-full px-0.5 text-[11px] font-bold leading-tight text-white md:mt-1 md:text-[13px] lg:text-[14px]">
-                  {awayDisplayName}
-                </p>
-                {canControlLiveMatch && !matchIsFinished ? (
                   <button
                     type="button"
-                    onClick={async () => {
-                      const ok = await persistSingle({
-                        type: 'goal',
-                        timestamp: currentMatchSeconds,
-                      });
-                      if (!ok) return;
-                      setScoreAway((s) => {
-                        const n = s + 1;
-                        if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: n });
-                        return n;
-                      });
-                    }}
-                    className="mt-0.5 flex h-10 w-full max-w-[9.25rem] items-center justify-center gap-0.5 rounded-lg bg-gradient-to-b from-[#dc2626] to-[#ef4444] px-1.5 text-[10px] font-black uppercase tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_2px_12px_rgba(220,38,38,0.38)] active:scale-[0.98] md:mt-1 md:h-11 md:max-w-[11.5rem] md:gap-1 md:rounded-xl md:px-2 md:text-[11px] lg:h-12 lg:max-w-[13rem] lg:text-[12px] lg:shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_4px_22px_rgba(239,68,68,0.42)]"
+                    onClick={() => setEndMatchConfirmOpen(true)}
+                    className="flex h-9 w-full items-center justify-center rounded-lg border-2 border-red-500 bg-transparent text-[10px] font-bold uppercase tracking-wide text-red-500 hover:bg-red-500/10 md:h-10 md:text-[11px]"
                   >
-                    <span className="text-[12px] leading-none md:text-[14px]" aria-hidden>
-                      ⚽
-                    </span>
-                    + TOR
+                    SPIEL ABSCHLIESSEN
                   </button>
-                ) : null}
-              </div>
+                </div>
+              )}
             </div>
-          </div>
-
-          {(!canControlLiveMatch || matchIsFinished) && (
-            <p className="relative mt-2 text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-400 md:mt-2.5">
-              Zuschaueransicht
-            </p>
-          )}
-          {saveError && (
-            <p className="relative mt-2 text-center text-xs font-medium text-amber-400/95" role="alert">
-              {saveError}
-            </p>
           )}
 
-          {canControlLiveMatch && !matchIsFinished && (
-            <>
-              <div className="relative mt-1.5 flex w-full overflow-hidden rounded-lg border-2 border-zinc-700/90 bg-zinc-950 shadow-[0_6px_24px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.05)] md:mt-2 md:rounded-xl md:shadow-[0_10px_36px_rgba(0,0,0,0.75)]">
-                <button
-                  type="button"
-                  onClick={onStartClick}
-                  disabled={isRunning || matchIsFinished}
-                  className={[
-                    'flex min-h-[40px] flex-1 items-center justify-center border-r border-black/50 px-0.5 text-[9px] font-black uppercase tracking-wide transition-colors active:scale-[0.99] md:min-h-[50px] md:px-1 md:text-[11px] lg:min-h-[54px] lg:text-[12px]',
-                    isRunning || matchIsFinished
-                      ? 'bg-emerald-950/95 text-emerald-800/40'
-                      : 'bg-gradient-to-b from-emerald-950 via-emerald-950 to-black text-emerald-100 shadow-[inset_0_1px_0_rgba(16,185,129,0.14)]',
-                  ].join(' ')}
-                >
-                  {!hasClockStarted ? 'BEGINN' : 'WEITER'}
-                </button>
-                <button
-                  type="button"
-                  onClick={onPauseClick}
-                  disabled={!isRunning || matchIsFinished}
-                  className={[
-                    'flex min-h-[40px] flex-1 items-center justify-center border-r border-black/50 px-0.5 text-[9px] font-black uppercase tracking-wide transition-colors active:scale-[0.99] md:min-h-[50px] md:px-1 md:text-[11px] lg:min-h-[54px] lg:text-[12px]',
-                    isRunning && !matchIsFinished
-                      ? 'bg-gradient-to-b from-amber-400 to-amber-700 text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_0_22px_rgba(249,115,22,0.42)] md:shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_0_28px_rgba(249,115,22,0.45)]'
-                      : 'bg-amber-950/75 text-amber-100/45',
-                  ].join(' ')}
-                >
-                  PAUSE
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (matchIsFinished) return;
-                    startSecondHalf();
-                  }}
-                  disabled={matchIsFinished || currentMatchSeconds >= MATCH_HALF_DURATION_SEC}
-                  className={[
-                    'flex min-h-[40px] flex-1 items-center justify-center px-0.5 text-[9px] font-black uppercase tracking-wide transition-colors active:scale-[0.99] md:min-h-[50px] md:px-1 md:text-[11px] lg:min-h-[54px] lg:text-[12px]',
-                    matchIsFinished || currentMatchSeconds >= MATCH_HALF_DURATION_SEC
-                      ? 'bg-red-950/70 text-red-900/40'
-                      : 'bg-gradient-to-b from-red-900 to-red-950 text-red-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_16px_rgba(220,38,38,0.22)] md:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_20px_rgba(220,38,38,0.25)]',
-                  ].join(' ')}
-                >
-                  ENDE
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setMainTab('overview');
-                  window.requestAnimationFrame(() => {
-                    document.getElementById('live-wechsel-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  });
-                }}
-                className="relative mt-1.5 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-zinc-500/60 bg-zinc-950 text-[11px] font-black uppercase tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] active:scale-[0.99] md:mt-2 md:min-h-[50px] md:rounded-xl md:text-[13px] lg:mx-auto lg:max-w-2xl"
-              >
-                <span className="text-base text-white" aria-hidden>
-                  ⇄
-                </span>
-                WECHSEL
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setEndMatchConfirmOpen(true)}
-                className="relative mt-1.5 flex min-h-[42px] w-full items-center justify-center gap-2 rounded-lg border-2 border-red-500 bg-black/40 text-[10px] font-bold uppercase tracking-wide text-red-500 shadow-none active:scale-[0.99] md:mt-2 md:min-h-[48px] md:rounded-xl md:text-[12px] lg:mx-auto lg:max-w-2xl"
-              >
-                <span className="text-base" aria-hidden>
-                  🚩
-                </span>
-                SPIEL ABSCHLIESSEN
-              </button>
-            </>
-          )}
-        </div>
+          <nav
+            className={`flex max-w-full flex-nowrap items-stretch justify-start gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] md:justify-between md:gap-2 md:overflow-visible [&::-webkit-scrollbar]:hidden ${mainTab === 'overview' ? '' : 'pt-0.5'}`}
+            aria-label="Live-Ansicht"
+          >
+            <button
+              type="button"
+              className={`${tabPillBase} ${mainTab === 'overview' ? tabPillActive : tabPillIdle}`}
+              onClick={() => setMainTab('overview')}
+            >
+              Übersicht
+            </button>
+            <button
+              type="button"
+              className={`${tabPillBase} ${mainTab === 'lineup' ? tabPillActive : tabPillIdle}`}
+              onClick={() => setMainTab('lineup')}
+            >
+              Aufstellung
+            </button>
+            <button
+              type="button"
+              className={`${tabPillBase} ${mainTab === 'events' ? tabPillActive : tabPillIdle}`}
+              onClick={() => setMainTab('events')}
+            >
+              Events
+            </button>
+            <button
+              type="button"
+              className={`${tabPillBase} ${mainTab === 'time' ? tabPillActive : tabPillIdle}`}
+              onClick={() => setMainTab('time')}
+            >
+              Statistik
+            </button>
+          </nav>
         </div>
       </header>
-
-      <div className="sticky top-[var(--live-header-h,auto)] z-30 border-b border-red-950/40 bg-black/98 px-2 py-2 md:px-5 md:py-2.5">
-        <div
-          className={`${layoutShell} flex max-w-full flex-nowrap items-stretch justify-start gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] md:justify-between md:gap-2 md:overflow-visible [&::-webkit-scrollbar]:hidden`}
-        >
-          <button
-            type="button"
-            className={`${tabPillBase} ${mainTab === 'overview' ? tabPillActive : tabPillIdle}`}
-            onClick={() => setMainTab('overview')}
-          >
-            Übersicht
-          </button>
-          <button
-            type="button"
-            className={`${tabPillBase} ${mainTab === 'lineup' ? tabPillActive : tabPillIdle}`}
-            onClick={() => setMainTab('lineup')}
-          >
-            Aufstellung
-          </button>
-          <button
-            type="button"
-            className={`${tabPillBase} ${mainTab === 'events' ? tabPillActive : tabPillIdle}`}
-            onClick={() => setMainTab('events')}
-          >
-            Events
-          </button>
-          <button
-            type="button"
-            className={`${tabPillBase} ${mainTab === 'time' ? tabPillActive : tabPillIdle}`}
-            onClick={() => setMainTab('time')}
-          >
-            Statistik
-          </button>
-        </div>
-      </div>
 
       <div className={`${layoutShell} px-2 py-3 md:px-5 md:py-5`}>
         {mainTab === 'overview' && (
@@ -1191,15 +1130,8 @@ export const LiveMatchScreen: React.FC = () => {
             </section>
 
             <section>
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-white/45">Liveticker</h2>
-                <button
-                  type="button"
-                  onClick={() => setMainTab('events')}
-                  className="shrink-0 rounded-full border-2 border-red-500/50 bg-gradient-to-b from-red-900/90 to-zinc-950 px-3.5 py-2 text-[10px] font-black uppercase tracking-wide text-red-50 shadow-[0_4px_18px_rgba(220,38,38,0.35),inset_0_1px_0_rgba(255,255,255,0.08)] transition-transform hover:scale-[1.03] active:scale-[0.98] sm:text-[11px]"
-                >
-                  Alle Events →
-                </button>
+              <div className="mb-2 flex items-center justify-between gap-2 md:mb-3">
+                <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-white md:text-[11px]">Liveticker</h2>
               </div>
               <ul className="rounded-2xl border border-red-950/30 bg-black/50 px-1 py-4 sm:px-2">
                 {events
@@ -1402,6 +1334,17 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
         )}
       </div>
+
+      {mainTab === 'overview' ? (
+        <button
+          type="button"
+          className="pointer-events-auto fixed bottom-24 right-3 z-30 flex h-8 w-8 items-center justify-center rounded-full border border-zinc-600 bg-zinc-900 text-sm font-bold text-zinc-200 shadow-md hover:border-zinc-500 hover:bg-zinc-800 md:bottom-28 md:right-5 md:h-9 md:w-9"
+          onClick={() => setMainTab('events')}
+          aria-label="Alle Events"
+        >
+          →
+        </button>
+      ) : null}
 
       {homeGoalModalOpen && (
         <div
