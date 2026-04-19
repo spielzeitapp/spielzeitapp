@@ -1341,7 +1341,7 @@ export const LiveMatchScreen: React.FC = () => {
 
                 <section>
                   <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">
-                    Am Feld ({fieldPlayers.length})
+                    Startaufstellung ({fieldPlayers.length})
                   </h2>
                   <div className="relative overflow-hidden rounded-xl border border-red-500/30 bg-black p-3">
                     <div
@@ -1497,7 +1497,7 @@ export const LiveMatchScreen: React.FC = () => {
               <>
                 <p className="text-sm text-gray-400">Tippe einen Spieler für Wechsel.</p>
                 <div>
-                  <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Am Feld</h3>
+                  <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
                   <ul className="space-y-2">
                     {fieldPlayers.map((p) => (
                       <li key={p.id}>
@@ -1510,7 +1510,7 @@ export const LiveMatchScreen: React.FC = () => {
                             <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
                             <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
                             <span className="rounded-full bg-emerald-600/30 px-2 py-1 text-xs font-bold text-emerald-300">
-                              AM FELD
+                              START
                             </span>
                           </button>
                         ) : (
@@ -1518,7 +1518,7 @@ export const LiveMatchScreen: React.FC = () => {
                             <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
                             <span className="flex-1 px-3 text-sm font-semibold text-white">{p.name}</span>
                             <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-emerald-300/90">
-                              AM FELD
+                              START
                             </span>
                           </div>
                         )}
@@ -1527,7 +1527,7 @@ export const LiveMatchScreen: React.FC = () => {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">Bank</h3>
+                  <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">Ersatzbank</h3>
                   <ul className="space-y-2">
                     {benchPlayers.map((p) => (
                       <li key={p.id}>
@@ -1540,7 +1540,7 @@ export const LiveMatchScreen: React.FC = () => {
                             <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
                             <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
                             <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-white/50">
-                              BANK
+                              ERSATZ
                             </span>
                           </button>
                         ) : (
@@ -1548,7 +1548,7 @@ export const LiveMatchScreen: React.FC = () => {
                             <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
                             <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
                             <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-white/50">
-                              BANK
+                              ERSATZ
                             </span>
                           </div>
                         )}
@@ -1557,51 +1557,51 @@ export const LiveMatchScreen: React.FC = () => {
                   </ul>
                 </div>
               </>
+            ) : fieldPlayers.length === 0 && benchPlayers.length === 0 ? (
+              <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-gray-400">
+                Noch keine Aufstellung veröffentlicht.
+              </p>
             ) : (
               <div className="space-y-3">
                 <div>
-                  <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
-                    Startaufstellung
-                  </h3>
+                  <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
                   {fieldPlayers.length === 0 ? (
-                    <p className={`px-3 py-3 text-sm text-gray-500 ${liveCardShell}`}>Noch keine Startaufstellung.</p>
+                    <p className="rounded-2xl border border-emerald-600/25 bg-emerald-950/15 px-4 py-3 text-sm text-gray-400">
+                      Noch keine Spieler auf der Startaufstellung.
+                    </p>
                   ) : (
                     <ul className="space-y-2">
                       {fieldPlayers.map((p) => (
-                        <li
-                          key={p.id}
-                          className={`flex min-h-[52px] items-center gap-3 px-4 py-3 ${liveCardShell} border-red-500/20`}
-                        >
-                          <span className="w-9 shrink-0 text-center text-lg font-black tabular-nums text-red-500">
-                            {p.number || '–'}
-                          </span>
-                          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">{p.name}</span>
-                          <span className="shrink-0 rounded-full border border-red-500/30 bg-red-950/40 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-red-200/90">
-                            Feld
-                          </span>
+                        <li key={p.id}>
+                          <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3">
+                            <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
+                            <span className="flex-1 px-3 text-base font-semibold text-white">{p.name}</span>
+                            <span className="rounded-full bg-emerald-600/30 px-2 py-1 text-xs font-bold text-emerald-300">
+                              START
+                            </span>
+                          </div>
                         </li>
                       ))}
                     </ul>
                   )}
                 </div>
                 <div>
-                  <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">Ersatzbank</h3>
+                  <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">Ersatzbank</h3>
                   {benchPlayers.length === 0 ? (
-                    <p className={`px-3 py-3 text-sm text-gray-500 ${liveCardShell}`}>Keine Ersatzspielerinnen und -spieler gemeldet.</p>
+                    <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-gray-400">
+                      Keine Spieler auf der Ersatzbank.
+                    </p>
                   ) : (
                     <ul className="space-y-2">
                       {benchPlayers.map((p) => (
-                        <li
-                          key={p.id}
-                          className={`flex min-h-[52px] items-center gap-3 px-4 py-3 ${liveCardShell} border-white/[0.06]`}
-                        >
-                          <span className="w-9 shrink-0 text-center text-lg font-black tabular-nums text-gray-400">
-                            {p.number || '–'}
-                          </span>
-                          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-100">{p.name}</span>
-                          <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-400">
-                            Bank
-                          </span>
+                        <li key={p.id}>
+                          <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                            <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
+                            <span className="flex-1 px-3 text-base font-semibold text-white">{p.name}</span>
+                            <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-white/50">
+                              ERSATZ
+                            </span>
+                          </div>
                         </li>
                       ))}
                     </ul>
