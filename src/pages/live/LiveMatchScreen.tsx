@@ -4,6 +4,7 @@ import { useSession } from '../../auth/useSession';
 import { usePlayers } from '../../hooks/usePlayers';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
 import {
+  MATCH_HALF_DURATION_SEC,
   calculatePlayerPlaytimes,
   getBenchPlayers,
   getCurrentOnFieldPlayers,
@@ -35,22 +36,32 @@ function LiveMatchLogoTile({
   src,
   initialsFrom,
   liveGlow,
+  size = 'md',
 }: {
   src: string;
   initialsFrom: string;
   liveGlow: boolean;
+  size?: 'md' | 'hero';
 }) {
   const [failed, setFailed] = useState(false);
   const glow = liveGlow ? 'shadow-[0_0_12px_rgba(255,0,0,0.3)]' : '';
+  const box =
+    size === 'hero'
+      ? 'h-16 w-16 sm:h-[4.25rem] sm:w-[4.25rem]'
+      : 'h-14 w-14 sm:h-[3.75rem] sm:w-[3.75rem]';
+  const imgClass =
+    size === 'hero'
+      ? 'max-h-[3.25rem] max-w-[3.25rem] object-contain p-0.5 sm:max-h-[3.5rem] sm:max-w-[3.5rem]'
+      : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
   return (
     <div
-      className={`flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-red-500/40 bg-zinc-950/95 sm:h-[3.75rem] sm:w-[3.75rem] ${glow}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-red-500/40 bg-zinc-950/95 ${box} ${glow}`}
     >
       {!failed ? (
         <img
           src={src}
           alt=""
-          className="max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]"
+          className={imgClass}
           onError={() => setFailed(true)}
         />
       ) : (
@@ -73,22 +84,50 @@ function formatMinute(ts: number): string {
   return `${min}'`;
 }
 
-const tabBtn =
-  'flex-1 px-0.5 pb-3 pt-2 text-[11px] font-semibold tracking-wide transition-colors sm:px-1 sm:text-xs border-b-[3px] min-h-[48px]';
-const tabActive = 'border-red-500 text-white';
-const tabIdle = 'border-transparent text-zinc-500 hover:text-zinc-300';
-const trainerRowBtn =
-  'min-h-[44px] flex-1 rounded-xl px-2 text-[10px] font-bold transition-transform active:scale-[0.97] sm:text-xs disabled:pointer-events-none disabled:opacity-40 sm:min-h-[46px]';
-const trainerPrimary =
-  'bg-gradient-to-b from-red-600 to-red-900 text-white shadow-[0_4px_22px_rgba(220,38,38,0.38)] ring-1 ring-red-400/45 hover:scale-[1.03]';
-const trainerSecondaryDark =
-  'border border-white/12 bg-zinc-950/95 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:scale-[1.03]';
-const trainerDangerOutline =
-  'border-2 border-red-600/75 bg-zinc-950/90 text-red-100 shadow-[0_0_18px_rgba(220,38,38,0.2)] hover:scale-[1.03]';
-const controlRowBtn =
-  'min-h-[38px] flex-1 rounded-xl border border-white/12 bg-zinc-950/90 px-2 text-[11px] font-semibold text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-35 disabled:hover:scale-100';
-const halfTimeBtn =
-  'min-h-[42px] w-full rounded-xl border border-red-500/45 bg-red-950/35 px-3 text-[11px] font-semibold text-red-100 shadow-[inset_0_1px_0_rgba(248,113,113,0.12)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-35';
+/** Anzeige ohne Jugend-Staffel-Suffix im Hauptnamen (z. B. „ … U11“). */
+function cleanTeamDisplayName(name: string): string {
+  const t = (name || '').trim();
+  if (!t) return '';
+  const noU = t.replace(/\s+U\d{1,2}\b.*$/i, '').trim();
+  return noU || t;
+}
+
+/** Drittel-/Halbzeit-Stand aus Event-Zeitstempeln (gleiche Grenzen wie Uhr). */
+function buildPeriodScoreLine(events: MatchEngineEvent[], currentMatchSeconds: number): string {
+  const b1 = MATCH_HALF_DURATION_SEC;
+  const b2 = MATCH_HALF_DURATION_SEC * 2;
+  const sorted = sortMatchEventsChronologically(events);
+  const p1 = [0, 0];
+  const p2 = [0, 0];
+  const p3 = [0, 0];
+  for (const e of sorted) {
+    if (e.type !== 'goal') continue;
+    const t = e.timestamp;
+    const homeGoal = Boolean(e.playerId);
+    if (t < b1) {
+      if (homeGoal) p1[0] += 1;
+      else p1[1] += 1;
+    } else if (t < b2) {
+      if (homeGoal) p2[0] += 1;
+      else p2[1] += 1;
+    } else {
+      if (homeGoal) p3[0] += 1;
+      else p3[1] += 1;
+    }
+  }
+  const seg = (h: number, a: number, started: boolean) => (started ? `${h}:${a}` : '-:-');
+  const s1 = seg(p1[0], p1[1], currentMatchSeconds > 0 || p1[0] + p1[1] > 0);
+  const s2 = seg(p2[0], p2[1], currentMatchSeconds >= b1 || p2[0] + p2[1] > 0);
+  const s3 = seg(p3[0], p3[1], currentMatchSeconds >= b2 || p3[0] + p3[1] > 0);
+  return `(${s1} | ${s2} | ${s3})`;
+}
+
+const tabPillBase =
+  'min-h-[44px] flex-1 rounded-full border px-2 text-[10px] font-bold uppercase tracking-wide transition-all sm:px-3 sm:text-[11px]';
+const tabPillActive =
+  'border-red-500/60 bg-gradient-to-b from-red-700 to-red-950 text-white shadow-[0_6px_22px_rgba(220,38,38,0.45),inset_0_1px_0_rgba(255,255,255,0.12)]';
+const tabPillIdle =
+  'border-white/10 bg-zinc-950/90 text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-white/18 hover:text-zinc-200';
 
 function eventIcon(t: MatchEventType): string {
   if (t === 'goal') return '⚽';
@@ -253,6 +292,10 @@ export const LiveMatchScreen: React.FC = () => {
   const homeName = selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
 
   const headerOpponent = opponentLabel;
+  const homeDisplayName = cleanTeamDisplayName(homeName);
+  const awayDisplayName = cleanTeamDisplayName(headerOpponent);
+  /** Ohne API-Erweiterung: neutraler Anzeige-Spieltyp (Zielbild). */
+  const matchTypeDisplay = 'Freundschaftsspiel';
   const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
 
@@ -264,6 +307,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [wechselInId, setWechselInId] = useState<string>('');
   const [homeGoalModalOpen, setHomeGoalModalOpen] = useState(false);
   const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
+  const [endMatchConfirmOpen, setEndMatchConfirmOpen] = useState(false);
 
   const hasClockStarted = useMemo(
     () => Boolean(matchRow?.live_started_at) || events.some((e) => e.type === 'start'),
@@ -500,6 +544,18 @@ export const LiveMatchScreen: React.FC = () => {
     return map;
   }, [events]);
 
+  const periodScoreLine = useMemo(
+    () => buildPeriodScoreLine(events, currentMatchSeconds),
+    [events, currentMatchSeconds],
+  );
+
+  const periodDisplayLine = useMemo(() => {
+    if (matchIsFinished) return 'SPIEL BEENDET';
+    const lp = matchRow?.live_period;
+    if (typeof lp === 'number' && lp >= 1 && lp <= 3) return `${lp}. DRITTEL`;
+    return `${half}. HALBZEIT`;
+  }, [matchIsFinished, matchRow?.live_period, half]);
+
   const eventLabel = (ev: MatchEngineEvent): string => {
     const name = ev.playerId ? rosterById.get(ev.playerId)?.name : undefined;
     switch (ev.type) {
@@ -531,18 +587,34 @@ export const LiveMatchScreen: React.FC = () => {
   ) => {
     const isGoal = ev.type === 'goal';
     const isSub = ev.type === 'sub_out' || ev.type === 'sub_in';
+    const isHomeGoal = isGoal && Boolean(ev.playerId);
+    const isAwayGoal = isGoal && !ev.playerId;
     const pl = ev.playerId ? rosterById.get(ev.playerId) : undefined;
     const scoreStr =
       showGoalScoreBadge && isGoal ? goalScoreBadgeByEventId.get(ev.id) ?? null : null;
-    const iconTile = isGoal
-      ? 'bg-gradient-to-b from-red-950 to-black text-red-100 shadow-[inset_0_1px_0_rgba(248,113,113,0.2)] ring-1 ring-red-600/50'
-      : isSub
-        ? 'bg-zinc-900 text-red-400 shadow-inner ring-1 ring-red-800/45'
-        : 'bg-zinc-900/85 text-white/55 ring-1 ring-white/12';
+    const iconTile = isHomeGoal
+      ? 'bg-gradient-to-b from-emerald-800 to-emerald-950 text-white shadow-[inset_0_1px_0_rgba(167,243,208,0.25)] ring-1 ring-emerald-400/55'
+      : isAwayGoal
+        ? 'bg-gradient-to-b from-red-800 to-black text-red-100 shadow-[inset_0_1px_0_rgba(248,113,113,0.2)] ring-1 ring-red-500/55'
+        : isSub
+          ? 'bg-zinc-800 text-zinc-200 shadow-inner ring-1 ring-white/15'
+          : 'bg-zinc-900/85 text-white/55 ring-1 ring-white/12';
+
+    const cardBorder = isHomeGoal
+      ? 'border-emerald-500/45 shadow-[0_0_20px_rgba(16,185,129,0.12)]'
+      : isAwayGoal
+        ? 'border-red-600/45 shadow-[0_0_20px_rgba(220,38,38,0.14)]'
+        : isSub
+          ? 'border-white/12'
+          : 'border-white/[0.08]';
+
+    const scorePillClass = isHomeGoal
+      ? 'rounded-full border border-emerald-400/50 bg-emerald-950/80 px-2.5 py-1 font-mono text-[11px] font-black tabular-nums text-emerald-100 shadow-[0_0_14px_rgba(16,185,129,0.25)]'
+      : 'rounded-full border border-red-500/50 bg-red-950/80 px-2.5 py-1 font-mono text-[11px] font-black tabular-nums text-red-100 shadow-[0_0_14px_rgba(220,38,38,0.25)]';
 
     return (
       <li key={ev.id} className="relative flex gap-0 pb-5 last:pb-0">
-        <div className="flex w-14 shrink-0 flex-col items-end pr-2 pt-1 sm:w-[3.75rem]">
+        <div className="flex w-[3.25rem] shrink-0 flex-col items-end pr-2 pt-1.5 sm:w-16">
           <span className="text-lg font-black tabular-nums leading-none text-white sm:text-xl">
             {formatMinute(ev.timestamp)}
           </span>
@@ -561,20 +633,19 @@ export const LiveMatchScreen: React.FC = () => {
         </div>
         <div className="min-w-0 flex-1">
           <div
-            className={`flex min-h-[4.25rem] items-stretch gap-3 rounded-xl border border-white/[0.07] bg-gradient-to-br from-zinc-950/98 to-black px-3.5 py-3 shadow-[0_12px_32px_rgba(0,0,0,0.45)] ${
-              isGoal ? 'border-red-800/30' : isSub ? 'border-red-950/25' : ''
-            }`}
+            className={`flex min-h-[4.25rem] items-stretch gap-3 rounded-2xl border-2 bg-gradient-to-br from-zinc-950 to-black px-3.5 py-3 shadow-[0_12px_32px_rgba(0,0,0,0.55)] ${cardBorder}`}
           >
             <div
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg ${iconTile}`}
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg ${iconTile}`}
               aria-hidden
             >
               {eventIcon(ev.type)}
             </div>
             <div className="min-w-0 flex-1 py-0.5">
-              {isGoal && ev.playerId ? (
+              {isHomeGoal ? (
                 <>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-red-500">Tor Heim</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-emerald-400">Tor</p>
+                  <p className="mt-0.5 truncate text-xs font-bold text-white">{homeDisplayName}</p>
                   <p className="mt-1 text-sm font-semibold leading-snug text-white">
                     {pl?.name ?? '?'}
                     {pl?.number != null && String(pl.number).trim() !== '' ? (
@@ -582,31 +653,30 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </p>
                 </>
-              ) : isGoal && !ev.playerId ? (
+              ) : isAwayGoal ? (
                 <>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-red-400">Tor Gast</p>
-                  <p className="mt-1 text-xs text-white/50">Gegentor</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-red-400">Tor</p>
+                  <p className="mt-0.5 truncate text-xs font-bold text-white">{awayDisplayName}</p>
+                  <p className="mt-1 text-xs font-medium text-white/55">Gegentor</p>
                 </>
               ) : isSub ? (
                 <>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/55">Wechsel</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-400">Wechsel</p>
                   <p
                     className={`mt-1 text-sm font-semibold leading-snug ${
-                      ev.type === 'sub_out' ? 'text-red-400' : 'text-emerald-400'
+                      ev.type === 'sub_out' ? 'text-red-300' : 'text-emerald-300'
                     }`}
                   >
                     {eventLabel(ev)}
                   </p>
                 </>
               ) : (
-                <p className="text-sm font-medium text-white/90">{eventLabel(ev)}</p>
+                <p className="text-sm font-semibold text-white/90">{eventLabel(ev)}</p>
               )}
             </div>
             {scoreStr ? (
               <div className="flex shrink-0 items-start pt-0.5">
-                <span className="rounded-md border border-red-600/45 bg-red-950/55 px-2 py-0.5 font-mono text-[11px] font-bold tabular-nums text-red-100">
-                  {scoreStr}
-                </span>
+                <span className={scorePillClass}>{scoreStr}</span>
               </div>
             ) : null}
           </div>
@@ -699,116 +769,116 @@ export const LiveMatchScreen: React.FC = () => {
       <header className="sticky top-0 z-40 border-b border-red-950/40 bg-black/95 px-3 pt-2 pb-3 backdrop-blur-md">
         <div
           className={[
-            'relative mx-auto max-w-lg overflow-hidden rounded-2xl bg-gradient-to-b from-black to-red-900/95',
+            'relative mx-auto max-w-lg overflow-hidden rounded-2xl bg-gradient-to-b from-black via-black to-red-950/40',
             'px-[15px] pt-3 pb-4 sm:pb-5',
             matchIsFinished
-              ? 'border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
-              : 'border border-red-500/40 shadow-[0_0_40px_rgba(255,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_0_26px_rgba(127,29,29,0.14)]',
+              ? 'border border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
+              : 'border-2 border-red-500/55 shadow-[0_0_56px_rgba(255,0,0,0.42),0_0_1px_rgba(255,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_0_32px_rgba(127,29,29,0.2)]',
           ].join(' ')}
         >
           <div
-            className="pointer-events-none absolute inset-0 opacity-[0.35]"
+            className="pointer-events-none absolute inset-0 opacity-[0.38]"
             style={{
               backgroundImage:
-                'radial-gradient(ellipse 120% 80% at 50% -20%, rgba(153,27,27,0.35), transparent 55%)',
+                'radial-gradient(ellipse 120% 80% at 50% -20%, rgba(153,27,27,0.4), transparent 55%)',
             }}
             aria-hidden
           />
-          <div className="relative flex flex-col items-center gap-1 pb-3 text-center">
+          <div className="relative flex flex-col items-center gap-1.5 pb-2 text-center">
             <div
-              className={`flex items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] sm:text-[11px] ${
+              className={`flex items-center justify-center gap-1.5 rounded-full px-5 py-2 text-[10px] font-black uppercase tracking-[0.26em] sm:text-[11px] ${
                 matchIsFinished
-                  ? 'bg-zinc-800/95 text-zinc-200 ring-1 ring-white/15'
+                  ? 'bg-zinc-800 text-zinc-200 ring-1 ring-white/18'
                   : hasClockStarted
-                    ? 'bg-gradient-to-b from-red-600 to-red-900 text-white shadow-[0_0_22px_rgba(239,68,68,0.5)] ring-1 ring-red-400/55'
-                    : 'bg-zinc-900/95 text-zinc-400 ring-1 ring-white/12'
+                    ? 'bg-gradient-to-b from-red-600 to-red-950 text-white shadow-[0_0_28px_rgba(239,68,68,0.65),0_0_48px_rgba(220,38,38,0.25)] ring-2 ring-red-400/65'
+                    : 'bg-zinc-900 text-zinc-400 ring-1 ring-white/14'
               }`}
             >
               {!matchIsFinished && hasClockStarted ? (
-                <span className="text-[11px] leading-none" aria-hidden>
+                <span className="text-[12px] leading-none text-red-100" aria-hidden>
                   ●
                 </span>
               ) : null}
               {matchIsFinished ? 'ENDSTAND' : hasClockStarted ? 'LIVE' : 'BEREIT'}
             </div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/55">Spiel</p>
-            <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-red-500">
-              {matchIsFinished ? 'Abgeschlossen' : `${half}. Halbzeit`}
+            <p className="text-sm font-bold tracking-wide text-white sm:text-[15px]">{matchTypeDisplay}</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-red-500 drop-shadow-[0_0_14px_rgba(239,68,68,0.55)] sm:text-xs">
+              {periodDisplayLine}
             </p>
           </div>
 
-          <div className="relative mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 sm:gap-x-4">
-            <div className="flex min-w-0 flex-col items-center border-r border-white/[0.12] py-2 pr-2 text-center sm:pr-5">
-              <LiveMatchLogoTile src={homeLogoSrc} initialsFrom={homeLogoLookupName} liveGlow={logoLiveGlow} />
-              <p className="mt-2 line-clamp-2 max-w-[132px] text-[13px] font-semibold leading-tight text-white sm:max-w-[152px] sm:text-[15px]">
-                {homeName}
-              </p>
+          <div className="relative mt-1 flex flex-col items-center px-1">
+            <div className="flex items-center justify-center gap-4 sm:gap-6">
+              <span className="text-5xl font-black tabular-nums tracking-tight text-white drop-shadow-[0_4px_28px_rgba(0,0,0,0.92)] sm:text-[3.5rem]">
+                {scoreHome}
+              </span>
+              <span
+                className="select-none pb-1 text-5xl font-extralight leading-none text-white/35 sm:text-[3.25rem]"
+                aria-hidden
+              >
+                :
+              </span>
+              <span className="text-5xl font-black tabular-nums tracking-tight text-white drop-shadow-[0_4px_28px_rgba(0,0,0,0.92)] sm:text-[3.5rem]">
+                {scoreAway}
+              </span>
             </div>
-
-            <div className="flex min-w-0 flex-col items-center justify-center px-0.5 sm:px-2">
-              <div className="flex items-baseline justify-center gap-1 sm:gap-1.5">
-                <span className="text-5xl font-black tabular-nums tracking-tighter text-white drop-shadow-[0_4px_28px_rgba(0,0,0,0.88)] sm:text-6xl">
-                  {scoreHome}
-                </span>
-                <span className="pb-1 text-3xl font-extralight text-white/25 sm:text-4xl">:</span>
-                <span className="text-5xl font-black tabular-nums tracking-tighter text-white drop-shadow-[0_4px_28px_rgba(0,0,0,0.88)] sm:text-6xl">
-                  {scoreAway}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex min-w-0 flex-col items-center border-l border-white/[0.12] py-2 pl-2 text-center sm:pl-5">
-              <LiveMatchLogoTile src={awayLogoSrc} initialsFrom={headerOpponent} liveGlow={logoLiveGlow} />
-              <p className="mt-2 line-clamp-2 max-w-[132px] text-[13px] font-semibold leading-tight text-white sm:max-w-[152px] sm:text-[15px]">
-                {headerOpponent}
-              </p>
-            </div>
+            <p className="mt-2 text-center font-mono text-[11px] font-bold tabular-nums tracking-wide text-white/80 sm:text-xs">
+              {periodScoreLine}
+            </p>
           </div>
 
-          <div className="relative mt-3 space-y-1 border-t border-white/[0.08] pt-3 text-center">
+          <div className="relative mt-2 space-y-1 border-b border-white/[0.1] pb-3 text-center">
             {matchRow?.location ? (
-              <p className="text-[12px] font-medium text-zinc-500">📍 {matchRow.location}</p>
+              <p className="text-[13px] font-semibold text-zinc-300">📍 {matchRow.location}</p>
             ) : (
-              <p className="text-[12px] text-zinc-600">📍 —</p>
+              <p className="text-[13px] font-semibold text-zinc-500">📍 —</p>
             )}
             <p
-              className={`font-mono text-xl font-bold tabular-nums sm:text-2xl ${
-                matchIsFinished ? 'text-zinc-500' : 'text-red-500 drop-shadow-[0_0_12px_rgba(239,68,68,0.35)]'
+              className={`font-mono text-2xl font-black tabular-nums sm:text-[1.75rem] ${
+                matchIsFinished ? 'text-zinc-500' : 'text-red-500 drop-shadow-[0_0_16px_rgba(239,68,68,0.45)]'
               }`}
             >
               ⏱ {formatClock(currentMatchSeconds)}
             </p>
           </div>
 
-          {(!canControlLiveMatch || matchIsFinished) && (
-            <p className="relative mt-2 text-center text-[10px] text-white/35">Zuschaueransicht</p>
-          )}
-          {saveError && (
-            <p className="relative mt-2 text-center text-xs font-medium text-amber-400/95" role="alert">
-              {saveError}
-            </p>
-          )}
-
-          {canControlLiveMatch && !matchIsFinished && (
-            <>
-              <div className="relative mt-4 flex flex-wrap gap-2 sm:flex-nowrap">
+          <div className="relative mt-3 grid grid-cols-2 gap-3 px-0.5 sm:gap-5">
+            <div className="flex min-w-0 flex-col items-center text-center">
+              <LiveMatchLogoTile
+                src={homeLogoSrc}
+                initialsFrom={homeLogoLookupName}
+                liveGlow={logoLiveGlow}
+                size="hero"
+              />
+              <p className="mt-2 line-clamp-2 w-full max-w-[11.5rem] text-[14px] font-bold leading-tight text-white sm:text-[15px]">
+                {homeDisplayName}
+              </p>
+              {canControlLiveMatch && !matchIsFinished ? (
                 <button
                   type="button"
-                  disabled={matchIsFinished}
                   onClick={() => {
                     setHomeGoalPickId('');
                     setHomeGoalModalOpen(true);
                   }}
-                  className={`${trainerRowBtn} ${trainerPrimary} flex items-center justify-center gap-1`}
+                  className="mt-2 flex min-h-[44px] w-full max-w-[11.5rem] items-center justify-center rounded-xl border-2 border-emerald-400/55 bg-gradient-to-b from-emerald-500 to-emerald-950 px-2 text-[13px] font-black uppercase tracking-wide text-white shadow-[0_0_22px_rgba(16,185,129,0.35)] active:scale-[0.98]"
                 >
-                  <span className="text-sm" aria-hidden>
-                    ⚽
-                  </span>
-                  <span className="truncate">+ Tor</span>
+                  + TOR
                 </button>
+              ) : null}
+            </div>
+            <div className="flex min-w-0 flex-col items-center text-center">
+              <LiveMatchLogoTile
+                src={awayLogoSrc}
+                initialsFrom={headerOpponent}
+                liveGlow={logoLiveGlow}
+                size="hero"
+              />
+              <p className="mt-2 line-clamp-2 w-full max-w-[11.5rem] text-[14px] font-bold leading-tight text-white sm:text-[15px]">
+                {awayDisplayName}
+              </p>
+              {canControlLiveMatch && !matchIsFinished ? (
                 <button
                   type="button"
-                  disabled={matchIsFinished}
                   onClick={async () => {
                     const ok = await persistSingle({
                       type: 'goal',
@@ -821,53 +891,55 @@ export const LiveMatchScreen: React.FC = () => {
                       return n;
                     });
                   }}
-                  className={`${trainerRowBtn} ${trainerSecondaryDark} flex items-center justify-center gap-1`}
+                  className="mt-2 flex min-h-[44px] w-full max-w-[11.5rem] items-center justify-center rounded-xl border-2 border-red-500/60 bg-gradient-to-b from-red-600 to-red-950 px-2 text-[13px] font-black uppercase tracking-wide text-white shadow-[0_0_22px_rgba(220,38,38,0.4)] active:scale-[0.98]"
                 >
-                  <span className="text-sm opacity-90" aria-hidden>
-                    ⚽
-                  </span>
-                  <span className="truncate">Aktion</span>
+                  + TOR
                 </button>
-                <button
-                  type="button"
-                  disabled={matchIsFinished}
-                  onClick={() => setMainTab('overview')}
-                  className={`${trainerRowBtn} ${trainerSecondaryDark} flex items-center justify-center gap-1`}
-                >
-                  <span className="text-sm text-red-400" aria-hidden>
-                    🔁
-                  </span>
-                  <span className="truncate">Wechsel</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={onEndClick}
-                  disabled={matchIsFinished}
-                  className={`${trainerRowBtn} ${trainerDangerOutline} flex items-center justify-center gap-1`}
-                >
-                  <span className="text-sm text-red-400" aria-hidden>
-                    ⏹
-                  </span>
-                  <span className="truncate">Spielende</span>
-                </button>
-              </div>
+              ) : null}
+            </div>
+          </div>
 
-              <div className="relative mt-3 flex flex-col gap-2 border-t border-white/[0.06] pt-3 sm:flex-row sm:flex-wrap">
+          {(!canControlLiveMatch || matchIsFinished) && (
+            <p className="relative mt-3 text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+              Zuschaueransicht
+            </p>
+          )}
+          {saveError && (
+            <p className="relative mt-2 text-center text-xs font-medium text-amber-400/95" role="alert">
+              {saveError}
+            </p>
+          )}
+
+          {canControlLiveMatch && !matchIsFinished && (
+            <>
+              <div className="relative mt-4 flex gap-2">
                 <button
                   type="button"
                   onClick={onStartClick}
                   disabled={isRunning || matchIsFinished}
-                  className={`${controlRowBtn} sm:flex-1`}
+                  className={[
+                    'min-h-[50px] flex-1 rounded-xl border-2 px-1.5 text-[11px] font-black uppercase tracking-wide active:scale-[0.98] sm:min-h-[52px] sm:text-[12px]',
+                    isRunning || matchIsFinished
+                      ? 'border-emerald-950/60 bg-emerald-950/25 text-emerald-900/40'
+                      : !hasClockStarted
+                        ? 'border-emerald-400/65 bg-gradient-to-b from-emerald-500 to-emerald-950 text-white shadow-[0_0_26px_rgba(16,185,129,0.38)]'
+                        : 'border-emerald-700/55 bg-gradient-to-b from-emerald-800 to-emerald-950 text-emerald-50',
+                  ].join(' ')}
                 >
-                  {!hasClockStarted ? 'Anpfiff' : 'Weiter'}
+                  {!hasClockStarted ? 'BEGINN' : 'WEITER'}
                 </button>
                 <button
                   type="button"
                   onClick={onPauseClick}
                   disabled={!isRunning || matchIsFinished}
-                  className={`${controlRowBtn} sm:flex-1`}
+                  className={[
+                    'min-h-[50px] flex-1 rounded-xl border-2 px-1.5 text-[11px] font-black uppercase tracking-wide active:scale-[0.98] sm:min-h-[52px] sm:text-[12px]',
+                    isRunning && !matchIsFinished
+                      ? 'border-amber-400/70 bg-gradient-to-b from-amber-500 to-amber-900 text-black shadow-[0_0_26px_rgba(245,158,11,0.42)]'
+                      : 'border-amber-950/50 bg-amber-950/25 text-amber-900/35',
+                  ].join(' ')}
                 >
-                  Pause
+                  PAUSE
                 </button>
                 <button
                   type="button"
@@ -875,43 +947,68 @@ export const LiveMatchScreen: React.FC = () => {
                     if (matchIsFinished) return;
                     startSecondHalf();
                   }}
-                  disabled={matchIsFinished}
-                  className={halfTimeBtn}
+                  disabled={matchIsFinished || currentMatchSeconds >= MATCH_HALF_DURATION_SEC}
+                  className={[
+                    'min-h-[50px] flex-1 rounded-xl border-2 px-1.5 text-[11px] font-black uppercase tracking-wide active:scale-[0.98] sm:min-h-[52px] sm:text-[12px]',
+                    matchIsFinished || currentMatchSeconds >= MATCH_HALF_DURATION_SEC
+                      ? 'border-red-950/50 bg-red-950/20 text-red-900/35'
+                      : 'border-red-500/55 bg-gradient-to-b from-red-800 to-red-950 text-red-50 shadow-[0_0_18px_rgba(220,38,38,0.22)]',
+                  ].join(' ')}
                 >
-                  2. Halbzeit
+                  ENDE
                 </button>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setMainTab('overview')}
+                className="relative mt-3 flex min-h-[50px] w-full items-center justify-center gap-2 rounded-xl border border-white/18 bg-zinc-900 text-[13px] font-black uppercase tracking-wide text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] active:scale-[0.99]"
+              >
+                <span aria-hidden>⇄</span>
+                WECHSEL
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setEndMatchConfirmOpen(true)}
+                className="relative mt-2 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border-2 border-red-500/70 bg-zinc-950 text-[12px] font-black uppercase tracking-wide text-red-100 shadow-[0_0_20px_rgba(220,38,38,0.15)] active:scale-[0.99]"
+              >
+                <span className="text-base" aria-hidden>
+                  🏁
+                </span>
+                SPIEL ABSCHLIESSEN
+              </button>
             </>
           )}
         </div>
       </header>
 
-      <div className="sticky top-[var(--live-header-h,auto)] z-30 border-b border-red-950/35 bg-black/98 px-3 pt-1 pb-0">
-        <div className="mx-auto flex max-w-lg items-end justify-between gap-0">
+      <div className="sticky top-[var(--live-header-h,auto)] z-30 border-b border-red-950/40 bg-black/98 px-3 py-2.5">
+        <div className="mx-auto flex max-w-lg items-stretch justify-between gap-1.5 sm:gap-2">
           <button
             type="button"
-            className={`${tabBtn} ${mainTab === 'overview' ? tabActive : tabIdle}`}
+            className={`${tabPillBase} ${mainTab === 'overview' ? tabPillActive : tabPillIdle}`}
             onClick={() => setMainTab('overview')}
           >
             Übersicht
           </button>
           <button
             type="button"
-            className={`${tabBtn} ${mainTab === 'lineup' ? tabActive : tabIdle}`}
+            className={`${tabPillBase} ${mainTab === 'lineup' ? tabPillActive : tabPillIdle}`}
             onClick={() => setMainTab('lineup')}
           >
             Aufstellung
           </button>
           <button
             type="button"
-            className={`${tabBtn} ${mainTab === 'events' ? tabActive : tabIdle}`}
+            className={`${tabPillBase} ${mainTab === 'events' ? tabPillActive : tabPillIdle}`}
             onClick={() => setMainTab('events')}
           >
             Events
           </button>
           <button
             type="button"
-            className={`${tabBtn} ${mainTab === 'time' ? tabActive : tabIdle}`}
+            className={`${tabPillBase} ${mainTab === 'time' ? tabPillActive : tabPillIdle}`}
             onClick={() => setMainTab('time')}
           >
             Statistik
@@ -1042,7 +1139,7 @@ export const LiveMatchScreen: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setMainTab('events')}
-                  className="shrink-0 rounded-full border border-red-500/35 bg-red-950/40 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-red-200/95 shadow-[0_0_14px_rgba(220,38,38,0.18)] transition-transform hover:scale-[1.03] active:scale-[0.98]"
+                  className="shrink-0 rounded-full border-2 border-red-500/50 bg-gradient-to-b from-red-900/90 to-zinc-950 px-3.5 py-2 text-[10px] font-black uppercase tracking-wide text-red-50 shadow-[0_4px_18px_rgba(220,38,38,0.35),inset_0_1px_0_rgba(255,255,255,0.08)] transition-transform hover:scale-[1.03] active:scale-[0.98] sm:text-[11px]"
                 >
                   Alle Events →
                 </button>
@@ -1313,6 +1410,48 @@ export const LiveMatchScreen: React.FC = () => {
             >
               Abbrechen
             </button>
+          </div>
+        </div>
+      )}
+
+      {endMatchConfirmOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/85 p-4 backdrop-blur-sm sm:items-center"
+          role="presentation"
+          onClick={() => setEndMatchConfirmOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border-2 border-red-500/55 bg-zinc-950 p-5 shadow-[0_0_40px_rgba(0,0,0,0.85)] sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="end-match-title"
+          >
+            <h3 id="end-match-title" className="text-xl font-black text-white sm:text-2xl">
+              Spiel wirklich abschließen?
+            </h3>
+            <p className="mt-3 text-[15px] font-medium leading-snug text-zinc-300 sm:text-base">
+              Das Spiel wird beendet und als Endstand gespeichert.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-row-reverse">
+              <button
+                type="button"
+                className="flex min-h-[52px] flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-red-600 to-red-950 text-base font-black uppercase tracking-wide text-white shadow-[0_0_24px_rgba(220,38,38,0.35)] active:scale-[0.99]"
+                onClick={async () => {
+                  setEndMatchConfirmOpen(false);
+                  await onEndClick();
+                }}
+              >
+                Abschließen
+              </button>
+              <button
+                type="button"
+                className="flex min-h-[52px] flex-1 items-center justify-center rounded-xl border-2 border-white/20 bg-zinc-900 text-base font-bold text-white active:scale-[0.99]"
+                onClick={() => setEndMatchConfirmOpen(false)}
+              >
+                Abbrechen
+              </button>
+            </div>
           </div>
         </div>
       )}
