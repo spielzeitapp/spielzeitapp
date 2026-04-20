@@ -20,7 +20,6 @@ import { PlayerOnboardingPage } from '../pages/PlayerOnboardingPage';
 import { RoleChoicePage } from '../pages/RoleChoicePage';
 import { MatchDetailPage } from '../pages/MatchDetail/MatchDetailPage';
 import { EventDetailPage } from '../pages/EventDetailPage';
-import { LiveMatchScreen } from '../pages/live/LiveMatchScreen';
 import { MatchSetupScreen } from '../pages/live/MatchSetupScreen';
 import { LivePage } from '../pages/LivePage';
 import { TeamPage } from '../pages/TeamPage';
@@ -147,7 +146,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="match/:id" element={<MatchDetailPage />} />
         <Route path="live/match" element={<Navigate to="/app/live/setup" replace />} />
         <Route path="live/setup" element={<MatchSetupScreen />} />
-        <Route path="live" element={<LiveMatchScreen />} />
+        <Route path="live" element={<LivePage />} />
         <Route path="live/:id" element={<LivePage />} />
         <Route path="team" element={<TeamPage />} />
         <Route path="table" element={<TablePage />} />

@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabaseClient';
 
 type LiveMatchRow = {
   id: string;
+  opponent: string | null;
+  match_date: string | null;
 };
 
 /**
@@ -17,7 +19,7 @@ export const LivePage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [noLiveMatch, setNoLiveMatch] = useState(false);
+  const [liveMatches, setLiveMatches] = useState<LiveMatchRow[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -25,42 +27,36 @@ export const LivePage: React.FC = () => {
     const load = async () => {
       setLoading(true);
       setError(null);
-      setNoLiveMatch(false);
+      setLiveMatches([]);
 
       const { data, error } = await supabase
         .from('matches')
-        .select('id')
+        .select('id, opponent, match_date')
         .eq('status', 'live')
         .order('match_date', { ascending: false })
-        .limit(1)
-        .single<LiveMatchRow>();
+        .returns<LiveMatchRow[]>();
 
       if (cancelled) return;
 
       if (error) {
-        // PGRST116 = no rows
-        if ((error as any).code === 'PGRST116') {
-          setNoLiveMatch(true);
-        } else {
-          setError('Fehler beim Laden des Live-Spiels.');
-        }
+        setError('Fehler beim Laden der Live-Spiele.');
         setLoading(false);
         return;
       }
 
-      if (data?.id) {
-        navigate(`/app/match/${data.id}`, { replace: true });
+      const rows = data ?? [];
+      setLiveMatches(rows);
+
+      if (rows.length === 1 && rows[0]?.id) {
+        navigate(`/app/match/${rows[0].id}`, { replace: true });
         return;
       }
-
-      // Fallback: kein Live-Match gefunden
-      setNoLiveMatch(true);
       setLoading(false);
     };
 
     load().catch(() => {
       if (cancelled) return;
-      setError('Fehler beim Laden des Live-Spiels.');
+      setError('Fehler beim Laden der Live-Spiele.');
       setLoading(false);
     });
 
@@ -90,12 +86,12 @@ export const LivePage: React.FC = () => {
     );
   }
 
-  if (noLiveMatch) {
+  if (liveMatches.length === 0) {
     return (
       <div className="page space-y-4 pb-4">
-        <h1 className="headline">Kein Live-Spiel aktiv</h1>
+        <h1 className="headline">Aktuell kein Livespiel</h1>
         <p className="text-sm text-[var(--text-sub)]">
-          Starte ein Match im Spielplan oder im Match-Detail.
+          Sobald ein Spiel auf LIVE steht, erscheint es hier.
         </p>
         <Link to="/app/termine" className="btn btn-primary btn--sm inline-block mt-2">
           Zum Spielplan
@@ -104,16 +100,21 @@ export const LivePage: React.FC = () => {
     );
   }
 
-  // Fallback – sollte praktisch nie erreicht werden
   return (
     <div className="page space-y-4 pb-4">
       <h1 className="headline">Live</h1>
-      <p className="text-sm text-[var(--text-sub)]">
-        Es konnte kein Live-Spiel gefunden werden.
-      </p>
-      <Link to="/app/termine" className="btn btn-primary btn--sm inline-block mt-2">
-        Zum Spielplan
-      </Link>
+      <p className="text-sm text-[var(--text-sub)]">Mehrere Livespiele aktiv – wähle ein Spiel aus.</p>
+      <div className="space-y-3">
+        {liveMatches.map((m) => (
+          <div key={m.id} className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-4">
+            <p className="text-sm font-semibold text-[var(--text-main)]">{m.opponent?.trim() || 'Gegner'}</p>
+            <p className="text-xs text-[var(--text-sub)]">{m.match_date ? new Date(m.match_date).toLocaleString('de-AT') : '—'}</p>
+            <Link to={`/app/match/${m.id}`} className="btn btn-primary btn--sm inline-block mt-3">
+              Zum Livespiel
+            </Link>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
