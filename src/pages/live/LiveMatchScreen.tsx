@@ -960,7 +960,7 @@ export const LiveMatchScreen: React.FC = () => {
                 className={`relative bg-gradient-to-b from-black via-zinc-950 to-red-950/80 ${
                   spectatorView
                     ? 'px-4 pb-4 pt-5 md:px-6 md:pb-5 md:pt-6'
-                    : 'px-4 pb-5 pt-5 md:px-8 md:pb-7 md:pt-7'
+                    : 'px-4 pb-4 pt-5 md:px-8 md:pb-6 md:pt-7'
                 }`}
               >
                 <div
@@ -993,7 +993,7 @@ export const LiveMatchScreen: React.FC = () => {
 
                 <div
                   className={`relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end ${
-                    spectatorView ? 'mt-4 gap-x-3 py-2' : 'mt-5 gap-x-4 py-3 md:mt-6 md:gap-x-8 md:py-5'
+                    spectatorView ? 'mt-4 gap-x-3 py-2' : 'mt-5 gap-x-3 py-3 md:mt-6 md:gap-x-7 md:py-4'
                   }`}
                 >
                   <div className="flex min-w-0 flex-col items-center text-center">
@@ -1003,7 +1003,7 @@ export const LiveMatchScreen: React.FC = () => {
                       liveGlow={false}
                       size="heroLg"
                     />
-                    <p className="mt-3 line-clamp-2 w-full max-w-[11rem] break-words text-[11px] font-medium leading-snug text-white/80 md:mt-4 md:text-xs">
+                    <p className="mt-3 line-clamp-2 w-full max-w-[10.5rem] hyphens-auto break-words text-center text-[10px] font-normal leading-snug tracking-wide text-white/55 [text-wrap:balance] md:mt-3.5 md:max-w-[11rem] md:text-[11px]">
                       {homeDisplayName}
                     </p>
                   </div>
@@ -1054,27 +1054,31 @@ export const LiveMatchScreen: React.FC = () => {
                       liveGlow={false}
                       size="heroLg"
                     />
-                    <p className="mt-3 line-clamp-2 w-full max-w-[11rem] break-words text-[11px] font-medium leading-snug text-white/80 md:mt-4 md:text-xs">
+                    <p className="mt-3 line-clamp-2 w-full max-w-[10.5rem] hyphens-auto break-words text-center text-[10px] font-normal leading-snug tracking-wide text-white/55 [text-wrap:balance] md:mt-3.5 md:max-w-[11rem] md:text-[11px]">
                       {awayDisplayName}
                     </p>
                   </div>
                 </div>
 
-                <p className="relative mt-1 w-full px-2 text-center font-mono text-[11px] font-medium tabular-nums tracking-wide text-white/45 md:mt-2 md:text-xs">
+                <p className="relative mt-2 w-full px-3 text-center font-mono text-[10px] font-normal tabular-nums tracking-wider text-white/38 md:mt-2.5 md:text-[11px]">
                   {periodScoreLine}
                 </p>
               </div>
 
               {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
-                <div className="border-t border-white/[0.06] bg-gradient-to-b from-black via-zinc-950/98 to-black px-4 py-4 md:px-5 md:py-5">
-                  <div className="grid grid-cols-2 gap-3">
+                <div className="relative bg-gradient-to-b from-zinc-950/30 via-black/92 to-zinc-950 px-3.5 pb-3.5 pt-2.5 md:px-4 md:pb-4 md:pt-3">
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => {
                         setHomeGoalPickId('');
                         setHomeGoalModalOpen(true);
                       }}
-                      className="flex h-10 w-full items-center justify-center rounded-2xl bg-gradient-to-b from-emerald-600 to-emerald-800 px-3 text-sm font-semibold text-white shadow-[0_4px_20px_rgba(16,185,129,0.25)] transition hover:brightness-110 active:scale-[0.99] md:h-11"
+                      className="flex h-9 w-full items-center justify-center rounded-xl bg-gradient-to-b from-emerald-600 to-emerald-800 px-2.5 text-xs font-semibold text-white shadow-[0_3px_14px_rgba(16,185,129,0.22)] transition hover:brightness-110 active:scale-[0.99] md:h-9"
                     >
                       + TOR
                     </button>
@@ -1092,13 +1096,13 @@ export const LiveMatchScreen: React.FC = () => {
                           return n;
                         });
                       }}
-                      className="flex h-10 w-full items-center justify-center rounded-2xl bg-gradient-to-b from-red-600 to-red-900 px-3 text-sm font-semibold text-white shadow-[0_4px_20px_rgba(220,38,38,0.28)] transition hover:brightness-110 active:scale-[0.99] md:h-11"
+                      className="flex h-9 w-full items-center justify-center rounded-xl bg-gradient-to-b from-red-600 to-red-900 px-2.5 text-xs font-semibold text-white shadow-[0_3px_14px_rgba(220,38,38,0.24)] transition hover:brightness-110 active:scale-[0.99] md:h-9"
                     >
                       + TOR
                     </button>
                   </div>
 
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-2 flex gap-1.5">
                     <button
                       type="button"
                       onClick={isRunning ? onPauseClick : onStartClick}
@@ -1108,7 +1112,7 @@ export const LiveMatchScreen: React.FC = () => {
                       }
                       aria-pressed={isRunning}
                       className={[
-                        'flex h-8 min-h-8 flex-[1.35] items-center justify-center gap-1 rounded-xl border px-2 text-[11px] font-medium transition md:h-8 md:text-xs',
+                        'flex h-7 min-h-7 flex-[1.35] items-center justify-center gap-0.5 rounded-lg border px-1.5 text-[10px] font-medium transition md:h-7 md:text-[11px]',
                         isRunning
                           ? 'border-amber-400/35 bg-amber-400/95 text-black hover:bg-amber-300'
                           : 'border-red-500/20 bg-zinc-900/80 text-white hover:border-red-500/35 hover:bg-zinc-800',
@@ -1130,7 +1134,7 @@ export const LiveMatchScreen: React.FC = () => {
                       type="button"
                       onClick={() => setEndMatchConfirmOpen(true)}
                       disabled={matchIsFinished}
-                      className="flex h-8 min-h-8 flex-1 items-center justify-center gap-1 rounded-xl border border-red-500/40 bg-gradient-to-b from-red-600/95 to-red-950 px-2 text-[11px] font-medium text-white shadow-[0_2px_16px_rgba(220,38,38,0.2)] hover:brightness-110 disabled:border-transparent disabled:bg-neutral-900 disabled:text-gray-600 md:h-8 md:text-xs"
+                      className="flex h-7 min-h-7 flex-1 items-center justify-center gap-0.5 rounded-lg border border-red-500/40 bg-gradient-to-b from-red-600/95 to-red-950 px-1.5 text-[10px] font-medium text-white shadow-[0_2px_12px_rgba(220,38,38,0.18)] hover:brightness-110 disabled:border-transparent disabled:bg-neutral-900 disabled:text-gray-600 md:h-7 md:text-[11px]"
                     >
                       <span aria-hidden>■</span>
                       Ende
@@ -1145,17 +1149,17 @@ export const LiveMatchScreen: React.FC = () => {
                         document.getElementById('live-wechsel-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       });
                     }}
-                    className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/[0.12] bg-white/[0.03] text-sm font-medium text-white/95 transition hover:border-red-500/30 hover:bg-white/[0.06]"
+                    className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-white/[0.1] bg-white/[0.025] text-xs font-medium text-white/85 transition hover:border-white/15 hover:bg-white/[0.05]"
                   >
                     <span aria-hidden>⇄</span>
                     Wechsel
                   </button>
 
-                  <div className="mt-3 rounded-2xl border border-red-500/25 bg-red-950/20 p-0.5">
+                  <div className="mt-2 rounded-xl border border-red-500/15 bg-red-950/10 px-1 py-1">
                     <button
                       type="button"
                       onClick={() => setEndMatchConfirmOpen(true)}
-                      className="flex h-9 w-full items-center justify-center rounded-[0.9rem] text-[11px] font-semibold uppercase tracking-[0.12em] text-red-300/95 transition hover:bg-red-600/15 hover:text-red-200 md:text-xs"
+                      className="flex h-7 w-full items-center justify-center rounded-lg text-[10px] font-medium uppercase tracking-[0.1em] text-red-400/75 transition hover:bg-red-950/35 hover:text-red-300/90 md:text-[11px]"
                     >
                       SPIEL ABSCHLIESSEN
                     </button>
@@ -1676,7 +1680,7 @@ export const LiveMatchScreen: React.FC = () => {
         )}
       </div>
 
-      {mainTab === 'overview' ? (
+      {mainTab === 'overview' && !canControlLiveMatch ? (
         <button
           type="button"
           className="pointer-events-auto fixed bottom-24 right-3 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-red-500/30 bg-neutral-900 text-base font-bold text-white shadow-sm hover:bg-neutral-800 md:bottom-28 md:right-5"
