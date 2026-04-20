@@ -89,12 +89,14 @@ export const MatchDetailPage: React.FC = () => {
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
-  /** Wie LiveMatchScreen: DB-Kader + Engine-Events (kein localMatch.field). */
-  const [spectatorLineupData, setSpectatorLineupData] = useState<{
+  /** Wie LiveMatchScreen: lineupData + events + abgeleitete Start-/Kader-IDs. */
+  const [lineupData, setLineupData] = useState<{
     startingPlayerIds: string[];
     squadPlayerIds: string[];
   } | null>(null);
-  const [spectatorEngineEvents, setSpectatorEngineEvents] = useState<MatchEngineEvent[]>([]);
+  const [events, setEvents] = useState<MatchEngineEvent[]>([]);
+  const [squadPlayerIds, setSquadPlayerIds] = useState<string[]>([]);
+  const [startingPlayerIds, setStartingPlayerIds] = useState<string[]>([]);
 
   const effectiveTeamSeasonId = matchRow?.team_season_id ?? teamSeasonId;
   const { players, loading: playersLoading, error: playersError } = usePlayers(effectiveTeamSeasonId);
@@ -210,8 +212,8 @@ export const MatchDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (!matchId || !spectatorMode) {
-      setSpectatorLineupData(null);
-      setSpectatorEngineEvents([]);
+      setLineupData(null);
+      setEvents([]);
       return;
     }
     let cancelled = false;
@@ -221,14 +223,34 @@ export const MatchDetailPage: React.FC = () => {
         fetchMatchEvents(matchId),
       ]);
       if (cancelled) return;
-      setSpectatorLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
+      setLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
       const sorted = sortMatchEventsChronologically(evRes.data);
-      setSpectatorEngineEvents(evRes.error ? [] : [...sorted].reverse());
+      setEvents(evRes.error ? [] : [...sorted].reverse());
     })();
     return () => {
       cancelled = true;
     };
   }, [matchId, spectatorMode]);
+
+  useEffect(() => {
+    if (!matchRow || playersLoading || !spectatorMode) return;
+    const valid = new Set(players.map((p) => p.id));
+    const fromDb = lineupData;
+    let squad: string[] = [];
+    let starting: string[] = [];
+    if (fromDb && fromDb.squadPlayerIds.length > 0) {
+      squad = fromDb.squadPlayerIds.filter((id) => valid.has(id));
+      starting = fromDb.startingPlayerIds.filter((id) => valid.has(id)).slice(0, 7);
+    }
+    if (squad.length === 0 && players.length > 0) {
+      squad = players.map((p) => p.id);
+      starting = players.slice(0, Math.min(7, players.length)).map((p) => p.id);
+    } else if (starting.length === 0 && squad.length > 0) {
+      starting = squad.slice(0, 7);
+    }
+    setSquadPlayerIds(squad);
+    setStartingPlayerIds(starting);
+  }, [matchRow, lineupData, players, playersLoading, spectatorMode]);
 
   /** Gleiche Uhr-/Elapsed-Logik wie LiveMatchScreen (DB: matches.live_*). */
   const { currentMatchSeconds } = useMatchTimer({
@@ -259,33 +281,12 @@ export const MatchDetailPage: React.FC = () => {
 
   const roster = useMemo(() => sortRosterByNumber(players.map(playerItemToRoster)), [players]);
 
-  const { startingPlayerIds, squadPlayerIds } = useMemo(() => {
-    if (!matchRow || playersLoading || !spectatorMode || spectatorLineupData === null) {
-      return { startingPlayerIds: [] as string[], squadPlayerIds: [] as string[] };
-    }
-    const valid = new Set(players.map((p) => p.id));
-    const fromDb = spectatorLineupData;
-    let squad: string[] = [];
-    let starting: string[] = [];
-    if (fromDb.squadPlayerIds.length > 0) {
-      squad = fromDb.squadPlayerIds.filter((id) => valid.has(id));
-      starting = fromDb.startingPlayerIds.filter((id) => valid.has(id)).slice(0, 7);
-    }
-    if (squad.length === 0 && players.length > 0) {
-      squad = players.map((p) => p.id);
-      starting = players.slice(0, Math.min(7, players.length)).map((p) => p.id);
-    } else if (starting.length === 0 && squad.length > 0) {
-      starting = squad.slice(0, 7);
-    }
-    return { startingPlayerIds: starting, squadPlayerIds: squad };
-  }, [matchRow, players, playersLoading, spectatorMode, spectatorLineupData]);
-
   const onFieldIds = useMemo(
     () =>
       spectatorMode
-        ? getCurrentOnFieldPlayers(startingPlayerIds, spectatorEngineEvents, currentMatchSeconds)
+        ? getCurrentOnFieldPlayers(startingPlayerIds, events, currentMatchSeconds)
         : [],
-    [spectatorMode, startingPlayerIds, spectatorEngineEvents, currentMatchSeconds],
+    [spectatorMode, startingPlayerIds, events, currentMatchSeconds],
   );
 
   const fieldPlayers = useMemo(() => {
@@ -621,7 +622,7 @@ export const MatchDetailPage: React.FC = () => {
           {spectatorMode && (
             <div className="card">
               <h2 className="card-title">Aufstellung &amp; Bank</h2>
-              {spectatorLineupData === null ? (
+              {lineupData === null ? (
                 <p className="mt-2 text-sm text-[var(--muted)]">Live-Aufstellung wird geladen…</p>
               ) : fieldPlayers.length === 0 && benchPlayers.length === 0 ? (
                 <p className="mt-2 text-sm text-[var(--muted)]">Noch keine Aufstellung verfügbar.</p>
