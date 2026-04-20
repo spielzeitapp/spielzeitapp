@@ -19,7 +19,9 @@ import { Card, CardTitle } from '../../app/components/ui/Card';
 import { Button } from '../../app/components/ui/Button';
 import { isStartelfCompleteForLive } from './lineupGuards';
 import { VIENNA_TZ } from '../../lib/viennaTime';
-import { LIVE_FIELD_SLOT_ORDER } from '../../lib/liveMatchService';
+import { fetchLineupForLiveMatch, fetchMatchEvents, LIVE_FIELD_SLOT_ORDER } from '../../lib/liveMatchService';
+import { getBenchPlayers, getCurrentOnFieldPlayers, sortMatchEventsChronologically, type MatchEngineEvent } from '../../lib/matchEngine';
+import { playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 
 type MatchRow = {
   id: string;
@@ -63,11 +65,15 @@ function mapRowToMatch(row: MatchRow | null): Match | null {
   };
 }
 
+function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
+  return [...list].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
+}
+
 export const MatchDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const matchId = id ?? null;
 
-  const { getBackendRole, canUseLiveControls } = useRole();
+  const { role: uiRole, getBackendRole, canUseLiveControls } = useRole();
   const { teamSeasonId, role: activeRole } = useActiveTeamSeason();
   const activeRoleNormalized = (activeRole ?? '').toLowerCase();
 
@@ -82,6 +88,13 @@ export const MatchDetailPage: React.FC = () => {
 
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
+
+  /** Wie LiveMatchScreen: DB-Kader + Engine-Events (kein localMatch.field). */
+  const [spectatorLineupData, setSpectatorLineupData] = useState<{
+    startingPlayerIds: string[];
+    squadPlayerIds: string[];
+  } | null>(null);
+  const [spectatorEngineEvents, setSpectatorEngineEvents] = useState<MatchEngineEvent[]>([]);
 
   const effectiveTeamSeasonId = matchRow?.team_season_id ?? teamSeasonId;
   const { players, loading: playersLoading, error: playersError } = usePlayers(effectiveTeamSeasonId);
@@ -195,6 +208,28 @@ export const MatchDetailPage: React.FC = () => {
     });
   }, [localMatch?.id, effectiveTeamSeasonId, playersKey]);
 
+  useEffect(() => {
+    if (!matchId || !spectatorMode) {
+      setSpectatorLineupData(null);
+      setSpectatorEngineEvents([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const [lineRes, evRes] = await Promise.all([
+        fetchLineupForLiveMatch(matchId),
+        fetchMatchEvents(matchId),
+      ]);
+      if (cancelled) return;
+      setSpectatorLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
+      const sorted = sortMatchEventsChronologically(evRes.data);
+      setSpectatorEngineEvents(evRes.error ? [] : [...sorted].reverse());
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [matchId, spectatorMode]);
+
   /** Gleiche Uhr-/Elapsed-Logik wie LiveMatchScreen (DB: matches.live_*). */
   const { currentMatchSeconds } = useMatchTimer({
     elapsedSeconds: matchRow?.live_elapsed_seconds ?? 0,
@@ -221,6 +256,50 @@ export const MatchDetailPage: React.FC = () => {
     }
     return out;
   }, [players, getAvailability]);
+
+  const roster = useMemo(() => sortRosterByNumber(players.map(playerItemToRoster)), [players]);
+
+  const { startingPlayerIds, squadPlayerIds } = useMemo(() => {
+    if (!matchRow || playersLoading || !spectatorMode || spectatorLineupData === null) {
+      return { startingPlayerIds: [] as string[], squadPlayerIds: [] as string[] };
+    }
+    const valid = new Set(players.map((p) => p.id));
+    const fromDb = spectatorLineupData;
+    let squad: string[] = [];
+    let starting: string[] = [];
+    if (fromDb.squadPlayerIds.length > 0) {
+      squad = fromDb.squadPlayerIds.filter((id) => valid.has(id));
+      starting = fromDb.startingPlayerIds.filter((id) => valid.has(id)).slice(0, 7);
+    }
+    if (squad.length === 0 && players.length > 0) {
+      squad = players.map((p) => p.id);
+      starting = players.slice(0, Math.min(7, players.length)).map((p) => p.id);
+    } else if (starting.length === 0 && squad.length > 0) {
+      starting = squad.slice(0, 7);
+    }
+    return { startingPlayerIds: starting, squadPlayerIds: squad };
+  }, [matchRow, players, playersLoading, spectatorMode, spectatorLineupData]);
+
+  const onFieldIds = useMemo(
+    () =>
+      spectatorMode
+        ? getCurrentOnFieldPlayers(startingPlayerIds, spectatorEngineEvents, currentMatchSeconds)
+        : [],
+    [spectatorMode, startingPlayerIds, spectatorEngineEvents, currentMatchSeconds],
+  );
+
+  const fieldPlayers = useMemo(() => {
+    if (!spectatorMode) return [];
+    const set = new Set(onFieldIds);
+    return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
+  }, [spectatorMode, onFieldIds, roster]);
+
+  const benchPlayers = useMemo(() => {
+    if (!spectatorMode) return [];
+    const ids = getBenchPlayers(squadPlayerIds, onFieldIds);
+    const set = new Set(ids);
+    return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
+  }, [spectatorMode, squadPlayerIds, onFieldIds, roster]);
 
   /** Nur für LiveControls (Tor/Wechsel): Feld/Bank aus localMatch.field, ohne Aufstellungskarte. */
   const liveControlsHomeOnField = useMemo(() => {
@@ -542,7 +621,40 @@ export const MatchDetailPage: React.FC = () => {
           {spectatorMode && (
             <div className="card">
               <h2 className="card-title">Aufstellung &amp; Bank</h2>
-              <p className="mt-2 text-sm text-[var(--muted)]">Live-Aufstellung wird geladen.</p>
+              {spectatorLineupData === null ? (
+                <p className="mt-2 text-sm text-[var(--muted)]">Live-Aufstellung wird geladen…</p>
+              ) : fieldPlayers.length === 0 && benchPlayers.length === 0 ? (
+                <p className="mt-2 text-sm text-[var(--muted)]">Noch keine Aufstellung verfügbar.</p>
+              ) : (
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
+                    <ul className="space-y-2">
+                      {fieldPlayers.map((p) => (
+                        <li key={p.id}>
+                          <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3">
+                            <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
+                            <span className="flex-1 px-3 text-base font-semibold text-[var(--text-main)]">{p.name}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">Ersatzbank</h3>
+                    <ul className="space-y-2">
+                      {benchPlayers.map((p) => (
+                        <li key={p.id}>
+                          <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                            <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
+                            <span className="flex-1 px-3 text-base font-semibold text-[var(--text-main)]">{p.name}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
