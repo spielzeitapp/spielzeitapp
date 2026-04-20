@@ -385,6 +385,7 @@ export const LiveMatchScreen: React.FC = () => {
     const set = new Set(ids);
     return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
   }, [squadPlayerIds, onFieldIds, roster]);
+  const showLineupDebug = import.meta.env.DEV || true;
 
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
 
@@ -1577,6 +1578,24 @@ export const LiveMatchScreen: React.FC = () => {
                     ))}
                   </ul>
                 </div>
+              </div>
+            )}
+            {showLineupDebug && (
+              <div className="rounded-xl border border-red-500/40 bg-zinc-950 p-3 font-mono text-xs text-white">
+                <p className="mb-2 font-bold uppercase tracking-wide text-red-400">DEBUG LINEUP SOURCE</p>
+                <p>matchId: {String(effectiveMatchId ?? matchIdParam ?? null)}</p>
+                <p>
+                  lineupData.startingPlayerIds:{' '}
+                  {lineupData ? JSON.stringify(lineupData.startingPlayerIds) : 'lineupData=null'}
+                </p>
+                <p>
+                  lineupData.squadPlayerIds:{' '}
+                  {lineupData ? JSON.stringify(lineupData.squadPlayerIds) : 'lineupData=null'}
+                </p>
+                <p>currentMatchSeconds: {currentMatchSeconds}</p>
+                <p>onFieldIds: {JSON.stringify(onFieldIds)}</p>
+                <p>fieldPlayers: {JSON.stringify(fieldPlayers.map((p) => p.name))}</p>
+                <p>benchPlayers: {JSON.stringify(benchPlayers.map((p) => p.name))}</p>
               </div>
             )}
           </div>
