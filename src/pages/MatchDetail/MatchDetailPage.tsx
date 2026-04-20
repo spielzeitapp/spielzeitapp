@@ -233,24 +233,29 @@ export const MatchDetailPage: React.FC = () => {
   }, [matchId, spectatorMode]);
 
   useEffect(() => {
-    if (!matchRow || playersLoading || !spectatorMode) return;
+    if (!spectatorMode) return;
+
+    if (playersLoading) return;
+
     const valid = new Set(players.map((p) => p.id));
     const fromDb = lineupData;
-    let squad: string[] = [];
-    let starting: string[] = [];
-    if (fromDb && fromDb.squadPlayerIds.length > 0) {
-      squad = fromDb.squadPlayerIds.filter((id) => valid.has(id));
-      starting = fromDb.startingPlayerIds.filter((id) => valid.has(id)).slice(0, 7);
+
+    // Wichtig: Eltern/Fan/Spieler dürfen NIEMALS eine eigene "Ersatz-Aufstellung"
+    // aus dem gesamten Kader ableiten. Es soll ausschließlich die veröffentlichte
+    // Trainer-Aufstellung gespiegelt werden. Wenn keine veröffentlichte Aufstellung
+    // vorhanden ist, bleiben beide Listen leer.
+    if (!fromDb) {
+      setSquadPlayerIds([]);
+      setStartingPlayerIds([]);
+      return;
     }
-    if (squad.length === 0 && players.length > 0) {
-      squad = players.map((p) => p.id);
-      starting = players.slice(0, Math.min(7, players.length)).map((p) => p.id);
-    } else if (starting.length === 0 && squad.length > 0) {
-      starting = squad.slice(0, 7);
-    }
+
+    const squad = fromDb.squadPlayerIds.filter((id) => valid.has(id));
+    const starting = fromDb.startingPlayerIds.filter((id) => valid.has(id)).slice(0, 7);
+
     setSquadPlayerIds(squad);
     setStartingPlayerIds(starting);
-  }, [matchRow, lineupData, players, playersLoading, spectatorMode]);
+  }, [lineupData, players, playersLoading, spectatorMode]);
 
   /** Gleiche Uhr-/Elapsed-Logik wie LiveMatchScreen (DB: matches.live_*). */
   const { currentMatchSeconds } = useMatchTimer({
