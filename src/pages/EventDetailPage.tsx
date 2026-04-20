@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
-import { useMatchTimer } from '../hooks/useMatchTimer';
 import { normalizeRole, canSeeMeetup } from '../lib/roles';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
@@ -16,8 +15,8 @@ import type { PlayerItem } from '../hooks/usePlayers';
 import { downloadEventIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
-import { fetchLineupForLiveMatch, fetchMatchById, fetchMatchEvents, upsertMatchForSetup } from '../lib/liveMatchService';
-import { getBenchPlayers, getCurrentOnFieldPlayers, type MatchEngineEvent } from '../lib/matchEngine';
+import { fetchLineupForLiveMatch, upsertMatchForSetup } from '../lib/liveMatchService';
+import { getBenchPlayers } from '../lib/matchEngine';
 import { playerItemToRoster, type RosterPlayer } from '../lib/rosterPlayer';
 import { TrainerMatchSetupBlock } from './TrainerMatchSetupBlock';
 import {
@@ -159,13 +158,6 @@ export const EventDetailPage: React.FC = () => {
   const [eventAttendanceReasonByPlayerId, setEventAttendanceReasonByPlayerId] = useState<Record<string, string | null>>({});
   const [loadingEventAttendance, setLoadingEventAttendance] = useState(false);
   const [lineupData, setLineupData] = useState<{ startingPlayerIds: string[]; squadPlayerIds: string[] } | null>(null);
-  const [lineupEvents, setLineupEvents] = useState<MatchEngineEvent[]>([]);
-  const [lineupMatchRow, setLineupMatchRow] = useState<{
-    live_elapsed_seconds: number | null;
-    live_is_running: boolean | null;
-    live_started_at: string | null;
-    status: string | null;
-  } | null>(null);
 
   /** Spiel-Termine ohne events.match_id: einmalig Match-Zeile anlegen und verknüpfen (RLS: matches_insert). */
   const [matchLinkBusy, setMatchLinkBusy] = useState(false);
@@ -204,20 +196,10 @@ export const EventDetailPage: React.FC = () => {
   const trainingCancellationAllowed = event?.kind === 'training' ? !trainingCancelCutoffPassed : false;
   const roster = useMemo(() => sortRosterByNumber(players.map(playerItemToRoster)), [players]);
 
-  const { currentMatchSeconds } = useMatchTimer({
-    elapsedSeconds: lineupMatchRow?.live_elapsed_seconds ?? 0,
-    isRunning: lineupMatchRow?.live_is_running ?? false,
-    hasEnded: lineupMatchRow?.status === 'finished',
-    startedAtISO: lineupMatchRow?.live_started_at ?? null,
-  });
-
   const [squadPlayerIds, setSquadPlayerIds] = useState<string[]>([]);
   const [startingPlayerIds, setStartingPlayerIds] = useState<string[]>([]);
 
-  const onFieldIds = useMemo(
-    () => getCurrentOnFieldPlayers(startingPlayerIds, lineupEvents, currentMatchSeconds),
-    [startingPlayerIds, lineupEvents, currentMatchSeconds],
-  );
+  const onFieldIds = useMemo(() => startingPlayerIds, [startingPlayerIds]);
   const fieldPlayers = useMemo(() => {
     const set = new Set(onFieldIds);
     return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
@@ -255,30 +237,13 @@ export const EventDetailPage: React.FC = () => {
   useEffect(() => {
     if (!event?.match_id) {
       setLineupData(null);
-      setLineupEvents([]);
-      setLineupMatchRow(null);
       return;
     }
     let cancelled = false;
     void (async () => {
-      const [lineRes, evRes, mRes] = await Promise.all([
-        fetchLineupForLiveMatch(event.match_id as string),
-        fetchMatchEvents(event.match_id as string),
-        fetchMatchById(event.match_id as string),
-      ]);
+      const lineRes = await fetchLineupForLiveMatch(event.match_id as string);
       if (cancelled) return;
       setLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
-      setLineupEvents(evRes.error ? [] : evRes.data);
-      setLineupMatchRow(
-        mRes.error || !mRes.data
-          ? null
-          : {
-              live_elapsed_seconds: mRes.data.live_elapsed_seconds,
-              live_is_running: mRes.data.live_is_running,
-              live_started_at: mRes.data.live_started_at,
-              status: mRes.data.status,
-            },
-      );
     })();
     return () => {
       cancelled = true;
