@@ -325,7 +325,11 @@ export const LiveMatchScreen: React.FC = () => {
     let starting: string[] = [];
     if (fromDb && (fromDb.squadPlayerIds.length > 0 || fromDb.startingPlayerIds.length > 0)) {
       squad = [...fromDb.squadPlayerIds];
-      starting = [...fromDb.startingPlayerIds].slice(0, 7);
+      if (fromDb.startingPlayerIds.length > 0) {
+        starting = [...fromDb.startingPlayerIds].slice(0, 7);
+      } else if (squad.length > 0) {
+        starting = squad.slice(0, 7);
+      }
     }
     setSquadPlayerIds(squad);
     setStartingPlayerIds(starting);
@@ -370,12 +374,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const fieldPlayers = useMemo(() => {
     const set = new Set(onFieldIds);
-    const fromRoster = sortRosterByNumber(roster.filter((p) => set.has(p.id)));
-    const inRoster = new Set(fromRoster.map((p) => p.id));
-    const gaps = onFieldIds.filter((id) => !inRoster.has(id));
-    if (gaps.length === 0) return fromRoster;
-    const fill: RosterPlayer[] = gaps.map((id) => ({ id, name: '—', number: 0 }));
-    return sortRosterByNumber([...fromRoster, ...fill]);
+    return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
   }, [onFieldIds, roster]);
 
   const benchPlayers = useMemo(() => {
@@ -1500,6 +1499,13 @@ export const LiveMatchScreen: React.FC = () => {
               </p>
             ) : (
               <>
+                <div className="text-xs text-cyan-300">
+                  role: {canControlLiveMatch ? 'trainer' : 'spectator'}
+                  {' | '}startingPlayerIds: [{startingPlayerIds.join(', ')}]
+                  {' | '}onFieldIds: [{onFieldIds.join(', ')}]
+                  {' | '}fieldPlayers: [{fieldPlayers.map((p) => p.name).join(', ')}]
+                  {' | '}benchPlayers: [{benchPlayers.map((p) => p.name).join(', ')}]
+                </div>
                 <div className="text-xs text-yellow-300">
                   role: {canControlLiveMatch ? 'trainer' : 'spectator'}
                   {' | '}fieldPlayers: [{fieldPlayers.map((p) => p.name).join(', ')}]
