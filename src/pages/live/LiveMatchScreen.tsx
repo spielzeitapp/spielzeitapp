@@ -369,9 +369,14 @@ export const LiveMatchScreen: React.FC = () => {
   );
 
   const fieldPlayers = useMemo(() => {
-    const list = onFieldIds.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 });
-    return sortRosterByNumber(list);
-  }, [onFieldIds, rosterById]);
+    const set = new Set(onFieldIds);
+    const fromRoster = sortRosterByNumber(roster.filter((p) => set.has(p.id)));
+    const inRoster = new Set(fromRoster.map((p) => p.id));
+    const gaps = onFieldIds.filter((id) => !inRoster.has(id));
+    if (gaps.length === 0) return fromRoster;
+    const fill: RosterPlayer[] = gaps.map((id) => ({ id, name: '—', number: 0 }));
+    return sortRosterByNumber([...fromRoster, ...fill]);
+  }, [onFieldIds, roster]);
 
   const benchPlayers = useMemo(() => {
     const ids = getBenchPlayers(squadPlayerIds, onFieldIds);
