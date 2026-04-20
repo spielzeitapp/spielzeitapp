@@ -302,7 +302,6 @@ export const LiveMatchScreen: React.FC = () => {
     pauseMatch,
     resumeMatch,
     endMatch,
-    startSecondHalf,
   } = useMatchTimer({
     elapsedSeconds: matchRow?.live_elapsed_seconds ?? 0,
     isRunning: matchRow?.live_is_running ?? false,
@@ -364,6 +363,9 @@ export const LiveMatchScreen: React.FC = () => {
   );
 
   const matchIsFinished = matchHasEnded || matchRow?.status === 'finished';
+  /** UI-Zustände nur aus bestehendem Match-/Timer-Status (keine neuen DB-Felder). */
+  const isEnded = matchIsFinished;
+  const isPaused = hasClockStarted && !isRunning && !isEnded;
 
   const onFieldIds = useMemo(
     () => getCurrentOnFieldPlayers(startingPlayerIds, events, currentMatchSeconds),
@@ -1080,45 +1082,36 @@ export const LiveMatchScreen: React.FC = () => {
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={onStartClick}
-                      disabled={isRunning || matchIsFinished}
+                      onClick={isRunning ? onPauseClick : onStartClick}
+                      disabled={matchIsFinished}
+                      aria-label={
+                        isRunning ? 'Spiel anhalten' : isPaused ? 'Spiel fortsetzen' : 'Spiel beginnen'
+                      }
+                      aria-pressed={isRunning}
                       className={[
-                        'flex h-10 flex-1 items-center justify-center gap-1 rounded-xl text-sm font-semibold',
-                        isRunning || matchIsFinished
-                          ? 'bg-neutral-900 text-gray-600'
+                        'flex h-10 flex-[1.35] items-center justify-center gap-1 rounded-xl text-sm font-semibold',
+                        isRunning
+                          ? 'bg-yellow-500 text-black hover:bg-yellow-400'
                           : 'bg-neutral-800 text-white hover:bg-neutral-700',
                       ].join(' ')}
                     >
-                      <span aria-hidden>▶</span>
-                      Beginn
+                      {isRunning ? (
+                        <>
+                          <span aria-hidden>⏸</span>
+                          Pause
+                        </>
+                      ) : (
+                        <>
+                          <span aria-hidden>▶</span>
+                          Beginn
+                        </>
+                      )}
                     </button>
                     <button
                       type="button"
-                      onClick={onPauseClick}
-                      disabled={!isRunning || matchIsFinished}
-                      className={[
-                        'flex h-10 flex-1 items-center justify-center gap-1 rounded-xl text-sm font-semibold',
-                        isRunning && !matchIsFinished
-                          ? 'bg-yellow-500 text-black hover:bg-yellow-400'
-                          : 'bg-neutral-900 text-gray-600',
-                      ].join(' ')}
-                    >
-                      <span aria-hidden>⏸</span>
-                      Pause
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (matchIsFinished) return;
-                        startSecondHalf();
-                      }}
-                      disabled={matchIsFinished || currentMatchSeconds >= MATCH_HALF_DURATION_SEC}
-                      className={[
-                        'flex h-10 flex-1 items-center justify-center gap-1 rounded-xl text-sm font-semibold',
-                        matchIsFinished || currentMatchSeconds >= MATCH_HALF_DURATION_SEC
-                          ? 'bg-neutral-900 text-gray-600'
-                          : 'bg-red-600 text-white hover:bg-red-500',
-                      ].join(' ')}
+                      onClick={() => setEndMatchConfirmOpen(true)}
+                      disabled={matchIsFinished}
+                      className="flex h-10 flex-1 items-center justify-center gap-1 rounded-xl bg-red-600 text-sm font-semibold text-white hover:bg-red-500 disabled:bg-neutral-900 disabled:text-gray-600"
                     >
                       <span aria-hidden>■</span>
                       Ende
