@@ -1495,6 +1495,11 @@ export const LiveMatchScreen: React.FC = () => {
               </p>
             ) : (
               <>
+                <div className="text-xs text-yellow-300">
+                  role: {canControlLiveMatch ? 'trainer' : 'spectator'}
+                  {' | '}fieldPlayers: [{fieldPlayers.map((p) => p.name).join(', ')}]
+                  {' | '}benchPlayers: [{benchPlayers.map((p) => p.name).join(', ')}]
+                </div>
                 <div>
                   <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
                   <ul className="space-y-2">
@@ -1510,29 +1515,14 @@ export const LiveMatchScreen: React.FC = () => {
                             <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
                           </button>
                         ) : (
-                          <div
-                            className={
-                              canControlLiveMatch && matchIsFinished
-                                ? 'flex min-h-[52px] w-full items-center justify-between rounded-xl border border-emerald-600/30 bg-emerald-950/20 px-3 py-2.5'
-                                : 'flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3'
-                            }
-                          >
+                          <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3">
                             <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
-                            <span
-                              className={`flex-1 px-3 font-semibold text-white ${
-                                canControlLiveMatch && matchIsFinished ? 'text-sm' : 'text-base'
-                              }`}
-                            >
-                              {p.name}
-                            </span>
+                            <span className="flex-1 px-3 text-base font-semibold text-white">{p.name}</span>
                           </div>
                         )}
                       </li>
                     ))}
                   </ul>
-                  <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg border border-amber-500/30 bg-black/60 p-2 font-mono text-[10px] leading-snug text-amber-200/90">
-                    {`role: ${canControlLiveMatch ? 'trainer' : 'eltern_fan_spieler'}\nfieldPlayers: ${JSON.stringify(fieldPlayers.map((p) => p.name))}`}
-                  </pre>
                 </div>
                 <div>
                   <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">Ersatzbank</h3>
@@ -1549,13 +1539,7 @@ export const LiveMatchScreen: React.FC = () => {
                             <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
                           </button>
                         ) : (
-                          <div
-                            className={
-                              canControlLiveMatch && matchIsFinished
-                                ? 'flex min-h-[52px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 opacity-90'
-                                : 'flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3'
-                            }
-                          >
+                          <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
                             <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
                             <span className="flex-1 px-3 text-base font-semibold text-white">{p.name}</span>
                           </div>
@@ -1563,9 +1547,6 @@ export const LiveMatchScreen: React.FC = () => {
                       </li>
                     ))}
                   </ul>
-                  <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg border border-amber-500/30 bg-black/60 p-2 font-mono text-[10px] leading-snug text-amber-200/90">
-                    {`role: ${canControlLiveMatch ? 'trainer' : 'eltern_fan_spieler'}\nbenchPlayers: ${JSON.stringify(benchPlayers.map((p) => p.name))}`}
-                  </pre>
                 </div>
               </>
             )}
