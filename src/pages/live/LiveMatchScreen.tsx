@@ -1497,14 +1497,6 @@ export const LiveMatchScreen: React.FC = () => {
               </p>
             ) : (
               <>
-                <div className="text-xs text-cyan-300">
-                  role: {canControlLiveMatch ? 'trainer' : 'spectator'}
-                  {' | '}startingPlayerIds: [{startingPlayerIds.join(', ')}]
-                  {' | '}squadPlayerIds: [{squadPlayerIds.join(', ')}]
-                  {' | '}onFieldIds: [{onFieldIds.join(', ')}]
-                  {' | '}fieldPlayers: [{fieldPlayers.map((p) => p.name).join(', ')}]
-                  {' | '}benchPlayers: [{benchPlayers.map((p) => p.name).join(', ')}]
-                </div>
                 <div>
                   <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
                   <ul className="space-y-2">
