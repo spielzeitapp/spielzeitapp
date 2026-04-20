@@ -173,29 +173,28 @@ export type LineupLoadResult = {
 };
 
 export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: LineupLoadResult; error: string | null }> {
-  const [lineupRes, benchRes] = await Promise.all([
-    supabase.from('match_lineup').select('slot, player_id').eq('match_id', matchId),
-    supabase.from('match_bench').select('player_id').eq('match_id', matchId),
-  ]);
+  const lineupRes = await supabase
+    .from('match_lineup')
+    .select('player_id, is_starting')
+    .eq('match_id', matchId);
 
   if (lineupRes.error) return { data: { startingPlayerIds: [], squadPlayerIds: [] }, error: lineupRes.error.message };
-  if (benchRes.error) return { data: { startingPlayerIds: [], squadPlayerIds: [] }, error: benchRes.error.message };
 
-  const slotToPlayer: Partial<Record<FieldSlotId, string | null>> = {};
-  for (const r of (lineupRes.data ?? []) as { slot: FieldSlotId; player_id: string | null }[]) {
-    const slot = String(r.slot ?? '').trim().toUpperCase();
-    if (LIVE_FIELD_SLOT_ORDER.includes(slot as any)) {
-      slotToPlayer[slot as FieldSlotId] = r.player_id;
-    }
+  const rows = (lineupRes.data ?? []) as { player_id: string | null; is_starting: boolean | null }[];
+  const squadPlayerIds = rows
+    .map((r) => r.player_id)
+    .filter((id): id is string => typeof id === 'string' && id.length > 0);
+  const startingPlayerIds = rows
+    .filter((r) => Boolean(r.is_starting))
+    .map((r) => r.player_id)
+    .filter((id): id is string => typeof id === 'string' && id.length > 0);
+
+  if (startingPlayerIds.length === 0) {
+    console.warn('[liveMatchService] fetchLineupForLiveMatch: startingPlayerIds leer', {
+      matchId,
+      squadCount: squadPlayerIds.length,
+    });
   }
-
-  const startingPlayerIds = LIVE_FIELD_SLOT_ORDER.map((s) => slotToPlayer[s]).filter(
-    (id): id is string => typeof id === 'string' && id.length > 0,
-  );
-
-  const benchIds = ((benchRes.data ?? []) as { player_id: string }[]).map((r) => r.player_id);
-  const squadSet = new Set<string>([...startingPlayerIds, ...benchIds]);
-  const squadPlayerIds = [...squadSet];
 
   return { data: { startingPlayerIds, squadPlayerIds }, error: null };
 }
