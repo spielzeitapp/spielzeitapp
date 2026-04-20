@@ -41,30 +41,40 @@ function LiveMatchLogoTile({
   src: string;
   initialsFrom: string;
   liveGlow: boolean;
-  size?: 'md' | 'hero' | 'heroLg';
+  size?: 'md' | 'hero' | 'heroLg' | 'board';
 }) {
   const [failed, setFailed] = useState(false);
   const glow = liveGlow ? 'shadow-[0_0_12px_rgba(255,0,0,0.3)]' : '';
-  const round = size === 'heroLg' ? 'rounded-full' : 'rounded-xl';
+  const round = size === 'heroLg' || size === 'board' ? 'rounded-full' : 'rounded-xl';
   const box =
-    size === 'heroLg'
-      ? 'h-[4.25rem] w-[4.25rem] sm:h-[4.75rem] sm:w-[4.75rem]'
-      : size === 'hero'
-        ? 'h-14 w-14'
-        : 'h-14 w-14 sm:h-[3.75rem] sm:w-[3.75rem]';
+    size === 'board'
+      ? 'h-[5.25rem] w-[5.25rem] sm:h-28 sm:w-28'
+      : size === 'heroLg'
+        ? 'h-[4.25rem] w-[4.25rem] sm:h-[4.75rem] sm:w-[4.75rem]'
+        : size === 'hero'
+          ? 'h-14 w-14'
+          : 'h-14 w-14 sm:h-[3.75rem] sm:w-[3.75rem]';
   const imgClass =
-    size === 'heroLg'
-      ? 'max-h-[3.35rem] max-w-[3.35rem] object-contain p-0.5 sm:max-h-[3.65rem] sm:max-w-[3.65rem]'
-      : size === 'hero'
-        ? 'max-h-11 max-w-11 object-contain p-0.5'
-        : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
+    size === 'board'
+      ? 'max-h-[4.25rem] max-w-[4.25rem] object-contain p-1 sm:max-h-[6.25rem] sm:max-w-[6.25rem]'
+      : size === 'heroLg'
+        ? 'max-h-[3.35rem] max-w-[3.35rem] object-contain p-0.5 sm:max-h-[3.65rem] sm:max-w-[3.65rem]'
+        : size === 'hero'
+          ? 'max-h-11 max-w-11 object-contain p-0.5'
+          : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
   const initialsClass =
-    size === 'heroLg'
-      ? 'select-none text-lg font-black tabular-nums text-white sm:text-xl'
-      : 'select-none text-base font-black tabular-nums text-white sm:text-lg';
+    size === 'board'
+      ? 'select-none text-xl font-black tabular-nums text-white sm:text-2xl'
+      : size === 'heroLg'
+        ? 'select-none text-lg font-black tabular-nums text-white sm:text-xl'
+        : 'select-none text-base font-black tabular-nums text-white sm:text-lg';
+  const boardRing =
+    size === 'board'
+      ? 'border-2 border-red-500/55 shadow-[0_0_28px_rgba(220,38,38,0.35),inset_0_0_20px_rgba(0,0,0,0.5)]'
+      : 'border border-red-500/30';
   return (
     <div
-      className={`flex shrink-0 items-center justify-center overflow-hidden border border-red-500/30 bg-zinc-950/95 ${round} ${box} ${glow}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden bg-zinc-950/95 ${round} ${box} ${boardRing} ${glow}`}
     >
       {!failed ? (
         <img
@@ -144,7 +154,8 @@ const tabNavWrap =
   'flex w-full gap-0 overflow-x-auto border-b border-neutral-800 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 const tabNavBtnBase =
   'shrink-0 whitespace-nowrap border-b-2 border-transparent px-2.5 py-2 text-xs font-semibold text-gray-500 transition-colors sm:px-3 sm:text-sm md:flex-1 md:px-2 md:text-center';
-const tabNavBtnActive = 'border-red-500 text-white';
+const tabNavBtnActive =
+  'border-red-500 text-white shadow-[0_6px_20px_rgba(239,68,68,0.18)] bg-red-950/20';
 const tabNavBtnIdle = 'hover:text-gray-300';
 
 /** Eltern/Fan/Spieler: Pill-Tabs (Anschluss an Termine-/Kader-Filter). */
@@ -302,7 +313,6 @@ export const LiveMatchScreen: React.FC = () => {
     pauseMatch,
     resumeMatch,
     endMatch,
-    startSecondHalf,
   } = useMatchTimer({
     elapsedSeconds: matchRow?.live_elapsed_seconds ?? 0,
     isRunning: matchRow?.live_is_running ?? false,
@@ -349,6 +359,12 @@ export const LiveMatchScreen: React.FC = () => {
     }
   }, [canControlLiveMatch, mainTab]);
 
+  useEffect(() => {
+    if (!goalUndoOffer) return;
+    const id = window.setTimeout(() => setGoalUndoOffer(null), 12000);
+    return () => window.clearTimeout(id);
+  }, [goalUndoOffer]);
+
   const [subOpen, setSubOpen] = useState(false);
   const [subOutId, setSubOutId] = useState<string>('');
   const [subInId, setSubInId] = useState<string>('');
@@ -358,6 +374,8 @@ export const LiveMatchScreen: React.FC = () => {
   const [homeGoalModalOpen, setHomeGoalModalOpen] = useState(false);
   const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
   const [endMatchConfirmOpen, setEndMatchConfirmOpen] = useState(false);
+  /** Letztes Tor: Rückgängig nur solange angeboten (kein Event-Historien-Editor). */
+  const [goalUndoOffer, setGoalUndoOffer] = useState<{ eventId: string; side: 'home' | 'away' } | null>(null);
   const hasClockStarted = useMemo(
     () => Boolean(matchRow?.live_started_at) || events.some((e) => e.type === 'start'),
     [matchRow?.live_started_at, events],
@@ -388,15 +406,17 @@ export const LiveMatchScreen: React.FC = () => {
     [startingPlayerIds, squadPlayerIds, events, currentMatchSeconds],
   );
 
+  type PersistSingleResult = { ok: boolean; persistedGoalId?: string };
+
   const persistSingle = useCallback(
-    async (partial: Omit<MatchEngineEvent, 'id'>): Promise<boolean> => {
-      if (!effectiveMatchId) return false;
+    async (partial: Omit<MatchEngineEvent, 'id'>): Promise<PersistSingleResult> => {
+      if (!effectiveMatchId) return { ok: false };
       setSaveError(null);
       const tempId = newEventId();
       const optimistic: MatchEngineEvent = { ...partial, id: tempId };
       setEvents((prev) => [optimistic, ...prev]);
       if (partial.type === 'start' || partial.type === 'pause' || partial.type === 'resume' || partial.type === 'end') {
-        return true;
+        return { ok: true };
       }
       const payload = engineEventToInsertPayload(effectiveMatchId, partial, half);
       const { id, error } = await saveMatchEvent(payload);
@@ -404,10 +424,10 @@ export const LiveMatchScreen: React.FC = () => {
         console.error('[LiveMatch] saveMatchEvent', error);
         setSaveError(error ?? 'Ereignis konnte nicht gespeichert werden.');
         setEvents((prev) => prev.filter((e) => e.id !== tempId));
-        return false;
+        return { ok: false };
       }
       setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...partial, id } : e)));
-      return true;
+      return partial.type === 'goal' ? { ok: true, persistedGoalId: id } : { ok: true };
     },
     [effectiveMatchId, half],
   );
@@ -415,7 +435,7 @@ export const LiveMatchScreen: React.FC = () => {
   const onStartClick = async () => {
     if (!canControlLiveMatch || matchIsFinished || isRunning || !effectiveMatchId) return;
     if (!hasClockStarted) {
-      const ok = await persistSingle({ type: 'start', timestamp: 0 });
+      const { ok } = await persistSingle({ type: 'start', timestamp: 0 });
       if (!ok) return;
       startMatch();
       const { error } = await updateMatchRow(effectiveMatchId, {
@@ -425,7 +445,7 @@ export const LiveMatchScreen: React.FC = () => {
       });
       if (error) setSaveError(error);
     } else {
-      const ok = await persistSingle({ type: 'resume', timestamp: currentMatchSeconds });
+      const { ok } = await persistSingle({ type: 'resume', timestamp: currentMatchSeconds });
       if (!ok) return;
       resumeMatch();
       const { error } = await updateMatchRow(effectiveMatchId, {
@@ -440,7 +460,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const onPauseClick = async () => {
     if (!canControlLiveMatch || !isRunning || matchIsFinished || !effectiveMatchId) return;
-    const ok = await persistSingle({ type: 'pause', timestamp: currentMatchSeconds });
+    const { ok } = await persistSingle({ type: 'pause', timestamp: currentMatchSeconds });
     if (!ok) return;
     pauseMatch();
     const { error } = await updateMatchRow(effectiveMatchId, {
@@ -452,7 +472,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const onEndClick = async () => {
     if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId) return;
-    const ok = await persistSingle({ type: 'end', timestamp: currentMatchSeconds });
+    const { ok } = await persistSingle({ type: 'end', timestamp: currentMatchSeconds });
     if (!ok) return;
     endMatch();
     const { error } = await updateMatchRow(effectiveMatchId, {
@@ -485,6 +505,32 @@ export const LiveMatchScreen: React.FC = () => {
       );
     }
   };
+
+  const undoLastGoal = useCallback(async () => {
+    if (!goalUndoOffer || !effectiveMatchId) return;
+    setSaveError(null);
+    const { eventId, side } = goalUndoOffer;
+    const { error } = await supabase.from('match_events').delete().eq('id', eventId);
+    if (error) {
+      setSaveError(error.message);
+      return;
+    }
+    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    setGoalUndoOffer(null);
+    if (side === 'home') {
+      setScoreHome((s) => {
+        const n = Math.max(0, s - 1);
+        void updateMatchRow(effectiveMatchId, { score_home: n });
+        return n;
+      });
+    } else {
+      setScoreAway((s) => {
+        const n = Math.max(0, s - 1);
+        void updateMatchRow(effectiveMatchId, { score_away: n });
+        return n;
+      });
+    }
+  }, [goalUndoOffer, effectiveMatchId]);
 
   const openSubFromPlayer = (p: RosterPlayer) => {
     if (!canControlLiveMatch || matchIsFinished) return;
@@ -941,23 +987,23 @@ export const LiveMatchScreen: React.FC = () => {
         >
           {matchboardVisible && (
             <div
-              className={`mx-auto mb-0 w-full max-w-md ${
+              className={`mx-auto mb-0 w-full ${
                 spectatorView
-                  ? `${liveCardShell} border-red-500/25 p-2 md:p-2.5`
-                  : 'rounded-xl border border-red-500/30 bg-black p-3 md:p-4'
+                  ? `max-w-md ${liveCardShell} border-red-500/25 p-2 md:p-2.5`
+                  : 'max-w-lg rounded-3xl border-2 border-red-500/50 bg-gradient-to-b from-zinc-950 via-black to-zinc-950 p-4 shadow-[0_0_40px_rgba(220,38,38,0.28),inset_0_1px_0_rgba(255,255,255,0.06)] md:max-w-xl md:p-5'
               }`}
             >
               <div
                 className={`flex flex-col items-center text-center ${
-                  spectatorView ? 'gap-0 pb-0.5' : 'gap-0.5 pb-1'
+                  spectatorView ? 'gap-0 pb-0.5' : 'gap-1 pb-1'
                 }`}
               >
                 <div
-                  className={`flex items-center justify-center gap-1 rounded-full px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                  className={`flex items-center justify-center gap-1 rounded-full px-3 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
                     matchIsFinished
                       ? 'bg-neutral-800 text-gray-300'
                       : hasClockStarted
-                        ? 'bg-red-600 text-white'
+                        ? 'bg-red-600 text-white shadow-[0_0_14px_rgba(220,38,38,0.45)]'
                         : 'bg-neutral-800 text-gray-300'
                   }`}
                 >
@@ -968,87 +1014,89 @@ export const LiveMatchScreen: React.FC = () => {
                   ) : null}
                   {matchIsFinished ? 'ENDSTAND' : hasClockStarted ? 'LIVE' : 'BEREIT'}
                 </div>
-                <p className="text-xs font-semibold text-white">{matchTypeDisplay}</p>
-                <p className="text-[10px] font-medium uppercase tracking-wide text-gray-300">{periodDisplayLine}</p>
+                <p className={`font-semibold text-white ${spectatorView ? 'text-xs' : 'text-sm'}`}>{matchTypeDisplay}</p>
               </div>
 
               <div
                 className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start ${
-                  spectatorView ? 'mt-0.5 gap-x-1' : 'mt-1 gap-x-2'
+                  spectatorView ? 'mt-0.5 gap-x-1' : 'mt-2 gap-x-2 sm:gap-x-4'
                 }`}
               >
                 <div className="flex min-w-0 flex-col items-center text-center">
                   <LiveMatchLogoTile
                     src={homeLogoSrc}
                     initialsFrom={homeLogoLookupName}
-                    liveGlow={false}
-                    size={spectatorView ? 'heroLg' : 'hero'}
+                    liveGlow={!spectatorView}
+                    size={spectatorView ? 'heroLg' : 'board'}
                   />
-                  <p className="mt-1 line-clamp-2 w-full max-w-[9rem] break-words text-xs font-semibold leading-tight text-white">
-                    {homeDisplayName}
-                  </p>
-                  {canControlLiveMatch && !matchIsFinished ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setHomeGoalPickId('');
-                        setHomeGoalModalOpen(true);
-                      }}
-                      className="mt-1 flex h-10 w-full max-w-[9rem] items-center justify-center rounded-xl bg-green-600 px-3 text-sm font-semibold text-white hover:bg-green-500"
-                    >
-                      + TOR
-                    </button>
-                  ) : null}
-                </div>
-
-                <div className="flex min-w-[6.75rem] max-w-[8.5rem] flex-col items-center px-0.5 text-center">
-                  <div className="flex items-baseline justify-center gap-3">
-                    <span className="text-5xl font-black tabular-nums tracking-wide text-[#FFFFFF]">{scoreHome}</span>
-                    <span className="select-none text-3xl font-light leading-none text-white/50" aria-hidden>
-                      :
-                    </span>
-                    <span className="text-5xl font-black tabular-nums tracking-wide text-[#FFFFFF]">{scoreAway}</span>
-                  </div>
                   <p
-                    className={`mt-0.5 font-mono text-lg font-semibold tabular-nums leading-none ${
-                      matchIsFinished ? 'text-gray-500' : 'text-[#ef4444]'
+                    className={`mt-1 line-clamp-2 w-full max-w-[10rem] break-words font-semibold leading-tight text-white ${
+                      spectatorView ? 'text-xs' : 'text-[13px]'
                     }`}
                   >
-                    {formatClock(currentMatchSeconds)}
+                    {homeDisplayName}
                   </p>
-                  <p className="mt-1 font-mono text-xs tabular-nums leading-tight text-white opacity-70">{periodScoreLine}</p>
+                </div>
+
+                <div
+                  className={`flex flex-col items-center px-0.5 text-center ${
+                    spectatorView ? 'min-w-[6.75rem] max-w-[8.5rem]' : 'min-w-[8rem] max-w-[11rem] sm:min-w-[10rem]'
+                  }`}
+                >
+                  <div className={`flex items-baseline justify-center ${spectatorView ? 'gap-3' : 'gap-2 sm:gap-3'}`}>
+                    <span
+                      className={`font-black tabular-nums tracking-wide text-white ${
+                        spectatorView ? 'text-5xl' : 'text-6xl sm:text-7xl'
+                      }`}
+                    >
+                      {scoreHome}
+                    </span>
+                    <span
+                      className={`select-none font-light leading-none text-white/50 ${spectatorView ? 'text-3xl' : 'text-4xl sm:text-5xl'}`}
+                      aria-hidden
+                    >
+                      :
+                    </span>
+                    <span
+                      className={`font-black tabular-nums tracking-wide text-white ${
+                        spectatorView ? 'text-5xl' : 'text-6xl sm:text-7xl'
+                      }`}
+                    >
+                      {scoreAway}
+                    </span>
+                  </div>
+                  {spectatorView ? (
+                    <p
+                      className={`mt-0.5 font-mono text-lg font-semibold tabular-nums leading-none ${
+                        matchIsFinished ? 'text-gray-500' : 'text-[#ef4444]'
+                      }`}
+                    >
+                      {formatClock(currentMatchSeconds)}
+                    </p>
+                  ) : null}
+                  <p
+                    className={`mt-1 font-mono tabular-nums leading-tight text-white/75 ${
+                      spectatorView ? 'text-xs' : 'text-[11px] sm:text-xs'
+                    }`}
+                  >
+                    {periodScoreLine}
+                  </p>
                 </div>
 
                 <div className="flex min-w-0 flex-col items-center text-center">
                   <LiveMatchLogoTile
                     src={awayLogoSrc}
                     initialsFrom={headerOpponent}
-                    liveGlow={false}
-                    size={spectatorView ? 'heroLg' : 'hero'}
+                    liveGlow={!spectatorView}
+                    size={spectatorView ? 'heroLg' : 'board'}
                   />
-                  <p className="mt-1 line-clamp-2 w-full max-w-[9rem] break-words text-xs font-semibold leading-tight text-white">
+                  <p
+                    className={`mt-1 line-clamp-2 w-full max-w-[10rem] break-words font-semibold leading-tight text-white ${
+                      spectatorView ? 'text-xs' : 'text-[13px]'
+                    }`}
+                  >
                     {awayDisplayName}
                   </p>
-                  {canControlLiveMatch && !matchIsFinished ? (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const ok = await persistSingle({
-                          type: 'goal',
-                          timestamp: currentMatchSeconds,
-                        });
-                        if (!ok) return;
-                        setScoreAway((s) => {
-                          const n = s + 1;
-                          if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: n });
-                          return n;
-                        });
-                      }}
-                      className="mt-1 flex h-10 w-full max-w-[9rem] items-center justify-center rounded-xl bg-red-600 px-3 text-sm font-semibold text-white hover:bg-red-500"
-                    >
-                      + TOR
-                    </button>
-                  ) : null}
                 </div>
               </div>
 
@@ -1058,31 +1106,86 @@ export const LiveMatchScreen: React.FC = () => {
                 </p>
               )}
 
-              {canControlLiveMatch && !matchIsFinished && (
-                <div className="mt-3 space-y-2 border-t border-red-500/30 pt-3">
-                  <div className="flex gap-2">
+              {canControlLiveMatch && !matchIsFinished && !spectatorView && (
+                <div className="mt-3 space-y-2 border-t border-red-500/35 pt-3">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHomeGoalPickId('');
+                        setHomeGoalModalOpen(true);
+                      }}
+                      className="flex min-h-[44px] items-center justify-center rounded-xl bg-emerald-600 px-1 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-500 sm:text-xs"
+                    >
+                      + TOR Heim
+                    </button>
+                    <div className="flex min-h-[44px] flex-col items-center justify-center rounded-xl border border-red-500/35 bg-black/50 px-1 py-0.5">
+                      <span className="text-[9px] font-bold uppercase tracking-wide text-zinc-500">Spielzeit</span>
+                      <span
+                        className={`font-mono text-base font-black tabular-nums sm:text-lg ${
+                          matchIsFinished ? 'text-zinc-500' : 'text-[#ef4444]'
+                        }`}
+                      >
+                        {formatClock(currentMatchSeconds)}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const res = await persistSingle({
+                          type: 'goal',
+                          timestamp: currentMatchSeconds,
+                        });
+                        if (!res.ok || !res.persistedGoalId) return;
+                        setGoalUndoOffer({ eventId: res.persistedGoalId, side: 'away' });
+                        setScoreAway((s) => {
+                          const n = s + 1;
+                          if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: n });
+                          return n;
+                        });
+                      }}
+                      className="flex min-h-[44px] items-center justify-center rounded-xl bg-red-700 px-1 text-[11px] font-bold text-white shadow-sm hover:bg-red-600 sm:text-xs"
+                    >
+                      + TOR Gegner
+                    </button>
+                  </div>
+
+                  {goalUndoOffer ? (
+                    <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-white/10 bg-zinc-900/90 px-3 py-2 text-center">
+                      <span className="text-xs text-zinc-300">Tor hinzugefügt</span>
+                      <button
+                        type="button"
+                        onClick={() => void undoLastGoal()}
+                        className="rounded-lg border border-amber-500/50 bg-amber-950/50 px-3 py-1 text-xs font-bold text-amber-200 hover:bg-amber-900/60"
+                      >
+                        Rückgängig
+                      </button>
+                    </div>
+                  ) : null}
+
+                  <div className="grid grid-cols-3 gap-1.5">
                     <button
                       type="button"
                       onClick={onStartClick}
                       disabled={isRunning || matchIsFinished}
                       className={[
-                        'flex h-10 flex-1 items-center justify-center gap-1 rounded-xl text-sm font-semibold',
+                        'flex min-h-[40px] items-center justify-center gap-0.5 rounded-xl text-xs font-bold sm:text-sm',
                         isRunning || matchIsFinished
                           ? 'bg-neutral-900 text-gray-600'
-                          : 'bg-neutral-800 text-white hover:bg-neutral-700',
+                          : 'bg-emerald-700 text-white hover:bg-emerald-600',
                       ].join(' ')}
                     >
                       <span aria-hidden>▶</span>
-                      {!hasClockStarted ? 'Beginn' : 'Weiter'}
+                      Beginn
                     </button>
                     <button
                       type="button"
                       onClick={onPauseClick}
                       disabled={!isRunning || matchIsFinished}
                       className={[
-                        'flex h-10 flex-1 items-center justify-center gap-1 rounded-xl text-sm font-semibold',
+                        'flex min-h-[40px] items-center justify-center gap-0.5 rounded-xl text-xs font-bold sm:text-sm',
                         isRunning && !matchIsFinished
-                          ? 'bg-yellow-500 text-black hover:bg-yellow-400'
+                          ? 'bg-amber-400 text-black hover:bg-amber-300'
                           : 'bg-neutral-900 text-gray-600',
                       ].join(' ')}
                     >
@@ -1091,16 +1194,13 @@ export const LiveMatchScreen: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (matchIsFinished) return;
-                        startSecondHalf();
-                      }}
-                      disabled={matchIsFinished || currentMatchSeconds >= MATCH_HALF_DURATION_SEC}
+                      onClick={() => setEndMatchConfirmOpen(true)}
+                      disabled={matchIsFinished}
                       className={[
-                        'flex h-10 flex-1 items-center justify-center gap-1 rounded-xl text-sm font-semibold',
-                        matchIsFinished || currentMatchSeconds >= MATCH_HALF_DURATION_SEC
+                        'flex min-h-[40px] items-center justify-center gap-0.5 rounded-xl text-xs font-bold sm:text-sm',
+                        matchIsFinished
                           ? 'bg-neutral-900 text-gray-600'
-                          : 'bg-red-600 text-white hover:bg-red-500',
+                          : 'bg-red-950 text-red-100 ring-1 ring-red-600/60 hover:bg-red-900',
                       ].join(' ')}
                     >
                       <span aria-hidden>■</span>
@@ -1116,7 +1216,7 @@ export const LiveMatchScreen: React.FC = () => {
                         document.getElementById('live-wechsel-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       });
                     }}
-                    className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-red-500 bg-neutral-900 text-sm font-semibold text-white hover:bg-neutral-800"
+                    className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border-2 border-red-500/70 bg-transparent text-sm font-bold text-red-100 hover:bg-red-950/40"
                   >
                     <span aria-hidden>⇄</span>
                     Wechsel
@@ -1125,9 +1225,9 @@ export const LiveMatchScreen: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setEndMatchConfirmOpen(true)}
-                    className="flex h-10 w-full items-center justify-center rounded-xl border border-red-500 bg-transparent text-sm font-semibold text-red-500 hover:bg-red-500 hover:text-white"
+                    className="flex min-h-[40px] w-full items-center justify-center rounded-xl border-2 border-red-500/80 bg-transparent text-xs font-bold uppercase tracking-wide text-red-400 hover:bg-red-950/30 sm:text-sm"
                   >
-                    SPIEL ABSCHLIESSEN
+                    Spiel abschließen
                   </button>
                 </div>
               )}
@@ -1689,12 +1789,13 @@ export const LiveMatchScreen: React.FC = () => {
               disabled={!homeGoalPickId}
               onClick={async () => {
                 if (!homeGoalPickId || !effectiveMatchId) return;
-                const ok = await persistSingle({
+                const res = await persistSingle({
                   type: 'goal',
                   timestamp: currentMatchSeconds,
                   playerId: homeGoalPickId,
                 });
-                if (!ok) return;
+                if (!res.ok || !res.persistedGoalId) return;
+                setGoalUndoOffer({ eventId: res.persistedGoalId, side: 'home' });
                 setScoreHome((s) => {
                   const n = s + 1;
                   if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_home: n });
