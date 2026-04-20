@@ -319,20 +319,18 @@ export const LiveMatchScreen: React.FC = () => {
   }, [matchRow]);
 
   useEffect(() => {
-    if (!matchRow) return;
-    const fromDb = lineupData;
-    let squad: string[] = [];
-    let starting: string[] = [];
-    if (fromDb && (fromDb.squadPlayerIds.length > 0 || fromDb.startingPlayerIds.length > 0)) {
-      squad = [...fromDb.squadPlayerIds];
-      if (fromDb.startingPlayerIds.length > 0) {
-        starting = [...fromDb.startingPlayerIds].slice(0, 7);
-      } else if (squad.length > 0) {
-        starting = squad.slice(0, 7);
-      }
+    if (!matchRow) {
+      setSquadPlayerIds([]);
+      setStartingPlayerIds([]);
+      return;
     }
-    setSquadPlayerIds(squad);
-    setStartingPlayerIds(starting);
+    if (!lineupData) {
+      setSquadPlayerIds([]);
+      setStartingPlayerIds([]);
+      return;
+    }
+    setSquadPlayerIds([...lineupData.squadPlayerIds]);
+    setStartingPlayerIds([...lineupData.startingPlayerIds].slice(0, 7));
   }, [matchRow, lineupData]);
 
   const homeName = selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
@@ -1502,12 +1500,8 @@ export const LiveMatchScreen: React.FC = () => {
                 <div className="text-xs text-cyan-300">
                   role: {canControlLiveMatch ? 'trainer' : 'spectator'}
                   {' | '}startingPlayerIds: [{startingPlayerIds.join(', ')}]
+                  {' | '}squadPlayerIds: [{squadPlayerIds.join(', ')}]
                   {' | '}onFieldIds: [{onFieldIds.join(', ')}]
-                  {' | '}fieldPlayers: [{fieldPlayers.map((p) => p.name).join(', ')}]
-                  {' | '}benchPlayers: [{benchPlayers.map((p) => p.name).join(', ')}]
-                </div>
-                <div className="text-xs text-yellow-300">
-                  role: {canControlLiveMatch ? 'trainer' : 'spectator'}
                   {' | '}fieldPlayers: [{fieldPlayers.map((p) => p.name).join(', ')}]
                   {' | '}benchPlayers: [{benchPlayers.map((p) => p.name).join(', ')}]
                 </div>
