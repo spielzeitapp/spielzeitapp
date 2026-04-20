@@ -48,13 +48,13 @@ function LiveMatchLogoTile({
   const round = size === 'heroLg' ? 'rounded-full' : 'rounded-xl';
   const box =
     size === 'heroLg'
-      ? 'h-[5.75rem] w-[5.75rem] sm:h-[6.25rem] sm:w-[6.25rem] md:h-[6.75rem] md:w-[6.75rem]'
+      ? 'h-[6.25rem] w-[6.25rem] sm:h-[6.75rem] sm:w-[6.75rem] md:h-[7.25rem] md:w-[7.25rem]'
       : size === 'hero'
         ? 'h-14 w-14'
         : 'h-14 w-14 sm:h-[3.75rem] sm:w-[3.75rem]';
   const imgClass =
     size === 'heroLg'
-      ? 'max-h-[4.6rem] max-w-[4.6rem] object-contain p-0.5 sm:max-h-[5rem] sm:max-w-[5rem] md:max-h-[5.5rem] md:max-w-[5.5rem]'
+      ? 'max-h-[5rem] max-w-[5rem] object-contain p-0.5 sm:max-h-[5.5rem] sm:max-w-[5.5rem] md:max-h-[6rem] md:max-w-[6rem]'
       : size === 'hero'
         ? 'max-h-11 max-w-11 object-contain p-0.5'
         : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
@@ -64,7 +64,11 @@ function LiveMatchLogoTile({
       : 'select-none text-base font-black tabular-nums text-white sm:text-lg';
   return (
     <div
-      className={`flex shrink-0 items-center justify-center overflow-hidden border border-red-500/30 bg-zinc-950/95 ${round} ${box} ${glow}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden bg-black/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${
+        size === 'heroLg'
+          ? 'border border-white/[0.12]'
+          : 'border border-red-500/30 bg-zinc-950/95'
+      } ${round} ${box} ${glow}`}
     >
       {!failed ? (
         <img
@@ -139,24 +143,25 @@ function buildPeriodScoreLine(events: MatchEngineEvent[], currentMatchSeconds: n
   return `(${s1} | ${s2} | ${s3})`;
 }
 
-/** Trainer-Tabs: kompakte Leiste im Matchboard-Stil (rot / dunkel). */
+/** Trainer-Tabs: unter dem Matchboard, Stadium/Premium-Anmutung. */
 const tabNavWrap =
-  'mt-3 flex w-full gap-1 overflow-x-auto rounded-2xl border border-red-500/30 bg-zinc-950/95 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_24px_rgba(220,38,38,0.06)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+  'mt-4 flex w-full gap-1 overflow-x-auto rounded-2xl border border-white/[0.08] bg-black/55 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-md [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 const tabNavBtnBase =
   'shrink-0 whitespace-nowrap rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-200 sm:px-4 sm:text-sm md:flex-1 md:text-center';
 const tabNavBtnActive =
-  'bg-red-600 text-white shadow-[0_4px_22px_rgba(220,38,38,0.35)]';
-const tabNavBtnIdle = 'text-gray-500 hover:bg-zinc-900/90 hover:text-gray-200';
+  'bg-gradient-to-b from-red-600 to-red-800 text-white shadow-[0_4px_24px_rgba(220,38,38,0.35)]';
+const tabNavBtnIdle =
+  'text-gray-500 hover:bg-white/[0.04] hover:text-gray-200';
 
-/** Zuschauer-Tabs: gleiche Ästhetik wie Trainer-Leiste. */
+/** Zuschauer-Tabs: gleiche Familie wie Trainer. */
 const spectatorTabWrap =
-  'mt-2 flex gap-1 overflow-x-auto rounded-2xl border border-red-500/30 bg-zinc-950/95 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+  'mt-3 flex gap-1 overflow-x-auto rounded-2xl border border-white/[0.08] bg-black/55 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 const spectatorTabBtnBase =
   'flex h-10 min-h-10 shrink-0 flex-1 items-center justify-center rounded-xl border border-transparent px-2 text-center text-xs font-semibold transition-all duration-200 sm:text-sm';
 const spectatorTabBtnActive =
-  'border-red-500/35 bg-red-600 text-white shadow-[0_4px_20px_rgba(220,38,38,0.3)]';
+  'border-red-500/25 bg-gradient-to-b from-red-600 to-red-800 text-white shadow-[0_4px_22px_rgba(220,38,38,0.32)]';
 const spectatorTabBtnIdle =
-  'text-gray-500 hover:border-white/[0.08] hover:bg-zinc-900/80 hover:text-gray-200';
+  'text-gray-500 hover:border-white/[0.06] hover:bg-white/[0.04] hover:text-gray-200';
 
 const liveCardShell =
   'rounded-2xl border border-white/[0.08] bg-gradient-to-br from-zinc-950/95 via-zinc-950/80 to-black shadow-[0_6px_28px_rgba(0,0,0,0.35)]';
@@ -945,132 +950,134 @@ export const LiveMatchScreen: React.FC = () => {
         >
           {matchboardVisible && (
             <div
-              className={`mx-auto mb-0 w-full ${
+              className={`mx-auto mb-0 w-full overflow-hidden rounded-3xl border border-red-500/40 shadow-[0_0_64px_rgba(220,38,38,0.18),0_24px_56px_rgba(0,0,0,0.65)] ${
                 spectatorView
-                  ? `max-w-lg md:max-w-xl ${liveCardShell} border border-red-500/40 p-3 shadow-[0_0_40px_rgba(220,38,38,0.12)] md:p-4`
-                  : 'max-w-lg md:max-w-2xl rounded-2xl border border-red-500/50 bg-gradient-to-b from-zinc-950 via-black to-zinc-950 p-4 shadow-[0_0_56px_rgba(220,38,38,0.12),0_16px_48px_rgba(0,0,0,0.55)] md:p-6'
+                  ? 'max-w-lg md:max-w-xl'
+                  : 'max-w-lg md:max-w-2xl'
               }`}
             >
               <div
-                className={`flex flex-col items-center text-center ${
-                  spectatorView ? 'gap-1 pb-1' : 'gap-1.5 pb-1.5'
+                className={`relative bg-gradient-to-b from-black via-zinc-950 to-red-950/80 ${
+                  spectatorView
+                    ? 'px-4 pb-4 pt-5 md:px-6 md:pb-5 md:pt-6'
+                    : 'px-4 pb-5 pt-5 md:px-8 md:pb-7 md:pt-7'
                 }`}
               >
                 <div
-                  className={`flex items-center justify-center gap-1.5 rounded-full font-black uppercase tracking-[0.14em] ${
-                    matchIsFinished
-                      ? 'bg-gradient-to-r from-red-700 via-red-600 to-red-800 px-4 py-1.5 text-[10px] text-white shadow-[0_0_28px_rgba(220,38,38,0.55)] ring-1 ring-white/25 sm:text-[11px]'
-                      : hasClockStarted
-                        ? 'bg-red-600 px-3 py-1 text-[9px] text-white shadow-[0_0_20px_rgba(220,38,38,0.45)]'
-                        : 'bg-zinc-800/90 px-3 py-1 text-[9px] text-gray-300'
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(220,38,38,0.22),transparent_55%)]"
+                />
+                <div
+                  className={`relative flex flex-col items-center text-center ${
+                    spectatorView ? 'gap-1.5' : 'gap-2'
                   }`}
                 >
-                  {!matchIsFinished && hasClockStarted ? (
-                    <span className="text-[10px] leading-none" aria-hidden>
-                      ●
-                    </span>
-                  ) : null}
-                  {matchIsFinished ? 'ENDSTAND' : hasClockStarted ? 'LIVE' : 'BEREIT'}
-                </div>
-                <p className="text-[13px] font-semibold tracking-tight text-white md:text-sm">{matchTypeDisplay}</p>
-              </div>
-
-              <div
-                className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end ${
-                  spectatorView ? 'mt-3 gap-x-3 py-2' : 'mt-4 gap-x-4 py-3 md:mt-5 md:gap-x-6 md:py-4'
-                }`}
-              >
-                <div className="flex min-w-0 flex-col items-center text-center">
-                  <LiveMatchLogoTile
-                    src={homeLogoSrc}
-                    initialsFrom={homeLogoLookupName}
-                    liveGlow={false}
-                    size="heroLg"
-                  />
-                  <p className="mt-3 line-clamp-2 w-full max-w-[10rem] break-words text-[11px] font-semibold leading-tight text-white/95 md:mt-3.5 md:text-xs">
-                    {homeDisplayName}
-                  </p>
-                </div>
-
-                <div className="flex min-w-[8rem] max-w-[13rem] flex-col items-center justify-end px-1 pb-1 text-center md:min-w-[10rem] md:max-w-[14rem]">
-                  <div className="flex items-baseline justify-center gap-2 md:gap-3">
-                    <span
-                      className={`font-black tabular-nums tracking-tight text-white ${
-                        matchIsFinished
-                          ? 'text-[5.5rem] leading-[0.95] sm:text-[6rem] md:text-[6.75rem] lg:text-[7.25rem]'
-                          : 'text-[4.75rem] leading-none sm:text-[5.25rem] md:text-[5.75rem]'
-                      }`}
-                    >
-                      {scoreHome}
-                    </span>
-                    <span
-                      className={`select-none font-light leading-none text-white/40 ${
-                        matchIsFinished ? 'text-5xl md:text-6xl' : 'text-4xl md:text-5xl'
-                      }`}
-                      aria-hidden
-                    >
-                      :
-                    </span>
-                    <span
-                      className={`font-black tabular-nums tracking-tight text-white ${
-                        matchIsFinished
-                          ? 'text-[5.5rem] leading-[0.95] sm:text-[6rem] md:text-[6.75rem] lg:text-[7.25rem]'
-                          : 'text-[4.75rem] leading-none sm:text-[5.25rem] md:text-[5.75rem]'
-                      }`}
-                    >
-                      {scoreAway}
-                    </span>
+                  <div
+                    className={`flex items-center justify-center gap-1.5 rounded-full font-black uppercase tracking-[0.14em] ${
+                      matchIsFinished
+                        ? 'bg-gradient-to-r from-red-700 via-red-600 to-red-800 px-4 py-1.5 text-[10px] text-white shadow-[0_0_32px_rgba(220,38,38,0.5)] ring-1 ring-white/20 sm:text-[11px]'
+                        : hasClockStarted
+                          ? 'bg-red-600 px-3.5 py-1 text-[9px] text-white shadow-[0_0_24px_rgba(220,38,38,0.5)]'
+                          : 'border border-white/10 bg-black/40 px-3.5 py-1 text-[9px] text-gray-400'
+                    }`}
+                  >
+                    {!matchIsFinished && hasClockStarted ? (
+                      <span className="text-[10px] leading-none" aria-hidden>
+                        ●
+                      </span>
+                    ) : null}
+                    {matchIsFinished ? 'ENDSTAND' : hasClockStarted ? 'LIVE' : 'BEREIT'}
                   </div>
-                  {!matchIsFinished && !canControlLiveMatch ? (
-                    <p className="mt-2 font-mono text-lg font-semibold tabular-nums leading-none text-[#ef4444] md:mt-2.5 md:text-xl">
-                      {formatClock(currentMatchSeconds)}
-                    </p>
-                  ) : null}
+                  <p className="text-[13px] font-medium tracking-tight text-white/90 md:text-sm">{matchTypeDisplay}</p>
                 </div>
 
-                <div className="flex min-w-0 flex-col items-center text-center">
-                  <LiveMatchLogoTile
-                    src={awayLogoSrc}
-                    initialsFrom={headerOpponent}
-                    liveGlow={false}
-                    size="heroLg"
-                  />
-                  <p className="mt-3 line-clamp-2 w-full max-w-[10rem] break-words text-[11px] font-semibold leading-tight text-white/95 md:mt-3.5 md:text-xs">
-                    {awayDisplayName}
-                  </p>
+                <div
+                  className={`relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end ${
+                    spectatorView ? 'mt-4 gap-x-3 py-2' : 'mt-5 gap-x-4 py-3 md:mt-6 md:gap-x-8 md:py-5'
+                  }`}
+                >
+                  <div className="flex min-w-0 flex-col items-center text-center">
+                    <LiveMatchLogoTile
+                      src={homeLogoSrc}
+                      initialsFrom={homeLogoLookupName}
+                      liveGlow={false}
+                      size="heroLg"
+                    />
+                    <p className="mt-3 line-clamp-2 w-full max-w-[11rem] break-words text-[11px] font-medium leading-snug text-white/80 md:mt-4 md:text-xs">
+                      {homeDisplayName}
+                    </p>
+                  </div>
+
+                  <div className="flex min-w-[8.5rem] max-w-[14rem] flex-col items-center justify-end px-1 text-center md:min-w-[10.5rem] md:max-w-[15rem]">
+                    <div className="flex items-baseline justify-center gap-2 md:gap-3">
+                      <span
+                        className={`font-black tabular-nums tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] ${
+                          matchIsFinished
+                            ? 'text-[5.5rem] leading-[0.95] sm:text-[6rem] md:text-[6.75rem] lg:text-[7.25rem]'
+                            : 'text-[4.75rem] leading-none sm:text-[5.25rem] md:text-[5.75rem]'
+                        }`}
+                      >
+                        {scoreHome}
+                      </span>
+                      <span
+                        className={`select-none font-light leading-none text-white/35 ${
+                          matchIsFinished ? 'text-5xl md:text-6xl' : 'text-4xl md:text-5xl'
+                        }`}
+                        aria-hidden
+                      >
+                        :
+                      </span>
+                      <span
+                        className={`font-black tabular-nums tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] ${
+                          matchIsFinished
+                            ? 'text-[5.5rem] leading-[0.95] sm:text-[6rem] md:text-[6.75rem] lg:text-[7.25rem]'
+                            : 'text-[4.75rem] leading-none sm:text-[5.25rem] md:text-[5.75rem]'
+                        }`}
+                      >
+                        {scoreAway}
+                      </span>
+                    </div>
+                    {!matchIsFinished ? (
+                      <p
+                        className="mt-2 font-mono text-2xl font-black tabular-nums leading-none tracking-tight text-red-500 drop-shadow-[0_0_20px_rgba(239,68,68,0.55)] md:mt-3 md:text-3xl md:drop-shadow-[0_0_28px_rgba(239,68,68,0.45)]"
+                        aria-live="polite"
+                      >
+                        {formatClock(currentMatchSeconds)}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="flex min-w-0 flex-col items-center text-center">
+                    <LiveMatchLogoTile
+                      src={awayLogoSrc}
+                      initialsFrom={headerOpponent}
+                      liveGlow={false}
+                      size="heroLg"
+                    />
+                    <p className="mt-3 line-clamp-2 w-full max-w-[11rem] break-words text-[11px] font-medium leading-snug text-white/80 md:mt-4 md:text-xs">
+                      {awayDisplayName}
+                    </p>
+                  </div>
                 </div>
+
+                <p className="relative mt-1 w-full px-2 text-center font-mono text-[11px] font-medium tabular-nums tracking-wide text-white/45 md:mt-2 md:text-xs">
+                  {periodScoreLine}
+                </p>
               </div>
 
-              <p className="mt-2 w-full text-center font-mono text-[11px] font-medium tabular-nums tracking-wide text-white/50 md:mt-3 md:text-xs">
-                {periodScoreLine}
-              </p>
-
-              {canControlLiveMatch && !matchIsFinished ? (
-                <div
-                  className="mt-4 grid grid-cols-3 items-center gap-x-2 md:mt-5 md:gap-x-3"
-                  aria-label="Tore und Spielzeit"
-                >
-                  <div className="flex justify-center">
+              {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
+                <div className="border-t border-white/[0.06] bg-gradient-to-b from-black via-zinc-950/98 to-black px-4 py-4 md:px-5 md:py-5">
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => {
                         setHomeGoalPickId('');
                         setHomeGoalModalOpen(true);
                       }}
-                      className="flex h-10 w-full max-w-[10rem] items-center justify-center rounded-xl bg-green-600 px-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(22,163,74,0.35)] hover:bg-green-500 md:h-11 md:max-w-[10.5rem] md:text-[0.95rem]"
+                      className="flex h-10 w-full items-center justify-center rounded-2xl bg-gradient-to-b from-emerald-600 to-emerald-800 px-3 text-sm font-semibold text-white shadow-[0_4px_20px_rgba(16,185,129,0.25)] transition hover:brightness-110 active:scale-[0.99] md:h-11"
                     >
                       + TOR
                     </button>
-                  </div>
-                  <div className="flex min-h-[2.75rem] flex-col items-center justify-center px-1 py-2 md:min-h-[3.25rem] md:py-3">
-                    <span
-                      className="text-center font-mono text-2xl font-black tabular-nums tracking-tight text-red-500 drop-shadow-[0_0_18px_rgba(239,68,68,0.55)] sm:text-[1.75rem] md:text-3xl md:drop-shadow-[0_0_26px_rgba(239,68,68,0.5)]"
-                      aria-live="polite"
-                    >
-                      {formatClock(currentMatchSeconds)}
-                    </span>
-                  </div>
-                  <div className="flex justify-center">
                     <button
                       type="button"
                       onClick={async () => {
@@ -1085,23 +1092,13 @@ export const LiveMatchScreen: React.FC = () => {
                           return n;
                         });
                       }}
-                      className="flex h-10 w-full max-w-[10rem] items-center justify-center rounded-xl bg-red-600 px-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(220,38,38,0.35)] hover:bg-red-500 md:h-11 md:max-w-[10.5rem] md:text-[0.95rem]"
+                      className="flex h-10 w-full items-center justify-center rounded-2xl bg-gradient-to-b from-red-600 to-red-900 px-3 text-sm font-semibold text-white shadow-[0_4px_20px_rgba(220,38,38,0.28)] transition hover:brightness-110 active:scale-[0.99] md:h-11"
                     >
                       + TOR
                     </button>
                   </div>
-                </div>
-              ) : null}
 
-              {saveError && (
-                <p className="mt-2 text-center text-xs font-medium text-amber-400" role="alert">
-                  {saveError}
-                </p>
-              )}
-
-              {canControlLiveMatch && !matchIsFinished && (
-                <div className="mt-4 space-y-3 pt-1">
-                  <div className="flex gap-2">
+                  <div className="mt-3 flex gap-2">
                     <button
                       type="button"
                       onClick={isRunning ? onPauseClick : onStartClick}
@@ -1111,10 +1108,10 @@ export const LiveMatchScreen: React.FC = () => {
                       }
                       aria-pressed={isRunning}
                       className={[
-                        'flex h-7 flex-[1.35] items-center justify-center gap-0.5 rounded-lg px-2 text-[11px] font-semibold md:h-7 md:text-xs',
+                        'flex h-8 min-h-8 flex-[1.35] items-center justify-center gap-1 rounded-xl border px-2 text-[11px] font-medium transition md:h-8 md:text-xs',
                         isRunning
-                          ? 'bg-amber-500/90 text-black hover:bg-amber-400'
-                          : 'bg-zinc-800/70 text-gray-300 hover:bg-zinc-800',
+                          ? 'border-amber-400/35 bg-amber-400/95 text-black hover:bg-amber-300'
+                          : 'border-red-500/20 bg-zinc-900/80 text-white hover:border-red-500/35 hover:bg-zinc-800',
                       ].join(' ')}
                     >
                       {isRunning ? (
@@ -1133,7 +1130,7 @@ export const LiveMatchScreen: React.FC = () => {
                       type="button"
                       onClick={() => setEndMatchConfirmOpen(true)}
                       disabled={matchIsFinished}
-                      className="flex h-7 flex-1 items-center justify-center gap-0.5 rounded-lg border border-red-500/30 bg-zinc-900/70 px-2 text-[11px] font-semibold text-red-400/90 hover:border-red-500/45 hover:bg-zinc-900 disabled:border-transparent disabled:bg-neutral-900 disabled:text-gray-600 md:h-7 md:text-xs"
+                      className="flex h-8 min-h-8 flex-1 items-center justify-center gap-1 rounded-xl border border-red-500/40 bg-gradient-to-b from-red-600/95 to-red-950 px-2 text-[11px] font-medium text-white shadow-[0_2px_16px_rgba(220,38,38,0.2)] hover:brightness-110 disabled:border-transparent disabled:bg-neutral-900 disabled:text-gray-600 md:h-8 md:text-xs"
                     >
                       <span aria-hidden>■</span>
                       Ende
@@ -1148,23 +1145,32 @@ export const LiveMatchScreen: React.FC = () => {
                         document.getElementById('live-wechsel-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       });
                     }}
-                    className="flex min-h-[3rem] w-full items-center justify-center gap-2 rounded-2xl border-2 border-red-500/45 bg-transparent px-4 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors hover:border-red-500/70 hover:bg-red-950/25"
+                    className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/[0.12] bg-white/[0.03] text-sm font-medium text-white/95 transition hover:border-red-500/30 hover:bg-white/[0.06]"
                   >
                     <span aria-hidden>⇄</span>
                     Wechsel
                   </button>
 
-                  <div className="rounded-2xl border border-red-600/35 bg-red-950/25 p-3 shadow-[inset_0_0_24px_rgba(127,29,29,0.2)]">
+                  <div className="mt-3 rounded-2xl border border-red-500/25 bg-red-950/20 p-0.5">
                     <button
                       type="button"
                       onClick={() => setEndMatchConfirmOpen(true)}
-                      className="flex h-9 w-full items-center justify-center rounded-xl border border-red-500/50 bg-red-950/40 text-xs font-bold uppercase tracking-wide text-red-400 transition-colors hover:border-red-400 hover:bg-red-600/20 hover:text-red-200 md:text-sm"
+                      className="flex h-9 w-full items-center justify-center rounded-[0.9rem] text-[11px] font-semibold uppercase tracking-[0.12em] text-red-300/95 transition hover:bg-red-600/15 hover:text-red-200 md:text-xs"
                     >
                       SPIEL ABSCHLIESSEN
                     </button>
                   </div>
                 </div>
-              )}
+              ) : null}
+
+              {saveError ? (
+                <p
+                  className="border-t border-white/[0.06] bg-black/50 px-4 py-2 text-center text-xs font-medium text-amber-400"
+                  role="alert"
+                >
+                  {saveError}
+                </p>
+              ) : null}
             </div>
           )}
 
