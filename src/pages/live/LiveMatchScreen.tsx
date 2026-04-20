@@ -987,18 +987,6 @@ export const LiveMatchScreen: React.FC = () => {
                   <p className="mt-1 line-clamp-2 w-full max-w-[9rem] break-words text-xs font-semibold leading-tight text-white">
                     {homeDisplayName}
                   </p>
-                  {canControlLiveMatch && !matchIsFinished ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setHomeGoalPickId('');
-                        setHomeGoalModalOpen(true);
-                      }}
-                      className="mt-1 flex h-10 w-full max-w-[9rem] items-center justify-center rounded-xl bg-green-600 px-3 text-sm font-semibold text-white hover:bg-green-500"
-                    >
-                      + TOR
-                    </button>
-                  ) : null}
                 </div>
 
                 <div className="flex min-w-[6.75rem] max-w-[8.5rem] flex-col items-center px-0.5 text-center">
@@ -1009,14 +997,18 @@ export const LiveMatchScreen: React.FC = () => {
                     </span>
                     <span className="text-5xl font-black tabular-nums tracking-wide text-[#FFFFFF]">{scoreAway}</span>
                   </div>
-                  <p
-                    className={`mt-0.5 font-mono text-lg font-semibold tabular-nums leading-none ${
-                      matchIsFinished ? 'text-gray-500' : 'text-[#ef4444]'
-                    }`}
-                  >
-                    {formatClock(currentMatchSeconds)}
+                  {!(canControlLiveMatch && !matchIsFinished) ? (
+                    <p
+                      className={`mt-0.5 font-mono text-lg font-semibold tabular-nums leading-none ${
+                        matchIsFinished ? 'text-gray-500' : 'text-[#ef4444]'
+                      }`}
+                    >
+                      {formatClock(currentMatchSeconds)}
+                    </p>
+                  ) : null}
+                  <p className="mt-1 font-mono text-xs tabular-nums leading-tight text-white opacity-70">
+                    {periodScoreLine}
                   </p>
-                  <p className="mt-1 font-mono text-xs tabular-nums leading-tight text-white opacity-70">{periodScoreLine}</p>
                 </div>
 
                 <div className="flex min-w-0 flex-col items-center text-center">
@@ -1029,7 +1021,32 @@ export const LiveMatchScreen: React.FC = () => {
                   <p className="mt-1 line-clamp-2 w-full max-w-[9rem] break-words text-xs font-semibold leading-tight text-white">
                     {awayDisplayName}
                   </p>
-                  {canControlLiveMatch && !matchIsFinished ? (
+                </div>
+              </div>
+
+              {canControlLiveMatch && !matchIsFinished ? (
+                <div className="mt-2 grid grid-cols-3 items-center gap-x-2" aria-label="Tore und Spielzeit">
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHomeGoalPickId('');
+                        setHomeGoalModalOpen(true);
+                      }}
+                      className="flex h-10 w-full max-w-[9rem] items-center justify-center rounded-xl bg-green-600 px-3 text-sm font-semibold text-white hover:bg-green-500"
+                    >
+                      + TOR
+                    </button>
+                  </div>
+                  <div className="flex min-h-10 items-center justify-center px-0.5">
+                    <span
+                      className="font-mono text-xl font-black tabular-nums tracking-tight text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.35)] sm:text-2xl"
+                      aria-live="polite"
+                    >
+                      {formatClock(currentMatchSeconds)}
+                    </span>
+                  </div>
+                  <div className="flex justify-center">
                     <button
                       type="button"
                       onClick={async () => {
@@ -1044,13 +1061,13 @@ export const LiveMatchScreen: React.FC = () => {
                           return n;
                         });
                       }}
-                      className="mt-1 flex h-10 w-full max-w-[9rem] items-center justify-center rounded-xl bg-red-600 px-3 text-sm font-semibold text-white hover:bg-red-500"
+                      className="flex h-10 w-full max-w-[9rem] items-center justify-center rounded-xl bg-red-600 px-3 text-sm font-semibold text-white hover:bg-red-500"
                     >
                       + TOR
                     </button>
-                  ) : null}
+                  </div>
                 </div>
-              </div>
+              ) : null}
 
               {saveError && (
                 <p className="mt-1 text-center text-xs font-medium text-amber-400" role="alert">
@@ -1073,7 +1090,7 @@ export const LiveMatchScreen: React.FC = () => {
                       ].join(' ')}
                     >
                       <span aria-hidden>▶</span>
-                      {!hasClockStarted ? 'Beginn' : 'Weiter'}
+                      Beginn
                     </button>
                     <button
                       type="button"
