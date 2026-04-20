@@ -7,9 +7,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { MatchTimeline } from './components/MatchTimeline';
 import { LiveControls } from './components/LiveControls';
 import { MatchStatsTable } from './components/MatchStatsTable';
-import { MatchFieldSlots } from './components/MatchFieldSlots';
 import { TrainerMatchLineupMvp } from './components/TrainerMatchLineupMvp';
-import { createEvent } from '../../services/eventFactory';
 import { useRole } from '../../app/role/RoleContext';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
 import { useActiveTeamSeason } from '../../hooks/useActiveTeamSeason';
@@ -21,9 +19,7 @@ import { Card, CardTitle } from '../../app/components/ui/Card';
 import { Button } from '../../app/components/ui/Button';
 import { isStartelfCompleteForLive } from './lineupGuards';
 import { VIENNA_TZ } from '../../lib/viennaTime';
-import { fetchLineupForLiveMatch, fetchMatchEvents, LIVE_FIELD_SLOT_ORDER } from '../../lib/liveMatchService';
-import { getBenchPlayers, getCurrentOnFieldPlayers, type MatchEngineEvent } from '../../lib/matchEngine';
-import { playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
+import { LIVE_FIELD_SLOT_ORDER } from '../../lib/liveMatchService';
 
 type MatchRow = {
   id: string;
@@ -67,15 +63,11 @@ function mapRowToMatch(row: MatchRow | null): Match | null {
   };
 }
 
-function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
-  return [...list].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
-}
-
 export const MatchDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const matchId = id ?? null;
 
-  const { role: uiRole, getBackendRole, canEditSchedule, canUseLiveControls } = useRole();
+  const { getBackendRole, canUseLiveControls } = useRole();
   const { teamSeasonId, role: activeRole } = useActiveTeamSeason();
   const activeRoleNormalized = (activeRole ?? '').toLowerCase();
 
@@ -91,19 +83,11 @@ export const MatchDetailPage: React.FC = () => {
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
-  /** Gleiche Quelle wie LiveMatchScreen: match_lineup + match_bench + match_events (Engine). */
-  const [liveLineupData, setLiveLineupData] = useState<{
-    startingPlayerIds: string[];
-    squadPlayerIds: string[];
-  } | null>(null);
-  const [liveEngineEvents, setLiveEngineEvents] = useState<MatchEngineEvent[]>([]);
-  const [liveSpectatorLineupLoading, setLiveSpectatorLineupLoading] = useState(false);
-
   const effectiveTeamSeasonId = matchRow?.team_season_id ?? teamSeasonId;
   const { players, loading: playersLoading, error: playersError } = usePlayers(effectiveTeamSeasonId);
   const { getAvailability, setAvailability, loading: availLoading, error: availError, saving } = useMatchAvailability(matchId);
   const perms = useAvailabilityPermissions({ role: activeRoleNormalized, teamSeasonId: effectiveTeamSeasonId });
-  const { setSlot, clearPlayerEverywhere: clearPlayerFromLineupAndBench, reloadLineup } = useMatchLineup(matchId);
+  const { clearPlayerEverywhere: clearPlayerFromLineupAndBench, reloadLineup } = useMatchLineup(matchId);
 
   const syncFieldFromStartersBySlot = useCallback((bySlot: Record<FieldSlotId, string | null>) => {
     setLocalMatch((prev) => {
@@ -238,90 +222,20 @@ export const MatchDetailPage: React.FC = () => {
     return out;
   }, [players, getAvailability]);
 
-  const playersInLineupIds = useMemo(() => {
+  /** Nur für LiveControls (Tor/Wechsel): Feld/Bank aus localMatch.field, ohne Aufstellungskarte. */
+  const liveControlsHomeOnField = useMemo(() => {
     const home = localMatch?.field?.home ?? {};
-    return new Set(Object.values(home).filter(Boolean) as string[]);
-  }, [localMatch?.field?.home]);
+    const ids = new Set(Object.values(home).filter(Boolean) as string[]);
+    return (localMatch?.home.players ?? []).filter((p) => ids.has(p.id));
+  }, [localMatch?.field?.home, localMatch?.home.players]);
 
-  const benchCandidates = useMemo(
-    () => players.filter((p) => statusByPlayerId[p.id] === 'yes').filter((p) => !playersInLineupIds.has(p.id)),
-    [players, statusByPlayerId, playersInLineupIds],
-  );
-
-  const onFieldHomePlayers = useMemo(
-    () => (localMatch?.home.players ?? []).filter((p) => playersInLineupIds.has(p.id)),
-    [localMatch?.home.players, playersInLineupIds],
-  );
-
-  const benchHomePlayers = useMemo(() => {
-    const setIds = new Set(benchCandidates.map((p) => p.id));
-    return (localMatch?.home.players ?? []).filter((p) => setIds.has(p.id));
-  }, [localMatch?.home.players, benchCandidates]);
+  const liveControlsHomeBench = useMemo(() => {
+    const home = localMatch?.field?.home ?? {};
+    const ids = new Set(Object.values(home).filter(Boolean) as string[]);
+    return players.filter((p) => statusByPlayerId[p.id] === 'yes' && !ids.has(p.id));
+  }, [localMatch?.field?.home, players, statusByPlayerId]);
 
   const dbStatus = (matchRow?.status ?? 'upcoming') as 'upcoming' | 'live' | 'finished';
-
-  useEffect(() => {
-    if (!matchId || !spectatorMode || matchRow?.status !== 'live') {
-      setLiveLineupData(null);
-      setLiveEngineEvents([]);
-      setLiveSpectatorLineupLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setLiveSpectatorLineupLoading(true);
-    void (async () => {
-      const [lineRes, evRes] = await Promise.all([
-        fetchLineupForLiveMatch(matchId),
-        fetchMatchEvents(matchId),
-      ]);
-      if (cancelled) return;
-      setLiveLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
-      setLiveEngineEvents(evRes.error ? [] : evRes.data);
-      setLiveSpectatorLineupLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [matchId, spectatorMode, matchRow?.status]);
-
-  const { startingPlayerIdsForLive, squadPlayerIdsForLive } = useMemo(() => {
-    if (playersLoading || !liveLineupData) {
-      return { startingPlayerIdsForLive: [] as string[], squadPlayerIdsForLive: [] as string[] };
-    }
-    const valid = new Set(players.map((p) => p.id));
-    const fromDb = liveLineupData;
-    let squad: string[] = [];
-    let starting: string[] = [];
-    if (fromDb.squadPlayerIds.length > 0) {
-      squad = fromDb.squadPlayerIds.filter((id) => valid.has(id));
-      starting = fromDb.startingPlayerIds.filter((id) => valid.has(id)).slice(0, 7);
-    }
-    if (squad.length === 0 && players.length > 0) {
-      squad = players.map((p) => p.id);
-      starting = players.slice(0, Math.min(7, players.length)).map((p) => p.id);
-    } else if (starting.length === 0 && squad.length > 0) {
-      starting = squad.slice(0, 7);
-    }
-    return { startingPlayerIdsForLive: starting, squadPlayerIdsForLive: squad };
-  }, [liveLineupData, players, playersLoading]);
-
-  const rosterForLive = useMemo(() => sortRosterByNumber(players.map(playerItemToRoster)), [players]);
-
-  const onFieldIdsLive = useMemo(
-    () => getCurrentOnFieldPlayers(startingPlayerIdsForLive, liveEngineEvents, currentMatchSeconds),
-    [startingPlayerIdsForLive, liveEngineEvents, currentMatchSeconds],
-  );
-
-  const fieldPlayersLive = useMemo(() => {
-    const set = new Set(onFieldIdsLive);
-    return sortRosterByNumber(rosterForLive.filter((p) => set.has(p.id)));
-  }, [onFieldIdsLive, rosterForLive]);
-
-  const benchPlayersLive = useMemo(() => {
-    const ids = getBenchPlayers(squadPlayerIdsForLive, onFieldIdsLive);
-    const set = new Set(ids);
-    return sortRosterByNumber(rosterForLive.filter((p) => set.has(p.id)));
-  }, [squadPlayerIdsForLive, onFieldIdsLive, rosterForLive]);
 
   const canManageStatus =
     activeRoleNormalized === 'trainer' ||
@@ -405,64 +319,6 @@ export const MatchDetailPage: React.FC = () => {
 
       return next;
     });
-  };
-
-  const handleAssignToSlot = (slotId: FieldSlotId, playerId: string) => {
-    setLocalMatch((prev) => {
-      if (!prev) return prev;
-      const home = { ...(prev.field?.home ?? {}) };
-
-      (Object.keys(home) as FieldSlotId[]).forEach((k) => {
-        if (home[k] === playerId) delete home[k];
-      });
-
-      home[slotId] = playerId;
-
-      return { ...prev, field: { ...prev.field, home } };
-    });
-
-    setSlot(slotId, playerId);
-  };
-
-  const handleSwapOnField = (slotId: FieldSlotId, incomingPlayerId: string) => {
-    setLocalMatch((prev) => {
-      if (!prev) return prev;
-      const home = { ...(prev.field?.home ?? {}) };
-      const outgoing = home[slotId];
-      home[slotId] = incomingPlayerId;
-
-      const next: Match = { ...prev, field: { ...prev.field, home } };
-
-      if (outgoing) {
-        const subEvent = createEvent({
-          type: 'sub',
-          teamId: prev.home.id,
-          playerOutId: outgoing,
-          playerInId: incomingPlayerId,
-          minute: currentMinute,
-          period: prev.period,
-          note: 'Slotwechsel',
-        });
-        setTimeout(() => handleAddEvent(subEvent), 0);
-      }
-
-      return next;
-    });
-
-    setSlot(slotId, incomingPlayerId);
-  };
-
-  const handleBenchPlayer = (playerId: string) => {
-    setLocalMatch((prev) => {
-      if (!prev) return prev;
-      const home = { ...(prev.field?.home ?? {}) };
-      (Object.keys(home) as FieldSlotId[]).forEach((k) => {
-        if (home[k] === playerId) delete home[k];
-      });
-      return { ...prev, field: { ...prev.field, home } };
-    });
-
-    clearPlayerFromLineupAndBench(playerId).catch(() => {});
   };
 
   if (loading) return <div className="page pb-4"><p>Lade Spiel…</p></div>;
@@ -557,8 +413,8 @@ export const MatchDetailPage: React.FC = () => {
                 currentSeconds={currentSeconds}
                 onAddEvent={handleAddEvent}
                 onTimerCommand={handleTimerCommand}
-                onFieldPlayersByTeam={{ home: onFieldHomePlayers, away: [] }}
-                benchPlayersByTeam={{ home: benchHomePlayers, away: [] }}
+                onFieldPlayersByTeam={{ home: liveControlsHomeOnField, away: [] }}
+                benchPlayersByTeam={{ home: liveControlsHomeBench, away: [] }}
               />
             )}
           </section>
@@ -683,69 +539,10 @@ export const MatchDetailPage: React.FC = () => {
           </Card>
         )}
 
-          {operatorMode && (
-            <MatchFieldSlots
-              match={localMatch}
-              teamSide="home"
-              canEdit={canEditSchedule(uiRole)}
-              benchCandidates={benchCandidates.map((p) => ({ id: p.id, display_name: p.display_name, name: p.display_name, number: p.jersey_number ?? undefined }))}
-              unavailableIds={players.filter((p) => getAvailability(p.id) === 'no').map((p) => p.id)}
-              onAssign={handleAssignToSlot}
-              onSwap={handleSwapOnField}
-              onBench={handleBenchPlayer}
-            />
-          )}
-
           {spectatorMode && (
             <div className="card">
               <h2 className="card-title">Aufstellung &amp; Bank</h2>
-              {localMatch.status === 'live' ? (
-                liveSpectatorLineupLoading ? (
-                  <p className="mt-2 text-sm text-[var(--muted)]">Live-Aufstellung wird geladen…</p>
-                ) : fieldPlayersLive.length === 0 && benchPlayersLive.length === 0 ? (
-                  <p className="mt-2 text-sm text-[var(--muted)]">Noch keine Aufstellung veröffentlicht.</p>
-                ) : (
-                  <div className="mt-3 space-y-3">
-                    <div>
-                      <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
-                      <ul className="space-y-2">
-                        {fieldPlayersLive.map((p) => (
-                          <li key={p.id}>
-                            <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3">
-                              <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
-                              <span className="flex-1 px-3 text-base font-semibold text-[var(--text-main)]">{p.name}</span>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">Ersatzbank</h3>
-                      <ul className="space-y-2">
-                        {benchPlayersLive.map((p) => (
-                          <li key={p.id}>
-                            <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                              <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
-                              <span className="flex-1 px-3 text-base font-semibold text-[var(--text-main)]">{p.name}</span>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )
-              ) : (
-                <MatchFieldSlots
-                  match={localMatch}
-                  teamSide="home"
-                  canEdit={false}
-                  benchCandidates={benchCandidates.map((p) => ({ id: p.id, display_name: p.display_name, name: p.display_name, number: p.jersey_number ?? undefined }))}
-                  unavailableIds={players.filter((p) => getAvailability(p.id) === 'no').map((p) => p.id)}
-                  onAssign={handleAssignToSlot}
-                  onSwap={handleSwapOnField}
-                  onBench={handleBenchPlayer}
-                />
-              )}
+              <p className="mt-2 text-sm text-[var(--muted)]">Live-Aufstellung wird geladen.</p>
             </div>
           )}
         </div>
