@@ -173,26 +173,44 @@ export type LineupLoadResult = {
 };
 
 export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: LineupLoadResult; error: string | null }> {
-  const lineupRes = await supabase
-    .from('match_lineup')
-    .select('player_id, is_starting')
-    .eq('match_id', matchId);
+  const [lineupRes, benchRes] = await Promise.all([
+    supabase.from('match_lineup').select('player_id, slot').eq('match_id', matchId),
+    supabase.from('match_bench').select('player_id').eq('match_id', matchId),
+  ]);
 
   if (lineupRes.error) return { data: { startingPlayerIds: [], squadPlayerIds: [] }, error: lineupRes.error.message };
+  if (benchRes.error) return { data: { startingPlayerIds: [], squadPlayerIds: [] }, error: benchRes.error.message };
 
-  const rows = (lineupRes.data ?? []) as { player_id: string | null; is_starting: boolean | null }[];
-  const squadPlayerIds = rows
+  const lineupRows = (lineupRes.data ?? []) as { player_id: string | null; slot?: string | null }[];
+  const benchRows = (benchRes.data ?? []) as { player_id: string | null }[];
+
+  const slotToPlayer: Partial<Record<FieldSlotId, string | null>> = {};
+  const lineupWithoutSlot: string[] = [];
+  for (const row of lineupRows) {
+    const pid = typeof row.player_id === 'string' ? row.player_id : '';
+    if (!pid) continue;
+    const slot = String(row.slot ?? '').trim().toUpperCase();
+    if (LIVE_FIELD_SLOT_ORDER.includes(slot as FieldSlotId)) {
+      slotToPlayer[slot as FieldSlotId] = pid;
+    } else {
+      lineupWithoutSlot.push(pid);
+    }
+  }
+
+  const orderedBySlot = LIVE_FIELD_SLOT_ORDER.map((slot) => slotToPlayer[slot]).filter(
+    (id): id is string => typeof id === 'string' && id.length > 0,
+  );
+  const startingPlayerIds = [...orderedBySlot, ...lineupWithoutSlot];
+  const benchPlayerIds = benchRows
     .map((r) => r.player_id)
     .filter((id): id is string => typeof id === 'string' && id.length > 0);
-  const startingPlayerIds = rows
-    .filter((r) => Boolean(r.is_starting))
-    .map((r) => r.player_id)
-    .filter((id): id is string => typeof id === 'string' && id.length > 0);
+  const squadPlayerIds = [...startingPlayerIds, ...benchPlayerIds];
 
-  if (startingPlayerIds.length === 0) {
-    console.warn('[liveMatchService] fetchLineupForLiveMatch: startingPlayerIds leer', {
+  if (lineupRows.length > 0 && startingPlayerIds.length === 0) {
+    console.warn('[liveMatchService] fetchLineupForLiveMatch: match_lineup vorhanden, aber startingPlayerIds leer', {
       matchId,
-      squadCount: squadPlayerIds.length,
+      lineupRowCount: lineupRows.length,
+      benchRowCount: benchRows.length,
     });
   }
 
