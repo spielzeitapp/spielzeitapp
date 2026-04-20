@@ -244,7 +244,7 @@ export const MatchDetailPage: React.FC = () => {
     // aus dem gesamten Kader ableiten. Es soll ausschließlich die veröffentlichte
     // Trainer-Aufstellung gespiegelt werden. Wenn keine veröffentlichte Aufstellung
     // vorhanden ist, bleiben beide Listen leer.
-    if (!fromDb) {
+    if (!fromDb || (fromDb.squadPlayerIds.length === 0 && fromDb.startingPlayerIds.length === 0)) {
       setSquadPlayerIds([]);
       setStartingPlayerIds([]);
       return;
