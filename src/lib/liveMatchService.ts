@@ -184,35 +184,38 @@ export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: 
   const lineupRows = (lineupRes.data ?? []) as { player_id: string | null; slot?: string | null }[];
   const benchRows = (benchRes.data ?? []) as { player_id: string | null }[];
 
-  const slotToPlayer: Partial<Record<FieldSlotId, string | null>> = {};
-  const lineupWithoutSlot: string[] = [];
-  for (const row of lineupRows) {
-    const pid = typeof row.player_id === 'string' ? row.player_id : '';
-    if (!pid) continue;
-    const slot = String(row.slot ?? '').trim().toUpperCase();
-    if (LIVE_FIELD_SLOT_ORDER.includes(slot as FieldSlotId)) {
-      slotToPlayer[slot as FieldSlotId] = pid;
+  const validLineupRows = lineupRows
+    .map((row) => ({
+      player_id: row.player_id,
+      slot: String(row.slot ?? '').trim().toUpperCase(),
+    }))
+    .filter((row): row is { player_id: string; slot: string } => typeof row.player_id === 'string' && row.player_id.length > 0);
+
+  const bySlot = new Map<FieldSlotId, string>();
+  const withoutSlot: string[] = [];
+  for (const row of validLineupRows) {
+    if (LIVE_FIELD_SLOT_ORDER.includes(row.slot as FieldSlotId)) {
+      bySlot.set(row.slot as FieldSlotId, row.player_id);
     } else {
-      lineupWithoutSlot.push(pid);
+      withoutSlot.push(row.player_id);
     }
   }
 
-  const orderedBySlot = LIVE_FIELD_SLOT_ORDER.map((slot) => slotToPlayer[slot]).filter(
+  const fromSlots = LIVE_FIELD_SLOT_ORDER.map((slot) => bySlot.get(slot)).filter(
     (id): id is string => typeof id === 'string' && id.length > 0,
   );
-  const startingPlayerIds = [...orderedBySlot, ...lineupWithoutSlot];
+  const startingPlayerIds = [...fromSlots, ...withoutSlot];
   const benchPlayerIds = benchRows
     .map((r) => r.player_id)
     .filter((id): id is string => typeof id === 'string' && id.length > 0);
   const squadPlayerIds = [...startingPlayerIds, ...benchPlayerIds];
-
-  if (lineupRows.length > 0 && startingPlayerIds.length === 0) {
-    console.warn('[liveMatchService] fetchLineupForLiveMatch: match_lineup vorhanden, aber startingPlayerIds leer', {
-      matchId,
-      lineupRowCount: lineupRows.length,
-      benchRowCount: benchRows.length,
-    });
-  }
+  console.log('fetchLineupForLiveMatch result', {
+    matchId,
+    lineupRows,
+    benchRows,
+    startingPlayerIds,
+    squadPlayerIds,
+  });
 
   return { data: { startingPlayerIds, squadPlayerIds }, error: null };
 }
