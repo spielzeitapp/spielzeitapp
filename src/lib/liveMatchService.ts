@@ -184,32 +184,28 @@ export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: 
   const lineupRows = (lineupRes.data ?? []) as { player_id: string | null; slot?: string | null }[];
   const benchRows = (benchRes.data ?? []) as { player_id: string | null }[];
 
-  const validLineupRows = lineupRows
-    .map((row) => ({
-      player_id: row.player_id,
+  const startingPlayerIds = lineupRows
+    .map((row, idx) => ({
+      playerId: row.player_id,
       slot: String(row.slot ?? '').trim().toUpperCase(),
+      idx,
     }))
-    .filter((row): row is { player_id: string; slot: string } => typeof row.player_id === 'string' && row.player_id.length > 0);
+    .filter((row): row is { playerId: string; slot: string; idx: number } => typeof row.playerId === 'string' && row.playerId.length > 0)
+    .sort((a, b) => {
+      const ai = LIVE_FIELD_SLOT_ORDER.indexOf(a.slot as FieldSlotId);
+      const bi = LIVE_FIELD_SLOT_ORDER.indexOf(b.slot as FieldSlotId);
+      const aOrder = ai === -1 ? Number.MAX_SAFE_INTEGER : ai;
+      const bOrder = bi === -1 ? Number.MAX_SAFE_INTEGER : bi;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return a.idx - b.idx;
+    })
+    .map((row) => row.playerId);
 
-  const bySlot = new Map<FieldSlotId, string>();
-  const withoutSlot: string[] = [];
-  for (const row of validLineupRows) {
-    if (LIVE_FIELD_SLOT_ORDER.includes(row.slot as FieldSlotId)) {
-      bySlot.set(row.slot as FieldSlotId, row.player_id);
-    } else {
-      withoutSlot.push(row.player_id);
-    }
-  }
-
-  const fromSlots = LIVE_FIELD_SLOT_ORDER.map((slot) => bySlot.get(slot)).filter(
-    (id): id is string => typeof id === 'string' && id.length > 0,
-  );
-  const startingPlayerIds = [...fromSlots, ...withoutSlot];
   const benchPlayerIds = benchRows
     .map((r) => r.player_id)
     .filter((id): id is string => typeof id === 'string' && id.length > 0);
   const squadPlayerIds = [...startingPlayerIds, ...benchPlayerIds];
-  console.log('fetchLineupForLiveMatch result', {
+  console.log('fetchLineupForLiveMatch final', {
     matchId,
     lineupRows,
     benchRows,
