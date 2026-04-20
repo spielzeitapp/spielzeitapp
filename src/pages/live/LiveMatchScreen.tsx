@@ -1545,10 +1545,39 @@ export const LiveMatchScreen: React.FC = () => {
                   </ul>
                 </div>
               </>
-            ) : (
+            ) : fieldPlayers.length === 0 && benchPlayers.length === 0 ? (
               <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-gray-400">
-                Aufstellung wird neu aufgebaut.
+                Noch keine Aufstellung veröffentlicht.
               </p>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
+                  <ul className="space-y-2">
+                    {fieldPlayers.map((p) => (
+                      <li key={p.id}>
+                        <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3">
+                          <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
+                          <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">Ersatzbank</h3>
+                  <ul className="space-y-2">
+                    {benchPlayers.map((p) => (
+                      <li key={p.id}>
+                        <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                          <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
+                          <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             )}
           </div>
         )}
