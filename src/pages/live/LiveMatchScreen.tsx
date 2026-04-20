@@ -319,18 +319,17 @@ export const LiveMatchScreen: React.FC = () => {
   }, [matchRow]);
 
   useEffect(() => {
-    if (!matchRow || playersLoading) return;
-    const valid = new Set(players.map((p) => p.id));
+    if (!matchRow) return;
     const fromDb = lineupData;
     let squad: string[] = [];
     let starting: string[] = [];
     if (fromDb && (fromDb.squadPlayerIds.length > 0 || fromDb.startingPlayerIds.length > 0)) {
-      squad = fromDb.squadPlayerIds.filter((id) => valid.has(id));
-      starting = fromDb.startingPlayerIds.filter((id) => valid.has(id)).slice(0, 7);
+      squad = [...fromDb.squadPlayerIds];
+      starting = [...fromDb.startingPlayerIds].slice(0, 7);
     }
     setSquadPlayerIds(squad);
     setStartingPlayerIds(starting);
-  }, [matchRow, lineupData, players, playersLoading]);
+  }, [matchRow, lineupData]);
 
   const homeName = selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
 
@@ -370,15 +369,15 @@ export const LiveMatchScreen: React.FC = () => {
   );
 
   const fieldPlayers = useMemo(() => {
-    const set = new Set(onFieldIds);
-    return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
-  }, [onFieldIds, roster]);
+    const list = onFieldIds.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 });
+    return sortRosterByNumber(list);
+  }, [onFieldIds, rosterById]);
 
   const benchPlayers = useMemo(() => {
     const ids = getBenchPlayers(squadPlayerIds, onFieldIds);
-    const set = new Set(ids);
-    return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
-  }, [squadPlayerIds, onFieldIds, roster]);
+    const list = ids.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 });
+    return sortRosterByNumber(list);
+  }, [squadPlayerIds, onFieldIds, rosterById]);
 
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
 
@@ -1488,14 +1487,20 @@ export const LiveMatchScreen: React.FC = () => {
         {mainTab === 'lineup' && (
           <div className="space-y-3">
             {canControlLiveMatch ? (
+              <p className="text-sm text-gray-400">Tippe einen Spieler für Wechsel.</p>
+            ) : null}
+            {fieldPlayers.length === 0 && benchPlayers.length === 0 ? (
+              <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-gray-400">
+                Noch keine Aufstellung veröffentlicht.
+              </p>
+            ) : (
               <>
-                <p className="text-sm text-gray-400">Tippe einen Spieler für Wechsel.</p>
                 <div>
                   <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
                   <ul className="space-y-2">
                     {fieldPlayers.map((p) => (
                       <li key={p.id}>
-                        {!matchIsFinished ? (
+                        {canControlLiveMatch && !matchIsFinished ? (
                           <button
                             type="button"
                             onClick={() => openSubFromPlayer(p)}
@@ -1505,21 +1510,36 @@ export const LiveMatchScreen: React.FC = () => {
                             <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
                           </button>
                         ) : (
-                          <div className="flex min-h-[52px] w-full items-center justify-between rounded-xl border border-emerald-600/30 bg-emerald-950/20 px-3 py-2.5">
+                          <div
+                            className={
+                              canControlLiveMatch && matchIsFinished
+                                ? 'flex min-h-[52px] w-full items-center justify-between rounded-xl border border-emerald-600/30 bg-emerald-950/20 px-3 py-2.5'
+                                : 'flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3'
+                            }
+                          >
                             <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
-                            <span className="flex-1 px-3 text-sm font-semibold text-white">{p.name}</span>
+                            <span
+                              className={`flex-1 px-3 font-semibold text-white ${
+                                canControlLiveMatch && matchIsFinished ? 'text-sm' : 'text-base'
+                              }`}
+                            >
+                              {p.name}
+                            </span>
                           </div>
                         )}
                       </li>
                     ))}
                   </ul>
+                  <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg border border-amber-500/30 bg-black/60 p-2 font-mono text-[10px] leading-snug text-amber-200/90">
+                    {`role: ${canControlLiveMatch ? 'trainer' : 'eltern_fan_spieler'}\nfieldPlayers: ${JSON.stringify(fieldPlayers.map((p) => p.name))}`}
+                  </pre>
                 </div>
                 <div>
                   <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">Ersatzbank</h3>
                   <ul className="space-y-2">
                     {benchPlayers.map((p) => (
                       <li key={p.id}>
-                        {!matchIsFinished ? (
+                        {canControlLiveMatch && !matchIsFinished ? (
                           <button
                             type="button"
                             onClick={() => openSubFromPlayer(p)}
@@ -1529,49 +1549,25 @@ export const LiveMatchScreen: React.FC = () => {
                             <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
                           </button>
                         ) : (
-                          <div className="flex min-h-[52px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 opacity-90">
+                          <div
+                            className={
+                              canControlLiveMatch && matchIsFinished
+                                ? 'flex min-h-[52px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 opacity-90'
+                                : 'flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3'
+                            }
+                          >
                             <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
-                            <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
+                            <span className="flex-1 px-3 text-base font-semibold text-white">{p.name}</span>
                           </div>
                         )}
                       </li>
                     ))}
                   </ul>
+                  <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg border border-amber-500/30 bg-black/60 p-2 font-mono text-[10px] leading-snug text-amber-200/90">
+                    {`role: ${canControlLiveMatch ? 'trainer' : 'eltern_fan_spieler'}\nbenchPlayers: ${JSON.stringify(benchPlayers.map((p) => p.name))}`}
+                  </pre>
                 </div>
               </>
-            ) : fieldPlayers.length === 0 && benchPlayers.length === 0 ? (
-              <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-gray-400">
-                Noch keine Aufstellung veröffentlicht.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                <div>
-                  <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
-                  <ul className="space-y-2">
-                    {fieldPlayers.map((p) => (
-                      <li key={p.id}>
-                        <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3">
-                          <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
-                          <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">Ersatzbank</h3>
-                  <ul className="space-y-2">
-                    {benchPlayers.map((p) => (
-                      <li key={p.id}>
-                        <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                          <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
-                          <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
             )}
           </div>
         )}
