@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
+import { useMatchTimer } from '../hooks/useMatchTimer';
 import { normalizeRole, canSeeMeetup } from '../lib/roles';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
@@ -15,7 +16,9 @@ import type { PlayerItem } from '../hooks/usePlayers';
 import { downloadEventIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
-import { upsertMatchForSetup } from '../lib/liveMatchService';
+import { fetchLineupForLiveMatch, fetchMatchById, fetchMatchEvents, upsertMatchForSetup } from '../lib/liveMatchService';
+import { getBenchPlayers, getCurrentOnFieldPlayers, type MatchEngineEvent } from '../lib/matchEngine';
+import { playerItemToRoster, type RosterPlayer } from '../lib/rosterPlayer';
 import { TrainerMatchSetupBlock } from './TrainerMatchSetupBlock';
 import {
   MATCH_FEED_TEMPLATE_KEYS,
@@ -137,6 +140,10 @@ function sortPlayersByAttendanceStatus(
   return [...players].sort(order);
 }
 
+function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
+  return [...list].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
+}
+
 export const EventDetailPage: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const [event, setEvent] = useState<EventRow | null>(null);
@@ -151,6 +158,14 @@ export const EventDetailPage: React.FC = () => {
   const [eventAttendanceByPlayerId, setEventAttendanceByPlayerId] = useState<Record<string, 'yes' | 'no'>>({});
   const [eventAttendanceReasonByPlayerId, setEventAttendanceReasonByPlayerId] = useState<Record<string, string | null>>({});
   const [loadingEventAttendance, setLoadingEventAttendance] = useState(false);
+  const [lineupData, setLineupData] = useState<{ startingPlayerIds: string[]; squadPlayerIds: string[] } | null>(null);
+  const [lineupEvents, setLineupEvents] = useState<MatchEngineEvent[]>([]);
+  const [lineupMatchRow, setLineupMatchRow] = useState<{
+    live_elapsed_seconds: number | null;
+    live_is_running: boolean | null;
+    live_started_at: string | null;
+    status: string | null;
+  } | null>(null);
 
   /** Spiel-Termine ohne events.match_id: einmalig Match-Zeile anlegen und verknüpfen (RLS: matches_insert). */
   const [matchLinkBusy, setMatchLinkBusy] = useState(false);
@@ -187,6 +202,32 @@ export const EventDetailPage: React.FC = () => {
       ? isTrainingAbsenceDeadlinePassed(event.starts_at, event.training_absence_deadline_disabled)
       : false;
   const trainingCancellationAllowed = event?.kind === 'training' ? !trainingCancelCutoffPassed : false;
+  const roster = useMemo(() => sortRosterByNumber(players.map(playerItemToRoster)), [players]);
+
+  const { currentMatchSeconds } = useMatchTimer({
+    elapsedSeconds: lineupMatchRow?.live_elapsed_seconds ?? 0,
+    isRunning: lineupMatchRow?.live_is_running ?? false,
+    hasEnded: lineupMatchRow?.status === 'finished',
+    startedAtISO: lineupMatchRow?.live_started_at ?? null,
+  });
+
+  const [squadPlayerIds, setSquadPlayerIds] = useState<string[]>([]);
+  const [startingPlayerIds, setStartingPlayerIds] = useState<string[]>([]);
+
+  const onFieldIds = useMemo(
+    () => getCurrentOnFieldPlayers(startingPlayerIds, lineupEvents, currentMatchSeconds),
+    [startingPlayerIds, lineupEvents, currentMatchSeconds],
+  );
+  const fieldPlayers = useMemo(() => {
+    const set = new Set(onFieldIds);
+    return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
+  }, [onFieldIds, roster]);
+  const benchPlayers = useMemo(() => {
+    const ids = getBenchPlayers(squadPlayerIds, onFieldIds);
+    const set = new Set(ids);
+    return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
+  }, [squadPlayerIds, onFieldIds, roster]);
+  const showLineupDebug = import.meta.env.DEV || true;
 
   const loadEvent = useCallback(async () => {
     if (!eventId) return;
@@ -210,6 +251,53 @@ export const EventDetailPage: React.FC = () => {
   useEffect(() => {
     loadEvent();
   }, [loadEvent]);
+
+  useEffect(() => {
+    if (!event?.match_id) {
+      setLineupData(null);
+      setLineupEvents([]);
+      setLineupMatchRow(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const [lineRes, evRes, mRes] = await Promise.all([
+        fetchLineupForLiveMatch(event.match_id as string),
+        fetchMatchEvents(event.match_id as string),
+        fetchMatchById(event.match_id as string),
+      ]);
+      if (cancelled) return;
+      setLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
+      setLineupEvents(evRes.error ? [] : evRes.data);
+      setLineupMatchRow(
+        mRes.error || !mRes.data
+          ? null
+          : {
+              live_elapsed_seconds: mRes.data.live_elapsed_seconds,
+              live_is_running: mRes.data.live_is_running,
+              live_started_at: mRes.data.live_started_at,
+              status: mRes.data.status,
+            },
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [event?.match_id]);
+
+  useEffect(() => {
+    if (playersLoading) return;
+    const valid = new Set(players.map((p) => p.id));
+    const fromDb = lineupData;
+    let squad: string[] = [];
+    let starting: string[] = [];
+    if (fromDb) {
+      squad = fromDb.squadPlayerIds.filter((id) => valid.has(id));
+      starting = fromDb.startingPlayerIds.filter((id) => valid.has(id)).slice(0, 7);
+    }
+    setSquadPlayerIds(squad);
+    setStartingPlayerIds(starting);
+  }, [lineupData, players, playersLoading]);
 
   const loadFeedFromEvent = useCallback(async () => {
     if (!eventId) return;
@@ -782,6 +870,61 @@ export const EventDetailPage: React.FC = () => {
               />
             ) : null}
           </div>
+        )}
+
+        {event.kind === 'match' && !isTrainerOrAdmin && (
+          <Card className="flex flex-col gap-3">
+            <CardTitle>Aufstellung &amp; Bank</CardTitle>
+            {fieldPlayers.length === 0 && benchPlayers.length === 0 ? (
+              <p className="text-sm text-[var(--text-sub)]">Noch keine Aufstellung verfügbar.</p>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
+                  <ul className="space-y-2">
+                    {fieldPlayers.map((p) => (
+                      <li key={p.id}>
+                        <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3">
+                          <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
+                          <span className="flex-1 px-3 text-base font-semibold text-[var(--text-main)]">{p.name}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">Ersatzbank</h3>
+                  <ul className="space-y-2">
+                    {benchPlayers.map((p) => (
+                      <li key={p.id}>
+                        <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                          <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
+                          <span className="flex-1 px-3 text-base font-semibold text-[var(--text-main)]">{p.name}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+            {showLineupDebug && (
+              <div className="rounded-xl border border-red-500/40 bg-zinc-950 p-3 font-mono text-xs text-white">
+                <p className="mb-2 font-bold uppercase tracking-wide text-red-400">DEBUG LINEUP SOURCE</p>
+                <p>eventId: {String(eventId)}</p>
+                <p>matchId: {String(event.match_id ?? null)}</p>
+                <p>
+                  lineupData.startingPlayerIds:{' '}
+                  {lineupData ? JSON.stringify(lineupData.startingPlayerIds) : 'lineupData=null'}
+                </p>
+                <p>
+                  lineupData.squadPlayerIds:{' '}
+                  {lineupData ? JSON.stringify(lineupData.squadPlayerIds) : 'lineupData=null'}
+                </p>
+                <p>fieldPlayers: {JSON.stringify(fieldPlayers.map((p) => p.name))}</p>
+                <p>benchPlayers: {JSON.stringify(benchPlayers.map((p) => p.name))}</p>
+              </div>
+            )}
+          </Card>
         )}
 
         {event.kind === 'match' && isTrainerOrAdmin && (
