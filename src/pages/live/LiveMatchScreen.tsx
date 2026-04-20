@@ -386,21 +386,6 @@ export const LiveMatchScreen: React.FC = () => {
     return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
   }, [squadPlayerIds, onFieldIds, roster]);
 
-  /** Veröffentlichte Startelf (Reihenfolge wie vom Trainer gesetzt) – für Zuschauer-Aufstellung 1:1. */
-  const publishedStartPlayers = useMemo(() => {
-    const ids = startingPlayerIds.slice(0, 7);
-    const byId = new Map(roster.map((p) => [p.id, p]));
-    return ids.map((id) => byId.get(id)).filter((p): p is RosterPlayer => p != null);
-  }, [startingPlayerIds, roster]);
-
-  /** Kader ohne die Startelf – veröffentlichte Ersatzbank. */
-  const publishedSubstitutePlayers = useMemo(() => {
-    const startSet = new Set(startingPlayerIds.slice(0, 7));
-    const ids = squadPlayerIds.filter((id) => !startSet.has(id));
-    const set = new Set(ids);
-    return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
-  }, [startingPlayerIds, squadPlayerIds, roster]);
-
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
 
   const playtimes = useMemo(
@@ -1560,51 +1545,10 @@ export const LiveMatchScreen: React.FC = () => {
                   </ul>
                 </div>
               </>
-            ) : publishedStartPlayers.length === 0 && publishedSubstitutePlayers.length === 0 ? (
-              <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-gray-400">
-                Noch keine Aufstellung veröffentlicht.
-              </p>
             ) : (
-              <div className="space-y-3">
-                <div>
-                  <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
-                  {publishedStartPlayers.length === 0 ? (
-                    <p className="rounded-2xl border border-emerald-600/25 bg-emerald-950/15 px-4 py-3 text-sm text-gray-400">
-                      Noch keine Spieler auf der Startaufstellung.
-                    </p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {publishedStartPlayers.map((p) => (
-                        <li key={p.id}>
-                          <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3">
-                            <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
-                            <span className="flex-1 px-3 text-base font-semibold text-white">{p.name}</span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                <div>
-                  <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">Ersatzbank</h3>
-                  {publishedSubstitutePlayers.length === 0 ? (
-                    <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-gray-400">
-                      Keine Spieler auf der Ersatzbank.
-                    </p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {publishedSubstitutePlayers.map((p) => (
-                        <li key={p.id}>
-                          <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                            <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
-                            <span className="flex-1 px-3 text-base font-semibold text-white">{p.name}</span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
+              <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-gray-400">
+                Aufstellung wird neu aufgebaut.
+              </p>
             )}
           </div>
         )}
