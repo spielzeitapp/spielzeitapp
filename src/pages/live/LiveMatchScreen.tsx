@@ -48,13 +48,13 @@ function LiveMatchLogoTile({
   const round = size === 'heroLg' ? 'rounded-full' : 'rounded-xl';
   const box =
     size === 'heroLg'
-      ? 'h-[4.25rem] w-[4.25rem] sm:h-[4.75rem] sm:w-[4.75rem]'
+      ? 'h-[5rem] w-[5rem] sm:h-[5.5rem] sm:w-[5.5rem]'
       : size === 'hero'
         ? 'h-14 w-14'
         : 'h-14 w-14 sm:h-[3.75rem] sm:w-[3.75rem]';
   const imgClass =
     size === 'heroLg'
-      ? 'max-h-[3.35rem] max-w-[3.35rem] object-contain p-0.5 sm:max-h-[3.65rem] sm:max-w-[3.65rem]'
+      ? 'max-h-[4rem] max-w-[4rem] object-contain p-0.5 sm:max-h-[4.35rem] sm:max-w-[4.35rem]'
       : size === 'hero'
         ? 'max-h-11 max-w-11 object-contain p-0.5'
         : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
@@ -139,22 +139,24 @@ function buildPeriodScoreLine(events: MatchEngineEvent[], currentMatchSeconds: n
   return `(${s1} | ${s2} | ${s3})`;
 }
 
-/** Flache Tab-Leiste (ÖFB-Richtung): unten Akzent, weniger „Pill“-Gewicht. */
+/** Trainer-Tabs: kompakte Leiste im Matchboard-Stil (rot / dunkel). */
 const tabNavWrap =
-  'flex w-full gap-0 overflow-x-auto border-b border-neutral-800 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+  'mt-3 flex w-full gap-1 overflow-x-auto rounded-2xl border border-red-500/30 bg-zinc-950/95 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_24px_rgba(220,38,38,0.06)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 const tabNavBtnBase =
-  'shrink-0 whitespace-nowrap border-b-2 border-transparent px-2.5 py-2 text-xs font-semibold text-gray-500 transition-colors sm:px-3 sm:text-sm md:flex-1 md:px-2 md:text-center';
-const tabNavBtnActive = 'border-red-500 text-white';
-const tabNavBtnIdle = 'hover:text-gray-300';
+  'shrink-0 whitespace-nowrap rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-200 sm:px-4 sm:text-sm md:flex-1 md:text-center';
+const tabNavBtnActive =
+  'bg-red-600 text-white shadow-[0_4px_22px_rgba(220,38,38,0.35)]';
+const tabNavBtnIdle = 'text-gray-500 hover:bg-zinc-900/90 hover:text-gray-200';
 
-/** Eltern/Fan/Spieler: Pill-Tabs (Anschluss an Termine-/Kader-Filter). */
+/** Zuschauer-Tabs: gleiche Ästhetik wie Trainer-Leiste. */
 const spectatorTabWrap =
-  'mt-0 flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+  'mt-2 flex gap-1 overflow-x-auto rounded-2xl border border-red-500/30 bg-zinc-950/95 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 const spectatorTabBtnBase =
-  'flex h-9 min-h-9 shrink-0 flex-1 items-center justify-center rounded-full border px-2 text-center text-xs font-semibold transition-colors sm:text-sm';
-const spectatorTabBtnActive = 'border-red-600/60 bg-red-600 text-white shadow-sm';
+  'flex h-10 min-h-10 shrink-0 flex-1 items-center justify-center rounded-xl border border-transparent px-2 text-center text-xs font-semibold transition-all duration-200 sm:text-sm';
+const spectatorTabBtnActive =
+  'border-red-500/35 bg-red-600 text-white shadow-[0_4px_20px_rgba(220,38,38,0.3)]';
 const spectatorTabBtnIdle =
-  'border-white/[0.08] bg-zinc-900/95 text-gray-300 hover:border-red-500/25 hover:bg-zinc-800 hover:text-white';
+  'text-gray-500 hover:border-white/[0.08] hover:bg-zinc-900/80 hover:text-gray-200';
 
 const liveCardShell =
   'rounded-2xl border border-white/[0.08] bg-gradient-to-br from-zinc-950/95 via-zinc-950/80 to-black shadow-[0_6px_28px_rgba(0,0,0,0.35)]';
@@ -943,40 +945,39 @@ export const LiveMatchScreen: React.FC = () => {
         >
           {matchboardVisible && (
             <div
-              className={`mx-auto mb-0 w-full max-w-md ${
+              className={`mx-auto mb-0 w-full ${
                 spectatorView
-                  ? `${liveCardShell} border-red-500/25 p-2 md:p-2.5`
-                  : 'rounded-xl border border-red-500/30 bg-black p-3 md:p-4'
+                  ? `max-w-lg md:max-w-xl ${liveCardShell} border-red-500/35 p-3 shadow-[0_0_36px_rgba(220,38,38,0.1)] ring-1 ring-red-500/15 md:p-4`
+                  : 'max-w-lg md:max-w-2xl rounded-2xl border-2 border-red-500/45 bg-gradient-to-b from-zinc-950 via-black to-zinc-950 p-4 shadow-[0_0_48px_rgba(220,38,38,0.14),0_12px_40px_rgba(0,0,0,0.55)] ring-1 ring-red-500/25 md:p-6'
               }`}
             >
               <div
                 className={`flex flex-col items-center text-center ${
-                  spectatorView ? 'gap-0 pb-0.5' : 'gap-0.5 pb-1'
+                  spectatorView ? 'gap-1 pb-1' : 'gap-1.5 pb-1.5'
                 }`}
               >
                 <div
-                  className={`flex items-center justify-center gap-1 rounded-full px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                  className={`flex items-center justify-center gap-1.5 rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em] ${
                     matchIsFinished
-                      ? 'bg-neutral-800 text-gray-300'
+                      ? 'bg-neutral-800/90 text-gray-300'
                       : hasClockStarted
-                        ? 'bg-red-600 text-white'
-                        : 'bg-neutral-800 text-gray-300'
+                        ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.45)]'
+                        : 'bg-zinc-800/90 text-gray-300'
                   }`}
                 >
                   {!matchIsFinished && hasClockStarted ? (
-                    <span className="text-[9px] leading-none" aria-hidden>
+                    <span className="text-[10px] leading-none" aria-hidden>
                       ●
                     </span>
                   ) : null}
                   {matchIsFinished ? 'ENDSTAND' : hasClockStarted ? 'LIVE' : 'BEREIT'}
                 </div>
-                <p className="text-xs font-semibold text-white">{matchTypeDisplay}</p>
-                <p className="text-[10px] font-medium uppercase tracking-wide text-gray-300">{periodDisplayLine}</p>
+                <p className="text-[13px] font-semibold tracking-tight text-white md:text-sm">{matchTypeDisplay}</p>
               </div>
 
               <div
-                className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start ${
-                  spectatorView ? 'mt-0.5 gap-x-1' : 'mt-1 gap-x-2'
+                className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end ${
+                  spectatorView ? 'mt-2 gap-x-2' : 'mt-3 gap-x-3 md:gap-x-4'
                 }`}
               >
                 <div className="flex min-w-0 flex-col items-center text-center">
@@ -984,33 +985,30 @@ export const LiveMatchScreen: React.FC = () => {
                     src={homeLogoSrc}
                     initialsFrom={homeLogoLookupName}
                     liveGlow={false}
-                    size={spectatorView ? 'heroLg' : 'hero'}
+                    size="heroLg"
                   />
-                  <p className="mt-1 line-clamp-2 w-full max-w-[9rem] break-words text-xs font-semibold leading-tight text-white">
+                  <p className="mt-2 line-clamp-2 w-full max-w-[10rem] break-words text-[11px] font-semibold leading-tight text-white/95 md:text-xs">
                     {homeDisplayName}
                   </p>
                 </div>
 
-                <div className="flex min-w-[6.75rem] max-w-[8.5rem] flex-col items-center px-0.5 text-center">
-                  <div className="flex items-baseline justify-center gap-3">
-                    <span className="text-5xl font-black tabular-nums tracking-wide text-[#FFFFFF]">{scoreHome}</span>
-                    <span className="select-none text-3xl font-light leading-none text-white/50" aria-hidden>
+                <div className="flex min-w-[7.5rem] max-w-[11rem] flex-col items-center justify-end px-0.5 pb-0.5 text-center md:min-w-[9rem] md:max-w-[12rem]">
+                  <div className="flex items-baseline justify-center gap-2 md:gap-3">
+                    <span className="text-6xl font-black tabular-nums tracking-tight text-white md:text-7xl">{scoreHome}</span>
+                    <span className="select-none text-4xl font-light leading-none text-white/45 md:text-5xl" aria-hidden>
                       :
                     </span>
-                    <span className="text-5xl font-black tabular-nums tracking-wide text-[#FFFFFF]">{scoreAway}</span>
+                    <span className="text-6xl font-black tabular-nums tracking-tight text-white md:text-7xl">{scoreAway}</span>
                   </div>
                   {!(canControlLiveMatch && !matchIsFinished) ? (
                     <p
-                      className={`mt-0.5 font-mono text-lg font-semibold tabular-nums leading-none ${
+                      className={`mt-1 font-mono text-lg font-semibold tabular-nums leading-none md:text-xl ${
                         matchIsFinished ? 'text-gray-500' : 'text-[#ef4444]'
                       }`}
                     >
                       {formatClock(currentMatchSeconds)}
                     </p>
                   ) : null}
-                  <p className="mt-1 font-mono text-xs tabular-nums leading-tight text-white opacity-70">
-                    {periodScoreLine}
-                  </p>
                 </div>
 
                 <div className="flex min-w-0 flex-col items-center text-center">
@@ -1018,16 +1016,23 @@ export const LiveMatchScreen: React.FC = () => {
                     src={awayLogoSrc}
                     initialsFrom={headerOpponent}
                     liveGlow={false}
-                    size={spectatorView ? 'heroLg' : 'hero'}
+                    size="heroLg"
                   />
-                  <p className="mt-1 line-clamp-2 w-full max-w-[9rem] break-words text-xs font-semibold leading-tight text-white">
+                  <p className="mt-2 line-clamp-2 w-full max-w-[10rem] break-words text-[11px] font-semibold leading-tight text-white/95 md:text-xs">
                     {awayDisplayName}
                   </p>
                 </div>
               </div>
 
+              <p className="mt-3 w-full text-center font-mono text-[11px] font-medium tabular-nums tracking-wide text-white/50 md:mt-4 md:text-xs">
+                {periodScoreLine}
+              </p>
+
               {canControlLiveMatch && !matchIsFinished ? (
-                <div className="mt-2 grid grid-cols-3 items-center gap-x-2" aria-label="Tore und Spielzeit">
+                <div
+                  className="mt-3 grid grid-cols-3 items-center gap-x-2 md:mt-4 md:gap-x-3"
+                  aria-label="Tore und Spielzeit"
+                >
                   <div className="flex justify-center">
                     <button
                       type="button"
@@ -1035,14 +1040,14 @@ export const LiveMatchScreen: React.FC = () => {
                         setHomeGoalPickId('');
                         setHomeGoalModalOpen(true);
                       }}
-                      className="flex h-10 w-full max-w-[9rem] items-center justify-center rounded-xl bg-green-600 px-3 text-sm font-semibold text-white hover:bg-green-500"
+                      className="flex h-9 w-full max-w-[9.5rem] items-center justify-center rounded-xl bg-green-600 px-2.5 text-xs font-bold text-white shadow-sm hover:bg-green-500 md:h-9 md:px-3 md:text-sm"
                     >
                       + TOR
                     </button>
                   </div>
-                  <div className="flex min-h-10 items-center justify-center px-0.5">
+                  <div className="flex min-h-9 items-center justify-center px-0.5">
                     <span
-                      className="font-mono text-xl font-black tabular-nums tracking-tight text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.35)] sm:text-2xl"
+                      className="text-center font-mono text-xl font-black tabular-nums tracking-tight text-red-500 drop-shadow-[0_0_14px_rgba(239,68,68,0.45)] sm:text-2xl md:text-[1.65rem]"
                       aria-live="polite"
                     >
                       {formatClock(currentMatchSeconds)}
@@ -1063,7 +1068,7 @@ export const LiveMatchScreen: React.FC = () => {
                           return n;
                         });
                       }}
-                      className="flex h-10 w-full max-w-[9rem] items-center justify-center rounded-xl bg-red-600 px-3 text-sm font-semibold text-white hover:bg-red-500"
+                      className="flex h-9 w-full max-w-[9.5rem] items-center justify-center rounded-xl bg-red-600 px-2.5 text-xs font-bold text-white shadow-sm hover:bg-red-500 md:h-9 md:px-3 md:text-sm"
                     >
                       + TOR
                     </button>
@@ -1072,13 +1077,13 @@ export const LiveMatchScreen: React.FC = () => {
               ) : null}
 
               {saveError && (
-                <p className="mt-1 text-center text-xs font-medium text-amber-400" role="alert">
+                <p className="mt-2 text-center text-xs font-medium text-amber-400" role="alert">
                   {saveError}
                 </p>
               )}
 
               {canControlLiveMatch && !matchIsFinished && (
-                <div className="mt-3 space-y-2 border-t border-red-500/30 pt-3">
+                <div className="mt-4 space-y-3 border-t border-red-500/25 pt-4">
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -1089,10 +1094,10 @@ export const LiveMatchScreen: React.FC = () => {
                       }
                       aria-pressed={isRunning}
                       className={[
-                        'flex h-10 flex-[1.35] items-center justify-center gap-1 rounded-xl text-sm font-semibold',
+                        'flex h-9 flex-[1.35] items-center justify-center gap-1 rounded-xl text-xs font-bold md:text-sm',
                         isRunning
                           ? 'bg-yellow-500 text-black hover:bg-yellow-400'
-                          : 'bg-neutral-800 text-white hover:bg-neutral-700',
+                          : 'bg-zinc-800 text-white hover:bg-zinc-700',
                       ].join(' ')}
                     >
                       {isRunning ? (
@@ -1111,7 +1116,7 @@ export const LiveMatchScreen: React.FC = () => {
                       type="button"
                       onClick={() => setEndMatchConfirmOpen(true)}
                       disabled={matchIsFinished}
-                      className="flex h-10 flex-1 items-center justify-center gap-1 rounded-xl bg-red-600 text-sm font-semibold text-white hover:bg-red-500 disabled:bg-neutral-900 disabled:text-gray-600"
+                      className="flex h-9 flex-1 items-center justify-center gap-1 rounded-xl bg-red-600 text-xs font-bold text-white hover:bg-red-500 disabled:bg-neutral-900 disabled:text-gray-600 md:text-sm"
                     >
                       <span aria-hidden>■</span>
                       Ende
@@ -1126,19 +1131,21 @@ export const LiveMatchScreen: React.FC = () => {
                         document.getElementById('live-wechsel-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       });
                     }}
-                    className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-red-500 bg-neutral-900 text-sm font-semibold text-white hover:bg-neutral-800"
+                    className="flex min-h-[3rem] w-full items-center justify-center gap-2 rounded-2xl border-2 border-red-500/45 bg-transparent px-4 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors hover:border-red-500/70 hover:bg-red-950/25"
                   >
                     <span aria-hidden>⇄</span>
                     Wechsel
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setEndMatchConfirmOpen(true)}
-                    className="flex h-10 w-full items-center justify-center rounded-xl border border-red-500 bg-transparent text-sm font-semibold text-red-500 hover:bg-red-500 hover:text-white"
-                  >
-                    SPIEL ABSCHLIESSEN
-                  </button>
+                  <div className="rounded-2xl border border-red-600/35 bg-red-950/25 p-3 shadow-[inset_0_0_24px_rgba(127,29,29,0.2)]">
+                    <button
+                      type="button"
+                      onClick={() => setEndMatchConfirmOpen(true)}
+                      className="flex h-9 w-full items-center justify-center rounded-xl border border-red-500/50 bg-red-950/40 text-xs font-bold uppercase tracking-wide text-red-400 transition-colors hover:border-red-400 hover:bg-red-600/20 hover:text-red-200 md:text-sm"
+                    >
+                      SPIEL ABSCHLIESSEN
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1169,10 +1176,7 @@ export const LiveMatchScreen: React.FC = () => {
               </button>
             </nav>
           ) : (
-            <nav
-              className={`${tabNavWrap} ${mainTab === 'overview' ? 'mt-3' : 'mt-2'}`}
-              aria-label="Live-Ansicht"
-            >
+            <nav className={tabNavWrap} aria-label="Live-Ansicht">
               <button
                 type="button"
                 className={`${tabNavBtnBase} ${mainTab === 'overview' ? tabNavBtnActive : tabNavBtnIdle}`}
