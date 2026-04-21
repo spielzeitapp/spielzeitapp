@@ -1033,79 +1033,88 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 ) : null}
 
-                <div className={`grid grid-cols-[120px_1fr_120px] items-start gap-x-3 ${matchTypeDisplay ? 'mt-4' : 'mt-2'}`}>
-                  <div className="min-w-0 flex flex-col items-center text-center">
+                <div className={`flex justify-center ${matchTypeDisplay ? 'mt-6' : 'mt-4'}`}>
+                  <div
+                    className={`text-[16px] font-semibold tracking-[0.35em] ${
+                      matchIsFinished
+                        ? 'text-red-100'
+                        : hasClockStarted
+                          ? 'text-red-200/90'
+                          : 'text-white/50'
+                    }`}
+                  >
+                    {matchIsFinished ? 'ENDSTAND' : hasClockStarted ? 'LIVE' : 'BEREIT'}
+                  </div>
+                </div>
+
+                {/* Logos + Score: eine Zeile, Score immer horizontal */}
+                <div className={`grid grid-cols-[120px_1fr_120px] items-center gap-x-3 ${matchTypeDisplay ? 'mt-3' : 'mt-2'}`}>
+                  <div className="flex min-w-0 justify-center">
                     <LiveMatchLogoTile
                       src={homeLogoSrc}
                       initialsFrom={homeLogoLookupName}
                       liveGlow={false}
                       size="schedule"
                     />
-                    <div
-                      className="mt-1 max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
-                      style={
-                        {
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        } as React.CSSProperties
-                      }
-                    >
-                      {homeDisplayName}
-                    </div>
                   </div>
-
-                  <div className="flex min-w-0 flex-col items-center text-center">
-                    <div
-                      className={`text-[16px] font-semibold tracking-[0.35em] ${
-                        matchIsFinished
-                          ? 'text-red-100'
-                          : hasClockStarted
-                            ? 'text-red-200/90'
-                            : 'text-white/50'
-                      }`}
-                    >
-                      {matchIsFinished ? 'ENDSTAND' : hasClockStarted ? 'LIVE' : 'BEREIT'}
-                    </div>
-                    <div className="mt-1 text-[32px] font-extrabold leading-none text-white tabular-nums sm:text-[36px]">
+                  <div className="flex min-w-0 justify-center px-0.5">
+                    <span className="text-center text-[32px] font-extrabold leading-none text-white tabular-nums whitespace-nowrap sm:text-[36px]">
                       {scoreHome} : {scoreAway}
-                    </div>
-                    {!matchIsFinished ? (
-                      <p
-                        className="liveTimer mt-1 text-[17px] font-semibold tabular-nums leading-none text-red-400"
-                        aria-live="polite"
-                      >
-                        {formatClock(currentMatchSeconds)}
-                      </p>
-                    ) : null}
-                    <p className="mt-1 text-center font-mono text-[11px] tabular-nums leading-tight text-white/50 sm:text-[12px]">
-                      {periodScoreLine}
-                    </p>
+                    </span>
                   </div>
-
-                  <div className="min-w-0 flex flex-col items-center text-center">
+                  <div className="flex min-w-0 justify-center">
                     <LiveMatchLogoTile
                       src={awayLogoSrc}
                       initialsFrom={headerOpponent}
                       liveGlow={false}
                       size="schedule"
                     />
-                    <div
-                      className="mt-1 max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
-                      style={
-                        {
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        } as React.CSSProperties
-                      }
-                    >
-                      {awayDisplayName}
-                    </div>
                   </div>
                 </div>
+
+                {/* Teamnamen: gleiche Spalten, Mitte leer */}
+                <div className="mt-2 grid grid-cols-[120px_1fr_120px] items-start gap-x-3">
+                  <div
+                    className="min-w-0 text-center text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
+                    style={
+                      {
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      } as React.CSSProperties
+                    }
+                  >
+                    {homeDisplayName}
+                  </div>
+                  <div className="min-w-0" aria-hidden />
+                  <div
+                    className="min-w-0 text-center text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
+                    style={
+                      {
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      } as React.CSSProperties
+                    }
+                  >
+                    {awayDisplayName}
+                  </div>
+                </div>
+
+                {!matchIsFinished ? (
+                  <p
+                    className="liveTimer mt-2 text-center text-[17px] font-semibold tabular-nums leading-none text-red-400"
+                    aria-live="polite"
+                  >
+                    {formatClock(currentMatchSeconds)}
+                  </p>
+                ) : null}
+
+                <p className="mt-1 w-full text-center font-mono text-[11px] tabular-nums leading-tight text-white/50 whitespace-nowrap sm:text-[12px]">
+                  <span className="inline-block max-w-full overflow-x-auto">{periodScoreLine}</span>
+                </p>
               </div>
 
               {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
