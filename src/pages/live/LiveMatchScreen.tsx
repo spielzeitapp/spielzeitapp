@@ -434,6 +434,12 @@ export const LiveMatchScreen: React.FC = () => {
 
   const [wechselOutId, setWechselOutId] = useState<string>('');
   const [wechselInId, setWechselInId] = useState<string>('');
+  useEffect(() => {
+    if (wechselSheetOpen) {
+      setWechselOutId('');
+      setWechselInId('');
+    }
+  }, [wechselSheetOpen]);
   const [homeGoalModalOpen, setHomeGoalModalOpen] = useState(false);
   const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
   const [endMatchConfirmOpen, setEndMatchConfirmOpen] = useState(false);
@@ -1488,60 +1494,6 @@ export const LiveMatchScreen: React.FC = () => {
           <div className="space-y-3">
             {canControlLiveMatch ? (
               <>
-                {canControlLiveMatch && !matchIsFinished && (
-                  <section id="live-wechsel-section">
-                    <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Wechsel</h2>
-                    <div className="space-y-3 rounded-xl border border-red-500/30 bg-black p-3">
-                      <div>
-                        <label className="text-xs font-bold uppercase text-red-400/90" htmlFor="wechsel-raus">
-                          Raus
-                        </label>
-                        <select
-                          id="wechsel-raus"
-                          className={selectClass}
-                          value={wechselOutId}
-                          onChange={(e) => setWechselOutId(e.target.value)}
-                          disabled={matchIsFinished}
-                        >
-                          <option value="">Spieler wählen…</option>
-                          {fieldPlayers.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.number} · {p.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold uppercase text-emerald-400/90" htmlFor="wechsel-rein">
-                          Rein
-                        </label>
-                        <select
-                          id="wechsel-rein"
-                          className={selectClass}
-                          value={wechselInId}
-                          onChange={(e) => setWechselInId(e.target.value)}
-                          disabled={matchIsFinished}
-                        >
-                          <option value="">Spieler wählen…</option>
-                          {benchPlayers.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.number} · {p.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={confirmWechselSection}
-                        disabled={matchIsFinished || !wechselOutId || !wechselInId}
-                        className="flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-emerald-600 text-base font-bold text-white disabled:opacity-35 active:scale-[0.99]"
-                      >
-                        Wechsel bestätigen
-                      </button>
-                    </div>
-                  </section>
-                )}
-
                 <section>
                   <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Spielzeit</h2>
                   <ul className="space-y-3">
@@ -1922,79 +1874,133 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="fixed inset-0 z-50 flex flex-col justify-end bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 backdrop-blur-sm sm:items-center sm:p-4"
           role="presentation"
-          onClick={() => setWechselSheetOpen(false)}
+          onClick={() => {
+            setWechselOutId('');
+            setWechselInId('');
+            setWechselSheetOpen(false);
+          }}
         >
           <div
-            className="max-h-[85vh] overflow-y-auto rounded-t-3xl border border-white/10 bg-[#141414] px-4 pb-8 pt-5 shadow-2xl"
+            className="flex h-[100dvh] max-h-[100dvh] w-full max-w-lg flex-col rounded-t-3xl border border-white/10 bg-[#101010] shadow-2xl sm:h-[min(92dvh,760px)] sm:max-h-[min(92dvh,760px)] sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="wechsel-sheet-title"
           >
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
-            <h3 id="wechsel-sheet-title" className="text-center text-lg font-bold">
-              Wechsel
-            </h3>
-            <p className="mt-1 text-center text-sm text-white/50">Spieler Raus und Rein wählen, dann bestätigen</p>
+            <div className="shrink-0 px-4 pb-2 pt-4 sm:pt-5">
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20 sm:hidden" aria-hidden />
+              <h3 id="wechsel-sheet-title" className="text-center text-base font-bold sm:text-lg">
+                Wechsel
+              </h3>
+              <ol className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 px-1 text-center text-[10px] leading-snug text-white/55">
+                <li>
+                  <span className="font-bold text-white/80">1.</span> Feldspieler wählen
+                </li>
+                <li>
+                  <span className="font-bold text-white/80">2.</span> Bankspieler wählen
+                </li>
+                <li>
+                  <span className="font-bold text-white/80">3.</span> Wechsel bestätigen
+                </li>
+              </ol>
+            </div>
 
-            <div className="mt-5 space-y-3">
-              <div>
-                <label className="text-xs font-bold uppercase text-red-400/90" htmlFor="wechsel-sheet-raus">
-                  Raus
-                </label>
-                <select
-                  id="wechsel-sheet-raus"
-                  className={selectClass}
-                  value={wechselOutId}
-                  onChange={(e) => setWechselOutId(e.target.value)}
-                  disabled={matchIsFinished}
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-4 pb-2">
+              <div className="shrink-0">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-red-400/95">Am Feld · Raus</p>
+                <div
+                  className="relative min-h-[118px] rounded-2xl border border-dashed border-emerald-700/45 bg-gradient-to-b from-emerald-950/35 via-black/50 to-black/80 p-2 sm:min-h-[132px]"
+                  aria-label="Spielfeld"
                 >
-                  <option value="">Spieler wählen…</option>
-                  {fieldPlayers.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.number} · {p.name}
-                    </option>
-                  ))}
-                </select>
+                  <div className="flex min-h-[102px] flex-wrap content-center justify-center gap-1.5 sm:min-h-[112px]">
+                    {fieldPlayers.length === 0 ? (
+                      <p className="text-xs text-white/45">Keine Feldspieler</p>
+                    ) : (
+                      fieldPlayers.map((p) => {
+                        const sel = wechselOutId === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => setWechselOutId(p.id)}
+                            className={`flex max-w-[32%] min-w-0 flex-1 basis-[28%] flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-center transition active:scale-[0.98] sm:max-w-[30%] ${
+                              sel
+                                ? 'border-2 border-red-500 bg-red-950/80 shadow-[0_0_0_1px_rgba(239,68,68,0.35)]'
+                                : 'border border-white/15 bg-black/55'
+                            }`}
+                          >
+                            <span
+                              className={`font-mono text-sm font-black tabular-nums ${sel ? 'text-red-200' : 'text-red-400/90'}`}
+                            >
+                              {p.number || '–'}
+                            </span>
+                            <span className="w-full truncate text-[10px] font-semibold leading-tight text-white">{p.name}</span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="text-xs font-bold uppercase text-emerald-400/90" htmlFor="wechsel-sheet-rein">
-                  Rein
-                </label>
-                <select
-                  id="wechsel-sheet-rein"
-                  className={selectClass}
-                  value={wechselInId}
-                  onChange={(e) => setWechselInId(e.target.value)}
-                  disabled={matchIsFinished}
-                >
-                  <option value="">Spieler wählen…</option>
-                  {benchPlayers.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.number} · {p.name}
-                    </option>
-                  ))}
-                </select>
+
+              <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden">
+                <p className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-emerald-400/95">Bank · Rein</p>
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
+                  <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                    {benchPlayers.length === 0 ? (
+                      <p className="col-span-full py-2 text-center text-xs text-white/45">Keine Bankspieler</p>
+                    ) : (
+                      benchPlayers.map((p) => {
+                        const sel = wechselInId === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => setWechselInId(p.id)}
+                            className={`flex flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-1.5 text-center transition active:scale-[0.98] ${
+                              sel
+                                ? 'border-2 border-emerald-400 bg-emerald-950/65 shadow-[0_0_0_1px_rgba(52,211,153,0.35)]'
+                                : 'border border-white/15 bg-black/55'
+                            }`}
+                          >
+                            <span
+                              className={`font-mono text-sm font-black tabular-nums ${sel ? 'text-emerald-200' : 'text-emerald-400/85'}`}
+                            >
+                              {p.number || '–'}
+                            </span>
+                            <span className="w-full truncate text-[10px] font-semibold leading-tight text-white">{p.name}</span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => void confirmWechselSection()}
-              disabled={matchIsFinished || !wechselOutId || !wechselInId}
-              className="mt-6 flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-emerald-600 text-base font-bold text-white disabled:opacity-35 active:scale-[0.99]"
-            >
-              Wechsel bestätigen
-            </button>
-            <button
-              type="button"
-              onClick={() => setWechselSheetOpen(false)}
-              className="mt-3 w-full min-h-[48px] rounded-2xl border border-white/15 text-base font-semibold text-white/80"
-            >
-              Abbrechen
-            </button>
+            <div className="shrink-0 space-y-2 border-t border-white/10 bg-[#101010] px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
+              <button
+                type="button"
+                onClick={() => void confirmWechselSection()}
+                disabled={matchIsFinished || !wechselOutId || !wechselInId}
+                className="flex min-h-[50px] w-full items-center justify-center rounded-2xl bg-emerald-600 text-base font-bold text-white disabled:opacity-35 active:scale-[0.99]"
+              >
+                Wechsel bestätigen
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setWechselOutId('');
+                  setWechselInId('');
+                  setWechselSheetOpen(false);
+                }}
+                className="flex min-h-[46px] w-full items-center justify-center rounded-2xl border border-white/15 text-base font-semibold text-white/80"
+              >
+                Abbrechen
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
