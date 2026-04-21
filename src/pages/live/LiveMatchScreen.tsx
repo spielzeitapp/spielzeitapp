@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { usePlayers } from '../../hooks/usePlayers';
@@ -19,6 +19,7 @@ import {
   fetchFirstLiveMatch,
   fetchLineupForLiveMatch,
   fetchMatchById,
+  deleteMatchEventById,
   fetchMatchEvents,
   saveMatchEvent,
   saveMatchEvents,
@@ -272,8 +273,6 @@ export const LiveMatchScreen: React.FC = () => {
         return;
       }
 
-      console.info('Live Match ID:', resolvedId);
-
       const [mRes, lineRes, evRes] = await Promise.all([
         fetchMatchById(resolvedId),
         fetchLineupForLiveMatch(resolvedId),
@@ -377,6 +376,67 @@ export const LiveMatchScreen: React.FC = () => {
   const [homeGoalModalOpen, setHomeGoalModalOpen] = useState(false);
   const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
   const [endMatchConfirmOpen, setEndMatchConfirmOpen] = useState(false);
+  const [goalUndoOffer, setGoalUndoOffer] = useState<{
+    eventId: string;
+    side: 'home' | 'away';
+    prevHome: number;
+    prevAway: number;
+  } | null>(null);
+  const goalUndoTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const [scoreAnimNonce, setScoreAnimNonce] = useState(0);
+  const scoresRef = useRef({ home: 0, away: 0 });
+
+  const clearGoalUndoTimer = useCallback(() => {
+    if (goalUndoTimerRef.current != null) {
+      window.clearTimeout(goalUndoTimerRef.current);
+      goalUndoTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    scoresRef.current = { home: scoreHome, away: scoreAway };
+  }, [scoreHome, scoreAway]);
+
+  useEffect(() => () => clearGoalUndoTimer(), [clearGoalUndoTimer]);
+
+  const offerGoalUndo = useCallback(
+    (payload: { eventId: string; side: 'home' | 'away'; prevHome: number; prevAway: number }) => {
+      clearGoalUndoTimer();
+      setGoalUndoOffer(payload);
+      goalUndoTimerRef.current = window.setTimeout(() => {
+        setGoalUndoOffer(null);
+        goalUndoTimerRef.current = null;
+      }, 5000);
+    },
+    [clearGoalUndoTimer],
+  );
+
+  const goalUndoRef = useRef(goalUndoOffer);
+  useEffect(() => {
+    goalUndoRef.current = goalUndoOffer;
+  }, [goalUndoOffer]);
+
+  const undoLastGoal = useCallback(async () => {
+    const offer = goalUndoRef.current;
+    if (!offer?.eventId?.trim() || !effectiveMatchId) return;
+    clearGoalUndoTimer();
+    setGoalUndoOffer(null);
+    const { eventId, prevHome, prevAway } = offer;
+    const { error } = await deleteMatchEventById(eventId.trim());
+    if (error) {
+      setSaveError(error);
+      return;
+    }
+    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    setScoreHome(prevHome);
+    setScoreAway(prevAway);
+    const { error: rowErr } = await updateMatchRow(effectiveMatchId, {
+      score_home: prevHome,
+      score_away: prevAway,
+    });
+    if (rowErr) setSaveError(rowErr);
+  }, [effectiveMatchId, clearGoalUndoTimer]);
+
   const hasClockStarted = useMemo(
     () => Boolean(matchRow?.live_started_at) || events.some((e) => e.type === 'start'),
     [matchRow?.live_started_at, events],
@@ -411,14 +471,14 @@ export const LiveMatchScreen: React.FC = () => {
   );
 
   const persistSingle = useCallback(
-    async (partial: Omit<MatchEngineEvent, 'id'>): Promise<boolean> => {
-      if (!effectiveMatchId) return false;
+    async (partial: Omit<MatchEngineEvent, 'id'>): Promise<{ ok: boolean; savedId?: string }> => {
+      if (!effectiveMatchId) return { ok: false };
       setSaveError(null);
       const tempId = newEventId();
       const optimistic: MatchEngineEvent = { ...partial, id: tempId };
       setEvents((prev) => [optimistic, ...prev]);
       if (partial.type === 'start' || partial.type === 'pause' || partial.type === 'resume' || partial.type === 'end') {
-        return true;
+        return { ok: true };
       }
       const payload = engineEventToInsertPayload(effectiveMatchId, partial, half);
       const { id, error } = await saveMatchEvent(payload);
@@ -426,10 +486,10 @@ export const LiveMatchScreen: React.FC = () => {
         console.error('[LiveMatch] saveMatchEvent', error);
         setSaveError(error ?? 'Ereignis konnte nicht gespeichert werden.');
         setEvents((prev) => prev.filter((e) => e.id !== tempId));
-        return false;
+        return { ok: false };
       }
       setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...partial, id } : e)));
-      return true;
+      return { ok: true, savedId: id };
     },
     [effectiveMatchId, half],
   );
@@ -437,7 +497,7 @@ export const LiveMatchScreen: React.FC = () => {
   const onStartClick = async () => {
     if (!canControlLiveMatch || matchIsFinished || isRunning || !effectiveMatchId) return;
     if (!hasClockStarted) {
-      const ok = await persistSingle({ type: 'start', timestamp: 0 });
+      const { ok } = await persistSingle({ type: 'start', timestamp: 0 });
       if (!ok) return;
       startMatch();
       const { error } = await updateMatchRow(effectiveMatchId, {
@@ -447,7 +507,7 @@ export const LiveMatchScreen: React.FC = () => {
       });
       if (error) setSaveError(error);
     } else {
-      const ok = await persistSingle({ type: 'resume', timestamp: currentMatchSeconds });
+      const { ok } = await persistSingle({ type: 'resume', timestamp: currentMatchSeconds });
       if (!ok) return;
       resumeMatch();
       const { error } = await updateMatchRow(effectiveMatchId, {
@@ -462,7 +522,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const onPauseClick = async () => {
     if (!canControlLiveMatch || !isRunning || matchIsFinished || !effectiveMatchId) return;
-    const ok = await persistSingle({ type: 'pause', timestamp: currentMatchSeconds });
+    const { ok } = await persistSingle({ type: 'pause', timestamp: currentMatchSeconds });
     if (!ok) return;
     pauseMatch();
     const { error } = await updateMatchRow(effectiveMatchId, {
@@ -474,7 +534,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const onEndClick = async () => {
     if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId) return;
-    const ok = await persistSingle({ type: 'end', timestamp: currentMatchSeconds });
+    const { ok } = await persistSingle({ type: 'end', timestamp: currentMatchSeconds });
     if (!ok) return;
     endMatch();
     const { error } = await updateMatchRow(effectiveMatchId, {
@@ -963,126 +1023,140 @@ export const LiveMatchScreen: React.FC = () => {
         >
           {matchboardVisible && (
             <div
-              className={`mx-auto mb-0 w-full max-w-none overflow-hidden rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.55)] ${
+              className={`mx-auto mb-0 w-full max-w-none overflow-hidden rounded-2xl border border-red-500/20 bg-gradient-to-b from-black to-red-950/90 shadow-[inset_0_1px_0_rgba(254,202,202,0.08),0_0_32px_rgba(220,38,38,0.12)] ${
                 spectatorView ? 'md:max-w-xl' : 'md:max-w-2xl'
               }`}
             >
-              <div className="relative w-full bg-gradient-to-b from-black to-red-900 px-[15px] py-4">
+              <div className="relative w-full px-[15px] pb-3 pt-3">
                 <div className="flex justify-center">
-                  <p className="text-xl font-semibold text-white">{matchTypeDisplay}</p>
+                  <p className="text-center text-lg font-semibold text-white sm:text-xl">{matchTypeDisplay}</p>
                 </div>
 
-                <div
-                  className={`grid grid-cols-[120px_1fr_120px] items-start gap-x-3 ${
-                    matchTypeDisplay ? 'mt-6' : 'mt-4'
-                  }`}
-                >
-                  <div className="min-w-0 flex flex-col items-center text-center">
-                    <LiveMatchLogoTile
-                      src={homeLogoSrc}
-                      initialsFrom={homeLogoLookupName}
-                      liveGlow={false}
-                      size="schedule"
-                    />
-                    <div className="mt-2 h-[18px] shrink-0" aria-hidden />
-                    <div
-                      className="mt-1 max-w-[120px] text-[20px] font-semibold leading-[1.05] text-white hyphens-none break-words text-center line-clamp-2"
-                      style={
-                        {
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        } as React.CSSProperties
-                      }
-                    >
-                      {homeDisplayName}
-                    </div>
-                  </div>
-
-                  <div className="flex min-w-0 flex-col items-center text-center">
-                    <div
-                      className={`text-[16px] font-semibold tracking-[0.35em] ${
-                        matchIsFinished
-                          ? 'text-red-100'
-                          : hasClockStarted
-                            ? 'text-red-200/90'
-                            : 'text-white/50'
-                      }`}
-                    >
-                      {matchIsFinished ? 'ENDSTAND' : hasClockStarted ? 'LIVE' : 'BEREIT'}
-                    </div>
-                    <div className="mt-1 text-[32px] font-extrabold leading-none text-white tabular-nums sm:text-[36px]">
-                      {scoreHome} : {scoreAway}
-                    </div>
-                    {!matchIsFinished ? (
-                      <p
-                        className="liveTimer mt-1 text-[18px] font-semibold tabular-nums leading-none tracking-wide text-red-400"
-                        aria-live="polite"
-                      >
-                        {formatClock(currentMatchSeconds)}
-                      </p>
+                <div className="mt-2 flex justify-center">
+                  <div
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.28em] sm:text-[11px] ${
+                      matchIsFinished
+                        ? 'bg-white/10 text-red-100'
+                        : hasClockStarted
+                          ? 'bg-red-600 text-white animate-live-badge-pulse'
+                          : 'bg-white/10 text-white/55'
+                    }`}
+                  >
+                    {!matchIsFinished && hasClockStarted ? (
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-white" aria-hidden />
                     ) : null}
-                    <p className="mt-1 max-w-[min(100%,280px)] text-center font-mono text-[12px] font-normal tabular-nums leading-tight text-white/55 sm:text-[13px]">
-                      {periodScoreLine}
-                    </p>
-                  </div>
-
-                  <div className="min-w-0 flex flex-col items-center text-center">
-                    <LiveMatchLogoTile
-                      src={awayLogoSrc}
-                      initialsFrom={headerOpponent}
-                      liveGlow={false}
-                      size="schedule"
-                    />
-                    <div className="mt-2 h-[18px] shrink-0" aria-hidden />
-                    <div
-                      className="mt-1 max-w-[120px] text-[20px] font-semibold leading-[1.05] text-white hyphens-none break-words text-center line-clamp-2"
-                      style={
-                        {
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        } as React.CSSProperties
-                      }
-                    >
-                      {awayDisplayName}
-                    </div>
+                    {matchIsFinished ? 'Endstand' : hasClockStarted ? 'Live' : 'Bereit'}
                   </div>
                 </div>
+
+                <div className="mt-3 flex items-center justify-center gap-3 sm:gap-4">
+                  <LiveMatchLogoTile
+                    src={homeLogoSrc}
+                    initialsFrom={homeLogoLookupName}
+                    liveGlow={false}
+                    size="schedule"
+                  />
+                  <div
+                    key={scoreAnimNonce}
+                    className={`min-w-0 text-center text-[30px] font-extrabold leading-none tabular-nums text-white sm:text-[34px] ${
+                      scoreAnimNonce > 0 ? 'animate-score-goal-flash' : ''
+                    }`}
+                  >
+                    {scoreHome} : {scoreAway}
+                  </div>
+                  <LiveMatchLogoTile
+                    src={awayLogoSrc}
+                    initialsFrom={headerOpponent}
+                    liveGlow={false}
+                    size="schedule"
+                  />
+                </div>
+
+                <div className="mt-1 grid grid-cols-2 gap-x-4 px-0.5">
+                  <div
+                    className="min-w-0 text-center text-[15px] font-semibold leading-snug text-white sm:text-[16px]"
+                    style={
+                      {
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        wordBreak: 'break-word',
+                      } as React.CSSProperties
+                    }
+                  >
+                    {homeDisplayName}
+                  </div>
+                  <div
+                    className="min-w-0 text-center text-[15px] font-semibold leading-snug text-white sm:text-[16px]"
+                    style={
+                      {
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        wordBreak: 'break-word',
+                      } as React.CSSProperties
+                    }
+                  >
+                    {awayDisplayName}
+                  </div>
+                </div>
+
+                {!matchIsFinished ? (
+                  <p
+                    className="liveTimer mt-1 text-center text-lg font-bold tabular-nums leading-none tracking-wide text-red-500 sm:text-xl"
+                    aria-live="polite"
+                  >
+                    {formatClock(currentMatchSeconds)}
+                  </p>
+                ) : null}
+
+                <p className="mt-1 text-center font-mono text-[11px] font-normal tabular-nums leading-tight text-white/45 sm:text-xs">
+                  {periodScoreLine}
+                </p>
               </div>
 
               {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
-                <div className="space-y-2 border-t border-white/10 bg-black/80 px-[15px] py-3">
-                  <div className="grid grid-cols-2 gap-2">
+                <div className="mt-3 space-y-2 border-t border-white/10 bg-black/85 px-[15px] pb-3 pt-2">
+                  <div className="flex items-center justify-between gap-4 px-1">
                     <button
                       type="button"
+                      title="Heimtor"
+                      aria-label="Heimtor erfassen"
                       onClick={() => {
                         setHomeGoalPickId('');
                         setHomeGoalModalOpen(true);
                       }}
-                      className="flex h-9 w-full items-center justify-center rounded-xl bg-gradient-to-b from-emerald-600 to-emerald-800 px-2.5 text-xs font-semibold text-white transition hover:brightness-110 active:scale-[0.99]"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-emerald-700 to-emerald-900 text-lg shadow-[0_0_16px_rgba(16,185,129,0.35)] transition hover:brightness-110 hover:shadow-[0_0_22px_rgba(16,185,129,0.45)] active:scale-[0.96]"
                     >
-                      + TOR
+                      <span aria-hidden>⚽</span>
                     </button>
                     <button
                       type="button"
+                      title="Gasttor"
+                      aria-label="Gasttor erfassen"
                       onClick={async () => {
-                        const ok = await persistSingle({
+                        const res = await persistSingle({
                           type: 'goal',
                           timestamp: currentMatchSeconds,
                         });
-                        if (!ok) return;
-                        setScoreAway((s) => {
-                          const n = s + 1;
-                          if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: n });
-                          return n;
+                        if (!res.ok || !res.savedId) return;
+                        const { home: ph, away: pa } = scoresRef.current;
+                        const next = pa + 1;
+                        setScoreAway(next);
+                        setScoreAnimNonce((n) => n + 1);
+                        if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: next });
+                        offerGoalUndo({
+                          eventId: res.savedId,
+                          side: 'away',
+                          prevHome: ph,
+                          prevAway: pa,
                         });
                       }}
-                      className="flex h-9 w-full items-center justify-center rounded-xl bg-gradient-to-b from-red-600 to-red-900 px-2.5 text-xs font-semibold text-white transition hover:brightness-110 active:scale-[0.99]"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-red-600 to-red-900 text-lg shadow-[0_0_16px_rgba(220,38,38,0.35)] transition hover:brightness-110 hover:shadow-[0_0_22px_rgba(220,38,38,0.45)] active:scale-[0.96]"
                     >
-                      + TOR
+                      <span aria-hidden>⚽</span>
                     </button>
                   </div>
 
@@ -1096,10 +1170,10 @@ export const LiveMatchScreen: React.FC = () => {
                       }
                       aria-pressed={isRunning}
                       className={[
-                        'flex h-8 min-h-8 flex-[1.35] items-center justify-center gap-0.5 rounded-xl border px-2 text-[11px] font-medium transition',
+                        'flex h-9 min-h-9 flex-1 items-center justify-center gap-1 rounded-xl border px-2 text-xs font-semibold transition active:scale-[0.96]',
                         isRunning
-                          ? 'border-amber-400/40 bg-amber-400 text-black hover:bg-amber-300'
-                          : 'border-white/10 bg-zinc-900/90 text-white hover:bg-zinc-800',
+                          ? 'border-amber-400/50 bg-amber-400 text-black hover:bg-amber-300'
+                          : 'border-white/15 bg-zinc-800 text-white hover:bg-zinc-700',
                       ].join(' ')}
                     >
                       {isRunning ? (
@@ -1118,9 +1192,9 @@ export const LiveMatchScreen: React.FC = () => {
                       type="button"
                       onClick={() => setEndMatchConfirmOpen(true)}
                       disabled={matchIsFinished}
-                      className="flex h-8 min-h-8 flex-1 items-center justify-center gap-0.5 rounded-xl border border-red-500/35 bg-gradient-to-b from-red-600 to-red-950 px-2 text-[11px] font-medium text-white transition hover:brightness-110 disabled:border-transparent disabled:bg-neutral-900 disabled:text-gray-600"
+                      className="flex h-9 min-h-9 flex-1 items-center justify-center gap-1 rounded-xl border border-red-500/40 bg-gradient-to-b from-red-600 to-red-950 px-2 text-xs font-semibold text-white transition hover:brightness-110 active:scale-[0.96] disabled:border-transparent disabled:bg-neutral-900 disabled:text-gray-600"
                     >
-                      <span aria-hidden>■</span>
+                      <span aria-hidden>⏹</span>
                       Ende
                     </button>
                   </div>
@@ -1133,27 +1207,25 @@ export const LiveMatchScreen: React.FC = () => {
                         document.getElementById('live-wechsel-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       });
                     }}
-                    className="flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-transparent text-xs font-medium text-white/90 transition hover:border-white/25 hover:bg-white/[0.04]"
+                    className="flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-transparent text-xs font-medium text-white/90 transition hover:border-white/30 hover:bg-white/[0.04] active:scale-[0.96]"
                   >
                     <span aria-hidden>⇄</span>
                     Wechsel
                   </button>
 
-                  <div className="rounded-xl border border-red-500/20 bg-red-950/15 px-1 py-0.5">
-                    <button
-                      type="button"
-                      onClick={() => setEndMatchConfirmOpen(true)}
-                      className="flex h-8 w-full items-center justify-center rounded-lg text-[10px] font-medium uppercase tracking-[0.12em] text-red-300/80 transition hover:bg-red-950/40 hover:text-red-200 md:text-[11px]"
-                    >
-                      SPIEL ABSCHLIESSEN
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEndMatchConfirmOpen(true)}
+                    className="flex h-8 w-full items-center justify-center rounded-xl border border-red-500/25 bg-transparent text-[10px] font-medium uppercase tracking-[0.14em] text-red-400/80 transition hover:border-red-400/40 hover:bg-red-950/20 active:scale-[0.96] md:text-[11px]"
+                  >
+                    Spiel abschließen
+                  </button>
                 </div>
               ) : null}
 
               {saveError ? (
                 <p
-                  className="border-t border-white/10 bg-black/70 px-[15px] py-2 text-center text-xs font-medium text-amber-400"
+                  className="border-t border-white/10 bg-black/80 px-[15px] py-2 text-center text-xs font-medium text-amber-400"
                   role="alert"
                 >
                   {saveError}
@@ -1703,16 +1775,22 @@ export const LiveMatchScreen: React.FC = () => {
               disabled={!homeGoalPickId}
               onClick={async () => {
                 if (!homeGoalPickId || !effectiveMatchId) return;
-                const ok = await persistSingle({
+                const res = await persistSingle({
                   type: 'goal',
                   timestamp: currentMatchSeconds,
                   playerId: homeGoalPickId,
                 });
-                if (!ok) return;
-                setScoreHome((s) => {
-                  const n = s + 1;
-                  if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_home: n });
-                  return n;
+                if (!res.ok || !res.savedId) return;
+                const { home: ph, away: pa } = scoresRef.current;
+                const next = ph + 1;
+                setScoreHome(next);
+                setScoreAnimNonce((n) => n + 1);
+                if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_home: next });
+                offerGoalUndo({
+                  eventId: res.savedId,
+                  side: 'home',
+                  prevHome: ph,
+                  prevAway: pa,
                 });
                 setHomeGoalModalOpen(false);
                 setHomeGoalPickId('');
@@ -1843,6 +1921,21 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
         </div>
       )}
+
+      {canControlLiveMatch && !matchIsFinished && goalUndoOffer ? (
+        <div className="pointer-events-auto fixed bottom-20 left-3 right-3 z-[45] mx-auto max-w-md sm:left-1/2 sm:right-auto sm:-translate-x-1/2">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-white/12 bg-zinc-950/95 px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-md">
+            <p className="min-w-0 text-sm font-medium text-white/90">Tor hinzugefügt – Rückgängig</p>
+            <button
+              type="button"
+              onClick={() => void undoLastGoal()}
+              className="shrink-0 rounded-lg bg-red-600/90 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-red-500 active:scale-[0.96]"
+            >
+              Rückgängig
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

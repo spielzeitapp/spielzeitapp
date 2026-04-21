@@ -226,6 +226,16 @@ export async function saveMatchEvent(payload: InsertMatchEventPayload): Promise<
   return { id, error: null };
 }
 
+export async function deleteMatchEventById(eventId: string): Promise<{ error: string | null }> {
+  if (!eventId?.trim()) return { error: 'Keine Ereignis-ID.' };
+  const { error } = await supabase.from('match_events').delete().eq('id', eventId.trim());
+  if (error) {
+    console.error('[liveMatchService] deleteMatchEventById', error);
+    return { error: error.message };
+  }
+  return { error: null };
+}
+
 export async function saveMatchEvents(
   payloads: InsertMatchEventPayload[],
 ): Promise<{ ids: string[]; error: string | null }> {
