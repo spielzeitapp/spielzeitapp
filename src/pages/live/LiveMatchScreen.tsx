@@ -1094,12 +1094,12 @@ export const LiveMatchScreen: React.FC = () => {
         ? `border-red-400/55 bg-gradient-to-b from-red-600 via-red-900 to-red-950 text-red-50 shadow-[0_0_18px_rgba(255,0,0,0.5)]${liveBadgeAnimating ? ' animate-live-badge-soft' : ''}`
         : 'border-white/20 bg-zinc-900/95 text-white/55 shadow-[0_0_10px_rgba(0,0,0,0.35)]'
   }`;
-  const scorePillHome = `${mbRowBtn} min-w-0 shrink-0 border border-emerald-400/30 bg-emerald-500/[0.14] text-emerald-50 shadow-[0_0_10px_rgba(16,185,129,0.12),inset_0_1px_0_rgba(255,255,255,0.07)] hover:bg-emerald-500/[0.22] active:scale-[0.97]`;
-  const scorePillAway = `${mbRowBtn} min-w-0 shrink-0 border border-red-400/30 bg-red-500/[0.14] text-red-100 shadow-[0_0_10px_rgba(239,68,68,0.12),inset_0_1px_0_rgba(255,255,255,0.07)] hover:bg-red-500/[0.22] active:scale-[0.97]`;
-  const mbStart = `${mbRowBtn} border border-emerald-700/35 bg-emerald-950/72 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-emerald-900/78`;
-  const mbPause = `${mbRowBtn} border border-orange-500/35 bg-orange-950/60 text-orange-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:bg-orange-900/55`;
-  const mbEnd = `${mbRowBtn} border border-red-800/40 bg-red-950/75 text-red-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-red-900/72`;
-  const mbWechsel = `${mbRowBtn} w-full border border-emerald-700/35 bg-emerald-950/72 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-emerald-900/78`;
+  const scorePillHome = `${mbRowBtn} min-w-0 shrink-0 border border-emerald-400/22 bg-emerald-500/[0.11] text-emerald-50 shadow-[0_0_8px_rgba(16,185,129,0.1),inset_0_1px_0_rgba(255,255,255,0.06)] hover:bg-emerald-500/[0.18] active:scale-[0.97]`;
+  const scorePillAway = `${mbRowBtn} min-w-0 shrink-0 border border-red-400/22 bg-red-500/[0.11] text-red-100 shadow-[0_0_8px_rgba(239,68,68,0.1),inset_0_1px_0_rgba(255,255,255,0.06)] hover:bg-red-500/[0.18] active:scale-[0.97]`;
+  const mbStart = `${mbRowBtn} border border-emerald-600/28 bg-emerald-950/58 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-emerald-950/72`;
+  const mbPause = `${mbRowBtn} border border-orange-500/28 bg-orange-950/48 text-orange-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-orange-950/62`;
+  const mbEnd = `${mbRowBtn} border border-red-800/32 bg-red-950/58 text-red-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-red-950/72`;
+  const mbWechsel = `${mbRowBtn} w-full border border-emerald-600/28 bg-emerald-950/58 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-emerald-950/72`;
   const mbSpielEnde = `${mbRowBtn} w-full border border-red-500/35 bg-transparent text-red-200/95 hover:bg-red-950/40`;
 
   const clearHomeGoalLongPress = () => {
@@ -1190,12 +1190,12 @@ export const LiveMatchScreen: React.FC = () => {
 
                 {/* Logos außen + Namen direkt darunter; Mitte: Score → Pausen → Zeit */}
                 <div
-                  className={`grid grid-cols-[1fr_auto_1fr] items-start gap-x-3 sm:gap-x-5 ${
+                  className={`grid grid-cols-[1fr_auto_1fr] items-start gap-x-4 sm:gap-x-6 md:gap-x-8 ${
                     matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
-                  <div className="flex min-w-0 flex-col items-center pl-0.5 text-center">
-                    <div className="flex min-h-[52px] items-center justify-center">
+                  <div className="flex min-w-0 flex-col items-center self-stretch pl-0 pr-1 text-center sm:pl-0.5 sm:pr-2">
+                    <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={homeLogoSrc}
                         initialsFrom={homeLogoLookupName}
@@ -1203,7 +1203,7 @@ export const LiveMatchScreen: React.FC = () => {
                         size="schedule"
                       />
                     </div>
-                    <div className="mt-0.5 w-full">
+                    <div className="mt-0 w-full">
                       <div className="min-h-[1.125rem] text-[13px] font-medium leading-tight tracking-widest text-white/70">
                         {homeNameParts.prefix ? (
                           <span className="uppercase">{homeNameParts.prefix}</span>
@@ -1214,7 +1214,7 @@ export const LiveMatchScreen: React.FC = () => {
                         )}
                       </div>
                       <div
-                        className="mt-0.5 max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
+                        className="mt-px max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
                         style={
                           {
                             display: '-webkit-box',
@@ -1229,7 +1229,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex w-max max-w-[min(100vw-8rem,220px)] shrink-0 flex-col items-center gap-1 px-0.5">
+                  <div className="flex w-max max-w-[min(100vw-9rem,200px)] shrink-0 flex-col items-center gap-1 px-1">
                     <div className="flex items-center justify-center gap-1 sm:gap-1.5">
                       {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                         <>
@@ -1318,8 +1318,8 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
 
-                  <div className="flex min-w-0 flex-col items-center pr-0.5 text-center">
-                    <div className="flex min-h-[52px] items-center justify-center">
+                  <div className="flex min-w-0 flex-col items-center self-stretch pl-1 pr-0 text-center sm:pl-2 sm:pr-0.5">
+                    <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={awayLogoSrc}
                         initialsFrom={headerOpponent}
@@ -1327,7 +1327,7 @@ export const LiveMatchScreen: React.FC = () => {
                         size="schedule"
                       />
                     </div>
-                    <div className="mt-0.5 w-full">
+                    <div className="mt-0 w-full">
                       <div className="min-h-[1.125rem] text-[13px] font-medium leading-tight tracking-widest text-white/70">
                         {awayNameParts.prefix ? (
                           <span className="uppercase">{awayNameParts.prefix}</span>
@@ -1338,7 +1338,7 @@ export const LiveMatchScreen: React.FC = () => {
                         )}
                       </div>
                       <div
-                        className="mt-0.5 max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
+                        className="mt-px max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
                         style={
                           {
                             display: '-webkit-box',
