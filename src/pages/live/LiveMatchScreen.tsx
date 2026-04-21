@@ -1188,172 +1188,171 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Logos außen, Score-Mitte kompakt – keine Überlappung mit Tor-Pills */}
+                {/* Logos außen + Namen direkt darunter; Mitte: Score → Pausen → Zeit */}
                 <div
-                  className={`grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 sm:gap-x-5 ${
+                  className={`grid grid-cols-[1fr_auto_1fr] items-start gap-x-3 sm:gap-x-5 ${
                     matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
-                  <div className="flex min-h-[52px] min-w-0 items-center justify-start pl-0.5">
-                    <LiveMatchLogoTile
-                      src={homeLogoSrc}
-                      initialsFrom={homeLogoLookupName}
-                      liveGlow={false}
-                      size="schedule"
-                    />
+                  <div className="flex min-w-0 flex-col items-center pl-0.5 text-center">
+                    <div className="flex min-h-[52px] items-center justify-center">
+                      <LiveMatchLogoTile
+                        src={homeLogoSrc}
+                        initialsFrom={homeLogoLookupName}
+                        liveGlow={false}
+                        size="schedule"
+                      />
+                    </div>
+                    <div className="mt-0.5 w-full">
+                      <div className="min-h-[1.125rem] text-[13px] font-medium leading-tight tracking-widest text-white/70">
+                        {homeNameParts.prefix ? (
+                          <span className="uppercase">{homeNameParts.prefix}</span>
+                        ) : (
+                          <span className="invisible" aria-hidden>
+                            .
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className="mt-0.5 max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
+                        style={
+                          {
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          } as React.CSSProperties
+                        }
+                      >
+                        {homeNameParts.name}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex w-max max-w-[min(100vw-8rem,220px)] shrink-0 items-center justify-center gap-1 px-0.5 sm:gap-1.5">
-                    {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
-                      <>
-                        <button
-                          type="button"
-                          aria-label="Heimtor erfassen. Lange drücken für Rückgängig."
-                          className={scorePillHome}
-                          onContextMenu={(e) => e.preventDefault()}
-                          onPointerDown={onHomeGoalScorePointerDown}
-                          onPointerUp={clearHomeGoalLongPress}
-                          onPointerLeave={clearHomeGoalLongPress}
-                          onPointerCancel={clearHomeGoalLongPress}
-                          onClick={() => {
-                            if (homeGoalSuppressClickRef.current) {
-                              homeGoalSuppressClickRef.current = false;
-                              return;
-                            }
-                            setHomeGoalPickId('');
-                            setHomeGoalModalOpen(true);
-                          }}
-                        >
-                          <span aria-hidden className="text-sm leading-none">
-                            ⚽
+
+                  <div className="flex w-max max-w-[min(100vw-8rem,220px)] shrink-0 flex-col items-center gap-1 px-0.5">
+                    <div className="flex items-center justify-center gap-1 sm:gap-1.5">
+                      {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
+                        <>
+                          <button
+                            type="button"
+                            aria-label="Heimtor erfassen. Lange drücken für Rückgängig."
+                            className={scorePillHome}
+                            onContextMenu={(e) => e.preventDefault()}
+                            onPointerDown={onHomeGoalScorePointerDown}
+                            onPointerUp={clearHomeGoalLongPress}
+                            onPointerLeave={clearHomeGoalLongPress}
+                            onPointerCancel={clearHomeGoalLongPress}
+                            onClick={() => {
+                              if (homeGoalSuppressClickRef.current) {
+                                homeGoalSuppressClickRef.current = false;
+                                return;
+                              }
+                              setHomeGoalPickId('');
+                              setHomeGoalModalOpen(true);
+                            }}
+                          >
+                            <span aria-hidden className="text-sm leading-none">
+                              ⚽
+                            </span>
+                            <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{scoreHome}</span>
+                          </button>
+                          <span
+                            className="shrink-0 text-[20px] font-extrabold leading-none text-white/90 tabular-nums sm:text-[24px]"
+                            aria-hidden
+                          >
+                            :
                           </span>
-                          <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{scoreHome}</span>
-                        </button>
-                        <span
-                          className="shrink-0 text-[20px] font-extrabold leading-none text-white/90 tabular-nums sm:text-[24px]"
-                          aria-hidden
-                        >
-                          :
+                          <button
+                            type="button"
+                            aria-label="Gasttor erfassen. Lange drücken für Rückgängig."
+                            className={scorePillAway}
+                            onContextMenu={(e) => e.preventDefault()}
+                            onPointerDown={onAwayGoalScorePointerDown}
+                            onPointerUp={clearAwayGoalLongPress}
+                            onPointerLeave={clearAwayGoalLongPress}
+                            onPointerCancel={clearAwayGoalLongPress}
+                            onClick={async () => {
+                              if (awayGoalSuppressClickRef.current) {
+                                awayGoalSuppressClickRef.current = false;
+                                return;
+                              }
+                              const res = await persistSingle({
+                                type: 'goal',
+                                timestamp: currentMatchSeconds,
+                              });
+                              if (!res.ok || !res.savedId) return;
+                              const { home: ph, away: pa } = scoresRef.current;
+                              const next = pa + 1;
+                              setScoreAway(next);
+                              if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: next });
+                              offerGoalUndo({
+                                eventId: res.savedId,
+                                side: 'away',
+                                prevHome: ph,
+                                prevAway: pa,
+                              });
+                            }}
+                          >
+                            <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{scoreAway}</span>
+                            <span aria-hidden className="text-sm leading-none">
+                              ⚽
+                            </span>
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-center text-[28px] font-extrabold leading-none text-white tabular-nums whitespace-nowrap sm:text-[32px]">
+                          {scoreHome} : {scoreAway}
                         </span>
-                        <button
-                          type="button"
-                          aria-label="Gasttor erfassen. Lange drücken für Rückgängig."
-                          className={scorePillAway}
-                          onContextMenu={(e) => e.preventDefault()}
-                          onPointerDown={onAwayGoalScorePointerDown}
-                          onPointerUp={clearAwayGoalLongPress}
-                          onPointerLeave={clearAwayGoalLongPress}
-                          onPointerCancel={clearAwayGoalLongPress}
-                          onClick={async () => {
-                            if (awayGoalSuppressClickRef.current) {
-                              awayGoalSuppressClickRef.current = false;
-                              return;
-                            }
-                            const res = await persistSingle({
-                              type: 'goal',
-                              timestamp: currentMatchSeconds,
-                            });
-                            if (!res.ok || !res.savedId) return;
-                            const { home: ph, away: pa } = scoresRef.current;
-                            const next = pa + 1;
-                            setScoreAway(next);
-                            if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: next });
-                            offerGoalUndo({
-                              eventId: res.savedId,
-                              side: 'away',
-                              prevHome: ph,
-                              prevAway: pa,
-                            });
-                          }}
-                        >
-                          <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{scoreAway}</span>
-                          <span aria-hidden className="text-sm leading-none">
-                            ⚽
-                          </span>
-                        </button>
-                      </>
-                    ) : (
-                      <span className="text-center text-[28px] font-extrabold leading-none text-white tabular-nums whitespace-nowrap sm:text-[32px]">
-                        {scoreHome} : {scoreAway}
+                      )}
+                    </div>
+                    <p className="w-full text-center font-mono text-[11px] font-medium tabular-nums leading-none text-white whitespace-nowrap sm:text-[12px]">
+                      <span className="inline-block max-w-full overflow-x-auto">{periodScoreLine}</span>
+                    </p>
+                    {!matchIsFinished ? (
+                      <span
+                        className="liveTimer inline-flex items-center justify-center rounded-full border border-red-400/55 bg-gradient-to-b from-red-600 via-red-900 to-red-950 px-3 py-1.5 font-mono text-sm font-bold tabular-nums leading-none text-red-50 shadow-[0_0_16px_rgba(255,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.14)] sm:px-3.5 sm:text-[15px]"
+                        aria-live="polite"
+                      >
+                        {formatClock(currentMatchSeconds)}
                       </span>
-                    )}
+                    ) : null}
                   </div>
-                  <div className="flex min-h-[52px] min-w-0 items-center justify-end pr-0.5">
-                    <LiveMatchLogoTile
-                      src={awayLogoSrc}
-                      initialsFrom={headerOpponent}
-                      liveGlow={false}
-                      size="schedule"
-                    />
-                  </div>
-                </div>
 
-                {/* Teamnamen direkt unter Logos */}
-                <div className="mt-0.5 grid grid-cols-[1fr_auto_1fr] items-start gap-x-3 sm:gap-x-5">
-                  <div className="flex min-w-0 flex-col items-center self-start text-center">
-                    <div className="min-h-[1.125rem] text-[13px] font-medium leading-tight tracking-widest text-white/70">
-                      {homeNameParts.prefix ? (
-                        <span className="uppercase">{homeNameParts.prefix}</span>
-                      ) : (
-                        <span className="invisible" aria-hidden>
-                          .
-                        </span>
-                      )}
+                  <div className="flex min-w-0 flex-col items-center pr-0.5 text-center">
+                    <div className="flex min-h-[52px] items-center justify-center">
+                      <LiveMatchLogoTile
+                        src={awayLogoSrc}
+                        initialsFrom={headerOpponent}
+                        liveGlow={false}
+                        size="schedule"
+                      />
                     </div>
-                    <div
-                      className="mt-0.5 max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
-                      style={
-                        {
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        } as React.CSSProperties
-                      }
-                    >
-                      {homeNameParts.name}
-                    </div>
-                  </div>
-                  <div className="min-w-0" aria-hidden />
-                  <div className="flex min-w-0 flex-col items-center self-start text-center">
-                    <div className="min-h-[1.125rem] text-[13px] font-medium leading-tight tracking-widest text-white/70">
-                      {awayNameParts.prefix ? (
-                        <span className="uppercase">{awayNameParts.prefix}</span>
-                      ) : (
-                        <span className="invisible" aria-hidden>
-                          .
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      className="mt-0.5 max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
-                      style={
-                        {
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        } as React.CSSProperties
-                      }
-                    >
-                      {awayNameParts.name}
+                    <div className="mt-0.5 w-full">
+                      <div className="min-h-[1.125rem] text-[13px] font-medium leading-tight tracking-widest text-white/70">
+                        {awayNameParts.prefix ? (
+                          <span className="uppercase">{awayNameParts.prefix}</span>
+                        ) : (
+                          <span className="invisible" aria-hidden>
+                            .
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className="mt-0.5 max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
+                        style={
+                          {
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          } as React.CSSProperties
+                        }
+                      >
+                        {awayNameParts.name}
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                <p className="mt-1.5 w-full text-center font-mono text-[11px] font-medium tabular-nums leading-none text-white whitespace-nowrap sm:text-[12px]">
-                  <span className="inline-block max-w-full overflow-x-auto">{periodScoreLine}</span>
-                </p>
-
-                {!matchIsFinished ? (
-                  <div className="mt-1 flex justify-center">
-                    <span
-                      className="liveTimer inline-flex items-center justify-center rounded-full border border-red-400/55 bg-gradient-to-b from-red-600 via-red-900 to-red-950 px-3 py-1.5 font-mono text-sm font-bold tabular-nums leading-none text-red-50 shadow-[0_0_16px_rgba(255,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.14)] sm:px-3.5 sm:text-[15px]"
-                      aria-live="polite"
-                    >
-                      {formatClock(currentMatchSeconds)}
-                    </span>
-                  </div>
-                ) : null}
               </div>
 
               {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
