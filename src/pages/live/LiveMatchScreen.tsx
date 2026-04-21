@@ -135,6 +135,28 @@ function splitPrefixAndName(full: string): { prefix: string; name: string } {
   return { prefix: trimmed.slice(0, i), name: trimmed.slice(i + 1) };
 }
 
+/** Zwei Zeilen: Kurzname + Rest, keine Silbentrennung / kein Umbrechen mitten im Wort. */
+function MatchboardTeamNameLines({ parts }: { parts: { prefix: string; name: string } }) {
+  return (
+    <div className="w-full max-w-[118px]">
+      <div className="min-h-[1rem] text-[12px] font-medium uppercase leading-none tracking-widest text-white/70">
+        {parts.prefix ? (
+          <span className="block truncate whitespace-nowrap text-center">{parts.prefix}</span>
+        ) : (
+          <span className="invisible block" aria-hidden>
+            .
+          </span>
+        )}
+      </div>
+      <div className="mt-0.5 text-center text-[17px] font-semibold leading-tight text-white">
+        <span className="block truncate whitespace-nowrap" title={parts.name}>
+          {parts.name || '\u00a0'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 /** Drittel-/Halbzeit-Stand aus Event-Zeitstempeln (gleiche Grenzen wie Uhr). */
 function buildPeriodScoreLine(events: MatchEngineEvent[], currentMatchSeconds: number): string {
   const b1 = MATCH_HALF_DURATION_SEC;
@@ -167,7 +189,7 @@ function buildPeriodScoreLine(events: MatchEngineEvent[], currentMatchSeconds: n
 
 /** Trainer-Tabs: unter dem Matchboard, Stadium/Premium-Anmutung. */
 const tabNavWrap =
-  'mt-4 flex w-full gap-1 overflow-x-auto rounded-2xl border border-white/[0.08] bg-black/55 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-md [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+  'mt-2 flex w-full gap-1 overflow-x-auto rounded-2xl border border-white/[0.08] bg-black/55 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-md [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 const tabNavBtnBase =
   'shrink-0 whitespace-nowrap rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-200 sm:px-4 sm:text-sm md:flex-1 md:text-center';
 const tabNavBtnActive =
@@ -406,6 +428,7 @@ export const LiveMatchScreen: React.FC = () => {
   }, [canControlLiveMatch, mainTab]);
 
   const [subOpen, setSubOpen] = useState(false);
+  const [wechselSheetOpen, setWechselSheetOpen] = useState(false);
   const [subOutId, setSubOutId] = useState<string>('');
   const [subInId, setSubInId] = useState<string>('');
 
@@ -611,6 +634,20 @@ export const LiveMatchScreen: React.FC = () => {
     if (error) setSaveError(error);
   };
 
+  /** Ende: Uhr stoppen / live_is_running aus – kein Spielabschluss, kein Archiv. */
+  const onEndeStopClick = async () => {
+    if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId) return;
+    if (isRunning) {
+      await onPauseClick();
+      return;
+    }
+    const { error } = await updateMatchRow(effectiveMatchId, {
+      live_elapsed_seconds: currentMatchSeconds,
+      live_is_running: false,
+    });
+    if (error) setSaveError(error);
+  };
+
   const onEndClick = async () => {
     if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId) return;
     const { ok } = await persistSingle({ type: 'end', timestamp: currentMatchSeconds });
@@ -729,6 +766,7 @@ export const LiveMatchScreen: React.FC = () => {
     if (!ok) return;
     setWechselOutId('');
     setWechselInId('');
+    setWechselSheetOpen(false);
   };
 
   const filteredEvents = useMemo(() => {
@@ -1091,7 +1129,7 @@ export const LiveMatchScreen: React.FC = () => {
     matchIsFinished
       ? 'border-red-500/45 bg-gradient-to-b from-red-900 to-red-950 text-red-100 shadow-[0_0_16px_rgba(220,38,38,0.4)]'
       : hasClockStarted
-        ? `border-red-400/55 bg-gradient-to-b from-red-600 via-red-900 to-red-950 text-red-50 shadow-[0_0_18px_rgba(255,0,0,0.5)]${liveBadgeAnimating ? ' animate-live-badge-soft' : ''}`
+        ? `border-red-400/55 bg-gradient-to-b from-red-600 via-red-900 to-red-950 text-red-50 shadow-[0_0_18px_rgba(255,0,0,0.5)]${liveBadgeAnimating ? ' animate-live-badge-strong' : ''}`
         : 'border-white/20 bg-zinc-900/95 text-white/55 shadow-[0_0_10px_rgba(0,0,0,0.35)]'
   }`;
   const scorePillHome = `${mbRowBtn} min-w-0 shrink-0 border border-emerald-400/22 bg-emerald-500/[0.11] text-emerald-50 shadow-[0_0_8px_rgba(16,185,129,0.1),inset_0_1px_0_rgba(255,255,255,0.06)] hover:bg-emerald-500/[0.18] active:scale-[0.97]`;
@@ -1170,7 +1208,7 @@ export const LiveMatchScreen: React.FC = () => {
                 spectatorView ? 'md:max-w-xl' : 'md:max-w-2xl'
               }`}
             >
-              <div className="w-full px-[15px] py-2.5">
+              <div className="w-full px-[15px] py-2 pb-1.5">
                 {matchTypeDisplay ? (
                   <div className="flex justify-center">
                     <p className="text-lg font-semibold text-white sm:text-xl">{matchTypeDisplay}</p>
@@ -1203,33 +1241,12 @@ export const LiveMatchScreen: React.FC = () => {
                         size="schedule"
                       />
                     </div>
-                    <div className="mt-0 w-full">
-                      <div className="min-h-[1.125rem] text-[13px] font-medium leading-tight tracking-widest text-white/70">
-                        {homeNameParts.prefix ? (
-                          <span className="uppercase">{homeNameParts.prefix}</span>
-                        ) : (
-                          <span className="invisible" aria-hidden>
-                            .
-                          </span>
-                        )}
-                      </div>
-                      <div
-                        className="mt-px max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
-                        style={
-                          {
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                          } as React.CSSProperties
-                        }
-                      >
-                        {homeNameParts.name}
-                      </div>
+                    <div className="mt-0 flex w-full justify-center">
+                      <MatchboardTeamNameLines parts={homeNameParts} />
                     </div>
                   </div>
 
-                  <div className="flex w-max max-w-[min(100vw-9rem,200px)] shrink-0 flex-col items-center gap-1 px-1">
+                  <div className="flex w-max max-w-[min(100vw-9rem,200px)] shrink-0 flex-col items-center gap-0.5 px-1">
                     <div className="flex items-center justify-center gap-1 sm:gap-1.5">
                       {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                         <>
@@ -1327,36 +1344,15 @@ export const LiveMatchScreen: React.FC = () => {
                         size="schedule"
                       />
                     </div>
-                    <div className="mt-0 w-full">
-                      <div className="min-h-[1.125rem] text-[13px] font-medium leading-tight tracking-widest text-white/70">
-                        {awayNameParts.prefix ? (
-                          <span className="uppercase">{awayNameParts.prefix}</span>
-                        ) : (
-                          <span className="invisible" aria-hidden>
-                            .
-                          </span>
-                        )}
-                      </div>
-                      <div
-                        className="mt-px max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
-                        style={
-                          {
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                          } as React.CSSProperties
-                        }
-                      >
-                        {awayNameParts.name}
-                      </div>
+                    <div className="mt-0 flex w-full justify-center">
+                      <MatchboardTeamNameLines parts={awayNameParts} />
                     </div>
                   </div>
                 </div>
               </div>
 
               {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
-                <div className="mt-0 space-y-1 border-t border-white/10 bg-black/90 px-[15px] py-1.5">
+                <div className="mt-0 space-y-1 border-t border-white/10 bg-black/90 px-[15px] py-1">
                   <div className="grid grid-cols-3 gap-1.5">
                     <button
                       type="button"
@@ -1380,9 +1376,9 @@ export const LiveMatchScreen: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setEndMatchConfirmOpen(true)}
+                      onClick={() => void onEndeStopClick()}
                       disabled={matchIsFinished}
-                      aria-label="Spiel beenden"
+                      aria-label="Spielzeit stoppen (ohne Abschluss)"
                       className={mbEnd}
                     >
                       <span aria-hidden>⏹</span>
@@ -1393,10 +1389,7 @@ export const LiveMatchScreen: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setMainTab('overview');
-                      window.requestAnimationFrame(() => {
-                        document.getElementById('live-wechsel-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      });
+                      setWechselSheetOpen(true);
                     }}
                     className={mbWechsel}
                   >
@@ -1926,6 +1919,85 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
         )}
       </div>
+
+      {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
+        <div
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-black/70 backdrop-blur-sm"
+          role="presentation"
+          onClick={() => setWechselSheetOpen(false)}
+        >
+          <div
+            className="max-h-[85vh] overflow-y-auto rounded-t-3xl border border-white/10 bg-[#141414] px-4 pb-8 pt-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="wechsel-sheet-title"
+          >
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
+            <h3 id="wechsel-sheet-title" className="text-center text-lg font-bold">
+              Wechsel
+            </h3>
+            <p className="mt-1 text-center text-sm text-white/50">Spieler Raus und Rein wählen, dann bestätigen</p>
+
+            <div className="mt-5 space-y-3">
+              <div>
+                <label className="text-xs font-bold uppercase text-red-400/90" htmlFor="wechsel-sheet-raus">
+                  Raus
+                </label>
+                <select
+                  id="wechsel-sheet-raus"
+                  className={selectClass}
+                  value={wechselOutId}
+                  onChange={(e) => setWechselOutId(e.target.value)}
+                  disabled={matchIsFinished}
+                >
+                  <option value="">Spieler wählen…</option>
+                  {fieldPlayers.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.number} · {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-emerald-400/90" htmlFor="wechsel-sheet-rein">
+                  Rein
+                </label>
+                <select
+                  id="wechsel-sheet-rein"
+                  className={selectClass}
+                  value={wechselInId}
+                  onChange={(e) => setWechselInId(e.target.value)}
+                  disabled={matchIsFinished}
+                >
+                  <option value="">Spieler wählen…</option>
+                  {benchPlayers.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.number} · {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void confirmWechselSection()}
+              disabled={matchIsFinished || !wechselOutId || !wechselInId}
+              className="mt-6 flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-emerald-600 text-base font-bold text-white disabled:opacity-35 active:scale-[0.99]"
+            >
+              Wechsel bestätigen
+            </button>
+            <button
+              type="button"
+              onClick={() => setWechselSheetOpen(false)}
+              className="mt-3 w-full min-h-[48px] rounded-2xl border border-white/15 text-base font-semibold text-white/80"
+            >
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {homeGoalModalOpen && (
         <div

@@ -652,3 +652,32 @@
 .animate-live-badge-soft {
   animation: live-badge-soft 2.8s ease-in-out infinite;
 }
+
+/* LIVE-Badge: stärkerer Puls + Glow (nur bei laufender Zeit, Klasse am Element) */
+@keyframes live-badge-strong {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: brightness(1);
+    box-shadow:
+      0 0 14px rgba(255, 0, 0, 0.5),
+      0 0 28px rgba(220, 38, 38, 0.38),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+    filter: brightness(1.06);
+    box-shadow:
+      0 0 24px rgba(255, 0, 0, 0.72),
+      0 0 48px rgba(220, 38, 38, 0.48),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+}
+
+.animate-live-badge-strong {
+  animation: live-badge-strong 1.35s ease-in-out infinite;
+  transform-origin: center center;
+  will-change: transform, opacity, filter, box-shadow;
+}
