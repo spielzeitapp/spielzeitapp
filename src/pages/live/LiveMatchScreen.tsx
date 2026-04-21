@@ -207,6 +207,29 @@ function newEventId(): string {
   return `e_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+function recomputeScoresFromEvents(evts: MatchEngineEvent[]): { home: number; away: number } {
+  const sorted = sortMatchEventsChronologically(evts);
+  let home = 0;
+  let away = 0;
+  for (const e of sorted) {
+    if (e.type !== 'goal') continue;
+    if (e.playerId) home += 1;
+    else away += 1;
+  }
+  return { home, away };
+}
+
+function findLastGoalEventIdForSide(events: MatchEngineEvent[], side: 'home' | 'away'): string | null {
+  const sorted = sortMatchEventsChronologically(events);
+  for (let i = sorted.length - 1; i >= 0; i -= 1) {
+    const e = sorted[i];
+    if (e.type !== 'goal') continue;
+    if (side === 'home' && e.playerId) return e.id;
+    if (side === 'away' && !e.playerId) return e.id;
+  }
+  return null;
+}
+
 /** Liveticker-Zeilen für Zuschauer: chronologisch, Wechsel-Paar an gleicher Minute zusammen. */
 function buildSpectatorTickerRows(events: MatchEngineEvent[]): { key: string; items: MatchEngineEvent[] }[] {
   const asc = sortMatchEventsChronologically(events);
@@ -397,8 +420,13 @@ export const LiveMatchScreen: React.FC = () => {
     prevHome: number;
     prevAway: number;
   } | null>(null);
+  const [goalUndoSheetSide, setGoalUndoSheetSide] = useState<'home' | 'away' | null>(null);
   const goalUndoTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const scoresRef = useRef({ home: 0, away: 0 });
+  const homeGoalLpTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const homeGoalSuppressClickRef = useRef(false);
+  const awayGoalLpTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const awayGoalSuppressClickRef = useRef(false);
 
   const clearGoalUndoTimer = useCallback(() => {
     if (goalUndoTimerRef.current != null) {
@@ -412,6 +440,14 @@ export const LiveMatchScreen: React.FC = () => {
   }, [scoreHome, scoreAway]);
 
   useEffect(() => () => clearGoalUndoTimer(), [clearGoalUndoTimer]);
+
+  useEffect(
+    () => () => {
+      if (homeGoalLpTimerRef.current != null) window.clearTimeout(homeGoalLpTimerRef.current);
+      if (awayGoalLpTimerRef.current != null) window.clearTimeout(awayGoalLpTimerRef.current);
+    },
+    [],
+  );
 
   const offerGoalUndo = useCallback(
     (payload: { eventId: string; side: 'home' | 'away'; prevHome: number; prevAway: number }) => {
@@ -450,6 +486,35 @@ export const LiveMatchScreen: React.FC = () => {
     });
     if (rowErr) setSaveError(rowErr);
   }, [effectiveMatchId, clearGoalUndoTimer]);
+
+  const undoGoalByEventId = useCallback(
+    async (eventId: string) => {
+      const id = eventId?.trim();
+      if (!id || !effectiveMatchId) return;
+      clearGoalUndoTimer();
+      setGoalUndoOffer(null);
+      setGoalUndoSheetSide(null);
+      const { error } = await deleteMatchEventById(id);
+      if (error) {
+        setSaveError(error);
+        return;
+      }
+      setEvents((prev) => {
+        const nextList = prev.filter((e) => e.id !== id);
+        const { home: nh, away: na } = recomputeScoresFromEvents(nextList);
+        const mid = effectiveMatchId;
+        queueMicrotask(() => {
+          setScoreHome(nh);
+          setScoreAway(na);
+          void updateMatchRow(mid, { score_home: nh, score_away: na }).then(({ error: rowErr }) => {
+            if (rowErr) setSaveError(rowErr);
+          });
+        });
+        return nextList;
+      });
+    },
+    [effectiveMatchId, clearGoalUndoTimer],
+  );
 
   const hasClockStarted = useMemo(
     () => Boolean(matchRow?.live_started_at) || events.some((e) => e.type === 'start'),
@@ -701,6 +766,9 @@ export const LiveMatchScreen: React.FC = () => {
     () => buildPeriodScoreLine(events, currentMatchSeconds),
     [events, currentMatchSeconds],
   );
+
+  const lastHomeGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'home'), [events]);
+  const lastAwayGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'away'), [events]);
 
   const periodDisplayLine = useMemo(() => {
     if (matchIsFinished) return 'SPIEL BEENDET';
@@ -1026,13 +1094,57 @@ export const LiveMatchScreen: React.FC = () => {
         ? `border-red-400/55 bg-gradient-to-b from-red-600 via-red-900 to-red-950 text-red-50 shadow-[0_0_18px_rgba(255,0,0,0.5)]${liveBadgeAnimating ? ' animate-live-badge-soft' : ''}`
         : 'border-white/20 bg-zinc-900/95 text-white/55 shadow-[0_0_10px_rgba(0,0,0,0.35)]'
   }`;
-  const scorePillHome = `${mbRowBtn} min-w-0 shrink-0 border border-emerald-500/45 bg-gradient-to-b from-emerald-600 to-emerald-950 text-emerald-50 shadow-[0_0_14px_rgba(16,185,129,0.3),inset_0_1px_0_rgba(255,255,255,0.12)] hover:brightness-110`;
-  const scorePillAway = `${mbRowBtn} min-w-0 shrink-0 border border-red-500/45 bg-gradient-to-b from-red-600 to-red-950 text-red-50 shadow-[0_0_14px_rgba(220,38,38,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:brightness-110`;
-  const mbStart = `${mbRowBtn} border border-emerald-500/45 bg-gradient-to-b from-emerald-600 to-emerald-950 text-white shadow-[0_0_12px_rgba(16,185,129,0.24),inset_0_1px_0_rgba(255,255,255,0.1)]`;
-  const mbPause = `${mbRowBtn} border border-amber-500/50 bg-gradient-to-b from-amber-400 to-amber-700 text-black shadow-[0_0_12px_rgba(245,158,11,0.3),inset_0_1px_0_rgba(255,255,255,0.2)]`;
-  const mbEnd = `${mbRowBtn} border border-red-500/45 bg-gradient-to-b from-red-600 to-red-950 text-white shadow-[0_0_12px_rgba(220,38,38,0.3),inset_0_1px_0_rgba(255,255,255,0.1)]`;
-  const mbWechsel = `${mbRowBtn} w-full border border-emerald-500/45 bg-gradient-to-b from-emerald-600 to-emerald-950 text-white shadow-[0_0_12px_rgba(16,185,129,0.24),inset_0_1px_0_rgba(255,255,255,0.1)]`;
-  const mbSpielEnde = `${mbRowBtn} w-full border border-red-500/40 bg-transparent text-red-200 hover:bg-red-950/45`;
+  const scorePillHome = `${mbRowBtn} min-w-0 shrink-0 border border-emerald-400/30 bg-emerald-500/[0.14] text-emerald-50 shadow-[0_0_10px_rgba(16,185,129,0.12),inset_0_1px_0_rgba(255,255,255,0.07)] hover:bg-emerald-500/[0.22] active:scale-[0.97]`;
+  const scorePillAway = `${mbRowBtn} min-w-0 shrink-0 border border-red-400/30 bg-red-500/[0.14] text-red-100 shadow-[0_0_10px_rgba(239,68,68,0.12),inset_0_1px_0_rgba(255,255,255,0.07)] hover:bg-red-500/[0.22] active:scale-[0.97]`;
+  const mbStart = `${mbRowBtn} border border-emerald-700/35 bg-emerald-950/72 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-emerald-900/78`;
+  const mbPause = `${mbRowBtn} border border-orange-500/35 bg-orange-950/60 text-orange-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:bg-orange-900/55`;
+  const mbEnd = `${mbRowBtn} border border-red-800/40 bg-red-950/75 text-red-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-red-900/72`;
+  const mbWechsel = `${mbRowBtn} w-full border border-emerald-700/35 bg-emerald-950/72 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-emerald-900/78`;
+  const mbSpielEnde = `${mbRowBtn} w-full border border-red-500/35 bg-transparent text-red-200/95 hover:bg-red-950/40`;
+
+  const clearHomeGoalLongPress = () => {
+    if (homeGoalLpTimerRef.current != null) {
+      window.clearTimeout(homeGoalLpTimerRef.current);
+      homeGoalLpTimerRef.current = null;
+    }
+  };
+  const clearAwayGoalLongPress = () => {
+    if (awayGoalLpTimerRef.current != null) {
+      window.clearTimeout(awayGoalLpTimerRef.current);
+      awayGoalLpTimerRef.current = null;
+    }
+  };
+  const onHomeGoalScorePointerDown = () => {
+    if (spectatorView || !canControlLiveMatch || matchIsFinished) return;
+    homeGoalSuppressClickRef.current = false;
+    clearHomeGoalLongPress();
+    homeGoalLpTimerRef.current = window.setTimeout(() => {
+      homeGoalLpTimerRef.current = null;
+      if (lastHomeGoalEventId) {
+        homeGoalSuppressClickRef.current = true;
+        setGoalUndoSheetSide('home');
+      }
+    }, 550);
+  };
+  const onAwayGoalScorePointerDown = () => {
+    if (spectatorView || !canControlLiveMatch || matchIsFinished) return;
+    awayGoalSuppressClickRef.current = false;
+    clearAwayGoalLongPress();
+    awayGoalLpTimerRef.current = window.setTimeout(() => {
+      awayGoalLpTimerRef.current = null;
+      if (lastAwayGoalEventId) {
+        awayGoalSuppressClickRef.current = true;
+        setGoalUndoSheetSide('away');
+      }
+    }, 550);
+  };
+
+  const goalUndoSheetTargetId =
+    goalUndoSheetSide === 'home'
+      ? lastHomeGoalEventId
+      : goalUndoSheetSide === 'away'
+        ? lastAwayGoalEventId
+        : null;
 
   return (
     <div
@@ -1076,13 +1188,13 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Logos + integrierter Spielstand (Tor-Pills mit Ball + Zahl) */}
+                {/* Logos außen, Score-Mitte kompakt – keine Überlappung mit Tor-Pills */}
                 <div
-                  className={`grid grid-cols-[120px_1fr_120px] items-center gap-x-2 sm:gap-x-3 ${
+                  className={`grid grid-cols-[1fr_auto_1fr] items-center gap-x-3 sm:gap-x-5 ${
                     matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
-                  <div className="flex min-h-[52px] min-w-0 items-center justify-center">
+                  <div className="flex min-h-[52px] min-w-0 items-center justify-start pl-0.5">
                     <LiveMatchLogoTile
                       src={homeLogoSrc}
                       initialsFrom={homeLogoLookupName}
@@ -1090,17 +1202,26 @@ export const LiveMatchScreen: React.FC = () => {
                       size="schedule"
                     />
                   </div>
-                  <div className="flex min-w-0 items-center justify-center gap-1.5 px-0.5 sm:gap-2">
+                  <div className="flex w-max max-w-[min(100vw-8rem,220px)] shrink-0 items-center justify-center gap-1 px-0.5 sm:gap-1.5">
                     {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                       <>
                         <button
                           type="button"
-                          aria-label="Heimtor erfassen"
+                          aria-label="Heimtor erfassen. Lange drücken für Rückgängig."
+                          className={scorePillHome}
+                          onContextMenu={(e) => e.preventDefault()}
+                          onPointerDown={onHomeGoalScorePointerDown}
+                          onPointerUp={clearHomeGoalLongPress}
+                          onPointerLeave={clearHomeGoalLongPress}
+                          onPointerCancel={clearHomeGoalLongPress}
                           onClick={() => {
+                            if (homeGoalSuppressClickRef.current) {
+                              homeGoalSuppressClickRef.current = false;
+                              return;
+                            }
                             setHomeGoalPickId('');
                             setHomeGoalModalOpen(true);
                           }}
-                          className={scorePillHome}
                         >
                           <span aria-hidden className="text-sm leading-none">
                             ⚽
@@ -1108,15 +1229,25 @@ export const LiveMatchScreen: React.FC = () => {
                           <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{scoreHome}</span>
                         </button>
                         <span
-                          className="shrink-0 text-[22px] font-extrabold leading-none text-white/90 tabular-nums sm:text-[26px]"
+                          className="shrink-0 text-[20px] font-extrabold leading-none text-white/90 tabular-nums sm:text-[24px]"
                           aria-hidden
                         >
                           :
                         </span>
                         <button
                           type="button"
-                          aria-label="Gasttor erfassen"
+                          aria-label="Gasttor erfassen. Lange drücken für Rückgängig."
+                          className={scorePillAway}
+                          onContextMenu={(e) => e.preventDefault()}
+                          onPointerDown={onAwayGoalScorePointerDown}
+                          onPointerUp={clearAwayGoalLongPress}
+                          onPointerLeave={clearAwayGoalLongPress}
+                          onPointerCancel={clearAwayGoalLongPress}
                           onClick={async () => {
+                            if (awayGoalSuppressClickRef.current) {
+                              awayGoalSuppressClickRef.current = false;
+                              return;
+                            }
                             const res = await persistSingle({
                               type: 'goal',
                               timestamp: currentMatchSeconds,
@@ -1133,21 +1264,20 @@ export const LiveMatchScreen: React.FC = () => {
                               prevAway: pa,
                             });
                           }}
-                          className={scorePillAway}
                         >
+                          <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{scoreAway}</span>
                           <span aria-hidden className="text-sm leading-none">
                             ⚽
                           </span>
-                          <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{scoreAway}</span>
                         </button>
                       </>
                     ) : (
-                      <span className="text-center text-[30px] font-extrabold leading-none text-white tabular-nums whitespace-nowrap sm:text-[34px]">
+                      <span className="text-center text-[28px] font-extrabold leading-none text-white tabular-nums whitespace-nowrap sm:text-[32px]">
                         {scoreHome} : {scoreAway}
                       </span>
                     )}
                   </div>
-                  <div className="flex min-h-[52px] min-w-0 items-center justify-center">
+                  <div className="flex min-h-[52px] min-w-0 items-center justify-end pr-0.5">
                     <LiveMatchLogoTile
                       src={awayLogoSrc}
                       initialsFrom={headerOpponent}
@@ -1157,24 +1287,9 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 </div>
 
-                <p className="mt-1 w-full text-center font-mono text-[11px] font-medium tabular-nums leading-none text-white whitespace-nowrap sm:text-[12px]">
-                  <span className="inline-block max-w-full overflow-x-auto">{periodScoreLine}</span>
-                </p>
-
-                {!matchIsFinished ? (
-                  <div className="mt-1.5 flex justify-center">
-                    <span
-                      className="liveTimer inline-flex items-center justify-center rounded-full border border-red-400/55 bg-gradient-to-b from-red-600 via-red-900 to-red-950 px-3 py-1.5 font-mono text-sm font-bold tabular-nums leading-none text-red-50 shadow-[0_0_16px_rgba(255,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.14)] sm:px-3.5 sm:text-[15px]"
-                      aria-live="polite"
-                    >
-                      {formatClock(currentMatchSeconds)}
-                    </span>
-                  </div>
-                ) : null}
-
-                {/* Teamnamen: wie Termin-Karte – Kurzname + zweite Zeile */}
-                <div className="mt-1.5 grid grid-cols-[120px_1fr_120px] items-start gap-x-2 sm:gap-x-3">
-                  <div className="flex min-w-0 flex-col items-center text-center">
+                {/* Teamnamen direkt unter Logos */}
+                <div className="mt-0.5 grid grid-cols-[1fr_auto_1fr] items-start gap-x-3 sm:gap-x-5">
+                  <div className="flex min-w-0 flex-col items-center self-start text-center">
                     <div className="min-h-[1.125rem] text-[13px] font-medium leading-tight tracking-widest text-white/70">
                       {homeNameParts.prefix ? (
                         <span className="uppercase">{homeNameParts.prefix}</span>
@@ -1185,7 +1300,7 @@ export const LiveMatchScreen: React.FC = () => {
                       )}
                     </div>
                     <div
-                      className="mt-1 max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
+                      className="mt-0.5 max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
                       style={
                         {
                           display: '-webkit-box',
@@ -1199,7 +1314,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   </div>
                   <div className="min-w-0" aria-hidden />
-                  <div className="flex min-w-0 flex-col items-center text-center">
+                  <div className="flex min-w-0 flex-col items-center self-start text-center">
                     <div className="min-h-[1.125rem] text-[13px] font-medium leading-tight tracking-widest text-white/70">
                       {awayNameParts.prefix ? (
                         <span className="uppercase">{awayNameParts.prefix}</span>
@@ -1210,7 +1325,7 @@ export const LiveMatchScreen: React.FC = () => {
                       )}
                     </div>
                     <div
-                      className="mt-1 max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
+                      className="mt-0.5 max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
                       style={
                         {
                           display: '-webkit-box',
@@ -1224,6 +1339,21 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                <p className="mt-1.5 w-full text-center font-mono text-[11px] font-medium tabular-nums leading-none text-white whitespace-nowrap sm:text-[12px]">
+                  <span className="inline-block max-w-full overflow-x-auto">{periodScoreLine}</span>
+                </p>
+
+                {!matchIsFinished ? (
+                  <div className="mt-1 flex justify-center">
+                    <span
+                      className="liveTimer inline-flex items-center justify-center rounded-full border border-red-400/55 bg-gradient-to-b from-red-600 via-red-900 to-red-950 px-3 py-1.5 font-mono text-sm font-bold tabular-nums leading-none text-red-50 shadow-[0_0_16px_rgba(255,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.14)] sm:px-3.5 sm:text-[15px]"
+                      aria-live="polite"
+                    >
+                      {formatClock(currentMatchSeconds)}
+                    </span>
+                  </div>
+                ) : null}
               </div>
 
               {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
@@ -1983,14 +2113,53 @@ export const LiveMatchScreen: React.FC = () => {
         </div>
       )}
 
+      {canControlLiveMatch && !matchIsFinished && goalUndoSheetSide ? (
+        <div
+          className="fixed inset-0 z-[55] flex items-end justify-center bg-black/65 p-0 backdrop-blur-[2px]"
+          role="presentation"
+          onClick={() => setGoalUndoSheetSide(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-t-2xl border border-white/12 bg-zinc-950 px-4 pb-6 pt-3 shadow-[0_-8px_40px_rgba(0,0,0,0.5)]"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="goal-undo-sheet-title"
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+            <h3 id="goal-undo-sheet-title" className="text-center text-base font-bold text-white">
+              Tor korrigieren
+            </h3>
+            {goalUndoSheetTargetId ? (
+              <button
+                type="button"
+                className={`${mbRowBtn} mt-4 w-full border border-white/12 bg-white/[0.06] text-sm font-semibold text-white hover:bg-white/10`}
+                onClick={() => void undoGoalByEventId(goalUndoSheetTargetId)}
+              >
+                {goalUndoSheetSide === 'home' ? 'Letztes Heimtor rückgängig' : 'Letztes Gasttor rückgängig'}
+              </button>
+            ) : (
+              <p className="mt-4 text-center text-sm text-white/45">Kein Tor zum Zurücknehmen.</p>
+            )}
+            <button
+              type="button"
+              className="mt-2 w-full rounded-xl border border-white/10 py-2.5 text-sm font-medium text-white/75 hover:bg-white/[0.04]"
+              onClick={() => setGoalUndoSheetSide(null)}
+            >
+              Schließen
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {canControlLiveMatch && !matchIsFinished && goalUndoOffer ? (
         <div className="pointer-events-auto fixed bottom-20 left-3 right-3 z-[45] mx-auto max-w-md sm:left-1/2 sm:right-auto sm:-translate-x-1/2">
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-zinc-950 px-4 py-2.5">
-            <p className="min-w-0 text-sm text-white/90">Tor hinzugefügt – Rückgängig</p>
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-white/12 bg-zinc-950/98 px-4 py-2.5 shadow-[0_8px_28px_rgba(0,0,0,0.45)]">
+            <p className="min-w-0 text-sm font-medium text-white/90">Tor hinzugefügt</p>
             <button
               type="button"
               onClick={() => void undoLastGoal()}
-              className="shrink-0 rounded-lg bg-red-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
+              className="shrink-0 rounded-lg border border-red-500/40 bg-red-950/80 px-3 py-1.5 text-xs font-semibold text-red-100 hover:bg-red-900/80"
             >
               Rückgängig
             </button>
