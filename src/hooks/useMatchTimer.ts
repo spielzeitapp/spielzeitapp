@@ -6,6 +6,7 @@ export type UseMatchTimerResult = {
   isRunning: boolean;
   matchHasEnded: boolean;
   half: 1 | 2;
+  /** @deprecated UI steuert live_is_running über DB; No-Op für API-Kompatibilität. */
   startMatch: () => void;
   pauseMatch: () => void;
   resumeMatch: () => void;
@@ -22,74 +23,58 @@ type PersistedTimerState = {
 };
 
 /**
- * Einfache Spieluhr: tickt nur bei isRunning; nach endMatch kein resume.
+ * Effektive Spielzeit aus DB: live_elapsed_seconds (Basis) + (now − live_started_at) bei laufender Uhr.
+ * Kein +1/s-Intervall — nur ein 1s-Tick für Re-Renders; keine doppelte Zeitführung.
  */
+function wallMatchSeconds(persisted: PersistedTimerState | undefined): number {
+  const base = Math.max(0, Number(persisted?.elapsedSeconds ?? 0) || 0);
+  if (!persisted || Boolean(persisted.hasEnded)) return base;
+  if (!persisted.isRunning || !persisted.startedAtISO) return base;
+  const startedAtMs = new Date(persisted.startedAtISO).getTime();
+  if (Number.isNaN(startedAtMs)) return base;
+  return base + Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000));
+}
+
 export function useMatchTimer(persisted?: PersistedTimerState): UseMatchTimerResult {
-  const [currentMatchSeconds, setCurrentMatchSeconds] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
-  const [matchHasEnded, setMatchHasEnded] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  const ended = Boolean(persisted?.hasEnded);
+  const running = Boolean(persisted?.isRunning) && !ended;
+
+  useEffect(() => {
+    setTick(0);
+  }, [persisted?.elapsedSeconds, persisted?.hasEnded, persisted?.isRunning, persisted?.startedAtISO]);
+
+  useEffect(() => {
+    if (!running) return;
+    const id = window.setInterval(() => setTick((n) => n + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [running]);
+
+  const currentMatchSeconds = useMemo(
+    () => wallMatchSeconds(persisted),
+    [persisted?.elapsedSeconds, persisted?.hasEnded, persisted?.isRunning, persisted?.startedAtISO, tick],
+  );
 
   const half = useMemo<1 | 2>(
     () => (currentMatchSeconds < MATCH_HALF_DURATION_SEC ? 1 : 2),
     [currentMatchSeconds],
   );
 
-  useEffect(() => {
-    if (!isRunning || matchHasEnded) return;
-    const id = window.setInterval(() => {
-      setCurrentMatchSeconds((s) => s + 1);
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [isRunning, matchHasEnded]);
+  const noop = useCallback(() => {}, []);
 
-  useEffect(() => {
-    const baseElapsed = Math.max(0, Number(persisted?.elapsedSeconds ?? 0) || 0);
-    const running = Boolean(persisted?.isRunning);
-    const ended = Boolean(persisted?.hasEnded);
-    let nextElapsed = baseElapsed;
-    if (running && persisted?.startedAtISO) {
-      const startedAtMs = new Date(persisted.startedAtISO).getTime();
-      if (!Number.isNaN(startedAtMs)) {
-        nextElapsed += Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000));
-      }
-    }
-    setCurrentMatchSeconds(nextElapsed);
-    setIsRunning(running && !ended);
-    setMatchHasEnded(ended);
-  }, [persisted?.elapsedSeconds, persisted?.isRunning, persisted?.hasEnded, persisted?.startedAtISO]);
-
-  const startMatch = useCallback(() => {
-    if (matchHasEnded) return;
-    setIsRunning(true);
-  }, [matchHasEnded]);
-
-  const pauseMatch = useCallback(() => {
-    setIsRunning(false);
-  }, []);
-
-  const resumeMatch = useCallback(() => {
-    if (matchHasEnded) return;
-    setIsRunning(true);
-  }, [matchHasEnded]);
-
-  const endMatch = useCallback(() => {
-    setIsRunning(false);
-    setMatchHasEnded(true);
-  }, []);
-
-  const startSecondHalf = useCallback(() => {
-    setCurrentMatchSeconds((s) => Math.max(s, MATCH_HALF_DURATION_SEC));
-  }, []);
+  /** Ohne lokale Akkumulation: Halbzeit über Match-Events / DB steuern. */
+  const startSecondHalf = useCallback(() => {}, []);
 
   return {
     currentMatchSeconds,
-    isRunning,
-    matchHasEnded,
+    isRunning: running,
+    matchHasEnded: ended,
     half,
-    startMatch,
-    pauseMatch,
-    resumeMatch,
-    endMatch,
+    startMatch: noop,
+    pauseMatch: noop,
+    resumeMatch: noop,
+    endMatch: noop,
     startSecondHalf,
   };
 }

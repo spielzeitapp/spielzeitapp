@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { usePlayers } from '../../hooks/usePlayers';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
@@ -21,6 +21,7 @@ import {
   fetchMatchById,
   deleteMatchEventById,
   fetchMatchEvents,
+  getMatchLiveClockStatus,
   saveMatchEvent,
   saveMatchEvents,
   updateMatchRow,
@@ -277,6 +278,7 @@ function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
 
 export const LiveMatchScreen: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const matchIdParam = searchParams.get('matchId');
 
   const [effectiveMatchId, setEffectiveMatchId] = useState<string | null>(null);
@@ -368,21 +370,25 @@ export const LiveMatchScreen: React.FC = () => {
     return m;
   }, [roster]);
 
-  const {
-    currentMatchSeconds,
-    isRunning,
-    matchHasEnded,
-    half,
-    startMatch,
-    pauseMatch,
-    resumeMatch,
-    endMatch,
-  } = useMatchTimer({
+  const { currentMatchSeconds, half } = useMatchTimer({
     elapsedSeconds: matchRow?.live_elapsed_seconds ?? 0,
     isRunning: matchRow?.live_is_running ?? false,
     hasEnded: matchRow?.status === 'finished',
     startedAtISO: matchRow?.live_started_at ?? null,
   });
+
+  const hasClockStarted = useMemo(
+    () => Boolean(matchRow?.live_started_at) || events.some((e) => e.type === 'start'),
+    [matchRow?.live_started_at, events],
+  );
+
+  const matchIsFinished = matchRow?.status === 'finished';
+  const matchClockStatus = useMemo(
+    () => getMatchLiveClockStatus(matchRow, { hasClockStarted }),
+    [matchRow, hasClockStarted],
+  );
+  const isRunning = matchClockStatus === 'live';
+  const isPaused = matchClockStatus === 'paused';
 
   useEffect(() => {
     if (!matchRow) return;
@@ -543,16 +549,6 @@ export const LiveMatchScreen: React.FC = () => {
     [effectiveMatchId, clearGoalUndoTimer],
   );
 
-  const hasClockStarted = useMemo(
-    () => Boolean(matchRow?.live_started_at) || events.some((e) => e.type === 'start'),
-    [matchRow?.live_started_at, events],
-  );
-
-  const matchIsFinished = matchHasEnded || matchRow?.status === 'finished';
-  /** UI-Zustände nur aus bestehendem Match-/Timer-Status (keine neuen DB-Felder). */
-  const isEnded = matchIsFinished;
-  const isPaused = hasClockStarted && !isRunning && !isEnded;
-
   const onFieldIds = useMemo(
     () => getCurrentOnFieldPlayers(startingPlayerIds, events, currentMatchSeconds),
     [startingPlayerIds, events, currentMatchSeconds],
@@ -605,24 +601,36 @@ export const LiveMatchScreen: React.FC = () => {
     if (!hasClockStarted) {
       const { ok } = await persistSingle({ type: 'start', timestamp: 0 });
       if (!ok) return;
-      startMatch();
+      const ts = new Date().toISOString();
       const { error } = await updateMatchRow(effectiveMatchId, {
         status: 'live',
-        live_started_at: new Date().toISOString(),
+        live_started_at: ts,
         live_is_running: true,
+        live_elapsed_seconds: 0,
       });
       if (error) setSaveError(error);
+      else
+        setMatchRow((prev) =>
+          prev ? { ...prev, status: 'live', live_started_at: ts, live_is_running: true, live_elapsed_seconds: 0 } : null,
+        );
     } else {
       const { ok } = await persistSingle({ type: 'resume', timestamp: currentMatchSeconds });
       if (!ok) return;
-      resumeMatch();
+      const ts = new Date().toISOString();
+      const frozen = currentMatchSeconds;
       const { error } = await updateMatchRow(effectiveMatchId, {
         status: 'live',
-        live_started_at: new Date().toISOString(),
+        live_started_at: ts,
         live_is_running: true,
-        live_elapsed_seconds: currentMatchSeconds,
+        live_elapsed_seconds: frozen,
       });
       if (error) setSaveError(error);
+      else
+        setMatchRow((prev) =>
+          prev
+            ? { ...prev, status: 'live', live_started_at: ts, live_is_running: true, live_elapsed_seconds: frozen }
+            : null,
+        );
     }
   };
 
@@ -630,37 +638,24 @@ export const LiveMatchScreen: React.FC = () => {
     if (!canControlLiveMatch || !isRunning || matchIsFinished || !effectiveMatchId) return;
     const { ok } = await persistSingle({ type: 'pause', timestamp: currentMatchSeconds });
     if (!ok) return;
-    pauseMatch();
+    const frozen = currentMatchSeconds;
     const { error } = await updateMatchRow(effectiveMatchId, {
-      live_elapsed_seconds: currentMatchSeconds,
+      live_elapsed_seconds: frozen,
       live_is_running: false,
     });
     if (error) setSaveError(error);
-  };
-
-  /** Ende: Uhr stoppen / live_is_running aus – kein Spielabschluss, kein Archiv. */
-  const onEndeStopClick = async () => {
-    if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId) return;
-    if (isRunning) {
-      await onPauseClick();
-      return;
-    }
-    const { error } = await updateMatchRow(effectiveMatchId, {
-      live_elapsed_seconds: currentMatchSeconds,
-      live_is_running: false,
-    });
-    if (error) setSaveError(error);
+    else setMatchRow((prev) => (prev ? { ...prev, live_elapsed_seconds: frozen, live_is_running: false } : null));
   };
 
   const onEndClick = async () => {
     if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId) return;
-    const { ok } = await persistSingle({ type: 'end', timestamp: currentMatchSeconds });
+    const frozen = currentMatchSeconds;
+    const { ok } = await persistSingle({ type: 'end', timestamp: frozen });
     if (!ok) return;
-    endMatch();
     const { error } = await updateMatchRow(effectiveMatchId, {
       status: 'finished',
       live_is_running: false,
-      live_elapsed_seconds: currentMatchSeconds,
+      live_elapsed_seconds: frozen,
       live_period: half,
       score_home: scoreHome,
       score_away: scoreAway,
@@ -678,7 +673,7 @@ export const LiveMatchScreen: React.FC = () => {
               ...prev,
               status: 'finished',
               live_is_running: false,
-              live_elapsed_seconds: currentMatchSeconds,
+              live_elapsed_seconds: frozen,
               live_period: half,
               score_home: scoreHome,
               score_away: scoreAway,
@@ -1412,56 +1407,63 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
               </div>
 
-              {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
+              {!spectatorView && canControlLiveMatch ? (
                 <div className="mt-0 space-y-1 border-t border-white/10 bg-black/90 px-[15px] py-1">
-                  <div className="grid grid-cols-3 gap-1.5">
+                  {!matchIsFinished ? (
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => void onStartClick()}
+                        disabled={matchClockStatus === 'finished' || matchClockStatus === 'live'}
+                        aria-label={matchClockStatus === 'paused' ? 'Spiel fortsetzen' : 'Spiel beginnen'}
+                        className={mbStart}
+                      >
+                        <span aria-hidden>▶</span>
+                        {matchClockStatus === 'paused' ? 'Weiter' : 'Beginn'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void onPauseClick()}
+                        disabled={matchClockStatus === 'finished' || matchClockStatus !== 'live'}
+                        aria-label="Spiel anhalten"
+                        className={mbPause}
+                      >
+                        <span aria-hidden>⏸</span>
+                        Pause
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEndMatchConfirmOpen(true)}
+                        disabled={matchClockStatus === 'finished' || matchClockStatus === 'not_started'}
+                        aria-label="Spiel beenden"
+                        className={mbEnd}
+                      >
+                        <span aria-hidden>⏹</span>
+                        Ende
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {!matchIsFinished ? (
                     <button
                       type="button"
-                      onClick={onStartClick}
-                      disabled={matchIsFinished || isRunning}
-                      aria-label={isPaused ? 'Spiel fortsetzen' : 'Spiel beginnen'}
-                      className={mbStart}
+                      onClick={() => {
+                        setWechselSheetOpen(true);
+                      }}
+                      className={mbWechsel}
                     >
-                      <span aria-hidden>▶</span>
-                      Beginn
+                      <span aria-hidden>⇄</span>
+                      Wechsel
                     </button>
-                    <button
-                      type="button"
-                      onClick={onPauseClick}
-                      disabled={matchIsFinished || !isRunning}
-                      aria-label="Spiel anhalten"
-                      className={mbPause}
-                    >
-                      <span aria-hidden>⏸</span>
-                      Pause
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void onEndeStopClick()}
-                      disabled={matchIsFinished}
-                      aria-label="Spielzeit stoppen (ohne Abschluss)"
-                      className={mbEnd}
-                    >
-                      <span aria-hidden>⏹</span>
-                      Ende
-                    </button>
-                  </div>
+                  ) : null}
 
                   <button
                     type="button"
+                    disabled={!matchIsFinished}
                     onClick={() => {
-                      setWechselSheetOpen(true);
+                      if (matchIsFinished) navigate('/app');
                     }}
-                    className={mbWechsel}
-                  >
-                    <span aria-hidden>⇄</span>
-                    Wechsel
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setEndMatchConfirmOpen(true)}
-                    className={`${mbSpielEnde} text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[11px]`}
+                    className={`${mbSpielEnde} text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[11px] disabled:opacity-35`}
                   >
                     Spiel abschließen
                   </button>

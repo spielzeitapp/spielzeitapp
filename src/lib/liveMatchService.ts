@@ -20,6 +20,31 @@ export type LiveMatchRow = {
   live_period: number | null;
 };
 
+/** UI-/Button-Logik: aus DB-Status + Uhr, ohne neue Spalten. */
+export type MatchLiveClockStatus = 'not_started' | 'live' | 'paused' | 'finished';
+
+export function getMatchLiveClockStatus(
+  row: LiveMatchRow | null,
+  opts: { hasClockStarted: boolean },
+): MatchLiveClockStatus {
+  if (!row || row.status === 'finished') return 'finished';
+  if (row.status !== 'live') return 'not_started';
+  if (!opts.hasClockStarted && !row.live_started_at) return 'not_started';
+  if (row.live_is_running) return 'live';
+  return 'paused';
+}
+
+/** Anzeige-Sekunden (Reload-sicher): live_elapsed_seconds + (now − live_started_at) bei laufender Uhr. */
+export function computeLiveMatchElapsedSeconds(row: LiveMatchRow | null, nowMs = Date.now()): number {
+  if (!row) return 0;
+  const base = Math.max(0, Number(row.live_elapsed_seconds ?? 0) || 0);
+  if (row.status === 'finished') return base;
+  if (!row.live_is_running || !row.live_started_at) return base;
+  const started = new Date(row.live_started_at).getTime();
+  if (Number.isNaN(started)) return base;
+  return base + Math.max(0, Math.floor((nowMs - started) / 1000));
+}
+
 export type MatchEventDbRow = {
   id: string;
   match_id: string;
