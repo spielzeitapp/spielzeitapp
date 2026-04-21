@@ -1033,13 +1033,13 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 ) : null}
 
-                <div className={`flex justify-center ${matchTypeDisplay ? 'mt-6' : 'mt-4'}`}>
+                <div className={`flex justify-center ${matchTypeDisplay ? 'mt-5' : 'mt-3'}`}>
                   <div
                     className={`text-[16px] font-semibold tracking-[0.35em] ${
                       matchIsFinished
                         ? 'text-red-100'
                         : hasClockStarted
-                          ? 'text-red-200/90'
+                          ? 'animate-pulse text-red-200/90'
                           : 'text-white/50'
                     }`}
                   >
@@ -1048,7 +1048,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
 
                 {/* Logos + Score: eine Zeile, Score immer horizontal */}
-                <div className={`grid grid-cols-[120px_1fr_120px] items-center gap-x-3 ${matchTypeDisplay ? 'mt-3' : 'mt-2'}`}>
+                <div className={`grid grid-cols-[120px_1fr_120px] items-center gap-x-3 ${matchTypeDisplay ? 'mt-2' : 'mt-1.5'}`}>
                   <div className="flex min-w-0 justify-center">
                     <LiveMatchLogoTile
                       src={homeLogoSrc}
@@ -1057,10 +1057,49 @@ export const LiveMatchScreen: React.FC = () => {
                       size="schedule"
                     />
                   </div>
-                  <div className="flex min-w-0 justify-center px-0.5">
+                  <div className="flex min-w-0 items-center justify-center gap-2 px-0.5">
+                    {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
+                      <button
+                        type="button"
+                        aria-label="Heimtor erfassen"
+                        onClick={() => {
+                          setHomeGoalPickId('');
+                          setHomeGoalModalOpen(true);
+                        }}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-600/30 text-sm text-emerald-100 shadow-[0_0_10px_rgba(16,185,129,0.25)] hover:bg-emerald-600/45"
+                      >
+                        <span aria-hidden>⚽</span>
+                      </button>
+                    ) : null}
                     <span className="text-center text-[32px] font-extrabold leading-none text-white tabular-nums whitespace-nowrap sm:text-[36px]">
                       {scoreHome} : {scoreAway}
                     </span>
+                    {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
+                      <button
+                        type="button"
+                        aria-label="Gasttor erfassen"
+                        onClick={async () => {
+                          const res = await persistSingle({
+                            type: 'goal',
+                            timestamp: currentMatchSeconds,
+                          });
+                          if (!res.ok || !res.savedId) return;
+                          const { home: ph, away: pa } = scoresRef.current;
+                          const next = pa + 1;
+                          setScoreAway(next);
+                          if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: next });
+                          offerGoalUndo({
+                            eventId: res.savedId,
+                            side: 'away',
+                            prevHome: ph,
+                            prevAway: pa,
+                          });
+                        }}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-red-500/30 bg-red-600/30 text-sm text-red-100 shadow-[0_0_10px_rgba(220,38,38,0.25)] hover:bg-red-600/45"
+                      >
+                        <span aria-hidden>⚽</span>
+                      </button>
+                    ) : null}
                   </div>
                   <div className="flex min-w-0 justify-center">
                     <LiveMatchLogoTile
@@ -1073,7 +1112,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
 
                 {/* Teamnamen: gleiche Spalten, Mitte leer */}
-                <div className="mt-2 grid grid-cols-[120px_1fr_120px] items-start gap-x-3">
+                <div className="mt-1.5 grid grid-cols-[120px_1fr_120px] items-start gap-x-3">
                   <div
                     className="min-w-0 text-center text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
                     style={
@@ -1105,7 +1144,7 @@ export const LiveMatchScreen: React.FC = () => {
 
                 {!matchIsFinished ? (
                   <p
-                    className="liveTimer mt-2 text-center text-[17px] font-semibold tabular-nums leading-none text-red-400"
+                    className="liveTimer mt-1.5 text-center text-[17px] font-bold tabular-nums leading-none text-red-400"
                     aria-live="polite"
                   >
                     {formatClock(currentMatchSeconds)}
@@ -1118,78 +1157,33 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
 
               {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
-                <div className="mt-1 space-y-1.5 border-t border-white/10 bg-black/90 px-[15px] py-2">
-                  <div className="grid grid-cols-2 gap-2">
+                <div className="mt-0.5 space-y-1.5 border-t border-white/10 bg-black/90 px-[15px] py-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        setHomeGoalPickId('');
-                        setHomeGoalModalOpen(true);
-                      }}
-                      className="flex h-9 items-center justify-center gap-1 rounded-lg bg-emerald-700 px-2 text-xs font-semibold text-white hover:bg-emerald-600"
-                    >
-                      <span aria-hidden>⚽</span>
-                      Heim
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const res = await persistSingle({
-                          type: 'goal',
-                          timestamp: currentMatchSeconds,
-                        });
-                        if (!res.ok || !res.savedId) return;
-                        const { home: ph, away: pa } = scoresRef.current;
-                        const next = pa + 1;
-                        setScoreAway(next);
-                        if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: next });
-                        offerGoalUndo({
-                          eventId: res.savedId,
-                          side: 'away',
-                          prevHome: ph,
-                          prevAway: pa,
-                        });
-                      }}
-                      className="flex h-9 items-center justify-center gap-1 rounded-lg bg-red-700 px-2 text-xs font-semibold text-white hover:bg-red-600"
-                    >
-                      <span aria-hidden>⚽</span>
-                      Gast
-                    </button>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={isRunning ? onPauseClick : onStartClick}
+                      onClick={onStartClick}
                       disabled={matchIsFinished}
-                      aria-label={
-                        isRunning ? 'Spiel anhalten' : isPaused ? 'Spiel fortsetzen' : 'Spiel beginnen'
-                      }
-                      aria-pressed={isRunning}
-                      className={[
-                        'flex h-9 min-h-9 flex-1 items-center justify-center gap-1 rounded-lg border px-2 text-xs font-semibold',
-                        isRunning
-                          ? 'border-amber-500/60 bg-amber-400 text-black hover:bg-amber-300'
-                          : 'border-white/10 bg-zinc-800 text-white hover:bg-zinc-700',
-                      ].join(' ')}
+                      aria-label={isPaused ? 'Spiel fortsetzen' : 'Spiel beginnen'}
+                      className="flex h-9 min-h-9 items-center justify-center gap-1 rounded-lg border border-white/10 bg-zinc-800 px-2 text-xs font-semibold text-white hover:bg-zinc-700 disabled:opacity-50"
                     >
-                      {isRunning ? (
-                        <>
-                          <span aria-hidden>⏸</span>
-                          Pause
-                        </>
-                      ) : (
-                        <>
-                          <span aria-hidden>▶</span>
-                          Beginn
-                        </>
-                      )}
+                      <span aria-hidden>▶</span>
+                      Beginn
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onPauseClick}
+                      disabled={matchIsFinished || !isRunning}
+                      aria-label="Spiel anhalten"
+                      className="flex h-9 min-h-9 items-center justify-center gap-1 rounded-lg border border-amber-500/60 bg-amber-400 px-2 text-xs font-semibold text-black hover:bg-amber-300 disabled:opacity-45"
+                    >
+                      <span aria-hidden>⏸</span>
+                      Pause
                     </button>
                     <button
                       type="button"
                       onClick={() => setEndMatchConfirmOpen(true)}
                       disabled={matchIsFinished}
-                      className="flex h-9 min-h-9 flex-1 items-center justify-center gap-1 rounded-lg border border-red-600/50 bg-red-800 px-2 text-xs font-semibold text-white hover:bg-red-700 disabled:border-transparent disabled:bg-neutral-800 disabled:text-gray-500"
+                      className="flex h-9 min-h-9 items-center justify-center gap-1 rounded-lg border border-red-600/50 bg-red-800 px-2 text-xs font-semibold text-white hover:bg-red-700 disabled:border-transparent disabled:bg-neutral-800 disabled:text-gray-500"
                     >
                       <span aria-hidden>⏹</span>
                       Ende
