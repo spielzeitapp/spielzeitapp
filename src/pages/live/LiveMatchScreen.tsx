@@ -188,6 +188,11 @@ const spectatorTabBtnIdle =
 const liveCardShell =
   'rounded-2xl border border-white/[0.08] bg-gradient-to-br from-zinc-950/95 via-zinc-950/80 to-black shadow-[0_6px_28px_rgba(0,0,0,0.35)]';
 
+/** Trainer-Matchboard: einheitliche Höhe/Rundung für Steuerung + Tor-Pills. */
+const mbBtnH = 'h-10 min-h-10';
+const mbRound = 'rounded-xl';
+const mbRowBtn = `flex ${mbBtnH} touch-manipulation items-center justify-center gap-1.5 ${mbRound} px-3 text-xs font-semibold transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40`;
+
 function eventIcon(t: MatchEventType): string {
   if (t === 'goal') return '⚽';
   if (t === 'sub_out' || t === 'sub_in') return '⇄';
@@ -1011,6 +1016,23 @@ export const LiveMatchScreen: React.FC = () => {
   const layoutShell = 'mx-auto w-full max-w-lg md:max-w-2xl lg:max-w-3xl';
   const spectatorView = !canControlLiveMatch;
   const matchboardVisible = spectatorView || (canControlLiveMatch && mainTab === 'overview');
+  const liveBadgeAnimating = hasClockStarted && isRunning && !matchIsFinished;
+  const liveBadgeShell =
+    'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] sm:px-3 sm:text-[11px] uppercase';
+  const liveBadgeClassName = `${liveBadgeShell} ${
+    matchIsFinished
+      ? 'border-red-500/45 bg-gradient-to-b from-red-900 to-red-950 text-red-100 shadow-[0_0_16px_rgba(220,38,38,0.4)]'
+      : hasClockStarted
+        ? `border-red-400/55 bg-gradient-to-b from-red-600 via-red-900 to-red-950 text-red-50 shadow-[0_0_18px_rgba(255,0,0,0.5)]${liveBadgeAnimating ? ' animate-live-badge-soft' : ''}`
+        : 'border-white/20 bg-zinc-900/95 text-white/55 shadow-[0_0_10px_rgba(0,0,0,0.35)]'
+  }`;
+  const scorePillHome = `${mbRowBtn} min-w-0 shrink-0 border border-emerald-500/45 bg-gradient-to-b from-emerald-600 to-emerald-950 text-emerald-50 shadow-[0_0_14px_rgba(16,185,129,0.3),inset_0_1px_0_rgba(255,255,255,0.12)] hover:brightness-110`;
+  const scorePillAway = `${mbRowBtn} min-w-0 shrink-0 border border-red-500/45 bg-gradient-to-b from-red-600 to-red-950 text-red-50 shadow-[0_0_14px_rgba(220,38,38,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:brightness-110`;
+  const mbStart = `${mbRowBtn} border border-emerald-500/45 bg-gradient-to-b from-emerald-600 to-emerald-950 text-white shadow-[0_0_12px_rgba(16,185,129,0.24),inset_0_1px_0_rgba(255,255,255,0.1)]`;
+  const mbPause = `${mbRowBtn} border border-amber-500/50 bg-gradient-to-b from-amber-400 to-amber-700 text-black shadow-[0_0_12px_rgba(245,158,11,0.3),inset_0_1px_0_rgba(255,255,255,0.2)]`;
+  const mbEnd = `${mbRowBtn} border border-red-500/45 bg-gradient-to-b from-red-600 to-red-950 text-white shadow-[0_0_12px_rgba(220,38,38,0.3),inset_0_1px_0_rgba(255,255,255,0.1)]`;
+  const mbWechsel = `${mbRowBtn} w-full border border-emerald-500/45 bg-gradient-to-b from-emerald-600 to-emerald-950 text-white shadow-[0_0_12px_rgba(16,185,129,0.24),inset_0_1px_0_rgba(255,255,255,0.1)]`;
+  const mbSpielEnde = `${mbRowBtn} w-full border border-red-500/40 bg-transparent text-red-200 hover:bg-red-950/45`;
 
   return (
     <div
@@ -1036,88 +1058,96 @@ export const LiveMatchScreen: React.FC = () => {
                 spectatorView ? 'md:max-w-xl' : 'md:max-w-2xl'
               }`}
             >
-              <div className="w-full px-[15px] py-3">
+              <div className="w-full px-[15px] py-2.5">
                 {matchTypeDisplay ? (
                   <div className="flex justify-center">
-                    <p className="text-xl font-semibold text-white">{matchTypeDisplay}</p>
+                    <p className="text-lg font-semibold text-white sm:text-xl">{matchTypeDisplay}</p>
                   </div>
                 ) : null}
 
-                <div className={`flex justify-center ${matchTypeDisplay ? 'mt-5' : 'mt-3'}`}>
-                  <div
-                    className={`text-[16px] font-semibold tracking-[0.35em] ${
-                      matchIsFinished
-                        ? 'text-red-100'
-                        : hasClockStarted && isRunning
-                          ? 'animate-live-badge-soft text-red-200/90'
-                          : hasClockStarted
-                            ? 'text-red-200/90'
-                            : 'text-white/50'
-                    }`}
-                  >
-                    {matchIsFinished ? 'ENDSTAND' : hasClockStarted ? 'LIVE' : 'BEREIT'}
+                <div className={`flex justify-center ${matchTypeDisplay ? 'mt-2' : 'mt-1.5'}`}>
+                  <div className={liveBadgeClassName}>
+                    {hasClockStarted && !matchIsFinished ? (
+                      <span className="text-[10px] leading-none text-red-100 sm:text-[11px]" aria-hidden>
+                        ●
+                      </span>
+                    ) : null}
+                    {matchIsFinished ? 'Endstand' : hasClockStarted ? 'Live' : 'Bereit'}
                   </div>
                 </div>
 
-                {/* Logos + Tor-Buttons (zwischen Logo und Spielstand) + Score */}
+                {/* Logos + integrierter Spielstand (Tor-Pills mit Ball + Zahl) */}
                 <div
                   className={`grid grid-cols-[120px_1fr_120px] items-center gap-x-2 sm:gap-x-3 ${
                     matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
-                  <div className="flex min-h-[48px] min-w-0 items-center justify-end gap-2">
+                  <div className="flex min-h-[52px] min-w-0 items-center justify-center">
                     <LiveMatchLogoTile
                       src={homeLogoSrc}
                       initialsFrom={homeLogoLookupName}
                       liveGlow={false}
                       size="schedule"
                     />
-                    {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
-                      <button
-                        type="button"
-                        aria-label="Heimtor erfassen"
-                        onClick={() => {
-                          setHomeGoalPickId('');
-                          setHomeGoalModalOpen(true);
-                        }}
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-600/30 text-sm text-emerald-100 shadow-[0_0_10px_rgba(16,185,129,0.25)] hover:bg-emerald-600/45"
-                      >
-                        <span aria-hidden>⚽</span>
-                      </button>
-                    ) : null}
                   </div>
-                  <div className="flex justify-center px-1">
-                    <span className="text-center text-[32px] font-extrabold leading-none text-white tabular-nums whitespace-nowrap sm:text-[36px]">
-                      {scoreHome} : {scoreAway}
-                    </span>
-                  </div>
-                  <div className="flex min-h-[48px] min-w-0 items-center justify-start gap-2">
+                  <div className="flex min-w-0 items-center justify-center gap-1.5 px-0.5 sm:gap-2">
                     {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
-                      <button
-                        type="button"
-                        aria-label="Gasttor erfassen"
-                        onClick={async () => {
-                          const res = await persistSingle({
-                            type: 'goal',
-                            timestamp: currentMatchSeconds,
-                          });
-                          if (!res.ok || !res.savedId) return;
-                          const { home: ph, away: pa } = scoresRef.current;
-                          const next = pa + 1;
-                          setScoreAway(next);
-                          if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: next });
-                          offerGoalUndo({
-                            eventId: res.savedId,
-                            side: 'away',
-                            prevHome: ph,
-                            prevAway: pa,
-                          });
-                        }}
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-red-500/30 bg-red-600/30 text-sm text-red-100 shadow-[0_0_10px_rgba(220,38,38,0.25)] hover:bg-red-600/45"
-                      >
-                        <span aria-hidden>⚽</span>
-                      </button>
-                    ) : null}
+                      <>
+                        <button
+                          type="button"
+                          aria-label="Heimtor erfassen"
+                          onClick={() => {
+                            setHomeGoalPickId('');
+                            setHomeGoalModalOpen(true);
+                          }}
+                          className={scorePillHome}
+                        >
+                          <span aria-hidden className="text-sm leading-none">
+                            ⚽
+                          </span>
+                          <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{scoreHome}</span>
+                        </button>
+                        <span
+                          className="shrink-0 text-[22px] font-extrabold leading-none text-white/90 tabular-nums sm:text-[26px]"
+                          aria-hidden
+                        >
+                          :
+                        </span>
+                        <button
+                          type="button"
+                          aria-label="Gasttor erfassen"
+                          onClick={async () => {
+                            const res = await persistSingle({
+                              type: 'goal',
+                              timestamp: currentMatchSeconds,
+                            });
+                            if (!res.ok || !res.savedId) return;
+                            const { home: ph, away: pa } = scoresRef.current;
+                            const next = pa + 1;
+                            setScoreAway(next);
+                            if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: next });
+                            offerGoalUndo({
+                              eventId: res.savedId,
+                              side: 'away',
+                              prevHome: ph,
+                              prevAway: pa,
+                            });
+                          }}
+                          className={scorePillAway}
+                        >
+                          <span aria-hidden className="text-sm leading-none">
+                            ⚽
+                          </span>
+                          <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{scoreAway}</span>
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-center text-[30px] font-extrabold leading-none text-white tabular-nums whitespace-nowrap sm:text-[34px]">
+                        {scoreHome} : {scoreAway}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex min-h-[52px] min-w-0 items-center justify-center">
                     <LiveMatchLogoTile
                       src={awayLogoSrc}
                       initialsFrom={headerOpponent}
@@ -1127,31 +1157,35 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 </div>
 
-                <p className="mt-1.5 w-full text-center font-mono text-[11px] font-medium tabular-nums leading-tight text-white whitespace-nowrap sm:text-[12px]">
+                <p className="mt-1 w-full text-center font-mono text-[11px] font-medium tabular-nums leading-none text-white whitespace-nowrap sm:text-[12px]">
                   <span className="inline-block max-w-full overflow-x-auto">{periodScoreLine}</span>
                 </p>
 
                 {!matchIsFinished ? (
-                  <p
-                    className="liveTimer mt-1.5 text-center text-[17px] font-bold tabular-nums leading-none text-red-400"
-                    aria-live="polite"
-                  >
-                    {formatClock(currentMatchSeconds)}
-                  </p>
+                  <div className="mt-1.5 flex justify-center">
+                    <span
+                      className="liveTimer inline-flex items-center justify-center rounded-full border border-red-400/55 bg-gradient-to-b from-red-600 via-red-900 to-red-950 px-3 py-1.5 font-mono text-sm font-bold tabular-nums leading-none text-red-50 shadow-[0_0_16px_rgba(255,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.14)] sm:px-3.5 sm:text-[15px]"
+                      aria-live="polite"
+                    >
+                      {formatClock(currentMatchSeconds)}
+                    </span>
+                  </div>
                 ) : null}
 
                 {/* Teamnamen: wie Termin-Karte – Kurzname + zweite Zeile */}
-                <div className="mt-1.5 grid grid-cols-[120px_1fr_120px] items-start gap-x-3">
+                <div className="mt-1.5 grid grid-cols-[120px_1fr_120px] items-start gap-x-2 sm:gap-x-3">
                   <div className="flex min-w-0 flex-col items-center text-center">
-                    {homeNameParts.prefix ? (
-                      <div className="text-[13px] font-medium tracking-widest uppercase text-white/70">
-                        {homeNameParts.prefix}
-                      </div>
-                    ) : null}
+                    <div className="min-h-[1.125rem] text-[13px] font-medium leading-tight tracking-widest text-white/70">
+                      {homeNameParts.prefix ? (
+                        <span className="uppercase">{homeNameParts.prefix}</span>
+                      ) : (
+                        <span className="invisible" aria-hidden>
+                          .
+                        </span>
+                      )}
+                    </div>
                     <div
-                      className={`max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words ${
-                        homeNameParts.prefix ? 'mt-1' : ''
-                      }`}
+                      className="mt-1 max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
                       style={
                         {
                           display: '-webkit-box',
@@ -1166,15 +1200,17 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                   <div className="min-w-0" aria-hidden />
                   <div className="flex min-w-0 flex-col items-center text-center">
-                    {awayNameParts.prefix ? (
-                      <div className="text-[13px] font-medium tracking-widest uppercase text-white/70">
-                        {awayNameParts.prefix}
-                      </div>
-                    ) : null}
+                    <div className="min-h-[1.125rem] text-[13px] font-medium leading-tight tracking-widest text-white/70">
+                      {awayNameParts.prefix ? (
+                        <span className="uppercase">{awayNameParts.prefix}</span>
+                      ) : (
+                        <span className="invisible" aria-hidden>
+                          .
+                        </span>
+                      )}
+                    </div>
                     <div
-                      className={`max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words ${
-                        awayNameParts.prefix ? 'mt-1' : ''
-                      }`}
+                      className="mt-1 max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
                       style={
                         {
                           display: '-webkit-box',
@@ -1191,14 +1227,14 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
 
               {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
-                <div className="mt-0.5 space-y-1.5 border-t border-white/10 bg-black/90 px-[15px] py-2">
-                  <div className="grid grid-cols-3 gap-2">
+                <div className="mt-0 space-y-1 border-t border-white/10 bg-black/90 px-[15px] py-1.5">
+                  <div className="grid grid-cols-3 gap-1.5">
                     <button
                       type="button"
                       onClick={onStartClick}
-                      disabled={matchIsFinished}
+                      disabled={matchIsFinished || isRunning}
                       aria-label={isPaused ? 'Spiel fortsetzen' : 'Spiel beginnen'}
-                      className="flex h-9 min-h-9 items-center justify-center gap-1 rounded-lg border border-white/10 bg-zinc-800 px-2 text-xs font-semibold text-white hover:bg-zinc-700 disabled:opacity-50"
+                      className={mbStart}
                     >
                       <span aria-hidden>▶</span>
                       Beginn
@@ -1208,7 +1244,7 @@ export const LiveMatchScreen: React.FC = () => {
                       onClick={onPauseClick}
                       disabled={matchIsFinished || !isRunning}
                       aria-label="Spiel anhalten"
-                      className="flex h-9 min-h-9 items-center justify-center gap-1 rounded-lg border border-amber-500/60 bg-amber-400 px-2 text-xs font-semibold text-black hover:bg-amber-300 disabled:opacity-45"
+                      className={mbPause}
                     >
                       <span aria-hidden>⏸</span>
                       Pause
@@ -1217,7 +1253,8 @@ export const LiveMatchScreen: React.FC = () => {
                       type="button"
                       onClick={() => setEndMatchConfirmOpen(true)}
                       disabled={matchIsFinished}
-                      className="flex h-9 min-h-9 items-center justify-center gap-1 rounded-lg border border-red-600/50 bg-red-800 px-2 text-xs font-semibold text-white hover:bg-red-700 disabled:border-transparent disabled:bg-neutral-800 disabled:text-gray-500"
+                      aria-label="Spiel beenden"
+                      className={mbEnd}
                     >
                       <span aria-hidden>⏹</span>
                       Ende
@@ -1232,7 +1269,7 @@ export const LiveMatchScreen: React.FC = () => {
                         document.getElementById('live-wechsel-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       });
                     }}
-                    className="flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-transparent text-xs font-medium text-white hover:bg-white/[0.04]"
+                    className={mbWechsel}
                   >
                     <span aria-hidden>⇄</span>
                     Wechsel
@@ -1241,7 +1278,7 @@ export const LiveMatchScreen: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setEndMatchConfirmOpen(true)}
-                    className="flex h-8 w-full items-center justify-center rounded-lg border border-red-500/30 bg-transparent text-[10px] font-medium uppercase tracking-wide text-red-400/90 hover:border-red-500/50 hover:bg-red-950/30 md:text-[11px]"
+                    className={`${mbSpielEnde} text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[11px]`}
                   >
                     Spiel abschließen
                   </button>
