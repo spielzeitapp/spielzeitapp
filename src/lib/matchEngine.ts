@@ -233,3 +233,60 @@ export function handleSubstitution(args: {
 
   return { ok: true, events: [outEv, inEv] };
 }
+
+type ScorePair = { h: number; a: number };
+
+function scoreSub(a: ScorePair, b: ScorePair): ScorePair {
+  return { h: a.h - b.h, a: a.a - b.a };
+}
+
+function formatPeriodSegment(pair: ScorePair, started: boolean): string {
+  if (!started) return '-:-';
+  return `${pair.h}:${pair.a}`;
+}
+
+/**
+ * Abschnittsergebnisse nur aus Toren + Pausen (nicht aus Spielminuten):
+ * Drittel 1 bis zur 1. Pause, Drittel 2 bis zur 2. Pause, Drittel 3 bis Spielende.
+ * Gesamtstand bleibt separat (score_home / score_away) — hier nur die Klammer-Zeile.
+ */
+export function buildPauseDelimitedPeriodScoreLine(events: MatchEngineEvent[], matchFinished: boolean): string {
+  const sorted = sortMatchEventsChronologically(events);
+  let cum: ScorePair = { h: 0, a: 0 };
+  const pauseSnaps: ScorePair[] = [];
+  let endSnap: ScorePair | null = null;
+
+  for (const e of sorted) {
+    if (e.type === 'goal') {
+      if (e.playerId) cum = { h: cum.h + 1, a: cum.a };
+      else cum = { h: cum.h, a: cum.a + 1 };
+    } else if (e.type === 'pause') {
+      pauseSnaps.push({ ...cum });
+    } else if (e.type === 'end') {
+      endSnap = { ...cum };
+    }
+  }
+
+  const current = matchFinished && endSnap ? endSnap : cum;
+  const z: ScorePair = { h: 0, a: 0 };
+
+  if (pauseSnaps.length === 0) {
+    const s1 = current;
+    const st1 = s1.h + s1.a > 0;
+    return `(${formatPeriodSegment(s1, st1)} | -:- | -:-)`;
+  }
+
+  if (pauseSnaps.length === 1) {
+    const p1 = pauseSnaps[0];
+    const s1 = scoreSub(p1, z);
+    const s2 = scoreSub(current, p1);
+    return `(${formatPeriodSegment(s1, true)} | ${formatPeriodSegment(s2, true)} | -:-)`;
+  }
+
+  const p1 = pauseSnaps[0];
+  const p2 = pauseSnaps[1];
+  const s1 = scoreSub(p1, z);
+  const s2 = scoreSub(p2, p1);
+  const s3 = scoreSub(current, p2);
+  return `(${formatPeriodSegment(s1, true)} | ${formatPeriodSegment(s2, true)} | ${formatPeriodSegment(s3, true)})`;
+}

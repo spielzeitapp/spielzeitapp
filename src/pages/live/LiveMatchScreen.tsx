@@ -4,7 +4,7 @@ import { useSession } from '../../auth/useSession';
 import { usePlayers } from '../../hooks/usePlayers';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
 import {
-  MATCH_HALF_DURATION_SEC,
+  buildPauseDelimitedPeriodScoreLine,
   calculatePlayerPlaytimes,
   getBenchPlayers,
   getCurrentOnFieldPlayers,
@@ -154,36 +154,6 @@ function MatchboardTeamNameLines({ parts }: { parts: { prefix: string; name: str
       </div>
     </div>
   );
-}
-
-/** Drittel-/Halbzeit-Stand aus Event-Zeitstempeln (gleiche Grenzen wie Uhr). */
-function buildPeriodScoreLine(events: MatchEngineEvent[], currentMatchSeconds: number): string {
-  const b1 = MATCH_HALF_DURATION_SEC;
-  const b2 = MATCH_HALF_DURATION_SEC * 2;
-  const sorted = sortMatchEventsChronologically(events);
-  const p1 = [0, 0];
-  const p2 = [0, 0];
-  const p3 = [0, 0];
-  for (const e of sorted) {
-    if (e.type !== 'goal') continue;
-    const t = e.timestamp;
-    const homeGoal = Boolean(e.playerId);
-    if (t < b1) {
-      if (homeGoal) p1[0] += 1;
-      else p1[1] += 1;
-    } else if (t < b2) {
-      if (homeGoal) p2[0] += 1;
-      else p2[1] += 1;
-    } else {
-      if (homeGoal) p3[0] += 1;
-      else p3[1] += 1;
-    }
-  }
-  const seg = (h: number, a: number, started: boolean) => (started ? `${h}:${a}` : '-:-');
-  const s1 = seg(p1[0], p1[1], currentMatchSeconds > 0 || p1[0] + p1[1] > 0);
-  const s2 = seg(p2[0], p2[1], currentMatchSeconds >= b1 || p2[0] + p2[1] > 0);
-  const s3 = seg(p3[0], p3[1], currentMatchSeconds >= b2 || p3[0] + p3[1] > 0);
-  return `(${s1} | ${s2} | ${s3})`;
 }
 
 /** Trainer-Tabs: unter dem Matchboard, Stadium/Premium-Anmutung. */
@@ -800,8 +770,8 @@ export const LiveMatchScreen: React.FC = () => {
   }, [events]);
 
   const periodScoreLine = useMemo(
-    () => buildPeriodScoreLine(events, currentMatchSeconds),
-    [events, currentMatchSeconds],
+    () => buildPauseDelimitedPeriodScoreLine(events, Boolean(matchIsFinished)),
+    [events, matchIsFinished],
   );
 
   const lastHomeGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'home'), [events]);
