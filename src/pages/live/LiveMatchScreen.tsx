@@ -135,23 +135,21 @@ function splitPrefixAndName(full: string): { prefix: string; name: string } {
   return { prefix: trimmed.slice(0, i), name: trimmed.slice(i + 1) };
 }
 
-/** Zwei Zeilen: Kurzname + Rest, keine Silbentrennung / kein Umbrechen mitten im Wort. */
+/** Zwei Zeilen: Kurzname + Ortsname, voll lesbar: keine Ellipsis, kein max-width-Zwang, keine Silbentrennung. */
 function MatchboardTeamNameLines({ parts }: { parts: { prefix: string; name: string } }) {
   return (
-    <div className="w-full max-w-[118px]">
-      <div className="min-h-[1rem] text-[12px] font-medium uppercase leading-none tracking-widest text-white/70">
+    <div className="w-full min-w-0 hyphens-none">
+      <div className="min-h-[1em] text-[10px] font-medium uppercase leading-tight tracking-wider text-white/70 sm:text-[11px]">
         {parts.prefix ? (
-          <span className="block truncate whitespace-nowrap text-center">{parts.prefix}</span>
+          <span className="block text-center">{parts.prefix}</span>
         ) : (
           <span className="invisible block" aria-hidden>
             .
           </span>
         )}
       </div>
-      <div className="mt-0.5 text-center text-[17px] font-semibold leading-tight text-white">
-        <span className="block truncate whitespace-nowrap" title={parts.name}>
-          {parts.name || '\u00a0'}
-        </span>
+      <div className="mt-0.5 text-center text-[12px] font-semibold leading-snug text-white sm:text-[13px] [overflow-wrap:break-word] [word-break:normal]">
+        <span className="block px-0.5">{parts.name || '\u00a0'}</span>
       </div>
     </div>
   );
@@ -1234,11 +1232,11 @@ export const LiveMatchScreen: React.FC = () => {
 
                 {/* Logos außen + Namen direkt darunter; Mitte: Score → Pausen → Zeit */}
                 <div
-                  className={`grid grid-cols-[1fr_auto_1fr] items-start gap-x-4 sm:gap-x-6 md:gap-x-8 ${
+                  className={`grid grid-cols-[1fr_auto_1fr] items-start gap-x-2 sm:gap-x-6 md:gap-x-8 ${
                     matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
-                  <div className="flex min-w-0 flex-col items-center self-stretch pl-0 pr-1 text-center sm:pl-0.5 sm:pr-2">
+                  <div className="flex min-w-0 flex-col items-center self-stretch pl-0 pr-0.5 text-center sm:pl-0.5 sm:pr-2">
                     <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={homeLogoSrc}
@@ -1252,7 +1250,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex w-max max-w-[min(100vw-9rem,200px)] shrink-0 flex-col items-center gap-0.5 px-1">
+                  <div className="flex w-max max-w-[min(100vw-11.5rem,188px)] shrink-0 flex-col items-center gap-0.5 px-0.5 sm:px-1 sm:max-w-[min(100vw-9rem,200px)]">
                     <div className="flex items-center justify-center gap-1 sm:gap-1.5">
                       {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                         <>
@@ -1341,7 +1339,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
 
-                  <div className="flex min-w-0 flex-col items-center self-stretch pl-1 pr-0 text-center sm:pl-2 sm:pr-0.5">
+                  <div className="flex min-w-0 flex-col items-center self-stretch pl-0.5 pr-0 text-center sm:pl-2 sm:pr-0.5">
                     <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={awayLogoSrc}
@@ -1487,16 +1485,16 @@ export const LiveMatchScreen: React.FC = () => {
         className={
           spectatorView
             ? `min-h-0 flex-1 overflow-y-auto overscroll-y-contain ${layoutShell} px-2 pb-24 pt-1`
-            : `${layoutShell} px-2 py-3 md:px-5 md:py-4 pb-28`
+            : `${layoutShell} px-2 py-2 md:px-5 md:py-4 pb-28`
         }
       >
         {mainTab === 'overview' && (
-          <div className="space-y-3">
+          <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-3'}>
             {canControlLiveMatch ? (
               <>
                 <section>
-                  <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Spielzeit</h2>
-                  <ul className="space-y-3">
+                  <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Spielzeit</h2>
+                  <ul className="space-y-1.5">
                     {sortRosterByNumber(roster.filter((p) => squadPlayerIds.includes(p.id))).map((p) => {
                       const sec = playtimes[p.id] ?? 0;
                       const st = getPlaytimeStatus(sec, currentMatchSeconds, squadPlayerIds.length);
@@ -1504,7 +1502,7 @@ export const LiveMatchScreen: React.FC = () => {
                       return (
                         <li
                           key={p.id}
-                          className={`flex min-h-[52px] items-center gap-2 rounded-xl border px-3 py-2.5 ${
+                          className={`flex min-h-[46px] items-center gap-2 rounded-xl border px-3 py-2 ${
                             onF
                               ? 'border-emerald-600/40 bg-zinc-950'
                               : 'border-red-500/20 bg-zinc-950/80 opacity-90'
@@ -1537,25 +1535,23 @@ export const LiveMatchScreen: React.FC = () => {
                 </section>
 
                 <section>
-                  <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Wechsel-Vorschläge</h2>
-                  <div className="space-y-3">
-                    <div className="rounded-2xl border border-emerald-800/35 bg-gradient-to-br from-emerald-950/35 to-black/80 p-4 ring-1 ring-emerald-700/15">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-400/95">
+                  <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Wechsel-Vorschläge</h2>
+                  <div className="grid gap-1.5 sm:grid-cols-2">
+                    <div className="rounded-xl border border-emerald-800/35 bg-gradient-to-br from-emerald-950/30 to-black/80 px-2.5 py-2 ring-1 ring-emerald-700/12">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-400/95">
                         Spielzeit erreicht
                       </p>
-                      <p className="mt-3 text-sm text-white/40">Hinweise zu Einwechslungen erscheinen hier.</p>
+                      <p className="mt-1 text-[11px] leading-snug text-white/42">Hinweise zu Einwechslungen folgen.</p>
                     </div>
-                    <div className="rounded-2xl border border-amber-800/35 bg-gradient-to-br from-amber-950/25 to-black/80 p-4 ring-1 ring-amber-700/15">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-400/95">
-                        Wenig Spielzeit
-                      </p>
-                      <p className="mt-3 text-sm text-white/40">Optionen für mehr Einsatzzeit erscheinen hier.</p>
+                    <div className="rounded-xl border border-amber-800/35 bg-gradient-to-br from-amber-950/22 to-black/80 px-2.5 py-2 ring-1 ring-amber-700/12">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-amber-400/95">Wenig Spielzeit</p>
+                      <p className="mt-1 text-[11px] leading-snug text-white/42">Mehr Einsatzzeit: Hinweise folgen.</p>
                     </div>
                   </div>
                 </section>
 
                 <section>
-                  <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="mb-1 flex items-center justify-between gap-2">
                     <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Liveticker</h2>
                   </div>
                   <ul className="rounded-xl border border-red-500/30 bg-black px-1 py-2 sm:px-2 sm:py-3">
@@ -1568,10 +1564,10 @@ export const LiveMatchScreen: React.FC = () => {
                 </section>
 
                 <section>
-                  <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">
+                  <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">
                     Startaufstellung ({fieldPlayers.length})
                   </h2>
-                  <div className="relative overflow-hidden rounded-xl border border-red-500/30 bg-black p-3">
+                  <div className="relative overflow-hidden rounded-xl border border-red-500/30 bg-black p-2 sm:p-3">
                     <div
                       className="pointer-events-none absolute inset-0 opacity-[0.05]"
                       style={{
@@ -1874,7 +1870,7 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 backdrop-blur-sm sm:items-center sm:p-4"
+          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/75 backdrop-blur-sm sm:items-center sm:p-4"
           role="presentation"
           onClick={() => {
             setWechselOutId('');
@@ -1883,40 +1879,38 @@ export const LiveMatchScreen: React.FC = () => {
           }}
         >
           <div
-            className="flex h-[100dvh] max-h-[100dvh] w-full max-w-lg flex-col rounded-t-3xl border border-white/10 bg-[#101010] shadow-2xl sm:h-[min(92dvh,760px)] sm:max-h-[min(92dvh,760px)] sm:rounded-2xl"
+            className="flex h-[100dvh] max-h-[100dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#101010] shadow-2xl sm:h-[min(92dvh,760px)] sm:max-h-[min(92dvh,760px)] sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="wechsel-sheet-title"
           >
-            <div className="shrink-0 px-4 pb-2 pt-4 sm:pt-5">
-              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20 sm:hidden" aria-hidden />
-              <h3 id="wechsel-sheet-title" className="text-center text-base font-bold sm:text-lg">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-2 pt-3 [-webkit-overflow-scrolling:touch] sm:px-4 sm:pt-4">
+              <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-white/20 sm:hidden" aria-hidden />
+              <h3 id="wechsel-sheet-title" className="text-center text-sm font-bold sm:text-base">
                 Wechsel
               </h3>
-              <ol className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 px-1 text-center text-[10px] leading-snug text-white/55">
-                <li>
-                  <span className="font-bold text-white/80">1.</span> Feldspieler wählen
-                </li>
-                <li>
-                  <span className="font-bold text-white/80">2.</span> Bankspieler wählen
-                </li>
-                <li>
-                  <span className="font-bold text-white/80">3.</span> Wechsel bestätigen
-                </li>
-              </ol>
-            </div>
+              <p className="mt-1 text-center text-[9px] leading-tight text-white/50 sm:text-[10px]">
+                <span className="font-semibold text-white/70">1.</span> Feld{' '}
+                <span className="text-white/25" aria-hidden>
+                  ·
+                </span>{' '}
+                <span className="font-semibold text-white/70">2.</span> Bank{' '}
+                <span className="text-white/25" aria-hidden>
+                  ·
+                </span>{' '}
+                <span className="font-semibold text-white/70">3.</span> Bestätigen
+              </p>
 
-            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-4 pb-2">
-              <div className="shrink-0">
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-red-400/95">Am Feld · Raus</p>
+              <div className="mt-2">
+                <p className="mb-0.5 text-[9px] font-bold uppercase tracking-wider text-red-400/95">Am Feld · Raus</p>
                 <div
-                  className="relative min-h-[118px] rounded-2xl border border-dashed border-emerald-700/45 bg-gradient-to-b from-emerald-950/35 via-black/50 to-black/80 p-2 sm:min-h-[132px]"
+                  className="relative min-h-[100px] rounded-xl border border-dashed border-emerald-700/45 bg-gradient-to-b from-emerald-950/35 via-black/50 to-black/80 p-1.5 sm:min-h-[108px]"
                   aria-label="Spielfeld"
                 >
-                  <div className="flex min-h-[102px] flex-wrap content-center justify-center gap-1.5 sm:min-h-[112px]">
+                  <div className="flex min-h-[88px] flex-wrap content-center justify-center gap-1 sm:min-h-[92px]">
                     {fieldPlayers.length === 0 ? (
-                      <p className="text-xs text-white/45">Keine Feldspieler</p>
+                      <p className="text-[11px] text-white/45">Keine Feldspieler</p>
                     ) : (
                       fieldPlayers.map((p) => {
                         const sel = wechselOutId === p.id;
@@ -1925,18 +1919,20 @@ export const LiveMatchScreen: React.FC = () => {
                             key={p.id}
                             type="button"
                             onClick={() => setWechselOutId(p.id)}
-                            className={`flex max-w-[32%] min-w-0 flex-1 basis-[28%] flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-center transition active:scale-[0.98] sm:max-w-[30%] ${
+                            className={`flex max-w-[32%] min-w-0 flex-1 basis-[28%] flex-col items-center justify-center gap-px rounded-lg px-0.5 py-1 text-center transition active:scale-[0.98] sm:max-w-[30%] ${
                               sel
                                 ? 'border-2 border-red-500 bg-red-950/80 shadow-[0_0_0_1px_rgba(239,68,68,0.35)]'
                                 : 'border border-white/15 bg-black/55'
                             }`}
                           >
                             <span
-                              className={`font-mono text-sm font-black tabular-nums ${sel ? 'text-red-200' : 'text-red-400/90'}`}
+                              className={`font-mono text-xs font-black tabular-nums ${sel ? 'text-red-200' : 'text-red-400/90'}`}
                             >
                               {p.number || '–'}
                             </span>
-                            <span className="w-full truncate text-[10px] font-semibold leading-tight text-white">{p.name}</span>
+                            <span className="w-full hyphens-none text-[9px] font-semibold leading-tight text-white [overflow-wrap:break-word] [word-break:normal]">
+                              {p.name}
+                            </span>
                           </button>
                         );
                       })
@@ -1945,61 +1941,68 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden">
-                <p className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-emerald-400/95">Bank · Rein</p>
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
-                  <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
-                    {benchPlayers.length === 0 ? (
-                      <p className="col-span-full py-2 text-center text-xs text-white/45">Keine Bankspieler</p>
-                    ) : (
-                      benchPlayers.map((p) => {
-                        const sel = wechselInId === p.id;
-                        return (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => setWechselInId(p.id)}
-                            className={`flex flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-1.5 text-center transition active:scale-[0.98] ${
-                              sel
-                                ? 'border-2 border-emerald-400 bg-emerald-950/65 shadow-[0_0_0_1px_rgba(52,211,153,0.35)]'
-                                : 'border border-white/15 bg-black/55'
-                            }`}
+              <div className="mt-2">
+                <p className="mb-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-400/95">Bank · Rein</p>
+                <div className="grid grid-cols-3 gap-1 sm:grid-cols-4">
+                  {benchPlayers.length === 0 ? (
+                    <p className="col-span-full py-1.5 text-center text-[11px] text-white/45">Keine Bankspieler</p>
+                  ) : (
+                    benchPlayers.map((p) => {
+                      const sel = wechselInId === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setWechselInId(p.id)}
+                          className={`flex flex-col items-center justify-center gap-px rounded-lg border px-0.5 py-1 text-center transition active:scale-[0.98] ${
+                            sel
+                              ? 'border-2 border-emerald-400 bg-emerald-950/65 shadow-[0_0_0_1px_rgba(52,211,153,0.35)]'
+                              : 'border border-white/15 bg-black/55'
+                          }`}
+                        >
+                          <span
+                            className={`font-mono text-xs font-black tabular-nums ${sel ? 'text-emerald-200' : 'text-emerald-400/85'}`}
                           >
-                            <span
-                              className={`font-mono text-sm font-black tabular-nums ${sel ? 'text-emerald-200' : 'text-emerald-400/85'}`}
-                            >
-                              {p.number || '–'}
-                            </span>
-                            <span className="w-full truncate text-[10px] font-semibold leading-tight text-white">{p.name}</span>
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
+                            {p.number || '–'}
+                          </span>
+                          <span className="w-full hyphens-none text-[9px] font-semibold leading-tight text-white [overflow-wrap:break-word] [word-break:normal]">
+                            {p.name}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="shrink-0 space-y-2 border-t border-white/10 bg-[#101010] px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
-              <button
-                type="button"
-                onClick={() => void confirmWechselSection()}
-                disabled={matchIsFinished || !wechselOutId || !wechselInId}
-                className="flex min-h-[50px] w-full items-center justify-center rounded-2xl bg-emerald-600 text-base font-bold text-white disabled:opacity-35 active:scale-[0.99]"
-              >
-                Wechsel bestätigen
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setWechselOutId('');
-                  setWechselInId('');
-                  setWechselSheetOpen(false);
-                }}
-                className="flex min-h-[46px] w-full items-center justify-center rounded-2xl border border-white/15 text-base font-semibold text-white/80"
-              >
-                Abbrechen
-              </button>
+            <div
+              className="shrink-0 border-t border-white/10 bg-[#101010]/98 px-3 pt-2 shadow-[0_-10px_28px_rgba(0,0,0,0.55)] backdrop-blur-md"
+              style={{
+                paddingBottom: 'max(0.625rem, env(safe-area-inset-bottom, 0px))',
+              }}
+            >
+              <div className="flex flex-row gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWechselOutId('');
+                    setWechselInId('');
+                    setWechselSheetOpen(false);
+                  }}
+                  className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-white/18 text-sm font-semibold text-white/85 active:scale-[0.99]"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void confirmWechselSection()}
+                  disabled={matchIsFinished || !wechselOutId || !wechselInId}
+                  className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-emerald-600 px-2 text-sm font-bold text-white disabled:opacity-35 active:scale-[0.99]"
+                >
+                  Wechsel bestätigen
+                </button>
+              </div>
             </div>
           </div>
         </div>
