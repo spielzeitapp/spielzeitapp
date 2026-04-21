@@ -637,3 +637,18 @@
     margin: 12px;
   }
 }
+
+/* Live-Matchboard: dezente LIVE-Badge-Pulsierung (nur bei laufender Spielzeit per Klasse) */
+@keyframes live-badge-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.86;
+  }
+}
+
+.animate-live-badge-soft {
+  animation: live-badge-soft 2.8s ease-in-out infinite;
+}

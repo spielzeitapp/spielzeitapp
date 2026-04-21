@@ -127,6 +127,14 @@ function cleanTeamDisplayName(name: string): string {
   return t || raw;
 }
 
+/** Erstes Token = Kurzname, Rest = Name (wie Termin-Matchkarte). */
+function splitPrefixAndName(full: string): { prefix: string; name: string } {
+  const trimmed = (full || '').trim();
+  const i = trimmed.indexOf(' ');
+  if (i === -1) return { prefix: '', name: trimmed };
+  return { prefix: trimmed.slice(0, i), name: trimmed.slice(i + 1) };
+}
+
 /** Drittel-/Halbzeit-Stand aus Event-Zeitstempeln (gleiche Grenzen wie Uhr). */
 function buildPeriodScoreLine(events: MatchEngineEvent[], currentMatchSeconds: number): string {
   const b1 = MATCH_HALF_DURATION_SEC;
@@ -356,6 +364,8 @@ export const LiveMatchScreen: React.FC = () => {
   const headerOpponent = opponentLabel;
   const homeDisplayName = cleanTeamDisplayName(homeName);
   const awayDisplayName = cleanTeamDisplayName(headerOpponent);
+  const homeNameParts = splitPrefixAndName(homeDisplayName);
+  const awayNameParts = splitPrefixAndName(awayDisplayName);
   /** Ohne API-Erweiterung: neutraler Anzeige-Spieltyp (Zielbild). */
   const matchTypeDisplay = 'Freundschaftsspiel';
   const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
@@ -1038,26 +1048,30 @@ export const LiveMatchScreen: React.FC = () => {
                     className={`text-[16px] font-semibold tracking-[0.35em] ${
                       matchIsFinished
                         ? 'text-red-100'
-                        : hasClockStarted
-                          ? 'animate-pulse text-red-200/90'
-                          : 'text-white/50'
+                        : hasClockStarted && isRunning
+                          ? 'animate-live-badge-soft text-red-200/90'
+                          : hasClockStarted
+                            ? 'text-red-200/90'
+                            : 'text-white/50'
                     }`}
                   >
                     {matchIsFinished ? 'ENDSTAND' : hasClockStarted ? 'LIVE' : 'BEREIT'}
                   </div>
                 </div>
 
-                {/* Logos + Score: eine Zeile, Score immer horizontal */}
-                <div className={`grid grid-cols-[120px_1fr_120px] items-center gap-x-3 ${matchTypeDisplay ? 'mt-2' : 'mt-1.5'}`}>
-                  <div className="flex min-w-0 justify-center">
+                {/* Logos + Tor-Buttons (zwischen Logo und Spielstand) + Score */}
+                <div
+                  className={`grid grid-cols-[120px_1fr_120px] items-center gap-x-2 sm:gap-x-3 ${
+                    matchTypeDisplay ? 'mt-2' : 'mt-1.5'
+                  }`}
+                >
+                  <div className="flex min-h-[48px] min-w-0 items-center justify-end gap-2">
                     <LiveMatchLogoTile
                       src={homeLogoSrc}
                       initialsFrom={homeLogoLookupName}
                       liveGlow={false}
                       size="schedule"
                     />
-                  </div>
-                  <div className="flex min-w-0 items-center justify-center gap-2 px-0.5">
                     {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                       <button
                         type="button"
@@ -1071,9 +1085,13 @@ export const LiveMatchScreen: React.FC = () => {
                         <span aria-hidden>⚽</span>
                       </button>
                     ) : null}
+                  </div>
+                  <div className="flex justify-center px-1">
                     <span className="text-center text-[32px] font-extrabold leading-none text-white tabular-nums whitespace-nowrap sm:text-[36px]">
                       {scoreHome} : {scoreAway}
                     </span>
+                  </div>
+                  <div className="flex min-h-[48px] min-w-0 items-center justify-start gap-2">
                     {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                       <button
                         type="button"
@@ -1100,8 +1118,6 @@ export const LiveMatchScreen: React.FC = () => {
                         <span aria-hidden>⚽</span>
                       </button>
                     ) : null}
-                  </div>
-                  <div className="flex min-w-0 justify-center">
                     <LiveMatchLogoTile
                       src={awayLogoSrc}
                       initialsFrom={headerOpponent}
@@ -1111,36 +1127,9 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Teamnamen: gleiche Spalten, Mitte leer */}
-                <div className="mt-1.5 grid grid-cols-[120px_1fr_120px] items-start gap-x-3">
-                  <div
-                    className="min-w-0 text-center text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
-                    style={
-                      {
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      } as React.CSSProperties
-                    }
-                  >
-                    {homeDisplayName}
-                  </div>
-                  <div className="min-w-0" aria-hidden />
-                  <div
-                    className="min-w-0 text-center text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words"
-                    style={
-                      {
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      } as React.CSSProperties
-                    }
-                  >
-                    {awayDisplayName}
-                  </div>
-                </div>
+                <p className="mt-1.5 w-full text-center font-mono text-[11px] font-medium tabular-nums leading-tight text-white whitespace-nowrap sm:text-[12px]">
+                  <span className="inline-block max-w-full overflow-x-auto">{periodScoreLine}</span>
+                </p>
 
                 {!matchIsFinished ? (
                   <p
@@ -1151,9 +1140,54 @@ export const LiveMatchScreen: React.FC = () => {
                   </p>
                 ) : null}
 
-                <p className="mt-1 w-full text-center font-mono text-[11px] tabular-nums leading-tight text-white/50 whitespace-nowrap sm:text-[12px]">
-                  <span className="inline-block max-w-full overflow-x-auto">{periodScoreLine}</span>
-                </p>
+                {/* Teamnamen: wie Termin-Karte – Kurzname + zweite Zeile */}
+                <div className="mt-1.5 grid grid-cols-[120px_1fr_120px] items-start gap-x-3">
+                  <div className="flex min-w-0 flex-col items-center text-center">
+                    {homeNameParts.prefix ? (
+                      <div className="text-[13px] font-medium tracking-widest uppercase text-white/70">
+                        {homeNameParts.prefix}
+                      </div>
+                    ) : null}
+                    <div
+                      className={`max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words ${
+                        homeNameParts.prefix ? 'mt-1' : ''
+                      }`}
+                      style={
+                        {
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        } as React.CSSProperties
+                      }
+                    >
+                      {homeNameParts.name}
+                    </div>
+                  </div>
+                  <div className="min-w-0" aria-hidden />
+                  <div className="flex min-w-0 flex-col items-center text-center">
+                    {awayNameParts.prefix ? (
+                      <div className="text-[13px] font-medium tracking-widest uppercase text-white/70">
+                        {awayNameParts.prefix}
+                      </div>
+                    ) : null}
+                    <div
+                      className={`max-w-[120px] text-[18px] font-semibold leading-[1.05] text-white hyphens-none break-words ${
+                        awayNameParts.prefix ? 'mt-1' : ''
+                      }`}
+                      style={
+                        {
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        } as React.CSSProperties
+                      }
+                    >
+                      {awayNameParts.name}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
