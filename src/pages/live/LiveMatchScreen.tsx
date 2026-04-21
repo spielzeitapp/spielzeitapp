@@ -1188,6 +1188,63 @@ export const LiveMatchScreen: React.FC = () => {
         ? lastAwayGoalEventId
         : null;
 
+  const renderLastActionOverview = (headingClass: string) => {
+    const ev = spectatorLastActionEvent;
+    return (
+      <section>
+        <h2 className={headingClass}>Letzte Aktion</h2>
+        {ev ? (
+          <div className={`px-3 py-2.5 ${liveCardShell} border-red-500/20`}>
+            <div className="flex items-start gap-3">
+              <div
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-black/50 text-base"
+                aria-hidden
+              >
+                {eventIcon(ev.type)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[11px] font-bold tabular-nums text-gray-400">{formatMinute(ev.timestamp)}</p>
+                {ev.type === 'goal' && ev.playerId ? (
+                  <>
+                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-green-400">Tor</p>
+                    <p className="truncate text-sm font-bold text-white">{rosterById.get(ev.playerId)?.name ?? '?'}</p>
+                    <p className="text-[11px] text-gray-500">{homeDisplayName}</p>
+                  </>
+                ) : ev.type === 'goal' ? (
+                  <>
+                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-green-400">Tor</p>
+                    <p className="text-sm font-bold text-white">{awayDisplayName}</p>
+                  </>
+                ) : ev.type === 'sub_out' || ev.type === 'sub_in' ? (
+                  <>
+                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-sky-400">Wechsel</p>
+                    <p className="mt-0.5 text-sm font-semibold leading-snug text-white">{parentLiveEventDescription(ev)}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-gray-400">
+                      {ev.type === 'start' ? 'Spiel' : ev.type === 'end' ? 'Ende' : ev.type === 'resume' ? 'Weiter' : 'Ereignis'}
+                    </p>
+                    <p className="mt-0.5 text-sm font-semibold leading-snug text-white">{parentLiveEventDescription(ev)}</p>
+                  </>
+                )}
+              </div>
+              {ev.type === 'goal' && goalScoreBadgeByEventId.get(ev.id) ? (
+                <span className="shrink-0 self-start rounded-full border border-green-600/80 bg-green-950/90 px-2 py-0.5 font-mono text-[11px] font-black tabular-nums text-green-100">
+                  {goalScoreBadgeByEventId.get(ev.id)}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <p className={`px-3 py-2.5 text-center text-xs text-gray-500 ${liveCardShell} border-red-500/15`}>
+            Sobald etwas passiert, erscheint hier die letzte wichtige Spielaktion.
+          </p>
+        )}
+      </section>
+    );
+  };
+
   return (
     <div
       className={
@@ -1489,198 +1546,12 @@ export const LiveMatchScreen: React.FC = () => {
         }
       >
         {mainTab === 'overview' && (
-          <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-3'}>
+          <div className={canControlLiveMatch ? '' : 'space-y-3'}>
             {canControlLiveMatch ? (
-              <>
-                <section>
-                  <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Spielzeit</h2>
-                  <ul className="space-y-1.5">
-                    {sortRosterByNumber(roster.filter((p) => squadPlayerIds.includes(p.id))).map((p) => {
-                      const sec = playtimes[p.id] ?? 0;
-                      const st = getPlaytimeStatus(sec, currentMatchSeconds, squadPlayerIds.length);
-                      const onF = onFieldIds.includes(p.id);
-                      return (
-                        <li
-                          key={p.id}
-                          className={`flex min-h-[46px] items-center gap-2 rounded-xl border px-3 py-2 ${
-                            onF
-                              ? 'border-emerald-600/40 bg-zinc-950'
-                              : 'border-red-500/20 bg-zinc-950/80 opacity-90'
-                          }`}
-                        >
-                          <span className={`h-3.5 w-3.5 shrink-0 rounded-full ${ampelDot(st)}`} aria-hidden />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-[15px] font-semibold text-white">
-                              {p.number || '–'} · {p.name}
-                            </p>
-                            <p
-                              className={`mt-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
-                                onF ? 'text-emerald-400' : 'text-white/38'
-                              }`}
-                            >
-                              {onF ? 'Am Feld' : 'Auf der Bank'}
-                            </p>
-                          </div>
-                          <span
-                            className={`shrink-0 font-mono text-2xl font-black tabular-nums tracking-tight ${
-                              onF ? 'text-red-500' : 'text-white/40'
-                            }`}
-                          >
-                            {formatClock(sec)}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-
-                <section>
-                  <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Wechsel-Vorschläge</h2>
-                  <div className="grid gap-1.5 sm:grid-cols-2">
-                    <div className="rounded-xl border border-emerald-800/35 bg-gradient-to-br from-emerald-950/30 to-black/80 px-2.5 py-2 ring-1 ring-emerald-700/12">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-400/95">
-                        Spielzeit erreicht
-                      </p>
-                      <p className="mt-1 text-[11px] leading-snug text-white/42">Hinweise zu Einwechslungen folgen.</p>
-                    </div>
-                    <div className="rounded-xl border border-amber-800/35 bg-gradient-to-br from-amber-950/22 to-black/80 px-2.5 py-2 ring-1 ring-amber-700/12">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-amber-400/95">Wenig Spielzeit</p>
-                      <p className="mt-1 text-[11px] leading-snug text-white/42">Mehr Einsatzzeit: Hinweise folgen.</p>
-                    </div>
-                  </div>
-                </section>
-
-                <section>
-                  <div className="mb-1 flex items-center justify-between gap-2">
-                    <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Liveticker</h2>
-                  </div>
-                  <ul className="rounded-xl border border-red-500/30 bg-black px-1 py-2 sm:px-2 sm:py-3">
-                    {events
-                      .filter((e) => e.type !== 'pause')
-                      .sort((a, b) => b.timestamp - a.timestamp)
-                      .slice(0, 12)
-                      .map((ev, i, arr) => renderTimelineRow(ev, i, arr.length, true))}
-                  </ul>
-                </section>
-
-                <section>
-                  <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">
-                    Startaufstellung ({fieldPlayers.length})
-                  </h2>
-                  <div className="relative overflow-hidden rounded-xl border border-red-500/30 bg-black p-2 sm:p-3">
-                    <div
-                      className="pointer-events-none absolute inset-0 opacity-[0.05]"
-                      style={{
-                        backgroundImage:
-                          'repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(220,38,38,0.35) 10px, rgba(220,38,38,0.35) 11px)',
-                      }}
-                      aria-hidden
-                    />
-                    <div className="relative mx-auto max-w-sm rounded-lg border border-red-500/25 bg-zinc-950 p-2">
-                      <div
-                        className="pointer-events-none absolute inset-2 rounded-md border border-dashed border-red-800/35"
-                        aria-hidden
-                      />
-                      <div
-                        className="pointer-events-none absolute left-1/2 top-2 bottom-2 w-px -translate-x-1/2 bg-red-700/40"
-                        aria-hidden
-                      />
-                      <div className="relative flex flex-wrap justify-center gap-2">
-                        {fieldPlayers.slice(0, 7).map((p) => (
-                          <div
-                            key={p.id}
-                            className="flex w-[30%] min-w-[80px] max-w-[108px] flex-col items-center justify-center rounded-lg border border-red-500/25 bg-black px-1 py-2"
-                          >
-                            <span className="text-base font-black tabular-nums text-red-400">{p.number || '–'}</span>
-                            <span className="mt-1 max-w-full truncate text-center text-[11px] font-semibold leading-tight text-white">
-                              {p.name}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              </>
+              renderLastActionOverview('mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300')
             ) : (
               <div className="space-y-1.5">
-                <section>
-                  <h2 className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
-                    Letzte Aktion
-                  </h2>
-                  {spectatorLastActionEvent ? (
-                    <div className={`px-3 py-2.5 ${liveCardShell} border-red-500/20`}>
-                      <div className="flex items-start gap-3">
-                        <div
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-black/50 text-base"
-                          aria-hidden
-                        >
-                          {eventIcon(spectatorLastActionEvent.type)}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-mono text-[11px] font-bold tabular-nums text-gray-400">
-                            {formatMinute(spectatorLastActionEvent.timestamp)}
-                          </p>
-                          {spectatorLastActionEvent.type === 'goal' && spectatorLastActionEvent.playerId ? (
-                            <>
-                              <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-green-400">
-                                Tor
-                              </p>
-                              <p className="truncate text-sm font-bold text-white">
-                                {rosterById.get(spectatorLastActionEvent.playerId)?.name ?? '?'}
-                              </p>
-                              <p className="text-[11px] text-gray-500">{homeDisplayName}</p>
-                            </>
-                          ) : spectatorLastActionEvent.type === 'goal' ? (
-                            <>
-                              <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-green-400">
-                                Tor
-                              </p>
-                              <p className="text-sm font-bold text-white">{awayDisplayName}</p>
-                            </>
-                          ) : spectatorLastActionEvent.type === 'sub_out' ||
-                            spectatorLastActionEvent.type === 'sub_in' ? (
-                            <>
-                              <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-sky-400">
-                                Wechsel
-                              </p>
-                              <p className="mt-0.5 text-sm font-semibold leading-snug text-white">
-                                {parentLiveEventDescription(spectatorLastActionEvent)}
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-gray-400">
-                                {spectatorLastActionEvent.type === 'start'
-                                  ? 'Spiel'
-                                  : spectatorLastActionEvent.type === 'end'
-                                    ? 'Ende'
-                                    : spectatorLastActionEvent.type === 'resume'
-                                      ? 'Weiter'
-                                      : 'Ereignis'}
-                              </p>
-                              <p className="mt-0.5 text-sm font-semibold leading-snug text-white">
-                                {parentLiveEventDescription(spectatorLastActionEvent)}
-                              </p>
-                            </>
-                          )}
-                        </div>
-                        {spectatorLastActionEvent.type === 'goal' &&
-                        goalScoreBadgeByEventId.get(spectatorLastActionEvent.id) ? (
-                          <span className="shrink-0 self-start rounded-full border border-green-600/80 bg-green-950/90 px-2 py-0.5 font-mono text-[11px] font-black tabular-nums text-green-100">
-                            {goalScoreBadgeByEventId.get(spectatorLastActionEvent.id)}
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : (
-                    <p
-                      className={`px-3 py-2.5 text-center text-xs text-gray-500 ${liveCardShell} border-red-500/15`}
-                    >
-                      Sobald etwas passiert, erscheint hier die letzte wichtige Spielaktion.
-                    </p>
-                  )}
-                </section>
+                {renderLastActionOverview('mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500')}
                 <section>
                   <h2 className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
                     Spielinfo
@@ -1726,6 +1597,44 @@ export const LiveMatchScreen: React.FC = () => {
               </p>
             ) : (
               <>
+                {fieldPlayers.length > 0 ? (
+                  <section>
+                    <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-red-400/90">Spielfeld</h3>
+                    <div className="relative overflow-hidden rounded-xl border border-red-500/30 bg-black p-2 sm:p-3">
+                      <div
+                        className="pointer-events-none absolute inset-0 opacity-[0.05]"
+                        style={{
+                          backgroundImage:
+                            'repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(220,38,38,0.35) 10px, rgba(220,38,38,0.35) 11px)',
+                        }}
+                        aria-hidden
+                      />
+                      <div className="relative mx-auto max-w-sm rounded-lg border border-red-500/25 bg-zinc-950 p-2">
+                        <div
+                          className="pointer-events-none absolute inset-2 rounded-md border border-dashed border-red-800/35"
+                          aria-hidden
+                        />
+                        <div
+                          className="pointer-events-none absolute left-1/2 top-2 bottom-2 w-px -translate-x-1/2 bg-red-700/40"
+                          aria-hidden
+                        />
+                        <div className="relative flex flex-wrap justify-center gap-2">
+                          {fieldPlayers.slice(0, 7).map((p) => (
+                            <div
+                              key={p.id}
+                              className="flex w-[30%] min-w-[80px] max-w-[108px] flex-col items-center justify-center rounded-lg border border-red-500/25 bg-black px-1 py-2"
+                            >
+                              <span className="text-base font-black tabular-nums text-red-400">{p.number || '–'}</span>
+                              <span className="mt-1 max-w-full truncate text-center text-[11px] font-semibold leading-tight text-white">
+                                {p.name}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                ) : null}
                 <div>
                   <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
                   <ul className="space-y-2">
@@ -1825,6 +1734,19 @@ export const LiveMatchScreen: React.FC = () => {
 
         {canControlLiveMatch && mainTab === 'time' && (
           <div className="space-y-2">
+            <section>
+              <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Wechsel-Vorschläge</h2>
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                <div className="rounded-xl border border-emerald-800/35 bg-gradient-to-br from-emerald-950/30 to-black/80 px-2.5 py-2 ring-1 ring-emerald-700/12">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-400/95">Spielzeit erreicht</p>
+                  <p className="mt-1 text-[11px] leading-snug text-white/42">Hinweise zu Einwechslungen folgen.</p>
+                </div>
+                <div className="rounded-xl border border-amber-800/35 bg-gradient-to-br from-amber-950/22 to-black/80 px-2.5 py-2 ring-1 ring-amber-700/12">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-amber-400/95">Wenig Spielzeit</p>
+                  <p className="mt-1 text-[11px] leading-snug text-white/42">Mehr Einsatzzeit: Hinweise folgen.</p>
+                </div>
+              </div>
+            </section>
             <p className="mb-2 text-sm text-gray-400">Effektive Spielzeit (ohne Pausen)</p>
             <ul className="space-y-3">
               {sortRosterByNumber(roster.filter((p) => squadPlayerIds.includes(p.id))).map((p) => {
