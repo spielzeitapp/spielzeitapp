@@ -416,7 +416,9 @@ export const LiveMatchScreen: React.FC = () => {
   }, [wechselSheetOpen]);
   const [homeGoalModalOpen, setHomeGoalModalOpen] = useState(false);
   const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
-  const [endMatchConfirmOpen, setEndMatchConfirmOpen] = useState(false);
+  const [endeConfirmOpen, setEndeConfirmOpen] = useState(false);
+  const [spielAbschlussOpen, setSpielAbschlussOpen] = useState(false);
+  const [calendarFinalized, setCalendarFinalized] = useState(false);
   const [goalUndoOffer, setGoalUndoOffer] = useState<{
     eventId: string;
     side: 'home' | 'away';
@@ -438,9 +440,39 @@ export const LiveMatchScreen: React.FC = () => {
     }
   }, []);
 
+  const totalsFromEvents = useMemo(() => recomputeScoresFromEvents(events), [events]);
+  /** Gesamtstand immer aus Toren (Events); DB-Werte mitziehen, falls Events kurz hinterherhängen. */
+  const displayScoreHome = Math.max(scoreHome, totalsFromEvents.home);
+  const displayScoreAway = Math.max(scoreAway, totalsFromEvents.away);
+
   useEffect(() => {
-    scoresRef.current = { home: scoreHome, away: scoreAway };
-  }, [scoreHome, scoreAway]);
+    scoresRef.current = { home: displayScoreHome, away: displayScoreAway };
+  }, [displayScoreHome, displayScoreAway]);
+
+  useEffect(() => {
+    if (!effectiveMatchId || matchRow?.status !== 'finished') {
+      setCalendarFinalized(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('status')
+        .eq('match_id', effectiveMatchId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        setCalendarFinalized(false);
+        return;
+      }
+      if (!data) setCalendarFinalized(true);
+      else setCalendarFinalized(data.status === 'finished');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveMatchId, matchRow?.status]);
 
   useEffect(() => () => clearGoalUndoTimer(), [clearGoalUndoTimer]);
 
@@ -617,9 +649,11 @@ export const LiveMatchScreen: React.FC = () => {
     else setMatchRow((prev) => (prev ? { ...prev, live_elapsed_seconds: frozen, live_is_running: false } : null));
   };
 
-  const onEndClick = async () => {
+  /** Ende: Uhr stoppen, Match in DB beenden, Endstand aus Toren — ohne Kalender-Termin (kommt bei „Spiel abschließen“). */
+  const persistMatchEndWithoutCalendar = async () => {
     if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId) return;
     const frozen = currentMatchSeconds;
+    const { home: fh, away: fa } = recomputeScoresFromEvents(events);
     const { ok } = await persistSingle({ type: 'end', timestamp: frozen });
     if (!ok) return;
     const { error } = await updateMatchRow(effectiveMatchId, {
@@ -627,16 +661,13 @@ export const LiveMatchScreen: React.FC = () => {
       live_is_running: false,
       live_elapsed_seconds: frozen,
       live_period: half,
-      score_home: scoreHome,
-      score_away: scoreAway,
+      score_home: fh,
+      score_away: fa,
     });
     if (error) setSaveError(error);
     else {
-      const { error: eventStatusError } = await supabase
-        .from('events')
-        .update({ status: 'finished' })
-        .eq('match_id', effectiveMatchId);
-      if (eventStatusError) setSaveError(eventStatusError.message);
+      setScoreHome(fh);
+      setScoreAway(fa);
       setMatchRow((prev) =>
         prev
           ? {
@@ -645,11 +676,23 @@ export const LiveMatchScreen: React.FC = () => {
               live_is_running: false,
               live_elapsed_seconds: frozen,
               live_period: half,
-              score_home: scoreHome,
-              score_away: scoreAway,
+              score_home: fh,
+              score_away: fa,
             }
           : null,
       );
+    }
+  };
+
+  /** Nachgelagert: verknüpften Kalender-Termin abschließen (events.status). */
+  const finalizeCalendarForMatch = async () => {
+    if (!effectiveMatchId || calendarFinalized) return;
+    const { error } = await supabase.from('events').update({ status: 'finished' }).eq('match_id', effectiveMatchId);
+    if (error) setSaveError(error.message);
+    else {
+      setCalendarFinalized(true);
+      setSpielAbschlussOpen(false);
+      navigate('/app');
     }
   };
 
@@ -1101,13 +1144,13 @@ export const LiveMatchScreen: React.FC = () => {
         ? `border-red-400/55 bg-gradient-to-b from-red-600 via-red-900 to-red-950 text-red-50 shadow-[0_0_18px_rgba(255,0,0,0.5)]${liveBadgeAnimating ? ' animate-live-badge-strong' : ''}`
         : 'border-white/20 bg-zinc-900/95 text-white/55 shadow-[0_0_10px_rgba(0,0,0,0.35)]'
   }`;
-  const scorePillHome = `${mbRowBtn} min-w-0 shrink-0 border border-emerald-400/22 bg-emerald-500/[0.11] text-emerald-50 shadow-[0_0_8px_rgba(16,185,129,0.1),inset_0_1px_0_rgba(255,255,255,0.06)] hover:bg-emerald-500/[0.18] active:scale-[0.97]`;
-  const scorePillAway = `${mbRowBtn} min-w-0 shrink-0 border border-red-400/22 bg-red-500/[0.11] text-red-100 shadow-[0_0_8px_rgba(239,68,68,0.1),inset_0_1px_0_rgba(255,255,255,0.06)] hover:bg-red-500/[0.18] active:scale-[0.97]`;
-  const mbStart = `${mbRowBtn} border border-emerald-600/28 bg-emerald-950/58 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-emerald-950/72`;
-  const mbPause = `${mbRowBtn} border border-orange-500/28 bg-orange-950/48 text-orange-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-orange-950/62`;
-  const mbEnd = `${mbRowBtn} border border-red-800/32 bg-red-950/58 text-red-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-red-950/72`;
-  const mbWechsel = `${mbRowBtn} w-full border border-emerald-600/28 bg-emerald-950/58 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-emerald-950/72`;
-  const mbSpielEnde = `${mbRowBtn} w-full border border-red-500/35 bg-transparent text-red-200/95 hover:bg-red-950/40`;
+  const scorePillHome = `${mbRowBtn} min-w-0 shrink-0 rounded-xl border border-emerald-500/35 bg-gradient-to-b from-emerald-950/92 to-black/72 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_22px_rgba(16,185,129,0.22)] hover:border-emerald-400/45 hover:shadow-[0_0_28px_rgba(16,185,129,0.32)] active:scale-[0.97]`;
+  const scorePillAway = `${mbRowBtn} min-w-0 shrink-0 rounded-xl border border-red-500/38 bg-gradient-to-b from-red-950/92 to-black/72 text-red-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_22px_rgba(239,68,68,0.24)] hover:border-red-400/45 hover:shadow-[0_0_28px_rgba(239,68,68,0.34)] active:scale-[0.97]`;
+  const mbStart = `${mbRowBtn} rounded-xl border border-emerald-500/32 bg-gradient-to-b from-emerald-900/55 to-black/70 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_16px_rgba(16,185,129,0.14)] hover:from-emerald-800/62 hover:shadow-[0_0_20px_rgba(16,185,129,0.2)]`;
+  const mbPause = `${mbRowBtn} rounded-xl border border-orange-500/32 bg-gradient-to-b from-orange-950/55 to-black/70 text-orange-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_14px_rgba(251,146,60,0.12)] hover:from-orange-900/58`;
+  const mbEnd = `${mbRowBtn} rounded-xl border border-red-600/35 bg-gradient-to-b from-red-900/55 to-black/72 text-red-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_16px_rgba(220,38,38,0.18)] hover:from-red-800/55`;
+  const mbWechsel = `${mbRowBtn} w-full rounded-xl border border-emerald-500/30 bg-gradient-to-b from-emerald-950/65 to-black/75 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_14px_rgba(16,185,129,0.12)] hover:border-emerald-400/35`;
+  const mbSpielEnde = `${mbRowBtn} w-full rounded-xl border border-amber-500/28 bg-gradient-to-b from-amber-950/45 to-black/70 text-amber-100/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:border-amber-400/35 enabled:hover:shadow-[0_0_18px_rgba(245,158,11,0.15)]`;
 
   const clearHomeGoalLongPress = () => {
     if (homeGoalLpTimerRef.current != null) {
@@ -1297,7 +1340,7 @@ export const LiveMatchScreen: React.FC = () => {
                             <span aria-hidden className="text-sm leading-none">
                               ⚽
                             </span>
-                            <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{scoreHome}</span>
+                            <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{displayScoreHome}</span>
                           </button>
                           <span
                             className="shrink-0 text-[20px] font-extrabold leading-none text-white/90 tabular-nums sm:text-[24px]"
@@ -1336,7 +1379,7 @@ export const LiveMatchScreen: React.FC = () => {
                               });
                             }}
                           >
-                            <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{scoreAway}</span>
+                            <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{displayScoreAway}</span>
                             <span aria-hidden className="text-sm leading-none">
                               ⚽
                             </span>
@@ -1344,7 +1387,7 @@ export const LiveMatchScreen: React.FC = () => {
                         </>
                       ) : (
                         <span className="text-center text-[28px] font-extrabold leading-none text-white tabular-nums whitespace-nowrap sm:text-[32px]">
-                          {scoreHome} : {scoreAway}
+                          {displayScoreHome} : {displayScoreAway}
                         </span>
                       )}
                     </div>
@@ -1378,7 +1421,7 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
 
               {!spectatorView && canControlLiveMatch ? (
-                <div className="mt-0 space-y-1 border-t border-white/10 bg-black/90 px-[15px] py-1">
+                <div className="relative mt-0 space-y-1.5 border-t border-red-500/25 bg-gradient-to-b from-black/92 via-red-950/30 to-red-950/55 px-[15px] py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_-10px_28px_rgba(220,38,38,0.14)]">
                   {!matchIsFinished ? (
                     <div className="grid grid-cols-3 gap-1.5">
                       <button
@@ -1403,7 +1446,7 @@ export const LiveMatchScreen: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setEndMatchConfirmOpen(true)}
+                        onClick={() => setEndeConfirmOpen(true)}
                         disabled={matchClockStatus === 'finished' || matchClockStatus === 'not_started'}
                         aria-label="Spiel beenden"
                         className={mbEnd}
@@ -1429,13 +1472,13 @@ export const LiveMatchScreen: React.FC = () => {
 
                   <button
                     type="button"
-                    disabled={!matchIsFinished}
+                    disabled={!matchIsFinished || calendarFinalized}
                     onClick={() => {
-                      if (matchIsFinished) navigate('/app');
+                      if (matchIsFinished && !calendarFinalized) setSpielAbschlussOpen(true);
                     }}
                     className={`${mbSpielEnde} text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[11px] disabled:opacity-35`}
                   >
-                    Spiel abschließen
+                    {calendarFinalized ? 'Termin abgeschlossen' : 'Spiel abschließen'}
                   </button>
                 </div>
               ) : null}
@@ -1975,40 +2018,80 @@ export const LiveMatchScreen: React.FC = () => {
         </div>
       )}
 
-      {endMatchConfirmOpen && (
+      {endeConfirmOpen && (
         <div
           className="fixed inset-0 z-[60] flex items-end justify-center bg-black/85 p-4 backdrop-blur-sm sm:items-center"
           role="presentation"
-          onClick={() => setEndMatchConfirmOpen(false)}
+          onClick={() => setEndeConfirmOpen(false)}
         >
           <div
             className="w-full max-w-md rounded-2xl border-2 border-red-500/55 bg-zinc-950 p-5 shadow-[0_0_40px_rgba(0,0,0,0.85)] sm:p-6"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="end-match-title"
+            aria-labelledby="ende-match-title"
           >
-            <h3 id="end-match-title" className="text-xl font-black text-white sm:text-2xl">
-              Spiel wirklich abschließen?
+            <h3 id="ende-match-title" className="text-xl font-black text-white sm:text-2xl">
+              Spiel beenden?
             </h3>
             <p className="mt-3 text-[15px] font-medium leading-snug text-zinc-300 sm:text-base">
-              Das Spiel wird beendet und als Endstand gespeichert.
+              Die Uhr stoppt, der Live-Modus endet und der Endstand wird gespeichert. Anschließend kannst du den Kalender-Termin mit{' '}
+              <span className="font-semibold text-white">Spiel abschließen</span> abschließen.
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-row-reverse">
               <button
                 type="button"
                 className="flex min-h-[52px] flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-red-600 to-red-950 text-base font-black uppercase tracking-wide text-white shadow-[0_0_24px_rgba(220,38,38,0.35)] active:scale-[0.99]"
                 onClick={async () => {
-                  setEndMatchConfirmOpen(false);
-                  await onEndClick();
+                  setEndeConfirmOpen(false);
+                  await persistMatchEndWithoutCalendar();
                 }}
+              >
+                Ende
+              </button>
+              <button
+                type="button"
+                className="flex min-h-[52px] flex-1 items-center justify-center rounded-xl border-2 border-white/20 bg-zinc-900 text-base font-bold text-white active:scale-[0.99]"
+                onClick={() => setEndeConfirmOpen(false)}
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {spielAbschlussOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/85 p-4 backdrop-blur-sm sm:items-center"
+          role="presentation"
+          onClick={() => setSpielAbschlussOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border-2 border-amber-500/45 bg-zinc-950 p-5 shadow-[0_0_40px_rgba(0,0,0,0.85)] sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="spiel-abschluss-title"
+          >
+            <h3 id="spiel-abschluss-title" className="text-xl font-black text-white sm:text-2xl">
+              Kalender abschließen?
+            </h3>
+            <p className="mt-3 text-[15px] font-medium leading-snug text-zinc-300 sm:text-base">
+              Der verknüpfte Termin wird im Spielplan als beendet markiert. Danach wechselt die Ansicht zur App-Übersicht.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-row-reverse">
+              <button
+                type="button"
+                className="flex min-h-[52px] flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-amber-600 to-amber-950 text-base font-black uppercase tracking-wide text-white shadow-[0_0_20px_rgba(245,158,11,0.28)] active:scale-[0.99]"
+                onClick={() => void finalizeCalendarForMatch()}
               >
                 Abschließen
               </button>
               <button
                 type="button"
                 className="flex min-h-[52px] flex-1 items-center justify-center rounded-xl border-2 border-white/20 bg-zinc-900 text-base font-bold text-white active:scale-[0.99]"
-                onClick={() => setEndMatchConfirmOpen(false)}
+                onClick={() => setSpielAbschlussOpen(false)}
               >
                 Abbrechen
               </button>
