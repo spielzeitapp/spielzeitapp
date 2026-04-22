@@ -1326,7 +1326,7 @@ export const LiveMatchScreen: React.FC = () => {
                 <div
                   className={`flex items-start justify-between gap-2 ${matchTypeDisplay ? 'mt-2' : 'mt-1.5'}`}
                 >
-                  <div className="flex min-w-0 flex-1 flex-col items-center py-2 pr-1 text-center sm:pr-2">
+                  <div className="flex min-w-0 flex-1 flex-col items-center py-2 text-center">
                     <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={homeLogoSrc}
@@ -1334,7 +1334,7 @@ export const LiveMatchScreen: React.FC = () => {
                         size="schedule"
                       />
                     </div>
-                    <div className="mt-0.5 flex w-full justify-center">
+                    <div className="mt-0.5 flex w-full justify-end pr-1 sm:pr-2">
                       <div className="w-full max-w-[164px] sm:max-w-[184px]">
                         <MatchboardTeamNameLines parts={homeNameParts} />
                       </div>
@@ -1427,7 +1427,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
 
-                  <div className="flex min-w-0 flex-1 flex-col items-center py-2 pl-1 text-center sm:pl-2">
+                  <div className="flex min-w-0 flex-1 flex-col items-center py-2 text-center">
                     <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={awayLogoSrc}
@@ -1435,7 +1435,7 @@ export const LiveMatchScreen: React.FC = () => {
                         size="schedule"
                       />
                     </div>
-                    <div className="mt-0.5 flex w-full justify-center">
+                    <div className="mt-0.5 flex w-full justify-start pl-1 sm:pl-2">
                       <div className="w-full max-w-[164px] sm:max-w-[184px]">
                         <MatchboardTeamNameLines parts={awayNameParts} />
                       </div>
