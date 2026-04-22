@@ -144,7 +144,7 @@ function matchboardAbbrevAndClub(full: string): { abbrev: string; club: string }
 function MatchboardTeamNameLines({ parts }: { parts: { abbrev: string; club: string } }) {
   return (
     <div className="w-full min-w-0 hyphens-none">
-      <div className="min-h-[1em] text-[11px] font-semibold uppercase leading-tight tracking-[0.12em] text-white">
+      <div className="mt-1.5 min-h-[1em] text-[11px] font-medium uppercase leading-tight tracking-[0.14em] text-white">
         {parts.abbrev ? (
           <span className="block text-center">{parts.abbrev}</span>
         ) : (
@@ -153,8 +153,8 @@ function MatchboardTeamNameLines({ parts }: { parts: { abbrev: string; club: str
           </span>
         )}
       </div>
-      <div className="mt-0.5 text-center text-[13px] font-medium leading-snug text-white/85 sm:text-[14px]" title={parts.club || undefined}>
-        <span className="block break-words px-0.5">
+      <div className="mt-0.5 text-center text-[12px] font-semibold leading-snug text-white sm:text-[13px]" title={parts.club || undefined}>
+        <span className="line-clamp-2 block break-normal px-0.5 [overflow-wrap:normal] [text-wrap:balance]">
           {parts.club || '\u00a0'}
         </span>
       </div>
@@ -1326,7 +1326,7 @@ export const LiveMatchScreen: React.FC = () => {
                 <div
                   className={`flex items-start justify-between gap-2 ${matchTypeDisplay ? 'mt-2' : 'mt-1.5'}`}
                 >
-                  <div className="flex-1 min-w-0 flex flex-col items-center text-center">
+                  <div className="flex min-w-0 flex-1 flex-col items-center py-2 pr-1 text-center sm:pr-2">
                     <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={homeLogoSrc}
@@ -1335,7 +1335,9 @@ export const LiveMatchScreen: React.FC = () => {
                       />
                     </div>
                     <div className="mt-0.5 flex w-full justify-center">
-                      <MatchboardTeamNameLines parts={homeNameParts} />
+                      <div className="w-full max-w-[164px] sm:max-w-[184px]">
+                        <MatchboardTeamNameLines parts={homeNameParts} />
+                      </div>
                     </div>
                   </div>
 
@@ -1425,7 +1427,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
 
-                  <div className="flex-1 min-w-0 flex flex-col items-center text-center">
+                  <div className="flex min-w-0 flex-1 flex-col items-center py-2 pl-1 text-center sm:pl-2">
                     <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={awayLogoSrc}
@@ -1434,7 +1436,9 @@ export const LiveMatchScreen: React.FC = () => {
                       />
                     </div>
                     <div className="mt-0.5 flex w-full justify-center">
-                      <MatchboardTeamNameLines parts={awayNameParts} />
+                      <div className="w-full max-w-[164px] sm:max-w-[184px]">
+                        <MatchboardTeamNameLines parts={awayNameParts} />
+                      </div>
                     </div>
                   </div>
                 </div>
