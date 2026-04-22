@@ -320,6 +320,7 @@ async function sendPushesForUser(admin, userId, title, body, url, appBadgeCount,
 
 /**
  * Ein Job: Empfänger wie Edge send-reminders (Trainer + Eltern + Spieler, kein Teilnahme-Filter).
+ * Matchday-Auto (`automation: matchday_post`): eigener Text/Link; Status upcoming oder live.
  */
 async function processOneJob(admin, job) {
   const nowIso = new Date().toISOString();
@@ -331,15 +332,6 @@ async function processOneJob(admin, job) {
     now_utc: nowIso,
     now_vienna: viennaDateTimeDebug(nowIso),
   });
-
-  const payload = parseJobPayload(job.payload);
-  if (!payload) {
-    const err = new Error('invalid job payload');
-    await failJobWithRetry(admin, job, err.message);
-    return { ok: false, error: err.message };
-  }
-
-  const reminderKey = payload.reminderKey;
 
   const { data: event, error: evErr } = await admin
     .from('events')
@@ -361,13 +353,59 @@ async function processOneJob(admin, job) {
     meeting_at_vienna_debug: event.meeting_at ? viennaDateTimeDebug(event.meeting_at) : null,
   });
 
-  const { title, message: textBody } = buildReminderUxCopy(job.kind, event, reminderKey);
-  const url = reminderAppDeepLink(job.kind, event);
+  const rawPayload = job.payload && typeof job.payload === 'object' ? job.payload : {};
+  const isMatchday = rawPayload.automation === 'matchday_post';
 
-  if ((event.status ?? 'upcoming') !== 'upcoming') {
-    console.log('[reminderPipeline] skip: event not upcoming', { jobId: job.id, eventId: job.event_id });
-    await completeJob(admin, job.id);
-    return { ok: true, skipped: 'event_not_upcoming' };
+  let title;
+  let textBody;
+  let url;
+  let eventType;
+  let pushTagSuffix;
+
+  if (isMatchday) {
+    const st = String(event.status || 'upcoming').toLowerCase();
+    if (st === 'finished' || st === 'canceled') {
+      console.log('[reminderPipeline] matchday skip: event finished/canceled', {
+        jobId: job.id,
+        eventId: job.event_id,
+      });
+      await completeJob(admin, job.id);
+      return { ok: true, skipped: 'matchday_event_done' };
+    }
+    if (st !== 'upcoming' && st !== 'live') {
+      await completeJob(admin, job.id);
+      return { ok: true, skipped: 'matchday_bad_status' };
+    }
+    title =
+      typeof rawPayload.pushTitle === 'string' && rawPayload.pushTitle.trim()
+        ? rawPayload.pushTitle.trim()
+        : 'Matchday';
+    textBody = typeof rawPayload.pushBody === 'string' ? rawPayload.pushBody : '';
+    url =
+      typeof rawPayload.linkPath === 'string' && rawPayload.linkPath.trim()
+        ? rawPayload.linkPath.trim()
+        : reminderAppDeepLink(job.kind, event);
+    if (!url.startsWith('/')) url = `/${url}`;
+    eventType = 'matchday';
+    pushTagSuffix = 'matchday';
+  } else {
+    const payload = parseJobPayload(job.payload);
+    if (!payload) {
+      const err = new Error('invalid job payload');
+      await failJobWithRetry(admin, job, err.message);
+      return { ok: false, error: err.message };
+    }
+    if ((event.status ?? 'upcoming') !== 'upcoming') {
+      console.log('[reminderPipeline] skip: event not upcoming', { jobId: job.id, eventId: job.event_id });
+      await completeJob(admin, job.id);
+      return { ok: true, skipped: 'event_not_upcoming' };
+    }
+    const built = buildReminderUxCopy(job.kind, event, payload.reminderKey);
+    title = built.title;
+    textBody = built.message;
+    url = reminderAppDeepLink(job.kind, event);
+    eventType = 'reminder';
+    pushTagSuffix = payload.reminderKey;
   }
 
   let recipients;
@@ -439,7 +477,7 @@ async function processOneJob(admin, job) {
       title,
       message: textBody,
       type: 'auto',
-      event_type: 'reminder',
+      event_type: eventType,
       read: false,
       link: url,
       source_notification_job_id: job.id,
@@ -462,8 +500,10 @@ async function processOneJob(admin, job) {
     console.log('[reminderPipeline] notifications row created', { jobId: job.id, userId, eventId: job.event_id });
 
     const unreadForBadge = await countUnreadNotificationsForUser(admin, userId);
-    const rk = String(reminderKey || 'r').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 48);
-    const pushTag = `spz-reminder-${job.event_id}-${rk}`;
+    const rk = String(pushTagSuffix || 'r').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 48);
+    const pushTag = isMatchday
+      ? `spz-matchday-${job.event_id}`
+      : `spz-reminder-${job.event_id}-${rk}`;
     const pushRes = await sendPushesForUser(
       admin,
       userId,

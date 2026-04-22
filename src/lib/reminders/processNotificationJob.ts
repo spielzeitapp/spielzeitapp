@@ -69,6 +69,146 @@ async function completeJob(admin: SupabaseClient, jobId: string): Promise<void> 
     .eq('status', 'processing');
 }
 
+function parseMatchdayJobPayload(
+  raw: unknown,
+): { pushTitle: string; pushBody: string; linkPath: string } | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const p = raw as Record<string, unknown>;
+  if (p.automation !== 'matchday_post') return null;
+  const pushTitle = typeof p.pushTitle === 'string' ? p.pushTitle : '';
+  const pushBody = typeof p.pushBody === 'string' ? p.pushBody : '';
+  const linkPath = typeof p.linkPath === 'string' ? p.linkPath : '';
+  if (!pushTitle || !pushBody || !linkPath) return null;
+  return { pushTitle, pushBody, linkPath };
+}
+
+async function processMatchdayNotificationJob(
+  admin: SupabaseClient,
+  job: NotificationJobRow,
+  copy: { pushTitle: string; pushBody: string; linkPath: string },
+): Promise<{ ok: boolean; error?: string }> {
+  const { data: event, error: evErr } = await admin.from('events').select('*').eq('id', job.event_id).single();
+
+  if (evErr || !event) {
+    const err = evErr?.message ?? 'event not found';
+    await failJob(admin, job.id, err);
+    return { ok: false, error: err };
+  }
+
+  const ev = event as RawEventRow;
+  const st = String(ev.status ?? 'upcoming').toLowerCase();
+  if (st === 'finished' || st === 'canceled') {
+    await completeJob(admin, job.id);
+    return { ok: true };
+  }
+  if (st !== 'upcoming' && st !== 'live') {
+    await completeJob(admin, job.id);
+    return { ok: true };
+  }
+
+  const title = copy.pushTitle;
+  const message = copy.pushBody;
+  const linkPath = copy.linkPath.startsWith('/') ? copy.linkPath : `/${copy.linkPath}`;
+
+  let recipients: string[];
+  try {
+    recipients = await fetchReminderRecipientUserIdsForTeamSeason(admin, ev.team_season_id);
+  } catch (e: unknown) {
+    const err = e instanceof Error ? e.message : String(e);
+    await failJob(admin, job.id, err);
+    return { ok: false, error: err };
+  }
+
+  recipients = dedupeRecipientUserIds(recipients);
+  const dispatchLogReminderKey = `matchday_auto:${job.id}`;
+
+  if (recipients.length === 0) {
+    await completeJob(admin, job.id);
+    return { ok: true };
+  }
+
+  try {
+    for (const userId of recipients) {
+      const { data: logRow, error: logInsErr } = await admin
+        .from('notification_dispatch_log')
+        .insert({
+          user_id: userId,
+          event_id: job.event_id,
+          reminder_key: dispatchLogReminderKey,
+          channel: 'in_app',
+        })
+        .select('id')
+        .maybeSingle();
+
+      if (logInsErr) {
+        const code = (logInsErr as { code?: string }).code;
+        if (code === '23505') continue;
+        throw new Error(logInsErr.message || String(logInsErr));
+      }
+      const logId = logRow?.id as string | undefined;
+      if (!logId) continue;
+
+      const { error: nErr } = await admin.from('notifications').insert({
+        user_id: userId,
+        team_id: job.team_id,
+        event_id: job.event_id,
+        title,
+        message,
+        read: false,
+        type: 'auto',
+        link: linkPath,
+        event_type: 'matchday',
+        source_notification_job_id: job.id,
+      });
+
+      if (nErr) {
+        const nCode = (nErr as { code?: string }).code;
+        if (nCode === '23505') continue;
+        await admin.from('notification_dispatch_log').delete().eq('id', logId);
+        throw new Error(nErr.message || String(nErr));
+      }
+
+      const unreadForBadge = await countUnreadNotificationsForUser(admin, userId);
+      const pushTag = `spz-matchday-${job.event_id}`;
+      const pushRes = await sendWebPushForUser(admin, {
+        userId,
+        title,
+        body: message,
+        url: linkPath,
+        tag: pushTag,
+        appBadgeCount: unreadForBadge,
+        requireInteraction: true,
+        kind: 'reminder',
+        eventId: job.event_id,
+      });
+      if (pushRes.sent > 0) {
+        const { error: pushLogErr } = await admin.from('notification_dispatch_log').insert({
+          user_id: userId,
+          event_id: job.event_id,
+          reminder_key: dispatchLogReminderKey,
+          channel: 'push',
+        });
+        if (pushLogErr) {
+          const code = (pushLogErr as { code?: string }).code;
+          if (code !== '23505') {
+            console.warn('[processMatchdayNotificationJob] notification_dispatch_log push', pushLogErr.message);
+          }
+        }
+      }
+      if (pushRes.errors.length) {
+        console.warn('[processMatchdayNotificationJob] push partial errors', userId, pushRes.errors);
+      }
+    }
+  } catch (e: unknown) {
+    const err = e instanceof Error ? e.message : String(e);
+    await failJob(admin, job.id, err);
+    return { ok: false, error: err };
+  }
+
+  await completeJob(admin, job.id);
+  return { ok: true };
+}
+
 /**
  * Verarbeitet einen bereits geclaimten Job (status processing).
  * Speichert pro Empfänger eine Zeile in public.notifications; optional Web Push.
@@ -78,6 +218,11 @@ export async function processNotificationJob(
   job: NotificationJobRow,
 ): Promise<{ ok: boolean; error?: string }> {
   console.log('PROCESS JOB', job.id);
+
+  const matchdayCopy = parseMatchdayJobPayload(job.payload);
+  if (matchdayCopy) {
+    return processMatchdayNotificationJob(admin, job, matchdayCopy);
+  }
 
   const payload = parsePayload(job.payload, job.kind);
   if (!payload) {

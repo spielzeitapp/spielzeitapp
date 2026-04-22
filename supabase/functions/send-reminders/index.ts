@@ -403,7 +403,23 @@ serve(async () => {
 
         if (!event) throw new Error("Event nicht gefunden");
 
-        if (event.status !== "upcoming") {
+        const jobKind = (locked.kind as string) || "event";
+        const p = locked.payload && typeof locked.payload === "object"
+          ? (locked.payload as Record<string, unknown>)
+          : {};
+        const isMatchday = p.automation === "matchday_post";
+        const st = String(event.status ?? "upcoming").toLowerCase();
+
+        if (isMatchday) {
+          if (st === "finished" || st === "canceled") {
+            await completeJob(supabase, locked.id);
+            continue;
+          }
+          if (st !== "upcoming" && st !== "live") {
+            await completeJob(supabase, locked.id);
+            continue;
+          }
+        } else if (st !== "upcoming") {
           await completeJob(supabase, locked.id);
           continue;
         }
@@ -426,22 +442,35 @@ serve(async () => {
           ),
         ];
 
-        const jobKind = (locked.kind as string) || "event";
-        const p = locked.payload && typeof locked.payload === "object"
-          ? (locked.payload as Record<string, unknown>)
-          : {};
-        const reminderKey =
-          typeof p.reminderKey === "string"
-            ? p.reminderKey
-            : typeof p.reminder_type === "string"
-              ? p.reminder_type
-              : undefined;
-        const { title: uxTitle, message: uxMessage } = buildReminderUxCopy(
-          jobKind,
-          event as EventRow,
-          reminderKey,
-        );
-        const linkPath = reminderAppDeepLink(jobKind, event as EventRow);
+        let uxTitle: string;
+        let uxMessage: string;
+        let linkPath: string;
+        let eventType: string | null = null;
+
+        if (isMatchday) {
+          uxTitle = typeof p.pushTitle === "string" && p.pushTitle.trim()
+            ? p.pushTitle.trim()
+            : "Matchday";
+          uxMessage = typeof p.pushBody === "string" ? p.pushBody : "";
+          const rawLink = typeof p.linkPath === "string" ? p.linkPath.trim() : "";
+          linkPath = rawLink || reminderAppDeepLink(jobKind, event as EventRow);
+          eventType = "matchday";
+        } else {
+          const reminderKey =
+            typeof p.reminderKey === "string"
+              ? p.reminderKey
+              : typeof p.reminder_type === "string"
+                ? p.reminder_type
+                : undefined;
+          const built = buildReminderUxCopy(
+            jobKind,
+            event as EventRow,
+            reminderKey,
+          );
+          uxTitle = built.title;
+          uxMessage = built.message;
+          linkPath = reminderAppDeepLink(jobKind, event as EventRow);
+        }
 
         const notifRows = uniqueUserIds.map((userId) => ({
           user_id: userId,
@@ -452,6 +481,7 @@ serve(async () => {
           type: "auto",
           read: false,
           link: linkPath,
+          event_type: eventType,
           source_notification_job_id: locked.id,
         }));
 

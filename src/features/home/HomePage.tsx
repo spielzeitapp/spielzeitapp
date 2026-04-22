@@ -15,6 +15,9 @@ import {
 } from './homeFeedBuilder';
 import { HomeHeader } from './HomeHeader';
 import { buildMatchdayHeroCardProps } from './matchdayHeroProps';
+import { useTeamFeedPosts } from '../../hooks/useTeamFeedPosts';
+import { MatchdayFeedPostCard } from '../../components/feed/MatchdayFeedPostCard';
+import type { EventRow } from '../../hooks/useEvents';
 
 const FEED_DEMO = import.meta.env.VITE_HOME_FEED_DEMO === '1';
 
@@ -48,6 +51,14 @@ export const HomePage: React.FC = () => {
   }, [events, now]);
 
   const { byEventId: feedByEventId } = useMatchFeedSettingsMap(matchEventIds, location.key);
+  const { posts: teamFeedPosts, loading: teamFeedLoading } = useTeamFeedPosts(teamSeasonId);
+
+  const eventById = useMemo(() => {
+    const source = FEED_DEMO ? buildDemoHomeMatchEvents(now) : (events ?? []);
+    const m = new Map<string, EventRow>();
+    for (const e of source) m.set(e.id, e);
+    return m;
+  }, [events, now]);
 
   const homeMatchCardEl = useMemo(() => {
     if (!matchPick) return null;
@@ -136,9 +147,32 @@ export const HomePage: React.FC = () => {
                 <p className="text-sm font-semibold uppercase tracking-wide text-red-300">Offene Aufgaben</p>
                 <p className="mt-2 text-sm text-white/70">Keine offenen Aufgaben. Alles erledigt.</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-[#141414] p-5 shadow-lg">
+              <div className="space-y-3">
                 <p className="text-sm font-semibold uppercase tracking-wide text-red-300">Feed</p>
-                <p className="mt-2 text-sm text-white/70">Neueste Infos und Team-Updates erscheinen hier.</p>
+                {teamFeedLoading ? (
+                  <p className="text-sm text-white/50">Feed wird geladen…</p>
+                ) : teamFeedPosts.length === 0 ? (
+                  <div
+                    className="rounded-2xl border border-white/10 bg-[#141414] p-5 shadow-lg"
+                    style={{ boxShadow: '0 12px 28px rgba(0,0,0,0.3)' }}
+                  >
+                    <p className="text-sm text-white/70">
+                      Neueste Infos und Team-Updates erscheinen hier. Am Spieltag siehst du automatisch den
+                      Matchday-Post.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {teamFeedPosts.map((fp) => (
+                      <MatchdayFeedPostCard
+                        key={fp.id}
+                        post={fp}
+                        liveEvent={eventById.get(fp.event_id)}
+                        teamLabel={teamName}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

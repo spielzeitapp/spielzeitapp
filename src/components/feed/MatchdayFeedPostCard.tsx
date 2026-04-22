@@ -1,0 +1,244 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Heart, MessageCircle, Share2 } from 'lucide-react';
+import type { EventRow } from '../../hooks/useEvents';
+import type { MatchdayFeedPayload, TeamFeedPostRow } from '../../lib/matchdayFeedTypes';
+import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
+import { VIENNA_TZ } from '../../lib/viennaTime';
+import { getClubLogo } from '../../lib/teamLogos';
+import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
+import { supabase } from '../../lib/supabaseClient';
+import { MatchdayPosterCard, type MatchdayPosterVisualStatus } from './MatchdayPosterCard';
+import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
+
+type Props = {
+  post: TeamFeedPostRow;
+  /** Aktueller Termin aus dem Kalender — für LIVE / ENDSTAND / Logos live halten. */
+  liveEvent?: EventRow | null;
+  teamLabel: string;
+};
+
+function likeStorageKey(postId: string): string {
+  return `spz_feed_like_${postId}`;
+}
+
+function formatKickoff(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return (
+    new Intl.DateTimeFormat('de-AT', { timeZone: VIENNA_TZ, hour: '2-digit', minute: '2-digit' }).format(d) +
+    ' Uhr'
+  );
+}
+
+export const MatchdayFeedPostCard: React.FC<Props> = ({ post, liveEvent, teamLabel }) => {
+  const p = post.payload as MatchdayFeedPayload;
+  const [liked, setLiked] = useState(false);
+  const [shareHint, setShareHint] = useState<string | null>(null);
+  const [scores, setScores] = useState<{ home: number; away: number } | null>(null);
+
+  useEffect(() => {
+    try {
+      setLiked(sessionStorage.getItem(likeStorageKey(post.id)) === '1');
+    } catch {
+      setLiked(false);
+    }
+  }, [post.id]);
+
+  const eventStatus = liveEvent?.status ?? 'upcoming';
+  const matchId = liveEvent?.match_id ?? p.match_id;
+
+  useEffect(() => {
+    if (eventStatus !== 'finished' || !matchId) {
+      setScores(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('score_home, score_away')
+        .eq('id', matchId)
+        .maybeSingle();
+      if (cancelled || error || !data) return;
+      const row = data as { score_home?: number; score_away?: number };
+      setScores({
+        home: Number(row.score_home ?? 0),
+        away: Number(row.score_away ?? 0),
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [eventStatus, matchId]);
+
+  const posterStatus: MatchdayPosterVisualStatus = useMemo(() => {
+    if (eventStatus === 'live') return 'live';
+    if (eventStatus === 'finished') return 'finished';
+    return 'today';
+  }, [eventStatus]);
+
+  const homeLogoUrl = useMemo(() => {
+    if (p.is_home) return getClubLogo(p.our_team_name);
+    return getClubLogo(p.display_home_name, { logoUrl: p.opponent_logo_url });
+  }, [p]);
+
+  const awayLogoUrl = useMemo(() => {
+    if (p.is_home) return getClubLogo(p.display_away_name, { logoUrl: p.opponent_logo_url });
+    return getClubLogo(p.our_team_name);
+  }, [p]);
+
+  const locationLine = useMemo(() => {
+    const parsed = splitCombinedLocation(p.location || null);
+    const place = parsed.place;
+    const addr = parsed.address || (p.address ?? '').trim();
+    return (formatFullLocation(place, addr) || '').trim() || '—';
+  }, [p.location, p.address]);
+
+  const meetingTime = p.meeting_iso ? formatMeetupTimeOnlyDe(p.meeting_iso) : null;
+  const kickoffTime = formatKickoff(p.kickoff_iso);
+
+  const venueLabel = (liveEvent?.is_home ?? p.is_home) === false ? 'Auswärtsspiel' : 'Heimspiel';
+
+  const deepLink = p.deep_link?.startsWith('/') ? p.deep_link : `/app/events/${p.event_id}`;
+
+  const onToggleLike = useCallback(() => {
+    const next = !liked;
+    setLiked(next);
+    try {
+      sessionStorage.setItem(likeStorageKey(post.id), next ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  }, [liked, post.id]);
+
+  const onShare = useCallback(async () => {
+    const base = (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '');
+    const path = deepLink.startsWith('/') ? deepLink : `/${deepLink}`;
+    const url = `${window.location.origin}${base}${path}`;
+    const kickDate = new Date(p.kickoff_iso);
+    const datePart = Number.isNaN(kickDate.getTime())
+      ? ''
+      : ` · ${new Intl.DateTimeFormat('de-AT', {
+          timeZone: VIENNA_TZ,
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+        }).format(kickDate)}`;
+    const text = `${post.caption}\n${p.display_home_name} vs. ${p.display_away_name}${datePart} · Anpfiff ${kickoffTime}`;
+    const title = 'SpielzeitApp · Matchday';
+    const tryNativeShare = async (): Promise<boolean> => {
+      if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') return false;
+      const withUrl: ShareData = { title, text, url };
+      const textAndLink: ShareData = { title, text: `${text}\n${url}` };
+      const can = typeof navigator.canShare === 'function' ? navigator.canShare.bind(navigator) : () => true;
+      const candidates: ShareData[] = [];
+      if (can(withUrl)) candidates.push(withUrl);
+      else if (can(textAndLink)) candidates.push(textAndLink);
+      else candidates.push(withUrl, textAndLink);
+      for (const data of candidates) {
+        try {
+          await navigator.share(data);
+          return true;
+        } catch (e) {
+          if (e instanceof Error && e.name === 'AbortError') throw e;
+        }
+      }
+      return false;
+    };
+    try {
+      if (await tryNativeShare()) return;
+    } catch {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      setShareHint('Text & Link kopiert.');
+      window.setTimeout(() => setShareHint(null), 2500);
+    } catch {
+      setShareHint('Teilen nicht möglich.');
+      window.setTimeout(() => setShareHint(null), 2500);
+    }
+  }, [post.caption, p.display_home_name, p.display_away_name, p.kickoff_iso, kickoffTime, deepLink]);
+
+  const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
+
+  return (
+    <article
+      className="w-full overflow-hidden rounded-3xl border border-red-950/40 bg-[#0a0a0a] shadow-xl"
+      style={{
+        boxShadow:
+          'inset 0 0 80px rgba(80,10,10,0.08), 0 20px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(220,38,38,0.07)',
+      }}
+    >
+      <header className="flex items-start justify-between gap-3 border-b border-white/[0.05] bg-black/25 px-4 py-3.5 sm:px-5">
+        <div>
+          <p className="text-xs font-semibold text-white">
+            SpielzeitApp
+            <span className="font-normal text-white/40"> · </span>
+            <span className="text-red-300/90">{teamLabel}</span>
+          </p>
+          <p className="mt-1 text-[11px] text-white/50">{whenLabel}</p>
+        </div>
+        <span className="shrink-0 rounded-full border border-red-500/25 bg-red-950/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/95">
+          Matchday
+        </span>
+      </header>
+
+      <div className="space-y-4 px-3 pb-4 pt-4 sm:px-4">
+        <p className="text-sm leading-relaxed text-white/90 sm:text-base">{post.caption}</p>
+        <MatchdayPosterCard
+          homeTeamName={p.display_home_name}
+          awayTeamName={p.display_away_name}
+          homeLogoUrl={homeLogoUrl}
+          awayLogoUrl={awayLogoUrl}
+          kickoffTime={kickoffTime}
+          meetingTime={meetingTime}
+          locationLine={locationLine}
+          venueLabel={venueLabel}
+          status={posterStatus}
+          homeScore={scores?.home ?? null}
+          awayScore={scores?.away ?? null}
+          matchType={p.match_type}
+        />
+        {shareHint ? (
+          <p className="text-center text-xs text-white/55">{shareHint}</p>
+        ) : null}
+        <div
+          className="flex items-center justify-between gap-1 border-t border-white/[0.06] pt-3.5"
+          style={{
+            boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.04)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={onToggleLike}
+            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition-colors ${
+              liked ? 'text-red-400' : 'text-white/55 hover:bg-white/[0.04] hover:text-white/88'
+            }`}
+            aria-pressed={liked}
+          >
+            <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} strokeWidth={2} />
+            Gefällt mir
+          </button>
+          <Link
+            to={`/app/events/${p.event_id}`}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold text-white/55 transition-colors hover:bg-white/[0.04] hover:text-white/88"
+          >
+            <MessageCircle className="h-4 w-4" strokeWidth={2} />
+            Kommentar
+          </Link>
+          <button
+            type="button"
+            onClick={() => void onShare()}
+            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold text-white/55 transition-colors hover:bg-white/[0.04] hover:text-white/88 active:bg-white/[0.06]"
+            aria-label="Matchday teilen"
+          >
+            <Share2 className="h-4 w-4 shrink-0" strokeWidth={2} />
+            Teilen
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+};
