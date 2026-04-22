@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, MessageCircle, Share2 } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
@@ -10,6 +10,7 @@ import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
 import { supabase } from '../../lib/supabaseClient';
 import { MatchdayPosterCard, type MatchdayPosterVisualStatus } from './MatchdayPosterCard';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
+import { matchdayPosterDomToPngBlob } from '../../lib/matchdayPosterExport';
 
 type Props = {
   post: TeamFeedPostRow;
@@ -33,6 +34,7 @@ function formatKickoff(iso: string): string {
 
 export const MatchdayFeedPostCard: React.FC<Props> = ({ post, liveEvent, teamLabel }) => {
   const p = post.payload as MatchdayFeedPayload;
+  const posterCaptureRef = useRef<HTMLDivElement>(null);
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
   const [scores, setScores] = useState<{ home: number; away: number } | null>(null);
@@ -127,15 +129,51 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({ post, liveEvent, teamLab
         }).format(kickDate)}`;
     const text = `${post.caption}\n${p.display_home_name} vs. ${p.display_away_name}${datePart} · Anpfiff ${kickoffTime}`;
     const title = 'SpielzeitApp · Matchday';
-    const tryNativeShare = async (): Promise<boolean> => {
+    const textAndLink = `${text}\n${url}`;
+
+    let posterBlob: Blob | null = null;
+    if (posterCaptureRef.current) {
+      posterBlob = await matchdayPosterDomToPngBlob(posterCaptureRef.current);
+    }
+
+    const tryShareWithPng = async (): Promise<boolean> => {
+      if (!posterBlob || posterBlob.size < 64) return false;
+      if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') return false;
+      const file = new File([posterBlob], `spielzeit-matchday-${p.event_id.slice(0, 8)}.png`, {
+        type: 'image/png',
+      });
+      const withAll: ShareData = { files: [file], title, text, url };
+      const withText: ShareData = { files: [file], title, text: textAndLink };
+      const withTitle: ShareData = { files: [file], title };
+      const filesOnly: ShareData = { files: [file] };
+      const ordered: ShareData[] = [];
+      if (typeof navigator.canShare === 'function') {
+        if (navigator.canShare(withAll)) ordered.push(withAll);
+        if (navigator.canShare(withText)) ordered.push(withText);
+        if (navigator.canShare(withTitle)) ordered.push(withTitle);
+        if (navigator.canShare(filesOnly)) ordered.push(filesOnly);
+      }
+      if (ordered.length === 0) ordered.push(withAll, withText, withTitle, filesOnly);
+      for (const data of ordered) {
+        try {
+          await navigator.share(data);
+          return true;
+        } catch (e) {
+          if (e instanceof Error && e.name === 'AbortError') throw e;
+        }
+      }
+      return false;
+    };
+
+    const tryNativeTextShare = async (): Promise<boolean> => {
       if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') return false;
       const withUrl: ShareData = { title, text, url };
-      const textAndLink: ShareData = { title, text: `${text}\n${url}` };
+      const textOnly: ShareData = { title, text: textAndLink };
       const can = typeof navigator.canShare === 'function' ? navigator.canShare.bind(navigator) : () => true;
       const candidates: ShareData[] = [];
       if (can(withUrl)) candidates.push(withUrl);
-      else if (can(textAndLink)) candidates.push(textAndLink);
-      else candidates.push(withUrl, textAndLink);
+      else if (can(textOnly)) candidates.push(textOnly);
+      else candidates.push(withUrl, textOnly);
       for (const data of candidates) {
         try {
           await navigator.share(data);
@@ -146,20 +184,49 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({ post, liveEvent, teamLab
       }
       return false;
     };
+
     try {
-      if (await tryNativeShare()) return;
+      if (await tryShareWithPng()) return;
     } catch {
       return;
     }
     try {
-      await navigator.clipboard.writeText(`${text}\n${url}`);
+      if (await tryNativeTextShare()) return;
+    } catch {
+      return;
+    }
+    try {
+      if (
+        posterBlob &&
+        typeof ClipboardItem !== 'undefined' &&
+        navigator.clipboard &&
+        typeof navigator.clipboard.write === 'function'
+      ) {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': posterBlob })]);
+        setShareHint('Bild in Zwischenablage kopiert.');
+        window.setTimeout(() => setShareHint(null), 2500);
+        return;
+      }
+    } catch {
+      /* Fallback: Text */
+    }
+    try {
+      await navigator.clipboard.writeText(textAndLink);
       setShareHint('Text & Link kopiert.');
       window.setTimeout(() => setShareHint(null), 2500);
     } catch {
       setShareHint('Teilen nicht möglich.');
       window.setTimeout(() => setShareHint(null), 2500);
     }
-  }, [post.caption, p.display_home_name, p.display_away_name, p.kickoff_iso, kickoffTime, deepLink]);
+  }, [
+    post.caption,
+    p.display_home_name,
+    p.display_away_name,
+    p.kickoff_iso,
+    p.event_id,
+    kickoffTime,
+    deepLink,
+  ]);
 
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
 
@@ -188,6 +255,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({ post, liveEvent, teamLab
       <div className="space-y-4 px-3 pb-4 pt-4 sm:px-4">
         <p className="text-sm leading-relaxed text-white/90 sm:text-base">{post.caption}</p>
         <MatchdayPosterCard
+          ref={posterCaptureRef}
           homeTeamName={p.display_home_name}
           awayTeamName={p.display_away_name}
           homeLogoUrl={homeLogoUrl}

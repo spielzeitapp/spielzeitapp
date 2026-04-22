@@ -40,20 +40,24 @@ function LogoImg({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-export const MatchdayPosterCard: React.FC<MatchdayPosterCardProps> = ({
-  homeTeamName,
-  awayTeamName,
-  homeLogoUrl,
-  awayLogoUrl,
-  kickoffTime,
-  meetingTime,
-  locationLine,
-  venueLabel,
-  status,
-  homeScore,
-  awayScore,
-  matchType,
-}) => {
+export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPosterCardProps>(
+  function MatchdayPosterCard(
+    {
+      homeTeamName,
+      awayTeamName,
+      homeLogoUrl,
+      awayLogoUrl,
+      kickoffTime,
+      meetingTime,
+      locationLine,
+      venueLabel,
+      status,
+      homeScore,
+      awayScore,
+      matchType,
+    },
+    ref,
+  ) {
   const typeLabel = getMatchTypeLabel(matchType ?? undefined);
 
   let badgeText = 'HEUTE';
@@ -66,6 +70,7 @@ export const MatchdayPosterCard: React.FC<MatchdayPosterCardProps> = ({
 
   return (
     <div
+      ref={ref}
       className="relative w-full overflow-hidden rounded-3xl border border-red-950/50 px-4 py-6 sm:px-7 sm:py-8"
       style={{
         background: WELCOME_GRADIENT,
@@ -185,4 +190,7 @@ export const MatchdayPosterCard: React.FC<MatchdayPosterCardProps> = ({
       </div>
     </div>
   );
-};
+  },
+);
+
+MatchdayPosterCard.displayName = 'MatchdayPosterCard';
