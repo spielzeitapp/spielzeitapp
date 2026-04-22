@@ -158,7 +158,7 @@ function matchboardAbbrevAndClub(full: string): { abbrev: string; club: string }
 function MatchboardTeamNameLines({ parts }: { parts: { abbrev: string; club: string } }) {
   return (
     <div className="w-full min-w-0 hyphens-none">
-      <div className="min-h-[1em] text-[9px] font-semibold uppercase leading-tight tracking-wider text-white/65 sm:text-[10px]">
+      <div className="min-h-[1em] text-[8px] font-medium uppercase leading-tight tracking-[0.16em] text-white/55 sm:text-[9px]">
         {parts.abbrev ? (
           <span className="block text-center">{parts.abbrev}</span>
         ) : (
@@ -167,10 +167,7 @@ function MatchboardTeamNameLines({ parts }: { parts: { abbrev: string; club: str
           </span>
         )}
       </div>
-      <div
-        className="mt-0.5 text-center text-[10px] font-semibold leading-snug text-white sm:text-[11px]"
-        title={parts.club || undefined}
-      >
+      <div className="mt-0.5 text-center text-[11px] font-semibold leading-snug text-white sm:text-[12px]" title={parts.club || undefined}>
         <span className="line-clamp-2 block break-normal px-0.5 [overflow-wrap:normal] [text-wrap:balance]">
           {parts.club || '\u00a0'}
         </span>
@@ -1192,9 +1189,9 @@ export const LiveMatchScreen: React.FC = () => {
   }`;
   const scorePillHome = `${mbRowBtn} min-w-0 shrink-0 rounded-xl border border-emerald-500/35 bg-gradient-to-b from-emerald-950/92 to-black/72 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_22px_rgba(16,185,129,0.22)] hover:border-emerald-400/45 hover:shadow-[0_0_28px_rgba(16,185,129,0.32)] active:scale-[0.97]`;
   const scorePillAway = `${mbRowBtn} min-w-0 shrink-0 rounded-xl border border-red-500/38 bg-gradient-to-b from-red-950/92 to-black/72 text-red-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_22px_rgba(239,68,68,0.24)] hover:border-red-400/45 hover:shadow-[0_0_28px_rgba(239,68,68,0.34)] active:scale-[0.97]`;
-  const mbStart = `${mbRowBtn} rounded-xl border border-emerald-500/32 bg-gradient-to-b from-emerald-900/55 to-black/70 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_16px_rgba(16,185,129,0.14)] hover:from-emerald-800/62 hover:shadow-[0_0_20px_rgba(16,185,129,0.2)]`;
-  const mbPause = `${mbRowBtn} rounded-xl border border-orange-500/32 bg-gradient-to-b from-orange-950/55 to-black/70 text-orange-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_14px_rgba(251,146,60,0.12)] hover:from-orange-900/58`;
-  const mbEnd = `${mbRowBtn} rounded-xl border border-red-600/35 bg-gradient-to-b from-red-900/55 to-black/72 text-red-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_16px_rgba(220,38,38,0.18)] hover:from-red-800/55`;
+  const mbStart = `${mbRowBtn} rounded-xl border border-emerald-400/45 bg-gradient-to-b from-emerald-700/70 to-emerald-950/78 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(16,185,129,0.22)] hover:from-emerald-600/75 hover:shadow-[0_0_24px_rgba(16,185,129,0.28)]`;
+  const mbPause = `${mbRowBtn} rounded-xl border border-zinc-400/30 bg-gradient-to-b from-zinc-700/45 to-black/72 text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_12px_rgba(113,113,122,0.12)] hover:from-zinc-600/45`;
+  const mbEnd = `${mbRowBtn} rounded-xl border border-red-500/45 bg-gradient-to-b from-red-700/65 to-red-950/78 text-red-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_20px_rgba(220,38,38,0.24)] hover:from-red-600/68`;
   const mbWechsel = `${mbRowBtn} w-full rounded-xl border border-emerald-500/30 bg-gradient-to-b from-emerald-950/65 to-black/75 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_14px_rgba(16,185,129,0.12)] hover:border-emerald-400/35`;
   const mbSpielEnde = `${mbRowBtn} w-full rounded-xl border border-amber-500/28 bg-gradient-to-b from-amber-950/45 to-black/70 text-amber-100/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:border-amber-400/35 enabled:hover:shadow-[0_0_18px_rgba(245,158,11,0.15)]`;
 
@@ -1341,7 +1338,7 @@ export const LiveMatchScreen: React.FC = () => {
 
                 {/* Logos außen + Namen direkt darunter; Mitte: Score → Pausen → Zeit */}
                 <div
-                  className={`grid grid-cols-[minmax(0,1.18fr)_auto_minmax(0,1.18fr)] items-start gap-x-2 sm:gap-x-5 md:gap-x-6 ${
+                  className={`grid grid-cols-[1.02fr_auto_1.02fr] items-start gap-x-2 sm:gap-x-5 md:gap-x-6 ${
                     matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
@@ -1353,12 +1350,12 @@ export const LiveMatchScreen: React.FC = () => {
                         size="schedule"
                       />
                     </div>
-                    <div className="mt-0 flex w-full justify-center">
+                    <div className="mt-0.5 flex w-full justify-center">
                       <MatchboardTeamNameLines parts={homeNameParts} />
                     </div>
                   </div>
 
-                  <div className="flex w-max max-w-[min(100vw-12.5rem,172px)] shrink-0 flex-col items-center gap-0.5 px-0.5 sm:px-1 sm:max-w-[min(100vw-10rem,184px)]">
+                  <div className="flex w-max max-w-[min(100vw-13.5rem,162px)] shrink-0 flex-col items-center gap-0.5 px-0.5 sm:px-1 sm:max-w-[min(100vw-10.5rem,172px)]">
                     <div className="flex items-center justify-center gap-1 sm:gap-1.5">
                       {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                         <>
@@ -1380,10 +1377,10 @@ export const LiveMatchScreen: React.FC = () => {
                               setHomeGoalModalOpen(true);
                             }}
                           >
-                            <span aria-hidden className="text-sm leading-none">
+                            <span aria-hidden className="text-xs leading-none">
                               ⚽
                             </span>
-                            <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{displayScoreHome}</span>
+                            <span className="text-xl font-extrabold tabular-nums leading-none sm:text-[1.35rem]">{displayScoreHome}</span>
                           </button>
                           <span
                             className="shrink-0 text-[20px] font-extrabold leading-none text-white/90 tabular-nums sm:text-[24px]"
@@ -1419,8 +1416,8 @@ export const LiveMatchScreen: React.FC = () => {
                               });
                             }}
                           >
-                            <span className="text-lg font-extrabold tabular-nums leading-none sm:text-xl">{displayScoreAway}</span>
-                            <span aria-hidden className="text-sm leading-none">
+                            <span className="text-xl font-extrabold tabular-nums leading-none sm:text-[1.35rem]">{displayScoreAway}</span>
+                            <span aria-hidden className="text-xs leading-none">
                               ⚽
                             </span>
                           </button>
@@ -1436,7 +1433,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </p>
                     {!matchIsFinished ? (
                       <span
-                        className="liveTimer inline-flex items-center justify-center rounded-full border border-red-400/55 bg-gradient-to-b from-red-600 via-red-900 to-red-950 px-3 py-1.5 font-mono text-sm font-bold tabular-nums leading-none text-red-50 shadow-[0_0_16px_rgba(255,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.14)] sm:px-3.5 sm:text-[15px]"
+                        className="liveTimer inline-flex items-center justify-center rounded-full border border-red-400/60 bg-gradient-to-b from-red-600 via-red-900 to-red-950 px-3 py-1.5 font-mono text-[15px] font-bold tabular-nums leading-none text-red-50 shadow-[0_0_22px_rgba(255,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.16)] sm:px-3.5 sm:text-[16px]"
                         aria-live="polite"
                       >
                         {formatClock(currentMatchSeconds)}
@@ -1452,7 +1449,7 @@ export const LiveMatchScreen: React.FC = () => {
                         size="schedule"
                       />
                     </div>
-                    <div className="mt-0 flex w-full justify-center">
+                    <div className="mt-0.5 flex w-full justify-center">
                       <MatchboardTeamNameLines parts={awayNameParts} />
                     </div>
                   </div>

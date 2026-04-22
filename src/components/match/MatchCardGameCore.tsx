@@ -71,8 +71,8 @@ type TeamBlockProps = {
 function TeamBlock({ logoUrl, prefix, name, hero }: TeamBlockProps) {
   const imgClass = hero ? 'h-[52px] w-[52px] sm:h-[60px] sm:w-[60px]' : 'h-12 w-12 sm:h-14 sm:w-14';
   const nameClass = hero
-    ? 'mt-1.5 max-w-[160px] text-[12px] font-bold leading-snug text-white sm:max-w-[190px] sm:text-[13px]'
-    : 'mt-1 max-w-[156px] text-[11px] font-semibold leading-snug text-white sm:max-w-[176px] sm:text-[12px]';
+    ? 'mt-1 max-w-[172px] text-[13px] font-bold leading-snug text-white sm:max-w-[200px] sm:text-[14px]'
+    : 'mt-0.5 max-w-[164px] text-[12px] font-semibold leading-snug text-white sm:max-w-[184px] sm:text-[13px]';
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
       {logoUrl ? (
@@ -90,7 +90,7 @@ function TeamBlock({ logoUrl, prefix, name, hero }: TeamBlockProps) {
         <img src="/logos/placeholder-shield-a.png" alt="" className={`${imgClass} mx-auto object-contain`} />
       )}
       {prefix ? (
-        <div className={`${hero ? 'mt-2 text-[11px] sm:text-xs' : 'mt-2 text-[14px]'} font-semibold uppercase tracking-wide text-white/55`}>
+        <div className={`${hero ? 'mt-1.5 text-[10px] sm:text-[11px]' : 'mt-1.5 text-[11px]'} font-medium uppercase tracking-[0.14em] text-white/55`}>
           {prefix}
         </div>
       ) : null}
@@ -144,7 +144,7 @@ export function MatchCardKickoffBlock({
       ) : null}
       <div
         className={`${
-          hero ? 'text-[10px] sm:text-[11px] tracking-[0.42em]' : 'text-[14px] tracking-[0.35em]'
+          hero ? 'text-[9px] sm:text-[10px] tracking-[0.4em]' : 'text-[12px] tracking-[0.3em]'
         } font-bold uppercase text-red-400/95`}
       >
         {headerLabel ?? 'ANPFIFF'}
@@ -254,7 +254,7 @@ export function MatchCardGameCore({
       ) : null}
 
       <div
-        className={`${gridMt} grid grid-cols-[minmax(0,1.2fr)_auto_minmax(0,1.2fr)] items-center ${gridGap} ${
+        className={`${gridMt} grid grid-cols-[1.02fr_auto_1.02fr] items-center ${gridGap} ${
           hero ? 'min-h-[140px] sm:min-h-[160px]' : ''
         }`}
       >
@@ -270,7 +270,7 @@ export function MatchCardGameCore({
           />
         </div>
 
-        <div className="flex min-w-0 max-w-[132px] flex-col items-center px-0.5 text-center sm:max-w-[146px] sm:px-1.5">
+        <div className="flex min-w-0 max-w-[118px] flex-col items-center px-0.5 text-center sm:max-w-[134px] sm:px-1">
           <MatchCardKickoffBlock
             timeDisplay={isMatch && showScore ? `${homeScore} : ${awayScore}` : timeDisplay}
             showUhr={!isMatch || !showScore}
