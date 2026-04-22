@@ -1,4 +1,42 @@
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabaseClient';
+
+const AUTH_WAIT_MS = 12_000;
+
+/**
+ * Wartet, bis der Supabase-Client eine User-Session hat (nach Refresh/INITIAL_SESSION).
+ * Verhindert RPC-Aufrufe mit leerem JWT → auth.uid() NULL → not_authenticated.
+ */
+async function waitForClientSession(): Promise<Session | null> {
+  const { data: { session: initial } } = await supabase.auth.getSession();
+  if (initial?.user?.id) return initial;
+
+  return await new Promise((resolve) => {
+    let settled = false;
+    let unsubscribe: (() => void) | null = null;
+
+    const finish = (session: Session | null) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(t);
+      try {
+        unsubscribe?.();
+      } catch {
+        /* ignore */
+      }
+      resolve(session);
+    };
+
+    const t = window.setTimeout(() => {
+      void supabase.auth.getSession().then(({ data: { session } }) => finish(session ?? null));
+    }, AUTH_WAIT_MS);
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.id) finish(session);
+    });
+    unsubscribe = () => data.subscription.unsubscribe();
+  });
+}
 
 /**
  * Idempotent: RPC legt höchstens einen Matchday-Feed-Post pro Event an (Dedupe-Key in DB).
@@ -14,15 +52,58 @@ export async function ensureMatchdayFeedPostForSeason(teamSeasonId: string): Pro
   workerStatus: number | null;
   workerSummary: string | null;
 }> {
-  const { error: rpcErr } = await supabase.rpc('ensure_matchday_automation', {
+  if (!teamSeasonId?.trim()) {
+    console.info('[matchday] teamSeasonId = (leer) — kein RPC');
+    return {
+      rpcOk: false,
+      rpcError: 'no_team_season',
+      workerOk: null,
+      workerStatus: null,
+      workerSummary: null,
+    };
+  }
+
+  console.info('[matchday] teamSeasonId =', teamSeasonId);
+
+  const session = await waitForClientSession();
+  console.info('[matchday] session user id =', session?.user?.id ?? '(keine Session)');
+
+  if (!session?.user?.id) {
+    console.warn('[matchday] skip RPC — keine authentifizierte Session am Client');
+    return {
+      rpcOk: false,
+      rpcError: 'no_client_session',
+      workerOk: null,
+      workerStatus: null,
+      workerSummary: null,
+    };
+  }
+
+  console.info('[matchday] calling rpc ensure_matchday_automation');
+  const { data: rpcData, error: rpcErr } = await supabase.rpc('ensure_matchday_automation', {
     p_team_season_id: teamSeasonId,
   });
+
+  console.info('[matchday] rpc result =', rpcData ?? rpcErr ?? '(null)');
 
   if (rpcErr) {
     console.warn('[matchdayAutomation] ensure_matchday_automation', rpcErr.message ?? rpcErr);
     return {
       rpcOk: false,
       rpcError: rpcErr.message ?? String(rpcErr),
+      workerOk: null,
+      workerStatus: null,
+      workerSummary: null,
+    };
+  }
+
+  const payload = rpcData as { ok?: boolean; error?: string; skipped?: boolean; reason?: string } | null;
+  if (payload && typeof payload === 'object' && payload.ok === false) {
+    const err = payload.error ?? 'rpc_returned_ok_false';
+    console.warn('[matchday] RPC ok:false', err, payload);
+    return {
+      rpcOk: false,
+      rpcError: err,
       workerOk: null,
       workerStatus: null,
       workerSummary: null,
