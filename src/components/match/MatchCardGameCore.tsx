@@ -9,12 +9,28 @@ function getLogoSrcForDisplayName(displayName: string, optionalUrl?: string | nu
   return getClubLogoUrl(displayName);
 }
 
-/** Erstes Token = prefix, Rest = name. */
+function tokenLooksLikeAbbrev(token: string): boolean {
+  const t = (token || '').trim();
+  if (t.length < 2 || t.length > 8) return false;
+  const plain = t.replace(/\./g, '');
+  if (plain.length < 2) return false;
+  if (/^[A-Z0-9.]+$/.test(t) && plain.length <= 6) return true;
+  return /^[A-ZÄÖÜ]{2,6}$/.test(t);
+}
+
+/** Teamanzeige: oben Kürzel, unten Vereins-/Ortsname; unterstützt Präfix oder Suffix. */
 function splitPrefixAndName(full: string): { prefix: string; name: string } {
   const trimmed = (full || '').trim();
-  const i = trimmed.indexOf(' ');
-  if (i === -1) return { prefix: '', name: trimmed };
-  return { prefix: trimmed.slice(0, i), name: trimmed.slice(i + 1) };
+  if (!trimmed) return { prefix: '', name: '' };
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return { prefix: '', name: trimmed };
+  const first = parts[0];
+  const last = parts[parts.length - 1];
+  const firstIsAbbrev = tokenLooksLikeAbbrev(first);
+  const lastIsAbbrev = tokenLooksLikeAbbrev(last);
+  if (firstIsAbbrev && !lastIsAbbrev) return { prefix: first, name: parts.slice(1).join(' ') };
+  if (lastIsAbbrev && !firstIsAbbrev) return { prefix: last, name: parts.slice(0, -1).join(' ') };
+  return { prefix: first, name: parts.slice(1).join(' ') };
 }
 
 /** Spielort heuristisch in bis zu 3 Zeilen aufteilen. */
@@ -55,8 +71,8 @@ type TeamBlockProps = {
 function TeamBlock({ logoUrl, prefix, name, hero }: TeamBlockProps) {
   const imgClass = hero ? 'h-[52px] w-[52px] sm:h-[60px] sm:w-[60px]' : 'h-12 w-12 sm:h-14 sm:w-14';
   const nameClass = hero
-    ? 'mt-1.5 max-w-[132px] text-[12px] font-bold leading-snug text-white sm:max-w-[152px] sm:text-[13px] [overflow-wrap:anywhere]'
-    : 'mt-1 max-w-[130px] text-[11px] font-semibold leading-snug text-white sm:text-[12px] [overflow-wrap:anywhere]';
+    ? 'mt-1.5 max-w-[160px] text-[12px] font-bold leading-snug text-white sm:max-w-[190px] sm:text-[13px]'
+    : 'mt-1 max-w-[156px] text-[11px] font-semibold leading-snug text-white sm:max-w-[176px] sm:text-[12px]';
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
       {logoUrl ? (
@@ -79,7 +95,7 @@ function TeamBlock({ logoUrl, prefix, name, hero }: TeamBlockProps) {
         </div>
       ) : null}
       <div className={nameClass}>
-        <span className="block max-h-[2.75em] overflow-hidden">{name || 'Team'}</span>
+        <span className="line-clamp-2 block break-normal [overflow-wrap:normal] [text-wrap:balance]">{name || 'Team'}</span>
       </div>
     </div>
   );
@@ -238,7 +254,9 @@ export function MatchCardGameCore({
       ) : null}
 
       <div
-        className={`${gridMt} grid grid-cols-[1fr_auto_1fr] items-center ${gridGap} ${hero ? 'min-h-[140px] sm:min-h-[160px]' : ''}`}
+        className={`${gridMt} grid grid-cols-[minmax(0,1.2fr)_auto_minmax(0,1.2fr)] items-center ${gridGap} ${
+          hero ? 'min-h-[140px] sm:min-h-[160px]' : ''
+        }`}
       >
         <div className="flex min-w-0 flex-col items-center border-r border-white/[0.12] py-2 pr-3 text-center sm:pr-5">
           {hero && leftColumnLabel ? (
@@ -252,7 +270,7 @@ export function MatchCardGameCore({
           />
         </div>
 
-        <div className="flex min-w-0 flex-col items-center px-1 text-center sm:px-3">
+        <div className="flex min-w-0 max-w-[132px] flex-col items-center px-0.5 text-center sm:max-w-[146px] sm:px-1.5">
           <MatchCardKickoffBlock
             timeDisplay={isMatch && showScore ? `${homeScore} : ${awayScore}` : timeDisplay}
             showUhr={!isMatch || !showScore}
