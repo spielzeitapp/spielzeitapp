@@ -28,8 +28,10 @@ export type TeamFeedPostRow = {
 export function parseMatchdayPayload(raw: unknown): MatchdayFeedPayload | null {
   if (!raw || typeof raw !== 'object') return null;
   const p = raw as Record<string, unknown>;
-  const kickoff = typeof p.kickoff_iso === 'string' ? p.kickoff_iso : '';
-  const eventId = typeof p.event_id === 'string' ? p.event_id : '';
+  const kickoffRaw = p.kickoff_iso;
+  const kickoff = typeof kickoffRaw === 'string' ? kickoffRaw : kickoffRaw != null ? String(kickoffRaw) : '';
+  const eventRaw = p.event_id;
+  const eventId = typeof eventRaw === 'string' ? eventRaw : eventRaw != null ? String(eventRaw) : '';
   if (!kickoff || !eventId) return null;
   return {
     display_home_name: String(p.display_home_name ?? ''),
