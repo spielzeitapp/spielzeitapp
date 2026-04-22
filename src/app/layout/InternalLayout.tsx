@@ -27,6 +27,7 @@ export const InternalLayout: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { memberships, loading: sessionLoading, backendRole } = useSession();
+  const isLiveRoute = location.pathname.startsWith('/app/live');
 
   useSyncPendingProfile(user ?? null);
   useSyncProfileFromUserMetadata(user ?? null);
@@ -91,9 +92,9 @@ export const InternalLayout: React.FC = () => {
       <div className="app min-h-screen bg-black text-white">
         <Header />
         <main className={`app__content appMain pt-24 ${isTouchLayout ? 'pb-36 lg:pb-24' : 'pb-24'}`}>
-          <div className="mx-auto w-full max-w-[96rem] px-3 md:px-6 lg:px-8">
+          <div className={`mx-auto w-full ${isLiveRoute ? 'max-w-none px-2 md:px-3 lg:px-4' : 'max-w-[96rem] px-3 md:px-6 lg:px-8'}`}>
             <div className="lg:flex lg:items-start lg:gap-6">
-              <TabletSidebar />
+              <TabletSidebar compact={isLiveRoute} />
               <div className="min-w-0 flex-1">
                 <Outlet />
               </div>

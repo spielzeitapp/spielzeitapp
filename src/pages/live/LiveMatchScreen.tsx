@@ -1169,7 +1169,7 @@ export const LiveMatchScreen: React.FC = () => {
   const homeLogoSrc = getClubLogo(homeLogoLookupName);
   const awayLogoSrc = getClubLogo(headerOpponent);
 
-  const layoutShell = 'mx-auto w-full max-w-lg md:max-w-4xl lg:max-w-6xl';
+  const layoutShell = 'mx-auto w-full max-w-none';
   const spectatorView = !canControlLiveMatch;
   const matchboardVisible = spectatorView || (canControlLiveMatch && mainTab === 'overview');
   const liveBadgeAnimating = hasClockStarted && isRunning && !matchIsFinished;
@@ -1290,6 +1290,61 @@ export const LiveMatchScreen: React.FC = () => {
       </section>
     );
   };
+
+  const renderTrainerControlPanel = () => (
+    <section>
+      <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Kontrollen</h2>
+      <div className={`space-y-2 px-3 py-3 ${liveCardShell} border-red-500/20`}>
+        {!matchIsFinished ? (
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => void onStartClick()}
+              disabled={matchClockStatus === 'finished' || matchClockStatus === 'live'}
+              className={mbStart}
+            >
+              <span aria-hidden>▶</span>
+              {matchClockStatus === 'paused' ? 'Weiter' : 'Beginn'}
+            </button>
+            <button
+              type="button"
+              onClick={() => void onPauseClick()}
+              disabled={matchClockStatus === 'finished' || matchClockStatus !== 'live'}
+              className={mbPause}
+            >
+              <span aria-hidden>⏸</span>
+              Pause
+            </button>
+            <button
+              type="button"
+              onClick={() => setEndeConfirmOpen(true)}
+              disabled={matchClockStatus === 'finished' || matchClockStatus === 'not_started'}
+              className={mbEnd}
+            >
+              <span aria-hidden>⏹</span>
+              Ende
+            </button>
+          </div>
+        ) : null}
+        {!matchIsFinished ? (
+          <button type="button" onClick={() => setWechselSheetOpen(true)} className={mbWechsel}>
+            <span aria-hidden>⇄</span>
+            Wechsel
+          </button>
+        ) : null}
+        <button
+          type="button"
+          disabled={!matchIsFinished || calendarFinalized}
+          onClick={() => {
+            if (matchIsFinished && !calendarFinalized) setSpielAbschlussOpen(true);
+          }}
+          className={`${mbSpielEnde} text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[11px] disabled:opacity-35`}
+        >
+          {calendarFinalized ? 'Termin abgeschlossen' : 'Spiel abschließen'}
+        </button>
+      </div>
+    </section>
+  );
 
   /** Höhe unter globalem App-Header (main pt-24); Matchboard+Tabs fix, Inhalt scrollt (inkl. pb-28 für Bottom-Nav). */
   const liveColumnClass =
@@ -1587,10 +1642,10 @@ export const LiveMatchScreen: React.FC = () => {
       </header>
 
       <div
-        className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} px-2 py-2 pb-28 pt-1 md:px-5 md:py-4`}
+        className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} px-2 py-2 pb-28 pt-1 md:px-4 lg:px-5 md:py-4`}
       >
         {mainTab === 'overview' && (
-          <div className={canControlLiveMatch ? 'lg:grid lg:grid-cols-2 lg:gap-4' : 'space-y-3'}>
+          <div className={canControlLiveMatch ? 'md:grid md:grid-cols-2 md:gap-4 xl:grid-cols-3' : 'space-y-3'}>
             {canControlLiveMatch ? (
               <>
                 <div>{renderLastActionOverview('mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300')}</div>
@@ -1610,6 +1665,24 @@ export const LiveMatchScreen: React.FC = () => {
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Ereignisse</span>
                         <span className="text-xs font-medium text-white">{events.length}</span>
                       </div>
+                    </div>
+                  </section>
+                  {renderTrainerControlPanel()}
+                </div>
+                <div className="space-y-2 md:col-span-2 xl:col-span-1">
+                  <section>
+                    <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Aufstellung</h2>
+                    <div className={`px-3 py-2 ${liveCardShell} border-red-500/15`}>
+                      <p className="text-xs text-white/70">Am Feld: {fieldPlayers.length} Spieler</p>
+                      <p className="mt-1 text-xs text-white/55">Bank: {benchPlayers.length} Spieler</p>
+                    </div>
+                  </section>
+                  <section>
+                    <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Liveticker</h2>
+                    <div className={`max-h-[16rem] overflow-y-auto px-2 py-2 ${liveCardShell} border-red-500/15`}>
+                      {filteredEvents.slice(0, 5).map((ev, i, arr) =>
+                        renderTimelineRow(ev, i, arr.length, true),
+                      )}
                     </div>
                   </section>
                 </div>
