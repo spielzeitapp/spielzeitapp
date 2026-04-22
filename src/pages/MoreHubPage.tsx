@@ -151,18 +151,18 @@ export const MoreHubPage: React.FC = () => {
 
   return (
     <div
-      className="page mehr-hub min-h-[60vh] w-full px-4 py-6"
+      className="page mehr-hub min-h-[60vh] w-full px-4 py-6 md:px-6"
       style={{
         background:
           'linear-gradient(180deg, rgba(40,5,5,0.97) 0%, rgba(20,0,0,0.98) 50%, rgba(10,0,0,0.99) 100%)',
         boxShadow: 'inset 0 0 120px rgba(120,20,20,0.12)',
       }}
     >
-      <div className="mx-auto max-w-[560px] space-y-4">
+      <div className="mx-auto max-w-4xl space-y-4 lg:max-w-6xl">
         <h1 className="text-2xl font-bold tracking-tight text-white">Mehr</h1>
         <p className="text-sm text-white/60">Einstellungen und weitere Bereiche</p>
 
-        <nav className="space-y-2" aria-label="Mehr-Menü">
+        <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
           <Link to="/app/nachrichten" className={rowClass}>
             <span className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-red-400" aria-hidden />
@@ -184,7 +184,7 @@ export const MoreHubPage: React.FC = () => {
           </Link>
 
           {showTrainerTools && (
-            <div className="space-y-1.5 pt-1">
+            <div className="space-y-1.5 pt-1 md:col-span-2 lg:col-span-3">
               <button
                 type="button"
                 className={rowClass}

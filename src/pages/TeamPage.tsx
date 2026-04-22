@@ -292,9 +292,11 @@ export const TeamPage: React.FC = () => {
   }, [players]);
 
   return (
-    <div className="space-y-3 pb-24">
+    <div className="mx-auto w-full max-w-4xl space-y-3 pb-24 lg:max-w-6xl">
       <h1 className="text-xl font-semibold">Team</h1>
 
+      <div className="lg:grid lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-5">
+        <div className="space-y-3">
       {/* Team Card */}
       <Card>
         <div className="flex items-start justify-between gap-3">
@@ -487,7 +489,9 @@ export const TeamPage: React.FC = () => {
           )}
         </div>
       </Card>
+        </div>
 
+        <div className="mt-3 space-y-3 lg:mt-0 lg:sticky lg:top-28 lg:self-start">
       <Tabs
         tabs={visibleTabs}
         activeId={activeTab}
@@ -536,6 +540,8 @@ export const TeamPage: React.FC = () => {
           </Card>
         )}
       </section>
+        </div>
+      </div>
     </div>
   );
 };

@@ -11,6 +11,7 @@ import { useSession, normalizeRole as normalizeSessionRole } from '../../auth/us
 import { useSyncPendingProfile } from '../../auth/useSyncPendingProfile';
 import { useSyncProfileFromUserMetadata } from '../../auth/useSyncProfileFromUserMetadata';
 import { supabase } from '../../lib/supabaseClient';
+import { TabletSidebar } from '../components/TabletSidebar';
 
 /**
  * Layout für den internen Bereich /app/*.
@@ -89,15 +90,20 @@ export const InternalLayout: React.FC = () => {
 
       <div className="app min-h-screen bg-black text-white">
         <Header />
-        <main
-          className={`app__content appMain pt-24 ${isTouchLayout ? 'pb-36' : 'pb-24'}`}
-        >
-          <Outlet />
+        <main className={`app__content appMain pt-24 ${isTouchLayout ? 'pb-36 lg:pb-24' : 'pb-24'}`}>
+          <div className="mx-auto w-full max-w-[96rem] px-3 md:px-6 lg:px-8">
+            <div className="lg:flex lg:items-start lg:gap-6">
+              <TabletSidebar />
+              <div className="min-w-0 flex-1">
+                <Outlet />
+              </div>
+            </div>
+          </div>
         </main>
       </div>
 
-      {isTouchLayout ? <BottomNav /> : null}
-      {isTouchLayout ? <AppFab /> : null}
+      <div className="lg:hidden">{isTouchLayout ? <BottomNav /> : null}</div>
+      <div className="lg:hidden">{isTouchLayout ? <AppFab /> : null}</div>
     </AppBackground>
   );
 };

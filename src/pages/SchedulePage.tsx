@@ -603,8 +603,8 @@ export const SchedulePage: React.FC = () => {
 
   return (
     <div className="page schedule-page relative min-h-[60vh] [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_50%,rgba(10,0,0,0.99)_100%)] [box-shadow:inset_0_0_120px_rgba(120,20,20,0.12)]">
-      <div className="w-full px-[6px] sm:px-4">
-        <div className="max-w-[720px] mx-auto space-y-5 pt-4 mt-2">
+      <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
+        <div className="mx-auto mt-2 max-w-4xl space-y-5 pt-4 lg:max-w-6xl">
           {toastMessage && (
             <div
               className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl bg-black/90 border border-red-900/80 text-white text-sm font-medium shadow-lg backdrop-blur-sm"
@@ -755,17 +755,18 @@ export const SchedulePage: React.FC = () => {
           )}
 
           {!pageLoading && !error && (
-            <>
-              {displayEvents.length === 0 ? (
-                <p className="text-sm text-[var(--text-sub)]">
-                  {events.length === 0
-                    ? 'Noch keine Spiele oder Termine für diese Mannschaft erfasst.'
-                    : normalizedUiRole === 'fan'
-                      ? `Keine Einträge in „${TAB_OPTIONS.find((t) => t.id === activeTab)?.label ?? activeTab}".`
-                      : `Keine Einträge in „${timeFilter === 'upcoming' ? 'Bevorstehend' : 'Vergangen'}“.`}
-                </p>
-              ) : (
-                displayEvents.map((ev) => {
+            <div className="lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-5">
+              <div>
+                {displayEvents.length === 0 ? (
+                  <p className="text-sm text-[var(--text-sub)]">
+                    {events.length === 0
+                      ? 'Noch keine Spiele oder Termine für diese Mannschaft erfasst.'
+                      : normalizedUiRole === 'fan'
+                        ? `Keine Einträge in „${TAB_OPTIONS.find((t) => t.id === activeTab)?.label ?? activeTab}".`
+                        : `Keine Einträge in „${timeFilter === 'upcoming' ? 'Bevorstehend' : 'Vergangen'}“.`}
+                  </p>
+                ) : (
+                  displayEvents.map((ev) => {
                   const evAttendance = attendanceByEventId[ev.id];
                   const yesRaw = evAttendance?.yes ?? 0;
                   const no = evAttendance?.no ?? 0;
@@ -873,9 +874,21 @@ export const SchedulePage: React.FC = () => {
                       </div>
                     </div>
                   );
-                })
-              )}
-            </>
+                  })
+                )}
+              </div>
+              <aside className="mt-4 lg:mt-0">
+                <div className="lg:sticky lg:top-28 space-y-3 rounded-2xl border border-white/10 bg-black/30 p-4 backdrop-blur-sm">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-red-200">Kalender / Vorschau</h2>
+                  <p className="text-sm text-white/70">
+                    Auf Tablets bleibt die Terminliste links sichtbar, während rechts eine schnelle Vorschau für Kalender und Details bereitsteht.
+                  </p>
+                  <NavLink to="/app/termine/calendar" className="inline-flex rounded-lg border border-red-500/35 bg-red-950/40 px-3 py-2 text-sm font-medium text-white hover:bg-red-900/45">
+                    Zum Kalender
+                  </NavLink>
+                </div>
+              </aside>
+            </div>
           )}
 
           <CreateEventModal

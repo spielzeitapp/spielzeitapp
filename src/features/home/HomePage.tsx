@@ -93,10 +93,10 @@ export const HomePage: React.FC = () => {
 
   return (
     <div
-      className="page app-home min-h-[60vh] w-full px-4 pb-28 pt-5"
+      className="page app-home min-h-[60vh] w-full px-4 pb-28 pt-5 md:px-6 lg:px-2"
       style={{ backgroundColor: '#0b0b0b' }}
     >
-      <div className="mx-auto w-full max-w-[420px] space-y-5">
+      <div className="mx-auto w-full max-w-4xl space-y-5 lg:max-w-6xl">
         <HomeHeader welcomeLine={welcomeLine} teamName={teamName} />
 
         {loading && <p className="text-base text-white/50">Laden…</p>}
@@ -109,23 +109,38 @@ export const HomePage: React.FC = () => {
           </div>
         )}
 
-        {!loading && showContent && homeMatchCardEl}
-
-        {!loading && showContent && !matchPick && (
-          <div
-            className="rounded-2xl border border-white/[0.08] bg-[#141414] px-5 py-10 text-center shadow-lg"
-            style={{ boxShadow: '0 12px 28px rgba(0,0,0,0.3)' }}
-          >
-            <p className="text-lg font-semibold text-white/90">Kein Spiel in Sicht</p>
-            <p className="mt-2 text-sm leading-relaxed text-white/55">
-              Für dein Team ist aktuell kein kommendes Spiel eingetragen.
-            </p>
-            <Link
-              to="/app/termine"
-              className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-red-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-red-600"
-            >
-              Zu den Terminen
-            </Link>
+        {!loading && showContent && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-4">
+              {homeMatchCardEl}
+              {!matchPick ? (
+                <div
+                  className="rounded-2xl border border-white/[0.08] bg-[#141414] px-5 py-10 text-center shadow-lg"
+                  style={{ boxShadow: '0 12px 28px rgba(0,0,0,0.3)' }}
+                >
+                  <p className="text-lg font-semibold text-white/90">Kein Spiel in Sicht</p>
+                  <p className="mt-2 text-sm leading-relaxed text-white/55">
+                    Für dein Team ist aktuell kein kommendes Spiel eingetragen.
+                  </p>
+                  <Link
+                    to="/app/termine"
+                    className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-red-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-red-600"
+                  >
+                    Zu den Terminen
+                  </Link>
+                </div>
+              ) : null}
+            </div>
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-[#141414] p-5 shadow-lg">
+                <p className="text-sm font-semibold uppercase tracking-wide text-red-300">Offene Aufgaben</p>
+                <p className="mt-2 text-sm text-white/70">Keine offenen Aufgaben. Alles erledigt.</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-[#141414] p-5 shadow-lg">
+                <p className="text-sm font-semibold uppercase tracking-wide text-red-300">Feed</p>
+                <p className="mt-2 text-sm text-white/70">Neueste Infos und Team-Updates erscheinen hier.</p>
+              </div>
+            </div>
           </div>
         )}
       </div>
