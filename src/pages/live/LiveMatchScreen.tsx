@@ -140,6 +140,14 @@ function matchboardAbbrevAndClub(full: string): { abbrev: string; club: string }
   return { abbrev: first, club: tokens.slice(1).join(' ') };
 }
 
+/** Nur Liveboard-Anzeige: gezielte, saubere Kurzschreibweisen fuer lange Namen. */
+function toLiveBoardClubDisplayName(club: string): string {
+  const trimmed = (club || '').trim();
+  if (!trimmed) return '';
+  if (/^alpenvorland$/i.test(trimmed)) return 'Alpenland';
+  return trimmed;
+}
+
 /** Zwei Zeilen: Kürzel + Verein; Verein max. 2 Zeilen, ohne Ellipsis, Umbruch stabil. */
 function MatchboardTeamNameLines({
   parts,
@@ -401,8 +409,10 @@ export const LiveMatchScreen: React.FC = () => {
   const headerOpponent = opponentLabel;
   const homeDisplayName = cleanTeamDisplayName(homeName);
   const awayDisplayName = cleanTeamDisplayName(headerOpponent);
-  const homeNameParts = matchboardAbbrevAndClub(homeDisplayName);
-  const awayNameParts = matchboardAbbrevAndClub(awayDisplayName);
+  const homeNamePartsRaw = matchboardAbbrevAndClub(homeDisplayName);
+  const awayNamePartsRaw = matchboardAbbrevAndClub(awayDisplayName);
+  const homeNameParts = { ...homeNamePartsRaw, club: toLiveBoardClubDisplayName(homeNamePartsRaw.club) };
+  const awayNameParts = { ...awayNamePartsRaw, club: toLiveBoardClubDisplayName(awayNamePartsRaw.club) };
   const homeLongName = (homeNameParts.club || '').trim().length > 10;
   const awayLongName = (awayNameParts.club || '').trim().length > 10;
   /** Ohne API-Erweiterung: neutraler Anzeige-Spieltyp (Zielbild). */
