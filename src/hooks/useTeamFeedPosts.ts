@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ensureMatchdayFeedPostForSeason } from '../lib/matchdayAutomation';
+import { logMatchdayFeedSeasonContext } from '../lib/matchdayFeedDebug';
 import { parseMatchdayPayload, type TeamFeedPostRow } from '../lib/matchdayFeedTypes';
 import { supabase } from '../lib/supabaseClient';
 
-async function fetchPosts(teamSeasonId: string): Promise<TeamFeedPostRow[]> {
+async function fetchPosts(teamSeasonId: string): Promise<{
+  posts: TeamFeedPostRow[];
+  dbRowCount: number;
+  parseDropped: number;
+}> {
   const { data, error: err } = await supabase
     .from('team_feed_posts')
     .select('id, team_season_id, team_id, event_id, post_kind, caption, payload, created_at')
@@ -23,7 +28,11 @@ async function fetchPosts(teamSeasonId: string): Promise<TeamFeedPostRow[]> {
     if (!pl) continue;
     mapped.push({ ...r, payload: pl });
   }
-  return mapped;
+  return {
+    posts: mapped,
+    dbRowCount: rows.length,
+    parseDropped: rows.length - mapped.length,
+  };
 }
 
 export function useTeamFeedPosts(teamSeasonId: string | null) {
@@ -40,8 +49,22 @@ export function useTeamFeedPosts(teamSeasonId: string | null) {
     setLoading(true);
     setError(null);
     try {
-      await ensureMatchdayFeedPostForSeason(teamSeasonId);
-      setPosts(await fetchPosts(teamSeasonId));
+      await logMatchdayFeedSeasonContext(teamSeasonId);
+      const ensureRes = await ensureMatchdayFeedPostForSeason(teamSeasonId);
+      console.info('[matchday] (4b) ensureMatchdayFeedPostForSeason Rückgabe =', {
+        rpcOk: ensureRes.rpcOk,
+        rpcError: ensureRes.rpcError,
+        rpcPayload: ensureRes.rpcPayload,
+      });
+      const { posts: mapped, dbRowCount, parseDropped } = await fetchPosts(teamSeasonId);
+      console.info('[matchday] (5) team_feed_posts nach SELECT:', {
+        dbZeilen_roh: dbRowCount,
+        geparste_matchday_karten: mapped.length,
+        verworfen_wegen_payload_parse: parseDropped,
+        event_ids_der_karten: mapped.map((p) => p.event_id).slice(0, 10),
+      });
+      console.info('[matchday] ========== Diagnose-Ende ==========');
+      setPosts(mapped);
     } catch (e) {
       setPosts([]);
       setError(e instanceof Error ? e.message : String(e));
@@ -61,9 +84,25 @@ export function useTeamFeedPosts(teamSeasonId: string | null) {
       setLoading(true);
       setError(null);
       try {
-        await ensureMatchdayFeedPostForSeason(teamSeasonId);
+        await logMatchdayFeedSeasonContext(teamSeasonId);
         if (cancelled) return;
-        setPosts(await fetchPosts(teamSeasonId));
+        const ensureRes = await ensureMatchdayFeedPostForSeason(teamSeasonId);
+        if (cancelled) return;
+        console.info('[matchday] (4b) ensureMatchdayFeedPostForSeason Rückgabe =', {
+          rpcOk: ensureRes.rpcOk,
+          rpcError: ensureRes.rpcError,
+          rpcPayload: ensureRes.rpcPayload,
+        });
+        const { posts: mapped, dbRowCount, parseDropped } = await fetchPosts(teamSeasonId);
+        if (cancelled) return;
+        console.info('[matchday] (5) team_feed_posts nach SELECT:', {
+          dbZeilen_roh: dbRowCount,
+          geparste_matchday_karten: mapped.length,
+          verworfen_wegen_payload_parse: parseDropped,
+          event_ids_der_karten: mapped.map((p) => p.event_id).slice(0, 10),
+        });
+        console.info('[matchday] ========== Diagnose-Ende ==========');
+        setPosts(mapped);
       } catch (e) {
         if (!cancelled) {
           setPosts([]);

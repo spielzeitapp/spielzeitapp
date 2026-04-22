@@ -48,62 +48,67 @@ async function waitForClientSession(): Promise<Session | null> {
 export async function ensureMatchdayFeedPostForSeason(teamSeasonId: string): Promise<{
   rpcOk: boolean;
   rpcError: string | null;
+  rpcPayload: unknown | null;
   workerOk: boolean | null;
   workerStatus: number | null;
   workerSummary: string | null;
 }> {
   if (!teamSeasonId?.trim()) {
-    console.info('[matchday] teamSeasonId = (leer) — kein RPC');
+    console.info('[matchday] (2) teamSeasonId = (leer) — kein RPC');
     return {
       rpcOk: false,
       rpcError: 'no_team_season',
+      rpcPayload: null,
       workerOk: null,
       workerStatus: null,
       workerSummary: null,
     };
   }
 
-  console.info('[matchday] teamSeasonId =', teamSeasonId);
-
   const session = await waitForClientSession();
-  console.info('[matchday] session user id =', session?.user?.id ?? '(keine Session)');
+  console.info('[matchday] (1) session user id (vor RPC) =', session?.user?.id ?? '(keine Session — RPC würde not_authenticated liefern)');
 
   if (!session?.user?.id) {
-    console.warn('[matchday] skip RPC — keine authentifizierte Session am Client');
+    console.warn('[matchday] skip (3) — kein RPC-Aufruf ohne Session');
     return {
       rpcOk: false,
       rpcError: 'no_client_session',
+      rpcPayload: null,
       workerOk: null,
       workerStatus: null,
       workerSummary: null,
     };
   }
 
-  console.info('[matchday] calling rpc ensure_matchday_automation');
+  console.info('[matchday] (3) calling rpc ensure_matchday_automation …', { p_team_season_id: teamSeasonId });
   const { data: rpcData, error: rpcErr } = await supabase.rpc('ensure_matchday_automation', {
     p_team_season_id: teamSeasonId,
   });
 
-  console.info('[matchday] rpc result =', rpcData ?? rpcErr ?? '(null)');
-
   if (rpcErr) {
-    console.warn('[matchdayAutomation] ensure_matchday_automation', rpcErr.message ?? rpcErr);
+    console.warn('[matchday] (4) rpc result = HTTP/Fehler:', rpcErr.message ?? rpcErr);
+    console.warn('[matchday] (4) rpc result (raw error object) =', JSON.stringify(rpcErr, null, 2));
     return {
       rpcOk: false,
       rpcError: rpcErr.message ?? String(rpcErr),
+      rpcPayload: null,
       workerOk: null,
       workerStatus: null,
       workerSummary: null,
     };
   }
 
+  console.info('[matchday] (4) rpc result (JSON) =', JSON.stringify(rpcData, null, 2));
+  console.info('[matchday] (4) rpc result (Objekt) =', rpcData);
+
   const payload = rpcData as { ok?: boolean; error?: string; skipped?: boolean; reason?: string } | null;
   if (payload && typeof payload === 'object' && payload.ok === false) {
     const err = payload.error ?? 'rpc_returned_ok_false';
-    console.warn('[matchday] RPC ok:false', err, payload);
+    console.warn('[matchday] (4) RPC-Antwort ok:false →', err, payload);
     return {
       rpcOk: false,
       rpcError: err,
+      rpcPayload: rpcData,
       workerOk: null,
       workerStatus: null,
       workerSummary: null,
@@ -114,6 +119,7 @@ export async function ensureMatchdayFeedPostForSeason(teamSeasonId: string): Pro
     return {
       rpcOk: true,
       rpcError: null,
+      rpcPayload: rpcData,
       workerOk: null,
       workerStatus: null,
       workerSummary: null,
@@ -161,6 +167,7 @@ export async function ensureMatchdayFeedPostForSeason(teamSeasonId: string): Pro
     return {
       rpcOk: true,
       rpcError: null,
+      rpcPayload: rpcData,
       workerOk: res.ok,
       workerStatus: res.status,
       workerSummary: summary,
@@ -171,6 +178,7 @@ export async function ensureMatchdayFeedPostForSeason(teamSeasonId: string): Pro
     return {
       rpcOk: true,
       rpcError: null,
+      rpcPayload: rpcData,
       workerOk: false,
       workerStatus: null,
       workerSummary: msg,
