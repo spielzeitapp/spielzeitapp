@@ -153,8 +153,8 @@ function MatchboardTeamNameLines({ parts }: { parts: { abbrev: string; club: str
           </span>
         )}
       </div>
-      <div className="mt-0.5 text-center text-[12px] font-semibold leading-snug text-white sm:text-[13px]" title={parts.club || undefined}>
-        <span className="line-clamp-2 block break-normal px-0.5 [overflow-wrap:normal] [text-wrap:balance]">
+      <div className="mt-0.5 text-center text-[13px] font-semibold leading-snug text-white sm:text-[14px]" title={parts.club || undefined}>
+        <span className="line-clamp-2 block px-0.5 [overflow-wrap:break-word] [word-break:normal] [text-wrap:balance]">
           {parts.club || '\u00a0'}
         </span>
       </div>
@@ -1324,11 +1324,11 @@ export const LiveMatchScreen: React.FC = () => {
 
                 {/* Logos außen + Namen direkt darunter; Mitte: Score → Pausen → Zeit */}
                 <div
-                  className={`grid grid-cols-[1.08fr_auto_1.08fr] items-start gap-x-2 sm:gap-x-3 md:gap-x-4 ${
+                  className={`grid grid-cols-[1.18fr_auto_1.18fr] items-start gap-x-2 sm:gap-x-3 md:gap-x-4 ${
                     matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
-                  <div className="flex min-w-0 flex-col items-center self-stretch pl-0 pr-0.5 text-center sm:pl-0.5 sm:pr-2">
+                  <div className="flex min-w-0 flex-col items-center self-stretch px-0 text-center sm:px-1">
                     <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={homeLogoSrc}
@@ -1341,7 +1341,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex w-max max-w-[min(100vw-14.25rem,154px)] shrink-0 flex-col items-center gap-0.5 px-0.5 sm:px-0.5 sm:max-w-[min(100vw-11rem,164px)]">
+                  <div className="flex w-max max-w-[min(100vw-15.5rem,140px)] shrink-0 flex-col items-center gap-0.5 px-0.5 sm:max-w-[min(100vw-11.75rem,154px)]">
                     <div className="flex items-center justify-center gap-1 sm:gap-1.5">
                       {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                         <>
@@ -1427,7 +1427,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
 
-                  <div className="flex min-w-0 flex-col items-center self-stretch pl-0.5 pr-0 text-center sm:pl-2 sm:pr-0.5">
+                  <div className="flex min-w-0 flex-col items-center self-stretch px-0 text-center sm:px-1">
                     <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={awayLogoSrc}
