@@ -144,7 +144,7 @@ function matchboardAbbrevAndClub(full: string): { abbrev: string; club: string }
 function MatchboardTeamNameLines({ parts }: { parts: { abbrev: string; club: string } }) {
   return (
     <div className="w-full min-w-0 hyphens-none">
-      <div className="min-h-[1em] text-[7px] font-medium uppercase leading-tight tracking-[0.16em] text-white/50 sm:text-[8px]">
+      <div className="min-h-[1em] text-[9px] font-semibold uppercase leading-tight tracking-[0.14em] text-white sm:text-[10px]">
         {parts.abbrev ? (
           <span className="block text-center">{parts.abbrev}</span>
         ) : (
@@ -153,7 +153,7 @@ function MatchboardTeamNameLines({ parts }: { parts: { abbrev: string; club: str
           </span>
         )}
       </div>
-      <div className="mt-0.5 text-center text-[13px] font-semibold leading-snug text-white sm:text-[14px]" title={parts.club || undefined}>
+      <div className="mt-0.5 text-center text-[12px] font-medium leading-snug text-white/85 sm:text-[13px]" title={parts.club || undefined}>
         <span className="line-clamp-2 block px-0.5 [overflow-wrap:break-word] [word-break:normal] [text-wrap:balance]">
           {parts.club || '\u00a0'}
         </span>
