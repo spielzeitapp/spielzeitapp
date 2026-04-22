@@ -90,7 +90,7 @@ function TeamBlock({ logoUrl, prefix, name, hero }: TeamBlockProps) {
         <img src="/logos/placeholder-shield-a.png" alt="" className={`${imgClass} mx-auto object-contain`} />
       )}
       {prefix ? (
-        <div className={`${hero ? 'mt-1.5 text-[10px] sm:text-[11px]' : 'mt-1.5 text-[11px]'} font-medium uppercase tracking-[0.14em] text-white/55`}>
+        <div className={`${hero ? 'mt-1.5 text-[10px] sm:text-[11px]' : 'mt-1.5 text-[11px]'} font-medium uppercase tracking-[0.14em] text-white`}>
           {prefix}
         </div>
       ) : null}

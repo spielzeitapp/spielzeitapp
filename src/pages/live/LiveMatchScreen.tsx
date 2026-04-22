@@ -154,7 +154,7 @@ function MatchboardTeamNameLines({ parts }: { parts: { abbrev: string; club: str
         )}
       </div>
       <div className="mt-0.5 text-center text-[12px] font-medium leading-snug text-white/85 sm:text-[13px]" title={parts.club || undefined}>
-        <span className="line-clamp-2 block px-0.5 [overflow-wrap:break-word] [word-break:normal] [text-wrap:balance]">
+        <span className="line-clamp-2 block px-0.5 [overflow-wrap:normal] [word-break:normal] [text-wrap:balance]">
           {parts.club || '\u00a0'}
         </span>
       </div>
@@ -1324,7 +1324,7 @@ export const LiveMatchScreen: React.FC = () => {
 
                 {/* Logos außen + Namen direkt darunter; Mitte: Score → Pausen → Zeit */}
                 <div
-                  className={`grid grid-cols-[1.18fr_auto_1.18fr] items-start gap-x-2 sm:gap-x-3 md:gap-x-4 ${
+                  className={`grid grid-cols-[1.26fr_auto_1.26fr] items-start gap-x-2 sm:gap-x-3 md:gap-x-4 ${
                     matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
@@ -1341,7 +1341,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex w-max max-w-[min(100vw-15.5rem,140px)] shrink-0 flex-col items-center gap-0.5 px-0.5 sm:max-w-[min(100vw-11.75rem,154px)]">
+                  <div className="flex w-max max-w-[min(100vw-16.4rem,124px)] shrink-0 flex-col items-center gap-0.5 px-0.5 sm:max-w-[min(100vw-12.4rem,142px)]">
                     <div className="flex items-center justify-center gap-1 sm:gap-1.5">
                       {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                         <>
