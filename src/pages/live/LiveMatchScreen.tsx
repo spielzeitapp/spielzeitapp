@@ -161,7 +161,7 @@ function MatchboardTeamNameLines({
         )}
       </div>
       <div className={`mt-0.5 text-[12px] font-semibold leading-snug text-white sm:text-[13px] ${textAlign}`} title={parts.club || undefined}>
-        <span className="line-clamp-2 block break-normal px-0.5 [overflow-wrap:normal] [text-wrap:balance]">
+        <span className="block break-normal px-0.5 [overflow-wrap:normal] [text-wrap:balance]">
           {parts.club || '\u00a0'}
         </span>
       </div>
@@ -1399,7 +1399,7 @@ export const LiveMatchScreen: React.FC = () => {
                       />
                     </div>
                     <div className="mt-0.5 flex w-full justify-end pr-1 sm:pr-2">
-                      <div className="w-full max-w-[164px] sm:max-w-[184px]">
+                      <div className="w-full">
                         <MatchboardTeamNameLines parts={homeNameParts} align={homeLongName ? 'left' : 'center'} />
                       </div>
                     </div>
@@ -1500,7 +1500,7 @@ export const LiveMatchScreen: React.FC = () => {
                       />
                     </div>
                     <div className="mt-0.5 flex w-full justify-start pl-1 sm:pl-2">
-                      <div className="w-full max-w-[164px] sm:max-w-[184px]">
+                      <div className="w-full">
                         <MatchboardTeamNameLines parts={awayNameParts} align={awayLongName ? 'right' : 'center'} />
                       </div>
                     </div>
