@@ -140,6 +140,16 @@ function matchboardAbbrevAndClub(full: string): { abbrev: string; club: string }
   return { abbrev: first, club: tokens.slice(1).join(' ') };
 }
 
+/** Mobile Liveboard: lange Namen bewusst kompakt statt unschoener Umbruch. */
+function toCompactLiveClubName(name: string): string {
+  const trimmed = (name || '').trim();
+  if (!trimmed) return '';
+  if (trimmed.length <= 11) return trimmed;
+  const firstWord = trimmed.split(/\s+/)[0] ?? trimmed;
+  if (firstWord.length <= 11) return firstWord;
+  return `${firstWord.slice(0, 6)}.`;
+}
+
 /** Zwei Zeilen: Kürzel + Verein; Verein max. 2 Zeilen, ohne Ellipsis, Umbruch stabil. */
 function MatchboardTeamNameLines({ parts }: { parts: { abbrev: string; club: string } }) {
   return (
@@ -394,8 +404,10 @@ export const LiveMatchScreen: React.FC = () => {
   const headerOpponent = opponentLabel;
   const homeDisplayName = cleanTeamDisplayName(homeName);
   const awayDisplayName = cleanTeamDisplayName(headerOpponent);
-  const homeNameParts = matchboardAbbrevAndClub(homeDisplayName);
-  const awayNameParts = matchboardAbbrevAndClub(awayDisplayName);
+  const homeNamePartsRaw = matchboardAbbrevAndClub(homeDisplayName);
+  const awayNamePartsRaw = matchboardAbbrevAndClub(awayDisplayName);
+  const homeNameParts = { ...homeNamePartsRaw, club: toCompactLiveClubName(homeNamePartsRaw.club) };
+  const awayNameParts = { ...awayNamePartsRaw, club: toCompactLiveClubName(awayNamePartsRaw.club) };
   /** Ohne API-Erweiterung: neutraler Anzeige-Spieltyp (Zielbild). */
   const matchTypeDisplay = 'Freundschaftsspiel';
   const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
