@@ -144,7 +144,7 @@ function matchboardAbbrevAndClub(full: string): { abbrev: string; club: string }
 function MatchboardTeamNameLines({ parts }: { parts: { abbrev: string; club: string } }) {
   return (
     <div className="w-full min-w-0 hyphens-none">
-      <div className="min-h-[1em] text-[9px] font-semibold uppercase leading-tight tracking-[0.14em] text-white sm:text-[10px]">
+      <div className="min-h-[1em] text-[11px] font-semibold uppercase leading-tight tracking-[0.12em] text-white">
         {parts.abbrev ? (
           <span className="block text-center">{parts.abbrev}</span>
         ) : (
@@ -153,8 +153,8 @@ function MatchboardTeamNameLines({ parts }: { parts: { abbrev: string; club: str
           </span>
         )}
       </div>
-      <div className="mt-0.5 text-center text-[12px] font-medium leading-snug text-white/85 sm:text-[13px]" title={parts.club || undefined}>
-        <span className="line-clamp-2 block px-0.5 [overflow-wrap:normal] [word-break:normal] [text-wrap:balance]">
+      <div className="mt-0.5 text-center text-[13px] font-medium leading-snug text-white/85 sm:text-[14px]" title={parts.club || undefined}>
+        <span className="block break-words px-0.5">
           {parts.club || '\u00a0'}
         </span>
       </div>
@@ -1324,11 +1324,9 @@ export const LiveMatchScreen: React.FC = () => {
 
                 {/* Logos außen + Namen direkt darunter; Mitte: Score → Pausen → Zeit */}
                 <div
-                  className={`grid grid-cols-[1.26fr_auto_1.26fr] items-start gap-x-2 sm:gap-x-3 md:gap-x-4 ${
-                    matchTypeDisplay ? 'mt-2' : 'mt-1.5'
-                  }`}
+                  className={`flex items-start justify-between gap-2 ${matchTypeDisplay ? 'mt-2' : 'mt-1.5'}`}
                 >
-                  <div className="flex min-w-0 flex-col items-center self-stretch px-0 text-center sm:px-1">
+                  <div className="flex-1 min-w-0 flex flex-col items-center text-center">
                     <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={homeLogoSrc}
@@ -1341,7 +1339,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex w-max max-w-[min(100vw-16.4rem,124px)] shrink-0 flex-col items-center gap-0.5 px-0.5 sm:max-w-[min(100vw-12.4rem,142px)]">
+                  <div className="shrink-0 px-2 flex flex-col items-center gap-0.5">
                     <div className="flex items-center justify-center gap-1 sm:gap-1.5">
                       {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                         <>
@@ -1427,7 +1425,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
 
-                  <div className="flex min-w-0 flex-col items-center self-stretch px-0 text-center sm:px-1">
+                  <div className="flex-1 min-w-0 flex flex-col items-center text-center">
                     <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={awayLogoSrc}
