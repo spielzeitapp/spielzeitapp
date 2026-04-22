@@ -128,29 +128,58 @@ function cleanTeamDisplayName(name: string): string {
   return t || raw;
 }
 
-/** Erstes Token = Kurzname, Rest = Name (wie Termin-Matchkarte). */
-function splitPrefixAndName(full: string): { prefix: string; name: string } {
-  const trimmed = (full || '').trim();
-  const i = trimmed.indexOf(' ');
-  if (i === -1) return { prefix: '', name: trimmed };
-  return { prefix: trimmed.slice(0, i), name: trimmed.slice(i + 1) };
+/** Kurzes Kürzel (z. B. USG, SKN) – nicht mit Ortsnamen verwechseln. */
+function tokenLooksLikeAbbrev(t: string): boolean {
+  const s = (t || '').trim();
+  if (s.length < 2 || s.length > 8) return false;
+  const noDot = s.replace(/\./g, '');
+  if (noDot.length < 2) return false;
+  if (/^[A-Z0-9.]+$/i.test(s) && noDot.length <= 6) return true;
+  return /^[A-ZÄÖÜ]{2,6}$/.test(s);
 }
 
-/** Zwei Zeilen: Kurzname + Ortsname, voll lesbar: keine Ellipsis, kein max-width-Zwang, keine Silbentrennung. */
-function MatchboardTeamNameLines({ parts }: { parts: { prefix: string; name: string } }) {
+/**
+ * Matchboard: oben Kürzel, unten Vereinsname.
+ * Unterstützt „USG Alpenvorland“ und „Alpenvorland USG“; ein Wort nur unten.
+ */
+function matchboardAbbrevAndClub(full: string): { abbrev: string; club: string } {
+  const trimmed = (full || '').trim();
+  if (!trimmed) return { abbrev: '', club: '' };
+  const tokens = trimmed.split(/\s+/).filter(Boolean);
+  if (tokens.length === 1) return { abbrev: '', club: trimmed };
+
+  const first = tokens[0];
+  const last = tokens[tokens.length - 1];
+  const firstAbbr = tokenLooksLikeAbbrev(first);
+  const lastAbbr = tokenLooksLikeAbbrev(last);
+
+  if (firstAbbr && !lastAbbr) {
+    return { abbrev: first, club: tokens.slice(1).join(' ') };
+  }
+  if (lastAbbr && !firstAbbr) {
+    return { abbrev: last, club: tokens.slice(0, -1).join(' ') };
+  }
+  return { abbrev: first, club: tokens.slice(1).join(' ') };
+}
+
+/** Zwei Zeilen: Kürzel + Verein; Verein max. 2 Zeilen, ohne Ellipsis, Umbruch stabil. */
+function MatchboardTeamNameLines({ parts }: { parts: { abbrev: string; club: string } }) {
   return (
     <div className="w-full min-w-0 hyphens-none">
-      <div className="min-h-[1em] text-[10px] font-medium uppercase leading-tight tracking-wider text-white/70 sm:text-[11px]">
-        {parts.prefix ? (
-          <span className="block text-center">{parts.prefix}</span>
+      <div className="min-h-[1em] text-[9px] font-semibold uppercase leading-tight tracking-wider text-white/65 sm:text-[10px]">
+        {parts.abbrev ? (
+          <span className="block text-center">{parts.abbrev}</span>
         ) : (
           <span className="invisible block" aria-hidden>
             .
           </span>
         )}
       </div>
-      <div className="mt-0.5 text-center text-[12px] font-semibold leading-snug text-white sm:text-[13px] [overflow-wrap:break-word] [word-break:normal]">
-        <span className="block px-0.5">{parts.name || '\u00a0'}</span>
+      <div
+        className="mt-0.5 max-h-[2.65em] overflow-hidden text-center text-[10px] font-semibold leading-snug text-white sm:text-[11px] [overflow-wrap:anywhere] [word-break:normal]"
+        title={parts.club || undefined}
+      >
+        <span className="block px-0.5">{parts.club || '\u00a0'}</span>
       </div>
     </div>
   );
@@ -388,8 +417,8 @@ export const LiveMatchScreen: React.FC = () => {
   const headerOpponent = opponentLabel;
   const homeDisplayName = cleanTeamDisplayName(homeName);
   const awayDisplayName = cleanTeamDisplayName(headerOpponent);
-  const homeNameParts = splitPrefixAndName(homeDisplayName);
-  const awayNameParts = splitPrefixAndName(awayDisplayName);
+  const homeNameParts = matchboardAbbrevAndClub(homeDisplayName);
+  const awayNameParts = matchboardAbbrevAndClub(awayDisplayName);
   /** Ohne API-Erweiterung: neutraler Anzeige-Spieltyp (Zielbild). */
   const matchTypeDisplay = 'Freundschaftsspiel';
   const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
@@ -441,9 +470,18 @@ export const LiveMatchScreen: React.FC = () => {
   }, []);
 
   const totalsFromEvents = useMemo(() => recomputeScoresFromEvents(events), [events]);
-  /** Gesamtstand immer aus Toren (Events); DB-Werte mitziehen, falls Events kurz hinterherhängen. */
-  const displayScoreHome = Math.max(scoreHome, totalsFromEvents.home);
-  const displayScoreAway = Math.max(scoreAway, totalsFromEvents.away);
+  /**
+   * Gesamtstand nur aus Events + Matchzeile (DB), nie aus separat hochgezähltem Local-State —
+   * sonst +1 im Handler und max(totals, state) = Doppelzählung beim Tor.
+   */
+  const displayScoreHome = Math.max(
+    totalsFromEvents.home,
+    Number(matchRow?.score_home ?? 0),
+  );
+  const displayScoreAway = Math.max(
+    totalsFromEvents.away,
+    Number(matchRow?.score_away ?? 0),
+  );
 
   useEffect(() => {
     scoresRef.current = { home: displayScoreHome, away: displayScoreAway };
@@ -592,7 +630,21 @@ export const LiveMatchScreen: React.FC = () => {
         setEvents((prev) => prev.filter((e) => e.id !== tempId));
         return { ok: false };
       }
-      setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...partial, id } : e)));
+      const mid = effectiveMatchId;
+      setEvents((prev) => {
+        const mapped = prev.map((e) => (e.id === tempId ? { ...partial, id } : e));
+        if (partial.type === 'goal') {
+          const { home: nh, away: na } = recomputeScoresFromEvents(mapped);
+          queueMicrotask(() => {
+            setScoreHome(nh);
+            setScoreAway(na);
+            void updateMatchRow(mid, { score_home: nh, score_away: na }).then(({ error: rowErr }) => {
+              if (rowErr) setSaveError(rowErr);
+            });
+          });
+        }
+        return mapped;
+      });
       return { ok: true, savedId: id };
     },
     [effectiveMatchId, half],
@@ -1253,16 +1305,14 @@ export const LiveMatchScreen: React.FC = () => {
     );
   };
 
+  /** Höhe unter globalem App-Header (main pt-24); Matchboard+Tabs fix, Inhalt scrollt (inkl. pb-28 für Bottom-Nav). */
+  const liveColumnClass =
+    'flex h-[calc(100svh-6rem)] max-h-[calc(100svh-6rem)] flex-col overflow-hidden bg-black text-white';
+
   return (
-    <div
-      className={
-        spectatorView
-          ? 'flex min-h-[100dvh] flex-col bg-black text-white'
-          : 'min-h-[100dvh] bg-black pb-28 text-white'
-      }
-    >
+    <div className={liveColumnClass}>
       <header
-        className={`sticky top-0 z-50 shrink-0 border-b border-red-500/30 bg-black shadow-[0_1px_0_rgba(0,0,0,1)] ${
+        className={`shrink-0 border-b border-red-500/30 bg-black/98 shadow-[0_4px_24px_rgba(0,0,0,0.5)] ${
           spectatorView ? '' : 'backdrop-blur-md'
         }`}
       >
@@ -1362,20 +1412,17 @@ export const LiveMatchScreen: React.FC = () => {
                                 awayGoalSuppressClickRef.current = false;
                                 return;
                               }
+                              const before = recomputeScoresFromEvents(events);
                               const res = await persistSingle({
                                 type: 'goal',
                                 timestamp: currentMatchSeconds,
                               });
                               if (!res.ok || !res.savedId) return;
-                              const { home: ph, away: pa } = scoresRef.current;
-                              const next = pa + 1;
-                              setScoreAway(next);
-                              if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_away: next });
                               offerGoalUndo({
                                 eventId: res.savedId,
                                 side: 'away',
-                                prevHome: ph,
-                                prevAway: pa,
+                                prevHome: before.home,
+                                prevAway: before.away,
                               });
                             }}
                           >
@@ -1554,11 +1601,7 @@ export const LiveMatchScreen: React.FC = () => {
       </header>
 
       <div
-        className={
-          spectatorView
-            ? `min-h-0 flex-1 overflow-y-auto overscroll-y-contain ${layoutShell} px-2 pb-24 pt-1`
-            : `${layoutShell} px-2 py-2 md:px-5 md:py-4 pb-28`
-        }
+        className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} px-2 py-2 pb-28 pt-1 md:px-5 md:py-4`}
       >
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? '' : 'space-y-3'}>
@@ -1984,21 +2027,18 @@ export const LiveMatchScreen: React.FC = () => {
               disabled={!homeGoalPickId}
               onClick={async () => {
                 if (!homeGoalPickId || !effectiveMatchId) return;
+                const before = recomputeScoresFromEvents(events);
                 const res = await persistSingle({
                   type: 'goal',
                   timestamp: currentMatchSeconds,
                   playerId: homeGoalPickId,
                 });
                 if (!res.ok || !res.savedId) return;
-                const { home: ph, away: pa } = scoresRef.current;
-                const next = ph + 1;
-                setScoreHome(next);
-                if (effectiveMatchId) void updateMatchRow(effectiveMatchId, { score_home: next });
                 offerGoalUndo({
                   eventId: res.savedId,
                   side: 'home',
-                  prevHome: ph,
-                  prevAway: pa,
+                  prevHome: before.home,
+                  prevAway: before.away,
                 });
                 setHomeGoalModalOpen(false);
                 setHomeGoalPickId('');
