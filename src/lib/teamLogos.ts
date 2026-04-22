@@ -7,7 +7,7 @@ import { getLogoUrl } from '../utils/logoResolver';
 
 const OUR_TEAM_DISPLAY_NAME = 'SPG Rohrbach';
 const OUR_TEAM_SLUG = 'spg-rohrbach';
-const PLACEHOLDER_FILE = 'placeholder.png';
+const PLACEHOLDER_LOGO = '/logos/placeholder-shield-a.png';
 
 /** Normalisiert Anzeigenamen für Lookup (lowercase, Umlaute, Sonderzeichen raus). */
 function normalizeForLookup(name: string): string {
@@ -69,7 +69,7 @@ export type GetClubLogoOptions = {
 /**
  * Liefert die Logo-URL für einen Verein (Name oder Slug).
  * Nur public/static (/logos/<slug>.png) oder erlaubte Storage-URLs.
- * Fallback: placeholder.png
+ * Fallback: /logos/placeholder-shield-a.png
  */
 export function getClubLogo(nameOrSlug: string, options?: GetClubLogoOptions): string {
   const name = String(nameOrSlug || '').trim();
@@ -82,7 +82,7 @@ export function getClubLogo(nameOrSlug: string, options?: GetClubLogoOptions): s
     return getLogoUrl(slug);
   }
 
-  if (!name) return getLogoUrl(PLACEHOLDER_FILE);
+  if (!name) return PLACEHOLDER_LOGO;
 
   const key = normalizeForLookup(name);
   if (key.includes('spg rohrbach')) {
@@ -99,7 +99,7 @@ export function getClubLogo(nameOrSlug: string, options?: GetClubLogoOptions): s
     return getLogoUrl(`${slug}.png`);
   }
 
-  return getLogoUrl(PLACEHOLDER_FILE);
+  return PLACEHOLDER_LOGO;
 }
 
 /** @deprecated Nutze getClubLogo. Liefert Logo-URL (immer mit Fallback). */

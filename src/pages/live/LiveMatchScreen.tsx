@@ -29,23 +29,25 @@ import {
 } from '../../lib/liveMatchService';
 import { playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 import { supabase } from '../../lib/supabaseClient';
-import { getClubLogo, getOurTeamDisplayName, getTeamInitials } from '../../lib/teamLogos';
+import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
+import { isValidLogoUrl } from '../../utils/logoResolver';
 
 const HOME_FALLBACK = 'Unser Team';
 
 /** Logo-Kachel: gleiche Größe/Stil wie Gegner; bei Fehler Initialen (wie Match-Karten-Fallback). */
 function LiveMatchLogoTile({
   src,
-  initialsFrom,
   liveGlow,
   size = 'md',
 }: {
   src: string;
-  initialsFrom: string;
   liveGlow: boolean;
   size?: 'md' | 'hero' | 'heroLg' | 'schedule';
 }) {
-  const [failed, setFailed] = useState(false);
+  const [imgSrc, setImgSrc] = useState(isValidLogoUrl(src) ? src : '/logos/placeholder-shield-a.png');
+  useEffect(() => {
+    setImgSrc(isValidLogoUrl(src) ? src : '/logos/placeholder-shield-a.png');
+  }, [src]);
   const glow = liveGlow ? 'shadow-[0_0_12px_rgba(255,0,0,0.3)]' : '';
   const round =
     size === 'heroLg' ? 'rounded-full' : size === 'schedule' ? 'rounded-full' : 'rounded-xl';
@@ -65,12 +67,6 @@ function LiveMatchLogoTile({
         : size === 'hero'
           ? 'max-h-11 max-w-11 object-contain p-0.5'
           : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
-  const initialsClass =
-    size === 'heroLg'
-      ? 'select-none text-xl font-black tabular-nums text-white sm:text-2xl md:text-[1.65rem]'
-      : size === 'schedule'
-        ? 'select-none text-sm font-bold tabular-nums text-white'
-        : 'select-none text-base font-black tabular-nums text-white sm:text-lg';
   return (
     <div
       className={`flex shrink-0 items-center justify-center overflow-hidden ${
@@ -85,18 +81,14 @@ function LiveMatchLogoTile({
             : 'border border-red-500/30 bg-zinc-950/95'
       } ${round} ${box} ${glow}`}
     >
-      {!failed ? (
-        <img
-          src={src}
-          alt=""
-          className={imgClass}
-          onError={() => setFailed(true)}
-        />
-      ) : (
-        <span className={initialsClass} aria-hidden>
-          {getTeamInitials(initialsFrom)}
-        </span>
-      )}
+      <img
+        src={imgSrc}
+        alt=""
+        className={imgClass}
+        onError={() => {
+          if (imgSrc !== '/logos/placeholder-shield-a.png') setImgSrc('/logos/placeholder-shield-a.png');
+        }}
+      />
     </div>
   );
 }
@@ -1355,7 +1347,6 @@ export const LiveMatchScreen: React.FC = () => {
                     <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={homeLogoSrc}
-                        initialsFrom={homeLogoLookupName}
                         liveGlow={false}
                         size="schedule"
                       />
@@ -1455,7 +1446,6 @@ export const LiveMatchScreen: React.FC = () => {
                     <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={awayLogoSrc}
-                        initialsFrom={headerOpponent}
                         liveGlow={false}
                         size="schedule"
                       />

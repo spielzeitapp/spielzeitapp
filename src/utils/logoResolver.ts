@@ -4,6 +4,19 @@
  */
 
 const BASE = (import.meta.env.BASE_URL ?? '/').replace(/\/+$/, '') + '/';
+const SHIELD_PLACEHOLDER = `${BASE}logos/placeholder-shield-a.png`;
+const LOGO_EXT_RE = /\.(png|jpg|jpeg|svg)(\?.*)?$/i;
+
+export function isValidLogoUrl(url?: string | null): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const value = url.trim();
+  if (!value) return false;
+  const lower = value.toLowerCase();
+  if (lower.startsWith('http://') || lower.startsWith('https://')) {
+    return LOGO_EXT_RE.test(lower);
+  }
+  return lower.includes('/logos/') && LOGO_EXT_RE.test(lower);
+}
 
 /**
  * Erzeugt aus Anzeige-Namen einen kebab-case Logo-Dateinamen (ohne .png).
@@ -29,14 +42,15 @@ export function toLogoFile(nameOrSlug: string): string {
 export function getLogoUrl(slugOrFilename?: string | null): string {
   const value = (slugOrFilename ?? '').trim();
 
-  if (value && value.startsWith('http')) return value;
-  if (!value) return `${BASE}logos/placeholder.png`;
+  if (isValidLogoUrl(value) && value.startsWith('http')) return value;
+  if (isValidLogoUrl(value) && value.includes('/logos/')) return value;
+  if (!value) return SHIELD_PLACEHOLDER;
 
   const file = value.toLowerCase().endsWith('.png') ? value : `${value}.png`;
   return `${BASE}logos/${file}`.replace(/\/{2,}/g, '/');
 }
 
-export const PLACEHOLDER_LOGO = `${BASE}logos/placeholder.png`;
+export const PLACEHOLDER_LOGO = SHIELD_PLACEHOLDER;
 
 /** Intern für getTeamLogoSrc – gleiche Zeichenregeln wie toLogoFile. */
 function normalize(teamName: string): string {
@@ -78,7 +92,7 @@ export function getClubLogo(
   slugOrName: string,
   optionalLogoUrl?: string | null
 ): string {
-  if (optionalLogoUrl && typeof optionalLogoUrl === 'string' && optionalLogoUrl.trim().startsWith('http')) {
+  if (isValidLogoUrl(optionalLogoUrl)) {
     return optionalLogoUrl.trim();
   }
   return getClubLogoUrl(slugOrName);
@@ -101,7 +115,8 @@ export function slugifyClubName(name: string): string {
 export function getClubLogoUrl(raw?: string | null): string {
   const value = (raw ?? '').trim();
   if (!value) return PLACEHOLDER_LOGO;
-  if (value.startsWith('http')) return value;
+  if (isValidLogoUrl(value) && value.startsWith('http')) return value;
+  if (isValidLogoUrl(value) && value.includes('/logos/')) return value;
 
   const file = toLogoFile(value);
   if (!file) return PLACEHOLDER_LOGO;

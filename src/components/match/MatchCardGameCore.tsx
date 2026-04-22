@@ -1,10 +1,10 @@
 import React from 'react';
-import { getClubLogoUrl } from '../../utils/logoResolver';
+import { getClubLogoUrl, isValidLogoUrl } from '../../utils/logoResolver';
 import { splitCombinedLocation } from '../../lib/eventLocation';
 
 /** Logo-URL aus Anzeige-Namen; optional Storage-URL. */
 function getLogoSrcForDisplayName(displayName: string, optionalUrl?: string | null): string {
-  if (optionalUrl && typeof optionalUrl === 'string' && optionalUrl.trim().startsWith('http'))
+  if (isValidLogoUrl(optionalUrl))
     return optionalUrl.trim();
   return getClubLogoUrl(displayName);
 }
@@ -55,8 +55,8 @@ type TeamBlockProps = {
 function TeamBlock({ logoUrl, prefix, name, hero }: TeamBlockProps) {
   const imgClass = hero ? 'h-[52px] w-[52px] sm:h-[60px] sm:w-[60px]' : 'h-12 w-12 sm:h-14 sm:w-14';
   const nameClass = hero
-    ? 'mt-2 text-[15px] sm:text-base font-bold text-white text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[132px] sm:max-w-[152px] leading-tight'
-    : 'mt-1 text-[15px] font-semibold text-white text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[130px]';
+    ? 'mt-1.5 max-w-[132px] text-[12px] font-bold leading-snug text-white sm:max-w-[152px] sm:text-[13px] [overflow-wrap:anywhere]'
+    : 'mt-1 max-w-[130px] text-[11px] font-semibold leading-snug text-white sm:text-[12px] [overflow-wrap:anywhere]';
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
       {logoUrl ? (
@@ -65,18 +65,22 @@ function TeamBlock({ logoUrl, prefix, name, hero }: TeamBlockProps) {
           alt={name}
           className={`${imgClass} mx-auto object-contain`}
           onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
+            const img = e.currentTarget as HTMLImageElement;
+              if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
+              img.src = '/logos/placeholder-shield-a.png';
           }}
         />
       ) : (
-        <div className={`${imgClass} mx-auto rounded-2xl border border-white/10 bg-white/[0.06]`} />
+        <img src="/logos/placeholder-shield-a.png" alt="" className={`${imgClass} mx-auto object-contain`} />
       )}
       {prefix ? (
         <div className={`${hero ? 'mt-2 text-[11px] sm:text-xs' : 'mt-2 text-[14px]'} font-semibold uppercase tracking-wide text-white/55`}>
           {prefix}
         </div>
       ) : null}
-      <div className={nameClass}>{name || '–'}</div>
+      <div className={nameClass}>
+        <span className="block max-h-[2.75em] overflow-hidden">{name || 'Team'}</span>
+      </div>
     </div>
   );
 }
@@ -205,11 +209,13 @@ export function MatchCardGameCore({
   kickoffSubtitleAboveHeader,
   kickoffHeaderLabel,
 }: MatchCardGameCoreProps) {
+  const safeLeftName = (leftName || '').trim() || 'Team';
+  const safeRightName = (rightName || '').trim() || 'Gegner';
   const hero = variant === 'home-hero';
-  const leftSplit = splitPrefixAndName(leftName ?? '');
-  const rightSplit = splitPrefixAndName(rightName ?? '');
-  const leftLogoUrl = getLogoSrcForDisplayName(leftName ?? '', null);
-  const rightLogoUrl = getLogoSrcForDisplayName(rightName ?? '', opponentLogoUrl ?? null);
+  const leftSplit = splitPrefixAndName(safeLeftName);
+  const rightSplit = splitPrefixAndName(safeRightName);
+  const leftLogoUrl = getLogoSrcForDisplayName(safeLeftName, null);
+  const rightLogoUrl = getLogoSrcForDisplayName(safeRightName, opponentLogoUrl ?? null);
 
   const gridMt = hero ? 'mt-8' : 'mt-4';
   const gridGap = hero ? 'gap-x-2 sm:gap-x-4' : 'gap-x-4';
