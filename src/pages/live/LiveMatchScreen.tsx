@@ -140,25 +140,15 @@ function matchboardAbbrevAndClub(full: string): { abbrev: string; club: string }
   return { abbrev: first, club: tokens.slice(1).join(' ') };
 }
 
-/** Mobile Liveboard: lange Namen bewusst kompakt statt unschoener Umbruch. */
-function toCompactLiveClubName(name: string): string {
-  const trimmed = (name || '').trim();
-  if (!trimmed) return '';
-  if (trimmed.length <= 11) return trimmed;
-  const firstWord = trimmed.split(/\s+/)[0] ?? trimmed;
-  if (firstWord.length <= 11) return firstWord;
-  return `${firstWord.slice(0, 6)}.`;
-}
-
 /** Zwei Zeilen: Kürzel + Verein; Verein max. 2 Zeilen, ohne Ellipsis, Umbruch stabil. */
 function MatchboardTeamNameLines({
   parts,
   align,
 }: {
   parts: { abbrev: string; club: string };
-  align: 'left' | 'right';
+  align: 'left' | 'right' | 'center';
 }) {
-  const textAlign = align === 'left' ? 'text-left' : 'text-right';
+  const textAlign = align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center';
   return (
     <div className="w-full min-w-0 hyphens-none">
       <div className={`mt-1.5 min-h-[1em] text-[11px] font-medium uppercase leading-tight tracking-[0.14em] text-white ${textAlign}`}>
@@ -411,10 +401,10 @@ export const LiveMatchScreen: React.FC = () => {
   const headerOpponent = opponentLabel;
   const homeDisplayName = cleanTeamDisplayName(homeName);
   const awayDisplayName = cleanTeamDisplayName(headerOpponent);
-  const homeNamePartsRaw = matchboardAbbrevAndClub(homeDisplayName);
-  const awayNamePartsRaw = matchboardAbbrevAndClub(awayDisplayName);
-  const homeNameParts = { ...homeNamePartsRaw, club: toCompactLiveClubName(homeNamePartsRaw.club) };
-  const awayNameParts = { ...awayNamePartsRaw, club: toCompactLiveClubName(awayNamePartsRaw.club) };
+  const homeNameParts = matchboardAbbrevAndClub(homeDisplayName);
+  const awayNameParts = matchboardAbbrevAndClub(awayDisplayName);
+  const homeLongName = (homeNameParts.club || '').trim().length > 10;
+  const awayLongName = (awayNameParts.club || '').trim().length > 10;
   /** Ohne API-Erweiterung: neutraler Anzeige-Spieltyp (Zielbild). */
   const matchTypeDisplay = 'Freundschaftsspiel';
   const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
@@ -1345,7 +1335,7 @@ export const LiveMatchScreen: React.FC = () => {
                 <div
                   className={`flex items-start justify-between gap-2 ${matchTypeDisplay ? 'mt-2' : 'mt-1.5'}`}
                 >
-                  <div className="flex min-w-0 flex-1 flex-col items-start py-2 text-left">
+                  <div className={`flex min-w-0 flex-1 flex-col py-2 ${homeLongName ? 'items-start text-left' : 'items-center text-center'}`}>
                     <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={homeLogoSrc}
@@ -1355,7 +1345,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                     <div className="mt-0.5 flex w-full justify-end pr-1 sm:pr-2">
                       <div className="w-full max-w-[164px] sm:max-w-[184px]">
-                        <MatchboardTeamNameLines parts={homeNameParts} align="left" />
+                        <MatchboardTeamNameLines parts={homeNameParts} align={homeLongName ? 'left' : 'center'} />
                       </div>
                     </div>
                   </div>
@@ -1446,7 +1436,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : null}
                   </div>
 
-                  <div className="flex min-w-0 flex-1 flex-col items-end py-2 text-right">
+                  <div className={`flex min-w-0 flex-1 flex-col py-2 ${awayLongName ? 'items-end text-right' : 'items-center text-center'}`}>
                     <div className="flex min-h-[48px] items-center justify-center">
                       <LiveMatchLogoTile
                         src={awayLogoSrc}
@@ -1456,7 +1446,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                     <div className="mt-0.5 flex w-full justify-start pl-1 sm:pl-2">
                       <div className="w-full max-w-[164px] sm:max-w-[184px]">
-                        <MatchboardTeamNameLines parts={awayNameParts} align="right" />
+                        <MatchboardTeamNameLines parts={awayNameParts} align={awayLongName ? 'right' : 'center'} />
                       </div>
                     </div>
                   </div>
