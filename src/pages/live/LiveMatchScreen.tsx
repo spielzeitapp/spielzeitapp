@@ -49,8 +49,6 @@ function LiveMatchLogoTile({
     setImgSrc(isValidLogoUrl(src) ? src : '/logos/placeholder-shield-a.png');
   }, [src]);
   const glow = liveGlow ? 'shadow-[0_0_12px_rgba(255,0,0,0.3)]' : '';
-  const round =
-    size === 'heroLg' ? 'rounded-full' : size === 'schedule' ? 'rounded-full' : 'rounded-xl';
   const box =
     size === 'schedule'
       ? 'h-12 w-12'
@@ -68,19 +66,7 @@ function LiveMatchLogoTile({
           ? 'max-h-11 max-w-11 object-contain p-0.5'
           : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
   return (
-    <div
-      className={`flex shrink-0 items-center justify-center overflow-hidden ${
-        size === 'schedule'
-          ? 'bg-white/10'
-          : 'bg-black/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
-      } ${
-        size === 'heroLg'
-          ? 'border border-white/[0.12]'
-          : size === 'schedule'
-            ? ''
-            : 'border border-red-500/30 bg-zinc-950/95'
-      } ${round} ${box} ${glow}`}
-    >
+    <div className={`flex shrink-0 items-center justify-center ${box} ${glow}`}>
       <img
         src={imgSrc}
         alt=""
@@ -1338,7 +1324,7 @@ export const LiveMatchScreen: React.FC = () => {
 
                 {/* Logos außen + Namen direkt darunter; Mitte: Score → Pausen → Zeit */}
                 <div
-                  className={`grid grid-cols-[1.02fr_auto_1.02fr] items-start gap-x-2 sm:gap-x-5 md:gap-x-6 ${
+                  className={`grid grid-cols-[0.98fr_auto_0.98fr] items-start gap-x-2 sm:gap-x-4 md:gap-x-5 ${
                     matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
