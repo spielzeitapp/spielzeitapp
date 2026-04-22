@@ -144,7 +144,7 @@ function matchboardAbbrevAndClub(full: string): { abbrev: string; club: string }
 function MatchboardTeamNameLines({ parts }: { parts: { abbrev: string; club: string } }) {
   return (
     <div className="w-full min-w-0 hyphens-none">
-      <div className="min-h-[1em] text-[8px] font-medium uppercase leading-tight tracking-[0.16em] text-white/55 sm:text-[9px]">
+      <div className="min-h-[1em] text-[7px] font-medium uppercase leading-tight tracking-[0.16em] text-white/50 sm:text-[8px]">
         {parts.abbrev ? (
           <span className="block text-center">{parts.abbrev}</span>
         ) : (
@@ -153,7 +153,7 @@ function MatchboardTeamNameLines({ parts }: { parts: { abbrev: string; club: str
           </span>
         )}
       </div>
-      <div className="mt-0.5 text-center text-[11px] font-semibold leading-snug text-white sm:text-[12px]" title={parts.club || undefined}>
+      <div className="mt-0.5 text-center text-[12px] font-semibold leading-snug text-white sm:text-[13px]" title={parts.club || undefined}>
         <span className="line-clamp-2 block break-normal px-0.5 [overflow-wrap:normal] [text-wrap:balance]">
           {parts.club || '\u00a0'}
         </span>
@@ -1324,7 +1324,7 @@ export const LiveMatchScreen: React.FC = () => {
 
                 {/* Logos außen + Namen direkt darunter; Mitte: Score → Pausen → Zeit */}
                 <div
-                  className={`grid grid-cols-[0.98fr_auto_0.98fr] items-start gap-x-2 sm:gap-x-4 md:gap-x-5 ${
+                  className={`grid grid-cols-[1.08fr_auto_1.08fr] items-start gap-x-2 sm:gap-x-3 md:gap-x-4 ${
                     matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
@@ -1341,7 +1341,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex w-max max-w-[min(100vw-13.5rem,162px)] shrink-0 flex-col items-center gap-0.5 px-0.5 sm:px-1 sm:max-w-[min(100vw-10.5rem,172px)]">
+                  <div className="flex w-max max-w-[min(100vw-14.25rem,154px)] shrink-0 flex-col items-center gap-0.5 px-0.5 sm:px-0.5 sm:max-w-[min(100vw-11rem,164px)]">
                     <div className="flex items-center justify-center gap-1 sm:gap-1.5">
                       {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                         <>
