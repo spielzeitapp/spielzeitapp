@@ -1916,12 +1916,13 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="fixed inset-0 z-[70] flex items-end bg-black/60 backdrop-blur-sm"
+          className="fixed inset-x-0 bottom-0 z-[70] flex items-end bg-black/60 backdrop-blur-sm"
+          style={{ top: 'clamp(10.5rem, 28vh, 15rem)' }}
           role="presentation"
           onClick={closeWechselSheet}
         >
           <div
-            className="relative flex h-[85vh] max-h-[90vh] w-full flex-col overflow-hidden rounded-t-3xl border-t border-red-500/30 bg-zinc-900 shadow-2xl"
+            className="relative flex h-[85vh] max-h-full w-full flex-col overflow-hidden rounded-t-3xl border-t border-red-500/30 bg-zinc-900 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
