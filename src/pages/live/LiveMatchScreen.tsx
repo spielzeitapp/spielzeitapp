@@ -55,7 +55,7 @@ function LiveMatchLogoTile({
   const glow = liveGlow ? 'shadow-[0_0_12px_rgba(255,0,0,0.3)]' : '';
   const box =
     size === 'board'
-      ? 'h-20 w-20 sm:h-24 sm:w-24'
+      ? 'h-[5.25rem] w-[5.25rem] sm:h-28 sm:w-28'
       : size === 'schedule'
         ? 'h-12 w-12'
         : size === 'heroLg'
@@ -65,7 +65,7 @@ function LiveMatchLogoTile({
             : 'h-14 w-14 sm:h-[3.75rem] sm:w-[3.75rem]';
   const imgClass =
     size === 'board'
-      ? 'h-full w-full max-h-[5rem] max-w-[5rem] object-contain drop-shadow-[0_0_14px_rgba(255,255,255,0.18)] ring-1 ring-white/20 ring-offset-0 ring-offset-transparent sm:max-h-[5.75rem] sm:max-w-[5.75rem]'
+      ? 'h-full w-full max-h-[4.75rem] max-w-[4.75rem] object-contain drop-shadow-[0_0_14px_rgba(255,255,255,0.18)] ring-1 ring-white/20 ring-offset-0 ring-offset-transparent sm:max-h-[6.5rem] sm:max-w-[6.5rem]'
       : size === 'schedule'
         ? 'h-12 w-12 object-contain drop-shadow'
         : size === 'heroLg'
@@ -170,7 +170,7 @@ function MatchboardTeamNameLines({
           </span>
         )}
       </div>
-      <div className={`mt-1 text-lg font-semibold leading-snug text-white sm:text-xl ${textAlign}`}>
+      <div className={`mt-1 text-lg font-semibold leading-snug text-white sm:text-xl md:text-2xl ${textAlign}`}>
         <span className="block break-words [word-break:normal] [text-wrap:balance]">{parts.club || '\u00a0'}</span>
       </div>
     </div>
@@ -200,7 +200,7 @@ const spectatorTabBtnIdle =
 const liveCardShell =
   'rounded-2xl border border-white/[0.08] bg-gradient-to-br from-zinc-950/95 via-zinc-950/80 to-black shadow-[0_6px_28px_rgba(0,0,0,0.35)]';
 
-/** Trainer-Matchboard: einheitliche Höhe/Rundung für Steuerung + Tor-Pills. */
+/** Trainer-Matchboard: einheitliche Höhe/Rundung für Steuerung + Score-Tap-Zellen. */
 const mbBtnH = 'h-10 min-h-10';
 const mbRound = 'rounded-xl';
 const mbRowBtn = `flex ${mbBtnH} touch-manipulation items-center justify-center gap-1.5 ${mbRound} px-3 text-xs font-semibold transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40`;
@@ -1188,8 +1188,9 @@ export const LiveMatchScreen: React.FC = () => {
         ? `border-red-400/60 bg-gradient-to-b from-red-600 via-red-900 to-red-950 text-red-50 shadow-[0_0_28px_rgba(255,40,40,0.55),0_0_48px_rgba(220,38,38,0.25)]${liveBadgeAnimating ? ' animate-live-badge-strong' : ''}`
         : 'border-white/20 bg-zinc-900/95 text-white/55 shadow-[0_0_10px_rgba(0,0,0,0.35)]'
   }`;
-  const scorePillHome = `${mbRowBtn} min-h-[3.25rem] min-w-0 shrink-0 rounded-xl border border-emerald-400/40 bg-gradient-to-b from-emerald-950/92 to-black/75 px-2.5 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_26px_rgba(16,185,129,0.35)] hover:border-emerald-300/50 hover:shadow-[0_0_32px_rgba(16,185,129,0.42)] active:scale-[0.97]`;
-  const scorePillAway = `${mbRowBtn} min-h-[3.25rem] min-w-0 shrink-0 rounded-xl border border-red-400/45 bg-gradient-to-b from-red-950/92 to-black/75 px-2.5 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_26px_rgba(239,68,68,0.38),0_0_12px_rgba(255,255,255,0.06)] hover:border-red-300/50 hover:shadow-[0_0_32px_rgba(239,68,68,0.45)] active:scale-[0.97]`;
+  /** Nur Ziffer: Tap = Tor, Long-press = Undo (kein Ball-Icon). */
+  const scoreTapHome = `${mbRowBtn} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-emerald-400/40 bg-gradient-to-b from-emerald-950/92 to-black/75 px-3 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_26px_rgba(16,185,129,0.35)] hover:border-emerald-300/50 hover:shadow-[0_0_32px_rgba(16,185,129,0.42)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5`;
+  const scoreTapAway = `${mbRowBtn} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-red-400/45 bg-gradient-to-b from-red-950/92 to-black/75 px-3 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_26px_rgba(239,68,68,0.38),0_0_12px_rgba(255,255,255,0.06)] hover:border-red-300/50 hover:shadow-[0_0_32px_rgba(239,68,68,0.45)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5`;
   const mbStart = `${mbRowBtn} rounded-xl border border-emerald-400/50 bg-gradient-to-b from-emerald-600/80 to-emerald-950/85 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_22px_rgba(16,185,129,0.35)] hover:from-emerald-500/85 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]`;
   const mbPause = `${mbRowBtn} rounded-xl border border-zinc-500/35 bg-gradient-to-b from-zinc-800/55 to-black/80 text-zinc-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:from-zinc-700/55`;
   const mbEnd = `${mbRowBtn} rounded-xl border border-red-500/50 bg-gradient-to-b from-red-600/75 to-red-950/88 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_24px_rgba(220,38,38,0.38)] hover:from-red-500/78 hover:shadow-[0_0_32px_rgba(220,38,38,0.45)]`;
@@ -1415,95 +1416,104 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
 
                 {/* Zeile 1: Logo — Score-Held — Logo; Zeile 2: Namen (links / rechts) */}
-                <div className={`flex items-center justify-between gap-2 sm:gap-3 ${matchTypeDisplay ? 'mt-3' : 'mt-2.5'}`}>
+                <div className={`flex items-center justify-between gap-3 sm:gap-4 ${matchTypeDisplay ? 'mt-3' : 'mt-2.5'}`}>
                   <div className="flex min-w-0 flex-1 justify-start">
                     <LiveMatchLogoTile src={homeLogoSrc} liveGlow={false} size="board" />
                   </div>
 
-                  <div className="flex min-w-0 shrink flex-col items-center gap-2 px-1 sm:px-2">
-                    <div className="flex items-center justify-center gap-1.5 sm:gap-2 motion-safe:transition-transform motion-safe:duration-300">
-                      {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
-                        <>
-                          <button
-                            type="button"
-                            aria-label="Heimtor erfassen. Lange drücken für Rückgängig."
-                            className={scorePillHome}
-                            onContextMenu={(e) => e.preventDefault()}
-                            onPointerDown={onHomeGoalScorePointerDown}
-                            onPointerUp={clearHomeGoalLongPress}
-                            onPointerLeave={clearHomeGoalLongPress}
-                            onPointerCancel={clearHomeGoalLongPress}
-                            onClick={() => {
-                              if (homeGoalSuppressClickRef.current) {
-                                homeGoalSuppressClickRef.current = false;
-                                return;
-                              }
-                              setHomeGoalPickId('');
-                              setHomeGoalModalOpen(true);
-                            }}
-                          >
-                            <span aria-hidden className="text-sm leading-none opacity-90">
-                              ⚽
+                  <div className="flex min-w-0 shrink flex-col items-center gap-1.5 px-0.5 sm:px-1">
+                    {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
+                      <>
+                        <div className="flex items-start justify-center gap-1 sm:gap-2 motion-safe:transition-transform motion-safe:duration-300">
+                          <div className="flex min-w-0 flex-col items-center gap-0.5">
+                            <button
+                              type="button"
+                              aria-label="Heimtor erfassen. Lange drücken für Rückgängig."
+                              className={scoreTapHome}
+                              onContextMenu={(e) => e.preventDefault()}
+                              onPointerDown={onHomeGoalScorePointerDown}
+                              onPointerUp={clearHomeGoalLongPress}
+                              onPointerLeave={clearHomeGoalLongPress}
+                              onPointerCancel={clearHomeGoalLongPress}
+                              onClick={() => {
+                                if (homeGoalSuppressClickRef.current) {
+                                  homeGoalSuppressClickRef.current = false;
+                                  return;
+                                }
+                                setHomeGoalPickId('');
+                                setHomeGoalModalOpen(true);
+                              }}
+                            >
+                              <span className="text-4xl font-bold tabular-nums leading-none sm:text-5xl">
+                                {displayScoreHome}
+                              </span>
+                            </button>
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-400/90 sm:text-[11px]">
+                              Heim
                             </span>
-                            <span className="text-4xl font-bold tabular-nums leading-none sm:text-5xl">
-                              {displayScoreHome}
-                            </span>
-                          </button>
+                          </div>
                           <span
-                            className="shrink-0 text-3xl font-bold leading-none text-white/90 tabular-nums sm:text-4xl"
+                            className="shrink-0 select-none pt-1 text-3xl font-bold leading-none text-white/90 tabular-nums sm:pt-1.5 sm:text-4xl"
                             aria-hidden
                           >
                             :
                           </span>
-                          <button
-                            type="button"
-                            aria-label="Gasttor erfassen. Lange drücken für Rückgängig."
-                            className={scorePillAway}
-                            onContextMenu={(e) => e.preventDefault()}
-                            onPointerDown={onAwayGoalScorePointerDown}
-                            onPointerUp={clearAwayGoalLongPress}
-                            onPointerLeave={clearAwayGoalLongPress}
-                            onPointerCancel={clearAwayGoalLongPress}
-                            onClick={async () => {
-                              if (awayGoalSuppressClickRef.current) {
-                                awayGoalSuppressClickRef.current = false;
-                                return;
-                              }
-                              const before = recomputeScoresFromEvents(events);
-                              const res = await persistSingle({
-                                type: 'goal',
-                                timestamp: currentMatchSeconds,
-                              });
-                              if (!res.ok || !res.savedId) return;
-                              offerGoalUndo({
-                                eventId: res.savedId,
-                                side: 'away',
-                                prevHome: before.home,
-                                prevAway: before.away,
-                              });
-                            }}
-                          >
-                            <span className="text-4xl font-bold tabular-nums leading-none sm:text-5xl">
-                              {displayScoreAway}
+                          <div className="flex min-w-0 flex-col items-center gap-0.5">
+                            <button
+                              type="button"
+                              aria-label="Gasttor erfassen. Lange drücken für Rückgängig."
+                              className={scoreTapAway}
+                              onContextMenu={(e) => e.preventDefault()}
+                              onPointerDown={onAwayGoalScorePointerDown}
+                              onPointerUp={clearAwayGoalLongPress}
+                              onPointerLeave={clearAwayGoalLongPress}
+                              onPointerCancel={clearAwayGoalLongPress}
+                              onClick={async () => {
+                                if (awayGoalSuppressClickRef.current) {
+                                  awayGoalSuppressClickRef.current = false;
+                                  return;
+                                }
+                                const before = recomputeScoresFromEvents(events);
+                                const res = await persistSingle({
+                                  type: 'goal',
+                                  timestamp: currentMatchSeconds,
+                                });
+                                if (!res.ok || !res.savedId) return;
+                                offerGoalUndo({
+                                  eventId: res.savedId,
+                                  side: 'away',
+                                  prevHome: before.home,
+                                  prevAway: before.away,
+                                });
+                              }}
+                            >
+                              <span className="text-4xl font-bold tabular-nums leading-none sm:text-5xl">
+                                {displayScoreAway}
+                              </span>
+                            </button>
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-red-400/85 sm:text-[11px]">
+                              Gast
                             </span>
-                            <span aria-hidden className="text-sm leading-none opacity-90">
-                              ⚽
-                            </span>
-                          </button>
-                        </>
-                      ) : (
+                          </div>
+                        </div>
+                        <p className="max-w-[17rem] px-1 text-center text-[9px] leading-snug text-white/50 sm:max-w-[19rem] sm:text-[10px]">
+                          Tippen = Tor · Halten = Rückgängig
+                        </p>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center motion-safe:transition-transform motion-safe:duration-300">
                         <span className="text-center text-5xl font-bold leading-none text-white tabular-nums whitespace-nowrap sm:text-6xl">
                           {displayScoreHome}
                           <span className="mx-1.5 text-white/85 sm:mx-2">:</span>
                           {displayScoreAway}
                         </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
                     <div
                       className="h-px w-[min(100%,11rem)] bg-gradient-to-r from-transparent via-red-500/55 to-transparent shadow-[0_0_10px_rgba(239,68,68,0.35)]"
                       aria-hidden
                     />
-                    <p className="w-full max-w-[14rem] text-center font-mono text-[11px] font-medium tabular-nums leading-none text-white/80 sm:text-xs">
+                    <p className="w-full max-w-[16rem] text-center font-mono text-[11px] font-medium tabular-nums leading-none text-white/80 sm:max-w-[18rem] sm:text-xs">
                       <span className="inline-block max-w-full overflow-x-auto">{periodScoreLine}</span>
                     </p>
                     {!matchIsFinished ? (
@@ -1521,7 +1531,7 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-4 flex justify-between gap-3 sm:mt-5 sm:gap-4">
+                <div className="mt-3 flex justify-between gap-3 sm:mt-4 sm:gap-4">
                   <div className="min-w-0 flex-1 pr-1">
                     <MatchboardTeamNameLines parts={homeNameParts} align="left" />
                   </div>
