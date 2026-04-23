@@ -34,9 +34,12 @@ import { isValidLogoUrl } from '../../utils/logoResolver';
 
 const HOME_FALLBACK = 'Unser Team';
 
-/** Stadion-Hintergrund (Flutlicht); dezent unter Overlays. */
-const STADIUM_BG_URL =
-  'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1920&q=80';
+/** Gleiche Grafik wie WelcomeScreen (`public/intro/welcome-hero.png`). */
+function matchboardWelcomeHeroSrc(): string {
+  const base = import.meta.env.BASE_URL || '/';
+  const path = 'intro/welcome-hero.png';
+  return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`;
+}
 
 /** Logo-Kachel: gleiche Größe/Stil wie Gegner; bei Fehler Initialen (wie Match-Karten-Fallback). */
 function LiveMatchLogoTile({
@@ -1390,12 +1393,15 @@ export const LiveMatchScreen: React.FC = () => {
     <div className={liveShellOuter}>
       <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-[0.38]"
-          style={{ backgroundImage: `url(${STADIUM_BG_URL})` }}
+          className="absolute inset-0 bg-cover opacity-[0.22] brightness-[0.42] saturate-[0.72]"
+          style={{
+            backgroundImage: `url(${matchboardWelcomeHeroSrc()})`,
+            backgroundPosition: 'center 43%',
+          }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-red-950/80 to-black/95" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-red-950/65 to-black/85" />
         <div
-          className="absolute inset-0 opacity-[0.12] mix-blend-overlay"
+          className="absolute inset-0 opacity-[0.05] mix-blend-overlay"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E")`,
           }}
@@ -1414,19 +1420,37 @@ export const LiveMatchScreen: React.FC = () => {
         >
           {matchboardVisible && (
             <div
-              className={`relative mx-auto mb-0 w-full max-w-none overflow-hidden rounded-2xl border border-red-500/30 bg-black/72 shadow-[0_0_40px_rgba(239,68,68,0.18),0_8px_40px_rgba(0,0,0,0.45)] backdrop-blur-md ${
+              className={`relative mx-auto mb-0 w-full max-w-none overflow-hidden rounded-2xl border border-red-500/30 bg-black/82 shadow-[0_0_40px_rgba(239,68,68,0.18),0_8px_40px_rgba(0,0,0,0.45)] backdrop-blur-md ${
                 spectatorView ? 'md:max-w-xl' : 'md:max-w-2xl'
               }`}
             >
               <div
-                className="pointer-events-none absolute inset-0 rounded-2xl bg-cover bg-center opacity-[0.2]"
-                style={{ backgroundImage: `url(${STADIUM_BG_URL})` }}
+                className="pointer-events-none absolute inset-0 rounded-2xl bg-cover opacity-[0.12] brightness-[0.4] saturate-[0.68]"
+                style={{
+                  backgroundImage: `url(${matchboardWelcomeHeroSrc()})`,
+                  backgroundPosition: 'center 43%',
+                }}
               />
+              <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-black/80 via-red-950/65 to-black/85" />
               <div
-                className="pointer-events-none absolute inset-0 rounded-2xl opacity-[0.65]"
+                className="pointer-events-none absolute inset-0 rounded-2xl"
                 style={{
                   background:
-                    'radial-gradient(ellipse 90% 55% at 50% -5%, rgba(220,38,38,0.22), transparent 55%), radial-gradient(ellipse 70% 45% at 50% 100%, rgba(220,38,38,0.08), transparent 60%)',
+                    'linear-gradient(90deg, rgba(0,0,0,0.58) 0%, rgba(0,0,0,0.12) 28%, rgba(0,0,0,0.18) 72%, rgba(0,0,0,0.62) 100%)',
+                }}
+              />
+              <div
+                className="pointer-events-none absolute inset-0 rounded-2xl"
+                style={{
+                  background:
+                    'radial-gradient(ellipse 118% 88% at 50% 48%, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.08) 52%, rgba(0,0,0,0.45) 100%)',
+                }}
+              />
+              <div
+                className="pointer-events-none absolute inset-0 rounded-2xl opacity-[0.55]"
+                style={{
+                  background:
+                    'radial-gradient(ellipse 92% 52% at 50% -8%, rgba(220,38,38,0.12), transparent 58%)',
                 }}
               />
               <div className="relative z-[1] w-full px-[15px] py-2.5 pb-1.5">
