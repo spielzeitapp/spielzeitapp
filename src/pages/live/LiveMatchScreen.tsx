@@ -1916,12 +1916,12 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="absolute inset-0 z-[70] flex items-start justify-center bg-black/58 pt-1 backdrop-blur-sm"
+          className="absolute inset-0 z-[70] flex items-start justify-center bg-black/58 backdrop-blur-sm"
           role="presentation"
           onClick={closeWechselSheet}
         >
           <div
-            className="relative flex h-[min(86dvh,100%)] max-h-[calc(100%-0.25rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-red-500/25 bg-zinc-900 shadow-[0_18px_44px_rgba(0,0,0,0.72)]"
+            className="relative flex h-full max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border-t border-red-500/30 bg-zinc-900 shadow-[0_18px_44px_rgba(0,0,0,0.72)]"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -1937,7 +1937,7 @@ export const LiveMatchScreen: React.FC = () => {
               </p>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-28 pt-2 [-webkit-overflow-scrolling:touch]">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 pt-2 [-webkit-overflow-scrolling:touch]">
               <div className="mt-2">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-red-400">Am Feld · Raus</p>
                 <div
@@ -2013,7 +2013,7 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
 
             <div
-              className="absolute bottom-0 left-0 right-0 shrink-0 border-t border-white/10 bg-zinc-900/98 p-4 shadow-[0_-10px_28px_rgba(0,0,0,0.55)]"
+              className="shrink-0 border-t border-white/10 bg-zinc-900/98 p-4 shadow-[0_-10px_28px_rgba(0,0,0,0.55)]"
               style={{
                 paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
               }}
