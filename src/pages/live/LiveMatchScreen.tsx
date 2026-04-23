@@ -456,7 +456,6 @@ export const LiveMatchScreen: React.FC = () => {
     prevAway: number;
   } | null>(null);
   const [goalUndoToastClosing, setGoalUndoToastClosing] = useState(false);
-  const [goalUndoSheetSide, setGoalUndoSheetSide] = useState<'home' | 'away' | null>(null);
   const goalUndoTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const goalUndoFadeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const scoresRef = useRef({ home: 0, away: 0 });
@@ -573,35 +572,6 @@ export const LiveMatchScreen: React.FC = () => {
     });
     if (rowErr) setSaveError(rowErr);
   }, [effectiveMatchId, clearGoalUndoTimer]);
-
-  const undoGoalByEventId = useCallback(
-    async (eventId: string) => {
-      const id = eventId?.trim();
-      if (!id || !effectiveMatchId) return;
-      clearGoalUndoTimer();
-      setGoalUndoOffer(null);
-      setGoalUndoSheetSide(null);
-      const { error } = await deleteMatchEventById(id);
-      if (error) {
-        setSaveError(error);
-        return;
-      }
-      setEvents((prev) => {
-        const nextList = prev.filter((e) => e.id !== id);
-        const { home: nh, away: na } = recomputeScoresFromEvents(nextList);
-        const mid = effectiveMatchId;
-        queueMicrotask(() => {
-          setScoreHome(nh);
-          setScoreAway(na);
-          void updateMatchRow(mid, { score_home: nh, score_away: na }).then(({ error: rowErr }) => {
-            if (rowErr) setSaveError(rowErr);
-          });
-        });
-        return nextList;
-      });
-    },
-    [effectiveMatchId, clearGoalUndoTimer],
-  );
 
   const onFieldIds = useMemo(
     () => getCurrentOnFieldPlayers(startingPlayerIds, events, currentMatchSeconds),
@@ -1240,7 +1210,14 @@ export const LiveMatchScreen: React.FC = () => {
       homeGoalLpTimerRef.current = null;
       if (lastHomeGoalEventId) {
         homeGoalSuppressClickRef.current = true;
-        setGoalUndoSheetSide('home');
+        const next = events.filter((ev) => ev.id !== lastHomeGoalEventId);
+        const prev = recomputeScoresFromEvents(next);
+        offerGoalUndo({
+          eventId: lastHomeGoalEventId,
+          side: 'home',
+          prevHome: prev.home,
+          prevAway: prev.away,
+        });
       }
     }, 550);
   };
@@ -1252,17 +1229,17 @@ export const LiveMatchScreen: React.FC = () => {
       awayGoalLpTimerRef.current = null;
       if (lastAwayGoalEventId) {
         awayGoalSuppressClickRef.current = true;
-        setGoalUndoSheetSide('away');
+        const next = events.filter((ev) => ev.id !== lastAwayGoalEventId);
+        const prev = recomputeScoresFromEvents(next);
+        offerGoalUndo({
+          eventId: lastAwayGoalEventId,
+          side: 'away',
+          prevHome: prev.home,
+          prevAway: prev.away,
+        });
       }
     }, 550);
   };
-
-  const goalUndoSheetTargetId =
-    goalUndoSheetSide === 'home'
-      ? lastHomeGoalEventId
-      : goalUndoSheetSide === 'away'
-        ? lastAwayGoalEventId
-        : null;
 
   const renderLastActionOverview = (headingClass: string) => {
     const ev = spectatorLastActionEvent;
@@ -1586,8 +1563,8 @@ export const LiveMatchScreen: React.FC = () => {
                         ) : null}
                       </div>
                     )}
-                    <p className="mt-0.5 w-full max-w-[17rem] text-center font-mono text-[11px] font-medium tabular-nums leading-snug text-white/85 sm:max-w-[19rem] sm:text-xs">
-                      <span className="inline-block max-w-full overflow-x-auto">{periodScoreLine}</span>
+                    <p className="mt-0.5 w-full text-center font-mono text-[10px] font-medium tabular-nums leading-none text-white/88 sm:text-[11px]">
+                      <span className="inline-block whitespace-nowrap tracking-[-0.01em]">{periodScoreLine}</span>
                     </p>
                   </div>
 
@@ -2349,45 +2326,6 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
         </div>
       )}
-
-      {canControlLiveMatch && !matchIsFinished && goalUndoSheetSide ? (
-        <div
-          className="fixed inset-0 z-[55] flex items-end justify-center bg-black/65 p-0 backdrop-blur-[2px]"
-          role="presentation"
-          onClick={() => setGoalUndoSheetSide(null)}
-        >
-          <div
-            className="w-full max-w-md rounded-t-2xl border border-white/12 bg-zinc-950 px-4 pb-6 pt-3 shadow-[0_-8px_40px_rgba(0,0,0,0.5)]"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="goal-undo-sheet-title"
-          >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
-            <h3 id="goal-undo-sheet-title" className="text-center text-base font-bold text-white">
-              Tor korrigieren
-            </h3>
-            {goalUndoSheetTargetId ? (
-              <button
-                type="button"
-                className={`${mbRowBtn} mt-4 w-full border border-white/12 bg-white/[0.06] text-sm font-semibold text-white hover:bg-white/10`}
-                onClick={() => void undoGoalByEventId(goalUndoSheetTargetId)}
-              >
-                {goalUndoSheetSide === 'home' ? 'Letztes Heimtor rückgängig' : 'Letztes Gasttor rückgängig'}
-              </button>
-            ) : (
-              <p className="mt-4 text-center text-sm text-white/45">Kein Tor zum Zurücknehmen.</p>
-            )}
-            <button
-              type="button"
-              className="mt-2 w-full rounded-xl border border-white/10 py-2.5 text-sm font-medium text-white/75 hover:bg-white/[0.04]"
-              onClick={() => setGoalUndoSheetSide(null)}
-            >
-              Schließen
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       {canControlLiveMatch && !matchIsFinished && goalUndoOffer ? (
         <div className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] left-1/2 z-[70] w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2">
