@@ -445,6 +445,9 @@ export const LiveMatchScreen: React.FC = () => {
     setWechselInId('');
     setWechselSheetOpen(true);
   }, []);
+  useEffect(() => {
+    if (wechselSheetOpen && mainTab !== 'overview') closeWechselSheet();
+  }, [wechselSheetOpen, mainTab, closeWechselSheet]);
   const [homeGoalModalOpen, setHomeGoalModalOpen] = useState(false);
   const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
   const [endeConfirmOpen, setEndeConfirmOpen] = useState(false);
@@ -730,18 +733,6 @@ export const LiveMatchScreen: React.FC = () => {
       setCalendarFinalized(true);
       setSpielAbschlussOpen(false);
       navigate('/app');
-    }
-  };
-
-  const openSubFromPlayer = (p: RosterPlayer) => {
-    if (!canControlLiveMatch || matchIsFinished) return;
-    openWechselSheet();
-    if (onFieldIds.includes(p.id)) {
-      setWechselOutId(p.id);
-      setWechselInId('');
-    } else {
-      setWechselInId(p.id);
-      setWechselOutId('');
     }
   };
 
@@ -1642,7 +1633,9 @@ export const LiveMatchScreen: React.FC = () => {
 
       <div
         className={`relative min-h-0 flex-1 ${
-          canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? 'overflow-hidden' : 'overflow-y-auto'
+          canControlLiveMatch && mainTab === 'overview' && wechselSheetOpen && !matchIsFinished
+            ? 'overflow-hidden'
+            : 'overflow-y-auto'
         } overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} px-2 py-2 pb-28 pt-1 md:px-4 lg:px-5 md:py-4`}
       >
         {mainTab === 'overview' && (
@@ -1765,21 +1758,10 @@ export const LiveMatchScreen: React.FC = () => {
                   <ul className="space-y-2">
                     {fieldPlayers.map((p) => (
                       <li key={p.id}>
-                        {canControlLiveMatch && !matchIsFinished ? (
-                          <button
-                            type="button"
-                            onClick={() => openSubFromPlayer(p)}
-                            className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3 text-left active:bg-emerald-900/40"
-                          >
-                            <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
-                            <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
-                          </button>
-                        ) : (
-                          <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3">
-                            <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
-                            <span className="flex-1 px-3 text-base font-semibold text-white">{p.name}</span>
-                          </div>
-                        )}
+                        <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3">
+                          <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
+                          <span className="flex-1 px-3 text-base font-semibold text-white">{p.name}</span>
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -1789,21 +1771,10 @@ export const LiveMatchScreen: React.FC = () => {
                   <ul className="space-y-2">
                     {benchPlayers.map((p) => (
                       <li key={p.id}>
-                        {canControlLiveMatch && !matchIsFinished ? (
-                          <button
-                            type="button"
-                            onClick={() => openSubFromPlayer(p)}
-                            className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left active:bg-white/10"
-                          >
-                            <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
-                            <span className="flex-1 px-3 text-base font-semibold">{p.name}</span>
-                          </button>
-                        ) : (
-                          <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                            <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
-                            <span className="flex-1 px-3 text-base font-semibold text-white">{p.name}</span>
-                          </div>
-                        )}
+                        <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                          <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
+                          <span className="flex-1 px-3 text-base font-semibold text-white">{p.name}</span>
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -1914,7 +1885,7 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
         )}
 
-      {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
+      {canControlLiveMatch && mainTab === 'overview' && wechselSheetOpen && !matchIsFinished ? (
         <div
           className="absolute inset-0 z-[70] flex items-start justify-center bg-black/58 backdrop-blur-sm"
           role="presentation"
