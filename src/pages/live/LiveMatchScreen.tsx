@@ -455,8 +455,10 @@ export const LiveMatchScreen: React.FC = () => {
     prevHome: number;
     prevAway: number;
   } | null>(null);
+  const [goalUndoToastClosing, setGoalUndoToastClosing] = useState(false);
   const [goalUndoSheetSide, setGoalUndoSheetSide] = useState<'home' | 'away' | null>(null);
   const goalUndoTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const goalUndoFadeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const scoresRef = useRef({ home: 0, away: 0 });
   const homeGoalLpTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const homeGoalSuppressClickRef = useRef(false);
@@ -468,6 +470,11 @@ export const LiveMatchScreen: React.FC = () => {
       window.clearTimeout(goalUndoTimerRef.current);
       goalUndoTimerRef.current = null;
     }
+    if (goalUndoFadeTimerRef.current != null) {
+      window.clearTimeout(goalUndoFadeTimerRef.current);
+      goalUndoFadeTimerRef.current = null;
+    }
+    setGoalUndoToastClosing(false);
   }, []);
 
   const totalsFromEvents = useMemo(() => recomputeScoresFromEvents(events), [events]);
@@ -527,10 +534,16 @@ export const LiveMatchScreen: React.FC = () => {
     (payload: { eventId: string; side: 'home' | 'away'; prevHome: number; prevAway: number }) => {
       clearGoalUndoTimer();
       setGoalUndoOffer(payload);
+      setGoalUndoToastClosing(false);
+      goalUndoFadeTimerRef.current = window.setTimeout(() => {
+        setGoalUndoToastClosing(true);
+        goalUndoFadeTimerRef.current = null;
+      }, 2400);
       goalUndoTimerRef.current = window.setTimeout(() => {
         setGoalUndoOffer(null);
+        setGoalUndoToastClosing(false);
         goalUndoTimerRef.current = null;
-      }, 5000);
+      }, 3000);
     },
     [clearGoalUndoTimer],
   );
@@ -2377,15 +2390,24 @@ export const LiveMatchScreen: React.FC = () => {
       ) : null}
 
       {canControlLiveMatch && !matchIsFinished && goalUndoOffer ? (
-        <div className="pointer-events-auto fixed bottom-20 left-3 right-3 z-[45] mx-auto max-w-md sm:left-1/2 sm:right-auto sm:-translate-x-1/2">
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-white/12 bg-zinc-950/98 px-4 py-2.5 shadow-[0_8px_28px_rgba(0,0,0,0.45)]">
-            <p className="min-w-0 text-sm font-medium text-white/90">Tor hinzugefügt</p>
+        <div className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] left-1/2 z-[70] w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2">
+          <div
+            className={`pointer-events-auto flex items-center justify-between gap-3 rounded-2xl border border-red-400/45 bg-gradient-to-b from-red-900/95 via-red-950/95 to-black/95 px-4 py-3 shadow-[0_14px_36px_rgba(0,0,0,0.5),0_0_26px_rgba(220,38,38,0.28),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-md transition-all duration-300 ${
+              goalUndoToastClosing ? 'translate-y-2 scale-[0.985] opacity-0' : 'translate-y-0 scale-100 opacity-100'
+            }`}
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-bold leading-tight text-white">Rückgängig</p>
+              <p className="mt-0.5 truncate text-[11px] font-medium text-red-100/90">
+                Tor für {goalUndoOffer.side === 'home' ? homeDisplayName || 'Heim' : awayDisplayName || 'Gast'}
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => void undoLastGoal()}
-              className="shrink-0 rounded-lg border border-red-500/40 bg-red-950/80 px-3 py-1.5 text-xs font-semibold text-red-100 hover:bg-red-900/80"
+              className="shrink-0 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20"
             >
-              Rückgängig
+              ↶ Rückgängig
             </button>
           </div>
         </div>
