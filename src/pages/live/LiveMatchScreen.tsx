@@ -1916,30 +1916,30 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="absolute inset-0 z-[70] flex items-start justify-center bg-black/72 pt-1 backdrop-blur-sm sm:p-3"
+          className="fixed inset-0 z-[70] flex items-end bg-black/60 backdrop-blur-sm"
           role="presentation"
           onClick={closeWechselSheet}
         >
           <div
-            className="flex h-[min(84dvh,620px)] max-h-[calc(100%-0.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-red-500/20 bg-[#101010] shadow-[0_16px_42px_rgba(0,0,0,0.7)] sm:h-[min(82dvh,640px)] sm:max-h-[calc(100%-0.75rem)]"
+            className="relative flex h-[85vh] max-h-[90vh] w-full flex-col overflow-hidden rounded-t-3xl border-t border-red-500/30 bg-zinc-900 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="wechsel-sheet-title"
           >
-            <div className="shrink-0 border-b border-white/10 bg-[#101010]/95 px-3 pb-2 pt-3 backdrop-blur-md sm:px-4">
-              <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-white/20" aria-hidden />
-              <h3 id="wechsel-sheet-title" className="text-center text-base font-bold text-white">
+            <div className="shrink-0 border-b border-white/10 px-4 pb-2 pt-3">
+              <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-zinc-600" aria-hidden />
+              <h3 id="wechsel-sheet-title" className="text-center text-xl font-semibold text-white">
                 Wechsel
               </h3>
-              <p className="mt-1 text-center text-[11px] leading-tight text-white/55">
+              <p className="mt-1 text-center text-sm leading-tight text-zinc-400">
                 Raus + Rein wählen, dann bestätigen
               </p>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-2 [-webkit-overflow-scrolling:touch] sm:px-4">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-28 pt-2 [-webkit-overflow-scrolling:touch]">
               <div className="mt-2">
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-red-400/95">Am Feld · Raus</p>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-red-400">Am Feld · Raus</p>
                 <div
                   className="relative min-h-[108px] rounded-xl border border-red-500/30 bg-gradient-to-b from-red-950/25 via-black/55 to-black/85 p-1.5 sm:min-h-[116px]"
                   aria-label="Spielfeld"
@@ -1978,7 +1978,7 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
 
               <div className="mt-2">
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400/95">Bank · Rein</p>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-400">Bank · Rein</p>
                 <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
                   {benchPlayers.length === 0 ? (
                     <p className="col-span-full py-1.5 text-center text-[11px] text-white/45">Keine Bankspieler</p>
@@ -2013,16 +2013,16 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
 
             <div
-              className="shrink-0 border-t border-white/10 bg-[#101010]/98 px-3 pt-2 shadow-[0_-10px_28px_rgba(0,0,0,0.55)] backdrop-blur-md sm:px-4"
+              className="absolute bottom-0 left-0 right-0 shrink-0 border-t border-white/10 bg-zinc-900/98 p-4 shadow-[0_-10px_28px_rgba(0,0,0,0.55)]"
               style={{
-                paddingBottom: 'max(0.625rem, env(safe-area-inset-bottom, 0px))',
+                paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
               }}
             >
               <div className="flex flex-row gap-2">
                 <button
                   type="button"
                   onClick={closeWechselSheet}
-                  className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl border border-white/18 bg-zinc-900/70 text-sm font-semibold text-white/85 active:scale-[0.99]"
+                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/20 text-sm font-semibold text-white active:scale-[0.99]"
                 >
                   Abbrechen
                 </button>
@@ -2030,7 +2030,7 @@ export const LiveMatchScreen: React.FC = () => {
                   type="button"
                   onClick={() => void confirmWechselSection()}
                   disabled={matchIsFinished || !wechselOutId || !wechselInId}
-                  className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-800 px-2 text-sm font-bold text-white shadow-[0_0_20px_rgba(16,185,129,0.25)] disabled:opacity-35 active:scale-[0.99]"
+                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-green-600 px-2 text-sm font-semibold text-white disabled:opacity-40 active:scale-[0.99]"
                 >
                   Wechsel bestätigen
                 </button>
