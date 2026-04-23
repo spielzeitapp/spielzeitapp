@@ -1192,7 +1192,8 @@ export const LiveMatchScreen: React.FC = () => {
   const scoreTapHome = `${mbRowBtn} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-emerald-400/40 bg-gradient-to-b from-emerald-950/92 to-black/75 px-3 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_26px_rgba(16,185,129,0.35)] hover:border-emerald-300/50 hover:shadow-[0_0_32px_rgba(16,185,129,0.42)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5`;
   const scoreTapAway = `${mbRowBtn} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-red-400/45 bg-gradient-to-b from-red-950/92 to-black/75 px-3 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_26px_rgba(239,68,68,0.38),0_0_12px_rgba(255,255,255,0.06)] hover:border-red-300/50 hover:shadow-[0_0_32px_rgba(239,68,68,0.45)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5`;
   const mbStart = `${mbRowBtn} rounded-xl border border-emerald-400/50 bg-gradient-to-b from-emerald-600/80 to-emerald-950/85 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_22px_rgba(16,185,129,0.35)] hover:from-emerald-500/85 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]`;
-  const mbPause = `${mbRowBtn} rounded-xl border border-zinc-500/35 bg-gradient-to-b from-zinc-800/55 to-black/80 text-zinc-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:from-zinc-700/55`;
+  /** Linke Hauptaktion bei laufendem Spiel (nur Pause sichtbar) — amber, von Grün/Rot getrennt. */
+  const mbPausePrimary = `${mbRowBtn} rounded-xl border border-amber-500/45 bg-gradient-to-b from-amber-900/70 to-black/82 text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(245,158,11,0.22)] hover:border-amber-400/55 hover:from-amber-800/65`;
   const mbEnd = `${mbRowBtn} rounded-xl border border-red-500/50 bg-gradient-to-b from-red-600/75 to-red-950/88 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_24px_rgba(220,38,38,0.38)] hover:from-red-500/78 hover:shadow-[0_0_32px_rgba(220,38,38,0.45)]`;
   const mbWechsel = `${mbRowBtn} w-full rounded-xl border border-white/22 bg-zinc-950/85 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/30 hover:bg-zinc-900/90`;
   const mbSpielEnde = `${mbRowBtn} w-full rounded-xl border-2 border-amber-400/45 bg-black/55 text-amber-100/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:border-amber-300/55 hover:bg-black/65 enabled:hover:shadow-[0_0_20px_rgba(245,158,11,0.2)]`;
@@ -1298,41 +1299,53 @@ export const LiveMatchScreen: React.FC = () => {
     );
   };
 
+  /** Zwei Buttons: links genau eine Status-Aktion (Beginn | Pause | Weiter), rechts immer Ende. */
+  const renderTrainerClockActionRow = (gapClass: string) => {
+    if (matchIsFinished) return null;
+    return (
+      <div className={`grid grid-cols-2 ${gapClass}`}>
+        {matchClockStatus === 'live' ? (
+          <button
+            type="button"
+            onClick={() => void onPauseClick()}
+            disabled={matchClockStatus === 'finished'}
+            aria-label="Spiel anhalten"
+            className={mbPausePrimary}
+          >
+            <span aria-hidden>⏸</span>
+            Pause
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void onStartClick()}
+            disabled={matchClockStatus === 'finished' || matchClockStatus === 'live'}
+            aria-label={matchClockStatus === 'paused' ? 'Spiel fortsetzen' : 'Spiel beginnen'}
+            className={mbStart}
+          >
+            <span aria-hidden>▶</span>
+            {matchClockStatus === 'paused' ? 'Weiter' : 'Beginn'}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setEndeConfirmOpen(true)}
+          disabled={matchClockStatus === 'finished' || matchClockStatus === 'not_started'}
+          aria-label="Spiel beenden"
+          className={mbEnd}
+        >
+          <span aria-hidden>⏹</span>
+          Ende
+        </button>
+      </div>
+    );
+  };
+
   const renderTrainerControlPanel = () => (
     <section>
       <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Kontrollen</h2>
-      <div className={`space-y-2 px-3 py-3 ${liveCardShell} border-red-500/20`}>
-        {!matchIsFinished ? (
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => void onStartClick()}
-              disabled={matchClockStatus === 'finished' || matchClockStatus === 'live'}
-              className={mbStart}
-            >
-              <span aria-hidden>▶</span>
-              {matchClockStatus === 'paused' ? 'Weiter' : 'Beginn'}
-            </button>
-            <button
-              type="button"
-              onClick={() => void onPauseClick()}
-              disabled={matchClockStatus === 'finished' || matchClockStatus !== 'live'}
-              className={mbPause}
-            >
-              <span aria-hidden>⏸</span>
-              Pause
-            </button>
-            <button
-              type="button"
-              onClick={() => setEndeConfirmOpen(true)}
-              disabled={matchClockStatus === 'finished' || matchClockStatus === 'not_started'}
-              className={mbEnd}
-            >
-              <span aria-hidden>⏹</span>
-              Ende
-            </button>
-          </div>
-        ) : null}
+      <div className={`space-y-2 px-3 py-2.5 ${liveCardShell} border-red-500/20`}>
+        {renderTrainerClockActionRow('gap-2')}
         {!matchIsFinished ? (
           <button type="button" onClick={() => setWechselSheetOpen(true)} className={mbWechsel}>
             <span aria-hidden>⇄</span>
@@ -1381,7 +1394,7 @@ export const LiveMatchScreen: React.FC = () => {
       >
         <div
           className={`${layoutShell} ${
-            spectatorView ? 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0' : 'px-2 pb-2 pt-1 md:px-4 md:pb-2 md:pt-1.5'
+            spectatorView ? 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0' : 'px-2 pb-1.5 pt-0.5 md:px-4 md:pb-1.5 md:pt-1'
           }`}
         >
           {matchboardVisible && (
@@ -1397,7 +1410,7 @@ export const LiveMatchScreen: React.FC = () => {
                     'radial-gradient(ellipse 90% 55% at 50% -5%, rgba(220,38,38,0.22), transparent 55%), radial-gradient(ellipse 70% 45% at 50% 100%, rgba(220,38,38,0.08), transparent 60%)',
                 }}
               />
-              <div className="relative z-[1] w-full px-[15px] py-3 pb-2">
+              <div className="relative z-[1] w-full px-[15px] py-2.5 pb-1.5">
                 {matchTypeDisplay ? (
                   <div className="flex justify-center">
                     <p className="text-lg font-semibold text-white sm:text-xl">{matchTypeDisplay}</p>
@@ -1531,7 +1544,7 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-3 flex justify-between gap-3 sm:mt-4 sm:gap-4">
+                <div className="mt-2.5 flex justify-between gap-3 sm:mt-3 sm:gap-4">
                   <div className="min-w-0 flex-1 pr-1">
                     <MatchboardTeamNameLines parts={homeNameParts} align="left" />
                   </div>
@@ -1542,41 +1555,8 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
 
               {!spectatorView && canControlLiveMatch ? (
-                <div className="relative z-[1] mt-0 space-y-1.5 border-t border-red-500/35 bg-black/55 px-[15px] py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-12px_32px_rgba(220,38,38,0.12)] backdrop-blur-md">
-                  {!matchIsFinished ? (
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => void onStartClick()}
-                        disabled={matchClockStatus === 'finished' || matchClockStatus === 'live'}
-                        aria-label={matchClockStatus === 'paused' ? 'Spiel fortsetzen' : 'Spiel beginnen'}
-                        className={mbStart}
-                      >
-                        <span aria-hidden>▶</span>
-                        {matchClockStatus === 'paused' ? 'Weiter' : 'Beginn'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void onPauseClick()}
-                        disabled={matchClockStatus === 'finished' || matchClockStatus !== 'live'}
-                        aria-label="Spiel anhalten"
-                        className={mbPause}
-                      >
-                        <span aria-hidden>⏸</span>
-                        Pause
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEndeConfirmOpen(true)}
-                        disabled={matchClockStatus === 'finished' || matchClockStatus === 'not_started'}
-                        aria-label="Spiel beenden"
-                        className={mbEnd}
-                      >
-                        <span aria-hidden>⏹</span>
-                        Ende
-                      </button>
-                    </div>
-                  ) : null}
+                <div className="relative z-[1] mt-0 space-y-1 border-t border-red-500/35 bg-black/55 px-[15px] py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-12px_32px_rgba(220,38,38,0.12)] backdrop-blur-md">
+                  {renderTrainerClockActionRow('gap-1.5')}
 
                   {!matchIsFinished ? (
                     <button
