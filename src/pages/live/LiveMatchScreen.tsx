@@ -1641,7 +1641,9 @@ export const LiveMatchScreen: React.FC = () => {
       </header>
 
       <div
-        className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} px-2 py-2 pb-28 pt-1 md:px-4 lg:px-5 md:py-4`}
+        className={`relative min-h-0 flex-1 ${
+          canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? 'overflow-hidden' : 'overflow-y-auto'
+        } overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} px-2 py-2 pb-28 pt-1 md:px-4 lg:px-5 md:py-4`}
       >
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-3'}>
@@ -1911,16 +1913,15 @@ export const LiveMatchScreen: React.FC = () => {
             </ul>
           </div>
         )}
-      </div>
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/75 backdrop-blur-sm sm:items-center sm:p-4"
+          className="absolute inset-0 z-[70] flex items-start justify-center bg-black/72 pt-1 backdrop-blur-sm sm:p-3"
           role="presentation"
           onClick={closeWechselSheet}
         >
           <div
-            className="flex h-[min(88dvh,680px)] max-h-[88dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-red-500/20 bg-[#101010] shadow-[0_-8px_40px_rgba(0,0,0,0.7)] sm:h-[min(86dvh,680px)] sm:max-h-[86dvh] sm:rounded-2xl"
+            className="flex h-[min(84dvh,620px)] max-h-[calc(100%-0.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-red-500/20 bg-[#101010] shadow-[0_16px_42px_rgba(0,0,0,0.7)] sm:h-[min(82dvh,640px)] sm:max-h-[calc(100%-0.75rem)]"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -2038,6 +2039,7 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
         </div>
       ) : null}
+      </div>
 
       {homeGoalModalOpen && (
         <div
