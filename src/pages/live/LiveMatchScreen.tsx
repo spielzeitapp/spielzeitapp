@@ -1867,10 +1867,7 @@ export const LiveMatchScreen: React.FC = () => {
         )}
 
         {mainTab === 'lineup' && (
-          <div className="space-y-3">
-            {canControlLiveMatch ? (
-              <p className="text-sm text-gray-400">Tippe einen Spieler für Wechsel.</p>
-            ) : null}
+          <div className="space-y-3 pb-36 sm:pb-6">
             {fieldPlayers.length === 0 && benchPlayers.length === 0 ? (
               <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-gray-400">
                 Noch keine Aufstellung veröffentlicht.
@@ -1879,8 +1876,9 @@ export const LiveMatchScreen: React.FC = () => {
               <>
                 {fieldPlayers.length > 0 ? (
                   <section>
-                    <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-red-400/90">Live-Aufstellung</h3>
-                    <div className="relative overflow-hidden rounded-xl border border-red-500/30 bg-black p-2 sm:p-3">
+                    <h3 className="mb-0.5 text-xs font-bold uppercase tracking-[0.2em] text-red-400/90">Live-Aufstellung</h3>
+                    <p className="mb-2 text-[11px] text-white/55">Aktuell am Feld</p>
+                    <div className="relative overflow-hidden rounded-xl border border-red-500/35 bg-gradient-to-b from-emerald-950/25 via-black to-red-950/20 p-2 sm:p-3">
                       <div
                         className="pointer-events-none absolute inset-0 opacity-[0.05]"
                         style={{
@@ -1889,7 +1887,7 @@ export const LiveMatchScreen: React.FC = () => {
                         }}
                         aria-hidden
                       />
-                      <div className="relative mx-auto max-w-sm rounded-lg border border-red-500/25 bg-zinc-950 p-2">
+                      <div className="relative mx-auto max-w-sm rounded-lg border border-red-500/25 bg-gradient-to-b from-emerald-950/35 via-zinc-950 to-black p-2">
                         <div
                           className="pointer-events-none absolute inset-2 rounded-md border border-dashed border-red-800/35"
                           aria-hidden
@@ -1902,10 +1900,10 @@ export const LiveMatchScreen: React.FC = () => {
                           {fieldPlayers.slice(0, 7).map((p) => (
                             <div
                               key={p.id}
-                              className="flex w-[30%] min-w-[82px] max-w-[108px] flex-col items-center justify-center rounded-lg border border-red-500/25 bg-black px-1 py-1.5"
+                              className="flex w-[30%] min-w-[82px] max-w-[108px] flex-col items-center justify-center rounded-lg border border-red-500/35 bg-black/85 px-1 py-1.5 shadow-[0_0_10px_rgba(239,68,68,0.18)]"
                             >
-                              <span className="text-lg font-black tabular-nums leading-none text-red-400">{p.number || '–'}</span>
-                              <span className="mt-0.5 max-w-full text-center text-[10px] font-semibold leading-tight text-white">
+                              <span className="text-xl font-black tabular-nums leading-none text-red-300">{p.number || '–'}</span>
+                              <span className="mt-0.5 max-w-full text-center text-[10px] font-semibold leading-tight text-white/95">
                                 {mobileLineupName(p.name)}
                               </span>
                             </div>
