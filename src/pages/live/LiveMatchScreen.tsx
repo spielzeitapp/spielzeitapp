@@ -570,6 +570,15 @@ export const LiveMatchScreen: React.FC = () => {
     setEvents((prev) => prev.filter((e) => e.id !== eventId));
     setScoreHome(prevHome);
     setScoreAway(prevAway);
+    setMatchRow((prev) =>
+      prev
+        ? {
+            ...prev,
+            score_home: prevHome,
+            score_away: prevAway,
+          }
+        : prev,
+    );
     const { error: rowErr } = await updateMatchRow(effectiveMatchId, {
       score_home: prevHome,
       score_away: prevAway,
@@ -1887,12 +1896,12 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/65 backdrop-blur-sm sm:items-center sm:p-4"
+          className="fixed inset-0 z-[95] flex flex-col bg-zinc-950/95 backdrop-blur-sm sm:items-center sm:justify-center sm:bg-black/65 sm:p-4"
           role="presentation"
           onClick={closeWechselSheet}
         >
           <div
-            className="relative flex h-[100dvh] max-h-[100dvh] w-full flex-col overflow-hidden rounded-none border-t border-red-500/30 bg-zinc-900 shadow-[0_18px_44px_rgba(0,0,0,0.72)] sm:h-[min(90dvh,820px)] sm:max-h-[min(90dvh,820px)] sm:max-w-3xl sm:rounded-3xl sm:border sm:border-red-500/25"
+            className="relative mt-auto flex h-[100dvh] max-h-[100dvh] w-full flex-col overflow-hidden rounded-none border-t border-red-500/30 bg-zinc-900 shadow-[0_18px_44px_rgba(0,0,0,0.72)] sm:mt-0 sm:h-[min(90dvh,820px)] sm:max-h-[min(90dvh,820px)] sm:max-w-3xl sm:rounded-3xl sm:border sm:border-red-500/25"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -1984,9 +1993,9 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
 
             <div
-              className="shrink-0 border-t border-white/10 bg-zinc-900/98 p-4 shadow-[0_-10px_28px_rgba(0,0,0,0.55)]"
+              className="sticky bottom-0 shrink-0 border-t border-white/10 bg-zinc-900/98 px-4 pt-3 shadow-[0_-10px_28px_rgba(0,0,0,0.55)]"
               style={{
-                paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
+                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
               }}
             >
               <div className="flex flex-row gap-2">
