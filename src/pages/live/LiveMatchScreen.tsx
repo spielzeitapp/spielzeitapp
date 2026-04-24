@@ -518,12 +518,6 @@ export const LiveMatchScreen: React.FC = () => {
   const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
 
-  useEffect(() => {
-    if (!canControlLiveMatch && mainTab === 'time') {
-      setMainTab('overview');
-    }
-  }, [canControlLiveMatch, mainTab]);
-
   const [wechselSheetOpen, setWechselSheetOpen] = useState(false);
 
   const [wechselOutId, setWechselOutId] = useState<string>('');
@@ -1700,6 +1694,13 @@ export const LiveMatchScreen: React.FC = () => {
               >
                 Liveticker
               </button>
+              <button
+                type="button"
+                className={`${spectatorTabBtnBase} ${mainTab === 'time' ? spectatorTabBtnActive : spectatorTabBtnIdle}`}
+                onClick={() => setMainTab('time')}
+              >
+                Statistik
+              </button>
             </nav>
           ) : (
             <nav className={tabNavWrap} aria-label="Live-Ansicht">
@@ -1891,49 +1892,41 @@ export const LiveMatchScreen: React.FC = () => {
 
         {mainTab === 'events' && (
           <div className="space-y-3">
-            {canControlLiveMatch ? (
-              <div className="flex gap-1.5 sm:gap-2">
-                {(
-                  [
-                    ['all', 'Alle'],
-                    ['goals', 'Tore'],
-                    ['subs', 'Wechsel'],
-                  ] as const
-                ).map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setEventsFilter(key)}
-                    className={`min-h-[36px] flex-1 rounded-lg px-2 py-1.5 text-xs font-bold tracking-wide transition-colors sm:text-sm ${
-                      eventsFilter === key
-                        ? 'bg-red-500 text-white'
-                        : 'border border-red-500/20 bg-neutral-900 text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-            {(canControlLiveMatch ? filteredEvents : spectatorTickerRows).length === 0 ? (
+            <div className="flex gap-1.5 sm:gap-2">
+              {(
+                [
+                  ['all', 'Alle'],
+                  ['goals', 'Tore'],
+                  ['subs', 'Wechsel'],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setEventsFilter(key)}
+                  className={`min-h-[36px] flex-1 rounded-lg px-2 py-1.5 text-xs font-bold tracking-wide transition-colors sm:text-sm ${
+                    eventsFilter === key
+                      ? 'bg-red-500 text-white'
+                      : 'border border-red-500/20 bg-neutral-900 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {filteredEvents.length === 0 ? (
               <p className={`px-4 py-8 text-center text-sm text-gray-400 ${liveCardShell} border-red-500/20`}>
-                {canControlLiveMatch ? 'Keine Einträge für diesen Filter.' : 'Noch keine Spielereignisse.'}
+                Keine Einträge für diesen Filter.
               </p>
-            ) : canControlLiveMatch ? (
-              <ul className="max-h-[60vh] overflow-y-auto rounded-xl border border-red-500/30 bg-black px-1 py-2 sm:px-2 sm:py-3">
-                {filteredEvents.map((ev, i, arr) => renderTimelineRow(ev, i, arr.length, true))}
-              </ul>
             ) : (
-              <ul className="rounded-xl border border-red-500/25 bg-black/40 px-1 py-2">
-                {spectatorTickerRows.map((row, i) =>
-                  renderSpectatorTickerRow(row, i, spectatorTickerRows.length),
-                )}
+              <ul className="max-h-[60vh] overflow-y-auto rounded-xl border border-red-500/30 bg-black px-1 py-2 sm:px-2 sm:py-3">
+                {filteredEvents.map((ev, i, arr) => renderTimelineRow(ev, i, arr.length, true, true))}
               </ul>
             )}
           </div>
         )}
 
-        {canControlLiveMatch && mainTab === 'time' && (
+        {mainTab === 'time' && (
           <div className="space-y-2">
             <section>
               <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Wechsel-Vorschläge</h2>
