@@ -1633,7 +1633,7 @@ export const LiveMatchScreen: React.FC = () => {
 
       <div
         className={`relative min-h-0 flex-1 ${
-          canControlLiveMatch && mainTab === 'overview' && wechselSheetOpen && !matchIsFinished
+          canControlLiveMatch && wechselSheetOpen && !matchIsFinished
             ? 'overflow-hidden'
             : 'overflow-y-auto'
         } overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} px-2 py-2 pb-28 pt-1 md:px-4 lg:px-5 md:py-4`}
@@ -1885,20 +1885,20 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
         )}
 
-      {canControlLiveMatch && mainTab === 'overview' && wechselSheetOpen && !matchIsFinished ? (
+      {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="absolute inset-0 z-[70] flex items-start justify-center bg-black/58 backdrop-blur-sm"
+          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/65 backdrop-blur-sm sm:items-center sm:p-4"
           role="presentation"
           onClick={closeWechselSheet}
         >
           <div
-            className="relative flex h-full max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border-t border-red-500/30 bg-zinc-900 shadow-[0_18px_44px_rgba(0,0,0,0.72)]"
+            className="relative flex h-[100dvh] max-h-[100dvh] w-full flex-col overflow-hidden rounded-none border-t border-red-500/30 bg-zinc-900 shadow-[0_18px_44px_rgba(0,0,0,0.72)] sm:h-[min(90dvh,820px)] sm:max-h-[min(90dvh,820px)] sm:max-w-3xl sm:rounded-3xl sm:border sm:border-red-500/25"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="wechsel-sheet-title"
           >
-            <div className="shrink-0 border-b border-white/10 px-4 pb-2 pt-3">
+            <div className="shrink-0 border-b border-white/10 px-4 pb-2 pt-3 sm:px-5 sm:pt-4">
               <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-zinc-600" aria-hidden />
               <h3 id="wechsel-sheet-title" className="text-center text-xl font-semibold text-white">
                 Wechsel
@@ -1908,7 +1908,7 @@ export const LiveMatchScreen: React.FC = () => {
               </p>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 pt-2 [-webkit-overflow-scrolling:touch]">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-28 pt-2 [-webkit-overflow-scrolling:touch] sm:px-5">
               <div className="mt-2">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-red-400">Am Feld · Raus</p>
                 <div
