@@ -1917,7 +1917,7 @@ export const LiveMatchScreen: React.FC = () => {
               </p>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-28 pt-2 [-webkit-overflow-scrolling:touch] sm:px-5">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-6 pt-2 [-webkit-overflow-scrolling:touch] sm:px-5">
               <div className="mt-2">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-red-400">Am Feld · Raus</p>
                 <div
@@ -1990,19 +1990,12 @@ export const LiveMatchScreen: React.FC = () => {
                   )}
                 </div>
               </div>
-            </div>
 
-            <div
-              className="sticky bottom-0 shrink-0 border-t border-white/10 bg-zinc-900/98 px-4 pt-3 shadow-[0_-10px_28px_rgba(0,0,0,0.55)]"
-              style={{
-                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
-              }}
-            >
-              <div className="flex flex-row gap-2">
+              <div className="mt-5 grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={closeWechselSheet}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/20 text-sm font-semibold text-white active:scale-[0.99]"
+                  className="flex min-h-[48px] items-center justify-center rounded-xl border border-white/20 bg-zinc-900/80 text-sm font-semibold text-white active:scale-[0.99]"
                 >
                   Abbrechen
                 </button>
@@ -2010,7 +2003,7 @@ export const LiveMatchScreen: React.FC = () => {
                   type="button"
                   onClick={() => void confirmWechselSection()}
                   disabled={matchIsFinished || !wechselOutId || !wechselInId}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-green-600 px-2 text-sm font-semibold text-white disabled:opacity-40 active:scale-[0.99]"
+                  className="flex min-h-[48px] items-center justify-center rounded-xl bg-green-600 px-2 text-sm font-semibold text-white disabled:opacity-40 active:scale-[0.99]"
                 >
                   Wechsel bestätigen
                 </button>
