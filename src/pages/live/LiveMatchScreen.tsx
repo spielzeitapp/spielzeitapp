@@ -1251,24 +1251,24 @@ export const LiveMatchScreen: React.FC = () => {
       : getOurTeamDisplayName();
   const homeLogoSrc = getClubLogo(homeLogoLookupName);
   const awayLogoSrc = getClubLogo(headerOpponent);
-  const kickoffDateTime = useMemo(() => {
-    const raw = matchRow?.match_date ? new Date(matchRow.match_date) : null;
-    if (!raw || Number.isNaN(raw.getTime())) return { date: '—', time: '—' };
-    return {
-      date: raw.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-      time: raw.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' }),
-    };
-  }, [matchRow?.match_date]);
+  const kickoffRaw = matchRow?.match_date ? new Date(matchRow.match_date) : null;
+  const kickoffDateTime =
+    kickoffRaw && !Number.isNaN(kickoffRaw.getTime())
+      ? {
+          date: kickoffRaw.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+          time: kickoffRaw.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' }),
+        }
+      : { date: 'Noch offen', time: 'Noch offen' };
   const meetingAtRaw =
     typeof (matchRow as (LiveMatchRow & { meeting_at?: string | null }) | null)?.meeting_at === 'string'
       ? ((matchRow as LiveMatchRow & { meeting_at?: string | null }).meeting_at ?? '')
       : '';
-  const meetingAtDisplay = useMemo(() => {
-    if (!meetingAtRaw) return '';
-    const dt = new Date(meetingAtRaw);
-    if (Number.isNaN(dt.getTime())) return meetingAtRaw;
-    return dt.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' });
-  }, [meetingAtRaw]);
+  const meetingAtDate = meetingAtRaw ? new Date(meetingAtRaw) : null;
+  const meetingAtDisplay = !meetingAtRaw
+    ? ''
+    : meetingAtDate && !Number.isNaN(meetingAtDate.getTime())
+      ? meetingAtDate.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
+      : meetingAtRaw;
 
   const layoutShell = 'mx-auto w-full max-w-none';
   const spectatorView = !canControlLiveMatch;
