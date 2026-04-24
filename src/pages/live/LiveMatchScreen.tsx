@@ -276,6 +276,17 @@ function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
   return [...list].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
 }
 
+function mobileLineupName(name: string): string {
+  const raw = (name || '').trim();
+  if (!raw) return '—';
+  const parts = raw.split(/\s+/).filter(Boolean);
+  const first = parts[0] ?? raw;
+  if (parts.length <= 1) return first;
+  if (raw.length <= 14) return first;
+  const lastInitial = (parts[parts.length - 1] ?? '').charAt(0).toUpperCase();
+  return lastInitial ? `${first} ${lastInitial}.` : first;
+}
+
 export const LiveMatchScreen: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -525,6 +536,8 @@ export const LiveMatchScreen: React.FC = () => {
   const matchTypeDisplay = 'Freundschaftsspiel';
   const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
+  const [lineupStartOpen, setLineupStartOpen] = useState(false);
+  const [lineupBenchOpen, setLineupBenchOpen] = useState(false);
   useEffect(() => {
     if (!canControlLiveMatch && mainTab === 'time') {
       setMainTab('overview');
@@ -1866,7 +1879,7 @@ export const LiveMatchScreen: React.FC = () => {
               <>
                 {fieldPlayers.length > 0 ? (
                   <section>
-                    <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-red-400/90">Spielfeld</h3>
+                    <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-red-400/90">Live-Aufstellung</h3>
                     <div className="relative overflow-hidden rounded-xl border border-red-500/30 bg-black p-2 sm:p-3">
                       <div
                         className="pointer-events-none absolute inset-0 opacity-[0.05]"
@@ -1889,11 +1902,11 @@ export const LiveMatchScreen: React.FC = () => {
                           {fieldPlayers.slice(0, 7).map((p) => (
                             <div
                               key={p.id}
-                              className="flex w-[30%] min-w-[80px] max-w-[108px] flex-col items-center justify-center rounded-lg border border-red-500/25 bg-black px-1 py-2"
+                              className="flex w-[30%] min-w-[82px] max-w-[108px] flex-col items-center justify-center rounded-lg border border-red-500/25 bg-black px-1 py-1.5"
                             >
-                              <span className="text-base font-black tabular-nums text-red-400">{p.number || '–'}</span>
-                              <span className="mt-1 max-w-full truncate text-center text-[11px] font-semibold leading-tight text-white">
-                                {p.name}
+                              <span className="text-lg font-black tabular-nums leading-none text-red-400">{p.number || '–'}</span>
+                              <span className="mt-0.5 max-w-full text-center text-[10px] font-semibold leading-tight text-white">
+                                {mobileLineupName(p.name)}
                               </span>
                             </div>
                           ))}
@@ -1902,32 +1915,53 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   </section>
                 ) : null}
-                <div>
-                  <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
-                  <ul className="space-y-2">
-                    {(startLineupPlayers.length > 0 ? startLineupPlayers : fieldPlayers).map((p) => (
-                      <li key={p.id}>
-                        <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3">
-                          <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
-                          <span className="flex-1 px-3 text-base font-semibold text-white">{p.name}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="mb-2 text-xs font-bold uppercase text-gray-400">Ersatzbank</h3>
-                  <ul className="space-y-2">
-                    {benchPlayers.map((p) => (
-                      <li key={p.id}>
-                        <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                          <span className="text-lg font-bold text-white/50">{p.number || '–'}</span>
-                          <span className="flex-1 px-3 text-base font-semibold text-white">{p.name}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                <section className="rounded-xl border border-emerald-700/30 bg-black/30">
+                  <button
+                    type="button"
+                    onClick={() => setLineupStartOpen((v) => !v)}
+                    className="flex w-full items-center justify-between px-3 py-2.5 text-left"
+                  >
+                    <div>
+                      <h3 className="text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
+                      <p className="mt-0.5 text-[11px] text-white/55">Urspruengliche Aufstellung</p>
+                    </div>
+                    <span className="text-sm text-white/70" aria-hidden>{lineupStartOpen ? '▾' : '▸'}</span>
+                  </button>
+                  {lineupStartOpen ? (
+                    <ul className="space-y-2 border-t border-white/10 px-3 py-2">
+                      {(startLineupPlayers.length > 0 ? startLineupPlayers : fieldPlayers).map((p) => (
+                        <li key={p.id}>
+                          <div className="flex min-h-[52px] w-full items-center justify-between rounded-xl border border-emerald-600/40 bg-emerald-950/30 px-3 py-2.5">
+                            <span className="text-base font-bold text-emerald-400">{p.number || '–'}</span>
+                            <span className="flex-1 px-3 text-sm font-semibold text-white">{p.name}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </section>
+                <section className="rounded-xl border border-white/15 bg-black/30">
+                  <button
+                    type="button"
+                    onClick={() => setLineupBenchOpen((v) => !v)}
+                    className="flex w-full items-center justify-between px-3 py-2.5 text-left"
+                  >
+                    <h3 className="text-xs font-bold uppercase text-gray-300">Bank</h3>
+                    <span className="text-sm text-white/70" aria-hidden>{lineupBenchOpen ? '▾' : '▸'}</span>
+                  </button>
+                  {lineupBenchOpen ? (
+                    <ul className="space-y-2 border-t border-white/10 px-3 py-2">
+                      {benchPlayers.map((p) => (
+                        <li key={p.id}>
+                          <div className="flex min-h-[52px] w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
+                            <span className="text-base font-bold text-white/50">{p.number || '–'}</span>
+                            <span className="flex-1 px-3 text-sm font-semibold text-white">{p.name}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </section>
               </>
             )}
           </div>
