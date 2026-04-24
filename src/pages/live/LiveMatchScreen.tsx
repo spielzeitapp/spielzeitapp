@@ -517,6 +517,11 @@ export const LiveMatchScreen: React.FC = () => {
   const matchTypeDisplay = 'Freundschaftsspiel';
   const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
+  useEffect(() => {
+    if (!canControlLiveMatch && mainTab === 'time') {
+      setMainTab('overview');
+    }
+  }, [canControlLiveMatch, mainTab]);
 
   const [wechselSheetOpen, setWechselSheetOpen] = useState(false);
 
@@ -1246,6 +1251,24 @@ export const LiveMatchScreen: React.FC = () => {
       : getOurTeamDisplayName();
   const homeLogoSrc = getClubLogo(homeLogoLookupName);
   const awayLogoSrc = getClubLogo(headerOpponent);
+  const kickoffDateTime = useMemo(() => {
+    const raw = matchRow?.match_date ? new Date(matchRow.match_date) : null;
+    if (!raw || Number.isNaN(raw.getTime())) return { date: '—', time: '—' };
+    return {
+      date: raw.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      time: raw.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' }),
+    };
+  }, [matchRow?.match_date]);
+  const meetingAtRaw =
+    typeof (matchRow as (LiveMatchRow & { meeting_at?: string | null }) | null)?.meeting_at === 'string'
+      ? ((matchRow as LiveMatchRow & { meeting_at?: string | null }).meeting_at ?? '')
+      : '';
+  const meetingAtDisplay = useMemo(() => {
+    if (!meetingAtRaw) return '';
+    const dt = new Date(meetingAtRaw);
+    if (Number.isNaN(dt.getTime())) return meetingAtRaw;
+    return dt.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' });
+  }, [meetingAtRaw]);
 
   const layoutShell = 'mx-auto w-full max-w-none';
   const spectatorView = !canControlLiveMatch;
@@ -1694,13 +1717,6 @@ export const LiveMatchScreen: React.FC = () => {
               >
                 Liveticker
               </button>
-              <button
-                type="button"
-                className={`${spectatorTabBtnBase} ${mainTab === 'time' ? spectatorTabBtnActive : spectatorTabBtnIdle}`}
-                onClick={() => setMainTab('time')}
-              >
-                Statistik
-              </button>
             </nav>
           ) : (
             <nav className={tabNavWrap} aria-label="Live-Ansicht">
@@ -1775,7 +1791,6 @@ export const LiveMatchScreen: React.FC = () => {
               </>
             ) : (
               <div className="space-y-1.5">
-                {renderLastActionOverview('mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500')}
                 <section>
                   <h2 className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
                     Spielinfo
@@ -1783,26 +1798,43 @@ export const LiveMatchScreen: React.FC = () => {
                   <div className={`space-y-1.5 px-3 py-2 ${liveCardShell} border-red-500/15`}>
                     <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-1.5">
                       <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                        Wettbewerb
+                        Datum
                       </span>
-                      <span className="max-w-[65%] text-right text-xs font-medium text-white">{matchTypeDisplay}</span>
+                      <span className="max-w-[65%] text-right text-xs font-medium text-white">{kickoffDateTime.date}</span>
                     </div>
                     <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-1.5">
                       <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                        Abschnitt
+                        Spielbeginn
                       </span>
+                      <span className="max-w-[65%] text-right text-xs font-medium text-gray-200">{kickoffDateTime.time}</span>
+                    </div>
+                    <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Spielort</span>
                       <span className="max-w-[65%] text-right text-xs font-medium text-gray-200">
-                        {periodDisplayLine}
+                        {matchRow?.location?.trim() || '—'}
                       </span>
                     </div>
-                    <div className="flex justify-between gap-3">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                        Laufzeit
-                      </span>
-                      <span className="font-mono text-xs font-bold tabular-nums text-[#ef4444]">
-                        {formatClock(currentMatchSeconds)}
-                      </span>
+                    <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Gegner</span>
+                      <span className="max-w-[65%] text-right text-xs font-medium text-white">{awayDisplayName || '—'}</span>
                     </div>
+                    <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Wettbewerb</span>
+                      <span className="max-w-[65%] text-right text-xs font-medium text-white">{matchTypeDisplay}</span>
+                    </div>
+                    {meetingAtDisplay ? (
+                      <div className="flex justify-between gap-3">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Treffpunkt</span>
+                        <span className="max-w-[65%] text-right text-xs font-medium text-white">{meetingAtDisplay}</span>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between gap-3">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Laufzeit</span>
+                        <span className="font-mono text-xs font-bold tabular-nums text-[#ef4444]">
+                          {formatClock(currentMatchSeconds)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </section>
               </div>
