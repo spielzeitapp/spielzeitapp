@@ -293,6 +293,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const [squadPlayerIds, setSquadPlayerIds] = useState<string[]>([]);
   const [startingPlayerIds, setStartingPlayerIds] = useState<string[]>([]);
+  const [initialStartingPlayerIds, setInitialStartingPlayerIds] = useState<string[]>([]);
   const [events, setEvents] = useState<MatchEngineEvent[]>([]);
   const [opponentLabel, setOpponentLabel] = useState('Gegner');
   const [scoreHome, setScoreHome] = useState(0);
@@ -399,6 +400,10 @@ export const LiveMatchScreen: React.FC = () => {
   }, [matchRow]);
 
   useEffect(() => {
+    setInitialStartingPlayerIds([]);
+  }, [effectiveMatchId]);
+
+  useEffect(() => {
     if (!matchRow) {
       setSquadPlayerIds([]);
       setStartingPlayerIds([]);
@@ -411,6 +416,9 @@ export const LiveMatchScreen: React.FC = () => {
     }
     setSquadPlayerIds([...lineupData.squadPlayerIds]);
     setStartingPlayerIds([...lineupData.startingPlayerIds].slice(0, 7));
+    setInitialStartingPlayerIds((prev) =>
+      prev.length > 0 ? prev : [...lineupData.startingPlayerIds].slice(0, 7),
+    );
   }, [matchRow, lineupData]);
 
   const reloadLiveMatchState = useCallback(async () => {
@@ -696,6 +704,10 @@ export const LiveMatchScreen: React.FC = () => {
     const list = ids.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 });
     return sortRosterByNumber(list);
   }, [squadPlayerIds, onFieldIds, rosterById]);
+  const startLineupPlayers = useMemo(() => {
+    const list = initialStartingPlayerIds.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 });
+    return sortRosterByNumber(list);
+  }, [initialStartingPlayerIds, rosterById]);
 
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
 
@@ -1764,7 +1776,6 @@ export const LiveMatchScreen: React.FC = () => {
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-3'}>
             {canControlLiveMatch ? (
               <>
-                <div>{renderLastActionOverview('mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300')}</div>
                 <section>
                   <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Spielinfo</h2>
                   <div className={`grid grid-cols-2 gap-2 px-3 py-2 ${liveCardShell} border-red-500/15 sm:grid-cols-4`}>
@@ -1894,7 +1905,7 @@ export const LiveMatchScreen: React.FC = () => {
                 <div>
                   <h3 className="mb-2 text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
                   <ul className="space-y-2">
-                    {fieldPlayers.map((p) => (
+                    {(startLineupPlayers.length > 0 ? startLineupPlayers : fieldPlayers).map((p) => (
                       <li key={p.id}>
                         <div className="flex min-h-[56px] w-full items-center justify-between rounded-2xl border border-emerald-600/40 bg-emerald-950/30 px-4 py-3">
                           <span className="text-lg font-bold text-emerald-400">{p.number || '–'}</span>
