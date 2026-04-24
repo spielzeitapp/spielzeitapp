@@ -413,31 +413,48 @@ export const LiveMatchScreen: React.FC = () => {
     setStartingPlayerIds([...lineupData.startingPlayerIds].slice(0, 7));
   }, [matchRow, lineupData]);
 
+  const reloadLiveMatchState = useCallback(async () => {
+    if (!effectiveMatchId || realtimeReloadInFlightRef.current) return;
+    realtimeReloadInFlightRef.current = true;
+    const [mRes, lineRes, evRes] = await Promise.all([
+      fetchMatchById(effectiveMatchId),
+      fetchLineupForLiveMatch(effectiveMatchId),
+      fetchMatchEvents(effectiveMatchId),
+    ]);
+    realtimeReloadInFlightRef.current = false;
+    if (mRes.error) setSaveError(mRes.error);
+    if (mRes.data) setMatchRow(mRes.data);
+    setLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
+    if (lineRes.error) setSaveError(lineRes.error);
+    if (evRes.error) setSaveError(evRes.error);
+    const sorted = sortMatchEventsChronologically(evRes.data);
+    setEvents([...sorted].reverse());
+  }, [effectiveMatchId]);
+
+  const queueRealtimeReload = useCallback(() => {
+    if (realtimeReloadTimerRef.current != null) {
+      window.clearTimeout(realtimeReloadTimerRef.current);
+    }
+    realtimeReloadTimerRef.current = window.setTimeout(() => {
+      realtimeReloadTimerRef.current = null;
+      void reloadLiveMatchState();
+    }, 220);
+  }, [reloadLiveMatchState]);
+
   useEffect(() => {
     if (!effectiveMatchId) return;
-    let cancelled = false;
-    let reloadTimer: ReturnType<typeof window.setTimeout> | null = null;
-    const reloadFromDb = async () => {
-      const [mRes, evRes] = await Promise.all([
-        fetchMatchById(effectiveMatchId),
-        fetchMatchEvents(effectiveMatchId),
-      ]);
-      if (cancelled) return;
-      if (mRes.error) setSaveError(mRes.error);
-      if (mRes.data) setMatchRow(mRes.data);
-      if (evRes.error) setSaveError(evRes.error);
-      const sorted = sortMatchEventsChronologically(evRes.data);
-      setEvents([...sorted].reverse());
-    };
-    const queueReload = () => {
-      if (reloadTimer != null) window.clearTimeout(reloadTimer);
-      reloadTimer = window.setTimeout(() => {
-        reloadTimer = null;
-        void reloadFromDb();
-      }, 120);
-    };
     const channel = supabase
       .channel(`live-match-screen-${effectiveMatchId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'matches',
+          filter: `id=eq.${effectiveMatchId}`,
+        },
+        queueRealtimeReload,
+      )
       .on(
         'postgres_changes',
         {
@@ -446,26 +463,48 @@ export const LiveMatchScreen: React.FC = () => {
           table: 'match_events',
           filter: `match_id=eq.${effectiveMatchId}`,
         },
-        queueReload,
+        queueRealtimeReload,
       )
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
-          table: 'matches',
-          filter: `id=eq.${effectiveMatchId}`,
+          table: 'match_lineup',
+          filter: `match_id=eq.${effectiveMatchId}`,
         },
-        queueReload,
+        queueRealtimeReload,
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'match_bench',
+          filter: `match_id=eq.${effectiveMatchId}`,
+        },
+        queueRealtimeReload,
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'match_lineup_slots',
+          filter: `match_id=eq.${effectiveMatchId}`,
+        },
+        queueRealtimeReload,
       )
       .subscribe();
-    // Hinweis: Supabase Realtime + RLS (SELECT) muss fuer match_events/matches aktiv sein.
+    // Hinweis: Supabase Realtime + RLS (SELECT) muss fuer matches/match_events/lineup-Tabellen aktiv sein.
     return () => {
-      cancelled = true;
-      if (reloadTimer != null) window.clearTimeout(reloadTimer);
+      if (realtimeReloadTimerRef.current != null) {
+        window.clearTimeout(realtimeReloadTimerRef.current);
+        realtimeReloadTimerRef.current = null;
+      }
       void supabase.removeChannel(channel);
     };
-  }, [effectiveMatchId]);
+  }, [effectiveMatchId, queueRealtimeReload]);
 
   const homeName = selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
 
@@ -516,6 +555,8 @@ export const LiveMatchScreen: React.FC = () => {
   const [goalUndoToastClosing, setGoalUndoToastClosing] = useState(false);
   const goalUndoTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const goalUndoFadeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const realtimeReloadTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const realtimeReloadInFlightRef = useRef(false);
   const scoresRef = useRef({ home: 0, away: 0 });
   const homeGoalLpTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const homeGoalSuppressClickRef = useRef(false);
@@ -638,7 +679,8 @@ export const LiveMatchScreen: React.FC = () => {
       score_away: prevAway,
     });
     if (rowErr) setSaveError(rowErr);
-  }, [effectiveMatchId, clearGoalUndoTimer]);
+    queueRealtimeReload();
+  }, [effectiveMatchId, clearGoalUndoTimer, queueRealtimeReload]);
 
   const onFieldIds = useMemo(
     () => getCurrentOnFieldPlayers(startingPlayerIds, events, currentMatchSeconds),
