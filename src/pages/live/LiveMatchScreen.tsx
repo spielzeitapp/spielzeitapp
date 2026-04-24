@@ -413,6 +413,60 @@ export const LiveMatchScreen: React.FC = () => {
     setStartingPlayerIds([...lineupData.startingPlayerIds].slice(0, 7));
   }, [matchRow, lineupData]);
 
+  useEffect(() => {
+    if (!effectiveMatchId) return;
+    let cancelled = false;
+    let reloadTimer: ReturnType<typeof window.setTimeout> | null = null;
+    const reloadFromDb = async () => {
+      const [mRes, evRes] = await Promise.all([
+        fetchMatchById(effectiveMatchId),
+        fetchMatchEvents(effectiveMatchId),
+      ]);
+      if (cancelled) return;
+      if (mRes.error) setSaveError(mRes.error);
+      if (mRes.data) setMatchRow(mRes.data);
+      if (evRes.error) setSaveError(evRes.error);
+      const sorted = sortMatchEventsChronologically(evRes.data);
+      setEvents([...sorted].reverse());
+    };
+    const queueReload = () => {
+      if (reloadTimer != null) window.clearTimeout(reloadTimer);
+      reloadTimer = window.setTimeout(() => {
+        reloadTimer = null;
+        void reloadFromDb();
+      }, 120);
+    };
+    const channel = supabase
+      .channel(`live-match-screen-${effectiveMatchId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'match_events',
+          filter: `match_id=eq.${effectiveMatchId}`,
+        },
+        queueReload,
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'matches',
+          filter: `id=eq.${effectiveMatchId}`,
+        },
+        queueReload,
+      )
+      .subscribe();
+    // Hinweis: Supabase Realtime + RLS (SELECT) muss fuer match_events/matches aktiv sein.
+    return () => {
+      cancelled = true;
+      if (reloadTimer != null) window.clearTimeout(reloadTimer);
+      void supabase.removeChannel(channel);
+    };
+  }, [effectiveMatchId]);
+
   const homeName = selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
 
   const headerOpponent = opponentLabel;
