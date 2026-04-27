@@ -16,7 +16,6 @@ import { downloadEventIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { upsertMatchForSetup } from '../lib/liveMatchService';
-import { TrainerMatchSetupBlock } from './TrainerMatchSetupBlock';
 import {
   MATCH_FEED_TEMPLATE_KEYS,
   MATCH_FEED_TEMPLATE_LABELS,
@@ -775,24 +774,6 @@ export const EventDetailPage: React.FC = () => {
             Match vorbereiten
           </Button>
         ) : null}
-
-        {event.kind === 'match' && isTrainerOrAdmin && (
-          <div className="flex flex-col gap-2">
-            {matchLinkBusy && <p className="text-sm text-white/60">Spieldaten werden verknüpft…</p>}
-            {matchLinkError && (
-              <p className="text-sm text-red-400" role="alert">
-                {matchLinkError}
-              </p>
-            )}
-            {event.match_id ? (
-              <TrainerMatchSetupBlock
-                matchId={event.match_id}
-                players={players}
-                attendanceByPlayerId={eventAttendanceByPlayerId}
-              />
-            ) : null}
-          </div>
-        )}
 
         {event.kind === 'match' && event.status === 'live' && event.match_id ? (
           <Card className="flex flex-col gap-3">

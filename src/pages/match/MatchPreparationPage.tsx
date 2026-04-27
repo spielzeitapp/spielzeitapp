@@ -231,6 +231,13 @@ export const MatchPreparationPage: React.FC = () => {
       <header className="sticky top-0 z-20 border-b border-white/10 bg-black/90 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
           <div>
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="mb-1 inline-flex min-h-[36px] items-center rounded-lg border border-white/15 bg-white/[0.05] px-2.5 text-xs font-semibold text-white/90 hover:bg-white/[0.09]"
+            >
+              ← Zurück
+            </button>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-400">SpielzeitApp</p>
             <h1 className="text-lg font-bold">MATCH VORBEREITUNG</h1>
             <p className="text-sm text-white/60">{matchRow?.opponent ? `vs. ${matchRow.opponent}` : 'Spiel'}</p>
