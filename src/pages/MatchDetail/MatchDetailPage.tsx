@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { TrainerMatchSetupBlock } from '../TrainerMatchSetupBlock';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { Match, MatchEvent } from '../../types/match';
 import type { FieldSlotId } from '../../types/match';
 import { supabase } from '../../lib/supabaseClient';
@@ -12,9 +11,6 @@ import { useRole } from '../../app/role/RoleContext';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
 import { useActiveTeamSeason } from '../../hooks/useActiveTeamSeason';
 import { usePlayers } from '../../hooks/usePlayers';
-import { useMatchAvailability } from '../../hooks/useMatchAvailability';
-import { useAvailabilityPermissions } from '../../hooks/useAvailabilityPermissions';
-import { useMatchLineup } from '../../hooks/useMatchLineup';
 import { Card, CardTitle } from '../../app/components/ui/Card';
 import { Button } from '../../app/components/ui/Button';
 import { isStartelfCompleteForLive } from './lineupGuards';
@@ -71,6 +67,7 @@ function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
 
 export const MatchDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const matchId = id ?? null;
 
@@ -101,9 +98,16 @@ export const MatchDetailPage: React.FC = () => {
 
   const effectiveTeamSeasonId = matchRow?.team_season_id ?? teamSeasonId;
   const { players, loading: playersLoading, error: playersError } = usePlayers(effectiveTeamSeasonId);
-  const { getAvailability, setAvailability, loading: availLoading, error: availError, saving } = useMatchAvailability(matchId);
-  const perms = useAvailabilityPermissions({ role: activeRoleNormalized, teamSeasonId: effectiveTeamSeasonId });
-  const { clearPlayerEverywhere: clearPlayerFromLineupAndBench, reloadLineup } = useMatchLineup(matchId);
+  const selectedPlayersFromState = useMemo(() => {
+    const incoming = (location.state as { selectedPlayers?: unknown } | null)?.selectedPlayers;
+    if (!Array.isArray(incoming)) return [];
+    return incoming.map((v) => String(v ?? '').trim()).filter((v) => v.length > 0);
+  }, [location.state]);
+  const selectedPlayerIdSet = useMemo(() => new Set(selectedPlayersFromState), [selectedPlayersFromState]);
+  const lineupPlayers = useMemo(
+    () => (selectedPlayerIdSet.size > 0 ? players.filter((p) => selectedPlayerIdSet.has(p.id)) : players),
+    [players, selectedPlayerIdSet],
+  );
 
   const syncFieldFromStartersBySlot = useCallback((bySlot: Record<FieldSlotId, string | null>) => {
     setLocalMatch((prev) => {
@@ -236,7 +240,7 @@ export const MatchDetailPage: React.FC = () => {
   useEffect(() => {
     if (!matchRow || playersLoading || !spectatorMode) return;
 
-    const valid = new Set(players.map((p) => p.id));
+    const valid = new Set(lineupPlayers.map((p) => p.id));
     const fromDb = lineupData;
 
     let squad: string[] = [];
@@ -249,7 +253,7 @@ export const MatchDetailPage: React.FC = () => {
 
     setSquadPlayerIds(squad);
     setStartingPlayerIds(starting);
-  }, [matchRow, lineupData, players, playersLoading, spectatorMode]);
+  }, [matchRow, lineupData, lineupPlayers, playersLoading, spectatorMode]);
 
   /** Gleiche Uhr-/Elapsed-Logik wie LiveMatchScreen (DB: matches.live_*). */
   const { currentMatchSeconds } = useMatchTimer({
@@ -262,23 +266,7 @@ export const MatchDetailPage: React.FC = () => {
   const currentMinute = Math.floor(currentMatchSeconds / 60);
   const formattedTime = `${String(Math.floor(currentMatchSeconds / 60)).padStart(2, '0')}:${String(currentMatchSeconds % 60).padStart(2, '0')}`;
 
-  const statusByPlayerId = useMemo(() => {
-    const m: Record<string, 'yes' | 'no' | 'maybe' | null> = {};
-    players.forEach((p) => (m[p.id] = getAvailability(p.id) ?? null));
-    return m;
-  }, [players, getAvailability]);
-
-  /** Gleiches Filter-Format wie Event-Detail (event_attendance): nur yes/no, Keys lowercased. */
-  const matchDetailAttendanceByPlayerId = useMemo(() => {
-    const out: Record<string, 'yes' | 'no'> = {};
-    for (const p of players) {
-      const s = getAvailability(p.id);
-      if (s === 'yes' || s === 'no') out[(p.id ?? '').toLowerCase()] = s;
-    }
-    return out;
-  }, [players, getAvailability]);
-
-  const roster = useMemo(() => sortRosterByNumber(players.map(playerItemToRoster)), [players]);
+  const roster = useMemo(() => sortRosterByNumber(lineupPlayers.map(playerItemToRoster)), [lineupPlayers]);
 
   const onFieldIds = useMemo(
     () =>
@@ -311,8 +299,8 @@ export const MatchDetailPage: React.FC = () => {
   const liveControlsHomeBench = useMemo(() => {
     const home = localMatch?.field?.home ?? {};
     const ids = new Set(Object.values(home).filter(Boolean) as string[]);
-    return players.filter((p) => statusByPlayerId[p.id] === 'yes' && !ids.has(p.id));
-  }, [localMatch?.field?.home, players, statusByPlayerId]);
+    return lineupPlayers.filter((p) => !ids.has(p.id));
+  }, [localMatch?.field?.home, lineupPlayers]);
 
   const dbStatus = (matchRow?.status ?? 'upcoming') as 'upcoming' | 'live' | 'finished';
 
@@ -535,72 +523,23 @@ export const MatchDetailPage: React.FC = () => {
           </div>
         )}
 
-        {/* Availability */}
-        {!(operatorMode && localMatch.status === 'live') && (
-          <Card>
-            <CardTitle>Zu-/Absage</CardTitle>
-
-            {(playersLoading || availLoading) && <p className="mt-2 text-sm text-[var(--muted)]">Lade…</p>}
-            {(playersError || availError) && <p className="mt-2 text-sm text-red-600">{playersError ?? availError}</p>}
-            {perms.error && <p className="mt-2 text-sm text-red-600">{perms.error}</p>}
-            {saving && <p className="mt-2 text-xs text-[var(--muted)]">Speichern…</p>}
-
-            <div className="mt-2 divide-y divide-[var(--border)]">
-              {players.map((player) => {
-                const status = getAvailability(player.id);
-                const canEdit = perms.canEdit(player.id);
-                return (
-                  <div key={player.id} className="flex items-center justify-between py-2">
-                    <div className="min-w-0 flex-1 text-sm text-[var(--text-main)]">{player.display_name || 'Spieler'}</div>
-                    <div className="flex items-center gap-2">
-                      <Button disabled={!canEdit || saving} variant={status === 'yes' ? 'primary' : 'secondary'} onClick={() => setAvailability(player.id, 'yes')}>
-                        Zusage
-                      </Button>
-                      <Button
-                        disabled={!canEdit || saving}
-                        variant={status === 'no' ? 'primary' : 'secondary'}
-                        onClick={() => {
-                          setAvailability(player.id, 'no');
-                          clearPlayerFromLineupAndBench(player.id).catch(() => {});
-                        }}
-                      >
-                        Absage
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {matchId && canManageStatus ? (
-              <div className="mt-3 flex justify-end">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(matchId)}`)}
-                >
-                  Match vorbereiten
-                </Button>
-              </div>
-            ) : null}
-          </Card>
-        )}
-
-        {matchId && canManageStatus && !(operatorMode && localMatch.status === 'live') && (
-          <TrainerMatchSetupBlock
-            matchId={matchId}
-            players={players}
-            attendanceByPlayerId={matchDetailAttendanceByPlayerId}
-          />
-        )}
+        {matchId && canManageStatus && !(operatorMode && localMatch.status === 'live') ? (
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(matchId)}`)}
+            >
+              Match vorbereiten
+            </Button>
+          </div>
+        ) : null}
 
         {matchId && canManageStatus && !(operatorMode && localMatch.status === 'live') && (
           <TrainerMatchLineupMvp
             matchId={matchId}
-            players={players}
+            players={lineupPlayers}
             onFieldSynced={syncFieldFromStartersBySlot}
-            onLineupPersisted={() => {
-              void reloadLineup();
-            }}
           />
         )}
 
