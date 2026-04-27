@@ -24,22 +24,23 @@ function PitchPlayerMarkerInner({
   selected = false,
   emphasize = false,
 }: PitchPlayerMarkerProps): React.ReactElement {
+  /** Mobile ~48px, Desktop ~60px Breite; Höhe ~1.18× (ViewBox 100:118) */
   const jerseyClass =
     mode === 'pitch'
-      ? '!h-[71px] !w-[60px] shrink-0 sm:!h-[89px] sm:!w-[75px]'
-      : '!h-[59px] !w-[50px] shrink-0';
+      ? '!h-[57px] !w-[48px] shrink-0 sm:!h-[71px] sm:!w-[60px]'
+      : '!h-[50px] !w-[42px] shrink-0';
 
   const nameMax =
-    mode === 'pitch' ? 'max-w-[4.5rem] sm:max-w-[5.25rem]' : 'max-w-[3.75rem] sm:max-w-[4.25rem]';
+    mode === 'pitch' ? 'max-w-[4.25rem] sm:max-w-[4.75rem]' : 'max-w-[3.5rem] sm:max-w-[3.75rem]';
 
   return (
     <div
       className={[
-        'flex min-w-0 max-w-[5.5rem] flex-col items-center transition-all duration-300 ease-out sm:max-w-[6.25rem]',
+        'flex min-w-0 max-w-[5rem] flex-col items-center gap-0 transition-all duration-300 ease-out sm:max-w-[5.5rem]',
         emphasize ? 'scale-105 drop-shadow-[0_0_14px_rgba(255,255,255,0.45)]' : '',
       ].join(' ')}
     >
-      <div className="-translate-y-2 shrink-0 scale-90">
+      <div className="shrink-0">
         <LeibchenJersey
           lastName={lastName}
           number={number}
@@ -53,18 +54,16 @@ function PitchPlayerMarkerInner({
           className={jerseyClass}
         />
       </div>
-      <div className="mt-2 flex min-w-0 flex-col items-center gap-0.5 px-0.5 text-center">
-        <span
-          className={`w-full truncate text-sm font-semibold leading-tight text-white ${nameMax}`}
-        >
-          {lastName.trim() || '—'}
-        </span>
-        <span
-          className={`w-full truncate text-[10px] font-normal uppercase leading-tight tracking-wide text-white/40 ${nameMax}`}
-        >
-          {positionBadge.trim() || '–'}
-        </span>
-      </div>
+      <span
+        className={`mt-1 w-full truncate text-center text-sm font-semibold leading-none text-white ${nameMax}`}
+      >
+        {lastName.trim() || '—'}
+      </span>
+      <span
+        className={`mt-0.5 w-full truncate text-center text-[10px] font-normal uppercase leading-none tracking-wide text-white/45 ${nameMax}`}
+      >
+        {positionBadge.trim() || '–'}
+      </span>
     </div>
   );
 }

@@ -339,7 +339,7 @@ export const MatchLineupPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-xl flex-col gap-3 px-2 py-2 pb-[26rem] sm:px-3">
+      <main className="mx-auto flex max-w-xl flex-col gap-3 px-2 py-2 pb-[28rem] sm:px-3">
         {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
         {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
         {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}

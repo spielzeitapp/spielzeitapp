@@ -79,7 +79,7 @@ export function LeibchenJersey({
   const pitchTypo =
     size === 'large'
       ? { numY: 62, numSize: 36.8, posY: 92, posSize: 6.5 }
-      : { numY: 56, numSize: 27.6, posY: 85, posSize: 5.1 };
+      : { numY: 56, numSize: 25, posY: 84, posSize: 5 };
 
   const showPitchBack = pitchStyleBack;
   const showFullBack = showBackPrint && !showPitchBack;

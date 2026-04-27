@@ -3,13 +3,30 @@ import type { FieldSlotId } from '../../types/match';
 import type { U11FormationId } from '../../lib/matchFormations';
 import { U11_FORMATIONS } from '../../lib/matchFormations';
 
-/** Dunkleres Grün + waagerechte Rasen-Streifen (Wiederholung entlang Y) */
+/** Dunkleres Grün + waagerechte Rasen-Streifen */
 const PITCH_SURFACE: React.CSSProperties = {
   backgroundImage: [
     'repeating-linear-gradient(180deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 22px, transparent 22px, transparent 44px)',
     'linear-gradient(to bottom, #24692a, #1a4a20)',
   ].join(', '),
 };
+
+/** Linien mit 10px-Inset zum ViewBox-Rand (360×520); Mittelpunkt (180,260) */
+const LINE_INSET = 10;
+const VB_W = 360;
+const VB_H = 520;
+const CX = VB_W / 2;
+const CY = VB_H / 2;
+const INNER_L = LINE_INSET;
+const INNER_R = VB_W - LINE_INSET;
+const INNER_T = LINE_INSET;
+const INNER_B = VB_H - LINE_INSET;
+const PEN_W = 170;
+const PEN_H = 140;
+const PEN_X = (VB_W - PEN_W) / 2;
+const BOTTOM_PEN_Y = VB_H - LINE_INSET - PEN_H;
+const BOTTOM_SIX_Y = BOTTOM_PEN_Y + 50;
+const TOP_SIX_Y = 90;
 
 export type LineupFormationPitchProps = {
   formationId: U11FormationId;
@@ -32,9 +49,6 @@ export type LineupFormationPitchProps = {
   className?: string;
 };
 
-/**
- * Grünes Profi-Spielfeld 3:4, Linien + Vignette; Spieler absolut (matchFormations).
- */
 export function LineupFormationPitch({
   formationId,
   slots,
@@ -50,34 +64,35 @@ export function LineupFormationPitch({
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl border border-black/35 aspect-[3/4] max-h-[min(78dvh,640px)] shadow-[0_0_0_1px_rgba(0,0,0,0.2),0_10px_36px_rgba(0,0,0,0.45),0_0_60px_rgba(34,197,94,0.14)] ${className}`}
+      className={`relative w-full overflow-hidden rounded-2xl border border-black/35 aspect-[3/4] max-h-[min(70dvh,560px)] shadow-[0_0_0_1px_rgba(0,0,0,0.2),0_10px_36px_rgba(0,0,0,0.45),0_0_60px_rgba(34,197,94,0.14)] ${className}`}
       style={PITCH_SURFACE}
     >
       <svg
         className="pointer-events-none absolute inset-0 h-full w-full"
-        viewBox="0 0 360 520"
+        viewBox={`0 0 ${VB_W} ${VB_H}`}
         preserveAspectRatio="xMidYMid meet"
         aria-hidden
       >
-        <g fill="none" stroke="#ffffff" strokeWidth="1.55" style={{ opacity: 0.3 }}>
-          <rect x="1.5" y="1.5" width="357" height="517" rx="2" />
-          <line x1="180" y1="0" x2="180" y2="520" />
-          <circle cx="180" cy="260" r="52" />
-          <circle cx="180" cy="260" r="3.5" fill="#ffffff" style={{ opacity: 0.42 }} />
-          <rect x="95" y="380" width="170" height="140" />
-          <line x1="95" y1="430" x2="265" y2="430" />
-          <rect x="95" y="0" width="170" height="140" />
-          <line x1="95" y1="90" x2="265" y2="90" />
+        <g fill="none" stroke="#ffffff" strokeWidth="1.35" style={{ opacity: 0.18 }}>
+          <rect x={INNER_L} y={INNER_T} width={VB_W - 2 * LINE_INSET} height={VB_H - 2 * LINE_INSET} rx="2" />
+          <line x1={CX} y1={INNER_T} x2={CX} y2={INNER_B} />
+          <line x1={INNER_L} y1={CY} x2={INNER_R} y2={CY} />
+          <circle cx={CX} cy={CY} r="50" />
+          <circle cx={CX} cy={CY} r="3.5" fill="#ffffff" style={{ opacity: 0.35 }} />
+          <rect x={PEN_X} y={LINE_INSET} width={PEN_W} height={PEN_H} />
+          <line x1={PEN_X} y1={TOP_SIX_Y} x2={PEN_X + PEN_W} y2={TOP_SIX_Y} />
+          <rect x={PEN_X} y={BOTTOM_PEN_Y} width={PEN_W} height={PEN_H} />
+          <line x1={PEN_X} y1={BOTTOM_SIX_Y} x2={PEN_X + PEN_W} y2={BOTTOM_SIX_Y} />
         </g>
       </svg>
 
-      {/* Vignette: dunkler Rand */}
       <div
-        className="pointer-events-none absolute inset-0 rounded-2xl shadow-[inset_0_0_120px_rgba(0,0,0,0.38),inset_0_-24px_48px_rgba(0,0,0,0.22)]"
+        className="pointer-events-none absolute inset-0 rounded-2xl shadow-[inset_0_0_100px_rgba(0,0,0,0.32),inset_0_-20px_40px_rgba(0,0,0,0.18)]"
         aria-hidden
       />
 
-      <div className="absolute inset-0 z-[1]">
+      {/* Innenabstand: Spieler-Marker nicht am Rand abschneiden */}
+      <div className="absolute inset-[3%] z-[1] min-h-0">
         {layout.map(({ slot, label, x, y }) => {
           const playerId = slots[slot] ?? null;
           const empty = !playerId;
@@ -97,12 +112,14 @@ export function LineupFormationPitch({
             emphasize,
           });
 
+          const slotStyle = { left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' } as const;
+
           if (!interactive || !onSlotTap) {
             return (
               <div
                 key={slot}
-                className="pointer-events-none absolute flex flex-col items-center justify-end"
-                style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' }}
+                className="pointer-events-none absolute flex flex-col items-center justify-center"
+                style={slotStyle}
               >
                 {inner}
               </div>
@@ -116,12 +133,12 @@ export function LineupFormationPitch({
               onClick={() => onSlotTap(slot)}
               title={label}
               className={[
-                'absolute flex flex-col items-center justify-end rounded-full border border-transparent bg-transparent px-1 pb-0.5 pt-1 transition-all duration-300 ease-out active:scale-[0.98]',
-                empty ? 'min-h-[52px] min-w-[52px]' : 'min-h-0 min-w-0',
+                'absolute flex flex-col items-center justify-center rounded-full border border-transparent bg-transparent px-0.5 py-0 transition-all duration-300 ease-out active:scale-[0.98]',
+                empty ? 'min-h-[48px] min-w-[48px]' : 'min-h-0 min-w-0',
                 dropHint ? 'ring-2 ring-emerald-400/70 ring-offset-2 ring-offset-transparent' : '',
                 flash ? 'ring-2 ring-white/50 ring-offset-2 ring-offset-emerald-900/40' : '',
               ].join(' ')}
-              style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' }}
+              style={slotStyle}
             >
               <span className="sr-only">
                 {label}
