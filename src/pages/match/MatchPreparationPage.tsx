@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
-import { useMatchAvailability } from '../../hooks/useMatchAvailability';
 import { saveMatchSquadOnly } from '../../lib/liveMatchService';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -13,20 +12,17 @@ type MatchRowLite = {
 
 type PrepStatus = 'available' | 'open' | 'absent';
 
-function playerStatusFromAvailability(value: 'yes' | 'no' | null): PrepStatus {
+function normalizeAttendanceStatus(value: unknown): 'yes' | 'no' | null {
+  const raw = String(value ?? '').trim().toLowerCase();
+  if (raw === 'yes' || raw === 'dabei' || raw === 'attending' || raw === 'confirmed' || raw === 'present') return 'yes';
+  if (raw === 'no' || raw === 'abwesend' || raw === 'absent' || raw === 'declined') return 'no';
+  return null;
+}
+
+function playerStatusFromAttendance(value: 'yes' | 'no' | null): PrepStatus {
   if (value === 'yes') return 'available';
   if (value === 'no') return 'absent';
   return 'open';
-}
-
-function statusBadge(status: PrepStatus): React.ReactNode {
-  if (status === 'open') {
-    return <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[11px] font-semibold text-amber-300">Offen</span>;
-  }
-  if (status === 'available') {
-    return <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">Dabei</span>;
-  }
-  return <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[11px] font-semibold text-red-300">Abwesend</span>;
 }
 
 export const MatchPreparationPage: React.FC = () => {
@@ -41,6 +37,7 @@ export const MatchPreparationPage: React.FC = () => {
   const [selectionInitialized, setSelectionInitialized] = useState(false);
   const [persisting, setPersisting] = useState(false);
   const [persistError, setPersistError] = useState<string | null>(null);
+  const [attendanceByPlayerId, setAttendanceByPlayerId] = useState<Record<string, 'yes' | 'no'>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -85,7 +82,67 @@ export const MatchPreparationPage: React.FC = () => {
 
   const teamSeasonId = matchRow?.team_season_id ?? null;
   const { players, loading: playersLoading, error: playersError } = usePlayers(teamSeasonId);
-  const { getAvailability, loading: availLoading, error: availError } = useMatchAvailability(matchId);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [attendanceError, setAttendanceError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!matchId) {
+      setAttendanceByPlayerId({});
+      setAttendanceLoading(false);
+      setAttendanceError(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+    void (async () => {
+      setAttendanceLoading(true);
+      setAttendanceError(null);
+      const { data: events, error: eventsErr } = await supabase
+        .from('events')
+        .select('id, starts_at')
+        .eq('match_id', matchId)
+        .order('starts_at', { ascending: false })
+        .limit(1);
+      if (cancelled) return;
+      if (eventsErr) {
+        setAttendanceByPlayerId({});
+        setAttendanceError(eventsErr.message);
+        setAttendanceLoading(false);
+        return;
+      }
+      const eventId = events?.[0]?.id ?? null;
+      if (!eventId) {
+        setAttendanceByPlayerId({});
+        setAttendanceLoading(false);
+        return;
+      }
+      const { data, error } = await supabase
+        .from('event_attendance')
+        .select('player_id, status')
+        .eq('event_id', eventId);
+      if (cancelled) return;
+      if (error) {
+        setAttendanceByPlayerId({});
+        setAttendanceError(error.message);
+      } else {
+        const byPlayer: Record<string, 'yes' | 'no'> = {};
+        for (const row of (data ?? []) as Array<{ player_id: string | null; status: unknown }>) {
+          const pid = String(row.player_id ?? '').toLowerCase();
+          if (!pid) continue;
+          const status = normalizeAttendanceStatus(row.status);
+          if (status) byPlayer[pid] = status;
+        }
+        setAttendanceByPlayerId(byPlayer);
+      }
+      setAttendanceLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [matchId]);
+
+  const getAttendance = (playerId: string): 'yes' | 'no' | null => attendanceByPlayerId[playerId.toLowerCase()] ?? null;
 
   const grouped = useMemo(() => {
     const sorted = [...players].sort(
@@ -95,13 +152,13 @@ export const MatchPreparationPage: React.FC = () => {
     const open: typeof sorted = [];
     const absent: typeof sorted = [];
     for (const p of sorted) {
-      const st = playerStatusFromAvailability(getAvailability(p.id));
+      const st = playerStatusFromAttendance(getAttendance(p.id));
       if (st === 'available') available.push(p);
       else if (st === 'open') open.push(p);
       else absent.push(p);
     }
     return { available, open, absent };
-  }, [players, getAvailability]);
+  }, [players, attendanceByPlayerId]);
 
   const summary = useMemo(
     () => ({
@@ -115,24 +172,24 @@ export const MatchPreparationPage: React.FC = () => {
 
   useEffect(() => {
     if (selectionInitialized) return;
-    if (playersLoading || availLoading) return;
+    if (playersLoading || attendanceLoading) return;
     if (players.length === 0) return;
     const initial = new Set<string>();
     for (const restoredId of restoredSelectedPlayers) {
-      if (getAvailability(restoredId) === 'yes') initial.add(restoredId);
+      if (getAttendance(restoredId) === 'yes') initial.add(restoredId);
     }
     for (const p of players) {
-      if (getAvailability(p.id) === 'yes') initial.add(p.id);
+      if (getAttendance(p.id) === 'yes') initial.add(p.id);
     }
     setSelectedPlayers([...initial]);
     setSelectionInitialized(true);
   }, [
     selectionInitialized,
     playersLoading,
-    availLoading,
+    attendanceLoading,
     players,
-    getAvailability,
     restoredSelectedPlayers,
+    attendanceByPlayerId,
   ]);
 
   const togglePlayer = (playerId: string, status: PrepStatus) => {
@@ -199,7 +256,6 @@ export const MatchPreparationPage: React.FC = () => {
                     Auswählen
                   </span>
                 )}
-                {statusBadge(status)}
               </div>
             </button>
           );
@@ -261,8 +317,8 @@ export const MatchPreparationPage: React.FC = () => {
       </header>
 
       <main className="mx-auto max-w-xl space-y-4 px-4 py-3 pb-48">
-        {(playersLoading || availLoading) ? <p className="text-sm text-white/55">Lade Spieler und Status…</p> : null}
-        {(playersError || availError) ? <p className="text-sm text-red-400">{playersError ?? availError}</p> : null}
+        {(playersLoading || attendanceLoading) ? <p className="text-sm text-white/55">Lade Spieler und Status…</p> : null}
+        {(playersError || attendanceError) ? <p className="text-sm text-red-400">{playersError ?? attendanceError}</p> : null}
         <div className="flex flex-wrap gap-1.5">
           <span className="rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300">
             Zugesagt {summary.yes}
