@@ -12,6 +12,8 @@ export type LeibchenJerseyProps = {
   position: string;
   variant: LeibchenJerseyVariant;
   size?: LeibchenJerseySize;
+  /** Nur Trikot-Grafik ohne Rücken-Text (Name/Nummer/Position außerhalb stacken) */
+  showBackPrint?: boolean;
   /** Auswahl-Feedback (z. B. Bank): grüner Glow */
   selected?: boolean;
   /** Kurzer Erfolgs-Flash nach Zuweisung (nur Optik) */
@@ -41,6 +43,7 @@ export function LeibchenJersey({
   position,
   variant,
   size = 'large',
+  showBackPrint = true,
   selected = false,
   assignFlash = false,
   className = '',
@@ -143,42 +146,46 @@ export function LeibchenJersey({
           fill={variant === 'field' ? SLEEVE_BLACK : '#065f46'}
         />
 
-        <text
-          x="50"
-          y={typo.nameY}
-          textAnchor="middle"
-          fill="#ffffff"
-          fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
-          fontSize={typo.nameSize}
-          fontWeight="700"
-          letterSpacing="0.08em"
-        >
-          {nameDisplay}
-        </text>
-        <text
-          x="50"
-          y={typo.numY}
-          textAnchor="middle"
-          fill="#ffffff"
-          fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
-          fontSize={typo.numSize}
-          fontWeight="800"
-          dominantBaseline="middle"
-        >
-          {numDisplay}
-        </text>
-        <text
-          x="50"
-          y={typo.posY}
-          textAnchor="middle"
-          fill="#f8fafc"
-          fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
-          fontSize={typo.posSize}
-          fontWeight="700"
-          letterSpacing="0.14em"
-        >
-          {posDisplay}
-        </text>
+        {showBackPrint ? (
+          <>
+            <text
+              x="50"
+              y={typo.nameY}
+              textAnchor="middle"
+              fill="#ffffff"
+              fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
+              fontSize={typo.nameSize}
+              fontWeight="700"
+              letterSpacing="0.08em"
+            >
+              {nameDisplay}
+            </text>
+            <text
+              x="50"
+              y={typo.numY}
+              textAnchor="middle"
+              fill="#ffffff"
+              fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
+              fontSize={typo.numSize}
+              fontWeight="800"
+              dominantBaseline="middle"
+            >
+              {numDisplay}
+            </text>
+            <text
+              x="50"
+              y={typo.posY}
+              textAnchor="middle"
+              fill="#f8fafc"
+              fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
+              fontSize={typo.posSize}
+              fontWeight="700"
+              letterSpacing="0.14em"
+            >
+              {posDisplay}
+            </text>
+          </>
+        ) : null}
       </g>
     </svg>
   );

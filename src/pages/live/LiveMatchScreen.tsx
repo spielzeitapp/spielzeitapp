@@ -30,6 +30,7 @@ import {
 } from '../../lib/liveMatchService';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
+import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import {
   DEFAULT_U11_FORMATION,
   labelForSlotInFormation,
@@ -1967,7 +1968,7 @@ export const LiveMatchScreen: React.FC = () => {
         )}
 
         {mainTab === 'lineup' && (
-          <div className="space-y-3 pb-52 sm:pb-14">
+          <div className="space-y-3 px-1 pb-56 sm:px-2 sm:pb-16">
             {fieldPlayers.length === 0 && benchPlayers.length === 0 ? (
               <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-gray-400">
                 Noch keine Aufstellung veröffentlicht.
@@ -1981,32 +1982,23 @@ export const LiveMatchScreen: React.FC = () => {
                     <LineupFormationPitch
                       formationId={liveLineupFormationId}
                       slots={onFieldBySlot}
-                      renderSlotContent={({ slot, label, playerId, isGk }) => {
+                      emphasizedPlayerId={
+                        wechselSheetOpen && wechselOutId ? wechselOutId : null
+                      }
+                      renderSlotContent={({ label, playerId, isGk, emphasize }) => {
                         const p = playerId ? rosterById.get(playerId) : null;
+                        if (!p) return null;
                         return (
-                          <>
-                            <span className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white/50">
-                              {label}
-                            </span>
-                            {p ? (
-                              <span className="-translate-y-0.5">
-                                <LeibchenJersey
-                                  lastName={rosterFamilyName(p)}
-                                  number={p.number || '–'}
-                                  position={label}
-                                  variant={isGk ? 'goalkeeper' : 'field'}
-                                  size="large"
-                                />
-                              </span>
-                            ) : (
-                              <div
-                                className="flex h-[4.35rem] w-[4.35rem] shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/40"
-                                aria-hidden
-                              >
-                                <span className="text-[10px] font-bold uppercase text-white/35">{label}</span>
-                              </div>
-                            )}
-                          </>
+                          <div className="pointer-events-none">
+                            <PitchPlayerMarker
+                              lastName={rosterFamilyName(p)}
+                              number={p.number || '–'}
+                              positionBadge={label}
+                              variant={isGk ? 'goalkeeper' : 'field'}
+                              mode="pitch"
+                              emphasize={emphasize}
+                            />
+                          </div>
                         );
                       }}
                     />

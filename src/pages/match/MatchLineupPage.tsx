@@ -4,6 +4,7 @@ import { usePlayers } from '../../hooks/usePlayers';
 import type { PlayerItem } from '../../hooks/usePlayers';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
+import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import {
   fetchLineupForLiveMatch,
   LIVE_FIELD_SLOT_ORDER,
@@ -338,18 +339,18 @@ export const MatchLineupPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-3 pb-[22rem]">
+      <main className="mx-auto flex max-w-xl flex-col gap-3 px-2 py-2 pb-[17rem] sm:px-3">
         {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
         {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
         {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}
         {saveMsg ? <p className="text-sm text-emerald-300">{saveMsg}</p> : null}
 
-        <section className="space-y-2 rounded-2xl border border-white/10 bg-[#070b0a]/90 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-          <div className="flex items-center justify-between px-1 pt-0.5">
+        <section className="space-y-2 rounded-2xl border border-white/10 bg-black/40 p-2 sm:p-2.5">
+          <div className="flex items-center justify-between px-0.5 pt-0.5">
             <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-white/90">Startelf</h2>
             <span className="text-xs font-medium text-white/55">{starterCount}/7</span>
           </div>
-          <div className="px-1">
+          <div className="px-0.5">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">Formation</p>
             <div className="mt-1.5 flex flex-wrap gap-2">
               {U11_FORMATION_CHOICES.map((id) => {
@@ -363,9 +364,9 @@ export const MatchLineupPage: React.FC = () => {
                       if (matchId) writeStoredU11Formation(matchId, id);
                     }}
                     className={[
-                      'min-h-[40px] rounded-lg border px-3 py-2 text-xs font-bold transition-colors',
+                      'min-h-[40px] rounded-lg border px-3 py-2 text-xs font-bold transition-all duration-300 ease-out',
                       active
-                        ? 'border-emerald-400/70 bg-emerald-500/20 text-emerald-100'
+                        ? 'border-emerald-400/70 bg-emerald-500/20 text-emerald-100 shadow-[0_0_16px_rgba(16,185,129,0.25)]'
                         : 'border-white/15 bg-black/30 text-white/75 hover:border-white/25 hover:bg-black/40',
                     ].join(' ')}
                   >
@@ -375,7 +376,7 @@ export const MatchLineupPage: React.FC = () => {
               })}
             </div>
           </div>
-          <div className="px-0.5 pb-1">
+          <div className="w-full">
             <LineupFormationPitch
               formationId={formationId}
               slots={slots}
@@ -383,43 +384,31 @@ export const MatchLineupPage: React.FC = () => {
               onSlotTap={onTapSlot}
               selectedBankPlayerId={selectedBankPlayerId}
               assignFlashSlot={assignFlashSlot}
-              renderSlotContent={({ slot, label, playerId, empty, flash, isGk }) => {
+              renderSlotContent={({ label, playerId, flash, isGk, emphasize }) => {
                 const player = playerId ? playersById.get(playerId) : null;
+                if (!player) return null;
                 return (
-                  <>
-                    <span className="pointer-events-none mb-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white/50">
-                      {label}
-                    </span>
-                    {player ? (
-                      <span className="pointer-events-none -translate-y-0.5 transition-transform duration-300 ease-out">
-                        <LeibchenJersey
-                          lastName={playerFamilyName(player)}
-                          number={player.jersey_number}
-                          position={label}
-                          variant={isGk ? 'goalkeeper' : 'field'}
-                          size="large"
-                          assignFlash={flash}
-                        />
-                      </span>
-                    ) : (
-                      <div
-                        className="pointer-events-none flex h-[4.35rem] w-[4.35rem] shrink-0 items-center justify-center rounded-full border-2 border-dashed border-white/28 bg-black/45"
-                        aria-hidden
-                      >
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-white/40">{label}</span>
-                      </div>
-                    )}
-                  </>
+                  <div className="pointer-events-none">
+                    <PitchPlayerMarker
+                      lastName={playerFamilyName(player)}
+                      number={player.jersey_number}
+                      positionBadge={label}
+                      variant={isGk ? 'goalkeeper' : 'field'}
+                      mode="pitch"
+                      assignFlash={flash}
+                      emphasize={emphasize}
+                    />
+                  </div>
                 );
               }}
             />
           </div>
         </section>
 
-        <section className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.04] p-3 transition-colors duration-300">
+        <section className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.04] p-3 transition-all duration-300">
           <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-white/85">Bank</h2>
           <div className="-mx-1 overflow-x-auto pb-1 pl-1 pr-1 [-webkit-overflow-scrolling:touch]">
-            <div className="flex min-w-min flex-nowrap gap-2 transition-opacity duration-300">
+            <div className="flex min-w-min flex-nowrap gap-2 transition-all duration-300">
               {bankIds.map((id) => {
                 const p = playersById.get(id);
                 if (!p) return null;
@@ -430,19 +419,19 @@ export const MatchLineupPage: React.FC = () => {
                     type="button"
                     onClick={() => onTapBankPlayer(id)}
                     className={[
-                      'shrink-0 rounded-xl px-1.5 py-1.5 transition-all duration-300 ease-out active:scale-95',
+                      'shrink-0 rounded-xl px-2 py-2 transition-all duration-300 ease-out active:scale-95',
                       isSelected
-                        ? 'border-2 border-emerald-400/80 bg-emerald-950/25 shadow-[0_0_20px_rgba(16,185,129,0.35)]'
-                        : 'border border-white/12 bg-black/35 hover:border-white/20 hover:bg-black/45',
+                        ? 'border-2 border-emerald-400/85 bg-emerald-950/30 shadow-[0_0_22px_rgba(16,185,129,0.4)]'
+                        : 'border border-white/12 bg-black/35 hover:border-white/22 hover:bg-black/45',
                     ].join(' ')}
                   >
                     <div className="flex flex-col items-center">
-                      <LeibchenJersey
+                      <PitchPlayerMarker
                         lastName={playerFamilyName(p)}
                         number={p.jersey_number}
-                        position={benchPositionLabel(p)}
+                        positionBadge={benchPositionLabel(p)}
                         variant="field"
-                        size="compact"
+                        mode="bank"
                         selected={isSelected}
                       />
                     </div>
