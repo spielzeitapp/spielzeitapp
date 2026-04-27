@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Match, MatchEvent } from '../../types/match';
 import type { FieldSlotId } from '../../types/match';
 import { supabase } from '../../lib/supabaseClient';
@@ -67,9 +67,10 @@ function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
 
 export const MatchDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const matchId = id ?? null;
+  const matchId = id ?? searchParams.get('matchId')?.trim() ?? null;
 
   const { role: uiRole, getBackendRole, canUseLiveControls } = useRole();
   const { teamSeasonId, role: activeRole } = useActiveTeamSeason();

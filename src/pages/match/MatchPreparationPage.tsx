@@ -20,12 +20,12 @@ function playerStatusFromAvailability(value: 'yes' | 'no' | null): PrepStatus {
 
 function statusBadge(status: PrepStatus): React.ReactNode {
   if (status === 'open') {
-    return <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[11px] font-semibold text-amber-300">⚠️ Offen</span>;
+    return <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[11px] font-semibold text-amber-300">? Offen</span>;
   }
   if (status === 'available') {
-    return <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">Dabei</span>;
+    return <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">✓ Dabei</span>;
   }
-  return <span className="rounded-full bg-zinc-600/40 px-2 py-0.5 text-[11px] font-semibold text-zinc-300">Abwesend</span>;
+  return <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[11px] font-semibold text-red-300">✖ Abgesagt</span>;
 }
 
 export const MatchPreparationPage: React.FC = () => {
@@ -111,7 +111,7 @@ export const MatchPreparationPage: React.FC = () => {
               ? 'border-emerald-600/45 bg-emerald-950/30'
               : status === 'open'
                 ? 'border-amber-500/45 bg-amber-950/25'
-                : 'border-zinc-700 bg-zinc-900/70 opacity-60';
+                : 'border-red-700/45 bg-red-950/25 opacity-60';
           return (
             <button
               key={p.id}
@@ -126,7 +126,10 @@ export const MatchPreparationPage: React.FC = () => {
                 <p className="text-sm font-bold text-white">{p.jersey_number ?? '–'}</p>
                 <p className="truncate text-sm text-white">{p.display_name || 'Spieler'}</p>
               </div>
-              {statusBadge(status)}
+              <div className="flex items-center gap-2">
+                {selected ? <span className="text-emerald-300">✓</span> : null}
+                {statusBadge(status)}
+              </div>
             </button>
           );
         })}
@@ -150,10 +153,18 @@ export const MatchPreparationPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#0a0a0a] pb-28 text-white">
+    <div className="min-h-[100dvh] bg-[#0a0a0a] pb-32 text-white">
       <header className="sticky top-0 z-20 border-b border-white/10 bg-black/90 px-4 py-3 backdrop-blur">
-        <h1 className="text-lg font-bold">Match vorbereiten</h1>
-        <p className="text-sm text-white/60">{matchRow?.opponent ? `vs. ${matchRow.opponent}` : 'Spiel'}</p>
+        <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-400">SpielzeitApp</p>
+            <h1 className="text-lg font-bold">Match Vorbereitung</h1>
+            <p className="text-sm text-white/60">{matchRow?.opponent ? `vs. ${matchRow.opponent}` : 'Spiel'}</p>
+          </div>
+          <span className="rounded-full border border-red-500/40 bg-red-500/15 px-3 py-1 text-xs font-semibold text-red-300">
+            Trainer
+          </span>
+        </div>
       </header>
 
       <main className="mx-auto max-w-xl space-y-6 px-4 py-4">
@@ -162,7 +173,28 @@ export const MatchPreparationPage: React.FC = () => {
 
         {renderSection('Verfügbar', grouped.available, 'available')}
         {renderSection('Offen', grouped.open, 'open')}
-        {renderSection('Abwesend', grouped.absent, 'absent')}
+        {renderSection('Abgesagt', grouped.absent, 'absent')}
+
+        <section className="space-y-2">
+          <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-white/70">Matchkader</h2>
+          {selectedPlayers.length === 0 ? (
+            <p className="text-sm text-white/45">Noch keine Spieler ausgewählt.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {selectedPlayers.map((id) => {
+                const p = players.find((x) => x.id === id);
+                return (
+                  <span
+                    key={id}
+                    className="rounded-full border border-red-500/35 bg-red-950/35 px-3 py-1 text-xs font-semibold text-red-200"
+                  >
+                    {p?.jersey_number ?? '–'} {p?.display_name ?? id}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-black/90 px-4 py-3 backdrop-blur">
@@ -172,7 +204,7 @@ export const MatchPreparationPage: React.FC = () => {
             type="button"
             disabled={selectedPlayers.length === 0}
             onClick={() =>
-              navigate(`/app/match/${encodeURIComponent(matchId)}`, {
+              navigate(`/app/aufstellung?matchId=${encodeURIComponent(matchId)}`, {
                 state: { selectedPlayers },
               })
             }
