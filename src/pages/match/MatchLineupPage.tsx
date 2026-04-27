@@ -319,7 +319,7 @@ export const MatchLineupPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#0a0a0a] text-white">
+    <div className="min-h-[100dvh] bg-gradient-to-b from-[#050505] via-[#120808] to-[#0a0606] text-white">
       <header className="sticky top-0 z-20 border-b border-white/10 bg-black/90 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
           <div className="min-w-0">
@@ -339,13 +339,13 @@ export const MatchLineupPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-xl flex-col gap-3 px-2 py-2 pb-[28rem] sm:px-3">
+      <main className="mx-auto flex max-w-xl flex-col gap-3 px-2 py-2 pb-[30rem] sm:px-3">
         {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
         {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
         {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}
         {saveMsg ? <p className="text-sm text-emerald-300">{saveMsg}</p> : null}
 
-        <section className="space-y-2 rounded-2xl border border-white/10 bg-black/40 p-2 sm:p-2.5">
+        <section className="space-y-2 rounded-[1.25rem] border border-white/[0.08] bg-black/50 p-2 shadow-[0_0_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-red-950/35 sm:p-2.5">
           <div className="flex items-center justify-between px-0.5 pt-0.5">
             <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-white/90">Startelf</h2>
             <span className="text-xs font-medium text-white/55">{starterCount}/7</span>
@@ -405,8 +405,13 @@ export const MatchLineupPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.04] p-3 transition-all duration-300">
-          <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-white/85">Bank</h2>
+        <section className="rounded-2xl border border-white/[0.1] bg-black/55 p-4 shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-red-950/40 transition-all duration-300">
+          <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-3">
+            <h2 className="text-sm font-extrabold uppercase tracking-[0.14em] text-white/95">BANK</h2>
+            <span className="text-xs font-medium text-white/45">
+              {bankIds.length} {bankIds.length === 1 ? 'Spieler' : 'Spieler'}
+            </span>
+          </div>
           <div className="-mx-1 overflow-x-auto pb-1 pl-1 pr-1 [-webkit-overflow-scrolling:touch]">
             <div className="flex min-w-min flex-nowrap gap-2 transition-all duration-300">
               {bankIds.map((id) => {
@@ -443,8 +448,8 @@ export const MatchLineupPage: React.FC = () => {
           {bankIds.length === 0 ? <p className="text-xs text-white/50">Keine Spieler auf der Bank.</p> : null}
         </section>
 
-        <section className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-          <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-white/85">Startaufstellung Liste</h2>
+        <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
+          <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-white/55">Startaufstellung Liste</h2>
           <div className="space-y-1.5">
             {LIVE_FIELD_SLOT_ORDER.map((slot) => {
               const pid = slots[slot];
@@ -453,7 +458,7 @@ export const MatchLineupPage: React.FC = () => {
               return (
                 <div
                   key={`row-${slot}`}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/20 px-2.5 py-2"
+                  className="flex items-center justify-between gap-2 rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-2"
                 >
                   <span className="text-xs font-semibold text-white/75">{posLabel}</span>
                   <div className="flex min-w-0 flex-1 items-center justify-end gap-2">

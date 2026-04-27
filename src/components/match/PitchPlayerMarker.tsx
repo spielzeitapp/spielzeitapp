@@ -28,15 +28,15 @@ function PitchPlayerMarkerInner({
   const jerseyClass =
     mode === 'pitch'
       ? '!h-[57px] !w-[48px] shrink-0 sm:!h-[71px] sm:!w-[60px]'
-      : '!h-[50px] !w-[42px] shrink-0';
+      : '!h-[44px] !w-[38px] shrink-0 sm:!h-[48px] sm:!w-[40px]';
 
   const nameMax =
-    mode === 'pitch' ? 'max-w-[4.25rem] sm:max-w-[4.75rem]' : 'max-w-[3.5rem] sm:max-w-[3.75rem]';
+    mode === 'pitch' ? 'max-w-[4.5rem] sm:max-w-[5.25rem]' : 'max-w-[3.75rem] sm:max-w-[4.25rem]';
 
   return (
     <div
       className={[
-        'flex min-w-0 max-w-[5rem] flex-col items-center gap-0 transition-all duration-300 ease-out sm:max-w-[5.5rem]',
+        'flex min-w-0 max-w-[5.25rem] flex-col items-center gap-0 transition-all duration-300 ease-out sm:max-w-[5.75rem]',
         emphasize ? 'scale-105 drop-shadow-[0_0_14px_rgba(255,255,255,0.45)]' : '',
       ].join(' ')}
     >
@@ -55,7 +55,7 @@ function PitchPlayerMarkerInner({
         />
       </div>
       <span
-        className={`mt-1 w-full truncate text-center text-sm font-bold leading-none text-white ${nameMax}`}
+        className={`mt-1.5 w-full truncate text-center text-sm font-bold leading-tight text-white ${nameMax}`}
       >
         {lastName.trim() || '—'}
       </span>

@@ -5,13 +5,12 @@ import { U11_FORMATIONS } from '../../lib/matchFormations';
 
 const PITCH_SURFACE: React.CSSProperties = {
   backgroundImage: [
-    'repeating-linear-gradient(180deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 22px, transparent 22px, transparent 44px)',
-    'linear-gradient(to bottom, #24692a, #1a4a20)',
+    'repeating-linear-gradient(180deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 24px, transparent 24px, transparent 48px)',
+    'linear-gradient(to bottom, #2f8f38, #1e6b26, #174f1c)',
   ].join(', '),
 };
 
-/** Spielfeld 360×520; viewBox mit Rand, damit stroke 2 an den Rändern nicht abgeschnitten wird */
-const VB_MARGIN = 4;
+const VB_MARGIN = 5;
 const VB_W = 360;
 const VB_H = 520;
 const VB_MIN = -VB_MARGIN;
@@ -39,14 +38,15 @@ const GA_X = (VB_W - GA_W) / 2;
 const TOP_SIX_Y = 90;
 const BOTTOM_SIX_Y = BOTTOM_PEN_Y + 50;
 
-/** Elfmeterpunkt (näherungsweise) */
 const TOP_SPOT_Y = TOP_PEN_BOTTOM - 22;
 const BOTTOM_SPOT_Y = BOTTOM_PEN_Y + 22;
 
 const LINE_STROKE = '#ffffff';
-const LINE_OPACITY = 0.55;
+const LINE_OPACITY = 0.6;
 const STROKE_W = 2;
-const CORNER_R = 11;
+/** Eckbögen (Eckball) – Kreisausschnitt innen am Spielfeldrand */
+const CORNER_ARC = 12;
+const TOUCHLINE_RX = 5;
 
 const GOAL_W = 52;
 const GOAL_H = 6;
@@ -97,11 +97,11 @@ export function LineupFormationPitch({
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl border border-black/35 aspect-[3/4] max-h-[min(70dvh,560px)] shadow-[0_0_0_1px_rgba(0,0,0,0.2),0_10px_36px_rgba(0,0,0,0.45),0_0_60px_rgba(34,197,94,0.14)] ${className}`}
+      className={`relative w-full overflow-hidden rounded-2xl border border-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_12px_40px_rgba(0,0,0,0.55)] aspect-[3/4] max-h-[min(70dvh,560px)] ${className}`}
       style={PITCH_SURFACE}
     >
       <div
-        className="pointer-events-none absolute inset-0 rounded-2xl shadow-[inset_0_0_90px_rgba(0,0,0,0.2),inset_0_-18px_36px_rgba(0,0,0,0.14)]"
+        className="pointer-events-none absolute inset-0 rounded-2xl shadow-[inset_0_0_70px_rgba(0,0,0,0.18),inset_0_-16px_32px_rgba(0,0,0,0.12)]"
         aria-hidden
       />
 
@@ -112,12 +112,19 @@ export function LineupFormationPitch({
         aria-hidden
       >
         <g {...gLine}>
-          <rect x={INNER_L} y={INNER_T} width={VB_W - 2 * LINE_INSET} height={VB_H - 2 * LINE_INSET} rx="2" />
+          <rect
+            x={INNER_L}
+            y={INNER_T}
+            width={VB_W - 2 * LINE_INSET}
+            height={VB_H - 2 * LINE_INSET}
+            rx={TOUCHLINE_RX}
+            ry={TOUCHLINE_RX}
+          />
 
-          <path d={`M ${INNER_L + CORNER_R} ${INNER_T} A ${CORNER_R} ${CORNER_R} 0 0 1 ${INNER_L} ${INNER_T + CORNER_R}`} />
-          <path d={`M ${INNER_R - CORNER_R} ${INNER_T} A ${CORNER_R} ${CORNER_R} 0 0 0 ${INNER_R} ${INNER_T + CORNER_R}`} />
-          <path d={`M ${INNER_R} ${INNER_B - CORNER_R} A ${CORNER_R} ${CORNER_R} 0 0 0 ${INNER_R - CORNER_R} ${INNER_B}`} />
-          <path d={`M ${INNER_L + CORNER_R} ${INNER_B} A ${CORNER_R} ${CORNER_R} 0 0 0 ${INNER_L} ${INNER_B - CORNER_R}`} />
+          <path d={`M ${INNER_L} ${INNER_T + CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L + CORNER_ARC} ${INNER_T}`} />
+          <path d={`M ${INNER_R - CORNER_ARC} ${INNER_T} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R} ${INNER_T + CORNER_ARC}`} />
+          <path d={`M ${INNER_R} ${INNER_B - CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R - CORNER_ARC} ${INNER_B}`} />
+          <path d={`M ${INNER_L + CORNER_ARC} ${INNER_B} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L} ${INNER_B - CORNER_ARC}`} />
 
           <line x1={INNER_L} y1={CY} x2={INNER_R} y2={CY} />
 
@@ -130,8 +137,8 @@ export function LineupFormationPitch({
           <rect x={GA_X} y={INNER_T} width={GA_W} height={GA_H} />
           <rect x={GA_X} y={INNER_B - GA_H} width={GA_W} height={GA_H} />
 
-          <path d={`M ${PEN_X} ${TOP_PEN_BOTTOM} Q ${CX} ${TOP_PEN_BOTTOM + 34} ${PEN_X + PEN_W} ${TOP_PEN_BOTTOM}`} />
-          <path d={`M ${PEN_X} ${BOTTOM_PEN_Y} Q ${CX} ${BOTTOM_PEN_Y - 34} ${PEN_X + PEN_W} ${BOTTOM_PEN_Y}`} />
+          <path d={`M ${PEN_X} ${TOP_PEN_BOTTOM} Q ${CX} ${TOP_PEN_BOTTOM + 36} ${PEN_X + PEN_W} ${TOP_PEN_BOTTOM}`} />
+          <path d={`M ${PEN_X} ${BOTTOM_PEN_Y} Q ${CX} ${BOTTOM_PEN_Y - 36} ${PEN_X + PEN_W} ${BOTTOM_PEN_Y}`} />
 
           <line x1={PEN_X} y1={TOP_SIX_Y} x2={PEN_X + PEN_W} y2={TOP_SIX_Y} />
           <line x1={PEN_X} y1={BOTTOM_SIX_Y} x2={PEN_X + PEN_W} y2={BOTTOM_SIX_Y} />
@@ -144,7 +151,7 @@ export function LineupFormationPitch({
         </g>
       </svg>
 
-      <div className="absolute inset-[3%] z-[1] min-h-0">
+      <div className="absolute inset-[3.5%] z-[1] min-h-0">
         {layout.map(({ slot, label, x, y }) => {
           const playerId = slots[slot] ?? null;
           const empty = !playerId;
