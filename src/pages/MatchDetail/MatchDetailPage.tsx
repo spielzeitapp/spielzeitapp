@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { TrainerMatchSetupBlock } from '../TrainerMatchSetupBlock';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { Match, MatchEvent } from '../../types/match';
 import type { FieldSlotId } from '../../types/match';
 import { supabase } from '../../lib/supabaseClient';
@@ -71,6 +71,7 @@ function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
 
 export const MatchDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const matchId = id ?? null;
 
   const { role: uiRole, getBackendRole, canUseLiveControls } = useRole();
@@ -570,6 +571,17 @@ export const MatchDetailPage: React.FC = () => {
                 );
               })}
             </div>
+            {matchId && canManageStatus ? (
+              <div className="mt-3 flex justify-end">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(matchId)}`)}
+                >
+                  Match vorbereiten
+                </Button>
+              </div>
+            ) : null}
           </Card>
         )}
 
