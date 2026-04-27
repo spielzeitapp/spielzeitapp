@@ -3,10 +3,10 @@ import type { FieldSlotId } from '../../types/match';
 import type { U11FormationId } from '../../lib/matchFormations';
 import { U11_FORMATIONS } from '../../lib/matchFormations';
 
-/** Dunkleres Grün + klarere horizontale Rasen-Streifen (90° = waagerechte Bänder) */
+/** Dunkleres Grün + waagerechte Rasen-Streifen (Wiederholung entlang Y) */
 const PITCH_SURFACE: React.CSSProperties = {
   backgroundImage: [
-    'repeating-linear-gradient(90deg, rgba(255,255,255,0.075) 0px, rgba(255,255,255,0.075) 26px, transparent 26px, transparent 52px)',
+    'repeating-linear-gradient(180deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 22px, transparent 22px, transparent 44px)',
     'linear-gradient(to bottom, #24692a, #1a4a20)',
   ].join(', '),
 };
