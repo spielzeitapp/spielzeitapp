@@ -14,6 +14,11 @@ export type LeibchenJerseyProps = {
   size?: LeibchenJerseySize;
   /** Nur Trikot-Grafik ohne Rücken-Text (Name/Nummer/Position außerhalb stacken) */
   showBackPrint?: boolean;
+  /**
+   * Pitch/Lineup: nur große Nummer + optional kleines Positionskürzel auf dem Trikot (kein Name im SVG).
+   * Übersteuert showBackPrint, wenn true.
+   */
+  pitchStyleBack?: boolean;
   /** Auswahl-Feedback (z. B. Bank): grüner Glow */
   selected?: boolean;
   /** Kurzer Erfolgs-Flash nach Zuweisung (nur Optik) */
@@ -44,6 +49,7 @@ export function LeibchenJersey({
   variant,
   size = 'large',
   showBackPrint = true,
+  pitchStyleBack = false,
   selected = false,
   assignFlash = false,
   className = '',
@@ -68,6 +74,15 @@ export function LeibchenJersey({
     size === 'large'
       ? { nameY: 35, nameSize: 8.8, numY: 66, numSize: 30, posY: 97, posSize: 8.6 }
       : { nameY: 34, nameSize: 6.6, numY: 65, numSize: 22, posY: 94, posSize: 6.8 };
+
+  /** Nur Nummer + kleine Position, zentriert auf dem Rücken */
+  const pitchTypo =
+    size === 'large'
+      ? { numY: 62, numSize: 32, posY: 91, posSize: 6.8 }
+      : { numY: 56, numSize: 24, posY: 84, posSize: 5.4 };
+
+  const showPitchBack = pitchStyleBack;
+  const showFullBack = showBackPrint && !showPitchBack;
 
   const ariaLabel = `${nameDisplay} Nummer ${numDisplay} Position ${posDisplay}${variant === 'goalkeeper' ? ', Torwart' : ''}`;
 
@@ -146,7 +161,36 @@ export function LeibchenJersey({
           fill={variant === 'field' ? SLEEVE_BLACK : '#065f46'}
         />
 
-        {showBackPrint ? (
+        {showPitchBack ? (
+          <>
+            <text
+              x="50"
+              y={pitchTypo.numY}
+              textAnchor="middle"
+              fill="#ffffff"
+              fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
+              fontSize={pitchTypo.numSize}
+              fontWeight="800"
+              dominantBaseline="middle"
+            >
+              {numDisplay}
+            </text>
+            {posDisplay ? (
+              <text
+                x="50"
+                y={pitchTypo.posY}
+                textAnchor="middle"
+                fill="rgba(248, 250, 252, 0.78)"
+                fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
+                fontSize={pitchTypo.posSize}
+                fontWeight="600"
+                letterSpacing="0.1em"
+              >
+                {posDisplay}
+              </text>
+            ) : null}
+          </>
+        ) : showFullBack ? (
           <>
             <text
               x="50"
