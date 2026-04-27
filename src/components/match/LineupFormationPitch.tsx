@@ -3,7 +3,6 @@ import type { FieldSlotId } from '../../types/match';
 import type { U11FormationId } from '../../lib/matchFormations';
 import { U11_FORMATIONS } from '../../lib/matchFormations';
 
-/** Dunkleres Grün + waagerechte Rasen-Streifen */
 const PITCH_SURFACE: React.CSSProperties = {
   backgroundImage: [
     'repeating-linear-gradient(180deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 22px, transparent 22px, transparent 44px)',
@@ -11,9 +10,15 @@ const PITCH_SURFACE: React.CSSProperties = {
   ].join(', '),
 };
 
-const LINE_INSET = 10;
+/** Spielfeld 360×520; viewBox mit Rand, damit stroke 2 an den Rändern nicht abgeschnitten wird */
+const VB_MARGIN = 4;
 const VB_W = 360;
 const VB_H = 520;
+const VB_MIN = -VB_MARGIN;
+const VB_OUT_W = VB_W + 2 * VB_MARGIN;
+const VB_OUT_H = VB_H + 2 * VB_MARGIN;
+
+const LINE_INSET = 10;
 const CX = VB_W / 2;
 const CY = VB_H / 2;
 const INNER_L = LINE_INSET;
@@ -24,19 +29,28 @@ const INNER_B = VB_H - LINE_INSET;
 const PEN_W = 170;
 const PEN_H = 140;
 const PEN_X = (VB_W - PEN_W) / 2;
+const TOP_PEN_BOTTOM = INNER_T + PEN_H;
 const BOTTOM_PEN_Y = VB_H - LINE_INSET - PEN_H;
-const BOTTOM_SIX_Y = BOTTOM_PEN_Y + 50;
-const TOP_SIX_Y = 90;
 
-/** Kleiner Torraum (6 m), zentriert an der Torlinie */
 const GA_W = 82;
 const GA_H = 46;
 const GA_X = (VB_W - GA_W) / 2;
 
+const TOP_SIX_Y = 90;
+const BOTTOM_SIX_Y = BOTTOM_PEN_Y + 50;
+
+/** Elfmeterpunkt (näherungsweise) */
+const TOP_SPOT_Y = TOP_PEN_BOTTOM - 22;
+const BOTTOM_SPOT_Y = BOTTOM_PEN_Y + 22;
+
 const LINE_STROKE = '#ffffff';
-const LINE_OPACITY = 0.45;
-const STROKE_W = 1.45;
+const LINE_OPACITY = 0.55;
+const STROKE_W = 2;
 const CORNER_R = 11;
+
+const GOAL_W = 52;
+const GOAL_H = 6;
+const GOAL_X = (VB_W - GOAL_W) / 2;
 
 export type LineupFormationPitchProps = {
   formationId: U11FormationId;
@@ -72,14 +86,20 @@ export function LineupFormationPitch({
 }: LineupFormationPitchProps): React.ReactElement {
   const layout = U11_FORMATIONS[formationId];
 
-  const topPenBottom = LINE_INSET + PEN_H;
+  const gLine = {
+    fill: 'none' as const,
+    stroke: LINE_STROKE,
+    strokeWidth: STROKE_W,
+    strokeOpacity: LINE_OPACITY,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  };
 
   return (
     <div
       className={`relative w-full overflow-hidden rounded-2xl border border-black/35 aspect-[3/4] max-h-[min(70dvh,560px)] shadow-[0_0_0_1px_rgba(0,0,0,0.2),0_10px_36px_rgba(0,0,0,0.45),0_0_60px_rgba(34,197,94,0.14)] ${className}`}
       style={PITCH_SURFACE}
     >
-      {/* Vignette unter den Linien, damit Markierungen klar bleiben */}
       <div
         className="pointer-events-none absolute inset-0 rounded-2xl shadow-[inset_0_0_90px_rgba(0,0,0,0.2),inset_0_-18px_36px_rgba(0,0,0,0.14)]"
         aria-hidden
@@ -87,18 +107,11 @@ export function LineupFormationPitch({
 
       <svg
         className="pointer-events-none absolute inset-0 z-[0] h-full w-full"
-        viewBox={`0 0 ${VB_W} ${VB_H}`}
+        viewBox={`${VB_MIN} ${VB_MIN} ${VB_OUT_W} ${VB_OUT_H}`}
         preserveAspectRatio="xMidYMid meet"
         aria-hidden
       >
-        <g
-          fill="none"
-          stroke={LINE_STROKE}
-          strokeWidth={STROKE_W}
-          strokeOpacity={LINE_OPACITY}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
+        <g {...gLine}>
           <rect x={INNER_L} y={INNER_T} width={VB_W - 2 * LINE_INSET} height={VB_H - 2 * LINE_INSET} rx="2" />
 
           <path d={`M ${INNER_L + CORNER_R} ${INNER_T} A ${CORNER_R} ${CORNER_R} 0 0 1 ${INNER_L} ${INNER_T + CORNER_R}`} />
@@ -111,17 +124,23 @@ export function LineupFormationPitch({
           <circle cx={CX} cy={CY} r="50" />
           <circle cx={CX} cy={CY} r="3.5" fill={LINE_STROKE} fillOpacity={LINE_OPACITY} stroke="none" />
 
-          <rect x={PEN_X} y={LINE_INSET} width={PEN_W} height={PEN_H} />
+          <rect x={PEN_X} y={INNER_T} width={PEN_W} height={PEN_H} />
           <rect x={PEN_X} y={BOTTOM_PEN_Y} width={PEN_W} height={PEN_H} />
 
           <rect x={GA_X} y={INNER_T} width={GA_W} height={GA_H} />
           <rect x={GA_X} y={INNER_B - GA_H} width={GA_W} height={GA_H} />
 
-          <path d={`M ${PEN_X} ${topPenBottom} Q ${CX} ${topPenBottom + 36} ${PEN_X + PEN_W} ${topPenBottom}`} />
-          <path d={`M ${PEN_X} ${BOTTOM_PEN_Y} Q ${CX} ${BOTTOM_PEN_Y - 36} ${PEN_X + PEN_W} ${BOTTOM_PEN_Y}`} />
+          <path d={`M ${PEN_X} ${TOP_PEN_BOTTOM} Q ${CX} ${TOP_PEN_BOTTOM + 34} ${PEN_X + PEN_W} ${TOP_PEN_BOTTOM}`} />
+          <path d={`M ${PEN_X} ${BOTTOM_PEN_Y} Q ${CX} ${BOTTOM_PEN_Y - 34} ${PEN_X + PEN_W} ${BOTTOM_PEN_Y}`} />
 
           <line x1={PEN_X} y1={TOP_SIX_Y} x2={PEN_X + PEN_W} y2={TOP_SIX_Y} />
           <line x1={PEN_X} y1={BOTTOM_SIX_Y} x2={PEN_X + PEN_W} y2={BOTTOM_SIX_Y} />
+
+          <circle cx={CX} cy={TOP_SPOT_Y} r="2.5" fill={LINE_STROKE} fillOpacity={LINE_OPACITY} stroke="none" />
+          <circle cx={CX} cy={BOTTOM_SPOT_Y} r="2.5" fill={LINE_STROKE} fillOpacity={LINE_OPACITY} stroke="none" />
+
+          <rect x={GOAL_X} y={INNER_T - GOAL_H} width={GOAL_W} height={GOAL_H} rx="1" />
+          <rect x={GOAL_X} y={INNER_B} width={GOAL_W} height={GOAL_H} rx="1" />
         </g>
       </svg>
 

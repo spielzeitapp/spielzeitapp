@@ -75,11 +75,11 @@ export function LeibchenJersey({
       ? { nameY: 35, nameSize: 8.8, numY: 66, numSize: 30, posY: 97, posSize: 8.6 }
       : { nameY: 34, nameSize: 6.6, numY: 65, numSize: 22, posY: 94, posSize: 6.8 };
 
-  /** Nur Nummer + kleine Position, zentriert auf dem Rücken (Nummer ~+15 % vs. früher) */
+  /** Nur Nummer + Positionskürzel (Pitch): Position groß genug, gut lesbar */
   const pitchTypo =
     size === 'large'
-      ? { numY: 62, numSize: 36.8, posY: 92, posSize: 6.5 }
-      : { numY: 54, numSize: 26, posY: 70, posSize: 4.2 };
+      ? { numY: 60, numSize: 34, posY: 88, posSize: 7.2 }
+      : { numY: 52, numSize: 25, posY: 74, posSize: 6.1 };
 
   const showPitchBack = pitchStyleBack;
   const showFullBack = showBackPrint && !showPitchBack;
@@ -122,6 +122,12 @@ export function LeibchenJersey({
         {variant === 'goalkeeper' ? (
           <filter id={gkGlowFilterId} x="-12%" y="-12%" width="124%" height="124%">
             <feDropShadow dx="0" dy="1.5" stdDeviation="0.85" floodColor="#000000" floodOpacity="0.28" />
+          </filter>
+        ) : null}
+        {pitchStyleBack ? (
+          <filter id={`lj-pitch-pos-${safeId}`} x="-25%" y="-35%" width="150%" height="170%">
+            <feDropShadow dx="0" dy="0.8" stdDeviation="1.15" floodColor="#000000" floodOpacity="0.55" />
+            <feDropShadow dx="0" dy="0" stdDeviation="0.35" floodColor="#0a0a0a" floodOpacity="0.4" />
           </filter>
         ) : null}
       </defs>
@@ -180,11 +186,13 @@ export function LeibchenJersey({
                 x="50"
                 y={pitchTypo.posY}
                 textAnchor="middle"
-                fill="rgba(248, 250, 252, 0.82)"
+                fill="#ffffff"
+                fillOpacity={0.95}
                 fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
                 fontSize={pitchTypo.posSize}
-                fontWeight="600"
-                letterSpacing="0.14em"
+                fontWeight="700"
+                letterSpacing="0.08em"
+                filter={`url(#lj-pitch-pos-${safeId})`}
               >
                 {posDisplay}
               </text>
