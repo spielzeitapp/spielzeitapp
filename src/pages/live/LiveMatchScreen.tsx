@@ -29,6 +29,13 @@ import {
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
+import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
+import {
+  DEFAULT_U11_FORMATION,
+  labelForSlotInFormation,
+  readStoredU11Formation,
+  type U11FormationId,
+} from '../../lib/matchFormations';
 import type { FieldSlotId } from '../../types/match';
 import { playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 import { supabase } from '../../lib/supabaseClient';
@@ -279,16 +286,6 @@ function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
   return [...list].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
 }
 
-const LIVE_SLOT_LABELS: Record<FieldSlotId, string> = {
-  GK: 'GK',
-  LB: 'LV',
-  RB: 'RV',
-  CM: 'ZM',
-  LW: 'LA',
-  RW: 'RA',
-  ST: 'ST',
-};
-
 function rosterFamilyName(p: RosterPlayer): string {
   const parts = (p.name || '').trim().split(/\s+/).filter(Boolean);
   return parts.length > 1 ? parts[parts.length - 1]! : p.name || '—';
@@ -297,10 +294,11 @@ function rosterFamilyName(p: RosterPlayer): string {
 function slotMetaFromSlotMap(
   slots: Record<FieldSlotId, string | null>,
   playerId: string,
+  formationId: U11FormationId,
 ): { label: string; isGk: boolean } {
   const slot = LIVE_FIELD_SLOT_ORDER.find((s) => slots[s] === playerId);
   if (!slot) return { label: '–', isGk: false };
-  return { label: LIVE_SLOT_LABELS[slot], isGk: slot === 'GK' };
+  return { label: labelForSlotInFormation(formationId, slot), isGk: slot === 'GK' };
 }
 
 type PeriodScorePair = { h: number; a: number };
@@ -798,6 +796,11 @@ export const LiveMatchScreen: React.FC = () => {
   const onFieldBySlot = useMemo(
     () => getCurrentOnFieldBySlot(startingPlayerIds, events, currentMatchSeconds),
     [startingPlayerIds, events, currentMatchSeconds],
+  );
+
+  const liveLineupFormationId = useMemo(
+    () => readStoredU11Formation(effectiveMatchId) ?? DEFAULT_U11_FORMATION,
+    [effectiveMatchId],
   );
 
   const fieldPlayers = useMemo(() => {
@@ -1964,7 +1967,7 @@ export const LiveMatchScreen: React.FC = () => {
         )}
 
         {mainTab === 'lineup' && (
-          <div className="space-y-3 pb-44 sm:pb-10">
+          <div className="space-y-3 pb-52 sm:pb-14">
             {fieldPlayers.length === 0 && benchPlayers.length === 0 ? (
               <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-gray-400">
                 Noch keine Aufstellung veröffentlicht.
@@ -1975,54 +1978,38 @@ export const LiveMatchScreen: React.FC = () => {
                   <section>
                     <h3 className="mb-0.5 text-xs font-bold uppercase tracking-[0.2em] text-red-400/90">Live-Aufstellung</h3>
                     <p className="mb-2 text-[11px] text-white/55">Aktuell am Feld</p>
-                    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#070b0a] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                      <div
-                        className="pointer-events-none absolute inset-0 text-white"
-                        style={{ opacity: 0.12 }}
-                        aria-hidden
-                      >
-                        <svg className="h-full w-full" viewBox="0 0 360 520" preserveAspectRatio="xMidYMid slice">
-                          <line x1="180" y1="0" x2="180" y2="520" stroke="currentColor" strokeWidth="1.35" />
-                          <circle cx="180" cy="260" r="52" fill="none" stroke="currentColor" strokeWidth="1.35" />
-                          <circle cx="180" cy="260" r="3.5" fill="currentColor" />
-                          <rect x="95" y="380" width="170" height="140" fill="none" stroke="currentColor" strokeWidth="1.35" />
-                          <line x1="95" y1="430" x2="265" y2="430" stroke="currentColor" strokeWidth="1.35" />
-                          <rect x="95" y="0" width="170" height="140" fill="none" stroke="currentColor" strokeWidth="1.35" />
-                          <line x1="95" y1="90" x2="265" y2="90" stroke="currentColor" strokeWidth="1.35" />
-                        </svg>
-                      </div>
-                      <div className="relative z-10 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-                        {LIVE_FIELD_SLOT_ORDER.map((slot) => {
-                          const pid = onFieldBySlot[slot] ?? null;
-                          const p = pid ? rosterById.get(pid) : null;
-                          return (
-                            <div
-                              key={slot}
-                              className="flex min-h-[12.5rem] flex-col items-center rounded-xl border border-white/10 bg-black/35 px-0 py-0.5 sm:min-h-[13rem]"
-                            >
-                              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
-                                {LIVE_SLOT_LABELS[slot]}
+                    <LineupFormationPitch
+                      formationId={liveLineupFormationId}
+                      slots={onFieldBySlot}
+                      renderSlotContent={({ slot, label, playerId, isGk }) => {
+                        const p = playerId ? rosterById.get(playerId) : null;
+                        return (
+                          <>
+                            <span className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white/50">
+                              {label}
+                            </span>
+                            {p ? (
+                              <span className="-translate-y-0.5">
+                                <LeibchenJersey
+                                  lastName={rosterFamilyName(p)}
+                                  number={p.number || '–'}
+                                  position={label}
+                                  variant={isGk ? 'goalkeeper' : 'field'}
+                                  size="large"
+                                />
                               </span>
-                              {p ? (
-                                <div className="flex min-h-0 flex-1 items-center justify-center pb-1 pt-0.5">
-                                  <span className="-translate-y-1">
-                                    <LeibchenJersey
-                                      lastName={rosterFamilyName(p)}
-                                      number={p.number || '–'}
-                                      position={LIVE_SLOT_LABELS[slot]}
-                                      variant={slot === 'GK' ? 'goalkeeper' : 'field'}
-                                      size="large"
-                                    />
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="min-h-[6rem] flex-1" aria-hidden />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
+                            ) : (
+                              <div
+                                className="flex h-[4.35rem] w-[4.35rem] shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/40"
+                                aria-hidden
+                              >
+                                <span className="text-[10px] font-bold uppercase text-white/35">{label}</span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      }}
+                    />
                   </section>
                 ) : null}
                 <section className="rounded-xl border border-emerald-700/30 bg-black/30">
@@ -2042,7 +2029,7 @@ export const LiveMatchScreen: React.FC = () => {
                       {LIVE_FIELD_SLOT_ORDER.map((slot, idx) => {
                         const pid = initialStartingPlayerIds[idx] ?? null;
                         const p = pid ? rosterById.get(pid) ?? { id: pid, name: '—', number: 0 } : null;
-                        const label = LIVE_SLOT_LABELS[slot];
+                        const label = labelForSlotInFormation(liveLineupFormationId, slot);
                         const isGk = slot === 'GK';
                         return (
                           <li key={slot}>
@@ -2233,7 +2220,7 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : (
                       fieldPlayers.map((p) => {
                         const sel = wechselOutId === p.id;
-                        const { label, isGk } = slotMetaFromSlotMap(onFieldBySlot, p.id);
+                        const { label, isGk } = slotMetaFromSlotMap(onFieldBySlot, p.id, liveLineupFormationId);
                         return (
                           <button
                             key={p.id}

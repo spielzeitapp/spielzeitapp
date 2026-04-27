@@ -3,12 +3,21 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { usePlayers } from '../../hooks/usePlayers';
 import type { PlayerItem } from '../../hooks/usePlayers';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
+import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import {
   fetchLineupForLiveMatch,
   LIVE_FIELD_SLOT_ORDER,
   persistLiveMatchBegin,
   replaceMatchLineupAndBench,
 } from '../../lib/liveMatchService';
+import {
+  DEFAULT_U11_FORMATION,
+  labelForSlotInFormation,
+  readStoredU11Formation,
+  U11_FORMATION_CHOICES,
+  writeStoredU11Formation,
+  type U11FormationId,
+} from '../../lib/matchFormations';
 import { supabase } from '../../lib/supabaseClient';
 import type { FieldSlotId } from '../../types/match';
 
@@ -21,16 +30,6 @@ type MatchRowLite = {
 type LocationState = {
   selectedPlayers?: string[];
 } | null;
-
-const SLOT_LABELS: Record<FieldSlotId, string> = {
-  GK: 'GK',
-  LB: 'LV',
-  RB: 'RV',
-  CM: 'ZM',
-  LW: 'LA',
-  RW: 'RA',
-  ST: 'ST',
-};
 
 function emptySlots(): Record<FieldSlotId, string | null> {
   return {
@@ -89,6 +88,7 @@ export const MatchLineupPage: React.FC = () => {
   const [startingLive, setStartingLive] = useState(false);
   const [assignFlashSlot, setAssignFlashSlot] = useState<FieldSlotId | null>(null);
   const assignFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [formationId, setFormationId] = useState<U11FormationId>(DEFAULT_U11_FORMATION);
 
   useEffect(() => {
     let cancelled = false;
@@ -167,6 +167,12 @@ export const MatchLineupPage: React.FC = () => {
       cancelled = true;
     };
   }, [matchId, selectedFromState]);
+
+  useEffect(() => {
+    if (!matchId) return;
+    const stored = readStoredU11Formation(matchId);
+    if (stored) setFormationId(stored);
+  }, [matchId]);
 
   useEffect(() => {
     if (!selectedBankPlayerId) return;
@@ -332,80 +338,81 @@ export const MatchLineupPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-3 pb-[17rem]">
+      <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-3 pb-[22rem]">
         {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
         {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
         {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}
         {saveMsg ? <p className="text-sm text-emerald-300">{saveMsg}</p> : null}
 
-        <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#070b0a] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-          {/* Dezenter Spielfeld-Look (Linien ~8 % Opazität) */}
-          <div
-            className="pointer-events-none absolute inset-0 text-white"
-            style={{ opacity: 0.12 }}
-            aria-hidden
-          >
-            <svg className="h-full w-full" viewBox="0 0 360 520" preserveAspectRatio="xMidYMid slice">
-              <rect x="0" y="0" width="360" height="520" fill="none" />
-              <line x1="180" y1="0" x2="180" y2="520" stroke="currentColor" strokeWidth="1.35" />
-              <circle cx="180" cy="260" r="52" fill="none" stroke="currentColor" strokeWidth="1.35" />
-              <circle cx="180" cy="260" r="3.5" fill="currentColor" />
-              <rect x="95" y="380" width="170" height="140" fill="none" stroke="currentColor" strokeWidth="1.35" />
-              <line x1="95" y1="430" x2="265" y2="430" stroke="currentColor" strokeWidth="1.35" />
-              <rect x="95" y="0" width="170" height="140" fill="none" stroke="currentColor" strokeWidth="1.35" />
-              <line x1="95" y1="90" x2="265" y2="90" stroke="currentColor" strokeWidth="1.35" />
-            </svg>
+        <section className="space-y-2 rounded-2xl border border-white/10 bg-[#070b0a]/90 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+          <div className="flex items-center justify-between px-1 pt-0.5">
+            <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-white/90">Startelf</h2>
+            <span className="text-xs font-medium text-white/55">{starterCount}/7</span>
           </div>
-
-          <div className="relative z-10 space-y-2 px-1 pb-1 pt-1">
-            <div className="flex items-center justify-between px-1">
-              <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-white/90">Startelf</h2>
-              <span className="text-xs font-medium text-white/55">{starterCount}/7</span>
-            </div>
-            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-              {LIVE_FIELD_SLOT_ORDER.map((slot) => {
-                const playerId = slots[slot];
-                const player = playerId ? playersById.get(playerId) : null;
-                const empty = !player;
-                const dropHint = empty && Boolean(selectedBankPlayerId);
+          <div className="px-1">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">Formation</p>
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              {U11_FORMATION_CHOICES.map((id) => {
+                const active = formationId === id;
                 return (
                   <button
-                    key={slot}
+                    key={id}
                     type="button"
-                    onClick={() => onTapSlot(slot)}
+                    onClick={() => {
+                      setFormationId(id);
+                      if (matchId) writeStoredU11Formation(matchId, id);
+                    }}
                     className={[
-                      'relative flex min-h-[12.5rem] flex-col items-center justify-start rounded-xl px-0 py-0.5 pb-0.5 pt-0.5 transition-all duration-300 ease-out active:scale-[0.98] sm:min-h-[13rem]',
-                      empty
-                        ? dropHint
-                          ? 'border-2 border-dashed border-emerald-400/55 bg-black/35 shadow-[0_0_18px_rgba(16,185,129,0.22)]'
-                          : 'border border-dashed border-white/25 bg-black/30 hover:bg-black/40'
-                        : 'border border-white/10 bg-black/35 shadow-none',
-                      assignFlashSlot === slot ? 'ring-2 ring-emerald-400/60 ring-offset-2 ring-offset-[#070b0a]' : '',
+                      'min-h-[40px] rounded-lg border px-3 py-2 text-xs font-bold transition-colors',
+                      active
+                        ? 'border-emerald-400/70 bg-emerald-500/20 text-emerald-100'
+                        : 'border-white/15 bg-black/30 text-white/75 hover:border-white/25 hover:bg-black/40',
                     ].join(' ')}
                   >
-                    <span className="mb-0 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
-                      {SLOT_LABELS[slot]}
-                    </span>
-                    {player ? (
-                      <div className="flex min-h-0 flex-1 items-center justify-center pb-1 pt-0.5">
-                        <span className="-translate-y-1 transition-transform duration-300 ease-out">
-                          <LeibchenJersey
-                            lastName={playerFamilyName(player)}
-                            number={player.jersey_number}
-                            position={SLOT_LABELS[slot]}
-                            variant={slot === 'GK' ? 'goalkeeper' : 'field'}
-                            size="large"
-                            assignFlash={assignFlashSlot === slot}
-                          />
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="min-h-[6rem] flex-1" aria-hidden />
-                    )}
+                    {id}
                   </button>
                 );
               })}
             </div>
+          </div>
+          <div className="px-0.5 pb-1">
+            <LineupFormationPitch
+              formationId={formationId}
+              slots={slots}
+              interactive
+              onSlotTap={onTapSlot}
+              selectedBankPlayerId={selectedBankPlayerId}
+              assignFlashSlot={assignFlashSlot}
+              renderSlotContent={({ slot, label, playerId, empty, flash, isGk }) => {
+                const player = playerId ? playersById.get(playerId) : null;
+                return (
+                  <>
+                    <span className="pointer-events-none mb-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white/50">
+                      {label}
+                    </span>
+                    {player ? (
+                      <span className="pointer-events-none -translate-y-0.5 transition-transform duration-300 ease-out">
+                        <LeibchenJersey
+                          lastName={playerFamilyName(player)}
+                          number={player.jersey_number}
+                          position={label}
+                          variant={isGk ? 'goalkeeper' : 'field'}
+                          size="large"
+                          assignFlash={flash}
+                        />
+                      </span>
+                    ) : (
+                      <div
+                        className="pointer-events-none flex h-[4.35rem] w-[4.35rem] shrink-0 items-center justify-center rounded-full border-2 border-dashed border-white/28 bg-black/45"
+                        aria-hidden
+                      >
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-white/40">{label}</span>
+                      </div>
+                    )}
+                  </>
+                );
+              }}
+            />
           </div>
         </section>
 
@@ -453,19 +460,20 @@ export const MatchLineupPage: React.FC = () => {
             {LIVE_FIELD_SLOT_ORDER.map((slot) => {
               const pid = slots[slot];
               const p = pid ? playersById.get(pid) : null;
+              const posLabel = labelForSlotInFormation(formationId, slot);
               return (
                 <div
                   key={`row-${slot}`}
                   className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/20 px-2.5 py-2"
                 >
-                  <span className="text-xs font-semibold text-white/75">{SLOT_LABELS[slot]}</span>
+                  <span className="text-xs font-semibold text-white/75">{posLabel}</span>
                   <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
                     {p ? (
                       <>
                         <LeibchenJersey
                           lastName={playerFamilyName(p)}
                           number={p.jersey_number}
-                          position={SLOT_LABELS[slot]}
+                          position={posLabel}
                           variant={slot === 'GK' ? 'goalkeeper' : 'field'}
                           size="compact"
                           className="!h-[3.6rem] !w-[2.85rem]"
