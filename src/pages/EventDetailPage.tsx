@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
@@ -139,6 +139,7 @@ function sortPlayersByAttendanceStatus(
 
 export const EventDetailPage: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
+  const navigate = useNavigate();
   const [event, setEvent] = useState<EventRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -763,6 +764,17 @@ export const EventDetailPage: React.FC = () => {
             ) : null}
           </Card>
         )}
+
+        {event.kind === 'match' && isTrainerOrAdmin && event.match_id ? (
+          <Button
+            type="button"
+            variant="primary"
+            className="min-h-[48px] w-full bg-red-600 text-white hover:bg-red-500"
+            onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(event.match_id)}`)}
+          >
+            Match vorbereiten
+          </Button>
+        ) : null}
 
         {event.kind === 'match' && isTrainerOrAdmin && (
           <div className="flex flex-col gap-2">
