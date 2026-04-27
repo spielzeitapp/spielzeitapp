@@ -75,11 +75,11 @@ export function LeibchenJersey({
       ? { nameY: 35, nameSize: 8.8, numY: 66, numSize: 30, posY: 97, posSize: 8.6 }
       : { nameY: 34, nameSize: 6.6, numY: 65, numSize: 22, posY: 94, posSize: 6.8 };
 
-  /** Nur Nummer + kleine Position, zentriert auf dem Rücken */
+  /** Nur Nummer + kleine Position, zentriert auf dem Rücken (Nummer ~+15 % vs. früher) */
   const pitchTypo =
     size === 'large'
-      ? { numY: 62, numSize: 32, posY: 91, posSize: 6.8 }
-      : { numY: 56, numSize: 24, posY: 84, posSize: 5.4 };
+      ? { numY: 62, numSize: 36.8, posY: 92, posSize: 6.5 }
+      : { numY: 56, numSize: 27.6, posY: 85, posSize: 5.1 };
 
   const showPitchBack = pitchStyleBack;
   const showFullBack = showBackPrint && !showPitchBack;

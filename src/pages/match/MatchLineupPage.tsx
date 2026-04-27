@@ -339,7 +339,7 @@ export const MatchLineupPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-xl flex-col gap-3 px-2 py-2 pb-[17rem] sm:px-3">
+      <main className="mx-auto flex max-w-xl flex-col gap-3 px-2 py-2 pb-[26rem] sm:px-3">
         {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
         {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
         {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}
@@ -364,9 +364,9 @@ export const MatchLineupPage: React.FC = () => {
                       if (matchId) writeStoredU11Formation(matchId, id);
                     }}
                     className={[
-                      'min-h-[40px] rounded-lg border px-3 py-2 text-xs font-bold transition-all duration-300 ease-out',
+                      'min-h-[40px] rounded-lg border px-3 py-2 text-xs font-bold transition-all duration-200 ease-out',
                       active
-                        ? 'border-emerald-400/70 bg-emerald-500/20 text-emerald-100 shadow-[0_0_16px_rgba(16,185,129,0.25)]'
+                        ? 'scale-105 border-2 border-red-500/90 bg-red-500/25 text-white shadow-[0_0_22px_rgba(239,68,68,0.55),0_0_12px_rgba(248,113,113,0.35)]'
                         : 'border-white/15 bg-black/30 text-white/75 hover:border-white/25 hover:bg-black/40',
                     ].join(' ')}
                   >

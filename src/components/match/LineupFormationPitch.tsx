@@ -3,10 +3,11 @@ import type { FieldSlotId } from '../../types/match';
 import type { U11FormationId } from '../../lib/matchFormations';
 import { U11_FORMATIONS } from '../../lib/matchFormations';
 
+/** Dunkleres Grün + klarere horizontale Rasen-Streifen (90° = waagerechte Bänder) */
 const PITCH_SURFACE: React.CSSProperties = {
   backgroundImage: [
-    'repeating-linear-gradient(0deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 40px, transparent 40px, transparent 80px)',
-    'linear-gradient(to bottom, #2e7d32, #27682b)',
+    'repeating-linear-gradient(90deg, rgba(255,255,255,0.075) 0px, rgba(255,255,255,0.075) 26px, transparent 26px, transparent 52px)',
+    'linear-gradient(to bottom, #24692a, #1a4a20)',
   ].join(', '),
 };
 
@@ -17,7 +18,6 @@ export type LineupFormationPitchProps = {
   onSlotTap?: (slot: FieldSlotId) => void;
   selectedBankPlayerId?: string | null;
   assignFlashSlot?: FieldSlotId | null;
-  /** Optional: Spieler-ID für dezentes Highlight (z. B. Wechsel-Auswahl) */
   emphasizedPlayerId?: string | null;
   renderSlotContent: (ctx: {
     slot: FieldSlotId;
@@ -33,7 +33,7 @@ export type LineupFormationPitchProps = {
 };
 
 /**
- * Grünes Profi-Spielfeld 3:4, weiße Linien; Spieler absolut positioniert (matchFormations).
+ * Grünes Profi-Spielfeld 3:4, Linien + Vignette; Spieler absolut (matchFormations).
  */
 export function LineupFormationPitch({
   formationId,
@@ -50,7 +50,7 @@ export function LineupFormationPitch({
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl border border-white/20 shadow-[0_12px_40px_rgba(0,0,0,0.35)] aspect-[3/4] max-h-[min(78dvh,640px)] ${className}`}
+      className={`relative w-full overflow-hidden rounded-2xl border border-black/35 aspect-[3/4] max-h-[min(78dvh,640px)] shadow-[0_0_0_1px_rgba(0,0,0,0.2),0_10px_36px_rgba(0,0,0,0.45),0_0_60px_rgba(34,197,94,0.14)] ${className}`}
       style={PITCH_SURFACE}
     >
       <svg
@@ -59,17 +59,23 @@ export function LineupFormationPitch({
         preserveAspectRatio="xMidYMid meet"
         aria-hidden
       >
-        <g fill="none" stroke="#ffffff" strokeWidth="1.5" style={{ opacity: 0.22 }}>
+        <g fill="none" stroke="#ffffff" strokeWidth="1.55" style={{ opacity: 0.3 }}>
           <rect x="1.5" y="1.5" width="357" height="517" rx="2" />
           <line x1="180" y1="0" x2="180" y2="520" />
           <circle cx="180" cy="260" r="52" />
-          <circle cx="180" cy="260" r="3.5" fill="#ffffff" style={{ opacity: 0.35 }} />
+          <circle cx="180" cy="260" r="3.5" fill="#ffffff" style={{ opacity: 0.42 }} />
           <rect x="95" y="380" width="170" height="140" />
           <line x1="95" y1="430" x2="265" y2="430" />
           <rect x="95" y="0" width="170" height="140" />
           <line x1="95" y1="90" x2="265" y2="90" />
         </g>
       </svg>
+
+      {/* Vignette: dunkler Rand */}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-2xl shadow-[inset_0_0_120px_rgba(0,0,0,0.38),inset_0_-24px_48px_rgba(0,0,0,0.22)]"
+        aria-hidden
+      />
 
       <div className="absolute inset-0 z-[1]">
         {layout.map(({ slot, label, x, y }) => {

@@ -21,33 +21,33 @@ export type FormationSlotLayout = {
  * Zuordnung zu FieldSlotId wie in den Kommentaren — nur Darstellung, keine DB-Änderung.
  */
 export const U11_FORMATIONS: Record<U11FormationId, FormationSlotLayout[]> = {
-  /** 1-2-2-2: viel vertikaler Abstand, keine Überlappung (oben Stürmer, unten TW) */
+  /** Reihen: Sturm ~25 %, MF ~45 %, Abwehr ~65 %, TW ~80 % (y von oben) */
   '1-2-2-2': [
-    { slot: 'GK', label: 'GK', x: 50, y: 86 },
-    { slot: 'LB', label: 'LV', x: 22, y: 64 },
-    { slot: 'RB', label: 'RV', x: 78, y: 64 },
-    { slot: 'LW', label: 'LM', x: 26, y: 42 },
-    { slot: 'RW', label: 'RM', x: 74, y: 42 },
-    { slot: 'CM', label: 'LS', x: 34, y: 19 },
-    { slot: 'ST', label: 'RS', x: 66, y: 19 },
+    { slot: 'GK', label: 'GK', x: 50, y: 80 },
+    { slot: 'LB', label: 'LV', x: 22, y: 65 },
+    { slot: 'RB', label: 'RV', x: 78, y: 65 },
+    { slot: 'LW', label: 'LM', x: 26, y: 45 },
+    { slot: 'RW', label: 'RM', x: 74, y: 45 },
+    { slot: 'CM', label: 'LS', x: 34, y: 25 },
+    { slot: 'ST', label: 'RS', x: 66, y: 25 },
   ],
   '1-2-3-1': [
-    { slot: 'GK', label: 'GK', x: 50, y: 86 },
-    { slot: 'LB', label: 'LV', x: 26, y: 64 },
-    { slot: 'RB', label: 'RV', x: 74, y: 64 },
-    { slot: 'LW', label: 'LA', x: 17, y: 40 },
-    { slot: 'CM', label: 'ZM', x: 50, y: 40 },
-    { slot: 'RW', label: 'RA', x: 83, y: 40 },
-    { slot: 'ST', label: 'ST', x: 50, y: 16 },
+    { slot: 'GK', label: 'GK', x: 50, y: 80 },
+    { slot: 'LB', label: 'LV', x: 26, y: 65 },
+    { slot: 'RB', label: 'RV', x: 74, y: 65 },
+    { slot: 'LW', label: 'LA', x: 17, y: 45 },
+    { slot: 'CM', label: 'ZM', x: 50, y: 45 },
+    { slot: 'RW', label: 'RA', x: 83, y: 45 },
+    { slot: 'ST', label: 'ST', x: 50, y: 25 },
   ],
   '1-3-2-1': [
-    { slot: 'GK', label: 'GK', x: 50, y: 86 },
-    { slot: 'LB', label: 'LV', x: 17, y: 64 },
-    { slot: 'CM', label: 'IV', x: 50, y: 64 },
-    { slot: 'RB', label: 'RV', x: 83, y: 64 },
-    { slot: 'LW', label: 'LZM', x: 32, y: 40 },
-    { slot: 'RW', label: 'RZM', x: 68, y: 40 },
-    { slot: 'ST', label: 'ST', x: 50, y: 16 },
+    { slot: 'GK', label: 'GK', x: 50, y: 80 },
+    { slot: 'LB', label: 'LV', x: 17, y: 65 },
+    { slot: 'CM', label: 'IV', x: 50, y: 65 },
+    { slot: 'RB', label: 'RV', x: 83, y: 65 },
+    { slot: 'LW', label: 'LZM', x: 32, y: 45 },
+    { slot: 'RW', label: 'RZM', x: 68, y: 45 },
+    { slot: 'ST', label: 'ST', x: 50, y: 25 },
   ],
 };
 
