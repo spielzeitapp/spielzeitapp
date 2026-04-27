@@ -10,47 +10,81 @@ const PITCH_SURFACE: React.CSSProperties = {
   ].join(', '),
 };
 
+/**
+ * ViewBox: Länge (tor-tor) vertikal ≈ 1,54× Feldbreite (FIFA-Näherung).
+ * Rand damit stroke 2 nirgends abgeschnitten wird.
+ */
 const VB_MARGIN = 5;
-const VB_W = 360;
-const VB_H = 520;
+const VB_W = 364;
+const VB_H = 562;
 const VB_MIN = -VB_MARGIN;
 const VB_OUT_W = VB_W + 2 * VB_MARGIN;
 const VB_OUT_H = VB_H + 2 * VB_MARGIN;
 
-const LINE_INSET = 10;
+const LINE_INSET = 8;
 const CX = VB_W / 2;
 const CY = VB_H / 2;
 const INNER_L = LINE_INSET;
 const INNER_R = VB_W - LINE_INSET;
 const INNER_T = LINE_INSET;
 const INNER_B = VB_H - LINE_INSET;
+const INNER_W = VB_W - 2 * LINE_INSET;
+const INNER_H = INNER_B - INNER_T;
 
-const PEN_W = 170;
-const PEN_H = 140;
+/**
+ * Maßstäbe: Länge tor-tor vertikal ≈ 105 m, Breite ≈ 68 m.
+ * Strafraum: 40,32 m breit (quer), 16,5 m tief (längs) — wirkt „profi-breit“ vs. schmale Box.
+ */
+const PEN_W = Math.round((INNER_W * 40.32) / 68);
+const PEN_H = Math.round((INNER_H * 16.5) / 105);
 const PEN_X = (VB_W - PEN_W) / 2;
 const TOP_PEN_BOTTOM = INNER_T + PEN_H;
-const BOTTOM_PEN_Y = VB_H - LINE_INSET - PEN_H;
+const BOTTOM_PEN_Y = INNER_B - PEN_H;
 
-const GA_W = 82;
-const GA_H = 46;
+/** Torraum */
+const GA_W = Math.round((PEN_W * 18.32) / 40.32);
+const GA_H = Math.round((PEN_H * 5.5) / 16.5);
 const GA_X = (VB_W - GA_W) / 2;
 
-const TOP_SIX_Y = 90;
-const BOTTOM_SIX_Y = BOTTOM_PEN_Y + 50;
+/** Elfmeterpunkt: 11 m von der Torlinie */
+const SPOT_OFFSET = (PEN_H * 11) / 16.5;
+const TOP_SPOT_Y = INNER_T + SPOT_OFFSET;
+const BOTTOM_SPOT_Y = INNER_B - SPOT_OFFSET;
 
-const TOP_SPOT_Y = TOP_PEN_BOTTOM - 22;
-const BOTTOM_SPOT_Y = BOTTOM_PEN_Y + 22;
+/** Strafraumbogen außerhalb: r = 9,15 m (längs-Maßstab) */
+const PEN_ARC_R = (9.15 / 105) * INNER_H;
+const MID_CIRCLE_R = (9.15 / 105) * INNER_H;
+
+function penaltyDOutsideTop(cx: number, spotY: number, lineY: number, r: number): string | null {
+  const dy = lineY - spotY;
+  if (dy <= 0 || r <= dy) return null;
+  const dx = Math.sqrt(r * r - dy * dy);
+  const x1 = cx - dx;
+  const x2 = cx + dx;
+  return `M ${x1} ${lineY} A ${r} ${r} 0 0 1 ${x2} ${lineY}`;
+}
+
+function penaltyDOutsideBottom(cx: number, spotY: number, lineY: number, r: number): string | null {
+  const dy = spotY - lineY;
+  if (dy <= 0 || r <= dy) return null;
+  const dx = Math.sqrt(r * r - dy * dy);
+  const x1 = cx - dx;
+  const x2 = cx + dx;
+  return `M ${x1} ${lineY} A ${r} ${r} 0 0 0 ${x2} ${lineY}`;
+}
 
 const LINE_STROKE = '#ffffff';
 const LINE_OPACITY = 0.6;
 const STROKE_W = 2;
-/** Eckbögen (Eckball) – Kreisausschnitt innen am Spielfeldrand */
-const CORNER_ARC = 12;
-const TOUCHLINE_RX = 5;
+const CORNER_ARC = Math.min(14, Math.round(INNER_W * 0.04));
+const TOUCHLINE_RX = 6;
 
-const GOAL_W = 52;
-const GOAL_H = 6;
+const GOAL_W = Math.round((INNER_W * 7.32) / 68);
+const GOAL_H = 5;
 const GOAL_X = (VB_W - GOAL_W) / 2;
+
+const TOP_SIX_Y = INNER_T + GA_H;
+const BOTTOM_SIX_Y = INNER_B - GA_H;
 
 export type LineupFormationPitchProps = {
   formationId: U11FormationId;
@@ -95,9 +129,12 @@ export function LineupFormationPitch({
     strokeLinejoin: 'round' as const,
   };
 
+  const dTop = penaltyDOutsideTop(CX, TOP_SPOT_Y, TOP_PEN_BOTTOM, PEN_ARC_R);
+  const dBottom = penaltyDOutsideBottom(CX, BOTTOM_SPOT_Y, BOTTOM_PEN_Y, PEN_ARC_R);
+
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl border border-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_12px_40px_rgba(0,0,0,0.55)] aspect-[3/4] max-h-[min(70dvh,560px)] ${className}`}
+      className={`relative h-full min-h-0 w-full overflow-hidden rounded-2xl border border-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_12px_40px_rgba(0,0,0,0.55)] ${className}`}
       style={PITCH_SURFACE}
     >
       <div
@@ -115,8 +152,8 @@ export function LineupFormationPitch({
           <rect
             x={INNER_L}
             y={INNER_T}
-            width={VB_W - 2 * LINE_INSET}
-            height={VB_H - 2 * LINE_INSET}
+            width={INNER_W}
+            height={INNER_B - INNER_T}
             rx={TOUCHLINE_RX}
             ry={TOUCHLINE_RX}
           />
@@ -128,7 +165,7 @@ export function LineupFormationPitch({
 
           <line x1={INNER_L} y1={CY} x2={INNER_R} y2={CY} />
 
-          <circle cx={CX} cy={CY} r="50" />
+          <circle cx={CX} cy={CY} r={MID_CIRCLE_R} />
           <circle cx={CX} cy={CY} r="3.5" fill={LINE_STROKE} fillOpacity={LINE_OPACITY} stroke="none" />
 
           <rect x={PEN_X} y={INNER_T} width={PEN_W} height={PEN_H} />
@@ -137,8 +174,8 @@ export function LineupFormationPitch({
           <rect x={GA_X} y={INNER_T} width={GA_W} height={GA_H} />
           <rect x={GA_X} y={INNER_B - GA_H} width={GA_W} height={GA_H} />
 
-          <path d={`M ${PEN_X} ${TOP_PEN_BOTTOM} Q ${CX} ${TOP_PEN_BOTTOM + 36} ${PEN_X + PEN_W} ${TOP_PEN_BOTTOM}`} />
-          <path d={`M ${PEN_X} ${BOTTOM_PEN_Y} Q ${CX} ${BOTTOM_PEN_Y - 36} ${PEN_X + PEN_W} ${BOTTOM_PEN_Y}`} />
+          {dTop ? <path d={dTop} /> : null}
+          {dBottom ? <path d={dBottom} /> : null}
 
           <line x1={PEN_X} y1={TOP_SIX_Y} x2={PEN_X + PEN_W} y2={TOP_SIX_Y} />
           <line x1={PEN_X} y1={BOTTOM_SIX_Y} x2={PEN_X + PEN_W} y2={BOTTOM_SIX_Y} />
@@ -151,7 +188,7 @@ export function LineupFormationPitch({
         </g>
       </svg>
 
-      <div className="absolute inset-[3.5%] z-[1] min-h-0">
+      <div className="absolute inset-[3.25%] z-[1] min-h-0">
         {layout.map(({ slot, label, x, y }) => {
           const playerId = slots[slot] ?? null;
           const empty = !playerId;

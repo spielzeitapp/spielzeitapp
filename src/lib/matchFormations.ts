@@ -20,34 +20,38 @@ export type FormationSlotLayout = {
  * Koordinaten in Prozent (0–100): x von links, y von oben.
  * Zuordnung zu FieldSlotId wie in den Kommentaren — nur Darstellung, keine DB-Änderung.
  */
-/** Gleichmäßige Reihen: Sturm ~21, MF ~45, Abwehr ~67, TW ~83 (Abstand zum Rand) */
+/**
+ * y von oben: Gegner-Tor oben, eigenes unten.
+ * ST nah am gegnerischen Strafraum, MF klar unterhalb Mittellinie (50),
+ * Abwehr oberhalb des eigenen Strafraums, TW tief Richtung Tor (nicht „am Strafraum kleben“).
+ */
 export const U11_FORMATIONS: Record<U11FormationId, FormationSlotLayout[]> = {
   '1-2-2-2': [
-    { slot: 'GK', label: 'GK', x: 50, y: 83 },
-    { slot: 'LB', label: 'LV', x: 30, y: 67 },
-    { slot: 'RB', label: 'RV', x: 70, y: 67 },
-    { slot: 'LW', label: 'LM', x: 32, y: 45 },
-    { slot: 'RW', label: 'RM', x: 68, y: 45 },
-    { slot: 'CM', label: 'LS', x: 35, y: 21 },
-    { slot: 'ST', label: 'RS', x: 65, y: 21 },
+    { slot: 'GK', label: 'GK', x: 50, y: 90 },
+    { slot: 'LB', label: 'LV', x: 30, y: 72 },
+    { slot: 'RB', label: 'RV', x: 70, y: 72 },
+    { slot: 'LW', label: 'LM', x: 32, y: 56 },
+    { slot: 'RW', label: 'RM', x: 68, y: 56 },
+    { slot: 'CM', label: 'LS', x: 35, y: 17 },
+    { slot: 'ST', label: 'RS', x: 65, y: 17 },
   ],
   '1-2-3-1': [
-    { slot: 'GK', label: 'GK', x: 50, y: 83 },
-    { slot: 'LB', label: 'LV', x: 30, y: 67 },
-    { slot: 'RB', label: 'RV', x: 70, y: 67 },
-    { slot: 'LW', label: 'LA', x: 24, y: 45 },
-    { slot: 'CM', label: 'ZM', x: 50, y: 45 },
-    { slot: 'RW', label: 'RA', x: 76, y: 45 },
-    { slot: 'ST', label: 'ST', x: 50, y: 21 },
+    { slot: 'GK', label: 'GK', x: 50, y: 90 },
+    { slot: 'LB', label: 'LV', x: 28, y: 72 },
+    { slot: 'RB', label: 'RV', x: 72, y: 72 },
+    { slot: 'LW', label: 'LA', x: 22, y: 56 },
+    { slot: 'CM', label: 'ZM', x: 50, y: 56 },
+    { slot: 'RW', label: 'RA', x: 78, y: 56 },
+    { slot: 'ST', label: 'ST', x: 50, y: 17 },
   ],
   '1-3-2-1': [
-    { slot: 'GK', label: 'GK', x: 50, y: 83 },
-    { slot: 'LB', label: 'LV', x: 24, y: 67 },
-    { slot: 'CM', label: 'IV', x: 50, y: 67 },
-    { slot: 'RB', label: 'RV', x: 76, y: 67 },
-    { slot: 'LW', label: 'LZM', x: 35, y: 45 },
-    { slot: 'RW', label: 'RZM', x: 65, y: 45 },
-    { slot: 'ST', label: 'ST', x: 50, y: 21 },
+    { slot: 'GK', label: 'GK', x: 50, y: 90 },
+    { slot: 'LB', label: 'LV', x: 24, y: 72 },
+    { slot: 'CM', label: 'IV', x: 50, y: 72 },
+    { slot: 'RB', label: 'RV', x: 76, y: 72 },
+    { slot: 'LW', label: 'LZM', x: 35, y: 56 },
+    { slot: 'RW', label: 'RZM', x: 65, y: 56 },
+    { slot: 'ST', label: 'ST', x: 50, y: 17 },
   ],
 };
 

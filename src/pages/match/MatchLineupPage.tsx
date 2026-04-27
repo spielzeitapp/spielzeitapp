@@ -90,6 +90,7 @@ export const MatchLineupPage: React.FC = () => {
   const [assignFlashSlot, setAssignFlashSlot] = useState<FieldSlotId | null>(null);
   const assignFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [formationId, setFormationId] = useState<U11FormationId>(DEFAULT_U11_FORMATION);
+  const [lineupListOpen, setLineupListOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -319,8 +320,8 @@ export const MatchLineupPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-b from-[#050505] via-[#120808] to-[#0a0606] text-white">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/90 px-4 py-3 backdrop-blur">
+    <div className="flex min-h-[100dvh] flex-col bg-gradient-to-b from-[#050505] via-[#120808] to-[#0a0606] text-white">
+      <header className="sticky top-0 z-20 shrink-0 border-b border-white/10 bg-black/90 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
           <div className="min-w-0">
             <button
@@ -339,20 +340,20 @@ export const MatchLineupPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-xl flex-col gap-3 px-2 py-2 pb-[30rem] sm:px-3">
-        {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
-        {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
-        {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}
-        {saveMsg ? <p className="text-sm text-emerald-300">{saveMsg}</p> : null}
+      <main className="mx-auto flex w-full max-w-xl min-h-0 flex-1 flex-col gap-2 px-2 py-2 pb-[30rem] sm:px-3">
+        {playersError ? <p className="shrink-0 text-sm text-red-400">{playersError}</p> : null}
+        {lineupError ? <p className="shrink-0 text-sm text-red-400">{lineupError}</p> : null}
+        {saveError ? <p className="shrink-0 text-sm text-red-400">{saveError}</p> : null}
+        {saveMsg ? <p className="shrink-0 text-sm text-emerald-300">{saveMsg}</p> : null}
 
-        <section className="space-y-2 rounded-[1.25rem] border border-white/[0.08] bg-black/50 p-2 shadow-[0_0_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-red-950/35 sm:p-2.5">
-          <div className="flex items-center justify-between px-0.5 pt-0.5">
-            <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-white/90">Startelf</h2>
-            <span className="text-xs font-medium text-white/55">{starterCount}/7</span>
+        <section className="flex min-h-0 w-full flex-[7] flex-col gap-2 rounded-[1.25rem] border border-white/[0.08] bg-black/50 p-2 shadow-[0_0_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-red-950/35 sm:p-2.5">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-0.5 pt-0.5">
+            <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-white/90">Startelf</h2>
+            <span className="text-[11px] font-medium text-white/55">{starterCount}/7</span>
           </div>
-          <div className="px-0.5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">Formation</p>
-            <div className="mt-1.5 flex flex-wrap gap-2">
+          <div className="shrink-0 px-0.5">
+            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/40">Formation</p>
+            <div className="mt-1 flex flex-wrap gap-1.5">
               {U11_FORMATION_CHOICES.map((id) => {
                 const active = formationId === id;
                 return (
@@ -364,9 +365,9 @@ export const MatchLineupPage: React.FC = () => {
                       if (matchId) writeStoredU11Formation(matchId, id);
                     }}
                     className={[
-                      'min-h-[40px] rounded-lg border px-3 py-2 text-xs font-bold transition-all duration-200 ease-out',
+                      'min-h-[34px] rounded-lg border px-2.5 py-1.5 text-[11px] font-bold transition-all duration-200 ease-out',
                       active
-                        ? 'scale-105 border-2 border-red-500/90 bg-red-500/25 text-white shadow-[0_0_22px_rgba(239,68,68,0.55),0_0_12px_rgba(248,113,113,0.35)]'
+                        ? 'scale-[1.02] border-2 border-red-500/90 bg-red-500/25 text-white shadow-[0_0_18px_rgba(239,68,68,0.5)]'
                         : 'border-white/15 bg-black/30 text-white/75 hover:border-white/25 hover:bg-black/40',
                     ].join(' ')}
                   >
@@ -376,7 +377,7 @@ export const MatchLineupPage: React.FC = () => {
               })}
             </div>
           </div>
-          <div className="w-full">
+          <div className="mt-1 h-[min(62dvh,520px)] min-h-[240px] w-full shrink-0 sm:min-h-[260px]">
             <LineupFormationPitch
               formationId={formationId}
               slots={slots}
@@ -405,83 +406,93 @@ export const MatchLineupPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-white/[0.1] bg-black/55 p-4 shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-red-950/40 transition-all duration-300">
-          <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-3">
-            <h2 className="text-sm font-extrabold uppercase tracking-[0.14em] text-white/95">BANK</h2>
-            <span className="text-xs font-medium text-white/45">
-              {bankIds.length} {bankIds.length === 1 ? 'Spieler' : 'Spieler'}
+        <section className="mt-1 flex max-h-[120px] shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.12] bg-black/60 shadow-[0_6px_24px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-red-950/35">
+          <div className="flex h-7 shrink-0 items-center justify-between border-b border-white/10 px-2.5">
+            <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/95">BANK</span>
+            <span className="text-[11px] font-medium tabular-nums text-white/45">
+              {bankIds.length} Spieler
             </span>
           </div>
-          <div className="-mx-1 overflow-x-auto pb-1 pl-1 pr-1 [-webkit-overflow-scrolling:touch]">
-            <div className="flex min-w-min flex-nowrap gap-2 transition-all duration-300">
-              {bankIds.map((id) => {
-                const p = playersById.get(id);
-                if (!p) return null;
-                const isSelected = selectedBankPlayerId === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => onTapBankPlayer(id)}
-                    className={[
-                      'shrink-0 rounded-xl px-2 py-2 transition-all duration-300 ease-out active:scale-95',
-                      isSelected
-                        ? 'border-2 border-emerald-400/85 bg-emerald-950/30 shadow-[0_0_22px_rgba(16,185,129,0.4)]'
-                        : 'border border-white/12 bg-black/35 hover:border-white/22 hover:bg-black/45',
-                    ].join(' ')}
-                  >
-                    <div className="flex flex-col items-center">
+          <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden px-1.5 py-1.5 [-webkit-overflow-scrolling:touch]">
+            {bankIds.length === 0 ? (
+              <p className="py-1 pl-1 text-[10px] text-white/45">Keine Spieler auf der Bank.</p>
+            ) : (
+              <div className="flex min-w-min items-start gap-1">
+                {bankIds.map((id) => {
+                  const p = playersById.get(id);
+                  if (!p) return null;
+                  const isSelected = selectedBankPlayerId === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => onTapBankPlayer(id)}
+                      className={[
+                        'shrink-0 rounded-lg px-1 py-0.5 transition-all duration-200 ease-out active:scale-[0.97]',
+                        isSelected
+                          ? 'bg-emerald-950/40 ring-1 ring-emerald-400/80'
+                          : 'bg-transparent hover:bg-white/[0.06]',
+                      ].join(' ')}
+                    >
                       <PitchPlayerMarker
                         lastName={playerFamilyName(p)}
                         number={p.jersey_number}
                         positionBadge={benchPositionLabel(p)}
                         variant="field"
-                        mode="bank"
+                        mode="benchStrip"
                         selected={isSelected}
                       />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="shrink-0 rounded-lg border border-white/[0.06] bg-black/20">
+          <button
+            type="button"
+            onClick={() => setLineupListOpen((o) => !o)}
+            className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition-colors hover:bg-white/[0.04]"
+          >
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">Startaufstellung</span>
+            <span className="text-[10px] text-white/30">{lineupListOpen ? '▲' : '▼'}</span>
+          </button>
+          {lineupListOpen ? (
+            <div className="space-y-1 border-t border-white/[0.05] px-2 pb-2 pt-1.5">
+              {LIVE_FIELD_SLOT_ORDER.map((slot) => {
+                const pid = slots[slot];
+                const p = pid ? playersById.get(pid) : null;
+                const posLabel = labelForSlotInFormation(formationId, slot);
+                return (
+                  <div
+                    key={`row-${slot}`}
+                    className="flex items-center justify-between gap-2 rounded-md border border-white/[0.06] bg-black/12 px-2 py-1.5"
+                  >
+                    <span className="text-[10px] font-semibold text-white/55">{posLabel}</span>
+                    <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+                      {p ? (
+                        <>
+                          <LeibchenJersey
+                            lastName={playerFamilyName(p)}
+                            number={p.jersey_number}
+                            position={posLabel}
+                            variant={slot === 'GK' ? 'goalkeeper' : 'field'}
+                            size="compact"
+                            className="!h-[2.75rem] !w-[2.15rem]"
+                          />
+                          <span className="truncate text-[10px] text-white/75">{p.display_name}</span>
+                        </>
+                      ) : (
+                        <span className="text-[10px] text-white/45">frei</span>
+                      )}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
-          </div>
-          {bankIds.length === 0 ? <p className="text-xs text-white/50">Keine Spieler auf der Bank.</p> : null}
-        </section>
-
-        <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
-          <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-white/55">Startaufstellung Liste</h2>
-          <div className="space-y-1.5">
-            {LIVE_FIELD_SLOT_ORDER.map((slot) => {
-              const pid = slots[slot];
-              const p = pid ? playersById.get(pid) : null;
-              const posLabel = labelForSlotInFormation(formationId, slot);
-              return (
-                <div
-                  key={`row-${slot}`}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-2"
-                >
-                  <span className="text-xs font-semibold text-white/75">{posLabel}</span>
-                  <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-                    {p ? (
-                      <>
-                        <LeibchenJersey
-                          lastName={playerFamilyName(p)}
-                          number={p.jersey_number}
-                          position={posLabel}
-                          variant={slot === 'GK' ? 'goalkeeper' : 'field'}
-                          size="compact"
-                          className="!h-[3.6rem] !w-[2.85rem]"
-                        />
-                        <span className="truncate text-xs text-white/85">{p.display_name}</span>
-                      </>
-                    ) : (
-                      <span className="text-xs text-white/55">frei</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          ) : null}
         </section>
       </main>
 
