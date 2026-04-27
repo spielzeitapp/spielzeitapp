@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
+import type { PlayerItem } from '../../hooks/usePlayers';
+import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import {
   fetchLineupForLiveMatch,
   LIVE_FIELD_SLOT_ORDER,
@@ -46,6 +48,21 @@ const normalizeId = (id: string | null | undefined): string | null => {
   const v = String(id ?? '').trim();
   return v.length > 0 ? v : null;
 };
+
+function playerFamilyName(p: PlayerItem): string {
+  const ln = (p.last_name ?? '').trim();
+  if (ln) return ln;
+  const parts = p.display_name.trim().split(/\s+/).filter(Boolean);
+  return parts.length > 1 ? parts[parts.length - 1]! : p.display_name;
+}
+
+/** Kurz-Label für Bank (ohne Slot); längere Positionsbezeichnungen kürzen. */
+function benchPositionLabel(p: PlayerItem): string {
+  const pos = (p.position ?? '').trim();
+  if (!pos) return '–';
+  if (pos.length <= 3) return pos.toUpperCase();
+  return pos.slice(0, 2).toUpperCase();
+}
 
 export const MatchLineupPage: React.FC = () => {
   const navigate = useNavigate();
@@ -326,8 +343,16 @@ export const MatchLineupPage: React.FC = () => {
                   <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-white/60">{SLOT_LABELS[slot]}</p>
                   {player ? (
                     <>
-                      <p className="mt-1 text-sm font-semibold text-white">{player.display_name}</p>
-                      <p className="text-xs text-white/65">#{player.jersey_number ?? '–'} · Tippen zum Entfernen</p>
+                      <div className="mt-1 flex justify-center">
+                        <LeibchenJersey
+                          lastName={playerFamilyName(player)}
+                          number={player.jersey_number}
+                          position={SLOT_LABELS[slot]}
+                          variant={slot === 'GK' ? 'goalkeeper' : 'field'}
+                          size="compact"
+                        />
+                      </div>
+                      <p className="mt-1 text-center text-[10px] text-white/55">Tippen zum Entfernen</p>
                     </>
                   ) : (
                     <p className="mt-2 text-xs text-white/50">{selectedBankPlayerId ? 'Tippen zum Zuweisen' : 'frei'}</p>
@@ -350,13 +375,19 @@ export const MatchLineupPage: React.FC = () => {
                   key={id}
                   type="button"
                   onClick={() => onTapBankPlayer(id)}
-                  className={`rounded-xl border px-2 py-2 text-left ${
+                  className={`rounded-xl border px-2 py-2 ${
                     isSelected ? 'border-red-400 bg-red-900/35' : 'border-white/15 bg-black/25 hover:bg-white/[0.06]'
                   }`}
                 >
-                  <div className="rounded-lg bg-[repeating-linear-gradient(90deg,#dc2626_0,#dc2626_10px,#111827_10px,#111827_20px)] p-2">
-                    <p className="text-lg font-black leading-none text-white">{p.jersey_number ?? '–'}</p>
-                    <p className="mt-1 truncate text-[11px] font-semibold text-white/95">{p.display_name}</p>
+                  <div className="flex flex-col items-center py-1">
+                    <LeibchenJersey
+                      lastName={playerFamilyName(p)}
+                      number={p.jersey_number}
+                      position={benchPositionLabel(p)}
+                      variant="field"
+                      size="compact"
+                      selected={isSelected}
+                    />
                   </div>
                 </button>
               );
@@ -372,9 +403,28 @@ export const MatchLineupPage: React.FC = () => {
               const pid = slots[slot];
               const p = pid ? playersById.get(pid) : null;
               return (
-                <div key={`row-${slot}`} className="flex items-center justify-between rounded-lg border border-white/10 bg-black/20 px-2.5 py-2">
+                <div
+                  key={`row-${slot}`}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/20 px-2.5 py-2"
+                >
                   <span className="text-xs font-semibold text-white/75">{SLOT_LABELS[slot]}</span>
-                  <span className="text-xs text-white/85">{p ? `${p.display_name}` : 'frei'}</span>
+                  <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+                    {p ? (
+                      <>
+                        <LeibchenJersey
+                          lastName={playerFamilyName(p)}
+                          number={p.jersey_number}
+                          position={SLOT_LABELS[slot]}
+                          variant={slot === 'GK' ? 'goalkeeper' : 'field'}
+                          size="compact"
+                          className="!h-[3.25rem] !w-[2.5rem]"
+                        />
+                        <span className="truncate text-xs text-white/85">{p.display_name}</span>
+                      </>
+                    ) : (
+                      <span className="text-xs text-white/55">frei</span>
+                    )}
+                  </div>
                 </div>
               );
             })}
