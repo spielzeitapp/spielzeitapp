@@ -6,6 +6,7 @@ import { useMatchTimer } from '../../hooks/useMatchTimer';
 import {
   calculatePlayerPlaytimes,
   getBenchPlayers,
+  getCurrentOnFieldBySlot,
   getCurrentOnFieldPlayers,
   getPlaytimeStatus,
   handleSubstitution,
@@ -21,11 +22,14 @@ import {
   deleteMatchEventById,
   fetchMatchEvents,
   getMatchLiveClockStatus,
+  LIVE_FIELD_SLOT_ORDER,
   saveMatchEvent,
   saveMatchEvents,
   updateMatchRow,
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
+import { LeibchenJersey } from '../../components/match/LeibchenJersey';
+import type { FieldSlotId } from '../../types/match';
 import { playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 import { supabase } from '../../lib/supabaseClient';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
@@ -275,15 +279,28 @@ function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
   return [...list].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
 }
 
-function mobileLineupName(name: string): string {
-  const raw = (name || '').trim();
-  if (!raw) return '—';
-  const parts = raw.split(/\s+/).filter(Boolean);
-  const first = parts[0] ?? raw;
-  if (parts.length <= 1) return first;
-  if (raw.length <= 14) return first;
-  const lastInitial = (parts[parts.length - 1] ?? '').charAt(0).toUpperCase();
-  return lastInitial ? `${first} ${lastInitial}.` : first;
+const LIVE_SLOT_LABELS: Record<FieldSlotId, string> = {
+  GK: 'GK',
+  LB: 'LV',
+  RB: 'RV',
+  CM: 'ZM',
+  LW: 'LA',
+  RW: 'RA',
+  ST: 'ST',
+};
+
+function rosterFamilyName(p: RosterPlayer): string {
+  const parts = (p.name || '').trim().split(/\s+/).filter(Boolean);
+  return parts.length > 1 ? parts[parts.length - 1]! : p.name || '—';
+}
+
+function slotMetaFromSlotMap(
+  slots: Record<FieldSlotId, string | null>,
+  playerId: string,
+): { label: string; isGk: boolean } {
+  const slot = LIVE_FIELD_SLOT_ORDER.find((s) => slots[s] === playerId);
+  if (!slot) return { label: '–', isGk: false };
+  return { label: LIVE_SLOT_LABELS[slot], isGk: slot === 'GK' };
 }
 
 type PeriodScorePair = { h: number; a: number };
@@ -778,6 +795,11 @@ export const LiveMatchScreen: React.FC = () => {
     [startingPlayerIds, events, currentMatchSeconds],
   );
 
+  const onFieldBySlot = useMemo(
+    () => getCurrentOnFieldBySlot(startingPlayerIds, events, currentMatchSeconds),
+    [startingPlayerIds, events, currentMatchSeconds],
+  );
+
   const fieldPlayers = useMemo(() => {
     const set = new Set(onFieldIds);
     return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
@@ -788,11 +810,6 @@ export const LiveMatchScreen: React.FC = () => {
     const list = ids.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 });
     return sortRosterByNumber(list);
   }, [squadPlayerIds, onFieldIds, rosterById]);
-  const startLineupPlayers = useMemo(() => {
-    const list = initialStartingPlayerIds.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 });
-    return sortRosterByNumber(list);
-  }, [initialStartingPlayerIds, rosterById]);
-
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
 
   const playtimes = useMemo(
@@ -1863,7 +1880,7 @@ export const LiveMatchScreen: React.FC = () => {
           canControlLiveMatch && wechselSheetOpen && !matchIsFinished
             ? 'overflow-hidden'
             : 'overflow-y-auto'
-        } overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} px-2 py-2 pb-28 pt-1 md:px-4 lg:px-5 md:py-4`}
+        } overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} px-2 py-2 pb-40 pt-1 md:px-4 lg:px-5 md:py-4`}
       >
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-3'}>
@@ -1947,7 +1964,7 @@ export const LiveMatchScreen: React.FC = () => {
         )}
 
         {mainTab === 'lineup' && (
-          <div className="space-y-3 pb-36 sm:pb-6">
+          <div className="space-y-3 pb-44 sm:pb-10">
             {fieldPlayers.length === 0 && benchPlayers.length === 0 ? (
               <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-gray-400">
                 Noch keine Aufstellung veröffentlicht.
@@ -1958,37 +1975,52 @@ export const LiveMatchScreen: React.FC = () => {
                   <section>
                     <h3 className="mb-0.5 text-xs font-bold uppercase tracking-[0.2em] text-red-400/90">Live-Aufstellung</h3>
                     <p className="mb-2 text-[11px] text-white/55">Aktuell am Feld</p>
-                    <div className="relative overflow-hidden rounded-xl border border-red-500/35 bg-gradient-to-b from-emerald-950/25 via-black to-red-950/20 p-2 sm:p-3">
+                    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#070b0a] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                       <div
-                        className="pointer-events-none absolute inset-0 opacity-[0.05]"
-                        style={{
-                          backgroundImage:
-                            'repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(220,38,38,0.35) 10px, rgba(220,38,38,0.35) 11px)',
-                        }}
+                        className="pointer-events-none absolute inset-0 text-white"
+                        style={{ opacity: 0.12 }}
                         aria-hidden
-                      />
-                      <div className="relative mx-auto max-w-sm rounded-lg border border-red-500/25 bg-gradient-to-b from-emerald-950/35 via-zinc-950 to-black p-2">
-                        <div
-                          className="pointer-events-none absolute inset-2 rounded-md border border-dashed border-red-800/35"
-                          aria-hidden
-                        />
-                        <div
-                          className="pointer-events-none absolute left-1/2 top-2 bottom-2 w-px -translate-x-1/2 bg-red-700/40"
-                          aria-hidden
-                        />
-                        <div className="relative flex flex-wrap justify-center gap-2">
-                          {fieldPlayers.slice(0, 7).map((p) => (
+                      >
+                        <svg className="h-full w-full" viewBox="0 0 360 520" preserveAspectRatio="xMidYMid slice">
+                          <line x1="180" y1="0" x2="180" y2="520" stroke="currentColor" strokeWidth="1.35" />
+                          <circle cx="180" cy="260" r="52" fill="none" stroke="currentColor" strokeWidth="1.35" />
+                          <circle cx="180" cy="260" r="3.5" fill="currentColor" />
+                          <rect x="95" y="380" width="170" height="140" fill="none" stroke="currentColor" strokeWidth="1.35" />
+                          <line x1="95" y1="430" x2="265" y2="430" stroke="currentColor" strokeWidth="1.35" />
+                          <rect x="95" y="0" width="170" height="140" fill="none" stroke="currentColor" strokeWidth="1.35" />
+                          <line x1="95" y1="90" x2="265" y2="90" stroke="currentColor" strokeWidth="1.35" />
+                        </svg>
+                      </div>
+                      <div className="relative z-10 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                        {LIVE_FIELD_SLOT_ORDER.map((slot) => {
+                          const pid = onFieldBySlot[slot] ?? null;
+                          const p = pid ? rosterById.get(pid) : null;
+                          return (
                             <div
-                              key={p.id}
-                              className="flex w-[30%] min-w-[82px] max-w-[108px] flex-col items-center justify-center rounded-lg border border-red-500/35 bg-black/85 px-1 py-1.5 shadow-[0_0_10px_rgba(239,68,68,0.18)]"
+                              key={slot}
+                              className="flex min-h-[12.5rem] flex-col items-center rounded-xl border border-white/10 bg-black/35 px-0 py-0.5 sm:min-h-[13rem]"
                             >
-                              <span className="text-xl font-black tabular-nums leading-none text-red-300">{p.number || '–'}</span>
-                              <span className="mt-0.5 max-w-full text-center text-[10px] font-semibold leading-tight text-white/95">
-                                {mobileLineupName(p.name)}
+                              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
+                                {LIVE_SLOT_LABELS[slot]}
                               </span>
+                              {p ? (
+                                <div className="flex min-h-0 flex-1 items-center justify-center pb-1 pt-0.5">
+                                  <span className="-translate-y-1">
+                                    <LeibchenJersey
+                                      lastName={rosterFamilyName(p)}
+                                      number={p.number || '–'}
+                                      position={LIVE_SLOT_LABELS[slot]}
+                                      variant={slot === 'GK' ? 'goalkeeper' : 'field'}
+                                      size="large"
+                                    />
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="min-h-[6rem] flex-1" aria-hidden />
+                              )}
                             </div>
-                          ))}
-                        </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </section>
@@ -2007,14 +2039,34 @@ export const LiveMatchScreen: React.FC = () => {
                   </button>
                   {lineupStartOpen ? (
                     <ul className="space-y-2 border-t border-white/10 px-3 py-2">
-                      {(startLineupPlayers.length > 0 ? startLineupPlayers : fieldPlayers).map((p) => (
-                        <li key={p.id}>
-                          <div className="flex min-h-[52px] w-full items-center justify-between rounded-xl border border-emerald-600/40 bg-emerald-950/30 px-3 py-2.5">
-                            <span className="text-base font-bold text-emerald-400">{p.number || '–'}</span>
-                            <span className="flex-1 px-3 text-sm font-semibold text-white">{p.name}</span>
-                          </div>
-                        </li>
-                      ))}
+                      {LIVE_FIELD_SLOT_ORDER.map((slot, idx) => {
+                        const pid = initialStartingPlayerIds[idx] ?? null;
+                        const p = pid ? rosterById.get(pid) ?? { id: pid, name: '—', number: 0 } : null;
+                        const label = LIVE_SLOT_LABELS[slot];
+                        const isGk = slot === 'GK';
+                        return (
+                          <li key={slot}>
+                            <div className="flex min-h-[52px] w-full items-center gap-2 rounded-xl border border-emerald-600/40 bg-emerald-950/30 px-2 py-2">
+                              <span className="w-7 shrink-0 text-center text-[10px] font-bold text-emerald-400/90">{label}</span>
+                              {p ? (
+                                <>
+                                  <LeibchenJersey
+                                    lastName={rosterFamilyName(p)}
+                                    number={p.number || '–'}
+                                    position={label}
+                                    variant={isGk ? 'goalkeeper' : 'field'}
+                                    size="compact"
+                                    className="!h-[3.6rem] !w-[2.85rem]"
+                                  />
+                                  <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">{p.name}</span>
+                                </>
+                              ) : (
+                                <span className="min-w-0 flex-1 text-sm text-white/40">—</span>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   ) : null}
                 </section>
@@ -2031,9 +2083,16 @@ export const LiveMatchScreen: React.FC = () => {
                     <ul className="space-y-2 border-t border-white/10 px-3 py-2">
                       {benchPlayers.map((p) => (
                         <li key={p.id}>
-                          <div className="flex min-h-[52px] w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
-                            <span className="text-base font-bold text-white/50">{p.number || '–'}</span>
-                            <span className="flex-1 px-3 text-sm font-semibold text-white">{p.name}</span>
+                          <div className="flex min-h-[52px] w-full items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-2 py-2">
+                            <LeibchenJersey
+                              lastName={rosterFamilyName(p)}
+                              number={p.number || '–'}
+                              position="–"
+                              variant="field"
+                              size="compact"
+                              className="!h-[3.6rem] !w-[2.85rem]"
+                            />
+                            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">{p.name}</span>
                           </div>
                         </li>
                       ))}
@@ -2168,30 +2227,33 @@ export const LiveMatchScreen: React.FC = () => {
                   className="relative min-h-[108px] rounded-xl border border-red-500/30 bg-gradient-to-b from-red-950/25 via-black/55 to-black/85 p-1.5 sm:min-h-[116px]"
                   aria-label="Spielfeld"
                 >
-                  <div className="flex min-h-[88px] flex-wrap content-center justify-center gap-1 sm:min-h-[92px]">
+                  <div className="flex min-h-[88px] flex-wrap content-center justify-center gap-1.5 sm:min-h-[92px]">
                     {fieldPlayers.length === 0 ? (
                       <p className="text-[11px] text-white/45">Keine Feldspieler</p>
                     ) : (
                       fieldPlayers.map((p) => {
                         const sel = wechselOutId === p.id;
+                        const { label, isGk } = slotMetaFromSlotMap(onFieldBySlot, p.id);
                         return (
                           <button
                             key={p.id}
                             type="button"
                             onClick={() => setWechselOutId(p.id)}
-                            className={`flex max-w-[32%] min-w-0 flex-1 basis-[28%] flex-col items-center justify-center gap-px rounded-lg px-0.5 py-1 text-center transition active:scale-[0.98] sm:max-w-[30%] ${
+                            className={`flex max-w-[34%] min-w-0 flex-1 basis-[30%] flex-col items-center justify-center rounded-lg px-0.5 py-1 text-center transition-all duration-300 ease-out active:scale-[0.97] sm:max-w-[31%] ${
                               sel
                                 ? 'border-2 border-red-500 bg-red-950/85 shadow-[0_0_0_1px_rgba(239,68,68,0.35)]'
                                 : 'border border-white/15 bg-black/55'
                             }`}
                           >
-                            <span
-                              className={`font-mono text-xs font-black tabular-nums ${sel ? 'text-red-200' : 'text-red-400/90'}`}
-                            >
-                              {p.number || '–'}
-                            </span>
-                            <span className="w-full hyphens-none text-[9px] font-semibold leading-tight text-white [overflow-wrap:break-word] [word-break:normal]">
-                              {p.name}
+                            <span className="mb-0.5 text-[9px] font-bold uppercase tracking-wider text-white/40">{label}</span>
+                            <span className="-translate-y-0.5 transition-transform duration-300 ease-out">
+                              <LeibchenJersey
+                                lastName={rosterFamilyName(p)}
+                                number={p.number || '–'}
+                                position={label}
+                                variant={isGk ? 'goalkeeper' : 'field'}
+                                size="compact"
+                              />
                             </span>
                           </button>
                         );
@@ -2214,20 +2276,20 @@ export const LiveMatchScreen: React.FC = () => {
                           key={p.id}
                           type="button"
                           onClick={() => setWechselInId(p.id)}
-                          className={`flex min-h-[58px] flex-col items-center justify-center gap-px rounded-lg border px-0.5 py-1 text-center transition active:scale-[0.98] ${
+                          className={`flex min-h-[58px] flex-col items-center justify-center rounded-lg border px-0.5 py-1 text-center transition-all duration-300 ease-out active:scale-[0.97] ${
                             sel
                               ? 'border-2 border-emerald-400 bg-emerald-950/65 shadow-[0_0_0_1px_rgba(52,211,153,0.35)]'
                               : 'border border-white/15 bg-black/55'
                           }`}
                         >
-                          <span
-                            className={`font-mono text-xs font-black tabular-nums ${sel ? 'text-emerald-200' : 'text-emerald-400/85'}`}
-                          >
-                            {p.number || '–'}
-                          </span>
-                          <span className="w-full hyphens-none text-[9px] font-semibold leading-tight text-white [overflow-wrap:break-word] [word-break:normal]">
-                            {p.name}
-                          </span>
+                          <LeibchenJersey
+                            lastName={rosterFamilyName(p)}
+                            number={p.number || '–'}
+                            position="–"
+                            variant="field"
+                            size="compact"
+                            selected={sel}
+                          />
                         </button>
                       );
                     })

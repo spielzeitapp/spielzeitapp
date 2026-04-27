@@ -332,7 +332,7 @@ export const MatchLineupPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-3 pb-[15rem]">
+      <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-3 pb-[17rem]">
         {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
         {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
         {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}
@@ -342,18 +342,18 @@ export const MatchLineupPage: React.FC = () => {
           {/* Dezenter Spielfeld-Look (Linien ~8 % Opazität) */}
           <div
             className="pointer-events-none absolute inset-0 text-white"
-            style={{ opacity: 0.08 }}
+            style={{ opacity: 0.12 }}
             aria-hidden
           >
             <svg className="h-full w-full" viewBox="0 0 360 520" preserveAspectRatio="xMidYMid slice">
               <rect x="0" y="0" width="360" height="520" fill="none" />
-              <line x1="180" y1="0" x2="180" y2="520" stroke="currentColor" strokeWidth="1.2" />
-              <circle cx="180" cy="260" r="48" fill="none" stroke="currentColor" strokeWidth="1.2" />
-              <circle cx="180" cy="260" r="3" fill="currentColor" />
-              <rect x="95" y="380" width="170" height="140" fill="none" stroke="currentColor" strokeWidth="1.2" />
-              <line x1="95" y1="430" x2="265" y2="430" stroke="currentColor" strokeWidth="1.2" />
-              <rect x="95" y="0" width="170" height="140" fill="none" stroke="currentColor" strokeWidth="1.2" />
-              <line x1="95" y1="90" x2="265" y2="90" stroke="currentColor" strokeWidth="1.2" />
+              <line x1="180" y1="0" x2="180" y2="520" stroke="currentColor" strokeWidth="1.35" />
+              <circle cx="180" cy="260" r="52" fill="none" stroke="currentColor" strokeWidth="1.35" />
+              <circle cx="180" cy="260" r="3.5" fill="currentColor" />
+              <rect x="95" y="380" width="170" height="140" fill="none" stroke="currentColor" strokeWidth="1.35" />
+              <line x1="95" y1="430" x2="265" y2="430" stroke="currentColor" strokeWidth="1.35" />
+              <rect x="95" y="0" width="170" height="140" fill="none" stroke="currentColor" strokeWidth="1.35" />
+              <line x1="95" y1="90" x2="265" y2="90" stroke="currentColor" strokeWidth="1.35" />
             </svg>
           </div>
 
@@ -374,7 +374,7 @@ export const MatchLineupPage: React.FC = () => {
                     type="button"
                     onClick={() => onTapSlot(slot)}
                     className={[
-                      'relative flex min-h-[12rem] flex-col items-center justify-start rounded-xl px-0.5 pb-1 pt-1 transition-all duration-200 active:scale-[0.98] sm:min-h-[12.5rem]',
+                      'relative flex min-h-[12.5rem] flex-col items-center justify-start rounded-xl px-0 py-0.5 pb-0.5 pt-0.5 transition-all duration-300 ease-out active:scale-[0.98] sm:min-h-[13rem]',
                       empty
                         ? dropHint
                           ? 'border-2 border-dashed border-emerald-400/55 bg-black/35 shadow-[0_0_18px_rgba(16,185,129,0.22)]'
@@ -383,26 +383,24 @@ export const MatchLineupPage: React.FC = () => {
                       assignFlashSlot === slot ? 'ring-2 ring-emerald-400/60 ring-offset-2 ring-offset-[#070b0a]' : '',
                     ].join(' ')}
                   >
-                    <span className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
+                    <span className="mb-0 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
                       {SLOT_LABELS[slot]}
                     </span>
                     {player ? (
-                      <div className="flex flex-1 items-center justify-center">
-                        <LeibchenJersey
-                          lastName={playerFamilyName(player)}
-                          number={player.jersey_number}
-                          position={SLOT_LABELS[slot]}
-                          variant={slot === 'GK' ? 'goalkeeper' : 'field'}
-                          size="large"
-                          assignFlash={assignFlashSlot === slot}
-                        />
+                      <div className="flex min-h-0 flex-1 items-center justify-center pb-1 pt-0.5">
+                        <span className="-translate-y-1 transition-transform duration-300 ease-out">
+                          <LeibchenJersey
+                            lastName={playerFamilyName(player)}
+                            number={player.jersey_number}
+                            position={SLOT_LABELS[slot]}
+                            variant={slot === 'GK' ? 'goalkeeper' : 'field'}
+                            size="large"
+                            assignFlash={assignFlashSlot === slot}
+                          />
+                        </span>
                       </div>
                     ) : (
-                      <div className="flex flex-1 flex-col items-center justify-center px-1 pb-1 pt-2">
-                        <p className="text-center text-[11px] font-medium leading-snug text-white/40">
-                          Tippen zum Zuweisen
-                        </p>
-                      </div>
+                      <div className="min-h-[6rem] flex-1" aria-hidden />
                     )}
                   </button>
                 );
@@ -411,35 +409,40 @@ export const MatchLineupPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+        <section className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.04] p-3 transition-colors duration-300">
           <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-white/85">Bank</h2>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {bankIds.map((id) => {
-              const p = playersById.get(id);
-              if (!p) return null;
-              const isSelected = selectedBankPlayerId === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => onTapBankPlayer(id)}
-                  className={`rounded-xl border px-2 py-2 ${
-                    isSelected ? 'border-red-400 bg-red-900/35' : 'border-white/15 bg-black/25 hover:bg-white/[0.06]'
-                  }`}
-                >
-                  <div className="flex flex-col items-center py-1">
-                    <LeibchenJersey
-                      lastName={playerFamilyName(p)}
-                      number={p.jersey_number}
-                      position={benchPositionLabel(p)}
-                      variant="field"
-                      size="compact"
-                      selected={isSelected}
-                    />
-                  </div>
-                </button>
-              );
-            })}
+          <div className="-mx-1 overflow-x-auto pb-1 pl-1 pr-1 [-webkit-overflow-scrolling:touch]">
+            <div className="flex min-w-min flex-nowrap gap-2 transition-opacity duration-300">
+              {bankIds.map((id) => {
+                const p = playersById.get(id);
+                if (!p) return null;
+                const isSelected = selectedBankPlayerId === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => onTapBankPlayer(id)}
+                    className={[
+                      'shrink-0 rounded-xl px-1.5 py-1.5 transition-all duration-300 ease-out active:scale-95',
+                      isSelected
+                        ? 'border-2 border-emerald-400/80 bg-emerald-950/25 shadow-[0_0_20px_rgba(16,185,129,0.35)]'
+                        : 'border border-white/12 bg-black/35 hover:border-white/20 hover:bg-black/45',
+                    ].join(' ')}
+                  >
+                    <div className="flex flex-col items-center">
+                      <LeibchenJersey
+                        lastName={playerFamilyName(p)}
+                        number={p.jersey_number}
+                        position={benchPositionLabel(p)}
+                        variant="field"
+                        size="compact"
+                        selected={isSelected}
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
           {bankIds.length === 0 ? <p className="text-xs text-white/50">Keine Spieler auf der Bank.</p> : null}
         </section>

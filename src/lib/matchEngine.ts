@@ -3,7 +3,12 @@
  * Events: `timestamp` = Spielsekunden seit Anpfiff (nicht Wall-Clock).
  */
 
+import type { FieldSlotId } from '../types/match';
+
 export const MATCH_HALF_DURATION_SEC = 25 * 60; // 1500
+
+/** Gleiche Reihenfolge wie DB-/Aufstellung (`match_lineup.slot` / LIVE_FIELD_SLOT_ORDER). */
+export const FIELD_SLOT_ORDER: FieldSlotId[] = ['GK', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'];
 
 export type MatchEventType =
   | 'start'
@@ -106,6 +111,74 @@ export function getCurrentOnFieldPlayers(
     else if (e.type === 'sub_in') applySub('sub_in', e.playerId);
   }
   return field;
+}
+
+/** Startelf aus `startingPlayerIds` (Index = FIELD_SLOT_ORDER) als Slot-Map. */
+export function startingLineupToSlotMap(startingPlayerIds: string[]): Record<FieldSlotId, string | null> {
+  const slots = {} as Record<FieldSlotId, string | null>;
+  for (let i = 0; i < FIELD_SLOT_ORDER.length; i += 1) {
+    const slot = FIELD_SLOT_ORDER[i];
+    const raw = startingPlayerIds[i];
+    const pid = raw && String(raw).trim().length > 0 ? String(raw).trim() : null;
+    slots[slot] = pid;
+  }
+  return slots;
+}
+
+/**
+ * Aktuelle Belegung pro gespeichertem Feld-Slot (wie Startaufstellung / MatchLineupPage).
+ * Paar sub_out + sub_in (gleiche Sekunde): Einwechselspieler übernimmt den Slot des Auswechslers.
+ * Nur Anzeige-Hilfe — `getCurrentOnFieldPlayers` bleibt für Engine/Bank unverändert.
+ */
+export function getCurrentOnFieldBySlot(
+  startingPlayerIds: string[],
+  events: MatchEngineEvent[],
+  atMatchSecond: number,
+): Record<FieldSlotId, string | null> {
+  const sorted = sortMatchEventsChronologically(events);
+  const t = Math.max(0, atMatchSecond);
+  const slots = startingLineupToSlotMap(startingPlayerIds.slice(0, 7));
+
+  let i = 0;
+  while (i < sorted.length) {
+    const e = sorted[i];
+    if (e.timestamp > t) break;
+
+    const next = sorted[i + 1];
+    if (
+      e.type === 'sub_out' &&
+      next?.type === 'sub_in' &&
+      next.timestamp === e.timestamp &&
+      e.playerId &&
+      next.playerId
+    ) {
+      const slot = FIELD_SLOT_ORDER.find((s) => slots[s] === e.playerId);
+      if (slot) slots[slot] = next.playerId;
+      i += 2;
+      continue;
+    }
+
+    if (e.type === 'sub_out' && e.playerId) {
+      const slot = FIELD_SLOT_ORDER.find((s) => slots[s] === e.playerId);
+      if (slot) slots[slot] = null;
+      i += 1;
+      continue;
+    }
+
+    if (e.type === 'sub_in' && e.playerId) {
+      const already = FIELD_SLOT_ORDER.some((s) => slots[s] === e.playerId);
+      if (!already) {
+        const empty = FIELD_SLOT_ORDER.find((s) => !slots[s]);
+        if (empty) slots[empty] = e.playerId;
+      }
+      i += 1;
+      continue;
+    }
+
+    i += 1;
+  }
+
+  return slots;
 }
 
 export function getBenchPlayers(squadPlayerIds: string[], onFieldPlayerIds: string[]): string[] {
