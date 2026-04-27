@@ -108,16 +108,19 @@ export const MatchPreparationPage: React.FC = () => {
       yes: grouped.available.length,
       open: grouped.open.length,
       no: grouped.absent.length,
-      selected: selectedPlayers.length,
+      selected: selectedPlayers.filter((id) => grouped.available.some((p) => p.id === id)).length,
     }),
-    [grouped.available.length, grouped.open.length, grouped.absent.length, selectedPlayers.length],
+    [grouped.available, grouped.open.length, grouped.absent.length, selectedPlayers],
   );
 
   useEffect(() => {
     if (selectionInitialized) return;
     if (playersLoading || availLoading) return;
     if (players.length === 0) return;
-    const initial = new Set<string>(restoredSelectedPlayers);
+    const initial = new Set<string>();
+    for (const restoredId of restoredSelectedPlayers) {
+      if (getAvailability(restoredId) === 'yes') initial.add(restoredId);
+    }
     for (const p of players) {
       if (getAvailability(p.id) === 'yes') initial.add(p.id);
     }
@@ -133,7 +136,7 @@ export const MatchPreparationPage: React.FC = () => {
   ]);
 
   const togglePlayer = (playerId: string, status: PrepStatus) => {
-    if (status === 'absent') return;
+    if (status !== 'available') return;
     setSelectionInitialized(true);
     setSelectedPlayers((prev) => {
       if (prev.includes(playerId)) return prev.filter((id) => id !== playerId);
@@ -141,7 +144,12 @@ export const MatchPreparationPage: React.FC = () => {
     });
   };
 
-  const selectedSet = useMemo(() => new Set(selectedPlayers), [selectedPlayers]);
+  const selectablePlayerIds = useMemo(() => new Set(grouped.available.map((p) => p.id)), [grouped.available]);
+  const selectedPlayersAvailableOnly = useMemo(
+    () => selectedPlayers.filter((id) => selectablePlayerIds.has(id)),
+    [selectedPlayers, selectablePlayerIds],
+  );
+  const selectedSet = useMemo(() => new Set(selectedPlayersAvailableOnly), [selectedPlayersAvailableOnly]);
 
   const renderSection = (title: string, list: typeof players, status: PrepStatus) => (
     <section className="space-y-1.5">
@@ -150,7 +158,7 @@ export const MatchPreparationPage: React.FC = () => {
       <div className="space-y-1.5">
         {list.map((p) => {
           const selected = selectedSet.has(p.id);
-          const disabled = status === 'absent';
+          const disabled = status !== 'available';
           const shell =
             status === 'available'
               ? 'border-emerald-600/45 bg-emerald-950/25'
@@ -177,6 +185,10 @@ export const MatchPreparationPage: React.FC = () => {
                 {status === 'absent' ? (
                   <span className="rounded-full bg-red-900/35 px-2 py-0.5 text-[11px] font-semibold text-red-200">
                     Nicht verfügbar
+                  </span>
+                ) : status === 'open' ? (
+                  <span className="rounded-full bg-amber-600/20 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
+                    Offen
                   </span>
                 ) : selected ? (
                   <span className="rounded-full bg-emerald-600/25 px-2 py-0.5 text-[11px] font-semibold text-emerald-200">
@@ -212,17 +224,17 @@ export const MatchPreparationPage: React.FC = () => {
   }
 
   const onContinueToLineup = async () => {
-    if (!matchId || selectedPlayers.length === 0 || persisting) return;
+    if (!matchId || selectedPlayersAvailableOnly.length === 0 || persisting) return;
     setPersistError(null);
     setPersisting(true);
-    const { error } = await saveMatchSquadOnly(matchId, selectedPlayers);
+    const { error } = await saveMatchSquadOnly(matchId, selectedPlayersAvailableOnly);
     setPersisting(false);
     if (error) {
       setPersistError(error);
       return;
     }
     navigate(`/app/match-lineup?matchId=${encodeURIComponent(matchId)}`, {
-      state: { selectedPlayers },
+      state: { selectedPlayers: selectedPlayersAvailableOnly },
     });
   };
 
@@ -271,12 +283,12 @@ export const MatchPreparationPage: React.FC = () => {
         {renderSection('Abgesagt', grouped.absent, 'absent')}
 
         <section className="space-y-1.5">
-          <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">Matchkader: {selectedPlayers.length} Spieler</h2>
-          {selectedPlayers.length === 0 ? (
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">Matchkader: {selectedPlayersAvailableOnly.length} Spieler</h2>
+          {selectedPlayersAvailableOnly.length === 0 ? (
             <p className="text-xs text-white/45">Noch keine Spieler ausgewählt.</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
-              {selectedPlayers.map((id) => {
+              {selectedPlayersAvailableOnly.map((id) => {
                 const p = players.find((x) => x.id === id);
                 return (
                   <span
@@ -300,10 +312,10 @@ export const MatchPreparationPage: React.FC = () => {
         }}
       >
         <div className="mx-auto flex max-w-xl items-center justify-between gap-2">
-          <span className="text-xs text-white/60">Ausgewählt: {selectedPlayers.length}</span>
+          <span className="text-xs text-white/60">Ausgewählt: {selectedPlayersAvailableOnly.length}</span>
           <button
             type="button"
-            disabled={selectedPlayers.length === 0 || persisting}
+            disabled={selectedPlayersAvailableOnly.length === 0 || persisting}
             onClick={() => void onContinueToLineup()}
             className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
