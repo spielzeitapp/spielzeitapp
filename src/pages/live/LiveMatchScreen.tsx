@@ -340,6 +340,24 @@ function computeUpdatedPeriodScores(
   };
 }
 
+function nextMissingPeriodKey(scores: PeriodScoresState): 1 | 2 | 3 | null {
+  if (!scores.p1) return 1;
+  if (!scores.p2) return 2;
+  if (!scores.p3) return 3;
+  return null;
+}
+
+function resolveSectionForPause(scores: PeriodScoresState): 1 | 2 | 3 {
+  return nextMissingPeriodKey(scores) ?? 3;
+}
+
+function resolveSectionForEnd(scores: PeriodScoresState): 1 | 2 | 3 {
+  if (scores.p1 && scores.p2 && !scores.p3) return 3;
+  if (scores.p1 && !scores.p2) return 2;
+  if (!scores.p1) return 1;
+  return 3;
+}
+
 export const LiveMatchScreen: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -864,9 +882,7 @@ export const LiveMatchScreen: React.FC = () => {
     const { ok } = await persistSingle({ type: 'pause', timestamp: currentMatchSeconds });
     if (!ok) return;
     const frozen = currentMatchSeconds;
-    const livePeriodRaw = Number(matchRow?.live_period ?? half);
-    const section: 1 | 2 | 3 =
-      livePeriodRaw === 1 || livePeriodRaw === 2 || livePeriodRaw === 3 ? livePeriodRaw : half >= 2 ? 2 : 1;
+    const section = resolveSectionForPause(periodScores);
     const totals = recomputeScoresFromEvents(events);
     const nextPeriodScores = computeUpdatedPeriodScores(periodScores, section, totals);
     const { error } = await updateMatchRow(effectiveMatchId, {
@@ -888,10 +904,7 @@ export const LiveMatchScreen: React.FC = () => {
     const { home: fh, away: fa } = recomputeScoresFromEvents(events);
     const { ok } = await persistSingle({ type: 'end', timestamp: frozen });
     if (!ok) return;
-    const livePeriodRaw = Number(matchRow?.live_period ?? half);
-    const section: 1 | 2 | 3 =
-      livePeriodRaw === 1 || livePeriodRaw === 2 || livePeriodRaw === 3 ? livePeriodRaw : half >= 2 ? 2 : 1;
-    const sectionForEnd: 1 | 2 | 3 = section === 3 ? 3 : section;
+    const sectionForEnd = resolveSectionForEnd(periodScores);
     const nextPeriodScores = computeUpdatedPeriodScores(periodScores, sectionForEnd, { home: fh, away: fa });
     const { error } = await updateMatchRow(effectiveMatchId, {
       status: 'finished',
