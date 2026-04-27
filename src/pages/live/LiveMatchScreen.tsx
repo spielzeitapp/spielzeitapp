@@ -4,7 +4,6 @@ import { useSession } from '../../auth/useSession';
 import { usePlayers } from '../../hooks/usePlayers';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
 import {
-  buildPauseDelimitedPeriodScoreLine,
   calculatePlayerPlaytimes,
   getBenchPlayers,
   getCurrentOnFieldPlayers,
@@ -285,6 +284,60 @@ function mobileLineupName(name: string): string {
   if (raw.length <= 14) return first;
   const lastInitial = (parts[parts.length - 1] ?? '').charAt(0).toUpperCase();
   return lastInitial ? `${first} ${lastInitial}.` : first;
+}
+
+type PeriodScorePair = { h: number; a: number };
+type PeriodScoresState = { p1?: PeriodScorePair; p2?: PeriodScorePair; p3?: PeriodScorePair };
+
+function parsePeriodScorePair(value: unknown): PeriodScorePair | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const raw = value as { h?: unknown; a?: unknown };
+  const h = Number(raw.h);
+  const a = Number(raw.a);
+  if (!Number.isFinite(h) || !Number.isFinite(a)) return undefined;
+  return { h: Math.max(0, Math.trunc(h)), a: Math.max(0, Math.trunc(a)) };
+}
+
+function parsePeriodScores(value: unknown): PeriodScoresState {
+  if (!value || typeof value !== 'object') return {};
+  const raw = value as { p1?: unknown; p2?: unknown; p3?: unknown };
+  return {
+    p1: parsePeriodScorePair(raw.p1),
+    p2: parsePeriodScorePair(raw.p2),
+    p3: parsePeriodScorePair(raw.p3),
+  };
+}
+
+function formatPeriodScoresLine(scores: PeriodScoresState): string {
+  const f = (v?: PeriodScorePair) => (v ? `${v.h}:${v.a}` : '-:-');
+  return `(${f(scores.p1)} | ${f(scores.p2)} | ${f(scores.p3)})`;
+}
+
+function computeUpdatedPeriodScores(
+  current: PeriodScoresState,
+  section: 1 | 2 | 3,
+  total: { home: number; away: number },
+): PeriodScoresState {
+  const safeCurrent = parsePeriodScores(current);
+  const p1 = safeCurrent.p1;
+  const p2 = safeCurrent.p2;
+  if (section === 1) {
+    return { ...safeCurrent, p1: { h: total.home, a: total.away } };
+  }
+  if (section === 2) {
+    const baseH = p1?.h ?? 0;
+    const baseA = p1?.a ?? 0;
+    return {
+      ...safeCurrent,
+      p2: { h: Math.max(0, total.home - baseH), a: Math.max(0, total.away - baseA) },
+    };
+  }
+  const baseH = (p1?.h ?? 0) + (p2?.h ?? 0);
+  const baseA = (p1?.a ?? 0) + (p2?.a ?? 0);
+  return {
+    ...safeCurrent,
+    p3: { h: Math.max(0, total.home - baseH), a: Math.max(0, total.away - baseA) },
+  };
 }
 
 export const LiveMatchScreen: React.FC = () => {
@@ -728,6 +781,7 @@ export const LiveMatchScreen: React.FC = () => {
     () => calculatePlayerPlaytimes(startingPlayerIds, squadPlayerIds, events, currentMatchSeconds),
     [startingPlayerIds, squadPlayerIds, events, currentMatchSeconds],
   );
+  const periodScores = useMemo(() => parsePeriodScores(matchRow?.period_scores), [matchRow?.period_scores]);
 
   const persistSingle = useCallback(
     async (partial: Omit<MatchEngineEvent, 'id'>): Promise<{ ok: boolean; savedId?: string }> => {
@@ -810,12 +864,21 @@ export const LiveMatchScreen: React.FC = () => {
     const { ok } = await persistSingle({ type: 'pause', timestamp: currentMatchSeconds });
     if (!ok) return;
     const frozen = currentMatchSeconds;
+    const livePeriodRaw = Number(matchRow?.live_period ?? half);
+    const section: 1 | 2 | 3 =
+      livePeriodRaw === 1 || livePeriodRaw === 2 || livePeriodRaw === 3 ? livePeriodRaw : half >= 2 ? 2 : 1;
+    const totals = recomputeScoresFromEvents(events);
+    const nextPeriodScores = computeUpdatedPeriodScores(periodScores, section, totals);
     const { error } = await updateMatchRow(effectiveMatchId, {
       live_elapsed_seconds: frozen,
       live_is_running: false,
+      period_scores: nextPeriodScores,
     });
     if (error) setSaveError(error);
-    else setMatchRow((prev) => (prev ? { ...prev, live_elapsed_seconds: frozen, live_is_running: false } : null));
+    else
+      setMatchRow((prev) =>
+        prev ? { ...prev, live_elapsed_seconds: frozen, live_is_running: false, period_scores: nextPeriodScores } : null,
+      );
   };
 
   /** Ende: Uhr stoppen, Match in DB beenden, Endstand aus Toren — ohne Kalender-Termin (kommt bei „Spiel abschließen“). */
@@ -825,6 +888,11 @@ export const LiveMatchScreen: React.FC = () => {
     const { home: fh, away: fa } = recomputeScoresFromEvents(events);
     const { ok } = await persistSingle({ type: 'end', timestamp: frozen });
     if (!ok) return;
+    const livePeriodRaw = Number(matchRow?.live_period ?? half);
+    const section: 1 | 2 | 3 =
+      livePeriodRaw === 1 || livePeriodRaw === 2 || livePeriodRaw === 3 ? livePeriodRaw : half >= 2 ? 2 : 1;
+    const sectionForEnd: 1 | 2 | 3 = section === 3 ? 3 : section;
+    const nextPeriodScores = computeUpdatedPeriodScores(periodScores, sectionForEnd, { home: fh, away: fa });
     const { error } = await updateMatchRow(effectiveMatchId, {
       status: 'finished',
       live_is_running: false,
@@ -832,6 +900,7 @@ export const LiveMatchScreen: React.FC = () => {
       live_period: half,
       score_home: fh,
       score_away: fa,
+      period_scores: nextPeriodScores,
     });
     if (error) setSaveError(error);
     else {
@@ -847,6 +916,7 @@ export const LiveMatchScreen: React.FC = () => {
               live_period: half,
               score_home: fh,
               score_away: fa,
+              period_scores: nextPeriodScores,
             }
           : null,
       );
@@ -958,10 +1028,7 @@ export const LiveMatchScreen: React.FC = () => {
     return map;
   }, [events]);
 
-  const periodScoreLine = useMemo(
-    () => buildPauseDelimitedPeriodScoreLine(events, Boolean(matchIsFinished)),
-    [events, matchIsFinished],
-  );
+  const periodScoreLine = useMemo(() => formatPeriodScoresLine(periodScores), [periodScores]);
 
   const lastHomeGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'home'), [events]);
   const lastAwayGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'away'), [events]);

@@ -18,6 +18,7 @@ export type LiveMatchRow = {
   live_elapsed_seconds: number | null;
   live_is_running: boolean | null;
   live_period: number | null;
+  period_scores: unknown | null;
 };
 
 /** UI-/Button-Logik: aus DB-Status + Uhr, ohne neue Spalten. */
@@ -149,7 +150,7 @@ export async function fetchMatchById(matchId: string): Promise<{ data: LiveMatch
   const { data, error } = await supabase
     .from('matches')
     .select(
-      'id, team_season_id, opponent, match_date, location, status, score_home, score_away, live_started_at, live_elapsed_seconds, live_is_running, live_period',
+      'id, team_season_id, opponent, match_date, location, status, score_home, score_away, live_started_at, live_elapsed_seconds, live_is_running, live_period, period_scores',
     )
     .eq('id', matchId)
     .maybeSingle();
@@ -163,7 +164,7 @@ export async function fetchFirstLiveMatch(): Promise<{ data: LiveMatchRow | null
   const { data, error } = await supabase
     .from('matches')
     .select(
-      'id, team_season_id, opponent, match_date, location, status, score_home, score_away, live_started_at, live_elapsed_seconds, live_is_running, live_period',
+      'id, team_season_id, opponent, match_date, location, status, score_home, score_away, live_started_at, live_elapsed_seconds, live_is_running, live_period, period_scores',
     )
     .eq('status', 'live')
     .order('match_date', { ascending: false })
