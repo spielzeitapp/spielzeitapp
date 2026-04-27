@@ -55,14 +55,9 @@ function PitchPlayerMarkerInner({
         />
       </div>
       <span
-        className={`mt-1 w-full truncate text-center text-sm font-semibold leading-none text-white ${nameMax}`}
+        className={`mt-1 w-full truncate text-center text-sm font-bold leading-none text-white ${nameMax}`}
       >
         {lastName.trim() || '—'}
-      </span>
-      <span
-        className={`mt-0.5 w-full truncate text-center text-[10px] font-normal uppercase leading-none tracking-wide text-white/45 ${nameMax}`}
-      >
-        {positionBadge.trim() || '–'}
       </span>
     </div>
   );

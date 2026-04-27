@@ -11,7 +11,6 @@ const PITCH_SURFACE: React.CSSProperties = {
   ].join(', '),
 };
 
-/** Linien mit 10px-Inset zum ViewBox-Rand (360×520); Mittelpunkt (180,260) */
 const LINE_INSET = 10;
 const VB_W = 360;
 const VB_H = 520;
@@ -21,12 +20,23 @@ const INNER_L = LINE_INSET;
 const INNER_R = VB_W - LINE_INSET;
 const INNER_T = LINE_INSET;
 const INNER_B = VB_H - LINE_INSET;
+
 const PEN_W = 170;
 const PEN_H = 140;
 const PEN_X = (VB_W - PEN_W) / 2;
 const BOTTOM_PEN_Y = VB_H - LINE_INSET - PEN_H;
 const BOTTOM_SIX_Y = BOTTOM_PEN_Y + 50;
 const TOP_SIX_Y = 90;
+
+/** Kleiner Torraum (6 m), zentriert an der Torlinie */
+const GA_W = 82;
+const GA_H = 46;
+const GA_X = (VB_W - GA_W) / 2;
+
+const LINE_STROKE = '#ffffff';
+const LINE_OPACITY = 0.45;
+const STROKE_W = 1.45;
+const CORNER_R = 11;
 
 export type LineupFormationPitchProps = {
   formationId: U11FormationId;
@@ -62,36 +72,59 @@ export function LineupFormationPitch({
 }: LineupFormationPitchProps): React.ReactElement {
   const layout = U11_FORMATIONS[formationId];
 
+  const topPenBottom = LINE_INSET + PEN_H;
+
   return (
     <div
       className={`relative w-full overflow-hidden rounded-2xl border border-black/35 aspect-[3/4] max-h-[min(70dvh,560px)] shadow-[0_0_0_1px_rgba(0,0,0,0.2),0_10px_36px_rgba(0,0,0,0.45),0_0_60px_rgba(34,197,94,0.14)] ${className}`}
       style={PITCH_SURFACE}
     >
+      {/* Vignette unter den Linien, damit Markierungen klar bleiben */}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-2xl shadow-[inset_0_0_90px_rgba(0,0,0,0.2),inset_0_-18px_36px_rgba(0,0,0,0.14)]"
+        aria-hidden
+      />
+
       <svg
-        className="pointer-events-none absolute inset-0 h-full w-full"
+        className="pointer-events-none absolute inset-0 z-[0] h-full w-full"
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         preserveAspectRatio="xMidYMid meet"
         aria-hidden
       >
-        <g fill="none" stroke="#ffffff" strokeWidth="1.35" style={{ opacity: 0.18 }}>
+        <g
+          fill="none"
+          stroke={LINE_STROKE}
+          strokeWidth={STROKE_W}
+          strokeOpacity={LINE_OPACITY}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <rect x={INNER_L} y={INNER_T} width={VB_W - 2 * LINE_INSET} height={VB_H - 2 * LINE_INSET} rx="2" />
-          <line x1={CX} y1={INNER_T} x2={CX} y2={INNER_B} />
+
+          <path d={`M ${INNER_L + CORNER_R} ${INNER_T} A ${CORNER_R} ${CORNER_R} 0 0 1 ${INNER_L} ${INNER_T + CORNER_R}`} />
+          <path d={`M ${INNER_R - CORNER_R} ${INNER_T} A ${CORNER_R} ${CORNER_R} 0 0 0 ${INNER_R} ${INNER_T + CORNER_R}`} />
+          <path d={`M ${INNER_R} ${INNER_B - CORNER_R} A ${CORNER_R} ${CORNER_R} 0 0 0 ${INNER_R - CORNER_R} ${INNER_B}`} />
+          <path d={`M ${INNER_L + CORNER_R} ${INNER_B} A ${CORNER_R} ${CORNER_R} 0 0 0 ${INNER_L} ${INNER_B - CORNER_R}`} />
+
           <line x1={INNER_L} y1={CY} x2={INNER_R} y2={CY} />
+
           <circle cx={CX} cy={CY} r="50" />
-          <circle cx={CX} cy={CY} r="3.5" fill="#ffffff" style={{ opacity: 0.35 }} />
+          <circle cx={CX} cy={CY} r="3.5" fill={LINE_STROKE} fillOpacity={LINE_OPACITY} stroke="none" />
+
           <rect x={PEN_X} y={LINE_INSET} width={PEN_W} height={PEN_H} />
-          <line x1={PEN_X} y1={TOP_SIX_Y} x2={PEN_X + PEN_W} y2={TOP_SIX_Y} />
           <rect x={PEN_X} y={BOTTOM_PEN_Y} width={PEN_W} height={PEN_H} />
+
+          <rect x={GA_X} y={INNER_T} width={GA_W} height={GA_H} />
+          <rect x={GA_X} y={INNER_B - GA_H} width={GA_W} height={GA_H} />
+
+          <path d={`M ${PEN_X} ${topPenBottom} Q ${CX} ${topPenBottom + 36} ${PEN_X + PEN_W} ${topPenBottom}`} />
+          <path d={`M ${PEN_X} ${BOTTOM_PEN_Y} Q ${CX} ${BOTTOM_PEN_Y - 36} ${PEN_X + PEN_W} ${BOTTOM_PEN_Y}`} />
+
+          <line x1={PEN_X} y1={TOP_SIX_Y} x2={PEN_X + PEN_W} y2={TOP_SIX_Y} />
           <line x1={PEN_X} y1={BOTTOM_SIX_Y} x2={PEN_X + PEN_W} y2={BOTTOM_SIX_Y} />
         </g>
       </svg>
 
-      <div
-        className="pointer-events-none absolute inset-0 rounded-2xl shadow-[inset_0_0_100px_rgba(0,0,0,0.32),inset_0_-20px_40px_rgba(0,0,0,0.18)]"
-        aria-hidden
-      />
-
-      {/* Innenabstand: Spieler-Marker nicht am Rand abschneiden */}
       <div className="absolute inset-[3%] z-[1] min-h-0">
         {layout.map(({ slot, label, x, y }) => {
           const playerId = slots[slot] ?? null;

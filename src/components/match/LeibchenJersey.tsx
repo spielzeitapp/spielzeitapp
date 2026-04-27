@@ -79,7 +79,7 @@ export function LeibchenJersey({
   const pitchTypo =
     size === 'large'
       ? { numY: 62, numSize: 36.8, posY: 92, posSize: 6.5 }
-      : { numY: 56, numSize: 25, posY: 84, posSize: 5 };
+      : { numY: 54, numSize: 26, posY: 70, posSize: 4.2 };
 
   const showPitchBack = pitchStyleBack;
   const showFullBack = showBackPrint && !showPitchBack;
@@ -180,11 +180,11 @@ export function LeibchenJersey({
                 x="50"
                 y={pitchTypo.posY}
                 textAnchor="middle"
-                fill="rgba(248, 250, 252, 0.78)"
+                fill="rgba(248, 250, 252, 0.82)"
                 fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
                 fontSize={pitchTypo.posSize}
                 fontWeight="600"
-                letterSpacing="0.1em"
+                letterSpacing="0.14em"
               >
                 {posDisplay}
               </text>
