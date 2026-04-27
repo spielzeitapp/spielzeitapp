@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import type { PlayerItem } from '../../hooks/usePlayers';
@@ -87,6 +87,8 @@ export const MatchLineupPage: React.FC = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savingLineup, setSavingLineup] = useState(false);
   const [startingLive, setStartingLive] = useState(false);
+  const [assignFlashSlot, setAssignFlashSlot] = useState<FieldSlotId | null>(null);
+  const assignFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -173,6 +175,12 @@ export const MatchLineupPage: React.FC = () => {
     }
   }, [selectedBankPlayerId, squadIds]);
 
+  useEffect(() => {
+    return () => {
+      if (assignFlashTimerRef.current) clearTimeout(assignFlashTimerRef.current);
+    };
+  }, []);
+
   const starterCount = useMemo(
     () => LIVE_FIELD_SLOT_ORDER.filter((slot) => Boolean(slots[slot])).length,
     [slots],
@@ -201,6 +209,8 @@ export const MatchLineupPage: React.FC = () => {
   const onTapSlot = (slot: FieldSlotId) => {
     setSaveMsg(null);
     setSaveError(null);
+    const wasOccupied = Boolean(slots[slot]);
+    const bankPick = selectedBankPlayerId;
     setSlots((prev) => {
       const next = { ...prev };
       if (next[slot]) {
@@ -214,6 +224,14 @@ export const MatchLineupPage: React.FC = () => {
       next[slot] = selectedBankPlayerId;
       return next;
     });
+    if (!wasOccupied && bankPick) {
+      if (assignFlashTimerRef.current) clearTimeout(assignFlashTimerRef.current);
+      setAssignFlashSlot(slot);
+      assignFlashTimerRef.current = setTimeout(() => {
+        setAssignFlashSlot(null);
+        assignFlashTimerRef.current = null;
+      }, 480);
+    }
     if (selectedBankPlayerId) setSelectedBankPlayerId(null);
   };
 
@@ -314,52 +332,82 @@ export const MatchLineupPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-3 pb-52">
+      <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-3 pb-[15rem]">
         {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
         {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
         {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}
         {saveMsg ? <p className="text-sm text-emerald-300">{saveMsg}</p> : null}
 
-        <section className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-white/85">Startelf</h2>
-            <span className="text-xs text-white/60">{starterCount}/7</span>
+        <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#070b0a] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+          {/* Dezenter Spielfeld-Look (Linien ~8 % Opazität) */}
+          <div
+            className="pointer-events-none absolute inset-0 text-white"
+            style={{ opacity: 0.08 }}
+            aria-hidden
+          >
+            <svg className="h-full w-full" viewBox="0 0 360 520" preserveAspectRatio="xMidYMid slice">
+              <rect x="0" y="0" width="360" height="520" fill="none" />
+              <line x1="180" y1="0" x2="180" y2="520" stroke="currentColor" strokeWidth="1.2" />
+              <circle cx="180" cy="260" r="48" fill="none" stroke="currentColor" strokeWidth="1.2" />
+              <circle cx="180" cy="260" r="3" fill="currentColor" />
+              <rect x="95" y="380" width="170" height="140" fill="none" stroke="currentColor" strokeWidth="1.2" />
+              <line x1="95" y1="430" x2="265" y2="430" stroke="currentColor" strokeWidth="1.2" />
+              <rect x="95" y="0" width="170" height="140" fill="none" stroke="currentColor" strokeWidth="1.2" />
+              <line x1="95" y1="90" x2="265" y2="90" stroke="currentColor" strokeWidth="1.2" />
+            </svg>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {LIVE_FIELD_SLOT_ORDER.map((slot) => {
-              const playerId = slots[slot];
-              const player = playerId ? playersById.get(playerId) : null;
-              return (
-                <button
-                  key={slot}
-                  type="button"
-                  onClick={() => onTapSlot(slot)}
-                  className={`min-h-[84px] rounded-xl border px-2 py-2 text-left ${
-                    player
-                      ? 'border-emerald-500/45 bg-emerald-950/35'
-                      : 'border-white/15 bg-black/20 hover:bg-white/[0.05]'
-                  }`}
-                >
-                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-white/60">{SLOT_LABELS[slot]}</p>
-                  {player ? (
-                    <>
-                      <div className="mt-1 flex justify-center">
+
+          <div className="relative z-10 space-y-2 px-1 pb-1 pt-1">
+            <div className="flex items-center justify-between px-1">
+              <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-white/90">Startelf</h2>
+              <span className="text-xs font-medium text-white/55">{starterCount}/7</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+              {LIVE_FIELD_SLOT_ORDER.map((slot) => {
+                const playerId = slots[slot];
+                const player = playerId ? playersById.get(playerId) : null;
+                const empty = !player;
+                const dropHint = empty && Boolean(selectedBankPlayerId);
+                return (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => onTapSlot(slot)}
+                    className={[
+                      'relative flex min-h-[12rem] flex-col items-center justify-start rounded-xl px-0.5 pb-1 pt-1 transition-all duration-200 active:scale-[0.98] sm:min-h-[12.5rem]',
+                      empty
+                        ? dropHint
+                          ? 'border-2 border-dashed border-emerald-400/55 bg-black/35 shadow-[0_0_18px_rgba(16,185,129,0.22)]'
+                          : 'border border-dashed border-white/25 bg-black/30 hover:bg-black/40'
+                        : 'border border-white/10 bg-black/35 shadow-none',
+                      assignFlashSlot === slot ? 'ring-2 ring-emerald-400/60 ring-offset-2 ring-offset-[#070b0a]' : '',
+                    ].join(' ')}
+                  >
+                    <span className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
+                      {SLOT_LABELS[slot]}
+                    </span>
+                    {player ? (
+                      <div className="flex flex-1 items-center justify-center">
                         <LeibchenJersey
                           lastName={playerFamilyName(player)}
                           number={player.jersey_number}
                           position={SLOT_LABELS[slot]}
                           variant={slot === 'GK' ? 'goalkeeper' : 'field'}
-                          size="compact"
+                          size="large"
+                          assignFlash={assignFlashSlot === slot}
                         />
                       </div>
-                      <p className="mt-1 text-center text-[10px] text-white/55">Tippen zum Entfernen</p>
-                    </>
-                  ) : (
-                    <p className="mt-2 text-xs text-white/50">{selectedBankPlayerId ? 'Tippen zum Zuweisen' : 'frei'}</p>
-                  )}
-                </button>
-              );
-            })}
+                    ) : (
+                      <div className="flex flex-1 flex-col items-center justify-center px-1 pb-1 pt-2">
+                        <p className="text-center text-[11px] font-medium leading-snug text-white/40">
+                          Tippen zum Zuweisen
+                        </p>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </section>
 
@@ -417,7 +465,7 @@ export const MatchLineupPage: React.FC = () => {
                           position={SLOT_LABELS[slot]}
                           variant={slot === 'GK' ? 'goalkeeper' : 'field'}
                           size="compact"
-                          className="!h-[3.25rem] !w-[2.5rem]"
+                          className="!h-[3.6rem] !w-[2.85rem]"
                         />
                         <span className="truncate text-xs text-white/85">{p.display_name}</span>
                       </>
@@ -433,20 +481,20 @@ export const MatchLineupPage: React.FC = () => {
       </main>
 
       <div
-        className="fixed inset-x-0 z-[70] border-t border-white/10 bg-gradient-to-t from-black to-black/92 px-4 py-2.5 backdrop-blur"
+        className="fixed inset-x-0 z-[70] border-t border-white/10 bg-gradient-to-t from-black via-black/96 to-black/88 px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.45)] backdrop-blur-md"
         style={{
           bottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
-          paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'max(0.65rem, env(safe-area-inset-bottom, 0px))',
         }}
       >
-        <div className="mx-auto flex max-w-xl items-center justify-between gap-2">
-          <span className="text-xs text-white/60">Startelf: {starterCount}/7</span>
-          <div className="flex items-center gap-2">
+        <div className="mx-auto flex max-w-xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-xs font-medium text-white/55">Startelf: {starterCount}/7</span>
+          <div className="flex w-full items-stretch justify-end gap-2 sm:w-auto">
             <button
               type="button"
               disabled={savingLineup || startingLive}
               onClick={() => void saveLineup()}
-              className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+              className="min-h-[44px] flex-1 rounded-xl border border-white/25 bg-white/[0.06] px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-initial"
             >
               {savingLineup ? 'Speichern…' : 'Aufstellung speichern'}
             </button>
@@ -454,7 +502,7 @@ export const MatchLineupPage: React.FC = () => {
               type="button"
               disabled={starterCount < 7 || savingLineup || startingLive}
               onClick={() => void onStartLive()}
-              className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+              className="min-h-[44px] flex-1 rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-[0_2px_12px_rgba(220,38,38,0.45)] transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-initial"
             >
               {startingLive ? 'Starte…' : 'Live starten'}
             </button>
