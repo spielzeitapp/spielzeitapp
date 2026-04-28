@@ -522,23 +522,38 @@ export const LiveMatchScreen: React.FC = () => {
     );
   }, [matchRow, lineupData]);
 
+  const reloadMatchSetupFromDb = useCallback(async () => {
+    if (!effectiveMatchId) return;
+    if (lineupReloadInFlightRef.current) {
+      lineupReloadPendingRef.current = true;
+      return;
+    }
+    lineupReloadInFlightRef.current = true;
+    const lineRes = await fetchLineupForLiveMatch(effectiveMatchId);
+    lineupReloadInFlightRef.current = false;
+    setLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
+    if (lineRes.error) setSaveError(lineRes.error);
+    if (lineupReloadPendingRef.current) {
+      lineupReloadPendingRef.current = false;
+      void reloadMatchSetupFromDb();
+    }
+  }, [effectiveMatchId]);
+
   const reloadLiveMatchState = useCallback(async () => {
     if (!effectiveMatchId || realtimeReloadInFlightRef.current) return;
     realtimeReloadInFlightRef.current = true;
-    const [mRes, lineRes, evRes] = await Promise.all([
+    const [mRes, evRes] = await Promise.all([
       fetchMatchById(effectiveMatchId),
-      fetchLineupForLiveMatch(effectiveMatchId),
       fetchMatchEvents(effectiveMatchId),
     ]);
     realtimeReloadInFlightRef.current = false;
     if (mRes.error) setSaveError(mRes.error);
     if (mRes.data) setMatchRow(mRes.data);
-    setLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
-    if (lineRes.error) setSaveError(lineRes.error);
+    void reloadMatchSetupFromDb();
     if (evRes.error) setSaveError(evRes.error);
     const sorted = sortMatchEventsChronologically(evRes.data);
     setEvents([...sorted].reverse());
-  }, [effectiveMatchId]);
+  }, [effectiveMatchId, reloadMatchSetupFromDb]);
 
   const queueRealtimeReload = useCallback(() => {
     if (realtimeReloadTimerRef.current != null) {
@@ -582,7 +597,9 @@ export const LiveMatchScreen: React.FC = () => {
           table: 'match_lineup',
           filter: `match_id=eq.${effectiveMatchId}`,
         },
-        queueRealtimeReload,
+        () => {
+          void reloadMatchSetupFromDb();
+        },
       )
       .on(
         'postgres_changes',
@@ -592,7 +609,9 @@ export const LiveMatchScreen: React.FC = () => {
           table: 'match_bench',
           filter: `match_id=eq.${effectiveMatchId}`,
         },
-        queueRealtimeReload,
+        () => {
+          void reloadMatchSetupFromDb();
+        },
       )
       .on(
         'postgres_changes',
@@ -613,7 +632,7 @@ export const LiveMatchScreen: React.FC = () => {
       }
       void supabase.removeChannel(channel);
     };
-  }, [effectiveMatchId, queueRealtimeReload]);
+  }, [effectiveMatchId, queueRealtimeReload, reloadMatchSetupFromDb]);
 
   const homeName = selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
 
@@ -667,6 +686,8 @@ export const LiveMatchScreen: React.FC = () => {
   const goalUndoFadeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const realtimeReloadTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const realtimeReloadInFlightRef = useRef(false);
+  const lineupReloadInFlightRef = useRef(false);
+  const lineupReloadPendingRef = useRef(false);
   const scoresRef = useRef({ home: 0, away: 0 });
   const homeGoalLpTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const homeGoalSuppressClickRef = useRef(false);
