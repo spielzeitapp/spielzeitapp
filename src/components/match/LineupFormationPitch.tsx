@@ -48,25 +48,25 @@ const LINE_STROKE = '#ffffff';
 const LINE_OPACITY = 0.66;
 const STROKE_W = 2.1;
 /** Eckbögen (Eckball) – Kreisausschnitt innen am Spielfeldrand */
-const CORNER_ARC = 11;
+const CORNER_ARC = 16;
 const TOUCHLINE_RX = 4;
 
 const GOAL_W = Math.round(INNER_W * (7.32 / 68));
 const GOAL_H = 6;
 const GOAL_X = (VB_W - GOAL_W) / 2;
 const MID_CIRCLE_R = Math.round(INNER_H * (8.15 / 105));
-const PENALTY_ARC_R = Math.round(MID_CIRCLE_R * 0.84);
+const PENALTY_ARC_R = 38;
 
 function penaltyArcTopPath(): string {
   const dy = TOP_PEN_BOTTOM - TOP_SPOT_Y;
   const dx = Math.sqrt(Math.max(0, PENALTY_ARC_R * PENALTY_ARC_R - dy * dy));
-  return `M ${CX - dx} ${TOP_PEN_BOTTOM} A ${PENALTY_ARC_R} ${PENALTY_ARC_R} 0 0 1 ${CX + dx} ${TOP_PEN_BOTTOM}`;
+  return `M ${CX - dx} ${TOP_PEN_BOTTOM} A ${PENALTY_ARC_R} ${PENALTY_ARC_R} 0 0 0 ${CX + dx} ${TOP_PEN_BOTTOM}`;
 }
 
 function penaltyArcBottomPath(): string {
   const dy = BOTTOM_SPOT_Y - BOTTOM_PEN_Y;
   const dx = Math.sqrt(Math.max(0, PENALTY_ARC_R * PENALTY_ARC_R - dy * dy));
-  return `M ${CX - dx} ${BOTTOM_PEN_Y} A ${PENALTY_ARC_R} ${PENALTY_ARC_R} 0 0 0 ${CX + dx} ${BOTTOM_PEN_Y}`;
+  return `M ${CX - dx} ${BOTTOM_PEN_Y} A ${PENALTY_ARC_R} ${PENALTY_ARC_R} 0 0 1 ${CX + dx} ${BOTTOM_PEN_Y}`;
 }
 
 export type LineupFormationPitchProps = {
@@ -138,10 +138,10 @@ export function LineupFormationPitch({
             ry={TOUCHLINE_RX}
           />
 
-          <path d={`M ${INNER_L} ${INNER_T + CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L + CORNER_ARC} ${INNER_T}`} />
-          <path d={`M ${INNER_R - CORNER_ARC} ${INNER_T} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R} ${INNER_T + CORNER_ARC}`} />
-          <path d={`M ${INNER_R} ${INNER_B - CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R - CORNER_ARC} ${INNER_B}`} />
-          <path d={`M ${INNER_L + CORNER_ARC} ${INNER_B} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L} ${INNER_B - CORNER_ARC}`} />
+          <path d={`M ${INNER_L} ${INNER_T + CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L + CORNER_ARC} ${INNER_T}`} strokeOpacity={0.85} />
+          <path d={`M ${INNER_R - CORNER_ARC} ${INNER_T} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R} ${INNER_T + CORNER_ARC}`} strokeOpacity={0.85} />
+          <path d={`M ${INNER_R} ${INNER_B - CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R - CORNER_ARC} ${INNER_B}`} strokeOpacity={0.85} />
+          <path d={`M ${INNER_L + CORNER_ARC} ${INNER_B} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L} ${INNER_B - CORNER_ARC}`} strokeOpacity={0.85} />
 
           <line x1={INNER_L} y1={CY} x2={INNER_R} y2={CY} />
 
@@ -156,9 +156,6 @@ export function LineupFormationPitch({
 
           <path d={penaltyArcTopPath()} />
           <path d={penaltyArcBottomPath()} />
-
-          <line x1={PEN_X} y1={TOP_SIX_Y} x2={PEN_X + PEN_W} y2={TOP_SIX_Y} />
-          <line x1={PEN_X} y1={BOTTOM_SIX_Y} x2={PEN_X + PEN_W} y2={BOTTOM_SIX_Y} />
 
           <circle cx={CX} cy={TOP_SPOT_Y} r="2.5" fill={LINE_STROKE} fillOpacity={LINE_OPACITY} stroke="none" />
           <circle cx={CX} cy={BOTTOM_SPOT_Y} r="2.5" fill={LINE_STROKE} fillOpacity={LINE_OPACITY} stroke="none" />
