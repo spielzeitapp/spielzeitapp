@@ -349,13 +349,13 @@ export const MatchLineupPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-2 overflow-y-auto px-1.5 py-1.5 pb-[11rem] sm:gap-3 sm:px-3 sm:py-2 sm:pb-[30rem]">
+      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-1.5 overflow-y-auto px-1 py-1 pb-[11rem] sm:gap-3 sm:px-3 sm:py-2 sm:pb-[30rem]">
         {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
         {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
         {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}
         {saveMsg ? <p className="text-sm text-emerald-300">{saveMsg}</p> : null}
 
-        <section className="space-y-1.5 rounded-[1.05rem] border border-white/[0.08] bg-black/50 p-1.5 shadow-[0_0_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-red-950/35 sm:space-y-2 sm:rounded-[1.25rem] sm:p-2.5">
+        <section className="space-y-1.5 p-0 sm:space-y-2 sm:rounded-[1.25rem] sm:border sm:border-white/[0.08] sm:bg-black/50 sm:p-2.5 sm:shadow-[0_0_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] sm:ring-1 sm:ring-red-950/35">
           <div className="flex items-center justify-between px-0.5 pt-0.5">
             <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-white/90 sm:text-sm">Startelf</h2>
             <span className="text-xs font-medium text-white/55">{starterCount}/7</span>
@@ -398,7 +398,7 @@ export const MatchLineupPage: React.FC = () => {
                 const player = playerId ? playersById.get(playerId) : null;
                 if (!player) return null;
                 return (
-                  <div className="pointer-events-none">
+                  <div className="pointer-events-none origin-top scale-[0.93] sm:scale-100">
                     <PitchPlayerMarker
                       lastName={playerFamilyName(player)}
                       number={player.jersey_number}
@@ -415,15 +415,15 @@ export const MatchLineupPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-white/[0.1] bg-black/55 p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-red-950/40 transition-all duration-300 sm:p-4">
+        <section className="rounded-xl border border-white/[0.1] bg-black/45 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.42)] transition-all duration-300 sm:rounded-2xl sm:bg-black/55 sm:p-4 sm:shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] sm:ring-1 sm:ring-red-950/40">
           <div className="mb-2 flex items-center justify-between border-b border-white/5 pb-2 sm:mb-3 sm:pb-3">
             <h2 className="text-xs font-extrabold uppercase tracking-[0.14em] text-white/95 sm:text-sm">BANK</h2>
             <span className="text-xs font-medium text-white/45">
               {bankIds.length} {bankIds.length === 1 ? 'Spieler' : 'Spieler'}
             </span>
           </div>
-          <div className="-mx-1 overflow-x-auto pb-1 pl-1 pr-1 [-webkit-overflow-scrolling:touch]">
-            <div className="flex min-w-min flex-nowrap gap-2 transition-all duration-300">
+          <div className="-mx-1 overflow-x-auto pb-0.5 pl-1 pr-1 [-webkit-overflow-scrolling:touch]">
+            <div className="flex min-w-min flex-nowrap items-start gap-1.5 transition-all duration-300 sm:gap-2">
               {bankIds.map((id) => {
                 const p = playersById.get(id);
                 if (!p) return null;
@@ -434,21 +434,27 @@ export const MatchLineupPage: React.FC = () => {
                     type="button"
                     onClick={() => onTapBankPlayer(id)}
                     className={[
-                      'shrink-0 rounded-xl px-2 py-2 transition-all duration-300 ease-out active:scale-95',
+                      'shrink-0 rounded-lg px-1.5 py-1 transition-all duration-300 ease-out active:scale-95 sm:rounded-xl sm:px-2 sm:py-2',
                       isSelected
                         ? 'border-2 border-emerald-400/85 bg-emerald-950/30 shadow-[0_0_22px_rgba(16,185,129,0.4)]'
                         : 'border border-white/12 bg-black/35 hover:border-white/22 hover:bg-black/45',
                     ].join(' ')}
                   >
                     <div className="flex flex-col items-center">
-                      <PitchPlayerMarker
+                      <LeibchenJersey
                         lastName={playerFamilyName(p)}
                         number={p.jersey_number}
-                        positionBadge={benchPositionLabel(p)}
+                        position={benchPositionLabel(p)}
                         variant="field"
-                        mode="bank"
+                        size="compact"
+                        className="!h-[3.1rem] !w-[2.45rem] sm:!h-[3.6rem] sm:!w-[2.85rem]"
+                        showBackPrint={false}
+                        pitchStyleBack
                         selected={isSelected}
                       />
+                      <span className="mt-0.5 max-w-[68px] truncate text-center text-[10px] font-bold leading-tight text-white sm:text-xs">
+                        {playerFamilyName(p)}
+                      </span>
                     </div>
                   </button>
                 );
@@ -458,7 +464,7 @@ export const MatchLineupPage: React.FC = () => {
           {bankIds.length === 0 ? <p className="text-xs text-white/50">Keine Spieler auf der Bank.</p> : null}
         </section>
 
-        <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
+        <section className="hidden space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95 sm:block">
           <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-white/55">Startaufstellung Liste</h2>
           <div className="space-y-1.5">
             {LIVE_FIELD_SLOT_ORDER.map((slot) => {
