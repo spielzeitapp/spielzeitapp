@@ -394,7 +394,7 @@ export const MatchLineupPage: React.FC = () => {
               onSlotTap={onTapSlot}
               selectedBankPlayerId={selectedBankPlayerId}
               assignFlashSlot={assignFlashSlot}
-              renderSlotContent={({ label, playerId, flash, isGk, emphasize }) => {
+              renderSlotContent={({ label, labelDx, labelDy, playerId, flash, isGk, emphasize }) => {
                 const player = playerId ? playersById.get(playerId) : null;
                 if (!player) return null;
                 return (
@@ -405,6 +405,8 @@ export const MatchLineupPage: React.FC = () => {
                       positionBadge={label}
                       variant={isGk ? 'goalkeeper' : 'field'}
                       mode="pitch"
+                      nameOffsetX={labelDx}
+                      nameOffsetY={labelDy}
                       assignFlash={flash}
                       emphasize={emphasize}
                     />

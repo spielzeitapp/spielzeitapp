@@ -2016,7 +2016,7 @@ export const LiveMatchScreen: React.FC = () => {
                       emphasizedPlayerId={
                         wechselSheetOpen && wechselOutId ? wechselOutId : null
                       }
-                      renderSlotContent={({ label, playerId, isGk, emphasize }) => {
+                      renderSlotContent={({ label, labelDx, labelDy, playerId, isGk, emphasize }) => {
                         const p = playerId ? rosterById.get(playerId) : null;
                         if (!p) return null;
                         return (
@@ -2027,6 +2027,8 @@ export const LiveMatchScreen: React.FC = () => {
                               positionBadge={label}
                               variant={isGk ? 'goalkeeper' : 'field'}
                               mode="pitch"
+                              nameOffsetX={labelDx}
+                              nameOffsetY={labelDy}
                               emphasize={emphasize}
                             />
                           </div>

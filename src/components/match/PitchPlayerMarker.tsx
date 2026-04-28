@@ -9,6 +9,8 @@ export type PitchPlayerMarkerProps = {
   positionBadge: string;
   variant: 'field' | 'goalkeeper';
   mode: PitchPlayerMarkerMode;
+  nameOffsetX?: number;
+  nameOffsetY?: number;
   assignFlash?: boolean;
   selected?: boolean;
   emphasize?: boolean;
@@ -20,6 +22,8 @@ function PitchPlayerMarkerInner({
   positionBadge,
   variant,
   mode,
+  nameOffsetX = 0,
+  nameOffsetY = 0,
   assignFlash = false,
   selected = false,
   emphasize = false,
@@ -55,7 +59,12 @@ function PitchPlayerMarkerInner({
         />
       </div>
       <span
-        className={`mt-0.5 w-full truncate text-center text-sm font-bold leading-tight text-white ${nameMax}`}
+        className={
+          mode === 'pitch'
+            ? `mt-[2px] max-w-[58px] truncate rounded-full bg-black/40 px-[5px] py-[1px] text-center text-[12px] font-extrabold leading-[1.05] text-white ${nameMax}`
+            : `mt-0.5 w-full truncate text-center text-sm font-bold leading-tight text-white ${nameMax}`
+        }
+        style={mode === 'pitch' ? { transform: `translate(${nameOffsetX}px, ${nameOffsetY}px)` } : undefined}
       >
         {lastName.trim() || '—'}
       </span>

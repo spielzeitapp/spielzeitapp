@@ -71,6 +71,8 @@ export type LineupFormationPitchProps = {
   renderSlotContent: (ctx: {
     slot: FieldSlotId;
     label: string;
+    labelDx: number;
+    labelDy: number;
     playerId: string | null;
     empty: boolean;
     dropHint: boolean;
@@ -155,7 +157,7 @@ export function LineupFormationPitch({
         className="absolute inset-x-[3.5%] z-[1] min-h-0"
         style={{ top: 'calc(3.5% + 16px)', bottom: 'calc(3.5% + 20px)' }}
       >
-        {layout.map(({ slot, label, x, y }) => {
+        {layout.map(({ slot, label, x, y, labelDx = 0, labelDy = 0 }) => {
           const playerId = slots[slot] ?? null;
           const empty = !playerId;
           const dropHint = empty && Boolean(selectedBankPlayerId) && interactive;
@@ -166,6 +168,8 @@ export function LineupFormationPitch({
           const inner = renderSlotContent({
             slot,
             label,
+            labelDx,
+            labelDy,
             playerId,
             empty,
             dropHint,
