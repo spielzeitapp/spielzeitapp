@@ -23,6 +23,7 @@ import {
   fetchMatchEvents,
   getMatchLiveClockStatus,
   LIVE_FIELD_SLOT_ORDER,
+  replaceMatchLineupAndBench,
   saveMatchEvent,
   saveMatchEvents,
   updateMatchRow,
@@ -635,16 +636,16 @@ export const LiveMatchScreen: React.FC = () => {
 
   const [wechselSheetOpen, setWechselSheetOpen] = useState(false);
 
-  const [wechselOutId, setWechselOutId] = useState<string>('');
-  const [wechselInId, setWechselInId] = useState<string>('');
+  const [selectedOutPlayer, setSelectedOutPlayer] = useState<string>('');
+  const [selectedInPlayer, setSelectedInPlayer] = useState<string>('');
   const closeWechselSheet = useCallback(() => {
-    setWechselOutId('');
-    setWechselInId('');
+    setSelectedOutPlayer('');
+    setSelectedInPlayer('');
     setWechselSheetOpen(false);
   }, []);
   const openWechselSheet = useCallback(() => {
-    setWechselOutId('');
-    setWechselInId('');
+    setSelectedOutPlayer('');
+    setSelectedInPlayer('');
     setWechselSheetOpen(true);
   }, []);
   useEffect(() => {
@@ -985,6 +986,16 @@ export const LiveMatchScreen: React.FC = () => {
       if (!check.ok) return false;
 
       setSaveError(null);
+      const nextStarting = startingPlayerIds.map((id) => (id === outgoingPlayerId ? incomingPlayerId : id)).slice(0, 7);
+      const nextSquad = [...new Set([...squadPlayerIds, outgoingPlayerId, incomingPlayerId])];
+      const { error: swapErr } = await replaceMatchLineupAndBench(effectiveMatchId, nextStarting, nextSquad);
+      if (swapErr) {
+        setSaveError(swapErr);
+        return false;
+      }
+      setStartingPlayerIds(nextStarting);
+      setSquadPlayerIds(nextSquad);
+
       const ts = currentMatchSeconds;
       const outPartial: Omit<MatchEngineEvent, 'id'> = {
         type: 'sub_out',
@@ -1010,9 +1021,9 @@ export const LiveMatchScreen: React.FC = () => {
       const { ids, error } = await saveMatchEvents(payloads);
       if (error || ids.length < 2) {
         console.error('[LiveMatch] saveMatchEvents subs', error);
-        setSaveError(error ?? 'Wechsel speichern fehlgeschlagen.');
+        setSaveError(error ?? 'Wechsel durchgeführt, aber Wechsel-Event konnte nicht gespeichert werden.');
         setEvents((prev) => prev.filter((e) => e.id !== tempOut && e.id !== tempIn));
-        return false;
+        return true;
       }
       setEvents((prev) =>
         prev.map((e) => {
@@ -1023,12 +1034,22 @@ export const LiveMatchScreen: React.FC = () => {
       );
       return true;
     },
-    [canControlLiveMatch, matchIsFinished, effectiveMatchId, currentMatchSeconds, events, onFieldIds, half],
+    [
+      canControlLiveMatch,
+      matchIsFinished,
+      effectiveMatchId,
+      currentMatchSeconds,
+      events,
+      onFieldIds,
+      half,
+      startingPlayerIds,
+      squadPlayerIds,
+    ],
   );
 
   const confirmWechselSection = async () => {
     if (matchIsFinished) return;
-    const ok = await persistSubstitution(wechselOutId, wechselInId);
+    const ok = await persistSubstitution(selectedOutPlayer, selectedInPlayer);
     if (!ok) return;
     closeWechselSheet();
   };
@@ -2014,7 +2035,7 @@ export const LiveMatchScreen: React.FC = () => {
                       formationId={liveLineupFormationId}
                       slots={onFieldBySlot}
                       emphasizedPlayerId={
-                        wechselSheetOpen && wechselOutId ? wechselOutId : null
+                        wechselSheetOpen && selectedOutPlayer ? selectedOutPlayer : null
                       }
                       renderSlotContent={({ label, labelDx, labelDy, playerId, isGk, emphasize }) => {
                         const p = playerId ? rosterById.get(playerId) : null;
@@ -2278,26 +2299,26 @@ export const LiveMatchScreen: React.FC = () => {
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-6 pt-2 [-webkit-overflow-scrolling:touch] sm:px-5">
               <div className="mt-2">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-red-400">Am Feld · Raus</p>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-red-400">AM FELD · RAUS</p>
                 <div
                   className="relative min-h-[108px] rounded-xl border border-red-500/30 bg-gradient-to-b from-red-950/25 via-black/55 to-black/85 p-1.5 sm:min-h-[116px]"
                   aria-label="Spielfeld"
                 >
-                  <div className="flex min-h-[88px] flex-wrap content-center justify-center gap-1.5 sm:min-h-[92px]">
+                  <div className="grid min-h-[88px] grid-cols-4 gap-1.5 sm:min-h-[92px]">
                     {fieldPlayers.length === 0 ? (
-                      <p className="text-[11px] text-white/45">Keine Feldspieler</p>
+                      <p className="col-span-full text-[11px] text-white/45">Keine Feldspieler</p>
                     ) : (
                       fieldPlayers.map((p) => {
-                        const sel = wechselOutId === p.id;
+                        const sel = selectedOutPlayer === p.id;
                         const { label, isGk } = slotMetaFromSlotMap(onFieldBySlot, p.id, liveLineupFormationId);
                         return (
                           <button
                             key={p.id}
                             type="button"
-                            onClick={() => setWechselOutId(p.id)}
-                            className={`flex max-w-[34%] min-w-0 flex-1 basis-[30%] flex-col items-center justify-center rounded-lg px-0.5 py-1 text-center transition-all duration-300 ease-out active:scale-[0.97] sm:max-w-[31%] ${
+                            onClick={() => setSelectedOutPlayer(p.id)}
+                            className={`flex min-h-[58px] min-w-0 flex-col items-center justify-center rounded-lg px-0.5 py-1 text-center transition-all duration-300 ease-out active:scale-[0.97] ${
                               sel
-                                ? 'border-2 border-red-500 bg-red-950/85 shadow-[0_0_0_1px_rgba(239,68,68,0.35)]'
+                                ? 'border-2 border-red-500 bg-red-950/85 shadow-[0_0_18px_rgba(239,68,68,0.5)]'
                                 : 'border border-white/15 bg-black/55'
                             }`}
                           >
@@ -2320,21 +2341,21 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
 
               <div className="mt-2">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-400">Bank · Rein</p>
-                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-400">BANK · REIN</p>
+                <div className="grid grid-cols-4 gap-1.5">
                   {benchPlayers.length === 0 ? (
                     <p className="col-span-full py-1.5 text-center text-[11px] text-white/45">Keine Bankspieler</p>
                   ) : (
                     benchPlayers.map((p) => {
-                      const sel = wechselInId === p.id;
+                      const sel = selectedInPlayer === p.id;
                       return (
                         <button
                           key={p.id}
                           type="button"
-                          onClick={() => setWechselInId(p.id)}
+                          onClick={() => setSelectedInPlayer(p.id)}
                           className={`flex min-h-[58px] flex-col items-center justify-center rounded-lg border px-0.5 py-1 text-center transition-all duration-300 ease-out active:scale-[0.97] ${
                             sel
-                              ? 'border-2 border-emerald-400 bg-emerald-950/65 shadow-[0_0_0_1px_rgba(52,211,153,0.35)]'
+                              ? 'border-2 border-red-500 bg-red-950/75 shadow-[0_0_18px_rgba(239,68,68,0.5)]'
                               : 'border border-white/15 bg-black/55'
                           }`}
                         >
@@ -2364,7 +2385,7 @@ export const LiveMatchScreen: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => void confirmWechselSection()}
-                  disabled={matchIsFinished || !wechselOutId || !wechselInId}
+                  disabled={matchIsFinished || !selectedOutPlayer || !selectedInPlayer}
                   className="flex min-h-[48px] items-center justify-center rounded-xl bg-green-600 px-2 text-sm font-semibold text-white disabled:opacity-40 active:scale-[0.99]"
                 >
                   Wechsel bestätigen
