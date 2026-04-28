@@ -349,7 +349,7 @@ export const MatchLineupPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-1.5 overflow-y-auto px-1 py-1 pb-[11rem] sm:gap-3 sm:px-3 sm:py-2 sm:pb-[30rem]">
+      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-1 overflow-y-auto px-1 py-1 pb-[11rem] sm:gap-3 sm:px-3 sm:py-2 sm:pb-[30rem]">
         {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
         {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
         {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}
@@ -386,7 +386,7 @@ export const MatchLineupPage: React.FC = () => {
               })}
             </div>
           </div>
-          <div className="w-full">
+          <section>
             <LineupFormationPitch
               formationId={formationId}
               slots={slots}
@@ -398,7 +398,7 @@ export const MatchLineupPage: React.FC = () => {
                 const player = playerId ? playersById.get(playerId) : null;
                 if (!player) return null;
                 return (
-                  <div className="pointer-events-none origin-top scale-[0.93] sm:scale-100">
+                  <div className="pointer-events-none">
                     <PitchPlayerMarker
                       lastName={playerFamilyName(player)}
                       number={player.jersey_number}
@@ -412,7 +412,7 @@ export const MatchLineupPage: React.FC = () => {
                 );
               }}
             />
-          </div>
+          </section>
         </section>
 
         <section className="rounded-xl border border-white/[0.1] bg-black/45 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.42)] transition-all duration-300 sm:rounded-2xl sm:bg-black/55 sm:p-4 sm:shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] sm:ring-1 sm:ring-red-950/40">
