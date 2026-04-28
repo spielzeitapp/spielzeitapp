@@ -26,9 +26,10 @@ export type LeibchenJerseyProps = {
   className?: string;
 };
 
-const STRIPE_RED = '#dc2626';
-const STRIPE_BLACK = '#0a0a0a';
-const SLEEVE_BLACK = '#111827';
+const STRIPE_RED = '#ef2b2d';
+const STRIPE_BLACK = '#11131a';
+const SLEEVE_BLACK = '#090b12';
+const FIELD_OUTLINE = 'rgba(239, 43, 45, 0.85)';
 /** Kräftigeres Torwart-Grün + Verlauf */
 const GK_GREEN_TOP = '#34d399';
 const GK_GREEN_MID = '#10b981';
@@ -78,8 +79,8 @@ export function LeibchenJersey({
   /** Pitch: Nummer + Positionskürzel direkt darunter, max. Lesbarkeit */
   const pitchTypo =
     size === 'large'
-      ? { numY: 58, numSize: 34, posY: 86, posSize: 7.6 }
-      : { numY: 50, numSize: 25, posY: 72, posSize: 6.8 };
+      ? { numY: 58, numSize: 35, posY: 86, posSize: 10.2 }
+      : { numY: 50, numSize: 31, posY: 75, posSize: 9.3 };
 
   const showPitchBack = pitchStyleBack;
   const showFullBack = showBackPrint && !showPitchBack;
@@ -101,9 +102,9 @@ export function LeibchenJersey({
       aria-label={ariaLabel}
     >
       <defs>
-        <pattern id={patternId} patternUnits="userSpaceOnUse" width="10" height="118" x="0" y="0">
-          <rect width="5" height="118" fill={STRIPE_RED} />
-          <rect x="5" width="5" height="118" fill={STRIPE_BLACK} />
+        <pattern id={patternId} patternUnits="userSpaceOnUse" width="20" height="118" x="0" y="0">
+          <rect width="10" height="118" fill={STRIPE_RED} />
+          <rect x="10" width="10" height="118" fill={STRIPE_BLACK} />
         </pattern>
         <linearGradient id={gkGradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={GK_GREEN_TOP} />
@@ -160,6 +161,14 @@ export function LeibchenJersey({
             strokeWidth="1"
           />
         )}
+        {variant === 'field' ? (
+          <path
+            d="M 50 10.5 C 44 10.5 38.5 12 34 15 L 30 18.5 Q 28 20 28 23 L 28 104 Q 28 108 32 109.5 L 68 109.5 Q 72 108 72 104 L 72 23 Q 72 20 70 18.5 L 66 15 C 61.5 12 56 10.5 50 10.5 Z"
+            fill="none"
+            stroke={FIELD_OUTLINE}
+            strokeWidth="0.95"
+          />
+        ) : null}
 
         <path
           d="M 50 10.5 C 46 10.5 42 11.2 39 13 L 37 14.5 Q 36.2 15.2 36.8 16.2 L 38.5 17.8 Q 42 16.2 50 16.2 Q 58 16.2 61.5 17.8 L 63.2 16.2 Q 63.8 15.2 63 14.5 L 61 13 C 58 11.2 54 10.5 50 10.5 Z"
@@ -175,7 +184,11 @@ export function LeibchenJersey({
               fill="#ffffff"
               fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
               fontSize={pitchTypo.numSize}
-              fontWeight="800"
+              fontWeight="900"
+              stroke="#0a0a0a"
+              strokeWidth="0.55"
+              strokeOpacity="0.35"
+              paintOrder="stroke fill"
               dominantBaseline="middle"
             >
               {numDisplay}
