@@ -61,7 +61,7 @@ function PitchPlayerMarkerInner({
       <span
         className={
           mode === 'pitch'
-            ? `mt-[2px] max-w-[58px] truncate rounded-full bg-black/40 px-[5px] py-[1px] text-center text-[12px] font-extrabold leading-[1.05] text-white ${nameMax}`
+            ? `mt-0 max-w-[58px] truncate rounded-full bg-black/40 px-[5px] py-[1px] text-center text-[12px] font-extrabold leading-[1.05] text-white ${nameMax}`
             : `mt-0.5 w-full truncate text-center text-sm font-bold leading-tight text-white ${nameMax}`
         }
         style={mode === 'pitch' ? { transform: `translate(${nameOffsetX}px, ${nameOffsetY}px)` } : undefined}
