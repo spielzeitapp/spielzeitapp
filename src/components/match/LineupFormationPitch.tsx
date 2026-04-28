@@ -103,6 +103,43 @@ export function LineupFormationPitch({
     strokeLinejoin: 'round' as const,
   };
 
+  /** Fixe Reihen für klares 7er-Layout (ohne DB/Logik-Änderung). */
+  const ROWS = {
+    ST: 0.22,
+    MID: 0.48,
+    DEF: 0.7,
+    GK: 0.88,
+  } as const;
+
+  const COLS = {
+    left: 0.2,
+    center: 0.5,
+    right: 0.8,
+    defLeft: 0.33,
+    defRight: 0.67,
+  } as const;
+
+  const fixedXYForSlot = (slot: FieldSlotId): { xPct: number; yPct: number } | null => {
+    switch (slot) {
+      case 'ST':
+        return { xPct: COLS.center * 100, yPct: ROWS.ST * 100 };
+      case 'LW':
+        return { xPct: COLS.left * 100, yPct: ROWS.MID * 100 };
+      case 'CM':
+        return { xPct: COLS.center * 100, yPct: ROWS.MID * 100 };
+      case 'RW':
+        return { xPct: COLS.right * 100, yPct: ROWS.MID * 100 };
+      case 'LB':
+        return { xPct: COLS.defLeft * 100, yPct: ROWS.DEF * 100 };
+      case 'RB':
+        return { xPct: COLS.defRight * 100, yPct: ROWS.DEF * 100 };
+      case 'GK':
+        return { xPct: COLS.center * 100, yPct: ROWS.GK * 100 };
+      default:
+        return null;
+    }
+  };
+
   return (
     <div
       className={`relative w-full overflow-hidden rounded-2xl border border-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_12px_40px_rgba(0,0,0,0.55)] aspect-[1/1.02] ${className}`}
@@ -151,7 +188,10 @@ export function LineupFormationPitch({
         </g>
       </svg>
 
-      <div className="absolute inset-[3.5%] z-[1] min-h-0">
+      <div
+        className="absolute inset-x-[3.5%] z-[1] min-h-0"
+        style={{ top: 'calc(3.5% + 16px)', bottom: 'calc(3.5% + 20px)' }}
+      >
         {layout.map(({ slot, label, x, y }) => {
           const playerId = slots[slot] ?? null;
           const empty = !playerId;
@@ -171,7 +211,12 @@ export function LineupFormationPitch({
             emphasize,
           });
 
-          const slotStyle = { left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' } as const;
+          const fixed = fixedXYForSlot(slot);
+          const xUse = fixed?.xPct ?? x;
+          const yUse = fixed?.yPct ?? y;
+          const slotStyle = { left: `${xUse}%`, top: `${yUse}%`, transform: 'translate(-50%, -50%)' } as const;
+
+          const content = <div className="origin-center scale-[0.9]">{inner}</div>;
 
           if (!interactive || !onSlotTap) {
             return (
@@ -180,7 +225,7 @@ export function LineupFormationPitch({
                 className="pointer-events-none absolute flex flex-col items-center justify-center"
                 style={slotStyle}
               >
-                {inner}
+                {content}
               </div>
             );
           }
@@ -203,7 +248,7 @@ export function LineupFormationPitch({
                 {label}
                 {empty ? ', frei antippen zum Zuweisen' : ''}
               </span>
-              {inner}
+              {content}
             </button>
           );
         })}
