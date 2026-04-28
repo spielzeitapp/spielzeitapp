@@ -2315,7 +2315,7 @@ export const LiveMatchScreen: React.FC = () => {
               </p>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[220px] pt-2 [-webkit-overflow-scrolling:touch] sm:px-5">
+            <div className="min-h-screen overflow-y-auto overscroll-contain px-4 pb-[260px] pt-2 [-webkit-overflow-scrolling:touch] sm:px-5">
               <div className="mt-2">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-red-400">AM FELD · RAUS</p>
                 <div
@@ -2392,9 +2392,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
               </div>
 
-            </div>
-            <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+96px)] z-40 border-t border-white/10 bg-gradient-to-t from-black/90 via-zinc-900/88 to-zinc-900/72 px-4 pb-[max(env(safe-area-inset-bottom),8px)] pt-2.5 backdrop-blur-md sm:bottom-0 sm:px-5 sm:pb-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="mt-6 grid grid-cols-2 gap-3 pb-[180px]">
                 <button
                   type="button"
                   onClick={closeWechselSheet}
@@ -2411,6 +2409,7 @@ export const LiveMatchScreen: React.FC = () => {
                   Wechsel bestätigen
                 </button>
               </div>
+
             </div>
           </div>
         </div>
