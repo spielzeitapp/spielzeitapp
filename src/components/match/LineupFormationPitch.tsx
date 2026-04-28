@@ -31,16 +31,16 @@ const PEN_X = 82;
 const PEN_W = 196;
 const PEN_H = 58;
 const TOP_PEN_BOTTOM = 74;
-const BOTTOM_PEN_Y = 348;
+const BOTTOM_PEN_Y = INNER_B - PEN_H;
 
 const GA_X = 130;
 const GA_W = 100;
 const GA_H = 28;
 const TOP_GA_Y = 16;
-const BOTTOM_GA_Y = 378;
+const BOTTOM_GA_Y = INNER_B - GA_H;
 
 const TOP_SPOT_Y = 49;
-const BOTTOM_SPOT_Y = 373;
+const BOTTOM_SPOT_Y = INNER_B - (TOP_SPOT_Y - INNER_T);
 
 const LINE_STROKE = '#ffffff';
 const LINE_OPACITY = 0.66;
@@ -57,7 +57,7 @@ function penaltyArcTopPath(): string {
 }
 
 function penaltyArcBottomPath(): string {
-  return 'M 150 348 A 30 30 0 0 1 210 348';
+  return `M 150 ${BOTTOM_PEN_Y} A 30 30 0 0 1 210 ${BOTTOM_PEN_Y}`;
 }
 
 export type LineupFormationPitchProps = {
