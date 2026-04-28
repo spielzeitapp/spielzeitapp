@@ -45,8 +45,6 @@ const BOTTOM_SPOT_Y = 373;
 const LINE_STROKE = '#ffffff';
 const LINE_OPACITY = 0.66;
 const STROKE_W = 2.1;
-const CORNER_ARC = 12;
-const CORNER_ARC_INSET = 0;
 const TOUCHLINE_RX = 2;
 
 const GOAL_W = Math.round(INNER_W * (7.32 / 68));
@@ -131,39 +129,6 @@ export function LineupFormationPitch({
             ry={TOUCHLINE_RX}
           />
 
-          <path
-            d={`M ${INNER_L + CORNER_ARC_INSET} ${INNER_T + CORNER_ARC + CORNER_ARC_INSET} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L + CORNER_ARC + CORNER_ARC_INSET} ${INNER_T + CORNER_ARC_INSET}`}
-            fill="none"
-            stroke={LINE_STROKE}
-            strokeWidth={2.4}
-            strokeOpacity={1}
-            strokeLinecap="round"
-          />
-          <path
-            d={`M ${INNER_R - CORNER_ARC - CORNER_ARC_INSET} ${INNER_T + CORNER_ARC_INSET} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R - CORNER_ARC_INSET} ${INNER_T + CORNER_ARC + CORNER_ARC_INSET}`}
-            fill="none"
-            stroke={LINE_STROKE}
-            strokeWidth={2.4}
-            strokeOpacity={1}
-            strokeLinecap="round"
-          />
-          <path
-            d={`M ${INNER_R - CORNER_ARC_INSET} ${INNER_B - CORNER_ARC - CORNER_ARC_INSET} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R - CORNER_ARC - CORNER_ARC_INSET} ${INNER_B - CORNER_ARC_INSET}`}
-            fill="none"
-            stroke={LINE_STROKE}
-            strokeWidth={2.4}
-            strokeOpacity={1}
-            strokeLinecap="round"
-          />
-          <path
-            d={`M ${INNER_L + CORNER_ARC + CORNER_ARC_INSET} ${INNER_B - CORNER_ARC_INSET} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L + CORNER_ARC_INSET} ${INNER_B - CORNER_ARC - CORNER_ARC_INSET}`}
-            fill="none"
-            stroke={LINE_STROKE}
-            strokeWidth={2.4}
-            strokeOpacity={1}
-            strokeLinecap="round"
-          />
-
           <line x1={INNER_L} y1={CY} x2={INNER_R} y2={CY} />
 
           <circle cx={CX} cy={CY} r={MID_CIRCLE_R} />
@@ -175,8 +140,8 @@ export function LineupFormationPitch({
           <rect x={GA_X} y={TOP_GA_Y} width={GA_W} height={GA_H} />
           <rect x={GA_X} y={BOTTOM_GA_Y} width={GA_W} height={GA_H} />
 
-          <path d={penaltyArcTopPath()} />
-          <path d={penaltyArcBottomPath()} />
+          <path d={penaltyArcTopPath()} strokeOpacity={0.75} />
+          <path d={penaltyArcBottomPath()} strokeOpacity={0.75} />
 
           <circle cx={CX} cy={TOP_SPOT_Y} r="2.5" fill={LINE_STROKE} fillOpacity={LINE_OPACITY} stroke="none" />
           <circle cx={CX} cy={BOTTOM_SPOT_Y} r="2.5" fill={LINE_STROKE} fillOpacity={LINE_OPACITY} stroke="none" />
