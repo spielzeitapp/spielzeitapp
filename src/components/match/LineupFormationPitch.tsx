@@ -10,9 +10,9 @@ const PITCH_SURFACE: React.CSSProperties = {
   ].join(', '),
 };
 
-const VB_MARGIN = 5;
-const VB_W = 360;
-const VB_H = 520;
+const VB_MARGIN = 6;
+const VB_W = 364;
+const VB_H = 560;
 const VB_MIN = -VB_MARGIN;
 const VB_OUT_W = VB_W + 2 * VB_MARGIN;
 const VB_OUT_H = VB_H + 2 * VB_MARGIN;
@@ -24,33 +24,51 @@ const INNER_L = LINE_INSET;
 const INNER_R = VB_W - LINE_INSET;
 const INNER_T = LINE_INSET;
 const INNER_B = VB_H - LINE_INSET;
+const INNER_W = INNER_R - INNER_L;
+const INNER_H = INNER_B - INNER_T;
 
-const PEN_W = 170;
-const PEN_H = 140;
+/** Strafraum: breit und realistisch (ca. 40.32m bei 68m Feldbreite) */
+const PEN_W = Math.round(INNER_W * (40.32 / 68));
+/** Strafraumtiefe: ca. 16.5m bei 105m Feldlänge */
+const PEN_H = Math.round(INNER_H * (16.5 / 105));
 const PEN_X = (VB_W - PEN_W) / 2;
 const TOP_PEN_BOTTOM = INNER_T + PEN_H;
-const BOTTOM_PEN_Y = VB_H - LINE_INSET - PEN_H;
+const BOTTOM_PEN_Y = INNER_B - PEN_H;
 
-const GA_W = 82;
-const GA_H = 46;
+/** Torraum: ca. 18.32m x 5.5m */
+const GA_W = Math.round(INNER_W * (18.32 / 68));
+const GA_H = Math.round(INNER_H * (5.5 / 105));
 const GA_X = (VB_W - GA_W) / 2;
 
-const TOP_SIX_Y = 90;
-const BOTTOM_SIX_Y = BOTTOM_PEN_Y + 50;
-
-const TOP_SPOT_Y = TOP_PEN_BOTTOM - 22;
-const BOTTOM_SPOT_Y = BOTTOM_PEN_Y + 22;
+const TOP_SIX_Y = INNER_T + GA_H;
+const BOTTOM_SIX_Y = INNER_B - GA_H;
+const TOP_SPOT_Y = INNER_T + Math.round(INNER_H * (11 / 105));
+const BOTTOM_SPOT_Y = INNER_B - Math.round(INNER_H * (11 / 105));
 
 const LINE_STROKE = '#ffffff';
-const LINE_OPACITY = 0.6;
+const LINE_OPACITY = 0.58;
 const STROKE_W = 2;
 /** Eckbögen (Eckball) – Kreisausschnitt innen am Spielfeldrand */
-const CORNER_ARC = 12;
-const TOUCHLINE_RX = 5;
+const CORNER_ARC = 11;
+const TOUCHLINE_RX = 4;
 
-const GOAL_W = 52;
+const GOAL_W = Math.round(INNER_W * (7.32 / 68));
 const GOAL_H = 6;
 const GOAL_X = (VB_W - GOAL_W) / 2;
+const MID_CIRCLE_R = Math.round(INNER_H * (9.15 / 105));
+const PENALTY_ARC_R = MID_CIRCLE_R;
+
+function penaltyArcTopPath(): string {
+  const dy = TOP_PEN_BOTTOM - TOP_SPOT_Y;
+  const dx = Math.sqrt(Math.max(0, PENALTY_ARC_R * PENALTY_ARC_R - dy * dy));
+  return `M ${CX - dx} ${TOP_PEN_BOTTOM} A ${PENALTY_ARC_R} ${PENALTY_ARC_R} 0 0 1 ${CX + dx} ${TOP_PEN_BOTTOM}`;
+}
+
+function penaltyArcBottomPath(): string {
+  const dy = BOTTOM_SPOT_Y - BOTTOM_PEN_Y;
+  const dx = Math.sqrt(Math.max(0, PENALTY_ARC_R * PENALTY_ARC_R - dy * dy));
+  return `M ${CX - dx} ${BOTTOM_PEN_Y} A ${PENALTY_ARC_R} ${PENALTY_ARC_R} 0 0 0 ${CX + dx} ${BOTTOM_PEN_Y}`;
+}
 
 export type LineupFormationPitchProps = {
   formationId: U11FormationId;
@@ -128,7 +146,7 @@ export function LineupFormationPitch({
 
           <line x1={INNER_L} y1={CY} x2={INNER_R} y2={CY} />
 
-          <circle cx={CX} cy={CY} r="50" />
+          <circle cx={CX} cy={CY} r={MID_CIRCLE_R} />
           <circle cx={CX} cy={CY} r="3.5" fill={LINE_STROKE} fillOpacity={LINE_OPACITY} stroke="none" />
 
           <rect x={PEN_X} y={INNER_T} width={PEN_W} height={PEN_H} />
@@ -137,8 +155,8 @@ export function LineupFormationPitch({
           <rect x={GA_X} y={INNER_T} width={GA_W} height={GA_H} />
           <rect x={GA_X} y={INNER_B - GA_H} width={GA_W} height={GA_H} />
 
-          <path d={`M ${PEN_X} ${TOP_PEN_BOTTOM} Q ${CX} ${TOP_PEN_BOTTOM + 36} ${PEN_X + PEN_W} ${TOP_PEN_BOTTOM}`} />
-          <path d={`M ${PEN_X} ${BOTTOM_PEN_Y} Q ${CX} ${BOTTOM_PEN_Y - 36} ${PEN_X + PEN_W} ${BOTTOM_PEN_Y}`} />
+          <path d={penaltyArcTopPath()} />
+          <path d={penaltyArcBottomPath()} />
 
           <line x1={PEN_X} y1={TOP_SIX_Y} x2={PEN_X + PEN_W} y2={TOP_SIX_Y} />
           <line x1={PEN_X} y1={BOTTOM_SIX_Y} x2={PEN_X + PEN_W} y2={BOTTOM_SIX_Y} />
