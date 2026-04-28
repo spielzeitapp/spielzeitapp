@@ -39,7 +39,7 @@ export const U11_FORMATIONS: Record<U11FormationId, FormationSlotLayout[]> = {
     { slot: 'LB', label: 'LV', x: 28, y: 68, labelDx: -4, labelDy: 2 },
     { slot: 'RB', label: 'RV', x: 72, y: 68, labelDx: 4, labelDy: 2 },
     { slot: 'LW', label: 'LA', x: 20, y: 45, labelDx: -5, labelDy: 2 },
-    { slot: 'CM', label: 'ZM', x: 50, y: 45, labelDy: 2 },
+    { slot: 'CM', label: 'ZM', x: 50, y: 40, labelDy: 2 },
     { slot: 'RW', label: 'RA', x: 80, y: 45, labelDx: 5, labelDy: 2 },
     { slot: 'ST', label: 'ST', x: 50, y: 17, labelDy: 2 },
   ],

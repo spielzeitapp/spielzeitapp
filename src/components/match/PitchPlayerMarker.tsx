@@ -35,7 +35,7 @@ function PitchPlayerMarkerInner({
       : '!h-[44px] !w-[38px] shrink-0 sm:!h-[48px] sm:!w-[40px]';
 
   const nameMax =
-    mode === 'pitch' ? 'max-w-[4.6rem] sm:max-w-[5rem]' : 'max-w-[3.75rem] sm:max-w-[4.25rem]';
+    mode === 'pitch' ? 'max-w-[82px] sm:max-w-[96px]' : 'max-w-[3.75rem] sm:max-w-[4.25rem]';
 
   return (
     <div
@@ -61,7 +61,7 @@ function PitchPlayerMarkerInner({
       <span
         className={
           mode === 'pitch'
-            ? `mt-0 max-w-[58px] truncate rounded-full bg-black/40 px-[5px] py-[1px] text-center text-[12px] font-extrabold leading-[1.05] text-white ${nameMax}`
+            ? `mt-0 max-w-full truncate rounded-full bg-black/40 px-[5px] py-[1px] text-center text-[12px] font-extrabold leading-[1.05] text-white ${nameMax}`
             : `mt-0.5 w-full truncate text-center text-sm font-bold leading-tight text-white ${nameMax}`
         }
         style={mode === 'pitch' ? { transform: `translate(${nameOffsetX}px, ${nameOffsetY}px)` } : undefined}
