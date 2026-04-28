@@ -654,17 +654,20 @@ export const LiveMatchScreen: React.FC = () => {
   }, [canControlLiveMatch, mainTab]);
 
   const [wechselSheetOpen, setWechselSheetOpen] = useState(false);
+  const [wechselViewMode, setWechselViewMode] = useState<'buttons' | 'pitch'>('buttons');
 
   const [selectedOutPlayer, setSelectedOutPlayer] = useState<string>('');
   const [selectedInPlayer, setSelectedInPlayer] = useState<string>('');
   const closeWechselSheet = useCallback(() => {
     setSelectedOutPlayer('');
     setSelectedInPlayer('');
+    setWechselViewMode('buttons');
     setWechselSheetOpen(false);
   }, []);
   const openWechselSheet = useCallback(() => {
     setSelectedOutPlayer('');
     setSelectedInPlayer('');
+    setWechselViewMode('buttons');
     setWechselSheetOpen(true);
   }, []);
   useEffect(() => {
@@ -2317,54 +2320,106 @@ export const LiveMatchScreen: React.FC = () => {
               <p className="mt-1 text-center text-sm leading-tight text-zinc-400">
                 Raus + Rein wählen, dann bestätigen
               </p>
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setWechselViewMode('buttons')}
+                  className={`min-h-[32px] rounded-lg border px-2.5 py-1 text-[11px] font-bold transition ${
+                    wechselViewMode === 'buttons'
+                      ? 'border-red-500/80 bg-red-500/25 text-white'
+                      : 'border-white/15 bg-black/25 text-white/70'
+                  }`}
+                >
+                  Button-Auswahl
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWechselViewMode('pitch')}
+                  className={`min-h-[32px] rounded-lg border px-2.5 py-1 text-[11px] font-bold transition ${
+                    wechselViewMode === 'pitch'
+                      ? 'border-red-500/80 bg-red-500/25 text-white'
+                      : 'border-white/15 bg-black/25 text-white/70'
+                  }`}
+                >
+                  Spielfeldansicht
+                </button>
+              </div>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-6 pt-2 [-webkit-overflow-scrolling:touch] sm:px-5">
               <div className="mt-2">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-red-400">AM FELD · RAUS</p>
-                <div
-                  className="rounded-xl border border-red-500/30 bg-gradient-to-b from-red-950/25 via-black/55 to-black/85 p-1.5"
-                  aria-label="Spielfeld"
-                >
-                  {fieldPlayers.length === 0 ? (
-                    <p className="py-8 text-center text-[11px] text-white/45">Keine Feldspieler</p>
-                  ) : (
-                    <LineupFormationPitch
-                      formationId={liveLineupFormationId}
-                      slots={onFieldBySlot}
-                      interactive
-                      onSlotTap={(slot) => {
-                        const pid = onFieldBySlot[slot];
-                        if (pid) setSelectedOutPlayer(pid);
-                      }}
-                      emphasizedPlayerId={selectedOutPlayer || null}
-                      renderSlotContent={({ label, labelDx, labelDy, playerId, isGk, emphasize }) => {
-                        const p = playerId ? rosterById.get(playerId) : null;
-                        if (!p) return null;
+                {wechselViewMode === 'buttons' ? (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {fieldPlayers.length === 0 ? (
+                      <p className="col-span-full py-8 text-center text-[11px] text-white/45">Keine Feldspieler</p>
+                    ) : (
+                      fieldPlayers.map((p) => {
+                        const sel = selectedOutPlayer === p.id;
+                        const { label } = slotMetaFromSlotMap(onFieldBySlot, p.id, liveLineupFormationId);
                         return (
-                          <div className="origin-top scale-[0.93] sm:scale-100">
-                            <PitchPlayerMarker
-                              lastName={rosterFamilyName(p)}
-                              number={p.number || '–'}
-                              positionBadge={label}
-                              variant={isGk ? 'goalkeeper' : 'field'}
-                              mode="pitch"
-                              nameOffsetX={labelDx}
-                              nameOffsetY={labelDy}
-                              selected={emphasize}
-                              emphasize={emphasize}
-                            />
-                          </div>
+                          <button
+                            key={`out-${p.id}`}
+                            type="button"
+                            onClick={() => setSelectedOutPlayer(p.id)}
+                            className={`rounded-xl border px-3 py-2 text-left transition-all duration-150 active:scale-[0.98] ${
+                              sel
+                                ? 'border-red-500 bg-red-950/55 shadow-[0_0_18px_rgba(239,68,68,0.45)]'
+                                : 'border-white/15 bg-black/45'
+                            }`}
+                          >
+                            <p className="text-sm font-bold text-white">{p.number || '–'} · {p.name}</p>
+                            <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-red-300">{label}</p>
+                          </button>
                         );
-                      }}
-                    />
-                  )}
-                </div>
+                      })
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className="rounded-xl border border-red-500/30 bg-gradient-to-b from-red-950/25 via-black/55 to-black/85 p-1.5"
+                    aria-label="Spielfeld"
+                  >
+                    {fieldPlayers.length === 0 ? (
+                      <p className="py-8 text-center text-[11px] text-white/45">Keine Feldspieler</p>
+                    ) : (
+                      <LineupFormationPitch
+                        formationId={liveLineupFormationId}
+                        slots={onFieldBySlot}
+                        interactive
+                        onSlotTap={(slot) => {
+                          const pid = onFieldBySlot[slot];
+                          if (pid) setSelectedOutPlayer(pid);
+                        }}
+                        emphasizedPlayerId={selectedOutPlayer || null}
+                        renderSlotContent={({ label, labelDx, labelDy, playerId, isGk, emphasize }) => {
+                          const p = playerId ? rosterById.get(playerId) : null;
+                          if (!p) return null;
+                          return (
+                            <div className="origin-top scale-[0.93] sm:scale-100">
+                              <PitchPlayerMarker
+                                lastName={rosterFamilyName(p)}
+                                number={p.number || '–'}
+                                positionBadge={label}
+                                variant={isGk ? 'goalkeeper' : 'field'}
+                                mode="pitch"
+                                nameOffsetX={labelDx}
+                                nameOffsetY={labelDy}
+                                selected={emphasize}
+                                emphasize={emphasize}
+                              />
+                            </div>
+                          );
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="mt-2">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-400">BANK · REIN</p>
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {benchPlayers.length === 0 ? (
                     <p className="col-span-full py-1.5 text-center text-[11px] text-white/45">Keine Bankspieler</p>
                   ) : (
@@ -2375,20 +2430,13 @@ export const LiveMatchScreen: React.FC = () => {
                           key={p.id}
                           type="button"
                           onClick={() => setSelectedInPlayer(p.id)}
-                          className={`flex min-h-[58px] flex-col items-center justify-center rounded-lg border px-0.5 py-1 text-center transition-all duration-300 ease-out active:scale-[0.97] ${
+                          className={`rounded-xl border px-3 py-2 text-left transition-all duration-150 active:scale-[0.98] ${
                             sel
-                              ? 'border-2 border-emerald-400 bg-emerald-950/65 shadow-[0_0_18px_rgba(16,185,129,0.45)]'
-                              : 'border border-white/15 bg-black/55'
+                              ? 'border-emerald-400 bg-emerald-950/50 shadow-[0_0_18px_rgba(16,185,129,0.45)]'
+                              : 'border-white/15 bg-black/45'
                           }`}
                         >
-                          <LeibchenJersey
-                            lastName={rosterFamilyName(p)}
-                            number={p.number || '–'}
-                            position="–"
-                            variant="field"
-                            size="compact"
-                            selected={sel}
-                          />
+                          <p className="text-sm font-bold text-white">{p.number || '–'} · {p.name}</p>
                         </button>
                       );
                     })
