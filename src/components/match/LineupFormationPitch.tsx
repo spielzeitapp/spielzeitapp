@@ -105,7 +105,7 @@ export function LineupFormationPitch({
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl border border-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_12px_40px_rgba(0,0,0,0.55)] aspect-[1/1.1] ${className}`}
+      className={`relative w-full overflow-hidden rounded-2xl border border-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_12px_40px_rgba(0,0,0,0.55)] aspect-[1/1.02] ${className}`}
       style={PITCH_SURFACE}
     >
       <div

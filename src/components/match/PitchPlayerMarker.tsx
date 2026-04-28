@@ -27,16 +27,16 @@ function PitchPlayerMarkerInner({
   /** Mobile ~48px, Desktop ~60px Breite; Höhe ~1.18× (ViewBox 100:118) */
   const jerseyClass =
     mode === 'pitch'
-      ? '!h-[57px] !w-[48px] shrink-0 sm:!h-[71px] sm:!w-[60px]'
+      ? '!h-[50px] !w-[42px] shrink-0 sm:!h-[62px] sm:!w-[52px]'
       : '!h-[44px] !w-[38px] shrink-0 sm:!h-[48px] sm:!w-[40px]';
 
   const nameMax =
-    mode === 'pitch' ? 'max-w-[4.5rem] sm:max-w-[5.25rem]' : 'max-w-[3.75rem] sm:max-w-[4.25rem]';
+    mode === 'pitch' ? 'max-w-[4rem] sm:max-w-[4.6rem]' : 'max-w-[3.75rem] sm:max-w-[4.25rem]';
 
   return (
     <div
       className={[
-        'flex min-w-0 max-w-[5.25rem] flex-col items-center gap-0 transition-all duration-300 ease-out sm:max-w-[5.75rem]',
+        'flex min-w-0 max-w-[4.75rem] flex-col items-center gap-0 transition-all duration-300 ease-out sm:max-w-[5.25rem]',
         emphasize ? 'scale-105 drop-shadow-[0_0_14px_rgba(255,255,255,0.45)]' : '',
       ].join(' ')}
     >
@@ -55,7 +55,7 @@ function PitchPlayerMarkerInner({
         />
       </div>
       <span
-        className={`mt-1.5 w-full truncate text-center text-sm font-bold leading-tight text-white ${nameMax}`}
+        className={`mt-1 w-full truncate text-center text-xs font-bold leading-tight text-white ${nameMax}`}
       >
         {lastName.trim() || '—'}
       </span>
