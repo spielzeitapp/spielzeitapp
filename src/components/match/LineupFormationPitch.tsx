@@ -48,8 +48,9 @@ const LINE_STROKE = '#ffffff';
 const LINE_OPACITY = 0.66;
 const STROKE_W = 2.1;
 /** Eckbögen (Eckball) – Kreisausschnitt innen am Spielfeldrand */
-const CORNER_ARC = 11;
-const TOUCHLINE_RX = 4;
+const CORNER_ARC = 13;
+const CORNER_ARC_INSET = 1;
+const TOUCHLINE_RX = 2;
 
 const GOAL_W = Math.round(INNER_W * (7.32 / 68));
 const GOAL_H = 6;
@@ -114,7 +115,7 @@ export function LineupFormationPitch({
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl border border-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_12px_40px_rgba(0,0,0,0.55)] aspect-[4/5] max-h-[min(70dvh,560px)] ${className}`}
+      className={`relative w-full overflow-hidden rounded-2xl border border-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_12px_40px_rgba(0,0,0,0.55)] aspect-[10/11] max-h-[min(64dvh,520px)] ${className}`}
       style={PITCH_SURFACE}
     >
       <div
@@ -138,10 +139,38 @@ export function LineupFormationPitch({
             ry={TOUCHLINE_RX}
           />
 
-          <path d={`M ${INNER_L} ${INNER_T + CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L + CORNER_ARC} ${INNER_T}`} strokeOpacity={0.9} strokeLinecap="round" />
-          <path d={`M ${INNER_R - CORNER_ARC} ${INNER_T} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R} ${INNER_T + CORNER_ARC}`} strokeOpacity={0.9} strokeLinecap="round" />
-          <path d={`M ${INNER_R} ${INNER_B - CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R - CORNER_ARC} ${INNER_B}`} strokeOpacity={0.9} strokeLinecap="round" />
-          <path d={`M ${INNER_L + CORNER_ARC} ${INNER_B} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L} ${INNER_B - CORNER_ARC}`} strokeOpacity={0.9} strokeLinecap="round" />
+          <path
+            d={`M ${INNER_L + CORNER_ARC_INSET} ${INNER_T + CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L + CORNER_ARC} ${INNER_T + CORNER_ARC_INSET}`}
+            fill="none"
+            stroke={LINE_STROKE}
+            strokeWidth={2.2}
+            strokeOpacity={0.95}
+            strokeLinecap="round"
+          />
+          <path
+            d={`M ${INNER_R - CORNER_ARC} ${INNER_T + CORNER_ARC_INSET} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R - CORNER_ARC_INSET} ${INNER_T + CORNER_ARC}`}
+            fill="none"
+            stroke={LINE_STROKE}
+            strokeWidth={2.2}
+            strokeOpacity={0.95}
+            strokeLinecap="round"
+          />
+          <path
+            d={`M ${INNER_R - CORNER_ARC_INSET} ${INNER_B - CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R - CORNER_ARC} ${INNER_B - CORNER_ARC_INSET}`}
+            fill="none"
+            stroke={LINE_STROKE}
+            strokeWidth={2.2}
+            strokeOpacity={0.95}
+            strokeLinecap="round"
+          />
+          <path
+            d={`M ${INNER_L + CORNER_ARC} ${INNER_B - CORNER_ARC_INSET} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L + CORNER_ARC_INSET} ${INNER_B - CORNER_ARC}`}
+            fill="none"
+            stroke={LINE_STROKE}
+            strokeWidth={2.2}
+            strokeOpacity={0.95}
+            strokeLinecap="round"
+          />
 
           <line x1={INNER_L} y1={CY} x2={INNER_R} y2={CY} />
 
