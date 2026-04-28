@@ -11,15 +11,15 @@ const PITCH_SURFACE: React.CSSProperties = {
 };
 
 const VB_MARGIN = 8;
-const VB_W = 420;
-const VB_H = 300;
+const VB_W = 360;
+const VB_H = 410;
 const VB_MIN = -VB_MARGIN;
 const VB_OUT_W = VB_W + 2 * VB_MARGIN;
 const VB_OUT_H = VB_H + 2 * VB_MARGIN;
 
-const LINE_INSET = 18;
+const LINE_INSET = 16;
 const CX = VB_W / 2;
-const CY = VB_H / 2;
+const CY = 211;
 const INNER_L = LINE_INSET;
 const INNER_R = VB_W - LINE_INSET;
 const INNER_T = LINE_INSET;
@@ -27,47 +27,39 @@ const INNER_B = VB_H - LINE_INSET;
 const INNER_W = INNER_R - INNER_L;
 const INNER_H = INNER_B - INNER_T;
 
-/** Zielbild: etwas breiterer, kompakter Strafraum */
-const PEN_W = Math.round(INNER_W * 0.68);
-const PEN_H = Math.round(INNER_H * 0.135);
-const PEN_X = (VB_W - PEN_W) / 2;
-const TOP_PEN_BOTTOM = INNER_T + PEN_H;
-const BOTTOM_PEN_Y = INNER_B - PEN_H;
+const PEN_X = 82;
+const PEN_W = 196;
+const PEN_H = 58;
+const TOP_PEN_BOTTOM = 74;
+const BOTTOM_PEN_Y = 348;
 
-/** Zielbild: kleiner Torraum breiter + flacher */
-const GA_W = Math.round(INNER_W * 0.36);
-const GA_H = Math.round(INNER_H * 0.07);
-const GA_X = (VB_W - GA_W) / 2;
+const GA_X = 130;
+const GA_W = 100;
+const GA_H = 28;
+const TOP_GA_Y = 16;
+const BOTTOM_GA_Y = 378;
 
-const TOP_SIX_Y = INNER_T + GA_H;
-const BOTTOM_SIX_Y = INNER_B - GA_H;
-const TOP_SPOT_Y = INNER_T + Math.round(INNER_H * (11 / 105));
-const BOTTOM_SPOT_Y = INNER_B - Math.round(INNER_H * (11 / 105));
+const TOP_SPOT_Y = 49;
+const BOTTOM_SPOT_Y = 373;
 
 const LINE_STROKE = '#ffffff';
 const LINE_OPACITY = 0.66;
 const STROKE_W = 2.1;
-/** Eckbögen (Eckball) – Kreisausschnitt innen am Spielfeldrand */
-const CORNER_ARC = 14;
-const CORNER_ARC_INSET = 3;
+const CORNER_ARC = 12;
+const CORNER_ARC_INSET = 0;
 const TOUCHLINE_RX = 2;
 
 const GOAL_W = Math.round(INNER_W * (7.32 / 68));
 const GOAL_H = 6;
 const GOAL_X = (VB_W - GOAL_W) / 2;
-const MID_CIRCLE_R = Math.round(INNER_H * (8.15 / 105));
-const PENALTY_ARC_R = Math.round(Math.min(INNER_W, INNER_H) * 0.11);
+const MID_CIRCLE_R = 43;
 
 function penaltyArcTopPath(): string {
-  const dy = TOP_PEN_BOTTOM - TOP_SPOT_Y;
-  const dx = Math.sqrt(Math.max(0, PENALTY_ARC_R * PENALTY_ARC_R - dy * dy));
-  return `M ${CX - dx} ${TOP_PEN_BOTTOM} A ${PENALTY_ARC_R} ${PENALTY_ARC_R} 0 0 0 ${CX + dx} ${TOP_PEN_BOTTOM}`;
+  return 'M 150 74 A 30 30 0 0 0 210 74';
 }
 
 function penaltyArcBottomPath(): string {
-  const dy = BOTTOM_SPOT_Y - BOTTOM_PEN_Y;
-  const dx = Math.sqrt(Math.max(0, PENALTY_ARC_R * PENALTY_ARC_R - dy * dy));
-  return `M ${CX - dx} ${BOTTOM_PEN_Y} A ${PENALTY_ARC_R} ${PENALTY_ARC_R} 0 0 1 ${CX + dx} ${BOTTOM_PEN_Y}`;
+  return 'M 150 348 A 30 30 0 0 1 210 348';
 }
 
 export type LineupFormationPitchProps = {
@@ -115,7 +107,7 @@ export function LineupFormationPitch({
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl border border-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_12px_40px_rgba(0,0,0,0.55)] aspect-[11/10] ${className}`}
+      className={`relative w-full overflow-hidden rounded-2xl border border-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_12px_40px_rgba(0,0,0,0.55)] aspect-[1/1.1] ${className}`}
       style={PITCH_SURFACE}
     >
       <div
@@ -140,7 +132,7 @@ export function LineupFormationPitch({
           />
 
           <path
-            d={`M ${INNER_L + CORNER_ARC_INSET} ${INNER_T + CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L + CORNER_ARC} ${INNER_T + CORNER_ARC_INSET}`}
+            d={`M ${INNER_L + CORNER_ARC_INSET} ${INNER_T + CORNER_ARC + CORNER_ARC_INSET} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L + CORNER_ARC + CORNER_ARC_INSET} ${INNER_T + CORNER_ARC_INSET}`}
             fill="none"
             stroke={LINE_STROKE}
             strokeWidth={2.4}
@@ -148,7 +140,7 @@ export function LineupFormationPitch({
             strokeLinecap="round"
           />
           <path
-            d={`M ${INNER_R - CORNER_ARC} ${INNER_T + CORNER_ARC_INSET} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R - CORNER_ARC_INSET} ${INNER_T + CORNER_ARC}`}
+            d={`M ${INNER_R - CORNER_ARC - CORNER_ARC_INSET} ${INNER_T + CORNER_ARC_INSET} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R - CORNER_ARC_INSET} ${INNER_T + CORNER_ARC + CORNER_ARC_INSET}`}
             fill="none"
             stroke={LINE_STROKE}
             strokeWidth={2.4}
@@ -156,7 +148,7 @@ export function LineupFormationPitch({
             strokeLinecap="round"
           />
           <path
-            d={`M ${INNER_R - CORNER_ARC_INSET} ${INNER_B - CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R - CORNER_ARC} ${INNER_B - CORNER_ARC_INSET}`}
+            d={`M ${INNER_R - CORNER_ARC_INSET} ${INNER_B - CORNER_ARC - CORNER_ARC_INSET} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R - CORNER_ARC - CORNER_ARC_INSET} ${INNER_B - CORNER_ARC_INSET}`}
             fill="none"
             stroke={LINE_STROKE}
             strokeWidth={2.4}
@@ -164,7 +156,7 @@ export function LineupFormationPitch({
             strokeLinecap="round"
           />
           <path
-            d={`M ${INNER_L + CORNER_ARC} ${INNER_B - CORNER_ARC_INSET} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L + CORNER_ARC_INSET} ${INNER_B - CORNER_ARC}`}
+            d={`M ${INNER_L + CORNER_ARC + CORNER_ARC_INSET} ${INNER_B - CORNER_ARC_INSET} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L + CORNER_ARC_INSET} ${INNER_B - CORNER_ARC - CORNER_ARC_INSET}`}
             fill="none"
             stroke={LINE_STROKE}
             strokeWidth={2.4}
@@ -180,8 +172,8 @@ export function LineupFormationPitch({
           <rect x={PEN_X} y={INNER_T} width={PEN_W} height={PEN_H} />
           <rect x={PEN_X} y={BOTTOM_PEN_Y} width={PEN_W} height={PEN_H} />
 
-          <rect x={GA_X} y={INNER_T} width={GA_W} height={GA_H} />
-          <rect x={GA_X} y={INNER_B - GA_H} width={GA_W} height={GA_H} />
+          <rect x={GA_X} y={TOP_GA_Y} width={GA_W} height={GA_H} />
+          <rect x={GA_X} y={BOTTOM_GA_Y} width={GA_W} height={GA_H} />
 
           <path d={penaltyArcTopPath()} />
           <path d={penaltyArcBottomPath()} />
