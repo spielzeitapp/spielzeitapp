@@ -2041,34 +2041,43 @@ export const LiveMatchScreen: React.FC = () => {
                 {/* Mobile: kompakte Live-Bank direkt unter dem Pitch (Desktop bleibt wie bisher aufklappbar) */}
                 {benchPlayers.length > 0 ? (
                   <section className="sm:hidden">
-                    <div className="flex items-center justify-between px-2">
+                    <button
+                      type="button"
+                      onClick={() => setLineupBenchOpen((v) => !v)}
+                      className="flex w-full items-center justify-between px-2 py-1 text-left"
+                    >
                       <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">Bank</span>
-                      <span className="text-[10px] font-medium tabular-nums text-white/40">{benchPlayers.length}</span>
-                    </div>
-                    <div className="mt-1 overflow-x-auto px-1 [-webkit-overflow-scrolling:touch]">
-                      <div className="flex min-w-min items-start gap-1.5">
-                        {benchPlayers.map((p) => (
-                          <div
-                            key={`bench-strip-${p.id}`}
-                            className="shrink-0 rounded-xl border border-white/10 bg-black/25 px-1.5 py-1"
-                          >
-                            <LeibchenJersey
-                              lastName={rosterFamilyName(p)}
-                              number={p.number || '–'}
-                              position="–"
-                              variant="field"
-                              size="compact"
-                              className="!h-[3.15rem] !w-[2.55rem]"
-                              showBackPrint={false}
-                              pitchStyleBack
-                            />
-                            <div className="mt-0.5 max-w-[68px] truncate text-center text-[10px] font-bold leading-tight text-white">
-                              {rosterFamilyName(p)}
+                      <span className="inline-flex items-center gap-2 text-[10px] font-medium tabular-nums text-white/40">
+                        {benchPlayers.length} Spieler
+                        <span aria-hidden>{lineupBenchOpen ? '▾' : '▸'}</span>
+                      </span>
+                    </button>
+                    {lineupBenchOpen ? (
+                      <div className="mt-1 overflow-x-auto px-1 [-webkit-overflow-scrolling:touch]">
+                        <div className="flex min-w-min items-start gap-1.5">
+                          {benchPlayers.map((p) => (
+                            <div
+                              key={`bench-strip-${p.id}`}
+                              className="shrink-0 rounded-xl border border-white/10 bg-black/25 px-1.5 py-1"
+                            >
+                              <LeibchenJersey
+                                lastName={rosterFamilyName(p)}
+                                number={p.number || '–'}
+                                position="–"
+                                variant="field"
+                                size="compact"
+                                className="!h-[3.15rem] !w-[2.55rem]"
+                                showBackPrint={false}
+                                pitchStyleBack
+                              />
+                              <div className="mt-0.5 max-w-[68px] truncate text-center text-[10px] font-bold leading-tight text-white">
+                                {rosterFamilyName(p)}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    ) : null}
                   </section>
                 ) : null}
 

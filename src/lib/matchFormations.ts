@@ -26,7 +26,7 @@ export type FormationSlotLayout = {
 /** Gleichmäßige Reihen: Sturm ~21, MF ~45, Abwehr ~67, TW ~83 (Abstand zum Rand) */
 export const U11_FORMATIONS: Record<U11FormationId, FormationSlotLayout[]> = {
   '1-2-2-2': [
-    { slot: 'GK', label: 'GK', x: 50, y: 88, labelDy: 7 },
+    { slot: 'GK', label: 'GK', x: 50, y: 90, labelDy: 7 },
     { slot: 'LB', label: 'LV', x: 30, y: 68, labelDx: -4, labelDy: 2 },
     { slot: 'RB', label: 'RV', x: 70, y: 68, labelDx: 4, labelDy: 2 },
     { slot: 'LW', label: 'LM', x: 24, y: 42, labelDx: -4, labelDy: 2 },
@@ -35,7 +35,7 @@ export const U11_FORMATIONS: Record<U11FormationId, FormationSlotLayout[]> = {
     { slot: 'ST', label: 'RS', x: 68, y: 18, labelDx: 4, labelDy: 2 },
   ],
   '1-2-3-1': [
-    { slot: 'GK', label: 'GK', x: 50, y: 88, labelDy: 7 },
+    { slot: 'GK', label: 'GK', x: 50, y: 90, labelDy: 7 },
     { slot: 'LB', label: 'LV', x: 28, y: 68, labelDx: -4, labelDy: 2 },
     { slot: 'RB', label: 'RV', x: 72, y: 68, labelDx: 4, labelDy: 2 },
     { slot: 'LW', label: 'LA', x: 20, y: 45, labelDx: -5, labelDy: 2 },
@@ -44,9 +44,9 @@ export const U11_FORMATIONS: Record<U11FormationId, FormationSlotLayout[]> = {
     { slot: 'ST', label: 'ST', x: 50, y: 17, labelDy: 2 },
   ],
   '1-3-2-1': [
-    { slot: 'GK', label: 'GK', x: 50, y: 88, labelDy: 7 },
+    { slot: 'GK', label: 'GK', x: 50, y: 90, labelDy: 7 },
     { slot: 'LB', label: 'LV', x: 18, y: 65, labelDx: -5, labelDy: 2 },
-    { slot: 'CM', label: 'IV', x: 50, y: 68, labelDy: 2 },
+    { slot: 'CM', label: 'IV', x: 50, y: 66, labelDy: 2 },
     { slot: 'RB', label: 'RV', x: 82, y: 65, labelDx: 5, labelDy: 2 },
     { slot: 'LW', label: 'LZM', x: 30, y: 42, labelDx: -4, labelDy: 2 },
     { slot: 'RW', label: 'RZM', x: 70, y: 42, labelDx: 4, labelDy: 2 },

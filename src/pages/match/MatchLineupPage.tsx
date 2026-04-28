@@ -91,6 +91,7 @@ export const MatchLineupPage: React.FC = () => {
   const assignFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [formationId, setFormationId] = useState<U11FormationId>(DEFAULT_U11_FORMATION);
   const [isMobile, setIsMobile] = useState(false);
+  const [benchOpen, setBenchOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -418,52 +419,61 @@ export const MatchLineupPage: React.FC = () => {
         </section>
 
         <section className="rounded-xl border border-white/[0.1] bg-black/45 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.42)] transition-all duration-300 sm:rounded-2xl sm:bg-black/55 sm:p-4 sm:shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] sm:ring-1 sm:ring-red-950/40">
-          <div className="mb-2 flex items-center justify-between border-b border-white/5 pb-2 sm:mb-3 sm:pb-3">
+          <button
+            type="button"
+            onClick={() => setBenchOpen((v) => !v)}
+            className="mb-1 flex w-full items-center justify-between border-b border-white/5 pb-2 text-left sm:mb-2 sm:pb-3"
+          >
             <h2 className="text-xs font-extrabold uppercase tracking-[0.14em] text-white/95 sm:text-sm">BANK</h2>
-            <span className="text-xs font-medium text-white/45">
-              {bankIds.length} {bankIds.length === 1 ? 'Spieler' : 'Spieler'}
+            <span className="inline-flex items-center gap-2 text-xs font-medium text-white/45">
+              {bankIds.length} Spieler
+              <span aria-hidden>{benchOpen ? '▾' : '▸'}</span>
             </span>
-          </div>
-          <div className="-mx-1 overflow-x-auto pb-0.5 pl-1 pr-1 [-webkit-overflow-scrolling:touch]">
-            <div className="flex min-w-min flex-nowrap items-start gap-1.5 transition-all duration-300 sm:gap-2">
-              {bankIds.map((id) => {
-                const p = playersById.get(id);
-                if (!p) return null;
-                const isSelected = selectedBankPlayerId === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => onTapBankPlayer(id)}
-                    className={[
-                      'shrink-0 rounded-lg px-1.5 py-1 transition-all duration-300 ease-out active:scale-95 sm:rounded-xl sm:px-2 sm:py-2',
-                      isSelected
-                        ? 'border-2 border-emerald-400/85 bg-emerald-950/30 shadow-[0_0_22px_rgba(16,185,129,0.4)]'
-                        : 'border border-white/12 bg-black/35 hover:border-white/22 hover:bg-black/45',
-                    ].join(' ')}
-                  >
-                    <div className="flex flex-col items-center">
-                      <LeibchenJersey
-                        lastName={playerFamilyName(p)}
-                        number={p.jersey_number}
-                        position={benchPositionLabel(p)}
-                        variant="field"
-                        size="compact"
-                        className="!h-[3.1rem] !w-[2.45rem] sm:!h-[3.6rem] sm:!w-[2.85rem]"
-                        showBackPrint={false}
-                        pitchStyleBack
-                        selected={isSelected}
-                      />
-                      <span className="mt-0.5 max-w-[68px] truncate text-center text-[10px] font-bold leading-tight text-white sm:text-xs">
-                        {playerFamilyName(p)}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          {bankIds.length === 0 ? <p className="text-xs text-white/50">Keine Spieler auf der Bank.</p> : null}
+          </button>
+          {benchOpen ? (
+            <>
+              <div className="-mx-1 overflow-x-auto pb-0.5 pl-1 pr-1 [-webkit-overflow-scrolling:touch]">
+                <div className="flex min-w-min flex-nowrap items-start gap-1.5 transition-all duration-300 sm:gap-2">
+                  {bankIds.map((id) => {
+                    const p = playersById.get(id);
+                    if (!p) return null;
+                    const isSelected = selectedBankPlayerId === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => onTapBankPlayer(id)}
+                        className={[
+                          'shrink-0 rounded-lg px-1.5 py-1 transition-all duration-300 ease-out active:scale-95 sm:rounded-xl sm:px-2 sm:py-2',
+                          isSelected
+                            ? 'border-2 border-emerald-400/85 bg-emerald-950/30 shadow-[0_0_22px_rgba(16,185,129,0.4)]'
+                            : 'border border-white/12 bg-black/35 hover:border-white/22 hover:bg-black/45',
+                        ].join(' ')}
+                      >
+                        <div className="flex flex-col items-center">
+                          <LeibchenJersey
+                            lastName={playerFamilyName(p)}
+                            number={p.jersey_number}
+                            position={benchPositionLabel(p)}
+                            variant="field"
+                            size="compact"
+                            className="!h-[3.1rem] !w-[2.45rem] sm:!h-[3.6rem] sm:!w-[2.85rem]"
+                            showBackPrint={false}
+                            pitchStyleBack
+                            selected={isSelected}
+                          />
+                          <span className="mt-0.5 max-w-[68px] truncate text-center text-[10px] font-bold leading-tight text-white sm:text-xs">
+                            {playerFamilyName(p)}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {bankIds.length === 0 ? <p className="text-xs text-white/50">Keine Spieler auf der Bank.</p> : null}
+            </>
+          ) : null}
         </section>
 
         <section className="hidden space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95 sm:block">
