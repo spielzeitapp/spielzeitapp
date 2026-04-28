@@ -90,6 +90,7 @@ export const MatchLineupPage: React.FC = () => {
   const [assignFlashSlot, setAssignFlashSlot] = useState<FieldSlotId | null>(null);
   const assignFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [formationId, setFormationId] = useState<U11FormationId>(DEFAULT_U11_FORMATION);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -174,6 +175,14 @@ export const MatchLineupPage: React.FC = () => {
     const stored = readStoredU11Formation(matchId);
     if (stored) setFormationId(stored);
   }, [matchId]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   useEffect(() => {
     if (!selectedBankPlayerId) return;
@@ -319,40 +328,41 @@ export const MatchLineupPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-b from-[#050505] via-[#120808] to-[#0a0606] text-white">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/90 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
+    <div className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-gradient-to-b from-[#050505] via-[#120808] to-[#0a0606] text-white">
+      <style>{`@media (max-width: 639px){ nav[aria-label="Hauptnavigation"]{ display:none !important; } }`}</style>
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/92 px-2.5 py-2 backdrop-blur sm:px-4 sm:py-3">
+        <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-2">
           <div className="min-w-0">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="mb-1 inline-flex min-h-[36px] items-center rounded-lg border border-white/15 bg-white/[0.05] px-2.5 text-xs font-semibold text-white/90 hover:bg-white/[0.09]"
+              className="mb-0.5 inline-flex min-h-[32px] items-center rounded-lg border border-white/15 bg-white/[0.05] px-2 text-[11px] font-semibold text-white/90 hover:bg-white/[0.09] sm:min-h-[36px] sm:px-2.5 sm:text-xs"
             >
               ← Zurück
             </button>
-            <h1 className="text-lg font-bold">AUFSTELLUNG</h1>
-            <p className="truncate text-sm text-white/60">{matchRow?.opponent ? `vs. ${matchRow.opponent}` : 'Spiel'}</p>
+            <h1 className="text-base font-bold sm:text-lg">AUFSTELLUNG</h1>
+            <p className="truncate text-xs text-white/60 sm:text-sm">{matchRow?.opponent ? `vs. ${matchRow.opponent}` : 'Spiel'}</p>
           </div>
-          <span className="rounded-full border border-red-500/40 bg-red-500/15 px-3 py-1 text-xs font-semibold text-red-300">
+          <span className="hidden rounded-full border border-red-500/40 bg-red-500/15 px-3 py-1 text-xs font-semibold text-red-300 sm:inline-flex">
             Trainer
           </span>
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-xl flex-col gap-3 px-2 py-2 pb-[30rem] sm:px-3">
+      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-2 overflow-y-auto px-1.5 py-1.5 pb-[11rem] sm:gap-3 sm:px-3 sm:py-2 sm:pb-[30rem]">
         {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
         {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
         {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}
         {saveMsg ? <p className="text-sm text-emerald-300">{saveMsg}</p> : null}
 
-        <section className="space-y-2 rounded-[1.25rem] border border-white/[0.08] bg-black/50 p-2 shadow-[0_0_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-red-950/35 sm:p-2.5">
+        <section className="space-y-1.5 rounded-[1.05rem] border border-white/[0.08] bg-black/50 p-1.5 shadow-[0_0_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-red-950/35 sm:space-y-2 sm:rounded-[1.25rem] sm:p-2.5">
           <div className="flex items-center justify-between px-0.5 pt-0.5">
-            <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-white/90">Startelf</h2>
+            <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-white/90 sm:text-sm">Startelf</h2>
             <span className="text-xs font-medium text-white/55">{starterCount}/7</span>
           </div>
           <div className="px-0.5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">Formation</p>
-            <div className="mt-1.5 flex flex-wrap gap-2">
+            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/45 sm:text-[10px]">Formation</p>
+            <div className="mt-1 flex flex-wrap gap-1.5 sm:mt-1.5 sm:gap-2">
               {U11_FORMATION_CHOICES.map((id) => {
                 const active = formationId === id;
                 return (
@@ -364,7 +374,7 @@ export const MatchLineupPage: React.FC = () => {
                       if (matchId) writeStoredU11Formation(matchId, id);
                     }}
                     className={[
-                      'min-h-[40px] rounded-lg border px-3 py-2 text-xs font-bold transition-all duration-200 ease-out',
+                      'min-h-[32px] rounded-lg border px-2.5 py-1.5 text-[11px] font-bold transition-all duration-200 ease-out sm:min-h-[40px] sm:px-3 sm:py-2 sm:text-xs',
                       active
                         ? 'scale-105 border-2 border-red-500/90 bg-red-500/25 text-white shadow-[0_0_22px_rgba(239,68,68,0.55),0_0_12px_rgba(248,113,113,0.35)]'
                         : 'border-white/15 bg-black/30 text-white/75 hover:border-white/25 hover:bg-black/40',
@@ -405,9 +415,9 @@ export const MatchLineupPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-white/[0.1] bg-black/55 p-4 shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-red-950/40 transition-all duration-300">
-          <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-3">
-            <h2 className="text-sm font-extrabold uppercase tracking-[0.14em] text-white/95">BANK</h2>
+        <section className="rounded-2xl border border-white/[0.1] bg-black/55 p-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-red-950/40 transition-all duration-300 sm:p-4">
+          <div className="mb-2 flex items-center justify-between border-b border-white/5 pb-2 sm:mb-3 sm:pb-3">
+            <h2 className="text-xs font-extrabold uppercase tracking-[0.14em] text-white/95 sm:text-sm">BANK</h2>
             <span className="text-xs font-medium text-white/45">
               {bankIds.length} {bankIds.length === 1 ? 'Spieler' : 'Spieler'}
             </span>
@@ -488,7 +498,7 @@ export const MatchLineupPage: React.FC = () => {
       <div
         className="fixed inset-x-0 z-[70] border-t border-white/10 bg-gradient-to-t from-black via-black/96 to-black/88 px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.45)] backdrop-blur-md"
         style={{
-          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
+          bottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 4px)' : 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
           paddingBottom: 'max(0.65rem, env(safe-area-inset-bottom, 0px))',
         }}
       >

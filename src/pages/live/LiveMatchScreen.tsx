@@ -33,8 +33,10 @@ import { LineupFormationPitch } from '../../components/match/LineupFormationPitc
 import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import {
   DEFAULT_U11_FORMATION,
+  U11_FORMATION_CHOICES,
   labelForSlotInFormation,
   readStoredU11Formation,
+  writeStoredU11Formation,
   type U11FormationId,
 } from '../../lib/matchFormations';
 import type { FieldSlotId } from '../../types/match';
@@ -799,10 +801,10 @@ export const LiveMatchScreen: React.FC = () => {
     [startingPlayerIds, events, currentMatchSeconds],
   );
 
-  const liveLineupFormationId = useMemo(
-    () => readStoredU11Formation(effectiveMatchId) ?? DEFAULT_U11_FORMATION,
-    [effectiveMatchId],
-  );
+  const [liveLineupFormationId, setLiveLineupFormationId] = useState<U11FormationId>(DEFAULT_U11_FORMATION);
+  useEffect(() => {
+    setLiveLineupFormationId(readStoredU11Formation(effectiveMatchId) ?? DEFAULT_U11_FORMATION);
+  }, [effectiveMatchId]);
 
   const fieldPlayers = useMemo(() => {
     const set = new Set(onFieldIds);
@@ -1983,6 +1985,31 @@ export const LiveMatchScreen: React.FC = () => {
                       Live-Aufstellung
                     </h3>
                     <p className="mb-2 hidden text-[11px] text-white/55 sm:block">Aktuell am Feld</p>
+                    {!spectatorView && canControlLiveMatch ? (
+                      <div className="mb-2 flex flex-wrap gap-1.5 px-1 sm:px-0">
+                        {U11_FORMATION_CHOICES.map((id) => {
+                          const active = liveLineupFormationId === id;
+                          return (
+                            <button
+                              key={`live-formation-${id}`}
+                              type="button"
+                              onClick={() => {
+                                setLiveLineupFormationId(id);
+                                if (effectiveMatchId) writeStoredU11Formation(effectiveMatchId, id);
+                              }}
+                              className={[
+                                'min-h-[30px] rounded-lg border px-2.5 py-1 text-[10px] font-bold transition-all duration-200 ease-out sm:min-h-[34px] sm:text-xs',
+                                active
+                                  ? 'border-red-500/90 bg-red-500/25 text-white shadow-[0_0_16px_rgba(239,68,68,0.45)]'
+                                  : 'border-white/15 bg-black/30 text-white/70 hover:border-white/25 hover:bg-black/40',
+                              ].join(' ')}
+                            >
+                              {id}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
                     <LineupFormationPitch
                       formationId={liveLineupFormationId}
                       slots={onFieldBySlot}

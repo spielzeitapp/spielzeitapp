@@ -79,8 +79,8 @@ export function LeibchenJersey({
   /** Pitch: Nummer + Positionskürzel direkt darunter, max. Lesbarkeit */
   const pitchTypo =
     size === 'large'
-      ? { numY: 58, numSize: 35, posY: 86, posSize: 10.2 }
-      : { numY: 50, numSize: 31, posY: 75, posSize: 9.3 };
+      ? { numY: 58, numSize: 35, posY: 86, posSize: 13.8 }
+      : { numY: 50, numSize: 31, posY: 75, posSize: 12.2 };
 
   const showPitchBack = pitchStyleBack;
   const showFullBack = showBackPrint && !showPitchBack;
@@ -206,7 +206,7 @@ export function LeibchenJersey({
                 paintOrder="stroke fill"
                 fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
                 fontSize={pitchTypo.posSize}
-                fontWeight="800"
+                fontWeight="900"
                 letterSpacing="0.08em"
                 filter={`url(#lj-pitch-pos-${safeId})`}
               >
