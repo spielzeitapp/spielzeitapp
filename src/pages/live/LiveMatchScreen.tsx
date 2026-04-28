@@ -1072,6 +1072,7 @@ export const LiveMatchScreen: React.FC = () => {
     if (matchIsFinished) return;
     const ok = await persistSubstitution(selectedOutPlayer, selectedInPlayer);
     if (!ok) return;
+    await reloadMatchSetupFromDb();
     closeWechselSheet();
   };
 
@@ -2322,42 +2323,42 @@ export const LiveMatchScreen: React.FC = () => {
               <div className="mt-2">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-red-400">AM FELD · RAUS</p>
                 <div
-                  className="relative min-h-[108px] rounded-xl border border-red-500/30 bg-gradient-to-b from-red-950/25 via-black/55 to-black/85 p-1.5 sm:min-h-[116px]"
+                  className="rounded-xl border border-red-500/30 bg-gradient-to-b from-red-950/25 via-black/55 to-black/85 p-1.5"
                   aria-label="Spielfeld"
                 >
-                  <div className="grid min-h-[88px] grid-cols-4 gap-1.5 sm:min-h-[92px]">
-                    {fieldPlayers.length === 0 ? (
-                      <p className="col-span-full text-[11px] text-white/45">Keine Feldspieler</p>
-                    ) : (
-                      fieldPlayers.map((p) => {
-                        const sel = selectedOutPlayer === p.id;
-                        const { label, isGk } = slotMetaFromSlotMap(onFieldBySlot, p.id, liveLineupFormationId);
+                  {fieldPlayers.length === 0 ? (
+                    <p className="py-8 text-center text-[11px] text-white/45">Keine Feldspieler</p>
+                  ) : (
+                    <LineupFormationPitch
+                      formationId={liveLineupFormationId}
+                      slots={onFieldBySlot}
+                      interactive
+                      onSlotTap={(slot) => {
+                        const pid = onFieldBySlot[slot];
+                        if (pid) setSelectedOutPlayer(pid);
+                      }}
+                      emphasizedPlayerId={selectedOutPlayer || null}
+                      renderSlotContent={({ label, labelDx, labelDy, playerId, isGk, emphasize }) => {
+                        const p = playerId ? rosterById.get(playerId) : null;
+                        if (!p) return null;
                         return (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => setSelectedOutPlayer(p.id)}
-                            className={`flex min-h-[58px] min-w-0 flex-col items-center justify-center rounded-lg px-0.5 py-1 text-center transition-all duration-300 ease-out active:scale-[0.97] ${
-                              sel
-                                ? 'border-2 border-red-500 bg-red-950/85 shadow-[0_0_18px_rgba(239,68,68,0.5)]'
-                                : 'border border-white/15 bg-black/55'
-                            }`}
-                          >
-                            <span className="mb-0.5 text-[9px] font-bold uppercase tracking-wider text-white/40">{label}</span>
-                            <span className="-translate-y-0.5 transition-transform duration-300 ease-out">
-                              <LeibchenJersey
-                                lastName={rosterFamilyName(p)}
-                                number={p.number || '–'}
-                                position={label}
-                                variant={isGk ? 'goalkeeper' : 'field'}
-                                size="compact"
-                              />
-                            </span>
-                          </button>
+                          <div className="origin-top scale-[0.93] sm:scale-100">
+                            <PitchPlayerMarker
+                              lastName={rosterFamilyName(p)}
+                              number={p.number || '–'}
+                              positionBadge={label}
+                              variant={isGk ? 'goalkeeper' : 'field'}
+                              mode="pitch"
+                              nameOffsetX={labelDx}
+                              nameOffsetY={labelDy}
+                              selected={emphasize}
+                              emphasize={emphasize}
+                            />
+                          </div>
                         );
-                      })
-                    )}
-                  </div>
+                      }}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -2376,7 +2377,7 @@ export const LiveMatchScreen: React.FC = () => {
                           onClick={() => setSelectedInPlayer(p.id)}
                           className={`flex min-h-[58px] flex-col items-center justify-center rounded-lg border px-0.5 py-1 text-center transition-all duration-300 ease-out active:scale-[0.97] ${
                             sel
-                              ? 'border-2 border-red-500 bg-red-950/75 shadow-[0_0_18px_rgba(239,68,68,0.5)]'
+                              ? 'border-2 border-emerald-400 bg-emerald-950/65 shadow-[0_0_18px_rgba(16,185,129,0.45)]'
                               : 'border border-white/15 bg-black/55'
                           }`}
                         >
