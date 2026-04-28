@@ -48,7 +48,7 @@ const LINE_STROKE = '#ffffff';
 const LINE_OPACITY = 0.66;
 const STROKE_W = 2.1;
 /** Eckbögen (Eckball) – Kreisausschnitt innen am Spielfeldrand */
-const CORNER_ARC = 16;
+const CORNER_ARC = 11;
 const TOUCHLINE_RX = 4;
 
 const GOAL_W = Math.round(INNER_W * (7.32 / 68));
@@ -138,10 +138,10 @@ export function LineupFormationPitch({
             ry={TOUCHLINE_RX}
           />
 
-          <path d={`M ${INNER_L} ${INNER_T + CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L + CORNER_ARC} ${INNER_T}`} strokeOpacity={0.85} />
-          <path d={`M ${INNER_R - CORNER_ARC} ${INNER_T} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R} ${INNER_T + CORNER_ARC}`} strokeOpacity={0.85} />
-          <path d={`M ${INNER_R} ${INNER_B - CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R - CORNER_ARC} ${INNER_B}`} strokeOpacity={0.85} />
-          <path d={`M ${INNER_L + CORNER_ARC} ${INNER_B} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L} ${INNER_B - CORNER_ARC}`} strokeOpacity={0.85} />
+          <path d={`M ${INNER_L} ${INNER_T + CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L + CORNER_ARC} ${INNER_T}`} strokeOpacity={0.9} strokeLinecap="round" />
+          <path d={`M ${INNER_R - CORNER_ARC} ${INNER_T} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R} ${INNER_T + CORNER_ARC}`} strokeOpacity={0.9} strokeLinecap="round" />
+          <path d={`M ${INNER_R} ${INNER_B - CORNER_ARC} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_R - CORNER_ARC} ${INNER_B}`} strokeOpacity={0.9} strokeLinecap="round" />
+          <path d={`M ${INNER_L + CORNER_ARC} ${INNER_B} A ${CORNER_ARC} ${CORNER_ARC} 0 0 1 ${INNER_L} ${INNER_B - CORNER_ARC}`} strokeOpacity={0.9} strokeLinecap="round" />
 
           <line x1={INNER_L} y1={CY} x2={INNER_R} y2={CY} />
 
