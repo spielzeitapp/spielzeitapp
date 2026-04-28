@@ -295,6 +295,11 @@ function rosterFamilyName(p: RosterPlayer): string {
   return parts.length > 1 ? parts[parts.length - 1]! : p.name || '—';
 }
 
+function mobileLineupName(name: string): string {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+  return parts.length > 1 ? parts[parts.length - 1]! : name || '—';
+}
+
 function slotMetaFromSlotMap(
   slots: Record<FieldSlotId, string | null>,
   playerId: string,
@@ -2360,7 +2365,7 @@ export const LiveMatchScreen: React.FC = () => {
 
               <div className="mt-2">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-400">BANK · REIN</p>
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-3 justify-items-center gap-4">
                   {benchPlayers.length === 0 ? (
                     <p className="col-span-full py-1.5 text-center text-[11px] text-white/45">Keine Bankspieler</p>
                   ) : (
@@ -2371,20 +2376,25 @@ export const LiveMatchScreen: React.FC = () => {
                           key={p.id}
                           type="button"
                           onClick={() => setSelectedInPlayer(p.id)}
-                          className={`flex min-h-[58px] flex-col items-center justify-center rounded-lg border px-0.5 py-1 text-center transition-all duration-300 ease-out active:scale-[0.97] ${
-                            sel
-                              ? 'border-2 border-emerald-400 bg-emerald-950/65 shadow-[0_0_18px_rgba(16,185,129,0.45)]'
-                              : 'border border-white/15 bg-black/55'
-                          }`}
+                          className="flex flex-col items-center gap-1 text-center transition-all duration-150 active:scale-95"
                         >
-                          <LeibchenJersey
-                            lastName={rosterFamilyName(p)}
-                            number={p.number || '–'}
-                            position="–"
-                            variant="field"
-                            size="compact"
-                            selected={sel}
-                          />
+                          <div
+                            className={`relative transition-all duration-150 ${
+                              sel ? 'scale-105 drop-shadow-[0_0_12px_rgba(0,255,150,0.6)]' : ''
+                            }`}
+                          >
+                            <LeibchenJersey
+                              lastName={rosterFamilyName(p)}
+                              number={p.number || '–'}
+                              position="–"
+                              variant="field"
+                              size="compact"
+                              selected={sel}
+                            />
+                          </div>
+                          <div className="text-[11px] font-medium leading-none text-white/80">
+                            {mobileLineupName(p.name)}
+                          </div>
                         </button>
                       );
                     })
