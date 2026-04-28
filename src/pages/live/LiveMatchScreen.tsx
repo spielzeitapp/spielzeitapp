@@ -1615,7 +1615,7 @@ export const LiveMatchScreen: React.FC = () => {
             <div
               className={`relative mx-auto mb-0 w-full max-w-none overflow-hidden rounded-2xl border border-red-500/30 bg-black/82 shadow-[0_0_40px_rgba(239,68,68,0.18),0_8px_40px_rgba(0,0,0,0.45)] backdrop-blur-md ${
                 spectatorView ? 'md:max-w-xl' : 'md:max-w-2xl'
-              }`}
+              } ${mainTab === 'lineup' ? 'origin-top scale-[0.9] sm:scale-100' : ''}`}
             >
               <div
                 className="pointer-events-none absolute inset-0 rounded-2xl bg-cover opacity-[0.12] brightness-[0.4] saturate-[0.68]"
@@ -1884,7 +1884,9 @@ export const LiveMatchScreen: React.FC = () => {
           canControlLiveMatch && wechselSheetOpen && !matchIsFinished
             ? 'overflow-hidden'
             : 'overflow-y-auto'
-        } overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} px-2 py-2 pb-40 pt-1 md:px-4 lg:px-5 md:py-4`}
+        } overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} pb-40 pt-1 md:px-4 lg:px-5 md:py-4 ${
+          mainTab === 'lineup' ? 'px-0 py-1 sm:px-2 sm:py-2' : 'px-2 py-2'
+        }`}
       >
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-3'}>
@@ -1968,7 +1970,7 @@ export const LiveMatchScreen: React.FC = () => {
         )}
 
         {mainTab === 'lineup' && (
-          <div className="space-y-3 px-1 pb-56 sm:px-2 sm:pb-16">
+          <div className="space-y-2 px-0 pb-56 sm:space-y-3 sm:px-2 sm:pb-16">
             {fieldPlayers.length === 0 && benchPlayers.length === 0 ? (
               <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-gray-400">
                 Noch keine Aufstellung veröffentlicht.
@@ -1977,8 +1979,10 @@ export const LiveMatchScreen: React.FC = () => {
               <>
                 {fieldPlayers.length > 0 ? (
                   <section>
-                    <h3 className="mb-0.5 text-xs font-bold uppercase tracking-[0.2em] text-red-400/90">Live-Aufstellung</h3>
-                    <p className="mb-2 text-[11px] text-white/55">Aktuell am Feld</p>
+                    <h3 className="mb-0.5 hidden text-xs font-bold uppercase tracking-[0.2em] text-red-400/90 sm:block">
+                      Live-Aufstellung
+                    </h3>
+                    <p className="mb-2 hidden text-[11px] text-white/55 sm:block">Aktuell am Feld</p>
                     <LineupFormationPitch
                       formationId={liveLineupFormationId}
                       slots={onFieldBySlot}
@@ -1989,7 +1993,7 @@ export const LiveMatchScreen: React.FC = () => {
                         const p = playerId ? rosterById.get(playerId) : null;
                         if (!p) return null;
                         return (
-                          <div className="pointer-events-none">
+                          <div className="pointer-events-none origin-top scale-[0.93] sm:scale-100">
                             <PitchPlayerMarker
                               lastName={rosterFamilyName(p)}
                               number={p.number || '–'}
@@ -2004,6 +2008,41 @@ export const LiveMatchScreen: React.FC = () => {
                     />
                   </section>
                 ) : null}
+
+                {/* Mobile: kompakte Live-Bank direkt unter dem Pitch (Desktop bleibt wie bisher aufklappbar) */}
+                {benchPlayers.length > 0 ? (
+                  <section className="sm:hidden">
+                    <div className="flex items-center justify-between px-2">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">Bank</span>
+                      <span className="text-[10px] font-medium tabular-nums text-white/40">{benchPlayers.length}</span>
+                    </div>
+                    <div className="mt-1 overflow-x-auto px-1 [-webkit-overflow-scrolling:touch]">
+                      <div className="flex min-w-min items-start gap-1.5">
+                        {benchPlayers.map((p) => (
+                          <div
+                            key={`bench-strip-${p.id}`}
+                            className="shrink-0 rounded-xl border border-white/10 bg-black/25 px-1.5 py-1"
+                          >
+                            <LeibchenJersey
+                              lastName={rosterFamilyName(p)}
+                              number={p.number || '–'}
+                              position="–"
+                              variant="field"
+                              size="compact"
+                              className="!h-[3.15rem] !w-[2.55rem]"
+                              showBackPrint={false}
+                              pitchStyleBack
+                            />
+                            <div className="mt-0.5 max-w-[68px] truncate text-center text-[10px] font-bold leading-tight text-white">
+                              {rosterFamilyName(p)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+                ) : null}
+
                 <section className="rounded-xl border border-emerald-700/30 bg-black/30">
                   <button
                     type="button"
@@ -2049,7 +2088,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </ul>
                   ) : null}
                 </section>
-                <section className="rounded-xl border border-white/15 bg-black/30">
+                <section className="hidden rounded-xl border border-white/15 bg-black/30 sm:block">
                   <button
                     type="button"
                     onClick={() => setLineupBenchOpen((v) => !v)}
