@@ -11,13 +11,13 @@ const PITCH_SURFACE: React.CSSProperties = {
 };
 
 const VB_MARGIN = 8;
-const VB_W = 364;
-const VB_H = 560;
+const VB_W = 420;
+const VB_H = 300;
 const VB_MIN = -VB_MARGIN;
 const VB_OUT_W = VB_W + 2 * VB_MARGIN;
 const VB_OUT_H = VB_H + 2 * VB_MARGIN;
 
-const LINE_INSET = 16;
+const LINE_INSET = 18;
 const CX = VB_W / 2;
 const CY = VB_H / 2;
 const INNER_L = LINE_INSET;
@@ -48,7 +48,7 @@ const LINE_STROKE = '#ffffff';
 const LINE_OPACITY = 0.66;
 const STROKE_W = 2.1;
 /** Eckbögen (Eckball) – Kreisausschnitt innen am Spielfeldrand */
-const CORNER_ARC = 13;
+const CORNER_ARC = 11;
 const CORNER_ARC_INSET = 1;
 const TOUCHLINE_RX = 2;
 
@@ -56,7 +56,7 @@ const GOAL_W = Math.round(INNER_W * (7.32 / 68));
 const GOAL_H = 6;
 const GOAL_X = (VB_W - GOAL_W) / 2;
 const MID_CIRCLE_R = Math.round(INNER_H * (8.15 / 105));
-const PENALTY_ARC_R = 38;
+const PENALTY_ARC_R = Math.round(Math.min(INNER_W, INNER_H) * 0.11);
 
 function penaltyArcTopPath(): string {
   const dy = TOP_PEN_BOTTOM - TOP_SPOT_Y;
@@ -115,7 +115,7 @@ export function LineupFormationPitch({
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl border border-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_12px_40px_rgba(0,0,0,0.55)] aspect-[10/11] max-h-[min(64dvh,520px)] ${className}`}
+      className={`relative w-full overflow-hidden rounded-2xl border border-black/40 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06),0_12px_40px_rgba(0,0,0,0.55)] aspect-[7/5] ${className}`}
       style={PITCH_SURFACE}
     >
       <div
