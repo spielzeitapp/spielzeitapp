@@ -1925,11 +1925,7 @@ export const LiveMatchScreen: React.FC = () => {
       </header>
 
       <div
-        className={`relative min-h-0 flex-1 ${
-          canControlLiveMatch && wechselSheetOpen && !matchIsFinished
-            ? 'overflow-hidden'
-            : 'overflow-y-auto'
-        } overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} pb-40 pt-1 md:px-4 lg:px-5 md:py-4 ${
+        className={`relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} pb-40 pt-1 md:px-4 lg:px-5 md:py-4 ${
           mainTab === 'lineup' ? 'px-0 py-1 sm:px-2 sm:py-2' : 'px-2 py-2'
         }`}
       >
@@ -2303,7 +2299,7 @@ export const LiveMatchScreen: React.FC = () => {
           onClick={closeWechselSheet}
         >
           <div
-            className="relative mt-auto flex h-[100dvh] max-h-[100dvh] w-full flex-col overflow-hidden rounded-none border-t border-red-500/30 bg-zinc-900 shadow-[0_18px_44px_rgba(0,0,0,0.72)] sm:mt-0 sm:h-[min(90dvh,820px)] sm:max-h-[min(90dvh,820px)] sm:max-w-3xl sm:rounded-3xl sm:border sm:border-red-500/25"
+            className="relative mt-auto flex min-h-[100dvh] w-full flex-col overflow-hidden rounded-none border-t border-red-500/30 bg-zinc-900 shadow-[0_18px_44px_rgba(0,0,0,0.72)] sm:mt-0 sm:h-[min(90dvh,820px)] sm:min-h-0 sm:max-h-[min(90dvh,820px)] sm:max-w-3xl sm:rounded-3xl sm:border sm:border-red-500/25"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -2319,7 +2315,7 @@ export const LiveMatchScreen: React.FC = () => {
               </p>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-6 pt-2 [-webkit-overflow-scrolling:touch] sm:px-5">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[220px] pt-2 [-webkit-overflow-scrolling:touch] sm:px-5">
               <div className="mt-2">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-red-400">AM FELD · RAUS</p>
                 <div
@@ -2396,7 +2392,9 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mt-5 grid grid-cols-2 gap-3">
+            </div>
+            <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+96px)] z-40 border-t border-white/10 bg-gradient-to-t from-black/90 via-zinc-900/88 to-zinc-900/72 px-4 pb-[max(env(safe-area-inset-bottom),8px)] pt-2.5 backdrop-blur-md sm:bottom-0 sm:px-5 sm:pb-3">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={closeWechselSheet}
