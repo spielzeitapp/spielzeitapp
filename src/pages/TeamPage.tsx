@@ -438,12 +438,6 @@ export const TeamPage: React.FC = () => {
   }, [players, selectedProfilePlayer?.id]);
 
   useEffect(() => {
-    if (selectedProfilePlayer) {
-      console.log("profile birthdate", selectedProfilePlayer.birthdate);
-    }
-  }, [selectedProfilePlayer]);
-
-  useEffect(() => {
     return () => {
       if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
     };
@@ -473,7 +467,6 @@ export const TeamPage: React.FC = () => {
     setFormError(null);
     setSaving(true);
     const jersey = parsedJerseyNumber;
-    console.log("saving birthdate", form.birthdate);
 
     if (mode === "create") {
       if (teamSeasonId == null) {
@@ -481,15 +474,17 @@ export const TeamPage: React.FC = () => {
         setSaving(false);
         return;
       }
-      const { error: insertError } = await supabase.from("players").insert({
-        team_season_id: teamSeasonId,
-        first_name: first_name.trim(),
-        last_name: last_name.trim(),
-        jersey_number: form.jersey_number ? Number(form.jersey_number) : null,
-        position: form.position?.trim() || null,
-        "Geburtsdatum": form.birthdate ? toISODate(form.birthdate) : null,
-        is_active: true,
-      });
+      const { data: insertedRows, error: insertError } = await supabase
+        .from("players")
+        .insert({
+          team_season_id: teamSeasonId,
+          first_name: first_name.trim(),
+          last_name: last_name.trim(),
+          jersey_number: form.jersey_number ? Number(form.jersey_number) : null,
+          position: form.position?.trim() || null,
+          is_active: true,
+        })
+        .select("id");
       if (insertError) {
         setFormError(
           isJerseyDuplicateError(insertError as { code?: string; message?: string })
@@ -497,6 +492,28 @@ export const TeamPage: React.FC = () => {
             : insertError.message
         );
         setSaving(false);
+        return;
+      }
+      const newPlayerId = (insertedRows as { id: string }[] | null)?.[0]?.id;
+      if (!newPlayerId) {
+        setFormError("Spieler angelegt, aber Spieler-ID fehlt – Geburtsdatum bitte später bearbeiten.");
+        setSaving(false);
+        await refetchPlayers();
+        closeForm();
+        return;
+      }
+      const { error: profileError } = await supabase.from("player_profiles").upsert(
+        {
+          player_id: newPlayerId,
+          birthdate: form.birthdate ? toISODate(form.birthdate) : null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "player_id" }
+      );
+      if (profileError) {
+        setFormError(profileError.message);
+        setSaving(false);
+        await refetchPlayers();
         return;
       }
       setSaving(false);
@@ -582,7 +599,6 @@ export const TeamPage: React.FC = () => {
           last_name: last_name.trim(),
           jersey_number: form.jersey_number ? Number(form.jersey_number) : null,
           position: form.position?.trim() || null,
-          "Geburtsdatum": form.birthdate ? toISODate(form.birthdate) : null,
         })
         .eq("id", editingPlayer.id);
       setAvatarUploading(false);
@@ -593,6 +609,20 @@ export const TeamPage: React.FC = () => {
             : updateError.message
         );
         setSaving(false);
+        return;
+      }
+      const { error: profileError } = await supabase.from("player_profiles").upsert(
+        {
+          player_id: editingPlayer.id,
+          birthdate: form.birthdate ? toISODate(form.birthdate) : null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "player_id" }
+      );
+      if (profileError) {
+        setFormError(profileError.message);
+        setSaving(false);
+        await refetchPlayers();
         return;
       }
       if (nextAvatarUrl) setAvatarPreviewUrl(nextAvatarUrl);
