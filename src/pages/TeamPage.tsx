@@ -11,6 +11,7 @@ import { roleLabel } from "../utils/roleLabel";
 import { normalizeRole, canManageRoster } from "../lib/roles";
 import { supabase } from "../lib/supabaseClient";
 import { PlayerCard } from "../components/team/PlayerCard";
+import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 
 type TeamTabId = "overview" | "training" | "squad";
 
@@ -154,6 +155,7 @@ export const TeamPage: React.FC = () => {
   const [avatarObjectUrl, setAvatarObjectUrl] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedProfilePlayer, setSelectedProfilePlayer] = useState<PlayerItem | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   const clearAvatarLocalPreview = () => {
@@ -186,7 +188,6 @@ export const TeamPage: React.FC = () => {
   };
 
   const openEditForm = (p: PlayerItem) => {
-    console.log("selected player", p);
     setForm({
       first_name: p.first_name ?? "",
       last_name: p.last_name ?? "",
@@ -201,6 +202,28 @@ export const TeamPage: React.FC = () => {
     setFormError(null);
     setShowForm(true);
   };
+
+  const openPlayerProfile = (p: PlayerItem) => {
+    setSelectedProfilePlayer(p);
+  };
+
+  const closePlayerProfile = () => {
+    setSelectedProfilePlayer(null);
+  };
+
+  const handleEditFromProfile = () => {
+    const snapshot = selectedProfilePlayer;
+    setSelectedProfilePlayer(null);
+    if (!snapshot) return;
+    const fresh = players.find((x) => x.id === snapshot.id) ?? snapshot;
+    openEditForm(fresh);
+  };
+
+  useEffect(() => {
+    if (!selectedProfilePlayer?.id) return;
+    const next = players.find((x) => x.id === selectedProfilePlayer.id);
+    if (next) setSelectedProfilePlayer(next);
+  }, [players, selectedProfilePlayer?.id]);
 
   useEffect(() => {
     return () => {
@@ -397,6 +420,17 @@ export const TeamPage: React.FC = () => {
 
   return (
     <>
+    {selectedProfilePlayer ? (
+      <PlayerProfileModal
+        player={selectedProfilePlayer}
+        teamSeasonLabel={teamLabel}
+        positionAbbrev={abbreviatePositionLabel(selectedProfilePlayer.position)}
+        photoUrl={readOptionalPhotoUrl(selectedProfilePlayer)}
+        canManage={canManagePlayers}
+        onClose={closePlayerProfile}
+        onEdit={handleEditFromProfile}
+      />
+    ) : null}
     <div className="mx-auto w-full max-w-4xl space-y-3 pb-36 lg:max-w-6xl">
       <h1 className="text-xl font-semibold">Team</h1>
 
@@ -625,7 +659,7 @@ export const TeamPage: React.FC = () => {
                       number: p.jersey_number,
                       photo_url: readOptionalPhotoUrl(p),
                     }}
-                    onClick={() => openEditForm(p)}
+                    onClick={() => openPlayerProfile(p)}
                   />
                 </li>
               ))}
