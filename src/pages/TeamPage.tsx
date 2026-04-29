@@ -11,7 +11,7 @@ import { supabase } from "../lib/supabaseClient";
 import { PlayerCard } from "../components/team/PlayerCard";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 
-type TeamTabId = "squad" | "trainers" | "matches";
+type TeamTabId = "squad" | "training" | "matches" | "trainers";
 
 type StaffMembershipRow = {
   user_id: string;
@@ -26,6 +26,12 @@ type RecentMatchRow = {
   status: string | null;
   score_home: number | null;
   score_away: number | null;
+};
+
+type TeamPhotoRow = {
+  team_season_id: string;
+  photo_url: string;
+  updated_at?: string | null;
 };
 
 type FormState = {
@@ -112,6 +118,11 @@ function formatMatchResult(m: RecentMatchRow): string {
   return `${h} : ${a}`;
 }
 
+function readTeamPhotoUrl(row: TeamPhotoRow | null): string | null {
+  const v = (row?.photo_url ?? "").trim();
+  return v.length > 0 ? v : null;
+}
+
 export const TeamPage: React.FC = () => {
   const { selectedTeamSeason, selectedMembership } = useSession();
   const {
@@ -146,7 +157,13 @@ export const TeamPage: React.FC = () => {
   const [selectedProfilePlayer, setSelectedProfilePlayer] = useState<PlayerItem | null>(null);
   const [staffRows, setStaffRows] = useState<StaffMembershipRow[]>([]);
   const [recentMatches, setRecentMatches] = useState<RecentMatchRow[]>([]);
+  const [teamPhoto, setTeamPhoto] = useState<TeamPhotoRow | null>(null);
+  const [teamPhotoUploading, setTeamPhotoUploading] = useState(false);
+  const [teamPhotoError, setTeamPhotoError] = useState<string | null>(null);
+  const [trainingCount, setTrainingCount] = useState(0);
+  const [teamTrainingRateText, setTeamTrainingRateText] = useState<string>("Noch keine Daten");
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const teamPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const heroTeamName = useMemo(() => {
     const fromTs = selectedTeamSeason?.team?.name?.trim();
@@ -170,6 +187,7 @@ export const TeamPage: React.FC = () => {
   }, [selectedTeamSeason, selectedMembership, teamLabel]);
 
   const trainerCount = useMemo(() => staffRows.length, [staffRows]);
+  const teamPhotoUrl = useMemo(() => readTeamPhotoUrl(teamPhoto), [teamPhoto]);
 
   useEffect(() => {
     if (!teamSeasonId) {
@@ -223,6 +241,100 @@ export const TeamPage: React.FC = () => {
       cancelled = true;
     };
   }, [teamSeasonId]);
+
+  useEffect(() => {
+    if (!teamSeasonId) {
+      setTeamPhoto(null);
+      setTeamPhotoError(null);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from("team_photos")
+      .select("team_season_id, photo_url, updated_at")
+      .eq("team_season_id", teamSeasonId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setTeamPhoto(null);
+          return;
+        }
+        setTeamPhoto((data as TeamPhotoRow | null) ?? null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [teamSeasonId]);
+
+  useEffect(() => {
+    if (!teamSeasonId) {
+      setTrainingCount(0);
+      setTeamTrainingRateText("Noch keine Daten");
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from("events")
+      .select("id", { count: "exact", head: true })
+      .eq("team_season_id", teamSeasonId)
+      .eq("kind", "training")
+      .then(({ count, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setTrainingCount(0);
+          setTeamTrainingRateText("Noch keine Daten");
+          return;
+        }
+        const c = Number(count ?? 0) || 0;
+        setTrainingCount(c);
+        setTeamTrainingRateText(c > 0 ? "Noch keine Daten" : "Noch keine Trainingsdaten");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [teamSeasonId]);
+
+  const handleTeamPhotoPick = async (file: File) => {
+    if (!teamSeasonId) return;
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      setTeamPhotoError("Bitte nur JPG, PNG oder WebP hochladen.");
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setTeamPhotoError("Datei ist zu groß (max. 4 MB).");
+      return;
+    }
+    setTeamPhotoError(null);
+    setTeamPhotoUploading(true);
+    const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const uploadPath = `${teamSeasonId}/hero.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("team-photos")
+      .upload(uploadPath, file, { upsert: true, contentType: file.type });
+    if (uploadError) {
+      setTeamPhotoUploading(false);
+      setTeamPhotoError(`Upload fehlgeschlagen: ${uploadError.message}`);
+      return;
+    }
+    const { data: publicData } = supabase.storage.from("team-photos").getPublicUrl(uploadPath);
+    const publicUrl = (publicData?.publicUrl ?? "").trim();
+    const { data: upserted, error: upsertError } = await supabase
+      .from("team_photos")
+      .upsert(
+        { team_season_id: teamSeasonId, photo_url: publicUrl, updated_at: new Date().toISOString() },
+        { onConflict: "team_season_id" }
+      )
+      .select("team_season_id, photo_url, updated_at")
+      .maybeSingle();
+    setTeamPhotoUploading(false);
+    if (upsertError) {
+      setTeamPhotoError(`Foto gespeichert, aber URL nicht gesetzt: ${upsertError.message}`);
+      return;
+    }
+    setTeamPhoto((upserted as TeamPhotoRow | null) ?? null);
+  };
 
   const clearAvatarLocalPreview = () => {
     if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
@@ -465,8 +577,9 @@ export const TeamPage: React.FC = () => {
 
   const teamTabs: TabOption[] = [
     { id: "squad", label: "Kader" },
-    { id: "trainers", label: "Trainer" },
+    { id: "training", label: "Training" },
     { id: "matches", label: "Spiele" },
+    { id: "trainers", label: "Trainer" },
   ];
 
   const [activeTab, setActiveTab] = useState<TeamTabId>("squad");
@@ -496,6 +609,13 @@ export const TeamPage: React.FC = () => {
     <div className="mx-auto w-full max-w-4xl space-y-4 pb-36 lg:max-w-6xl">
       {/* Team Hero */}
       <div className="relative overflow-hidden rounded-2xl border border-red-500/25 bg-[#111] shadow-[0_12px_48px_rgba(0,0,0,0.5)]">
+        {teamPhotoUrl ? (
+          <img
+            src={teamPhotoUrl}
+            alt="Mannschaftsfoto"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : null}
         <div
           className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(48,10,10,0.96)_0%,rgba(14,14,18,0.98)_45%,rgba(8,8,12,1)_100%)]"
           aria-hidden
@@ -505,31 +625,56 @@ export const TeamPage: React.FC = () => {
           aria-hidden
         />
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-red-600/20 blur-3xl" aria-hidden />
-        <div className="relative flex min-h-[140px] flex-col justify-end p-5 sm:min-h-[152px] sm:p-6">
+        <div className="relative flex min-h-[160px] flex-col justify-end p-5 sm:min-h-[178px] sm:p-6">
+          {canManagePlayers ? (
+            <div className="mb-3 flex justify-end">
+              <input
+                ref={teamPhotoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  void handleTeamPhotoPick(file);
+                  if (teamPhotoInputRef.current) teamPhotoInputRef.current.value = "";
+                }}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={teamPhotoUploading || !teamSeasonId}
+                onClick={() => teamPhotoInputRef.current?.click()}
+              >
+                {teamPhotoUploading ? "Upload…" : "Mannschaftsfoto"}
+              </Button>
+            </div>
+          ) : null}
           <div>
             <p className="text-lg font-bold leading-tight text-white sm:text-xl">
               {tsLoading ? "Lade Team…" : heroTeamName}
             </p>
             <p className="mt-1 text-sm text-white/60">{heroSeason}</p>
           </div>
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-white/70 sm:text-sm">
-            <span className="inline-flex items-center gap-1.5 opacity-90">
-              <span aria-hidden>👥</span>
-              <span>{tsLoading ? "…" : `${players.length} Spieler`}</span>
+          <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/75 sm:text-sm">
+            <span className="inline-flex items-center rounded-full border border-white/15 bg-black/35 px-2.5 py-1">
+              {tsLoading ? "…" : `${players.length} Spieler`}
             </span>
-            <span className="inline-flex items-center gap-1.5 opacity-90">
-              <span aria-hidden>👤</span>
-              <span>
-                {trainerCount} Trainer
-              </span>
+            <span className="inline-flex items-center rounded-full border border-white/15 bg-black/35 px-2.5 py-1">
+              {trainerCount} Trainer
             </span>
-            <span className="inline-flex items-center gap-1.5 opacity-90">
-              <span aria-hidden>📅</span>
-              <span>Saison {heroSeason}</span>
+            <span className="inline-flex items-center rounded-full border border-white/15 bg-black/35 px-2.5 py-1">
+              Saison {heroSeason}
             </span>
           </div>
         </div>
       </div>
+      {teamPhotoError ? (
+        <p className="text-sm text-red-600" role="alert">
+          {teamPhotoError}
+        </p>
+      ) : null}
 
       {tsError ? (
         <p className="text-sm text-red-600" role="alert">
@@ -810,17 +955,85 @@ export const TeamPage: React.FC = () => {
           ) : recentMatches.length === 0 ? (
             <p className="mt-4 text-center text-sm text-white/50">Keine Spiele vorhanden</p>
           ) : (
+            <div className="mt-4 space-y-4">
+              <div>
+                <p className="mb-2 text-xs uppercase tracking-wide text-white/45">Nächste / letzte Spiele</p>
+                <ul className="space-y-2.5">
+                  {recentMatches.map((m) => (
+                    <li
+                      key={m.id}
+                      className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3 text-sm"
+                    >
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <span className="font-semibold text-white">{(m.opponent ?? "").trim() || "—"}</span>
+                        <span className="tabular-nums text-white/80">{formatMatchResult(m)}</span>
+                      </div>
+                      <div className="mt-1 text-xs text-white/50">{formatMatchDateDe(m.match_date)}</div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </Card>
+      ) : null}
+
+      {activeTab === "training" ? (
+        <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
+          <CardTitle className="mt-0">Training</CardTitle>
+          {teamSeasonId == null && !tsLoading ? (
+            <p className="mt-3 text-sm text-white/55">Bitte Team wählen.</p>
+          ) : (
+            <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
+                  <div className="text-xs text-white/50">Teilnahmequote Team</div>
+                  <div className="mt-1 text-lg font-bold text-white">{teamTrainingRateText}</div>
+                </div>
+                <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
+                  <div className="text-xs text-white/50">Anzahl Trainings</div>
+                  <div className="mt-1 text-lg font-bold text-white">{trainingCount}</div>
+                </div>
+                <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
+                  <div className="text-xs text-white/50">Durchschnittliche Beteiligung</div>
+                  <div className="mt-1 text-lg font-bold text-white">Noch keine Daten</div>
+                </div>
+              </div>
+              {trainingCount === 0 ? (
+                <p className="text-center text-sm text-white/50">Noch keine Trainingsdaten</p>
+              ) : null}
+            </div>
+          )}
+        </Card>
+      ) : null}
+
+      {activeTab === "trainers" ? (
+        <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
+          <CardTitle className="mt-0">Trainer</CardTitle>
+          {teamSeasonId == null && !tsLoading ? (
+            <p className="mt-3 text-sm text-white/55">Bitte Team wählen.</p>
+          ) : staffRows.length === 0 ? (
+            <p className="mt-4 text-center text-sm text-white/50">Keine Trainer hinterlegt</p>
+          ) : (
             <ul className="mt-4 space-y-2.5">
-              {recentMatches.map((m) => (
+              {staffRows.map((row) => (
                 <li
-                  key={m.id}
-                  className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3 text-sm"
+                  key={`${row.user_id}-${row.role}`}
+                  className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] p-3"
                 >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="font-semibold text-white">{(m.opponent ?? "").trim() || "—"}</span>
-                    <span className="tabular-nums text-white/80">{formatMatchResult(m)}</span>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 bg-zinc-800 text-sm font-black text-white/90">
+                    {profileDisplayName(row.profiles)
+                      .split(/\s+/)
+                      .filter(Boolean)
+                      .map((w) => w[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase() || "—"}
                   </div>
-                  <div className="mt-1 text-xs text-white/50">{formatMatchDateDe(m.match_date)}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-semibold text-white">{profileDisplayName(row.profiles)}</div>
+                    <div className="mt-0.5 text-xs text-white/55">{staffRoleLabelDe(row.role)}</div>
+                  </div>
                 </li>
               ))}
             </ul>
