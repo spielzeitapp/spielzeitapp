@@ -1,19 +1,32 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useSession } from "../auth/useSession";
-import { RequireFeature } from "../auth/rbac";
+import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from "../auth/useSession";
 import { Card, CardTitle } from "../app/components/ui/Card";
 import { Tabs, TabOption } from "../app/components/ui/Tabs";
 import { Button } from "../app/components/ui/Button";
 import { Trash2 } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
-import { roleLabel } from "../utils/roleLabel";
-import { normalizeRole, canManageRoster } from "../lib/roles";
+import { normalizeRole, canManageRoster, ROLE_LABELS_DE } from "../lib/roles";
 import { supabase } from "../lib/supabaseClient";
 import { PlayerCard } from "../components/team/PlayerCard";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 
-type TeamTabId = "overview" | "training" | "squad";
+type TeamTabId = "squad" | "trainers" | "matches";
+
+type StaffMembershipRow = {
+  user_id: string;
+  role: string;
+  profiles: { first_name: string | null; last_name: string | null } | null;
+};
+
+type RecentMatchRow = {
+  id: string;
+  opponent: string | null;
+  match_date: string | null;
+  status: string | null;
+  score_home: number | null;
+  score_away: number | null;
+};
 
 type FormState = {
   first_name: string;
@@ -66,74 +79,41 @@ function readOptionalPhotoUrl(p: PlayerItem): string | null {
   return v.length > 0 ? v : null;
 }
 
-/** Read-only: Rollenverteilung aus memberships (MVP). */
-function TeamMembershipRolesCard({ teamSeasonId }: { teamSeasonId: string | null }) {
-  const [rows, setRows] = useState<Array<{ role: string }>>([]);
-  const [loading, setLoading] = useState(false);
+function staffRoleLabelDe(rawRole: string): string {
+  const s = rawRole.trim().toLowerCase();
+  if (s === "head_coach") return ROLE_LABELS_DE.head_coach;
+  if (s === "co_trainer") return ROLE_LABELS_DE.co_trainer;
+  if (s === "trainer") return ROLE_LABELS_DE.trainer;
+  return ROLE_LABELS_DE.trainer;
+}
 
-  useEffect(() => {
-    if (!teamSeasonId) {
-      setRows([]);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    void supabase
-      .from("memberships")
-      .select("role")
-      .eq("team_season_id", teamSeasonId)
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        setLoading(false);
-        if (error) {
-          setRows([]);
-          return;
-        }
-        setRows((data ?? []) as Array<{ role: string }>);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [teamSeasonId]);
+function profileDisplayName(p: { first_name?: string | null; last_name?: string | null } | null): string {
+  if (!p) return "—";
+  const a = (p.first_name ?? "").trim();
+  const b = (p.last_name ?? "").trim();
+  const full = [a, b].filter(Boolean).join(" ").trim();
+  return full || "—";
+}
 
-  const counts = useMemo(() => {
-    const m: Record<string, number> = {};
-    for (const r of rows) {
-      const key = String(r.role ?? "").trim() || "—";
-      m[key] = (m[key] ?? 0) + 1;
-    }
-    return m;
-  }, [rows]);
+function formatMatchDateDe(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("de-DE", { day: "2-digit", month: "short", year: "numeric" });
+}
 
-  if (!teamSeasonId) return null;
-
-  return (
-    <Card>
-      <CardTitle className="mt-0">Team & Rollen</CardTitle>
-      <p className="mt-1 text-xs text-[var(--muted)]">Mitgliedschafts-Rollen (Lesen)</p>
-      {loading && <p className="mt-2 text-sm text-[var(--muted)]">Laden…</p>}
-      {!loading && rows.length === 0 && (
-        <p className="mt-2 text-sm text-[var(--muted)]">Keine Einträge.</p>
-      )}
-      {!loading && rows.length > 0 && (
-        <ul className="mt-2 space-y-1.5 text-sm">
-          {Object.entries(counts).map(([raw, n]) => {
-            const nr = normalizeRole(raw);
-            return (
-              <li key={raw} className="flex justify-between gap-2 border-b border-[var(--border)]/40 pb-1 last:border-0">
-                <span>{roleLabel(nr || raw)}</span>
-                <span className="text-[var(--muted)]">{n}</span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </Card>
-  );
+function formatMatchResult(m: RecentMatchRow): string {
+  const st = (m.status ?? "").trim().toLowerCase();
+  if (st === "live") return "Live";
+  if (st !== "finished") return "—";
+  const h = m.score_home;
+  const a = m.score_away;
+  if (h == null || a == null) return "—";
+  return `${h} : ${a}`;
 }
 
 export const TeamPage: React.FC = () => {
-  const { canAccess } = useSession();
+  const { selectedTeamSeason, selectedMembership } = useSession();
   const {
     teamLabel,
     teamSeasonId,
@@ -164,7 +144,85 @@ export const TeamPage: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedProfilePlayer, setSelectedProfilePlayer] = useState<PlayerItem | null>(null);
+  const [staffRows, setStaffRows] = useState<StaffMembershipRow[]>([]);
+  const [recentMatches, setRecentMatches] = useState<RecentMatchRow[]>([]);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+
+  const heroTeamName = useMemo(() => {
+    const fromTs = selectedTeamSeason?.team?.name?.trim();
+    if (fromTs) return fromTs;
+    const fromMem = getTeamNameFromMembership(selectedMembership)?.trim();
+    if (fromMem) return fromMem;
+    const label = (teamLabel ?? "").trim();
+    const paren = label.indexOf("(");
+    if (paren > 0) return label.slice(0, paren).trim();
+    return label || "Team";
+  }, [selectedTeamSeason, selectedMembership, teamLabel]);
+
+  const heroSeason = useMemo(() => {
+    const fromTs = selectedTeamSeason?.season?.name?.trim();
+    if (fromTs) return fromTs;
+    const fromMem = getSeasonLabelFromMembership(selectedMembership)?.trim();
+    if (fromMem && fromMem !== "—") return fromMem;
+    const label = (teamLabel ?? "").trim();
+    const m = /\(([^)]+)\)/.exec(label);
+    return m?.[1]?.trim() ?? "—";
+  }, [selectedTeamSeason, selectedMembership, teamLabel]);
+
+  const trainerCount = useMemo(() => staffRows.length, [staffRows]);
+
+  useEffect(() => {
+    if (!teamSeasonId) {
+      setStaffRows([]);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from("memberships")
+      .select("user_id, role, profiles(first_name, last_name)")
+      .eq("team_season_id", teamSeasonId)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setStaffRows([]);
+          return;
+        }
+        const rows = (data ?? []) as StaffMembershipRow[];
+        const staff = rows.filter((r) => {
+          const s = (r.role ?? "").trim().toLowerCase();
+          return s === "trainer" || s === "co_trainer" || s === "head_coach";
+        });
+        setStaffRows(staff);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [teamSeasonId]);
+
+  useEffect(() => {
+    if (!teamSeasonId) {
+      setRecentMatches([]);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from("matches")
+      .select("id, opponent, match_date, status, score_home, score_away")
+      .eq("team_season_id", teamSeasonId)
+      .order("match_date", { ascending: false })
+      .limit(5)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setRecentMatches([]);
+          return;
+        }
+        setRecentMatches((data ?? []) as RecentMatchRow[]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [teamSeasonId]);
 
   const clearAvatarLocalPreview = () => {
     if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
@@ -405,22 +463,13 @@ export const TeamPage: React.FC = () => {
     await refetchPlayers();
   };
 
-  const allTabs: TabOption[] = [
-    { id: "overview", label: "Übersicht" },
-    { id: "training", label: "Training" },
+  const teamTabs: TabOption[] = [
     { id: "squad", label: "Kader" },
+    { id: "trainers", label: "Trainer" },
+    { id: "matches", label: "Spiele" },
   ];
 
-  const visibleTabs = allTabs.filter((tab) => {
-    if (tab.id === "training") {
-      return canAccess("training");
-    }
-    return true;
-  });
-
-  const [activeTab, setActiveTab] = useState<TeamTabId>(
-    (visibleTabs[0]?.id as TeamTabId) ?? "overview",
-  );
+  const [activeTab, setActiveTab] = useState<TeamTabId>("squad");
 
   const sortedPlayers = useMemo(() => {
     return [...players].sort((a, b) => {
@@ -444,46 +493,66 @@ export const TeamPage: React.FC = () => {
         onEdit={handleEditFromProfile}
       />
     ) : null}
-    <div className="mx-auto w-full max-w-4xl space-y-3 pb-36 lg:max-w-6xl">
-      <h1 className="text-xl font-semibold">Team</h1>
-
-      <div className="lg:grid lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-5">
-        <div className="space-y-3">
-      {/* Team Card */}
-      <Card>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <CardTitle className="mt-0 text-base leading-tight sm:text-lg [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden break-words">
-              {tsLoading ? "Lade Team…" : (teamLabel ?? "Team")}
-            </CardTitle>
-            {!tsLoading && (
-              <p className="mt-0.5 text-sm text-[var(--muted)]">
-                {roleLabel(role)}
-              </p>
-            )}
+    <div className="mx-auto w-full max-w-4xl space-y-4 pb-36 lg:max-w-6xl">
+      {/* Team Hero */}
+      <div className="relative overflow-hidden rounded-2xl border border-red-500/25 bg-[#111] shadow-[0_12px_48px_rgba(0,0,0,0.5)]">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(48,10,10,0.96)_0%,rgba(14,14,18,0.98)_45%,rgba(8,8,12,1)_100%)]"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.14] bg-[repeating-linear-gradient(90deg,transparent,transparent_14px,rgba(255,255,255,0.04)_14px,rgba(255,255,255,0.04)_16px)]"
+          aria-hidden
+        />
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-red-600/20 blur-3xl" aria-hidden />
+        <div className="relative flex min-h-[140px] flex-col justify-end p-5 sm:min-h-[152px] sm:p-6">
+          <div>
+            <p className="text-lg font-bold leading-tight text-white sm:text-xl">
+              {tsLoading ? "Lade Team…" : heroTeamName}
+            </p>
+            <p className="mt-1 text-sm text-white/60">{heroSeason}</p>
           </div>
-          {!tsLoading && teamSeasonId != null && (
-            <span className="shrink-0 text-sm text-[var(--muted)]">
-              {players.length} Spieler
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-white/70 sm:text-sm">
+            <span className="inline-flex items-center gap-1.5 opacity-90">
+              <span aria-hidden>👥</span>
+              <span>{tsLoading ? "…" : `${players.length} Spieler`}</span>
             </span>
-          )}
+            <span className="inline-flex items-center gap-1.5 opacity-90">
+              <span aria-hidden>👤</span>
+              <span>
+                {trainerCount} Trainer
+              </span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 opacity-90">
+              <span aria-hidden>📅</span>
+              <span>Saison {heroSeason}</span>
+            </span>
+          </div>
         </div>
-        {tsError && (
-          <p className="mt-2 text-sm text-red-600" role="alert">
-            {tsError}
-          </p>
-        )}
-      </Card>
+      </div>
 
-      {/* Team & Rollen aktuell ausgeblendet (Platz sparen) */}
+      {tsError ? (
+        <p className="text-sm text-red-600" role="alert">
+          {tsError}
+        </p>
+      ) : null}
 
-      {/* Kader Card */}
-      <Card className="rounded-3xl border border-red-500/20 bg-[linear-gradient(180deg,rgba(239,68,68,0.12)_0%,rgba(0,0,0,0.25)_100%)] shadow-[0_0_0_1px_rgba(239,68,68,0.10),0_18px_50px_rgba(0,0,0,0.55)] ring-1 ring-red-500/10">
+      <div className="sticky top-0 z-20 rounded-xl border border-red-500/15 bg-[#111]/90 px-1 shadow-[0_4px_24px_rgba(0,0,0,0.35)] backdrop-blur-md">
+        <Tabs
+          variant="stadium"
+          tabs={teamTabs}
+          activeId={activeTab}
+          onChange={(id) => setActiveTab(id as TeamTabId)}
+        />
+      </div>
+
+      {activeTab === "squad" ? (
+      <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="mt-0">Kader</CardTitle>
           {teamSeasonId != null && canManagePlayers && !plLoading ? (
             <Button type="button" variant="secondary" size="sm" onClick={() => (showForm ? closeForm() : openCreateForm())}>
-              {showForm ? "Schließen" : "+ Spieler"}
+              {showForm ? "Schließen" : "+ Spieler hinzufügen"}
             </Button>
           ) : null}
         </div>
@@ -669,9 +738,16 @@ export const TeamPage: React.FC = () => {
             </p>
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
-            <ul className="mt-3 space-y-2.5 pb-32">
+            <ul className="mt-3 space-y-2.5 pb-8">
               {sortedPlayers.map((p) => (
-                <li key={p.id}>
+                <li
+                  key={p.id}
+                  className={
+                    canManagePlayers
+                      ? "rounded-xl transition-[box-shadow] duration-200 hover:shadow-[0_0_22px_rgba(239,68,68,0.18)]"
+                      : undefined
+                  }
+                >
                   <PlayerCard
                     player={{
                       id: p.id,
@@ -690,59 +766,67 @@ export const TeamPage: React.FC = () => {
           )}
         </div>
       </Card>
-        </div>
+      ) : null}
 
-        <div className="mt-3 space-y-3 lg:mt-0 lg:sticky lg:top-28 lg:self-start">
-      <Tabs
-        tabs={visibleTabs}
-        activeId={activeTab}
-        onChange={(id) => setActiveTab(id as TeamTabId)}
-      />
+      {activeTab === "trainers" ? (
+        <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
+          <CardTitle className="mt-0">Trainer</CardTitle>
+          {teamSeasonId == null && !tsLoading ? (
+            <p className="mt-3 text-sm text-white/55">Bitte Team wählen.</p>
+          ) : staffRows.length === 0 ? (
+            <p className="mt-4 text-center text-sm text-white/50">Keine Trainer hinterlegt</p>
+          ) : (
+            <ul className="mt-4 space-y-2.5">
+              {staffRows.map((row) => (
+                <li
+                  key={`${row.user_id}-${row.role}`}
+                  className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] p-3"
+                >
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 bg-zinc-800 text-sm font-black text-white/90">
+                    {profileDisplayName(row.profiles)
+                      .split(/\s+/)
+                      .filter(Boolean)
+                      .map((w) => w[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase() || "—"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-semibold text-white">{profileDisplayName(row.profiles)}</div>
+                    <div className="mt-0.5 text-xs text-white/55">{staffRoleLabelDe(row.role)}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      ) : null}
 
-      <section className="space-y-3">
-        {activeTab === "overview" && (
-          <Card>
-            <CardTitle>Team-Übersicht</CardTitle>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Kurzer Überblick über das Team. Später siehst du hier
-              Spieleranzahl, Saisonstatistiken und wichtige Hinweise.
-            </p>
-          </Card>
-        )}
-
-        {activeTab === "training" && (
-          <RequireFeature feature="training">
-            <Card>
-              <CardTitle>Training</CardTitle>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Trainingsplan-Übersicht. Eltern und Spieler sehen hier die
-                kommenden Einheiten.
-              </p>
-
-              {canManagePlayers ? (
-                <div className="mt-3">
-                  <Button>Training bearbeiten</Button>
-                </div>
-              ) : (
-                <p className="mt-2 text-xs text-[var(--muted)]">
-                  Read-only Ansicht. Trainer bearbeiten den Plan zentral.
-                </p>
-              )}
-            </Card>
-          </RequireFeature>
-        )}
-
-        {activeTab === "squad" && (
-          <Card>
-            <CardTitle>Kader (Details)</CardTitle>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Spielerliste siehe Kader-Card oben.
-            </p>
-          </Card>
-        )}
-      </section>
-        </div>
-      </div>
+      {activeTab === "matches" ? (
+        <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
+          <CardTitle className="mt-0">Spiele</CardTitle>
+          {teamSeasonId == null && !tsLoading ? (
+            <p className="mt-3 text-sm text-white/55">Bitte Team wählen.</p>
+          ) : recentMatches.length === 0 ? (
+            <p className="mt-4 text-center text-sm text-white/50">Keine Spiele vorhanden</p>
+          ) : (
+            <ul className="mt-4 space-y-2.5">
+              {recentMatches.map((m) => (
+                <li
+                  key={m.id}
+                  className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3 text-sm"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-semibold text-white">{(m.opponent ?? "").trim() || "—"}</span>
+                    <span className="tabular-nums text-white/80">{formatMatchResult(m)}</span>
+                  </div>
+                  <div className="mt-1 text-xs text-white/50">{formatMatchDateDe(m.match_date)}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      ) : null}
     </div>
     </>
   );

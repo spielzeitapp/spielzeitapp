@@ -13,11 +13,19 @@ interface TabsProps {
   tabs: TabOption[];
   activeId: string;
   onChange: (id: string) => void;
+  /** Stadium: rote Unterstreichung, inaktiv grau. */
+  variant?: 'default' | 'stadium';
 }
 
-export const Tabs: React.FC<TabsProps> = ({ tabs, activeId, onChange }) => {
+export const Tabs: React.FC<TabsProps> = ({ tabs, activeId, onChange, variant = 'default' }) => {
+  const stadium = variant === 'stadium';
   return (
-    <div className="flex w-full overflow-x-auto no-scrollbar border-b border-[var(--border)]/60">
+    <div
+      className={cn(
+        'flex w-full overflow-x-auto no-scrollbar border-b',
+        stadium ? 'border-white/10' : 'border-[var(--border)]/60',
+      )}
+    >
       <div className="flex min-w-full gap-1">
         {tabs.map((tab) => {
           const isActive = tab.id === activeId;
@@ -27,13 +35,24 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeId, onChange }) => {
               type="button"
               onClick={() => onChange(tab.id)}
               className={cn(
-                'relative flex-1 whitespace-nowrap px-3 py-2 text-xs font-medium transition-colors',
-                isActive ? 'text-[var(--primary)]' : 'text-[var(--muted)] hover:text-slate-300',
+                'relative flex-1 whitespace-nowrap px-3 py-2.5 text-xs font-semibold uppercase tracking-wide transition-colors',
+                stadium
+                  ? isActive
+                    ? 'text-red-400'
+                    : 'text-white/45 hover:text-white/70'
+                  : isActive
+                    ? 'text-[var(--primary)]'
+                    : 'text-[var(--muted)] hover:text-slate-300',
               )}
             >
               {tab.label}
               {isActive && (
-                <span className="absolute inset-x-6 -bottom-0.5 h-0.5 rounded-full bg-[var(--primary)]" />
+                <span
+                  className={cn(
+                    'absolute inset-x-4 -bottom-0.5 h-0.5 rounded-full',
+                    stadium ? 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]' : 'bg-[var(--primary)]',
+                  )}
+                />
               )}
             </button>
           );
