@@ -297,9 +297,9 @@ export const TeamPage: React.FC = () => {
 
         const { data: updatedPlayer, error: avatarUpdateError } = await supabase
           .from("players")
-          .update({ avatar_url: publicUrl })
+          .update({ "Avatar-URL": publicUrl })
           .eq("id", editingPlayer.id)
-          .select("*")
+          .select('*, "Avatar-URL"')
           .maybeSingle();
         console.log("editingPlayer.id", editingPlayer.id);
         console.log("updatedPlayer", updatedPlayer);
@@ -318,7 +318,11 @@ export const TeamPage: React.FC = () => {
           setFormError("Avatar URL konnte nicht gespeichert werden – Player nicht gefunden");
           return;
         }
-        nextAvatarUrl = (updatedPlayer?.avatar_url as string | null | undefined) ?? publicUrl;
+        console.log("[AvatarSave] saved to Avatar-URL", publicUrl);
+        nextAvatarUrl =
+          (updatedPlayer?.["Avatar-URL"] as string | null | undefined) ??
+          (updatedPlayer?.avatar_url as string | null | undefined) ??
+          publicUrl;
       }
       const { error: updateError } = await supabase
         .from("players")
