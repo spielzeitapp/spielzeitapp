@@ -27,6 +27,31 @@ function initials(p: PlayerItem): string {
   return (parts[0] ?? "?").slice(0, 2).toUpperCase();
 }
 
+/** Completed age in years from `YYYY-MM-DD` (local calendar), or null if unknown/invalid/future. */
+function completedAgeFromIsoDate(ymd: string | null | undefined): number | null {
+  if (!ymd) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(ymd).trim());
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(d)) return null;
+  const ref = new Date();
+  const ry = ref.getFullYear();
+  const rm = ref.getMonth() + 1;
+  const rd = ref.getDate();
+  let age = ry - y;
+  if (rm < mo || (rm === mo && rd < d)) age--;
+  if (age < 0) return null;
+  return age;
+}
+
+function ageChipLabel(birthdate: string | null | undefined): string {
+  const age = completedAgeFromIsoDate(birthdate);
+  if (age == null) return "—";
+  return String(age);
+}
+
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-black/35 px-3 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
@@ -60,8 +85,11 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   onEdit,
 }) => {
   const name = displayFullName(player);
-  const jersey = player.jersey_number != null ? `#${player.jersey_number}` : "—";
   const avatarSrc = (photoUrl ?? "").trim() || "/avatars/player-placeholder.png";
+  const jerseyChip =
+    player.jersey_number != null && Number.isFinite(Number(player.jersey_number))
+      ? `#${player.jersey_number}`
+      : "—";
 
   // Placeholder stats — do not invent real numbers; show zeros until backend aggregates exist.
   const stats = { games: 0, goals: 0, minutes: 0, goalsPer90: 0 };
@@ -143,15 +171,14 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 </div>
               </div>
             </div>
-            <p className="mt-1 text-2xl font-black tracking-tight text-red-400">{jersey}</p>
-            <h3 className="mt-1 text-xl font-bold text-white sm:text-2xl">{name}</h3>
+            <h3 className="mt-3 text-xl font-bold text-white sm:text-2xl">{name}</h3>
             <p className="mt-1 max-w-[280px] text-sm text-white/55">{teamSeasonLabel ?? "Team"}</p>
           </div>
 
           <div className="mt-5 flex flex-wrap justify-center gap-2">
-            <Chip>Alter: —</Chip>
+            <Chip>Alter: {ageChipLabel(player.birthdate)}</Chip>
             <Chip>Position: {positionAbbrev}</Chip>
-            <Chip>Starker Fuß: —</Chip>
+            <Chip>Rückennummer: {jerseyChip}</Chip>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">

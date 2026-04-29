@@ -8,6 +8,8 @@ export type PlayerItem = {
   last_name: string | null;
   jersey_number: number | null;
   position: string | null;
+  /** ISO date `YYYY-MM-DD` from Postgres `date`, or null. */
+  birthdate: string | null;
   avatar_url: string | null;
   is_active: boolean;
   /** first_name + ' ' + last_name, getrimmt – für Anzeige. */
@@ -34,6 +36,10 @@ function toPlayer(row: PlayerRow): PlayerItem {
   const first = row.first_name != null ? String(row.first_name).trim() : "";
   const last = row.last_name != null ? String(row.last_name).trim() : "";
   const display_name = [first, last].join(" ").replace(/\s+/g, " ").trim() || "Spieler";
+  const bdRaw = row.birthdate != null ? String(row.birthdate).trim() : "";
+  const birthdate =
+    bdRaw.length >= 10 ? bdRaw.slice(0, 10) : bdRaw.length > 0 ? bdRaw : null;
+
   return {
     id: row.id,
     team_season_id: row.team_season_id,
@@ -41,6 +47,7 @@ function toPlayer(row: PlayerRow): PlayerItem {
     last_name: row.last_name != null ? String(row.last_name) : null,
     jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
     position: row.position != null ? String(row.position).trim() || null : null,
+    birthdate,
     avatar_url: null,
     is_active: row.is_active !== false,
     display_name,
@@ -63,7 +70,7 @@ export function usePlayers(teamSeasonId: string | null) {
     setError(null);
     const { data, error: queryError } = await supabase
       .from("players")
-      .select("id, team_season_id, first_name, last_name, jersey_number, position, is_active")
+      .select("id, team_season_id, first_name, last_name, jersey_number, position, birthdate, is_active")
       .eq("team_season_id", teamSeasonId)
       .eq("is_active", true)
       .order("jersey_number", { ascending: true, nullsFirst: false })

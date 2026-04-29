@@ -20,6 +20,8 @@ type FormState = {
   last_name: string;
   jersey_number: string;
   position: string;
+  /** `YYYY-MM-DD` fürs Datumsfeld; leer = kein Geburtsdatum */
+  birthdate: string;
 };
 
 function abbreviatePositionLabel(pos: string | null | undefined): string {
@@ -38,7 +40,13 @@ const emptyForm: FormState = {
   last_name: "",
   jersey_number: "",
   position: "",
+  birthdate: "",
 };
+
+function formBirthdateToDb(value: string): string | null {
+  const t = value.trim();
+  return t.length > 0 ? t.slice(0, 10) : null;
+}
 
 /** Parst Jersey-String: leer → null, sonst Number; gültig nur wenn Number.isFinite(n) && n > 0. */
 function parseJersey(value: string): number | null {
@@ -188,11 +196,13 @@ export const TeamPage: React.FC = () => {
   };
 
   const openEditForm = (p: PlayerItem) => {
+    const bd = (p.birthdate ?? "").trim();
     setForm({
       first_name: p.first_name ?? "",
       last_name: p.last_name ?? "",
       jersey_number: p.jersey_number != null ? String(p.jersey_number) : "",
       position: p.position ?? "",
+      birthdate: bd.length >= 10 ? bd.slice(0, 10) : bd,
     });
     setMode("edit");
     setEditingId(p.id);
@@ -256,6 +266,7 @@ export const TeamPage: React.FC = () => {
     setSaving(true);
     const jersey = parsedJerseyNumber;
     const positionVal = position.trim() || null;
+    const birthdateVal = formBirthdateToDb(form.birthdate);
 
     if (mode === "create") {
       if (teamSeasonId == null) {
@@ -269,6 +280,7 @@ export const TeamPage: React.FC = () => {
         last_name: last_name.trim(),
         jersey_number: jersey,
         position: positionVal,
+        birthdate: birthdateVal,
         is_active: true,
       });
       if (insertError) {
@@ -359,6 +371,7 @@ export const TeamPage: React.FC = () => {
           last_name: last_name.trim(),
           jersey_number: jersey,
           position: positionVal,
+          birthdate: birthdateVal,
         })
         .eq("id", editingPlayer.id);
       setAvatarUploading(false);
@@ -603,6 +616,16 @@ export const TeamPage: React.FC = () => {
                     value={form.position}
                     onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
                     placeholder="z. B. ST"
+                    className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                    disabled={saving || !canManagePlayers}
+                  />
+                </label>
+                <label className="flex flex-col gap-0.5 sm:min-w-[11rem]">
+                  <span className="text-xs text-[var(--muted)]">Geburtsdatum</span>
+                  <input
+                    type="date"
+                    value={form.birthdate}
+                    onChange={(e) => setForm((f) => ({ ...f, birthdate: e.target.value }))}
                     className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                     disabled={saving || !canManagePlayers}
                   />
