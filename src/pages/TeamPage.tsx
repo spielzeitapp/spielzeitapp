@@ -10,6 +10,7 @@ import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { roleLabel } from "../utils/roleLabel";
 import { normalizeRole, canManageRoster } from "../lib/roles";
 import { supabase } from "../lib/supabaseClient";
+import { PlayerCard } from "../components/team/PlayerCard";
 
 type TeamTabId = "overview" | "training" | "squad";
 
@@ -49,6 +50,13 @@ function parseJersey(value: string): number | null {
 /** Unique-Constraint für Trikot pro team_season (Postgres + ggf. Constraint-Name). */
 function isJerseyDuplicateError(err: { code?: string; message?: string }): boolean {
   return err.code === "23505" || (err.message ?? "").includes("players_unique_jersey_per_teamseason");
+}
+
+function readOptionalPhotoUrl(p: PlayerItem): string | null {
+  const raw = (p as unknown as { photo_url?: unknown }).photo_url;
+  if (typeof raw !== "string") return null;
+  const v = raw.trim();
+  return v.length > 0 ? v : null;
 }
 
 /** Read-only: Rollenverteilung aus memberships (MVP). */
@@ -324,7 +332,7 @@ export const TeamPage: React.FC = () => {
         )}
       </Card>
 
-      <TeamMembershipRolesCard teamSeasonId={teamSeasonId} />
+      {/* Team & Rollen aktuell ausgeblendet (Platz sparen) */}
 
       {/* Kader Card */}
       <Card className="rounded-3xl border border-red-500/20 bg-[linear-gradient(180deg,rgba(239,68,68,0.12)_0%,rgba(0,0,0,0.25)_100%)] shadow-[0_0_0_1px_rgba(239,68,68,0.10),0_18px_50px_rgba(0,0,0,0.55)] ring-1 ring-red-500/10">
@@ -442,44 +450,19 @@ export const TeamPage: React.FC = () => {
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
             <ul className="mt-3 space-y-2.5 pb-24">
               {sortedPlayers.map((p) => (
-                <li
-                  key={p.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => openEditForm(p)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      openEditForm(p);
-                    }
-                  }}
-                  className={[
-                    "group flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-red-500/20 bg-[linear-gradient(180deg,rgba(239,68,68,0.10)_0%,rgba(0,0,0,0.20)_100%)] px-4 py-3",
-                    "transition-transform transition-colors duration-180 ease-out hover:bg-[linear-gradient(180deg,rgba(239,68,68,0.12)_0%,rgba(255,255,255,0.02)_100%)] hover:border-red-500/25",
-                    "active:scale-[0.98] active:bg-[rgba(239,68,68,0.18)] active:border-red-500/30 active:shadow-[0_0_0_1px_rgba(239,68,68,0.14),0_12px_28px_rgba(0,0,0,0.35)]",
-                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40",
-                  ].join(" ")}
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="w-9 shrink-0 text-right text-xs tabular-nums font-semibold text-white/65">
-                      {p.jersey_number != null ? `#${p.jersey_number}` : "—"}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="line-clamp-2 break-words text-base font-semibold leading-snug text-white/95">
-                        {p.display_name}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center">
-                    {(() => {
-                      const label = abbreviatePositionLabel(p.position);
-                      return (
-                        <span className="rounded-lg border border-red-500/25 bg-[rgba(239,68,68,0.10)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/80 backdrop-blur-sm shadow-[0_8px_24px_rgba(239,68,68,0.08)]">
-                          {label}
-                        </span>
-                      );
-                    })()}
-                  </div>
+                <li key={p.id}>
+                  <PlayerCard
+                    player={{
+                      id: p.id,
+                      first_name: p.first_name,
+                      last_name: p.last_name,
+                      display_name: p.display_name,
+                      position: abbreviatePositionLabel(p.position),
+                      number: p.jersey_number,
+                      photo_url: readOptionalPhotoUrl(p),
+                    }}
+                    onClick={() => openEditForm(p)}
+                  />
                 </li>
               ))}
             </ul>
