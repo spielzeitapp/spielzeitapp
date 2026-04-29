@@ -196,11 +196,11 @@ function formatViennaTime(isoString) {
 function buildDescription(ev, appBaseUrl) {
   const notes = notesTitleAndDescription(ev.notes);
   const meetup = ev.meeting_at ? formatViennaTime(ev.meeting_at) : null;
-  const kickoff = ev.starts_at ? formatViennaTime(ev.starts_at) : null;
+  const startsAtTime = ev.starts_at ? formatViennaTime(ev.starts_at) : null;
   const eventUrl = `${appBaseUrl}/app/events/${ev.id}`;
   const lines = [];
   if (meetup) lines.push(`Treffpunkt: ${meetup}`);
-  if ((ev.kind ?? '').trim().toLowerCase() === 'match' && kickoff) lines.push(`Anpfiff: ${kickoff}`);
+  if (meetup && startsAtTime) lines.push(`Beginn: ${startsAtTime}`);
   if (effectiveType(ev) === 'game' && ev.opponent) lines.push(`Gegner: ${ev.opponent}`);
   if (notes.description) lines.push(`Hinweise: ${notes.description}`);
   lines.push(`Link zur SpielzeitApp: ${eventUrl}`);
@@ -303,8 +303,7 @@ async function teamIcsHandler(req, res) {
     const vevents = uniqueEvents.flatMap((ev) => {
       const kickoffStart = new Date(ev.starts_at);
       if (!kickoffStart || isNaN(kickoffStart.getTime())) return [];
-      const meetingStart =
-        (ev.kind ?? '').trim().toLowerCase() === 'match' && ev.meeting_at ? new Date(ev.meeting_at) : null;
+      const meetingStart = ev.meeting_at ? new Date(ev.meeting_at) : null;
       const dtStartDate =
         meetingStart && !isNaN(meetingStart.getTime()) ? meetingStart : kickoffStart;
       const end = resolveEndDate(ev, kickoffStart);
