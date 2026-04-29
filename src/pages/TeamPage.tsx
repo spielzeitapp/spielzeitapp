@@ -279,7 +279,8 @@ export const TeamPage: React.FC = () => {
           return;
         }
         const { data } = supabase.storage.from("player-avatars").getPublicUrl(path);
-        nextAvatarUrl = data.publicUrl;
+        // Cache-Busting, damit frisch ersetzte Bilder sofort sichtbar sind.
+        nextAvatarUrl = `${data.publicUrl}?t=${Date.now()}`;
       }
       const { error: updateError } = await supabase
         .from("players")
