@@ -34,6 +34,7 @@ function initials(name: string): string {
 export const PlayerCard: React.FC<PlayerCardProps> = ({ player, selected = false, onClick }) => {
   const name = displayName(player);
   const photo = (player.photo_url ?? "").trim();
+  const avatarSrc = photo || "/avatars/player-placeholder.png";
   const fallback = (
     <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/12 bg-zinc-800 text-sm font-black text-white/90">
       {initials(name)}
@@ -49,19 +50,17 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, selected = false
       ].join(" ")}
     >
       <div className="h-12 w-12 shrink-0">
-        {photo ? (
-          <img
-            src={photo}
-            alt={name}
-            className="h-12 w-12 rounded-full border border-white/12 object-cover"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-              const next = e.currentTarget.nextElementSibling as HTMLElement | null;
-              if (next) next.style.display = "flex";
-            }}
-          />
-        ) : null}
-        <div style={{ display: photo ? "none" : "flex" }}>{fallback}</div>
+        <img
+          src={avatarSrc}
+          alt={name}
+          className="h-12 w-12 rounded-full border border-white/12 object-cover"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+            const next = e.currentTarget.nextElementSibling as HTMLElement | null;
+            if (next) next.style.display = "flex";
+          }}
+        />
+        <div style={{ display: "none" }}>{fallback}</div>
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-base font-semibold text-white">{name}</div>

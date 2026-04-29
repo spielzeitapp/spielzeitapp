@@ -186,6 +186,7 @@ export const TeamPage: React.FC = () => {
   };
 
   const openEditForm = (p: PlayerItem) => {
+    console.log("selected player", p);
     setForm({
       first_name: p.first_name ?? "",
       last_name: p.last_name ?? "",
