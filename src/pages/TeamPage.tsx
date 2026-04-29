@@ -257,6 +257,7 @@ export const TeamPage: React.FC = () => {
         setSaving(false);
         return;
       }
+      const editingPlayer = { id: editingId };
       if (!teamSeasonId) {
         setSaving(false);
         setFormError("Keine Mannschaftssaison ausgewählt.");
@@ -266,10 +267,13 @@ export const TeamPage: React.FC = () => {
       if (avatarFile) {
         setAvatarUploading(true);
         const ext = avatarFile.type === "image/png" ? "png" : avatarFile.type === "image/webp" ? "webp" : "jpg";
-        const path = `${teamSeasonId}/${editingId}.${ext}`;
+        const uploadPath = `${teamSeasonId}/${editingId}.${ext}`;
+        console.log("[AvatarUpload] editingPlayer.id:", editingPlayer.id);
+        console.log("[AvatarUpload] teamSeasonId:", teamSeasonId);
+        console.log("[AvatarUpload] uploadPath:", uploadPath);
         const { error: uploadError } = await supabase.storage
           .from("player-avatars")
-          .upload(path, avatarFile, { upsert: true, contentType: avatarFile.type });
+          .upload(uploadPath, avatarFile, { upsert: true, contentType: avatarFile.type });
         if (uploadError) {
           setAvatarUploading(false);
           setSaving(false);
@@ -278,18 +282,29 @@ export const TeamPage: React.FC = () => {
           );
           return;
         }
-        const { data } = supabase.storage.from("player-avatars").getPublicUrl(path);
-        nextAvatarUrl = data.publicUrl;
-        const { error: avatarUpdateError } = await supabase
+        const { data: publicData } = supabase.storage
+          .from("player-avatars")
+          .getPublicUrl(uploadPath);
+
+        const publicUrl = publicData?.publicUrl ?? null;
+        console.log("[AvatarUpload] publicUrl:", publicUrl);
+
+        const { data: updatedPlayer, error: avatarUpdateError } = await supabase
           .from("players")
-          .update({ avatar_url: nextAvatarUrl })
-          .eq("id", editingId);
+          .update({ avatar_url: publicUrl })
+          .eq("id", editingPlayer.id)
+          .select("*")
+          .single();
+        console.log("[AvatarUpload] update result:", updatedPlayer ?? null);
+        console.log("[AvatarUpload] update error:", avatarUpdateError ?? null);
         if (avatarUpdateError) {
+          console.error("avatar_url update failed", avatarUpdateError);
           setAvatarUploading(false);
           setSaving(false);
-          setFormError(`Avatar-URL konnte nicht gespeichert werden: ${avatarUpdateError.message}`);
+          setFormError(`Avatar gespeichert, aber URL nicht gesetzt: ${avatarUpdateError.message}`);
           return;
         }
+        nextAvatarUrl = (updatedPlayer?.avatar_url as string | null | undefined) ?? publicUrl;
       }
       const { error: updateError } = await supabase
         .from("players")
@@ -310,7 +325,7 @@ export const TeamPage: React.FC = () => {
         setSaving(false);
         return;
       }
-      if (nextAvatarUrl) setAvatarPreviewUrl(`${nextAvatarUrl}?t=${Date.now()}`);
+      if (nextAvatarUrl) setAvatarPreviewUrl(nextAvatarUrl);
     }
 
     setSaving(false);
