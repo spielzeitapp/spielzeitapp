@@ -146,6 +146,7 @@ export const TeamPage: React.FC = () => {
   const [mode, setMode] = useState<"create" | "edit">("create");
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingPlayer, setEditingPlayer] = useState<PlayerItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
@@ -167,6 +168,7 @@ export const TeamPage: React.FC = () => {
     setMode("create");
     setForm(emptyForm);
     setEditingId(null);
+    setEditingPlayer(null);
     setAvatarPreviewUrl(null);
     clearAvatarLocalPreview();
     setFormError(null);
@@ -176,6 +178,7 @@ export const TeamPage: React.FC = () => {
     setForm(emptyForm);
     setMode("create");
     setEditingId(null);
+    setEditingPlayer(null);
     setAvatarPreviewUrl(null);
     clearAvatarLocalPreview();
     setFormError(null);
@@ -191,6 +194,7 @@ export const TeamPage: React.FC = () => {
     });
     setMode("edit");
     setEditingId(p.id);
+    setEditingPlayer(p);
     setAvatarPreviewUrl(readOptionalPhotoUrl(p));
     clearAvatarLocalPreview();
     setFormError(null);
@@ -253,14 +257,8 @@ export const TeamPage: React.FC = () => {
         return;
       }
     } else {
-      if (editingId == null) {
+      if (editingPlayer == null) {
         setSaving(false);
-        return;
-      }
-      const editingPlayer = players.find((p) => p.id === editingId) ?? null;
-      if (!editingPlayer) {
-        setSaving(false);
-        setFormError("Avatar URL konnte nicht gespeichert werden – Player nicht gefunden");
         return;
       }
       if (!teamSeasonId) {
@@ -329,7 +327,7 @@ export const TeamPage: React.FC = () => {
           jersey_number: jersey,
           position: positionVal,
         })
-        .eq("id", editingId);
+        .eq("id", editingPlayer.id);
       setAvatarUploading(false);
       if (updateError) {
         setFormError(
