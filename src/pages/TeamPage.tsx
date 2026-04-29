@@ -387,13 +387,12 @@ export const TeamPage: React.FC = () => {
   };
 
   const openEditForm = (p: PlayerItem) => {
-    const bd = (p.birthdate ?? "").trim();
     setForm({
       first_name: p.first_name ?? "",
       last_name: p.last_name ?? "",
       jersey_number: p.jersey_number != null ? String(p.jersey_number) : "",
       position: p.position ?? "",
-      birthdate: bd.length >= 10 ? bd.slice(0, 10) : bd,
+      birthdate: p.birthdate ? p.birthdate.slice(0, 10) : "",
     });
     setMode("edit");
     setEditingId(p.id);
@@ -427,6 +426,12 @@ export const TeamPage: React.FC = () => {
   }, [players, selectedProfilePlayer?.id]);
 
   useEffect(() => {
+    if (selectedProfilePlayer) {
+      console.log("profile birthdate", selectedProfilePlayer.birthdate);
+    }
+  }, [selectedProfilePlayer]);
+
+  useEffect(() => {
     return () => {
       if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
     };
@@ -457,7 +462,8 @@ export const TeamPage: React.FC = () => {
     setSaving(true);
     const jersey = parsedJerseyNumber;
     const positionVal = position.trim() || null;
-    const birthdateVal = (form.birthdate ?? "").trim() || null;
+    const birthdateForDb = form.birthdate ? form.birthdate : null;
+    console.log("saving birthdate", form.birthdate);
 
     if (mode === "create") {
       if (teamSeasonId == null) {
@@ -465,15 +471,19 @@ export const TeamPage: React.FC = () => {
         setSaving(false);
         return;
       }
-      const { error: insertError } = await supabase.from("players").insert({
-        team_season_id: teamSeasonId,
-        first_name: first_name.trim(),
-        last_name: last_name.trim(),
-        jersey_number: jersey,
-        position: positionVal,
-        birthdate: birthdateVal,
-        is_active: true,
-      });
+      const { data: savedPlayer, error: insertError } = await supabase
+        .from("players")
+        .insert({
+          team_season_id: teamSeasonId,
+          first_name: first_name.trim(),
+          last_name: last_name.trim(),
+          jersey_number: jersey,
+          position: positionVal,
+          birthdate: birthdateForDb,
+          is_active: true,
+        })
+        .select()
+        .single();
       if (insertError) {
         setFormError(
           isJerseyDuplicateError(insertError as { code?: string; message?: string })
@@ -483,6 +493,11 @@ export const TeamPage: React.FC = () => {
         setSaving(false);
         return;
       }
+      console.log("saved player result", savedPlayer);
+      setSaving(false);
+      await refetchPlayers();
+      closeForm();
+      return;
     } else {
       if (editingPlayer == null) {
         setSaving(false);
@@ -555,16 +570,18 @@ export const TeamPage: React.FC = () => {
           (updatedPlayer?.avatar_url as string | null | undefined) ??
           publicUrl;
       }
-      const { error: updateError } = await supabase
+      const { data: savedPlayer, error: updateError } = await supabase
         .from("players")
         .update({
           first_name: first_name.trim(),
           last_name: last_name.trim(),
           jersey_number: jersey,
           position: positionVal,
-          birthdate: birthdateVal,
+          birthdate: birthdateForDb,
         })
-        .eq("id", editingPlayer.id);
+        .eq("id", editingPlayer.id)
+        .select()
+        .single();
       setAvatarUploading(false);
       if (updateError) {
         setFormError(
@@ -576,11 +593,11 @@ export const TeamPage: React.FC = () => {
         return;
       }
       if (nextAvatarUrl) setAvatarPreviewUrl(nextAvatarUrl);
+      console.log("saved player result", savedPlayer);
+      setSaving(false);
+      await refetchPlayers();
+      closeForm();
     }
-
-    setSaving(false);
-    closeForm();
-    await refetchPlayers();
   };
 
   const handleRemove = async (playerId: string) => {
@@ -863,7 +880,7 @@ export const TeamPage: React.FC = () => {
                   <span className="text-xs text-[var(--muted)]">Geburtsdatum</span>
                   <input
                     type="date"
-                    value={form.birthdate ?? ""}
+                    value={form.birthdate || ""}
                     onChange={(e) => setForm((f) => ({ ...f, birthdate: e.target.value }))}
                     className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                     disabled={saving || !canManagePlayers}
