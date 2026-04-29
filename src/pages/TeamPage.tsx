@@ -294,7 +294,9 @@ export const TeamPage: React.FC = () => {
           .update({ avatar_url: publicUrl })
           .eq("id", editingPlayer.id)
           .select("*")
-          .single();
+          .maybeSingle();
+        console.log("editingPlayer.id", editingPlayer.id);
+        console.log("updatedPlayer", updatedPlayer);
         console.log("[AvatarUpload] update result:", updatedPlayer ?? null);
         console.log("[AvatarUpload] update error:", avatarUpdateError ?? null);
         if (avatarUpdateError) {
@@ -302,6 +304,12 @@ export const TeamPage: React.FC = () => {
           setAvatarUploading(false);
           setSaving(false);
           setFormError(`Avatar gespeichert, aber URL nicht gesetzt: ${avatarUpdateError.message}`);
+          return;
+        }
+        if (updatedPlayer == null) {
+          setAvatarUploading(false);
+          setSaving(false);
+          setFormError("Avatar URL konnte nicht gespeichert werden – Player nicht gefunden");
           return;
         }
         nextAvatarUrl = (updatedPlayer?.avatar_url as string | null | undefined) ?? publicUrl;
