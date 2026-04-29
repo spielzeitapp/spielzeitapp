@@ -279,8 +279,17 @@ export const TeamPage: React.FC = () => {
           return;
         }
         const { data } = supabase.storage.from("player-avatars").getPublicUrl(path);
-        // Cache-Busting, damit frisch ersetzte Bilder sofort sichtbar sind.
-        nextAvatarUrl = `${data.publicUrl}?t=${Date.now()}`;
+        nextAvatarUrl = data.publicUrl;
+        const { error: avatarUpdateError } = await supabase
+          .from("players")
+          .update({ avatar_url: nextAvatarUrl })
+          .eq("id", editingId);
+        if (avatarUpdateError) {
+          setAvatarUploading(false);
+          setSaving(false);
+          setFormError(`Avatar-URL konnte nicht gespeichert werden: ${avatarUpdateError.message}`);
+          return;
+        }
       }
       const { error: updateError } = await supabase
         .from("players")
@@ -289,7 +298,6 @@ export const TeamPage: React.FC = () => {
           last_name: last_name.trim(),
           jersey_number: jersey,
           position: positionVal,
-          avatar_url: nextAvatarUrl,
         })
         .eq("id", editingId);
       setAvatarUploading(false);
@@ -302,6 +310,7 @@ export const TeamPage: React.FC = () => {
         setSaving(false);
         return;
       }
+      if (nextAvatarUrl) setAvatarPreviewUrl(`${nextAvatarUrl}?t=${Date.now()}`);
     }
 
     setSaving(false);
