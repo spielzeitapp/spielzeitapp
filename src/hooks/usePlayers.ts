@@ -67,8 +67,27 @@ export function usePlayers(teamSeasonId: string | null) {
       .order("first_name", { ascending: true, nullsFirst: false });
 
     if (queryError) {
-      setError(queryError.message);
-      setPlayers([]);
+      if (queryError.message.includes("avatar_url")) {
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("players")
+          .select("id, team_season_id, first_name, last_name, jersey_number, position, is_active")
+          .eq("team_season_id", teamSeasonId)
+          .eq("is_active", true)
+          .order("jersey_number", { ascending: true, nullsFirst: false })
+          .order("last_name", { ascending: true, nullsFirst: false })
+          .order("first_name", { ascending: true, nullsFirst: false });
+        if (fallbackError) {
+          setError(fallbackError.message);
+          setPlayers([]);
+        } else {
+          const rows = (fallbackData as PlayerRow[]) ?? [];
+          setPlayers(rows.map(toPlayer));
+          setError(null);
+        }
+      } else {
+        setError(queryError.message);
+        setPlayers([]);
+      }
     } else {
       const rows = (data as PlayerRow[]) ?? [];
       setPlayers(rows.map(toPlayer));

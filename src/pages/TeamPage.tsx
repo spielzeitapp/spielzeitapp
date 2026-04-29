@@ -149,9 +149,18 @@ export const TeamPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarObjectUrl, setAvatarObjectUrl] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+
+  const clearAvatarLocalPreview = () => {
+    if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
+    setAvatarObjectUrl(null);
+    setAvatarFile(null);
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
+  };
 
   const closeForm = () => {
     setShowForm(false);
@@ -159,7 +168,7 @@ export const TeamPage: React.FC = () => {
     setForm(emptyForm);
     setEditingId(null);
     setAvatarPreviewUrl(null);
-    if (avatarInputRef.current) avatarInputRef.current.value = "";
+    clearAvatarLocalPreview();
     setFormError(null);
   };
 
@@ -168,6 +177,7 @@ export const TeamPage: React.FC = () => {
     setMode("create");
     setEditingId(null);
     setAvatarPreviewUrl(null);
+    clearAvatarLocalPreview();
     setFormError(null);
     setShowForm(true);
   };
@@ -182,44 +192,16 @@ export const TeamPage: React.FC = () => {
     setMode("edit");
     setEditingId(p.id);
     setAvatarPreviewUrl(readOptionalPhotoUrl(p));
+    clearAvatarLocalPreview();
     setFormError(null);
     setShowForm(true);
   };
 
-  const uploadAvatarForEditingPlayer = async (file: File) => {
-    if (!editingId || !teamSeasonId) return;
-    const allowed = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowed.includes(file.type)) {
-      setFormError("Bitte nur JPG, PNG oder WebP hochladen.");
-      return;
-    }
-    if (file.size > 3 * 1024 * 1024) {
-      setFormError("Datei ist zu groß (max. 3 MB).");
-      return;
-    }
-    setFormError(null);
-    setAvatarUploading(true);
-    const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-    const path = `${teamSeasonId}/${editingId}.${ext}`;
-    const { error: uploadError } = await supabase.storage
-      .from("player-avatars")
-      .upload(path, file, { upsert: true, contentType: file.type });
-    if (uploadError) {
-      setAvatarUploading(false);
-      setFormError(uploadError.message);
-      return;
-    }
-    const { data } = supabase.storage.from("player-avatars").getPublicUrl(path);
-    const avatarUrl = data.publicUrl;
-    const { error: updateError } = await supabase.from("players").update({ avatar_url: avatarUrl }).eq("id", editingId);
-    setAvatarUploading(false);
-    if (updateError) {
-      setFormError(updateError.message);
-      return;
-    }
-    setAvatarPreviewUrl(avatarUrl);
-    await refetchPlayers();
-  };
+  useEffect(() => {
+    return () => {
+      if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
+    };
+  }, [avatarObjectUrl]);
 
   const parsedJerseyNumber = parseJersey(form.jersey_number);
   const isJerseyTaken = (jersey: number | null): boolean => {
@@ -275,6 +257,30 @@ export const TeamPage: React.FC = () => {
         setSaving(false);
         return;
       }
+      if (!teamSeasonId) {
+        setSaving(false);
+        setFormError("Keine Mannschaftssaison ausgewählt.");
+        return;
+      }
+      let nextAvatarUrl = avatarPreviewUrl;
+      if (avatarFile) {
+        setAvatarUploading(true);
+        const ext = avatarFile.type === "image/png" ? "png" : avatarFile.type === "image/webp" ? "webp" : "jpg";
+        const path = `${teamSeasonId}/${editingId}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("player-avatars")
+          .upload(path, avatarFile, { upsert: true, contentType: avatarFile.type });
+        if (uploadError) {
+          setAvatarUploading(false);
+          setSaving(false);
+          setFormError(
+            `Foto-Upload fehlgeschlagen: ${uploadError.message}. Bitte Storage-Policy/Bucket prüfen.`
+          );
+          return;
+        }
+        const { data } = supabase.storage.from("player-avatars").getPublicUrl(path);
+        nextAvatarUrl = data.publicUrl;
+      }
       const { error: updateError } = await supabase
         .from("players")
         .update({
@@ -282,8 +288,10 @@ export const TeamPage: React.FC = () => {
           last_name: last_name.trim(),
           jersey_number: jersey,
           position: positionVal,
+          avatar_url: nextAvatarUrl,
         })
         .eq("id", editingId);
+      setAvatarUploading(false);
       if (updateError) {
         setFormError(
           isJerseyDuplicateError(updateError as { code?: string; message?: string })
@@ -404,12 +412,12 @@ export const TeamPage: React.FC = () => {
           {teamSeasonId != null && showForm && (
             <form onSubmit={handleFormSubmit} className="mb-3 space-y-2 rounded border border-[var(--border)] bg-[var(--bg)]/50 p-3">
               <div className="mb-1 flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-2.5">
-                <div className="h-14 w-14 shrink-0">
-                  {avatarPreviewUrl ? (
+                <div className="h-24 w-24 shrink-0">
+                  {avatarObjectUrl || avatarPreviewUrl ? (
                     <img
-                      src={avatarPreviewUrl}
+                      src={avatarObjectUrl || avatarPreviewUrl || ""}
                       alt="Avatar Vorschau"
-                      className="h-14 w-14 rounded-full border border-white/20 object-cover"
+                      className="h-24 w-24 rounded-full border border-white/30 object-cover shadow-[0_0_16px_rgba(239,68,68,0.25)]"
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).style.display = "none";
                         const next = e.currentTarget.nextElementSibling as HTMLElement | null;
@@ -418,8 +426,8 @@ export const TeamPage: React.FC = () => {
                     />
                   ) : null}
                   <div
-                    className="flex h-14 w-14 items-center justify-center rounded-full border border-white/12 bg-zinc-800 text-sm font-black text-white/90"
-                    style={{ display: avatarPreviewUrl ? "none" : "flex" }}
+                    className="flex h-24 w-24 items-center justify-center rounded-full border border-white/20 bg-zinc-800 text-xl font-black text-white/90 shadow-[0_0_16px_rgba(239,68,68,0.18)]"
+                    style={{ display: avatarObjectUrl || avatarPreviewUrl ? "none" : "flex" }}
                   >
                     {(form.first_name || form.last_name)
                       ? `${(form.first_name || " ").trim().charAt(0)}${(form.last_name || " ").trim().charAt(0)}`.toUpperCase()
@@ -438,14 +446,26 @@ export const TeamPage: React.FC = () => {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    void uploadAvatarForEditingPlayer(file);
+                    const allowed = ["image/jpeg", "image/png", "image/webp"];
+                    if (!allowed.includes(file.type)) {
+                      setFormError("Bitte nur JPG, PNG oder WebP hochladen.");
+                      return;
+                    }
+                    if (file.size > 3 * 1024 * 1024) {
+                      setFormError("Datei ist zu groß (max. 3 MB).");
+                      return;
+                    }
+                    setFormError(null);
+                    clearAvatarLocalPreview();
+                    setAvatarFile(file);
+                    setAvatarObjectUrl(URL.createObjectURL(file));
                   }}
                 />
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
-                  disabled={mode !== "edit" || avatarUploading || !editingId}
+                  disabled={mode !== "edit" || avatarUploading || saving || !editingId}
                   onClick={() => avatarInputRef.current?.click()}
                 >
                   {avatarUploading ? "Upload…" : "Foto hochladen"}
@@ -507,7 +527,11 @@ export const TeamPage: React.FC = () => {
                 </label>
                 <span className="flex gap-2">
                   {canManagePlayers && (
-                    <Button type="submit" disabled={saving || !form.first_name.trim() || jerseyTaken}>
+                    <Button
+                      type="submit"
+                      className="bg-red-600 text-white hover:bg-red-500"
+                      disabled={saving || avatarUploading || !form.first_name.trim() || jerseyTaken}
+                    >
                       {saving ? "Speichern…" : "Speichern"}
                     </Button>
                   )}
