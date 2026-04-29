@@ -1,8 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useSession } from "../auth/useSession";
-import { RequireFeature } from "../auth/rbac";
-import { Card, CardTitle } from "../app/components/ui/Card";
-import { Tabs, TabOption } from "../app/components/ui/Tabs";
 import { Button } from "../app/components/ui/Button";
 import { Trash2 } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
@@ -11,8 +8,9 @@ import { roleLabel } from "../utils/roleLabel";
 import { normalizeRole, canManageRoster } from "../lib/roles";
 import { supabase } from "../lib/supabaseClient";
 import { PlayerCard } from "../components/team/PlayerCard";
+import { getClubLogo } from "../lib/teamLogos";
 
-type TeamTabId = "overview" | "training" | "squad";
+type MainTabId = "squad" | "trainer" | "matches";
 
 type FormState = {
   first_name: string;
@@ -22,13 +20,13 @@ type FormState = {
 };
 
 function abbreviatePositionLabel(pos: string | null | undefined): string {
-  const raw = (pos ?? '').trim();
+  const raw = (pos ?? "").trim();
   if (!raw) return "—";
-  const p = raw.toLowerCase().replaceAll('ü', 'u').replaceAll('ß', 'ss');
-  if (p.includes('tor') || p.includes('torhueter') || p === 'torhuter') return 'TW';
-  if (p.includes('verteid')) return 'VT';
-  if (p.includes('mittelfeld') || p.includes('mitte')) return 'MF';
-  if (p.includes('stuer') || p.includes('stuermer') || p.includes('sturmer')) return 'ST';
+  const p = raw.toLowerCase().replaceAll("ü", "u").replaceAll("ß", "ss");
+  if (p.includes("tor") || p.includes("torhueter") || p === "torhuter") return "TW";
+  if (p.includes("verteid")) return "VT";
+  if (p.includes("mittelfeld") || p.includes("mitte")) return "MF";
+  if (p.includes("stuer") || p.includes("stuermer") || p.includes("sturmer")) return "ST";
   return raw;
 }
 
@@ -39,7 +37,6 @@ const emptyForm: FormState = {
   position: "",
 };
 
-/** Parst Jersey-String: leer → null, sonst Number; gültig nur wenn Number.isFinite(n) && n > 0. */
 function parseJersey(value: string): number | null {
   const trimmed = value.trim();
   if (trimmed === "") return null;
@@ -47,79 +44,26 @@ function parseJersey(value: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-/** Unique-Constraint für Trikot pro team_season (Postgres + ggf. Constraint-Name). */
 function isJerseyDuplicateError(err: { code?: string; message?: string }): boolean {
   return err.code === "23505" || (err.message ?? "").includes("players_unique_jersey_per_teamseason");
 }
 
-/** Read-only: Rollenverteilung aus memberships (MVP). */
-function TeamMembershipRolesCard({ teamSeasonId }: { teamSeasonId: string | null }) {
-  const [rows, setRows] = useState<Array<{ role: string }>>([]);
-  const [loading, setLoading] = useState(false);
+function readOptionalPhotoUrl(p: PlayerItem): string | null {
+  const raw = (p as unknown as { photo_url?: unknown }).photo_url;
+  if (typeof raw !== "string") return null;
+  const s = raw.trim();
+  return s.length > 0 ? s : null;
+}
 
-  useEffect(() => {
-    if (!teamSeasonId) {
-      setRows([]);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    void supabase
-      .from("memberships")
-      .select("role")
-      .eq("team_season_id", teamSeasonId)
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        setLoading(false);
-        if (error) {
-          setRows([]);
-          return;
-        }
-        setRows((data ?? []) as Array<{ role: string }>);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [teamSeasonId]);
-
-  const counts = useMemo(() => {
-    const m: Record<string, number> = {};
-    for (const r of rows) {
-      const key = String(r.role ?? "").trim() || "—";
-      m[key] = (m[key] ?? 0) + 1;
-    }
-    return m;
-  }, [rows]);
-
-  if (!teamSeasonId) return null;
-
-  return (
-    <Card>
-      <CardTitle className="mt-0">Team & Rollen</CardTitle>
-      <p className="mt-1 text-xs text-[var(--muted)]">Mitgliedschafts-Rollen (Lesen)</p>
-      {loading && <p className="mt-2 text-sm text-[var(--muted)]">Laden…</p>}
-      {!loading && rows.length === 0 && (
-        <p className="mt-2 text-sm text-[var(--muted)]">Keine Einträge.</p>
-      )}
-      {!loading && rows.length > 0 && (
-        <ul className="mt-2 space-y-1.5 text-sm">
-          {Object.entries(counts).map(([raw, n]) => {
-            const nr = normalizeRole(raw);
-            return (
-              <li key={raw} className="flex justify-between gap-2 border-b border-[var(--border)]/40 pb-1 last:border-0">
-                <span>{roleLabel(nr || raw)}</span>
-                <span className="text-[var(--muted)]">{n}</span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </Card>
-  );
+function isLikelyPhotoUrl(url: string): boolean {
+  const u = url.trim();
+  if (!u) return false;
+  if (u.startsWith("/")) return true;
+  return u.startsWith("http://") || u.startsWith("https://");
 }
 
 export const TeamPage: React.FC = () => {
-  const { canAccess } = useSession();
+  const { selectedTeamSeason } = useSession();
   const {
     teamLabel,
     teamSeasonId,
@@ -137,6 +81,7 @@ export const TeamPage: React.FC = () => {
   const roleNormalized = normalizeRole(role);
   const canManagePlayers = canManageRoster(roleNormalized);
 
+  const [mainTab, setMainTab] = useState<MainTabId>("squad");
   const [showForm, setShowForm] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("create");
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -144,6 +89,25 @@ export const TeamPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [logoSrc, setLogoSrc] = useState<string>(() =>
+    getClubLogo((selectedTeamSeason?.team?.name ?? "").trim() || "SPG Rohrbach"),
+  );
+
+  const teamDisplayName = useMemo(() => {
+    const n = (selectedTeamSeason?.team?.name ?? "").trim();
+    if (n) return n;
+    const fromLabel = (teamLabel ?? "").replace(/\s*\([^)]+\)\s*$/, "").trim();
+    return fromLabel || "U11 SPG Rohrbach";
+  }, [selectedTeamSeason?.team?.name, teamLabel]);
+
+  const seasonDisplay = useMemo(() => {
+    const s = (selectedTeamSeason?.season?.name ?? "").trim();
+    return s || "Saison 2025/26";
+  }, [selectedTeamSeason?.season?.name]);
+
+  React.useEffect(() => {
+    setLogoSrc(getClubLogo(teamDisplayName));
+  }, [teamDisplayName]);
 
   const closeForm = () => {
     setShowForm(false);
@@ -178,13 +142,12 @@ export const TeamPage: React.FC = () => {
   const isJerseyTaken = (jersey: number | null): boolean => {
     if (jersey == null) return false;
     return players.some(
-      (p) => p.jersey_number != null && p.jersey_number === jersey && p.id !== editingId
+      (p) => p.jersey_number != null && p.jersey_number === jersey && p.id !== editingId,
     );
   };
   const jerseyTaken = isJerseyTaken(parsedJerseyNumber);
-  const jerseyErrorMsg = jerseyTaken && parsedJerseyNumber != null
-    ? `Nummer ${parsedJerseyNumber} ist bereits vergeben.`
-    : null;
+  const jerseyErrorMsg =
+    jerseyTaken && parsedJerseyNumber != null ? `Nummer ${parsedJerseyNumber} ist bereits vergeben.` : null;
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,7 +181,7 @@ export const TeamPage: React.FC = () => {
         setFormError(
           isJerseyDuplicateError(insertError as { code?: string; message?: string })
             ? `Nummer ${jersey ?? ""} ist bereits vergeben. Bitte eine andere Nummer wählen.`
-            : insertError.message
+            : insertError.message,
         );
         setSaving(false);
         return;
@@ -241,7 +204,7 @@ export const TeamPage: React.FC = () => {
         setFormError(
           isJerseyDuplicateError(updateError as { code?: string; message?: string })
             ? `Nummer ${jersey ?? ""} ist bereits vergeben. Bitte eine andere Nummer wählen.`
-            : updateError.message
+            : updateError.message,
         );
         setSaving(false);
         return;
@@ -266,23 +229,6 @@ export const TeamPage: React.FC = () => {
     await refetchPlayers();
   };
 
-  const allTabs: TabOption[] = [
-    { id: "overview", label: "Übersicht" },
-    { id: "training", label: "Training" },
-    { id: "squad", label: "Kader" },
-  ];
-
-  const visibleTabs = allTabs.filter((tab) => {
-    if (tab.id === "training") {
-      return canAccess("training");
-    }
-    return true;
-  });
-
-  const [activeTab, setActiveTab] = useState<TeamTabId>(
-    (visibleTabs[0]?.id as TeamTabId) ?? "overview",
-  );
-
   const sortedPlayers = useMemo(() => {
     return [...players].sort((a, b) => {
       const ja = a.jersey_number ?? 9999;
@@ -292,138 +238,234 @@ export const TeamPage: React.FC = () => {
     });
   }, [players]);
 
+  const mainTabs: { id: MainTabId; label: string }[] = [
+    { id: "squad", label: "Kader" },
+    { id: "trainer", label: "Trainer" },
+    { id: "matches", label: "Spiele" },
+  ];
+
+  const handlePlayerCardClick = (p: PlayerItem) => {
+    if (canManagePlayers) {
+      openEditForm(p);
+      return;
+    }
+    // TODO: Spielerprofil-Route (z. B. /app/spieler/:id) wenn verfügbar
+  };
+
   return (
     <>
-    <div className="mx-auto w-full max-w-4xl space-y-3 pb-24 lg:max-w-6xl">
-      <h1 className="text-xl font-semibold">Team</h1>
+      <div className="min-h-[100dvh] bg-[#0a0a0a] text-white">
+        <div className="mx-auto w-full max-w-lg px-3 pb-32 pt-3 sm:max-w-xl md:max-w-2xl">
+          <h1 className="mb-3 text-xl font-bold tracking-tight text-white">Team</h1>
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-5">
-        <div className="space-y-3">
-      {/* Team Card */}
-      <Card>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <CardTitle className="mt-0">
-              {tsLoading ? "Lade Team…" : (teamLabel ?? "Team")}
-            </CardTitle>
-            {!tsLoading && (
-              <p className="mt-0.5 text-sm text-[var(--muted)]">
-                {roleLabel(role)}
+          {/* Premium Team-Card */}
+          <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-b from-zinc-900/95 to-black/85 p-4 shadow-[0_0_28px_rgba(239,68,68,0.14),inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <div className="flex items-start gap-3">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/40 p-1 shadow-[0_0_16px_rgba(239,68,68,0.12)]">
+                <img
+                  src={logoSrc}
+                  alt=""
+                  className="h-full w-full object-contain"
+                  onError={() => {
+                    if (logoSrc !== "/logos/placeholder-shield-a.png") {
+                      setLogoSrc("/logos/placeholder-shield-a.png");
+                    }
+                  }}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-lg font-extrabold leading-tight text-white">
+                  {tsLoading ? "Lade Team…" : teamDisplayName}
+                </p>
+                <p className="mt-0.5 text-xs font-medium text-white/50">{seasonDisplay}</p>
+                <p className="mt-1.5 text-xs font-semibold text-red-400/95">Rolle: {roleLabel(role)}</p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-2xl font-black tabular-nums leading-none text-white">{players.length}</p>
+                <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">Spieler</p>
+              </div>
+            </div>
+            {tsError && (
+              <p className="mt-3 text-sm text-red-400" role="alert">
+                {tsError}
               </p>
             )}
           </div>
-          {!tsLoading && teamSeasonId != null && (
-            <span className="shrink-0 text-sm text-[var(--muted)]">
-              {players.length} Spieler
-            </span>
+
+          {/* Tabs */}
+          <div className="mt-4 flex gap-1 rounded-2xl border border-white/[0.08] bg-black/45 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            {mainTabs.map((t) => {
+              const active = mainTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setMainTab(t.id)}
+                  className={[
+                    "min-h-[40px] flex-1 rounded-xl px-2 py-2 text-center text-xs font-bold transition-all duration-200 sm:text-sm",
+                    active
+                      ? "border border-red-500/35 bg-gradient-to-b from-red-600/35 to-red-900/25 text-white shadow-[0_0_18px_rgba(239,68,68,0.22)]"
+                      : "border border-transparent text-white/55 hover:text-white/85",
+                  ].join(" ")}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Kader */}
+          {mainTab === "squad" && (
+            <section className="mt-5 space-y-3">
+              {teamSeasonId == null && !tsLoading && (
+                <p className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-6 text-center text-sm text-white/50">
+                  Bitte Team wählen.
+                </p>
+              )}
+              {teamSeasonId != null && plLoading && (
+                <p className="text-sm text-white/45">Lade Kader…</p>
+              )}
+              {teamSeasonId != null && !plLoading && plError && (
+                <p className="text-sm text-red-400" role="alert">
+                  {plError}
+                </p>
+              )}
+              {formError && !showForm && (
+                <p className="text-sm text-red-400" role="alert">
+                  {formError}
+                </p>
+              )}
+              {teamSeasonId != null && !plLoading && !plError && players.length === 0 && (
+                <p className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-8 text-center text-sm text-white/50">
+                  Noch keine Spieler angelegt.
+                </p>
+              )}
+              {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
+                <ul className="space-y-2.5">
+                  {sortedPlayers.map((p) => {
+                    const photoUrl = readOptionalPhotoUrl(p);
+                    return (
+                      <li key={p.id}>
+                        <PlayerCard
+                          player={{
+                            id: p.id,
+                            first_name: p.first_name,
+                            last_name: p.last_name,
+                            display_name: p.display_name,
+                            position: abbreviatePositionLabel(p.position),
+                            number: p.jersey_number,
+                            photo_url: photoUrl,
+                          }}
+                          showPhoto={Boolean(photoUrl && isLikelyPhotoUrl(photoUrl))}
+                          onClick={() => handlePlayerCardClick(p)}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {mainTab === "trainer" && (
+            <section className="mt-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-10 text-center">
+              <p className="text-sm font-medium text-white/55">Trainer-Bereich</p>
+              <p className="mt-2 text-xs text-white/40">Demnächst mehr Infos zum Trainerteam.</p>
+            </section>
+          )}
+
+          {mainTab === "matches" && (
+            <section className="mt-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-10 text-center">
+              <p className="text-sm font-medium text-white/55">Spiele</p>
+              <p className="mt-2 text-xs text-white/40">Übersicht der Team-Spiele folgt.</p>
+            </section>
           )}
         </div>
-        {tsError && (
-          <p className="mt-2 text-sm text-red-600" role="alert">
-            {tsError}
-          </p>
-        )}
-      </Card>
+      </div>
 
-      <TeamMembershipRolesCard teamSeasonId={teamSeasonId} />
-
-      {/* Kader Card */}
-      <Card className="rounded-3xl border border-red-500/20 bg-[linear-gradient(180deg,rgba(239,68,68,0.12)_0%,rgba(0,0,0,0.25)_100%)] shadow-[0_0_0_1px_rgba(239,68,68,0.10),0_18px_50px_rgba(0,0,0,0.55)] ring-1 ring-red-500/10">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="mt-0">Kader</CardTitle>
-          {teamSeasonId != null && canManagePlayers && !plLoading && (
-            <Button type="button" variant="secondary" size="sm" onClick={openCreateForm}>
-              + Spieler
-            </Button>
-          )}
-        </div>
-        <div className="mt-2">
-          {teamSeasonId == null && !tsLoading && (
-            <p className="text-sm text-[var(--muted)]">Bitte Team wählen.</p>
-          )}
-          {teamSeasonId != null && plLoading && (
-            <p className="text-sm text-[var(--muted)]">Lade Kader…</p>
-          )}
-          {teamSeasonId != null && !plLoading && plError && (
-            <p className="text-sm text-red-600" role="alert">
-              {plError}
-            </p>
-          )}
-          {formError && (
-            <p className="mb-2 text-sm text-red-600" role="alert">
-              {formError}
-            </p>
-          )}
-          {teamSeasonId != null && showForm && (
-            <form onSubmit={handleFormSubmit} className="mb-3 space-y-2 rounded border border-[var(--border)] bg-[var(--bg)]/50 p-3">
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
-                <label className="flex flex-col gap-0.5">
-                  <span className="text-xs text-[var(--muted)]">Vorname *</span>
-                  <input
-                    type="text"
-                    value={form.first_name}
-                    onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
-                    placeholder="Vorname"
-                    required
-                    className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                    disabled={saving || !canManagePlayers}
-                  />
-                </label>
-                <label className="flex flex-col gap-0.5">
-                  <span className="text-xs text-[var(--muted)]">Nachname *</span>
-                  <input
-                    type="text"
-                    value={form.last_name}
-                    onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
-                    placeholder="Nachname"
-                    required
-                    className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                    disabled={saving || !canManagePlayers}
-                  />
-                </label>
-                <label className="flex flex-col gap-0.5">
-                  <span className="text-xs text-[var(--muted)]">Nummer</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={form.jersey_number}
-                    onChange={(e) => setForm((f) => ({ ...f, jersey_number: e.target.value }))}
-                    placeholder="—"
-                    className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                    disabled={saving || !canManagePlayers}
-                  />
-                  {jerseyErrorMsg && (
-                    <span className="text-sm text-red-600" role="alert">
-                      {jerseyErrorMsg}
-                    </span>
-                  )}
-                </label>
-                <label className="flex flex-col gap-0.5">
-                  <span className="text-xs text-[var(--muted)]">Position</span>
-                  <input
-                    type="text"
-                    value={form.position}
-                    onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
-                    placeholder="z. B. ST"
-                    className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                    disabled={saving || !canManagePlayers}
-                  />
-                </label>
-                <span className="flex gap-2">
-                  {canManagePlayers && (
-                    <Button type="submit" disabled={saving || !form.first_name.trim() || jerseyTaken}>
-                      {saving ? "Speichern…" : "Speichern"}
-                    </Button>
-                  )}
-                  <Button type="button" variant="ghost" onClick={closeForm} disabled={saving}>
-                    Abbrechen
-                  </Button>
-                </span>
+      {/* Spieler-Formular nur als Overlay (nicht dauerhaft in der Liste) */}
+      {showForm && canManagePlayers && (
+        <div
+          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/75 backdrop-blur-sm sm:items-center sm:p-4"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeForm();
+          }}
+        >
+          <div
+            className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-white/[0.1] bg-zinc-900 px-4 pb-8 pt-5 shadow-2xl sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20 sm:hidden" aria-hidden />
+            <h2 className="text-center text-lg font-bold text-white">
+              {mode === "create" ? "Spieler anlegen" : "Spieler bearbeiten"}
+            </h2>
+            {formError && (
+              <p className="mt-2 text-center text-sm text-red-400" role="alert">
+                {formError}
+              </p>
+            )}
+            <form onSubmit={handleFormSubmit} className="mt-4 space-y-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-white/50">Vorname *</span>
+                <input
+                  type="text"
+                  value={form.first_name}
+                  onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
+                  required
+                  className="min-h-[44px] rounded-xl border border-white/15 bg-black/40 px-3 text-sm text-white placeholder:text-white/30 focus:border-red-500/50 focus:outline-none focus:ring-1 focus:ring-red-500/40"
+                  disabled={saving}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-white/50">Nachname *</span>
+                <input
+                  type="text"
+                  value={form.last_name}
+                  onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
+                  required
+                  className="min-h-[44px] rounded-xl border border-white/15 bg-black/40 px-3 text-sm text-white placeholder:text-white/30 focus:border-red-500/50 focus:outline-none focus:ring-1 focus:ring-red-500/40"
+                  disabled={saving}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-white/50">Nummer</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={99}
+                  value={form.jersey_number}
+                  onChange={(e) => setForm((f) => ({ ...f, jersey_number: e.target.value }))}
+                  className="min-h-[44px] rounded-xl border border-white/15 bg-black/40 px-3 text-sm text-white focus:border-red-500/50 focus:outline-none focus:ring-1 focus:ring-red-500/40"
+                  disabled={saving}
+                />
+                {jerseyErrorMsg && (
+                  <span className="text-xs text-red-400" role="alert">
+                    {jerseyErrorMsg}
+                  </span>
+                )}
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-white/50">Position</span>
+                <input
+                  type="text"
+                  value={form.position}
+                  onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
+                  placeholder="z. B. ST"
+                  className="min-h-[44px] rounded-xl border border-white/15 bg-black/40 px-3 text-sm text-white focus:border-red-500/50 focus:outline-none focus:ring-1 focus:ring-red-500/40"
+                  disabled={saving}
+                />
+              </label>
+              <div className="flex flex-col gap-2 pt-2 sm:flex-row">
+                <Button type="submit" disabled={saving || !form.first_name.trim() || jerseyTaken} className="min-h-[48px] flex-1">
+                  {saving ? "Speichern…" : "Speichern"}
+                </Button>
+                <Button type="button" variant="ghost" onClick={closeForm} disabled={saving} className="min-h-[48px] flex-1">
+                  Abbrechen
+                </Button>
               </div>
-
-              {canManagePlayers && mode === "edit" && editingId && (
-                <div className="flex justify-end">
+              {mode === "edit" && editingId && (
+                <div className="flex justify-center pt-2">
                   <Button
                     type="button"
                     variant="ghost"
@@ -433,103 +475,26 @@ export const TeamPage: React.FC = () => {
                     className="text-red-400 hover:bg-red-950/40 hover:text-red-300"
                     aria-label="Spieler entfernen"
                   >
-                    <Trash2 className="h-4 w-4" aria-hidden />
+                    <Trash2 className="mr-1 h-4 w-4" aria-hidden />
+                    Spieler entfernen
                   </Button>
                 </div>
               )}
             </form>
-          )}
-          {teamSeasonId != null && !plLoading && !plError && players.length === 0 && !showForm && (
-            <p className="text-sm text-[var(--muted)]">
-              Noch keine Spieler angelegt.
-            </p>
-          )}
-          {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
-            <ul className="mt-3 space-y-2.5">
-              {sortedPlayers.map((p) => (
-                <li key={p.id}>
-                  <PlayerCard
-                    player={{
-                      id: p.id,
-                      first_name: p.first_name,
-                      last_name: p.last_name,
-                      display_name: p.display_name,
-                      position: abbreviatePositionLabel(p.position),
-                      number: p.jersey_number,
-                    }}
-                    onClick={() => openEditForm(p)}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
+          </div>
         </div>
-      </Card>
-        </div>
+      )}
 
-        <div className="mt-3 space-y-3 lg:mt-0 lg:sticky lg:top-28 lg:self-start">
-      <Tabs
-        tabs={visibleTabs}
-        activeId={activeTab}
-        onChange={(id) => setActiveTab(id as TeamTabId)}
-      />
-
-      <section className="space-y-3">
-        {activeTab === "overview" && (
-          <Card>
-            <CardTitle>Team-Übersicht</CardTitle>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Kurzer Überblick über das Team. Später siehst du hier
-              Spieleranzahl, Saisonstatistiken und wichtige Hinweise.
-            </p>
-          </Card>
-        )}
-
-        {activeTab === "training" && (
-          <RequireFeature feature="training">
-            <Card>
-              <CardTitle>Training</CardTitle>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Trainingsplan-Übersicht. Eltern und Spieler sehen hier die
-                kommenden Einheiten.
-              </p>
-
-              {canManagePlayers ? (
-                <div className="mt-3">
-                  <Button>Training bearbeiten</Button>
-                </div>
-              ) : (
-                <p className="mt-2 text-xs text-[var(--muted)]">
-                  Read-only Ansicht. Trainer bearbeiten den Plan zentral.
-                </p>
-              )}
-            </Card>
-          </RequireFeature>
-        )}
-
-        {activeTab === "squad" && (
-          <Card>
-            <CardTitle>Kader (Details)</CardTitle>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Spielerliste siehe Kader-Card oben.
-            </p>
-          </Card>
-        )}
-      </section>
-        </div>
-      </div>
-    </div>
-    {teamSeasonId != null && canManagePlayers && !plLoading ? (
-      <button
-        type="button"
-        onClick={openCreateForm}
-        className="fixed bottom-24 right-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-red-600 text-2xl font-bold text-white shadow-lg transition-transform hover:scale-105 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-black md:bottom-24 md:right-8"
-        aria-label="Spieler hinzufügen"
-      >
-        +
-      </button>
-    ) : null}
+      {teamSeasonId != null && canManagePlayers && !plLoading ? (
+        <button
+          type="button"
+          onClick={openCreateForm}
+          className="fixed bottom-24 right-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-red-600 text-2xl font-bold text-white shadow-[0_4px_24px_rgba(239,68,68,0.45)] transition-transform hover:scale-105 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-[#0a0a0a] active:scale-95 md:bottom-24 md:right-8"
+          aria-label="Spieler hinzufügen"
+        >
+          +
+        </button>
+      ) : null}
     </>
   );
 };
-
