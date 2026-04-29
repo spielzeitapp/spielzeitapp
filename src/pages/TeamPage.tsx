@@ -257,7 +257,12 @@ export const TeamPage: React.FC = () => {
         setSaving(false);
         return;
       }
-      const editingPlayer = { id: editingId };
+      const editingPlayer = players.find((p) => p.id === editingId) ?? null;
+      if (!editingPlayer) {
+        setSaving(false);
+        setFormError("Avatar URL konnte nicht gespeichert werden – Player nicht gefunden");
+        return;
+      }
       if (!teamSeasonId) {
         setSaving(false);
         setFormError("Keine Mannschaftssaison ausgewählt.");
@@ -267,7 +272,9 @@ export const TeamPage: React.FC = () => {
       if (avatarFile) {
         setAvatarUploading(true);
         const ext = avatarFile.type === "image/png" ? "png" : avatarFile.type === "image/webp" ? "webp" : "jpg";
-        const uploadPath = `${teamSeasonId}/${editingId}.${ext}`;
+        const uploadPath = `${teamSeasonId}/${editingPlayer.id}.${ext}`;
+        console.log("editingPlayer for avatar save", editingPlayer);
+        console.log("avatar update player id", editingPlayer.id);
         console.log("[AvatarUpload] editingPlayer.id:", editingPlayer.id);
         console.log("[AvatarUpload] teamSeasonId:", teamSeasonId);
         console.log("[AvatarUpload] uploadPath:", uploadPath);
