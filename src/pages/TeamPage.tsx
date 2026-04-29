@@ -338,6 +338,11 @@ export const TeamPage: React.FC = () => {
       <Card className="rounded-3xl border border-red-500/20 bg-[linear-gradient(180deg,rgba(239,68,68,0.12)_0%,rgba(0,0,0,0.25)_100%)] shadow-[0_0_0_1px_rgba(239,68,68,0.10),0_18px_50px_rgba(0,0,0,0.55)] ring-1 ring-red-500/10">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="mt-0">Kader</CardTitle>
+          {teamSeasonId != null && canManagePlayers && !plLoading ? (
+            <Button type="button" variant="secondary" size="sm" onClick={() => (showForm ? closeForm() : openCreateForm())}>
+              {showForm ? "Schließen" : "+ Spieler"}
+            </Button>
+          ) : null}
         </div>
         <div className="mt-2">
           {teamSeasonId == null && !tsLoading && (
@@ -448,7 +453,7 @@ export const TeamPage: React.FC = () => {
             </p>
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
-            <ul className="mt-3 space-y-2.5 pb-24">
+            <ul className="mt-3 space-y-2.5 pb-32">
               {sortedPlayers.map((p) => (
                 <li key={p.id}>
                   <PlayerCard
@@ -523,16 +528,6 @@ export const TeamPage: React.FC = () => {
         </div>
       </div>
     </div>
-    {teamSeasonId != null && canManagePlayers && !plLoading ? (
-      <button
-        type="button"
-        onClick={openCreateForm}
-        className="fixed bottom-24 right-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-red-600 text-2xl font-bold text-white shadow-lg transition-transform hover:scale-105 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-black md:right-8"
-        aria-label="Spieler hinzufügen"
-      >
-        +
-      </button>
-    ) : null}
     </>
   );
 };
