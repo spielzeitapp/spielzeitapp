@@ -8,7 +8,6 @@ import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster, ROLE_LABELS_DE } from "../lib/roles";
 import { supabase } from "../lib/supabaseClient";
-import { PlayerCard } from "../components/team/PlayerCard";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
@@ -86,6 +85,21 @@ function isJerseyDuplicateError(err: { code?: string; message?: string }): boole
 function readOptionalPhotoUrl(p: PlayerItem): string | null {
   const v = (p.avatar_url ?? "").trim();
   return v.length > 0 ? v : null;
+}
+
+/** Vollständiger Listenname (kein Abschneiden im Layout). */
+function squadRowDisplayName(p: PlayerItem): string {
+  const f = (p.first_name ?? "").trim();
+  const l = (p.last_name ?? "").trim();
+  const full = `${f} ${l}`.trim();
+  if (full) return full;
+  return p.display_name.trim() || "Spieler";
+}
+
+function squadRowInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return (parts[0] ?? "?").slice(0, 2).toUpperCase();
 }
 
 function staffRoleLabelDe(rawRole: string): string {
@@ -608,7 +622,7 @@ export const TeamPage: React.FC = () => {
         onEdit={handleEditFromProfile}
       />
     ) : null}
-    <div className="mx-auto w-full max-w-4xl space-y-4 pb-36 lg:max-w-6xl">
+    <div className="mx-auto w-full space-y-4 px-4 pb-36">
       {/* Team Hero */}
       <div className="relative overflow-hidden rounded-2xl border border-red-500/25 bg-[#111] shadow-[0_12px_48px_rgba(0,0,0,0.5)]">
         <img
@@ -883,30 +897,61 @@ export const TeamPage: React.FC = () => {
             </p>
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
-            <ul className="mt-3 space-y-2.5 pb-8">
-              {sortedPlayers.map((p) => (
-                <li
-                  key={p.id}
-                  className={
-                    canManagePlayers
-                      ? "rounded-xl transition-[box-shadow] duration-200 hover:shadow-[0_0_22px_rgba(239,68,68,0.18)]"
-                      : undefined
-                  }
-                >
-                  <PlayerCard
-                    player={{
-                      id: p.id,
-                      first_name: p.first_name,
-                      last_name: p.last_name,
-                      display_name: p.display_name,
-                      position: abbreviatePositionLabel(p.position),
-                      number: p.jersey_number,
-                      photo_url: readOptionalPhotoUrl(p),
-                    }}
-                    onClick={() => openPlayerProfile(p)}
-                  />
-                </li>
-              ))}
+            <ul className="mt-3 w-full space-y-3 pb-8">
+              {sortedPlayers.map((p) => {
+                const rowName = squadRowDisplayName(p);
+                const photo = readOptionalPhotoUrl(p);
+                const avatarSrc = (photo ?? "").trim() || "/avatars/player-placeholder.png";
+                const posLabel = abbreviatePositionLabel(p.position);
+                return (
+                  <li key={p.id} className="w-full">
+                    <button
+                      type="button"
+                      onClick={() => openPlayerProfile(p)}
+                      className={[
+                        "relative w-full text-left",
+                        "rounded-2xl border border-red-900/40 bg-gradient-to-br from-red-900/40 via-black/80 to-black p-4 backdrop-blur",
+                        "transition-all duration-150 active:scale-[0.98]",
+                        canManagePlayers ? "hover:border-red-500/45 hover:shadow-[0_0_22px_rgba(239,68,68,0.2)]" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      <div className="flex flex-col gap-1 pr-10 pb-1">
+                        <div className="flex items-start gap-3">
+                          <div className="h-12 w-12 shrink-0">
+                            <img
+                              src={avatarSrc}
+                              alt=""
+                              className="h-12 w-12 rounded-full border border-white/12 object-cover"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).style.display = "none";
+                                const next = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                if (next) next.style.display = "flex";
+                              }}
+                            />
+                            <div
+                              className="flex h-12 w-12 items-center justify-center rounded-full border border-white/12 bg-zinc-800 text-sm font-black text-white/90"
+                              style={{ display: "none" }}
+                            >
+                              {squadRowInitials(rowName)}
+                            </div>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-base font-semibold leading-tight text-white whitespace-normal break-words">
+                              {rowName}
+                            </div>
+                            <div className="mt-0.5 text-xs text-gray-400">{posLabel}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="pointer-events-none absolute bottom-3 right-4 text-sm font-semibold text-red-400 opacity-80">
+                        {p.jersey_number != null ? `#${p.jersey_number}` : "—"}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
