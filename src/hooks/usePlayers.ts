@@ -8,6 +8,7 @@ export type PlayerItem = {
   last_name: string | null;
   jersey_number: number | null;
   position: string | null;
+  avatar_url: string | null;
   is_active: boolean;
   /** first_name + ' ' + last_name, getrimmt – für Anzeige. */
   display_name: string;
@@ -21,6 +22,7 @@ export type PlayerRow = {
   last_name?: string | null;
   jersey_number?: number | null;
   position?: string | null;
+  avatar_url?: string | null;
   is_active?: boolean;
 };
 
@@ -35,6 +37,7 @@ function toPlayer(row: PlayerRow): PlayerItem {
     last_name: row.last_name != null ? String(row.last_name) : null,
     jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
     position: row.position != null ? String(row.position).trim() || null : null,
+    avatar_url: row.avatar_url != null ? String(row.avatar_url).trim() || null : null,
     is_active: row.is_active !== false,
     display_name,
   };
@@ -56,7 +59,7 @@ export function usePlayers(teamSeasonId: string | null) {
     setError(null);
     const { data, error: queryError } = await supabase
       .from("players")
-      .select("id, team_season_id, first_name, last_name, jersey_number, position, is_active")
+      .select("id, team_season_id, first_name, last_name, jersey_number, position, avatar_url, is_active")
       .eq("team_season_id", teamSeasonId)
       .eq("is_active", true)
       .order("jersey_number", { ascending: true, nullsFirst: false })

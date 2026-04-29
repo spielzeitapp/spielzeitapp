@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "../auth/useSession";
 import { RequireFeature } from "../auth/rbac";
 import { Card, CardTitle } from "../app/components/ui/Card";
@@ -53,9 +53,7 @@ function isJerseyDuplicateError(err: { code?: string; message?: string }): boole
 }
 
 function readOptionalPhotoUrl(p: PlayerItem): string | null {
-  const raw = (p as unknown as { photo_url?: unknown }).photo_url;
-  if (typeof raw !== "string") return null;
-  const v = raw.trim();
+  const v = (p.avatar_url ?? "").trim();
   return v.length > 0 ? v : null;
 }
 
@@ -149,14 +147,19 @@ export const TeamPage: React.FC = () => {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   const closeForm = () => {
     setShowForm(false);
     setMode("create");
     setForm(emptyForm);
     setEditingId(null);
+    setAvatarPreviewUrl(null);
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
     setFormError(null);
   };
 
@@ -164,6 +167,7 @@ export const TeamPage: React.FC = () => {
     setForm(emptyForm);
     setMode("create");
     setEditingId(null);
+    setAvatarPreviewUrl(null);
     setFormError(null);
     setShowForm(true);
   };
@@ -177,8 +181,44 @@ export const TeamPage: React.FC = () => {
     });
     setMode("edit");
     setEditingId(p.id);
+    setAvatarPreviewUrl(readOptionalPhotoUrl(p));
     setFormError(null);
     setShowForm(true);
+  };
+
+  const uploadAvatarForEditingPlayer = async (file: File) => {
+    if (!editingId || !teamSeasonId) return;
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      setFormError("Bitte nur JPG, PNG oder WebP hochladen.");
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      setFormError("Datei ist zu groß (max. 3 MB).");
+      return;
+    }
+    setFormError(null);
+    setAvatarUploading(true);
+    const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const path = `${teamSeasonId}/${editingId}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("player-avatars")
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (uploadError) {
+      setAvatarUploading(false);
+      setFormError(uploadError.message);
+      return;
+    }
+    const { data } = supabase.storage.from("player-avatars").getPublicUrl(path);
+    const avatarUrl = data.publicUrl;
+    const { error: updateError } = await supabase.from("players").update({ avatar_url: avatarUrl }).eq("id", editingId);
+    setAvatarUploading(false);
+    if (updateError) {
+      setFormError(updateError.message);
+      return;
+    }
+    setAvatarPreviewUrl(avatarUrl);
+    await refetchPlayers();
   };
 
   const parsedJerseyNumber = parseJersey(form.jersey_number);
@@ -363,7 +403,54 @@ export const TeamPage: React.FC = () => {
           )}
           {teamSeasonId != null && showForm && (
             <form onSubmit={handleFormSubmit} className="mb-3 space-y-2 rounded border border-[var(--border)] bg-[var(--bg)]/50 p-3">
-              {/* TODO: Foto-Feld (photo_url) ergänzen, sobald Upload-Flow definiert ist. */}
+              <div className="mb-1 flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-2.5">
+                <div className="h-14 w-14 shrink-0">
+                  {avatarPreviewUrl ? (
+                    <img
+                      src={avatarPreviewUrl}
+                      alt="Avatar Vorschau"
+                      className="h-14 w-14 rounded-full border border-white/20 object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                        const next = e.currentTarget.nextElementSibling as HTMLElement | null;
+                        if (next) next.style.display = "flex";
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className="flex h-14 w-14 items-center justify-center rounded-full border border-white/12 bg-zinc-800 text-sm font-black text-white/90"
+                    style={{ display: avatarPreviewUrl ? "none" : "flex" }}
+                  >
+                    {(form.first_name || form.last_name)
+                      ? `${(form.first_name || " ").trim().charAt(0)}${(form.last_name || " ").trim().charAt(0)}`.toUpperCase()
+                      : "SP"}
+                  </div>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-white">Spielerfoto</p>
+                  <p className="text-xs text-white/55">JPG, PNG oder WebP, max. 3 MB</p>
+                </div>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    void uploadAvatarForEditingPlayer(file);
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={mode !== "edit" || avatarUploading || !editingId}
+                  onClick={() => avatarInputRef.current?.click()}
+                >
+                  {avatarUploading ? "Upload…" : "Foto hochladen"}
+                </Button>
+              </div>
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
                 <label className="flex flex-col gap-0.5">
                   <span className="text-xs text-[var(--muted)]">Vorname *</span>
