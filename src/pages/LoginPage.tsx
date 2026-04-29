@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
-import { supabase } from '../lib/supabaseClient';
+import { setRememberMePreference, supabase } from '../lib/supabaseClient';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
@@ -12,6 +12,7 @@ export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -21,6 +22,7 @@ export const LoginPage: React.FC = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
+    setRememberMePreference(rememberMe);
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
@@ -79,6 +81,15 @@ export const LoginPage: React.FC = () => {
               </button>
             </div>
           </div>
+          <label className="flex items-center gap-2.5 pt-0.5 text-sm text-white/75">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 rounded border border-white/25 bg-black/30 accent-red-500"
+            />
+            <span>Immer angemeldet bleiben</span>
+          </label>
 
           {error && <p className="text-sm text-red-300" role="alert">{error}</p>}
 
