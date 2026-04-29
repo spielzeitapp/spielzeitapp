@@ -464,7 +464,7 @@ export const TeamPage: React.FC = () => {
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManagePlayers) return;
-    const { first_name, last_name, position } = form;
+    const { first_name, last_name } = form;
     if (!first_name.trim()) return;
     if (jerseyTaken) {
       setFormError(jerseyErrorMsg ?? "Diese Nummer ist bereits vergeben.");
@@ -473,8 +473,6 @@ export const TeamPage: React.FC = () => {
     setFormError(null);
     setSaving(true);
     const jersey = parsedJerseyNumber;
-    const positionVal = position.trim() || null;
-    const birthdateForDb = form.birthdate ? toISODate(form.birthdate) : null;
     console.log("saving birthdate", form.birthdate);
 
     if (mode === "create") {
@@ -483,19 +481,15 @@ export const TeamPage: React.FC = () => {
         setSaving(false);
         return;
       }
-      const { data: savedPlayer, error: insertError } = await supabase
-        .from("players")
-        .insert({
-          team_season_id: teamSeasonId,
-          first_name: first_name.trim(),
-          last_name: last_name.trim(),
-          jersey_number: jersey,
-          position: positionVal,
-          birthdate: birthdateForDb,
-          is_active: true,
-        })
-        .select()
-        .maybeSingle();
+      const { error: insertError } = await supabase.from("players").insert({
+        team_season_id: teamSeasonId,
+        first_name: first_name.trim(),
+        last_name: last_name.trim(),
+        jersey_number: form.jersey_number ? Number(form.jersey_number) : null,
+        position: form.position?.trim() || null,
+        "Geburtsdatum": form.birthdate ? toISODate(form.birthdate) : null,
+        is_active: true,
+      });
       if (insertError) {
         setFormError(
           isJerseyDuplicateError(insertError as { code?: string; message?: string })
@@ -505,7 +499,6 @@ export const TeamPage: React.FC = () => {
         setSaving(false);
         return;
       }
-      console.log("saved player result", savedPlayer);
       setSaving(false);
       await refetchPlayers();
       closeForm();
@@ -582,18 +575,16 @@ export const TeamPage: React.FC = () => {
           (updatedPlayer?.avatar_url as string | null | undefined) ??
           publicUrl;
       }
-      const { data: savedPlayer, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from("players")
         .update({
           first_name: first_name.trim(),
           last_name: last_name.trim(),
-          jersey_number: jersey,
-          position: positionVal,
-          birthdate: birthdateForDb,
+          jersey_number: form.jersey_number ? Number(form.jersey_number) : null,
+          position: form.position?.trim() || null,
+          "Geburtsdatum": form.birthdate ? toISODate(form.birthdate) : null,
         })
-        .eq("id", editingPlayer.id)
-        .select()
-        .single();
+        .eq("id", editingPlayer.id);
       setAvatarUploading(false);
       if (updateError) {
         setFormError(
@@ -605,7 +596,6 @@ export const TeamPage: React.FC = () => {
         return;
       }
       if (nextAvatarUrl) setAvatarPreviewUrl(nextAvatarUrl);
-      console.log("saved player result", savedPlayer);
       setSaving(false);
       await refetchPlayers();
       closeForm();
