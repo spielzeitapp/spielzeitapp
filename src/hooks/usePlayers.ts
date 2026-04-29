@@ -16,7 +16,7 @@ export type PlayerItem = {
   display_name: string;
 };
 
-/** Row from public.players. */
+/** Row from public.players (optional embed player_profiles via FK). */
 export type PlayerRow = {
   id: string;
   team_season_id: string;
@@ -25,6 +25,7 @@ export type PlayerRow = {
   jersey_number?: number | null;
   position?: string | null;
   is_active?: boolean;
+  player_profiles?: { birthdate?: string | null } | { birthdate?: string | null }[] | null;
 };
 
 type PlayerAvatarRow = {
@@ -32,10 +33,18 @@ type PlayerAvatarRow = {
   avatar_url: string | null;
 };
 
-type PlayerProfileRow = {
-  player_id: string;
-  birthdate?: string | null;
-};
+function normalizeProfileBirthdate(raw: string | null | undefined): string | null {
+  if (raw == null || String(raw).trim() === "") return null;
+  return String(raw).trim().slice(0, 10) || null;
+}
+
+function pickEmbeddedProfileBirthdate(
+  embedded: PlayerRow["player_profiles"]
+): string | null {
+  if (embedded == null) return null;
+  const one = Array.isArray(embedded) ? embedded[0] : embedded;
+  return normalizeProfileBirthdate(one?.birthdate ?? null);
+}
 
 function toPlayer(row: PlayerRow): PlayerItem {
   const first = row.first_name != null ? String(row.first_name).trim() : "";
@@ -49,16 +58,11 @@ function toPlayer(row: PlayerRow): PlayerItem {
     last_name: row.last_name != null ? String(row.last_name) : null,
     jersey_number: row.jersey_number != null ? Number(row.jersey_number) : null,
     position: row.position != null ? String(row.position).trim() || null : null,
-    birthdate: null,
+    birthdate: pickEmbeddedProfileBirthdate(row.player_profiles),
     avatar_url: null,
     is_active: row.is_active !== false,
     display_name,
   };
-}
-
-function normalizeProfileBirthdate(raw: string | null | undefined): string | null {
-  if (raw == null || String(raw).trim() === "") return null;
-  return String(raw).trim().slice(0, 10) || null;
 }
 
 export function usePlayers(teamSeasonId: string | null) {
@@ -77,7 +81,7 @@ export function usePlayers(teamSeasonId: string | null) {
     setError(null);
     const { data, error: queryError } = await supabase
       .from("players")
-      .select("id, team_season_id, first_name, last_name, jersey_number, position, is_active")
+      .select("id, team_season_id, first_name, last_name, jersey_number, position, is_active, player_profiles(birthdate)")
       .eq("team_season_id", teamSeasonId)
       .eq("is_active", true)
       .order("jersey_number", { ascending: true, nullsFirst: false })
@@ -96,7 +100,6 @@ export function usePlayers(teamSeasonId: string | null) {
     const playerIds = basePlayers.map((p) => p.id);
 
     let avatarMap: Record<string, string | null> = {};
-    let profileBirthMap: Record<string, string | null> = {};
     if (playerIds.length > 0) {
       const { data: avatarRows, error: avatarError } = await supabase
         .from("player_avatars")
@@ -115,30 +118,11 @@ export function usePlayers(teamSeasonId: string | null) {
         },
         {}
       );
-
-      const { data: profileRows, error: profileError } = await supabase
-        .from("player_profiles")
-        .select("player_id, birthdate")
-        .in("player_id", playerIds);
-      if (profileError) {
-        setError(profileError.message);
-        setPlayers(basePlayers);
-        setLoading(false);
-        return;
-      }
-      profileBirthMap = ((profileRows as PlayerProfileRow[]) ?? []).reduce<Record<string, string | null>>(
-        (acc, row) => {
-          acc[row.player_id] = normalizeProfileBirthdate(row.birthdate ?? null);
-          return acc;
-        },
-        {}
-      );
     }
 
     setPlayers(
       basePlayers.map((player) => ({
         ...player,
-        birthdate: profileBirthMap[player.id] ?? null,
         avatar_url: avatarMap[player.id] ?? null,
       }))
     );
