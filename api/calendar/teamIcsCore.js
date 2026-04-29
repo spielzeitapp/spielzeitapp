@@ -56,6 +56,14 @@ function toIcsUtc(date) {
   return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
 }
 
+function pickStableStamp(ev) {
+  const raw = ev.updated_at ?? ev.created_at ?? ev.starts_at ?? null;
+  if (!raw) return toIcsUtc(new Date());
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return toIcsUtc(new Date());
+  return toIcsUtc(d);
+}
+
 function parseEndTimeFromNotes(notes) {
   if (!notes) return null;
   const m = notes.match(/ende:\s*(\d{1,2}):(\d{2})\s*uhr/i);
@@ -188,9 +196,11 @@ function formatViennaTime(isoString) {
 function buildDescription(ev, appBaseUrl) {
   const notes = notesTitleAndDescription(ev.notes);
   const meetup = ev.meeting_at ? formatViennaTime(ev.meeting_at) : null;
+  const kickoff = ev.starts_at ? formatViennaTime(ev.starts_at) : null;
   const eventUrl = `${appBaseUrl}/app/events/${ev.id}`;
   const lines = [];
   if (meetup) lines.push(`Treffpunkt: ${meetup}`);
+  if ((ev.kind ?? '').trim().toLowerCase() === 'match' && kickoff) lines.push(`Anpfiff: ${kickoff}`);
   if (effectiveType(ev) === 'game' && ev.opponent) lines.push(`Gegner: ${ev.opponent}`);
   if (notes.description) lines.push(`Hinweise: ${notes.description}`);
   lines.push(`Link zur SpielzeitApp: ${eventUrl}`);
@@ -275,7 +285,7 @@ async function teamIcsHandler(req, res) {
     });
     const { data: events, error: evError } = await admin
       .from('events')
-      .select('id, team_season_id, kind, type, opponent, location, starts_at, meeting_at, notes')
+      .select('id, team_season_id, kind, type, opponent, location, starts_at, meeting_at, notes, created_at, updated_at')
       .in('team_season_id', teamSeasonIds.length ? teamSeasonIds : ['00000000-0000-0000-0000-000000000000'])
       .gte('starts_at', nowIso)
       .order('starts_at', { ascending: true });
@@ -288,21 +298,27 @@ async function teamIcsHandler(req, res) {
 
     const appBaseUrl =
       getEnv('APP_BASE_URL') || `${req.headers['x-forwarded-proto'] ?? 'https'}://${req.headers.host}`;
-    const dtstamp = toIcsUtc(new Date());
     console.log('[ics-feed] ICS build start');
-    const vevents = (events ?? []).flatMap((ev) => {
-      const start = new Date(ev.starts_at);
-      if (!start || isNaN(start.getTime())) return [];
-      const end = resolveEndDate(ev, start);
+    const uniqueEvents = Array.from(new Map((events ?? []).map((e) => [e.id, e])).values());
+    const vevents = uniqueEvents.flatMap((ev) => {
+      const kickoffStart = new Date(ev.starts_at);
+      if (!kickoffStart || isNaN(kickoffStart.getTime())) return [];
+      const meetingStart =
+        (ev.kind ?? '').trim().toLowerCase() === 'match' && ev.meeting_at ? new Date(ev.meeting_at) : null;
+      const dtStartDate =
+        meetingStart && !isNaN(meetingStart.getTime()) ? meetingStart : kickoffStart;
+      const end = resolveEndDate(ev, kickoffStart);
       const summary = buildSummary(ev, teamName);
       const description = buildDescription(ev, appBaseUrl);
       const location = buildLocation(ev);
+      const stableStamp = pickStableStamp(ev);
 
       return [
         'BEGIN:VEVENT',
-        `UID:${escapeIcsText(`${ev.id}@spielzeitapp.at`)}`,
-        `DTSTAMP:${dtstamp}`,
-        `DTSTART:${toIcsUtc(start)}`,
+        `UID:${escapeIcsText(`event-${ev.id}@spielzeitapp.at`)}`,
+        `DTSTAMP:${stableStamp}`,
+        `LAST-MODIFIED:${stableStamp}`,
+        `DTSTART:${toIcsUtc(dtStartDate)}`,
         `DTEND:${toIcsUtc(end)}`,
         `SUMMARY:${escapeIcsText(summary)}`,
         location ? `LOCATION:${escapeIcsText(location)}` : undefined,
@@ -339,6 +355,7 @@ async function teamIcsHandler(req, res) {
 
     console.log('[ics-feed] ICS build end', {
       eventRowCount: (events ?? []).length,
+      uniqueEventCount: uniqueEvents.length,
       veventLineCount: vevents.length,
       bodyLength: ics.length,
     });
