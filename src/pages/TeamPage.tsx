@@ -292,7 +292,8 @@ export const TeamPage: React.FC = () => {
   }, [players]);
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-3 pb-24 lg:max-w-6xl">
+    <>
+    <div className="mx-auto w-full max-w-4xl space-y-3 pb-36 lg:max-w-6xl">
       <h1 className="text-xl font-semibold">Team</h1>
 
       <div className="lg:grid lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-5">
@@ -301,7 +302,7 @@ export const TeamPage: React.FC = () => {
       <Card>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <CardTitle className="mt-0">
+            <CardTitle className="mt-0 text-base leading-tight sm:text-lg [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden break-words">
               {tsLoading ? "Lade Team…" : (teamLabel ?? "Team")}
             </CardTitle>
             {!tsLoading && (
@@ -329,11 +330,6 @@ export const TeamPage: React.FC = () => {
       <Card className="rounded-3xl border border-red-500/20 bg-[linear-gradient(180deg,rgba(239,68,68,0.12)_0%,rgba(0,0,0,0.25)_100%)] shadow-[0_0_0_1px_rgba(239,68,68,0.10),0_18px_50px_rgba(0,0,0,0.55)] ring-1 ring-red-500/10">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="mt-0">Kader</CardTitle>
-          {teamSeasonId != null && canManagePlayers && !plLoading && (
-            <Button type="button" variant="secondary" size="sm" onClick={openCreateForm}>
-              + Spieler
-            </Button>
-          )}
         </div>
         <div className="mt-2">
           {teamSeasonId == null && !tsLoading && (
@@ -354,6 +350,7 @@ export const TeamPage: React.FC = () => {
           )}
           {teamSeasonId != null && showForm && (
             <form onSubmit={handleFormSubmit} className="mb-3 space-y-2 rounded border border-[var(--border)] bg-[var(--bg)]/50 p-3">
+              {/* TODO: Foto-Feld (photo_url) ergänzen, sobald Upload-Flow definiert ist. */}
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
                 <label className="flex flex-col gap-0.5">
                   <span className="text-xs text-[var(--muted)]">Vorname *</span>
@@ -443,7 +440,7 @@ export const TeamPage: React.FC = () => {
             </p>
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
-            <ul className="mt-3 space-y-2.5">
+            <ul className="mt-3 space-y-2.5 pb-24">
               {sortedPlayers.map((p) => (
                 <li
                   key={p.id}
@@ -543,6 +540,17 @@ export const TeamPage: React.FC = () => {
         </div>
       </div>
     </div>
+    {teamSeasonId != null && canManagePlayers && !plLoading ? (
+      <button
+        type="button"
+        onClick={openCreateForm}
+        className="fixed bottom-24 right-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-red-600 text-2xl font-bold text-white shadow-lg transition-transform hover:scale-105 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-black md:right-8"
+        aria-label="Spieler hinzufügen"
+      >
+        +
+      </button>
+    ) : null}
+    </>
   );
 };
 
