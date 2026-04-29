@@ -27,27 +27,25 @@ function initials(p: PlayerItem): string {
   return (parts[0] ?? "?").slice(0, 2).toUpperCase();
 }
 
-/** Completed age in years from `YYYY-MM-DD` (local calendar), or null if unknown/invalid/future. */
-function completedAgeFromIsoDate(ymd: string | null | undefined): number | null {
-  if (!ymd) return null;
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(ymd).trim());
-  if (!m) return null;
-  const y = Number(m[1]);
-  const mo = Number(m[2]);
-  const d = Number(m[3]);
-  if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(d)) return null;
-  const ref = new Date();
-  const ry = ref.getFullYear();
-  const rm = ref.getMonth() + 1;
-  const rd = ref.getDate();
-  let age = ry - y;
-  if (rm < mo || (rm === mo && rd < d)) age--;
+function getAge(dateString: string | null | undefined): number | null {
+  if (!dateString) return null;
+  const birth = new Date(dateString);
+  const today = new Date();
+  if (Number.isNaN(birth.getTime())) return null;
+
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+
   if (age < 0) return null;
   return age;
 }
 
 function ageChipLabel(birthdate: string | null | undefined): string {
-  const age = completedAgeFromIsoDate(birthdate);
+  const age = getAge(birthdate);
   if (age == null) return "-";
   return `${age} Jahre`;
 }

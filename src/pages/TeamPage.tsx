@@ -64,6 +64,18 @@ const emptyForm: FormState = {
   birthdate: "",
 };
 
+/** Normalisiert `YYYY-MM-DD` oder deutsches `DD.MM.YYYY` für die DB-Spalte `date`. */
+function toISODate(value: string): string | null {
+  const v = (value ?? "").trim();
+  if (!v) return null;
+  if (v.includes(".")) {
+    const [d, m, y] = v.split(".").map((p) => p.trim());
+    if (!d || !m || !y) return null;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+  return v;
+}
+
 /** Parst Jersey-String: leer → null, sonst Number; gültig nur wenn Number.isFinite(n) && n > 0. */
 function parseJersey(value: string): number | null {
   const trimmed = value.trim();
@@ -462,7 +474,7 @@ export const TeamPage: React.FC = () => {
     setSaving(true);
     const jersey = parsedJerseyNumber;
     const positionVal = position.trim() || null;
-    const birthdateForDb = form.birthdate ? form.birthdate : null;
+    const birthdateForDb = form.birthdate ? toISODate(form.birthdate) : null;
     console.log("saving birthdate", form.birthdate);
 
     if (mode === "create") {
@@ -483,7 +495,7 @@ export const TeamPage: React.FC = () => {
           is_active: true,
         })
         .select()
-        .single();
+        .maybeSingle();
       if (insertError) {
         setFormError(
           isJerseyDuplicateError(insertError as { code?: string; message?: string })
@@ -881,7 +893,7 @@ export const TeamPage: React.FC = () => {
                   <input
                     type="date"
                     value={form.birthdate || ""}
-                    onChange={(e) => setForm((f) => ({ ...f, birthdate: e.target.value }))}
+                    onChange={(e) => setForm({ ...form, birthdate: e.target.value })}
                     className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                     disabled={saving || !canManagePlayers}
                   />
