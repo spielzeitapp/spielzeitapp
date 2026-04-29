@@ -3,7 +3,7 @@ import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } f
 import { Card, CardTitle } from "../app/components/ui/Card";
 import { Tabs, TabOption } from "../app/components/ui/Tabs";
 import { Button } from "../app/components/ui/Button";
-import { Trash2 } from "lucide-react";
+import { Camera, Trash2 } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster, ROLE_LABELS_DE } from "../lib/roles";
@@ -11,9 +11,9 @@ import { supabase } from "../lib/supabaseClient";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
-const TEAM_HERO_PLACEHOLDER = `${import.meta.env.BASE_URL}team/team-placeholder.jpg`;
+const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
 
-type TeamTabId = "squad" | "training" | "matches" | "trainers";
+type TeamTabId = "squad" | "trainers" | "training" | "matches";
 
 type StaffMembershipRow = {
   user_id: string;
@@ -63,11 +63,6 @@ const emptyForm: FormState = {
   position: "",
   birthdate: "",
 };
-
-function formBirthdateToDb(value: string): string | null {
-  const t = value.trim();
-  return t.length > 0 ? t.slice(0, 10) : null;
-}
 
 /** Parst Jersey-String: leer → null, sonst Number; gültig nur wenn Number.isFinite(n) && n > 0. */
 function parseJersey(value: string): number | null {
@@ -208,6 +203,7 @@ export const TeamPage: React.FC = () => {
     () => (teamPhotoUrl && teamPhotoUrl.length > 0 ? teamPhotoUrl : TEAM_HERO_PLACEHOLDER),
     [teamPhotoUrl],
   );
+  const heroShowsPlaceholder = !teamPhotoUrl || teamPhotoUrl.length === 0;
 
   useEffect(() => {
     if (!teamSeasonId) {
@@ -336,6 +332,11 @@ export const TeamPage: React.FC = () => {
     }
     const { data: publicData } = supabase.storage.from("team-photos").getPublicUrl(uploadPath);
     const publicUrl = (publicData?.publicUrl ?? "").trim();
+    if (!publicUrl) {
+      setTeamPhotoUploading(false);
+      setTeamPhotoError("Öffentliche URL für das Mannschaftsfoto konnte nicht ermittelt werden.");
+      return;
+    }
     const { data: upserted, error: upsertError } = await supabase
       .from("team_photos")
       .upsert(
@@ -346,10 +347,14 @@ export const TeamPage: React.FC = () => {
       .maybeSingle();
     setTeamPhotoUploading(false);
     if (upsertError) {
-      setTeamPhotoError(`Foto gespeichert, aber URL nicht gesetzt: ${upsertError.message}`);
+      setTeamPhotoError(`Mannschaftsfoto: ${upsertError.message}`);
       return;
     }
-    setTeamPhoto((upserted as TeamPhotoRow | null) ?? null);
+    if (!upserted) {
+      setTeamPhotoError("Mannschaftsfoto: Eintrag in team_photos wurde nicht zurückgegeben (RLS oder Berechtigung prüfen).");
+      return;
+    }
+    setTeamPhoto(upserted as TeamPhotoRow);
   };
 
   const clearAvatarLocalPreview = () => {
@@ -452,7 +457,7 @@ export const TeamPage: React.FC = () => {
     setSaving(true);
     const jersey = parsedJerseyNumber;
     const positionVal = position.trim() || null;
-    const birthdateVal = formBirthdateToDb(form.birthdate);
+    const birthdateVal = (form.birthdate ?? "").trim() || null;
 
     if (mode === "create") {
       if (teamSeasonId == null) {
@@ -593,9 +598,9 @@ export const TeamPage: React.FC = () => {
 
   const teamTabs: TabOption[] = [
     { id: "squad", label: "Kader" },
+    { id: "trainers", label: "Trainer" },
     { id: "training", label: "Training" },
     { id: "matches", label: "Spiele" },
-    { id: "trainers", label: "Trainer" },
   ];
 
   const [activeTab, setActiveTab] = useState<TeamTabId>("squad");
@@ -631,7 +636,11 @@ export const TeamPage: React.FC = () => {
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(48,10,10,0.96)_0%,rgba(14,14,18,0.98)_45%,rgba(8,8,12,1)_100%)]"
+          className={
+            heroShowsPlaceholder
+              ? "pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(48,10,10,0.55)_0%,rgba(14,14,18,0.72)_50%,rgba(8,8,12,0.85)_100%)]"
+              : "pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(48,10,10,0.96)_0%,rgba(14,14,18,0.98)_45%,rgba(8,8,12,1)_100%)]"
+          }
           aria-hidden
         />
         <div
@@ -639,9 +648,9 @@ export const TeamPage: React.FC = () => {
           aria-hidden
         />
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-red-600/20 blur-3xl" aria-hidden />
-        <div className="relative flex min-h-[160px] flex-col justify-end p-5 sm:min-h-[178px] sm:p-6">
+        <div className="relative z-10 flex min-h-[160px] flex-col justify-end p-5 sm:min-h-[178px] sm:p-6">
           {canManagePlayers ? (
-            <div className="mb-3 flex justify-end">
+            <div className="absolute right-3 top-3 flex items-center gap-1.5 sm:right-4 sm:top-4">
               <input
                 ref={teamPhotoInputRef}
                 type="file"
@@ -654,15 +663,16 @@ export const TeamPage: React.FC = () => {
                   if (teamPhotoInputRef.current) teamPhotoInputRef.current.value = "";
                 }}
               />
-              <Button
+              <button
                 type="button"
-                size="sm"
-                variant="secondary"
                 disabled={teamPhotoUploading || !teamSeasonId}
                 onClick={() => teamPhotoInputRef.current?.click()}
+                title="Mannschaftsfoto"
+                className="inline-flex h-9 items-center gap-1 rounded-full border border-white/20 bg-black/50 px-2.5 text-white/90 shadow-[0_0_20px_rgba(220,38,38,0.2)] backdrop-blur-sm transition-all duration-150 hover:border-red-400/40 hover:bg-black/60 disabled:opacity-50 active:scale-[0.97] sm:h-8"
               >
-                {teamPhotoUploading ? "Upload…" : "Mannschaftsfoto"}
-              </Button>
+                <Camera className="h-4 w-4 shrink-0 text-red-300/95" aria-hidden />
+                <span className="text-[11px] font-medium text-white/85">Foto</span>
+              </button>
             </div>
           ) : null}
           <div>
@@ -699,6 +709,7 @@ export const TeamPage: React.FC = () => {
       <div className="sticky top-0 z-20 rounded-xl border border-red-500/15 bg-[#111]/90 px-1 shadow-[0_4px_24px_rgba(0,0,0,0.35)] backdrop-blur-md">
         <Tabs
           variant="stadium"
+          compact
           tabs={teamTabs}
           activeId={activeTab}
           onChange={(id) => setActiveTab(id as TeamTabId)}
@@ -852,7 +863,7 @@ export const TeamPage: React.FC = () => {
                   <span className="text-xs text-[var(--muted)]">Geburtsdatum</span>
                   <input
                     type="date"
-                    value={form.birthdate}
+                    value={form.birthdate ?? ""}
                     onChange={(e) => setForm((f) => ({ ...f, birthdate: e.target.value }))}
                     className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                     disabled={saving || !canManagePlayers}
@@ -958,6 +969,40 @@ export const TeamPage: React.FC = () => {
       </Card>
       ) : null}
 
+      {activeTab === "trainers" ? (
+        <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
+          <CardTitle className="mt-0">Trainer</CardTitle>
+          {teamSeasonId == null && !tsLoading ? (
+            <p className="mt-3 text-sm text-white/55">Bitte Team wählen.</p>
+          ) : staffRows.length === 0 ? (
+            <p className="mt-4 text-center text-sm text-white/50">Keine Trainer hinterlegt</p>
+          ) : (
+            <ul className="mt-4 space-y-2.5">
+              {staffRows.map((row) => (
+                <li
+                  key={`${row.user_id}-${row.role}`}
+                  className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] p-3"
+                >
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 bg-zinc-800 text-sm font-black text-white/90">
+                    {profileDisplayName(row.profiles)
+                      .split(/\s+/)
+                      .filter(Boolean)
+                      .map((w) => w[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase() || "—"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-semibold text-white">{profileDisplayName(row.profiles)}</div>
+                    <div className="mt-0.5 text-xs text-white/55">{staffRoleLabelDe(row.role)}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      ) : null}
+
       {activeTab === "training" ? (
         <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
           <CardTitle className="mt-0">Training</CardTitle>
@@ -1014,40 +1059,6 @@ export const TeamPage: React.FC = () => {
                 </ul>
               </div>
             </div>
-          )}
-        </Card>
-      ) : null}
-
-      {activeTab === "trainers" ? (
-        <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
-          <CardTitle className="mt-0">Trainer</CardTitle>
-          {teamSeasonId == null && !tsLoading ? (
-            <p className="mt-3 text-sm text-white/55">Bitte Team wählen.</p>
-          ) : staffRows.length === 0 ? (
-            <p className="mt-4 text-center text-sm text-white/50">Keine Trainer hinterlegt</p>
-          ) : (
-            <ul className="mt-4 space-y-2.5">
-              {staffRows.map((row) => (
-                <li
-                  key={`${row.user_id}-${row.role}`}
-                  className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] p-3"
-                >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 bg-zinc-800 text-sm font-black text-white/90">
-                    {profileDisplayName(row.profiles)
-                      .split(/\s+/)
-                      .filter(Boolean)
-                      .map((w) => w[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase() || "—"}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold text-white">{profileDisplayName(row.profiles)}</div>
-                    <div className="mt-0.5 text-xs text-white/55">{staffRoleLabelDe(row.role)}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
           )}
         </Card>
       ) : null}

@@ -15,9 +15,11 @@ interface TabsProps {
   onChange: (id: string) => void;
   /** Stadium: rote Unterstreichung, inaktiv grau. */
   variant?: 'default' | 'stadium';
+  /** Engere Tabs für viele Einträge (z. B. Team-Screen auf Mobil). */
+  compact?: boolean;
 }
 
-export const Tabs: React.FC<TabsProps> = ({ tabs, activeId, onChange, variant = 'default' }) => {
+export const Tabs: React.FC<TabsProps> = ({ tabs, activeId, onChange, variant = 'default', compact = false }) => {
   const stadium = variant === 'stadium';
   return (
     <div
@@ -35,7 +37,8 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeId, onChange, variant = 
               type="button"
               onClick={() => onChange(tab.id)}
               className={cn(
-                'relative flex-1 whitespace-nowrap px-3 py-2.5 text-xs font-semibold uppercase tracking-wide transition-colors',
+                'relative flex-1 whitespace-nowrap font-semibold uppercase transition-colors',
+                compact ? 'px-1.5 py-2 text-[10px] tracking-tight sm:px-2 sm:text-xs sm:tracking-wide' : 'px-3 py-2.5 text-xs tracking-wide',
                 stadium
                   ? isActive
                     ? 'text-red-400'

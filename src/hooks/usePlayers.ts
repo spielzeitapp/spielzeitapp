@@ -37,9 +37,10 @@ function toPlayer(row: PlayerRow): PlayerItem {
   const first = row.first_name != null ? String(row.first_name).trim() : "";
   const last = row.last_name != null ? String(row.last_name).trim() : "";
   const display_name = [first, last].join(" ").replace(/\s+/g, " ").trim() || "Spieler";
-  const bdRaw = row.birthdate != null ? String(row.birthdate).trim() : "";
+  const rawBd = row.birthdate ?? null;
+  const bdStr = rawBd != null ? String(rawBd).trim() : "";
   const birthdate =
-    bdRaw.length >= 10 ? bdRaw.slice(0, 10) : bdRaw.length > 0 ? bdRaw : null;
+    bdStr === "" ? null : bdStr.length >= 10 ? bdStr.slice(0, 10) : bdStr;
 
   return {
     id: row.id,
