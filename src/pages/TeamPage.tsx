@@ -11,6 +11,9 @@ import { supabase } from "../lib/supabaseClient";
 import { PlayerCard } from "../components/team/PlayerCard";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 
+/** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
+const TEAM_HERO_PLACEHOLDER = `${import.meta.env.BASE_URL}team/team-placeholder.jpg`;
+
 type TeamTabId = "squad" | "training" | "matches" | "trainers";
 
 type StaffMembershipRow = {
@@ -161,7 +164,6 @@ export const TeamPage: React.FC = () => {
   const [teamPhotoUploading, setTeamPhotoUploading] = useState(false);
   const [teamPhotoError, setTeamPhotoError] = useState<string | null>(null);
   const [trainingCount, setTrainingCount] = useState(0);
-  const [teamTrainingRateText, setTeamTrainingRateText] = useState<string>("Noch keine Daten");
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const teamPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -188,6 +190,10 @@ export const TeamPage: React.FC = () => {
 
   const trainerCount = useMemo(() => staffRows.length, [staffRows]);
   const teamPhotoUrl = useMemo(() => readTeamPhotoUrl(teamPhoto), [teamPhoto]);
+  const heroPhotoSrc = useMemo(
+    () => (teamPhotoUrl && teamPhotoUrl.length > 0 ? teamPhotoUrl : TEAM_HERO_PLACEHOLDER),
+    [teamPhotoUrl],
+  );
 
   useEffect(() => {
     if (!teamSeasonId) {
@@ -270,7 +276,6 @@ export const TeamPage: React.FC = () => {
   useEffect(() => {
     if (!teamSeasonId) {
       setTrainingCount(0);
-      setTeamTrainingRateText("Noch keine Daten");
       return;
     }
     let cancelled = false;
@@ -283,12 +288,9 @@ export const TeamPage: React.FC = () => {
         if (cancelled) return;
         if (error) {
           setTrainingCount(0);
-          setTeamTrainingRateText("Noch keine Daten");
           return;
         }
-        const c = Number(count ?? 0) || 0;
-        setTrainingCount(c);
-        setTeamTrainingRateText(c > 0 ? "Noch keine Daten" : "Noch keine Trainingsdaten");
+        setTrainingCount(Number(count ?? 0) || 0);
       });
     return () => {
       cancelled = true;
@@ -609,13 +611,11 @@ export const TeamPage: React.FC = () => {
     <div className="mx-auto w-full max-w-4xl space-y-4 pb-36 lg:max-w-6xl">
       {/* Team Hero */}
       <div className="relative overflow-hidden rounded-2xl border border-red-500/25 bg-[#111] shadow-[0_12px_48px_rgba(0,0,0,0.5)]">
-        {teamPhotoUrl ? (
-          <img
-            src={teamPhotoUrl}
-            alt="Mannschaftsfoto"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        ) : null}
+        <img
+          src={heroPhotoSrc}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+        />
         <div
           className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(48,10,10,0.96)_0%,rgba(14,14,18,0.98)_45%,rgba(8,8,12,1)_100%)]"
           aria-hidden
@@ -913,36 +913,31 @@ export const TeamPage: React.FC = () => {
       </Card>
       ) : null}
 
-      {activeTab === "trainers" ? (
+      {activeTab === "training" ? (
         <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
-          <CardTitle className="mt-0">Trainer</CardTitle>
+          <CardTitle className="mt-0">Training</CardTitle>
           {teamSeasonId == null && !tsLoading ? (
             <p className="mt-3 text-sm text-white/55">Bitte Team wählen.</p>
-          ) : staffRows.length === 0 ? (
-            <p className="mt-4 text-center text-sm text-white/50">Keine Trainer hinterlegt</p>
           ) : (
-            <ul className="mt-4 space-y-2.5">
-              {staffRows.map((row) => (
-                <li
-                  key={`${row.user_id}-${row.role}`}
-                  className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] p-3"
-                >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 bg-zinc-800 text-sm font-black text-white/90">
-                    {profileDisplayName(row.profiles)
-                      .split(/\s+/)
-                      .filter(Boolean)
-                      .map((w) => w[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase() || "—"}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold text-white">{profileDisplayName(row.profiles)}</div>
-                    <div className="mt-0.5 text-xs text-white/55">{staffRoleLabelDe(row.role)}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
+                  <div className="text-xs text-white/50">Teilnahmequote Team</div>
+                  <div className="mt-1 text-lg font-bold text-white">Noch keine Trainingsdaten</div>
+                </div>
+                <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
+                  <div className="text-xs text-white/50">Anzahl Trainings</div>
+                  <div className="mt-1 text-lg font-bold text-white">{trainingCount}</div>
+                </div>
+                <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
+                  <div className="text-xs text-white/50">Durchschnittliche Beteiligung</div>
+                  <div className="mt-1 text-lg font-bold text-white">Noch keine Trainingsdaten</div>
+                </div>
+              </div>
+              {trainingCount === 0 ? (
+                <p className="text-center text-sm text-white/50">Noch keine Trainingsdaten</p>
+              ) : null}
+            </div>
           )}
         </Card>
       ) : null}
@@ -973,35 +968,6 @@ export const TeamPage: React.FC = () => {
                   ))}
                 </ul>
               </div>
-            </div>
-          )}
-        </Card>
-      ) : null}
-
-      {activeTab === "training" ? (
-        <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
-          <CardTitle className="mt-0">Training</CardTitle>
-          {teamSeasonId == null && !tsLoading ? (
-            <p className="mt-3 text-sm text-white/55">Bitte Team wählen.</p>
-          ) : (
-            <div className="mt-4 space-y-3">
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
-                  <div className="text-xs text-white/50">Teilnahmequote Team</div>
-                  <div className="mt-1 text-lg font-bold text-white">{teamTrainingRateText}</div>
-                </div>
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
-                  <div className="text-xs text-white/50">Anzahl Trainings</div>
-                  <div className="mt-1 text-lg font-bold text-white">{trainingCount}</div>
-                </div>
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
-                  <div className="text-xs text-white/50">Durchschnittliche Beteiligung</div>
-                  <div className="mt-1 text-lg font-bold text-white">Noch keine Daten</div>
-                </div>
-              </div>
-              {trainingCount === 0 ? (
-                <p className="text-center text-sm text-white/50">Noch keine Trainingsdaten</p>
-              ) : null}
             </div>
           )}
         </Card>

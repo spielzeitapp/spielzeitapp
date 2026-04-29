@@ -48,7 +48,7 @@ function completedAgeFromIsoDate(ymd: string | null | undefined): number | null 
 
 function ageChipLabel(birthdate: string | null | undefined): string {
   const age = completedAgeFromIsoDate(birthdate);
-  if (age == null) return "—";
+  if (age == null) return "-";
   return String(age);
 }
 

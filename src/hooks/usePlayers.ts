@@ -24,6 +24,7 @@ export type PlayerRow = {
   last_name?: string | null;
   jersey_number?: number | null;
   position?: string | null;
+  birthdate?: string | null;
   is_active?: boolean;
 };
 
