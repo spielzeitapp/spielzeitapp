@@ -19,6 +19,7 @@ export const AppFab: React.FC = () => {
   if (!staff) return null;
 
   if (pathname === '/app/home') return null;
+  if (pathname === '/app/team' || pathname.startsWith('/app/team/')) return null;
   if (pathname === '/app/termine' || pathname.startsWith('/app/termine/')) return null;
   if (pathname === '/app/live' || pathname.startsWith('/app/live/')) return null;
   if (pathname === '/app/profile' || pathname.startsWith('/app/mehr')) return null;
