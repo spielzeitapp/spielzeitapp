@@ -32,14 +32,7 @@ import {
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
-import {
-  DEFAULT_U11_FORMATION,
-  U11_FORMATION_CHOICES,
-  labelForSlotInFormation,
-  readStoredU11Formation,
-  writeStoredU11Formation,
-  type U11FormationId,
-} from '../../lib/matchFormations';
+import { isU11FormationId, labelForSlotInFormation, type U11FormationId } from '../../lib/matchFormations';
 import type { FieldSlotId } from '../../types/match';
 import { compareRosterPlayers, playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 import { getPositionLabel } from '../../lib/positionLabels';
@@ -821,11 +814,6 @@ export const LiveMatchScreen: React.FC = () => {
     [startingPlayerIds, events, currentMatchSeconds],
   );
 
-  const [liveLineupFormationId, setLiveLineupFormationId] = useState<U11FormationId>(DEFAULT_U11_FORMATION);
-  useEffect(() => {
-    setLiveLineupFormationId(readStoredU11Formation(effectiveMatchId) ?? DEFAULT_U11_FORMATION);
-  }, [effectiveMatchId]);
-
   const fieldPlayers = useMemo(() => {
     const set = new Set(onFieldIds);
     return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
@@ -838,40 +826,6 @@ export const LiveMatchScreen: React.FC = () => {
   }, [squadPlayerIds, onFieldIds, rosterById]);
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
   const safeSlotOrder = Array.isArray(LIVE_FIELD_SLOT_ORDER) ? LIVE_FIELD_SLOT_ORDER : [];
-  const safeLineupRows = useMemo(
-    () =>
-      safeSlotOrder.map((slot) => {
-        const playerId = onFieldBySlot?.[slot] ?? null;
-        const player = playerId ? rosterById.get(playerId) ?? null : null;
-        return {
-          id: player?.id ?? slot,
-          slot,
-          rightLabel: getPositionLabel(labelForSlotInFormation(liveLineupFormationId, slot)) || '–',
-          display_name: player?.name ?? 'Spieler',
-          position: player?.position ?? null,
-          jersey_number: player?.number ?? null,
-          avatar_url: player?.avatarUrl ?? null,
-        };
-      }),
-    [safeSlotOrder, onFieldBySlot, rosterById, liveLineupFormationId],
-  );
-  const safeBenchRows = useMemo(
-    () =>
-      (Array.isArray(benchPlayers) ? benchPlayers : []).map((player) => ({
-        id: player?.id ?? '',
-        display_name: player?.name ?? 'Spieler',
-        position: player?.position ?? null,
-        jersey_number: player?.number ?? null,
-        avatar_url: player?.avatarUrl ?? null,
-      })),
-    [benchPlayers],
-  );
-  const safeFormationId = useMemo(() => {
-    const requested = (liveLineupFormationId || '').trim();
-    if (requested && U11_FORMATION_CHOICES.includes(requested as U11FormationId)) return requested as U11FormationId;
-    if (U11_FORMATION_CHOICES.includes('1-2-3-1' as U11FormationId)) return '1-2-3-1' as U11FormationId;
-    return U11_FORMATION_CHOICES[0] ?? DEFAULT_U11_FORMATION;
-  }, [liveLineupFormationId]);
   const lineupSlotsForDisplay = useMemo(() => {
     const base = onFieldBySlot && typeof onFieldBySlot === 'object' ? onFieldBySlot : ({} as Record<FieldSlotId, string | null>);
     const out = { ...base };
@@ -887,6 +841,48 @@ export const LiveMatchScreen: React.FC = () => {
     }
     return out;
   }, [onFieldBySlot, safeSlotOrder]);
+
+  /**
+   * Eine Formation für alle Rollen: nicht aus localStorage oder Tab-State.
+   * Sobald `matches` eine speicherbare Formations-ID liefert, hier einbinden (ohne neue DB-Spalte im Repo).
+   */
+  const savedFormationFromMatchOrLineup = useMemo((): U11FormationId | null => {
+    const raw = (matchRow as { u11_formation_id?: string | null } | null)?.u11_formation_id;
+    return isU11FormationId(raw) ? raw : null;
+  }, [matchRow]);
+
+  const safeFormationId = useMemo((): U11FormationId => {
+    return savedFormationFromMatchOrLineup ?? '1-2-3-1';
+  }, [savedFormationFromMatchOrLineup]);
+
+  const safeLineupRows = useMemo(
+    () =>
+      safeSlotOrder.map((slot) => {
+        const playerId = onFieldBySlot?.[slot] ?? null;
+        const player = playerId ? rosterById.get(playerId) ?? null : null;
+        return {
+          id: player?.id ?? slot,
+          slot,
+          rightLabel: getPositionLabel(labelForSlotInFormation(safeFormationId, slot)) || '–',
+          display_name: player?.name ?? 'Spieler',
+          position: player?.position ?? null,
+          jersey_number: player?.number ?? null,
+          avatar_url: player?.avatarUrl ?? null,
+        };
+      }),
+    [safeSlotOrder, onFieldBySlot, rosterById, safeFormationId],
+  );
+  const safeBenchRows = useMemo(
+    () =>
+      (Array.isArray(benchPlayers) ? benchPlayers : []).map((player) => ({
+        id: player?.id ?? '',
+        display_name: player?.name ?? 'Spieler',
+        position: player?.position ?? null,
+        jersey_number: player?.number ?? null,
+        avatar_url: player?.avatarUrl ?? null,
+      })),
+    [benchPlayers],
+  );
   const safeLineupSlots = useMemo(
     () => (lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object' ? lineupSlotsForDisplay : {}),
     [lineupSlotsForDisplay],
@@ -894,6 +890,26 @@ export const LiveMatchScreen: React.FC = () => {
   const canRenderLivePitch = safeSlotOrder.length > 0 && safeFormationId != null;
   const safeLineupRowsCount = Array.isArray(safeLineupRows) ? safeLineupRows.length : 0;
   const safeBenchRowsCount = Array.isArray(safeBenchRows) ? safeBenchRows.length : 0;
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const slotKeys = safeSlotOrder.filter((s) => Boolean(lineupSlotsForDisplay[s]));
+    const lineupCount = slotKeys.length;
+    console.log('live lineup props', {
+      role: canControlLiveMatch ? 'trainer_staff' : String(backendRole ?? 'spectator'),
+      safeFormationId,
+      slotKeys,
+      lineupCount,
+      benchCount: safeBenchRowsCount,
+    });
+  }, [
+    backendRole,
+    canControlLiveMatch,
+    lineupSlotsForDisplay,
+    safeBenchRowsCount,
+    safeFormationId,
+    safeSlotOrder,
+  ]);
 
   const playtimes = useMemo(
     () => calculatePlayerPlaytimes(startingPlayerIds, squadPlayerIds, events, currentMatchSeconds),

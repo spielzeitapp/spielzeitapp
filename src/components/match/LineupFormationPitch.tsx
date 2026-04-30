@@ -61,6 +61,7 @@ function penaltyArcBottomPath(): string {
 }
 
 export type LineupFormationPitchProps = {
+  /** Live-Ansicht: dieselbe ID für alle Rollen (kein localStorage pro Gerät). */
   formationId: U11FormationId;
   slots: Record<FieldSlotId, string | null>;
   interactive?: boolean;
