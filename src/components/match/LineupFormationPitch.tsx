@@ -94,7 +94,8 @@ export function LineupFormationPitch({
   renderSlotContent,
   className = '',
 }: LineupFormationPitchProps): React.ReactElement {
-  const layout = U11_FORMATIONS[formationId];
+  const layout = Array.isArray(U11_FORMATIONS[formationId]) ? U11_FORMATIONS[formationId] : [];
+  const safeSlots = slots && typeof slots === 'object' ? slots : ({} as Record<FieldSlotId, string | null>);
 
   const gLine = {
     fill: 'none' as const,
@@ -158,7 +159,7 @@ export function LineupFormationPitch({
         style={{ top: 'calc(3.5% + 16px)', bottom: 'calc(3.5% + 20px)' }}
       >
         {layout.map(({ slot, label, x, y, labelDx = 0, labelDy = 0 }) => {
-          const playerId = slots[slot] ?? null;
+          const playerId = safeSlots[slot] ?? null;
           const empty = !playerId;
           const dropHint = empty && Boolean(selectedBankPlayerId) && interactive;
           const flash = assignFlashSlot === slot;

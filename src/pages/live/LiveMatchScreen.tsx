@@ -301,16 +301,6 @@ function mobileLineupName(name: string): string {
   return parts.length > 1 ? parts[parts.length - 1]! : name || '—';
 }
 
-function slotMetaFromSlotMap(
-  slots: Record<FieldSlotId, string | null>,
-  playerId: string,
-  formationId: U11FormationId,
-): { label: string; isGk: boolean } {
-  const slot = LIVE_FIELD_SLOT_ORDER.find((s) => slots[s] === playerId);
-  if (!slot) return { label: '–', isGk: false };
-  return { label: getPositionLabel(labelForSlotInFormation(formationId, slot)) || '–', isGk: slot === 'GK' };
-}
-
 type PeriodScorePair = { h: number; a: number };
 type PeriodScoresState = { p1?: PeriodScorePair; p2?: PeriodScorePair; p3?: PeriodScorePair };
 
@@ -470,20 +460,21 @@ export const LiveMatchScreen: React.FC = () => {
 
   const teamSeasonForRoster = matchRow?.team_season_id ?? null;
   const { players, loading: playersLoading, error: playersError } = usePlayers(teamSeasonForRoster);
+  const safePlayers = useMemo(() => (Array.isArray(players) ? players : []), [players]);
 
-  const roster = useMemo(() => sortRosterByNumber(players.map(playerItemToRoster)), [players]);
+  const roster = useMemo(() => sortRosterByNumber(safePlayers.map(playerItemToRoster)), [safePlayers]);
   const rosterById = useMemo(() => {
     const m = new Map<string, RosterPlayer>();
     roster.forEach((p) => m.set(p.id, p));
     return m;
   }, [roster]);
   const playersById = useMemo(() => {
-    const m = new Map<string, (typeof players)[number]>();
-    (Array.isArray(players) ? players : []).forEach((p) => {
+    const m = new Map<string, (typeof safePlayers)[number]>();
+    safePlayers.forEach((p) => {
       if (p?.id) m.set(p.id, p);
     });
     return m;
-  }, [players]);
+  }, [safePlayers]);
 
   const { currentMatchSeconds, half } = useMatchTimer({
     elapsedSeconds: matchRow?.live_elapsed_seconds ?? 0,
@@ -666,16 +657,10 @@ export const LiveMatchScreen: React.FC = () => {
 
   const [wechselSheetOpen, setWechselSheetOpen] = useState(false);
 
-  const [selectedOutPlayer, setSelectedOutPlayer] = useState<string>('');
-  const [selectedInPlayer, setSelectedInPlayer] = useState<string>('');
   const closeWechselSheet = useCallback(() => {
-    setSelectedOutPlayer('');
-    setSelectedInPlayer('');
     setWechselSheetOpen(false);
   }, []);
   const openWechselSheet = useCallback(() => {
-    setSelectedOutPlayer('');
-    setSelectedInPlayer('');
     setWechselSheetOpen(true);
   }, []);
   useEffect(() => {
@@ -1141,10 +1126,6 @@ export const LiveMatchScreen: React.FC = () => {
   );
 
   const confirmWechselSection = async () => {
-    if (matchIsFinished) return;
-    const ok = await persistSubstitution(selectedOutPlayer, selectedInPlayer);
-    if (!ok) return;
-    await reloadMatchSetupFromDb();
     closeWechselSheet();
   };
 
@@ -2119,7 +2100,7 @@ export const LiveMatchScreen: React.FC = () => {
                   <LineupFormationPitch
                     formationId={liveLineupFormationId}
                     slots={safeLineupSlotsForDisplay}
-                    emphasizedPlayerId={wechselSheetOpen && selectedOutPlayer ? selectedOutPlayer : null}
+                    emphasizedPlayerId={null}
                     renderSlotContent={({ label, labelDx, labelDy, playerId, isGk, emphasize }) => {
                       const p = playerId ? rosterById.get(playerId) : null;
                       const safeName = p ? rosterFamilyName(p) : 'Spieler';
@@ -2320,122 +2301,29 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="fixed inset-0 z-[140] bg-[linear-gradient(180deg,rgba(12,5,5,0.98)_0%,rgba(5,5,8,0.98)_100%)] backdrop-blur-sm"
+          className="fixed inset-0 z-[140] flex items-end justify-center bg-black/80 p-4 backdrop-blur-sm sm:items-center"
           role="presentation"
           onClick={closeWechselSheet}
         >
           <div
-            className="flex h-[100dvh] w-full flex-col"
+            className="w-full max-w-md rounded-2xl border border-white/15 bg-zinc-950/95 p-4 shadow-[0_16px_44px_rgba(0,0,0,0.65)]"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="wechsel-sheet-title"
           >
-            <div className="sticky top-0 z-20 border-b border-white/10 bg-black/45 px-4 py-3 backdrop-blur-md">
-              <div className="flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={closeWechselSheet}
-                  className="inline-flex min-h-[40px] items-center rounded-xl border border-white/20 bg-white/5 px-3 text-sm font-semibold text-white/90"
-                >
-                  ← Zurück
-                </button>
-                <div className="min-w-0 text-center">
-                  <h3 id="wechsel-sheet-title" className="text-lg font-semibold text-white">Wechsel</h3>
-                  <p className="text-xs text-white/60">Spieler raus und rein wählen</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeWechselSheet}
-                  className="inline-flex min-h-[40px] items-center rounded-xl border border-white/20 bg-white/5 px-3 text-sm font-semibold text-white/90"
-                  aria-label="Schließen"
-                >
-                  ✕
-                </button>
-              </div>
+            <h3 id="wechsel-sheet-title" className="text-lg font-semibold text-white">Wechsel</h3>
+            <p className="mt-1 text-sm text-white/65">Wechsel-Auswahl wird geladen</p>
+            <div className="mt-4 rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white/55">
+              Temporärer Sicherheitsmodus aktiv, um Abstürze zu verhindern.
             </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[160px] pt-3 [-webkit-overflow-scrolling:touch]">
-              <section className="space-y-2">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-red-400">Spieler raus</p>
-                {fieldPlayers.length === 0 ? (
-                  <p className="rounded-xl border border-white/10 bg-black/25 px-3 py-4 text-sm text-white/50">Keine Feldspieler</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {fieldPlayers.map((p) => {
-                      const selected = selectedOutPlayer === p.id;
-                      const slotMeta = slotMetaFromSlotMap(onFieldBySlot, p.id, liveLineupFormationId);
-                      return (
-                        <div key={`wechsel-out-${p.id}`} className={selected ? 'ring-2 ring-red-400/65 rounded-2xl' : ''}>
-                          <MatchPlayerRow
-                            player={{
-                              id: p.id,
-                              display_name: p.name,
-                              jersey_number: p.number || null,
-                              position: slotMeta.label,
-                              avatar_url: p.avatarUrl ?? null,
-                            }}
-                            selected={selected}
-                            rightLabel={slotMeta.label}
-                            status={selected ? 'no' : 'open'}
-                            onClick={() => setSelectedOutPlayer(p.id)}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-
-              <section className="mt-4 space-y-2">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-400">Spieler rein</p>
-                {benchPlayers.length === 0 ? (
-                  <p className="rounded-xl border border-white/10 bg-black/25 px-3 py-4 text-sm text-white/50">Keine Bankspieler</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {benchPlayers.map((p) => {
-                      const selected = selectedInPlayer === p.id;
-                      return (
-                        <div key={`wechsel-in-${p.id}`} className={selected ? 'ring-2 ring-emerald-400/65 rounded-2xl' : ''}>
-                          <MatchPlayerRow
-                            player={{
-                              id: p.id,
-                              display_name: p.name,
-                              jersey_number: p.number || null,
-                              position: p.position ?? null,
-                              avatar_url: p.avatarUrl ?? null,
-                            }}
-                            selected={selected}
-                            rightLabel="Bank"
-                            status={selected ? 'yes' : 'open'}
-                            onClick={() => setSelectedInPlayer(p.id)}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-            </div>
-
-            <div
-              className="sticky bottom-0 z-20 grid grid-cols-2 gap-3 border-t border-white/10 bg-black/60 px-4 py-3 backdrop-blur-md"
-              style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}
-            >
+            <div className="mt-4 grid grid-cols-1 gap-3">
               <button
                 type="button"
                 onClick={closeWechselSheet}
                 className="flex min-h-[48px] items-center justify-center rounded-xl border border-white/20 bg-zinc-900/80 text-sm font-semibold text-white active:scale-[0.99]"
               >
                 Abbrechen
-              </button>
-              <button
-                type="button"
-                onClick={() => void confirmWechselSection()}
-                disabled={matchIsFinished || !selectedOutPlayer || !selectedInPlayer}
-                className="flex min-h-[48px] items-center justify-center rounded-xl bg-green-600 px-2 text-sm font-semibold text-white disabled:opacity-40 active:scale-[0.99]"
-              >
-                Wechsel bestätigen
               </button>
             </div>
           </div>
