@@ -651,8 +651,6 @@ export const LiveMatchScreen: React.FC = () => {
   const matchTypeDisplay = 'Freundschaftsspiel';
   const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
-  const [lineupStartOpen, setLineupStartOpen] = useState(false);
-  const [lineupBenchOpen, setLineupBenchOpen] = useState(false);
   useEffect(() => {
     if (!canControlLiveMatch && mainTab === 'time') {
       setMainTab('overview');
@@ -844,6 +842,36 @@ export const LiveMatchScreen: React.FC = () => {
     const list = ids.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 });
     return sortRosterByNumber(list);
   }, [squadPlayerIds, onFieldIds, rosterById]);
+  const lineupSlotsForDisplay = useMemo(() => {
+    const seen = new Set<string>();
+    const out = { ...onFieldBySlot };
+    for (const slot of LIVE_FIELD_SLOT_ORDER) {
+      const pid = out[slot];
+      if (!pid) continue;
+      if (seen.has(pid)) {
+        console.warn('[LiveMatchScreen] duplicate lineup player ignored in display', { slot, playerId: pid });
+        out[slot] = null;
+        continue;
+      }
+      seen.add(pid);
+    }
+    return out;
+  }, [onFieldBySlot]);
+  const lineupFieldPlayersBySlot = useMemo(
+    () => LIVE_FIELD_SLOT_ORDER.map((slot) => ({ slot, playerId: lineupSlotsForDisplay[slot] ?? null })),
+    [lineupSlotsForDisplay],
+  );
+  const lineupFieldIdSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const row of lineupFieldPlayersBySlot) {
+      if (row.playerId) set.add(row.playerId);
+    }
+    return set;
+  }, [lineupFieldPlayersBySlot]);
+  const lineupBenchPlayersForDisplay = useMemo(() => {
+    const ids = [...new Set(squadPlayerIds)].filter((id) => !lineupFieldIdSet.has(id));
+    return sortRosterByNumber(ids.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 }));
+  }, [squadPlayerIds, lineupFieldIdSet, rosterById]);
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
 
   const playtimes = useMemo(
@@ -2017,182 +2045,142 @@ export const LiveMatchScreen: React.FC = () => {
         )}
 
         {mainTab === 'lineup' && (
-          <div className="space-y-2 px-0 pb-56 sm:space-y-3 sm:px-2 sm:pb-16">
-            {fieldPlayers.length === 0 && benchPlayers.length === 0 ? (
+          <div className="space-y-3 px-0 pb-56 sm:space-y-4 sm:px-2 sm:pb-16">
+            {lineupFieldPlayersBySlot.every((row) => !row.playerId) && lineupBenchPlayersForDisplay.length === 0 ? (
               <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-gray-400">
                 Noch keine Aufstellung veröffentlicht.
               </p>
             ) : (
               <>
-                {fieldPlayers.length > 0 ? (
-                  <section>
-                    <h3 className="mb-0.5 hidden text-xs font-bold uppercase tracking-[0.2em] text-red-400/90 sm:block">
-                      Live-Aufstellung
-                    </h3>
-                    <p className="mb-2 hidden text-[11px] text-white/55 sm:block">Aktuell am Feld</p>
-                    {!spectatorView && canControlLiveMatch ? (
-                      <div className="mb-2 flex flex-wrap gap-1.5 px-1 sm:px-0">
-                        {U11_FORMATION_CHOICES.map((id) => {
-                          const active = liveLineupFormationId === id;
-                          return (
-                            <button
-                              key={`live-formation-${id}`}
-                              type="button"
-                              onClick={() => {
-                                setLiveLineupFormationId(id);
-                                if (effectiveMatchId) writeStoredU11Formation(effectiveMatchId, id);
-                              }}
-                              className={[
-                                'min-h-[30px] rounded-lg border px-2.5 py-1 text-[10px] font-bold transition-all duration-200 ease-out sm:min-h-[34px] sm:text-xs',
-                                active
-                                  ? 'border-red-500/90 bg-red-500/25 text-white shadow-[0_0_16px_rgba(239,68,68,0.45)]'
-                                  : 'border-white/15 bg-black/30 text-white/70 hover:border-white/25 hover:bg-black/40',
-                              ].join(' ')}
-                            >
-                              {id}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-                    <LineupFormationPitch
-                      formationId={liveLineupFormationId}
-                      slots={onFieldBySlot}
-                      emphasizedPlayerId={
-                        wechselSheetOpen && selectedOutPlayer ? selectedOutPlayer : null
-                      }
-                      renderSlotContent={({ label, labelDx, labelDy, playerId, isGk, emphasize }) => {
-                        const p = playerId ? rosterById.get(playerId) : null;
-                        if (!p) return null;
+                <section className="space-y-2 rounded-2xl border border-white/[0.08] bg-black/40 p-2">
+                  {!spectatorView && canControlLiveMatch ? (
+                    <div className="flex flex-wrap gap-1.5 px-1">
+                      {U11_FORMATION_CHOICES.map((id) => {
+                        const active = liveLineupFormationId === id;
                         return (
-                          <div className="pointer-events-none origin-top scale-[0.93] sm:scale-100">
-                            <PitchPlayerMarker
-                              lastName={rosterFamilyName(p)}
-                              number={p.number || '–'}
-                              positionBadge={getPositionLabel(label) || label}
-                              variant="field"
-                              mode="pitch"
-                              nameOffsetX={labelDx}
-                              nameOffsetY={labelDy}
-                              emphasize={emphasize}
-                            />
-                          </div>
+                          <button
+                            key={`live-formation-${id}`}
+                            type="button"
+                            onClick={() => {
+                              setLiveLineupFormationId(id);
+                              if (effectiveMatchId) writeStoredU11Formation(effectiveMatchId, id);
+                            }}
+                            className={[
+                              'min-h-[30px] rounded-lg border px-2.5 py-1 text-[10px] font-bold transition-all duration-200 ease-out sm:min-h-[34px] sm:text-xs',
+                              active
+                                ? 'border-red-500/90 bg-red-500/25 text-white shadow-[0_0_16px_rgba(239,68,68,0.45)]'
+                                : 'border-white/15 bg-black/30 text-white/70 hover:border-white/25 hover:bg-black/40',
+                            ].join(' ')}
+                          >
+                            {id}
+                          </button>
                         );
-                      }}
-                    />
-                  </section>
-                ) : null}
+                      })}
+                    </div>
+                  ) : null}
+                  <LineupFormationPitch
+                    formationId={liveLineupFormationId}
+                    slots={lineupSlotsForDisplay}
+                    emphasizedPlayerId={wechselSheetOpen && selectedOutPlayer ? selectedOutPlayer : null}
+                    renderSlotContent={({ label, labelDx, labelDy, playerId, isGk, emphasize }) => {
+                      const p = playerId ? rosterById.get(playerId) : null;
+                      if (!p) return null;
+                      return (
+                        <div className="pointer-events-none origin-top scale-[0.93] sm:scale-100">
+                          <PitchPlayerMarker
+                            lastName={rosterFamilyName(p)}
+                            number={p.number || '–'}
+                            positionBadge={getPositionLabel(label) || label}
+                            variant={isGk ? 'goalkeeper' : 'field'}
+                            mode="pitch"
+                            nameOffsetX={labelDx}
+                            nameOffsetY={labelDy}
+                            emphasize={emphasize}
+                          />
+                        </div>
+                      );
+                    }}
+                  />
 
-                {/* Mobile: kompakte Live-Bank direkt unter dem Pitch (Desktop bleibt wie bisher aufklappbar) */}
-                {benchPlayers.length > 0 ? (
-                  <section className="sm:hidden">
-                    <button
-                      type="button"
-                      onClick={() => setLineupBenchOpen((v) => !v)}
-                      className="flex w-full items-center justify-between px-2 py-1 text-left"
-                    >
-                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">Bank</span>
-                      <span className="inline-flex items-center gap-2 text-[10px] font-medium tabular-nums text-white/40">
-                        {benchPlayers.length} Spieler
-                        <span aria-hidden>{lineupBenchOpen ? '▾' : '▸'}</span>
-                      </span>
-                    </button>
-                    {lineupBenchOpen ? (
-                      <div className="mt-1 overflow-x-auto px-1 [-webkit-overflow-scrolling:touch]">
-                        <div className="flex min-w-min items-start gap-1.5">
-                          {benchPlayers.map((p) => (
-                            <div key={`bench-strip-${p.id}`} className="min-w-[240px] shrink-0">
-                              <MatchPlayerRow
-                                player={{
-                                  id: p.id,
-                                  display_name: p.name,
-                                  jersey_number: p.number || null,
-                                  position: 'RF',
-                                  avatar_url: p.avatarUrl ?? null,
-                                }}
-                                rightLabel="Bank"
+                  <div className="rounded-xl border border-white/10 bg-black/25 p-2">
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/60">Bank</p>
+                    {lineupBenchPlayersForDisplay.length === 0 ? (
+                      <p className="text-xs text-white/50">Keine Bankspieler</p>
+                    ) : (
+                      <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
+                        <div className="flex min-w-min flex-nowrap items-start gap-2">
+                          {lineupBenchPlayersForDisplay.map((p) => (
+                            <div key={`bench-strip-${p.id}`} className="shrink-0 rounded-lg border border-white/12 bg-black/35 px-1.5 py-1">
+                              <LeibchenJersey
+                                lastName={rosterFamilyName(p)}
+                                number={p.number || '–'}
+                                position={getPositionLabel(p.position) || '–'}
+                                variant="field"
+                                size="compact"
+                                className="!h-[3.1rem] !w-[2.45rem] sm:!h-[3.6rem] sm:!w-[2.85rem]"
+                                showBackPrint={false}
+                                pitchStyleBack
                               />
+                              <span className="mt-0.5 block max-w-[68px] truncate text-center text-[10px] font-bold leading-tight text-white sm:text-xs">
+                                {rosterFamilyName(p)}
+                              </span>
+                              <span className="mt-1 inline-flex w-full justify-center rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/85">
+                                Bank
+                              </span>
                             </div>
                           ))}
                         </div>
                       </div>
-                    ) : null}
-                  </section>
-                ) : null}
-
-                <section className="rounded-xl border border-emerald-700/30 bg-black/30">
-                  <button
-                    type="button"
-                    onClick={() => setLineupStartOpen((v) => !v)}
-                    className="flex w-full items-center justify-between px-3 py-2.5 text-left"
-                  >
-                    <div>
-                      <h3 className="text-xs font-bold uppercase text-emerald-500">Startaufstellung</h3>
-                      <p className="mt-0.5 text-[11px] text-white/55">Urspruengliche Aufstellung</p>
-                    </div>
-                    <span className="text-sm text-white/70" aria-hidden>{lineupStartOpen ? '▾' : '▸'}</span>
-                  </button>
-                  {lineupStartOpen ? (
-                    <ul className="space-y-2 border-t border-white/10 px-3 py-2">
-                      {LIVE_FIELD_SLOT_ORDER.map((slot, idx) => {
-                        const pid = initialStartingPlayerIds[idx] ?? null;
-                        const p = pid ? rosterById.get(pid) ?? { id: pid, name: '—', number: 0 } : null;
-                        const label = getPositionLabel(labelForSlotInFormation(liveLineupFormationId, slot)) || '–';
-                        const isGk = slot === 'GK';
-                        return (
-                          <li key={slot}>
-                            <div className="flex min-h-[52px] w-full items-center gap-2 rounded-xl border border-emerald-600/40 bg-emerald-950/30 px-2 py-2">
-                              <span className="w-7 shrink-0 text-center text-[10px] font-bold text-emerald-400/90">{label}</span>
-                              {p ? (
-                                <div className="min-w-0 flex-1">
-                                  <MatchPlayerRow
-                                    player={{
-                                      id: p.id,
-                                      display_name: p.name,
-                                      jersey_number: p.number || null,
-                                      position: label,
-                                      avatar_url: p.avatarUrl ?? null,
-                                    }}
-                                    rightLabel={label}
-                                  />
-                                </div>
-                              ) : (
-                                <span className="min-w-0 flex-1 text-sm text-white/40">—</span>
-                              )}
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : null}
+                    )}
+                  </div>
                 </section>
-                <section className="hidden rounded-xl border border-white/15 bg-black/30 sm:block">
-                  <button
-                    type="button"
-                    onClick={() => setLineupBenchOpen((v) => !v)}
-                    className="flex w-full items-center justify-between px-3 py-2.5 text-left"
-                  >
-                    <h3 className="text-xs font-bold uppercase text-gray-300">Bank</h3>
-                    <span className="text-sm text-white/70" aria-hidden>{lineupBenchOpen ? '▾' : '▸'}</span>
-                  </button>
-                  {lineupBenchOpen ? (
-                    <ul className="space-y-2 border-t border-white/10 px-3 py-2">
-                      {benchPlayers.map((p) => (
-                        <li key={p.id}>
-                          <MatchPlayerRow
-                            player={{
-                              id: p.id,
-                              display_name: p.name,
-                              jersey_number: p.number || null,
-                              position: 'RF',
-                              avatar_url: p.avatarUrl ?? null,
-                            }}
-                            rightLabel="Bank"
-                          />
-                        </li>
+
+                <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
+                  <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">Startaufstellung</h3>
+                  <div className="space-y-1.5">
+                    {lineupFieldPlayersBySlot.map(({ slot, playerId }) => {
+                      const label = getPositionLabel(labelForSlotInFormation(liveLineupFormationId, slot)) || '–';
+                      const p = playerId ? players.find((pl) => pl.id === playerId) ?? null : null;
+                      if (!p && spectatorView) return null;
+                      return (
+                        <div key={`lineup-list-${slot}`} className="relative">
+                          <span className="absolute left-3 top-3 z-10 rounded-md border border-red-500/40 bg-red-950/60 px-2 py-0.5 text-[10px] font-bold text-red-200">
+                            {label}
+                          </span>
+                          {p ? (
+                            <MatchPlayerRow player={{ ...p, position: label }} />
+                          ) : (
+                            <div className="rounded-2xl border border-white/15 bg-gradient-to-br from-zinc-900/60 via-black/70 to-black p-3 pl-14 text-sm text-white/60">
+                              [{label}] frei
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
+                  <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">Bank</h3>
+                  {lineupBenchPlayersForDisplay.length === 0 ? (
+                    <p className="text-sm text-white/55">Keine Bankspieler</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {lineupBenchPlayersForDisplay.map((p) => (
+                        <MatchPlayerRow
+                          key={`lineup-bank-${p.id}`}
+                          player={{
+                            id: p.id,
+                            display_name: p.name,
+                            jersey_number: p.number || null,
+                            position: p.position ?? null,
+                            avatar_url: p.avatarUrl ?? null,
+                          }}
+                          rightLabel="Bank"
+                        />
                       ))}
-                    </ul>
-                  ) : null}
+                    </div>
+                  )}
                 </section>
               </>
             )}
