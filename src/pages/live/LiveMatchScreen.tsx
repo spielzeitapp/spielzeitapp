@@ -477,6 +477,13 @@ export const LiveMatchScreen: React.FC = () => {
     roster.forEach((p) => m.set(p.id, p));
     return m;
   }, [roster]);
+  const playersById = useMemo(() => {
+    const m = new Map<string, (typeof players)[number]>();
+    (Array.isArray(players) ? players : []).forEach((p) => {
+      if (p?.id) m.set(p.id, p);
+    });
+    return m;
+  }, [players]);
 
   const { currentMatchSeconds, half } = useMatchTimer({
     elapsedSeconds: matchRow?.live_elapsed_seconds ?? 0,
@@ -872,6 +879,37 @@ export const LiveMatchScreen: React.FC = () => {
     const ids = [...new Set(squadPlayerIds)].filter((id) => !lineupFieldIdSet.has(id));
     return sortRosterByNumber(ids.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 }));
   }, [squadPlayerIds, lineupFieldIdSet, rosterById]);
+  const emptyLineupSlots = useMemo(
+    () =>
+      LIVE_FIELD_SLOT_ORDER.reduce<Record<FieldSlotId, string | null>>(
+        (acc, slot) => {
+          acc[slot] = null;
+          return acc;
+        },
+        {} as Record<FieldSlotId, string | null>,
+      ),
+    [],
+  );
+  const safeLineupSlotsForDisplay = useMemo(() => {
+    if (!lineupSlotsForDisplay || typeof lineupSlotsForDisplay !== 'object') return emptyLineupSlots;
+    const out = { ...emptyLineupSlots };
+    for (const slot of LIVE_FIELD_SLOT_ORDER) {
+      const value = lineupSlotsForDisplay[slot];
+      out[slot] = typeof value === 'string' && value.length > 0 ? value : null;
+    }
+    return out;
+  }, [lineupSlotsForDisplay, emptyLineupSlots]);
+  const safeLineupFieldPlayersBySlot = useMemo(
+    () =>
+      Array.isArray(lineupFieldPlayersBySlot)
+        ? lineupFieldPlayersBySlot.filter((row) => Boolean(row && row.slot))
+        : [],
+    [lineupFieldPlayersBySlot],
+  );
+  const safeLineupBenchPlayersForDisplay = useMemo(
+    () => (Array.isArray(lineupBenchPlayersForDisplay) ? lineupBenchPlayersForDisplay : []),
+    [lineupBenchPlayersForDisplay],
+  );
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
 
   const playtimes = useMemo(
@@ -2046,7 +2084,7 @@ export const LiveMatchScreen: React.FC = () => {
 
         {mainTab === 'lineup' && (
           <div className="space-y-3 px-0 pb-56 sm:space-y-4 sm:px-2 sm:pb-16">
-            {lineupFieldPlayersBySlot.every((row) => !row.playerId) && lineupBenchPlayersForDisplay.length === 0 ? (
+            {safeLineupFieldPlayersBySlot.every((row) => !row.playerId) && safeLineupBenchPlayersForDisplay.length === 0 ? (
               <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-gray-400">
                 Noch keine Aufstellung veröffentlicht.
               </p>
@@ -2080,16 +2118,16 @@ export const LiveMatchScreen: React.FC = () => {
                   ) : null}
                   <LineupFormationPitch
                     formationId={liveLineupFormationId}
-                    slots={lineupSlotsForDisplay}
+                    slots={safeLineupSlotsForDisplay}
                     emphasizedPlayerId={wechselSheetOpen && selectedOutPlayer ? selectedOutPlayer : null}
                     renderSlotContent={({ label, labelDx, labelDy, playerId, isGk, emphasize }) => {
                       const p = playerId ? rosterById.get(playerId) : null;
-                      if (!p) return null;
+                      const safeName = p ? rosterFamilyName(p) : 'Spieler';
                       return (
                         <div className="pointer-events-none origin-top scale-[0.93] sm:scale-100">
                           <PitchPlayerMarker
-                            lastName={rosterFamilyName(p)}
-                            number={p.number || '–'}
+                            lastName={safeName}
+                            number={p?.number || '–'}
                             positionBadge={getPositionLabel(label) || label}
                             variant={isGk ? 'goalkeeper' : 'field'}
                             mode="pitch"
@@ -2104,12 +2142,12 @@ export const LiveMatchScreen: React.FC = () => {
 
                   <div className="rounded-xl border border-white/10 bg-black/25 p-2">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/60">Bank</p>
-                    {lineupBenchPlayersForDisplay.length === 0 ? (
+                    {safeLineupBenchPlayersForDisplay.length === 0 ? (
                       <p className="text-xs text-white/50">Keine Bankspieler</p>
                     ) : (
                       <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
                         <div className="flex min-w-min flex-nowrap items-start gap-2">
-                          {lineupBenchPlayersForDisplay.map((p) => (
+                          {safeLineupBenchPlayersForDisplay.map((p) => (
                             <div key={`bench-strip-${p.id}`} className="shrink-0 rounded-lg border border-white/12 bg-black/35 px-1.5 py-1">
                               <LeibchenJersey
                                 lastName={rosterFamilyName(p)}
@@ -2138,9 +2176,9 @@ export const LiveMatchScreen: React.FC = () => {
                 <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
                   <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">Startaufstellung</h3>
                   <div className="space-y-1.5">
-                    {lineupFieldPlayersBySlot.map(({ slot, playerId }) => {
+                    {safeLineupFieldPlayersBySlot.map(({ slot, playerId }) => {
                       const label = getPositionLabel(labelForSlotInFormation(liveLineupFormationId, slot)) || '–';
-                      const p = playerId ? players.find((pl) => pl.id === playerId) ?? null : null;
+                      const p = playerId ? playersById.get(playerId) ?? null : null;
                       if (!p && spectatorView) return null;
                       return (
                         <div key={`lineup-list-${slot}`} className="relative">
@@ -2162,11 +2200,11 @@ export const LiveMatchScreen: React.FC = () => {
 
                 <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
                   <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">Bank</h3>
-                  {lineupBenchPlayersForDisplay.length === 0 ? (
+                  {safeLineupBenchPlayersForDisplay.length === 0 ? (
                     <p className="text-sm text-white/55">Keine Bankspieler</p>
                   ) : (
                     <div className="space-y-1.5">
-                      {lineupBenchPlayersForDisplay.map((p) => (
+                      {safeLineupBenchPlayersForDisplay.map((p) => (
                         <MatchPlayerRow
                           key={`lineup-bank-${p.id}`}
                           player={{
