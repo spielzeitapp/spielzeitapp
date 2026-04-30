@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { usePlayers } from '../../hooks/usePlayers';
 import type { PlayerItem } from '../../hooks/usePlayers';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
+import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import {
@@ -55,6 +56,12 @@ function playerFamilyName(p: PlayerItem): string {
   if (ln) return ln;
   const parts = p.display_name.trim().split(/\s+/).filter(Boolean);
   return parts.length > 1 ? parts[parts.length - 1]! : p.display_name;
+}
+
+function benchPositionLabel(p: PlayerItem): string {
+  const mapped = getPositionLabel(p.position) || '';
+  if (!mapped) return '–';
+  return mapped.toUpperCase();
 }
 
 export const MatchLineupPage: React.FC = () => {
@@ -405,7 +412,7 @@ export const MatchLineupPage: React.FC = () => {
                       lastName={playerFamilyName(player)}
                       number={player.jersey_number}
                       positionBadge={getPositionLabel(label) || label}
-                      variant={'field'}
+                      variant={isGk ? 'goalkeeper' : 'field'}
                       mode="pitch"
                       nameOffsetX={labelDx}
                       nameOffsetY={labelDy}
@@ -440,14 +447,34 @@ export const MatchLineupPage: React.FC = () => {
                     if (!p) return null;
                     const isSelected = selectedBankPlayerId === id;
                     return (
-                      <div key={id} className={`min-w-[240px] shrink-0 ${isSelected ? 'ring-2 ring-emerald-400/70 rounded-2xl' : ''}`}>
-                        <MatchPlayerRow
-                          player={p}
-                          selected={isSelected}
-                          rightLabel="Bank"
-                          onClick={() => onTapBankPlayer(id)}
-                        />
-                      </div>
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => onTapBankPlayer(id)}
+                        className={[
+                          'shrink-0 rounded-lg px-1.5 py-1 transition-all duration-300 ease-out active:scale-95 sm:rounded-xl sm:px-2 sm:py-2',
+                          isSelected
+                            ? 'border-2 border-emerald-400/85 bg-emerald-950/30 shadow-[0_0_22px_rgba(16,185,129,0.4)]'
+                            : 'border border-white/12 bg-black/35 hover:border-white/22 hover:bg-black/45',
+                        ].join(' ')}
+                      >
+                        <div className="flex flex-col items-center">
+                          <LeibchenJersey
+                            lastName={playerFamilyName(p)}
+                            number={p.jersey_number}
+                            position={benchPositionLabel(p)}
+                            variant="field"
+                            size="compact"
+                            className="!h-[3.1rem] !w-[2.45rem] sm:!h-[3.6rem] sm:!w-[2.85rem]"
+                            showBackPrint={false}
+                            pitchStyleBack
+                            selected={isSelected}
+                          />
+                          <span className="mt-0.5 max-w-[68px] truncate text-center text-[10px] font-bold leading-tight text-white sm:text-xs">
+                            {playerFamilyName(p)}
+                          </span>
+                        </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -472,7 +499,6 @@ export const MatchLineupPage: React.FC = () => {
                   {p ? (
                     <MatchPlayerRow
                       player={{ ...p, position: posLabel }}
-                      rightLabel={p.jersey_number != null ? `#${p.jersey_number}` : "—"}
                     />
                   ) : (
                     <div className="rounded-2xl border border-white/15 bg-gradient-to-br from-zinc-900/60 via-black/70 to-black p-3 pl-14 text-sm text-white/60">
@@ -483,6 +509,27 @@ export const MatchLineupPage: React.FC = () => {
               );
             })}
           </div>
+        </section>
+
+        <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
+          <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-white/55">Bank Liste</h2>
+          {bankIds.length === 0 ? (
+            <p className="text-sm text-white/55">Keine Bankspieler</p>
+          ) : (
+            <div className="space-y-1.5">
+              {bankIds.map((id) => {
+                const p = playersById.get(id);
+                if (!p) return null;
+                return (
+                  <MatchPlayerRow
+                    key={`bank-list-${id}`}
+                    player={p}
+                    rightLabel="Bank"
+                  />
+                );
+              })}
+            </div>
+          )}
         </section>
       </main>
 
