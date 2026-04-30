@@ -94,8 +94,13 @@ export function LineupFormationPitch({
   renderSlotContent,
   className = '',
 }: LineupFormationPitchProps): React.ReactElement {
-  const layout = Array.isArray(U11_FORMATIONS[formationId]) ? U11_FORMATIONS[formationId] : [];
-  const safeSlots = slots && typeof slots === 'object' ? slots : ({} as Record<FieldSlotId, string | null>);
+  const formationKeys = Object.keys(U11_FORMATIONS) as U11FormationId[];
+  const fallbackFormationId =
+    (formationKeys.find((id) => id === '1-2-3-1') as U11FormationId | undefined) ?? formationKeys[0];
+  const safeFormationId =
+    formationId && Array.isArray(U11_FORMATIONS[formationId]) ? formationId : (fallbackFormationId ?? formationId);
+  const layout = U11_FORMATIONS[safeFormationId] ?? [];
+  const safeSlots = slots ?? ({} as Record<FieldSlotId, string | null>);
 
   const gLine = {
     fill: 'none' as const,
