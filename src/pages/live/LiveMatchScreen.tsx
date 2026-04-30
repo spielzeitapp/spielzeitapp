@@ -2067,6 +2067,9 @@ export const LiveMatchScreen: React.FC = () => {
                       className="rounded-2xl border border-red-900/40 bg-gradient-to-br from-red-900/40 via-black/80 to-black p-3"
                     >
                       <div className="flex items-center gap-3">
+                        <span className="rounded-md border border-red-500/40 bg-red-950/60 px-2 py-0.5 text-[10px] font-bold text-red-200">
+                          BANK
+                        </span>
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-semibold text-white">{row.name || 'Spieler'}</div>
                           <div className="mt-0.5 text-[11px] text-gray-400">{row.position ?? '–'}</div>
@@ -2080,14 +2083,6 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
               )}
             </section>
-
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] text-white/55">
-              <div className="flex flex-wrap gap-x-4 gap-y-1">
-                <span>players: {safePlayersCount}</span>
-                <span>lineupRows: {safeLineupRowsCount}</span>
-                <span>benchRows: {safeBenchRowsCount}</span>
-              </div>
-            </div>
           </div>
         )}
 
