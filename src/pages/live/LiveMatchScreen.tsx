@@ -29,6 +29,7 @@ import {
   updateMatchRow,
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
+import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 import {
   DEFAULT_U11_FORMATION,
   U11_FORMATION_CHOICES,
@@ -841,10 +842,13 @@ export const LiveMatchScreen: React.FC = () => {
         const playerId = onFieldBySlot?.[slot] ?? null;
         const player = playerId ? rosterById.get(playerId) ?? null : null;
         return {
+          id: player?.id ?? slot,
           slot,
-          position: getPositionLabel(labelForSlotInFormation(liveLineupFormationId, slot)) || '–',
-          name: player?.name ?? 'Spieler',
-          number: player?.number ?? null,
+          rightLabel: getPositionLabel(labelForSlotInFormation(liveLineupFormationId, slot)) || '–',
+          display_name: player?.name ?? 'Spieler',
+          position: player?.position ?? null,
+          jersey_number: player?.number ?? null,
+          avatar_url: player?.avatarUrl ?? null,
         };
       }),
     [safeSlotOrder, onFieldBySlot, rosterById, liveLineupFormationId],
@@ -853,13 +857,13 @@ export const LiveMatchScreen: React.FC = () => {
     () =>
       (Array.isArray(benchPlayers) ? benchPlayers : []).map((player) => ({
         id: player?.id ?? '',
-        name: player?.name ?? 'Spieler',
-        position: getPositionLabel(player?.position) || '–',
-        number: player?.number ?? null,
+        display_name: player?.name ?? 'Spieler',
+        position: player?.position ?? null,
+        jersey_number: player?.number ?? null,
+        avatar_url: player?.avatarUrl ?? null,
       })),
     [benchPlayers],
   );
-  const safePlayersCount = safePlayers.length;
   const safeLineupRowsCount = Array.isArray(safeLineupRows) ? safeLineupRows.length : 0;
   const safeBenchRowsCount = Array.isArray(safeBenchRows) ? safeBenchRows.length : 0;
 
@@ -2037,22 +2041,11 @@ export const LiveMatchScreen: React.FC = () => {
               ) : (
                 <div className="space-y-1.5">
                   {(Array.isArray(safeLineupRows) ? safeLineupRows : []).map((row) => (
-                    <div
+                    <MatchPlayerRow
                       key={`lineup-row-${row.slot}`}
-                      className="rounded-2xl border border-red-900/40 bg-gradient-to-br from-red-900/40 via-black/80 to-black p-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="rounded-md border border-red-500/40 bg-red-950/60 px-2 py-0.5 text-[10px] font-bold text-red-200">
-                          {row.position ?? '–'}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-semibold text-white">{row.name || 'Spieler'}</div>
-                        </div>
-                        <span className="text-sm font-semibold text-red-300/90">
-                          #{row.number != null ? row.number : '–'}
-                        </span>
-                      </div>
-                    </div>
+                      player={row}
+                      rightLabel={row.rightLabel}
+                    />
                   ))}
                 </div>
               )}
@@ -2065,23 +2058,11 @@ export const LiveMatchScreen: React.FC = () => {
               ) : (
                 <div className="space-y-1.5">
                   {(Array.isArray(safeBenchRows) ? safeBenchRows : []).map((row, idx) => (
-                    <div
+                    <MatchPlayerRow
                       key={`bench-row-${row.id || idx}`}
-                      className="rounded-2xl border border-red-900/40 bg-gradient-to-br from-red-900/40 via-black/80 to-black p-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="rounded-md border border-red-500/40 bg-red-950/60 px-2 py-0.5 text-[10px] font-bold text-red-200">
-                          BANK
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-semibold text-white">{row.name || 'Spieler'}</div>
-                          <div className="mt-0.5 text-[11px] text-gray-400">{row.position ?? '–'}</div>
-                        </div>
-                        <span className="text-sm font-semibold text-red-300/90">
-                          #{row.number != null ? row.number : '–'}
-                        </span>
-                      </div>
-                    </div>
+                      player={row}
+                      rightLabel="Bank"
+                    />
                   ))}
                 </div>
               )}
