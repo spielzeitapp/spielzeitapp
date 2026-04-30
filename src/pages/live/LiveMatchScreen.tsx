@@ -301,6 +301,16 @@ function mobileLineupName(name: string): string {
   return parts.length > 1 ? parts[parts.length - 1]! : name || '—';
 }
 
+function slotMetaFromSlotMap(
+  slots: Record<FieldSlotId, string | null>,
+  playerId: string,
+  formationId: U11FormationId,
+): { label: string; isGk: boolean } {
+  const slot = LIVE_FIELD_SLOT_ORDER.find((s) => slots[s] === playerId);
+  if (!slot) return { label: '–', isGk: false };
+  return { label: getPositionLabel(labelForSlotInFormation(formationId, slot)) || '–', isGk: slot === 'GK' };
+}
+
 type PeriodScorePair = { h: number; a: number };
 type PeriodScoresState = { p1?: PeriodScorePair; p2?: PeriodScorePair; p3?: PeriodScorePair };
 
@@ -460,7 +470,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const teamSeasonForRoster = matchRow?.team_season_id ?? null;
   const { players, loading: playersLoading, error: playersError } = usePlayers(teamSeasonForRoster);
-  const safePlayers = useMemo(() => (Array.isArray(players) ? players : []), [players]);
+  const safePlayers = Array.isArray(players) ? players : [];
 
   const roster = useMemo(() => sortRosterByNumber(safePlayers.map(playerItemToRoster)), [safePlayers]);
   const rosterById = useMemo(() => {
@@ -468,13 +478,6 @@ export const LiveMatchScreen: React.FC = () => {
     roster.forEach((p) => m.set(p.id, p));
     return m;
   }, [roster]);
-  const playersById = useMemo(() => {
-    const m = new Map<string, (typeof safePlayers)[number]>();
-    safePlayers.forEach((p) => {
-      if (p?.id) m.set(p.id, p);
-    });
-    return m;
-  }, [safePlayers]);
 
   const { currentMatchSeconds, half } = useMatchTimer({
     elapsedSeconds: matchRow?.live_elapsed_seconds ?? 0,
@@ -649,6 +652,8 @@ export const LiveMatchScreen: React.FC = () => {
   const matchTypeDisplay = 'Freundschaftsspiel';
   const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
+  const [lineupStartOpen, setLineupStartOpen] = useState(false);
+  const [lineupBenchOpen, setLineupBenchOpen] = useState(false);
   useEffect(() => {
     if (!canControlLiveMatch && mainTab === 'time') {
       setMainTab('overview');
@@ -656,12 +661,11 @@ export const LiveMatchScreen: React.FC = () => {
   }, [canControlLiveMatch, mainTab]);
 
   const [wechselSheetOpen, setWechselSheetOpen] = useState(false);
-
   const closeWechselSheet = useCallback(() => {
     setWechselSheetOpen(false);
   }, []);
   const openWechselSheet = useCallback(() => {
-    setWechselSheetOpen(true);
+    window.alert('Wechsel temporär deaktiviert');
   }, []);
   useEffect(() => {
     if (wechselSheetOpen && mainTab !== 'overview') closeWechselSheet();
@@ -834,68 +838,10 @@ export const LiveMatchScreen: React.FC = () => {
     const list = ids.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 });
     return sortRosterByNumber(list);
   }, [squadPlayerIds, onFieldIds, rosterById]);
-  const lineupSlotsForDisplay = useMemo(() => {
-    const seen = new Set<string>();
-    const out = { ...onFieldBySlot };
-    for (const slot of LIVE_FIELD_SLOT_ORDER) {
-      const pid = out[slot];
-      if (!pid) continue;
-      if (seen.has(pid)) {
-        console.warn('[LiveMatchScreen] duplicate lineup player ignored in display', { slot, playerId: pid });
-        out[slot] = null;
-        continue;
-      }
-      seen.add(pid);
-    }
-    return out;
-  }, [onFieldBySlot]);
-  const lineupFieldPlayersBySlot = useMemo(
-    () => LIVE_FIELD_SLOT_ORDER.map((slot) => ({ slot, playerId: lineupSlotsForDisplay[slot] ?? null })),
-    [lineupSlotsForDisplay],
-  );
-  const lineupFieldIdSet = useMemo(() => {
-    const set = new Set<string>();
-    for (const row of lineupFieldPlayersBySlot) {
-      if (row.playerId) set.add(row.playerId);
-    }
-    return set;
-  }, [lineupFieldPlayersBySlot]);
-  const lineupBenchPlayersForDisplay = useMemo(() => {
-    const ids = [...new Set(squadPlayerIds)].filter((id) => !lineupFieldIdSet.has(id));
-    return sortRosterByNumber(ids.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 }));
-  }, [squadPlayerIds, lineupFieldIdSet, rosterById]);
-  const emptyLineupSlots = useMemo(
-    () =>
-      LIVE_FIELD_SLOT_ORDER.reduce<Record<FieldSlotId, string | null>>(
-        (acc, slot) => {
-          acc[slot] = null;
-          return acc;
-        },
-        {} as Record<FieldSlotId, string | null>,
-      ),
-    [],
-  );
-  const safeLineupSlotsForDisplay = useMemo(() => {
-    if (!lineupSlotsForDisplay || typeof lineupSlotsForDisplay !== 'object') return emptyLineupSlots;
-    const out = { ...emptyLineupSlots };
-    for (const slot of LIVE_FIELD_SLOT_ORDER) {
-      const value = lineupSlotsForDisplay[slot];
-      out[slot] = typeof value === 'string' && value.length > 0 ? value : null;
-    }
-    return out;
-  }, [lineupSlotsForDisplay, emptyLineupSlots]);
-  const safeLineupFieldPlayersBySlot = useMemo(
-    () =>
-      Array.isArray(lineupFieldPlayersBySlot)
-        ? lineupFieldPlayersBySlot.filter((row) => Boolean(row && row.slot))
-        : [],
-    [lineupFieldPlayersBySlot],
-  );
-  const safeLineupBenchPlayersForDisplay = useMemo(
-    () => (Array.isArray(lineupBenchPlayersForDisplay) ? lineupBenchPlayersForDisplay : []),
-    [lineupBenchPlayersForDisplay],
-  );
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
+  const safePlayersCount = safePlayers.length;
+  const safeLineupRowsCount = Array.isArray(fieldPlayers) ? fieldPlayers.length : 0;
+  const safeBenchRowsCount = Array.isArray(benchPlayers) ? benchPlayers.length : 0;
 
   const playtimes = useMemo(
     () => calculatePlayerPlaytimes(startingPlayerIds, squadPlayerIds, events, currentMatchSeconds),
@@ -1124,10 +1070,6 @@ export const LiveMatchScreen: React.FC = () => {
       squadPlayerIds,
     ],
   );
-
-  const confirmWechselSection = async () => {
-    closeWechselSheet();
-  };
 
   const filteredEvents = useMemo(() => {
     const list = [...events].sort((a, b) => b.timestamp - a.timestamp);
@@ -2064,145 +2006,15 @@ export const LiveMatchScreen: React.FC = () => {
         )}
 
         {mainTab === 'lineup' && (
-          <div className="space-y-3 px-0 pb-56 sm:space-y-4 sm:px-2 sm:pb-16">
-            {safeLineupFieldPlayersBySlot.every((row) => !row.playerId) && safeLineupBenchPlayersForDisplay.length === 0 ? (
-              <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-gray-400">
-                Noch keine Aufstellung veröffentlicht.
-              </p>
-            ) : (
-              <>
-                <section className="space-y-2 rounded-2xl border border-white/[0.08] bg-black/40 p-2">
-                  {!spectatorView && canControlLiveMatch ? (
-                    <div className="flex flex-wrap gap-1.5 px-1">
-                      {U11_FORMATION_CHOICES.map((id) => {
-                        const active = liveLineupFormationId === id;
-                        return (
-                          <button
-                            key={`live-formation-${id}`}
-                            type="button"
-                            onClick={() => {
-                              setLiveLineupFormationId(id);
-                              if (effectiveMatchId) writeStoredU11Formation(effectiveMatchId, id);
-                            }}
-                            className={[
-                              'min-h-[30px] rounded-lg border px-2.5 py-1 text-[10px] font-bold transition-all duration-200 ease-out sm:min-h-[34px] sm:text-xs',
-                              active
-                                ? 'border-red-500/90 bg-red-500/25 text-white shadow-[0_0_16px_rgba(239,68,68,0.45)]'
-                                : 'border-white/15 bg-black/30 text-white/70 hover:border-white/25 hover:bg-black/40',
-                            ].join(' ')}
-                          >
-                            {id}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                  <LineupFormationPitch
-                    formationId={liveLineupFormationId}
-                    slots={safeLineupSlotsForDisplay}
-                    emphasizedPlayerId={null}
-                    renderSlotContent={({ label, labelDx, labelDy, playerId, isGk, emphasize }) => {
-                      const p = playerId ? rosterById.get(playerId) : null;
-                      const safeName = p ? rosterFamilyName(p) : 'Spieler';
-                      return (
-                        <div className="pointer-events-none origin-top scale-[0.93] sm:scale-100">
-                          <PitchPlayerMarker
-                            lastName={safeName}
-                            number={p?.number || '–'}
-                            positionBadge={getPositionLabel(label) || label}
-                            variant={isGk ? 'goalkeeper' : 'field'}
-                            mode="pitch"
-                            nameOffsetX={labelDx}
-                            nameOffsetY={labelDy}
-                            emphasize={emphasize}
-                          />
-                        </div>
-                      );
-                    }}
-                  />
-
-                  <div className="rounded-xl border border-white/10 bg-black/25 p-2">
-                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/60">Bank</p>
-                    {safeLineupBenchPlayersForDisplay.length === 0 ? (
-                      <p className="text-xs text-white/50">Keine Bankspieler</p>
-                    ) : (
-                      <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
-                        <div className="flex min-w-min flex-nowrap items-start gap-2">
-                          {safeLineupBenchPlayersForDisplay.map((p) => (
-                            <div key={`bench-strip-${p.id}`} className="shrink-0 rounded-lg border border-white/12 bg-black/35 px-1.5 py-1">
-                              <LeibchenJersey
-                                lastName={rosterFamilyName(p)}
-                                number={p.number || '–'}
-                                position={getPositionLabel(p.position) || '–'}
-                                variant="field"
-                                size="compact"
-                                className="!h-[3.1rem] !w-[2.45rem] sm:!h-[3.6rem] sm:!w-[2.85rem]"
-                                showBackPrint={false}
-                                pitchStyleBack
-                              />
-                              <span className="mt-0.5 block max-w-[68px] truncate text-center text-[10px] font-bold leading-tight text-white sm:text-xs">
-                                {rosterFamilyName(p)}
-                              </span>
-                              <span className="mt-1 inline-flex w-full justify-center rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/85">
-                                Bank
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </section>
-
-                <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
-                  <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">Startaufstellung</h3>
-                  <div className="space-y-1.5">
-                    {safeLineupFieldPlayersBySlot.map(({ slot, playerId }) => {
-                      const label = getPositionLabel(labelForSlotInFormation(liveLineupFormationId, slot)) || '–';
-                      const p = playerId ? playersById.get(playerId) ?? null : null;
-                      if (!p && spectatorView) return null;
-                      return (
-                        <div key={`lineup-list-${slot}`} className="relative">
-                          <span className="absolute left-3 top-3 z-10 rounded-md border border-red-500/40 bg-red-950/60 px-2 py-0.5 text-[10px] font-bold text-red-200">
-                            {label}
-                          </span>
-                          {p ? (
-                            <MatchPlayerRow player={{ ...p, position: label }} />
-                          ) : (
-                            <div className="rounded-2xl border border-white/15 bg-gradient-to-br from-zinc-900/60 via-black/70 to-black p-3 pl-14 text-sm text-white/60">
-                              [{label}] frei
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-
-                <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
-                  <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">Bank</h3>
-                  {safeLineupBenchPlayersForDisplay.length === 0 ? (
-                    <p className="text-sm text-white/55">Keine Bankspieler</p>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {safeLineupBenchPlayersForDisplay.map((p) => (
-                        <MatchPlayerRow
-                          key={`lineup-bank-${p.id}`}
-                          player={{
-                            id: p.id,
-                            display_name: p.name,
-                            jersey_number: p.number || null,
-                            position: p.position ?? null,
-                            avatar_url: p.avatarUrl ?? null,
-                          }}
-                          rightLabel="Bank"
-                        />
-                      ))}
-                    </div>
-                  )}
-                </section>
-              </>
-            )}
+          <div className="space-y-2 px-0 pb-56 sm:space-y-3 sm:px-2 sm:pb-16">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center">
+              <p className="text-sm font-semibold text-white">Aufstellung wird geladen</p>
+              <div className="mt-3 space-y-1 text-xs text-white/70">
+                <p>players: {safePlayersCount}</p>
+                <p>lineupRows: {safeLineupRowsCount}</p>
+                <p>benchRows: {safeBenchRowsCount}</p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -2301,27 +2113,30 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="fixed inset-0 z-[140] flex items-end justify-center bg-black/80 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-[95] flex items-end justify-center bg-zinc-950/95 p-4 backdrop-blur-sm sm:items-center sm:bg-black/65"
           role="presentation"
           onClick={closeWechselSheet}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-white/15 bg-zinc-950/95 p-4 shadow-[0_16px_44px_rgba(0,0,0,0.65)]"
+            className="w-full max-w-md rounded-2xl border border-red-500/30 bg-zinc-900 p-4 shadow-[0_18px_44px_rgba(0,0,0,0.72)]"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="wechsel-sheet-title"
           >
-            <h3 id="wechsel-sheet-title" className="text-lg font-semibold text-white">Wechsel</h3>
-            <p className="mt-1 text-sm text-white/65">Wechsel-Auswahl wird geladen</p>
-            <div className="mt-4 rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white/55">
-              Temporärer Sicherheitsmodus aktiv, um Abstürze zu verhindern.
+            <div className="text-center">
+              <h3 id="wechsel-sheet-title" className="text-xl font-semibold text-white">
+                Wechsel
+              </h3>
+              <p className="mt-2 text-sm leading-tight text-zinc-400">
+                Wechsel-Auswahl wird geladen
+              </p>
             </div>
-            <div className="mt-4 grid grid-cols-1 gap-3">
+            <div className="mt-4">
               <button
                 type="button"
                 onClick={closeWechselSheet}
-                className="flex min-h-[48px] items-center justify-center rounded-xl border border-white/20 bg-zinc-900/80 text-sm font-semibold text-white active:scale-[0.99]"
+                className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-white/20 bg-zinc-900/80 text-sm font-semibold text-white active:scale-[0.99]"
               >
                 Abbrechen
               </button>

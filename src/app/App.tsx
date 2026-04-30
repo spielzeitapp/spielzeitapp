@@ -43,7 +43,24 @@ import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
 
 /** Freundliche Fallback-UI statt endloser „App lädt…“ nach Render-Crash */
-function AppErrorFallback(): React.ReactElement {
+function AppErrorFallback({
+  error,
+  componentStack,
+}: {
+  error: Error | null;
+  componentStack: string;
+}): React.ReactElement {
+  const message = (error?.message ?? 'Unbekannter Fehler').trim() || 'Unbekannter Fehler';
+  const stackLines = (error?.stack ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  const componentLines = (componentStack ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 5);
   return (
     <div
       style={{
@@ -58,6 +75,30 @@ function AppErrorFallback(): React.ReactElement {
       <p style={{ marginBottom: 16, fontSize: 14, opacity: 0.85 }}>
         Bitte öffne die Terminübersicht oder lade die Seite neu.
       </p>
+      <div
+        style={{
+          marginBottom: 16,
+          border: '1px solid rgba(248,113,113,0.45)',
+          borderRadius: 8,
+          padding: 10,
+          background: 'rgba(0,0,0,0.35)',
+          fontSize: 12,
+          lineHeight: 1.45,
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+        }}
+      >
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>Debug-Info</div>
+        <div><strong>error.message:</strong> {message}</div>
+        <div style={{ marginTop: 6 }}>
+          <strong>error.stack (erste 3 Zeilen):</strong>
+          <div>{stackLines.length > 0 ? stackLines.join('\n') : '-'}</div>
+        </div>
+        <div style={{ marginTop: 6 }}>
+          <strong>componentStack (erste 5 Zeilen):</strong>
+          <div>{componentLines.length > 0 ? componentLines.join('\n') : '-'}</div>
+        </div>
+      </div>
       <a
         href="/app/termine"
         style={{ color: '#f87171', fontWeight: 600, marginRight: 16 }}
@@ -91,21 +132,22 @@ function LiveShortcutRedirect(): React.ReactElement {
 
 class AppErrorBoundary extends Component<
   { children: ReactNode },
-  { hasError: boolean }
+  { hasError: boolean; error: Error | null; componentStack: string }
 > {
-  state = { hasError: false };
+  state = { hasError: false, error: null, componentStack: '' };
 
   static getDerivedStateFromError(): { hasError: boolean } {
     return { hasError: true };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    this.setState({ error, componentStack: errorInfo.componentStack ?? '' });
     console.error('AppErrorBoundary', error, errorInfo);
   }
 
   render(): ReactNode {
     if (this.state.hasError) {
-      return <AppErrorFallback />;
+      return <AppErrorFallback error={this.state.error} componentStack={this.state.componentStack} />;
     }
     return this.props.children;
   }
