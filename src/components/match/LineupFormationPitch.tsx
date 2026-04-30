@@ -186,7 +186,12 @@ export function LineupFormationPitch({
 
           const slotStyle = { left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' } as const;
 
-          const content = <div className="origin-center scale-[0.9]">{inner}</div>;
+          /** Begrenzt Breite pro Slot, damit Namens-Labels nicht in Nachbar-Slots laufen. */
+          const content = (
+            <div className="flex max-w-[min(22vw,5.25rem)] flex-col items-center justify-center origin-center scale-[0.9]">
+              {inner}
+            </div>
+          );
 
           if (!interactive || !onSlotTap) {
             return (

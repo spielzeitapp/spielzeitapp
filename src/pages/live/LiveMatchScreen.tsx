@@ -2070,19 +2070,30 @@ export const LiveMatchScreen: React.FC = () => {
                   slots={safeLineupSlots as Record<FieldSlotId, string | null>}
                   emphasizedPlayerId={null}
                   renderSlotContent={({ label, playerId, isGk }) => {
-                    const player = playerId ? rosterById.get(playerId) ?? null : null;
-                    if (!player) return null;
+                    if (!playerId) return null;
+                    const player = rosterById.get(playerId) ?? null;
                     const posLabel = getPositionLabel(label) || '–';
+                    const rawName = (player?.displayName ?? player?.name ?? '').trim() || 'Spieler';
+                    const shortName = (() => {
+                      const s = mobileLineupName(rawName);
+                      return s === '—' || !s ? 'Spieler' : s;
+                    })();
                     return (
-                      <div className="pointer-events-none origin-top scale-[0.9] sm:scale-100">
+                      <div className="pointer-events-none flex w-full max-w-[min(22vw,5.25rem)] flex-col items-center">
                         <LeibchenJersey
-                          lastName={mobileLineupName(player.name || 'Spieler')}
-                          number={player.number ?? '–'}
+                          lastName={shortName}
+                          number={player?.number ?? '–'}
                           position={posLabel}
                           variant={isGk ? 'goalkeeper' : 'field'}
                           size="compact"
                           pitchStyleBack
                         />
+                        <span
+                          className="mt-0.5 w-full min-w-0 truncate rounded-md bg-black/85 px-1 py-0.5 text-center text-[9px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 sm:text-[10px]"
+                          title={rawName}
+                        >
+                          {shortName}
+                        </span>
                       </div>
                     );
                   }}
@@ -2105,7 +2116,7 @@ export const LiveMatchScreen: React.FC = () => {
                         return (
                           <div
                             key={`live-bench-tile-${row.id || idx}`}
-                            className="shrink-0 rounded-lg border border-white/12 bg-black/35 px-1.5 py-1"
+                            className="flex w-[4.75rem] min-w-0 shrink-0 flex-col items-center rounded-lg border border-white/12 bg-black/35 px-1 py-1 sm:w-[5.25rem]"
                           >
                             <LeibchenJersey
                               lastName={mobileLineupName(row.display_name || row.name || 'Spieler')}
@@ -2116,7 +2127,10 @@ export const LiveMatchScreen: React.FC = () => {
                               pitchStyleBack
                               className="!h-[3.1rem] !w-[2.45rem] sm:!h-[3.6rem] sm:!w-[2.85rem]"
                             />
-                            <span className="mt-0.5 block max-w-[68px] truncate text-center text-[10px] font-bold leading-tight text-white sm:text-xs">
+                            <span
+                              className="mt-0.5 block w-full min-w-0 truncate text-center text-[10px] font-bold leading-tight text-white sm:text-xs"
+                              title={String(row.display_name || row.name || 'Spieler')}
+                            >
                               {mobileLineupName(row.display_name || row.name || 'Spieler')}
                             </span>
                           </div>
