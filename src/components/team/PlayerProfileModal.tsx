@@ -2,9 +2,11 @@ import React, { useEffect } from "react";
 import { ChevronLeft } from "lucide-react";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { Button } from "../../app/components/ui/Button";
+import { getPlayerBirthDisplayLines } from "../../lib/playerBirthDisplay";
 
 export type PlayerProfileModalProps = {
   player: PlayerItem;
+  role: string | null;
   teamSeasonLabel: string | null;
   positionAbbrev: string;
   photoUrl: string | null;
@@ -75,6 +77,7 @@ function Chip({ children }: { children: React.ReactNode }) {
  */
 export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   player,
+  role,
   teamSeasonLabel,
   positionAbbrev,
   photoUrl,
@@ -88,6 +91,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     player.jersey_number != null && Number.isFinite(Number(player.jersey_number))
       ? `#${player.jersey_number}`
       : "—";
+  const birthDisplayLines = getPlayerBirthDisplayLines(role, player.birthdate);
 
   // Placeholder stats — do not invent real numbers; show zeros until backend aggregates exist.
   const stats = { games: 0, goals: 0, minutes: 0, goalsPer90: 0 };
@@ -175,6 +179,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             <Chip>Alter: {ageChipLabel(player.birthdate)}</Chip>
+            {birthDisplayLines.map((line) => (
+              <Chip key={line}>{line}</Chip>
+            ))}
             <Chip>Position: {positionAbbrev}</Chip>
             <Chip>Rückennummer: {jerseyChip}</Chip>
           </div>
