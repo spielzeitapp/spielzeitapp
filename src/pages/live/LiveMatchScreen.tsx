@@ -565,6 +565,17 @@ export const LiveMatchScreen: React.FC = () => {
     }, 220);
   }, [reloadLiveMatchState]);
 
+  /** Gleiche Reload-Kette für alle Rollen: Match-Zeile, Events, Lineup + Bank aus der DB. */
+  const queueLiveMatchRealtimeUpdate = useCallback(
+    (payload: { eventType?: string }) => {
+      if (import.meta.env.DEV) {
+        console.log('live lineup realtime update', payload.eventType);
+      }
+      queueRealtimeReload();
+    },
+    [queueRealtimeReload],
+  );
+
   useEffect(() => {
     if (!effectiveMatchId) return;
     const channel = supabase
@@ -577,7 +588,7 @@ export const LiveMatchScreen: React.FC = () => {
           table: 'matches',
           filter: `id=eq.${effectiveMatchId}`,
         },
-        queueRealtimeReload,
+        queueLiveMatchRealtimeUpdate,
       )
       .on(
         'postgres_changes',
@@ -587,7 +598,7 @@ export const LiveMatchScreen: React.FC = () => {
           table: 'match_events',
           filter: `match_id=eq.${effectiveMatchId}`,
         },
-        queueRealtimeReload,
+        queueLiveMatchRealtimeUpdate,
       )
       .on(
         'postgres_changes',
@@ -597,9 +608,7 @@ export const LiveMatchScreen: React.FC = () => {
           table: 'match_lineup',
           filter: `match_id=eq.${effectiveMatchId}`,
         },
-        () => {
-          void reloadMatchSetupFromDb();
-        },
+        queueLiveMatchRealtimeUpdate,
       )
       .on(
         'postgres_changes',
@@ -609,9 +618,7 @@ export const LiveMatchScreen: React.FC = () => {
           table: 'match_bench',
           filter: `match_id=eq.${effectiveMatchId}`,
         },
-        () => {
-          void reloadMatchSetupFromDb();
-        },
+        queueLiveMatchRealtimeUpdate,
       )
       .on(
         'postgres_changes',
@@ -621,10 +628,10 @@ export const LiveMatchScreen: React.FC = () => {
           table: 'match_lineup_slots',
           filter: `match_id=eq.${effectiveMatchId}`,
         },
-        queueRealtimeReload,
+        queueLiveMatchRealtimeUpdate,
       )
       .subscribe();
-    // Hinweis: Supabase Realtime + RLS (SELECT) muss fuer matches/match_events/lineup-Tabellen aktiv sein.
+    // Realtime + RLS (SELECT) für diese Tabellen; `match_lineup_slots` nur, falls die Tabelle in der DB existiert und publiziert ist.
     return () => {
       if (realtimeReloadTimerRef.current != null) {
         window.clearTimeout(realtimeReloadTimerRef.current);
@@ -632,7 +639,7 @@ export const LiveMatchScreen: React.FC = () => {
       }
       void supabase.removeChannel(channel);
     };
-  }, [effectiveMatchId, queueRealtimeReload, reloadMatchSetupFromDb]);
+  }, [effectiveMatchId, queueLiveMatchRealtimeUpdate]);
 
   const homeName = selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
 
