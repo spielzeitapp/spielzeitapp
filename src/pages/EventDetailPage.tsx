@@ -10,6 +10,7 @@ import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
+import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
 import { downloadEventIcs } from '../lib/ics';
@@ -619,16 +620,6 @@ export const EventDetailPage: React.FC = () => {
                     <ul className="flex flex-col gap-0">
                       {sortPlayersByAttendanceStatus(players, getAttendanceStatus, isTraining).map((player) => {
                         const status = getAttendanceStatus(player.id);
-                        const chipClass = isTraining
-                          ? status === 'no'
-                            ? 'rounded-full px-3 py-1 text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/40'
-                            : 'rounded-full px-3 py-1 text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/40'
-                          : status === 'yes'
-                            ? 'rounded-full px-3 py-1 text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/40'
-                            : status === 'no'
-                              ? 'rounded-full px-3 py-1 text-xs font-semibold bg-red-600/20 text-red-400 border border-red-500/40'
-                              : 'rounded-full px-3 py-1 text-xs font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30';
-
                         const chipLabel = isTraining
                           ? status === 'no'
                             ? 'ABWESEND'
@@ -639,61 +630,61 @@ export const EventDetailPage: React.FC = () => {
                               ? 'ABWESEND'
                               : 'OFFEN';
                         return (
-                          <li
-                            key={player.id}
-                            className="flex flex-col gap-2 border-b border-white/10 py-3 last:border-b-0"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <span className="block font-medium text-[var(--text-main)]">{player.display_name}</span>
+                          <li key={player.id} className="flex flex-col gap-2 py-1.5">
+                            <MatchPlayerRow
+                              player={player}
+                              status={status ?? "open"}
+                              rightLabel={chipLabel}
+                            />
+                            <div className="min-w-0 pl-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                                {isTraining ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      disabled={!trainingCancellationAllowed || status === 'no'}
+                                      onClick={() => handleTrainerRsvp(player.id, 'no')}
+                                      className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
+                                        !trainingCancellationAllowed || status === 'no'
+                                          ? 'bg-gray-600/40 text-gray-300 cursor-not-allowed'
+                                          : 'bg-red-600/80 text-white hover:bg-red-500'
+                                      }`}
+                                    >
+                                      {status === 'no' ? 'Abwesend' : !trainingCancellationAllowed ? 'Zu spät' : 'Absagen'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={status !== 'no'}
+                                      onClick={() => handleTrainerRsvp(player.id, 'yes')}
+                                      className="rounded-md px-2.5 py-1 text-xs font-semibold bg-green-600/80 text-white hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                      Dabei
+                                    </button>
+                                  </>
+                                ) : (
+                                  <div className="flex gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleTrainerRsvp(player.id, 'yes')}
+                                      className="rounded-md px-2.5 py-1 text-xs font-semibold bg-green-600/80 text-white hover:bg-green-500"
+                                    >
+                                      Dabei
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleTrainerRsvp(player.id, 'no')}
+                                      className="rounded-md px-2.5 py-1 text-xs font-semibold bg-red-600/80 text-white hover:bg-red-500"
+                                    >
+                                      Abwesend
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                               {isTraining && status === 'no' && eventAttendanceReasonByPlayerId[(player.id ?? '').toLowerCase()] ? (
-                                <span className="text-xs text-[var(--text-sub)]">
+                                <span className="mt-1 block text-xs text-[var(--text-sub)]">
                                   Grund: {eventAttendanceReasonByPlayerId[(player.id ?? '').toLowerCase()]}
                                 </span>
                               ) : null}
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className={chipClass}>{chipLabel}</span>
-                              {isTraining ? (
-                                <>
-                                  <button
-                                    type="button"
-                                    disabled={!trainingCancellationAllowed || status === 'no'}
-                                    onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                    className={`rounded px-2 py-1 text-xs font-medium ${
-                                      !trainingCancellationAllowed || status === 'no'
-                                        ? 'bg-gray-600/40 text-gray-300 cursor-not-allowed'
-                                        : 'bg-red-600/80 text-white hover:bg-red-500'
-                                    }`}
-                                  >
-                                    {status === 'no' ? 'Abwesend' : !trainingCancellationAllowed ? 'Zu spät' : 'Absagen'}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={status !== 'no'}
-                                    onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                    className="rounded px-2 py-1 text-xs font-medium bg-green-600/80 text-white hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed"
-                                  >
-                                    Dabei
-                                  </button>
-                                </>
-                              ) : (
-                                <div className="flex gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                    className="rounded px-2 py-1 text-xs font-medium bg-green-600/80 text-white hover:bg-green-500"
-                                  >
-                                    Dabei
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                    className="rounded px-2 py-1 text-xs font-medium bg-red-600/80 text-white hover:bg-red-500"
-                                  >
-                                    Abwesend
-                                  </button>
-                                </div>
-                              )}
                             </div>
                           </li>
                         );

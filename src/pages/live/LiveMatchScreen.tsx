@@ -29,9 +29,9 @@ import {
   updateMatchRow,
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
-import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
+import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 import {
   DEFAULT_U11_FORMATION,
   U11_FORMATION_CHOICES,
@@ -2069,8 +2069,8 @@ export const LiveMatchScreen: React.FC = () => {
                             <PitchPlayerMarker
                               lastName={rosterFamilyName(p)}
                               number={p.number || '–'}
-                              positionBadge={label}
-                              variant={isGk ? 'goalkeeper' : 'field'}
+                              positionBadge={getPositionLabel(label) || label}
+                              variant="field"
                               mode="pitch"
                               nameOffsetX={labelDx}
                               nameOffsetY={labelDy}
@@ -2101,23 +2101,17 @@ export const LiveMatchScreen: React.FC = () => {
                       <div className="mt-1 overflow-x-auto px-1 [-webkit-overflow-scrolling:touch]">
                         <div className="flex min-w-min items-start gap-1.5">
                           {benchPlayers.map((p) => (
-                            <div
-                              key={`bench-strip-${p.id}`}
-                              className="shrink-0 rounded-xl border border-white/10 bg-black/25 px-1.5 py-1"
-                            >
-                              <LeibchenJersey
-                                lastName={rosterFamilyName(p)}
-                                number={p.number || '–'}
-                                position="–"
-                                variant="field"
-                                size="compact"
-                                className="!h-[3.15rem] !w-[2.55rem]"
-                                showBackPrint={false}
-                                pitchStyleBack
+                            <div key={`bench-strip-${p.id}`} className="min-w-[240px] shrink-0">
+                              <MatchPlayerRow
+                                player={{
+                                  id: p.id,
+                                  display_name: p.name,
+                                  jersey_number: p.number || null,
+                                  position: 'RF',
+                                  avatar_url: p.avatarUrl ?? null,
+                                }}
+                                rightLabel="Bank"
                               />
-                              <div className="mt-0.5 max-w-[68px] truncate text-center text-[10px] font-bold leading-tight text-white">
-                                {rosterFamilyName(p)}
-                              </div>
                             </div>
                           ))}
                         </div>
@@ -2150,17 +2144,18 @@ export const LiveMatchScreen: React.FC = () => {
                             <div className="flex min-h-[52px] w-full items-center gap-2 rounded-xl border border-emerald-600/40 bg-emerald-950/30 px-2 py-2">
                               <span className="w-7 shrink-0 text-center text-[10px] font-bold text-emerald-400/90">{label}</span>
                               {p ? (
-                                <>
-                                  <LeibchenJersey
-                                    lastName={rosterFamilyName(p)}
-                                    number={p.number || '–'}
-                                    position={label}
-                                    variant={isGk ? 'goalkeeper' : 'field'}
-                                    size="compact"
-                                    className="!h-[3.6rem] !w-[2.85rem]"
+                                <div className="min-w-0 flex-1">
+                                  <MatchPlayerRow
+                                    player={{
+                                      id: p.id,
+                                      display_name: p.name,
+                                      jersey_number: p.number || null,
+                                      position: label,
+                                      avatar_url: p.avatarUrl ?? null,
+                                    }}
+                                    rightLabel={label}
                                   />
-                                  <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">{p.name}</span>
-                                </>
+                                </div>
                               ) : (
                                 <span className="min-w-0 flex-1 text-sm text-white/40">—</span>
                               )}
@@ -2184,17 +2179,16 @@ export const LiveMatchScreen: React.FC = () => {
                     <ul className="space-y-2 border-t border-white/10 px-3 py-2">
                       {benchPlayers.map((p) => (
                         <li key={p.id}>
-                          <div className="flex min-h-[52px] w-full items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-2 py-2">
-                            <LeibchenJersey
-                              lastName={rosterFamilyName(p)}
-                              number={p.number || '–'}
-                              position="–"
-                              variant="field"
-                              size="compact"
-                              className="!h-[3.6rem] !w-[2.85rem]"
-                            />
-                            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white">{p.name}</span>
-                          </div>
+                          <MatchPlayerRow
+                            player={{
+                              id: p.id,
+                              display_name: p.name,
+                              jersey_number: p.number || null,
+                              position: 'RF',
+                              avatar_url: p.avatarUrl ?? null,
+                            }}
+                            rightLabel="Bank"
+                          />
                         </li>
                       ))}
                     </ul>
@@ -2348,8 +2342,8 @@ export const LiveMatchScreen: React.FC = () => {
                             <PitchPlayerMarker
                               lastName={rosterFamilyName(p)}
                               number={p.number || '–'}
-                              positionBadge={label}
-                              variant={isGk ? 'goalkeeper' : 'field'}
+                              positionBadge={getPositionLabel(label) || label}
+                              variant="field"
                               mode="pitch"
                               nameOffsetX={labelDx}
                               nameOffsetY={labelDy}
@@ -2373,30 +2367,19 @@ export const LiveMatchScreen: React.FC = () => {
                     benchPlayers.map((p) => {
                       const sel = selectedInPlayer === p.id;
                       return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => setSelectedInPlayer(p.id)}
-                          className="flex flex-col items-center gap-1 text-center transition-all duration-150 active:scale-95"
-                        >
-                          <div
-                            className={`relative transition-all duration-150 ${
-                              sel ? 'scale-105 drop-shadow-[0_0_12px_rgba(0,255,150,0.6)]' : ''
-                            }`}
-                          >
-                            <LeibchenJersey
-                              lastName={rosterFamilyName(p)}
-                              number={p.number || '–'}
-                              position="–"
-                              variant="field"
-                              size="compact"
-                              selected={sel}
-                            />
-                          </div>
-                          <div className="text-[11px] font-medium leading-none text-white/80">
-                            {mobileLineupName(p.name)}
-                          </div>
-                        </button>
+                        <div className={`w-full ${sel ? 'ring-2 ring-emerald-400/60 rounded-2xl' : ''}`}>
+                          <MatchPlayerRow
+                            player={{
+                              id: p.id,
+                              display_name: p.name,
+                              jersey_number: p.number || null,
+                              position: 'RF',
+                              avatar_url: p.avatarUrl ?? null,
+                            }}
+                            rightLabel="Rein"
+                            onClick={() => setSelectedInPlayer(p.id)}
+                          />
+                        </div>
                       );
                     })
                   )}

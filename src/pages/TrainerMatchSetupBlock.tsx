@@ -10,6 +10,7 @@ import {
   saveMatchSquadOnly,
 } from '../lib/liveMatchService';
 import { comparePlayerItems } from '../lib/rosterPlayer';
+import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
 import type { FieldSlotId } from '../types/match';
 
 const MATCH_SETUP_STARTERS_MAX = 7;
@@ -108,16 +109,23 @@ export function TrainerMatchSetupBlock({
         return;
       }
       const nextStarters = emptyMatchSetupStarters();
+      const usedLineupPlayers = new Set<string>();
       for (const r of (lineupRes.data ?? []) as { slot: FieldSlotId; player_id: string | null }[]) {
         const slot = String(r.slot ?? '').trim().toUpperCase();
-        if (LIVE_FIELD_SLOT_ORDER.includes(slot as any) && r.player_id) {
-          nextStarters[slot as any] = normalizeId(r.player_id);
+        const pid = normalizeId(r.player_id);
+        if (LIVE_FIELD_SLOT_ORDER.includes(slot as any) && pid) {
+          if (usedLineupPlayers.has(pid)) {
+            console.warn('[TrainerMatchSetupBlock] duplicate lineup player ignored', { matchId, playerId: pid, slot });
+            continue;
+          }
+          usedLineupPlayers.add(pid);
+          nextStarters[slot as any] = pid;
         }
       }
       const nextBenchIds = new Set<string>();
       for (const row of (benchRes.data ?? []) as { player_id: string }[]) {
         const id = normalizeId(row.player_id);
-        if (id) nextBenchIds.add(id);
+        if (id && !usedLineupPlayers.has(id)) nextBenchIds.add(id);
       }
 
       const nextSquad = new Set<string>(nextBenchIds);
@@ -348,30 +356,14 @@ export function TrainerMatchSetupBlock({
                 const playerId = normalizeId(p.id);
                 const inSquad = playerId ? squad.has(playerId) : false;
                 return (
-                  <button
+                  <MatchPlayerRow
                     key={playerId ?? String(p.id)}
-                    type="button"
+                    player={p}
+                    selected={inSquad}
+                    rightLabel={inSquad ? '✓ Im Kader' : 'Nein'}
+                    status={inSquad ? 'yes' : 'open'}
                     onClick={() => playerId && toggleSquad(playerId)}
-                    className={`${trainerRowBase} ${inSquad ? trainerRowSquad : trainerRowUnselected}`}
-                  >
-                    {p.jersey_number != null ? (
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-black/40 text-base font-black text-white/90">
-                        {p.jersey_number}
-                      </span>
-                    ) : (
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-black/40 text-sm font-bold text-white/50">
-                        –
-                      </span>
-                    )}
-                    <span className="min-w-0 flex-1 text-base font-semibold text-white">{p.display_name}</span>
-                    <span
-                      className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
-                        inSquad ? 'bg-red-600 text-white' : 'bg-white/10 text-white/55'
-                      }`}
-                    >
-                      {inSquad ? 'Im Kader' : 'Nein'}
-                    </span>
-                  </button>
+                  />
                 );
               })}
             </div>
@@ -410,37 +402,16 @@ export function TrainerMatchSetupBlock({
                   const isSt = playerId ? starterIdSet.has(playerId) : false;
                   const blockMore = !isSt && starterCount >= MATCH_SETUP_STARTERS_MAX;
                   return (
-                    <button
-                      key={playerId ?? String(p.id)}
-                      type="button"
-                      disabled={blockMore}
-                      onClick={() => playerId && toggleStarter(playerId)}
-                      className={`${trainerRowBase} ${
-                        blockMore ? `${trainerRowUnselected} ${trainerRowDisabled}` : isSt ? trainerRowStarter : trainerRowUnselected
-                      }`}
-                    >
-                      {p.jersey_number != null ? (
-                        <span
-                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-black ${
-                            isSt ? 'bg-emerald-600/30 text-emerald-200' : 'bg-black/40 text-white/70'
-                          }`}
-                        >
-                          {p.jersey_number}
-                        </span>
-                      ) : (
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-black/40 text-sm font-bold text-white/50">
-                          –
-                        </span>
-                      )}
-                      <span className="min-w-0 flex-1 text-base font-semibold text-white">{p.display_name}</span>
-                      <span
-                        className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
-                          isSt ? 'bg-emerald-600 text-white' : 'bg-white/10 text-white/55'
-                        }`}
-                      >
-                        {isSt ? 'Startelf' : 'Bank'}
-                      </span>
-                    </button>
+                    <div className={blockMore ? 'pointer-events-none opacity-50' : ''}>
+                      <MatchPlayerRow
+                        key={playerId ?? String(p.id)}
+                        player={p}
+                        selected={isSt}
+                        rightLabel={isSt ? 'Startelf' : 'Bank'}
+                        status={isSt ? 'yes' : 'open'}
+                        onClick={() => playerId && toggleStarter(playerId)}
+                      />
+                    </div>
                   );
                 })}
               </div>
@@ -456,15 +427,12 @@ export function TrainerMatchSetupBlock({
                 {bankPlayers.map((p) => {
                   const playerId = normalizeId(p.id);
                   return (
-                  <div
+                  <MatchPlayerRow
                     key={playerId ?? String(p.id)}
-                    className="flex items-center gap-3 border-b border-white/5 py-2 last:border-b-0 last:pb-0"
-                  >
-                    <span className="w-8 text-center text-sm font-black text-white/40">
-                      {p.jersey_number != null ? p.jersey_number : '–'}
-                    </span>
-                    <span className="text-sm font-medium text-white/85">{p.display_name}</span>
-                  </div>
+                    player={p}
+                    rightLabel="Bank"
+                    status="open"
+                  />
                   );
                 })}
               </div>

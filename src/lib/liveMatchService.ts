@@ -225,12 +225,18 @@ export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: 
       if (aOrder !== bOrder) return aOrder - bOrder;
       return a.idx - b.idx;
     })
-    .map((row) => row.playerId);
+    .map((row) => row.playerId)
+    .filter((id, idx, arr) => arr.indexOf(id) === idx);
 
+  const startingSet = new Set(startingPlayerIds);
   const benchPlayerIds = benchRows
     .map((r) => r.player_id)
-    .filter((id): id is string => typeof id === 'string' && id.length > 0);
-  const squadPlayerIds = [...startingPlayerIds, ...benchPlayerIds];
+    .filter((id): id is string => typeof id === 'string' && id.length > 0)
+    .filter((id, idx, arr) => arr.indexOf(id) === idx)
+    .filter((id) => !startingSet.has(id));
+  const squadPlayerIds = [...startingPlayerIds, ...benchPlayerIds].filter(
+    (id, idx, arr) => arr.indexOf(id) === idx,
+  );
   console.log('fetchLineupForLiveMatch final', {
     matchId,
     lineupRows,

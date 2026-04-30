@@ -4,6 +4,7 @@ import { usePlayers } from '../../hooks/usePlayers';
 import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { saveMatchSquadOnly } from '../../lib/liveMatchService';
 import { supabase } from '../../lib/supabaseClient';
+import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 
 type MatchRowLite = {
   id: string;
@@ -215,48 +216,24 @@ export const MatchPreparationPage: React.FC = () => {
         {list.map((p) => {
           const selected = selectedSet.has(p.id);
           const disabled = status !== 'available';
-          const shell =
-            status === 'available'
-              ? 'border-emerald-600/45 bg-emerald-950/25'
-              : status === 'open'
-                ? 'border-amber-500/45 bg-amber-950/20'
-                : 'border-red-800/45 bg-red-950/18 opacity-60';
           return (
-            <button
-              key={p.id}
-              type="button"
-              disabled={disabled}
-              onClick={() => togglePlayer(p.id, status)}
-              className={`flex w-full items-center justify-between rounded-lg border px-2.5 py-2 text-left transition ${shell} ${
-                selected ? 'ring-2 ring-red-500/60' : ''
-              } ${disabled ? 'cursor-not-allowed' : 'hover:bg-white/[0.04]'}`}
-            >
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-black/35 px-1 text-[11px] font-bold text-white/90">
-                  {p.jersey_number ?? '–'}
-                </span>
-                <p className="truncate text-sm font-medium text-white">{p.display_name || 'Spieler'}</p>
-              </div>
-              <div className="ml-2 flex shrink-0 items-center gap-1.5">
-                {status === 'absent' ? (
-                  <span className="rounded-full bg-red-900/35 px-2 py-0.5 text-[11px] font-semibold text-red-200">
-                    Nicht verfügbar
-                  </span>
-                ) : status === 'open' ? (
-                  <span className="rounded-full bg-amber-600/20 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
-                    Offen
-                  </span>
-                ) : selected ? (
-                  <span className="rounded-full bg-emerald-600/25 px-2 py-0.5 text-[11px] font-semibold text-emerald-200">
-                    ✓ Im Kader
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-white/75">
-                    Auswählen
-                  </span>
-                )}
-              </div>
-            </button>
+            <div key={p.id} className={disabled ? "opacity-70" : ""}>
+              <MatchPlayerRow
+                player={p}
+                selected={selected}
+                status={status === "available" ? "yes" : status === "absent" ? "no" : "open"}
+                rightLabel={
+                  status === "absent"
+                    ? "Abwesend"
+                    : status === "open"
+                      ? "Offen"
+                      : selected
+                        ? "✓ Im Kader"
+                        : "Auswählen"
+                }
+                onClick={disabled ? undefined : () => togglePlayer(p.id, status)}
+              />
+            </div>
           );
         })}
       </div>
