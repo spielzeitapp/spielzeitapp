@@ -3,12 +3,12 @@ import { ChevronLeft } from "lucide-react";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { Button } from "../../app/components/ui/Button";
 import { getPlayerBirthDisplayLines } from "../../lib/playerBirthDisplay";
+import { getPositionFull, getPositionLabel } from "../../lib/positionLabels";
 
 export type PlayerProfileModalProps = {
   player: PlayerItem;
   role: string | null;
   teamSeasonLabel: string | null;
-  positionAbbrev: string;
   photoUrl: string | null;
   canManage: boolean;
   onClose: () => void;
@@ -79,7 +79,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   player,
   role,
   teamSeasonLabel,
-  positionAbbrev,
   photoUrl,
   canManage,
   onClose,
@@ -91,6 +90,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     player.jersey_number != null && Number.isFinite(Number(player.jersey_number))
       ? `#${player.jersey_number}`
       : "—";
+  const positionLabel = getPositionLabel(player.position) || "—";
+  const positionFull = getPositionFull(player.position);
   const birthDisplayLines = getPlayerBirthDisplayLines(role, player.birthdate);
 
   // Placeholder stats — do not invent real numbers; show zeros until backend aggregates exist.
@@ -182,7 +183,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             {birthDisplayLines.map((line) => (
               <Chip key={line}>{line}</Chip>
             ))}
-            <Chip>Position: {positionAbbrev}</Chip>
+            <Chip>
+              <span title={positionFull || undefined}>Position: {positionLabel}</span>
+            </Chip>
             <Chip>Rückennummer: {jerseyChip}</Chip>
           </div>
 

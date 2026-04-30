@@ -7,6 +7,7 @@ import { Camera, Trash2 } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster, ROLE_LABELS_DE } from "../lib/roles";
+import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 
@@ -44,17 +45,6 @@ type FormState = {
   /** `YYYY-MM-DD` fürs Datumsfeld; leer = kein Geburtsdatum */
   birthdate: string;
 };
-
-function abbreviatePositionLabel(pos: string | null | undefined): string {
-  const raw = (pos ?? '').trim();
-  if (!raw) return "—";
-  const p = raw.toLowerCase().replaceAll('ü', 'u').replaceAll('ß', 'ss');
-  if (p.includes('tor') || p.includes('torhueter') || p === 'torhuter') return 'TW';
-  if (p.includes('verteid')) return 'VT';
-  if (p.includes('mittelfeld') || p.includes('mitte')) return 'MF';
-  if (p.includes('stuer') || p.includes('stuermer') || p.includes('sturmer')) return 'ST';
-  return raw;
-}
 
 const emptyForm: FormState = {
   first_name: "",
@@ -670,7 +660,6 @@ export const TeamPage: React.FC = () => {
         player={selectedProfilePlayer}
         role={role}
         teamSeasonLabel={teamLabel}
-        positionAbbrev={abbreviatePositionLabel(selectedProfilePlayer.position)}
         photoUrl={readOptionalPhotoUrl(selectedProfilePlayer)}
         canManage={canManagePlayers}
         onClose={closePlayerProfile}
@@ -963,7 +952,7 @@ export const TeamPage: React.FC = () => {
                 const rowName = squadRowDisplayName(p);
                 const photo = readOptionalPhotoUrl(p);
                 const avatarSrc = (photo ?? "").trim() || "/avatars/player-placeholder.png";
-                const posLabel = abbreviatePositionLabel(p.position);
+                const posLabel = getPositionLabel(p.position) || "—";
                 return (
                   <li key={p.id} className="w-full">
                     <button

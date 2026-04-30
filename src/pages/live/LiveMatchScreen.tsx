@@ -42,6 +42,7 @@ import {
 } from '../../lib/matchFormations';
 import type { FieldSlotId } from '../../types/match';
 import { compareRosterPlayers, playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
+import { getPositionLabel } from '../../lib/positionLabels';
 import { supabase } from '../../lib/supabaseClient';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
 import { isValidLogoUrl } from '../../utils/logoResolver';
@@ -307,7 +308,7 @@ function slotMetaFromSlotMap(
 ): { label: string; isGk: boolean } {
   const slot = LIVE_FIELD_SLOT_ORDER.find((s) => slots[s] === playerId);
   if (!slot) return { label: '–', isGk: false };
-  return { label: labelForSlotInFormation(formationId, slot), isGk: slot === 'GK' };
+  return { label: getPositionLabel(labelForSlotInFormation(formationId, slot)) || '–', isGk: slot === 'GK' };
 }
 
 type PeriodScorePair = { h: number; a: number };
@@ -2142,7 +2143,7 @@ export const LiveMatchScreen: React.FC = () => {
                       {LIVE_FIELD_SLOT_ORDER.map((slot, idx) => {
                         const pid = initialStartingPlayerIds[idx] ?? null;
                         const p = pid ? rosterById.get(pid) ?? { id: pid, name: '—', number: 0 } : null;
-                        const label = labelForSlotInFormation(liveLineupFormationId, slot);
+                        const label = getPositionLabel(labelForSlotInFormation(liveLineupFormationId, slot)) || '–';
                         const isGk = slot === 'GK';
                         return (
                           <li key={slot}>
