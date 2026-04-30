@@ -29,6 +29,8 @@ import {
   updateMatchRow,
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
+import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
+import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 import {
   DEFAULT_U11_FORMATION,
@@ -864,6 +866,32 @@ export const LiveMatchScreen: React.FC = () => {
       })),
     [benchPlayers],
   );
+  const safeFormationId = useMemo(() => {
+    const requested = (liveLineupFormationId || '').trim();
+    if (requested && U11_FORMATION_CHOICES.includes(requested as U11FormationId)) return requested as U11FormationId;
+    if (U11_FORMATION_CHOICES.includes('1-2-3-1' as U11FormationId)) return '1-2-3-1' as U11FormationId;
+    return U11_FORMATION_CHOICES[0] ?? DEFAULT_U11_FORMATION;
+  }, [liveLineupFormationId]);
+  const lineupSlotsForDisplay = useMemo(() => {
+    const base = onFieldBySlot && typeof onFieldBySlot === 'object' ? onFieldBySlot : ({} as Record<FieldSlotId, string | null>);
+    const out = { ...base };
+    const seen = new Set<string>();
+    for (const slot of safeSlotOrder) {
+      const pid = out[slot];
+      if (!pid) continue;
+      if (seen.has(pid)) {
+        out[slot] = null;
+        continue;
+      }
+      seen.add(pid);
+    }
+    return out;
+  }, [onFieldBySlot, safeSlotOrder]);
+  const safeLineupSlots = useMemo(
+    () => (lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object' ? lineupSlotsForDisplay : {}),
+    [lineupSlotsForDisplay],
+  );
+  const canRenderLivePitch = safeSlotOrder.length > 0 && safeFormationId != null;
   const safeLineupRowsCount = Array.isArray(safeLineupRows) ? safeLineupRows.length : 0;
   const safeBenchRowsCount = Array.isArray(safeBenchRows) ? safeBenchRows.length : 0;
 
@@ -2034,6 +2062,72 @@ export const LiveMatchScreen: React.FC = () => {
             className="space-y-2 px-0 pt-2 sm:space-y-3 sm:px-2"
             style={{ paddingBottom: 'calc(160px + env(safe-area-inset-bottom, 0px))' }}
           >
+            <section className="space-y-2 rounded-2xl border border-white/[0.08] bg-black/40 p-2">
+              <h3 className="px-1 text-xs font-bold uppercase tracking-[0.12em] text-white/70">LIVE-AUFSTELLUNG</h3>
+              {canRenderLivePitch ? (
+                <LineupFormationPitch
+                  formationId={safeFormationId}
+                  slots={safeLineupSlots as Record<FieldSlotId, string | null>}
+                  emphasizedPlayerId={null}
+                  renderSlotContent={({ label, playerId, isGk }) => {
+                    const player = playerId ? rosterById.get(playerId) ?? null : null;
+                    if (!player) return null;
+                    const posLabel = getPositionLabel(label) || '–';
+                    return (
+                      <div className="pointer-events-none origin-top scale-[0.9] sm:scale-100">
+                        <LeibchenJersey
+                          lastName={mobileLineupName(player.name || 'Spieler')}
+                          number={player.number ?? '–'}
+                          position={posLabel}
+                          variant={isGk ? 'goalkeeper' : 'field'}
+                          size="compact"
+                          pitchStyleBack
+                        />
+                      </div>
+                    );
+                  }}
+                />
+              ) : (
+                <p className="rounded-xl border border-white/10 bg-black/25 px-3 py-4 text-sm text-white/55">
+                  Live-Aufstellung wird geladen
+                </p>
+              )}
+
+              <div className="rounded-xl border border-white/10 bg-black/25 p-2">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/60">Live-Bank</p>
+                {safeBenchRowsCount === 0 ? (
+                  <p className="text-xs text-white/50">Keine Bankspieler</p>
+                ) : (
+                  <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
+                    <div className="flex min-w-min flex-nowrap items-start gap-2">
+                      {(Array.isArray(safeBenchRows) ? safeBenchRows : []).map((row, idx) => {
+                        const posLabel = getPositionLabel(row.position) || '–';
+                        return (
+                          <div
+                            key={`live-bench-tile-${row.id || idx}`}
+                            className="shrink-0 rounded-lg border border-white/12 bg-black/35 px-1.5 py-1"
+                          >
+                            <LeibchenJersey
+                              lastName={mobileLineupName(row.display_name || row.name || 'Spieler')}
+                              number={row.jersey_number ?? row.number ?? '–'}
+                              position={posLabel}
+                              variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
+                              size="compact"
+                              pitchStyleBack
+                              className="!h-[3.1rem] !w-[2.45rem] sm:!h-[3.6rem] sm:!w-[2.85rem]"
+                            />
+                            <span className="mt-0.5 block max-w-[68px] truncate text-center text-[10px] font-bold leading-tight text-white sm:text-xs">
+                              {mobileLineupName(row.display_name || row.name || 'Spieler')}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+
             <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
               <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">STARTAUFSTELLUNG</h3>
               {safeLineupRowsCount === 0 ? (
