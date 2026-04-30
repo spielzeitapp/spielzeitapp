@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import type { PlayerItem } from '../../hooks/usePlayers';
-import { LeibchenJersey } from '../../components/match/LeibchenJersey';
+import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import {
@@ -21,6 +21,7 @@ import {
 } from '../../lib/matchFormations';
 import { supabase } from '../../lib/supabaseClient';
 import type { FieldSlotId } from '../../types/match';
+import { getPositionLabel } from '../../lib/positionLabels';
 
 type MatchRowLite = {
   id: string;
@@ -54,14 +55,6 @@ function playerFamilyName(p: PlayerItem): string {
   if (ln) return ln;
   const parts = p.display_name.trim().split(/\s+/).filter(Boolean);
   return parts.length > 1 ? parts[parts.length - 1]! : p.display_name;
-}
-
-/** Kurz-Label für Bank (ohne Slot); längere Positionsbezeichnungen kürzen. */
-function benchPositionLabel(p: PlayerItem): string {
-  const pos = (p.position ?? '').trim();
-  if (!pos) return '–';
-  if (pos.length <= 3) return pos.toUpperCase();
-  return pos.slice(0, 2).toUpperCase();
 }
 
 export const MatchLineupPage: React.FC = () => {
@@ -153,16 +146,24 @@ export const MatchLineupPage: React.FC = () => {
       if (error) {
         setLineupError(error);
       } else {
+        const used = new Set<string>();
         for (let i = 0; i < LIVE_FIELD_SLOT_ORDER.length; i += 1) {
-          initialSlots[LIVE_FIELD_SLOT_ORDER[i]] = data.startingPlayerIds[i] ?? null;
+          const pid = data.startingPlayerIds[i] ?? null;
+          if (!pid || used.has(pid)) {
+            initialSlots[LIVE_FIELD_SLOT_ORDER[i]] = null;
+            continue;
+          }
+          used.add(pid);
+          initialSlots[LIVE_FIELD_SLOT_ORDER[i]] = pid;
         }
         if (initialSquad.length === 0) {
-          initialSquad = data.squadPlayerIds;
+          initialSquad = data.squadPlayerIds.filter((id, idx, arr) => arr.indexOf(id) === idx);
         }
       }
 
       setSlots(initialSlots);
-      setSquadIds([...new Set(initialSquad)]);
+      const dedupSquad = [...new Set(initialSquad)];
+      setSquadIds(dedupSquad);
       setLineupLoading(false);
     })();
 
@@ -403,8 +404,8 @@ export const MatchLineupPage: React.FC = () => {
                     <PitchPlayerMarker
                       lastName={playerFamilyName(player)}
                       number={player.jersey_number}
-                      positionBadge={label}
-                      variant={isGk ? 'goalkeeper' : 'field'}
+                      positionBadge={getPositionLabel(label) || label}
+                      variant={'field'}
                       mode="pitch"
                       nameOffsetX={labelDx}
                       nameOffsetY={labelDy}
@@ -439,34 +440,14 @@ export const MatchLineupPage: React.FC = () => {
                     if (!p) return null;
                     const isSelected = selectedBankPlayerId === id;
                     return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => onTapBankPlayer(id)}
-                        className={[
-                          'shrink-0 rounded-lg px-1.5 py-1 transition-all duration-300 ease-out active:scale-95 sm:rounded-xl sm:px-2 sm:py-2',
-                          isSelected
-                            ? 'border-2 border-emerald-400/85 bg-emerald-950/30 shadow-[0_0_22px_rgba(16,185,129,0.4)]'
-                            : 'border border-white/12 bg-black/35 hover:border-white/22 hover:bg-black/45',
-                        ].join(' ')}
-                      >
-                        <div className="flex flex-col items-center">
-                          <LeibchenJersey
-                            lastName={playerFamilyName(p)}
-                            number={p.jersey_number}
-                            position={benchPositionLabel(p)}
-                            variant="field"
-                            size="compact"
-                            className="!h-[3.1rem] !w-[2.45rem] sm:!h-[3.6rem] sm:!w-[2.85rem]"
-                            showBackPrint={false}
-                            pitchStyleBack
-                            selected={isSelected}
-                          />
-                          <span className="mt-0.5 max-w-[68px] truncate text-center text-[10px] font-bold leading-tight text-white sm:text-xs">
-                            {playerFamilyName(p)}
-                          </span>
-                        </div>
-                      </button>
+                      <div key={id} className={`min-w-[240px] shrink-0 ${isSelected ? 'ring-2 ring-emerald-400/70 rounded-2xl' : ''}`}>
+                        <MatchPlayerRow
+                          player={p}
+                          selected={isSelected}
+                          rightLabel="Bank"
+                          onClick={() => onTapBankPlayer(id)}
+                        />
+                      </div>
                     );
                   })}
                 </div>
@@ -476,36 +457,28 @@ export const MatchLineupPage: React.FC = () => {
           ) : null}
         </section>
 
-        <section className="hidden space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95 sm:block">
+        <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
           <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-white/55">Startaufstellung Liste</h2>
           <div className="space-y-1.5">
             {LIVE_FIELD_SLOT_ORDER.map((slot) => {
               const pid = slots[slot];
               const p = pid ? playersById.get(pid) : null;
-              const posLabel = labelForSlotInFormation(formationId, slot);
+              const posLabel = getPositionLabel(labelForSlotInFormation(formationId, slot)) || "—";
               return (
-                <div
-                  key={`row-${slot}`}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-2"
-                >
-                  <span className="text-xs font-semibold text-white/75">{posLabel}</span>
-                  <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-                    {p ? (
-                      <>
-                        <LeibchenJersey
-                          lastName={playerFamilyName(p)}
-                          number={p.jersey_number}
-                          position={posLabel}
-                          variant={slot === 'GK' ? 'goalkeeper' : 'field'}
-                          size="compact"
-                          className="!h-[3.6rem] !w-[2.85rem]"
-                        />
-                        <span className="truncate text-xs text-white/85">{p.display_name}</span>
-                      </>
-                    ) : (
-                      <span className="text-xs text-white/55">frei</span>
-                    )}
-                  </div>
+                <div key={`row-${slot}`} className="relative">
+                  <span className="absolute left-3 top-3 z-10 rounded-md border border-red-500/40 bg-red-950/60 px-2 py-0.5 text-[10px] font-bold text-red-200">
+                    {posLabel}
+                  </span>
+                  {p ? (
+                    <MatchPlayerRow
+                      player={{ ...p, position: posLabel }}
+                      rightLabel={p.jersey_number != null ? `#${p.jersey_number}` : "—"}
+                    />
+                  ) : (
+                    <div className="rounded-2xl border border-white/15 bg-gradient-to-br from-zinc-900/60 via-black/70 to-black p-3 pl-14 text-sm text-white/60">
+                      {posLabel} frei
+                    </div>
+                  )}
                 </div>
               );
             })}
