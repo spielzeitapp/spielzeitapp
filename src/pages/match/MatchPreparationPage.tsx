@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
+import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { saveMatchSquadOnly } from '../../lib/liveMatchService';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -145,9 +146,7 @@ export const MatchPreparationPage: React.FC = () => {
   const getAttendance = (playerId: string): 'yes' | 'no' | null => attendanceByPlayerId[playerId.toLowerCase()] ?? null;
 
   const grouped = useMemo(() => {
-    const sorted = [...players].sort(
-      (a, b) => (a.jersey_number ?? 9999) - (b.jersey_number ?? 9999) || a.display_name.localeCompare(b.display_name, 'de'),
-    );
+    const sorted = [...players].sort(comparePlayerItems);
     const available: typeof sorted = [];
     const open: typeof sorted = [];
     const absent: typeof sorted = [];

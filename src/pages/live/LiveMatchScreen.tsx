@@ -41,7 +41,7 @@ import {
   type U11FormationId,
 } from '../../lib/matchFormations';
 import type { FieldSlotId } from '../../types/match';
-import { playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
+import { compareRosterPlayers, playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 import { supabase } from '../../lib/supabaseClient';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
 import { isValidLogoUrl } from '../../utils/logoResolver';
@@ -287,7 +287,7 @@ function buildSpectatorTickerRows(events: MatchEngineEvent[]): { key: string; it
 type EventsFilter = 'all' | 'goals' | 'subs';
 
 function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
-  return [...list].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
+  return [...list].sort(compareRosterPlayers);
 }
 
 function rosterFamilyName(p: RosterPlayer): string {

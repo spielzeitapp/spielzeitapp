@@ -4,7 +4,7 @@ import { useSession } from '../../auth/useSession';
 import { usePlayers } from '../../hooks/usePlayers';
 import { type LiveMatchSetupPayload } from '../../lib/liveMatchSetup';
 import { replaceMatchLineupAndBench, upsertMatchForSetup } from '../../lib/liveMatchService';
-import { playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
+import { compareRosterPlayers, playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 
 /** @deprecated Nutze RosterPlayer — nur für ältere Imports. */
 export type SetupPlayer = RosterPlayer;
@@ -12,7 +12,7 @@ export type SetupPlayer = RosterPlayer;
 const MAX_STARTERS = 7;
 
 function sortRoster(list: RosterPlayer[]): RosterPlayer[] {
-  return [...list].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
+  return [...list].sort(compareRosterPlayers);
 }
 
 function idSet(arr: string[]): Set<string> {

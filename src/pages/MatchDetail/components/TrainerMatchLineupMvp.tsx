@@ -6,6 +6,7 @@ import { supabase } from '../../../lib/supabaseClient';
 import { LIVE_FIELD_SLOT_ORDER, replaceMatchLineupAndBench } from '../../../lib/liveMatchService';
 import { Card, CardTitle } from '../../../app/components/ui/Card';
 import { Button } from '../../../app/components/ui/Button';
+import { comparePlayerItems } from '../../../lib/rosterPlayer';
 
 const MAX_STARTERS = 7;
 
@@ -18,11 +19,7 @@ function emptyStarters(): Record<FieldSlotId, string | null> {
 }
 
 function sortPlayers(list: PlayerItem[]): PlayerItem[] {
-  return [...list].sort(
-    (a, b) =>
-      (a.jersey_number ?? 9999) - (b.jersey_number ?? 9999) ||
-      a.display_name.localeCompare(b.display_name, 'de'),
-  );
+  return [...list].sort(comparePlayerItems);
 }
 
 function playerLabelNum(p: PlayerItem): string {

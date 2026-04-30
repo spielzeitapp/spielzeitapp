@@ -17,7 +17,7 @@ import { isStartelfCompleteForLive } from './lineupGuards';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { fetchLineupForLiveMatch, fetchMatchEvents, LIVE_FIELD_SLOT_ORDER } from '../../lib/liveMatchService';
 import { getBenchPlayers, getCurrentOnFieldPlayers, sortMatchEventsChronologically, type MatchEngineEvent } from '../../lib/matchEngine';
-import { playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
+import { compareRosterPlayers, playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 
 type MatchRow = {
   id: string;
@@ -62,7 +62,7 @@ function mapRowToMatch(row: MatchRow | null): Match | null {
 }
 
 function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
-  return [...list].sort((a, b) => a.number - b.number || a.name.localeCompare(b.name));
+  return [...list].sort(compareRosterPlayers);
 }
 
 export const MatchDetailPage: React.FC = () => {

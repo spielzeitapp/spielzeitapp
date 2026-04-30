@@ -9,6 +9,7 @@ import {
   replaceMatchLineupAndBench,
   saveMatchSquadOnly,
 } from '../lib/liveMatchService';
+import { comparePlayerItems } from '../lib/rosterPlayer';
 import type { FieldSlotId } from '../types/match';
 
 const MATCH_SETUP_STARTERS_MAX = 7;
@@ -57,21 +58,12 @@ export function TrainerMatchSetupBlock({
 
   const sortedPlayers = useMemo(
     () =>
-      [...poolPlayers].sort(
-        (a, b) =>
-          (a.jersey_number ?? 9999) - (b.jersey_number ?? 9999) ||
-          a.display_name.localeCompare(b.display_name, 'de'),
-      ),
+      [...poolPlayers].sort(comparePlayerItems),
     [poolPlayers],
   );
 
   const sortedAllPlayers = useMemo(
-    () =>
-      [...players].sort(
-        (a, b) =>
-          (a.jersey_number ?? 9999) - (b.jersey_number ?? 9999) ||
-          a.display_name.localeCompare(b.display_name, 'de'),
-      ),
+    () => [...players].sort(comparePlayerItems),
     [players],
   );
 

@@ -668,6 +668,7 @@ export const TeamPage: React.FC = () => {
     {selectedProfilePlayer ? (
       <PlayerProfileModal
         player={selectedProfilePlayer}
+        role={role}
         teamSeasonLabel={teamLabel}
         positionAbbrev={abbreviatePositionLabel(selectedProfilePlayer.position)}
         photoUrl={readOptionalPhotoUrl(selectedProfilePlayer)}
