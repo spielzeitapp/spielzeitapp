@@ -2282,116 +2282,123 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="fixed inset-0 z-[95] flex flex-col bg-zinc-950/95 backdrop-blur-sm sm:items-center sm:justify-center sm:bg-black/65 sm:p-4"
+          className="fixed inset-0 z-[140] bg-[linear-gradient(180deg,rgba(12,5,5,0.98)_0%,rgba(5,5,8,0.98)_100%)] backdrop-blur-sm"
           role="presentation"
           onClick={closeWechselSheet}
         >
           <div
-            className="relative mt-auto flex min-h-[100dvh] w-full flex-col overflow-hidden rounded-none border-t border-red-500/30 bg-zinc-900 shadow-[0_18px_44px_rgba(0,0,0,0.72)] sm:mt-0 sm:h-[min(90dvh,820px)] sm:min-h-0 sm:max-h-[min(90dvh,820px)] sm:max-w-3xl sm:rounded-3xl sm:border sm:border-red-500/25"
+            className="flex h-[100dvh] w-full flex-col"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="wechsel-sheet-title"
           >
-            <div className="shrink-0 border-b border-white/10 px-4 pb-2 pt-3 sm:px-5 sm:pt-4">
-              <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-zinc-600" aria-hidden />
-              <h3 id="wechsel-sheet-title" className="text-center text-xl font-semibold text-white">
-                Wechsel
-              </h3>
-              <p className="mt-1 text-center text-sm leading-tight text-zinc-400">
-                Raus + Rein wählen, dann bestätigen
-              </p>
+            <div className="sticky top-0 z-20 border-b border-white/10 bg-black/45 px-4 py-3 backdrop-blur-md">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={closeWechselSheet}
+                  className="inline-flex min-h-[40px] items-center rounded-xl border border-white/20 bg-white/5 px-3 text-sm font-semibold text-white/90"
+                >
+                  ← Zurück
+                </button>
+                <div className="min-w-0 text-center">
+                  <h3 id="wechsel-sheet-title" className="text-lg font-semibold text-white">Wechsel</h3>
+                  <p className="text-xs text-white/60">Spieler raus und rein wählen</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeWechselSheet}
+                  className="inline-flex min-h-[40px] items-center rounded-xl border border-white/20 bg-white/5 px-3 text-sm font-semibold text-white/90"
+                  aria-label="Schließen"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
-            <div className="min-h-screen overflow-y-auto overscroll-contain px-4 pb-[260px] pt-2 [-webkit-overflow-scrolling:touch] sm:px-5">
-              <div className="mt-2">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-red-400">AM FELD · RAUS</p>
-                <div
-                  className="rounded-xl border border-red-500/30 bg-gradient-to-b from-red-950/25 via-black/55 to-black/85 p-1.5"
-                  aria-label="Spielfeld"
-                >
-                  {fieldPlayers.length === 0 ? (
-                    <p className="py-8 text-center text-[11px] text-white/45">Keine Feldspieler</p>
-                  ) : (
-                    <LineupFormationPitch
-                      formationId={liveLineupFormationId}
-                      slots={onFieldBySlot}
-                      interactive
-                      onSlotTap={(slot) => {
-                        const pid = onFieldBySlot[slot];
-                        if (pid) setSelectedOutPlayer(pid);
-                      }}
-                      emphasizedPlayerId={selectedOutPlayer || null}
-                      renderSlotContent={({ label, labelDx, labelDy, playerId, isGk, emphasize }) => {
-                        const p = playerId ? rosterById.get(playerId) : null;
-                        if (!p) return null;
-                        return (
-                          <div className="origin-top scale-[0.93] sm:scale-100">
-                            <PitchPlayerMarker
-                              lastName={rosterFamilyName(p)}
-                              number={p.number || '–'}
-                              positionBadge={getPositionLabel(label) || label}
-                              variant="field"
-                              mode="pitch"
-                              nameOffsetX={labelDx}
-                              nameOffsetY={labelDy}
-                              selected={emphasize}
-                              emphasize={emphasize}
-                            />
-                          </div>
-                        );
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-2">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-400">BANK · REIN</p>
-                <div className="grid grid-cols-3 justify-items-center gap-4">
-                  {benchPlayers.length === 0 ? (
-                    <p className="col-span-full py-1.5 text-center text-[11px] text-white/45">Keine Bankspieler</p>
-                  ) : (
-                    benchPlayers.map((p) => {
-                      const sel = selectedInPlayer === p.id;
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[160px] pt-3 [-webkit-overflow-scrolling:touch]">
+              <section className="space-y-2">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-red-400">Spieler raus</p>
+                {fieldPlayers.length === 0 ? (
+                  <p className="rounded-xl border border-white/10 bg-black/25 px-3 py-4 text-sm text-white/50">Keine Feldspieler</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {fieldPlayers.map((p) => {
+                      const selected = selectedOutPlayer === p.id;
+                      const slotMeta = slotMetaFromSlotMap(onFieldBySlot, p.id, liveLineupFormationId);
                       return (
-                        <div className={`w-full ${sel ? 'ring-2 ring-emerald-400/60 rounded-2xl' : ''}`}>
+                        <div key={`wechsel-out-${p.id}`} className={selected ? 'ring-2 ring-red-400/65 rounded-2xl' : ''}>
                           <MatchPlayerRow
                             player={{
                               id: p.id,
                               display_name: p.name,
                               jersey_number: p.number || null,
-                              position: 'RF',
+                              position: slotMeta.label,
                               avatar_url: p.avatarUrl ?? null,
                             }}
-                            rightLabel="Rein"
+                            selected={selected}
+                            rightLabel={slotMeta.label}
+                            status={selected ? 'no' : 'open'}
+                            onClick={() => setSelectedOutPlayer(p.id)}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <section className="mt-4 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-400">Spieler rein</p>
+                {benchPlayers.length === 0 ? (
+                  <p className="rounded-xl border border-white/10 bg-black/25 px-3 py-4 text-sm text-white/50">Keine Bankspieler</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {benchPlayers.map((p) => {
+                      const selected = selectedInPlayer === p.id;
+                      return (
+                        <div key={`wechsel-in-${p.id}`} className={selected ? 'ring-2 ring-emerald-400/65 rounded-2xl' : ''}>
+                          <MatchPlayerRow
+                            player={{
+                              id: p.id,
+                              display_name: p.name,
+                              jersey_number: p.number || null,
+                              position: p.position ?? null,
+                              avatar_url: p.avatarUrl ?? null,
+                            }}
+                            selected={selected}
+                            rightLabel="Bank"
+                            status={selected ? 'yes' : 'open'}
                             onClick={() => setSelectedInPlayer(p.id)}
                           />
                         </div>
                       );
-                    })
-                  )}
-                </div>
-              </div>
+                    })}
+                  </div>
+                )}
+              </section>
+            </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3 pb-[180px]">
-                <button
-                  type="button"
-                  onClick={closeWechselSheet}
-                  className="flex min-h-[48px] items-center justify-center rounded-xl border border-white/20 bg-zinc-900/80 text-sm font-semibold text-white active:scale-[0.99]"
-                >
-                  Abbrechen
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void confirmWechselSection()}
-                  disabled={matchIsFinished || !selectedOutPlayer || !selectedInPlayer}
-                  className="flex min-h-[48px] items-center justify-center rounded-xl bg-green-600 px-2 text-sm font-semibold text-white disabled:opacity-40 active:scale-[0.99]"
-                >
-                  Wechsel bestätigen
-                </button>
-              </div>
-
+            <div
+              className="sticky bottom-0 z-20 grid grid-cols-2 gap-3 border-t border-white/10 bg-black/60 px-4 py-3 backdrop-blur-md"
+              style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}
+            >
+              <button
+                type="button"
+                onClick={closeWechselSheet}
+                className="flex min-h-[48px] items-center justify-center rounded-xl border border-white/20 bg-zinc-900/80 text-sm font-semibold text-white active:scale-[0.99]"
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmWechselSection()}
+                disabled={matchIsFinished || !selectedOutPlayer || !selectedInPlayer}
+                className="flex min-h-[48px] items-center justify-center rounded-xl bg-green-600 px-2 text-sm font-semibold text-white disabled:opacity-40 active:scale-[0.99]"
+              >
+                Wechsel bestätigen
+              </button>
             </div>
           </div>
         </div>
