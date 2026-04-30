@@ -2026,9 +2026,12 @@ export const LiveMatchScreen: React.FC = () => {
         )}
 
         {mainTab === 'lineup' && (
-          <div className="space-y-2 px-0 pb-56 sm:space-y-3 sm:px-2 sm:pb-16">
+          <div
+            className="space-y-2 px-0 pt-2 sm:space-y-3 sm:px-2"
+            style={{ paddingBottom: 'calc(160px + env(safe-area-inset-bottom, 0px))' }}
+          >
             <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
-              <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">Startaufstellung</h3>
+              <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">STARTAUFSTELLUNG</h3>
               {safeLineupRowsCount === 0 ? (
                 <p className="text-sm text-white/55">Keine Startaufstellung</p>
               ) : (
@@ -2056,7 +2059,7 @@ export const LiveMatchScreen: React.FC = () => {
             </section>
 
             <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
-              <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">Bank</h3>
+              <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">BANK</h3>
               {safeBenchRowsCount === 0 ? (
                 <p className="text-sm text-white/55">Keine Bankspieler</p>
               ) : (
