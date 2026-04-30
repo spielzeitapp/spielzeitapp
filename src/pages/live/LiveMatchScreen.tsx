@@ -29,9 +29,6 @@ import {
   updateMatchRow,
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
-import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
-import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
-import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 import {
   DEFAULT_U11_FORMATION,
   U11_FORMATION_CHOICES,
@@ -652,8 +649,6 @@ export const LiveMatchScreen: React.FC = () => {
   const matchTypeDisplay = 'Freundschaftsspiel';
   const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
-  const [lineupStartOpen, setLineupStartOpen] = useState(false);
-  const [lineupBenchOpen, setLineupBenchOpen] = useState(false);
   useEffect(() => {
     if (!canControlLiveMatch && mainTab === 'time') {
       setMainTab('overview');
@@ -839,9 +834,34 @@ export const LiveMatchScreen: React.FC = () => {
     return sortRosterByNumber(list);
   }, [squadPlayerIds, onFieldIds, rosterById]);
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
+  const safeSlotOrder = Array.isArray(LIVE_FIELD_SLOT_ORDER) ? LIVE_FIELD_SLOT_ORDER : [];
+  const safeLineupRows = useMemo(
+    () =>
+      safeSlotOrder.map((slot) => {
+        const playerId = onFieldBySlot?.[slot] ?? null;
+        const player = playerId ? rosterById.get(playerId) ?? null : null;
+        return {
+          slot,
+          position: getPositionLabel(labelForSlotInFormation(liveLineupFormationId, slot)) || '–',
+          name: player?.name ?? 'Spieler',
+          number: player?.number ?? null,
+        };
+      }),
+    [safeSlotOrder, onFieldBySlot, rosterById, liveLineupFormationId],
+  );
+  const safeBenchRows = useMemo(
+    () =>
+      (Array.isArray(benchPlayers) ? benchPlayers : []).map((player) => ({
+        id: player?.id ?? '',
+        name: player?.name ?? 'Spieler',
+        position: getPositionLabel(player?.position) || '–',
+        number: player?.number ?? null,
+      })),
+    [benchPlayers],
+  );
   const safePlayersCount = safePlayers.length;
-  const safeLineupRowsCount = Array.isArray(fieldPlayers) ? fieldPlayers.length : 0;
-  const safeBenchRowsCount = Array.isArray(benchPlayers) ? benchPlayers.length : 0;
+  const safeLineupRowsCount = Array.isArray(safeLineupRows) ? safeLineupRows.length : 0;
+  const safeBenchRowsCount = Array.isArray(safeBenchRows) ? safeBenchRows.length : 0;
 
   const playtimes = useMemo(
     () => calculatePlayerPlaytimes(startingPlayerIds, squadPlayerIds, events, currentMatchSeconds),
@@ -2007,12 +2027,65 @@ export const LiveMatchScreen: React.FC = () => {
 
         {mainTab === 'lineup' && (
           <div className="space-y-2 px-0 pb-56 sm:space-y-3 sm:px-2 sm:pb-16">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center">
-              <p className="text-sm font-semibold text-white">Aufstellung wird geladen</p>
-              <div className="mt-3 space-y-1 text-xs text-white/70">
-                <p>players: {safePlayersCount}</p>
-                <p>lineupRows: {safeLineupRowsCount}</p>
-                <p>benchRows: {safeBenchRowsCount}</p>
+            <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
+              <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">Startaufstellung</h3>
+              {safeLineupRowsCount === 0 ? (
+                <p className="text-sm text-white/55">Keine Startaufstellung</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {(Array.isArray(safeLineupRows) ? safeLineupRows : []).map((row) => (
+                    <div
+                      key={`lineup-row-${row.slot}`}
+                      className="rounded-2xl border border-red-900/40 bg-gradient-to-br from-red-900/40 via-black/80 to-black p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="rounded-md border border-red-500/40 bg-red-950/60 px-2 py-0.5 text-[10px] font-bold text-red-200">
+                          {row.position ?? '–'}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold text-white">{row.name || 'Spieler'}</div>
+                        </div>
+                        <span className="text-sm font-semibold text-red-300/90">
+                          #{row.number != null ? row.number : '–'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
+              <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">Bank</h3>
+              {safeBenchRowsCount === 0 ? (
+                <p className="text-sm text-white/55">Keine Bankspieler</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {(Array.isArray(safeBenchRows) ? safeBenchRows : []).map((row, idx) => (
+                    <div
+                      key={`bench-row-${row.id || idx}`}
+                      className="rounded-2xl border border-red-900/40 bg-gradient-to-br from-red-900/40 via-black/80 to-black p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold text-white">{row.name || 'Spieler'}</div>
+                          <div className="mt-0.5 text-[11px] text-gray-400">{row.position ?? '–'}</div>
+                        </div>
+                        <span className="text-sm font-semibold text-red-300/90">
+                          #{row.number != null ? row.number : '–'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] text-white/55">
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                <span>players: {safePlayersCount}</span>
+                <span>lineupRows: {safeLineupRowsCount}</span>
+                <span>benchRows: {safeBenchRowsCount}</span>
               </div>
             </div>
           </div>
