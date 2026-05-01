@@ -2349,7 +2349,7 @@ export const LiveMatchScreen: React.FC = () => {
           onClick={closeWechselSheet}
         >
           <div
-            className="flex min-h-0 max-h-[78dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
+            className="flex min-h-0 max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
             role="dialog"
             aria-modal="true"
             aria-labelledby="wechsel-sheet-title"
@@ -2418,7 +2418,7 @@ export const LiveMatchScreen: React.FC = () => {
                     Keine Feldspieler.
                   </p>
                 ) : (
-                  <div className="max-h-[22dvh] min-h-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
+                  <div className="max-h-[24dvh] min-h-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
                     <div className="grid grid-cols-2 gap-1">
                       {substitutionFieldRows.map((row) => {
                         const slot = row?.slot;
@@ -2494,7 +2494,7 @@ export const LiveMatchScreen: React.FC = () => {
                     Keine Bankspieler.
                   </p>
                 ) : (
-                  <div className="max-h-[22dvh] min-h-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
+                  <div className="max-h-[24dvh] min-h-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
                     <div className="grid grid-cols-2 gap-1">
                       {substitutionBenchRows.map((row) => {
                         const pid = String(row?.id ?? '').trim();
@@ -2560,9 +2560,9 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
 
             <footer
-              className="sticky bottom-0 z-20 shrink-0 border-t border-red-500/15 bg-black/85 px-2.5 pt-2 backdrop-blur-md"
+              className="sticky bottom-0 z-[70] shrink-0 border-t border-red-500/15 bg-black/80 px-2.5 pt-2 backdrop-blur-md"
               style={{
-                paddingBottom: 'calc(90px + env(safe-area-inset-bottom, 0px))',
+                paddingBottom: 'calc(110px + env(safe-area-inset-bottom))',
               }}
             >
               <div className="flex flex-row gap-2">
