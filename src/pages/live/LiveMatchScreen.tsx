@@ -115,6 +115,29 @@ function formatMinute(ts: number): string {
   return `${min}'`;
 }
 
+const FORMATION_OPTION_LABELS: Record<U11FormationId, string> = {
+  '1-2-2-2': 'Kompakt',
+  '1-2-3-1': 'Ausgewogen',
+  '1-3-2-1': 'Defensiver',
+};
+
+/** Kleines Feld-Icon für Formation-Karten im Sheet. */
+function MiniPitchIcon({ className }: { className?: string }) {
+  return (
+    <div
+      className={[
+        'relative flex h-12 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-emerald-500/35 bg-gradient-to-b from-emerald-800/45 to-emerald-950/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]',
+        className ?? '',
+      ].join(' ')}
+      aria-hidden
+    >
+      <div className="absolute inset-[12%] rounded-[3px] border border-white/22" />
+      <div className="absolute left-1/2 top-1/2 h-[38%] w-[38%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25" />
+      <div className="absolute bottom-[14%] left-1/2 h-[22%] w-[55%] -translate-x-1/2 rounded-t-[6px] border border-white/22 border-b-0" />
+    </div>
+  );
+}
+
 /** Anzeige ohne Jugend-Staffel (inkl. U11 / u11 / Klammern). */
 function cleanTeamDisplayName(name: string): string {
   const raw = (name || '').trim();
@@ -694,6 +717,13 @@ export const LiveMatchScreen: React.FC = () => {
     if (formationSheetOpen && mainTab !== 'lineup') closeFormationSheet();
   }, [formationSheetOpen, mainTab, closeFormationSheet]);
 
+  const [formationChangeToast, setFormationChangeToast] = useState(false);
+  useEffect(() => {
+    if (!formationChangeToast) return;
+    const t = window.setTimeout(() => setFormationChangeToast(false), 2000);
+    return () => window.clearTimeout(t);
+  }, [formationChangeToast]);
+
   const [homeGoalModalOpen, setHomeGoalModalOpen] = useState(false);
   const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
   const [endeConfirmOpen, setEndeConfirmOpen] = useState(false);
@@ -905,6 +935,7 @@ export const LiveMatchScreen: React.FC = () => {
       }
       void queueRealtimeReload();
       closeFormationSheet();
+      setFormationChangeToast(true);
     },
     [
       effectiveMatchId,
@@ -2498,66 +2529,90 @@ export const LiveMatchScreen: React.FC = () => {
       </div>
 
       {canControlLiveMatch && formationSheetOpen ? (
-        <div
-          className="fixed inset-0 z-[9998] flex flex-col justify-end bg-black/75 backdrop-blur-sm"
-          role="presentation"
-          onClick={closeFormationSheet}
-        >
+        <div className="fixed inset-0 z-[9998] flex h-[100dvh] flex-col bg-black/75 backdrop-blur-sm">
+          <button
+            type="button"
+            className="h-[34dvh] max-h-[36dvh] min-h-[32dvh] w-full flex-shrink-0 cursor-default border-0 bg-transparent p-0"
+            onClick={closeFormationSheet}
+            aria-label="Schließen"
+          />
           <div
-            className="flex w-full flex-col overflow-hidden rounded-t-3xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="formation-sheet-title"
-            onClick={(e) => e.stopPropagation()}
+            className="flex min-h-0 flex-1 flex-col justify-end"
+            role="presentation"
+            onClick={closeFormationSheet}
           >
-            <div className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-red-400/35" />
-            <div className="shrink-0 px-3 pb-3 pt-2 text-center">
-              <h3 id="formation-sheet-title" className="text-base font-black tracking-tight text-white">
-                Formation ändern
-              </h3>
-              <p className="mt-0.5 text-[11px] leading-snug text-white/45">Nur Darstellung — Spieler bleiben auf den Slots</p>
-            </div>
-            <div className="flex flex-col gap-1.5 px-3 pb-2">
-              {U11_FORMATION_CHOICES.map((id) => {
-                const active = id === safeFormationId;
-                return (
-                  <button
-                    key={`formation-pick-${id}`}
-                    type="button"
-                    disabled={formationSaving}
-                    onClick={() => void applyLiveFormation(id)}
-                    className={[
-                      'flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 text-sm font-bold tabular-nums transition-all active:scale-[0.99] disabled:opacity-45',
-                      active
-                        ? 'border-emerald-500/70 bg-emerald-950/45 text-emerald-50 shadow-[0_0_18px_rgba(16,185,129,0.22)] ring-1 ring-emerald-500/50'
-                        : 'border-white/[0.1] bg-black/50 text-white/90 hover:border-red-500/30 hover:bg-black/65',
-                    ].join(' ')}
-                  >
-                    {id}
-                    {active ? (
-                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-300/90">
-                        Aktuell
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-            <footer
-              className="shrink-0 border-t border-red-500/15 bg-black/80 px-3 pt-2 backdrop-blur-md"
-              style={{
-                paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
-              }}
+            <div
+              className="flex max-h-[78dvh] min-h-0 w-full flex-col overflow-hidden rounded-t-3xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="formation-sheet-title"
+              onClick={(e) => e.stopPropagation()}
             >
-              <button
-                type="button"
-                disabled={formationSaving}
-                onClick={closeFormationSheet}
-                className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-sm font-bold text-white/85 hover:bg-zinc-800 disabled:opacity-45"
+              <div className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-red-400/35" />
+              <div className="shrink-0 px-3 pb-3 pt-2 text-center">
+                <h3 id="formation-sheet-title" className="text-base font-black tracking-tight text-white">
+                  Formation ändern
+                </h3>
+                <p className="mt-0.5 text-[11px] leading-snug text-white/45">
+                  Nur Darstellung — Spieler bleiben auf den Slots
+                </p>
+              </div>
+              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain px-3 [-webkit-overflow-scrolling:touch] pb-2">
+                {U11_FORMATION_CHOICES.map((id) => {
+                  const active = id === safeFormationId;
+                  return (
+                    <button
+                      key={`formation-pick-${id}`}
+                      type="button"
+                      disabled={formationSaving}
+                      onClick={() => void applyLiveFormation(id)}
+                      className={[
+                        'flex w-full items-stretch gap-3 rounded-2xl border p-3 text-left transition-all active:scale-[0.99] disabled:opacity-45',
+                        active
+                          ? 'border-emerald-500/65 bg-emerald-950/35 shadow-[0_0_20px_rgba(16,185,129,0.18)] ring-1 ring-emerald-500/45'
+                          : 'border-white/[0.1] bg-black/45 hover:border-red-500/28 hover:bg-black/55',
+                      ].join(' ')}
+                    >
+                      <MiniPitchIcon
+                        className={
+                          active ? 'border-emerald-400/50 shadow-[0_0_12px_rgba(16,185,129,0.2)]' : 'opacity-90'
+                        }
+                      />
+                      <div className="min-w-0 flex-1 py-0.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xl font-black tabular-nums tracking-tight text-white sm:text-2xl">
+                            {id}
+                          </span>
+                          {active ? (
+                            <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-emerald-950 shadow-sm">
+                              Aktuell
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-[12px] font-medium leading-snug text-white/50">
+                          {FORMATION_OPTION_LABELS[id]}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <footer
+                className="shrink-0 border-t border-red-500/15 bg-black/80 px-3 pt-2 backdrop-blur-md"
+                style={{
+                  paddingBottom: 'calc(110px + env(safe-area-inset-bottom, 0px))',
+                }}
               >
-                Schließen
-              </button>
-            </footer>
+                <button
+                  type="button"
+                  disabled={formationSaving}
+                  onClick={closeFormationSheet}
+                  className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-sm font-bold text-white/85 hover:bg-zinc-800 disabled:opacity-45"
+                >
+                  Schließen
+                </button>
+              </footer>
+            </div>
           </div>
         </div>
       ) : null}
@@ -2992,6 +3047,13 @@ export const LiveMatchScreen: React.FC = () => {
         <div className="pointer-events-none fixed top-[calc(env(safe-area-inset-top,0px)+4.2rem)] left-1/2 z-[80] w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2">
           <div className="rounded-xl border border-emerald-400/35 bg-black/85 px-3 py-2 text-center text-xs font-semibold text-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.2)] backdrop-blur-md">
             {substitutionToastText}
+          </div>
+        </div>
+      ) : null}
+      {formationChangeToast ? (
+        <div className="pointer-events-none fixed bottom-[calc(110px+env(safe-area-inset-bottom,0px))] left-1/2 z-[10001] w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2">
+          <div className="rounded-xl border border-emerald-400/45 bg-black/90 px-4 py-2.5 text-center text-sm font-semibold text-emerald-50 shadow-[0_0_24px_rgba(16,185,129,0.28)] backdrop-blur-md">
+            ✓ Formation geändert
           </div>
         </div>
       ) : null}
