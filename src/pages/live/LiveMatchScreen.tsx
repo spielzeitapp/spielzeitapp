@@ -691,10 +691,14 @@ export const LiveMatchScreen: React.FC = () => {
   const [goalUndoToastClosing, setGoalUndoToastClosing] = useState(false);
   const goalUndoTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const goalUndoFadeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const substitutionToastTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const substitutionAnimTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const substitutionHighlightTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const realtimeReloadTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const realtimeReloadInFlightRef = useRef(false);
   const lineupReloadInFlightRef = useRef(false);
   const lineupReloadPendingRef = useRef(false);
+  const prevLineupSlotsRef = useRef<Partial<Record<FieldSlotId, string | null>> | null>(null);
   const scoresRef = useRef({ home: 0, away: 0 });
   const homeGoalLpTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const homeGoalSuppressClickRef = useRef(false);
@@ -762,6 +766,9 @@ export const LiveMatchScreen: React.FC = () => {
     () => () => {
       if (homeGoalLpTimerRef.current != null) window.clearTimeout(homeGoalLpTimerRef.current);
       if (awayGoalLpTimerRef.current != null) window.clearTimeout(awayGoalLpTimerRef.current);
+      if (substitutionToastTimerRef.current != null) window.clearTimeout(substitutionToastTimerRef.current);
+      if (substitutionAnimTimerRef.current != null) window.clearTimeout(substitutionAnimTimerRef.current);
+      if (substitutionHighlightTimerRef.current != null) window.clearTimeout(substitutionHighlightTimerRef.current);
     },
     [],
   );
@@ -919,9 +926,75 @@ export const LiveMatchScreen: React.FC = () => {
     () => (lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object' ? lineupSlotsForDisplay : {}),
     [lineupSlotsForDisplay],
   );
+  const [substitutionTransitionBySlot, setSubstitutionTransitionBySlot] = useState<
+    Partial<Record<FieldSlotId, { outgoingPlayerId: string | null; incomingPlayerId: string | null }>>
+  >({});
+  const [slotHighlightBySlot, setSlotHighlightBySlot] = useState<Partial<Record<FieldSlotId, 'in' | 'out'>>>({});
+  const [substitutionToastText, setSubstitutionToastText] = useState<string | null>(null);
   const canRenderLivePitch = safeSlotOrder.length > 0 && safeFormationId != null;
   const safeLineupRowsCount = Array.isArray(safeLineupRows) ? safeLineupRows.length : 0;
   const safeBenchRowsCount = Array.isArray(safeBenchRows) ? safeBenchRows.length : 0;
+
+  useEffect(() => {
+    const prev = prevLineupSlotsRef.current;
+    const current = safeLineupSlots as Partial<Record<FieldSlotId, string | null>>;
+    if (!prev) {
+      prevLineupSlotsRef.current = { ...current };
+      return;
+    }
+    const changedSlots = safeSlotOrder.filter((slot) => {
+      const before = String(prev[slot] ?? '').trim() || null;
+      const after = String(current[slot] ?? '').trim() || null;
+      return before !== after;
+    });
+    if (changedSlots.length === 0) {
+      prevLineupSlotsRef.current = { ...current };
+      return;
+    }
+
+    const nextTransition: Partial<Record<FieldSlotId, { outgoingPlayerId: string | null; incomingPlayerId: string | null }>> = {};
+    const nextHighlight: Partial<Record<FieldSlotId, 'in' | 'out'>> = {};
+    for (const slot of changedSlots) {
+      const outgoing = String(prev[slot] ?? '').trim() || null;
+      const incoming = String(current[slot] ?? '').trim() || null;
+      nextTransition[slot] = { outgoingPlayerId: outgoing, incomingPlayerId: incoming };
+      nextHighlight[slot] = incoming ? 'in' : 'out';
+    }
+    setSubstitutionTransitionBySlot(nextTransition);
+    setSlotHighlightBySlot(nextHighlight);
+
+    const firstSwapSlot = changedSlots.find((slot) => {
+      const outgoing = String(prev[slot] ?? '').trim();
+      const incoming = String(current[slot] ?? '').trim();
+      return Boolean(outgoing && incoming && outgoing !== incoming);
+    });
+    if (firstSwapSlot) {
+      const outId = String(prev[firstSwapSlot] ?? '').trim();
+      const inId = String(current[firstSwapSlot] ?? '').trim();
+      const outName = mobileLineupName((rosterById.get(outId)?.name ?? 'Spieler').trim() || 'Spieler');
+      const inName = mobileLineupName((rosterById.get(inId)?.name ?? 'Spieler').trim() || 'Spieler');
+      setSubstitutionToastText(`🔁 ${outName} raus – ${inName} rein`);
+      if (substitutionToastTimerRef.current != null) window.clearTimeout(substitutionToastTimerRef.current);
+      substitutionToastTimerRef.current = window.setTimeout(() => {
+        setSubstitutionToastText(null);
+        substitutionToastTimerRef.current = null;
+      }, 2000);
+    }
+
+    if (substitutionAnimTimerRef.current != null) window.clearTimeout(substitutionAnimTimerRef.current);
+    substitutionAnimTimerRef.current = window.setTimeout(() => {
+      setSubstitutionTransitionBySlot({});
+      substitutionAnimTimerRef.current = null;
+    }, 360);
+
+    if (substitutionHighlightTimerRef.current != null) window.clearTimeout(substitutionHighlightTimerRef.current);
+    substitutionHighlightTimerRef.current = window.setTimeout(() => {
+      setSlotHighlightBySlot({});
+      substitutionHighlightTimerRef.current = null;
+    }, 1500);
+
+    prevLineupSlotsRef.current = { ...current };
+  }, [safeLineupSlots, safeSlotOrder, rosterById]);
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -1746,6 +1819,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   return (
     <div className={liveShellOuter}>
+      <style>{`@keyframes liveSubIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes liveSubOut{from{opacity:.92;transform:translateY(0)}to{opacity:0;transform:translateY(10px)}}`}</style>
       <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
         <div
           className="absolute inset-0 bg-cover opacity-[0.22] brightness-[0.42] saturate-[0.72]"
@@ -2139,7 +2213,8 @@ export const LiveMatchScreen: React.FC = () => {
                   formationId={safeFormationId}
                   slots={safeLineupSlots as Record<FieldSlotId, string | null>}
                   emphasizedPlayerId={null}
-                  renderSlotContent={({ label, playerId, isGk }) => {
+                  slotHighlightBySlot={slotHighlightBySlot}
+                  renderSlotContent={({ slot, label, playerId, isGk }) => {
                     if (!playerId) return null;
                     const player = rosterById.get(playerId) ?? null;
                     const posLabel = getPositionLabel(label) || '–';
@@ -2149,17 +2224,48 @@ export const LiveMatchScreen: React.FC = () => {
                       return s === '—' || !s ? 'Spieler' : s;
                     })();
                     return (
-                      <div className="pointer-events-none flex w-full max-w-[min(22vw,5.25rem)] flex-col items-center">
-                        <LeibchenJersey
-                          lastName={shortName}
-                          number={player?.number ?? '–'}
-                          position={posLabel}
-                          variant={isGk ? 'goalkeeper' : 'field'}
-                          size="compact"
-                          pitchStyleBack
-                        />
+                      <div className="pointer-events-none relative flex w-full max-w-[min(22vw,5.25rem)] flex-col items-center">
+                        {(() => {
+                          const t = substitutionTransitionBySlot[slot];
+                          const outgoingId = t?.outgoingPlayerId ?? null;
+                          const incomingId = t?.incomingPlayerId ?? null;
+                          const isIncoming = Boolean(incomingId && incomingId === playerId);
+                          if (!outgoingId || !isIncoming || outgoingId === playerId) return null;
+                          const outgoing = rosterById.get(outgoingId) ?? null;
+                          const outName = mobileLineupName((outgoing?.name ?? 'Spieler').trim() || 'Spieler');
+                          return (
+                            <div className="absolute left-1/2 top-0 z-[2] -translate-x-1/2 animate-[liveSubOut_300ms_ease-out]">
+                              <LeibchenJersey
+                                lastName={outName}
+                                number={outgoing?.number ?? '–'}
+                                position={posLabel}
+                                variant={isGk ? 'goalkeeper' : 'field'}
+                                size="compact"
+                                pitchStyleBack
+                                className="!opacity-70"
+                              />
+                            </div>
+                          );
+                        })()}
+                        <div
+                          className={[
+                            'transition-all duration-300 ease-out',
+                            substitutionTransitionBySlot[slot]?.incomingPlayerId === playerId
+                              ? 'animate-[liveSubIn_300ms_ease-out]'
+                              : 'translate-y-0 opacity-100',
+                          ].join(' ')}
+                        >
+                          <LeibchenJersey
+                            lastName={shortName}
+                            number={player?.number ?? '–'}
+                            position={posLabel}
+                            variant={isGk ? 'goalkeeper' : 'field'}
+                            size="compact"
+                            pitchStyleBack
+                          />
+                        </div>
                         <span
-                          className="mt-0.5 w-full min-w-0 truncate rounded-md bg-black/85 px-1 py-0.5 text-center text-[9px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 sm:text-[10px]"
+                          className="mt-0.5 w-full min-w-0 truncate rounded-md bg-black/85 px-1 py-0.5 text-center text-[9px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 transition-all duration-300 ease-out sm:text-[10px]"
                           title={rawName}
                         >
                           {shortName}
@@ -2765,6 +2871,13 @@ export const LiveMatchScreen: React.FC = () => {
             >
               ↶ Rückgängig
             </button>
+          </div>
+        </div>
+      ) : null}
+      {substitutionToastText ? (
+        <div className="pointer-events-none fixed top-[calc(env(safe-area-inset-top,0px)+4.2rem)] left-1/2 z-[80] w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2">
+          <div className="rounded-xl border border-emerald-400/35 bg-black/85 px-3 py-2 text-center text-xs font-semibold text-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.2)] backdrop-blur-md">
+            {substitutionToastText}
           </div>
         </div>
       ) : null}

@@ -68,6 +68,7 @@ export type LineupFormationPitchProps = {
   onSlotTap?: (slot: FieldSlotId) => void;
   selectedBankPlayerId?: string | null;
   assignFlashSlot?: FieldSlotId | null;
+  slotHighlightBySlot?: Partial<Record<FieldSlotId, 'in' | 'out'>>;
   emphasizedPlayerId?: string | null;
   renderSlotContent: (ctx: {
     slot: FieldSlotId;
@@ -91,6 +92,7 @@ export function LineupFormationPitch({
   onSlotTap,
   selectedBankPlayerId,
   assignFlashSlot,
+  slotHighlightBySlot,
   emphasizedPlayerId = null,
   renderSlotContent,
   className = '',
@@ -169,6 +171,7 @@ export function LineupFormationPitch({
           const empty = !playerId;
           const dropHint = empty && Boolean(selectedBankPlayerId) && interactive;
           const flash = assignFlashSlot === slot;
+          const highlight = slotHighlightBySlot?.[slot] ?? null;
           const isGk = slot === 'GK';
           const emphasize = Boolean(playerId && emphasizedPlayerId && playerId === emphasizedPlayerId);
 
@@ -198,7 +201,11 @@ export function LineupFormationPitch({
             return (
               <div
                 key={slot}
-                className="pointer-events-none absolute flex flex-col items-center justify-center"
+                className={[
+                  'pointer-events-none absolute flex flex-col items-center justify-center rounded-full transition-all duration-300 ease-out',
+                  highlight === 'in' ? 'ring-2 ring-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : '',
+                  highlight === 'out' ? 'ring-2 ring-red-400/80 shadow-[0_0_18px_rgba(239,68,68,0.32)]' : '',
+                ].join(' ')}
                 style={slotStyle}
               >
                 {content}
@@ -217,6 +224,8 @@ export function LineupFormationPitch({
                 empty ? 'min-h-[48px] min-w-[48px]' : 'min-h-0 min-w-0',
                 dropHint ? 'ring-2 ring-emerald-400/70 ring-offset-2 ring-offset-transparent' : '',
                 flash ? 'ring-2 ring-white/50 ring-offset-2 ring-offset-emerald-900/40' : '',
+                highlight === 'in' ? 'ring-2 ring-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : '',
+                highlight === 'out' ? 'ring-2 ring-red-400/80 shadow-[0_0_18px_rgba(239,68,68,0.32)]' : '',
               ].join(' ')}
               style={slotStyle}
             >
