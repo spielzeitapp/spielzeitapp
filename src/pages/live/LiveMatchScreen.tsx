@@ -35,6 +35,7 @@ import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 import {
   isU11FormationId,
   labelForSlotInFormation,
+  U11_FORMATION_CHOICES,
   U11_FORMATION_DB_FALLBACK,
   type U11FormationId,
 } from '../../lib/matchFormations';
@@ -682,6 +683,17 @@ export const LiveMatchScreen: React.FC = () => {
   useEffect(() => {
     if (wechselSheetOpen && mainTab !== 'overview') closeWechselSheet();
   }, [wechselSheetOpen, mainTab, closeWechselSheet]);
+
+  const [formationSheetOpen, setFormationSheetOpen] = useState(false);
+  const [formationSaving, setFormationSaving] = useState(false);
+  const closeFormationSheet = useCallback(() => {
+    setFormationSheetOpen(false);
+    setFormationSaving(false);
+  }, []);
+  useEffect(() => {
+    if (formationSheetOpen && mainTab !== 'lineup') closeFormationSheet();
+  }, [formationSheetOpen, mainTab, closeFormationSheet]);
+
   const [homeGoalModalOpen, setHomeGoalModalOpen] = useState(false);
   const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
   const [endeConfirmOpen, setEndeConfirmOpen] = useState(false);
@@ -875,6 +887,34 @@ export const LiveMatchScreen: React.FC = () => {
     const raw = matchRow?.u11_formation_id;
     return isU11FormationId(raw) ? raw : U11_FORMATION_DB_FALLBACK;
   }, [matchRow]);
+
+  const applyLiveFormation = useCallback(
+    async (id: U11FormationId) => {
+      if (!effectiveMatchId || !canControlLiveMatch || formationSaving) return;
+      if (id === safeFormationId) {
+        closeFormationSheet();
+        return;
+      }
+      setFormationSaving(true);
+      setSaveError(null);
+      const { error } = await updateMatchRow(effectiveMatchId, { u11_formation_id: id });
+      setFormationSaving(false);
+      if (error) {
+        setSaveError(error);
+        return;
+      }
+      void queueRealtimeReload();
+      closeFormationSheet();
+    },
+    [
+      effectiveMatchId,
+      canControlLiveMatch,
+      formationSaving,
+      safeFormationId,
+      closeFormationSheet,
+      queueRealtimeReload,
+    ],
+  );
 
   const safeLineupRows = useMemo(
     () =>
@@ -2205,7 +2245,18 @@ export const LiveMatchScreen: React.FC = () => {
             style={{ paddingBottom: 'calc(160px + env(safe-area-inset-bottom, 0px))' }}
           >
             <section className="space-y-2 rounded-2xl border border-white/[0.08] bg-black/40 p-2">
-              <h3 className="px-1 text-xs font-bold uppercase tracking-[0.12em] text-white/70">LIVE-AUFSTELLUNG</h3>
+              <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">LIVE-AUFSTELLUNG</h3>
+                {canControlLiveMatch ? (
+                  <button
+                    type="button"
+                    onClick={() => setFormationSheetOpen(true)}
+                    className="inline-flex shrink-0 items-center rounded-full border border-red-500/35 bg-red-950/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-red-100/95 shadow-[0_0_12px_rgba(239,68,68,0.12)] transition-colors active:scale-[0.98] hover:border-red-400/45 hover:bg-red-950/55 sm:text-[11px]"
+                  >
+                    Formation ändern
+                  </button>
+                ) : null}
+              </div>
               {canRenderLivePitch ? (
                 <LineupFormationPitch
                   formationId={safeFormationId}
@@ -2445,6 +2496,71 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
         )}
       </div>
+
+      {canControlLiveMatch && formationSheetOpen ? (
+        <div
+          className="fixed inset-0 z-[9998] flex flex-col justify-end bg-black/75 backdrop-blur-sm"
+          role="presentation"
+          onClick={closeFormationSheet}
+        >
+          <div
+            className="flex w-full flex-col overflow-hidden rounded-t-3xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="formation-sheet-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-red-400/35" />
+            <div className="shrink-0 px-3 pb-3 pt-2 text-center">
+              <h3 id="formation-sheet-title" className="text-base font-black tracking-tight text-white">
+                Formation ändern
+              </h3>
+              <p className="mt-0.5 text-[11px] leading-snug text-white/45">Nur Darstellung — Spieler bleiben auf den Slots</p>
+            </div>
+            <div className="flex flex-col gap-1.5 px-3 pb-2">
+              {U11_FORMATION_CHOICES.map((id) => {
+                const active = id === safeFormationId;
+                return (
+                  <button
+                    key={`formation-pick-${id}`}
+                    type="button"
+                    disabled={formationSaving}
+                    onClick={() => void applyLiveFormation(id)}
+                    className={[
+                      'flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 text-sm font-bold tabular-nums transition-all active:scale-[0.99] disabled:opacity-45',
+                      active
+                        ? 'border-emerald-500/70 bg-emerald-950/45 text-emerald-50 shadow-[0_0_18px_rgba(16,185,129,0.22)] ring-1 ring-emerald-500/50'
+                        : 'border-white/[0.1] bg-black/50 text-white/90 hover:border-red-500/30 hover:bg-black/65',
+                    ].join(' ')}
+                  >
+                    {id}
+                    {active ? (
+                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-300/90">
+                        Aktuell
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+            <footer
+              className="shrink-0 border-t border-red-500/15 bg-black/80 px-3 pt-2 backdrop-blur-md"
+              style={{
+                paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+              }}
+            >
+              <button
+                type="button"
+                disabled={formationSaving}
+                onClick={closeFormationSheet}
+                className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-sm font-bold text-white/85 hover:bg-zinc-800 disabled:opacity-45"
+              >
+                Schließen
+              </button>
+            </footer>
+          </div>
+        </div>
+      ) : null}
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
