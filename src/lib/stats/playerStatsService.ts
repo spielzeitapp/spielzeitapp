@@ -5,6 +5,9 @@ export type PlayerSeasonStats = {
   goals: number;
   minutes: number;
   goalsPer90: number;
+  /** Aus match_events (type card / yellow / red); ohne Detailtyp zählt generisches `card` als gelb. */
+  yellowCards: number;
+  redCards: number;
 };
 
 export type PlayerLastMatchRow = {
@@ -113,6 +116,23 @@ function goalsInMatchForPlayer(events: EventRow[], playerId: string): number {
     if (e.type === 'goal') n += 1;
   }
   return n;
+}
+
+function cardCountsInMatchForPlayer(events: EventRow[], playerId: string): { yellow: number; red: number } {
+  let yellow = 0;
+  let red = 0;
+  const pid = playerId?.trim();
+  if (!pid) return { yellow: 0, red: 0 };
+  for (const e of events) {
+    if (String(e.player_id ?? '').trim() !== pid) continue;
+    const t = String(e.type ?? '')
+      .trim()
+      .toLowerCase();
+    if (t === 'red_card' || t === 'red') red += 1;
+    else if (t === 'yellow_card' || t === 'yellow') yellow += 1;
+    else if (t === 'card') yellow += 1;
+  }
+  return { yellow, red };
 }
 
 /** MVP-Minuten: Kickoff-Set, sub_out/sub_in in Spielsekunden, live_elapsed_seconds = Ende. */
@@ -260,7 +280,7 @@ function aggregateForPlayer(
   const pid = playerId?.trim();
   if (!pid || matches.length === 0) {
     return {
-      stats: { games: 0, goals: 0, minutes: 0, goalsPer90: 0 },
+      stats: { games: 0, goals: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
       lastMatches: [],
     };
   }
@@ -272,6 +292,8 @@ function aggregateForPlayer(
   let games = 0;
   let goals = 0;
   let minutes = 0;
+  let yellowCards = 0;
+  let redCards = 0;
 
   const lastRows: PlayerLastMatchRow[] = [];
 
@@ -282,6 +304,9 @@ function aggregateForPlayer(
     games += 1;
     const evs = eventsByMatch.get(mid) ?? [];
     goals += goalsInMatchForPlayer(evs, pid);
+    const cards = cardCountsInMatchForPlayer(evs, pid);
+    yellowCards += cards.yellow;
+    redCards += cards.red;
 
     const kickSet = kickoffByMatch.get(mid) ?? new Set<string>();
     const wasStarter = kickSet.has(pid);
@@ -325,7 +350,7 @@ function aggregateForPlayer(
   });
 
   return {
-    stats: { games, goals, minutes, goalsPer90 },
+    stats: { games, goals, minutes, goalsPer90, yellowCards, redCards },
     lastMatches: lastRows.slice(0, 5),
   };
 }
@@ -335,10 +360,14 @@ export async function getPlayerSeasonStats(
   teamSeasonId: string,
 ): Promise<{ data: PlayerSeasonStats; error: string | null }> {
   const { data: matches, error: mErr } = await fetchFinishedMatches(teamSeasonId);
-  if (mErr) return { data: { games: 0, goals: 0, minutes: 0, goalsPer90: 0 }, error: mErr };
+  if (mErr)
+    return { data: { games: 0, goals: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 }, error: mErr };
   const matchIds = matches.map((m) => m.id);
   if (matchIds.length === 0) {
-    return { data: { games: 0, goals: 0, minutes: 0, goalsPer90: 0 }, error: null };
+    return {
+      data: { games: 0, goals: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
+      error: null,
+    };
   }
 
   const [events, snapshots, lineupFallback] = await Promise.all([
@@ -382,7 +411,7 @@ export async function getPlayerProfileStatsBundle(
   const { data: matches, error: mErr } = await fetchFinishedMatches(teamSeasonId);
   if (mErr) {
     return {
-      stats: { games: 0, goals: 0, minutes: 0, goalsPer90: 0 },
+      stats: { games: 0, goals: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
       lastMatches: [],
       error: mErr,
     };
@@ -390,7 +419,7 @@ export async function getPlayerProfileStatsBundle(
   const matchIds = matches.map((m) => m.id);
   if (matchIds.length === 0) {
     return {
-      stats: { games: 0, goals: 0, minutes: 0, goalsPer90: 0 },
+      stats: { games: 0, goals: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
       lastMatches: [],
       error: null,
     };

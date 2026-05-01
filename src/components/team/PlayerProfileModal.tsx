@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ChevronLeft } from "lucide-react";
+import {
+  Activity,
+  CalendarDays,
+  ChevronLeft,
+  Clock,
+  Percent,
+  Target,
+  Trophy,
+} from "lucide-react";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { usePlayerStats } from "../../hooks/usePlayerStats";
 import { Button } from "../../app/components/ui/Button";
@@ -16,11 +24,28 @@ export type PlayerProfileModalProps = {
   onEdit: () => void;
 };
 
+type ProfileTab = "overview" | "matches" | "achievements" | "training";
+
 function displayFullName(p: PlayerItem): string {
   const first = (p.first_name ?? "").trim();
   const last = (p.last_name ?? "").trim();
   const full = `${first} ${last}`.trim();
   return full || p.display_name.trim() || "Spieler";
+}
+
+function nameHeroLines(p: PlayerItem): { line1: string; line2: string } {
+  const first = (p.first_name ?? "").trim().toUpperCase();
+  const last = (p.last_name ?? "").trim().toUpperCase();
+  if (first && last) return { line1: first, line2: last };
+  const full = displayFullName(p);
+  const parts = full.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return {
+      line1: parts[0].toUpperCase(),
+      line2: parts.slice(1).join(" ").toUpperCase(),
+    };
+  }
+  return { line1: (parts[0] ?? full).toUpperCase(), line2: "" };
 }
 
 function initials(p: PlayerItem): string {
@@ -53,18 +78,44 @@ function ageChipLabel(birthdate: string | null | undefined): string {
   return `${age} Jahre`;
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function PremiumStatTile({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/35 px-3 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-white/50">{label}</div>
-      <div className="mt-1 text-lg font-black tabular-nums text-white">{value}</div>
+    <div className="relative overflow-hidden rounded-2xl border border-red-500/25 bg-gradient-to-b from-white/[0.07] to-black/45 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_10px_40px_rgba(0,0,0,0.4)]">
+      <Icon
+        className="pointer-events-none absolute -right-0.5 -top-0.5 h-16 w-16 text-red-500/[0.12]"
+        strokeWidth={1.25}
+        aria-hidden
+      />
+      <div className="relative text-left">
+        <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{label}</div>
+        <div className="mt-1 text-2xl font-black tabular-nums leading-none tracking-tight text-white sm:text-[1.85rem]">
+          {value}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SeasonMiniCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/35 px-2.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <div className="text-[9px] font-bold uppercase leading-tight tracking-wide text-white/45">{label}</div>
+      <div className="mt-0.5 text-base font-black tabular-nums text-white">{value}</div>
     </div>
   );
 }
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-red-500/25 bg-red-500/10 px-3 py-1 text-xs font-semibold text-white/90">
+    <span className="inline-flex items-center rounded-full border border-red-500/30 bg-red-500/[0.12] px-2.5 py-1 text-[11px] font-semibold text-white/90 shadow-[0_0_16px_rgba(220,38,38,0.12)] sm:px-3 sm:text-xs">
       {children}
     </span>
   );
@@ -85,6 +136,13 @@ function EinsatzBadge({ kind, label }: { kind: "full" | "sub_in" | "bank" | "par
   return <span className={`${base} border-amber-500/35 bg-amber-950/40 text-amber-100`}>{label}</span>;
 }
 
+const TAB_CONFIG: { id: ProfileTab; label: string }[] = [
+  { id: "overview", label: "Übersicht" },
+  { id: "matches", label: "Einsätze" },
+  { id: "achievements", label: "Erfolge" },
+  { id: "training", label: "Training" },
+];
+
 /**
  * Premium player profile overlay (dark stadium).
  */
@@ -97,7 +155,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   onClose,
   onEdit,
 }) => {
-  const [profileTab, setProfileTab] = useState<"saison" | "einsaetze">("saison");
+  const [profileTab, setProfileTab] = useState<ProfileTab>("overview");
   const { data: stats, lastMatches, isLoading: statsLoading, error: statsError } = usePlayerStats(
     player.id,
     player.team_season_id,
@@ -109,12 +167,16 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     return v.toFixed(2);
   }, [stats.goalsPer90]);
 
-  const name = displayFullName(player);
+  const { line1: firstNameLine, line2: lastNameLine } = nameHeroLines(player);
   const avatarSrc = (photoUrl ?? "").trim() || "/avatars/player-placeholder.png";
   const jerseyChip =
     player.jersey_number != null && Number.isFinite(Number(player.jersey_number))
       ? `#${player.jersey_number}`
       : "—";
+  const jerseyWatermark =
+    player.jersey_number != null && Number.isFinite(Number(player.jersey_number))
+      ? String(player.jersey_number)
+      : "–";
   const positionLabel = getPositionLabel(player.position) || "—";
   const positionFull = getPositionFull(player.position);
   const birthDisplayLines = getPlayerBirthDisplayLines(role, player.birthdate);
@@ -122,7 +184,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const trainingParticipationPct = 0;
   const trainingsAttended = 0;
   const trainingsTotal = 0;
-  const hasTrainingBars = false;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -131,6 +192,10 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  const bottomPad = canManage
+    ? "max(5.5rem, env(safe-area-inset-bottom, 0px) + 1.5rem)"
+    : "max(1.75rem, env(safe-area-inset-bottom, 0px) + 1.25rem)";
 
   return (
     <div
@@ -141,14 +206,14 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     >
       <button
         type="button"
-        className="absolute inset-0 bg-black/75 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-black/80 backdrop-blur-[3px]"
         aria-label="Schließen"
         onClick={onClose}
       />
       <div
-        className="relative flex max-h-[min(92vh,900px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.75rem] border border-red-500/25 bg-[linear-gradient(180deg,rgba(24,6,6,0.98)_0%,rgba(0,0,0,0.97)_45%,rgba(5,5,8,0.99)_100%)] shadow-[0_0_0_1px_rgba(239,68,68,0.12),0_-20px_60px_rgba(0,0,0,0.65),0_0_80px_rgba(220,38,38,0.12)] sm:rounded-3xl sm:shadow-2xl"
+        className="relative flex max-h-[min(94vh,920px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.75rem] border border-red-500/30 bg-[linear-gradient(180deg,rgba(28,8,8,0.98)_0%,rgba(0,0,0,0.97)_42%,rgba(6,6,10,0.99)_100%)] shadow-[0_0_0_1px_rgba(239,68,68,0.14),0_-24px_64px_rgba(0,0,0,0.7),0_0_90px_rgba(220,38,38,0.14)] sm:rounded-3xl sm:shadow-2xl"
       >
-        <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-white/10 bg-black/40 px-3 py-3 backdrop-blur-md">
+        <div className="z-20 flex shrink-0 items-center gap-2 border-b border-white/10 bg-black/50 px-2 py-2.5 backdrop-blur-md sm:px-3 sm:py-3">
           <button
             type="button"
             onClick={onClose}
@@ -157,40 +222,67 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
-          <h2 id="player-profile-title" className="min-w-0 flex-1 truncate text-center text-sm font-semibold text-white/90">
+          <h2
+            id="player-profile-title"
+            className="min-w-0 flex-1 truncate text-center text-sm font-semibold tracking-tight text-white/90"
+          >
             Spielerprofil
           </h2>
           <div className="w-10 shrink-0" aria-hidden />
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-4">
-          <div className="flex flex-col items-center text-center">
-            <div className="relative">
-              <div className="absolute -inset-1 rounded-full bg-red-500/20 blur-md" aria-hidden />
-              <div className="relative h-28 w-28 sm:h-32 sm:w-32">
-                <img
-                  src={avatarSrc}
-                  alt=""
-                  className="h-full w-full rounded-full border-2 border-red-500/40 object-cover shadow-[0_0_24px_rgba(239,68,68,0.35)]"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                    const next = e.currentTarget.nextElementSibling as HTMLElement | null;
-                    if (next) next.style.display = "flex";
-                  }}
-                />
-                <div
-                  className="flex h-full w-full items-center justify-center rounded-full border-2 border-white/20 bg-zinc-800 text-2xl font-black text-white shadow-[0_0_24px_rgba(239,68,68,0.2)]"
-                  style={{ display: "none" }}
-                >
-                  {initials(player)}
+        <div
+          className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 pt-3 sm:px-4 sm:pt-4"
+          style={{ paddingBottom: `calc(${bottomPad})` }}
+        >
+          {/* Hero */}
+          <div className="relative mb-4 min-h-[11.5rem] w-full overflow-hidden rounded-2xl border border-red-500/25 bg-gradient-to-br from-red-950/50 via-black/55 to-black px-3 py-3.5 sm:min-h-[13rem] sm:py-4">
+            <div
+              className="pointer-events-none absolute -left-1 bottom-0 select-none font-black leading-[0.8] text-white/[0.07]"
+              style={{ fontSize: "clamp(4.5rem, 28vw, 7.5rem)" }}
+              aria-hidden
+            >
+              {jerseyWatermark}
+            </div>
+            <div className="relative flex items-end justify-between gap-2 sm:gap-4">
+              <div className="min-w-0 flex-1 pb-0.5 text-left">
+                <p className="font-black uppercase leading-[1.02] tracking-tight text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] text-[clamp(1.15rem,4.2vw,1.65rem)]">
+                  {firstNameLine}
+                </p>
+                {lastNameLine ? (
+                  <p className="mt-0.5 font-black uppercase leading-[1.02] tracking-tight text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] text-[clamp(1.15rem,4.2vw,1.65rem)]">
+                    {lastNameLine}
+                  </p>
+                ) : null}
+                <p className="mt-2 max-w-[14rem] text-[11px] font-medium leading-snug text-white/55 sm:text-xs">
+                  {teamSeasonLabel ?? "Team"}
+                </p>
+              </div>
+              <div className="relative shrink-0">
+                <div className="absolute inset-0 scale-110 rounded-2xl bg-red-500/40 blur-2xl" aria-hidden />
+                <div className="relative h-[6.75rem] w-[6.75rem] sm:h-[8.75rem] sm:w-[8.75rem]">
+                  <img
+                    src={avatarSrc}
+                    alt=""
+                    className="h-full w-full rounded-2xl border-2 border-red-500/45 object-cover shadow-[0_0_40px_rgba(239,68,68,0.42),0_0_1px_rgba(255,255,255,0.2)_inset]"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = "none";
+                      const next = e.currentTarget.nextElementSibling as HTMLElement | null;
+                      if (next) next.style.display = "flex";
+                    }}
+                  />
+                  <div
+                    className="flex h-full w-full items-center justify-center rounded-2xl border-2 border-white/20 bg-zinc-800 text-2xl font-black text-white"
+                    style={{ display: "none" }}
+                  >
+                    {initials(player)}
+                  </div>
                 </div>
               </div>
             </div>
-            <h3 className="mt-3 text-xl font-bold text-white sm:text-2xl">{name}</h3>
-            <p className="mt-1 max-w-[280px] text-sm text-white/55">{teamSeasonLabel ?? "Team"}</p>
           </div>
 
-          <div className="mt-5 flex flex-wrap justify-center gap-2">
+          <div className="mb-4 flex flex-wrap gap-1.5 sm:justify-center sm:gap-2">
             <Chip>Alter: {ageChipLabel(player.birthdate)}</Chip>
             {birthDisplayLines.map((line) => (
               <Chip key={line}>{line}</Chip>
@@ -201,45 +293,66 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             <Chip>Rückennummer: {jerseyChip}</Chip>
           </div>
 
-          <div className="mt-5 flex w-full justify-center gap-1 rounded-xl border border-white/10 bg-black/40 p-0.5">
-            <button
-              type="button"
-              onClick={() => setProfileTab("saison")}
-              className={[
-                "min-h-[38px] flex-1 rounded-lg px-2 text-xs font-bold transition-colors sm:text-sm",
-                profileTab === "saison" ? "bg-red-600 text-white shadow-sm" : "text-white/50 hover:text-white/85",
-              ].join(" ")}
-            >
-              Saison
-            </button>
-            <button
-              type="button"
-              onClick={() => setProfileTab("einsaetze")}
-              className={[
-                "min-h-[38px] flex-1 rounded-lg px-2 text-xs font-bold transition-colors sm:text-sm",
-                profileTab === "einsaetze" ? "bg-red-600 text-white shadow-sm" : "text-white/50 hover:text-white/85",
-              ].join(" ")}
-            >
-              Einsätze
-            </button>
+          {/* Sticky tabs */}
+          <div className="sticky top-0 z-10 -mx-3 mb-4 border-b border-white/10 bg-[linear-gradient(180deg,rgba(0,0,0,0.92)_0%,rgba(0,0,0,0.82)_100%)] px-1 py-1.5 backdrop-blur-md sm:-mx-4">
+            <div className="flex gap-1 rounded-xl border border-white/10 bg-black/40 p-0.5">
+              {TAB_CONFIG.map((t) => {
+                const active = profileTab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setProfileTab(t.id)}
+                    className={[
+                      "min-h-[34px] flex-1 rounded-lg px-1 py-1.5 text-[10px] font-bold transition-all sm:min-h-[38px] sm:px-1.5 sm:text-[11px]",
+                      active
+                        ? "border border-red-500/40 bg-red-600/25 text-white shadow-[0_0_20px_rgba(220,38,38,0.35)]"
+                        : "border border-transparent text-white/45 hover:text-white/80",
+                    ].join(" ")}
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {profileTab === "saison" ? (
+          {profileTab === "overview" ? (
             <>
-              <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5">
                 {statsLoading
                   ? [0, 1, 2, 3].map((i) => (
                       <div
                         key={`st-skel-${i}`}
-                        className="h-[4.5rem] animate-pulse rounded-2xl border border-white/5 bg-white/[0.07]"
+                        className="h-[4.75rem] animate-pulse rounded-2xl border border-white/5 bg-white/[0.07]"
                       />
                     ))
-                  : [
-                      { label: "Spiele", value: String(stats.games) },
-                      { label: "Tore", value: String(stats.goals) },
-                      { label: "Spielmin.", value: String(stats.minutes) },
-                      { label: "Tore / 90", value: goalsPer90Display },
-                    ].map((s) => <StatCard key={s.label} label={s.label} value={s.value} />)}
+                  : (
+                      [
+                        {
+                          icon: CalendarDays,
+                          label: "Spiele",
+                          value: String(stats.games),
+                        },
+                        {
+                          icon: Target,
+                          label: "Tore",
+                          value: String(stats.goals),
+                        },
+                        {
+                          icon: Clock,
+                          label: "Spielmin.",
+                          value: String(stats.minutes),
+                        },
+                        {
+                          icon: Percent,
+                          label: "Tore / 90",
+                          value: goalsPer90Display,
+                        },
+                      ] as const
+                    ).map((s) => (
+                      <PremiumStatTile key={s.label} icon={s.icon} label={s.label} value={s.value} />
+                    ))}
               </div>
               {statsError ? (
                 <p className="mt-2 text-center text-[11px] text-amber-400/95">{statsError}</p>
@@ -248,67 +361,123 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 <p className="mt-2 text-center text-[11px] text-white/40">Noch keine Ligadaten in dieser Saison</p>
               ) : null}
 
-              <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-4">
-                <h4 className="text-xs font-bold uppercase tracking-wide text-red-300/90">Training</h4>
-                <div className="mt-3 flex items-baseline justify-between gap-2">
-                  <span className="text-sm text-white/70">Teilnahmequote</span>
-                  <span className="text-lg font-black text-white">{trainingParticipationPct}%</span>
+              <div className="mt-6">
+                <h4 className="mb-2.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+                  Saisonstatistik
+                </h4>
+                <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+                  <SeasonMiniCell label="Spiele" value={String(stats.games)} />
+                  <SeasonMiniCell label="Tore" value={String(stats.goals)} />
+                  <SeasonMiniCell label="Spielminuten" value={String(stats.minutes)} />
+                  <SeasonMiniCell label="Tore / 90" value={goalsPer90Display} />
+                  <SeasonMiniCell label="Gelbe Karten" value={String(stats.yellowCards)} />
+                  <SeasonMiniCell label="Rote Karten" value={String(stats.redCards)} />
                 </div>
-                <p className="mt-1 text-xs text-white/50">
-                  Trainings teilgenommen: {trainingsAttended} / {trainingsTotal}
-                </p>
-                {hasTrainingBars ? (
-                  <div className="mt-3 flex gap-1">{/* später event_attendance */}</div>
-                ) : (
-                  <p className="mt-3 rounded-lg border border-dashed border-white/15 bg-white/[0.03] py-4 text-center text-xs text-white/45">
-                    Noch keine Trainingsdaten
-                  </p>
-                )}
               </div>
             </>
-          ) : (
-            <div className="mt-5 rounded-2xl border border-white/10 bg-black/30 p-4">
-              <h4 className="text-xs font-bold uppercase tracking-wide text-red-300/90">Letzte Einsätze</h4>
+          ) : null}
+
+          {profileTab === "matches" ? (
+            <div>
+              <h4 className="mb-2.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+                Letzte Spiele
+              </h4>
               {statsLoading ? (
-                <div className="mt-4 space-y-2">
+                <div className="space-y-2">
                   {[0, 1, 2].map((i) => (
-                    <div key={`em-skel-${i}`} className="h-16 animate-pulse rounded-xl bg-white/[0.06]" />
+                    <div key={`em-skel-${i}`} className="h-[5.5rem] animate-pulse rounded-2xl bg-white/[0.06]" />
                   ))}
                 </div>
               ) : lastMatches.length === 0 ? (
-                <p className="mt-4 text-center text-sm text-white/50">Noch keine Einsätze (beendete Spiele)</p>
+                <p className="rounded-xl border border-dashed border-white/15 bg-white/[0.03] py-8 text-center text-sm text-white/50">
+                  Noch keine Einsatzdaten
+                </p>
               ) : (
-                <ul className="mt-3 space-y-2">
+                <ul className="space-y-2.5">
                   {lastMatches.map((m) => (
                     <li
                       key={m.match_id}
-                      className="flex flex-col gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left sm:flex-row sm:items-center sm:justify-between"
+                      className="rounded-2xl border border-white/12 bg-gradient-to-br from-white/[0.07] to-black/50 p-3 shadow-[0_0_28px_rgba(220,38,38,0.07)]"
                     >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold text-white">{m.opponent}</span>
-                          <span className="rounded border border-white/15 bg-black/30 px-1.5 py-px text-[11px] font-bold tabular-nums text-white/90">
-                            {m.result}
-                          </span>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-[10px] font-extrabold uppercase tracking-wide text-red-300/90">
+                            {m.dateLabel}
+                          </div>
+                          <div className="mt-1 truncate text-base font-bold text-white">{m.opponent}</div>
                         </div>
-                        <div className="mt-0.5 text-xs text-white/50">{m.dateLabel}</div>
+                        <div className="shrink-0 rounded-lg border border-white/15 bg-black/45 px-2 py-1 text-lg font-black tabular-nums text-white">
+                          {m.result}
+                        </div>
                       </div>
-                      <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
                         <EinsatzBadge kind={m.badgeKind} label={m.badgeLabel} />
-                        {m.goals > 0 ? (
-                          <span className="text-[11px] font-bold text-amber-200/90">⚽ {m.goals}</span>
-                        ) : null}
+                        <span className="text-sm font-bold tabular-nums text-amber-200/95">
+                          ⚽ {m.goals}
+                        </span>
                       </div>
                     </li>
                   ))}
                 </ul>
               )}
             </div>
-          )}
+          ) : null}
+
+          {profileTab === "achievements" ? (
+            <div>
+              <h4 className="mb-2.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+                Auszeichnungen
+              </h4>
+              <div className="grid gap-2.5 sm:grid-cols-1">
+                {[
+                  { title: "Spieler des Spiels", sub: "Demnächst" },
+                  { title: "Team-Erfolge", sub: "Meisterschaft, Aufstieg …" },
+                  { title: "Turniere", sub: "Pokal & Turnierplatzierungen" },
+                ].map((c) => (
+                  <div
+                    key={c.title}
+                    className="rounded-2xl border border-white/10 bg-gradient-to-r from-red-950/35 to-black/40 px-3 py-3.5"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 shrink-0 text-red-400/80" strokeWidth={1.75} aria-hidden />
+                      <div>
+                        <div className="text-sm font-bold text-white">{c.title}</div>
+                        <div className="text-[11px] text-white/45">{c.sub}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-center text-sm text-white/45">Noch keine Erfolge</p>
+            </div>
+          ) : null}
+
+          {profileTab === "training" ? (
+            <div className="rounded-2xl border border-white/10 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <div className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-red-400/85" strokeWidth={1.75} aria-hidden />
+                <h4 className="text-xs font-extrabold uppercase tracking-wide text-red-300/90">Training</h4>
+              </div>
+              <div className="mt-4 flex items-baseline justify-between gap-2">
+                <span className="text-sm text-white/70">Teilnahmequote</span>
+                <span className="text-xl font-black tabular-nums text-white">{trainingParticipationPct}%</span>
+              </div>
+              <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full max-w-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-400 shadow-[0_0_14px_rgba(239,68,68,0.45)] transition-[width] duration-300"
+                  style={{ width: `${Math.min(100, Math.max(0, trainingParticipationPct))}%` }}
+                />
+              </div>
+              <p className="mt-3 text-xs text-white/55">
+                Teilgenommen: <span className="font-bold text-white">{trainingsAttended}</span> · Einheiten:{" "}
+                <span className="font-bold text-white">{trainingsTotal}</span>
+              </p>
+            </div>
+          ) : null}
 
           {canManage ? (
-            <div className="mt-6 pb-2">
-              <Button type="button" fullWidth className="bg-red-600 text-white hover:bg-red-500" onClick={onEdit}>
+            <div className="mt-6">
+              <Button type="button" fullWidth className="min-h-11 bg-red-600 text-white hover:bg-red-500" onClick={onEdit}>
                 Bearbeiten
               </Button>
             </div>

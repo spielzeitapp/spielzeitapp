@@ -5,7 +5,14 @@ import {
   type PlayerSeasonStats,
 } from '../lib/stats/playerStatsService';
 
-const EMPTY_STATS: PlayerSeasonStats = { games: 0, goals: 0, minutes: 0, goalsPer90: 0 };
+const EMPTY_STATS: PlayerSeasonStats = {
+  games: 0,
+  goals: 0,
+  minutes: 0,
+  goalsPer90: 0,
+  yellowCards: 0,
+  redCards: 0,
+};
 
 export function usePlayerStats(playerId: string | null | undefined, teamSeasonId: string | null | undefined) {
   const [stats, setStats] = useState<PlayerSeasonStats>(EMPTY_STATS);
