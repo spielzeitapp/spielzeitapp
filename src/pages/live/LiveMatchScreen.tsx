@@ -2344,7 +2344,7 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="fixed inset-0 z-[9999] flex flex-col bg-[#030806] text-white"
+          className="fixed inset-0 z-[9999] flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#030806] text-white"
           role="dialog"
           aria-modal="true"
           aria-labelledby="wechsel-sheet-title"
@@ -2354,37 +2354,80 @@ export const LiveMatchScreen: React.FC = () => {
             aria-hidden
           />
           <div className="pointer-events-none absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27256%27 height=%27256%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.8%27 numOctaves=%273%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27 opacity=%270.04%27/%3E%3C/svg%3E')] opacity-40" />
-          <div className="relative flex min-h-0 flex-1 flex-col">
-            <header className="shrink-0 border-b border-white/10 bg-black/55 px-3 py-3 backdrop-blur-md sm:px-4">
-              <div className="flex items-start gap-2">
-                <button
-                  type="button"
-                  onClick={closeWechselSheet}
-                  className="flex min-h-[40px] min-w-[40px] shrink-0 items-center justify-center rounded-xl border border-white/15 bg-black/50 text-sm font-bold text-white/90 hover:bg-white/10"
-                  aria-label="Schließen"
-                >
-                  ✕
-                </button>
-                <div className="min-w-0 flex-1 pt-0.5">
-                  <h3 id="wechsel-sheet-title" className="text-lg font-black tracking-tight text-white sm:text-xl">
-                    Wechsel
-                  </h3>
-                  <p className="mt-0.5 text-xs font-medium leading-snug text-white/55 sm:text-sm">
-                    Spieler raus und rein wählen
-                  </p>
-                </div>
+          <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+            <header className="sticky top-0 z-20 flex h-[72px] shrink-0 items-center gap-2 border-b border-white/10 bg-black/70 px-2 backdrop-blur-md sm:px-3">
+              <button
+                type="button"
+                onClick={closeWechselSheet}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-black/60 text-base font-bold text-white/90 hover:bg-white/10"
+                aria-label="Schließen"
+              >
+                ✕
+              </button>
+              <div className="min-w-0 flex-1">
+                <h3 id="wechsel-sheet-title" className="truncate text-base font-black leading-tight tracking-tight text-white">
+                  Wechsel
+                </h3>
+                <p className="truncate text-[10px] font-medium leading-tight text-white/50 sm:text-[11px]">
+                  Raus / Rein antippen
+                </p>
               </div>
             </header>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 py-3 sm:px-4 sm:py-4">
-              <section className="mb-6">
-                <h4 className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-red-300/95">Spieler raus</h4>
+            {(() => {
+              const outPid = String(subOutPlayerId ?? '').trim();
+              const inPid = String(subInPlayerId ?? '').trim();
+              const outP = outPid ? rosterById.get(outPid) ?? null : null;
+              const inP = inPid ? rosterById.get(inPid) ?? null : null;
+              const outChip = outPid
+                ? mobileLineupName(String(outP?.name ?? (substitutionFieldRows.find((r) => {
+                      const sl = r?.slot;
+                      const id =
+                        sl && onFieldBySlot && typeof onFieldBySlot === 'object'
+                          ? String(onFieldBySlot[sl] ?? '').trim()
+                          : '';
+                      return id === outPid;
+                    })?.display_name ?? 'Spieler')))
+                : '';
+              const inChip = inPid
+                ? mobileLineupName(
+                    String(
+                      inP?.name ??
+                        (Array.isArray(substitutionBenchRows)
+                          ? substitutionBenchRows.find((r) => String(r?.id ?? '').trim() === inPid)?.display_name
+                          : null) ??
+                        'Spieler',
+                    ),
+                  )
+                : '';
+              if (!outChip && !inChip) return null;
+              return (
+                <div className="shrink-0 border-b border-white/[0.06] bg-black/40 px-2 py-1.5 backdrop-blur-sm">
+                  <div className="flex flex-wrap gap-1.5">
+                    {outChip ? (
+                      <span className="max-w-[48%] truncate rounded-full border border-red-500/35 bg-red-950/45 px-2 py-0.5 text-[10px] font-bold text-red-100 sm:max-w-none">
+                        Raus: {outChip}
+                      </span>
+                    ) : null}
+                    {inChip ? (
+                      <span className="max-w-[48%] truncate rounded-full border border-emerald-500/35 bg-emerald-950/40 px-2 py-0.5 text-[10px] font-bold text-emerald-100 sm:max-w-none">
+                        Rein: {inChip}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden px-2 pb-1 pt-1.5 sm:flex-row sm:gap-2 sm:px-3">
+              <section className="flex min-h-0 w-full min-w-0 flex-1 flex-col max-sm:max-h-[32dvh] sm:h-full sm:max-h-none">
+                <h4 className="mb-1 shrink-0 text-[10px] font-black uppercase tracking-[0.18em] text-red-300/95">Raus</h4>
                 {substitutionFieldRows.length === 0 ? (
-                  <p className="rounded-xl border border-white/10 bg-black/35 px-3 py-4 text-sm text-white/55">
-                    Keine Feldspieler — Startaufstellung fehlt oder wird noch geladen.
+                  <p className="shrink-0 rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-xs text-white/55">
+                    Keine Feldspieler.
                   </p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-y-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
                     {substitutionFieldRows.map((row) => {
                       const slot = row?.slot;
                       const pid =
@@ -2411,38 +2454,36 @@ export const LiveMatchScreen: React.FC = () => {
                           type="button"
                           onClick={() => setSubOutPlayerId(pid)}
                           className={[
-                            'relative w-full rounded-2xl border p-3 text-left transition-all duration-150 active:scale-[0.99]',
+                            'flex h-[68px] min-h-[64px] w-full max-h-[72px] items-center gap-2 rounded-xl border px-2 py-1.5 text-left transition-all duration-150 active:scale-[0.99]',
                             selected
-                              ? 'border-red-500/75 bg-gradient-to-br from-red-950/50 via-black/85 to-black ring-2 ring-red-500/90'
-                              : 'border-white/12 bg-black/45 hover:border-white/22',
+                              ? 'border-red-500/70 bg-red-950/35 ring-1 ring-red-500/80'
+                              : 'border-white/10 bg-black/50 hover:border-white/20',
                           ].join(' ')}
                         >
-                          <div className="flex items-start gap-3 pr-10">
-                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/15 bg-zinc-800">
-                              <img
-                                src={avatarSrc}
-                                alt=""
-                                className="h-full w-full object-cover"
-                                onError={(e) => {
-                                  (e.currentTarget as HTMLImageElement).style.display = 'none';
-                                  const n = e.currentTarget.nextElementSibling as HTMLElement | null;
-                                  if (n) n.style.display = 'flex';
-                                }}
-                              />
-                              <span className="hidden h-full w-full items-center justify-center text-xs font-black text-white/90">
-                                {initials || 'SP'}
-                              </span>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="break-words text-sm font-semibold text-white">{name}</div>
-                              <div className="mt-0.5 text-[11px] text-gray-400">{pos}</div>
-                            </div>
+                          <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-white/12 bg-zinc-800">
+                            <img
+                              src={avatarSrc}
+                              alt=""
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                const n = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                if (n) n.style.display = 'flex';
+                              }}
+                            />
+                            <span className="hidden h-full w-full items-center justify-center text-[10px] font-black text-white/90">
+                              {initials || 'SP'}
+                            </span>
                           </div>
-                          <span className="pointer-events-none absolute right-3 top-2 rounded-full border border-red-500/40 bg-red-950/40 px-2 py-0.5 text-[10px] font-bold text-red-100">
-                            {slotBadge}
-                          </span>
-                          <div className="pointer-events-none absolute bottom-2 right-3 text-sm font-semibold text-red-200/90">
-                            {num != null ? `#${num}` : '—'}
+                          <div className="min-w-0 flex-1 pr-1">
+                            <p className="truncate text-[13px] font-semibold leading-tight text-white">{name}</p>
+                            <p className="mt-0.5 truncate text-[9px] font-medium text-white/45">
+                              {pos} · {slotBadge}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <span className="block text-[10px] font-bold uppercase text-red-300/80">{slotBadge}</span>
+                            <span className="text-sm font-black tabular-nums text-white/90">{num != null ? `#${num}` : '—'}</span>
                           </div>
                         </button>
                       );
@@ -2451,14 +2492,14 @@ export const LiveMatchScreen: React.FC = () => {
                 )}
               </section>
 
-              <section>
-                <h4 className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-300/95">Spieler rein</h4>
+              <section className="flex min-h-0 w-full min-w-0 flex-1 flex-col max-sm:max-h-[32dvh] sm:h-full sm:max-h-none">
+                <h4 className="mb-1 shrink-0 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300/95">Rein</h4>
                 {substitutionBenchRows.length === 0 ? (
-                  <p className="rounded-xl border border-white/10 bg-black/35 px-3 py-4 text-sm text-white/55">
-                    Keine Bankspieler — Kader oder Bank ist leer.
+                  <p className="shrink-0 rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-xs text-white/55">
+                    Keine Bankspieler.
                   </p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-y-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
                     {substitutionBenchRows.map((row) => {
                       const pid = String(row?.id ?? '').trim();
                       if (!pid) return null;
@@ -2480,38 +2521,36 @@ export const LiveMatchScreen: React.FC = () => {
                           type="button"
                           onClick={() => setSubInPlayerId(pid)}
                           className={[
-                            'relative w-full rounded-2xl border p-3 text-left transition-all duration-150 active:scale-[0.99]',
+                            'flex h-[68px] min-h-[64px] w-full max-h-[72px] items-center gap-2 rounded-xl border px-2 py-1.5 text-left transition-all duration-150 active:scale-[0.99]',
                             selected
-                              ? 'border-emerald-500/75 bg-gradient-to-br from-emerald-950/40 via-black/85 to-black ring-2 ring-emerald-500/85'
-                              : 'border-white/12 bg-black/45 hover:border-white/22',
+                              ? 'border-emerald-500/70 bg-emerald-950/30 ring-1 ring-emerald-500/75'
+                              : 'border-white/10 bg-black/50 hover:border-white/20',
                           ].join(' ')}
                         >
-                          <div className="flex items-start gap-3 pr-10">
-                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/15 bg-zinc-800">
-                              <img
-                                src={avatarSrc}
-                                alt=""
-                                className="h-full w-full object-cover"
-                                onError={(e) => {
-                                  (e.currentTarget as HTMLImageElement).style.display = 'none';
-                                  const n = e.currentTarget.nextElementSibling as HTMLElement | null;
-                                  if (n) n.style.display = 'flex';
-                                }}
-                              />
-                              <span className="hidden h-full w-full items-center justify-center text-xs font-black text-white/90">
-                                {initials || 'SP'}
-                              </span>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="break-words text-sm font-semibold text-white">{name}</div>
-                              <div className="mt-0.5 text-[11px] text-gray-400">{pos}</div>
-                            </div>
+                          <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-white/12 bg-zinc-800">
+                            <img
+                              src={avatarSrc}
+                              alt=""
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                const n = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                if (n) n.style.display = 'flex';
+                              }}
+                            />
+                            <span className="hidden h-full w-full items-center justify-center text-[10px] font-black text-white/90">
+                              {initials || 'SP'}
+                            </span>
                           </div>
-                          <span className="pointer-events-none absolute right-3 top-2 rounded-full border border-amber-500/35 bg-amber-950/35 px-2 py-0.5 text-[10px] font-bold text-amber-100">
-                            Bank
-                          </span>
-                          <div className="pointer-events-none absolute bottom-2 right-3 text-sm font-semibold text-emerald-200/90">
-                            {num != null ? `#${num}` : '—'}
+                          <div className="min-w-0 flex-1 pr-1">
+                            <p className="truncate text-[13px] font-semibold leading-tight text-white">{name}</p>
+                            <p className="mt-0.5 truncate text-[9px] font-medium text-white/45">
+                              {pos} · Bank
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <span className="block text-[9px] font-bold uppercase text-amber-200/85">Bank</span>
+                            <span className="text-sm font-black tabular-nums text-white/90">{num != null ? `#${num}` : '—'}</span>
                           </div>
                         </button>
                       );
@@ -2522,10 +2561,20 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
 
             <footer
-              className="shrink-0 border-t border-white/10 bg-black/70 px-3 py-3 backdrop-blur-md sm:px-4"
-              style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}
+              className="shrink-0 border-t border-white/10 bg-gradient-to-t from-black via-black/92 to-black/80 px-2 py-2 backdrop-blur-lg sm:px-3"
+              style={{
+                paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px) + 12px)',
+              }}
             >
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-row-reverse sm:justify-end">
+              <div className="flex flex-row gap-2">
+                <button
+                  type="button"
+                  disabled={subSaving}
+                  onClick={closeWechselSheet}
+                  className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl border border-white/15 bg-zinc-900/95 text-xs font-bold text-white/90 hover:bg-zinc-800 disabled:opacity-45"
+                >
+                  Abbrechen
+                </button>
                 <button
                   type="button"
                   disabled={
@@ -2535,17 +2584,9 @@ export const LiveMatchScreen: React.FC = () => {
                     String(subOutPlayerId ?? '').trim() === String(subInPlayerId ?? '').trim()
                   }
                   onClick={() => void confirmSubstitution()}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-emerald-600 to-emerald-950 text-sm font-black uppercase tracking-wide text-white shadow-[0_0_20px_rgba(16,185,129,0.25)] disabled:opacity-35 sm:max-w-xs sm:flex-none"
+                  className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-emerald-600 to-emerald-900 text-xs font-black uppercase tracking-wide text-white shadow-[0_0_16px_rgba(16,185,129,0.22)] disabled:opacity-35"
                 >
                   {subSaving ? '…' : 'Wechsel bestätigen'}
-                </button>
-                <button
-                  type="button"
-                  disabled={subSaving}
-                  onClick={closeWechselSheet}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/20 bg-zinc-900/90 text-sm font-bold text-white hover:bg-zinc-800 sm:max-w-xs sm:flex-none"
-                >
-                  Abbrechen
                 </button>
               </div>
             </footer>
