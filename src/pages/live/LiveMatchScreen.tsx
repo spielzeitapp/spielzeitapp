@@ -688,11 +688,13 @@ export const LiveMatchScreen: React.FC = () => {
   }, [canControlLiveMatch, mainTab]);
 
   const [wechselSheetOpen, setWechselSheetOpen] = useState(false);
+  const [subSheetView, setSubSheetView] = useState<'list' | 'pitch'>('list');
   const [subOutPlayerId, setSubOutPlayerId] = useState<string | null>(null);
   const [subInPlayerId, setSubInPlayerId] = useState<string | null>(null);
   const [subSaving, setSubSaving] = useState(false);
   const closeWechselSheet = useCallback(() => {
     setWechselSheetOpen(false);
+    setSubSheetView('list');
     setSubOutPlayerId(null);
     setSubInPlayerId(null);
     setSubSaving(false);
@@ -701,6 +703,7 @@ export const LiveMatchScreen: React.FC = () => {
     setSubOutPlayerId(null);
     setSubInPlayerId(null);
     setSubSaving(false);
+    setSubSheetView('list');
     setWechselSheetOpen(true);
   }, []);
   useEffect(() => {
@@ -995,6 +998,22 @@ export const LiveMatchScreen: React.FC = () => {
     () => (lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object' ? lineupSlotsForDisplay : {}),
     [lineupSlotsForDisplay],
   );
+
+  /** Roter Slot-Ring im Wechsel-Spielfeld-Modus für den als „raus“ gewählten Spieler. */
+  const subPitchSlotHighlight = useMemo((): Partial<Record<FieldSlotId, 'in' | 'out'>> => {
+    const out = String(subOutPlayerId ?? '').trim();
+    if (!out) return {};
+    const slots =
+      safeLineupSlots && typeof safeLineupSlots === 'object'
+        ? (safeLineupSlots as Record<FieldSlotId, string | null>)
+        : ({} as Record<FieldSlotId, string | null>);
+    for (const slot of safeSlotOrder) {
+      const pid = String(slots[slot] ?? '').trim();
+      if (pid === out) return { [slot]: 'out' };
+    }
+    return {};
+  }, [subOutPlayerId, safeLineupSlots, safeSlotOrder]);
+
   const [substitutionTransitionBySlot, setSubstitutionTransitionBySlot] = useState<
     Partial<Record<FieldSlotId, { outgoingPlayerId: string | null; incomingPlayerId: string | null }>>
   >({});
@@ -2686,152 +2705,302 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden px-2.5 pb-1 pt-1">
-              <section className="flex shrink-0 flex-col">
-                <p className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-red-300/95">RAUS</p>
-                {substitutionFieldRows.length === 0 ? (
-                  <p className="rounded-lg border border-red-500/15 bg-black/50 px-2 py-1.5 text-[11px] text-white/45">
-                    Keine Feldspieler.
-                  </p>
-                ) : (
-                  <div className="max-h-[24dvh] min-h-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
-                    <div className="grid grid-cols-2 gap-1">
-                      {substitutionFieldRows.map((row) => {
-                        const slot = row?.slot;
-                        const pid =
-                          slot && onFieldBySlot && typeof onFieldBySlot === 'object'
-                            ? String(onFieldBySlot[slot] ?? '').trim()
-                            : '';
-                        if (!pid) return null;
-                        const name = String(row?.display_name ?? 'Spieler').trim() || 'Spieler';
-                        const shortName = mobileLineupName(name);
-                        const slotBadge = String(row?.rightLabel ?? '–').trim() || '—';
-                        const num = row?.jersey_number ?? null;
-                        const avatarSrc = String(row?.avatar_url ?? '').trim() || '/avatars/player-placeholder.png';
-                        const selected = subOutPlayerId === pid;
-                        const initials = name
-                          .split(/\s+/)
-                          .filter(Boolean)
-                          .slice(0, 2)
-                          .map((p) => p[0])
-                          .join('')
-                          .toUpperCase();
-                        return (
-                          <button
-                            key={`sub-out-${slot}-${pid}`}
-                            type="button"
-                            onClick={() => setSubOutPlayerId(pid)}
-                            className={[
-                              'flex h-[72px] min-h-[72px] max-h-[72px] flex-col justify-between gap-0.5 rounded-xl border px-1.5 py-1.5 text-left transition-all active:scale-[0.99]',
-                              'bg-black/40 bg-gradient-to-br from-red-950/40 via-black/70 to-black/90',
-                              selected
-                                ? 'border-red-500 shadow-[0_0_18px_rgba(239,68,68,0.35)] ring-1 ring-red-500/60'
-                                : 'border-white/[0.08] hover:border-red-500/25',
-                            ].join(' ')}
-                          >
-                            <div className="flex min-h-0 items-center gap-1">
-                              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-red-500/20 bg-zinc-900">
-                                <img
-                                  src={avatarSrc}
-                                  alt=""
-                                  className="h-full w-full object-cover"
-                                  onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).style.display = 'none';
-                                    const n = e.currentTarget.nextElementSibling as HTMLElement | null;
-                                    if (n) n.style.display = 'flex';
-                                  }}
-                                />
-                                <span className="hidden h-full w-full items-center justify-center text-[9px] font-black text-white/90">
-                                  {initials || 'SP'}
-                                </span>
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-[11px] font-bold leading-tight text-white">
-                                  <span className="tabular-nums text-red-200/85">{num != null ? `${num} ` : '— '}</span>
-                                  {shortName}
-                                </p>
-                              </div>
-                            </div>
-                            <span className="inline-flex w-fit rounded border border-red-500/30 bg-red-950/50 px-1 py-px text-[7px] font-bold uppercase tracking-wide text-red-100/95">
-                              {slotBadge}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </section>
+              <div className="flex w-full shrink-0 justify-center px-0.5">
+                <div className="inline-flex w-full max-w-[17rem] rounded-xl border border-white/10 bg-black/55 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                  <button
+                    type="button"
+                    onClick={() => setSubSheetView('list')}
+                    className={[
+                      'min-h-[36px] flex-1 rounded-lg py-1.5 text-center text-[11px] font-bold transition-colors',
+                      subSheetView === 'list'
+                        ? 'bg-red-600/95 text-white shadow-[0_0_12px_rgba(239,68,68,0.25)]'
+                        : 'text-white/50 hover:text-white/85',
+                    ].join(' ')}
+                  >
+                    Liste
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubSheetView('pitch')}
+                    className={[
+                      'min-h-[36px] flex-1 rounded-lg py-1.5 text-center text-[11px] font-bold transition-colors',
+                      subSheetView === 'pitch'
+                        ? 'bg-red-600/95 text-white shadow-[0_0_12px_rgba(239,68,68,0.25)]'
+                        : 'text-white/50 hover:text-white/85',
+                    ].join(' ')}
+                  >
+                    Spielfeld
+                  </button>
+                </div>
+              </div>
 
-              <section className="flex shrink-0 flex-col">
-                <p className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-300/95">REIN</p>
-                {substitutionBenchRows.length === 0 ? (
-                  <p className="rounded-lg border border-emerald-500/15 bg-black/50 px-2 py-1.5 text-[11px] text-white/45">
-                    Keine Bankspieler.
-                  </p>
-                ) : (
-                  <div className="max-h-[24dvh] min-h-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
-                    <div className="grid grid-cols-2 gap-1">
-                      {substitutionBenchRows.map((row) => {
-                        const pid = String(row?.id ?? '').trim();
-                        if (!pid) return null;
-                        const name = String(row?.display_name ?? 'Spieler').trim() || 'Spieler';
-                        const shortName = mobileLineupName(name);
-                        const num = row?.jersey_number ?? null;
-                        const avatarSrc = String(row?.avatar_url ?? '').trim() || '/avatars/player-placeholder.png';
-                        const selected = subInPlayerId === pid;
-                        const initials = name
-                          .split(/\s+/)
-                          .filter(Boolean)
-                          .slice(0, 2)
-                          .map((p) => p[0])
-                          .join('')
-                          .toUpperCase();
-                        return (
-                          <button
-                            key={`sub-in-${pid}`}
-                            type="button"
-                            onClick={() => setSubInPlayerId(pid)}
-                            className={[
-                              'flex h-[72px] min-h-[72px] max-h-[72px] flex-col justify-between gap-0.5 rounded-xl border px-1.5 py-1.5 text-left transition-all active:scale-[0.99]',
-                              'bg-black/40 bg-gradient-to-br from-emerald-950/25 via-black/70 to-black/90',
-                              selected
-                                ? 'border-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.32)] ring-1 ring-emerald-500/55'
-                                : 'border-white/[0.08] hover:border-emerald-500/25',
-                            ].join(' ')}
-                          >
-                            <div className="flex min-h-0 items-center gap-1">
-                              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-emerald-500/20 bg-zinc-900">
-                                <img
-                                  src={avatarSrc}
-                                  alt=""
-                                  className="h-full w-full object-cover"
-                                  onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).style.display = 'none';
-                                    const n = e.currentTarget.nextElementSibling as HTMLElement | null;
-                                    if (n) n.style.display = 'flex';
-                                  }}
+              {subSheetView === 'list' ? (
+                <>
+                  <section className="flex shrink-0 flex-col">
+                    <p className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-red-300/95">RAUS</p>
+                    {substitutionFieldRows.length === 0 ? (
+                      <p className="rounded-lg border border-red-500/15 bg-black/50 px-2 py-1.5 text-[11px] text-white/45">
+                        Keine Feldspieler.
+                      </p>
+                    ) : (
+                      <div className="max-h-[24dvh] min-h-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
+                        <div className="grid grid-cols-2 gap-1">
+                          {substitutionFieldRows.map((row) => {
+                            const slot = row?.slot;
+                            const pid =
+                              slot && onFieldBySlot && typeof onFieldBySlot === 'object'
+                                ? String(onFieldBySlot[slot] ?? '').trim()
+                                : '';
+                            if (!pid) return null;
+                            const name = String(row?.display_name ?? 'Spieler').trim() || 'Spieler';
+                            const shortName = mobileLineupName(name);
+                            const slotBadge = String(row?.rightLabel ?? '–').trim() || '—';
+                            const num = row?.jersey_number ?? null;
+                            const avatarSrc = String(row?.avatar_url ?? '').trim() || '/avatars/player-placeholder.png';
+                            const selected = subOutPlayerId === pid;
+                            const initials = name
+                              .split(/\s+/)
+                              .filter(Boolean)
+                              .slice(0, 2)
+                              .map((p) => p[0])
+                              .join('')
+                              .toUpperCase();
+                            return (
+                              <button
+                                key={`sub-out-${slot}-${pid}`}
+                                type="button"
+                                onClick={() => setSubOutPlayerId(pid)}
+                                className={[
+                                  'flex h-[72px] min-h-[72px] max-h-[72px] flex-col justify-between gap-0.5 rounded-xl border px-1.5 py-1.5 text-left transition-all active:scale-[0.99]',
+                                  'bg-black/40 bg-gradient-to-br from-red-950/40 via-black/70 to-black/90',
+                                  selected
+                                    ? 'border-red-500 shadow-[0_0_18px_rgba(239,68,68,0.35)] ring-1 ring-red-500/60'
+                                    : 'border-white/[0.08] hover:border-red-500/25',
+                                ].join(' ')}
+                              >
+                                <div className="flex min-h-0 items-center gap-1">
+                                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-red-500/20 bg-zinc-900">
+                                    <img
+                                      src={avatarSrc}
+                                      alt=""
+                                      className="h-full w-full object-cover"
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                        const n = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                        if (n) n.style.display = 'flex';
+                                      }}
+                                    />
+                                    <span className="hidden h-full w-full items-center justify-center text-[9px] font-black text-white/90">
+                                      {initials || 'SP'}
+                                    </span>
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-[11px] font-bold leading-tight text-white">
+                                      <span className="tabular-nums text-red-200/85">{num != null ? `${num} ` : '— '}</span>
+                                      {shortName}
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className="inline-flex w-fit rounded border border-red-500/30 bg-red-950/50 px-1 py-px text-[7px] font-bold uppercase tracking-wide text-red-100/95">
+                                  {slotBadge}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="flex shrink-0 flex-col">
+                    <p className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-300/95">REIN</p>
+                    {substitutionBenchRows.length === 0 ? (
+                      <p className="rounded-lg border border-emerald-500/15 bg-black/50 px-2 py-1.5 text-[11px] text-white/45">
+                        Keine Bankspieler.
+                      </p>
+                    ) : (
+                      <div className="max-h-[24dvh] min-h-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
+                        <div className="grid grid-cols-2 gap-1">
+                          {substitutionBenchRows.map((row) => {
+                            const pid = String(row?.id ?? '').trim();
+                            if (!pid) return null;
+                            const name = String(row?.display_name ?? 'Spieler').trim() || 'Spieler';
+                            const shortName = mobileLineupName(name);
+                            const num = row?.jersey_number ?? null;
+                            const avatarSrc = String(row?.avatar_url ?? '').trim() || '/avatars/player-placeholder.png';
+                            const selected = subInPlayerId === pid;
+                            const initials = name
+                              .split(/\s+/)
+                              .filter(Boolean)
+                              .slice(0, 2)
+                              .map((p) => p[0])
+                              .join('')
+                              .toUpperCase();
+                            return (
+                              <button
+                                key={`sub-in-${pid}`}
+                                type="button"
+                                onClick={() => setSubInPlayerId(pid)}
+                                className={[
+                                  'flex h-[72px] min-h-[72px] max-h-[72px] flex-col justify-between gap-0.5 rounded-xl border px-1.5 py-1.5 text-left transition-all active:scale-[0.99]',
+                                  'bg-black/40 bg-gradient-to-br from-emerald-950/25 via-black/70 to-black/90',
+                                  selected
+                                    ? 'border-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.32)] ring-1 ring-emerald-500/55'
+                                    : 'border-white/[0.08] hover:border-emerald-500/25',
+                                ].join(' ')}
+                              >
+                                <div className="flex min-h-0 items-center gap-1">
+                                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-emerald-500/20 bg-zinc-900">
+                                    <img
+                                      src={avatarSrc}
+                                      alt=""
+                                      className="h-full w-full object-cover"
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                        const n = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                        if (n) n.style.display = 'flex';
+                                      }}
+                                    />
+                                    <span className="hidden h-full w-full items-center justify-center text-[9px] font-black text-white/90">
+                                      {initials || 'SP'}
+                                    </span>
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-[11px] font-bold leading-tight text-white">
+                                      <span className="tabular-nums text-emerald-200/85">{num != null ? `${num} ` : '— '}</span>
+                                      {shortName}
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className="inline-flex w-fit rounded border border-amber-500/35 bg-amber-950/40 px-1 py-px text-[7px] font-bold uppercase tracking-wide text-amber-100/95">
+                                  Bank
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                </>
+              ) : (
+                <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
+                  {!canRenderLivePitch ? (
+                    <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-3 text-center text-[11px] text-white/50">
+                      Aufstellung wird geladen …
+                    </p>
+                  ) : (
+                    <>
+                      <div className="mx-auto w-full max-w-md shrink-0 overflow-hidden px-0.5">
+                        <LineupFormationPitch
+                          formationId={safeFormationId}
+                          slots={(safeLineupSlots ?? {}) as Record<FieldSlotId, string | null>}
+                          interactive
+                          onSlotTap={(slot) => {
+                            const raw =
+                              safeLineupSlots && typeof safeLineupSlots === 'object'
+                                ? (safeLineupSlots as Record<FieldSlotId, string | null>)[slot]
+                                : null;
+                            const pid = String(raw ?? '').trim();
+                            if (pid) setSubOutPlayerId(pid);
+                          }}
+                          slotHighlightBySlot={subPitchSlotHighlight}
+                          emphasizedPlayerId={null}
+                          renderSlotContent={({ slot, label, playerId, isGk }) => {
+                            if (!playerId) return null;
+                            const player = rosterById.get(playerId) ?? null;
+                            const posLabel = getPositionLabel(label) || '–';
+                            const rawName = (player?.displayName ?? player?.name ?? '').trim() || 'Spieler';
+                            const shortName = (() => {
+                              const s = mobileLineupName(rawName);
+                              return s === '—' || !s ? 'Spieler' : s;
+                            })();
+                            const isOutPick = String(subOutPlayerId ?? '').trim() === String(playerId).trim();
+                            return (
+                              <div
+                                className={[
+                                  'pointer-events-none relative flex w-full max-w-[min(22vw,5.25rem)] flex-col items-center rounded-lg transition-shadow duration-200',
+                                  isOutPick
+                                    ? 'shadow-[0_0_22px_rgba(239,68,68,0.55),0_0_8px_rgba(239,68,68,0.35)]'
+                                    : '',
+                                ].join(' ')}
+                              >
+                                <LeibchenJersey
+                                  lastName={shortName}
+                                  number={player?.number ?? '–'}
+                                  position={posLabel}
+                                  variant={isGk ? 'goalkeeper' : 'field'}
+                                  size="compact"
+                                  pitchStyleBack
                                 />
-                                <span className="hidden h-full w-full items-center justify-center text-[9px] font-black text-white/90">
-                                  {initials || 'SP'}
+                                <span
+                                  className="mt-0.5 w-full min-w-0 truncate rounded-md bg-black/85 px-1 py-0.5 text-center text-[9px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 sm:text-[10px]"
+                                  title={rawName}
+                                >
+                                  {shortName}
                                 </span>
                               </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-[11px] font-bold leading-tight text-white">
-                                  <span className="tabular-nums text-emerald-200/85">{num != null ? `${num} ` : '— '}</span>
-                                  {shortName}
-                                </p>
-                              </div>
+                            );
+                          }}
+                          className="max-h-[min(44dvh,48vh)]"
+                        />
+                      </div>
+                      <section className="shrink-0">
+                        <p className="mb-1.5 px-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-300/95">
+                          Bank — antippen für „rein“
+                        </p>
+                        {substitutionBenchRows.length === 0 ? (
+                          <p className="rounded-lg border border-emerald-500/15 bg-black/50 px-2 py-1.5 text-[11px] text-white/45">
+                            Keine Bankspieler.
+                          </p>
+                        ) : (
+                          <div className="-mx-0.5 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                            <div className="flex min-w-min flex-nowrap items-start gap-2 px-0.5">
+                              {substitutionBenchRows.map((row, idx) => {
+                                const pid = String(row?.id ?? '').trim();
+                                if (!pid) return null;
+                                const name = String(row?.display_name ?? 'Spieler').trim() || 'Spieler';
+                                const shortName = mobileLineupName(name);
+                                const posLabel = getPositionLabel(row.position) || '–';
+                                const selected = subInPlayerId === pid;
+                                return (
+                                  <button
+                                    key={`sub-pitch-bench-${row.id || idx}`}
+                                    type="button"
+                                    onClick={() => setSubInPlayerId(pid)}
+                                    className={[
+                                      'flex w-[4.85rem] shrink-0 flex-col items-center rounded-xl border bg-black/35 px-1 py-1.5 transition-all active:scale-[0.98] sm:w-[5.25rem]',
+                                      selected
+                                        ? 'border-emerald-400 shadow-[0_0_22px_rgba(16,185,129,0.5)] ring-2 ring-emerald-400/75'
+                                        : 'border-white/12 hover:border-emerald-500/35',
+                                    ].join(' ')}
+                                  >
+                                    <LeibchenJersey
+                                      lastName={shortName}
+                                      number={row.jersey_number ?? row.number ?? '–'}
+                                      position={posLabel}
+                                      variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
+                                      size="compact"
+                                      pitchStyleBack
+                                      className="!h-[3.1rem] !w-[2.45rem] sm:!h-[3.6rem] sm:!w-[2.85rem]"
+                                    />
+                                    <span
+                                      className="mt-0.5 block w-full min-w-0 truncate text-center text-[10px] font-bold leading-tight text-white"
+                                      title={name}
+                                    >
+                                      {shortName}
+                                    </span>
+                                  </button>
+                                );
+                              })}
                             </div>
-                            <span className="inline-flex w-fit rounded border border-amber-500/35 bg-amber-950/40 px-1 py-px text-[7px] font-bold uppercase tracking-wide text-amber-100/95">
-                              Bank
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </section>
+                          </div>
+                        )}
+                      </section>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             <footer

@@ -64,7 +64,12 @@ export type LineupFormationPitchProps = {
   /** Live-Ansicht: dieselbe ID für alle Rollen (kein localStorage pro Gerät). */
   formationId: U11FormationId;
   slots: Record<FieldSlotId, string | null>;
+  /**
+   * `true` + `onSlotTap`: Slots sind antippbar (z. B. MatchLineupPage, Live-Wechsel-Spielfeld).
+   * Leere Slots bleiben klickbar nur mit Mindestgröße; Handler kann `playerId` ignorieren.
+   */
   interactive?: boolean;
+  /** Bei `interactive`: Callback pro Slot-Tap (z. B. Feldspieler für Wechsel „raus“ wählen). */
   onSlotTap?: (slot: FieldSlotId) => void;
   selectedBankPlayerId?: string | null;
   assignFlashSlot?: FieldSlotId | null;
