@@ -2344,33 +2344,82 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="fixed inset-0 z-[9999] flex flex-col justify-end bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-[9999] flex flex-col justify-end bg-black/75 backdrop-blur-sm"
           role="presentation"
           onClick={closeWechselSheet}
         >
           <div
-            className="flex min-h-0 max-h-[82dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#141414] text-white shadow-2xl"
+            className="flex min-h-0 max-h-[78dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
             role="dialog"
             aria-modal="true"
             aria-labelledby="wechsel-sheet-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-white/25" />
-            <div className="shrink-0 px-4 pb-1 pt-3 text-center">
-              <h3 id="wechsel-sheet-title" className="text-lg font-bold text-white">
+            <div className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-red-400/35" />
+            <div className="shrink-0 px-2.5 pb-0.5 pt-2 text-center">
+              <h3 id="wechsel-sheet-title" className="text-base font-black tracking-tight text-white">
                 Wechsel
               </h3>
-              <p className="mt-1 text-sm text-white/50">Spieler raus und rein wählen</p>
+              <p className="mt-0.5 text-[11px] leading-snug text-white/45">Spieler raus und rein wählen</p>
+              {(() => {
+                const outPid = String(subOutPlayerId ?? '').trim();
+                const inPid = String(subInPlayerId ?? '').trim();
+                const outP = outPid ? rosterById.get(outPid) ?? null : null;
+                const inP = inPid ? rosterById.get(inPid) ?? null : null;
+                const outLabel = outPid
+                  ? mobileLineupName(
+                      String(
+                        outP?.name ??
+                          (substitutionFieldRows.find((r) => {
+                            const sl = r?.slot;
+                            const id =
+                              sl && onFieldBySlot && typeof onFieldBySlot === 'object'
+                                ? String(onFieldBySlot[sl] ?? '').trim()
+                                : '';
+                            return id === outPid;
+                          })?.display_name ?? 'Spieler'),
+                      ),
+                    )
+                  : '';
+                const inLabel = inPid
+                  ? mobileLineupName(
+                      String(
+                        inP?.name ??
+                          (Array.isArray(substitutionBenchRows)
+                            ? substitutionBenchRows.find((r) => String(r?.id ?? '').trim() === inPid)?.display_name
+                            : null) ??
+                          'Spieler',
+                      ),
+                    )
+                  : '';
+                if (!outLabel && !inLabel) return null;
+                return (
+                  <div className="mt-1.5 flex flex-wrap justify-center gap-1">
+                    {outLabel ? (
+                      <span className="max-w-[46%] truncate rounded-full border border-red-500/40 bg-red-950/55 px-2 py-0.5 text-[9px] font-bold text-red-100 sm:max-w-[12rem]">
+                        Raus: {outLabel}
+                      </span>
+                    ) : null}
+                    {inLabel ? (
+                      <span className="max-w-[46%] truncate rounded-full border border-emerald-500/40 bg-emerald-950/45 px-2 py-0.5 text-[9px] font-bold text-emerald-100 sm:max-w-[12rem]">
+                        Rein: {inLabel}
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              })()}
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-3 pt-2">
+            <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden px-2.5 pb-1 pt-1">
               <section className="flex shrink-0 flex-col">
-                <p className="mb-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-red-300/95">RAUS</p>
+                <p className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-red-300/95">RAUS</p>
                 {substitutionFieldRows.length === 0 ? (
-                  <p className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-2 text-xs text-white/50">Keine Feldspieler.</p>
+                  <p className="rounded-lg border border-red-500/15 bg-black/50 px-2 py-1.5 text-[11px] text-white/45">
+                    Keine Feldspieler.
+                  </p>
                 ) : (
-                  <div className="max-h-[26dvh] min-h-0 overflow-y-auto overscroll-y-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
-                    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2">
+                  <div className="max-h-[22dvh] min-h-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
+                    <div className="grid grid-cols-2 gap-1">
                       {substitutionFieldRows.map((row) => {
                         const slot = row?.slot;
                         const pid =
@@ -2397,14 +2446,15 @@ export const LiveMatchScreen: React.FC = () => {
                             type="button"
                             onClick={() => setSubOutPlayerId(pid)}
                             className={[
-                              'flex min-h-[52px] flex-col gap-1 rounded-xl border px-2 py-2 text-left transition-colors active:scale-[0.99]',
+                              'flex h-[72px] min-h-[72px] max-h-[72px] flex-col justify-between gap-0.5 rounded-xl border px-1.5 py-1.5 text-left transition-all active:scale-[0.99]',
+                              'bg-black/40 bg-gradient-to-br from-red-950/40 via-black/70 to-black/90',
                               selected
-                                ? 'border-red-500 bg-red-600/35 ring-1 ring-red-400/80'
-                                : 'border-white/10 bg-white/10 hover:bg-white/[0.14]',
+                                ? 'border-red-500 shadow-[0_0_18px_rgba(239,68,68,0.35)] ring-1 ring-red-500/60'
+                                : 'border-white/[0.08] hover:border-red-500/25',
                             ].join(' ')}
                           >
-                            <div className="flex items-center gap-1.5">
-                              <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full border border-white/15 bg-zinc-800">
+                            <div className="flex min-h-0 items-center gap-1">
+                              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-red-500/20 bg-zinc-900">
                                 <img
                                   src={avatarSrc}
                                   alt=""
@@ -2415,18 +2465,18 @@ export const LiveMatchScreen: React.FC = () => {
                                     if (n) n.style.display = 'flex';
                                   }}
                                 />
-                                <span className="hidden h-full w-full items-center justify-center text-[8px] font-black text-white/90">
+                                <span className="hidden h-full w-full items-center justify-center text-[9px] font-black text-white/90">
                                   {initials || 'SP'}
                                 </span>
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-xs font-bold leading-tight text-white">
-                                  <span className="tabular-nums text-white/80">{num != null ? `${num} ` : '— '}</span>
+                                <p className="truncate text-[11px] font-bold leading-tight text-white">
+                                  <span className="tabular-nums text-red-200/85">{num != null ? `${num} ` : '— '}</span>
                                   {shortName}
                                 </p>
                               </div>
                             </div>
-                            <span className="inline-flex w-fit rounded-md border border-red-500/35 bg-red-950/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-red-100">
+                            <span className="inline-flex w-fit rounded border border-red-500/30 bg-red-950/50 px-1 py-px text-[7px] font-bold uppercase tracking-wide text-red-100/95">
                               {slotBadge}
                             </span>
                           </button>
@@ -2438,12 +2488,14 @@ export const LiveMatchScreen: React.FC = () => {
               </section>
 
               <section className="flex shrink-0 flex-col">
-                <p className="mb-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300/95">REIN</p>
+                <p className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-300/95">REIN</p>
                 {substitutionBenchRows.length === 0 ? (
-                  <p className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-2 text-xs text-white/50">Keine Bankspieler.</p>
+                  <p className="rounded-lg border border-emerald-500/15 bg-black/50 px-2 py-1.5 text-[11px] text-white/45">
+                    Keine Bankspieler.
+                  </p>
                 ) : (
-                  <div className="max-h-[26dvh] min-h-0 overflow-y-auto overscroll-y-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
-                    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2">
+                  <div className="max-h-[22dvh] min-h-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
+                    <div className="grid grid-cols-2 gap-1">
                       {substitutionBenchRows.map((row) => {
                         const pid = String(row?.id ?? '').trim();
                         if (!pid) return null;
@@ -2465,14 +2517,15 @@ export const LiveMatchScreen: React.FC = () => {
                             type="button"
                             onClick={() => setSubInPlayerId(pid)}
                             className={[
-                              'flex min-h-[52px] flex-col gap-1 rounded-xl border px-2 py-2 text-left transition-colors active:scale-[0.99]',
+                              'flex h-[72px] min-h-[72px] max-h-[72px] flex-col justify-between gap-0.5 rounded-xl border px-1.5 py-1.5 text-left transition-all active:scale-[0.99]',
+                              'bg-black/40 bg-gradient-to-br from-emerald-950/25 via-black/70 to-black/90',
                               selected
-                                ? 'border-emerald-500 bg-emerald-600/30 ring-1 ring-emerald-400/75'
-                                : 'border-white/10 bg-white/10 hover:bg-white/[0.14]',
+                                ? 'border-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.32)] ring-1 ring-emerald-500/55'
+                                : 'border-white/[0.08] hover:border-emerald-500/25',
                             ].join(' ')}
                           >
-                            <div className="flex items-center gap-1.5">
-                              <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full border border-white/15 bg-zinc-800">
+                            <div className="flex min-h-0 items-center gap-1">
+                              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-emerald-500/20 bg-zinc-900">
                                 <img
                                   src={avatarSrc}
                                   alt=""
@@ -2483,18 +2536,18 @@ export const LiveMatchScreen: React.FC = () => {
                                     if (n) n.style.display = 'flex';
                                   }}
                                 />
-                                <span className="hidden h-full w-full items-center justify-center text-[8px] font-black text-white/90">
+                                <span className="hidden h-full w-full items-center justify-center text-[9px] font-black text-white/90">
                                   {initials || 'SP'}
                                 </span>
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-xs font-bold leading-tight text-white">
-                                  <span className="tabular-nums text-white/80">{num != null ? `${num} ` : '— '}</span>
+                                <p className="truncate text-[11px] font-bold leading-tight text-white">
+                                  <span className="tabular-nums text-emerald-200/85">{num != null ? `${num} ` : '— '}</span>
                                   {shortName}
                                 </p>
                               </div>
                             </div>
-                            <span className="inline-flex w-fit rounded-md border border-amber-500/35 bg-amber-950/35 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-100">
+                            <span className="inline-flex w-fit rounded border border-amber-500/35 bg-amber-950/40 px-1 py-px text-[7px] font-bold uppercase tracking-wide text-amber-100/95">
                               Bank
                             </span>
                           </button>
@@ -2507,9 +2560,9 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
 
             <footer
-              className="sticky bottom-0 z-10 shrink-0 border-t border-white/10 bg-[#141414] px-3 pt-2"
+              className="sticky bottom-0 z-20 shrink-0 border-t border-red-500/15 bg-black/85 px-2.5 pt-2 backdrop-blur-md"
               style={{
-                paddingBottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
+                paddingBottom: 'calc(90px + env(safe-area-inset-bottom, 0px))',
               }}
             >
               <div className="flex flex-row gap-2">
@@ -2517,7 +2570,7 @@ export const LiveMatchScreen: React.FC = () => {
                   type="button"
                   disabled={subSaving}
                   onClick={closeWechselSheet}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/15 bg-zinc-800/95 text-sm font-bold text-white/90 hover:bg-zinc-700 disabled:opacity-45"
+                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-sm font-bold text-white/85 hover:bg-zinc-800 disabled:opacity-45"
                 >
                   Abbrechen
                 </button>
@@ -2530,7 +2583,7 @@ export const LiveMatchScreen: React.FC = () => {
                     String(subOutPlayerId ?? '').trim() === String(subInPlayerId ?? '').trim()
                   }
                   onClick={() => void confirmSubstitution()}
-                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-emerald-600 text-sm font-bold text-white shadow-[0_0_14px_rgba(16,185,129,0.28)] disabled:opacity-35"
+                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-emerald-600 text-sm font-bold text-white shadow-[0_0_16px_rgba(16,185,129,0.35)] disabled:opacity-35"
                 >
                   {subSaving ? '…' : 'Wechsel bestätigen'}
                 </button>
