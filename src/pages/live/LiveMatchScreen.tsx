@@ -659,11 +659,20 @@ export const LiveMatchScreen: React.FC = () => {
   }, [canControlLiveMatch, mainTab]);
 
   const [wechselSheetOpen, setWechselSheetOpen] = useState(false);
+  const [subOutPlayerId, setSubOutPlayerId] = useState<string | null>(null);
+  const [subInPlayerId, setSubInPlayerId] = useState<string | null>(null);
+  const [subSaving, setSubSaving] = useState(false);
   const closeWechselSheet = useCallback(() => {
     setWechselSheetOpen(false);
+    setSubOutPlayerId(null);
+    setSubInPlayerId(null);
+    setSubSaving(false);
   }, []);
   const openWechselSheet = useCallback(() => {
-    window.alert('Wechsel temporär deaktiviert');
+    setSubOutPlayerId(null);
+    setSubInPlayerId(null);
+    setSubSaving(false);
+    setWechselSheetOpen(true);
   }, []);
   useEffect(() => {
     if (wechselSheetOpen && mainTab !== 'overview') closeWechselSheet();
@@ -890,6 +899,22 @@ export const LiveMatchScreen: React.FC = () => {
       })),
     [benchPlayers],
   );
+
+  const substitutionFieldRows = useMemo(() => {
+    if (!Array.isArray(safeLineupRows)) return [];
+    return safeLineupRows.filter((row) => {
+      const slot = row?.slot;
+      if (!slot) return false;
+      const pid = onFieldBySlot?.[slot];
+      return typeof pid === 'string' && pid.length > 0;
+    });
+  }, [safeLineupRows, onFieldBySlot]);
+
+  const substitutionBenchRows = useMemo(() => {
+    if (!Array.isArray(safeBenchRows)) return [];
+    return safeBenchRows.filter((r) => typeof r?.id === 'string' && r.id.length > 0);
+  }, [safeBenchRows]);
+
   const safeLineupSlots = useMemo(
     () => (lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object' ? lineupSlotsForDisplay : {}),
     [lineupSlotsForDisplay],
@@ -1082,7 +1107,10 @@ export const LiveMatchScreen: React.FC = () => {
         currentOnFieldPlayerIds: onFieldIds,
         generateId: newEventId,
       });
-      if (!check.ok) return false;
+      if (!check.ok) {
+        setSaveError(check.reason ?? 'Wechsel nicht möglich.');
+        return false;
+      }
 
       setSaveError(null);
       const nextStarting = startingPlayerIds.map((id) => (id === outgoingPlayerId ? incomingPlayerId : id)).slice(0, 7);
@@ -1145,6 +1173,25 @@ export const LiveMatchScreen: React.FC = () => {
       squadPlayerIds,
     ],
   );
+
+  const confirmSubstitution = useCallback(async () => {
+    const outId = String(subOutPlayerId ?? '').trim();
+    const inId = String(subInPlayerId ?? '').trim();
+    if (!outId || !inId || outId === inId) return;
+    setSubSaving(true);
+    try {
+      const ok = await persistSubstitution(outId, inId);
+      if (ok) {
+        void queueRealtimeReload();
+        closeWechselSheet();
+      }
+    } catch (e) {
+      console.error('[LiveMatch] confirmSubstitution', e);
+      setSaveError('Wechsel konnte nicht abgeschlossen werden.');
+    } finally {
+      setSubSaving(false);
+    }
+  }, [subOutPlayerId, subInPlayerId, persistSubstitution, queueRealtimeReload, closeWechselSheet]);
 
   const filteredEvents = useMemo(() => {
     const list = [...events].sort((a, b) => b.timestamp - a.timestamp);
@@ -2293,41 +2340,218 @@ export const LiveMatchScreen: React.FC = () => {
             </ul>
           </div>
         )}
+      </div>
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="fixed inset-0 z-[95] flex items-end justify-center bg-zinc-950/95 p-4 backdrop-blur-sm sm:items-center sm:bg-black/65"
-          role="presentation"
-          onClick={closeWechselSheet}
+          className="fixed inset-0 z-[9999] flex flex-col bg-[#030806] text-white"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="wechsel-sheet-title"
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-red-500/30 bg-zinc-900 p-4 shadow-[0_18px_44px_rgba(0,0,0,0.72)]"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="wechsel-sheet-title"
-          >
-            <div className="text-center">
-              <h3 id="wechsel-sheet-title" className="text-xl font-semibold text-white">
-                Wechsel
-              </h3>
-              <p className="mt-2 text-sm leading-tight text-zinc-400">
-                Wechsel-Auswahl wird geladen
-              </p>
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(34,197,94,0.14),transparent_55%),radial-gradient(ellipse_90%_60%_at_50%_100%,rgba(220,38,38,0.1),transparent_50%),linear-gradient(180deg,#050b06_0%,#0a120a_45%,#040604_100%)]"
+            aria-hidden
+          />
+          <div className="pointer-events-none absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27256%27 height=%27256%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.8%27 numOctaves=%273%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27 opacity=%270.04%27/%3E%3C/svg%3E')] opacity-40" />
+          <div className="relative flex min-h-0 flex-1 flex-col">
+            <header className="shrink-0 border-b border-white/10 bg-black/55 px-3 py-3 backdrop-blur-md sm:px-4">
+              <div className="flex items-start gap-2">
+                <button
+                  type="button"
+                  onClick={closeWechselSheet}
+                  className="flex min-h-[40px] min-w-[40px] shrink-0 items-center justify-center rounded-xl border border-white/15 bg-black/50 text-sm font-bold text-white/90 hover:bg-white/10"
+                  aria-label="Schließen"
+                >
+                  ✕
+                </button>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <h3 id="wechsel-sheet-title" className="text-lg font-black tracking-tight text-white sm:text-xl">
+                    Wechsel
+                  </h3>
+                  <p className="mt-0.5 text-xs font-medium leading-snug text-white/55 sm:text-sm">
+                    Spieler raus und rein wählen
+                  </p>
+                </div>
+              </div>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 py-3 sm:px-4 sm:py-4">
+              <section className="mb-6">
+                <h4 className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-red-300/95">Spieler raus</h4>
+                {substitutionFieldRows.length === 0 ? (
+                  <p className="rounded-xl border border-white/10 bg-black/35 px-3 py-4 text-sm text-white/55">
+                    Keine Feldspieler — Startaufstellung fehlt oder wird noch geladen.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {substitutionFieldRows.map((row) => {
+                      const slot = row?.slot;
+                      const pid =
+                        slot && onFieldBySlot && typeof onFieldBySlot === 'object'
+                          ? String(onFieldBySlot[slot] ?? '').trim()
+                          : '';
+                      if (!pid) return null;
+                      const name = String(row?.display_name ?? 'Spieler').trim() || 'Spieler';
+                      const pos = getPositionLabel(row?.position ?? null) || '—';
+                      const slotBadge = String(row?.rightLabel ?? '–').trim() || '–';
+                      const num = row?.jersey_number ?? null;
+                      const avatarSrc = String(row?.avatar_url ?? '').trim() || '/avatars/player-placeholder.png';
+                      const selected = subOutPlayerId === pid;
+                      const initials = name
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((p) => p[0])
+                        .join('')
+                        .toUpperCase();
+                      return (
+                        <button
+                          key={`sub-out-${slot}-${pid}`}
+                          type="button"
+                          onClick={() => setSubOutPlayerId(pid)}
+                          className={[
+                            'relative w-full rounded-2xl border p-3 text-left transition-all duration-150 active:scale-[0.99]',
+                            selected
+                              ? 'border-red-500/75 bg-gradient-to-br from-red-950/50 via-black/85 to-black ring-2 ring-red-500/90'
+                              : 'border-white/12 bg-black/45 hover:border-white/22',
+                          ].join(' ')}
+                        >
+                          <div className="flex items-start gap-3 pr-10">
+                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/15 bg-zinc-800">
+                              <img
+                                src={avatarSrc}
+                                alt=""
+                                className="h-full w-full object-cover"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                  const n = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                  if (n) n.style.display = 'flex';
+                                }}
+                              />
+                              <span className="hidden h-full w-full items-center justify-center text-xs font-black text-white/90">
+                                {initials || 'SP'}
+                              </span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="break-words text-sm font-semibold text-white">{name}</div>
+                              <div className="mt-0.5 text-[11px] text-gray-400">{pos}</div>
+                            </div>
+                          </div>
+                          <span className="pointer-events-none absolute right-3 top-2 rounded-full border border-red-500/40 bg-red-950/40 px-2 py-0.5 text-[10px] font-bold text-red-100">
+                            {slotBadge}
+                          </span>
+                          <div className="pointer-events-none absolute bottom-2 right-3 text-sm font-semibold text-red-200/90">
+                            {num != null ? `#${num}` : '—'}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <section>
+                <h4 className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-300/95">Spieler rein</h4>
+                {substitutionBenchRows.length === 0 ? (
+                  <p className="rounded-xl border border-white/10 bg-black/35 px-3 py-4 text-sm text-white/55">
+                    Keine Bankspieler — Kader oder Bank ist leer.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {substitutionBenchRows.map((row) => {
+                      const pid = String(row?.id ?? '').trim();
+                      if (!pid) return null;
+                      const name = String(row?.display_name ?? 'Spieler').trim() || 'Spieler';
+                      const pos = getPositionLabel(row?.position ?? null) || '—';
+                      const num = row?.jersey_number ?? null;
+                      const avatarSrc = String(row?.avatar_url ?? '').trim() || '/avatars/player-placeholder.png';
+                      const selected = subInPlayerId === pid;
+                      const initials = name
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((p) => p[0])
+                        .join('')
+                        .toUpperCase();
+                      return (
+                        <button
+                          key={`sub-in-${pid}`}
+                          type="button"
+                          onClick={() => setSubInPlayerId(pid)}
+                          className={[
+                            'relative w-full rounded-2xl border p-3 text-left transition-all duration-150 active:scale-[0.99]',
+                            selected
+                              ? 'border-emerald-500/75 bg-gradient-to-br from-emerald-950/40 via-black/85 to-black ring-2 ring-emerald-500/85'
+                              : 'border-white/12 bg-black/45 hover:border-white/22',
+                          ].join(' ')}
+                        >
+                          <div className="flex items-start gap-3 pr-10">
+                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/15 bg-zinc-800">
+                              <img
+                                src={avatarSrc}
+                                alt=""
+                                className="h-full w-full object-cover"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                  const n = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                  if (n) n.style.display = 'flex';
+                                }}
+                              />
+                              <span className="hidden h-full w-full items-center justify-center text-xs font-black text-white/90">
+                                {initials || 'SP'}
+                              </span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="break-words text-sm font-semibold text-white">{name}</div>
+                              <div className="mt-0.5 text-[11px] text-gray-400">{pos}</div>
+                            </div>
+                          </div>
+                          <span className="pointer-events-none absolute right-3 top-2 rounded-full border border-amber-500/35 bg-amber-950/35 px-2 py-0.5 text-[10px] font-bold text-amber-100">
+                            Bank
+                          </span>
+                          <div className="pointer-events-none absolute bottom-2 right-3 text-sm font-semibold text-emerald-200/90">
+                            {num != null ? `#${num}` : '—'}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
             </div>
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={closeWechselSheet}
-                className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-white/20 bg-zinc-900/80 text-sm font-semibold text-white active:scale-[0.99]"
-              >
-                Abbrechen
-              </button>
-            </div>
+
+            <footer
+              className="shrink-0 border-t border-white/10 bg-black/70 px-3 py-3 backdrop-blur-md sm:px-4"
+              style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-row-reverse sm:justify-end">
+                <button
+                  type="button"
+                  disabled={
+                    subSaving ||
+                    !String(subOutPlayerId ?? '').trim() ||
+                    !String(subInPlayerId ?? '').trim() ||
+                    String(subOutPlayerId ?? '').trim() === String(subInPlayerId ?? '').trim()
+                  }
+                  onClick={() => void confirmSubstitution()}
+                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-emerald-600 to-emerald-950 text-sm font-black uppercase tracking-wide text-white shadow-[0_0_20px_rgba(16,185,129,0.25)] disabled:opacity-35 sm:max-w-xs sm:flex-none"
+                >
+                  {subSaving ? '…' : 'Wechsel bestätigen'}
+                </button>
+                <button
+                  type="button"
+                  disabled={subSaving}
+                  onClick={closeWechselSheet}
+                  className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/20 bg-zinc-900/90 text-sm font-bold text-white hover:bg-zinc-800 sm:max-w-xs sm:flex-none"
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </footer>
           </div>
         </div>
       ) : null}
-      </div>
 
       {homeGoalModalOpen && (
         <div
