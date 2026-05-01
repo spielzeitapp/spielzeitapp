@@ -459,8 +459,74 @@ export async function replaceMatchLineupAndBench(
   return { error: null };
 }
 
+const KICKOFF_LINEUP_SNAPSHOT_TYPE = 'kickoff';
+
+/**
+ * Speichert die aktuelle `match_lineup` einmalig als Kickoff-Snapshot (für Statistik/Minuten).
+ * Wenn bereits Zeilen für dieses Match existieren: keine Änderung.
+ */
+export async function ensureKickoffLineupSnapshot(matchId: string): Promise<{ error: string | null }> {
+  const mid = matchId?.trim();
+  if (!mid) return { error: 'Keine Match-ID.' };
+
+  const { count, error: countErr } = await supabase
+    .from('match_lineup_snapshots')
+    .select('id', { count: 'exact', head: true })
+    .eq('match_id', mid)
+    .eq('snapshot_type', KICKOFF_LINEUP_SNAPSHOT_TYPE);
+
+  if (countErr) {
+    console.error('[liveMatchService] ensureKickoffLineupSnapshot count', countErr);
+    return { error: countErr.message };
+  }
+  if (count != null && count > 0) return { error: null };
+
+  const { data: lineupRows, error: lineupErr } = await supabase
+    .from('match_lineup')
+    .select('player_id, slot')
+    .eq('match_id', mid);
+
+  if (lineupErr) {
+    console.error('[liveMatchService] ensureKickoffLineupSnapshot match_lineup', lineupErr);
+    return { error: lineupErr.message };
+  }
+
+  const rows = (lineupRows ?? [])
+    .map((r: { player_id?: string | null; slot?: string | null }) => {
+      const player_id = String(r.player_id ?? '').trim();
+      const slot = String(r.slot ?? '').trim();
+      if (!player_id || !slot) return null;
+      return {
+        match_id: mid,
+        player_id,
+        slot,
+        snapshot_type: KICKOFF_LINEUP_SNAPSHOT_TYPE,
+      };
+    })
+    .filter((r): r is { match_id: string; player_id: string; slot: string; snapshot_type: string } => r != null);
+
+  if (rows.length === 0) return { error: null };
+
+  const { error: insErr } = await supabase.from('match_lineup_snapshots').upsert(rows, {
+    onConflict: 'match_id,snapshot_type,slot',
+    ignoreDuplicates: true,
+  });
+
+  if (insErr) {
+    console.error('[liveMatchService] ensureKickoffLineupSnapshot insert', insErr);
+    return { error: insErr.message };
+  }
+  return { error: null };
+}
+
 /** Nach Aufstellung: Match auf „live“ setzen + Anpfiff-Event (Sekunde 0). */
 export async function persistLiveMatchBegin(matchId: string): Promise<{ error: string | null }> {
+  const { error: snapErr } = await ensureKickoffLineupSnapshot(matchId);
+  if (snapErr) {
+    console.error('[liveMatchService] persistLiveMatchBegin kickoff snapshot', snapErr);
+    return { error: snapErr };
+  }
+
   const now = new Date().toISOString();
   const { error: uErr } = await updateMatchRow(matchId, {
     status: 'live',
