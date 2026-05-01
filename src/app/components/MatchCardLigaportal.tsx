@@ -54,6 +54,8 @@ type MatchCardLigaportalProps = {
   attendanceCounts?: { yes: number; no: number; open: number } | null;
   /** true = öffentliche Ansicht: Karte nur Anzeige, keine Navigation, kein Link, kein onClick, Cursor default. */
   isPublicView?: boolean;
+  /** Termine-UX: nächster Termin hervorheben (nur Darstellung). */
+  heroHighlight?: boolean;
 };
 
 export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
@@ -84,6 +86,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   onOpenAttendance,
   attendanceCounts,
   isPublicView = false,
+  heroHighlight = false,
 }) => {
   const ourClubName = getOurTeamDisplayName();
   const canSeeSensitiveInfo = showMeetup;
@@ -350,8 +353,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     </>
   );
 
+  const heroRing = heroHighlight
+    ? 'ring-2 ring-red-500/45 shadow-[0_0_48px_rgba(220,38,38,0.18)] sm:py-5'
+    : '';
   const baseCardClass =
-    `relative w-full max-w-none overflow-hidden rounded-2xl bg-gradient-to-b from-black to-red-900 px-[15px] py-4 ${className}`;
+    `relative w-full max-w-none overflow-hidden rounded-2xl bg-gradient-to-b from-black to-red-900 px-[15px] py-4 ${heroRing} ${className}`;
   const cardClass =
     isPublicView ? baseCardClass : `${baseCardClass} ${isClickable ? 'cursor-pointer transition ' : ''}`.trim();
 

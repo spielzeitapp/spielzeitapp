@@ -4,6 +4,9 @@ import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { CreateEventModal } from '../app/components/CreateEventModal';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
+import { AttendanceActionRow } from '../components/schedule/AttendanceActionRow';
+import { CompactEventCard } from '../components/schedule/CompactEventCard';
+import { EventHeroCard } from '../components/schedule/EventHeroCard';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePublicTeamSeason } from '../hooks/usePublicTeamSeason';
 import { useEvents, type EventRow } from '../hooks/useEvents';
@@ -64,6 +67,12 @@ function getTimeBucket(e: EventRow, now: Date): TimeFilterId {
   const starts = e.starts_at ? new Date(e.starts_at) : null;
   if (starts && starts.getTime() < now.getTime()) return 'past';
   return 'upcoming';
+}
+
+function heroLabelForEffectiveType(et: 'game' | 'training' | 'event' | 'other'): string {
+  if (et === 'game') return 'Nächstes Spiel';
+  if (et === 'training') return 'Nächstes Training';
+  return 'Nächster Termin';
 }
 
 /** Titel-Zeile in notes (Training/Event) wie CreateEventModal: erster Teil vor „ · “. */
@@ -554,6 +563,20 @@ export const SchedulePage: React.FC = () => {
     return sorted.filter((e) => getTimeBucket(e, now) === timeFilter);
   }, [events, activeTab, kindFilter, normalizedUiRole, timeFilter]);
 
+  const showHeroCard = useMemo(() => {
+    if (displayEvents.length === 0) return false;
+    if (normalizedUiRole === 'fan') {
+      return activeTab === 'upcoming' || activeTab === 'live';
+    }
+    return timeFilter === 'upcoming';
+  }, [displayEvents.length, normalizedUiRole, activeTab, timeFilter]);
+
+  const heroEvent = showHeroCard ? displayEvents[0] ?? null : null;
+  const furtherEvents = useMemo(() => {
+    if (!showHeroCard) return displayEvents;
+    return displayEvents.slice(1);
+  }, [displayEvents, showHeroCard]);
+
   useEffect(() => {
     let cancelled = false;
     const matchIds = Array.from(
@@ -604,7 +627,7 @@ export const SchedulePage: React.FC = () => {
   return (
     <div className="page schedule-page relative min-h-[60vh] [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_50%,rgba(10,0,0,0.99)_100%)] [box-shadow:inset_0_0_120px_rgba(120,20,20,0.12)]">
       <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
-        <div className="mx-auto mt-2 max-w-4xl space-y-5 pt-4 lg:max-w-6xl">
+        <div className="mx-auto mt-1 max-w-3xl space-y-3 pt-3 sm:mt-2 sm:space-y-4 sm:pt-4">
           {toastMessage && (
             <div
               className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl bg-black/90 border border-red-900/80 text-white text-sm font-medium shadow-lg backdrop-blur-sm"
@@ -622,126 +645,122 @@ export const SchedulePage: React.FC = () => {
             </Link>
           )}
           <div className="space-y-2">
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <h1 className="text-4xl font-bold text-white tracking-tight leading-none [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl font-bold leading-tight tracking-tight text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.5)] sm:text-3xl md:text-4xl">
                   {normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine'}
                 </h1>
-                {canManage && (
+                <div
+                  className="mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-lg border border-white/12 bg-white/[0.06] px-2.5 py-1 text-xs text-white/80 sm:text-sm"
+                  role="note"
+                >
+                  <span className="truncate">{teamSeasonSubtitle}</span>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                {teamSeasonId && !pageLoading && displayEvents.length > 0 ? (
+                  <Button
+                    variant="soft"
+                    size="xs"
+                    className="rounded-full px-2.5 text-[11px] sm:text-xs"
+                    title="Kalender exportieren"
+                    onClick={() =>
+                      downloadCalendarIcs(displayEvents, {
+                        appBaseUrl: window.location.origin,
+                        calendarName: normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine',
+                      })
+                    }
+                  >
+                    <span className="hidden sm:inline">Export</span>
+                    <span className="sm:hidden" aria-hidden>
+                      .ics
+                    </span>
+                  </Button>
+                ) : null}
+                {canManage ? (
                   <button
                     type="button"
                     onClick={() => setCreateModalOpen(true)}
                     disabled={!teamSeasonId}
-                    className="h-9 w-9 shrink-0 rounded-full border border-red-500/35 bg-red-500/15 text-white text-lg leading-none disabled:opacity-50 hover:bg-red-500/25"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-500/35 bg-red-500/15 text-lg leading-none text-white disabled:opacity-50 hover:bg-red-500/25"
                     aria-label="Termin anlegen"
                     title="Termin anlegen"
                   >
                     +
                   </button>
-                )}
-              </div>
-              <div
-                className="mt-1 inline-flex max-w-full items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-white/85"
-                role="button"
-                aria-label="Team-Auswahl (vorbereitet)"
-              >
-                <span className="truncate">{teamSeasonSubtitle}</span>
-                <span className="text-white/60 shrink-0">▾</span>
+                ) : null}
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {teamSeasonId && !pageLoading && displayEvents.length > 0 && (
-                <Button
-                  variant="soft"
-                  size="sm"
-                  className="rounded-lg"
-                  onClick={() =>
-                    downloadCalendarIcs(displayEvents, {
-                      appBaseUrl: window.location.origin,
-                      calendarName: normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine',
-                    })
-                  }
-                >
-                  Kalender exportieren
-                </Button>
-              )}
-            </div>
-            {normalizedUiRole !== 'fan' && (
-              <div className="mx-auto flex max-w-[420px] gap-1 rounded-lg border border-white/10 bg-black/30 p-1">
-                <NavLink to="/app/termine" end className={({ isActive }) => viewTabClass(isActive)}>
-                  Liste
-                </NavLink>
-                <NavLink to="/app/termine/calendar" className={({ isActive }) => viewTabClass(isActive)}>
-                  Kalender
-                </NavLink>
+
+            {normalizedUiRole !== 'fan' ? (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex w-full max-w-xl gap-0.5 rounded-lg border border-white/10 bg-black/35 p-0.5 backdrop-blur-sm sm:max-w-none sm:flex-1">
+                  {([
+                    { id: 'all', label: 'Alle' },
+                    { id: 'match', label: 'Spiele' },
+                    { id: 'training', label: 'Training' },
+                    { id: 'event', label: 'Events' },
+                  ] as const).map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setKindFilter(f.id)}
+                      className={`min-h-[32px] flex-1 rounded-md px-1.5 py-1 text-[10px] font-semibold transition-colors sm:text-[11px] ${
+                        kindFilter === f.id
+                          ? 'border border-white/35 bg-white/15 text-white'
+                          : 'border border-transparent text-white/65 hover:text-white/90'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                  <span className="mx-0.5 hidden w-px self-stretch bg-white/15 sm:block" aria-hidden />
+                  {([
+                    { id: 'upcoming' as const, label: 'Kommend' },
+                    { id: 'past' as const, label: 'Vergangen' },
+                  ]).map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTimeFilter(t.id)}
+                      className={`min-h-[32px] flex-1 rounded-md px-1.5 py-1 text-[10px] font-semibold transition-colors sm:max-w-[5.5rem] sm:text-[11px] ${
+                        timeFilter === t.id
+                          ? 'border border-red-500/35 bg-red-500/15 text-white'
+                          : 'border border-transparent text-white/65 hover:text-white/90'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex w-full gap-1 rounded-lg border border-white/10 bg-black/30 p-0.5 sm:w-auto sm:max-w-[220px]">
+                  <NavLink to="/app/termine" end className={({ isActive }) => viewTabClass(isActive)}>
+                    Liste
+                  </NavLink>
+                  <NavLink to="/app/termine/calendar" className={({ isActive }) => viewTabClass(isActive)}>
+                    Kalender
+                  </NavLink>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-0.5 rounded-xl border border-red-900/35 bg-black/30 p-0.5 backdrop-blur-sm">
+                {TAB_OPTIONS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`min-h-[36px] flex-1 rounded-lg px-1 py-1.5 text-[11px] font-semibold transition-colors sm:text-sm ${
+                      activeTab === tab.id
+                        ? 'border border-red-500/35 bg-red-500/15 text-white shadow-[0_0_16px_rgba(255,0,0,0.12)]'
+                        : 'border border-transparent text-white/65 hover:text-white/88'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
             )}
           </div>
-
-          {normalizedUiRole === 'fan' ? (
-            <div className="flex gap-1.5 rounded-xl border border-red-900/40 bg-black/25 p-1.5 backdrop-blur-sm">
-              {TAB_OPTIONS.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-red-500/15 text-white border border-red-500/30 shadow-[0_0_20px_rgba(255,0,0,0.20)]'
-                      : 'text-white/70 hover:text-white/90 border border-transparent'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <>
-              {/* Row 1: Event-Typ */}
-              <div className="flex gap-1 rounded-lg border border-white/10 bg-black/30 p-1 backdrop-blur-sm">
-                {([
-                  { id: 'all', label: 'Alle' },
-                  { id: 'match', label: 'Spiele' },
-                  { id: 'training', label: 'Trainings' },
-                  { id: 'event', label: 'Events' },
-                ] as const).map((f) => (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setKindFilter(f.id)}
-                    className={`flex-1 py-1.5 px-2 rounded-md text-[11px] font-medium transition-colors ${
-                      kindFilter === f.id
-                        ? 'bg-white/15 text-white border border-white/40'
-                        : 'text-white/70 hover:text-white/90 border border-transparent'
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Row 2: Zeit */}
-              <div className="mt-1.5 flex gap-1 rounded-lg border border-white/10 bg-black/25 p-1 backdrop-blur-sm">
-                {([
-                  { id: 'upcoming', label: 'Bevorstehend' },
-                  { id: 'past', label: 'Vergangen' },
-                ] as const).map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTimeFilter(t.id)}
-                    className={`flex-1 py-1.5 px-2 rounded-md text-[11px] font-medium transition-colors ${
-                      timeFilter === t.id
-                        ? 'bg-red-500/15 text-white border border-red-500/30'
-                        : 'text-white/70 hover:text-white/90 border border-transparent'
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
 
           {pageLoading && (
             <p className="text-sm text-[var(--muted)]">
@@ -755,139 +774,270 @@ export const SchedulePage: React.FC = () => {
           )}
 
           {!pageLoading && !error && (
-            <div className="lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-5">
-              <div>
-                {displayEvents.length === 0 ? (
-                  <p className="text-sm text-[var(--text-sub)]">
-                    {events.length === 0
-                      ? 'Noch keine Spiele oder Termine für diese Mannschaft erfasst.'
-                      : normalizedUiRole === 'fan'
-                        ? `Keine Einträge in „${TAB_OPTIONS.find((t) => t.id === activeTab)?.label ?? activeTab}".`
-                        : `Keine Einträge in „${timeFilter === 'upcoming' ? 'Bevorstehend' : 'Vergangen'}“.`}
-                  </p>
-                ) : (
-                  displayEvents.map((ev) => {
-                  const evAttendance = attendanceByEventId[ev.id];
-                  const yesRaw = evAttendance?.yes ?? 0;
-                  const no = evAttendance?.no ?? 0;
-                  const open = Math.max(0, rosterSize - yesRaw - no);
-                  const et = getEffectiveEventType(ev);
-                  const countsForCard =
-                    et === 'training'
-                      ? { yes: Math.max(0, rosterSize - no), no, open: 0 }
-                      : { yes: yesRaw, no, open: open };
-                  const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
-                  const myStatusFromDb =
-                    (uiRole === 'parent' || uiRole === 'player') && myAttendancePlayerIds[0] && evAttendance?.availabilityByPlayerId[myPlayerIdKey];
-                  const attendanceStatusMerged =
-                    (uiRole === 'parent' || uiRole === 'player')
-                      ? (attendanceStatusByEventId[ev.id] ?? myStatusFromDb ?? null)
-                      : undefined;
-                  const matchScore = ev.match_id ? matchScoreById[ev.match_id] : undefined;
-                  const isFinishedMatch = et === 'game' && ev.status === 'finished' && Boolean(ev.match_id);
-                  return (
-                    <div
-                      key={ev.id}
-                      className="w-full mb-6"
-                      {...(forcePublicView
-                        ? {
-                            onClick: (e: React.MouseEvent) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            },
-                            style: { cursor: 'default' as const },
-                            role: 'presentation',
-                          }
-                        : {})}
-                    >
-                      <MatchCardLigaportal
-                        className="w-full max-w-none rounded-2xl"
-                        ourTeamName={ourTeamName}
-                        opponent={ev.opponent}
-                        isHome={ev.is_home}
-                        startsAt={ev.starts_at}
-                        status={ev.status}
-                        scoreHome={matchScore?.scoreHome}
-                        scoreAway={matchScore?.scoreAway}
-                        kind={ev.kind}
-                        eventType={et}
-                        notes={ev.notes}
-                        matchType={ev.match_type}
-                        location={ev.location}
-                        address={ev.location}
-                        meetupAt={ev.meeting_at}
-                        showMeetup={showMeetupForRole}
-                        eventId={forcePublicView ? undefined : ev.id}
-                        onNavigate={
-                          forcePublicView
-                            ? undefined
-                            : (id) =>
-                                isFinishedMatch && ev.match_id
-                                  ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
-                                  : navigate(`/app/events/${id}`)
-                        }
-                        isPublicView={forcePublicView}
-                        opponentLogoUrl={ev.opponent_logo_url}
-                        canManage={canManage}
-                        onEdit={canManage ? () => openEditModal(ev) : undefined}
-                        onDelete={canManage ? () => handleDelete(ev) : undefined}
-                        role={uiRole ?? undefined}
-                        attendanceStatus={isFinishedMatch ? undefined : attendanceStatusMerged}
-                        onOpenAttendance={
-                          isFinishedMatch
-                            ? undefined
-                            : (uiRole === 'parent' || uiRole === 'player')
-                              ? () => setAttendanceModalEvent(ev)
-                              : undefined
-                        }
-                        attendanceCounts={isFinishedMatch ? undefined : canManage ? countsForCard : undefined}
-                      />
-                      <div className="mt-2 flex flex-wrap justify-end gap-2">
-                        {canManage && et === 'game' && ev.match_id && ev.status !== 'finished' && (
-                          <Button
-                            variant="primary"
-                            size="xs"
-                            className="rounded-full"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/live?matchId=${ev.match_id}`);
-                            }}
-                          >
-                            Live starten
-                          </Button>
-                        )}
-                        {ev.status !== 'finished' && (
-                          <Button
-                            variant="soft"
-                            size="xs"
-                            className="rounded-full"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              downloadEventIcs(ev, {
-                                appBaseUrl: window.location.origin,
-                              });
-                            }}
-                          >
-                            Zum Kalender hinzufügen
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                  })
-                )}
-              </div>
-              <aside className="mt-4 lg:mt-0">
-                <div className="lg:sticky lg:top-28 space-y-3 rounded-2xl border border-white/10 bg-black/30 p-4 backdrop-blur-sm">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-red-200">Kalender / Vorschau</h2>
-                  <p className="text-sm text-white/70">
-                    Auf Tablets bleibt die Terminliste links sichtbar, während rechts eine schnelle Vorschau für Kalender und Details bereitsteht.
-                  </p>
-                  <NavLink to="/app/termine/calendar" className="inline-flex rounded-lg border border-red-500/35 bg-red-950/40 px-3 py-2 text-sm font-medium text-white hover:bg-red-900/45">
-                    Zum Kalender
-                  </NavLink>
-                </div>
-              </aside>
+            <div className="w-full">
+              {displayEvents.length === 0 ? (
+                <p className="text-sm text-[var(--text-sub)]">
+                  {events.length === 0
+                    ? 'Noch keine Spiele oder Termine für diese Mannschaft erfasst.'
+                    : normalizedUiRole === 'fan'
+                      ? `Keine Einträge in „${TAB_OPTIONS.find((t) => t.id === activeTab)?.label ?? activeTab}".`
+                      : `Keine Einträge in „${timeFilter === 'upcoming' ? 'Kommend' : 'Vergangen'}“.`}
+                </p>
+              ) : (
+                <>
+                  {heroEvent
+                    ? (() => {
+                        const ev = heroEvent;
+                        const evAttendance = attendanceByEventId[ev.id];
+                        const yesRaw = evAttendance?.yes ?? 0;
+                        const no = evAttendance?.no ?? 0;
+                        const open = Math.max(0, rosterSize - yesRaw - no);
+                        const et = getEffectiveEventType(ev);
+                        const countsForCard =
+                          et === 'training'
+                            ? { yes: Math.max(0, rosterSize - no), no, open: 0 }
+                            : { yes: yesRaw, no, open };
+                        const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
+                        const myStatusFromDb =
+                          (uiRole === 'parent' || uiRole === 'player') &&
+                          myAttendancePlayerIds[0] &&
+                          evAttendance?.availabilityByPlayerId[myPlayerIdKey];
+                        const attendanceStatusMerged =
+                          uiRole === 'parent' || uiRole === 'player'
+                            ? attendanceStatusByEventId[ev.id] ?? myStatusFromDb ?? null
+                            : undefined;
+                        const matchScore = ev.match_id ? matchScoreById[ev.match_id] : undefined;
+                        const isFinishedMatch = et === 'game' && ev.status === 'finished' && Boolean(ev.match_id);
+                        const publicWrap = forcePublicView
+                          ? {
+                              onClick: (e: React.MouseEvent) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              },
+                              style: { cursor: 'default' as const },
+                              role: 'presentation' as const,
+                            }
+                          : {};
+                        const actionRow = (
+                          <div className="mt-2 flex flex-wrap justify-end gap-2">
+                            {canManage && et === 'game' && ev.match_id && ev.status !== 'finished' ? (
+                              <Button
+                                variant="primary"
+                                size="xs"
+                                className="rounded-full"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/live?matchId=${ev.match_id}`);
+                                }}
+                              >
+                                Live starten
+                              </Button>
+                            ) : null}
+                            {ev.status !== 'finished' ? (
+                              <Button
+                                variant="soft"
+                                size="xs"
+                                className="rounded-full"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  downloadEventIcs(ev, {
+                                    appBaseUrl: window.location.origin,
+                                  });
+                                }}
+                              >
+                                Zum Kalender
+                              </Button>
+                            ) : null}
+                          </div>
+                        );
+                        return (
+                          <div key={ev.id} className="w-full" {...publicWrap}>
+                            <EventHeroCard
+                              label={heroLabelForEffectiveType(et)}
+                              footer={
+                                <>
+                                  {!forcePublicView &&
+                                  !isFinishedMatch &&
+                                  (uiRole === 'parent' || uiRole === 'player') ? (
+                                    <AttendanceActionRow
+                                      isTraining={et === 'training'}
+                                      onOpenAttendance={() => setAttendanceModalEvent(ev)}
+                                      variant="hero"
+                                    />
+                                  ) : null}
+                                  {actionRow}
+                                </>
+                              }
+                            >
+                              <MatchCardLigaportal
+                                className="w-full max-w-none rounded-2xl"
+                                heroHighlight
+                                ourTeamName={ourTeamName}
+                                opponent={ev.opponent}
+                                isHome={ev.is_home}
+                                startsAt={ev.starts_at}
+                                status={ev.status}
+                                scoreHome={matchScore?.scoreHome}
+                                scoreAway={matchScore?.scoreAway}
+                                kind={ev.kind}
+                                eventType={et}
+                                notes={ev.notes}
+                                matchType={ev.match_type}
+                                location={ev.location}
+                                address={ev.location}
+                                meetupAt={ev.meeting_at}
+                                showMeetup={showMeetupForRole}
+                                eventId={forcePublicView ? undefined : ev.id}
+                                onNavigate={
+                                  forcePublicView
+                                    ? undefined
+                                    : (id) =>
+                                        isFinishedMatch && ev.match_id
+                                          ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
+                                          : navigate(`/app/events/${id}`)
+                                }
+                                isPublicView={forcePublicView}
+                                opponentLogoUrl={ev.opponent_logo_url}
+                                canManage={canManage}
+                                onEdit={canManage ? () => openEditModal(ev) : undefined}
+                                onDelete={canManage ? () => handleDelete(ev) : undefined}
+                                role={uiRole ?? undefined}
+                                attendanceStatus={isFinishedMatch ? undefined : attendanceStatusMerged}
+                                onOpenAttendance={
+                                  isFinishedMatch
+                                    ? undefined
+                                    : uiRole === 'parent' || uiRole === 'player'
+                                      ? () => setAttendanceModalEvent(ev)
+                                      : undefined
+                                }
+                                attendanceCounts={isFinishedMatch ? undefined : canManage ? countsForCard : undefined}
+                              />
+                            </EventHeroCard>
+                          </div>
+                        );
+                      })()
+                    : null}
+
+                  {furtherEvents.length > 0 ? (
+                    <h3 className="mb-2 mt-2 text-[11px] font-extrabold uppercase tracking-[0.2em] text-white/40">
+                      Weitere Termine
+                    </h3>
+                  ) : null}
+
+                  {furtherEvents.map((ev) => {
+                    const evAttendance = attendanceByEventId[ev.id];
+                    const yesRaw = evAttendance?.yes ?? 0;
+                    const no = evAttendance?.no ?? 0;
+                    const open = Math.max(0, rosterSize - yesRaw - no);
+                    const et = getEffectiveEventType(ev);
+                    const countsForCard =
+                      et === 'training'
+                        ? { yes: Math.max(0, rosterSize - no), no, open: 0 }
+                        : { yes: yesRaw, no, open };
+                    const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
+                    const myStatusFromDb =
+                      (uiRole === 'parent' || uiRole === 'player') &&
+                      myAttendancePlayerIds[0] &&
+                      evAttendance?.availabilityByPlayerId[myPlayerIdKey];
+                    const attendanceStatusMerged =
+                      uiRole === 'parent' || uiRole === 'player'
+                        ? attendanceStatusByEventId[ev.id] ?? myStatusFromDb ?? null
+                        : undefined;
+                    const matchScore = ev.match_id ? matchScoreById[ev.match_id] : undefined;
+                    const isFinishedMatch = et === 'game' && ev.status === 'finished' && Boolean(ev.match_id);
+                    return (
+                      <CompactEventCard key={ev.id}>
+                        <div
+                          className="w-full"
+                          {...(forcePublicView
+                            ? {
+                                onClick: (e: React.MouseEvent) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                },
+                                style: { cursor: 'default' as const },
+                                role: 'presentation',
+                              }
+                            : {})}
+                        >
+                          <MatchCardLigaportal
+                            className="w-full max-w-none rounded-xl"
+                            ourTeamName={ourTeamName}
+                            opponent={ev.opponent}
+                            isHome={ev.is_home}
+                            startsAt={ev.starts_at}
+                            status={ev.status}
+                            scoreHome={matchScore?.scoreHome}
+                            scoreAway={matchScore?.scoreAway}
+                            kind={ev.kind}
+                            eventType={et}
+                            notes={ev.notes}
+                            matchType={ev.match_type}
+                            location={ev.location}
+                            address={ev.location}
+                            meetupAt={ev.meeting_at}
+                            showMeetup={showMeetupForRole}
+                            eventId={forcePublicView ? undefined : ev.id}
+                            onNavigate={
+                              forcePublicView
+                                ? undefined
+                                : (id) =>
+                                    isFinishedMatch && ev.match_id
+                                      ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
+                                      : navigate(`/app/events/${id}`)
+                            }
+                            isPublicView={forcePublicView}
+                            opponentLogoUrl={ev.opponent_logo_url}
+                            canManage={canManage}
+                            onEdit={canManage ? () => openEditModal(ev) : undefined}
+                            onDelete={canManage ? () => handleDelete(ev) : undefined}
+                            role={uiRole ?? undefined}
+                            attendanceStatus={isFinishedMatch ? undefined : attendanceStatusMerged}
+                            onOpenAttendance={
+                              isFinishedMatch
+                                ? undefined
+                                : uiRole === 'parent' || uiRole === 'player'
+                                  ? () => setAttendanceModalEvent(ev)
+                                  : undefined
+                            }
+                            attendanceCounts={isFinishedMatch ? undefined : canManage ? countsForCard : undefined}
+                          />
+                          <div className="mt-1.5 flex flex-wrap justify-end gap-1.5">
+                            {canManage && et === 'game' && ev.match_id && ev.status !== 'finished' ? (
+                              <Button
+                                variant="primary"
+                                size="xs"
+                                className="rounded-full"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/live?matchId=${ev.match_id}`);
+                                }}
+                              >
+                                Live
+                              </Button>
+                            ) : null}
+                            {ev.status !== 'finished' ? (
+                              <Button
+                                variant="soft"
+                                size="xs"
+                                className="rounded-full"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  downloadEventIcs(ev, {
+                                    appBaseUrl: window.location.origin,
+                                  });
+                                }}
+                              >
+                                Kalender
+                              </Button>
+                            ) : null}
+                          </div>
+                        </div>
+                      </CompactEventCard>
+                    );
+                  })}
+                </>
+              )}
             </div>
           )}
 
