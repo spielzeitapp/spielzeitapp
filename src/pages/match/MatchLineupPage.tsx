@@ -11,12 +11,14 @@ import {
   LIVE_FIELD_SLOT_ORDER,
   persistLiveMatchBegin,
   replaceMatchLineupAndBench,
+  updateMatchRow,
 } from '../../lib/liveMatchService';
 import {
-  DEFAULT_U11_FORMATION,
+  isU11FormationId,
   labelForSlotInFormation,
   readStoredU11Formation,
   U11_FORMATION_CHOICES,
+  U11_FORMATION_DB_FALLBACK,
   writeStoredU11Formation,
   type U11FormationId,
 } from '../../lib/matchFormations';
@@ -28,6 +30,7 @@ type MatchRowLite = {
   id: string;
   team_season_id: string;
   opponent: string | null;
+  u11_formation_id: string | null;
 };
 
 type LocationState = {
@@ -89,7 +92,7 @@ export const MatchLineupPage: React.FC = () => {
   const [startingLive, setStartingLive] = useState(false);
   const [assignFlashSlot, setAssignFlashSlot] = useState<FieldSlotId | null>(null);
   const assignFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [formationId, setFormationId] = useState<U11FormationId>(DEFAULT_U11_FORMATION);
+  const [formationId, setFormationId] = useState<U11FormationId>(U11_FORMATION_DB_FALLBACK);
   const [isMobile, setIsMobile] = useState(false);
   const [benchOpen, setBenchOpen] = useState(false);
 
@@ -107,7 +110,7 @@ export const MatchLineupPage: React.FC = () => {
       setMatchError(null);
       const { data, error } = await supabase
         .from('matches')
-        .select('id, team_season_id, opponent')
+        .select('id, team_season_id, opponent, u11_formation_id')
         .eq('id', matchId)
         .maybeSingle();
       if (cancelled) return;
@@ -180,10 +183,19 @@ export const MatchLineupPage: React.FC = () => {
   }, [matchId, selectedFromState]);
 
   useEffect(() => {
-    if (!matchId) return;
+    if (!matchId || !matchRow) return;
+    const fromDb = matchRow.u11_formation_id;
+    if (isU11FormationId(fromDb)) {
+      setFormationId(fromDb);
+      return;
+    }
     const stored = readStoredU11Formation(matchId);
-    if (stored) setFormationId(stored);
-  }, [matchId]);
+    if (stored) {
+      setFormationId(stored);
+      return;
+    }
+    setFormationId(U11_FORMATION_DB_FALLBACK);
+  }, [matchId, matchRow]);
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 639px)');
@@ -267,9 +279,15 @@ export const MatchLineupPage: React.FC = () => {
     setSavingLineup(true);
     const ordered = LIVE_FIELD_SLOT_ORDER.map((slot) => slots[slot] ?? null);
     const { error } = await replaceMatchLineupAndBench(matchId, ordered, squadIds);
-    setSavingLineup(false);
     if (error) {
+      setSavingLineup(false);
       setSaveError(error);
+      return false;
+    }
+    const { error: formationErr } = await updateMatchRow(matchId, { u11_formation_id: formationId });
+    setSavingLineup(false);
+    if (formationErr) {
+      setSaveError(formationErr);
       return false;
     }
     setSaveMsg('Aufstellung gespeichert.');

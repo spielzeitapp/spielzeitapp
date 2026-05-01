@@ -32,7 +32,12 @@ import {
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
-import { isU11FormationId, labelForSlotInFormation, type U11FormationId } from '../../lib/matchFormations';
+import {
+  isU11FormationId,
+  labelForSlotInFormation,
+  U11_FORMATION_DB_FALLBACK,
+  type U11FormationId,
+} from '../../lib/matchFormations';
 import type { FieldSlotId } from '../../types/match';
 import { compareRosterPlayers, playerItemToRoster, type RosterPlayer } from '../../lib/rosterPlayer';
 import { getPositionLabel } from '../../lib/positionLabels';
@@ -865,18 +870,11 @@ export const LiveMatchScreen: React.FC = () => {
     return out;
   }, [onFieldBySlot, safeSlotOrder]);
 
-  /**
-   * Eine Formation für alle Rollen: nicht aus localStorage oder Tab-State.
-   * Sobald `matches` eine speicherbare Formations-ID liefert, hier einbinden (ohne neue DB-Spalte im Repo).
-   */
-  const savedFormationFromMatchOrLineup = useMemo((): U11FormationId | null => {
-    const raw = (matchRow as { u11_formation_id?: string | null } | null)?.u11_formation_id;
-    return isU11FormationId(raw) ? raw : null;
-  }, [matchRow]);
-
+  /** Single Source of Truth: `matches.u11_formation_id` (Realtime), kein localStorage. */
   const safeFormationId = useMemo((): U11FormationId => {
-    return savedFormationFromMatchOrLineup ?? '1-2-3-1';
-  }, [savedFormationFromMatchOrLineup]);
+    const raw = matchRow?.u11_formation_id;
+    return isU11FormationId(raw) ? raw : U11_FORMATION_DB_FALLBACK;
+  }, [matchRow]);
 
   const safeLineupRows = useMemo(
     () =>

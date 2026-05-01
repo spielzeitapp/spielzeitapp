@@ -5,6 +5,9 @@ export type U11FormationId = '1-2-2-2' | '1-2-3-1' | '1-3-2-1';
 
 export const DEFAULT_U11_FORMATION: U11FormationId = '1-2-2-2';
 
+/** Wenn `matches.u11_formation_id` NULL ist und kein gültiger lokaler Cache: einheitlicher Pitch-Fallback. */
+export const U11_FORMATION_DB_FALLBACK: U11FormationId = '1-2-3-1';
+
 export const U11_FORMATION_CHOICES: U11FormationId[] = ['1-2-2-2', '1-2-3-1', '1-3-2-1'];
 
 export type FormationSlotLayout = {
