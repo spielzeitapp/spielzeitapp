@@ -1,6 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import type { PlayerItem } from "../../hooks/usePlayers";
+import { usePlayerStats } from "../../hooks/usePlayerStats";
 import { Button } from "../../app/components/ui/Button";
 import { getPlayerBirthDisplayLines } from "../../lib/playerBirthDisplay";
 import { getPositionFull, getPositionLabel } from "../../lib/positionLabels";
@@ -69,11 +70,23 @@ function Chip({ children }: { children: React.ReactNode }) {
   );
 }
 
+function EinsatzBadge({ kind, label }: { kind: "full" | "sub_in" | "bank" | "partial"; label: string }) {
+  const base =
+    "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide";
+  if (kind === "bank") {
+    return <span className={`${base} border-white/20 bg-white/10 text-white/55`}>{label}</span>;
+  }
+  if (kind === "sub_in") {
+    return <span className={`${base} border-emerald-500/45 bg-emerald-950/50 text-emerald-100`}>{label}</span>;
+  }
+  if (kind === "full") {
+    return <span className={`${base} border-red-500/40 bg-red-950/45 text-red-100`}>{label}</span>;
+  }
+  return <span className={`${base} border-amber-500/35 bg-amber-950/40 text-amber-100`}>{label}</span>;
+}
+
 /**
  * Premium player profile overlay (dark stadium).
- * TODO: Wire Spiele / Tore / Minuten / Tore pro 90 from match + attendance services when available.
- * TODO: Wire training participation + last trainings bar from event_attendance / training events.
- * TODO: Wire last 5 matches from matches + match_events scoped to this player_id.
  */
 export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   player,
@@ -84,6 +97,18 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   onClose,
   onEdit,
 }) => {
+  const [profileTab, setProfileTab] = useState<"saison" | "einsaetze">("saison");
+  const { data: stats, lastMatches, isLoading: statsLoading, error: statsError } = usePlayerStats(
+    player.id,
+    player.team_season_id,
+  );
+
+  const goalsPer90Display = useMemo(() => {
+    const v = Number(stats.goalsPer90);
+    if (!Number.isFinite(v)) return "0.00";
+    return v.toFixed(2);
+  }, [stats.goalsPer90]);
+
   const name = displayFullName(player);
   const avatarSrc = (photoUrl ?? "").trim() || "/avatars/player-placeholder.png";
   const jerseyChip =
@@ -94,23 +119,10 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const positionFull = getPositionFull(player.position);
   const birthDisplayLines = getPlayerBirthDisplayLines(role, player.birthdate);
 
-  // Placeholder stats — do not invent real numbers; show zeros until backend aggregates exist.
-  const stats = { games: 0, goals: 0, minutes: 0, goalsPer90: 0 };
-
-  // TODO: Replace with real training aggregates for this player + team_season.
   const trainingParticipationPct = 0;
   const trainingsAttended = 0;
   const trainingsTotal = 0;
   const hasTrainingBars = false;
-
-  // TODO: Replace with last 5 match rows for this player (opponent, date, result, goals, minutes).
-  const lastMatches: Array<{
-    opponent: string;
-    dateLabel: string;
-    result: string | null;
-    goals: number | null;
-    minutes: number | null;
-  }> = [];
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -189,50 +201,110 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             <Chip>Rückennummer: {jerseyChip}</Chip>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <StatCard label="Spiele" value={String(stats.games)} />
-            <StatCard label="Tore" value={String(stats.goals)} />
-            <StatCard label="Spielmin." value={String(stats.minutes)} />
-            <StatCard label="Tore / 90" value={stats.goalsPer90.toFixed(2)} />
+          <div className="mt-5 flex w-full justify-center gap-1 rounded-xl border border-white/10 bg-black/40 p-0.5">
+            <button
+              type="button"
+              onClick={() => setProfileTab("saison")}
+              className={[
+                "min-h-[38px] flex-1 rounded-lg px-2 text-xs font-bold transition-colors sm:text-sm",
+                profileTab === "saison" ? "bg-red-600 text-white shadow-sm" : "text-white/50 hover:text-white/85",
+              ].join(" ")}
+            >
+              Saison
+            </button>
+            <button
+              type="button"
+              onClick={() => setProfileTab("einsaetze")}
+              className={[
+                "min-h-[38px] flex-1 rounded-lg px-2 text-xs font-bold transition-colors sm:text-sm",
+                profileTab === "einsaetze" ? "bg-red-600 text-white shadow-sm" : "text-white/50 hover:text-white/85",
+              ].join(" ")}
+            >
+              Einsätze
+            </button>
           </div>
-          <p className="mt-2 text-center text-[11px] text-white/40">Noch keine Daten</p>
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-4">
-            <h4 className="text-xs font-bold uppercase tracking-wide text-red-300/90">Training</h4>
-            <div className="mt-3 flex items-baseline justify-between gap-2">
-              <span className="text-sm text-white/70">Teilnahmequote</span>
-              <span className="text-lg font-black text-white">{trainingParticipationPct}%</span>
+          {profileTab === "saison" ? (
+            <>
+              <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {statsLoading
+                  ? [0, 1, 2, 3].map((i) => (
+                      <div
+                        key={`st-skel-${i}`}
+                        className="h-[4.5rem] animate-pulse rounded-2xl border border-white/5 bg-white/[0.07]"
+                      />
+                    ))
+                  : [
+                      { label: "Spiele", value: String(stats.games) },
+                      { label: "Tore", value: String(stats.goals) },
+                      { label: "Spielmin.", value: String(stats.minutes) },
+                      { label: "Tore / 90", value: goalsPer90Display },
+                    ].map((s) => <StatCard key={s.label} label={s.label} value={s.value} />)}
+              </div>
+              {statsError ? (
+                <p className="mt-2 text-center text-[11px] text-amber-400/95">{statsError}</p>
+              ) : null}
+              {!statsLoading && !statsError && stats.games === 0 ? (
+                <p className="mt-2 text-center text-[11px] text-white/40">Noch keine Ligadaten in dieser Saison</p>
+              ) : null}
+
+              <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-4">
+                <h4 className="text-xs font-bold uppercase tracking-wide text-red-300/90">Training</h4>
+                <div className="mt-3 flex items-baseline justify-between gap-2">
+                  <span className="text-sm text-white/70">Teilnahmequote</span>
+                  <span className="text-lg font-black text-white">{trainingParticipationPct}%</span>
+                </div>
+                <p className="mt-1 text-xs text-white/50">
+                  Trainings teilgenommen: {trainingsAttended} / {trainingsTotal}
+                </p>
+                {hasTrainingBars ? (
+                  <div className="mt-3 flex gap-1">{/* später event_attendance */}</div>
+                ) : (
+                  <p className="mt-3 rounded-lg border border-dashed border-white/15 bg-white/[0.03] py-4 text-center text-xs text-white/45">
+                    Noch keine Trainingsdaten
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="mt-5 rounded-2xl border border-white/10 bg-black/30 p-4">
+              <h4 className="text-xs font-bold uppercase tracking-wide text-red-300/90">Letzte Einsätze</h4>
+              {statsLoading ? (
+                <div className="mt-4 space-y-2">
+                  {[0, 1, 2].map((i) => (
+                    <div key={`em-skel-${i}`} className="h-16 animate-pulse rounded-xl bg-white/[0.06]" />
+                  ))}
+                </div>
+              ) : lastMatches.length === 0 ? (
+                <p className="mt-4 text-center text-sm text-white/50">Noch keine Einsätze (beendete Spiele)</p>
+              ) : (
+                <ul className="mt-3 space-y-2">
+                  {lastMatches.map((m) => (
+                    <li
+                      key={m.match_id}
+                      className="flex flex-col gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-white">{m.opponent}</span>
+                          <span className="rounded border border-white/15 bg-black/30 px-1.5 py-px text-[11px] font-bold tabular-nums text-white/90">
+                            {m.result}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 text-xs text-white/50">{m.dateLabel}</div>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        <EinsatzBadge kind={m.badgeKind} label={m.badgeLabel} />
+                        {m.goals > 0 ? (
+                          <span className="text-[11px] font-bold text-amber-200/90">⚽ {m.goals}</span>
+                        ) : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            <p className="mt-1 text-xs text-white/50">
-              Trainings teilgenommen: {trainingsAttended} / {trainingsTotal}
-            </p>
-            {hasTrainingBars ? (
-              <div className="mt-3 flex gap-1">{/* TODO: last N training attendance pills */}</div>
-            ) : (
-              <p className="mt-3 rounded-lg border border-dashed border-white/15 bg-white/[0.03] py-4 text-center text-xs text-white/45">
-                Noch keine Trainingsdaten
-              </p>
-            )}
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">
-            <h4 className="text-xs font-bold uppercase tracking-wide text-red-300/90">Letzte 5 Spiele</h4>
-            {lastMatches.length === 0 ? (
-              <p className="mt-4 text-center text-sm text-white/50">Noch keine Spieldaten</p>
-            ) : (
-              <ul className="mt-3 space-y-2">
-                {lastMatches.map((m, i) => (
-                  <li
-                    key={i}
-                    className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-sm"
-                  >
-                    <div className="font-semibold text-white">{m.opponent}</div>
-                    <div className="mt-0.5 text-xs text-white/55">{m.dateLabel}</div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          )}
 
           {canManage ? (
             <div className="mt-6 pb-2">
