@@ -56,6 +56,10 @@ type MatchCardLigaportalProps = {
   isPublicView?: boolean;
   /** Termine-UX: nächster Termin hervorheben (nur Darstellung). */
   heroHighlight?: boolean;
+  /** Externe Zu-/Absage-UI: Chip in der Datumszeile ausblenden. */
+  suppressInlineAttendanceChip?: boolean;
+  /** Externe Teilnehmerzahlen: Ja/Nein/Offen in der Datumszeile ausblenden. */
+  suppressInlineAttendanceCounts?: boolean;
 };
 
 export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
@@ -87,6 +91,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   attendanceCounts,
   isPublicView = false,
   heroHighlight = false,
+  suppressInlineAttendanceChip = false,
+  suppressInlineAttendanceCounts = false,
 }) => {
   const ourClubName = getOurTeamDisplayName();
   const canSeeSensitiveInfo = showMeetup;
@@ -180,7 +186,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const rightLogoOverride = opponentLogoUrl ?? null;
 
   const showManageButtons = canManage && (onEdit || onDelete);
-  const showAttendanceChip = (role === 'parent' || role === 'player') && onOpenAttendance;
+  const showAttendanceChip =
+    (role === 'parent' || role === 'player') && onOpenAttendance && !suppressInlineAttendanceChip;
 
   /* Pill wie Bearbeiten/Löschen: gleiche Höhe/Radius (rounded-full px-3 py-1 text-sm), farblich passend */
   const attendanceChipClass = isTrainingCard
@@ -203,7 +210,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         ? 'Abgesagt'
         : 'Zu-/Absage';
 
-  const showAttendanceCounts = canManage && attendanceCounts != null;
+  const showAttendanceCounts =
+    canManage && attendanceCounts != null && !suppressInlineAttendanceCounts;
 
   const compactParentRow = showAttendanceChip && !showAttendanceCounts && !showManageButtons;
   const dateRow = (

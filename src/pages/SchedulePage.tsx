@@ -5,8 +5,10 @@ import { Modal } from '../app/ui/Modal';
 import { CreateEventModal } from '../app/components/CreateEventModal';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { AttendanceActionRow } from '../components/schedule/AttendanceActionRow';
+import { AttendanceStatusPill, type AttendanceStatusKind } from '../components/schedule/AttendanceStatusPill';
 import { CompactEventCard } from '../components/schedule/CompactEventCard';
 import { EventHeroCard } from '../components/schedule/EventHeroCard';
+import { TrainerStatsMini } from '../components/schedule/TrainerStatsMini';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePublicTeamSeason } from '../hooks/usePublicTeamSeason';
 import { useEvents, type EventRow } from '../hooks/useEvents';
@@ -73,6 +75,12 @@ function heroLabelForEffectiveType(et: 'game' | 'training' | 'event' | 'other'):
   if (et === 'game') return 'Nächstes Spiel';
   if (et === 'training') return 'Nächstes Training';
   return 'Nächster Termin';
+}
+
+function attendanceMergedToPillStatus(s: 'yes' | 'no' | null | undefined): AttendanceStatusKind {
+  if (s === 'yes') return 'yes';
+  if (s === 'no') return 'no';
+  return 'open';
 }
 
 /** Titel-Zeile in notes (Training/Event) wie CreateEventModal: erster Teil vor „ · “. */
@@ -850,10 +858,33 @@ export const SchedulePage: React.FC = () => {
                             ) : null}
                           </div>
                         );
+                        const heroShowsTrainerStats =
+                          !forcePublicView && !isFinishedMatch && canManage;
+                        const heroShowsParentPill =
+                          !forcePublicView &&
+                          !isFinishedMatch &&
+                          (uiRole === 'parent' || uiRole === 'player');
+                        const heroLabelAside =
+                          normalizedUiRole === 'fan'
+                            ? null
+                            : heroShowsTrainerStats ? (
+                                <TrainerStatsMini
+                                  yes={countsForCard.yes}
+                                  no={countsForCard.no}
+                                  open={countsForCard.open}
+                                  isTraining={et === 'training'}
+                                />
+                              ) : heroShowsParentPill ? (
+                                <AttendanceStatusPill
+                                  status={attendanceMergedToPillStatus(attendanceStatusMerged)}
+                                  isTraining={et === 'training'}
+                                />
+                              ) : null;
                         return (
                           <div key={ev.id} className="w-full" {...publicWrap}>
                             <EventHeroCard
                               label={heroLabelForEffectiveType(et)}
+                              labelAside={heroLabelAside}
                               footer={
                                 <>
                                   {!forcePublicView &&
@@ -872,6 +903,8 @@ export const SchedulePage: React.FC = () => {
                               <MatchCardLigaportal
                                 className="w-full max-w-none rounded-2xl"
                                 heroHighlight
+                                suppressInlineAttendanceChip={heroShowsParentPill}
+                                suppressInlineAttendanceCounts={heroShowsTrainerStats}
                                 ourTeamName={ourTeamName}
                                 opponent={ev.opponent}
                                 isHome={ev.is_home}
@@ -945,8 +978,28 @@ export const SchedulePage: React.FC = () => {
                         : undefined;
                     const matchScore = ev.match_id ? matchScoreById[ev.match_id] : undefined;
                     const isFinishedMatch = et === 'game' && ev.status === 'finished' && Boolean(ev.match_id);
+                    const showCompactTrainerStats =
+                      normalizedUiRole !== 'fan' && !forcePublicView && !isFinishedMatch && canManage;
+                    const showCompactParentPill =
+                      normalizedUiRole !== 'fan' &&
+                      !forcePublicView &&
+                      !isFinishedMatch &&
+                      (uiRole === 'parent' || uiRole === 'player');
+                    const compactTopRight = showCompactTrainerStats ? (
+                      <TrainerStatsMini
+                        yes={countsForCard.yes}
+                        no={countsForCard.no}
+                        open={countsForCard.open}
+                        isTraining={et === 'training'}
+                      />
+                    ) : showCompactParentPill ? (
+                      <AttendanceStatusPill
+                        status={attendanceMergedToPillStatus(attendanceStatusMerged)}
+                        isTraining={et === 'training'}
+                      />
+                    ) : undefined;
                     return (
-                      <CompactEventCard key={ev.id}>
+                      <CompactEventCard key={ev.id} topRight={compactTopRight}>
                         <div
                           className="w-full"
                           {...(forcePublicView
@@ -962,6 +1015,8 @@ export const SchedulePage: React.FC = () => {
                         >
                           <MatchCardLigaportal
                             className="w-full max-w-none rounded-xl"
+                            suppressInlineAttendanceChip={showCompactParentPill}
+                            suppressInlineAttendanceCounts={showCompactTrainerStats}
                             ourTeamName={ourTeamName}
                             opponent={ev.opponent}
                             isHome={ev.is_home}
@@ -1002,6 +1057,13 @@ export const SchedulePage: React.FC = () => {
                             }
                             attendanceCounts={isFinishedMatch ? undefined : canManage ? countsForCard : undefined}
                           />
+                          {showCompactParentPill ? (
+                            <AttendanceActionRow
+                              isTraining={et === 'training'}
+                              onOpenAttendance={() => setAttendanceModalEvent(ev)}
+                              variant="default"
+                            />
+                          ) : null}
                           <div className="mt-1.5 flex flex-wrap justify-end gap-1.5">
                             {canManage && et === 'game' && ev.match_id && ev.status !== 'finished' ? (
                               <Button
