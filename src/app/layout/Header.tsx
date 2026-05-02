@@ -76,7 +76,7 @@ export const Header: React.FC = () => {
   }, [isStaff]);
 
   return (
-    <header className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-black/60 pt-[env(safe-area-inset-top,0px)] backdrop-blur-md">
+    <header className="fixed left-0 top-0 z-50 w-full border-b border-white/[0.08] bg-gradient-to-b from-zinc-950/95 via-black/88 to-black/75 pt-[env(safe-area-inset-top,0px)] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.65)] backdrop-blur-xl backdrop-saturate-150">
       <div className="mx-auto flex min-h-[3.5rem] w-full max-w-screen-2xl items-center justify-between gap-2 px-3 py-2 md:px-8">
         {/* Links: Logo + Branding (im internen Bereich klickbar → /app/home) */}
         <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -85,15 +85,15 @@ export const Header: React.FC = () => {
               <img
                 src={logo}
                 alt=""
-                className="h-9 w-9 shrink-0 rounded-full object-cover sm:h-10 sm:w-10"
-                width={40}
-                height={40}
+                className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-white/10 sm:h-12 sm:w-12"
+                width={48}
+                height={48}
               />
               <div className="min-w-0 pr-1">
                 <div className="truncate text-base font-semibold leading-tight text-white sm:text-lg">
                   SpielzeitApp
                 </div>
-                <div className="truncate text-[11px] text-white/60 sm:text-xs">NSG Gölsental</div>
+                <div className="truncate text-[10px] font-medium text-white/45 sm:text-[11px]">NSG Gölsental</div>
               </div>
             </Link>
           ) : (

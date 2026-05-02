@@ -5,16 +5,7 @@ type Props = {
   className?: string;
 };
 
-/** Kompakte Liste: linke Akzentkante, Inhalt von ScheduleCompactEventRow. */
+/** Kompakte Liste — nur feiner Rand, kein „Karten“-Block. */
 export function CompactEventCard({ children, className = '' }: Props) {
-  return (
-    <div
-      className={[
-        'mb-2.5 w-full border-l-2 border-red-500/30 pl-2 sm:mb-3 sm:border-l-[3px] sm:pl-2.5',
-        className,
-      ].join(' ')}
-    >
-      {children}
-    </div>
-  );
+  return <div className={['mb-1.5 w-full border-l border-red-500/25 pl-1.5 sm:mb-2 sm:pl-2', className].join(' ')}>{children}</div>;
 }

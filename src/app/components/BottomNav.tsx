@@ -1,6 +1,8 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
+import { useSession } from '../../auth/useSession';
+import { normalizeRole } from '../../lib/roles';
 import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 
@@ -117,8 +119,14 @@ function NavItem({
 export const BottomNav: React.FC = () => {
   const { pathname } = useLocation();
   const { user } = useAuth();
+  const { effectiveRole } = useSession();
   const unreadCount = useUnreadCount(user?.id);
-  const tabs = pathname.startsWith('/app') ? appTabs : publicTabs;
+  const termineNavLabel = normalizeRole(effectiveRole) === 'fan' ? 'Spielplan' : 'Termine';
+  const appTabsResolved =
+    termineNavLabel === 'Termine'
+      ? appTabs
+      : appTabs.map((t) => (t.to === '/app/termine' ? { ...t, label: termineNavLabel } : t));
+  const tabs = pathname.startsWith('/app') ? appTabsResolved : publicTabs;
   const mehrBadge = unreadCount;
   const isApp = pathname.startsWith('/app');
   /** Echtes laufendes Spiel: eine Zeile mit status === 'live' (beendet → kein Eintrag, Indikatoren aus). */

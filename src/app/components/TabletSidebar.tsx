@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, CalendarDays, Users, Radio, Grid2x2 } from 'lucide-react';
+import { useSession } from '../../auth/useSession';
+import { normalizeRole } from '../../lib/roles';
 
 const items = [
   { to: '/app/home', label: 'Home', icon: Home, end: true },
@@ -11,11 +13,20 @@ const items = [
 ] as const;
 
 export const TabletSidebar: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
+  const { effectiveRole } = useSession();
+  const termineLabel = normalizeRole(effectiveRole) === 'fan' ? 'Spielplan' : 'Termine';
+  const navItems = useMemo(
+    () =>
+      items.map((item) =>
+        item.to === '/app/termine' ? { ...item, label: termineLabel } : item,
+      ),
+    [termineLabel],
+  );
   return (
     <aside className={`hidden lg:block lg:shrink-0 ${compact ? 'lg:w-20' : 'lg:w-64'}`}>
       <div className="sticky top-28 rounded-2xl border border-white/10 bg-black/55 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_36px_rgba(0,0,0,0.4)] backdrop-blur-md">
         <nav className="space-y-1.5" aria-label="Tablet Navigation">
-          {items.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             return (
               <NavLink

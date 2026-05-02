@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { CalendarDays, CalendarPlus, LayoutList } from 'lucide-react';
+import { CalendarDays, CalendarPlus, LayoutList, Pencil, Radio, Trash2 } from 'lucide-react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
@@ -37,19 +37,9 @@ import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocatio
 type KindFilterId = 'all' | 'match' | 'training' | 'event';
 type TimeFilterId = 'upcoming' | 'past';
 
-const viewTabClass = (active: boolean) =>
-  `flex-1 rounded-md px-2.5 py-1.5 text-center text-xs font-medium transition-colors ${
-    active ? 'bg-red-500/15 text-white border border-red-500/30' : 'bg-black/25 text-white/65 border border-white/10 hover:bg-white/10'
-  }`;
-
 const viewTabIconClass = (active: boolean) =>
   `flex shrink-0 items-center justify-center gap-1 rounded-md px-2 min-h-[30px] text-[11px] font-medium transition-colors ${
     active ? 'bg-red-500/15 text-white border border-red-500/30' : 'bg-black/25 text-white/65 border border-white/10 hover:bg-white/10'
-  }`;
-
-const timeScopeTabClass = (active: boolean) =>
-  `min-h-[30px] flex-1 rounded-md px-2 py-1 text-center text-[10px] font-semibold transition-colors sm:min-h-[32px] sm:px-2.5 sm:text-[11px] ${
-    active ? 'border border-red-500/35 bg-red-500/15 text-white' : 'border border-transparent text-white/65 hover:text-white/88'
   }`;
 
 function getEventTab(e: EventRow): 'upcoming' | 'live' | 'finished' {
@@ -98,6 +88,31 @@ function mergeTitleIntoNotes(existingNotes: string | null | undefined, newTitle:
   if (!title && rest.length === 0) return null;
   if (!title) return rest.join(' · ');
   return rest.length ? `${title} · ${rest.join(' · ')}` : title;
+}
+
+function ScheduleHeroToolbarIcon({
+  title,
+  onClick,
+  children,
+}: {
+  title: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white shadow-md backdrop-blur-sm transition hover:border-red-400/45 hover:bg-red-950/55"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+    >
+      {children}
+    </button>
+  );
 }
 
 export const SchedulePage: React.FC = () => {
@@ -714,9 +729,9 @@ export const SchedulePage: React.FC = () => {
             </div>
 
             {normalizedUiRole !== 'fan' ? (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 <div className="flex flex-wrap items-stretch gap-1.5">
-                  <div className="order-1 flex min-h-[32px] min-w-0 flex-[1_1_11rem] gap-0.5 rounded-lg border border-white/10 bg-black/35 p-0.5 backdrop-blur-sm sm:flex-[1_1_14rem]">
+                  <div className="flex min-h-[32px] min-w-0 flex-1 gap-0.5 rounded-lg border border-white/10 bg-black/35 p-0.5 backdrop-blur-sm">
                     {([
                       { id: 'all', label: 'Alle' },
                       { id: 'match', label: 'Spiele' },
@@ -737,23 +752,7 @@ export const SchedulePage: React.FC = () => {
                       </button>
                     ))}
                   </div>
-                  <div className="order-2 flex w-[min(100%,10.5rem)] shrink-0 gap-0.5 rounded-lg border border-white/10 bg-black/40 p-0.5 sm:w-[11.5rem]">
-                    <button
-                      type="button"
-                      onClick={() => setTimeFilter('upcoming')}
-                      className={timeScopeTabClass(timeFilter === 'upcoming')}
-                    >
-                      Kommend
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTimeFilter('past')}
-                      className={timeScopeTabClass(timeFilter === 'past')}
-                    >
-                      Vergangen
-                    </button>
-                  </div>
-                  <div className="order-3 ml-auto flex shrink-0 gap-0.5 rounded-lg border border-white/10 bg-black/30 p-0.5">
+                  <div className="ml-auto flex shrink-0 gap-0.5 rounded-lg border border-white/10 bg-black/30 p-0.5">
                     <NavLink
                       to="/app/termine"
                       end
@@ -773,26 +772,20 @@ export const SchedulePage: React.FC = () => {
                     </NavLink>
                   </div>
                 </div>
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setTimeFilter(timeFilter === 'upcoming' ? 'past' : 'upcoming')}
+                    className="text-[11px] font-semibold text-red-300/90 underline decoration-red-500/35 decoration-1 underline-offset-4 hover:text-white"
+                  >
+                    {timeFilter === 'upcoming' ? 'Vergangene anzeigen' : 'Kommende anzeigen'}
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap items-stretch gap-1.5">
-                  <div className="order-1 flex min-h-[32px] min-w-0 flex-1 gap-0.5 rounded-lg border border-white/10 bg-black/35 p-0.5 backdrop-blur-sm sm:min-w-[11rem]">
-                    {([
-                      { id: 'upcoming' as const, label: 'Kommend' },
-                      { id: 'past' as const, label: 'Vergangen' },
-                    ] as const).map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setTimeFilter(t.id)}
-                        className={timeScopeTabClass(timeFilter === t.id)}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="order-2 ml-auto flex shrink-0 gap-0.5 rounded-lg border border-white/10 bg-black/30 p-0.5">
+              <div className="flex flex-col gap-1.5">
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
+                  <div className="flex shrink-0 gap-0.5 rounded-lg border border-white/10 bg-black/30 p-0.5">
                     <NavLink
                       to="/app/termine"
                       end
@@ -811,6 +804,15 @@ export const SchedulePage: React.FC = () => {
                       <span className="hidden sm:inline">Kal.</span>
                     </NavLink>
                   </div>
+                </div>
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setTimeFilter(timeFilter === 'upcoming' ? 'past' : 'upcoming')}
+                    className="text-[11px] font-semibold text-red-300/90 underline decoration-red-500/35 decoration-1 underline-offset-4 hover:text-white"
+                  >
+                    {timeFilter === 'upcoming' ? 'Vergangene anzeigen' : 'Kommende anzeigen'}
+                  </button>
                 </div>
               </div>
             )}
@@ -906,80 +908,52 @@ export const SchedulePage: React.FC = () => {
                                 isFinishedMatch && ev.match_id
                                   ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
                                   : navigate(`/app/events/${id}`);
+                        const heroTrainerToolbar = canManage ? (
+                          <>
+                            {et === 'game' && ev.match_id && ev.status !== 'finished' ? (
+                              <ScheduleHeroToolbarIcon
+                                title="Live starten"
+                                onClick={() => navigate(`/live?matchId=${ev.match_id}`)}
+                              >
+                                <Radio className="h-3.5 w-3.5" strokeWidth={2} />
+                              </ScheduleHeroToolbarIcon>
+                            ) : null}
+                            <ScheduleHeroToolbarIcon title="Bearbeiten" onClick={() => openEditModal(ev)}>
+                              <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                            </ScheduleHeroToolbarIcon>
+                            <ScheduleHeroToolbarIcon title="Löschen" onClick={() => void handleDelete(ev)}>
+                              <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                            </ScheduleHeroToolbarIcon>
+                            {ev.status !== 'finished' ? (
+                              <ScheduleHeroToolbarIcon
+                                title="Zum Kalender hinzufügen"
+                                onClick={() =>
+                                  downloadEventIcs(ev, {
+                                    appBaseUrl: window.location.origin,
+                                  })
+                                }
+                              >
+                                <CalendarDays className="h-3.5 w-3.5" strokeWidth={2} />
+                              </ScheduleHeroToolbarIcon>
+                            ) : null}
+                          </>
+                        ) : undefined;
                         return (
                           <div key={ev.id} className="w-full" {...publicWrap}>
                             <EventHeroCard
                               label={heroLabelForEffectiveType(et)}
                               footer={
-                                <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                                  {canManage ? (
-                                    <div className="flex flex-wrap gap-1.5">
-                                      <Button
-                                        type="button"
-                                        variant="soft"
-                                        size="xs"
-                                        className="rounded-full"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openEditModal(ev);
-                                        }}
-                                      >
-                                        Bearbeiten
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant="soft"
-                                        size="xs"
-                                        className="rounded-full"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          void handleDelete(ev);
-                                        }}
-                                      >
-                                        Löschen
-                                      </Button>
-                                    </div>
-                                  ) : null}
-                                  <div className="flex flex-wrap items-center justify-end gap-2">
-                                    {!forcePublicView &&
-                                    !isFinishedMatch &&
-                                    (uiRole === 'parent' || uiRole === 'player') ? (
-                                      <AttendanceActionRow
-                                        isTraining={et === 'training'}
-                                        onOpenAttendance={() => setAttendanceModalEvent(ev)}
-                                        variant="hero"
-                                      />
-                                    ) : null}
-                                    {canManage && et === 'game' && ev.match_id && ev.status !== 'finished' ? (
-                                      <Button
-                                        variant="primary"
-                                        size="xs"
-                                        className="rounded-full"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          navigate(`/live?matchId=${ev.match_id}`);
-                                        }}
-                                      >
-                                        Live starten
-                                      </Button>
-                                    ) : null}
-                                    {ev.status !== 'finished' ? (
-                                      <Button
-                                        variant="soft"
-                                        size="xs"
-                                        className="rounded-full"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          downloadEventIcs(ev, {
-                                            appBaseUrl: window.location.origin,
-                                          });
-                                        }}
-                                      >
-                                        Zum Kalender
-                                      </Button>
-                                    ) : null}
+                                !forcePublicView &&
+                                !isFinishedMatch &&
+                                (uiRole === 'parent' || uiRole === 'player') ? (
+                                  <div className="mt-2 flex justify-center sm:justify-end" onClick={(e) => e.stopPropagation()}>
+                                    <AttendanceActionRow
+                                      isTraining={et === 'training'}
+                                      onOpenAttendance={() => setAttendanceModalEvent(ev)}
+                                      variant="hero"
+                                    />
                                   </div>
-                                </div>
+                                ) : null
                               }
                             >
                               <ScheduleHeroEventCard
@@ -993,6 +967,7 @@ export const SchedulePage: React.FC = () => {
                                 scoreAway={matchScore?.scoreAway}
                                 showMeetup={showMeetupForRole}
                                 topRight={heroTopRight}
+                                trainerToolbar={heroTrainerToolbar}
                                 isPublicView={forcePublicView}
                                 isClickable={heroClickable}
                                 onNavigate={heroOnNavigate}
