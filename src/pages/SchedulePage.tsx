@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { CalendarDays, LayoutList } from 'lucide-react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
@@ -38,6 +39,11 @@ type TimeFilterId = 'upcoming' | 'past';
 
 const viewTabClass = (active: boolean) =>
   `flex-1 rounded-md px-2.5 py-1.5 text-center text-xs font-medium transition-colors ${
+    active ? 'bg-red-500/15 text-white border border-red-500/30' : 'bg-black/25 text-white/65 border border-white/10 hover:bg-white/10'
+  }`;
+
+const viewTabIconClass = (active: boolean) =>
+  `flex shrink-0 items-center justify-center gap-1 rounded-md px-2 min-h-[30px] text-[11px] font-medium transition-colors ${
     active ? 'bg-red-500/15 text-white border border-red-500/30' : 'bg-black/25 text-white/65 border border-white/10 hover:bg-white/10'
   }`;
 
@@ -629,7 +635,7 @@ export const SchedulePage: React.FC = () => {
   const error = tsError ?? eError;
 
   return (
-    <div className="page schedule-page relative min-h-[60vh] [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_50%,rgba(10,0,0,0.99)_100%)] [box-shadow:inset_0_0_120px_rgba(120,20,20,0.12)]">
+    <div className="page schedule-page relative min-h-[60vh] scroll-mt-24 [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_50%,rgba(10,0,0,0.99)_100%)] [box-shadow:inset_0_0_120px_rgba(120,20,20,0.12)]">
       <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
         <div className="mx-auto mt-1 max-w-3xl space-y-3 pt-3 sm:mt-2 sm:space-y-4 sm:pt-4">
           {toastMessage && (
@@ -697,83 +703,100 @@ export const SchedulePage: React.FC = () => {
             </div>
 
             {normalizedUiRole !== 'fan' ? (
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex w-full max-w-xl gap-0.5 rounded-lg border border-white/10 bg-black/35 p-0.5 backdrop-blur-sm sm:max-w-none sm:flex-1">
-                  {([
-                    { id: 'all', label: 'Alle' },
-                    { id: 'match', label: 'Spiele' },
-                    { id: 'training', label: 'Training' },
-                    { id: 'event', label: 'Events' },
-                  ] as const).map((f) => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() => setKindFilter(f.id)}
-                      className={`min-h-[32px] flex-1 rounded-md px-1.5 py-1 text-[10px] font-semibold transition-colors sm:text-[11px] ${
-                        kindFilter === f.id
-                          ? 'border border-white/35 bg-white/15 text-white'
-                          : 'border border-transparent text-white/65 hover:text-white/90'
-                      }`}
+              <div className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-1.5 sm:justify-between">
+                  <div className="flex min-h-[30px] min-w-0 flex-1 gap-0.5 rounded-lg border border-white/10 bg-black/35 p-0.5 backdrop-blur-sm">
+                    {([
+                      { id: 'all', label: 'Alle' },
+                      { id: 'match', label: 'Spiele' },
+                      { id: 'training', label: 'Training' },
+                      { id: 'event', label: 'Events' },
+                    ] as const).map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setKindFilter(f.id)}
+                        className={`min-h-[28px] flex-1 rounded-md px-1 py-0.5 text-[9px] font-semibold transition-colors sm:min-h-[30px] sm:px-1.5 sm:text-[10px] ${
+                          kindFilter === f.id
+                            ? 'border border-white/35 bg-white/15 text-white'
+                            : 'border border-transparent text-white/65 hover:text-white/90'
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex shrink-0 gap-0.5 rounded-lg border border-white/10 bg-black/30 p-0.5">
+                    <NavLink
+                      to="/app/termine"
+                      end
+                      className={({ isActive }) => `${viewTabIconClass(isActive)} min-w-[2.5rem]`}
+                      title="Liste"
                     >
-                      {f.label}
-                    </button>
-                  ))}
-                  <span className="mx-0.5 hidden w-px self-stretch bg-white/15 sm:block" aria-hidden />
-                  {([
-                    { id: 'upcoming' as const, label: 'Kommend' },
-                    { id: 'past' as const, label: 'Vergangen' },
-                  ]).map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setTimeFilter(t.id)}
-                      className={`min-h-[32px] flex-1 rounded-md px-1.5 py-1 text-[10px] font-semibold transition-colors sm:max-w-[5.5rem] sm:text-[11px] ${
-                        timeFilter === t.id
-                          ? 'border border-red-500/35 bg-red-500/15 text-white'
-                          : 'border border-transparent text-white/65 hover:text-white/90'
-                      }`}
+                      <LayoutList className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+                      <span className="hidden sm:inline">Liste</span>
+                    </NavLink>
+                    <NavLink
+                      to="/app/termine/calendar"
+                      className={({ isActive }) => `${viewTabIconClass(isActive)} min-w-[2.5rem]`}
+                      title="Kalender"
                     >
-                      {t.label}
-                    </button>
-                  ))}
+                      <CalendarDays className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+                      <span className="hidden sm:inline">Kal.</span>
+                    </NavLink>
+                  </div>
                 </div>
-                <div className="flex w-full gap-1 rounded-lg border border-white/10 bg-black/30 p-0.5 sm:w-auto sm:max-w-[220px]">
-                  <NavLink to="/app/termine" end className={({ isActive }) => viewTabClass(isActive)}>
-                    Liste
-                  </NavLink>
-                  <NavLink to="/app/termine/calendar" className={({ isActive }) => viewTabClass(isActive)}>
-                    Kalender
-                  </NavLink>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setTimeFilter(timeFilter === 'upcoming' ? 'past' : 'upcoming')}
+                    className="text-[10px] font-semibold text-white/45 underline decoration-white/20 decoration-1 underline-offset-2 hover:text-white/75"
+                  >
+                    {timeFilter === 'upcoming' ? 'Vergangene anzeigen' : 'Kommende anzeigen'}
+                  </button>
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex w-full max-w-md gap-0.5 rounded-lg border border-white/10 bg-black/35 p-0.5 backdrop-blur-sm sm:flex-1">
-                  {([
-                    { id: 'upcoming' as const, label: 'Kommend' },
-                    { id: 'past' as const, label: 'Vergangen' },
-                  ]).map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setTimeFilter(t.id)}
-                      className={`min-h-[32px] flex-1 rounded-md px-2 py-1 text-[10px] font-semibold transition-colors sm:text-[11px] ${
-                        timeFilter === t.id
-                          ? 'border border-red-500/35 bg-red-500/15 text-white shadow-[0_0_14px_rgba(255,0,0,0.12)]'
-                          : 'border border-transparent text-white/65 hover:text-white/88'
-                      }`}
+              <div className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-1.5 sm:justify-between">
+                  <div className="flex min-h-[30px] flex-1 gap-0.5 rounded-lg border border-white/10 bg-black/35 p-0.5 backdrop-blur-sm">
+                    {([
+                      { id: 'upcoming' as const, label: 'Kommend' },
+                      { id: 'past' as const, label: 'Vergangen' },
+                    ]).map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setTimeFilter(t.id)}
+                        className={`min-h-[28px] flex-1 rounded-md px-1.5 py-0.5 text-[9px] font-semibold transition-colors sm:text-[10px] ${
+                          timeFilter === t.id
+                            ? 'border border-red-500/35 bg-red-500/15 text-white'
+                            : 'border border-transparent text-white/60 hover:text-white/88'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex shrink-0 gap-0.5 rounded-lg border border-white/10 bg-black/30 p-0.5">
+                    <NavLink
+                      to="/app/termine"
+                      end
+                      className={({ isActive }) => `${viewTabIconClass(isActive)} min-w-[2.5rem]`}
+                      title="Liste"
                     >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex w-full gap-1 rounded-lg border border-white/10 bg-black/30 p-0.5 sm:w-auto sm:max-w-[220px]">
-                  <NavLink to="/app/termine" end className={({ isActive }) => viewTabClass(isActive)}>
-                    Liste
-                  </NavLink>
-                  <NavLink to="/app/termine/calendar" className={({ isActive }) => viewTabClass(isActive)}>
-                    Kalender
-                  </NavLink>
+                      <LayoutList className="h-3.5 w-3.5 opacity-90" aria-hidden />
+                      <span className="hidden sm:inline">Liste</span>
+                    </NavLink>
+                    <NavLink
+                      to="/app/termine/calendar"
+                      className={({ isActive }) => `${viewTabIconClass(isActive)} min-w-[2.5rem]`}
+                      title="Kalender"
+                    >
+                      <CalendarDays className="h-3.5 w-3.5 opacity-90" aria-hidden />
+                      <span className="hidden sm:inline">Kal.</span>
+                    </NavLink>
+                  </div>
                 </div>
               </div>
             )}
@@ -800,7 +823,9 @@ export const SchedulePage: React.FC = () => {
                       ? timeFilter === 'upcoming'
                         ? 'Keine kommenden Spiele.'
                         : 'Keine vergangenen Spiele.'
-                      : `Keine Einträge in „${timeFilter === 'upcoming' ? 'Kommend' : 'Vergangen'}“.`}
+                      : timeFilter === 'upcoming'
+                        ? 'Keine kommenden Termine für diesen Filter.'
+                        : 'Keine vergangenen Termine für diesen Filter.'}
                 </p>
               ) : (
                 <>
@@ -947,6 +972,9 @@ export const SchedulePage: React.FC = () => {
                                 ev={ev}
                                 et={et}
                                 ourTeamName={ourTeamName}
+                                opponentLogoUrl={
+                                  (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url
+                                }
                                 scoreHome={matchScore?.scoreHome}
                                 scoreAway={matchScore?.scoreAway}
                                 showMeetup={showMeetupForRole}

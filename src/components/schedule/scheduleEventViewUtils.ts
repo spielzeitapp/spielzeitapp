@@ -70,6 +70,19 @@ export function scheduleCompactSecondaryLine(ev: EventRow, et: EffectiveEventTyp
   return scheduleEventTypeLabel(ev, et);
 }
 
+/** „Ende: …“ aus notes (Training), für Ende-Pill. */
+export function eventTrainingEndDisplay(notes: string | null | undefined): string | null {
+  const endRaw = (notes ?? '')
+    .split(' · ')
+    .find((p) => p.toLowerCase().startsWith('ende:'));
+  if (!endRaw) return null;
+  const v = endRaw
+    .replace(/^ende:\s*/i, '')
+    .replace(/\s*uhr\s*$/i, '')
+    .trim();
+  return v || null;
+}
+
 export function gameTeamNames(
   ev: EventRow,
   et: EffectiveEventType,
