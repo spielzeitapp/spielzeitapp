@@ -71,7 +71,7 @@ type TeamBlockProps = {
 function TeamBlock({ logoUrl, prefix, name, hero }: TeamBlockProps) {
   const imgClass = hero ? 'h-[52px] w-[52px] sm:h-[60px] sm:w-[60px]' : 'h-12 w-12 sm:h-14 sm:w-14';
   const nameClass = hero
-    ? 'mt-1 max-w-[172px] text-[13px] font-bold leading-snug text-white sm:max-w-[200px] sm:text-[14px]'
+    ? 'mt-1 w-full max-w-[min(200px,46vw)] text-[11px] font-bold leading-snug text-white min-[390px]:text-[13px] sm:max-w-[220px] sm:text-[14px]'
     : 'mt-0.5 max-w-[164px] text-[12px] font-semibold leading-snug text-white sm:max-w-[184px] sm:text-[13px]';
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
