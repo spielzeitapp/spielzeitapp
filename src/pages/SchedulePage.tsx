@@ -961,7 +961,7 @@ export const SchedulePage: React.FC = () => {
                       })()
                     : null}
 
-                  {furtherEvents.length > 0 ? (
+                  {showHeroCard && furtherEvents.length > 0 ? (
                     <h3 className="mb-2 mt-2 text-[11px] font-extrabold uppercase tracking-[0.2em] text-white/40">
                       {normalizedUiRole === 'fan' ? 'Weitere Spiele' : 'Weitere Termine'}
                     </h3>
