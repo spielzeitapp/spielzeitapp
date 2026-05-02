@@ -4,7 +4,6 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { CreateEventModal } from '../app/components/CreateEventModal';
-import { AttendanceActionRow } from '../components/schedule/AttendanceActionRow';
 import { AttendanceStatusPill, type AttendanceStatusKind } from '../components/schedule/AttendanceStatusPill';
 import { CompactEventCard } from '../components/schedule/CompactEventCard';
 import { EventHeroCard } from '../components/schedule/EventHeroCard';
@@ -940,22 +939,7 @@ export const SchedulePage: React.FC = () => {
                         ) : undefined;
                         return (
                           <div key={ev.id} className="w-full" {...publicWrap}>
-                            <EventHeroCard
-                              label={heroLabelForEffectiveType(et)}
-                              footer={
-                                !forcePublicView &&
-                                !isFinishedMatch &&
-                                (uiRole === 'parent' || uiRole === 'player') ? (
-                                  <div className="mt-2 flex justify-center sm:justify-end" onClick={(e) => e.stopPropagation()}>
-                                    <AttendanceActionRow
-                                      isTraining={et === 'training'}
-                                      onOpenAttendance={() => setAttendanceModalEvent(ev)}
-                                      variant="hero"
-                                    />
-                                  </div>
-                                ) : null
-                              }
-                            >
+                            <EventHeroCard label={heroLabelForEffectiveType(et)}>
                               <ScheduleHeroEventCard
                                 ev={ev}
                                 et={et}
@@ -1034,9 +1018,6 @@ export const SchedulePage: React.FC = () => {
                           opponentLogoUrl={opponentLogo}
                           trailing={compactTrailing}
                           forcePublicView={forcePublicView}
-                          showParentAttendanceRow={showCompactParentPill}
-                          isTraining={et === 'training'}
-                          onOpenAttendance={() => setAttendanceModalEvent(ev)}
                           canManage={canManage}
                           onEdit={canManage ? () => openEditModal(ev) : undefined}
                           onDelete={canManage ? () => void handleDelete(ev) : undefined}

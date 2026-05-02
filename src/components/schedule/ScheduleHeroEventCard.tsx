@@ -52,23 +52,27 @@ function logoForDisplayName(displayName: string, optionalUrl?: string | null): s
 }
 
 function HeroTeamLogo({ src }: { src: string }) {
-  const [showBall, setShowBall] = useState(false);
-  if (showBall) {
+  const [phase, setPhase] = useState<'img' | 'shield' | 'ball'>('img');
+  if (phase === 'ball') {
     return (
       <div
-        className="flex h-16 w-16 max-w-[20vw] shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-black/50 text-[2.5rem] leading-none sm:h-16 sm:w-16 sm:max-w-none"
+        className="flex h-[4.5rem] w-[4.5rem] max-w-[22vw] shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-black/55 text-[2.75rem] leading-none sm:h-20 sm:w-20 sm:max-w-none"
         aria-hidden
       >
         ⚽
       </div>
     );
   }
+  const url = phase === 'shield' ? '/logos/placeholder-shield-a.png' : src;
   return (
     <img
-      src={src}
+      src={url}
       alt=""
-      className="h-16 w-16 max-w-[20vw] shrink-0 object-contain sm:max-w-none"
-      onError={() => setShowBall(true)}
+      className="h-[4.5rem] w-[4.5rem] max-w-[22vw] shrink-0 object-contain sm:h-20 sm:w-20 sm:max-w-none"
+      onError={() => {
+        if (phase === 'img') setPhase('shield');
+        else setPhase('ball');
+      }}
     />
   );
 }
@@ -165,7 +169,7 @@ export function ScheduleHeroEventCard({
       {statusCluster}
       <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-0.5 pt-10 sm:pt-11">
         {matchTypeLabel ? (
-          <p className="mb-3 line-clamp-2 max-w-[min(100%,19rem)] text-center text-[10px] font-bold uppercase leading-snug tracking-[0.22em] text-red-200/95 sm:mb-4 sm:max-w-[22rem] sm:text-[11px] sm:tracking-[0.26em]">
+          <p className="mb-3 line-clamp-2 max-w-[min(100%,20rem)] text-center text-[11px] font-bold uppercase leading-snug tracking-[0.2em] text-red-100/95 sm:mb-4 sm:max-w-[24rem] sm:text-xs sm:tracking-[0.24em]">
             {matchTypeLabel}
           </p>
         ) : (
@@ -174,24 +178,24 @@ export function ScheduleHeroEventCard({
           </p>
         )}
 
-        <div className="grid w-full min-w-0 max-w-[21rem] grid-cols-[1fr_auto_1fr] items-end gap-x-1 sm:max-w-[23rem] sm:gap-x-2">
-          <div className="flex min-w-0 flex-col items-center gap-2 border-r border-white/10 pr-1 sm:pr-2">
+        <div className="grid w-full min-w-0 max-w-[22rem] grid-cols-[1fr_auto_1fr] items-end gap-x-1.5 sm:max-w-[26rem] sm:gap-x-3">
+          <div className="flex min-w-0 flex-col items-center gap-2 border-r border-white/10 pr-1 sm:pr-3">
             <HeroTeamLogo src={leftLogoSrc} />
-            <p className="line-clamp-2 w-full text-center text-[10px] font-bold leading-snug text-white [overflow-wrap:anywhere] sm:text-[12px]">
+            <p className="line-clamp-3 w-full max-w-[10.5rem] text-center text-[11px] font-bold leading-snug text-white [overflow-wrap:anywhere] sm:max-w-[12rem] sm:text-[13px]">
               {leftName}
             </p>
           </div>
           <div className="flex min-w-0 flex-col items-center justify-end px-0.5 pb-1">
             <span
-              className="text-2xl font-black uppercase leading-none tracking-[0.08em] text-red-500 drop-shadow-[0_0_20px_rgba(239,68,68,0.35)] sm:text-4xl"
+              className="text-3xl font-black uppercase leading-none tracking-[0.06em] text-red-500 drop-shadow-[0_0_24px_rgba(239,68,68,0.4)] sm:text-5xl"
               aria-hidden
             >
               vs
             </span>
           </div>
-          <div className="flex min-w-0 flex-col items-center gap-2 border-l border-white/10 pl-1 sm:pl-2">
+          <div className="flex min-w-0 flex-col items-center gap-2 border-l border-white/10 pl-1 sm:pl-3">
             <HeroTeamLogo src={rightLogoSrc} />
-            <p className="line-clamp-2 w-full text-center text-[10px] font-bold leading-snug text-white [overflow-wrap:anywhere] sm:text-[12px]">
+            <p className="line-clamp-3 w-full max-w-[10.5rem] text-center text-[11px] font-bold leading-snug text-white [overflow-wrap:anywhere] sm:max-w-[12rem] sm:text-[13px]">
               {rightName}
             </p>
           </div>
@@ -201,10 +205,10 @@ export function ScheduleHeroEventCard({
           <span className="text-[9px] font-bold uppercase tracking-[0.32em] text-red-400/95 sm:text-[10px]">
             {kickoffHeaderLabel}
           </span>
-          <p className="mt-1 max-w-full text-center text-[2.25rem] font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.45)] sm:text-5xl">
+          <p className="mt-1 max-w-full text-center text-[2.5rem] font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.5)] min-[375px]:text-[2.75rem] sm:text-[3.5rem]">
             {showScore ? `${home} : ${away}` : timeStr}
           </p>
-          {!showScore ? <span className="mt-1.5 text-sm font-medium text-white/75">Uhr</span> : null}
+          {!showScore ? <span className="mt-1.5 text-sm font-medium text-white/78">Uhr</span> : null}
 
           {locLine1 || locLine2 ? (
             <div className="mt-4 max-w-[min(100%,20rem)] space-y-0.5 text-center">

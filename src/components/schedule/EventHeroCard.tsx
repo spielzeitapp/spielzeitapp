@@ -26,9 +26,9 @@ export function EventHeroCard({ label, children, footer, labelAside }: Props) {
         {labelAside ? <div className="shrink-0">{labelAside}</div> : null}
       </div>
 
-      <div className="relative w-full overflow-hidden rounded-[28px] border border-red-500/30 bg-black/70 p-5 shadow-[0_0_40px_rgba(220,38,38,0.22)]">
+      <div className="relative w-full overflow-hidden rounded-[28px] border border-red-500/35 bg-black/72 p-5 shadow-[0_0_52px_rgba(220,38,38,0.28),inset_0_1px_0_rgba(255,255,255,0.06)]">
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,.22),transparent_40%),linear-gradient(to_bottom,rgba(0,0,0,.55),rgba(90,0,0,.65))]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(239,68,68,.18),transparent_50%),radial-gradient(circle_at_top_right,rgba(239,68,68,.2),transparent_42%),linear-gradient(to_bottom,rgba(0,0,0,.52),rgba(55,0,0,.62))]"
           aria-hidden
         />
         <div className="relative z-10 min-h-[300px] w-full min-w-0">{children}</div>

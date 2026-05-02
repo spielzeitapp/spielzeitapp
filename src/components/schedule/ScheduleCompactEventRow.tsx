@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CalendarDays, ChevronRight, Pencil, Radio, Trash2 } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getClubLogo } from '../../lib/teamLogos';
-import { AttendanceActionRow } from './AttendanceActionRow';
 import type { EffectiveEventType } from './scheduleEventViewUtils';
 import {
   formatHeroDateParts,
@@ -11,7 +10,7 @@ import {
   scheduleLocationLine,
   eventNotesTitle,
 } from './scheduleEventViewUtils';
-import { EventMotifIcon } from './scheduleFootballMotifIcons';
+import { EventMotifIcon, TrainingMotifIcon } from './scheduleFootballMotifIcons';
 
 export type ScheduleCompactEventRowProps = {
   ev: EventRow;
@@ -20,9 +19,6 @@ export type ScheduleCompactEventRowProps = {
   opponentLogoUrl?: string | null;
   forcePublicView: boolean;
   trailing?: React.ReactNode;
-  showParentAttendanceRow: boolean;
-  isTraining: boolean;
-  onOpenAttendance: () => void;
   canManage: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -55,6 +51,34 @@ function IconAction({
   );
 }
 
+function CompactOpponentLogo({ src }: { src: string }) {
+  const [phase, setPhase] = useState<'img' | 'shield' | 'ball'>('img');
+  if (phase === 'ball') {
+    return (
+      <div
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/50 text-2xl leading-none sm:h-[3.25rem] sm:w-[3.25rem]"
+        aria-hidden
+      >
+        ⚽
+      </div>
+    );
+  }
+  const url = phase === 'shield' ? '/logos/placeholder-shield-a.png' : src;
+  return (
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/45 sm:h-[3.25rem] sm:w-[3.25rem]">
+      <img
+        src={url}
+        alt=""
+        className="h-10 w-10 object-contain sm:h-11 sm:w-11"
+        onError={() => {
+          if (phase === 'img') setPhase('shield');
+          else setPhase('ball');
+        }}
+      />
+    </div>
+  );
+}
+
 export function ScheduleCompactEventRow({
   ev,
   et,
@@ -62,9 +86,6 @@ export function ScheduleCompactEventRow({
   opponentLogoUrl,
   trailing,
   forcePublicView,
-  showParentAttendanceRow,
-  isTraining,
-  onOpenAttendance,
   canManage,
   onEdit,
   onDelete,
@@ -97,28 +118,14 @@ export function ScheduleCompactEventRow({
 
   const iconSlot =
     et === 'game' ? (
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/45 sm:h-12 sm:w-12">
-        <img
-          src={oppSrc}
-          alt=""
-          className="h-8 w-8 object-contain sm:h-9 sm:w-9"
-          onError={(e) => {
-            const img = e.currentTarget as HTMLImageElement;
-            if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
-            img.src = '/logos/placeholder-shield-a.png';
-          }}
-        />
-      </div>
+      <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <div
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-red-500/25 bg-red-950/35 text-2xl leading-none sm:h-12 sm:w-12"
-        aria-hidden
-      >
-        ⚽
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-red-500/28 bg-red-950/40 sm:h-[3.25rem] sm:w-[3.25rem]">
+        <TrainingMotifIcon className="h-8 w-8 text-amber-300/95 sm:h-9 sm:w-9" />
       </div>
     ) : (
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] sm:h-12 sm:w-12">
-        <EventMotifIcon className="h-6 w-6 text-red-300/90 sm:h-7 sm:w-7" />
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] sm:h-[3.25rem] sm:w-[3.25rem]">
+        <EventMotifIcon className="h-7 w-7 text-red-300/90 sm:h-8 sm:w-8" />
       </div>
     );
 
@@ -176,7 +183,7 @@ export function ScheduleCompactEventRow({
     <div className="w-full">
       <div
         className={[
-          'flex min-h-[3.5rem] items-stretch gap-2 rounded-lg border border-white/[0.08] bg-black/35 px-1.5 py-1.5 sm:gap-2 sm:px-2',
+          'flex min-h-[3.5rem] items-stretch gap-2 rounded-lg border border-white/[0.08] bg-black/35 px-1.5 py-1.5 sm:gap-2.5 sm:px-2',
           clickable ? 'cursor-pointer active:bg-white/[0.06]' : 'cursor-default',
         ].join(' ')}
         role={clickable ? 'button' : undefined}
@@ -205,7 +212,7 @@ export function ScheduleCompactEventRow({
           {et === 'game' ? (
             <>
               <div className="flex min-w-0 flex-wrap items-start gap-1.5 gap-y-0.5">
-                <p className="min-w-0 flex-1 text-[12px] font-bold leading-snug text-white [overflow-wrap:anywhere] line-clamp-2 sm:text-[13px]">
+                <p className="min-w-0 flex-1 text-[12px] font-bold leading-snug text-white [overflow-wrap:anywhere] sm:text-[13px]">
                   {oppName}
                 </p>
                 {homeAwayBadge ? (
@@ -216,19 +223,19 @@ export function ScheduleCompactEventRow({
                   </span>
                 ) : null}
               </div>
-              <p className="text-[10px] font-medium tabular-nums text-white/55 sm:text-[11px]">
+              <p className="text-[10px] font-medium tabular-nums text-white/58 sm:text-[11px]">
                 {timeStr}
                 {loc ? <span className="text-white/35"> · </span> : null}
-                {loc ? <span className="[overflow-wrap:anywhere]">{loc}</span> : null}
+                {loc ? <span className="[overflow-wrap:anywhere] line-clamp-2">{loc}</span> : null}
               </p>
             </>
           ) : et === 'training' ? (
             <>
               <p className="text-[12px] font-bold leading-snug text-white sm:text-[13px]">Training</p>
               {trainingNotesTitle && trainingNotesTitle.trim().toLowerCase() !== 'training' ? (
-                <p className="line-clamp-1 text-[10px] leading-tight text-white/45">{trainingNotesTitle}</p>
+                <p className="line-clamp-1 text-[10px] leading-tight text-white/48">{trainingNotesTitle}</p>
               ) : null}
-              <p className="text-[10px] font-medium tabular-nums text-white/55 sm:text-[11px]">
+              <p className="text-[10px] font-medium tabular-nums text-white/58 sm:text-[11px]">
                 {timeStr}
                 {loc ? <span className="text-white/35"> · </span> : null}
                 {loc ? <span className="[overflow-wrap:anywhere] line-clamp-2">{loc}</span> : null}
@@ -239,7 +246,7 @@ export function ScheduleCompactEventRow({
               <p className="line-clamp-2 text-[12px] font-bold leading-snug text-white [overflow-wrap:anywhere] sm:text-[13px]">
                 {title}
               </p>
-              <p className="text-[10px] font-medium tabular-nums text-white/55 sm:text-[11px]">
+              <p className="text-[10px] font-medium tabular-nums text-white/58 sm:text-[11px]">
                 {timeStr}
                 {loc ? <span className="text-white/35"> · </span> : null}
                 {loc ? <span className="[overflow-wrap:anywhere] line-clamp-2">{loc}</span> : null}
@@ -249,19 +256,13 @@ export function ScheduleCompactEventRow({
         </div>
 
         <div className="flex shrink-0 flex-row items-center gap-1 self-stretch py-0.5">
-          <div className="flex min-w-0 max-w-[5.5rem] flex-col items-end justify-center gap-0.5 sm:max-w-[6.25rem]">
+          <div className="flex min-w-0 max-w-[6rem] flex-col items-end justify-center gap-0.5 sm:max-w-[6.75rem]">
             {trailing}
           </div>
           {trainerIcons}
           {clickable ? <ChevronRight className="h-4 w-4 shrink-0 text-white/25" aria-hidden /> : null}
         </div>
       </div>
-
-      {showParentAttendanceRow ? (
-        <div className="mt-1 pl-0.5" onClick={(e) => e.stopPropagation()}>
-          <AttendanceActionRow isTraining={isTraining} onOpenAttendance={onOpenAttendance} variant="compact" />
-        </div>
-      ) : null}
     </div>
   );
 }
