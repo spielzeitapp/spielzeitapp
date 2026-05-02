@@ -133,6 +133,7 @@ export function ScheduleHeroEventCard({
         endTimeLabel={gameEndLabel}
         descriptionText={gameDescription}
         variant="home-hero"
+        showCenterVs
       />
     </div>
   );
@@ -140,36 +141,36 @@ export function ScheduleHeroEventCard({
   const trainingBlock = (
     <div className={`relative min-w-0 ${topRight ? 'pr-0.5 pt-6 sm:pt-7' : ''}`}>
       {statusSlot}
-      <div className="flex flex-col items-center gap-1.5 px-1">
-        <div className="flex items-center justify-center gap-2">
-          <TrainingMotifIcon className="h-8 w-8 shrink-0 text-red-300/95 sm:h-9 sm:w-9" />
-          <span className="text-center text-[13px] font-black uppercase leading-tight tracking-wide text-white sm:text-sm">
+      <div className="flex flex-col items-center gap-2 px-1 pb-0.5 pt-1">
+        <TrainingMotifIcon className="h-9 w-9 shrink-0 text-red-300/95 sm:h-10 sm:w-10" />
+        {trainingTitle.trim() && trainingTitle.trim().toLowerCase() !== 'training' ? (
+          <p className="line-clamp-2 max-w-[min(100%,20rem)] px-2 text-center text-[12px] font-semibold leading-snug text-white/85 sm:text-[13px]">
             {trainingTitle}
-          </span>
-        </div>
+          </p>
+        ) : null}
         <MatchCardKickoffBlock
           timeDisplay={timeStr}
           showUhr
           location={locSingle || null}
           headerLabel="BEGINN"
-          subtitleAboveHeader={null}
-          hero={false}
+          subtitleAboveHeader="TRAINING"
+          hero
         />
         {locLine2 && locLine2.toLowerCase() !== (locLine1 ?? '').toLowerCase() ? (
-          <p className="line-clamp-2 max-w-[min(100%,20rem)] text-center text-[10px] leading-snug text-white/50">
+          <p className="line-clamp-2 max-w-[min(100%,20rem)] text-center text-[11px] leading-snug text-white/50">
             {locLine2}
           </p>
         ) : null}
-        <div className="mt-1 flex flex-wrap justify-center gap-1.5">
+        <div className="mt-3 flex min-h-[36px] flex-wrap justify-center gap-2">
           {showMeetup && meetupTimeOnly ? (
-            <span className="inline-flex max-w-full rounded-full border border-red-500/40 bg-red-950/50 px-3 py-1.5 text-[11px] font-semibold text-red-100">
-              Treffpunkt: {meetupTimeOnly}
-            </span>
+            <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-red-800/80 px-5 py-2 text-sm font-medium text-white">
+              <span className="whitespace-nowrap">Treffpunkt: {meetupTimeOnly}</span>
+            </div>
           ) : null}
           {endDisplay ? (
-            <span className="inline-flex max-w-full rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85">
-              Ende: {endDisplay}
-            </span>
+            <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full border border-white/15 bg-white/10 px-5 py-2 text-sm font-medium text-white/90">
+              <span className="whitespace-nowrap">Ende: {endDisplay}</span>
+            </div>
           ) : null}
         </div>
       </div>

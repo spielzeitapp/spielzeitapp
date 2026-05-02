@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { CalendarDays, LayoutList } from 'lucide-react';
+import { CalendarDays, CalendarPlus, LayoutList } from 'lucide-react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
@@ -45,6 +45,11 @@ const viewTabClass = (active: boolean) =>
 const viewTabIconClass = (active: boolean) =>
   `flex shrink-0 items-center justify-center gap-1 rounded-md px-2 min-h-[30px] text-[11px] font-medium transition-colors ${
     active ? 'bg-red-500/15 text-white border border-red-500/30' : 'bg-black/25 text-white/65 border border-white/10 hover:bg-white/10'
+  }`;
+
+const timeScopeTabClass = (active: boolean) =>
+  `min-h-[30px] flex-1 rounded-md px-2 py-1 text-center text-[10px] font-semibold transition-colors sm:min-h-[32px] sm:px-2.5 sm:text-[11px] ${
+    active ? 'border border-red-500/35 bg-red-500/15 text-white' : 'border border-transparent text-white/65 hover:text-white/88'
   }`;
 
 function getEventTab(e: EventRow): 'upcoming' | 'live' | 'finished' {
@@ -635,8 +640,8 @@ export const SchedulePage: React.FC = () => {
   const error = tsError ?? eError;
 
   return (
-    <div className="page schedule-page relative min-h-[60vh] scroll-mt-24 [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_50%,rgba(10,0,0,0.99)_100%)] [box-shadow:inset_0_0_120px_rgba(120,20,20,0.12)]">
-      <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
+    <div className="page schedule-page relative min-h-[60vh] scroll-mt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))] [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_50%,rgba(10,0,0,0.99)_100%)] [box-shadow:inset_0_0_120px_rgba(120,20,20,0.12)]">
+      <div className="w-full px-[6px] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:px-4 md:px-6 lg:px-2">
         <div className="mx-auto mt-1 max-w-3xl space-y-3 pt-3 sm:mt-2 sm:space-y-4 sm:pt-4">
           {toastMessage && (
             <div
@@ -667,25 +672,31 @@ export const SchedulePage: React.FC = () => {
                   <span className="truncate">{teamSeasonSubtitle}</span>
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-1.5">
+              <div className="flex shrink-0 flex-row items-start justify-end gap-1.5">
                 {teamSeasonId && !pageLoading && displayEvents.length > 0 ? (
-                  <Button
-                    variant="soft"
-                    size="xs"
-                    className="rounded-full px-2.5 text-[11px] sm:text-xs"
-                    title="Kalender exportieren"
-                    onClick={() =>
-                      downloadCalendarIcs(displayEvents, {
-                        appBaseUrl: window.location.origin,
-                        calendarName: normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine',
-                      })
-                    }
-                  >
-                    <span className="hidden sm:inline">Export</span>
-                    <span className="sm:hidden" aria-hidden>
-                      .ics
+                  <div className="flex flex-col items-end gap-0.5">
+                    <Button
+                      variant="soft"
+                      size="xs"
+                      className="inline-flex max-w-[10.5rem] items-center justify-center gap-1.5 rounded-xl border border-white/12 px-2.5 py-2 text-left sm:max-w-none sm:rounded-full sm:py-1.5"
+                      title="Kalender abonnieren – kompatible Apps u. a.: Apple Kalender, Google Kalender, FamilyWall"
+                      onClick={() =>
+                        downloadCalendarIcs(displayEvents, {
+                          appBaseUrl: window.location.origin,
+                          calendarName: normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine',
+                        })
+                      }
+                    >
+                      <CalendarPlus className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+                      <span className="min-w-0 text-[10px] font-semibold leading-tight sm:text-xs">
+                        <span className="sm:hidden">Kalender</span>
+                        <span className="hidden sm:inline">Kalender abonnieren</span>
+                      </span>
+                    </Button>
+                    <span className="hidden max-w-[11rem] text-right text-[9px] leading-snug text-white/45 sm:block">
+                      Für Apple, Google, FamilyWall
                     </span>
-                  </Button>
+                  </div>
                 ) : null}
                 {canManage ? (
                   <button
@@ -703,9 +714,9 @@ export const SchedulePage: React.FC = () => {
             </div>
 
             {normalizedUiRole !== 'fan' ? (
-              <div className="flex flex-col gap-1">
-                <div className="flex flex-wrap items-center gap-1.5 sm:justify-between">
-                  <div className="flex min-h-[30px] min-w-0 flex-1 gap-0.5 rounded-lg border border-white/10 bg-black/35 p-0.5 backdrop-blur-sm">
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-stretch gap-1.5">
+                  <div className="order-1 flex min-h-[32px] min-w-0 flex-[1_1_11rem] gap-0.5 rounded-lg border border-white/10 bg-black/35 p-0.5 backdrop-blur-sm sm:flex-[1_1_14rem]">
                     {([
                       { id: 'all', label: 'Alle' },
                       { id: 'match', label: 'Spiele' },
@@ -716,7 +727,7 @@ export const SchedulePage: React.FC = () => {
                         key={f.id}
                         type="button"
                         onClick={() => setKindFilter(f.id)}
-                        className={`min-h-[28px] flex-1 rounded-md px-1 py-0.5 text-[9px] font-semibold transition-colors sm:min-h-[30px] sm:px-1.5 sm:text-[10px] ${
+                        className={`min-h-[30px] flex-1 rounded-md px-1 py-0.5 text-[10px] font-semibold transition-colors sm:min-h-[32px] sm:px-1.5 sm:text-[11px] ${
                           kindFilter === f.id
                             ? 'border border-white/35 bg-white/15 text-white'
                             : 'border border-transparent text-white/65 hover:text-white/90'
@@ -726,7 +737,23 @@ export const SchedulePage: React.FC = () => {
                       </button>
                     ))}
                   </div>
-                  <div className="flex shrink-0 gap-0.5 rounded-lg border border-white/10 bg-black/30 p-0.5">
+                  <div className="order-2 flex w-[min(100%,10.5rem)] shrink-0 gap-0.5 rounded-lg border border-white/10 bg-black/40 p-0.5 sm:w-[11.5rem]">
+                    <button
+                      type="button"
+                      onClick={() => setTimeFilter('upcoming')}
+                      className={timeScopeTabClass(timeFilter === 'upcoming')}
+                    >
+                      Kommend
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTimeFilter('past')}
+                      className={timeScopeTabClass(timeFilter === 'past')}
+                    >
+                      Vergangen
+                    </button>
+                  </div>
+                  <div className="order-3 ml-auto flex shrink-0 gap-0.5 rounded-lg border border-white/10 bg-black/30 p-0.5">
                     <NavLink
                       to="/app/termine"
                       end
@@ -746,39 +773,26 @@ export const SchedulePage: React.FC = () => {
                     </NavLink>
                   </div>
                 </div>
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setTimeFilter(timeFilter === 'upcoming' ? 'past' : 'upcoming')}
-                    className="text-[10px] font-semibold text-white/45 underline decoration-white/20 decoration-1 underline-offset-2 hover:text-white/75"
-                  >
-                    {timeFilter === 'upcoming' ? 'Vergangene anzeigen' : 'Kommende anzeigen'}
-                  </button>
-                </div>
               </div>
             ) : (
-              <div className="flex flex-col gap-1">
-                <div className="flex flex-wrap items-center gap-1.5 sm:justify-between">
-                  <div className="flex min-h-[30px] flex-1 gap-0.5 rounded-lg border border-white/10 bg-black/35 p-0.5 backdrop-blur-sm">
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-stretch gap-1.5">
+                  <div className="order-1 flex min-h-[32px] min-w-0 flex-1 gap-0.5 rounded-lg border border-white/10 bg-black/35 p-0.5 backdrop-blur-sm sm:min-w-[11rem]">
                     {([
                       { id: 'upcoming' as const, label: 'Kommend' },
                       { id: 'past' as const, label: 'Vergangen' },
-                    ]).map((t) => (
+                    ] as const).map((t) => (
                       <button
                         key={t.id}
                         type="button"
                         onClick={() => setTimeFilter(t.id)}
-                        className={`min-h-[28px] flex-1 rounded-md px-1.5 py-0.5 text-[9px] font-semibold transition-colors sm:text-[10px] ${
-                          timeFilter === t.id
-                            ? 'border border-red-500/35 bg-red-500/15 text-white'
-                            : 'border border-transparent text-white/60 hover:text-white/88'
-                        }`}
+                        className={timeScopeTabClass(timeFilter === t.id)}
                       >
                         {t.label}
                       </button>
                     ))}
                   </div>
-                  <div className="flex shrink-0 gap-0.5 rounded-lg border border-white/10 bg-black/30 p-0.5">
+                  <div className="order-2 ml-auto flex shrink-0 gap-0.5 rounded-lg border border-white/10 bg-black/30 p-0.5">
                     <NavLink
                       to="/app/termine"
                       end

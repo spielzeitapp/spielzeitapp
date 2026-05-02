@@ -76,24 +76,24 @@ export const Header: React.FC = () => {
   }, [isStaff]);
 
   return (
-    <header className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-black/60 py-3 backdrop-blur-md">
-      <div className="mx-auto flex h-16 w-full max-w-screen-2xl items-center justify-between gap-2 px-4 md:px-8">
+    <header className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-black/60 pt-[env(safe-area-inset-top,0px)] backdrop-blur-md">
+      <div className="mx-auto flex min-h-[3.5rem] w-full max-w-screen-2xl items-center justify-between gap-2 px-3 py-2 md:px-8">
         {/* Links: Logo + Branding (im internen Bereich klickbar → /app/home) */}
         <div className="flex min-w-0 flex-1 items-center gap-3">
           {pathname.startsWith('/app') ? (
-            <Link to="/app/home" className="flex items-center gap-3 min-w-0">
+            <Link to="/app/home" className="flex min-w-0 items-center gap-2.5 sm:gap-3">
               <img
                 src={logo}
                 alt=""
-                className="h-9 w-9 shrink-0 rounded-full object-cover"
-                width={36}
-                height={36}
+                className="h-9 w-9 shrink-0 rounded-full object-cover sm:h-10 sm:w-10"
+                width={40}
+                height={40}
               />
-              <div className="min-w-0">
-                <div className="text-lg font-semibold leading-tight text-white">
+              <div className="min-w-0 pr-1">
+                <div className="truncate text-base font-semibold leading-tight text-white sm:text-lg">
                   SpielzeitApp
                 </div>
-                <div className="text-xs text-white/60">NSG Gölsental</div>
+                <div className="truncate text-[11px] text-white/60 sm:text-xs">NSG Gölsental</div>
               </div>
             </Link>
           ) : (
@@ -162,7 +162,7 @@ export const Header: React.FC = () => {
               )}
             </div>
             {roleLabel && !sessionLoading && !authLoading && (
-              <span className="rounded-full bg-red-600/80 px-2 py-0.5 text-[11px] font-medium text-white">
+              <span className="rounded-full border border-white/10 bg-white/[0.07] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white/70 sm:text-[10px]">
                 {roleLabel}
               </span>
             )}

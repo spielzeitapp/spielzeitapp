@@ -5,8 +5,8 @@ type Props = {
   isTraining: boolean;
   onOpenAttendance: () => void;
   disabled?: boolean;
-  /** Hero: etwas größere Touch-Fläche */
-  variant?: 'default' | 'hero';
+  /** Hero: etwas größere Touch-Fläche; compact: dezente Liste ohne großen Primary-Block */
+  variant?: 'default' | 'hero' | 'compact';
 };
 
 /** Eltern/Spieler: öffnet dasselbe Zu-/Absage-Modal wie der Chip auf der Karte. */
@@ -17,6 +17,23 @@ export function AttendanceActionRow({
   variant = 'default',
 }: Props) {
   const isHero = variant === 'hero';
+  const isCompact = variant === 'compact';
+  if (isCompact) {
+    return (
+      <div className="mt-1.5 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()} role="group" aria-label="Teilnahme">
+        <Button
+          type="button"
+          variant="soft"
+          size="xs"
+          className="h-8 rounded-full border border-white/12 px-3 text-[11px] font-semibold text-white/95 hover:bg-white/10"
+          disabled={disabled}
+          onClick={onOpenAttendance}
+        >
+          {isTraining ? 'Absage / Status' : 'Zu- / Absage'}
+        </Button>
+      </div>
+    );
+  }
   return (
     <div
       className={`flex flex-wrap gap-2 ${isHero ? 'mt-3' : 'mt-2'}`}

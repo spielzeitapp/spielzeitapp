@@ -109,6 +109,8 @@ type KickoffBlockProps = {
   /** Eine Zeile direkt oberhalb von `headerLabel` (z. B. Spielart aus `match_type`). */
   subtitleAboveHeader?: string | null;
   hero?: boolean;
+  /** Zwischen „Uhr“ und Ort: dezentes „VS“ (nur Termine-Hero / Spiel). */
+  centerVs?: boolean;
 };
 
 /** Für Training/Event-Zeile in derselben Karte (Termine). */
@@ -119,6 +121,7 @@ export function MatchCardKickoffBlock({
   headerLabel,
   subtitleAboveHeader,
   hero,
+  centerVs,
 }: KickoffBlockProps) {
   const hasLocation = location != null && location.trim() !== '';
   const locationLines = hasLocation
@@ -151,8 +154,20 @@ export function MatchCardKickoffBlock({
       </div>
       <div className={timeClass}>{timeDisplay}</div>
       {showUhr ? <div className="mt-1 text-white font-medium">Uhr</div> : null}
+      {centerVs ? (
+        <div
+          className="mt-2 text-[10px] font-black uppercase tracking-[0.38em] text-red-400/45 sm:text-[11px]"
+          aria-hidden
+        >
+          vs
+        </div>
+      ) : null}
       {hasLocation ? (
-        <div className="mt-1 text-[14px] font-medium text-white/95 leading-tight text-center break-words line-clamp-3 min-w-0 max-w-[220px]">
+        <div
+          className={`mt-1 text-[14px] font-medium text-white/95 leading-tight text-center break-words line-clamp-3 min-w-0 ${
+            hero ? 'max-w-[min(280px,min(92vw,100%))]' : 'max-w-[220px]'
+          }`}
+        >
           {locationLines.line2 ? (
             <>
               {locationLines.line1}
@@ -198,6 +213,8 @@ export type MatchCardGameCoreProps = {
   kickoffSubtitleAboveHeader?: string | null;
   /** Optionales Label in der Mittelspalte (z. B. ENDSTAND statt ANPFIFF). */
   kickoffHeaderLabel?: string | null;
+  /** Nur großer Hero: „vs.“ zwischen Uhrzeit und Ort. */
+  showCenterVs?: boolean;
 };
 
 /**
@@ -224,6 +241,7 @@ export function MatchCardGameCore({
   rightColumnLabel,
   kickoffSubtitleAboveHeader,
   kickoffHeaderLabel,
+  showCenterVs,
 }: MatchCardGameCoreProps) {
   const safeLeftName = (leftName || '').trim() || 'Team';
   const safeRightName = (rightName || '').trim() || 'Gegner';
@@ -270,7 +288,13 @@ export function MatchCardGameCore({
           />
         </div>
 
-        <div className="flex min-w-0 max-w-[118px] flex-col items-center px-0.5 text-center sm:max-w-[134px] sm:px-1">
+        <div
+          className={`flex min-w-0 flex-col items-center px-0.5 text-center sm:px-1 ${
+            hero
+              ? 'max-w-[min(300px,min(94vw,100%))]'
+              : 'max-w-[118px] sm:max-w-[134px]'
+          }`}
+        >
           <MatchCardKickoffBlock
             timeDisplay={isMatch && showScore ? `${homeScore} : ${awayScore}` : timeDisplay}
             showUhr={!isMatch || !showScore}
@@ -278,6 +302,7 @@ export function MatchCardGameCore({
             headerLabel={kickoffHeaderLabel ?? 'ANPFIFF'}
             subtitleAboveHeader={kickoffSubtitleAboveHeader}
             hero={hero}
+            centerVs={Boolean(hero && showCenterVs)}
           />
         </div>
 

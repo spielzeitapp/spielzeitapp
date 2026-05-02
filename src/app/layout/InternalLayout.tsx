@@ -91,7 +91,13 @@ export const InternalLayout: React.FC = () => {
 
       <div className="app min-h-screen bg-black text-white">
         <Header />
-        <main className={`app__content appMain pt-24 ${isTouchLayout ? 'pb-36 lg:pb-24' : 'pb-24'}`}>
+        <main
+          className={`app__content appMain pt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))] ${
+            isTouchLayout
+              ? 'pb-[max(10rem,calc(7.5rem+env(safe-area-inset-bottom,0px)))] lg:pb-24'
+              : 'pb-24'
+          }`}
+        >
           <div className={`mx-auto w-full ${isLiveRoute ? 'max-w-none px-2 md:px-3 lg:px-4' : 'max-w-[96rem] px-3 md:px-6 lg:px-8'}`}>
             <div className="lg:flex lg:items-start lg:gap-6">
               <TabletSidebar compact={isLiveRoute} />
