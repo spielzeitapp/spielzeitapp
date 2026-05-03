@@ -25,7 +25,7 @@ export type ScheduleHeroEventCardProps = {
   scoreAway?: number | null;
   showMeetup: boolean;
   topRight?: React.ReactNode;
-  /** Trainer: Live / Bearbeiten / Löschen / Kalender — oben rechts, neben Status */
+  /** @deprecated Nicht mehr in der Hero-Karte gerendert (Trainer-Zeile liegt außerhalb). Prop bleibt für Aufrufer-Kompatibilität. */
   trainerToolbar?: React.ReactNode;
   isPublicView: boolean;
   isClickable: boolean;
@@ -51,9 +51,11 @@ function logoForDisplayName(displayName: string, optionalUrl?: string | null): s
   return getClubLogoUrl(displayName);
 }
 
+const stadiumBgUrl = `${import.meta.env.BASE_URL || '/'}intro/welcome-hero.png`;
+
 function HeroTeamLogo({ src }: { src: string }) {
-  const [phase, setPhase] = useState<'img' | 'shield' | 'ball'>('img');
-  if (phase === 'ball') {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
     return (
       <div
         className="flex h-[4.5rem] w-[4.5rem] max-w-[22vw] shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-black/55 text-[2.75rem] leading-none sm:h-20 sm:w-20 sm:max-w-none"
@@ -63,16 +65,12 @@ function HeroTeamLogo({ src }: { src: string }) {
       </div>
     );
   }
-  const url = phase === 'shield' ? '/logos/placeholder-shield-a.png' : src;
   return (
     <img
-      src={url}
+      src={src}
       alt=""
       className="h-[4.5rem] w-[4.5rem] max-w-[22vw] shrink-0 object-contain sm:h-20 sm:w-20 sm:max-w-none"
-      onError={() => {
-        if (phase === 'img') setPhase('shield');
-        else setPhase('ball');
-      }}
+      onError={() => setFailed(true)}
     />
   );
 }
@@ -92,6 +90,7 @@ export function ScheduleHeroEventCard({
   onNavigate,
 }: ScheduleHeroEventCardProps) {
   void _ourTeamName;
+  void trainerToolbar;
   const ourClubName = getOurTeamDisplayName();
   const { wd, day, mon } = formatHeroDateParts(ev.starts_at);
   const timeStr = formatTimeHHmmDe(ev.starts_at);
@@ -153,18 +152,25 @@ export function ScheduleHeroEventCard({
     </div>
   );
 
-  const statusCluster =
-    topRight || trainerToolbar ? (
-      <div className="pointer-events-none absolute right-0 top-0 z-[2] flex max-w-[min(52%,13.5rem)] flex-col items-end gap-1.5 sm:max-w-[14rem]">
-        {topRight ? <div className="pointer-events-auto">{topRight}</div> : null}
-        {trainerToolbar ? (
-          <div className="pointer-events-auto flex flex-row flex-wrap justify-end gap-1">{trainerToolbar}</div>
-        ) : null}
-      </div>
-    ) : null;
+  const statusCluster = topRight ? (
+    <div className="pointer-events-none absolute right-0 top-0 z-[2] flex max-w-[min(48%,12rem)] flex-col items-end sm:max-w-[13rem]">
+      <div className="pointer-events-auto">{topRight}</div>
+    </div>
+  ) : null;
 
   const gameBody = (
     <>
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-[0.38]"
+          style={{ backgroundImage: `url(${stadiumBgUrl})` }}
+          aria-hidden
+        />
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-black/72 via-black/78 to-black/[0.92]"
+          aria-hidden
+        />
+      </div>
       {dateBlock}
       {statusCluster}
       <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-0.5 pt-10 sm:pt-11">
@@ -181,13 +187,13 @@ export function ScheduleHeroEventCard({
         <div className="grid w-full min-w-0 max-w-[22rem] grid-cols-[1fr_auto_1fr] items-end gap-x-1.5 sm:max-w-[26rem] sm:gap-x-3">
           <div className="flex min-w-0 flex-col items-center gap-2 border-r border-white/10 pr-1 sm:pr-3">
             <HeroTeamLogo src={leftLogoSrc} />
-            <p className="line-clamp-3 w-full max-w-[10.5rem] text-center text-[11px] font-bold leading-snug text-white [overflow-wrap:anywhere] sm:max-w-[12rem] sm:text-[13px]">
+            <p className="line-clamp-2 w-full min-w-0 max-w-[11rem] text-center text-[11px] font-bold leading-snug text-white break-words sm:max-w-[13rem] sm:text-[13px]">
               {leftName}
             </p>
           </div>
           <div className="flex min-w-0 flex-col items-center justify-end px-0.5 pb-1">
             <span
-              className="text-3xl font-black uppercase leading-none tracking-[0.06em] text-red-500 drop-shadow-[0_0_24px_rgba(239,68,68,0.4)] sm:text-5xl"
+              className="text-4xl font-black uppercase leading-none tracking-[0.06em] text-red-500 drop-shadow-[0_0_28px_rgba(239,68,68,0.45)] sm:text-5xl"
               aria-hidden
             >
               vs
@@ -195,7 +201,7 @@ export function ScheduleHeroEventCard({
           </div>
           <div className="flex min-w-0 flex-col items-center gap-2 border-l border-white/10 pl-1 sm:pl-3">
             <HeroTeamLogo src={rightLogoSrc} />
-            <p className="line-clamp-3 w-full max-w-[10.5rem] text-center text-[11px] font-bold leading-snug text-white [overflow-wrap:anywhere] sm:max-w-[12rem] sm:text-[13px]">
+            <p className="line-clamp-2 w-full min-w-0 max-w-[11rem] text-center text-[11px] font-bold leading-snug text-white break-words sm:max-w-[13rem] sm:text-[13px]">
               {rightName}
             </p>
           </div>
@@ -205,7 +211,7 @@ export function ScheduleHeroEventCard({
           <span className="text-[9px] font-bold uppercase tracking-[0.32em] text-red-400/95 sm:text-[10px]">
             {kickoffHeaderLabel}
           </span>
-          <p className="mt-1 max-w-full text-center text-[2.5rem] font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.5)] min-[375px]:text-[2.75rem] sm:text-[3.5rem]">
+          <p className="mt-1 max-w-full text-center text-5xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_28px_rgba(0,0,0,0.55)] min-[400px]:text-[3.25rem] sm:text-[3.5rem]">
             {showScore ? `${home} : ${away}` : timeStr}
           </p>
           {!showScore ? <span className="mt-1.5 text-sm font-medium text-white/78">Uhr</span> : null}
@@ -213,12 +219,12 @@ export function ScheduleHeroEventCard({
           {locLine1 || locLine2 ? (
             <div className="mt-4 max-w-[min(100%,20rem)] space-y-0.5 text-center">
               {locLine1 ? (
-                <p className="text-[12px] font-semibold leading-snug text-white/90 [overflow-wrap:anywhere] sm:text-[13px]">
+                <p className="line-clamp-2 text-[12px] font-semibold leading-snug text-white/90 break-words sm:text-[13px]">
                   {locLine1}
                 </p>
               ) : null}
               {locLine2 ? (
-                <p className="text-[11px] font-medium leading-snug text-white/60 [overflow-wrap:anywhere] sm:text-[12px]">
+                <p className="line-clamp-2 text-[11px] font-medium leading-snug text-white/60 break-words sm:text-[12px]">
                   {locLine2}
                 </p>
               ) : null}
@@ -234,7 +240,7 @@ export function ScheduleHeroEventCard({
           {showMeetup && meetupTimeOnly ? (
             <div
               role="presentation"
-              className="flex min-h-[2.75rem] w-full max-w-xs items-center justify-center rounded-full border border-red-400/40 bg-red-600/90 px-4 text-[15px] font-semibold text-white shadow-[0_8px_28px_rgba(0,0,0,0.35)] sm:text-base"
+              className="flex min-h-[2.85rem] w-full max-w-[min(100%,22rem)] items-center justify-center rounded-full border border-red-400/45 bg-red-600/92 px-5 text-[15px] font-semibold text-white shadow-[0_10px_32px_rgba(0,0,0,0.4)] sm:text-base"
             >
               Treffpunkt: {meetupTimeOnly}
             </div>

@@ -7,6 +7,7 @@ import { CreateEventModal } from '../app/components/CreateEventModal';
 import { AttendanceStatusPill, type AttendanceStatusKind } from '../components/schedule/AttendanceStatusPill';
 import { CompactEventCard } from '../components/schedule/CompactEventCard';
 import { EventHeroCard } from '../components/schedule/EventHeroCard';
+import { AttendanceActionRow } from '../components/schedule/AttendanceActionRow';
 import { ScheduleCompactEventRow } from '../components/schedule/ScheduleCompactEventRow';
 import { ScheduleHeroEventCard } from '../components/schedule/ScheduleHeroEventCard';
 import { TrainerStatsMini } from '../components/schedule/TrainerStatsMini';
@@ -89,11 +90,13 @@ function mergeTitleIntoNotes(existingNotes: string | null | undefined, newTitle:
   return rest.length ? `${title} · ${rest.join(' · ')}` : title;
 }
 
-function ScheduleHeroToolbarIcon({
+function ScheduleHeroToolbarAction({
+  label,
   title,
   onClick,
   children,
 }: {
+  label: string;
   title: string;
   onClick: () => void;
   children: React.ReactNode;
@@ -103,13 +106,14 @@ function ScheduleHeroToolbarIcon({
       type="button"
       title={title}
       aria-label={title}
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white shadow-md backdrop-blur-sm transition hover:border-red-400/45 hover:bg-red-950/55"
+      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/18 bg-black/55 px-2.5 text-[10px] font-semibold text-white/95 shadow-md backdrop-blur-sm transition hover:border-red-400/45 hover:bg-red-950/50 sm:text-[11px]"
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
     >
-      {children}
+      <span className="flex shrink-0 items-center opacity-90">{children}</span>
+      <span className="whitespace-nowrap">{label}</span>
     </button>
   );
 }
@@ -655,8 +659,8 @@ export const SchedulePage: React.FC = () => {
 
   return (
     <div className="page schedule-page relative min-h-[60vh] scroll-mt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))] [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_50%,rgba(10,0,0,0.99)_100%)] [box-shadow:inset_0_0_120px_rgba(120,20,20,0.12)]">
-      <div className="w-full px-[6px] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:px-4 md:px-6 lg:px-2">
-        <div className="mx-auto mt-1 max-w-3xl space-y-3 pt-3 sm:mt-2 sm:space-y-4 sm:pt-4">
+      <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
+        <div className="mx-auto mt-1 max-w-3xl space-y-3 pb-[calc(140px+env(safe-area-inset-bottom,0px))] pt-3 sm:mt-2 sm:space-y-4 sm:pt-4">
           {toastMessage && (
             <div
               className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl bg-black/90 border border-red-900/80 text-white text-sm font-medium shadow-lg backdrop-blur-sm"
@@ -771,13 +775,13 @@ export const SchedulePage: React.FC = () => {
                     </NavLink>
                   </div>
                 </div>
-                <div className="flex justify-center">
+                <div className="flex justify-center px-1 pt-0.5">
                   <button
                     type="button"
                     onClick={() => setTimeFilter(timeFilter === 'upcoming' ? 'past' : 'upcoming')}
-                    className="text-[11px] font-semibold text-red-300/90 underline decoration-red-500/35 decoration-1 underline-offset-4 hover:text-white"
+                    className="text-[10px] font-medium text-red-400/80 underline decoration-red-500/25 decoration-1 underline-offset-[5px] hover:text-red-200/95"
                   >
-                    {timeFilter === 'upcoming' ? 'Vergangene anzeigen' : 'Kommende anzeigen'}
+                    {timeFilter === 'upcoming' ? 'Vergangene anzeigen →' : 'Kommende anzeigen →'}
                   </button>
                 </div>
               </div>
@@ -804,13 +808,13 @@ export const SchedulePage: React.FC = () => {
                     </NavLink>
                   </div>
                 </div>
-                <div className="flex justify-center">
+                <div className="flex justify-center px-1 pt-0.5">
                   <button
                     type="button"
                     onClick={() => setTimeFilter(timeFilter === 'upcoming' ? 'past' : 'upcoming')}
-                    className="text-[11px] font-semibold text-red-300/90 underline decoration-red-500/35 decoration-1 underline-offset-4 hover:text-white"
+                    className="text-[10px] font-medium text-red-400/80 underline decoration-red-500/25 decoration-1 underline-offset-[5px] hover:text-red-200/95"
                   >
-                    {timeFilter === 'upcoming' ? 'Vergangene anzeigen' : 'Kommende anzeigen'}
+                    {timeFilter === 'upcoming' ? 'Vergangene anzeigen →' : 'Kommende anzeigen →'}
                   </button>
                 </div>
               </div>
@@ -907,39 +911,89 @@ export const SchedulePage: React.FC = () => {
                                 isFinishedMatch && ev.match_id
                                   ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
                                   : navigate(`/app/events/${id}`);
-                        const heroTrainerToolbar = canManage ? (
-                          <>
-                            {et === 'game' && ev.match_id && ev.status !== 'finished' ? (
-                              <ScheduleHeroToolbarIcon
-                                title="Live starten"
-                                onClick={() => navigate(`/live?matchId=${ev.match_id}`)}
+                        const heroTrainerFooter =
+                          canManage && !forcePublicView ? (
+                            <div
+                              className="flex flex-wrap items-center justify-center gap-1.5 sm:justify-start"
+                              role="toolbar"
+                              aria-label="Trainer-Aktionen"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {et === 'game' && ev.match_id && ev.status !== 'finished' ? (
+                                <ScheduleHeroToolbarAction
+                                  label="Live starten"
+                                  title="Live starten"
+                                  onClick={() => navigate(`/live?matchId=${ev.match_id}`)}
+                                >
+                                  <Radio className="h-3.5 w-3.5" strokeWidth={2} />
+                                </ScheduleHeroToolbarAction>
+                              ) : null}
+                              <ScheduleHeroToolbarAction
+                                label="Bearbeiten"
+                                title="Bearbeiten"
+                                onClick={() => openEditModal(ev)}
                               >
-                                <Radio className="h-3.5 w-3.5" strokeWidth={2} />
-                              </ScheduleHeroToolbarIcon>
-                            ) : null}
-                            <ScheduleHeroToolbarIcon title="Bearbeiten" onClick={() => openEditModal(ev)}>
-                              <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
-                            </ScheduleHeroToolbarIcon>
-                            <ScheduleHeroToolbarIcon title="Löschen" onClick={() => void handleDelete(ev)}>
-                              <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-                            </ScheduleHeroToolbarIcon>
-                            {ev.status !== 'finished' ? (
-                              <ScheduleHeroToolbarIcon
-                                title="Zum Kalender hinzufügen"
-                                onClick={() =>
-                                  downloadEventIcs(ev, {
-                                    appBaseUrl: window.location.origin,
-                                  })
-                                }
+                                <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
+                              </ScheduleHeroToolbarAction>
+                              <ScheduleHeroToolbarAction
+                                label="Löschen"
+                                title="Löschen"
+                                onClick={() => void handleDelete(ev)}
                               >
-                                <CalendarDays className="h-3.5 w-3.5" strokeWidth={2} />
-                              </ScheduleHeroToolbarIcon>
-                            ) : null}
-                          </>
-                        ) : undefined;
+                                <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                              </ScheduleHeroToolbarAction>
+                              {ev.status !== 'finished' ? (
+                                <ScheduleHeroToolbarAction
+                                  label="Kalender"
+                                  title="Zum Kalender hinzufügen"
+                                  onClick={() =>
+                                    downloadEventIcs(ev, {
+                                      appBaseUrl: window.location.origin,
+                                    })
+                                  }
+                                >
+                                  <CalendarDays className="h-3.5 w-3.5" strokeWidth={2} />
+                                </ScheduleHeroToolbarAction>
+                              ) : null}
+                            </div>
+                          ) : null;
+                        const heroParentFooter =
+                          heroShowsParentPill && !forcePublicView ? (
+                            <div
+                              className="flex flex-wrap items-center justify-center gap-2 sm:justify-start"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <AttendanceActionRow
+                                isTraining={et === 'training'}
+                                variant="compact"
+                                onOpenAttendance={() => setAttendanceModalEvent(ev)}
+                              />
+                              {ev.status !== 'finished' ? (
+                                <Button
+                                  type="button"
+                                  variant="soft"
+                                  size="xs"
+                                  className="h-8 rounded-full border border-white/12 px-3 text-[11px] font-semibold text-white/95 hover:bg-white/10"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    downloadEventIcs(ev, { appBaseUrl: window.location.origin });
+                                  }}
+                                >
+                                  Zum Kalender
+                                </Button>
+                              ) : null}
+                            </div>
+                          ) : null;
+                        const heroCardFooter =
+                          heroTrainerFooter || heroParentFooter ? (
+                            <div className="flex flex-col gap-2">
+                              {heroTrainerFooter}
+                              {heroParentFooter}
+                            </div>
+                          ) : undefined;
                         return (
                           <div key={ev.id} className="w-full" {...publicWrap}>
-                            <EventHeroCard label={heroLabelForEffectiveType(et)}>
+                            <EventHeroCard label={heroLabelForEffectiveType(et)} footer={heroCardFooter}>
                               <ScheduleHeroEventCard
                                 ev={ev}
                                 et={et}
@@ -951,7 +1005,6 @@ export const SchedulePage: React.FC = () => {
                                 scoreAway={matchScore?.scoreAway}
                                 showMeetup={showMeetupForRole}
                                 topRight={heroTopRight}
-                                trainerToolbar={heroTrainerToolbar}
                                 isPublicView={forcePublicView}
                                 isClickable={heroClickable}
                                 onNavigate={heroOnNavigate}
@@ -1018,24 +1071,11 @@ export const SchedulePage: React.FC = () => {
                           opponentLogoUrl={opponentLogo}
                           trailing={compactTrailing}
                           forcePublicView={forcePublicView}
-                          canManage={canManage}
-                          onEdit={canManage ? () => openEditModal(ev) : undefined}
-                          onDelete={canManage ? () => void handleDelete(ev) : undefined}
                           onNavigate={(id) =>
                             isFinishedMatch && ev.match_id
                               ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
                               : navigate(`/app/events/${id}`)
                           }
-                          onLive={ev.match_id ? () => navigate(`/live?matchId=${ev.match_id}`) : undefined}
-                          showLiveButton={Boolean(
-                            canManage && et === 'game' && ev.match_id && ev.status !== 'finished',
-                          )}
-                          onCalendar={() =>
-                            downloadEventIcs(ev, {
-                              appBaseUrl: window.location.origin,
-                            })
-                          }
-                          showCalendarButton={ev.status !== 'finished'}
                         />
                       </CompactEventCard>
                     );

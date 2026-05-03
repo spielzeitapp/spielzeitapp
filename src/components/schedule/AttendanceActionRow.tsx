@@ -20,7 +20,7 @@ export function AttendanceActionRow({
   const isCompact = variant === 'compact';
   if (isCompact) {
     return (
-      <div className="mt-1.5 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()} role="group" aria-label="Teilnahme">
+      <div className="mt-0 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()} role="group" aria-label="Teilnahme">
         <Button
           type="button"
           variant="soft"

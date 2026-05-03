@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CalendarDays, ChevronRight, Pencil, Radio, Trash2 } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getClubLogo } from '../../lib/teamLogos';
 import type { EffectiveEventType } from './scheduleEventViewUtils';
@@ -19,41 +19,12 @@ export type ScheduleCompactEventRowProps = {
   opponentLogoUrl?: string | null;
   forcePublicView: boolean;
   trailing?: React.ReactNode;
-  canManage: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
   onNavigate: (id: string) => void;
-  onLive?: () => void;
-  showLiveButton: boolean;
-  onCalendar: () => void;
-  showCalendarButton: boolean;
 };
 
-function IconAction({
-  title,
-  onClick,
-  children,
-}: {
-  title: string;
-  onClick: (e: React.MouseEvent) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      title={title}
-      aria-label={title}
-      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/12 bg-black/50 text-white/90 transition-colors hover:border-red-500/35 hover:bg-red-500/15 sm:h-8 sm:w-8"
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-}
-
 function CompactOpponentLogo({ src }: { src: string }) {
-  const [phase, setPhase] = useState<'img' | 'shield' | 'ball'>('img');
-  if (phase === 'ball') {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
     return (
       <div
         className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/50 text-2xl leading-none sm:h-[3.25rem] sm:w-[3.25rem]"
@@ -63,17 +34,13 @@ function CompactOpponentLogo({ src }: { src: string }) {
       </div>
     );
   }
-  const url = phase === 'shield' ? '/logos/placeholder-shield-a.png' : src;
   return (
     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/45 sm:h-[3.25rem] sm:w-[3.25rem]">
       <img
-        src={url}
+        src={src}
         alt=""
         className="h-10 w-10 object-contain sm:h-11 sm:w-11"
-        onError={() => {
-          if (phase === 'img') setPhase('shield');
-          else setPhase('ball');
-        }}
+        onError={() => setFailed(true)}
       />
     </div>
   );
@@ -86,14 +53,7 @@ export function ScheduleCompactEventRow({
   opponentLogoUrl,
   trailing,
   forcePublicView,
-  canManage,
-  onEdit,
-  onDelete,
   onNavigate,
-  onLive,
-  showLiveButton,
-  onCalendar,
-  showCalendarButton,
 }: ScheduleCompactEventRowProps) {
   const { wd, day, mon } = formatHeroDateParts(ev.starts_at);
   const timeStr = formatTimeHHmmDe(ev.starts_at);
@@ -129,61 +89,11 @@ export function ScheduleCompactEventRow({
       </div>
     );
 
-  const trainerIcons =
-    canManage && (showLiveButton || onEdit || onDelete || showCalendarButton) ? (
-      <div className="flex flex-col items-end gap-0.5" onClick={(e) => e.stopPropagation()}>
-        {showLiveButton && onLive ? (
-          <IconAction
-            title="Live starten"
-            onClick={(e) => {
-              e.stopPropagation();
-              onLive();
-            }}
-          >
-            <Radio className="h-3 w-3 sm:h-3.5 sm:w-3.5" strokeWidth={2} />
-          </IconAction>
-        ) : null}
-        {onEdit ? (
-          <IconAction
-            title="Bearbeiten"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-          >
-            <Pencil className="h-3 w-3 sm:h-3.5 sm:w-3.5" strokeWidth={2} />
-          </IconAction>
-        ) : null}
-        {onDelete ? (
-          <IconAction
-            title="Löschen"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-          >
-            <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" strokeWidth={2} />
-          </IconAction>
-        ) : null}
-        {showCalendarButton ? (
-          <IconAction
-            title="Zum Kalender hinzufügen"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCalendar();
-            }}
-          >
-            <CalendarDays className="h-3 w-3 sm:h-3.5 sm:w-3.5" strokeWidth={2} />
-          </IconAction>
-        ) : null}
-      </div>
-    ) : null;
-
   return (
     <div className="w-full">
       <div
         className={[
-          'flex min-h-[3.5rem] items-stretch gap-2 rounded-lg border border-white/[0.08] bg-black/35 px-1.5 py-1.5 sm:gap-2.5 sm:px-2',
+          'flex min-h-[3.5rem] min-w-0 items-stretch gap-2 overflow-hidden rounded-lg border border-white/[0.08] bg-black/35 px-1.5 py-1.5 sm:gap-2.5 sm:px-2',
           clickable ? 'cursor-pointer active:bg-white/[0.06]' : 'cursor-default',
         ].join(' ')}
         role={clickable ? 'button' : undefined}
@@ -208,11 +118,11 @@ export function ScheduleCompactEventRow({
 
         {iconSlot}
 
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 py-0.5 pr-0.5">
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 overflow-hidden py-0.5 pr-0.5">
           {et === 'game' ? (
             <>
-              <div className="flex min-w-0 flex-wrap items-start gap-1.5 gap-y-0.5">
-                <p className="min-w-0 flex-1 text-[12px] font-bold leading-snug text-white [overflow-wrap:anywhere] sm:text-[13px]">
+              <div className="flex min-w-0 items-start gap-1.5">
+                <p className="min-w-0 flex-1 overflow-hidden text-[12px] font-bold leading-snug text-white break-words line-clamp-2 sm:text-[13px]">
                   {oppName}
                 </p>
                 {homeAwayBadge ? (
@@ -223,43 +133,48 @@ export function ScheduleCompactEventRow({
                   </span>
                 ) : null}
               </div>
-              <p className="text-[10px] font-medium tabular-nums text-white/58 sm:text-[11px]">
-                {timeStr}
+              <p className="min-w-0 text-[10px] font-medium tabular-nums text-white/58 sm:text-[11px]">
+                <span className="shrink-0 whitespace-nowrap">{timeStr}</span>
                 {loc ? <span className="text-white/35"> · </span> : null}
-                {loc ? <span className="[overflow-wrap:anywhere] line-clamp-2">{loc}</span> : null}
+                {loc ? (
+                  <span className="line-clamp-2 break-words text-white/58 [word-break:normal]">{loc}</span>
+                ) : null}
               </p>
             </>
           ) : et === 'training' ? (
             <>
               <p className="text-[12px] font-bold leading-snug text-white sm:text-[13px]">Training</p>
               {trainingNotesTitle && trainingNotesTitle.trim().toLowerCase() !== 'training' ? (
-                <p className="line-clamp-1 text-[10px] leading-tight text-white/48">{trainingNotesTitle}</p>
+                <p className="line-clamp-1 min-w-0 text-[10px] leading-tight text-white/48">{trainingNotesTitle}</p>
               ) : null}
-              <p className="text-[10px] font-medium tabular-nums text-white/58 sm:text-[11px]">
-                {timeStr}
+              <p className="min-w-0 text-[10px] font-medium tabular-nums text-white/58 sm:text-[11px]">
+                <span className="shrink-0 whitespace-nowrap">{timeStr}</span>
                 {loc ? <span className="text-white/35"> · </span> : null}
-                {loc ? <span className="[overflow-wrap:anywhere] line-clamp-2">{loc}</span> : null}
+                {loc ? (
+                  <span className="line-clamp-2 break-words text-white/58 [word-break:normal]">{loc}</span>
+                ) : null}
               </p>
             </>
           ) : (
             <>
-              <p className="line-clamp-2 text-[12px] font-bold leading-snug text-white [overflow-wrap:anywhere] sm:text-[13px]">
+              <p className="line-clamp-2 min-w-0 text-[12px] font-bold leading-snug text-white break-words sm:text-[13px]">
                 {title}
               </p>
-              <p className="text-[10px] font-medium tabular-nums text-white/58 sm:text-[11px]">
-                {timeStr}
+              <p className="min-w-0 text-[10px] font-medium tabular-nums text-white/58 sm:text-[11px]">
+                <span className="shrink-0 whitespace-nowrap">{timeStr}</span>
                 {loc ? <span className="text-white/35"> · </span> : null}
-                {loc ? <span className="[overflow-wrap:anywhere] line-clamp-2">{loc}</span> : null}
+                {loc ? (
+                  <span className="line-clamp-2 break-words text-white/58 [word-break:normal]">{loc}</span>
+                ) : null}
               </p>
             </>
           )}
         </div>
 
-        <div className="flex shrink-0 flex-row items-center gap-1 self-stretch py-0.5">
-          <div className="flex min-w-0 max-w-[6rem] flex-col items-end justify-center gap-0.5 sm:max-w-[6.75rem]">
+        <div className="flex w-[4.5rem] shrink-0 flex-row items-center justify-end gap-0.5 self-stretch py-0.5 sm:w-[5rem]">
+          <div className="flex min-w-0 flex-1 flex-col items-end justify-center gap-0.5 overflow-hidden">
             {trailing}
           </div>
-          {trainerIcons}
           {clickable ? <ChevronRight className="h-4 w-4 shrink-0 text-white/25" aria-hidden /> : null}
         </div>
       </div>
