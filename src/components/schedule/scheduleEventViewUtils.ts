@@ -19,6 +19,32 @@ export function formatHeroDateParts(iso: string | null | undefined): { wd: strin
   };
 }
 
+/** Kompakte Terminliste: voller Wochentag, großer Tag, Monat + Jahr (z. B. MAI 2026). */
+export function formatCompactListDateParts(iso: string | null | undefined): {
+  wd: string;
+  day: string;
+  monYear: string;
+} {
+  if (!iso?.trim()) return { wd: '—', day: '–', monYear: '' };
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return { wd: '—', day: '–', monYear: '' };
+  const wd = new Intl.DateTimeFormat('de-AT', { weekday: 'long', timeZone: VIENNA_TZ }).format(d);
+  const day = new Intl.DateTimeFormat('de-AT', { day: '2-digit', timeZone: VIENNA_TZ }).format(d);
+  const monYear = new Intl.DateTimeFormat('de-AT', {
+    month: 'short',
+    year: 'numeric',
+    timeZone: VIENNA_TZ,
+  }).format(d);
+  return {
+    wd: wd.replace(/\.$/, '').toUpperCase(),
+    day,
+    monYear: monYear
+      .replace(/\.$/g, '')
+      .replace(/\s+/g, ' ')
+      .toUpperCase(),
+  };
+}
+
 export function formatTimeHHmmDe(iso: string | null | undefined): string {
   if (!iso?.trim()) return '–';
   const d = new Date(iso);

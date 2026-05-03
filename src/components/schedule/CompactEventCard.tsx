@@ -5,7 +5,18 @@ type Props = {
   className?: string;
 };
 
-/** Kompakte Liste — nur feiner Rand, kein „Karten“-Block. */
+/** Kompakte Terminliste — Premium-Karte mit klarem Rand (Zielbild). */
 export function CompactEventCard({ children, className = '' }: Props) {
-  return <div className={['mb-1.5 w-full border-l border-red-500/25 pl-1.5 sm:mb-2 sm:pl-2', className].join(' ')}>{children}</div>;
+  return (
+    <div
+      className={[
+        'mb-2 w-full min-w-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-zinc-950/55 shadow-[0_2px_20px_rgba(0,0,0,0.35)] sm:mb-2.5',
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      {children}
+    </div>
+  );
 }
