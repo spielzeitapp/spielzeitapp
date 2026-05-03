@@ -131,7 +131,7 @@ function HeroMeetupCTA({ timeLabel }: { timeLabel: string }) {
   return (
     <div
       role="presentation"
-      className="mt-2 flex w-full min-w-0 max-w-full items-center justify-center gap-2 rounded-full border-0 bg-gradient-to-r from-red-600 via-red-500 to-red-600 py-3.5 px-5 text-[15px] font-bold text-white shadow-lg shadow-red-950/50 sm:mt-2 sm:px-6"
+      className="mt-2 flex w-full min-w-0 max-w-full shrink-0 items-center justify-center gap-2 rounded-full border-0 bg-gradient-to-r from-red-600 via-red-500 to-red-600 py-3.5 px-5 text-[15px] font-bold text-white shadow-lg shadow-red-950/50 sm:mt-2 sm:px-6"
     >
       <Users className="h-4 w-4 shrink-0 opacity-95" strokeWidth={2} aria-hidden />
       <span>Treffpunkt: {timeLabel}</span>
@@ -254,34 +254,34 @@ export function ScheduleHeroEventCard({
   const gameBody = (
     <>
       <HeroHybridBackdrop />
-      <div className="relative z-[1] flex w-full min-w-0 flex-col px-2 pb-3 pt-2">
-        <div className="flex w-full min-w-0 items-start justify-between gap-2">
+      <div className="relative z-[1] flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain px-2 pb-3 pt-2">
+        <div className="flex w-full min-w-0 shrink-0 items-start justify-between gap-2">
           {gameDateBadgeRow}
           {gameStatsInline ?? <span className="min-w-[2rem] shrink-0" aria-hidden />}
         </div>
 
-        <div className="mt-2 flex w-full min-w-0 max-w-[min(100%,24rem)] flex-row items-center justify-center self-center">
+        <div className="mt-2.5 flex w-full min-w-0 shrink-0 flex-row items-center justify-between gap-x-0.5 sm:gap-x-1">
           <div className="flex w-[26%] min-w-0 flex-col items-center justify-center px-0.5">
             <HeroMatchTeamLogo src={leftLogoSrc} />
             <HeroTeamTwoLines displayName={leftName} matchColumn />
           </div>
 
-          <div className="flex w-[48%] min-w-0 flex-col items-center justify-center border-x border-white/12 px-1 py-0.5 sm:px-1.5">
+          <div className="flex w-[48%] min-w-0 flex-col items-center justify-center self-center border-x border-white/12 px-1 py-0.5 sm:px-1.5">
             <p className="px-0.5 text-center text-[9px] font-bold uppercase leading-snug tracking-[0.14em] text-white/88 sm:text-[10px] sm:tracking-[0.16em]">
               {matchKindCenterLabel}
             </p>
-            <span className="mt-1 text-[9px] font-bold uppercase tracking-[0.22em] text-red-400 sm:text-[10px]">
+            <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.22em] text-red-400 sm:text-[10px]">
               {kickoffHeaderLabel}
             </span>
-            <span className="mt-1 text-center text-[2.25rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.55)] min-[375px]:text-[2.45rem] sm:text-[2.55rem]">
+            <span className="mt-1 text-center text-[2.2rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.55)] min-[375px]:text-[2.4rem] sm:text-[2.5rem]">
               {showScore ? `${home} : ${away}` : timeStr}
             </span>
             {!showScore ? (
-              <span className="mt-1 text-[10px] font-medium normal-case tracking-normal text-white/48">Uhr</span>
+              <span className="mt-0.5 text-[10px] font-medium normal-case tracking-normal text-white/48">Uhr</span>
             ) : null}
 
             {locLine1 || locLine2 ? (
-              <div className="mt-2 w-full space-y-0.5 px-0.5 text-center">
+              <div className="mt-1.5 w-full space-y-0.5 px-0.5 text-center">
                 {locLine1 ? (
                   <p className="text-[11px] font-semibold leading-snug text-white/86 sm:text-[12px]">{locLine1}</p>
                 ) : null}
@@ -290,7 +290,7 @@ export function ScheduleHeroEventCard({
                 ) : null}
               </div>
             ) : locationForKickoff ? (
-              <p className="mt-2 px-1 text-center text-[10px] font-medium leading-snug text-white/72 sm:text-[11px]">{locationForKickoff}</p>
+              <p className="mt-1.5 px-1 text-center text-[10px] font-medium leading-snug text-white/72 sm:text-[11px]">{locationForKickoff}</p>
             ) : null}
           </div>
 
@@ -300,15 +300,15 @@ export function ScheduleHeroEventCard({
           </div>
         </div>
 
-        <div className="mx-auto mt-2 flex w-full min-w-0 max-w-[min(100%,24rem)] flex-col items-stretch">
+        <div className="mx-auto mt-3 flex w-full min-w-0 max-w-[min(100%,24rem)] shrink-0 flex-col items-stretch">
           {showMeetup && meetupTimeOnly ? <HeroMeetupCTA timeLabel={meetupTimeOnly} /> : null}
           {gameEndLabel ? (
-            <div className="mt-1.5 flex min-h-7 w-full items-center justify-center rounded-full border border-white/12 bg-white/[0.07] px-3 py-1 text-[10px] font-medium text-white/72">
+            <div className="mt-1.5 flex min-h-7 w-full shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.07] px-3 py-1 text-[10px] font-medium text-white/72">
               Ende: {gameEndLabel}
             </div>
           ) : null}
           {gameDescription ? (
-            <p className="mt-0.5 line-clamp-2 text-center text-[9px] font-normal leading-snug text-white/38">
+            <p className="mt-1 break-words text-center text-[9px] font-normal leading-snug text-white/38">
               {gameDescription}
             </p>
           ) : null}
@@ -423,7 +423,7 @@ export function ScheduleHeroEventCard({
     <div
       className={
         et === 'game'
-          ? 'relative h-full min-h-0 w-full min-w-0'
+          ? 'relative flex h-full min-h-0 w-full min-w-0 flex-col'
           : 'relative h-full min-h-0 w-full min-w-0 overflow-hidden'
       }
     >
