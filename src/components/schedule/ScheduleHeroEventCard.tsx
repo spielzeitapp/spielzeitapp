@@ -58,7 +58,7 @@ function HeroTeamLogo({ src }: { src: string }) {
   if (failed) {
     return (
       <div
-        className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-black/55 text-[2.5rem] leading-none"
+        className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-black/55 text-2xl leading-none sm:h-20 sm:w-20 sm:text-[2.5rem]"
         aria-hidden
       >
         ⚽
@@ -69,7 +69,7 @@ function HeroTeamLogo({ src }: { src: string }) {
     <img
       src={src}
       alt=""
-      className="h-20 w-20 shrink-0 object-contain"
+      className="h-16 w-16 shrink-0 object-contain sm:h-20 sm:w-20"
       onError={() => setFailed(true)}
     />
   );
@@ -80,9 +80,10 @@ const heroStadiumGradient = 'linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(1
 function HeroStadiumBackdrop() {
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
-      <div
-        className="absolute inset-0 scale-[1.02] bg-cover bg-center opacity-[0.32]"
-        style={{ backgroundImage: `url(${stadiumBgUrl})` }}
+      <img
+        src={stadiumBgUrl}
+        alt=""
+        className="absolute inset-0 h-full min-h-full w-full min-w-full object-cover object-center opacity-[0.28]"
         aria-hidden
       />
       <div
@@ -182,27 +183,27 @@ export function ScheduleHeroEventCard({
       <HeroStadiumBackdrop />
       {dateBlock}
       {statusCluster}
-      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-10 pt-10">
+      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-5 pt-5">
         {matchTypeLabel ? (
-          <p className="mb-4 line-clamp-2 max-w-[min(100%,20rem)] text-center text-[10px] font-bold uppercase leading-snug tracking-[0.22em] text-white/90 sm:max-w-[24rem] sm:text-[11px] sm:tracking-[0.26em]">
+          <p className="mb-2 line-clamp-2 max-w-[min(100%,20rem)] text-center text-[10px] font-bold uppercase leading-snug tracking-[0.22em] text-white/90 sm:max-w-[24rem] sm:text-[11px] sm:tracking-[0.26em]">
             {matchTypeLabel}
           </p>
         ) : (
-          <p className="mb-4 text-center text-[10px] font-bold uppercase tracking-[0.24em] text-white/55 sm:text-[11px]">
+          <p className="mb-2 text-center text-[10px] font-bold uppercase tracking-[0.24em] text-white/55 sm:text-[11px]">
             Spiel
           </p>
         )}
 
-        <div className="grid w-full min-w-0 max-w-[min(100%,24rem)] grid-cols-[1fr_auto_1fr] items-end gap-x-8">
+        <div className="grid w-full min-w-0 max-w-[min(100%,24rem)] grid-cols-[1fr_auto_1fr] items-end gap-x-4 sm:gap-x-8">
           <div className="flex min-w-0 flex-col items-center">
             <HeroTeamLogo src={leftLogoSrc} />
-            <p className="mt-2 max-w-full truncate px-0.5 text-center text-sm font-medium text-white/80">
+            <p className="mt-1 max-w-full truncate px-0.5 text-center text-xs font-medium text-white/80 sm:mt-2 sm:text-sm">
               {leftName}
             </p>
           </div>
-          <div className="flex min-w-0 flex-col items-center justify-end self-end pb-1">
+          <div className="flex min-w-0 flex-col items-center justify-end self-end pb-0.5 sm:pb-1">
             <span
-              className="-translate-y-1 text-4xl font-bold uppercase leading-none tracking-widest text-red-500 drop-shadow-[0_0_20px_rgba(239,68,68,0.35)]"
+              className="-translate-y-0.5 text-4xl font-bold uppercase leading-none tracking-widest text-red-500 drop-shadow-[0_0_20px_rgba(239,68,68,0.35)] sm:-translate-y-1"
               aria-hidden
             >
               vs
@@ -210,58 +211,58 @@ export function ScheduleHeroEventCard({
           </div>
           <div className="flex min-w-0 flex-col items-center">
             <HeroTeamLogo src={rightLogoSrc} />
-            <p className="mt-2 max-w-full truncate px-0.5 text-center text-sm font-medium text-white/80">
+            <p className="mt-1 max-w-full truncate px-0.5 text-center text-xs font-medium text-white/80 sm:mt-2 sm:text-sm">
               {rightName}
             </p>
           </div>
         </div>
 
-        <div className="mt-4 flex w-full min-w-0 flex-col items-center px-1">
+        <div className="mt-2 flex w-full min-w-0 flex-col items-center px-1 sm:mt-3">
           <span className="text-xs font-bold uppercase tracking-[0.3em] text-red-400">
             {kickoffHeaderLabel}
           </span>
-          <p className="mb-2 mt-4 max-w-full text-center text-6xl font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_4px_32px_rgba(0,0,0,0.55)]">
-            {showScore ? `${home} : ${away}` : timeStr}
+          <p className="mt-2 flex max-w-full flex-nowrap items-baseline justify-center gap-x-1.5 text-center text-5xl font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)] sm:mt-4 sm:text-6xl">
+            <span>{showScore ? `${home} : ${away}` : timeStr}</span>
+            {!showScore ? (
+              <span className="text-[10px] font-medium normal-case tracking-normal text-white/40">Uhr</span>
+            ) : null}
           </p>
-          {!showScore ? <span className="-mt-1 mb-2 text-sm font-medium text-white/78">Uhr</span> : null}
 
           {locLine1 || locLine2 ? (
-            <div className="mt-2 max-w-[min(100%,20rem)] space-y-0.5 text-center">
+            <div className="mt-1 max-w-[min(100%,20rem)] space-y-0.5 text-center sm:mt-2">
               {locLine1 ? (
-                <p className="line-clamp-2 text-[12px] font-semibold leading-snug text-white/90 break-words sm:text-[13px]">
+                <p className="line-clamp-2 text-sm font-medium leading-snug text-white/55">
                   {locLine1}
                 </p>
               ) : null}
               {locLine2 ? (
-                <p className="line-clamp-2 text-[11px] font-medium leading-snug text-white/60 break-words sm:text-[12px]">
+                <p className="line-clamp-2 text-sm font-normal leading-snug text-white/45">
                   {locLine2}
                 </p>
               ) : null}
             </div>
           ) : locationForKickoff ? (
-            <p className="mt-2 max-w-[min(100%,20rem)] px-1 text-center text-[12px] font-medium leading-snug text-white/70 sm:text-[13px]">
+            <p className="mt-1 max-w-[min(100%,20rem)] px-1 text-center text-sm font-normal leading-snug text-white/50 sm:mt-2">
               {locationForKickoff}
             </p>
           ) : null}
-        </div>
 
-        <div className="mt-6 flex w-full min-w-0 flex-col items-center gap-2 px-1">
           {showMeetup && meetupTimeOnly ? (
             <div
               role="presentation"
-              className="flex w-full max-w-[min(100%,22rem)] items-center justify-center gap-2 rounded-full bg-gradient-to-r from-red-600 to-red-500 py-3 px-6 text-[15px] font-semibold text-white shadow-lg shadow-red-900/40 sm:text-base"
+              className="mt-2 flex w-full max-w-[min(100%,22rem)] items-center justify-center gap-2 rounded-full bg-gradient-to-r from-red-600 to-red-500 py-2.5 px-5 text-sm font-semibold text-white shadow-lg shadow-red-900/40 sm:mt-3 sm:py-3 sm:px-6 sm:text-base"
             >
-              <Users className="h-4 w-4 shrink-0 opacity-95" strokeWidth={2} aria-hidden />
+              <Users className="h-3.5 w-3.5 shrink-0 opacity-95 sm:h-4 sm:w-4" strokeWidth={2} aria-hidden />
               <span>Treffpunkt: {meetupTimeOnly}</span>
             </div>
           ) : null}
           {gameEndLabel ? (
-            <div className="flex min-h-9 w-full max-w-xs items-center justify-center rounded-full border border-white/15 bg-white/10 px-4 text-xs font-semibold text-white/88">
+            <div className="mt-2 flex min-h-8 w-full max-w-xs items-center justify-center rounded-full border border-white/15 bg-white/10 px-4 text-[11px] font-semibold text-white/88">
               Ende: {gameEndLabel}
             </div>
           ) : null}
           {gameDescription ? (
-            <p className="line-clamp-2 max-w-xs text-center text-[11px] font-medium leading-snug text-white/50">
+            <p className="mt-1 line-clamp-2 max-w-xs text-center text-[10px] font-medium leading-snug text-white/45">
               {gameDescription}
             </p>
           ) : null}
@@ -280,51 +281,45 @@ export function ScheduleHeroEventCard({
       <HeroStadiumBackdrop />
       {dateBlock}
       {statusCluster}
-      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-10 pt-10">
-        <TrainingMotifIcon className="h-14 w-14 shrink-0 text-red-300/95" />
-        <h3 className="mt-4 max-w-[min(100%,18rem)] text-center text-xl font-semibold leading-snug text-white">
+      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-5 pt-5">
+        <TrainingMotifIcon className="h-11 w-11 shrink-0 text-red-300/95 sm:h-14 sm:w-14" />
+        <h3 className="mt-2 max-w-[min(100%,18rem)] text-center text-lg font-semibold leading-snug text-white sm:mt-3 sm:text-xl">
           {trainingMainTitle}
         </h3>
 
-        <div className="mt-6 flex w-full min-w-0 flex-col items-center px-1">
+        <div className="mt-3 flex w-full min-w-0 flex-col items-center px-1 sm:mt-4">
           <span className="text-xs font-bold uppercase tracking-[0.3em] text-red-400">Beginn</span>
-          <p className="mb-2 mt-4 max-w-full text-center text-6xl font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_4px_32px_rgba(0,0,0,0.55)]">
-            {timeStr}
+          <p className="mt-2 flex max-w-full flex-nowrap items-baseline justify-center gap-x-1.5 text-center text-5xl font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)] sm:mt-4 sm:text-6xl">
+            <span>{timeStr}</span>
+            <span className="text-[10px] font-medium normal-case tracking-normal text-white/40">Uhr</span>
           </p>
-          <span className="-mt-1 mb-2 text-sm font-medium text-white/78">Uhr</span>
 
           {locLine1 || locLine2 ? (
-            <div className="mt-2 max-w-[min(100%,20rem)] space-y-0.5 text-center">
+            <div className="mt-1 max-w-[min(100%,20rem)] space-y-0.5 text-center sm:mt-2">
               {locLine1 ? (
-                <p className="line-clamp-2 text-[12px] font-semibold leading-snug text-white/90 break-words sm:text-[13px]">
-                  {locLine1}
-                </p>
+                <p className="line-clamp-2 text-sm font-medium leading-snug text-white/55">{locLine1}</p>
               ) : null}
               {locLine2 ? (
-                <p className="line-clamp-2 text-[11px] font-medium leading-snug text-white/60 break-words sm:text-[12px]">
-                  {locLine2}
-                </p>
+                <p className="line-clamp-2 text-sm font-normal leading-snug text-white/45">{locLine2}</p>
               ) : null}
             </div>
           ) : locSingle ? (
-            <p className="mt-2 max-w-[min(100%,20rem)] text-center text-[12px] font-medium leading-snug text-white/70">
+            <p className="mt-1 max-w-[min(100%,20rem)] text-center text-sm font-normal leading-snug text-white/50 sm:mt-2">
               {locSingle}
             </p>
           ) : null}
-        </div>
 
-        <div className="mt-6 flex w-full min-w-0 flex-col items-center gap-2 px-1">
           {showMeetup && meetupTimeOnly ? (
             <div
               role="presentation"
-              className="flex w-full max-w-[min(100%,22rem)] items-center justify-center gap-2 rounded-full bg-gradient-to-r from-red-600 to-red-500 py-3 px-6 text-[15px] font-semibold text-white shadow-lg shadow-red-900/40 sm:text-base"
+              className="mt-2 flex w-full max-w-[min(100%,22rem)] items-center justify-center gap-2 rounded-full bg-gradient-to-r from-red-600 to-red-500 py-2.5 px-5 text-sm font-semibold text-white shadow-lg shadow-red-900/40 sm:mt-3 sm:py-3 sm:px-6 sm:text-base"
             >
-              <Users className="h-4 w-4 shrink-0 opacity-95" strokeWidth={2} aria-hidden />
+              <Users className="h-3.5 w-3.5 shrink-0 opacity-95 sm:h-4 sm:w-4" strokeWidth={2} aria-hidden />
               <span>Treffpunkt: {meetupTimeOnly}</span>
             </div>
           ) : null}
           {endDisplay ? (
-            <div className="flex min-h-9 w-full max-w-xs items-center justify-center rounded-full border border-white/15 bg-white/10 px-5 text-sm font-medium text-white/90">
+            <div className="mt-2 flex min-h-8 w-full max-w-xs items-center justify-center rounded-full border border-white/15 bg-white/10 px-4 text-[11px] font-medium text-white/88">
               <span className="whitespace-nowrap">Ende: {endDisplay}</span>
             </div>
           ) : null}
@@ -338,50 +333,44 @@ export function ScheduleHeroEventCard({
       <HeroStadiumBackdrop />
       {dateBlock}
       {statusCluster}
-      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-10 pt-10">
-        <EventMotifIcon className="h-14 w-14 shrink-0 text-red-300/95" />
-        <h3 className="mt-3 max-w-[min(100%,18rem)] text-center text-xl font-semibold leading-snug text-white">
+      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-5 pt-5">
+        <EventMotifIcon className="h-11 w-11 shrink-0 text-red-300/95 sm:h-14 sm:w-14" />
+        <h3 className="mt-2 max-w-[min(100%,18rem)] text-center text-lg font-semibold leading-snug text-white sm:mt-3 sm:text-xl">
           {scheduleEventTypeLabel(ev, et)}
         </h3>
 
-        <div className="mt-6 flex w-full min-w-0 flex-col items-center px-1">
+        <div className="mt-3 flex w-full min-w-0 flex-col items-center px-1 sm:mt-4">
           <span className="text-xs font-bold uppercase tracking-[0.3em] text-red-400">Beginn</span>
-          <p className="mb-2 mt-4 max-w-full text-center text-6xl font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_4px_32px_rgba(0,0,0,0.55)]">
-            {timeStr}
+          <p className="mt-2 flex max-w-full flex-nowrap items-baseline justify-center gap-x-1.5 text-center text-5xl font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)] sm:mt-4 sm:text-6xl">
+            <span>{timeStr}</span>
+            <span className="text-[10px] font-medium normal-case tracking-normal text-white/40">Uhr</span>
           </p>
-          <span className="-mt-1 mb-2 text-sm font-medium text-white/78">Uhr</span>
 
           {locLine1 || locLine2 ? (
-            <div className="mt-2 max-w-[min(100%,20rem)] space-y-0.5 text-center">
+            <div className="mt-1 max-w-[min(100%,20rem)] space-y-0.5 text-center sm:mt-2">
               {locLine1 ? (
-                <p className="line-clamp-2 text-[12px] font-semibold leading-snug text-white/90 break-words sm:text-[13px]">
-                  {locLine1}
-                </p>
+                <p className="line-clamp-2 text-sm font-medium leading-snug text-white/55">{locLine1}</p>
               ) : null}
               {locLine2 ? (
-                <p className="line-clamp-2 text-[11px] font-medium leading-snug text-white/60 break-words sm:text-[12px]">
-                  {locLine2}
-                </p>
+                <p className="line-clamp-2 text-sm font-normal leading-snug text-white/45">{locLine2}</p>
               ) : null}
             </div>
           ) : locSingle ? (
-            <p className="mt-2 max-w-[min(100%,20rem)] text-center text-[12px] font-medium leading-snug text-white/70">
+            <p className="mt-1 max-w-[min(100%,20rem)] text-center text-sm font-normal leading-snug text-white/50 sm:mt-2">
               {locSingle}
             </p>
           ) : null}
-        </div>
 
-        {showMeetup && meetupTimeOnly ? (
-          <div className="mt-6 flex w-full justify-center px-1">
+          {showMeetup && meetupTimeOnly ? (
             <div
               role="presentation"
-              className="flex w-full max-w-[min(100%,22rem)] items-center justify-center gap-2 rounded-full bg-gradient-to-r from-red-600 to-red-500 py-3 px-6 text-[15px] font-semibold text-white shadow-lg shadow-red-900/40 sm:text-base"
+              className="mt-2 flex w-full max-w-[min(100%,22rem)] items-center justify-center gap-2 rounded-full bg-gradient-to-r from-red-600 to-red-500 py-2.5 px-5 text-sm font-semibold text-white shadow-lg shadow-red-900/40 sm:mt-3 sm:py-3 sm:px-6 sm:text-base"
             >
-              <Users className="h-4 w-4 shrink-0 opacity-95" strokeWidth={2} aria-hidden />
+              <Users className="h-3.5 w-3.5 shrink-0 opacity-95 sm:h-4 sm:w-4" strokeWidth={2} aria-hidden />
               <span>Treffpunkt: {meetupTimeOnly}</span>
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
     </>
   );
@@ -389,7 +378,7 @@ export function ScheduleHeroEventCard({
   const body = et === 'game' ? gameBody : et === 'training' ? trainingBody : eventBody;
 
   const shell = (
-    <div className="relative h-full min-h-[420px] w-full min-w-0 overflow-hidden">
+    <div className="relative h-full min-h-0 w-full min-w-0 overflow-hidden">
       {body}
     </div>
   );

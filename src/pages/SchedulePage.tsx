@@ -662,7 +662,7 @@ export const SchedulePage: React.FC = () => {
   return (
     <div className="page schedule-page relative min-h-[60vh] scroll-mt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))] [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_50%,rgba(10,0,0,0.99)_100%)] [box-shadow:inset_0_0_120px_rgba(120,20,20,0.12)]">
       <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
-        <div className="mx-auto mt-1 max-w-3xl space-y-3 pb-[calc(168px+env(safe-area-inset-bottom,0px))] pt-3 sm:mt-2 sm:space-y-4 sm:pt-4">
+        <div className="mx-auto mt-1 max-w-3xl space-y-3 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] pt-3 sm:mt-2 sm:space-y-4 sm:pt-4">
           {toastMessage && (
             <div
               className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl bg-black/90 border border-red-900/80 text-white text-sm font-medium shadow-lg backdrop-blur-sm"
@@ -995,7 +995,7 @@ export const SchedulePage: React.FC = () => {
                           ) : null;
                         const heroCardFooter =
                           heroTrainerFooter || heroParentFooter ? (
-                            <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-1.5">
                               {heroTrainerFooter}
                               {heroParentFooter}
                             </div>
@@ -1025,12 +1025,12 @@ export const SchedulePage: React.FC = () => {
                     : null}
 
                   {showHeroCard && furtherEvents.length > 0 ? (
-                    <h3 className="mb-2 mt-2 text-[11px] font-extrabold uppercase tracking-[0.2em] text-white/40">
+                    <h3 className="-mt-0.5 mb-1 border-t border-white/[0.06] pt-2 text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-300/70">
                       {normalizedUiRole === 'fan' ? 'Weitere Spiele' : 'Weitere Termine'}
                     </h3>
                   ) : null}
 
-                  {furtherEvents.map((ev) => {
+                  {furtherEvents.map((ev, furtherIdx) => {
                     const evAttendance = attendanceByEventId[ev.id];
                     const yesRaw = evAttendance?.yes ?? 0;
                     const no = evAttendance?.no ?? 0;
@@ -1072,7 +1072,10 @@ export const SchedulePage: React.FC = () => {
                     ) : undefined;
                     const opponentLogo = (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url;
                     return (
-                      <CompactEventCard key={ev.id}>
+                      <CompactEventCard
+                        key={ev.id}
+                        className={showHeroCard && furtherIdx === 0 ? '-mt-0.5' : ''}
+                      >
                         <ScheduleCompactEventRow
                           ev={ev}
                           et={et}

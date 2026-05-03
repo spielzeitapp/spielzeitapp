@@ -13,7 +13,7 @@ type Props = {
 export function EventHeroCard({ label, children, footer, labelAside }: Props) {
   return (
     <section
-      className="mb-6 w-full pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
+      className="mb-3 w-full pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]"
       aria-labelledby="schedule-hero-heading"
     >
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-0.5">
@@ -27,10 +27,12 @@ export function EventHeroCard({ label, children, footer, labelAside }: Props) {
       </div>
 
       <div className="relative w-full overflow-hidden rounded-3xl border border-red-900/40 bg-black/45 shadow-2xl shadow-black/60">
-        <div className="relative z-10 min-h-[420px] w-full min-w-0">{children}</div>
+        <div className="relative z-10 max-h-[60svh] min-h-0 w-full min-w-0 overflow-hidden sm:max-h-[min(60vh,28rem)]">
+          {children}
+        </div>
       </div>
 
-      {footer ? <div className="relative z-[1] mt-3">{footer}</div> : null}
+      {footer ? <div className="relative z-[1] mt-2">{footer}</div> : null}
     </section>
   );
 }
