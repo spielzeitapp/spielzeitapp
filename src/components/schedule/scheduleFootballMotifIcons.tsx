@@ -51,28 +51,22 @@ export function EventMotifIcon({ className = '' }: { className?: string }) {
   return <CalendarDays className={className} strokeWidth={2} aria-hidden />;
 }
 
-/** Kompaktliste Training: klarer Fußball (ohne Kegel/Hantel-Motiv). */
+/** Kompaktliste Training: einfacher Fußball (56px-tauglich). */
 export function CompactFootballBallIcon({ className = '' }: { className?: string }) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-    >
-      <circle cx="12" cy="12" r="10" fill="currentColor" className="text-white/[0.92]" />
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <circle cx="12" cy="12" r="10" fill="currentColor" className="text-white/[0.93]" />
       <path
         fill="currentColor"
-        className="text-zinc-900/45"
-        d="M12 3.8c.35 0 .68.05 1 .14l-.35 2.05 1.75 1.02 1.9-.68c.52.45.98.97 1.35 1.55l-1.35 1.55v2.14l1.35 1.55c-.37.58-.83 1.1-1.35 1.55l-1.9-.68-1.75 1.02.35 2.05c-.32.09-.65.14-1 .14s-.68-.05-1-.14l.35-2.05-1.75-1.02-1.9.68a7.95 7.95 0 01-1.35-1.55l1.35-1.55v-2.14L7.75 8.4a7.95 7.95 0 011.35-1.55l1.9.68 1.75-1.02L12.35 3.9c-.32-.09-.65-.14-1-.14z"
+        className="text-zinc-900/50"
+        d="M12 4.5c1.2 0 2.3.3 3.3.8l-1 2.4 2.6 1.2 2.7-.9c.3.6.5 1.2.6 1.9l-2.3 1.8.1 2.9 2.2 1.9c-.4.7-.9 1.3-1.5 1.8l-2.7-.8-2.6 1.2 1 2.4c-1 .5-2.1.8-3.3.8s-2.3-.3-3.3-.8l1-2.4-2.6-1.2-2.7.9a7.86 7.86 0 01-1.5-1.8l2.2-1.9.1-2.9-2.3-1.8c.1-.7.3-1.3.6-1.9l2.7.9 2.6-1.2-1-2.4c1-.5 2.1-.8 3.3-.8z"
       />
       <path
         stroke="currentColor"
-        strokeWidth="0.85"
+        strokeWidth="0.9"
         strokeLinecap="round"
-        className="text-zinc-900/35"
-        d="M12 12v8.2M12 12L6.2 8.65M12 12l5.8-3.35M12 12l5.8 3.35M12 12L6.2 15.35"
+        className="text-zinc-800/40"
+        d="M12 12v9M12 12l-7-4M12 12l7-4M12 12l7 4M12 12l-7 4"
       />
     </svg>
   );

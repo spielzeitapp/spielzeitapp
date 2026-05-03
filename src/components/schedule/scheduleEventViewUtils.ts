@@ -38,10 +38,7 @@ export function formatCompactListDateParts(iso: string | null | undefined): {
   return {
     wd: wd.replace(/\.$/, '').toUpperCase(),
     day,
-    monYear: monYear
-      .replace(/\.$/g, '')
-      .replace(/\s+/g, ' ')
-      .toUpperCase(),
+    monYear: monYear.replace(/\.$/g, '').replace(/\s+/g, ' '),
   };
 }
 
