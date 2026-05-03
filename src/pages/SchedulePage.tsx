@@ -96,19 +96,25 @@ function ScheduleHeroToolbarAction({
   onClick,
   children,
   className = '',
+  emphasis = 'secondary',
 }: {
   label: string;
   title: string;
   onClick: () => void;
   children: React.ReactNode;
   className?: string;
+  emphasis?: 'primary' | 'secondary';
 }) {
+  const tone =
+    emphasis === 'primary'
+      ? 'border-red-500/50 bg-red-600/95 text-white shadow-lg shadow-red-950/40 backdrop-blur-sm hover:border-red-400/70 hover:bg-red-500'
+      : 'border-white/12 bg-black/45 text-white/75 shadow-sm backdrop-blur-sm hover:border-white/22 hover:bg-white/[0.08] hover:text-white/90';
   return (
     <button
       type="button"
       title={title}
       aria-label={title}
-      className={`inline-flex h-10 min-h-[2.5rem] w-full min-w-0 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-black/60 px-2 text-[10px] font-semibold text-white/95 shadow-md backdrop-blur-sm transition hover:border-red-400/45 hover:bg-red-950/50 sm:text-[11px] ${className}`}
+      className={`inline-flex h-10 min-h-[2.5rem] w-full min-w-0 shrink-0 items-center justify-center gap-1.5 rounded-xl border px-2 text-[10px] font-semibold transition sm:text-[11px] ${tone} ${className}`}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
@@ -925,6 +931,7 @@ export const SchedulePage: React.FC = () => {
                                 <ScheduleHeroToolbarAction
                                   label="Live starten"
                                   title="Live starten"
+                                  emphasis="primary"
                                   onClick={() => navigate(`/live?matchId=${ev.match_id}`)}
                                 >
                                   <Radio className="h-3.5 w-3.5" strokeWidth={2} />
@@ -933,6 +940,7 @@ export const SchedulePage: React.FC = () => {
                               <ScheduleHeroToolbarAction
                                 label="Bearbeiten"
                                 title="Bearbeiten"
+                                emphasis="secondary"
                                 onClick={() => openEditModal(ev)}
                               >
                                 <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
@@ -940,6 +948,7 @@ export const SchedulePage: React.FC = () => {
                               <ScheduleHeroToolbarAction
                                 label="Löschen"
                                 title="Löschen"
+                                emphasis="secondary"
                                 onClick={() => void handleDelete(ev)}
                               >
                                 <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
@@ -948,6 +957,7 @@ export const SchedulePage: React.FC = () => {
                                 <ScheduleHeroToolbarAction
                                   label="Kalender"
                                   title="Zum Kalender hinzufügen"
+                                  emphasis="secondary"
                                   onClick={() =>
                                     downloadEventIcs(ev, {
                                       appBaseUrl: window.location.origin,
@@ -973,21 +983,22 @@ export const SchedulePage: React.FC = () => {
                                 <AttendanceActionRow
                                   isTraining={et === 'training'}
                                   variant="compact"
+                                  compactPrimary
                                   onOpenAttendance={() => setAttendanceModalEvent(ev)}
                                 />
                               </div>
                               {ev.status !== 'finished' ? (
                                 <Button
                                   type="button"
-                                  variant="soft"
+                                  variant="ghost"
                                   size="xs"
-                                  className="inline-flex h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-black/55 px-3 text-[11px] font-semibold text-white/95 hover:bg-white/10"
+                                  className="inline-flex h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-transparent px-3 text-[11px] font-medium text-white/55 hover:border-white/18 hover:bg-white/[0.04] hover:text-white/75"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     downloadEventIcs(ev, { appBaseUrl: window.location.origin });
                                   }}
                                 >
-                                  <CalendarPlus className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+                                  <CalendarPlus className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
                                   Zum Kalender
                                 </Button>
                               ) : null}
