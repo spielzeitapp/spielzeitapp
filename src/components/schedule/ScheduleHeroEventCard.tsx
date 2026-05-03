@@ -60,13 +60,19 @@ function splitTeamDisplayName(displayName: string): { line1: string; line2: stri
   return { line1: t.slice(0, idx), line2: t.slice(idx + 1).trim() };
 }
 
-function HeroTeamTwoLines({ displayName }: { displayName: string }) {
+function HeroTeamTwoLines({ displayName, matchColumn }: { displayName: string; matchColumn?: boolean }) {
   const { line1, line2 } = splitTeamDisplayName(displayName);
   return (
-    <div className="mt-1.5 flex w-full max-w-[6.75rem] flex-col items-center gap-0.5 px-0.5 text-center sm:max-w-[7.25rem]">
-      <span className="w-full break-words text-[11px] font-bold leading-[1.1] text-white/88">{line1}</span>
+    <div
+      className={
+        matchColumn
+          ? 'mt-1.5 flex w-full min-w-0 flex-col items-center gap-0.5 px-0.5 text-center'
+          : 'mt-1.5 flex w-full max-w-[6.75rem] flex-col items-center gap-0.5 px-0.5 text-center sm:max-w-[7.25rem]'
+      }
+    >
+      <span className="w-full break-words text-[11px] font-bold leading-snug text-white/90">{line1}</span>
       {line2 ? (
-        <span className="w-full break-words text-[10px] font-semibold leading-[1.1] text-white/76">{line2}</span>
+        <span className="w-full break-words text-[10px] font-semibold leading-snug text-white/78">{line2}</span>
       ) : null}
     </div>
   );
@@ -74,13 +80,13 @@ function HeroTeamTwoLines({ displayName }: { displayName: string }) {
 
 const stadiumBgUrl = `${import.meta.env.BASE_URL || '/'}intro/welcome-hero.png`;
 
-/** Match-Hero: größere Logos oben (align-top über flex items-start). */
+/** Match-Hero: Logo 56px (SE) bis 64px (sm+). */
 function HeroMatchTeamLogo({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
       <div
-        className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/14 bg-black/50 text-[2rem] leading-none sm:h-[4.25rem] sm:w-[4.25rem] sm:text-[2.25rem]"
+        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/14 bg-black/50 text-[1.65rem] leading-none sm:h-16 sm:w-16 sm:text-[1.85rem]"
         aria-hidden
       >
         ⚽
@@ -91,7 +97,7 @@ function HeroMatchTeamLogo({ src }: { src: string }) {
     <img
       src={src}
       alt=""
-      className="h-16 w-16 shrink-0 object-contain sm:h-[4.25rem] sm:w-[4.25rem]"
+      className="h-14 w-14 shrink-0 object-contain sm:h-16 sm:w-16"
       onError={() => setFailed(true)}
     />
   );
@@ -224,61 +230,70 @@ export function ScheduleHeroEventCard({
 
   const matchKindCenterLabel = matchTypeLabel?.trim() || 'Spiel';
 
+  const gameStatsInline = topRight ? (
+    <div className="pointer-events-none flex min-w-0 max-w-[46%] shrink-0 flex-col items-end self-start pt-0.5">
+      <div className="pointer-events-auto origin-top-right scale-[0.82] sm:scale-[0.88]">{topRight}</div>
+    </div>
+  ) : null;
+
   const gameBody = (
     <>
       <HeroHybridBackdrop />
-      {dateBlock}
-      {statusCluster}
-      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-3 pt-3 sm:pb-3 sm:pt-3">
-        <div className="flex w-full min-w-0 max-w-[min(100%,24rem)] items-start justify-between gap-1 sm:gap-2">
-          <div className="flex min-w-0 flex-[1_1_0] flex-col items-center">
+      <div className="relative z-[1] flex w-full min-w-0 flex-col px-2 pb-3 pt-2">
+        <div className="flex w-full min-w-0 items-start justify-between gap-2">
+          {gameDateBadgeRow}
+          {gameStatsInline ?? <span className="min-w-[2rem] shrink-0" aria-hidden />}
+        </div>
+
+        <div className="mt-2 flex w-full min-w-0 max-w-[min(100%,24rem)] flex-row items-center justify-center self-center">
+          <div className="flex w-[26%] min-w-0 flex-col items-center justify-center px-0.5">
             <HeroMatchTeamLogo src={leftLogoSrc} />
-            <HeroTeamTwoLines displayName={leftName} />
+            <HeroTeamTwoLines displayName={leftName} matchColumn />
           </div>
 
-          <div className="flex min-w-[6.75rem] max-w-[9rem] shrink-0 flex-[0_0_auto] flex-col items-center justify-start border-x border-white/[0.13] px-1.5 py-0 sm:min-w-[7.25rem] sm:max-w-[9.5rem] sm:px-2">
-            <p className="line-clamp-2 text-center text-[9px] font-bold uppercase leading-tight tracking-[0.16em] text-white/84 sm:text-[10px] sm:tracking-[0.18em]">
+          <div className="flex w-[48%] min-w-0 flex-col items-center justify-center border-x border-white/12 px-1 py-0.5 sm:px-1.5">
+            <p className="px-0.5 text-center text-[9px] font-bold uppercase leading-snug tracking-[0.14em] text-white/88 sm:text-[10px] sm:tracking-[0.16em]">
               {matchKindCenterLabel}
             </p>
-            <span className="mt-1 text-[9px] font-bold uppercase tracking-[0.24em] text-red-400 sm:text-[10px]">
+            <span className="mt-1 text-[9px] font-bold uppercase tracking-[0.22em] text-red-400 sm:text-[10px]">
               {kickoffHeaderLabel}
             </span>
-            <span className="mt-1.5 text-center text-[2.45rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_4px_22px_rgba(0,0,0,0.55)] min-[375px]:text-[2.65rem] sm:text-[2.75rem]">
+            <span className="mt-1 text-center text-[2.25rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.55)] min-[375px]:text-[2.45rem] sm:text-[2.55rem]">
               {showScore ? `${home} : ${away}` : timeStr}
             </span>
             {!showScore ? (
-              <span className="mt-1 text-[10px] font-medium normal-case tracking-normal text-white/45">Uhr</span>
+              <span className="mt-1 text-[10px] font-medium normal-case tracking-normal text-white/48">Uhr</span>
+            ) : null}
+
+            {locLine1 || locLine2 ? (
+              <div className="mt-2 w-full space-y-0.5 px-0.5 text-center">
+                {locLine1 ? (
+                  <p className="text-[11px] font-semibold leading-snug text-white/86 sm:text-[12px]">{locLine1}</p>
+                ) : null}
+                {locLine2 ? (
+                  <p className="text-[9px] font-normal leading-snug text-white/42 sm:text-[10px]">{locLine2}</p>
+                ) : null}
+              </div>
+            ) : locationForKickoff ? (
+              <p className="mt-2 px-1 text-center text-[10px] font-medium leading-snug text-white/72 sm:text-[11px]">{locationForKickoff}</p>
             ) : null}
           </div>
 
-          <div className="flex min-w-0 flex-[1_1_0] flex-col items-center">
+          <div className="flex w-[26%] min-w-0 flex-col items-center justify-center px-0.5">
             <HeroMatchTeamLogo src={rightLogoSrc} />
-            <HeroTeamTwoLines displayName={rightName} />
+            <HeroTeamTwoLines displayName={rightName} matchColumn />
           </div>
         </div>
 
-        <div className="mt-2 flex w-full min-w-0 max-w-[min(100%,24rem)] flex-col items-stretch px-0">
-          {locLine1 || locLine2 ? (
-            <div className="w-full space-y-0.5 text-center">
-              {locLine1 ? (
-                <p className="text-[12px] font-semibold leading-snug text-white/84">{locLine1}</p>
-              ) : null}
-              {locLine2 ? (
-                <p className="text-[10px] font-normal leading-snug text-white/40">{locLine2}</p>
-              ) : null}
-            </div>
-          ) : locationForKickoff ? (
-            <p className="w-full px-1 text-center text-[11px] font-medium leading-snug text-white/68">{locationForKickoff}</p>
-          ) : null}
-
+        <div className="mx-auto mt-2 flex w-full min-w-0 max-w-[min(100%,24rem)] flex-col items-stretch">
           {showMeetup && meetupTimeOnly ? <HeroMeetupCTA timeLabel={meetupTimeOnly} /> : null}
           {gameEndLabel ? (
-            <div className="mt-1.5 flex min-h-7 w-full max-w-xs items-center justify-center rounded-full border border-white/12 bg-white/[0.07] px-3 py-1 text-[10px] font-medium text-white/72">
+            <div className="mt-1.5 flex min-h-7 w-full items-center justify-center rounded-full border border-white/12 bg-white/[0.07] px-3 py-1 text-[10px] font-medium text-white/72">
               Ende: {gameEndLabel}
             </div>
           ) : null}
           {gameDescription ? (
-            <p className="mt-0.5 line-clamp-2 max-w-xs text-center text-[9px] font-normal leading-snug text-white/38">
+            <p className="mt-0.5 line-clamp-2 text-center text-[9px] font-normal leading-snug text-white/38">
               {gameDescription}
             </p>
           ) : null}
@@ -390,7 +405,13 @@ export function ScheduleHeroEventCard({
   const body = et === 'game' ? gameBody : et === 'training' ? trainingBody : eventBody;
 
   const shell = (
-    <div className="relative h-full min-h-0 w-full min-w-0 overflow-hidden">
+    <div
+      className={
+        et === 'game'
+          ? 'relative h-full min-h-0 w-full min-w-0'
+          : 'relative h-full min-h-0 w-full min-w-0 overflow-hidden'
+      }
+    >
       {body}
     </div>
   );
