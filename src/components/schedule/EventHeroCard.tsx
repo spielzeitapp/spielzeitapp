@@ -27,7 +27,7 @@ export function EventHeroCard({ label, children, footer, labelAside }: Props) {
       </div>
 
       <div className="relative w-full overflow-hidden rounded-3xl border border-red-900/40 bg-black/45 shadow-2xl shadow-black/60">
-        <div className="relative z-10 max-h-[48svh] min-h-0 w-full min-w-0 overflow-hidden sm:max-h-[min(50vh,24rem)]">
+        <div className="relative z-10 max-h-[46svh] min-h-0 w-full min-w-0 overflow-hidden sm:max-h-[min(48vh,23rem)]">
           {children}
         </div>
       </div>

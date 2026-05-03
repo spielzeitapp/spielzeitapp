@@ -14,7 +14,7 @@ import {
   eventNotesTitle,
   eventTrainingEndDisplay,
 } from './scheduleEventViewUtils';
-import { EventMotifIcon, TrainingMotifIcon } from './scheduleFootballMotifIcons';
+import { EventMotifIcon, MatchFallbackMotifIcon, TrainingMotifIcon } from './scheduleFootballMotifIcons';
 
 export type ScheduleHeroEventCardProps = {
   ev: EventRow;
@@ -51,6 +51,27 @@ function logoForDisplayName(displayName: string, optionalUrl?: string | null): s
   return getClubLogoUrl(displayName);
 }
 
+/** Zeile 1 = erstes Wort (z. B. SPG), Zeile 2 = Rest (z. B. Weinburg) — nur Darstellung. */
+function splitTeamDisplayName(displayName: string): { line1: string; line2: string } {
+  const t = displayName.trim();
+  if (!t) return { line1: '—', line2: '' };
+  const idx = t.indexOf(' ');
+  if (idx === -1) return { line1: t, line2: '' };
+  return { line1: t.slice(0, idx), line2: t.slice(idx + 1).trim() };
+}
+
+function HeroTeamTwoLines({ displayName }: { displayName: string }) {
+  const { line1, line2 } = splitTeamDisplayName(displayName);
+  return (
+    <div className="mt-1 flex w-full max-w-[7rem] flex-col items-center gap-0.5 px-0.5 text-center sm:max-w-[7.5rem]">
+      <span className="w-full break-words text-[11px] font-bold leading-[1.15] text-white/88">{line1}</span>
+      {line2 ? (
+        <span className="w-full break-words text-[10px] font-semibold leading-[1.15] text-white/73">{line2}</span>
+      ) : null}
+    </div>
+  );
+}
+
 const stadiumBgUrl = `${import.meta.env.BASE_URL || '/'}intro/welcome-hero.png`;
 
 function HeroTeamLogo({ src }: { src: string }) {
@@ -78,18 +99,18 @@ function HeroTeamLogo({ src }: { src: string }) {
 const heroStadiumGradient =
   'linear-gradient(to bottom, rgba(5,2,2,0.94) 0%, rgba(0,0,0,0.91) 45%, rgba(55,8,12,0.88) 100%)';
 
-/** Dezentes Stadion als Stimmung — wenig Bildanteil, starkes Overlay (alle Hero-Typen). */
+/** Dezentes Stadion — kaum sichtbar, Text immer lesbar (alle Hero-Typen). */
 function HeroHybridBackdrop() {
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
       <img
         src={stadiumBgUrl}
         alt=""
-        className="absolute inset-0 h-full min-h-full w-full min-w-full scale-105 object-cover object-[center_35%] opacity-[0.09] brightness-[0.4] saturate-[0.85]"
+        className="absolute inset-0 h-full min-h-full w-full min-w-full scale-105 object-cover object-[center_32%] opacity-[0.06] brightness-[0.38] saturate-[0.8]"
         aria-hidden
       />
-      <div className="absolute inset-0 bg-black/62" aria-hidden />
-      <div className="absolute inset-0 backdrop-blur-[3px] bg-black/18" aria-hidden />
+      <div className="absolute inset-0 bg-black/70" aria-hidden />
+      <div className="absolute inset-0 backdrop-blur-[2px] bg-black/22" aria-hidden />
       <div
         className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(120,25,25,0.22),transparent_55%)]"
         aria-hidden
@@ -103,7 +124,7 @@ function HeroMeetupCTA({ timeLabel }: { timeLabel: string }) {
   return (
     <div
       role="presentation"
-      className="mt-2 flex w-full max-w-[min(100%,22rem)] items-center justify-center gap-2 rounded-full border-0 bg-gradient-to-r from-red-600 via-red-500 to-red-600 py-3 px-6 text-[15px] font-bold text-white shadow-lg shadow-red-950/50 sm:mt-2.5"
+      className="mt-2 flex w-full max-w-[min(100%,24rem)] items-center justify-center gap-2 rounded-full border-0 bg-gradient-to-r from-red-600 via-red-500 to-red-600 py-3 px-6 text-[15px] font-bold text-white shadow-lg shadow-red-950/50 sm:mt-2"
     >
       <Users className="h-4 w-4 shrink-0 opacity-95" strokeWidth={2} aria-hidden />
       <span>Treffpunkt: {timeLabel}</span>
@@ -200,69 +221,56 @@ export function ScheduleHeroEventCard({
     </div>
   ) : null;
 
+  const matchKindCenterLabel = matchTypeLabel?.trim() || 'Spiel';
+
   const gameBody = (
     <>
       <HeroHybridBackdrop />
       {dateBlock}
       {statusCluster}
-      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-3 pt-3 sm:pb-4 sm:pt-4">
-        {matchTypeLabel ? (
-          <p className="mb-1 line-clamp-2 max-w-[min(100%,20rem)] text-center text-[13px] font-semibold uppercase leading-snug tracking-[0.16em] text-white/88 sm:mb-1.5 sm:max-w-[24rem] sm:text-sm sm:tracking-[0.18em]">
-            {matchTypeLabel}
-          </p>
-        ) : (
-          <p className="mb-1 text-center text-[13px] font-semibold uppercase tracking-[0.18em] text-white/75 sm:mb-1.5 sm:text-sm">
-            Spiel
-          </p>
-        )}
-
-        <div className="grid w-full min-w-0 max-w-[min(100%,23rem)] grid-cols-[1fr_auto_1fr] items-end gap-x-3 sm:gap-x-6">
-          <div className="flex min-w-0 flex-col items-center">
+      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-3 pt-3 sm:pb-3 sm:pt-3">
+        <div className="grid w-full min-w-0 max-w-[min(100%,23.5rem)] grid-cols-[1fr_auto_1fr] items-start gap-x-1 sm:gap-x-2">
+          <div className="flex min-w-0 flex-col items-center pt-0.5">
             <HeroTeamLogo src={leftLogoSrc} />
-            <p className="mt-1 max-w-full truncate px-0.5 text-center text-[11px] font-semibold leading-tight text-white/78 sm:text-xs">
-              {leftName}
-            </p>
+            <HeroTeamTwoLines displayName={leftName} />
           </div>
-          <div className="flex min-w-0 flex-col items-center justify-end self-end pb-px">
-            <span
-              className="-translate-y-px text-[2.65rem] font-black uppercase leading-none tracking-[0.14em] text-red-500 drop-shadow-[0_0_28px_rgba(239,68,68,0.42)] sm:text-5xl sm:tracking-widest"
-              aria-hidden
-            >
-              vs
+
+          <div className="flex min-w-[7.25rem] max-w-[10rem] shrink-0 flex-col items-center border-l border-r border-white/[0.12] px-2 pb-1 pt-0 sm:min-w-[7.75rem]">
+            <p className="line-clamp-2 text-center text-[9px] font-bold uppercase leading-tight tracking-[0.18em] text-white/82 sm:text-[10px] sm:tracking-[0.2em]">
+              {matchKindCenterLabel}
+            </p>
+            <span className="mt-1 text-[9px] font-bold uppercase tracking-[0.22em] text-red-400 sm:text-[10px]">
+              {kickoffHeaderLabel}
             </span>
+            <span className="mt-1 text-center text-[2.35rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.55)] min-[375px]:text-[2.55rem] sm:text-[2.65rem]">
+              {showScore ? `${home} : ${away}` : timeStr}
+            </span>
+            {!showScore ? (
+              <span className="mt-1 text-[10px] font-medium normal-case tracking-normal text-white/42">Uhr</span>
+            ) : null}
+            {!showScore ? (
+              <MatchFallbackMotifIcon className="mt-1.5 h-5 w-5 text-red-500/75 opacity-90 sm:h-6 sm:w-6" />
+            ) : null}
           </div>
-          <div className="flex min-w-0 flex-col items-center">
+
+          <div className="flex min-w-0 flex-col items-center pt-0.5">
             <HeroTeamLogo src={rightLogoSrc} />
-            <p className="mt-1 max-w-full truncate px-0.5 text-center text-[11px] font-semibold leading-tight text-white/78 sm:text-xs">
-              {rightName}
-            </p>
+            <HeroTeamTwoLines displayName={rightName} />
           </div>
         </div>
 
-        <div className="mt-1.5 flex w-full min-w-0 flex-col items-center px-1 sm:mt-2">
-          <span className="text-[10px] font-bold uppercase tracking-[0.26em] text-red-400">
-            {kickoffHeaderLabel}
-          </span>
-          <p className="mt-1 flex max-w-full flex-nowrap items-baseline justify-center gap-x-1 text-center text-[2.45rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_4px_22px_rgba(0,0,0,0.55)] min-[375px]:text-[2.65rem] sm:text-6xl">
-            <span>{showScore ? `${home} : ${away}` : timeStr}</span>
-            {!showScore ? (
-              <span className="text-[8px] font-medium normal-case tracking-normal text-white/32">Uhr</span>
-            ) : null}
-          </p>
-
+        <div className="mt-2 flex w-full min-w-0 flex-col items-center px-1">
           {locLine1 || locLine2 ? (
-            <div className="mt-1 max-w-[min(100%,20rem)] space-y-px text-center">
+            <div className="max-w-[min(100%,21rem)] space-y-0.5 text-center">
               {locLine1 ? (
-                <p className="line-clamp-2 text-[11px] font-medium leading-snug text-white/58 sm:text-xs">{locLine1}</p>
+                <p className="text-[12px] font-semibold leading-snug text-white/82">{locLine1}</p>
               ) : null}
               {locLine2 ? (
-                <p className="line-clamp-2 text-[10px] font-normal leading-snug text-white/36">{locLine2}</p>
+                <p className="text-[10px] font-normal leading-snug text-white/42">{locLine2}</p>
               ) : null}
             </div>
           ) : locationForKickoff ? (
-            <p className="mt-1 max-w-[min(100%,20rem)] px-1 text-center text-[11px] font-normal leading-snug text-white/52">
-              {locationForKickoff}
-            </p>
+            <p className="max-w-[min(100%,21rem)] px-1 text-center text-[11px] font-medium leading-snug text-white/68">{locationForKickoff}</p>
           ) : null}
 
           {showMeetup && meetupTimeOnly ? <HeroMeetupCTA timeLabel={meetupTimeOnly} /> : null}
@@ -291,39 +299,38 @@ export function ScheduleHeroEventCard({
       <HeroHybridBackdrop />
       {dateBlock}
       {statusCluster}
-      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-3 pt-3 sm:pb-4 sm:pt-4">
-        <p className="mb-1 line-clamp-2 max-w-[min(100%,20rem)] text-center text-[13px] font-semibold uppercase leading-snug tracking-[0.14em] text-white/88 sm:mb-1.5 sm:text-sm">
+      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-3 pt-3 sm:pb-3 sm:pt-3">
+        <p className="mb-2 line-clamp-2 max-w-[min(100%,21rem)] text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-white/85 sm:text-xs">
           {trainingMainTitle}
         </p>
 
-        <div className="grid w-full min-w-0 max-w-[min(100%,23rem)] grid-cols-[1fr_auto_1fr] items-center gap-x-3 sm:gap-x-6">
-          <div className="min-h-[3.25rem] min-w-0 sm:min-h-[3.75rem]" aria-hidden />
-          <div className="flex flex-col items-center justify-center py-0.5">
-            <div className="relative flex h-[4.35rem] w-[4.35rem] items-center justify-center rounded-full bg-gradient-to-b from-red-600/28 to-red-950/45 shadow-[0_0_36px_rgba(220,38,38,0.32)] ring-2 ring-red-500/50 sm:h-[4.85rem] sm:w-[4.85rem]">
-              <TrainingMotifIcon className="h-[3.05rem] w-[3.05rem] text-red-50 sm:h-[3.4rem] sm:w-[3.4rem]" />
+        <div className="grid w-full min-w-0 max-w-[min(100%,23.5rem)] grid-cols-[1fr_auto_1fr] items-stretch gap-x-1 sm:gap-x-2">
+          <div className="min-h-[6.5rem] border-r border-white/[0.12]" aria-hidden />
+          <div className="flex min-w-[7.25rem] max-w-[10rem] shrink-0 flex-col items-center px-2 pb-1 pt-0 sm:min-w-[7.75rem]">
+            <div className="relative flex h-[4rem] w-[4rem] shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-red-600/26 to-red-950/42 shadow-[0_0_26px_rgba(220,38,38,0.26)] ring-2 ring-red-500/42 sm:h-[4.35rem] sm:w-[4.35rem]">
+              <TrainingMotifIcon className="h-[2.95rem] w-[2.95rem] text-red-50 sm:h-[3.2rem] sm:w-[3.2rem]" />
             </div>
+            <span className="mt-2 text-[9px] font-bold uppercase tracking-[0.22em] text-red-400 sm:text-[10px]">Beginn</span>
+            <span className="mt-1 text-center text-[2.35rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.52)] min-[375px]:text-[2.55rem] sm:text-[2.65rem]">
+              {timeStr}
+            </span>
+            <span className="mt-1 text-[10px] font-medium text-white/42">Uhr</span>
           </div>
-          <div className="min-h-[3.25rem] min-w-0 sm:min-h-[3.75rem]" aria-hidden />
+          <div className="min-h-[6.5rem] border-l border-white/[0.12]" aria-hidden />
         </div>
 
-        <div className="mt-1.5 flex w-full min-w-0 flex-col items-center px-1 sm:mt-2">
-          <span className="text-[10px] font-bold uppercase tracking-[0.26em] text-red-400">Beginn</span>
-          <p className="mt-1 flex max-w-full flex-nowrap items-baseline justify-center gap-x-1 text-center text-[2.45rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_4px_22px_rgba(0,0,0,0.5)] min-[375px]:text-[2.65rem] sm:text-6xl">
-            <span>{timeStr}</span>
-            <span className="text-[8px] font-medium normal-case tracking-normal text-white/32">Uhr</span>
-          </p>
-
+        <div className="mt-2 flex w-full min-w-0 flex-col items-center px-1">
           {locLine1 || locLine2 ? (
-            <div className="mt-1 max-w-[min(100%,20rem)] space-y-px text-center">
+            <div className="max-w-[min(100%,21rem)] space-y-0.5 text-center">
               {locLine1 ? (
-                <p className="line-clamp-2 text-[11px] font-medium leading-snug text-white/58 sm:text-xs">{locLine1}</p>
+                <p className="text-[12px] font-semibold leading-snug text-white/82">{locLine1}</p>
               ) : null}
               {locLine2 ? (
-                <p className="line-clamp-2 text-[10px] font-normal leading-snug text-white/36">{locLine2}</p>
+                <p className="text-[10px] font-normal leading-snug text-white/42">{locLine2}</p>
               ) : null}
             </div>
           ) : locSingle ? (
-            <p className="mt-1 max-w-[min(100%,20rem)] text-center text-[11px] font-normal leading-snug text-white/52">{locSingle}</p>
+            <p className="max-w-[min(100%,21rem)] text-center text-[11px] font-medium leading-snug text-white/68">{locSingle}</p>
           ) : null}
 
           {showMeetup && meetupTimeOnly ? <HeroMeetupCTA timeLabel={meetupTimeOnly} /> : null}
@@ -342,39 +349,38 @@ export function ScheduleHeroEventCard({
       <HeroHybridBackdrop />
       {dateBlock}
       {statusCluster}
-      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-3 pt-3 sm:pb-4 sm:pt-4">
-        <p className="mb-1 line-clamp-2 max-w-[min(100%,20rem)] text-center text-[13px] font-semibold uppercase leading-snug tracking-[0.14em] text-white/88 sm:mb-1.5 sm:text-sm">
+      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-3 pt-3 sm:pb-3 sm:pt-3">
+        <p className="mb-2 line-clamp-2 max-w-[min(100%,21rem)] text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-white/85 sm:text-xs">
           {scheduleEventTypeLabel(ev, et)}
         </p>
 
-        <div className="grid w-full min-w-0 max-w-[min(100%,23rem)] grid-cols-[1fr_auto_1fr] items-center gap-x-3 sm:gap-x-6">
-          <div className="min-h-[3.25rem] min-w-0 sm:min-h-[3.75rem]" aria-hidden />
-          <div className="flex flex-col items-center justify-center py-0.5">
-            <div className="relative flex h-[4.35rem] w-[4.35rem] items-center justify-center rounded-full bg-gradient-to-b from-white/12 to-black/40 shadow-[0_0_28px_rgba(255,255,255,0.06)] ring-2 ring-white/20 sm:h-[4.85rem] sm:w-[4.85rem]">
-              <EventMotifIcon className="h-[2.65rem] w-[2.65rem] text-red-100 sm:h-12 sm:w-12" />
+        <div className="grid w-full min-w-0 max-w-[min(100%,23.5rem)] grid-cols-[1fr_auto_1fr] items-stretch gap-x-1 sm:gap-x-2">
+          <div className="min-h-[6.5rem] border-r border-white/[0.12]" aria-hidden />
+          <div className="flex min-w-[7.25rem] max-w-[10rem] shrink-0 flex-col items-center px-2 pb-1 pt-0 sm:min-w-[7.75rem]">
+            <div className="relative flex h-[4rem] w-[4rem] shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-white/14 to-black/45 shadow-[0_0_22px_rgba(255,255,255,0.05)] ring-2 ring-white/18 sm:h-[4.35rem] sm:w-[4.35rem]">
+              <EventMotifIcon className="h-[2.35rem] w-[2.35rem] text-red-100 sm:h-[2.55rem] sm:w-[2.55rem]" />
             </div>
+            <span className="mt-2 text-[9px] font-bold uppercase tracking-[0.22em] text-red-400 sm:text-[10px]">Beginn</span>
+            <span className="mt-1 text-center text-[2.35rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.52)] min-[375px]:text-[2.55rem] sm:text-[2.65rem]">
+              {timeStr}
+            </span>
+            <span className="mt-1 text-[10px] font-medium text-white/42">Uhr</span>
           </div>
-          <div className="min-h-[3.25rem] min-w-0 sm:min-h-[3.75rem]" aria-hidden />
+          <div className="min-h-[6.5rem] border-l border-white/[0.12]" aria-hidden />
         </div>
 
-        <div className="mt-1.5 flex w-full min-w-0 flex-col items-center px-1 sm:mt-2">
-          <span className="text-[10px] font-bold uppercase tracking-[0.26em] text-red-400">Beginn</span>
-          <p className="mt-1 flex max-w-full flex-nowrap items-baseline justify-center gap-x-1 text-center text-[2.45rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_4px_22px_rgba(0,0,0,0.5)] min-[375px]:text-[2.65rem] sm:text-6xl">
-            <span>{timeStr}</span>
-            <span className="text-[8px] font-medium normal-case tracking-normal text-white/32">Uhr</span>
-          </p>
-
+        <div className="mt-2 flex w-full min-w-0 flex-col items-center px-1">
           {locLine1 || locLine2 ? (
-            <div className="mt-1 max-w-[min(100%,20rem)] space-y-px text-center">
+            <div className="max-w-[min(100%,21rem)] space-y-0.5 text-center">
               {locLine1 ? (
-                <p className="line-clamp-2 text-[11px] font-medium leading-snug text-white/58 sm:text-xs">{locLine1}</p>
+                <p className="text-[12px] font-semibold leading-snug text-white/82">{locLine1}</p>
               ) : null}
               {locLine2 ? (
-                <p className="line-clamp-2 text-[10px] font-normal leading-snug text-white/36">{locLine2}</p>
+                <p className="text-[10px] font-normal leading-snug text-white/42">{locLine2}</p>
               ) : null}
             </div>
           ) : locSingle ? (
-            <p className="mt-1 max-w-[min(100%,20rem)] text-center text-[11px] font-normal leading-snug text-white/52">{locSingle}</p>
+            <p className="max-w-[min(100%,21rem)] text-center text-[11px] font-medium leading-snug text-white/68">{locSingle}</p>
           ) : null}
 
           {showMeetup && meetupTimeOnly ? <HeroMeetupCTA timeLabel={meetupTimeOnly} /> : null}
