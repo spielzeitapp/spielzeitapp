@@ -25,7 +25,7 @@ export function AttendanceActionRow({
           type="button"
           variant="soft"
           size="xs"
-          className="h-8 rounded-full border border-white/12 px-3 text-[11px] font-semibold text-white/95 hover:bg-white/10"
+          className="h-10 min-h-[2.5rem] rounded-xl border border-white/12 px-3 text-[11px] font-semibold text-white/95 hover:bg-white/10"
           disabled={disabled}
           onClick={onOpenAttendance}
         >

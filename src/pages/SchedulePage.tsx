@@ -95,25 +95,27 @@ function ScheduleHeroToolbarAction({
   title,
   onClick,
   children,
+  className = '',
 }: {
   label: string;
   title: string;
   onClick: () => void;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
     <button
       type="button"
       title={title}
       aria-label={title}
-      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/18 bg-black/55 px-2.5 text-[10px] font-semibold text-white/95 shadow-md backdrop-blur-sm transition hover:border-red-400/45 hover:bg-red-950/50 sm:text-[11px]"
+      className={`inline-flex h-10 min-h-[2.5rem] w-full min-w-0 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-black/60 px-2 text-[10px] font-semibold text-white/95 shadow-md backdrop-blur-sm transition hover:border-red-400/45 hover:bg-red-950/50 sm:text-[11px] ${className}`}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
     >
       <span className="flex shrink-0 items-center opacity-90">{children}</span>
-      <span className="whitespace-nowrap">{label}</span>
+      <span className="truncate">{label}</span>
     </button>
   );
 }
@@ -660,7 +662,7 @@ export const SchedulePage: React.FC = () => {
   return (
     <div className="page schedule-page relative min-h-[60vh] scroll-mt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))] [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_50%,rgba(10,0,0,0.99)_100%)] [box-shadow:inset_0_0_120px_rgba(120,20,20,0.12)]">
       <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
-        <div className="mx-auto mt-1 max-w-3xl space-y-3 pb-[calc(140px+env(safe-area-inset-bottom,0px))] pt-3 sm:mt-2 sm:space-y-4 sm:pt-4">
+        <div className="mx-auto mt-1 max-w-3xl space-y-3 pb-[calc(168px+env(safe-area-inset-bottom,0px))] pt-3 sm:mt-2 sm:space-y-4 sm:pt-4">
           {toastMessage && (
             <div
               className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl bg-black/90 border border-red-900/80 text-white text-sm font-medium shadow-lg backdrop-blur-sm"
@@ -914,7 +916,7 @@ export const SchedulePage: React.FC = () => {
                         const heroTrainerFooter =
                           canManage && !forcePublicView ? (
                             <div
-                              className="flex flex-wrap items-center justify-center gap-1.5 sm:justify-start"
+                              className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4"
                               role="toolbar"
                               aria-label="Trainer-Aktionen"
                               onClick={(e) => e.stopPropagation()}
@@ -960,25 +962,32 @@ export const SchedulePage: React.FC = () => {
                         const heroParentFooter =
                           heroShowsParentPill && !forcePublicView ? (
                             <div
-                              className="flex flex-wrap items-center justify-center gap-2 sm:justify-start"
+                              className={
+                                ev.status !== 'finished'
+                                  ? 'grid w-full max-w-md grid-cols-2 gap-2 sm:max-w-lg'
+                                  : 'w-full max-w-md'
+                              }
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <AttendanceActionRow
-                                isTraining={et === 'training'}
-                                variant="compact"
-                                onOpenAttendance={() => setAttendanceModalEvent(ev)}
-                              />
+                              <div className="min-w-0 [&_button]:w-full">
+                                <AttendanceActionRow
+                                  isTraining={et === 'training'}
+                                  variant="compact"
+                                  onOpenAttendance={() => setAttendanceModalEvent(ev)}
+                                />
+                              </div>
                               {ev.status !== 'finished' ? (
                                 <Button
                                   type="button"
                                   variant="soft"
                                   size="xs"
-                                  className="h-8 rounded-full border border-white/12 px-3 text-[11px] font-semibold text-white/95 hover:bg-white/10"
+                                  className="inline-flex h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-black/55 px-3 text-[11px] font-semibold text-white/95 hover:bg-white/10"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     downloadEventIcs(ev, { appBaseUrl: window.location.origin });
                                   }}
                                 >
+                                  <CalendarPlus className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
                                   Zum Kalender
                                 </Button>
                               ) : null}
