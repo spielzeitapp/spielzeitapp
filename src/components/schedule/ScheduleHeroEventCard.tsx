@@ -228,6 +228,21 @@ export function ScheduleHeroEventCard({
     </div>
   ) : null;
 
+  /** Match-Hero: Datum in Zeile über Teams (nicht absolute — siehe gameBody). */
+  const gameDateBadgeRow = (
+    <div className="pointer-events-none flex shrink-0 flex-col items-start gap-0.5 rounded-xl border border-white/18 bg-black/68 px-2 py-2 text-left shadow-md backdrop-blur-md sm:gap-1 sm:px-2.5 sm:py-2">
+      <span className="text-[10px] font-black uppercase leading-none tracking-[0.12em] text-red-200 sm:text-[11px]">
+        {wd}
+      </span>
+      <span className="text-2xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.65)] sm:text-3xl">
+        {day}
+      </span>
+      <span className="text-[10px] font-bold uppercase leading-none tracking-[0.08em] text-white/88 sm:text-[11px]">
+        {mon}
+      </span>
+    </div>
+  );
+
   const matchKindCenterLabel = matchTypeLabel?.trim() || 'Spiel';
 
   const gameStatsInline = topRight ? (
