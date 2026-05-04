@@ -1079,6 +1079,7 @@ export const SchedulePage: React.FC = () => {
                     ) : showCompactParentPill ? (
                       <CompactListParentAttendance
                         status={attendanceMergedToPillStatus(attendanceStatusMerged)}
+                        isTraining={et === 'training'}
                         onOpen={() => setAttendanceModalEvent(ev)}
                       />
                     ) : undefined;
