@@ -166,26 +166,29 @@ export function CompactEventCard({
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center">
           <p
-            className="min-w-0 whitespace-normal text-[15px] font-semibold leading-tight text-white [overflow-wrap:normal] [word-break:normal] line-clamp-2"
+            className="min-w-0 whitespace-normal text-[15px] font-semibold leading-tight text-white [overflow-wrap:normal] [word-break:normal]"
             lang="de"
           >
             {parentTitle}
           </p>
-          {parentSubline ? (
-            <p className="mt-1 min-w-0 truncate text-[12px] text-gray-400" lang="de" title={parentSubline}>
-              {parentSubline}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="ml-2 flex shrink-0 items-center gap-1">
-          {trailing ? <div className="flex shrink-0 items-center">{trailing}</div> : null}
-          <div className="flex w-3 shrink-0 items-center justify-center">
-            {clickable ? (
-              <ChevronRight className="h-3 w-3 shrink-0 text-white opacity-60" strokeWidth={2} aria-hidden />
-            ) : (
-              <span className="block h-3 w-3 shrink-0" aria-hidden />
-            )}
+          <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
+            <div className="min-h-0 min-w-0 flex-1">
+              {parentSubline ? (
+                <p className="truncate text-[12px] text-gray-400" lang="de" title={parentSubline}>
+                  {parentSubline}
+                </p>
+              ) : null}
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              {trailing ? <div className="flex shrink-0 items-center">{trailing}</div> : null}
+              <div className="flex w-3 shrink-0 items-center justify-center">
+                {clickable ? (
+                  <ChevronRight className="h-3 w-3 shrink-0 text-white opacity-60" strokeWidth={2} aria-hidden />
+                ) : (
+                  <span className="block h-3 w-3 shrink-0" aria-hidden />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
