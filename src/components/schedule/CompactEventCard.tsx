@@ -156,14 +156,14 @@ export function CompactEventCard({
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center">
           <p
-            className="min-w-0 whitespace-normal text-[16px] font-semibold leading-tight text-white [overflow-wrap:normal] [word-break:normal] line-clamp-2"
+            className="min-w-0 whitespace-normal text-[15px] font-semibold leading-tight text-white [overflow-wrap:normal] [word-break:normal] line-clamp-2"
             lang="de"
           >
             {parentTitle}
           </p>
           {parentSubline ? (
             <p
-              className="mt-1 min-w-0 truncate text-[12px] leading-snug text-gray-500 [overflow-wrap:normal] [word-break:normal]"
+              className="mt-1 min-w-0 whitespace-normal text-[12px] leading-snug text-gray-400 line-clamp-2 [overflow-wrap:normal] [word-break:normal]"
               lang="de"
               title={parentSubline}
             >
@@ -172,7 +172,7 @@ export function CompactEventCard({
           ) : null}
         </div>
 
-        <div className="ml-3 flex w-[90px] shrink-0 flex-col items-end justify-between self-stretch py-0.5">
+        <div className="flex w-[96px] shrink-0 flex-col items-end justify-between self-stretch py-0.5">
           <div className="flex shrink-0 flex-col items-end">{trailing}</div>
           <div className="flex w-3 shrink-0 items-center justify-end">
             {clickable ? (
