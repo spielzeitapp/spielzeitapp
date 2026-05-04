@@ -5,13 +5,13 @@ type Props = {
   no: number;
   open: number;
   isTraining?: boolean;
-  /** Schmale rechte Spalte in der Terminliste (ca. 58px). */
+  /** Schmale rechte Spalte in der Terminliste (ca. 48px). */
   listColumn?: boolean;
   className?: string;
 };
 
 const pillSm =
-  'inline-flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full border px-0.5 text-[8px] font-bold tabular-nums sm:text-[9px]';
+  'inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full border px-0.5 text-[7px] font-bold tabular-nums sm:text-[8px]';
 
 /** Kompakte Teilnehmerzahlen für Trainer/Staff (nur Darstellung). */
 export function TrainerStatsMini({
@@ -25,11 +25,11 @@ export function TrainerStatsMini({
   if (isTraining) {
     return (
       <div
-        className={`flex w-full max-w-[58px] flex-col items-center justify-center gap-0.5 ${className}`}
+        className={`flex w-full max-w-[48px] flex-col items-center justify-center gap-0.5 ${className}`}
         aria-label="Trainings-Teilnahme"
       >
         <span
-          className={`${pillSm} max-w-[58px] justify-center truncate border-red-500/40 bg-red-950/45 text-red-100`}
+          className={`${pillSm} max-w-[48px] justify-center truncate border-red-500/40 bg-red-950/45 text-red-100`}
           title={`${no} abgesagt`}
         >
           {no} abg.
@@ -47,10 +47,10 @@ export function TrainerStatsMini({
   if (listColumn) {
     return (
       <div
-        className={`flex w-full max-w-[58px] flex-col items-center justify-center gap-0.5 ${className}`}
+        className={`flex w-full max-w-[48px] flex-col items-center justify-center gap-0.5 ${className}`}
         aria-label="Zu- und Absagen"
       >
-        <div className="flex gap-0.5">
+        <div className="flex gap-px">
           <span
             className={`${pillSm} border-emerald-500/40 bg-emerald-950/40 text-emerald-100`}
             title="Zugesagt"

@@ -29,7 +29,7 @@ function CompactOpponentLogo({ src }: { src: string }) {
   if (failed) {
     return (
       <div
-        className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-xl border border-white/12 bg-black/60 text-[1.75rem] leading-none"
+        className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-lg border border-white/12 bg-black/60 text-[1.5rem] leading-none"
         aria-hidden
       >
         ⚽
@@ -37,11 +37,11 @@ function CompactOpponentLogo({ src }: { src: string }) {
     );
   }
   return (
-    <div className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-xl border border-white/12 bg-black/45">
+    <div className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-lg border border-white/12 bg-black/45">
       <img
         src={src}
         alt=""
-        className="h-[54px] w-[54px] object-contain"
+        className="h-12 w-12 object-contain"
         onError={() => setFailed(true)}
       />
     </div>
@@ -110,17 +110,17 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <div className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-950/40">
-        <CompactFootballBallIcon className="h-[54px] w-[54px] text-white/95" />
+      <div className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-950/40">
+        <CompactFootballBallIcon className="h-12 w-12 text-white/95" />
       </div>
     ) : (
-      <div className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/[0.06]">
-        <EventMotifIcon className="h-9 w-9 text-red-200/90" />
+      <div className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-lg border border-white/12 bg-white/[0.06]">
+        <EventMotifIcon className="h-8 w-8 text-red-200/90" />
       </div>
     );
 
   const titleClamp =
-    'line-clamp-2 whitespace-normal text-lg font-bold leading-snug text-white [overflow-wrap:normal] [word-break:normal]';
+    'line-clamp-2 whitespace-normal text-base font-bold leading-tight text-white [overflow-wrap:normal] [word-break:normal]';
 
   const titleBlock =
     et === 'game' ? (
@@ -150,7 +150,7 @@ export function CompactEventCard({
   return (
     <div
       className={[
-        'mb-3 flex min-h-[104px] w-full min-w-0 flex-row items-center gap-2 overflow-visible rounded-2xl border border-red-950/45 bg-zinc-950 px-3 py-3',
+        'mb-3 flex min-h-[104px] w-full min-w-0 flex-row items-center gap-1.5 overflow-visible rounded-2xl border border-red-950/45 bg-zinc-950 px-2.5 py-3',
         clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
@@ -167,24 +167,24 @@ export function CompactEventCard({
           : undefined
       }
     >
-      <div className="flex w-[70px] shrink-0 flex-col gap-0.5 text-left leading-none">
+      <div className="flex w-[62px] shrink-0 flex-col gap-0.5 text-left leading-none">
         <span className="text-[10px] font-semibold uppercase leading-tight tracking-wide text-rose-300/90">{wd}</span>
-        <span className="text-[36px] font-bold tabular-nums leading-none text-white">{day}</span>
+        <span className="text-[34px] font-bold tabular-nums leading-none text-white">{day}</span>
         <span className="text-xs font-medium leading-tight text-white/65">{monYear}</span>
         <span className="text-sm font-semibold tabular-nums leading-tight text-red-500">{timeStr}</span>
       </div>
 
-      <div className="flex w-[58px] shrink-0 items-center justify-center">{iconSlot}</div>
+      <div className="flex w-[50px] shrink-0 items-center justify-center">{iconSlot}</div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center gap-1">
         <span
-          className={`inline-flex w-fit max-w-full rounded-md border px-1.5 py-0.5 text-[8px] font-bold uppercase leading-tight tracking-wide ${eventTypeBadgeClass(et)}`}
+          className={`inline-flex w-fit max-w-full rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase leading-tight tracking-wide ${eventTypeBadgeClass(et)}`}
         >
           {typeBadgeLabel}
         </span>
         {titleBlock}
         {locLine1 ? (
-          <p className="flex min-h-0 min-w-0 items-center gap-1 text-[13px] font-medium leading-tight text-white/85">
+          <p className="flex min-h-0 min-w-0 items-center gap-1 text-sm font-medium leading-snug text-white/85">
             <MapPin className="h-3 w-3 shrink-0 text-rose-300/70" aria-hidden />
             <span className="line-clamp-1 min-w-0 whitespace-normal [overflow-wrap:normal] [word-break:normal]">
               {locLine1}
@@ -192,21 +192,24 @@ export function CompactEventCard({
           </p>
         ) : null}
         {locLine2 ? (
-          <p className="min-w-0 truncate text-[11px] font-normal leading-tight text-white/45" title={locLine2}>
+          <p
+            className="min-w-0 truncate text-xs font-normal leading-snug text-gray-400"
+            title={locLine2}
+          >
             {locLine2}
           </p>
         ) : null}
       </div>
 
-      <div className="flex w-[58px] shrink-0 flex-col items-center justify-center gap-0.5 self-stretch">
+      <div className="flex w-[48px] shrink-0 flex-col items-center justify-center gap-0.5 self-stretch">
         {trailing ?? null}
       </div>
 
-      <div className="flex w-4 shrink-0 items-center justify-center self-stretch">
+      <div className="flex w-[14px] shrink-0 items-center justify-center self-stretch">
         {clickable ? (
-          <ChevronRight className="h-4 w-4 shrink-0 text-white/45" strokeWidth={2} aria-hidden />
+          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-white/45" strokeWidth={2} aria-hidden />
         ) : (
-          <span className="block h-4 w-4 shrink-0" aria-hidden />
+          <span className="block h-3.5 w-3.5 shrink-0" aria-hidden />
         )}
       </div>
     </div>

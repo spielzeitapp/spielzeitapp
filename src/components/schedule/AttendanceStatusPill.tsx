@@ -18,7 +18,7 @@ export function AttendanceStatusPill({
   className = '',
 }: Props) {
   const base = compact
-    ? 'inline-flex max-w-[58px] justify-center rounded-full px-1 py-0.5 text-[8px] font-bold uppercase leading-tight tracking-wide'
+    ? 'inline-flex max-w-[48px] justify-center rounded-full px-1 py-0.5 text-[8px] font-bold uppercase leading-tight tracking-wide'
     : 'inline-flex max-w-[10rem] rounded-full px-2 py-1 text-[10px] font-bold uppercase leading-snug tracking-wide';
 
   if (isTraining) {
