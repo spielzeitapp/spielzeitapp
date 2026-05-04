@@ -59,8 +59,8 @@ function eventTypeBadgeClass(et: EffectiveEventType): string {
 }
 
 /**
- * „Weitere Termine“: eine flache Flex-Karte (kein Grid/minmax, kein absolute).
- * Erste Version ohne line-clamp/truncate — Text wickelt normal um, Karte wird höher.
+ * „Weitere Termine“: 2-Zeilen-Layout (iPhone SE): oben Datum | Logo | Stats+Pfeil,
+ * unten volle Breite für Text — kein schmales 5-Spalten-Inhaltsband, kein absolute.
  */
 export function CompactEventCard({
   ev,
@@ -120,12 +120,12 @@ export function CompactEventCard({
       </div>
     );
 
+  const textClamp2 = 'line-clamp-2 whitespace-normal [overflow-wrap:normal] [word-break:normal]';
+
   const titleBlock =
     et === 'game' ? (
       <>
-        <p className="text-[15px] font-bold leading-snug text-white [overflow-wrap:break-word] [word-break:normal]">
-          {oppName}
-        </p>
+        <p className={`text-[15px] font-bold leading-snug text-white ${textClamp2}`}>{oppName}</p>
         {homeAwayBadge ? (
           <span
             className={`inline-flex w-fit rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${homeAwayBadge.cls}`}
@@ -136,23 +136,19 @@ export function CompactEventCard({
       </>
     ) : et === 'training' ? (
       <>
-        <p className="text-[15px] font-bold leading-snug text-white">Training</p>
+        <p className={`text-[15px] font-bold leading-snug text-white ${textClamp2}`}>Training</p>
         {trainingNotesTitle && trainingNotesTitle.trim().toLowerCase() !== 'training' ? (
-          <p className="text-[12px] leading-snug text-white/55 [overflow-wrap:break-word] [word-break:normal]">
-            {trainingNotesTitle}
-          </p>
+          <p className={`text-[12px] leading-snug text-white/55 ${textClamp2}`}>{trainingNotesTitle}</p>
         ) : null}
       </>
     ) : (
-      <p className="text-[15px] font-bold leading-snug text-white [overflow-wrap:break-word] [word-break:normal]">
-        {title}
-      </p>
+      <p className={`text-[15px] font-bold leading-snug text-white ${textClamp2}`}>{title}</p>
     );
 
   return (
     <div
       className={[
-        'mb-3 flex min-h-[108px] w-full min-w-0 flex-row items-stretch gap-3 rounded-2xl border border-red-950/45 bg-zinc-950 p-3',
+        'mb-3 flex w-full min-w-0 flex-col gap-2 rounded-2xl border border-red-950/45 bg-zinc-950 p-3',
         clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
@@ -169,16 +165,35 @@ export function CompactEventCard({
           : undefined
       }
     >
-      <div className="flex w-[86px] shrink-0 flex-col gap-0.5 self-center text-left leading-tight">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-rose-300/90">{wd}</span>
-        <span className="text-[40px] font-bold tabular-nums leading-[0.95] text-white sm:text-[44px]">{day}</span>
-        <span className="text-xs font-medium text-white/60">{monYear}</span>
-        <span className="text-sm font-semibold tabular-nums text-rose-400">{timeStr}</span>
+      {/* Zeile 1: Datum | Logo (mittig) | Stats + Pfeil */}
+      <div className="flex w-full min-w-0 flex-row items-start gap-2">
+        <div className="flex w-[86px] shrink-0 flex-col gap-0.5 text-left leading-tight">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-rose-300/90">{wd}</span>
+          <span className="text-[40px] font-bold tabular-nums leading-[0.95] text-white sm:text-[44px]">{day}</span>
+          <span className="text-xs font-medium text-white/60">{monYear}</span>
+          <span className="text-sm font-semibold tabular-nums text-rose-400">{timeStr}</span>
+        </div>
+
+        <div className="flex min-h-[72px] min-w-0 flex-1 items-center justify-center">
+          <div className="w-[72px] shrink-0">{iconSlot}</div>
+        </div>
+
+        <div className="flex w-[86px] shrink-0 flex-col items-end gap-1">
+          {trailing ? (
+            <div className="flex w-full min-w-0 flex-col items-end">{trailing}</div>
+          ) : null}
+          <div className="flex h-5 w-full items-center justify-end">
+            {clickable ? (
+              <ChevronRight className="h-5 w-5 shrink-0 text-white/45" strokeWidth={2} aria-hidden />
+            ) : (
+              <span className="block h-5 w-5 shrink-0" aria-hidden />
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="flex w-[72px] shrink-0 items-center justify-center self-center">{iconSlot}</div>
-
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1.5 self-center py-0.5">
+      {/* Zeile 2: volle Breite — Badge, Titel, Ort, Adresse */}
+      <div className="w-full min-w-0 flex flex-col gap-1.5 border-t border-white/[0.06] pt-2">
         <span
           className={`inline-flex w-fit max-w-full rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase leading-snug tracking-wide ${eventTypeBadgeClass(et)}`}
         >
@@ -188,26 +203,12 @@ export function CompactEventCard({
         {locLine1 ? (
           <p className="flex min-w-0 items-start gap-1.5 text-[13px] font-medium leading-snug text-white/80">
             <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-300/70" aria-hidden />
-            <span className="min-w-0 [overflow-wrap:break-word] [word-break:normal]">{locLine1}</span>
+            <span className={`min-w-0 flex-1 ${textClamp2}`}>{locLine1}</span>
           </p>
         ) : null}
         {locLine2 ? (
-          <p className="pl-5 text-[11px] font-normal leading-relaxed text-white/45 [overflow-wrap:break-word] [word-break:normal]">
-            {locLine2}
-          </p>
+          <p className={`pl-5 text-[11px] font-normal leading-relaxed text-white/45 ${textClamp2}`}>{locLine2}</p>
         ) : null}
-      </div>
-
-      <div className="flex w-[92px] shrink-0 flex-col items-end justify-center gap-1 self-stretch py-0.5">
-        {trailing ?? null}
-      </div>
-
-      <div className="flex w-[20px] shrink-0 items-center justify-center self-stretch">
-        {clickable ? (
-          <ChevronRight className="h-5 w-5 text-white/45" strokeWidth={2} aria-hidden />
-        ) : (
-          <span className="block w-5" aria-hidden />
-        )}
       </div>
     </div>
   );
