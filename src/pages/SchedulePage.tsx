@@ -1091,6 +1091,7 @@ export const SchedulePage: React.FC = () => {
                         et={et}
                         ourTeamName={ourTeamName}
                         opponentLogoUrl={opponentLogo}
+                        parentCompactLayout={showCompactParentPill}
                         trailing={compactTrailing}
                         forcePublicView={forcePublicView}
                         onNavigate={(id) =>

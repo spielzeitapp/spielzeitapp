@@ -20,6 +20,8 @@ export type CompactEventCardProps = {
   ourTeamName: string;
   opponentLogoUrl?: string | null;
   forcePublicView: boolean;
+  /** Eltern/Spieler „Weitere Termine“: kompaktes Layout ohne Icons, Titel+Button in Zeile 1. */
+  parentCompactLayout?: boolean;
   trailing?: React.ReactNode;
   onNavigate: (id: string) => void;
 };
@@ -88,6 +90,7 @@ export function CompactEventCard({
   et,
   ourTeamName,
   opponentLogoUrl,
+  parentCompactLayout = false,
   trailing,
   forcePublicView,
   onNavigate,
@@ -106,10 +109,81 @@ export function CompactEventCard({
   };
 
   const oppName = (ev.opponent ?? 'Gegner').trim() || 'Gegner';
-  const oppSrc = getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
 
   const homeAwayShort =
     et === 'game' && ev.is_home === true ? 'Heim' : et === 'game' && ev.is_home === false ? 'Auswärts' : '';
+
+  const trainingTitle =
+    et === 'training' ? (compactTrainingHeadline(ourTeamName, trainingNotesTitle) ?? 'Training') : null;
+
+  if (parentCompactLayout) {
+    const parentTitle = et === 'game' ? oppName : et === 'training' ? trainingTitle : title;
+
+    let parentSubline: string | null = null;
+    if (et === 'game') {
+      const parts = [homeAwayShort, venueOnly].filter(Boolean);
+      parentSubline = parts.length ? parts.join(' • ') : null;
+    } else if (venueOnly) {
+      parentSubline = venueOnly;
+    }
+
+    return (
+      <div
+        className={[
+          'mb-3 flex min-h-[96px] w-full min-w-0 flex-row items-center gap-3 overflow-hidden rounded-2xl border border-red-950/45 bg-zinc-950 px-3 py-3',
+          clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
+        ].join(' ')}
+        role={clickable ? 'button' : undefined}
+        tabIndex={clickable ? 0 : undefined}
+        onClick={clickable ? handleRowClick : undefined}
+        onKeyDown={
+          clickable
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleRowClick();
+                }
+              }
+            : undefined
+        }
+      >
+        <div className="flex w-[60px] shrink-0 flex-col items-start gap-0.5 leading-none">
+          <span className="text-[10px] font-medium uppercase leading-tight tracking-wide text-red-300">{wd}</span>
+          <span className="text-[32px] font-bold tabular-nums leading-none text-white">{day}</span>
+          <span className="text-[10px] leading-tight text-gray-400">{monYear}</span>
+          <span className="text-[13px] font-medium tabular-nums leading-tight text-red-400">{timeStr}</span>
+        </div>
+
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center">
+          <div className="flex items-start justify-between gap-2">
+            <p
+              className="min-w-0 flex-1 whitespace-normal text-[15px] font-semibold leading-tight text-white [overflow-wrap:normal] [word-break:normal] line-clamp-2"
+              lang="de"
+            >
+              {parentTitle}
+            </p>
+            {trailing ? <div className="shrink-0">{trailing}</div> : null}
+          </div>
+          {parentSubline ? (
+            <p className="mt-1 min-w-0 truncate text-[12px] text-gray-400" lang="de" title={parentSubline}>
+              {parentSubline}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="ml-1 flex w-4 shrink-0 items-center justify-center self-stretch">
+          {clickable ? (
+            <ChevronRight className="h-4 w-4 shrink-0 text-white opacity-60" strokeWidth={2} aria-hidden />
+          ) : (
+            <span className="block h-4 w-4 shrink-0" aria-hidden />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const oppSrc = getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
+
   const matchShort = shortMatchTypeLabel(ev.match_type);
   const gameSubtitle =
     et === 'game' ? (homeAwayShort ? `${homeAwayShort} · ${matchShort}` : matchShort) : null;
@@ -118,9 +192,6 @@ export function CompactEventCard({
     et !== 'game' && et !== 'training'
       ? (scheduleEventTypeLabel(ev, et) ?? 'Termin').toUpperCase()
       : null;
-
-  const trainingTitle =
-    et === 'training' ? (compactTrainingHeadline(ourTeamName, trainingNotesTitle) ?? 'Training') : null;
 
   const iconSlot =
     et === 'game' ? (
