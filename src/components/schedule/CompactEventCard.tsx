@@ -44,7 +44,7 @@ function CompactOpponentLogo({ src }: { src: string }) {
     <img
       src={src}
       alt=""
-      className="h-[50px] w-[50px] shrink-0 object-contain"
+      className="h-[50px] w-full max-w-[50px] shrink-0 object-contain"
       onError={() => setFailed(true)}
     />
   );
@@ -121,7 +121,7 @@ export function CompactEventCard({
       <img
         src={navIconUrl('home-ball.png')}
         alt=""
-        className="h-[50px] w-[50px] shrink-0 object-contain"
+        className="h-[50px] w-full max-w-[50px] shrink-0 object-contain"
         decoding="async"
         draggable={false}
       />
