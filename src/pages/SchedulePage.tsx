@@ -1082,9 +1082,6 @@ export const SchedulePage: React.FC = () => {
                         onOpen={() => setAttendanceModalEvent(ev)}
                       />
                     ) : undefined;
-                    const compactTrailingClassName = showCompactParentPill
-                      ? 'w-auto min-w-[6.75rem] max-w-[8.5rem] shrink-0'
-                      : undefined;
                     const opponentLogo = (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url;
                     return (
                       <CompactEventCard
@@ -1094,7 +1091,6 @@ export const SchedulePage: React.FC = () => {
                         ourTeamName={ourTeamName}
                         opponentLogoUrl={opponentLogo}
                         trailing={compactTrailing}
-                        trailingClassName={compactTrailingClassName}
                         forcePublicView={forcePublicView}
                         onNavigate={(id) =>
                           isFinishedMatch && ev.match_id

@@ -21,8 +21,6 @@ export type CompactEventCardProps = {
   opponentLogoUrl?: string | null;
   forcePublicView: boolean;
   trailing?: React.ReactNode;
-  /** z. B. breitere Spalte für Eltern-Zu-/Absage-Button */
-  trailingClassName?: string;
   onNavigate: (id: string) => void;
 };
 
@@ -32,7 +30,6 @@ function navIconUrl(file: string): string {
   return `${base}icons/${file}`;
 }
 
-/** „U11 Training“ aus Teamname, sonst sinnvolle Notes – nie nur nacktes „Training“. */
 function compactTrainingHeadline(ourTeamName: string, notesTitle: string | null): string | null {
   const team = (ourTeamName ?? '').trim();
   let m = team.match(/\bU\s*(\d{1,2})\b/i);
@@ -48,7 +45,7 @@ function CompactOpponentLogo({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
-      <span className="flex h-[50px] w-[50px] shrink-0 items-center justify-center text-[2rem] leading-none" aria-hidden>
+      <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center text-[1.25rem] leading-none" aria-hidden>
         ⚽
       </span>
     );
@@ -57,7 +54,7 @@ function CompactOpponentLogo({ src }: { src: string }) {
     <img
       src={src}
       alt=""
-      className="h-[50px] w-full max-w-[50px] shrink-0 object-contain"
+      className="h-[34px] w-[34px] shrink-0 object-contain"
       onError={() => setFailed(true)}
     />
   );
@@ -80,7 +77,9 @@ function homeAwayClass(isHome: boolean): string {
 }
 
 /**
- * „Weitere Termine“: eine horizontale Kartenzeile (Datum | Logo | Inhalt | Stats | Pfeil).
+ * „Weitere Termine“: Datum | Icon | Inhalt (2 Zeilen) | Pfeil.
+ * Zeile 1 Inhalt: Titel flex-1 + Trailing (Button/Stats) rechts, justify-between.
+ * Zeile 2: Badge + Ort (eine Zeile, truncate).
  */
 export function CompactEventCard({
   ev,
@@ -88,7 +87,6 @@ export function CompactEventCard({
   ourTeamName,
   opponentLogoUrl,
   trailing,
-  trailingClassName,
   forcePublicView,
   onNavigate,
 }: CompactEventCardProps) {
@@ -133,22 +131,22 @@ export function CompactEventCard({
       <img
         src={navIconUrl('pitch.svg')}
         alt=""
-        className="h-[50px] w-full max-w-[50px] shrink-0 object-contain opacity-[0.92] [filter:drop-shadow(0_0_10px_rgba(255,90,90,0.22))]"
+        className="h-[34px] w-[34px] shrink-0 object-contain opacity-90 [filter:drop-shadow(0_0_6px_rgba(255,90,90,0.14))]"
         decoding="async"
         draggable={false}
       />
     ) : (
-      <span className="flex h-[50px] w-[50px] shrink-0 items-center justify-center">
-        <EventMotifIcon className="h-9 w-9 text-red-200/90" />
+      <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center">
+        <EventMotifIcon className="h-7 w-7 text-red-200/85" />
       </span>
     );
 
   const titleClamp =
-    'line-clamp-2 min-w-0 whitespace-normal text-[15px] font-bold leading-tight text-white [overflow-wrap:normal] [word-break:normal] [hyphens:auto]';
+    'line-clamp-2 min-w-0 max-w-full whitespace-normal text-[15px] font-bold leading-tight text-white [overflow-wrap:normal] [word-break:normal]';
 
   const titleBlock =
     et === 'game' ? (
-      <div className="flex min-w-0 flex-col gap-1">
+      <div className="flex min-w-0 max-w-full flex-col gap-1">
         <p className={titleClamp} lang="de">
           {oppName}
         </p>
@@ -172,12 +170,10 @@ export function CompactEventCard({
       </p>
     );
 
-  const trailingWrap = trailingClassName ?? 'w-[48px]';
-
   return (
     <div
       className={[
-        'mb-3 flex min-h-[104px] w-full min-w-0 flex-row items-center gap-1 overflow-x-hidden overflow-y-visible rounded-2xl border border-red-950/45 bg-zinc-950 px-2.5 py-3',
+        'mb-3 flex min-h-[104px] w-full min-w-0 flex-row items-center gap-1.5 overflow-x-hidden overflow-y-visible rounded-2xl border border-red-950/45 bg-zinc-950 px-2.5 py-3',
         clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
@@ -201,32 +197,29 @@ export function CompactEventCard({
         <span className="text-sm font-semibold tabular-nums leading-tight text-red-500">{timeStr}</span>
       </div>
 
-      <div className="flex w-[48px] shrink-0 items-center justify-center self-center">{iconSlot}</div>
+      <div className="flex w-[38px] shrink-0 items-center justify-center self-center">{iconSlot}</div>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center gap-0.5 self-center">
-        <span
-          className={`inline-flex w-fit max-w-full rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${eventTypeBadgeClass(et)}`}
-        >
-          {typeBadgeLabel}
-        </span>
-        {titleBlock}
-        {venueOnly ? (
-          <p className="flex min-h-0 min-w-0 items-start gap-1 text-[13px] font-medium leading-snug text-white/85">
-            <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-rose-300/70" aria-hidden />
-            <span
-              className="line-clamp-2 min-w-0 whitespace-normal [overflow-wrap:normal] [word-break:normal] [hyphens:auto]"
-              lang="de"
-            >
-              {venueOnly}
-            </span>
-          </p>
-        ) : null}
-      </div>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center gap-1.5 self-center">
+        <div className="flex w-full min-w-0 flex-row items-start justify-between gap-2">
+          <div className="min-w-0 flex-1 pr-1">{titleBlock}</div>
+          {trailing ? <div className="shrink-0">{trailing}</div> : null}
+        </div>
 
-      <div
-        className={`flex shrink-0 flex-col items-stretch justify-center gap-0.5 self-center py-0.5 ${trailingWrap}`}
-      >
-        {trailing ?? null}
+        <div className="flex w-full min-w-0 flex-row items-center gap-2">
+          <span
+            className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${eventTypeBadgeClass(et)}`}
+          >
+            {typeBadgeLabel}
+          </span>
+          {venueOnly ? (
+            <p className="flex min-h-0 min-w-0 flex-1 items-center gap-1 text-[13px] font-medium leading-snug text-white/85">
+              <MapPin className="h-3 w-3 shrink-0 text-rose-300/70" aria-hidden />
+              <span className="min-w-0 truncate" title={venueOnly}>
+                {venueOnly}
+              </span>
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex w-[14px] shrink-0 items-center justify-center self-center">
