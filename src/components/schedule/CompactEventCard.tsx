@@ -30,6 +30,7 @@ function navIconUrl(file: string): string {
   return `${base}icons/${file}`;
 }
 
+/** „U11 Training“ aus Teamname/Notes; sonst null → Anzeige „Training“. */
 function compactTrainingHeadline(ourTeamName: string, notesTitle: string | null): string | null {
   const team = (ourTeamName ?? '').trim();
   let m = team.match(/\bU\s*(\d{1,2})\b/i);
@@ -45,7 +46,7 @@ function CompactOpponentLogo({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
-      <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center text-[1.25rem] leading-none" aria-hidden>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[1.1rem] leading-none" aria-hidden>
         ⚽
       </span>
     );
@@ -54,7 +55,7 @@ function CompactOpponentLogo({ src }: { src: string }) {
     <img
       src={src}
       alt=""
-      className="h-[34px] w-[34px] shrink-0 object-contain"
+      className="h-9 w-9 shrink-0 object-contain"
       onError={() => setFailed(true)}
     />
   );
@@ -70,16 +71,9 @@ function eventTypeBadgeClass(et: EffectiveEventType): string {
   return 'bg-zinc-800/80 text-white/78';
 }
 
-function homeAwayClass(isHome: boolean): string {
-  return isHome
-    ? 'bg-emerald-950/65 text-emerald-100'
-    : 'bg-amber-950/50 text-amber-100';
-}
-
 /**
- * „Weitere Termine“: Datum | Icon | Inhalt (2 Zeilen) | Pfeil.
- * Zeile 1 Inhalt: Titel flex-1 + Trailing (Button/Stats) rechts, justify-between.
- * Zeile 2: Badge + Ort (eine Zeile, truncate).
+ * „Weitere Termine“: links Datum+Icon, Mitte Text (Training ohne Badge; Spiel mit Untertitel), rechts Aktion+Pfeil.
+ * Trainer: `trailing` = Stats; Eltern: nur Status-Button (keine Zahlen).
  */
 export function CompactEventCard({
   ev,
@@ -106,37 +100,33 @@ export function CompactEventCard({
   const oppName = (ev.opponent ?? 'Gegner').trim() || 'Gegner';
   const oppSrc = getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
 
-  const homeAwayBadge =
-    et === 'game' && ev.is_home === true
-      ? { label: 'Heim', isHome: true as const }
-      : et === 'game' && ev.is_home === false
-        ? { label: 'Auswärts', isHome: false as const }
-        : null;
+  const matchTypeLabel = getMatchTypeLabel(ev.match_type) ?? 'Spiel';
+  const homeAwayPart =
+    et === 'game' && ev.is_home === true ? 'HEIM' : et === 'game' && ev.is_home === false ? 'AUSWÄRTS' : '';
+  const gameSubtitle =
+    et === 'game' ? (homeAwayPart ? `${homeAwayPart} • ${matchTypeLabel}` : matchTypeLabel) : null;
 
-  const matchTypeUpper = (getMatchTypeLabel(ev.match_type) ?? 'Spiel').toUpperCase();
+  const typeBadgeLabelOther =
+    et !== 'game' && et !== 'training'
+      ? (scheduleEventTypeLabel(ev, et) ?? 'Termin').toUpperCase()
+      : null;
 
-  const typeBadgeLabel =
-    et === 'game'
-      ? matchTypeUpper
-      : et === 'training'
-        ? 'TRAINING'
-        : (scheduleEventTypeLabel(ev, et) ?? 'Termin').toUpperCase();
-
-  const trainingHeadline = et === 'training' ? compactTrainingHeadline(ourTeamName, trainingNotesTitle) : null;
+  const trainingTitle =
+    et === 'training' ? (compactTrainingHeadline(ourTeamName, trainingNotesTitle) ?? 'Training') : null;
 
   const iconSlot =
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
       <img
-        src={navIconUrl('pitch.svg')}
+        src={navIconUrl('home-ball.png')}
         alt=""
-        className="h-[34px] w-[34px] shrink-0 object-contain opacity-90 [filter:drop-shadow(0_0_6px_rgba(255,90,90,0.14))]"
+        className="h-9 w-9 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_5px_rgba(255,90,90,0.12))]"
         decoding="async"
         draggable={false}
       />
     ) : (
-      <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center">
         <EventMotifIcon className="h-7 w-7 text-red-200/85" />
       </span>
     );
@@ -144,36 +134,48 @@ export function CompactEventCard({
   const titleClamp =
     'line-clamp-2 min-w-0 max-w-full whitespace-normal text-[15px] font-bold leading-tight text-white [overflow-wrap:normal] [word-break:normal]';
 
-  const titleBlock =
+  const line1 =
     et === 'game' ? (
-      <div className="flex min-w-0 max-w-full flex-col gap-1">
-        <p className={titleClamp} lang="de">
-          {oppName}
-        </p>
-        {homeAwayBadge ? (
-          <span
-            className={`inline-flex w-fit shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${homeAwayClass(homeAwayBadge.isHome)}`}
-          >
-            {homeAwayBadge.label}
-          </span>
-        ) : null}
-      </div>
+      <p className={titleClamp} lang="de">
+        {oppName}
+      </p>
     ) : et === 'training' ? (
-      trainingHeadline ? (
-        <p className={titleClamp} lang="de">
-          {trainingHeadline}
-        </p>
-      ) : null
+      <p className={titleClamp} lang="de">
+        {trainingTitle}
+      </p>
     ) : (
       <p className={titleClamp} lang="de">
         {title}
       </p>
     );
 
+  const line2 =
+    et === 'game' && gameSubtitle ? (
+      <p className="line-clamp-1 min-w-0 text-xs font-semibold uppercase tracking-wide text-white/55" lang="de">
+        {gameSubtitle}
+      </p>
+    ) : et !== 'game' && et !== 'training' && typeBadgeLabelOther ? (
+      <span
+        className={`inline-flex w-fit max-w-full shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${eventTypeBadgeClass(et)}`}
+      >
+        {typeBadgeLabelOther}
+      </span>
+    ) : null;
+
+  const line3 =
+    venueOnly ? (
+      <p className="flex min-h-0 min-w-0 max-w-full items-center gap-1 text-[13px] font-medium leading-snug text-white/85">
+        <MapPin className="h-3 w-3 shrink-0 text-rose-300/70" aria-hidden />
+        <span className="min-w-0 flex-1 truncate" title={venueOnly}>
+          {venueOnly}
+        </span>
+      </p>
+    ) : null;
+
   return (
     <div
       className={[
-        'mb-3 flex min-h-[104px] w-full min-w-0 flex-row items-center gap-1.5 overflow-x-hidden overflow-y-visible rounded-2xl border border-red-950/45 bg-zinc-950 px-2.5 py-3',
+        'mb-3 flex w-full min-w-0 flex-row items-center justify-between gap-1 overflow-x-hidden rounded-2xl border border-red-950/45 bg-zinc-950 px-2.5 py-3',
         clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
@@ -190,44 +192,31 @@ export function CompactEventCard({
           : undefined
       }
     >
-      <div className="flex w-[62px] shrink-0 flex-col gap-0.5 self-center text-left leading-none">
-        <span className="text-[10px] font-semibold uppercase leading-tight tracking-wide text-rose-300/90">{wd}</span>
-        <span className="text-[34px] font-bold tabular-nums leading-none text-white">{day}</span>
-        <span className="text-xs font-medium leading-tight text-white/65">{monYear}</span>
-        <span className="text-sm font-semibold tabular-nums leading-tight text-red-500">{timeStr}</span>
+      <div className="flex shrink-0 flex-row items-center gap-0.5">
+        <div className="flex w-[70px] shrink-0 flex-col gap-0.5 text-left leading-none">
+          <span className="text-[10px] font-semibold uppercase leading-tight tracking-wide text-rose-300/90">{wd}</span>
+          <span className="text-[34px] font-bold tabular-nums leading-none text-white">{day}</span>
+          <span className="text-xs font-medium leading-tight text-white/65">{monYear}</span>
+          <span className="text-sm font-semibold tabular-nums leading-tight text-red-500">{timeStr}</span>
+        </div>
+        <div className="flex w-9 shrink-0 items-center justify-center">{iconSlot}</div>
       </div>
 
-      <div className="flex w-[38px] shrink-0 items-center justify-center self-center">{iconSlot}</div>
-
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center gap-1.5 self-center">
-        <div className="flex w-full min-w-0 flex-row items-start justify-between gap-2">
-          <div className="min-w-0 flex-1 pr-1">{titleBlock}</div>
-          {trailing ? <div className="shrink-0">{trailing}</div> : null}
-        </div>
-
-        <div className="flex w-full min-w-0 flex-row items-center gap-2">
-          <span
-            className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${eventTypeBadgeClass(et)}`}
-          >
-            {typeBadgeLabel}
-          </span>
-          {venueOnly ? (
-            <p className="flex min-h-0 min-w-0 flex-1 items-center gap-1 text-[13px] font-medium leading-snug text-white/85">
-              <MapPin className="h-3 w-3 shrink-0 text-rose-300/70" aria-hidden />
-              <span className="min-w-0 truncate" title={venueOnly}>
-                {venueOnly}
-              </span>
-            </p>
-          ) : null}
-        </div>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 self-center px-1">
+        {line1}
+        {line2}
+        {line3}
       </div>
 
-      <div className="flex w-[14px] shrink-0 items-center justify-center self-center">
-        {clickable ? (
-          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-white/45" strokeWidth={2} aria-hidden />
-        ) : (
-          <span className="block h-3.5 w-3.5 shrink-0" aria-hidden />
-        )}
+      <div className="flex shrink-0 flex-row items-center gap-1">
+        {trailing ? <div className="shrink-0">{trailing}</div> : null}
+        <div className="flex w-[14px] shrink-0 items-center justify-center">
+          {clickable ? (
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-white/45" strokeWidth={2} aria-hidden />
+          ) : (
+            <span className="block h-3.5 w-3.5 shrink-0" aria-hidden />
+          )}
+        </div>
       </div>
     </div>
   );
