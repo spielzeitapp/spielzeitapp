@@ -130,7 +130,7 @@ export function CompactEventCard({
     return (
       <div
         className={[
-          'mb-3 flex min-h-[96px] w-full min-w-0 flex-row items-stretch gap-3 overflow-hidden rounded-2xl border border-red-950/45 bg-zinc-950 px-3 py-3',
+          'mb-3 flex min-h-[96px] w-full min-w-0 flex-row items-stretch gap-3 overflow-hidden rounded-2xl border border-red-950/45 bg-zinc-950 px-2.5 py-3',
           clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
         ].join(' ')}
         role={clickable ? 'button' : undefined}

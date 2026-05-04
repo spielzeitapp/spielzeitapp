@@ -662,6 +662,9 @@ export const SchedulePage: React.FC = () => {
 
   const rosterSize = players.length;
 
+  /** Eltern/Spieler: „Weitere Termine“ etwas breiter (näher an BottomNav-Padding), ohne Hero/Filter anzufassen. */
+  const widenParentFurtherList = (uiRole === 'parent' || uiRole === 'player') && !forcePublicView;
+
   const pageLoading = loading || eLoading;
   const error = tsError ?? eError;
 
@@ -1035,73 +1038,80 @@ export const SchedulePage: React.FC = () => {
                       })()
                     : null}
 
-                  {showHeroCard && furtherEvents.length > 0 ? (
-                    <h3 className="mb-1 border-t border-white/[0.06] pt-2 text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-300/70">
-                      {normalizedUiRole === 'fan' ? 'Weitere Spiele' : 'Weitere Termine'}
-                    </h3>
-                  ) : null}
-
-                  {furtherEvents.map((ev) => {
-                    const evAttendance = attendanceByEventId[ev.id];
-                    const yesRaw = evAttendance?.yes ?? 0;
-                    const no = evAttendance?.no ?? 0;
-                    const open = Math.max(0, rosterSize - yesRaw - no);
-                    const et = getEffectiveEventType(ev);
-                    const countsForCard =
-                      et === 'training'
-                        ? { yes: Math.max(0, rosterSize - no), no, open: 0 }
-                        : { yes: yesRaw, no, open };
-                    const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
-                    const myStatusFromDb =
-                      (uiRole === 'parent' || uiRole === 'player') &&
-                      myAttendancePlayerIds[0] &&
-                      evAttendance?.availabilityByPlayerId[myPlayerIdKey];
-                    const attendanceStatusMerged =
-                      uiRole === 'parent' || uiRole === 'player'
-                        ? attendanceStatusByEventId[ev.id] ?? myStatusFromDb ?? null
-                        : undefined;
-                    const isFinishedMatch = et === 'game' && ev.status === 'finished' && Boolean(ev.match_id);
-                    const showCompactTrainerStats =
-                      normalizedUiRole !== 'fan' && !forcePublicView && !isFinishedMatch && canManage;
-                    const showCompactParentPill =
-                      normalizedUiRole !== 'fan' &&
-                      !forcePublicView &&
-                      !isFinishedMatch &&
-                      (uiRole === 'parent' || uiRole === 'player');
-                    const compactTrailing = showCompactTrainerStats ? (
-                      <TrainerStatsMini
-                        yes={countsForCard.yes}
-                        no={countsForCard.no}
-                        open={countsForCard.open}
-                        isTraining={et === 'training'}
-                        listColumn
-                      />
-                    ) : showCompactParentPill ? (
-                      <CompactListParentAttendance
-                        status={attendanceMergedToPillStatus(attendanceStatusMerged)}
-                        isTraining={et === 'training'}
-                        onOpen={() => setAttendanceModalEvent(ev)}
-                      />
-                    ) : undefined;
-                    const opponentLogo = (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url;
-                    return (
-                      <CompactEventCard
-                        key={ev.id}
-                        ev={ev}
-                        et={et}
-                        ourTeamName={ourTeamName}
-                        opponentLogoUrl={opponentLogo}
-                        parentCompactLayout={showCompactParentPill}
-                        trailing={compactTrailing}
-                        forcePublicView={forcePublicView}
-                        onNavigate={(id) =>
-                          isFinishedMatch && ev.match_id
-                            ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
-                            : navigate(`/app/events/${id}`)
-                        }
-                      />
-                    );
-                  })}
+                  <div
+                    className={
+                      widenParentFurtherList
+                        ? '-mx-1.5 min-w-0 w-[calc(100%+0.75rem)] max-w-none overflow-x-hidden sm:mx-0 sm:w-full'
+                        : 'min-w-0 w-full'
+                    }
+                  >
+                    {showHeroCard && furtherEvents.length > 0 ? (
+                      <h3 className="mb-1 border-t border-white/[0.06] pt-2 text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-300/70">
+                        {normalizedUiRole === 'fan' ? 'Weitere Spiele' : 'Weitere Termine'}
+                      </h3>
+                    ) : null}
+                    {furtherEvents.map((ev) => {
+                      const evAttendance = attendanceByEventId[ev.id];
+                      const yesRaw = evAttendance?.yes ?? 0;
+                      const no = evAttendance?.no ?? 0;
+                      const open = Math.max(0, rosterSize - yesRaw - no);
+                      const et = getEffectiveEventType(ev);
+                      const countsForCard =
+                        et === 'training'
+                          ? { yes: Math.max(0, rosterSize - no), no, open: 0 }
+                          : { yes: yesRaw, no, open };
+                      const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
+                      const myStatusFromDb =
+                        (uiRole === 'parent' || uiRole === 'player') &&
+                        myAttendancePlayerIds[0] &&
+                        evAttendance?.availabilityByPlayerId[myPlayerIdKey];
+                      const attendanceStatusMerged =
+                        uiRole === 'parent' || uiRole === 'player'
+                          ? attendanceStatusByEventId[ev.id] ?? myStatusFromDb ?? null
+                          : undefined;
+                      const isFinishedMatch = et === 'game' && ev.status === 'finished' && Boolean(ev.match_id);
+                      const showCompactTrainerStats =
+                        normalizedUiRole !== 'fan' && !forcePublicView && !isFinishedMatch && canManage;
+                      const showCompactParentPill =
+                        normalizedUiRole !== 'fan' &&
+                        !forcePublicView &&
+                        !isFinishedMatch &&
+                        (uiRole === 'parent' || uiRole === 'player');
+                      const compactTrailing = showCompactTrainerStats ? (
+                        <TrainerStatsMini
+                          yes={countsForCard.yes}
+                          no={countsForCard.no}
+                          open={countsForCard.open}
+                          isTraining={et === 'training'}
+                          listColumn
+                        />
+                      ) : showCompactParentPill ? (
+                        <CompactListParentAttendance
+                          status={attendanceMergedToPillStatus(attendanceStatusMerged)}
+                          isTraining={et === 'training'}
+                          onOpen={() => setAttendanceModalEvent(ev)}
+                        />
+                      ) : undefined;
+                      const opponentLogo = (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url;
+                      return (
+                        <CompactEventCard
+                          key={ev.id}
+                          ev={ev}
+                          et={et}
+                          ourTeamName={ourTeamName}
+                          opponentLogoUrl={opponentLogo}
+                          parentCompactLayout={showCompactParentPill}
+                          trailing={compactTrailing}
+                          forcePublicView={forcePublicView}
+                          onNavigate={(id) =>
+                            isFinishedMatch && ev.match_id
+                              ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
+                              : navigate(`/app/events/${id}`)
+                          }
+                        />
+                      );
+                    })}
+                  </div>
                 </>
               )}
             </div>
