@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChevronRight, MapPin } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getClubLogo } from '../../lib/teamLogos';
-import { splitCombinedLocation, formatLocationTwoLines } from '../../lib/eventLocation';
+import { splitCombinedLocation } from '../../lib/eventLocation';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
 import type { EffectiveEventType } from './scheduleEventViewUtils';
 import {
@@ -21,14 +21,27 @@ export type CompactEventCardProps = {
   opponentLogoUrl?: string | null;
   forcePublicView: boolean;
   trailing?: React.ReactNode;
+  /** z. B. breitere Spalte für Eltern-Zu-/Absage-Button */
+  trailingClassName?: string;
   onNavigate: (id: string) => void;
 };
 
-/** Gleiche Icon-URL wie BottomNav (`public/icons/home-ball.png`). */
 function navIconUrl(file: string): string {
   const b = import.meta.env.BASE_URL || '/';
   const base = b.endsWith('/') ? b : `${b}/`;
   return `${base}icons/${file}`;
+}
+
+/** „U11 Training“ aus Teamname, sonst sinnvolle Notes – nie nur nacktes „Training“. */
+function compactTrainingHeadline(ourTeamName: string, notesTitle: string | null): string | null {
+  const team = (ourTeamName ?? '').trim();
+  let m = team.match(/\bU\s*(\d{1,2})\b/i);
+  if (m) return `U${m[1]} Training`;
+  m = team.match(/\bU(\d{1,2})\b/i);
+  if (m) return `U${m[1]} Training`;
+  const n = (notesTitle ?? '').trim();
+  if (n && n.toLowerCase() !== 'training') return n;
+  return null;
 }
 
 function CompactOpponentLogo({ src }: { src: string }) {
@@ -75,6 +88,7 @@ export function CompactEventCard({
   ourTeamName,
   opponentLogoUrl,
   trailing,
+  trailingClassName,
   forcePublicView,
   onNavigate,
 }: CompactEventCardProps) {
@@ -84,11 +98,7 @@ export function CompactEventCard({
   const trainingNotesTitle = eventNotesTitle(ev.notes);
 
   const parsedLoc = splitCombinedLocation(ev.location ?? '');
-  const addrExtra = (ev as { address?: string | null }).address ?? null;
-  const { line1: locLine1, line2: locLine2 } = formatLocationTwoLines(
-    parsedLoc.place,
-    parsedLoc.address || addrExtra,
-  );
+  const venueOnly = (parsedLoc.place ?? '').trim() || null;
 
   const clickable = !forcePublicView;
   const handleRowClick = () => {
@@ -114,14 +124,16 @@ export function CompactEventCard({
         ? 'TRAINING'
         : (scheduleEventTypeLabel(ev, et) ?? 'Termin').toUpperCase();
 
+  const trainingHeadline = et === 'training' ? compactTrainingHeadline(ourTeamName, trainingNotesTitle) : null;
+
   const iconSlot =
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
       <img
-        src={navIconUrl('home-ball.png')}
+        src={navIconUrl('pitch.svg')}
         alt=""
-        className="h-[50px] w-full max-w-[50px] shrink-0 object-contain"
+        className="h-[50px] w-full max-w-[50px] shrink-0 object-contain opacity-[0.92] [filter:drop-shadow(0_0_10px_rgba(255,90,90,0.22))]"
         decoding="async"
         draggable={false}
       />
@@ -132,12 +144,14 @@ export function CompactEventCard({
     );
 
   const titleClamp =
-    'line-clamp-2 whitespace-normal text-[15px] font-bold leading-tight text-white [overflow-wrap:normal] [word-break:normal]';
+    'line-clamp-2 min-w-0 whitespace-normal text-[15px] font-bold leading-tight text-white [overflow-wrap:normal] [word-break:normal] [hyphens:auto]';
 
   const titleBlock =
     et === 'game' ? (
-      <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2 sm:gap-y-0">
-        <p className={`min-w-0 flex-1 sm:min-w-[6rem] ${titleClamp}`}>{oppName}</p>
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className={titleClamp} lang="de">
+          {oppName}
+        </p>
         {homeAwayBadge ? (
           <span
             className={`inline-flex w-fit shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${homeAwayClass(homeAwayBadge.isHome)}`}
@@ -147,22 +161,23 @@ export function CompactEventCard({
         ) : null}
       </div>
     ) : et === 'training' ? (
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <p className={titleClamp}>Training</p>
-        {trainingNotesTitle && trainingNotesTitle.trim().toLowerCase() !== 'training' ? (
-          <p className="line-clamp-2 whitespace-normal text-[12px] leading-snug text-white/55 [overflow-wrap:normal] [word-break:normal]">
-            {trainingNotesTitle}
-          </p>
-        ) : null}
-      </div>
+      trainingHeadline ? (
+        <p className={titleClamp} lang="de">
+          {trainingHeadline}
+        </p>
+      ) : null
     ) : (
-      <p className={`min-w-0 ${titleClamp}`}>{title}</p>
+      <p className={titleClamp} lang="de">
+        {title}
+      </p>
     );
+
+  const trailingWrap = trailingClassName ?? 'w-[48px]';
 
   return (
     <div
       className={[
-        'mb-3 flex min-h-[104px] w-full min-w-0 flex-row items-start gap-1 overflow-visible rounded-2xl border border-red-950/45 bg-zinc-950 px-2.5 py-3',
+        'mb-3 flex min-h-[104px] w-full min-w-0 flex-row items-center gap-1 overflow-x-hidden overflow-y-visible rounded-2xl border border-red-950/45 bg-zinc-950 px-2.5 py-3',
         clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
@@ -179,41 +194,38 @@ export function CompactEventCard({
           : undefined
       }
     >
-      <div className="flex w-[62px] shrink-0 flex-col gap-0.5 self-start pt-0.5 text-left leading-none">
+      <div className="flex w-[62px] shrink-0 flex-col gap-0.5 self-center text-left leading-none">
         <span className="text-[10px] font-semibold uppercase leading-tight tracking-wide text-rose-300/90">{wd}</span>
         <span className="text-[34px] font-bold tabular-nums leading-none text-white">{day}</span>
         <span className="text-xs font-medium leading-tight text-white/65">{monYear}</span>
         <span className="text-sm font-semibold tabular-nums leading-tight text-red-500">{timeStr}</span>
       </div>
 
-      <div className="flex w-[48px] shrink-0 items-start justify-center self-start pt-0.5">{iconSlot}</div>
+      <div className="flex w-[48px] shrink-0 items-center justify-center self-center">{iconSlot}</div>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center gap-0.5 self-start pt-0.5">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center gap-0.5 self-center">
         <span
           className={`inline-flex w-fit max-w-full rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${eventTypeBadgeClass(et)}`}
         >
           {typeBadgeLabel}
         </span>
         {titleBlock}
-        {locLine1 ? (
-          <p className="flex min-h-0 min-w-0 items-center gap-1 text-[13px] font-medium leading-snug text-white/85">
-            <MapPin className="h-3 w-3 shrink-0 text-rose-300/70" aria-hidden />
-            <span className="line-clamp-1 min-w-0 whitespace-normal [overflow-wrap:normal] [word-break:normal]">
-              {locLine1}
+        {venueOnly ? (
+          <p className="flex min-h-0 min-w-0 items-start gap-1 text-[13px] font-medium leading-snug text-white/85">
+            <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-rose-300/70" aria-hidden />
+            <span
+              className="line-clamp-2 min-w-0 whitespace-normal [overflow-wrap:normal] [word-break:normal] [hyphens:auto]"
+              lang="de"
+            >
+              {venueOnly}
             </span>
-          </p>
-        ) : null}
-        {locLine2 ? (
-          <p
-            className="min-w-0 truncate text-[12px] font-normal leading-snug text-gray-400"
-            title={locLine2}
-          >
-            {locLine2}
           </p>
         ) : null}
       </div>
 
-      <div className="flex w-[48px] shrink-0 flex-col items-center justify-center gap-0.5 self-center py-0.5">
+      <div
+        className={`flex shrink-0 flex-col items-stretch justify-center gap-0.5 self-center py-0.5 ${trailingWrap}`}
+      >
         {trailing ?? null}
       </div>
 
