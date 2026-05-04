@@ -5,10 +5,13 @@ type Props = {
   no: number;
   open: number;
   isTraining?: boolean;
-  /** Schmale rechte Spalte in der Terminliste: Zahlen untereinander, ohne Überlappung. */
+  /** Schmale rechte Spalte in der Terminliste (ca. 58px). */
   listColumn?: boolean;
   className?: string;
 };
+
+const pillSm =
+  'inline-flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full border px-0.5 text-[8px] font-bold tabular-nums sm:text-[9px]';
 
 /** Kompakte Teilnehmerzahlen für Trainer/Staff (nur Darstellung). */
 export function TrainerStatsMini({
@@ -22,20 +25,20 @@ export function TrainerStatsMini({
   if (isTraining) {
     return (
       <div
-        className={`flex w-full flex-col items-end justify-center gap-1 ${className}`}
+        className={`flex w-full max-w-[58px] flex-col items-center justify-center gap-0.5 ${className}`}
         aria-label="Trainings-Teilnahme"
       >
         <span
-          className="inline-flex max-w-full items-center justify-center rounded-full border border-red-500/40 bg-red-950/45 px-2 py-1 text-[9px] font-bold tabular-nums leading-tight text-red-100 sm:text-[10px]"
-          title="Abgesagt"
+          className={`${pillSm} max-w-[58px] justify-center truncate border-red-500/40 bg-red-950/45 text-red-100`}
+          title={`${no} abgesagt`}
         >
-          {no} abgesagt
+          {no} abg.
         </span>
         <span
-          className="inline-flex max-w-full items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-950/40 px-2 py-1 text-[9px] font-bold tabular-nums leading-tight text-emerald-100 sm:text-[10px]"
-          title="Dabei"
+          className={`${pillSm} max-w-[58px] justify-center truncate border-emerald-500/40 bg-emerald-950/40 text-emerald-100`}
+          title={`${yes} dabei`}
         >
-          {yes} dabei
+          {yes} da
         </span>
       </div>
     );
@@ -44,23 +47,25 @@ export function TrainerStatsMini({
   if (listColumn) {
     return (
       <div
-        className={`flex w-full min-w-0 flex-col items-end justify-center gap-0.5 ${className}`}
+        className={`flex w-full max-w-[58px] flex-col items-center justify-center gap-0.5 ${className}`}
         aria-label="Zu- und Absagen"
       >
+        <div className="flex gap-0.5">
+          <span
+            className={`${pillSm} border-emerald-500/40 bg-emerald-950/40 text-emerald-100`}
+            title="Zugesagt"
+          >
+            {yes}
+          </span>
+          <span
+            className={`${pillSm} border-red-500/40 bg-red-950/45 text-red-100`}
+            title="Abgesagt"
+          >
+            {no}
+          </span>
+        </div>
         <span
-          className="inline-flex h-6 min-w-[1.5rem] shrink-0 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-950/40 px-1.5 text-[9px] font-bold tabular-nums text-emerald-100 sm:text-[10px]"
-          title="Zugesagt"
-        >
-          {yes}
-        </span>
-        <span
-          className="inline-flex h-6 min-w-[1.5rem] shrink-0 items-center justify-center rounded-full border border-red-500/40 bg-red-950/45 px-1.5 text-[9px] font-bold tabular-nums text-red-100 sm:text-[10px]"
-          title="Abgesagt"
-        >
-          {no}
-        </span>
-        <span
-          className="inline-flex h-6 min-w-[1.5rem] shrink-0 items-center justify-center rounded-full border border-white/18 bg-white/[0.1] px-1.5 text-[9px] font-bold tabular-nums text-white/65 sm:text-[10px]"
+          className={`${pillSm} border-white/18 bg-white/[0.1] text-white/65`}
           title="Offen"
         >
           {open}

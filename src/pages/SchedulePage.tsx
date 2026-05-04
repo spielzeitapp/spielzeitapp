@@ -1079,7 +1079,8 @@ export const SchedulePage: React.FC = () => {
                       <AttendanceStatusPill
                         status={attendanceMergedToPillStatus(attendanceStatusMerged)}
                         isTraining={et === 'training'}
-                        className="!max-w-[88px] w-full justify-center whitespace-normal text-center text-[9px] leading-tight"
+                        compact
+                        className="w-full text-center whitespace-normal"
                       />
                     ) : undefined;
                     const opponentLogo = (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url;

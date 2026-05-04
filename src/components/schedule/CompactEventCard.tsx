@@ -29,7 +29,7 @@ function CompactOpponentLogo({ src }: { src: string }) {
   if (failed) {
     return (
       <div
-        className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-2xl border border-white/12 bg-black/60 text-[2rem] leading-none"
+        className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-xl border border-white/12 bg-black/60 text-[1.75rem] leading-none"
         aria-hidden
       >
         ⚽
@@ -37,11 +37,11 @@ function CompactOpponentLogo({ src }: { src: string }) {
     );
   }
   return (
-    <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-2xl border border-white/12 bg-black/45">
+    <div className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-xl border border-white/12 bg-black/45">
       <img
         src={src}
         alt=""
-        className="h-[60px] w-[60px] object-contain"
+        className="h-[54px] w-[54px] object-contain"
         onError={() => setFailed(true)}
       />
     </div>
@@ -59,8 +59,7 @@ function eventTypeBadgeClass(et: EffectiveEventType): string {
 }
 
 /**
- * „Weitere Termine“: 2-Zeilen-Layout (iPhone SE): oben Datum | Logo | Stats+Pfeil,
- * unten volle Breite für Text — kein schmales 5-Spalten-Inhaltsband, kein absolute.
+ * „Weitere Termine“: eine horizontale Kartenzeile (Datum | Logo | Inhalt | Stats | Pfeil).
  */
 export function CompactEventCard({
   ev,
@@ -111,44 +110,47 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-950/40">
-        <CompactFootballBallIcon className="h-[60px] w-[60px] text-white/95" />
+      <div className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-950/40">
+        <CompactFootballBallIcon className="h-[54px] w-[54px] text-white/95" />
       </div>
     ) : (
-      <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.06]">
-        <EventMotifIcon className="h-10 w-10 text-red-200/90" />
+      <div className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/[0.06]">
+        <EventMotifIcon className="h-9 w-9 text-red-200/90" />
       </div>
     );
 
-  const textClamp2 = 'line-clamp-2 whitespace-normal [overflow-wrap:normal] [word-break:normal]';
+  const titleClamp =
+    'line-clamp-2 whitespace-normal text-lg font-bold leading-snug text-white [overflow-wrap:normal] [word-break:normal]';
 
   const titleBlock =
     et === 'game' ? (
-      <>
-        <p className={`text-[15px] font-bold leading-snug text-white ${textClamp2}`}>{oppName}</p>
+      <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2 sm:gap-y-0">
+        <p className={`min-w-0 flex-1 sm:min-w-[8rem] ${titleClamp}`}>{oppName}</p>
         {homeAwayBadge ? (
           <span
-            className={`inline-flex w-fit rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${homeAwayBadge.cls}`}
+            className={`inline-flex w-fit shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${homeAwayBadge.cls}`}
           >
             {homeAwayBadge.label}
           </span>
         ) : null}
-      </>
+      </div>
     ) : et === 'training' ? (
-      <>
-        <p className={`text-[15px] font-bold leading-snug text-white ${textClamp2}`}>Training</p>
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <p className={titleClamp}>Training</p>
         {trainingNotesTitle && trainingNotesTitle.trim().toLowerCase() !== 'training' ? (
-          <p className={`text-[12px] leading-snug text-white/55 ${textClamp2}`}>{trainingNotesTitle}</p>
+          <p className="line-clamp-2 whitespace-normal text-xs leading-snug text-white/55 [overflow-wrap:normal] [word-break:normal]">
+            {trainingNotesTitle}
+          </p>
         ) : null}
-      </>
+      </div>
     ) : (
-      <p className={`text-[15px] font-bold leading-snug text-white ${textClamp2}`}>{title}</p>
+      <p className={`min-w-0 ${titleClamp}`}>{title}</p>
     );
 
   return (
     <div
       className={[
-        'mb-3 flex w-full min-w-0 flex-col gap-2 rounded-2xl border border-red-950/45 bg-zinc-950 p-3',
+        'mb-3 flex min-h-[104px] w-full min-w-0 flex-row items-center gap-2 overflow-visible rounded-2xl border border-red-950/45 bg-zinc-950 px-3 py-3',
         clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
@@ -165,50 +167,47 @@ export function CompactEventCard({
           : undefined
       }
     >
-      {/* Zeile 1: Datum | Logo (mittig) | Stats + Pfeil */}
-      <div className="flex w-full min-w-0 flex-row items-start gap-2">
-        <div className="flex w-[86px] shrink-0 flex-col gap-0.5 text-left leading-tight">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-rose-300/90">{wd}</span>
-          <span className="text-[40px] font-bold tabular-nums leading-[0.95] text-white sm:text-[44px]">{day}</span>
-          <span className="text-xs font-medium text-white/60">{monYear}</span>
-          <span className="text-sm font-semibold tabular-nums text-rose-400">{timeStr}</span>
-        </div>
-
-        <div className="flex min-h-[72px] min-w-0 flex-1 items-center justify-center">
-          <div className="w-[72px] shrink-0">{iconSlot}</div>
-        </div>
-
-        <div className="flex w-[86px] shrink-0 flex-col items-end gap-1">
-          {trailing ? (
-            <div className="flex w-full min-w-0 flex-col items-end">{trailing}</div>
-          ) : null}
-          <div className="flex h-5 w-full items-center justify-end">
-            {clickable ? (
-              <ChevronRight className="h-5 w-5 shrink-0 text-white/45" strokeWidth={2} aria-hidden />
-            ) : (
-              <span className="block h-5 w-5 shrink-0" aria-hidden />
-            )}
-          </div>
-        </div>
+      <div className="flex w-[70px] shrink-0 flex-col gap-0.5 text-left leading-none">
+        <span className="text-[10px] font-semibold uppercase leading-tight tracking-wide text-rose-300/90">{wd}</span>
+        <span className="text-[36px] font-bold tabular-nums leading-none text-white">{day}</span>
+        <span className="text-xs font-medium leading-tight text-white/65">{monYear}</span>
+        <span className="text-sm font-semibold tabular-nums leading-tight text-red-500">{timeStr}</span>
       </div>
 
-      {/* Zeile 2: volle Breite — Badge, Titel, Ort, Adresse */}
-      <div className="w-full min-w-0 flex flex-col gap-1.5 border-t border-white/[0.06] pt-2">
+      <div className="flex w-[58px] shrink-0 items-center justify-center">{iconSlot}</div>
+
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center gap-1">
         <span
-          className={`inline-flex w-fit max-w-full rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase leading-snug tracking-wide ${eventTypeBadgeClass(et)}`}
+          className={`inline-flex w-fit max-w-full rounded-md border px-1.5 py-0.5 text-[8px] font-bold uppercase leading-tight tracking-wide ${eventTypeBadgeClass(et)}`}
         >
           {typeBadgeLabel}
         </span>
         {titleBlock}
         {locLine1 ? (
-          <p className="flex min-w-0 items-start gap-1.5 text-[13px] font-medium leading-snug text-white/80">
-            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-300/70" aria-hidden />
-            <span className={`min-w-0 flex-1 ${textClamp2}`}>{locLine1}</span>
+          <p className="flex min-h-0 min-w-0 items-center gap-1 text-[13px] font-medium leading-tight text-white/85">
+            <MapPin className="h-3 w-3 shrink-0 text-rose-300/70" aria-hidden />
+            <span className="line-clamp-1 min-w-0 whitespace-normal [overflow-wrap:normal] [word-break:normal]">
+              {locLine1}
+            </span>
           </p>
         ) : null}
         {locLine2 ? (
-          <p className={`pl-5 text-[11px] font-normal leading-relaxed text-white/45 ${textClamp2}`}>{locLine2}</p>
+          <p className="min-w-0 truncate text-[11px] font-normal leading-tight text-white/45" title={locLine2}>
+            {locLine2}
+          </p>
         ) : null}
+      </div>
+
+      <div className="flex w-[58px] shrink-0 flex-col items-center justify-center gap-0.5 self-stretch">
+        {trailing ?? null}
+      </div>
+
+      <div className="flex w-4 shrink-0 items-center justify-center self-stretch">
+        {clickable ? (
+          <ChevronRight className="h-4 w-4 shrink-0 text-white/45" strokeWidth={2} aria-hidden />
+        ) : (
+          <span className="block h-4 w-4 shrink-0" aria-hidden />
+        )}
       </div>
     </div>
   );
