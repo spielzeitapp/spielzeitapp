@@ -5,12 +5,12 @@ type Props = {
   className?: string;
 };
 
-/** Kompakte Terminliste — eine Zeile, kein absolute, Inhalte dürfen die Karte in der Höhe wachsen lassen. */
+/** Kompakte „Weitere Termine“-Karte: kein absolute, kein negatives Margin am Wrapper. */
 export function CompactEventCard({ children, className = '' }: Props) {
   return (
     <div
       className={[
-        'mb-3 flex min-h-[112px] w-full min-w-0 flex-row items-center rounded-2xl border border-white/[0.12] bg-zinc-950/50 p-4',
+        'mb-3 w-full min-w-0 rounded-2xl border border-red-950/45 bg-zinc-950 p-3.5 shadow-sm shadow-black/20',
         className,
       ]
         .filter(Boolean)

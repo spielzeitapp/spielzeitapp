@@ -44,23 +44,23 @@ export function TrainerStatsMini({
   if (listColumn) {
     return (
       <div
-        className={`flex w-full flex-col items-end justify-center gap-1 ${className}`}
+        className={`flex w-full min-w-0 flex-row flex-wrap content-start justify-end gap-1 ${className}`}
         aria-label="Zu- und Absagen"
       >
         <span
-          className="flex h-7 w-7 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-950/40 text-[10px] font-bold tabular-nums text-emerald-100"
+          className="inline-flex h-6 min-w-[1.5rem] shrink-0 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-950/40 px-1.5 text-[9px] font-bold tabular-nums text-emerald-100 sm:text-[10px]"
           title="Zugesagt"
         >
           {yes}
         </span>
         <span
-          className="flex h-7 w-7 items-center justify-center rounded-full border border-red-500/40 bg-red-950/45 text-[10px] font-bold tabular-nums text-red-100"
+          className="inline-flex h-6 min-w-[1.5rem] shrink-0 items-center justify-center rounded-full border border-red-500/40 bg-red-950/45 px-1.5 text-[9px] font-bold tabular-nums text-red-100 sm:text-[10px]"
           title="Abgesagt"
         >
           {no}
         </span>
         <span
-          className="flex h-7 w-7 items-center justify-center rounded-full border border-white/18 bg-white/[0.1] text-[10px] font-bold tabular-nums text-white/65"
+          className="inline-flex h-6 min-w-[1.5rem] shrink-0 items-center justify-center rounded-full border border-white/18 bg-white/[0.1] px-1.5 text-[9px] font-bold tabular-nums text-white/65 sm:text-[10px]"
           title="Offen"
         >
           {open}

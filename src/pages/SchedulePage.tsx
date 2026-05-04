@@ -1036,12 +1036,12 @@ export const SchedulePage: React.FC = () => {
                     : null}
 
                   {showHeroCard && furtherEvents.length > 0 ? (
-                    <h3 className="-mt-0.5 mb-1 border-t border-white/[0.06] pt-2 text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-300/70">
+                    <h3 className="mb-1 border-t border-white/[0.06] pt-2 text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-300/70">
                       {normalizedUiRole === 'fan' ? 'Weitere Spiele' : 'Weitere Termine'}
                     </h3>
                   ) : null}
 
-                  {furtherEvents.map((ev, furtherIdx) => {
+                  {furtherEvents.map((ev) => {
                     const evAttendance = attendanceByEventId[ev.id];
                     const yesRaw = evAttendance?.yes ?? 0;
                     const no = evAttendance?.no ?? 0;
@@ -1085,10 +1085,7 @@ export const SchedulePage: React.FC = () => {
                     ) : undefined;
                     const opponentLogo = (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url;
                     return (
-                      <CompactEventCard
-                        key={ev.id}
-                        className={showHeroCard && furtherIdx === 0 ? '-mt-0.5' : ''}
-                      >
+                      <CompactEventCard key={ev.id}>
                         <ScheduleCompactEventRow
                           ev={ev}
                           et={et}
