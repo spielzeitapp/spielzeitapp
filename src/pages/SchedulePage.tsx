@@ -8,7 +8,6 @@ import { AttendanceStatusPill, type AttendanceStatusKind } from '../components/s
 import { CompactEventCard } from '../components/schedule/CompactEventCard';
 import { EventHeroCard } from '../components/schedule/EventHeroCard';
 import { AttendanceActionRow } from '../components/schedule/AttendanceActionRow';
-import { ScheduleCompactEventRow } from '../components/schedule/ScheduleCompactEventRow';
 import { ScheduleHeroEventCard } from '../components/schedule/ScheduleHeroEventCard';
 import { TrainerStatsMini } from '../components/schedule/TrainerStatsMini';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
@@ -1085,21 +1084,20 @@ export const SchedulePage: React.FC = () => {
                     ) : undefined;
                     const opponentLogo = (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url;
                     return (
-                      <CompactEventCard key={ev.id}>
-                        <ScheduleCompactEventRow
-                          ev={ev}
-                          et={et}
-                          ourTeamName={ourTeamName}
-                          opponentLogoUrl={opponentLogo}
-                          trailing={compactTrailing}
-                          forcePublicView={forcePublicView}
-                          onNavigate={(id) =>
-                            isFinishedMatch && ev.match_id
-                              ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
-                              : navigate(`/app/events/${id}`)
-                          }
-                        />
-                      </CompactEventCard>
+                      <CompactEventCard
+                        key={ev.id}
+                        ev={ev}
+                        et={et}
+                        ourTeamName={ourTeamName}
+                        opponentLogoUrl={opponentLogo}
+                        trailing={compactTrailing}
+                        forcePublicView={forcePublicView}
+                        onNavigate={(id) =>
+                          isFinishedMatch && ev.match_id
+                            ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
+                            : navigate(`/app/events/${id}`)
+                        }
+                      />
                     );
                   })}
                 </>
