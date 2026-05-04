@@ -10,7 +10,7 @@ type Props = {
 };
 
 const btnBase =
-  'shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-center text-[12px] font-semibold leading-tight transition-colors active:opacity-90';
+  'max-w-[96px] min-w-0 shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-center text-[12px] font-semibold leading-tight transition-colors active:opacity-90';
 
 /** Eltern/Spieler: kompakte Aktion in Zeile 1 neben dem Titel („Weitere Termine“). */
 export function CompactListParentAttendance({ status, isTraining, onOpen, className = '' }: Props) {

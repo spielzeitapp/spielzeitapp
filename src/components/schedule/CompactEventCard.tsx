@@ -52,6 +52,15 @@ function shortMatchTypeLabel(matchType: string | null | undefined): string {
   return f;
 }
 
+/** Eltern-Kompaktkarte Subline: kurze Spielart (keine langen Labels). */
+function parentCompactMatchTypeLabel(matchType: string | null | undefined): string {
+  const f = getMatchTypeLabel(matchType) ?? 'Spiel';
+  if (/^Meisterschaftsspiel$/i.test(f)) return 'Meisterschaft';
+  if (/^Freundschaftsspiel$/i.test(f)) return 'Freundschaft';
+  if (/^Testspiel$/i.test(f)) return 'Testspiel';
+  return f;
+}
+
 function CompactOpponentLogo({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
@@ -121,7 +130,8 @@ export function CompactEventCard({
 
     let parentSubline: string | null = null;
     if (et === 'game') {
-      const parts = [homeAwayShort, venueOnly].filter(Boolean);
+      const matchKind = parentCompactMatchTypeLabel(ev.match_type);
+      const parts = [homeAwayShort, matchKind, venueOnly].filter(Boolean);
       parentSubline = parts.length ? parts.join(' • ') : null;
     } else if (venueOnly) {
       parentSubline = venueOnly;
@@ -147,23 +157,20 @@ export function CompactEventCard({
             : undefined
         }
       >
-        <div className="flex w-[60px] shrink-0 flex-col items-start gap-0.5 leading-none">
+        <div className="flex w-[60px] shrink-0 flex-col items-start gap-0 leading-none">
           <span className="text-[10px] font-medium uppercase leading-tight tracking-wide text-red-300">{wd}</span>
-          <span className="text-[32px] font-bold tabular-nums leading-none text-white">{day}</span>
+          <span className="text-[30px] font-bold tabular-nums leading-none text-white">{day}</span>
           <span className="text-[10px] leading-tight text-gray-400">{monYear}</span>
           <span className="text-[13px] font-medium tabular-nums leading-tight text-red-400">{timeStr}</span>
         </div>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center">
-          <div className="flex items-start justify-between gap-2">
-            <p
-              className="min-w-0 flex-1 whitespace-normal text-[15px] font-semibold leading-tight text-white [overflow-wrap:normal] [word-break:normal] line-clamp-2"
-              lang="de"
-            >
-              {parentTitle}
-            </p>
-            {trailing ? <div className="shrink-0">{trailing}</div> : null}
-          </div>
+          <p
+            className="min-w-0 whitespace-normal text-[15px] font-semibold leading-tight text-white [overflow-wrap:normal] [word-break:normal] line-clamp-2"
+            lang="de"
+          >
+            {parentTitle}
+          </p>
           {parentSubline ? (
             <p className="mt-1 min-w-0 truncate text-[12px] text-gray-400" lang="de" title={parentSubline}>
               {parentSubline}
@@ -171,12 +178,15 @@ export function CompactEventCard({
           ) : null}
         </div>
 
-        <div className="ml-1 flex w-4 shrink-0 items-center justify-center self-stretch">
-          {clickable ? (
-            <ChevronRight className="h-4 w-4 shrink-0 text-white opacity-60" strokeWidth={2} aria-hidden />
-          ) : (
-            <span className="block h-4 w-4 shrink-0" aria-hidden />
-          )}
+        <div className="ml-2 flex shrink-0 items-center gap-1">
+          {trailing ? <div className="flex shrink-0 items-center">{trailing}</div> : null}
+          <div className="flex w-3 shrink-0 items-center justify-center">
+            {clickable ? (
+              <ChevronRight className="h-3 w-3 shrink-0 text-white opacity-60" strokeWidth={2} aria-hidden />
+            ) : (
+              <span className="block h-3 w-3 shrink-0" aria-hidden />
+            )}
+          </div>
         </div>
       </div>
     );
