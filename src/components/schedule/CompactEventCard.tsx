@@ -20,7 +20,7 @@ export type CompactEventCardProps = {
   ourTeamName: string;
   opponentLogoUrl?: string | null;
   forcePublicView: boolean;
-  /** Eltern/Spieler „Weitere Termine“: kompaktes Layout ohne Icons, Titel+Button in Zeile 1. */
+  /** Eltern/Spieler „Weitere Termine“: 3 Spalten (Datum | Text | Button+Pfeil), ohne Logos. */
   parentCompactLayout?: boolean;
   trailing?: React.ReactNode;
   onNavigate: (id: string) => void;
@@ -49,15 +49,6 @@ function shortMatchTypeLabel(matchType: string | null | undefined): string {
   if (/^Meisterschaftsspiel$/i.test(f)) return 'Meisterschaft';
   if (/^Freundschaftsspiel$/i.test(f)) return 'Freundschaft';
   if (/^Testspiel$/i.test(f)) return 'Test';
-  return f;
-}
-
-/** Eltern-Kompaktkarte Subline: kurze Spielart (keine langen Labels). */
-function parentCompactMatchTypeLabel(matchType: string | null | undefined): string {
-  const f = getMatchTypeLabel(matchType) ?? 'Spiel';
-  if (/^Meisterschaftsspiel$/i.test(f)) return 'Meisterschaft';
-  if (/^Freundschaftsspiel$/i.test(f)) return 'Freundschaft';
-  if (/^Testspiel$/i.test(f)) return 'Testspiel';
   return f;
 }
 
@@ -130,7 +121,7 @@ export function CompactEventCard({
 
     let parentSubline: string | null = null;
     if (et === 'game') {
-      const matchKind = parentCompactMatchTypeLabel(ev.match_type);
+      const matchKind = getMatchTypeLabel(ev.match_type) ?? 'Meisterschaftsspiel';
       const parts = [homeAwayShort, matchKind, venueOnly].filter(Boolean);
       parentSubline = parts.length ? parts.join(' • ') : null;
     } else if (venueOnly) {
@@ -140,7 +131,7 @@ export function CompactEventCard({
     return (
       <div
         className={[
-          'mb-3 flex min-h-[96px] w-full min-w-0 flex-row items-center gap-3 overflow-hidden rounded-2xl border border-red-950/45 bg-zinc-950 px-3 py-3',
+          'mb-3 flex min-h-[96px] w-full min-w-0 flex-row items-stretch gap-3 overflow-hidden rounded-2xl border border-red-950/45 bg-zinc-950 px-3 py-3',
           clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
         ].join(' ')}
         role={clickable ? 'button' : undefined}
@@ -157,7 +148,7 @@ export function CompactEventCard({
             : undefined
         }
       >
-        <div className="flex w-[60px] shrink-0 flex-col items-start gap-0 leading-none">
+        <div className="flex w-[60px] shrink-0 flex-col items-start justify-center gap-0 leading-none">
           <span className="text-[10px] font-medium uppercase leading-tight tracking-wide text-red-300">{wd}</span>
           <span className="text-[30px] font-bold tabular-nums leading-none text-white">{day}</span>
           <span className="text-[10px] leading-tight text-gray-400">{monYear}</span>
@@ -166,29 +157,30 @@ export function CompactEventCard({
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center">
           <p
-            className="min-w-0 whitespace-normal text-[15px] font-semibold leading-tight text-white [overflow-wrap:normal] [word-break:normal]"
+            className="min-w-0 whitespace-normal text-[15px] font-semibold leading-tight text-white [overflow-wrap:normal] [word-break:normal] line-clamp-2"
             lang="de"
           >
             {parentTitle}
           </p>
-          <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
-            <div className="min-h-0 min-w-0 flex-1">
-              {parentSubline ? (
-                <p className="truncate text-[12px] text-gray-400" lang="de" title={parentSubline}>
-                  {parentSubline}
-                </p>
-              ) : null}
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              {trailing ? <div className="flex shrink-0 items-center">{trailing}</div> : null}
-              <div className="flex w-3 shrink-0 items-center justify-center">
-                {clickable ? (
-                  <ChevronRight className="h-3 w-3 shrink-0 text-white opacity-60" strokeWidth={2} aria-hidden />
-                ) : (
-                  <span className="block h-3 w-3 shrink-0" aria-hidden />
-                )}
-              </div>
-            </div>
+          {parentSubline ? (
+            <p
+              className="mt-1 min-w-0 whitespace-normal text-[12px] leading-snug text-gray-400 line-clamp-2 [overflow-wrap:normal] [word-break:normal]"
+              lang="de"
+              title={parentSubline}
+            >
+              {parentSubline}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex w-[96px] shrink-0 flex-col items-end justify-between self-stretch py-0.5">
+          <div className="flex shrink-0 flex-col items-end">{trailing}</div>
+          <div className="flex w-3 shrink-0 items-center justify-end">
+            {clickable ? (
+              <ChevronRight className="h-3 w-3 shrink-0 text-white opacity-60" strokeWidth={2} aria-hidden />
+            ) : (
+              <span className="block h-3 w-3 shrink-0" aria-hidden />
+            )}
           </div>
         </div>
       </div>
