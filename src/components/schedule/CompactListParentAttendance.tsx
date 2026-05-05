@@ -9,7 +9,9 @@ type Props = {
 };
 
 const btnBase =
-  'max-w-[92px] min-w-0 shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-center text-[12px] font-semibold leading-tight transition-colors active:opacity-90';
+  'max-w-[92px] min-w-0 shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold leading-tight ease-out [transition:transform_150ms_ease-out,background-color_200ms_ease-out,color_200ms_ease-out,border-color_200ms_ease-out] active:scale-95 inline-flex items-center justify-center gap-0.5';
+
+const iconPop = 'compact-rsvp-icon-pop inline-block shrink-0 origin-center transition-all duration-200 ease-out';
 
 /** Eltern/Spieler: Aktion rechts oben in „Weitere Termine“ (Eltern-Kompaktkarte). */
 export function CompactListParentAttendance({ status, isTraining, onOpen, className = '' }: Props) {
@@ -23,13 +25,19 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
     if (status === 'no') {
       return (
         <button type="button" className={`${btnBase} bg-red-600 text-white ${className}`} onClick={openModal}>
-          ✕ Abgesagt
+          <span className={iconPop} aria-hidden>
+            ✕
+          </span>
+          <span className="min-w-0 truncate">Abgesagt</span>
         </button>
       );
     }
     return (
       <button type="button" className={`${btnBase} bg-green-600 text-white ${className}`} onClick={openModal}>
-        ✓ Dabei
+        <span className={iconPop} aria-hidden>
+          ✓
+        </span>
+        <span className="min-w-0 truncate">Dabei</span>
       </button>
     );
   }
@@ -37,14 +45,20 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
   if (status === 'yes') {
     return (
       <button type="button" className={`${btnBase} bg-green-600 text-white ${className}`} onClick={openModal}>
-        ✓ Zugesagt
+        <span className={iconPop} aria-hidden>
+          ✓
+        </span>
+        <span className="min-w-0 truncate">Zugesagt</span>
       </button>
     );
   }
   if (status === 'no') {
     return (
       <button type="button" className={`${btnBase} bg-red-600 text-white ${className}`} onClick={openModal}>
-        ✕ Abgesagt
+        <span className={iconPop} aria-hidden>
+          ✕
+        </span>
+        <span className="min-w-0 truncate">Abgesagt</span>
       </button>
     );
   }
