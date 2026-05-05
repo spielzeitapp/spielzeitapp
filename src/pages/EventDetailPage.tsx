@@ -24,6 +24,13 @@ import {
   normalizeMatchFeedTemplateKey,
   type MatchFeedTemplateKey,
 } from '../features/home/feedTemplates';
+import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
+import {
+  meetupUtcIsoOnViennaEventDay,
+  parseViennaDateTimeLocalToUtcIso,
+  utcIsoToViennaDateTimeLocal,
+  utcIsoToViennaTimeHHmm,
+} from '../lib/viennaTime';
 type EventDbRow = {
   id: string;
   team_season_id: string;
@@ -144,6 +151,16 @@ export const EventDetailPage: React.FC = () => {
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingEvent, setDeletingEvent] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editEvent, setEditEvent] = useState<EventRow | null>(null);
+  const [editOpponent, setEditOpponent] = useState('');
+  const [editDateTime, setEditDateTime] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editLocationAddress, setEditLocationAddress] = useState('');
+  const [editMeetupAt, setEditMeetupAt] = useState('');
+  const [editTrainingDeadlineDisabled, setEditTrainingDeadlineDisabled] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | null>(null);
   const [loadingRsvp, setLoadingRsvp] = useState(true);
@@ -491,6 +508,64 @@ export const EventDetailPage: React.FC = () => {
     [eventAttendanceByPlayerId]
   );
 
+  const openEditModal = useCallback((e: EventRow) => {
+    const parsedLocation = splitCombinedLocation(e.location ?? '');
+    setEditEvent(e);
+    setEditOpponent(e.opponent ?? '');
+    setEditDateTime(utcIsoToViennaDateTimeLocal(e.starts_at));
+    setEditLocation(parsedLocation.place);
+    setEditLocationAddress(parsedLocation.address);
+    setEditMeetupAt(utcIsoToViennaTimeHHmm(e.meeting_at ?? ''));
+    setEditTrainingDeadlineDisabled(e.training_absence_deadline_disabled ?? false);
+    setEditError(null);
+    setEditModalOpen(true);
+  }, []);
+
+  const closeEditModal = useCallback(() => {
+    setEditModalOpen(false);
+    setEditEvent(null);
+    setEditOpponent('');
+    setEditDateTime('');
+    setEditLocation('');
+    setEditLocationAddress('');
+    setEditMeetupAt('');
+    setEditError(null);
+  }, []);
+
+  const handleEditSubmit = useCallback(async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!editEvent) return;
+    const startsAt = parseViennaDateTimeLocalToUtcIso((editDateTime ?? '').trim());
+    if (!startsAt) {
+      setEditError('Ungültiges Datumsformat.');
+      return;
+    }
+    setSavingEdit(true);
+    setEditError(null);
+    const locationVal = combineLocationParts(editLocation, editLocationAddress);
+    const meetupRaw = (editMeetupAt ?? '').trim();
+    const meetingAt = meetupRaw ? meetupUtcIsoOnViennaEventDay(startsAt, meetupRaw) : null;
+
+    const payload: Record<string, unknown> = {
+      starts_at: startsAt,
+      meeting_at: meetingAt,
+      location: locationVal,
+      opponent: (editOpponent ?? '').trim() || null,
+    };
+    if (editEvent.kind === 'training') {
+      payload.training_absence_deadline_disabled = editTrainingDeadlineDisabled;
+    }
+    const { error } = await supabase.from('events').update(payload).eq('id', editEvent.id);
+    if (error) {
+      setEditError(error.message ?? 'Speichern fehlgeschlagen.');
+      setSavingEdit(false);
+      return;
+    }
+    setSavingEdit(false);
+    closeEditModal();
+    await loadEvent();
+  }, [editEvent, editDateTime, editLocation, editLocationAddress, editMeetupAt, editOpponent, editTrainingDeadlineDisabled, closeEditModal, loadEvent]);
+
   const handleDeleteEvent = useCallback(async () => {
     if (!eventId || !isTrainerOrAdmin || !event) return;
     setDeletingEvent(true);
@@ -587,7 +662,7 @@ export const EventDetailPage: React.FC = () => {
                 variant="soft"
                 size="sm"
                 className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px]"
-                onClick={() => navigate('/app/termine', { state: { openEditEventId: event.id } })}
+                onClick={() => openEditModal(event)}
               >
                 <Pencil className="h-3.5 w-3.5" aria-hidden />
                 Bearbeiten
@@ -1038,6 +1113,104 @@ export const EventDetailPage: React.FC = () => {
           <p className="text-sm text-[var(--text-sub)]">
             Dieser Termin wird dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
           </p>
+        </Modal>
+        <Modal
+          isOpen={editModalOpen}
+          title="Termin bearbeiten"
+          onClose={closeEditModal}
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button variant="soft" onClick={closeEditModal}>
+                Abbrechen
+              </Button>
+              <Button type="submit" form="event-detail-edit-form" variant="primary" disabled={savingEdit}>
+                {savingEdit ? 'Speichern…' : 'Speichern'}
+              </Button>
+            </div>
+          }
+        >
+          <form id="event-detail-edit-form" onSubmit={handleEditSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="event-detail-edit-opponent" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
+                Gegner / Bezeichnung
+              </label>
+              <input
+                id="event-detail-edit-opponent"
+                type="text"
+                value={editOpponent}
+                onChange={(e) => setEditOpponent(e.target.value)}
+                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
+              />
+            </div>
+            <div>
+              <label htmlFor="event-detail-edit-datetime" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
+                Beginn *
+              </label>
+              <input
+                id="event-detail-edit-datetime"
+                type="datetime-local"
+                required
+                value={editDateTime}
+                onChange={(e) => setEditDateTime(e.target.value)}
+                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
+              />
+            </div>
+            <div>
+              <label htmlFor="event-detail-edit-location" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
+                Platzname / Ort (optional)
+              </label>
+              <input
+                id="event-detail-edit-location"
+                type="text"
+                value={editLocation}
+                onChange={(e) => setEditLocation(e.target.value)}
+                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
+                placeholder="z. B. Sportplatz Rohrbach"
+              />
+            </div>
+            <div>
+              <label htmlFor="event-detail-edit-location-address" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
+                Adresse / PLZ / Ort (optional)
+              </label>
+              <input
+                id="event-detail-edit-location-address"
+                type="text"
+                value={editLocationAddress}
+                onChange={(e) => setEditLocationAddress(e.target.value)}
+                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
+              />
+            </div>
+            <div>
+              <label htmlFor="event-detail-edit-meetup" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
+                Treffpunkt (optional)
+              </label>
+              <input
+                id="event-detail-edit-meetup"
+                type="time"
+                value={editMeetupAt}
+                onChange={(e) => setEditMeetupAt(e.target.value)}
+                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
+              />
+            </div>
+            {editEvent?.kind === 'training' ? (
+              <label className="flex cursor-pointer items-start gap-2 text-sm text-[var(--text-main)]">
+                <input
+                  type="checkbox"
+                  className="mt-1 rounded border-[var(--glass-border)]"
+                  checked={editTrainingDeadlineDisabled}
+                  onChange={(e) => setEditTrainingDeadlineDisabled(e.target.checked)}
+                />
+                <span>
+                  Keine Absagefrist (Absage jederzeit möglich). Wenn nicht angehakt: Absage bis 12:00 Uhr am Trainingstag (Europe/Vienna).
+                </span>
+              </label>
+            ) : null}
+            {editError ? (
+              <p className="text-sm text-red-600" role="alert">
+                {editError}
+              </p>
+            ) : null}
+          </form>
         </Modal>
 
         {isFan && (
