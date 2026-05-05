@@ -188,6 +188,16 @@ export const SchedulePage: React.FC = () => {
   const [matchScoreById, setMatchScoreById] = useState<Record<string, { scoreHome: number; scoreAway: number }>>({});
 
   useEffect(() => {
+    const navState = (location.state as { openEditEventId?: string } | null) ?? null;
+    const targetId = navState?.openEditEventId;
+    if (!targetId || !canManage || events.length === 0) return;
+    const targetEvent = events.find((e) => e.id === targetId);
+    if (!targetEvent) return;
+    openEditModal(targetEvent);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, canManage, events, navigate]);
+
+  useEffect(() => {
     if (!toastMessage) return;
     const t = setTimeout(() => setToastMessage(null), 3000);
     return () => clearTimeout(t);

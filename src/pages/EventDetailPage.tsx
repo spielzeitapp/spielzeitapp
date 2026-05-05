@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { CalendarDays, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
@@ -531,18 +532,45 @@ export const EventDetailPage: React.FC = () => {
           <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
             ← Zurück zum Spielplan
           </Link>
-          <Button
-            variant="soft"
-            size="sm"
-            className="w-full px-3 py-2 text-[13px] sm:w-auto sm:self-end"
-            onClick={() =>
-              downloadEventIcs(event as any, {
-                appBaseUrl: window.location.origin,
-              })
-            }
-          >
-            Zum Kalender hinzufügen
-          </Button>
+          {isTrainerOrAdmin ? (
+            <div className="grid w-full grid-cols-2 gap-3">
+              <Button
+                variant="soft"
+                size="sm"
+                className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px]"
+                onClick={() => navigate('/app/termine', { state: { openEditEventId: event.id } })}
+              >
+                <Pencil className="h-3.5 w-3.5" aria-hidden />
+                Bearbeiten
+              </Button>
+              <Button
+                variant="soft"
+                size="sm"
+                className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px]"
+                onClick={() =>
+                  downloadEventIcs(event as any, {
+                    appBaseUrl: window.location.origin,
+                  })
+                }
+              >
+                <CalendarDays className="h-3.5 w-3.5" aria-hidden />
+                Kalender
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="soft"
+              size="sm"
+              className="w-full px-3 py-2 text-[13px] sm:w-auto sm:self-end"
+              onClick={() =>
+                downloadEventIcs(event as any, {
+                  appBaseUrl: window.location.origin,
+                })
+              }
+            >
+              Zum Kalender hinzufügen
+            </Button>
+          )}
         </div>
 
         <div className="flex w-full min-w-0 flex-col">
