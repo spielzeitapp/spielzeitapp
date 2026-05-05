@@ -17,7 +17,7 @@ const btnNegative = 'bg-red-600/85 text-white border-red-400/20 shadow-[0_0_12px
 const btnPending = 'bg-slate-700/70 text-white/90 border-white/10';
 
 const iconPop =
-  'compact-rsvp-icon-pop inline-block shrink-0 origin-center transition-all duration-200 ease-out opacity-100 scale-100';
+  'compact-rsvp-icon-pop inline-block shrink-0 origin-center transition-all duration-200 ease-out opacity-80 scale-100';
 
 /** Eltern/Spieler: Aktion rechts oben in „Weitere Termine“ (Eltern-Kompaktkarte). */
 export function CompactListParentAttendance({ status, isTraining, onOpen, className = '' }: Props) {
@@ -35,7 +35,7 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
           <span className={iconPop} aria-hidden>
             ✕
           </span>
-          <span className="min-w-0">✕ Abgesagt</span>
+          <span className="min-w-0">Abgesagt</span>
         </button>
       );
     }
