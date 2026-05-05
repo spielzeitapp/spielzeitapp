@@ -810,43 +810,47 @@ export const EventDetailPage: React.FC = () => {
                             <div className="flex flex-wrap items-center gap-2">
                                 {isTraining ? (
                                   <>
-                                    <button
+                                    <AppButton
                                       type="button"
+                                      size="sm"
+                                      variant={!trainingCancellationAllowed || status === 'no' ? 'secondary' : 'danger'}
                                       disabled={!trainingCancellationAllowed || status === 'no'}
                                       onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                      className={`rounded-full border px-3 py-1.5 text-[13px] font-semibold transition-all duration-150 active:scale-95 ${
-                                        !trainingCancellationAllowed || status === 'no'
-                                          ? 'bg-white/7 text-white/55 border-white/15 cursor-not-allowed'
-                                          : 'bg-red-600/85 text-white border-red-400/20 shadow-[0_0_8px_rgba(239,68,68,0.16)] hover:bg-red-500'
-                                      }`}
+                                      className="px-3 py-1.5 text-[13px]"
                                     >
                                       {status === 'no' ? 'Abwesend' : !trainingCancellationAllowed ? 'Zu spät' : 'Absagen'}
-                                    </button>
-                                    <button
+                                    </AppButton>
+                                    <AppButton
                                       type="button"
+                                      size="sm"
+                                      variant="success"
                                       disabled={status !== 'no'}
                                       onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                      className="rounded-full border border-green-400/20 px-3 py-1.5 text-[13px] font-semibold bg-green-600/85 text-white shadow-[0_0_8px_rgba(34,197,94,0.16)] transition-all duration-150 active:scale-95 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                                      className="px-3 py-1.5 text-[13px]"
                                     >
                                       Dabei
-                                    </button>
+                                    </AppButton>
                                   </>
                                 ) : (
                                   <div className="flex gap-2">
-                                    <button
+                                    <AppButton
                                       type="button"
+                                      size="sm"
+                                      variant="success"
                                       onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                      className="rounded-full border border-green-400/20 px-3 py-1.5 text-[13px] font-semibold bg-green-600/85 text-white shadow-[0_0_8px_rgba(34,197,94,0.16)] transition-all duration-150 active:scale-95 hover:bg-green-500"
+                                      className="px-3 py-1.5 text-[13px]"
                                     >
                                       Dabei
-                                    </button>
-                                    <button
+                                    </AppButton>
+                                    <AppButton
                                       type="button"
+                                      size="sm"
+                                      variant="danger"
                                       onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                      className="rounded-full border border-red-400/20 px-3 py-1.5 text-[13px] font-semibold bg-red-600/85 text-white shadow-[0_0_8px_rgba(239,68,68,0.16)] transition-all duration-150 active:scale-95 hover:bg-red-500"
+                                      className="px-3 py-1.5 text-[13px]"
                                     >
                                       Abwesend
-                                    </button>
+                                    </AppButton>
                                   </div>
                                 )}
                               </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { AppButton } from '../../../components/ui/AppButton';
 
 function cn(...classes: Array<string | undefined | false | null>) {
   return classes.filter(Boolean).join(' ');
@@ -21,35 +22,23 @@ export const Button: React.FC<ButtonProps> = ({
   children,
   ...rest
 }) => {
-  const variantClass =
+  const appVariant =
     variant === 'primary'
-      ? 'btn-primary'
+      ? 'primary'
       : variant === 'positive'
-        ? 'btn-positive'
+        ? 'success'
         : variant === 'negative'
-          ? 'btn-negative'
+          ? 'danger'
           : variant === 'pending'
-            ? 'btn-pending'
-      : variant === 'soft' || variant === 'secondary'
-        ? 'btn-soft'
-        : variant === 'ghost'
-          ? 'btn-ghost'
-          : 'btn-primary';
+            ? 'pending'
+            : 'secondary';
+
+  const appSize = size === 'sm' ? 'sm' : size === 'xs' ? 'sm' : 'md';
 
   return (
-    <button
-      className={cn(
-        'btn',
-        variantClass,
-        fullWidth && 'btn--full',
-        size === 'sm' && 'btn--sm',
-        size === 'xs' && 'btn--xs',
-        className
-      )}
-      {...rest}
-    >
+    <AppButton variant={appVariant} size={appSize} fullWidth={Boolean(fullWidth)} className={cn(className)} {...rest}>
       {children}
-    </button>
+    </AppButton>
   );
 };
 
