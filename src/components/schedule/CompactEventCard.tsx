@@ -162,13 +162,23 @@ export function CompactEventCard({
             {parentTitle}
           </p>
           {parentSubline ? (
-            <p
-              className="mt-1 min-w-0 whitespace-normal text-[12px] leading-snug text-gray-400 line-clamp-2 [overflow-wrap:normal] [word-break:normal]"
-              lang="de"
-              title={parentSubline}
-            >
-              {parentSubline}
-            </p>
+            et === 'training' ? (
+              <p
+                className="mt-1 min-w-0 truncate text-[12px] leading-snug text-gray-400 [overflow-wrap:normal] [word-break:normal]"
+                lang="de"
+                title={parentSubline}
+              >
+                {parentSubline}
+              </p>
+            ) : (
+              <p
+                className="mt-1 min-w-0 whitespace-normal text-[12px] leading-snug text-gray-400 line-clamp-2 [overflow-wrap:normal] [word-break:normal]"
+                lang="de"
+                title={parentSubline}
+              >
+                {parentSubline}
+              </p>
+            )
           ) : null}
         </div>
 

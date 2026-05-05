@@ -37,7 +37,7 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
   if (status === 'yes') {
     return (
       <button type="button" className={`${btnBase} bg-green-600 text-white ${className}`} onClick={openModal}>
-        ✓ Dabei
+        ✓ Zugesagt
       </button>
     );
   }
@@ -50,7 +50,7 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
   }
   return (
     <button type="button" className={`${btnBase} bg-gray-700 text-gray-200 ${className}`} onClick={openModal}>
-      Antworten
+      Zu-/Absagen
     </button>
   );
 }
