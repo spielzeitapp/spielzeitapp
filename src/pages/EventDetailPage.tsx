@@ -644,10 +644,10 @@ export const EventDetailPage: React.FC = () => {
                                       type="button"
                                       disabled={!trainingCancellationAllowed || status === 'no'}
                                       onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                      className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
+                                      className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition-all duration-150 active:scale-95 ${
                                         !trainingCancellationAllowed || status === 'no'
-                                          ? 'bg-gray-600/40 text-gray-300 cursor-not-allowed'
-                                          : 'bg-red-600/80 text-white hover:bg-red-500'
+                                          ? 'bg-white/7 text-white/55 border-white/15 cursor-not-allowed'
+                                          : 'bg-red-600/85 text-white border-red-400/20 shadow-[0_0_12px_rgba(239,68,68,0.22)] hover:bg-red-500'
                                       }`}
                                     >
                                       {status === 'no' ? 'Abwesend' : !trainingCancellationAllowed ? 'Zu spät' : 'Absagen'}
@@ -656,7 +656,7 @@ export const EventDetailPage: React.FC = () => {
                                       type="button"
                                       disabled={status !== 'no'}
                                       onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                      className="rounded-md px-2.5 py-1 text-xs font-semibold bg-green-600/80 text-white hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                                      className="rounded-full border border-green-400/20 px-2.5 py-1 text-xs font-semibold bg-green-600/85 text-white shadow-[0_0_12px_rgba(34,197,94,0.22)] transition-all duration-150 active:scale-95 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                       Dabei
                                     </button>
@@ -666,14 +666,14 @@ export const EventDetailPage: React.FC = () => {
                                     <button
                                       type="button"
                                       onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                      className="rounded-md px-2.5 py-1 text-xs font-semibold bg-green-600/80 text-white hover:bg-green-500"
+                                      className="rounded-full border border-green-400/20 px-2.5 py-1 text-xs font-semibold bg-green-600/85 text-white shadow-[0_0_12px_rgba(34,197,94,0.22)] transition-all duration-150 active:scale-95 hover:bg-green-500"
                                     >
                                       Dabei
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                      className="rounded-md px-2.5 py-1 text-xs font-semibold bg-red-600/80 text-white hover:bg-red-500"
+                                      className="rounded-full border border-red-400/20 px-2.5 py-1 text-xs font-semibold bg-red-600/85 text-white shadow-[0_0_12px_rgba(239,68,68,0.22)] transition-all duration-150 active:scale-95 hover:bg-red-500"
                                     >
                                       Abwesend
                                     </button>
@@ -716,15 +716,15 @@ export const EventDetailPage: React.FC = () => {
                           <p className="mt-1 text-xs text-amber-200/90">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
                         ) : null}
                         <Button
-                          variant={rsvpStatus === 'no' ? 'secondary' : 'primary'}
+                          variant={rsvpStatus === 'no' ? 'negative' : 'negative'}
                           size="sm"
                           disabled={rsvpStatus === 'no' || !trainingCancellationAllowed}
                           className={`mt-3 ${
                             rsvpStatus === 'no'
-                              ? 'bg-red-600/40 text-white/80 hover:bg-red-600/40 cursor-not-allowed'
+                              ? 'opacity-60 cursor-not-allowed'
                               : !trainingCancellationAllowed
-                                ? 'bg-gray-600/40 text-gray-300 cursor-not-allowed'
-                                : 'bg-red-600 hover:bg-red-500'
+                                ? 'opacity-60 cursor-not-allowed'
+                                : ''
                           }`}
                           onClick={() => { setCancelReason(''); setAttendanceModalOpen(true); }}
                         >
@@ -737,11 +737,8 @@ export const EventDetailPage: React.FC = () => {
                           Status: {rsvpStatus === 'yes' ? 'Zugesagt' : rsvpStatus === 'no' ? 'Abgesagt' : 'Offen'}
                         </p>
                         <Button
-                          variant={rsvpStatus === 'yes' || rsvpStatus === 'no' ? 'primary' : 'secondary'}
+                          variant={rsvpStatus === 'yes' ? 'positive' : rsvpStatus === 'no' ? 'negative' : 'pending'}
                           size="sm"
-                          className={`${
-                            rsvpStatus === 'yes' ? 'bg-green-600 hover:bg-green-500' : rsvpStatus === 'no' ? 'bg-red-600 hover:bg-red-500' : ''
-                          }`}
                           onClick={() => { setCancelReason(''); setAttendanceModalOpen(true); }}
                         >
                           {rsvpStatus === 'yes' ? 'Zugesagt' : rsvpStatus === 'no' ? 'Abgesagt' : 'Zu-/Absage'}
@@ -881,7 +878,7 @@ export const EventDetailPage: React.FC = () => {
           }}
           footer={
             <Button
-              variant="ghost"
+              variant="soft"
               onClick={() => {
                 setAttendanceModalOpen(false);
                 setCancelReason('');
@@ -912,8 +909,7 @@ export const EventDetailPage: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-3">
                 <Button
-                  variant="primary"
-                  className="bg-red-600 hover:bg-red-500"
+                  variant="negative"
                   disabled={!trainingCancellationAllowed || rsvpStatus === 'no'}
                   onClick={() => handleRsvp('no', cancelReason)}
                 >
@@ -928,8 +924,7 @@ export const EventDetailPage: React.FC = () => {
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button
-                  variant="primary"
-                  className="bg-green-600 hover:bg-green-500"
+                  variant="positive"
                   onClick={() => {
                     console.log('[ATTENDANCE BUTTON CLICKED]', 'yes');
                     handleRsvp('yes');
@@ -938,8 +933,7 @@ export const EventDetailPage: React.FC = () => {
                   Zusage
                 </Button>
                 <Button
-                  variant="primary"
-                  className="bg-red-600 hover:bg-red-500"
+                  variant="negative"
                   onClick={() => {
                     console.log('[ATTENDANCE BUTTON CLICKED]', 'no');
                     handleRsvp('no');

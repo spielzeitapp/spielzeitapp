@@ -46,10 +46,10 @@
   padding: 0 1.25rem;
   font-size: 0.9375rem;
   font-weight: 600;
-  border-radius: var(--radius-btn);
-  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  border-radius: 9999px;
+  transition: all 0.15s;
   cursor: pointer;
-  border: none;
+  border: 1px solid transparent;
 }
 
 .btn:focus-visible {
@@ -64,41 +64,76 @@
 
 /* Primary: red gradient only */
 .btn-primary {
-  background: linear-gradient(135deg, var(--red-primary), var(--red-dark));
+  background: rgb(220 38 38 / 0.9);
   color: #fff;
-  font-weight: 700;
+  font-weight: 600;
+  border-color: rgb(248 113 113 / 0.2);
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.25);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #ef4444, var(--red-primary));
+  background: rgb(239 68 68 / 1);
 }
 
 .btn-primary:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.95);
 }
 
 /* Secondary: zinc/gray, subtle border */
 .btn-soft,
 .btn-secondary {
-  background: var(--btn-default-bg);
-  color: var(--text-main);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgb(255 255 255 / 0.07);
+  color: rgb(255 255 255 / 0.85);
+  border-color: rgb(255 255 255 / 0.15);
   font-weight: 600;
 }
 
 .btn-soft:hover:not(:disabled),
 .btn-secondary:hover:not(:disabled) {
-  background: var(--btn-default-hover);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: rgb(255 255 255 / 0.1);
+  border-color: rgb(255 255 255 / 0.15);
 }
 
 .btn-ghost {
-  background: transparent;
-  color: var(--text-main);
+  background: rgb(255 255 255 / 0.07);
+  color: rgb(255 255 255 / 0.85);
+  border-color: rgb(255 255 255 / 0.15);
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgb(255 255 255 / 0.1);
+}
+
+.btn-positive {
+  background: rgb(22 163 74 / 0.85);
+  color: #fff;
+  border-color: rgb(74 222 128 / 0.2);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.22);
+}
+
+.btn-positive:hover:not(:disabled) {
+  background: rgb(34 197 94 / 0.9);
+}
+
+.btn-negative {
+  background: rgb(220 38 38 / 0.85);
+  color: #fff;
+  border-color: rgb(248 113 113 / 0.2);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.22);
+}
+
+.btn-negative:hover:not(:disabled) {
+  background: rgb(239 68 68 / 0.9);
+}
+
+.btn-pending {
+  background: rgb(51 65 85 / 0.7);
+  color: rgb(255 255 255 / 0.9);
+  border-color: rgb(255 255 255 / 0.1);
+}
+
+.btn-pending:hover:not(:disabled) {
+  background: rgb(71 85 105 / 0.78);
 }
 
 .btn--full {
@@ -118,7 +153,7 @@
   min-height: 1.875rem;
   padding: 0 0.75rem;
   font-size: 0.8125rem;
-  border-radius: 0.5rem;
+  border-radius: 9999px;
 }
 
 /* Pill */

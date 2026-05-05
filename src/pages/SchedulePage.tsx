@@ -1399,7 +1399,7 @@ export const SchedulePage: React.FC = () => {
             footer={
               <div className="flex justify-end">
                 <Button
-                  variant="ghost"
+                  variant="soft"
                   onClick={() => {
                     setAttendanceModalEvent(null);
                     setTrainingCancelReason('');
@@ -1464,22 +1464,21 @@ export const SchedulePage: React.FC = () => {
                         </div>
 
                         <div className="flex flex-wrap gap-3 mt-6">
-                          <button
+                          <Button
                             type="button"
+                            variant="negative"
                             disabled={canceled || !cancelAllowed}
                             onClick={() => {
                               console.log('[ATTENDANCE BUTTON CLICKED]', 'training-no');
                               if (!attendanceModalEvent) return;
                               setAttendance(attendanceModalEvent.id, 'no', trainingCancelReason).catch((e) => console.error('[ATTENDANCE]', e));
                             }}
-                            className={`flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white active:scale-[0.98] transition-all ${
-                              canceled || !cancelAllowed
-                                ? 'bg-gray-600/40 text-gray-300 cursor-not-allowed'
-                                : 'bg-red-600 hover:bg-red-500'
+                            className={`flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none py-3 px-5 text-sm ${
+                              canceled || !cancelAllowed ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                           >
                             Absagen
-                          </button>
+                          </Button>
                         </div>
                       </>
                     );
@@ -1491,28 +1490,30 @@ export const SchedulePage: React.FC = () => {
                     Standard ist „Offen“, bis du zusagst oder absagst.
                   </p>
                   <div className="flex flex-wrap gap-3 mt-6">
-                    <button
+                    <Button
                       type="button"
+                      variant="positive"
                       onClick={() => {
                         console.log('[ATTENDANCE BUTTON CLICKED]');
                         if (!attendanceModalEvent) return;
                         setAttendance(attendanceModalEvent.id, 'yes').catch((e) => console.error('[ATTENDANCE]', e));
                       }}
-                      className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white bg-green-600 hover:bg-green-500 active:scale-[0.98] transition-all"
+                      className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none py-3 px-5 text-sm"
                     >
                       Dabei
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="negative"
                       onClick={() => {
                         console.log('[ATTENDANCE BUTTON CLICKED]');
                         if (!attendanceModalEvent) return;
                         setAttendance(attendanceModalEvent.id, 'no').catch((e) => console.error('[ATTENDANCE]', e));
                       }}
-                      className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white bg-red-600 hover:bg-red-500 active:scale-[0.98] transition-all"
+                      className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none py-3 px-5 text-sm"
                     >
                       Absage
-                    </button>
+                    </Button>
                   </div>
                 </>
               )}
@@ -1525,11 +1526,11 @@ export const SchedulePage: React.FC = () => {
             onClose={() => setTrainingRejoinModalEvent(null)}
             footer={
               <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setTrainingRejoinModalEvent(null)}>
+                <Button variant="soft" onClick={() => setTrainingRejoinModalEvent(null)}>
                   Abbrechen
                 </Button>
                 <Button
-                  variant="primary"
+                  variant="positive"
                   onClick={() => {
                     if (!trainingRejoinModalEvent) return;
                     void (async () => {

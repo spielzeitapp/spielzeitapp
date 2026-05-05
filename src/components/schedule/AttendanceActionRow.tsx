@@ -26,12 +26,12 @@ export function AttendanceActionRow({
       <div className="mt-0 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()} role="group" aria-label="Teilnahme">
         <Button
           type="button"
-          variant={compactPrimary ? 'primary' : 'soft'}
+          variant={compactPrimary ? 'primary' : 'pending'}
           size="xs"
           className={
             compactPrimary
-              ? 'h-10 min-h-[2.5rem] rounded-xl border border-red-500/40 px-3 text-[11px] font-bold shadow-md shadow-red-950/35'
-              : 'h-10 min-h-[2.5rem] rounded-xl border border-white/12 px-3 text-[11px] font-semibold text-white/95 hover:bg-white/10'
+              ? 'h-10 min-h-[2.5rem] px-3 text-[11px] font-semibold'
+              : 'h-10 min-h-[2.5rem] px-3 text-[11px] font-semibold'
           }
           disabled={disabled}
           onClick={onOpenAttendance}
@@ -50,9 +50,9 @@ export function AttendanceActionRow({
     >
       <Button
         type="button"
-        variant="primary"
+        variant={isTraining ? 'negative' : 'pending'}
         size={isHero ? 'sm' : 'xs'}
-        className={`rounded-full ${isHero ? 'min-h-[40px] flex-1 sm:flex-none' : ''}`}
+        className={`${isHero ? 'min-h-[40px] flex-1 sm:flex-none' : ''}`}
         disabled={disabled}
         onClick={onOpenAttendance}
       >

@@ -4,7 +4,7 @@ function cn(...classes: Array<string | undefined | false | null>) {
   return classes.filter(Boolean).join(' ');
 }
 
-type Variant = 'primary' | 'soft' | 'ghost' | 'secondary';
+type Variant = 'primary' | 'soft' | 'ghost' | 'secondary' | 'positive' | 'negative' | 'pending';
 type Size = 'default' | 'sm' | 'xs';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -24,6 +24,12 @@ export const Button: React.FC<ButtonProps> = ({
   const variantClass =
     variant === 'primary'
       ? 'btn-primary'
+      : variant === 'positive'
+        ? 'btn-positive'
+        : variant === 'negative'
+          ? 'btn-negative'
+          : variant === 'pending'
+            ? 'btn-pending'
       : variant === 'soft' || variant === 'secondary'
         ? 'btn-soft'
         : variant === 'ghost'
