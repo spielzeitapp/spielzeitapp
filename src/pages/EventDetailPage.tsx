@@ -555,7 +555,25 @@ export const EventDetailPage: React.FC = () => {
     if (editEvent.kind === 'training') {
       payload.training_absence_deadline_disabled = editTrainingDeadlineDisabled;
     }
-    const { error } = await supabase.from('events').update(payload).eq('id', editEvent.id);
+    let error: { message?: string } | null = null;
+    const firstTry = await supabase.from('events').update(payload).eq('id', editEvent.id);
+    error = firstTry.error;
+
+    // Fallback: Manche Deployments haben die Spalte noch nicht im Schema-Cache.
+    // Dann speichern wir ohne dieses Feld, statt den gesamten Save zu blockieren.
+    if (
+      error &&
+      editEvent.kind === 'training' &&
+      String(error.message ?? '').includes('training_absence_deadline_disabled')
+    ) {
+      const { training_absence_deadline_disabled: _ignored, ...payloadWithoutTrainingFlag } = payload as Record<
+        string,
+        unknown
+      >;
+      const retry = await supabase.from('events').update(payloadWithoutTrainingFlag).eq('id', editEvent.id);
+      error = retry.error;
+    }
+
     if (error) {
       setEditError(error.message ?? 'Speichern fehlgeschlagen.');
       setSavingEdit(false);
