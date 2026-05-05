@@ -676,26 +676,56 @@ export const SchedulePage: React.FC = () => {
    */
   const reinstateTrainingParticipation = useCallback(
     async (eventId: string): Promise<boolean> => {
-      let playerId = myAttendancePlayerIds[0] ?? null;
-      if (!playerId && userId) {
+      const myPidKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
+      const fromDbRaw =
+        myAttendancePlayerIds[0] && attendanceByEventId[eventId]
+          ? attendanceByEventId[eventId].availabilityByPlayerId[myPidKey]
+          : undefined;
+      const fromDb: 'yes' | 'no' | null = fromDbRaw === 'yes' || fromDbRaw === 'no' ? fromDbRaw : null;
+      const currentLocal = attendanceStatusByEventId[eventId] ?? fromDb ?? null;
+
+      const candidatePlayerIds = new Set<string>();
+      if (myAttendancePlayerIds[0]) candidatePlayerIds.add(myAttendancePlayerIds[0]);
+      if (userId) {
         const byGuardian = await supabase.from('player_guardians').select('player_id').eq('user_id', userId);
-        if (!byGuardian.error && byGuardian.data?.length) playerId = byGuardian.data[0].player_id;
-        if (!playerId) {
-          const byPlayer = await supabase.from('player_users').select('player_id').eq('user_id', userId);
-          if (!byPlayer.error && byPlayer.data?.length) playerId = byPlayer.data[0].player_id;
+        for (const row of byGuardian.data ?? []) {
+          if (row?.player_id) candidatePlayerIds.add(String(row.player_id));
+        }
+        const byPlayer = await supabase.from('player_users').select('player_id').eq('user_id', userId);
+        for (const row of byPlayer.data ?? []) {
+          if (row?.player_id) candidatePlayerIds.add(String(row.player_id));
         }
       }
+      const playerIds = Array.from(candidatePlayerIds);
 
-      if (!eventId || !playerId) {
-        setToastMessage(!playerId ? 'Kein Spieler zugeordnet.' : 'Event fehlt.');
+      console.debug('[TRAINING REJOIN] start', {
+        eventId,
+        userId,
+        playerId: myAttendancePlayerIds[0] ?? null,
+        candidatePlayerIds: playerIds,
+        currentLocal,
+      });
+
+      if (!eventId || playerIds.length === 0) {
+        setToastMessage(playerIds.length === 0 ? 'Kein Spieler zugeordnet.' : 'Event fehlt.');
         return false;
       }
 
-      const { error } = await supabase
+      // Training-Default = dabei ohne Datensatz: entferne alle negativen Status des aktuellen Users/Players.
+      const deleteQuery = supabase
         .from('event_attendance')
         .delete()
         .eq('event_id', eventId)
-        .eq('player_id', playerId);
+        .in('player_id', playerIds)
+        .in('status', ['no', 'absent', 'declined']);
+      console.debug('[TRAINING REJOIN] delete filter', {
+        table: 'event_attendance',
+        event_id: eventId,
+        player_id_in: playerIds,
+        status_in: ['no', 'absent', 'declined'],
+      });
+      const { error } = await deleteQuery;
+      console.debug('[TRAINING REJOIN] delete result', { error });
 
       if (error) {
         console.error('[ATTENDANCE] Training rejoin delete', error);
@@ -703,15 +733,29 @@ export const SchedulePage: React.FC = () => {
         return false;
       }
 
-      setAttendanceStatusByEventId((prev) => {
-        const next = { ...prev };
-        delete next[eventId];
-        return next;
-      });
+      // Optimistisch sofort grün anzeigen (✓ Dabei), bis Refresh final aus DB synchronisiert.
+      setAttendanceStatusByEventId((prev) => ({ ...prev, [eventId]: 'yes' }));
       await refreshAttendance();
+      const refreshForEvent = attendanceByEventId[eventId];
+      const refreshStatusForActivePlayer =
+        myAttendancePlayerIds[0] && refreshForEvent
+          ? refreshForEvent.availabilityByPlayerId[(myAttendancePlayerIds[0] ?? '').toLowerCase()] ?? null
+          : null;
+      const { data: remainingNoRows, error: remainingNoRowsError } = await supabase
+        .from('event_attendance')
+        .select('event_id, player_id, status')
+        .eq('event_id', eventId)
+        .in('status', ['no', 'absent', 'declined']);
+      console.debug('[TRAINING REJOIN] refresh result for event', {
+        eventId,
+        refreshStatusForActivePlayer,
+        attendanceByEventIdEntry: refreshForEvent ?? null,
+        remainingNoRows,
+        remainingNoRowsError,
+      });
       return true;
     },
-    [myAttendancePlayerIds, userId, refreshAttendance],
+    [attendanceByEventId, attendanceStatusByEventId, myAttendancePlayerIds, userId, refreshAttendance],
   );
 
   const rosterSize = players.length;
