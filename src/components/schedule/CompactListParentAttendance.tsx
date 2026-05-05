@@ -1,4 +1,5 @@
 import React from 'react';
+import { triggerHaptic } from '../../lib/hapticFeedback';
 import type { AttendanceStatusKind } from './AttendanceStatusPill';
 
 type Props = {
@@ -18,6 +19,7 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
   const openModal = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    triggerHaptic();
     onOpen();
   };
 

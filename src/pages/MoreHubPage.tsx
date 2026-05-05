@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, ChevronRight, LayoutGrid, Settings, Wrench } from 'lucide-react';
 import { Card } from '../app/components/ui/Card';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
+import { isHapticEnabled, setHapticEnabled, triggerHaptic } from '../lib/hapticFeedback';
 
 const rowClass =
   'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-white transition-colors hover:bg-white/10';
@@ -47,6 +48,11 @@ export const MoreHubPage: React.FC = () => {
   const unreadCount = useUnreadCount(user?.id);
 
   const [trainerToolsOpen, setTrainerToolsOpen] = useState(false);
+  const [hapticOn, setHapticOn] = useState(true);
+
+  useEffect(() => {
+    setHapticOn(isHapticEnabled());
+  }, []);
 
   const runParentsPushDebug = async () => {
     console.log('[direct-push-debug] direct push start');
@@ -161,6 +167,38 @@ export const MoreHubPage: React.FC = () => {
       <div className="mx-auto max-w-4xl space-y-4 lg:max-w-6xl">
         <h1 className="text-2xl font-bold tracking-tight text-white">Mehr</h1>
         <p className="text-sm text-white/60">Einstellungen und weitere Bereiche</p>
+
+        <div className={rowClass}>
+          <span className="flex items-center gap-3">
+            <span className="text-lg leading-none" aria-hidden>
+              🔘
+            </span>
+            <span className="font-medium">Vibration bei Aktionen</span>
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={hapticOn}
+            className={[
+              'relative h-7 w-12 shrink-0 rounded-full border transition-colors duration-200',
+              hapticOn ? 'border-emerald-500/50 bg-emerald-600/40' : 'border-white/20 bg-white/10',
+            ].join(' ')}
+            onClick={() => {
+              const next = !hapticOn;
+              setHapticEnabled(next);
+              setHapticOn(next);
+              if (next) triggerHaptic();
+            }}
+          >
+            <span
+              className={[
+                'absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ease-out',
+                hapticOn ? 'left-5' : 'left-0.5',
+              ].join(' ')}
+              aria-hidden
+            />
+          </button>
+        </div>
 
         <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
           <Link to="/app/nachrichten" className={rowClass}>
