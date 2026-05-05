@@ -14,6 +14,6 @@ export function setHapticEnabled(enabled: boolean): void {
 export function triggerHaptic(): void {
   if (!isHapticEnabled()) return;
   if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-    navigator.vibrate(10);
+    navigator.vibrate(20);
   }
 }

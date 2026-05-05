@@ -252,7 +252,15 @@ export const SchedulePage: React.FC = () => {
     }
 
     // Toggle-Logik: Klick auf denselben Status → zurück auf neutral (Eintrag löschen).
-    const currentLocal = attendanceStatusByEventId[eventId] ?? null;
+    // Lokaler Override + DB-Status (sonst nach Reload kein erneutes „no“→Delete möglich).
+    const myPidKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
+    const fromDbRaw =
+      myAttendancePlayerIds[0] && attendanceByEventId[eventId]
+        ? attendanceByEventId[eventId].availabilityByPlayerId[myPidKey]
+        : undefined;
+    const fromDb: 'yes' | 'no' | null =
+      fromDbRaw === 'yes' || fromDbRaw === 'no' ? fromDbRaw : null;
+    const currentLocal = attendanceStatusByEventId[eventId] ?? fromDb ?? null;
 
     let result;
     if (currentLocal === status) {
@@ -1089,7 +1097,14 @@ export const SchedulePage: React.FC = () => {
                         <CompactListParentAttendance
                           status={attendanceMergedToPillStatus(attendanceStatusMerged)}
                           isTraining={et === 'training'}
-                          onOpen={() => setAttendanceModalEvent(ev)}
+                          onOpen={() => {
+                            const pill = attendanceMergedToPillStatus(attendanceStatusMerged);
+                            if (et === 'training' && pill === 'no') {
+                              void setAttendance(ev.id, 'no').catch((e) => console.error('[ATTENDANCE]', e));
+                              return;
+                            }
+                            setAttendanceModalEvent(ev);
+                          }}
                         />
                       ) : undefined;
                       const opponentLogo = (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url;

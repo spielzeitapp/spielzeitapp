@@ -19,6 +19,26 @@ export function formatHeroDateParts(iso: string | null | undefined): { wd: strin
   };
 }
 
+/** Eltern-Kompaktkarte: zweibuchstabiger Wochentag (MO … SO), spart Breite. */
+const DE_WEEKDAY_LONG_TO_ABBREV: Record<string, string> = {
+  montag: 'MO',
+  dienstag: 'DI',
+  mittwoch: 'MI',
+  donnerstag: 'DO',
+  freitag: 'FR',
+  samstag: 'SA',
+  sonntag: 'SO',
+};
+
+export function formatCompactListWeekdayAbbrev(iso: string | null | undefined): string {
+  if (!iso?.trim()) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  const wd = new Intl.DateTimeFormat('de-AT', { weekday: 'long', timeZone: VIENNA_TZ }).format(d);
+  const key = wd.replace(/\.$/, '').trim().toLowerCase();
+  return DE_WEEKDAY_LONG_TO_ABBREV[key] ?? wd.replace(/\.$/, '').slice(0, 2).toUpperCase();
+}
+
 /** Kompakte Terminliste: voller Wochentag, großer Tag, Monat + Jahr (z. B. MAI 2026). */
 export function formatCompactListDateParts(iso: string | null | undefined): {
   wd: string;

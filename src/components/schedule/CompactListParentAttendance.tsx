@@ -10,9 +10,10 @@ type Props = {
 };
 
 const btnBase =
-  'max-w-[92px] min-w-0 shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold leading-tight ease-out [transition:transform_150ms_ease-out,background-color_200ms_ease-out,color_200ms_ease-out,border-color_200ms_ease-out] active:scale-95 inline-flex items-center justify-center gap-0.5';
+  'max-w-[90px] min-w-0 shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold leading-tight ease-out transition-all duration-200 active:scale-95 inline-flex items-center justify-center gap-0.5';
 
-const iconPop = 'compact-rsvp-icon-pop inline-block shrink-0 origin-center transition-all duration-200 ease-out';
+const iconPop =
+  'compact-rsvp-icon-pop inline-block shrink-0 origin-center transition-all duration-200 ease-out opacity-100 scale-100';
 
 /** Eltern/Spieler: Aktion rechts oben in „Weitere Termine“ (Eltern-Kompaktkarte). */
 export function CompactListParentAttendance({ status, isTraining, onOpen, className = '' }: Props) {

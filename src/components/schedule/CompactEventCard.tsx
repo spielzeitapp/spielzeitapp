@@ -7,6 +7,7 @@ import { getMatchTypeLabel } from '../match/matchCardLabels';
 import type { EffectiveEventType } from './scheduleEventViewUtils';
 import {
   formatCompactListDateParts,
+  formatCompactListWeekdayAbbrev,
   formatTimeHHmmDe,
   scheduleCompactPrimaryTitle,
   scheduleEventTypeLabel,
@@ -117,6 +118,7 @@ export function CompactEventCard({
     et === 'training' ? (compactTrainingHeadline(ourTeamName, trainingNotesTitle) ?? 'Training') : null;
 
   if (parentCompactLayout) {
+    const wdAbbrev = formatCompactListWeekdayAbbrev(ev.starts_at);
     const parentTitle = et === 'game' ? oppName : et === 'training' ? trainingTitle : title;
 
     let parentSubline: string | null = null;
@@ -148,7 +150,9 @@ export function CompactEventCard({
         }
       >
         <div className="flex w-[60px] shrink-0 flex-col items-start justify-center gap-0 leading-none">
-          <span className="text-[10px] font-medium uppercase leading-tight tracking-wide text-red-300">{wd}</span>
+          <span className="text-sm font-semibold uppercase leading-tight tracking-[0.12em] text-red-300">
+            {wdAbbrev}
+          </span>
           <span className="text-[30px] font-bold tabular-nums leading-none text-white">{day}</span>
           <span className="text-[10px] leading-tight text-gray-400">{monYear}</span>
           <span className="text-[13px] font-medium tabular-nums leading-tight text-red-400">{timeStr}</span>
@@ -182,7 +186,7 @@ export function CompactEventCard({
           ) : null}
         </div>
 
-        <div className="flex w-[96px] shrink-0 flex-col items-end justify-between self-stretch py-0.5">
+        <div className="flex w-[90px] shrink-0 flex-col items-end justify-between self-stretch py-0.5">
           <div className="flex shrink-0 flex-col items-end">{trailing}</div>
           <div className="flex w-3 shrink-0 items-center justify-end">
             {clickable ? (
