@@ -118,23 +118,20 @@ function mapRowToEventRow(r: EventDbRow): EventRow {
   };
 }
 
-/** Sortierung: Match: Offen → Abwesend → Dabei. Training: Abwesend → Dabei (Default). */
+/** Sortierung für Trainerliste: Dabei/Zugesagt → Offen → Abgesagt/Abwesend, danach alphabetisch. */
 function sortPlayersByAttendanceStatus(
   players: PlayerItem[],
   getStatus: (playerId: string) => 'yes' | 'no' | null,
-  isTrainingList: boolean,
 ): PlayerItem[] {
-  const order = (a: PlayerItem, b: PlayerItem) => {
+  const rank = (s: 'yes' | 'no' | 'open') => (s === 'yes' ? 0 : s === 'open' ? 1 : 2);
+  const nameOf = (p: PlayerItem) => (p.display_name ?? p.name ?? '').trim().toLocaleLowerCase('de-AT');
+  return [...players].sort((a, b) => {
     const sa = getStatus(a.id) ?? 'open';
     const sb = getStatus(b.id) ?? 'open';
-    if (isTrainingList) {
-      const rankTr = (s: string) => (s === 'no' ? 0 : 1);
-      return rankTr(sa) - rankTr(sb);
-    }
-    const rank = (s: string) => (s === 'open' ? 0 : s === 'no' ? 1 : 2);
-    return rank(sa) - rank(sb);
-  };
-  return [...players].sort(order);
+    const byStatus = rank(sa) - rank(sb);
+    if (byStatus !== 0) return byStatus;
+    return nameOf(a).localeCompare(nameOf(b), 'de-AT');
+  });
 }
 
 export const EventDetailPage: React.FC = () => {
@@ -494,7 +491,7 @@ export const EventDetailPage: React.FC = () => {
   if (!eventId) {
     return (
       <div className="min-h-screen bg-black text-white">
-        <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pb-12">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-12 sm:px-4">
           <p>Keine Event-ID angegeben.</p>
           <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
             ← Zurück zum Spielplan
@@ -507,7 +504,7 @@ export const EventDetailPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white">
-        <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pb-12">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-12 sm:px-4">
           <p>Lade Termin…</p>
         </div>
       </div>
@@ -517,7 +514,7 @@ export const EventDetailPage: React.FC = () => {
   if (error || !event) {
     return (
       <div className="min-h-screen bg-black text-white">
-        <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pb-12">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-12 sm:px-4">
           <p>{error ?? 'Termin nicht gefunden.'}</p>
           <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
             ← Zurück zum Spielplan
@@ -529,7 +526,7 @@ export const EventDetailPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto flex max-w-md flex-col gap-4 p-4 pb-12">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-12 sm:px-4">
         <div className="flex flex-col gap-3">
           <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
             ← Zurück zum Spielplan
@@ -609,6 +606,16 @@ export const EventDetailPage: React.FC = () => {
                     </span>
                   </div>
                 )}
+                {event.kind === 'match' && event.match_id ? (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    className="min-h-[48px] w-full"
+                    onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(event.match_id)}`)}
+                  >
+                    Match vorbereiten
+                  </Button>
+                ) : null}
                 <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
                   {(playersLoading || loadingEventAttendance) && (
                     <p className="text-sm text-[var(--text-sub)]">Lade…</p>
@@ -618,8 +625,12 @@ export const EventDetailPage: React.FC = () => {
                   )}
                   {!playersLoading && !loadingEventAttendance && players.length > 0 && (
                     <ul className="flex flex-col gap-0">
-                      {sortPlayersByAttendanceStatus(players, getAttendanceStatus, isTraining).map((player) => {
+                      {sortPlayersByAttendanceStatus(players, getAttendanceStatus).map((player, idx, arr) => {
                         const status = getAttendanceStatus(player.id);
+                        const groupTitle = status === 'yes' ? 'Dabei' : status === 'no' ? 'Abgesagt' : 'Offen';
+                        const prev = idx > 0 ? getAttendanceStatus(arr[idx - 1].id) : null;
+                        const prevGroupTitle = prev === 'yes' ? 'Dabei' : prev === 'no' ? 'Abgesagt' : 'Offen';
+                        const showGroupHeading = idx === 0 || groupTitle !== prevGroupTitle;
                         const chipLabel = isTraining
                           ? status === 'no'
                             ? 'ABWESEND'
@@ -631,6 +642,11 @@ export const EventDetailPage: React.FC = () => {
                               : 'OFFEN';
                         return (
                           <li key={player.id} className="flex flex-col gap-2 py-1.5">
+                            {showGroupHeading ? (
+                              <p className="pt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
+                                {groupTitle}
+                              </p>
+                            ) : null}
                             <MatchPlayerRow
                               player={player}
                               status={status ?? "open"}
@@ -751,17 +767,6 @@ export const EventDetailPage: React.FC = () => {
             ) : null}
           </Card>
         )}
-
-        {event.kind === 'match' && isTrainerOrAdmin && event.match_id ? (
-          <Button
-            type="button"
-            variant="primary"
-            className="min-h-[48px] w-full bg-red-600 text-white hover:bg-red-500"
-            onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(event.match_id)}`)}
-          >
-            Match vorbereiten
-          </Button>
-        ) : null}
 
         {event.kind === 'match' && event.status === 'live' && event.match_id ? (
           <Card className="flex flex-col gap-3">

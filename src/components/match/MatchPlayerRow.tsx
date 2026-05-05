@@ -44,12 +44,12 @@ export const MatchPlayerRow: React.FC<{
   const body = (
     <div
       className={[
-        "relative w-full rounded-2xl border p-3 text-left transition-all duration-150",
+        "w-full rounded-2xl border p-3 text-left transition-all duration-150",
         shellClass,
         onClick ? "active:scale-[0.98]" : "",
       ].join(" ")}
     >
-      <div className="flex items-start gap-3 pr-10">
+      <div className="flex items-start gap-3">
         <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/15 bg-zinc-800">
           <img
             src={avatarSrc}
@@ -66,18 +66,24 @@ export const MatchPlayerRow: React.FC<{
           </span>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="whitespace-normal break-words text-sm font-semibold text-white">{name}</div>
+          <div className="line-clamp-2 whitespace-normal break-words text-sm font-semibold leading-tight text-white">
+            {name}
+          </div>
           <div className="mt-0.5 text-[11px] text-gray-400">{position}</div>
         </div>
+        <div className="flex shrink-0 min-w-[72px] flex-col items-end justify-between self-stretch gap-2">
+          {rightLabel ? (
+            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusClass}`}>
+              {rightLabel}
+            </span>
+          ) : (
+            <span className="h-[22px]" aria-hidden />
+          )}
+          <div className="text-sm font-semibold text-red-300/90">
+            {number != null ? `#${number}` : "—"}
+          </div>
+        </div>
       </div>
-      <div className="pointer-events-none absolute bottom-2 right-3 text-sm font-semibold text-red-300/90">
-        {number != null ? `#${number}` : "—"}
-      </div>
-      {rightLabel ? (
-        <span className={`absolute right-3 top-2 rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusClass}`}>
-          {rightLabel}
-        </span>
-      ) : null}
     </div>
   );
 
