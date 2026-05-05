@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { CalendarDays, Pencil } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
@@ -142,6 +142,8 @@ export const EventDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deletingEvent, setDeletingEvent] = useState(false);
 
   const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | null>(null);
   const [loadingRsvp, setLoadingRsvp] = useState(true);
@@ -489,6 +491,41 @@ export const EventDetailPage: React.FC = () => {
     [eventAttendanceByPlayerId]
   );
 
+  const handleDeleteEvent = useCallback(async () => {
+    if (!eventId || !isTrainerOrAdmin || !event) return;
+    setDeletingEvent(true);
+    const matchIds = event.match_id ? [event.match_id] : [];
+    const { error } = await supabase.from('events').delete().eq('id', event.id);
+    if (error) {
+      alert(error.message);
+      setDeletingEvent(false);
+      return;
+    }
+    for (const matchId of matchIds) {
+      const { data: refs, error: refsErr } = await supabase
+        .from('events')
+        .select('id')
+        .eq('match_id', matchId)
+        .limit(1);
+      if (refsErr) {
+        alert(refsErr.message);
+        setDeletingEvent(false);
+        return;
+      }
+      if ((refs ?? []).length === 0) {
+        const { error: delMatchErr } = await supabase.from('matches').delete().eq('id', matchId);
+        if (delMatchErr) {
+          alert(delMatchErr.message);
+          setDeletingEvent(false);
+          return;
+        }
+      }
+    }
+    setDeletingEvent(false);
+    setDeleteConfirmOpen(false);
+    navigate('/app/termine');
+  }, [eventId, event, isTrainerOrAdmin, navigate]);
+
   if (!eventId) {
     return (
       <div className="min-h-screen bg-black text-white">
@@ -532,6 +569,18 @@ export const EventDetailPage: React.FC = () => {
           <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
             ← Zurück zum Spielplan
           </Link>
+          <Button
+            variant="soft"
+            size="sm"
+            className="w-full px-3 py-2 text-[13px] sm:w-auto sm:self-end"
+            onClick={() =>
+              downloadEventIcs(event as any, {
+                appBaseUrl: window.location.origin,
+              })
+            }
+          >
+            Zum Kalender hinzufügen
+          </Button>
           {isTrainerOrAdmin ? (
             <div className="grid w-full grid-cols-2 gap-3">
               <Button
@@ -544,33 +593,16 @@ export const EventDetailPage: React.FC = () => {
                 Bearbeiten
               </Button>
               <Button
-                variant="soft"
+                variant="negative"
                 size="sm"
                 className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px]"
-                onClick={() =>
-                  downloadEventIcs(event as any, {
-                    appBaseUrl: window.location.origin,
-                  })
-                }
+                onClick={() => setDeleteConfirmOpen(true)}
               >
-                <CalendarDays className="h-3.5 w-3.5" aria-hidden />
-                Kalender
+                <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                Löschen
               </Button>
             </div>
-          ) : (
-            <Button
-              variant="soft"
-              size="sm"
-              className="w-full px-3 py-2 text-[13px] sm:w-auto sm:self-end"
-              onClick={() =>
-                downloadEventIcs(event as any, {
-                  appBaseUrl: window.location.origin,
-                })
-              }
-            >
-              Zum Kalender hinzufügen
-            </Button>
-          )}
+          ) : null}
         </div>
 
         <div className="flex w-full min-w-0 flex-col">
@@ -977,6 +1009,35 @@ export const EventDetailPage: React.FC = () => {
               </div>
             </>
           )}
+        </Modal>
+        <Modal
+          isOpen={deleteConfirmOpen}
+          title="Termin löschen?"
+          onClose={() => {
+            if (!deletingEvent) setDeleteConfirmOpen(false);
+          }}
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="soft"
+                onClick={() => setDeleteConfirmOpen(false)}
+                disabled={deletingEvent}
+              >
+                Abbrechen
+              </Button>
+              <Button
+                variant="negative"
+                onClick={() => void handleDeleteEvent()}
+                disabled={deletingEvent}
+              >
+                Termin löschen
+              </Button>
+            </div>
+          }
+        >
+          <p className="text-sm text-[var(--text-sub)]">
+            Dieser Termin wird dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+          </p>
         </Modal>
 
         {isFan && (
