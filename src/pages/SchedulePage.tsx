@@ -3,6 +3,7 @@ import { CalendarDays, CalendarPlus, LayoutList, Pencil, Radio, Trash2 } from 'l
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
+import { AppButton } from '../components/ui/AppButton';
 import { CreateEventModal } from '../app/components/CreateEventModal';
 import { AttendanceStatusPill, type AttendanceStatusKind } from '../components/schedule/AttendanceStatusPill';
 import { CompactListParentAttendance } from '../components/schedule/CompactListParentAttendance';
@@ -1536,11 +1537,11 @@ export const SchedulePage: React.FC = () => {
             onClose={() => setTrainingRejoinModalEvent(null)}
             footer={
               <div className="flex justify-end gap-2">
-                <Button variant="soft" onClick={() => setTrainingRejoinModalEvent(null)}>
+                <AppButton variant="secondary" onClick={() => setTrainingRejoinModalEvent(null)}>
                   Abbrechen
-                </Button>
-                <Button
-                  variant="positive"
+                </AppButton>
+                <AppButton
+                  variant="success"
                   onClick={() => {
                     if (!trainingRejoinModalEvent) return;
                     void (async () => {
@@ -1550,7 +1551,7 @@ export const SchedulePage: React.FC = () => {
                   }}
                 >
                   ✅ Wieder dabei
-                </Button>
+                </AppButton>
               </div>
             }
           >

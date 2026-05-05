@@ -12,6 +12,7 @@ import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
+import { AppButton } from '../components/ui/AppButton';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
 import { downloadEventIcs } from '../lib/ics';
@@ -662,8 +663,8 @@ export const EventDetailPage: React.FC = () => {
           <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
             ← Zurück zum Spielplan
           </Link>
-          <Button
-            variant="soft"
+          <AppButton
+            variant="secondary"
             size="sm"
             className="w-full px-3 py-2 text-[13px] sm:w-auto sm:self-end"
             onClick={() =>
@@ -673,27 +674,27 @@ export const EventDetailPage: React.FC = () => {
             }
           >
             Zum Kalender hinzufügen
-          </Button>
+          </AppButton>
           {isTrainerOrAdmin ? (
             <div className="grid w-full grid-cols-2 gap-3">
-              <Button
-                variant="soft"
+              <AppButton
+                variant="secondary"
                 size="sm"
                 className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px]"
                 onClick={() => openEditModal(event)}
               >
                 <Pencil className="h-3.5 w-3.5" aria-hidden />
                 Bearbeiten
-              </Button>
-              <Button
-                variant="negative"
+              </AppButton>
+              <AppButton
+                variant="danger"
                 size="sm"
                 className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px]"
                 onClick={() => setDeleteConfirmOpen(true)}
               >
                 <Trash2 className="h-3.5 w-3.5" aria-hidden />
                 Löschen
-              </Button>
+              </AppButton>
             </div>
           ) : null}
         </div>
@@ -1111,20 +1112,20 @@ export const EventDetailPage: React.FC = () => {
           }}
           footer={
             <div className="flex justify-end gap-2">
-              <Button
-                variant="soft"
+              <AppButton
+                variant="secondary"
                 onClick={() => setDeleteConfirmOpen(false)}
                 disabled={deletingEvent}
               >
                 Abbrechen
-              </Button>
-              <Button
-                variant="negative"
+              </AppButton>
+              <AppButton
+                variant="danger"
                 onClick={() => void handleDeleteEvent()}
                 disabled={deletingEvent}
               >
                 Termin löschen
-              </Button>
+              </AppButton>
             </div>
           }
         >
@@ -1138,12 +1139,12 @@ export const EventDetailPage: React.FC = () => {
           onClose={closeEditModal}
           footer={
             <div className="flex justify-end gap-2">
-              <Button variant="soft" onClick={closeEditModal}>
+              <AppButton variant="secondary" onClick={closeEditModal}>
                 Abbrechen
-              </Button>
-              <Button type="submit" form="event-detail-edit-form" variant="primary" disabled={savingEdit}>
+              </AppButton>
+              <AppButton type="submit" form="event-detail-edit-form" variant="primary" disabled={savingEdit}>
                 {savingEdit ? 'Speichern…' : 'Speichern'}
-              </Button>
+              </AppButton>
             </div>
           }
         >
