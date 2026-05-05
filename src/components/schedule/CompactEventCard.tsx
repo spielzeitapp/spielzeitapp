@@ -154,20 +154,20 @@ export function CompactEventCard({
             {wdAbbrev}
           </span>
           <span className="text-[30px] font-bold tabular-nums leading-none text-white">{day}</span>
-          <span className="text-[10px] leading-tight text-white/50">{monYear}</span>
+          <span className="text-[12px] leading-tight text-white/60">{monYear}</span>
           <span className="text-[13px] font-medium tabular-nums leading-tight text-red-400">{timeStr}</span>
         </div>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center space-y-1.5">
           <p
-            className="min-w-0 break-words line-clamp-2 text-[15px] font-semibold leading-tight text-white"
+            className="min-w-0 break-words line-clamp-2 text-[17px] font-semibold leading-tight text-white"
             lang="de"
           >
             {parentTitle}
           </p>
           {parentSubline ? (
             <p
-              className="min-w-0 whitespace-normal break-words text-[13px] leading-tight text-white/70"
+              className="min-w-0 whitespace-normal break-words text-[14px] leading-tight text-white/70"
               lang="de"
             >
               {parentSubline}
@@ -218,7 +218,7 @@ export function CompactEventCard({
     );
 
   const titleClamp =
-    'line-clamp-2 min-w-0 whitespace-normal text-[15px] font-bold leading-tight text-white [overflow-wrap:normal] [word-break:normal]';
+    'line-clamp-2 min-w-0 whitespace-normal text-[17px] font-bold leading-tight text-white [overflow-wrap:normal] [word-break:normal]';
 
   const titleText = (
     <div className="min-w-0 flex-1">
@@ -240,12 +240,12 @@ export function CompactEventCard({
 
   const line2 =
     et === 'game' && gameSubtitle ? (
-      <p className="line-clamp-1 min-w-0 pl-[calc(2rem+0.375rem)] text-xs font-medium leading-snug text-white/55" lang="de">
+      <p className="line-clamp-1 min-w-0 pl-[calc(2rem+0.375rem)] text-[14px] font-medium leading-snug text-white/70" lang="de">
         {gameSubtitle}
       </p>
     ) : et !== 'game' && et !== 'training' && typeBadgeLabelOther ? (
       <span
-        className={`inline-flex w-fit max-w-full shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${eventTypeBadgeClass(et)}`}
+        className={`inline-flex w-fit max-w-full shrink-0 rounded-full px-2 py-0.5 text-[12px] font-bold uppercase tracking-wide ${eventTypeBadgeClass(et)}`}
       >
         {typeBadgeLabelOther}
       </span>
@@ -282,10 +282,10 @@ export function CompactEventCard({
       }
     >
       <div className="flex w-[70px] shrink-0 flex-col gap-0.5 text-left leading-none">
-        <span className="text-[10px] font-semibold uppercase leading-tight tracking-wide text-rose-300/90">{wd}</span>
+        <span className="text-[12px] font-semibold uppercase leading-tight tracking-wide text-rose-300/90">{wd}</span>
         <span className="text-[34px] font-bold tabular-nums leading-none text-white">{day}</span>
-        <span className="text-xs font-medium leading-tight text-white/65">{monYear}</span>
-        <span className="text-sm font-semibold tabular-nums leading-tight text-red-500">{timeStr}</span>
+        <span className="text-[12px] font-medium leading-tight text-white/70">{monYear}</span>
+        <span className="text-[14px] font-semibold tabular-nums leading-tight text-red-400">{timeStr}</span>
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5">

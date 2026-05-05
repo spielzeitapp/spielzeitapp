@@ -255,7 +255,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     {lastNameLine}
                   </p>
                 ) : null}
-                <p className="mt-2 max-w-[14rem] text-[11px] font-medium leading-snug text-white/55 sm:text-xs">
+                <p className="mt-2 max-w-[14rem] text-[12px] font-medium leading-snug text-white/70 sm:text-[12px]">
                   {teamSeasonLabel ?? "Team"}
                 </p>
               </div>
@@ -308,7 +308,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                       "min-h-[34px] flex-1 rounded-lg px-1 py-1.5 text-[10px] font-bold transition-all sm:min-h-[38px] sm:px-1.5 sm:text-[11px]",
                       active
                         ? "border border-red-500/40 bg-red-600/25 text-white shadow-[0_0_20px_rgba(220,38,38,0.35)]"
-                        : "border border-transparent text-white/45 hover:text-white/80",
+                        : "border border-transparent text-white/60 hover:text-white/80",
                     ].join(" ")}
                   >
                     {t.label}
@@ -359,7 +359,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 <p className="mt-2 text-center text-[11px] text-amber-400/95">{statsError}</p>
               ) : null}
               {!statsLoading && !statsError && stats.games === 0 ? (
-                <p className="mt-2 text-center text-[11px] text-white/40">Noch keine Ligadaten in dieser Saison</p>
+                <p className="mt-2 text-center text-[12px] text-white/60">Noch keine Ligadaten in dieser Saison</p>
               ) : null}
 
               <div className="mt-6">
@@ -390,7 +390,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   ))}
                 </div>
               ) : lastMatches.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-white/15 bg-white/[0.03] py-8 text-center text-sm text-white/50">
+                <p className="rounded-xl border border-dashed border-white/15 bg-white/[0.03] py-8 text-center text-sm text-white/70">
                   Noch keine Einsatzdaten
                 </p>
               ) : (
@@ -443,13 +443,13 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                       <Trophy className="h-5 w-5 shrink-0 text-red-400/80" strokeWidth={1.75} aria-hidden />
                       <div>
                         <div className="text-sm font-bold text-white">{c.title}</div>
-                        <div className="text-[11px] text-white/45">{c.sub}</div>
+                        <div className="text-[12px] text-white/70">{c.sub}</div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-              <p className="mt-4 text-center text-sm text-white/45">Noch keine Erfolge</p>
+              <p className="mt-4 text-center text-sm text-white/60">Noch keine Erfolge</p>
             </div>
           ) : null}
 
@@ -469,7 +469,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   style={{ width: `${Math.min(100, Math.max(0, trainingParticipationPct))}%` }}
                 />
               </div>
-              <p className="mt-3 text-xs text-white/55">
+              <p className="mt-3 text-[12px] text-white/70">
                 Teilgenommen: <span className="font-bold text-white">{trainingsAttended}</span> · Einheiten:{" "}
                 <span className="font-bold text-white">{trainingsTotal}</span>
               </p>

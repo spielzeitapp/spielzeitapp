@@ -721,7 +721,7 @@ export const TeamPage: React.FC = () => {
             <p className="text-lg font-bold leading-tight text-white sm:text-xl">
               {tsLoading ? "Lade Team…" : heroTeamName}
             </p>
-            <p className="mt-1 text-sm text-white/60">{heroSeason}</p>
+            <p className="mt-1 text-[14px] text-white/70">{heroSeason}</p>
           </div>
           <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/75 sm:text-sm">
             <span className="inline-flex items-center rounded-full border border-white/15 bg-black/35 px-2.5 py-1">
@@ -812,7 +812,7 @@ export const TeamPage: React.FC = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-white">Spielerfoto</p>
-                  <p className="text-xs text-white/55">JPG, PNG oder WebP, max. 3 MB</p>
+                  <p className="text-[12px] text-white/70">JPG, PNG oder WebP, max. 3 MB</p>
                 </div>
                 <input
                   ref={avatarInputRef}
@@ -991,10 +991,10 @@ export const TeamPage: React.FC = () => {
                             </div>
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="text-base font-semibold leading-tight text-white whitespace-normal break-words">
+                            <div className="text-[17px] font-semibold leading-tight text-white whitespace-normal break-words">
                               {rowName}
                             </div>
-                            <div className="mt-0.5 text-xs text-gray-400">{posLabel}</div>
+                            <div className="mt-0.5 text-[12px] text-white/70">{posLabel}</div>
                           </div>
                         </div>
                       </div>

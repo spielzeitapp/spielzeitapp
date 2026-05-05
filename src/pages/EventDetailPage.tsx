@@ -625,7 +625,7 @@ export const EventDetailPage: React.FC = () => {
       <div className="min-h-screen bg-black text-white">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-12 sm:px-4">
           <p>Keine Event-ID angegeben.</p>
-          <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
+          <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
             ← Zurück zum Spielplan
           </Link>
         </div>
@@ -726,10 +726,10 @@ export const EventDetailPage: React.FC = () => {
 
         <div className="flex flex-col rounded-xl border border-white/10 bg-black/25 px-3 py-2">
           {event.kind !== 'match' ? (
-            <p className="text-xs uppercase tracking-wide text-white/60">{getDomainEventLabel(event)}</p>
+            <p className="text-[12px] uppercase tracking-wide text-white/70">{getDomainEventLabel(event)}</p>
           ) : null}
-          <p className="text-sm font-medium text-white">{formatEventDateTimeLabel(event.starts_at)}</p>
-          {event.location ? <p className="text-xs text-white/70">{event.location}</p> : null}
+          <p className="text-[14px] font-medium text-white">{formatEventDateTimeLabel(event.starts_at)}</p>
+          {event.location ? <p className="text-[14px] text-white/70">{event.location}</p> : null}
         </div>
 
         {!isFan && (
@@ -772,10 +772,10 @@ export const EventDetailPage: React.FC = () => {
                 ) : null}
                 <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
                   {(playersLoading || loadingEventAttendance) && (
-                    <p className="text-sm text-[var(--text-sub)]">Lade…</p>
+                    <p className="text-[14px] text-white/70">Lade…</p>
                   )}
                   {!playersLoading && !loadingEventAttendance && players.length === 0 && (
-                    <p className="text-sm text-[var(--text-sub)]">Keine Spieler im Kader.</p>
+                    <p className="text-[14px] text-white/70">Keine Spieler im Kader.</p>
                   )}
                   {!playersLoading && !loadingEventAttendance && players.length > 0 && (
                     <ul className="flex flex-col gap-0 space-y-4">
@@ -855,7 +855,7 @@ export const EventDetailPage: React.FC = () => {
                                 )}
                               </div>
                               {isTraining && status === 'no' && eventAttendanceReasonByPlayerId[(player.id ?? '').toLowerCase()] ? (
-                                <span className="mt-1 block text-xs text-[var(--text-sub)]">
+                                <span className="mt-1 block text-[12px] text-white/70">
                                   Grund: {eventAttendanceReasonByPlayerId[(player.id ?? '').toLowerCase()]}
                                 </span>
                               ) : null}
@@ -869,11 +869,11 @@ export const EventDetailPage: React.FC = () => {
               </div>
             ) : (effectiveRole === 'player' || effectiveRole === 'parent') ? (
               <div className="flex flex-col gap-2">
-                <p className="text-sm text-[var(--text-sub)]">Dein Teilnahme-Status für diesen Termin.</p>
+                <p className="text-[14px] text-white/70">Dein Teilnahme-Status für diesen Termin.</p>
                 {!playerId ? (
-                  <p className="text-sm text-[var(--text-main)]">Kein Spieler zugeordnet. Bitte beim Trainer melden.</p>
+                  <p className="text-[14px] text-white/90">Kein Spieler zugeordnet. Bitte beim Trainer melden.</p>
                 ) : loadingRsvp ? (
-                  <p className="text-sm text-[var(--text-sub)]">Lade Status…</p>
+                  <p className="text-[14px] text-white/70">Lade Status…</p>
                 ) : (
                   <div className="flex flex-col gap-2">
                     {isTraining ? (
@@ -881,7 +881,7 @@ export const EventDetailPage: React.FC = () => {
                         <p className="text-sm font-medium text-[var(--text-main)]">
                           Status: {rsvpStatus === 'no' ? 'Abwesend' : 'Dabei'}
                         </p>
-                        <p className="mt-1 text-xs text-[var(--text-sub)]">
+                        <p className="mt-1 text-[12px] text-white/70">
                           {event.training_absence_deadline_disabled
                             ? 'Absage jederzeit möglich.'
                             : 'Absage bis 12:00 Uhr am Trainingstag möglich (Europe/Vienna).'}
