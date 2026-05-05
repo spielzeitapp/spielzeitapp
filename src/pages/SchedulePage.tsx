@@ -8,6 +8,7 @@ import { CreateEventModal } from '../app/components/CreateEventModal';
 import { AttendanceStatusPill, type AttendanceStatusKind } from '../components/schedule/AttendanceStatusPill';
 import { CompactListParentAttendance } from '../components/schedule/CompactListParentAttendance';
 import { CompactEventCard } from '../components/schedule/CompactEventCard';
+import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { EventHeroCard } from '../components/schedule/EventHeroCard';
 import { AttendanceActionRow } from '../components/schedule/AttendanceActionRow';
 import { ScheduleHeroEventCard } from '../components/schedule/ScheduleHeroEventCard';
@@ -1123,6 +1124,61 @@ export const SchedulePage: React.FC = () => {
                               {heroParentFooter}
                             </div>
                           ) : undefined;
+                        const opponentLogo =
+                          (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url ?? null;
+                        if (et === 'game') {
+                          return (
+                            <div key={ev.id} className="mb-4 w-full max-w-full" {...publicWrap}>
+                              <EventHeroCard label={heroLabelForEffectiveType(et)} footer={heroCardFooter}>
+                                <MatchCardLigaportal
+                                  className="max-w-full scale-[0.98] !px-3 !py-3"
+                                  scheduleNextMatchHero
+                                  ourTeamName={ourTeamName}
+                                  opponent={ev.opponent}
+                                  isHome={ev.is_home}
+                                  startsAt={ev.starts_at}
+                                  status={ev.status}
+                                  kind={ev.kind}
+                                  eventType={ev.type}
+                                  matchType={
+                                    ev.kind === 'match'
+                                      ? (ev.match_type ??
+                                          (!ev.type || ev.type === 'game' ? 'league' : ev.type))
+                                      : null
+                                  }
+                                  notes={ev.notes}
+                                  location={ev.location}
+                                  address={ev.location}
+                                  meetupAt={ev.meeting_at}
+                                  showMeetup={showMeetupForRole}
+                                  scoreHome={matchScore?.scoreHome ?? null}
+                                  scoreAway={matchScore?.scoreAway ?? null}
+                                  eventId={ev.id}
+                                  onNavigate={heroOnNavigate}
+                                  opponentLogoUrl={opponentLogo}
+                                  canManage={Boolean(heroShowsTrainerStats)}
+                                  attendanceCounts={countsForCard}
+                                  role={
+                                    heroShowsParentPill && (uiRole === 'parent' || uiRole === 'player')
+                                      ? uiRole
+                                      : null
+                                  }
+                                  attendanceStatus={
+                                    attendanceStatusMerged === 'yes'
+                                      ? 'yes'
+                                      : attendanceStatusMerged === 'no'
+                                        ? 'no'
+                                        : null
+                                  }
+                                  onOpenAttendance={
+                                    heroShowsParentPill ? () => setAttendanceModalEvent(ev) : undefined
+                                  }
+                                  isPublicView={forcePublicView}
+                                />
+                              </EventHeroCard>
+                            </div>
+                          );
+                        }
                         return (
                           <div key={ev.id} className="w-full" {...publicWrap}>
                             <EventHeroCard label={heroLabelForEffectiveType(et)} footer={heroCardFooter}>
@@ -1130,9 +1186,7 @@ export const SchedulePage: React.FC = () => {
                                 ev={ev}
                                 et={et}
                                 ourTeamName={ourTeamName}
-                                opponentLogoUrl={
-                                  (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url
-                                }
+                                opponentLogoUrl={opponentLogo}
                                 scoreHome={matchScore?.scoreHome}
                                 scoreAway={matchScore?.scoreAway}
                                 showMeetup={showMeetupForRole}

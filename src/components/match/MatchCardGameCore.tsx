@@ -215,6 +215,8 @@ export type MatchCardGameCoreProps = {
   kickoffHeaderLabel?: string | null;
   /** Nur großer Hero: „vs.“ zwischen Uhrzeit und Ort. */
   showCenterVs?: boolean;
+  /** Wenn gesetzt, steuert „Uhr“ unter der Anpfiff-Zeit (sonst: nur bei Spiel ohne Ergebnis). */
+  kickoffShowUhr?: boolean;
 };
 
 /**
@@ -242,6 +244,7 @@ export function MatchCardGameCore({
   kickoffSubtitleAboveHeader,
   kickoffHeaderLabel,
   showCenterVs,
+  kickoffShowUhr,
 }: MatchCardGameCoreProps) {
   const safeLeftName = (leftName || '').trim() || 'Team';
   const safeRightName = (rightName || '').trim() || 'Gegner';
@@ -297,7 +300,7 @@ export function MatchCardGameCore({
         >
           <MatchCardKickoffBlock
             timeDisplay={isMatch && showScore ? `${homeScore} : ${awayScore}` : timeDisplay}
-            showUhr={!isMatch || !showScore}
+            showUhr={kickoffShowUhr ?? (!isMatch || !showScore)}
             location={kickoffLocation}
             headerLabel={kickoffHeaderLabel ?? 'ANPFIFF'}
             subtitleAboveHeader={kickoffSubtitleAboveHeader}

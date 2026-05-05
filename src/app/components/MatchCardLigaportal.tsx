@@ -5,6 +5,7 @@ import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocati
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../../components/match/matchCardLabels';
 import { MatchCardGameCore, MatchCardKickoffBlock } from '../../components/match/MatchCardGameCore';
+import { formatHeroDateParts } from '../../components/schedule/scheduleEventViewUtils';
 
 /** Datum kurz in Europe/Vienna (z. B. Sa. 06.06.2026). */
 function formatDateShortDE(date: Date): string {
@@ -60,6 +61,8 @@ type MatchCardLigaportalProps = {
   suppressInlineAttendanceChip?: boolean;
   /** Externe Teilnehmerzahlen: Ja/Nein/Offen in der Datumszeile ausblenden. */
   suppressInlineAttendanceCounts?: boolean;
+  /** Termine-Liste: keine Kurz-Datumszeile über der Card; bei Spielen Datum-Badge in der Karte + optional keine „Uhr“ unter der Zeit. */
+  scheduleNextMatchHero?: boolean;
 };
 
 export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
@@ -93,7 +96,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   heroHighlight = false,
   suppressInlineAttendanceChip = false,
   suppressInlineAttendanceCounts = false,
+  scheduleNextMatchHero = false,
 }) => {
+  void ourTeamName;
   const ourClubName = getOurTeamDisplayName();
   const canSeeSensitiveInfo = showMeetup;
   const matchTypeLabel = getMatchTypeLabel(matchType);
@@ -214,72 +219,128 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     canManage && attendanceCounts != null && !suppressInlineAttendanceCounts;
 
   const compactParentRow = showAttendanceChip && !showAttendanceCounts && !showManageButtons;
-  const dateRow = (
-    <div className="mb-2">
-      <div className={`${compactParentRow ? 'flex items-center justify-between gap-2' : ''}`}>
-      <span className="block text-base font-semibold text-white min-w-0 truncate">
-        {date ? dateLabelShort : ''}
-      </span>
-      <div className={`${compactParentRow ? '' : 'mt-1.5'} flex items-center gap-1.5 shrink-0 flex-wrap justify-end`} onClick={(e) => e.stopPropagation()}>
-        {showAttendanceCounts && (
-          isTrainingCard ? (
+  const heroDateParts = formatHeroDateParts(startsAt);
+
+  const attendanceTrailing = (
+    <div
+      className={[
+        'flex items-center gap-1.5 shrink-0 flex-wrap justify-end',
+        compactParentRow || scheduleNextMatchHero ? '' : 'mt-1.5',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {showAttendanceCounts && attendanceCounts
+        ? isTrainingCard ? (
             <div className="flex items-center gap-1.5" aria-label="Trainings-Teilnahme">
-              <span className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abwesend">
+              <span
+                className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap"
+                title="Abwesend"
+              >
                 {attendanceCounts.no}
               </span>
-              <span className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Dabei">
+              <span
+                className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap"
+                title="Dabei"
+              >
                 {attendanceCounts.yes + attendanceCounts.open}
               </span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5" aria-label="Zu-/Absagen">
-              <span className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Zugesagt">
+              <span
+                className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap"
+                title="Zugesagt"
+              >
                 {attendanceCounts.yes}
               </span>
-              <span className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abgesagt">
+              <span
+                className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap"
+                title="Abgesagt"
+              >
                 {attendanceCounts.no}
               </span>
-              <span className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-white/10 text-white/70 border border-white/25 whitespace-nowrap" title="Offen">
+              <span
+                className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-white/10 text-white/70 border border-white/25 whitespace-nowrap"
+                title="Offen"
+              >
                 {attendanceCounts.open}
               </span>
             </div>
           )
-        )}
-        {showManageButtons && (
-          <>
-            {onEdit && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                className="rounded-full bg-red-700/80 px-2.5 py-0.5 text-xs text-white shrink-0"
-              >
-                Bearbeiten
-              </button>
-            )}
-            {onDelete && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                className="rounded-full bg-red-800/80 px-2.5 py-0.5 text-xs text-white shrink-0"
-              >
-                Löschen
-              </button>
-            )}
-          </>
-        )}
-        {showAttendanceChip && (
+        : null}
+      {showManageButtons && (
+        <>
+          {onEdit && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              className="rounded-full bg-red-700/80 px-2.5 py-0.5 text-xs text-white shrink-0"
+            >
+              Bearbeiten
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="rounded-full bg-red-800/80 px-2.5 py-0.5 text-xs text-white shrink-0"
+            >
+              Löschen
+            </button>
+          )}
+        </>
+      )}
+      {showAttendanceChip && (
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onOpenAttendance?.(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenAttendance?.();
+          }}
           className={attendanceChipClass}
         >
           {attendanceChipLabel}
         </button>
-        )}
-      </div>
+      )}
+    </div>
+  );
+
+  const dateRow = scheduleNextMatchHero ? null : (
+    <div className="mb-2">
+      <div className={`${compactParentRow ? 'flex items-center justify-between gap-2' : ''}`}>
+        <span className="block text-base font-semibold text-white min-w-0 truncate">
+          {date ? dateLabelShort : ''}
+        </span>
+        {attendanceTrailing}
       </div>
     </div>
   );
+
+  const scheduleGameHeader =
+    scheduleNextMatchHero && effectiveEventType === 'game' ? (
+      <div className="relative z-[1] mb-2 flex w-full min-w-0 items-start justify-between gap-2">
+        <div className="pointer-events-none flex shrink-0 flex-col items-start gap-0.5 rounded-xl border border-white/18 bg-black/68 px-2 py-2 text-left shadow-md backdrop-blur-md sm:gap-1 sm:px-2.5 sm:py-2">
+          <span className="text-[10px] font-black uppercase leading-none tracking-[0.12em] text-red-200 sm:text-[11px]">
+            {heroDateParts.wd}
+          </span>
+          <span className="text-2xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.65)] sm:text-3xl">
+            {heroDateParts.day}
+          </span>
+          <span className="text-[10px] font-bold uppercase leading-none tracking-[0.08em] text-white/88 sm:text-[11px]">
+            {heroDateParts.mon}
+          </span>
+        </div>
+        {attendanceTrailing}
+      </div>
+    ) : null;
 
   const cardContent = (
     <>
@@ -294,25 +355,27 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
       {effectiveEventType === 'game' ? (
         <>
+          {scheduleGameHeader}
           <MatchCardGameCore
-          headerTitle={null}
-          kickoffSubtitleAboveHeader={matchTypeLabel}
-          kickoffHeaderLabel={kickoffHeaderLabel}
-          leftName={leftName}
-          rightName={rightName}
-          opponentLogoUrl={rightLogoOverride}
-          timeDisplay={timeStr}
-          isMatch={isMatch}
-          showScore={showScore}
-          homeScore={home}
-          awayScore={away}
-          kickoffLocation={locationForKickoff}
-          meetupTimeOnly={meetupTimeOnly}
-          showMeetupPill={Boolean(canSeeSensitiveInfo && meetupTimeOnly)}
-          endTimeLabel={endTimeLabel}
-          descriptionText={descriptionText}
-          variant="schedule"
-        />
+            headerTitle={null}
+            kickoffSubtitleAboveHeader={matchTypeLabel}
+            kickoffHeaderLabel={kickoffHeaderLabel}
+            leftName={leftName}
+            rightName={rightName}
+            opponentLogoUrl={rightLogoOverride}
+            timeDisplay={timeStr}
+            isMatch={isMatch}
+            showScore={showScore}
+            homeScore={home}
+            awayScore={away}
+            kickoffLocation={locationForKickoff}
+            meetupTimeOnly={meetupTimeOnly}
+            showMeetupPill={Boolean(canSeeSensitiveInfo && meetupTimeOnly)}
+            endTimeLabel={endTimeLabel}
+            descriptionText={descriptionText}
+            variant="schedule"
+            kickoffShowUhr={scheduleNextMatchHero ? false : undefined}
+          />
         </>
       ) : (
         <>
