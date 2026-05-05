@@ -3,6 +3,7 @@ import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } f
 import { Card, CardTitle } from "../app/components/ui/Card";
 import { Tabs, TabOption } from "../app/components/ui/Tabs";
 import { Button } from "../app/components/ui/Button";
+import { AppButton } from "../components/ui/AppButton";
 import { Camera, Trash2 } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
@@ -702,16 +703,18 @@ export const TeamPage: React.FC = () => {
                   if (teamPhotoInputRef.current) teamPhotoInputRef.current.value = "";
                 }}
               />
-              <button
+              <AppButton
                 type="button"
+                variant="secondary"
+                size="sm"
                 disabled={teamPhotoUploading || !teamSeasonId}
                 onClick={() => teamPhotoInputRef.current?.click()}
                 title="Mannschaftsfoto"
-                className="inline-flex h-9 items-center gap-1 rounded-full border border-white/20 bg-black/50 px-2.5 text-white/90 shadow-[0_0_20px_rgba(220,38,38,0.2)] backdrop-blur-sm transition-all duration-150 hover:border-red-400/40 hover:bg-black/60 disabled:opacity-50 active:scale-[0.97] sm:h-8"
+                className="h-9 gap-1 px-2.5 backdrop-blur-sm hover:border-red-400/40 hover:bg-black/60 sm:h-8"
               >
                 <Camera className="h-4 w-4 shrink-0 text-red-300/95" aria-hidden />
                 <span className="text-[11px] font-medium text-white/85">Foto</span>
-              </button>
+              </AppButton>
             </div>
           ) : null}
           <div>
@@ -760,9 +763,9 @@ export const TeamPage: React.FC = () => {
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="mt-0">Kader</CardTitle>
           {teamSeasonId != null && canManagePlayers && !plLoading ? (
-            <Button type="button" variant="secondary" size="sm" onClick={() => (showForm ? closeForm() : openCreateForm())}>
+            <AppButton type="button" variant="secondary" size="md" onClick={() => (showForm ? closeForm() : openCreateForm())}>
               {showForm ? "Schließen" : "+ Spieler hinzufügen"}
-            </Button>
+            </AppButton>
           ) : null}
         </div>
         <div className="mt-2">

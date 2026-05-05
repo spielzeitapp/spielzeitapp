@@ -11,6 +11,7 @@ import {
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { usePlayerStats } from "../../hooks/usePlayerStats";
 import { Button } from "../../app/components/ui/Button";
+import { AppButton } from "../ui/AppButton";
 import { getPlayerBirthDisplayLines } from "../../lib/playerBirthDisplay";
 import { getPositionFull, getPositionLabel } from "../../lib/positionLabels";
 
@@ -477,9 +478,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
           {canManage ? (
             <div className="mt-6">
-              <Button type="button" fullWidth className="min-h-11 bg-red-600 text-white hover:bg-red-500" onClick={onEdit}>
+              <AppButton type="button" variant="primary" size="lg" fullWidth onClick={onEdit}>
                 Bearbeiten
-              </Button>
+              </AppButton>
             </div>
           ) : null}
         </div>
