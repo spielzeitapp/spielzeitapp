@@ -132,7 +132,7 @@ export function CompactEventCard({
     return (
       <div
         className={[
-          'mb-3 flex min-h-[96px] w-full min-w-0 flex-row items-stretch gap-3 overflow-hidden rounded-2xl border border-red-950/45 bg-zinc-950 px-2.5 py-3',
+          'mb-3 flex min-h-[96px] w-full min-w-0 flex-row items-stretch gap-3 overflow-hidden rounded-2xl border border-red-900/30 bg-gradient-to-br from-black via-[#0a0a0a] to-[#111] px-2.5 py-3 shadow-[0_0_20px_rgba(255,0,0,0.08)]',
           clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
         ].join(' ')}
         role={clickable ? 'button' : undefined}
@@ -149,40 +149,29 @@ export function CompactEventCard({
             : undefined
         }
       >
-        <div className="flex w-[60px] shrink-0 flex-col items-start justify-center gap-0 leading-none">
-          <span className="text-sm font-semibold uppercase leading-tight tracking-[0.12em] text-red-300">
+        <div className="flex w-[60px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-lg border border-white/10 bg-black/25 px-1.5 py-1.5 leading-none">
+          <span className="text-[11px] font-semibold uppercase leading-none tracking-widest text-red-400">
             {wdAbbrev}
           </span>
           <span className="text-[30px] font-bold tabular-nums leading-none text-white">{day}</span>
-          <span className="text-[10px] leading-tight text-gray-400">{monYear}</span>
+          <span className="text-[10px] leading-tight text-white/50">{monYear}</span>
           <span className="text-[13px] font-medium tabular-nums leading-tight text-red-400">{timeStr}</span>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center space-y-1.5">
           <p
-            className="min-w-0 whitespace-normal text-[15px] font-semibold leading-tight text-white [overflow-wrap:normal] [word-break:normal] line-clamp-2"
+            className="min-w-0 break-words line-clamp-2 text-[15px] font-semibold leading-tight text-white"
             lang="de"
           >
             {parentTitle}
           </p>
           {parentSubline ? (
-            et === 'training' ? (
-              <p
-                className="mt-1 min-w-0 truncate text-[12px] leading-snug text-gray-400 [overflow-wrap:normal] [word-break:normal]"
-                lang="de"
-                title={parentSubline}
-              >
-                {parentSubline}
-              </p>
-            ) : (
-              <p
-                className="mt-1 min-w-0 whitespace-normal text-[12px] leading-snug text-gray-400 line-clamp-2 [overflow-wrap:normal] [word-break:normal]"
-                lang="de"
-                title={parentSubline}
-              >
-                {parentSubline}
-              </p>
-            )
+            <p
+              className="min-w-0 whitespace-normal break-words text-[13px] leading-tight text-white/70"
+              lang="de"
+            >
+              {parentSubline}
+            </p>
           ) : null}
         </div>
 

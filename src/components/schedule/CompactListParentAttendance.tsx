@@ -10,7 +10,7 @@ type Props = {
 };
 
 const btnBase =
-  'max-w-[90px] min-w-0 shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold leading-tight ease-out transition-all duration-200 active:scale-95 inline-flex items-center justify-center gap-0.5';
+  'ml-2 max-w-[92px] min-w-0 shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold leading-tight ease-out transition-all duration-200 active:scale-95 inline-flex items-center justify-center gap-0.5';
 
 const iconPop =
   'compact-rsvp-icon-pop inline-block shrink-0 origin-center transition-all duration-200 ease-out opacity-100 scale-100';
@@ -31,7 +31,7 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
           <span className={iconPop} aria-hidden>
             ✕
           </span>
-          <span className="min-w-0 truncate">Abgesagt</span>
+          <span className="min-w-0">Abgesagt</span>
         </button>
       );
     }
@@ -40,7 +40,7 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
         <span className={iconPop} aria-hidden>
           ✓
         </span>
-        <span className="min-w-0 truncate">Dabei</span>
+        <span className="min-w-0">Dabei</span>
       </button>
     );
   }
@@ -51,7 +51,7 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
         <span className={iconPop} aria-hidden>
           ✓
         </span>
-        <span className="min-w-0 truncate">Zugesagt</span>
+        <span className="min-w-0">Dabei</span>
       </button>
     );
   }
@@ -61,7 +61,7 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
         <span className={iconPop} aria-hidden>
           ✕
         </span>
-        <span className="min-w-0 truncate">Abgesagt</span>
+        <span className="min-w-0">Abgesagt</span>
       </button>
     );
   }

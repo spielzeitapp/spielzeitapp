@@ -168,6 +168,7 @@ export const SchedulePage: React.FC = () => {
 
   /** Zu-/Absage: Modal + Status. Gespeichertes Event = genau das angeklickte Spiel (ID-Konsistenz). */
   const [attendanceModalEvent, setAttendanceModalEvent] = useState<EventRow | null>(null);
+  const [trainingRejoinModalEvent, setTrainingRejoinModalEvent] = useState<EventRow | null>(null);
   const [attendanceStatusByEventId, setAttendanceStatusByEventId] = useState<Record<string, 'yes' | 'no'>>({});
   const [trainingCancelReason, setTrainingCancelReason] = useState('');
 
@@ -1100,7 +1101,7 @@ export const SchedulePage: React.FC = () => {
                           onOpen={() => {
                             const pill = attendanceMergedToPillStatus(attendanceStatusMerged);
                             if (et === 'training' && pill === 'no') {
-                              void setAttendance(ev.id, 'no').catch((e) => console.error('[ATTENDANCE]', e));
+                              setTrainingRejoinModalEvent(ev);
                               return;
                             }
                             setAttendanceModalEvent(ev);
@@ -1410,7 +1411,7 @@ export const SchedulePage: React.FC = () => {
                       }}
                       className="flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none rounded-xl py-3 px-5 text-sm font-semibold text-white bg-green-600 hover:bg-green-500 active:scale-[0.98] transition-all"
                     >
-                      Zusage
+                      Dabei
                     </button>
                     <button
                       type="button"
@@ -1427,6 +1428,34 @@ export const SchedulePage: React.FC = () => {
                 </>
               )}
             </div>
+          </Modal>
+
+          <Modal
+            isOpen={trainingRejoinModalEvent != null}
+            title="Wieder zusagen?"
+            onClose={() => setTrainingRejoinModalEvent(null)}
+            footer={
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setTrainingRejoinModalEvent(null)}>
+                  Abbrechen
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    if (!trainingRejoinModalEvent) return;
+                    void setAttendance(trainingRejoinModalEvent.id, 'no')
+                      .then(() => setTrainingRejoinModalEvent(null))
+                      .catch((e) => console.error('[ATTENDANCE]', e));
+                  }}
+                >
+                  ✅ Wieder dabei
+                </Button>
+              </div>
+            }
+          >
+            <p className="text-sm text-[var(--text-sub)]">
+              Deine Teilnahme am Training wird wieder auf „Dabei“ gesetzt.
+            </p>
           </Modal>
         </div>
       </div>
