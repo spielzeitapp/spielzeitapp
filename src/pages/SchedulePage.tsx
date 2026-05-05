@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { CalendarDays, CalendarPlus, LayoutList, Pencil, Radio, Trash2 } from 'lucide-react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
@@ -132,7 +132,8 @@ export const SchedulePage: React.FC = () => {
     useActiveTeamSeason();
   const { teamSeasonId: publicTeamId, teamLabel: publicLabel, loading: publicLoading } =
     usePublicTeamSeason();
-  const { selectedMembership } = useSession();
+  const { selectedMembership, user } = useSession();
+  const userId = user?.id ?? null;
   const effectiveTeamSeasonId = teamSeasonId ?? publicTeamId;
   const { events, loading: eLoading, error: eError, refetch } = useEvents(effectiveTeamSeasonId);
 
@@ -668,6 +669,50 @@ export const SchedulePage: React.FC = () => {
     role: normalizedUiRole,
     teamSeasonId,
   });
+
+  /**
+   * Training „Wieder dabei“: Absage-Zeile in event_attendance zuverlässig entfernen
+   * (Standard = dabei ohne Datensatz). Umgeht Toggle-/Stale-State-Fälle von setAttendance.
+   */
+  const reinstateTrainingParticipation = useCallback(
+    async (eventId: string): Promise<boolean> => {
+      let playerId = myAttendancePlayerIds[0] ?? null;
+      if (!playerId && userId) {
+        const byGuardian = await supabase.from('player_guardians').select('player_id').eq('user_id', userId);
+        if (!byGuardian.error && byGuardian.data?.length) playerId = byGuardian.data[0].player_id;
+        if (!playerId) {
+          const byPlayer = await supabase.from('player_users').select('player_id').eq('user_id', userId);
+          if (!byPlayer.error && byPlayer.data?.length) playerId = byPlayer.data[0].player_id;
+        }
+      }
+
+      if (!eventId || !playerId) {
+        setToastMessage(!playerId ? 'Kein Spieler zugeordnet.' : 'Event fehlt.');
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('event_attendance')
+        .delete()
+        .eq('event_id', eventId)
+        .eq('player_id', playerId);
+
+      if (error) {
+        console.error('[ATTENDANCE] Training rejoin delete', error);
+        setToastMessage(error.message ?? 'Speichern fehlgeschlagen.');
+        return false;
+      }
+
+      setAttendanceStatusByEventId((prev) => {
+        const next = { ...prev };
+        delete next[eventId];
+        return next;
+      });
+      await refreshAttendance();
+      return true;
+    },
+    [myAttendancePlayerIds, userId, refreshAttendance],
+  );
 
   const rosterSize = players.length;
 
@@ -1443,9 +1488,10 @@ export const SchedulePage: React.FC = () => {
                   variant="primary"
                   onClick={() => {
                     if (!trainingRejoinModalEvent) return;
-                    void setAttendance(trainingRejoinModalEvent.id, 'no')
-                      .then(() => setTrainingRejoinModalEvent(null))
-                      .catch((e) => console.error('[ATTENDANCE]', e));
+                    void (async () => {
+                      const ok = await reinstateTrainingParticipation(trainingRejoinModalEvent.id);
+                      if (ok) setTrainingRejoinModalEvent(null);
+                    })().catch((e) => console.error('[ATTENDANCE]', e));
                   }}
                 >
                   ✅ Wieder dabei

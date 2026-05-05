@@ -37,10 +37,7 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
     }
     return (
       <button type="button" className={`${btnBase} bg-green-600 text-white ${className}`} onClick={openModal}>
-        <span className={iconPop} aria-hidden>
-          ✓
-        </span>
-        <span className="min-w-0">Dabei</span>
+        <span className="min-w-0">✓ Dabei</span>
       </button>
     );
   }
