@@ -38,13 +38,13 @@ export const MatchPlayerRow: React.FC<{
         ? "bg-red-600/25 text-red-100 border-red-500/40"
         : "bg-amber-600/20 text-amber-100 border-amber-500/35";
   const shellClass = selected
-    ? "border-emerald-500/45 bg-gradient-to-br from-emerald-950/35 via-black/80 to-black"
-    : "border-red-900/40 bg-gradient-to-br from-red-900/40 via-black/80 to-black";
+    ? "border-red-900/35 bg-gradient-to-br from-black/90 to-red-950/20"
+    : "border-red-900/35 bg-gradient-to-br from-black/90 to-red-950/20";
 
   const body = (
     <div
       className={[
-        "w-full rounded-2xl border p-3 text-left transition-all duration-150",
+        "w-full rounded-2xl border px-3 py-3 text-left transition-all duration-150",
         shellClass,
         onClick ? "active:scale-[0.98]" : "",
       ].join(" ")}
@@ -66,7 +66,7 @@ export const MatchPlayerRow: React.FC<{
           </span>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="line-clamp-2 whitespace-normal break-words text-sm font-semibold leading-tight text-white">
+          <div className="line-clamp-2 whitespace-normal break-words text-[16px] font-semibold leading-tight text-white">
             {name}
           </div>
           <div className="mt-0.5 text-[11px] text-gray-400">{position}</div>

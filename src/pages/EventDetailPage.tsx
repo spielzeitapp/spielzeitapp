@@ -526,7 +526,7 @@ export const EventDetailPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-12 sm:px-4">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-28 sm:px-4">
         <div className="flex flex-col gap-3">
           <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
             ← Zurück zum Spielplan
@@ -534,7 +534,7 @@ export const EventDetailPage: React.FC = () => {
           <Button
             variant="soft"
             size="sm"
-            className="w-full rounded-xl sm:w-auto sm:self-end"
+            className="w-full px-3 py-2 text-[13px] sm:w-auto sm:self-end"
             onClick={() =>
               downloadEventIcs(event as any, {
                 appBaseUrl: window.location.origin,
@@ -610,7 +610,7 @@ export const EventDetailPage: React.FC = () => {
                   <Button
                     type="button"
                     variant="primary"
-                    className="min-h-[48px] w-full"
+                    className="mb-4 w-full py-3"
                     onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(event.match_id)}`)}
                   >
                     Match vorbereiten
@@ -624,7 +624,7 @@ export const EventDetailPage: React.FC = () => {
                     <p className="text-sm text-[var(--text-sub)]">Keine Spieler im Kader.</p>
                   )}
                   {!playersLoading && !loadingEventAttendance && players.length > 0 && (
-                    <ul className="flex flex-col gap-0">
+                    <ul className="flex flex-col gap-0 space-y-4">
                       {sortPlayersByAttendanceStatus(players, getAttendanceStatus).map((player, idx, arr) => {
                         const status = getAttendanceStatus(player.id);
                         const groupTitle = status === 'yes' ? 'Dabei' : status === 'no' ? 'Abgesagt' : 'Offen';
@@ -641,9 +641,9 @@ export const EventDetailPage: React.FC = () => {
                               ? 'ABWESEND'
                               : 'OFFEN';
                         return (
-                          <li key={player.id} className="flex flex-col gap-2 py-1.5">
+                          <li key={player.id} className="flex flex-col gap-2 py-1">
                             {showGroupHeading ? (
-                              <p className="pt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
+                              <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
                                 {groupTitle}
                               </p>
                             ) : null}
@@ -652,7 +652,7 @@ export const EventDetailPage: React.FC = () => {
                               status={status ?? "open"}
                               rightLabel={chipLabel}
                             />
-                            <div className="min-w-0 pl-1">
+                            <div className="mt-2 min-w-0 pl-1">
                             <div className="flex flex-wrap items-center gap-2">
                                 {isTraining ? (
                                   <>
@@ -660,10 +660,10 @@ export const EventDetailPage: React.FC = () => {
                                       type="button"
                                       disabled={!trainingCancellationAllowed || status === 'no'}
                                       onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                      className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition-all duration-150 active:scale-95 ${
+                                      className={`rounded-full border px-3 py-1.5 text-[13px] font-semibold transition-all duration-150 active:scale-95 ${
                                         !trainingCancellationAllowed || status === 'no'
                                           ? 'bg-white/7 text-white/55 border-white/15 cursor-not-allowed'
-                                          : 'bg-red-600/85 text-white border-red-400/20 shadow-[0_0_12px_rgba(239,68,68,0.22)] hover:bg-red-500'
+                                          : 'bg-red-600/85 text-white border-red-400/20 shadow-[0_0_8px_rgba(239,68,68,0.16)] hover:bg-red-500'
                                       }`}
                                     >
                                       {status === 'no' ? 'Abwesend' : !trainingCancellationAllowed ? 'Zu spät' : 'Absagen'}
@@ -672,24 +672,24 @@ export const EventDetailPage: React.FC = () => {
                                       type="button"
                                       disabled={status !== 'no'}
                                       onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                      className="rounded-full border border-green-400/20 px-2.5 py-1 text-xs font-semibold bg-green-600/85 text-white shadow-[0_0_12px_rgba(34,197,94,0.22)] transition-all duration-150 active:scale-95 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                                      className="rounded-full border border-green-400/20 px-3 py-1.5 text-[13px] font-semibold bg-green-600/85 text-white shadow-[0_0_8px_rgba(34,197,94,0.16)] transition-all duration-150 active:scale-95 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed"
                                     >
                                       Dabei
                                     </button>
                                   </>
                                 ) : (
-                                  <div className="flex gap-1">
+                                  <div className="flex gap-2">
                                     <button
                                       type="button"
                                       onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                      className="rounded-full border border-green-400/20 px-2.5 py-1 text-xs font-semibold bg-green-600/85 text-white shadow-[0_0_12px_rgba(34,197,94,0.22)] transition-all duration-150 active:scale-95 hover:bg-green-500"
+                                      className="rounded-full border border-green-400/20 px-3 py-1.5 text-[13px] font-semibold bg-green-600/85 text-white shadow-[0_0_8px_rgba(34,197,94,0.16)] transition-all duration-150 active:scale-95 hover:bg-green-500"
                                     >
                                       Dabei
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                      className="rounded-full border border-red-400/20 px-2.5 py-1 text-xs font-semibold bg-red-600/85 text-white shadow-[0_0_12px_rgba(239,68,68,0.22)] transition-all duration-150 active:scale-95 hover:bg-red-500"
+                                      className="rounded-full border border-red-400/20 px-3 py-1.5 text-[13px] font-semibold bg-red-600/85 text-white shadow-[0_0_8px_rgba(239,68,68,0.16)] transition-all duration-150 active:scale-95 hover:bg-red-500"
                                     >
                                       Abwesend
                                     </button>
@@ -784,7 +784,7 @@ export const EventDetailPage: React.FC = () => {
         ) : null}
 
         {event.kind === 'match' && isTrainerOrAdmin && (
-          <Card className="flex flex-col gap-2 overflow-hidden">
+          <Card className="mt-6 flex flex-col gap-2 overflow-hidden">
             <button
               type="button"
               onClick={() => setFeedSectionExpanded((v) => !v)}
