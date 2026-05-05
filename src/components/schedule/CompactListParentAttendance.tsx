@@ -1,6 +1,7 @@
 import React from 'react';
 import { triggerHaptic } from '../../lib/hapticFeedback';
 import type { AttendanceStatusKind } from './AttendanceStatusPill';
+import { AppButton } from '../ui/AppButton';
 
 type Props = {
   status: AttendanceStatusKind;
@@ -10,11 +11,7 @@ type Props = {
 };
 
 const btnBase =
-  'ml-2 max-w-[92px] min-w-0 shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold leading-tight transition-all duration-150 active:scale-95 inline-flex items-center justify-center gap-0.5 border';
-
-const btnPositive = 'bg-green-600/85 text-white border-green-400/20 shadow-[0_0_12px_rgba(34,197,94,0.22)]';
-const btnNegative = 'bg-red-600/85 text-white border-red-400/20 shadow-[0_0_12px_rgba(239,68,68,0.22)]';
-const btnPending = 'bg-slate-700/70 text-white/90 border-white/10';
+  'w-auto ml-2 max-w-[92px] min-w-0 shrink-0 whitespace-nowrap leading-tight inline-flex items-center justify-center gap-0.5';
 
 const iconPop =
   'compact-rsvp-icon-pop inline-block shrink-0 origin-center transition-all duration-200 ease-out opacity-80 scale-100';
@@ -31,38 +28,38 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
   if (isTraining) {
     if (status === 'no') {
       return (
-        <button type="button" className={`${btnBase} ${btnNegative} ${className}`} onClick={openModal}>
+        <AppButton type="button" variant="danger" size="sm" className={`${btnBase} ${className}`} onClick={openModal}>
           <span className={iconPop} aria-hidden>
             ✕
           </span>
           <span className="min-w-0">Abgesagt</span>
-        </button>
+        </AppButton>
       );
     }
     return (
-      <button type="button" className={`${btnBase} ${btnPositive} ${className}`} onClick={openModal}>
+      <AppButton type="button" variant="success" size="sm" className={`${btnBase} ${className}`} onClick={openModal}>
         <span className="min-w-0">✓ Dabei</span>
-      </button>
+      </AppButton>
     );
   }
 
   if (status === 'yes') {
     return (
-      <button type="button" className={`${btnBase} ${btnPositive} ${className}`} onClick={openModal}>
+      <AppButton type="button" variant="success" size="sm" className={`${btnBase} ${className}`} onClick={openModal}>
         <span className="min-w-0">✓ Zugesagt</span>
-      </button>
+      </AppButton>
     );
   }
   if (status === 'no') {
     return (
-      <button type="button" className={`${btnBase} ${btnNegative} ${className}`} onClick={openModal}>
+      <AppButton type="button" variant="danger" size="sm" className={`${btnBase} ${className}`} onClick={openModal}>
         <span className="min-w-0">✕ Abgesagt</span>
-      </button>
+      </AppButton>
     );
   }
   return (
-    <button type="button" className={`${btnBase} ${btnPending} ${className}`} onClick={openModal}>
+    <AppButton type="button" variant="pending" size="sm" className={`${btnBase} ${className}`} onClick={openModal}>
       Zu-/Absagen
-    </button>
+    </AppButton>
   );
 }
