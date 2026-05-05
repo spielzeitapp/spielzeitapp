@@ -1055,7 +1055,7 @@ export const TeamPage: React.FC = () => {
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
                   <div className="text-[12px] text-white/60">Teilnahmequote Team</div>
-                  <div className="mt-1 text-[22px] font-bold text-white">Noch keine Trainingsdaten</div>
+                  <div className="mt-1 text-[14px] font-medium text-white/80">Noch keine Trainingsdaten</div>
                 </div>
                 <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
                   <div className="text-[12px] text-white/60">Anzahl Trainings</div>
@@ -1063,7 +1063,7 @@ export const TeamPage: React.FC = () => {
                 </div>
                 <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
                   <div className="text-[12px] text-white/60">Durchschnittliche Beteiligung</div>
-                  <div className="mt-1 text-[22px] font-bold text-white">Noch keine Trainingsdaten</div>
+                  <div className="mt-1 text-[14px] font-medium text-white/80">Noch keine Trainingsdaten</div>
                 </div>
               </div>
               {trainingCount === 0 ? (
