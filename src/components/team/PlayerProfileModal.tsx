@@ -96,8 +96,8 @@ function PremiumStatTile({
         aria-hidden
       />
       <div className="relative text-left">
-        <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{label}</div>
-        <div className="mt-1 text-2xl font-black tabular-nums leading-none tracking-tight text-white sm:text-[1.85rem]">
+        <div className="text-[12px] font-semibold uppercase tracking-wide text-white/60">{label}</div>
+        <div className="mt-1 text-[22px] font-bold tabular-nums leading-none tracking-tight text-white">
           {value}
         </div>
       </div>
@@ -108,15 +108,15 @@ function PremiumStatTile({
 function SeasonMiniCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-black/35 px-2.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-      <div className="text-[9px] font-bold uppercase leading-tight tracking-wide text-white/45">{label}</div>
-      <div className="mt-0.5 text-base font-black tabular-nums text-white">{value}</div>
+      <div className="text-[12px] font-semibold uppercase leading-tight tracking-wide text-white/60">{label}</div>
+      <div className="mt-0.5 text-[22px] font-bold tabular-nums text-white">{value}</div>
     </div>
   );
 }
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-red-500/30 bg-red-500/[0.12] px-2.5 py-1 text-[11px] font-semibold text-white/90 shadow-[0_0_16px_rgba(220,38,38,0.12)] sm:px-3 sm:text-xs">
+    <span className="inline-flex items-center rounded-full border border-red-500/30 bg-red-500/[0.12] px-2.5 py-1 text-[12px] font-semibold text-white/90 shadow-[0_0_16px_rgba(220,38,38,0.12)] sm:px-3">
       {children}
     </span>
   );
@@ -124,7 +124,7 @@ function Chip({ children }: { children: React.ReactNode }) {
 
 function EinsatzBadge({ kind, label }: { kind: "full" | "sub_in" | "bank" | "partial"; label: string }) {
   const base =
-    "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide";
+    "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[12px] font-extrabold uppercase tracking-wide";
   if (kind === "bank") {
     return <span className={`${base} border-white/20 bg-white/10 text-white/55`}>{label}</span>;
   }
@@ -255,7 +255,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     {lastNameLine}
                   </p>
                 ) : null}
-                <p className="mt-2 max-w-[14rem] text-[12px] font-medium leading-snug text-white/70 sm:text-[12px]">
+                <p className="mt-2 max-w-[14rem] text-[14px] font-medium leading-snug text-white/70">
                   {teamSeasonLabel ?? "Team"}
                 </p>
               </div>
@@ -305,7 +305,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     type="button"
                     onClick={() => setProfileTab(t.id)}
                     className={[
-                      "min-h-[34px] flex-1 rounded-lg px-1 py-1.5 text-[10px] font-bold transition-all sm:min-h-[38px] sm:px-1.5 sm:text-[11px]",
+                      "min-h-[34px] flex-1 rounded-lg px-1 py-1.5 text-[12px] font-bold transition-all sm:min-h-[38px] sm:px-1.5",
                       active
                         ? "border border-red-500/40 bg-red-600/25 text-white shadow-[0_0_20px_rgba(220,38,38,0.35)]"
                         : "border border-transparent text-white/60 hover:text-white/80",
@@ -363,7 +363,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
               ) : null}
 
               <div className="mt-6">
-                <h4 className="mb-2.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+                <h4 className="mb-2.5 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
                   Saisonstatistik
                 </h4>
                 <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
@@ -402,12 +402,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="text-[10px] font-extrabold uppercase tracking-wide text-red-300/90">
+                          <div className="text-[12px] font-semibold uppercase tracking-wide text-white/60">
                             {m.dateLabel}
                           </div>
-                          <div className="mt-1 truncate text-base font-bold text-white">{m.opponent}</div>
+                          <div className="mt-1 truncate text-[17px] font-bold text-white">{m.opponent}</div>
                         </div>
-                        <div className="shrink-0 rounded-lg border border-white/15 bg-black/45 px-2 py-1 text-lg font-black tabular-nums text-white">
+                        <div className="shrink-0 rounded-lg border border-white/15 bg-black/45 px-2 py-1 text-[22px] font-bold tabular-nums text-white">
                           {m.result}
                         </div>
                       </div>
@@ -426,7 +426,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
           {profileTab === "achievements" ? (
             <div>
-              <h4 className="mb-2.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+              <h4 className="mb-2.5 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
                 Auszeichnungen
               </h4>
               <div className="grid gap-2.5 sm:grid-cols-1">
@@ -442,14 +442,14 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     <div className="flex items-center gap-2">
                       <Trophy className="h-5 w-5 shrink-0 text-red-400/80" strokeWidth={1.75} aria-hidden />
                       <div>
-                        <div className="text-sm font-bold text-white">{c.title}</div>
-                        <div className="text-[12px] text-white/70">{c.sub}</div>
+                        <div className="text-[16px] font-semibold text-white">{c.title}</div>
+                        <div className="text-[14px] text-white/75">{c.sub}</div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-              <p className="mt-4 text-center text-sm text-white/60">Noch keine Erfolge</p>
+              <p className="mt-4 text-center text-[14px] font-medium text-white/80">Noch keine Erfolge</p>
             </div>
           ) : null}
 
@@ -457,11 +457,11 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             <div className="rounded-2xl border border-white/10 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <div className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-red-400/85" strokeWidth={1.75} aria-hidden />
-                <h4 className="text-xs font-extrabold uppercase tracking-wide text-red-300/90">Training</h4>
+                <h4 className="text-[12px] font-extrabold uppercase tracking-wide text-red-300/90">Training</h4>
               </div>
               <div className="mt-4 flex items-baseline justify-between gap-2">
-                <span className="text-sm text-white/70">Teilnahmequote</span>
-                <span className="text-xl font-black tabular-nums text-white">{trainingParticipationPct}%</span>
+                <span className="text-[14px] text-white/70">Teilnahmequote</span>
+                <span className="text-[22px] font-bold tabular-nums text-white">{trainingParticipationPct}%</span>
               </div>
               <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-white/10">
                 <div

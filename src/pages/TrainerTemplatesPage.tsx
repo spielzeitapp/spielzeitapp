@@ -28,7 +28,7 @@ export const TrainerTemplatesPage: React.FC = () => {
     >
       <div className="mx-auto max-w-[560px] space-y-4">
         <h1 className="text-2xl font-bold tracking-tight text-white">Vorlagen</h1>
-        <p className="text-sm text-white/60">Gespeicherte Texte für Team-Push</p>
+        <p className="text-[14px] text-white/60">Gespeicherte Texte für Team-Push</p>
         <PushTeamSendPanel teamSeasonId={selectedTeamSeasonId} variant="templates-only" />
       </div>
     </div>

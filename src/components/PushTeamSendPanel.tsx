@@ -346,12 +346,12 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
     <div className="space-y-4">
       {showPushForm && (
       <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-        <h2 className="text-base font-semibold text-[var(--text-main)]">Team-Push</h2>
-        <p className="mt-1 text-xs text-[var(--text-sub)]">
+        <h2 className="text-lg font-bold text-white">Team-Push</h2>
+        <p className="mt-1 text-[14px] text-white/75">
           Push an Eltern und/oder Spieler des aktuellen Teams. Senden nur für Trainer oder Admin.
         </p>
 
-        <label className="mt-3 block text-xs font-medium text-[var(--text-sub)]" htmlFor="push-recipient">
+        <label className="mt-3 block text-[12px] font-medium uppercase tracking-wide text-white/60" htmlFor="push-recipient">
           Empfänger
         </label>
         <select
@@ -368,7 +368,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
           <option value="players">Nur Spieler</option>
         </select>
 
-        <label className="mt-3 block text-xs font-medium text-[var(--text-sub)]" htmlFor="push-template-pick">
+        <label className="mt-3 block text-[12px] font-medium uppercase tracking-wide text-white/60" htmlFor="push-template-pick">
           Vorlage auswählen
         </label>
         <select
@@ -388,7 +388,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
 
         {SHOW_TEAM_PUSH_EVENT_PICKER && (
           <>
-            <label className="mt-3 block text-xs font-medium text-[var(--text-sub)]" htmlFor="push-event-pick">
+            <label className="mt-3 block text-[12px] font-medium uppercase tracking-wide text-white/60" htmlFor="push-event-pick">
               Termin (Platzhalter)
             </label>
             <select
@@ -405,9 +405,9 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-[11px] leading-snug text-[var(--text-sub)]">
+            <p className="mt-1 text-[12px] leading-snug text-white/60">
               Mit Termin:{' '}
-              <span className="text-white/50">
+              <span className="text-white/70">
                 {'{team}'}, {'{gegner}'}, {'{treffpunkt}'}, {'{anpfiff}'}, {'{datum}'}, {'{uhrzeit}'}
               </span>{' '}
               — ohne Termin bleiben Platzhalter leer beim Senden.
@@ -415,7 +415,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
           </>
         )}
 
-        <label className="mt-3 block text-xs font-medium text-[var(--text-sub)]" htmlFor="push-title">
+        <label className="mt-3 block text-[12px] font-medium uppercase tracking-wide text-white/60" htmlFor="push-title">
           Titel
         </label>
         <input
@@ -431,7 +431,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
           className="mt-1 w-full rounded-md border border-[var(--border)] bg-black/40 px-2 py-2 text-sm text-[var(--text-main)] placeholder:text-[var(--text-sub)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
         />
 
-        <label className="mt-3 block text-xs font-medium text-[var(--text-sub)]" htmlFor="push-body">
+        <label className="mt-3 block text-[12px] font-medium uppercase tracking-wide text-white/60" htmlFor="push-body">
           Text
         </label>
         <textarea
@@ -447,7 +447,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
           className="mt-1 w-full resize-y rounded-md border border-[var(--border)] bg-black/40 px-2 py-2 text-sm text-[var(--text-main)] placeholder:text-[var(--text-sub)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
         />
 
-        <label className="mt-3 block text-xs font-medium text-[var(--text-sub)]" htmlFor="push-url">
+        <label className="mt-3 block text-[12px] font-medium uppercase tracking-wide text-white/60" htmlFor="push-url">
           Link (Pfad in der App)
         </label>
         <input
@@ -520,17 +520,17 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
         </div>
 
         {!teamSeasonId && (
-          <p className="mt-2 text-xs text-amber-300/90">Kein Team/Saison gewählt.</p>
+          <p className="mt-2 text-[12px] text-amber-300/90">Kein Team/Saison gewählt.</p>
         )}
       </div>
       )}
 
       {showTemplatesList && (
       <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-        <h3 className="text-base font-semibold text-[var(--text-main)]">Vorlagen</h3>
-        <p className="mt-1 text-xs text-[var(--text-sub)]">Gespeicherte Texte für schnelles Wiederverwenden.</p>
+        <h3 className="text-[16px] font-semibold text-white">Vorlagen</h3>
+        <p className="mt-1 text-[14px] text-white/75">Gespeicherte Texte für schnelles Wiederverwenden.</p>
         {variant === 'templates-only' && (
-          <p className="mt-2 text-xs text-[var(--text-sub)]">
+          <p className="mt-2 text-[14px] text-white/75">
             Neue Vorlage:{' '}
             <Link to="/app/mehr/trainer/team-push" className="font-medium text-red-400 underline-offset-2 hover:underline">
               Team-Push
@@ -540,11 +540,11 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
         )}
 
         {!teamId && (
-          <p className="mt-3 text-sm text-white/50">Kein Team gewählt.</p>
+          <p className="mt-3 text-[14px] font-medium text-white/80">Kein Team gewählt.</p>
         )}
 
         {teamId && templates.length === 0 && (
-          <p className="mt-3 text-sm text-white/50">Noch keine Vorlagen gespeichert.</p>
+          <p className="mt-3 text-[14px] font-medium text-white/80">Noch keine Vorlagen gespeichert.</p>
         )}
 
         {teamId && templates.length > 0 && (
@@ -553,14 +553,14 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
               <li key={t.id} className="px-3 py-2.5 first:pt-3 last:pb-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium text-[var(--text-main)]">{t.title}</div>
-                    <p className="mt-0.5 line-clamp-2 text-xs text-[var(--text-sub)]">{previewLine(t.message, 80)}</p>
+                    <div className="text-[16px] font-semibold text-white">{t.title}</div>
+                    <p className="mt-0.5 line-clamp-2 text-[14px] text-white/75">{previewLine(t.message, 80)}</p>
                   </div>
                   <button
                     type="button"
                     disabled={disabled || loading || deletingId === t.id}
                     onClick={() => void onDeleteTemplate(t.id)}
-                    className="shrink-0 text-xs font-medium text-red-400/90 hover:text-red-300 disabled:opacity-50"
+                    className="shrink-0 text-[12px] font-medium text-red-400/90 hover:text-red-300 disabled:opacity-50"
                   >
                     {deletingId === t.id ? '…' : 'Löschen'}
                   </button>
@@ -569,7 +569,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
                   type="button"
                   disabled={disabled || loading}
                   onClick={() => onUseTemplate(t)}
-                  className="mt-2 text-xs font-medium text-white/70 underline-offset-2 hover:text-white hover:underline disabled:opacity-50"
+                  className="mt-2 text-[12px] font-medium text-white/70 underline-offset-2 hover:text-white hover:underline disabled:opacity-50"
                 >
                   Übernehmen
                 </button>

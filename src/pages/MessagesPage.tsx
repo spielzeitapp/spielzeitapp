@@ -213,7 +213,7 @@ export const MessagesPage: React.FC = () => {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white">Nachrichten</h1>
-            <p className="text-sm text-white/60">Neueste zuerst</p>
+            <p className="text-[14px] text-white/60">Neueste zuerst</p>
           </div>
           {unreadCount > 0 && (
             <div className="rounded-full bg-red-600/20 px-3 py-1 text-xs font-semibold text-red-200">
@@ -223,11 +223,11 @@ export const MessagesPage: React.FC = () => {
         </div>
 
         {needsRelogin && (
-          <div className="text-center text-gray-400 mt-10">Bitte neu einloggen</div>
+          <div className="text-center text-[14px] font-medium text-white/80 mt-10">Bitte neu einloggen</div>
         )}
-        {loading && <p className="text-sm text-white/60">Laden…</p>}
+        {loading && <p className="text-[14px] text-white/60">Laden…</p>}
         {error && (
-          <p className="text-sm text-amber-300" role="alert">
+          <p className="text-[14px] text-amber-300" role="alert">
             {error}
           </p>
         )}
@@ -259,17 +259,17 @@ export const MessagesPage: React.FC = () => {
                         }}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div className="text-xs text-[var(--text-sub)]">{formatWhen(m.created_at)}</div>
+                          <div className="text-[12px] text-white/60">{formatWhen(m.created_at)}</div>
                           {!isRead && (
-                            <div className="shrink-0 rounded-full bg-red-600/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                            <div className="shrink-0 rounded-full bg-red-600/90 px-2 py-0.5 text-[12px] font-semibold text-white">
                               Neu
                             </div>
                           )}
                         </div>
-                        <h2 className={`mt-1 font-semibold ${isRead ? 'text-white/90' : 'text-white'}`}>
+                        <h2 className={`mt-1 text-[16px] font-semibold ${isRead ? 'text-white/90' : 'text-white'}`}>
                           {m.title}
                         </h2>
-                        <p className={`mt-2 line-clamp-2 whitespace-pre-wrap text-sm text-gray-300 ${isRead ? '' : 'text-red-100'}`}>
+                        <p className={`mt-2 line-clamp-2 whitespace-pre-wrap text-[14px] ${isRead ? 'text-white/75' : 'text-red-100'}`}>
                           {listBodyPreview(m)}
                         </p>
                       </button>

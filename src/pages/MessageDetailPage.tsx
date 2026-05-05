@@ -167,7 +167,7 @@ export const MessageDetailPage: React.FC = () => {
           ← Zurück
         </button>
 
-        {loading && <p className="text-sm text-white/60">Laden…</p>}
+        {loading && <p className="text-[14px] text-white/60">Laden…</p>}
         {error && (
           <p className="text-sm text-amber-300" role="alert">
             {error}
@@ -181,9 +181,9 @@ export const MessageDetailPage: React.FC = () => {
             <h1 className="text-2xl font-bold tracking-tight text-white">Nachricht</h1>
             <Card className="border-white/10 bg-white/5 text-white">
               <div className="px-4 py-3">
-                <div className="text-xs text-[var(--text-sub)]">{formatWhen(item.created_at)}</div>
-                <CardTitle className="text-base mt-1">{item.title}</CardTitle>
-                <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--text-sub)]">
+                <div className="text-[12px] text-white/60">{formatWhen(item.created_at)}</div>
+                <CardTitle className="text-[16px] font-semibold text-white mt-1">{item.title}</CardTitle>
+                <p className="mt-2 whitespace-pre-wrap text-[14px] text-white/75">
                   {bodyWithoutAppendedPath(item.body, item.content, item.type, item.title)}
                 </p>
 

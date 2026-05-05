@@ -648,7 +648,7 @@ export const EventDetailPage: React.FC = () => {
       <div className="min-h-screen bg-black text-white">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-12 sm:px-4">
           <p>{error ?? 'Termin nicht gefunden.'}</p>
-          <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
+          <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
             ← Zurück zum Spielplan
           </Link>
         </div>
@@ -660,7 +660,7 @@ export const EventDetailPage: React.FC = () => {
     <div className="min-h-screen bg-black text-white">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-28 sm:px-4">
         <div className="flex flex-col gap-3">
-          <Link to="/app/termine" className="text-sm text-white/80 hover:text-white">
+          <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
             ← Zurück zum Spielplan
           </Link>
           <AppButton
@@ -755,7 +755,7 @@ export const EventDetailPage: React.FC = () => {
                     <span className="rounded-full px-3 py-1 text-sm font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
                       Abgesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
                     </span>
-                    <span className="rounded-full px-3 py-1 text-sm font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30">
+                    <span className="rounded-full px-3 py-1 text-sm font-semibold bg-white/10 text-white/70 border border-white/25">
                       Offen: {Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}
                     </span>
                   </div>
@@ -797,7 +797,7 @@ export const EventDetailPage: React.FC = () => {
                         return (
                           <li key={player.id} className="flex flex-col gap-2 py-1">
                             {showGroupHeading ? (
-                              <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
+                              <p className="mb-2 mt-4 text-[12px] font-semibold uppercase tracking-[0.22em] text-white/60">
                                 {groupTitle}
                               </p>
                             ) : null}
@@ -878,7 +878,7 @@ export const EventDetailPage: React.FC = () => {
                   <div className="flex flex-col gap-2">
                     {isTraining ? (
                       <>
-                        <p className="text-sm font-medium text-[var(--text-main)]">
+                        <p className="text-[14px] font-medium text-white/90">
                           Status: {rsvpStatus === 'no' ? 'Abwesend' : 'Dabei'}
                         </p>
                         <p className="mt-1 text-[12px] text-white/70">
@@ -887,7 +887,7 @@ export const EventDetailPage: React.FC = () => {
                             : 'Absage bis 12:00 Uhr am Trainingstag möglich (Europe/Vienna).'}
                         </p>
                         {!trainingCancellationAllowed && rsvpStatus !== 'no' ? (
-                          <p className="mt-1 text-xs text-amber-200/90">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
+                          <p className="mt-1 text-[12px] text-amber-200/90">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
                         ) : null}
                         <Button
                           variant={rsvpStatus === 'no' ? 'negative' : 'negative'}
@@ -907,7 +907,7 @@ export const EventDetailPage: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <p className="text-sm text-[var(--text-main)]">
+                        <p className="text-[14px] text-white/90">
                           Status: {rsvpStatus === 'yes' ? 'Zugesagt' : rsvpStatus === 'no' ? 'Abgesagt' : 'Offen'}
                         </p>
                         <Button
@@ -929,7 +929,7 @@ export const EventDetailPage: React.FC = () => {
         {event.kind === 'match' && event.status === 'live' && event.match_id ? (
           <Card className="flex flex-col gap-3">
             <CardTitle>Liveticker</CardTitle>
-            <p className="text-sm text-[var(--text-sub)]">
+            <p className="text-[14px] text-white/75">
               Aufstellung, Spielstand und Ereignisse findest du im zentralen Liveticker unter „Live“.
             </p>
             <Link
@@ -949,19 +949,19 @@ export const EventDetailPage: React.FC = () => {
               aria-expanded={feedSectionExpanded}
               className="flex w-full min-h-[48px] items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.07] active:bg-white/[0.05]"
             >
-              <span className="text-base font-semibold text-[var(--text-main)]">Feed / Spieltag (optional)</span>
-              <span className="shrink-0 text-sm text-white/50" aria-hidden>
+              <span className="text-[17px] font-semibold text-white">Feed / Spieltag (optional)</span>
+              <span className="shrink-0 text-[14px] text-white/60" aria-hidden>
                 {feedSectionExpanded ? '▾' : '▸'}
               </span>
             </button>
             {feedSectionExpanded ? (
               <div className="flex flex-col gap-3 pt-1">
-                <p className="text-xs leading-snug text-[var(--text-sub)]">
+                <p className="text-[14px] leading-snug text-white/75">
                   Wenn dieses Spiel auf der Startseite als nächstes Match erscheint, kann die große Hero-Karte hier
                   vorbereitet werden (nur URL-Eingaben, kein Upload).
                 </p>
-                {feedLoading ? <p className="text-sm text-[var(--text-sub)]">Lade Feed-Einstellungen…</p> : null}
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-main)]">
+                {feedLoading ? <p className="text-[14px] text-white/70">Lade Feed-Einstellungen…</p> : null}
+                <label className="flex cursor-pointer items-center gap-2 text-[14px] text-white/90">
                   <input
                     type="checkbox"
                     checked={showInFeed}
@@ -971,7 +971,7 @@ export const EventDetailPage: React.FC = () => {
                   Im Home Feed anzeigen
                 </label>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Template</label>
+                  <label className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-white/60">Template</label>
                   <select
                     value={template}
                     onChange={(e) => setTemplate(normalizeMatchFeedTemplateKey(e.target.value))}
@@ -985,7 +985,7 @@ export const EventDetailPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Spielerbild URL (optional)</label>
+                  <label className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-white/60">Spielerbild URL (optional)</label>
                   <input
                     type="url"
                     value={playerImage}
@@ -995,7 +995,7 @@ export const EventDetailPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Gegnerlogo URL (optional)</label>
+                  <label className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-white/60">Gegnerlogo URL (optional)</label>
                   <input
                     type="url"
                     value={opponentLogo}
@@ -1015,7 +1015,7 @@ export const EventDetailPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-[var(--text-sub)]">Subline (optional)</label>
+                  <label className="mb-1 block text-[12px] font-medium uppercase tracking-wide text-white/60">Subline (optional)</label>
                   <input
                     type="text"
                     value={subline}
@@ -1053,14 +1053,14 @@ export const EventDetailPage: React.FC = () => {
         >
           {isTraining ? (
             <>
-              <p className="text-sm text-[var(--text-sub)] mb-4">
+              <p className="mb-4 text-[14px] text-white/75">
                 Standard ist „Dabei“. Nur Absagen werden gespeichert.{' '}
                 {event?.training_absence_deadline_disabled
                   ? 'Absage jederzeit möglich.'
                   : 'Absage bis 12:00 Uhr am Trainingstag möglich (Europe/Vienna).'}
               </p>
               <div>
-                <label className="block text-sm font-medium text-[var(--text-main)] mb-1">
+                <label className="mb-1 block text-[14px] font-medium text-white/90">
                   Grund (optional)
                 </label>
                 <textarea
@@ -1082,7 +1082,7 @@ export const EventDetailPage: React.FC = () => {
             </>
           ) : (
             <>
-              <p className="text-sm text-[var(--text-sub)] mb-4">
+              <p className="mb-4 text-[14px] text-white/75">
                 Standard ist „Offen“, bis du zusagst oder absagst.
               </p>
               <div className="flex flex-wrap gap-3">
@@ -1133,7 +1133,7 @@ export const EventDetailPage: React.FC = () => {
             </div>
           }
         >
-          <p className="text-sm text-[var(--text-sub)]">
+          <p className="text-[14px] text-white/75">
             Dieser Termin wird dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
           </p>
         </Modal>

@@ -224,22 +224,22 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         {showAttendanceCounts && (
           isTrainingCard ? (
             <div className="flex items-center gap-1.5" aria-label="Trainings-Teilnahme">
-              <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abwesend">
+              <span className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abwesend">
                 {attendanceCounts.no}
               </span>
-              <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Dabei">
+              <span className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Dabei">
                 {attendanceCounts.yes + attendanceCounts.open}
               </span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5" aria-label="Zu-/Absagen">
-              <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Zugesagt">
+              <span className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-green-600/20 text-green-400 border border-green-500/40 whitespace-nowrap" title="Zugesagt">
                 {attendanceCounts.yes}
               </span>
-              <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abgesagt">
+              <span className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-red-600/20 text-red-400 border border-red-500/40 whitespace-nowrap" title="Abgesagt">
                 {attendanceCounts.no}
               </span>
-              <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold bg-gray-600/20 text-gray-400 border border-gray-500/30 whitespace-nowrap" title="Offen">
+              <span className="rounded-full px-2 py-0.5 text-[12px] font-semibold bg-white/10 text-white/70 border border-white/25 whitespace-nowrap" title="Offen">
                 {attendanceCounts.open}
               </span>
             </div>
@@ -286,7 +286,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       {/* Spielart bei Spielen: oberhalb „ANPFIFF“ in der Mittelspalte (MatchCardGameCore). Training/Event: Titel hier. */}
       {effectiveEventType !== 'game' && headerTitle ? (
         <div className="flex justify-center">
-          <p className="text-xl font-semibold text-white">
+          <p className="text-[17px] font-semibold text-white">
             {headerTitle}
           </p>
         </div>
@@ -331,7 +331,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               </div>
             ) : null}
             {addressLine && addressLine.toLowerCase() !== placeLine.toLowerCase() ? (
-              <div className="mt-1 flex min-h-9 max-w-[320px] items-center justify-center rounded-full bg-white/5 border border-white/10 px-5 py-2 text-xs font-medium text-white/80">
+              <div className="mt-1 flex min-h-9 max-w-[320px] items-center justify-center rounded-full bg-white/5 border border-white/10 px-5 py-2 text-[14px] font-medium text-white/75">
                 <span className="break-words line-clamp-3 text-center">{addressLine}</span>
               </div>
             ) : null}
@@ -351,7 +351,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             </div>
 
             {descriptionText ? (
-              <div className="mt-1 text-[13px] leading-snug text-white/75 font-semibold line-clamp-2 max-w-[320px]">
+              <div className="mt-1 max-w-[320px] line-clamp-2 text-[14px] font-semibold leading-snug text-white/75">
                 {descriptionText}
               </div>
             ) : null}

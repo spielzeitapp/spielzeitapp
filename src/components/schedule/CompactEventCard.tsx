@@ -150,7 +150,7 @@ export function CompactEventCard({
         }
       >
         <div className="flex w-[60px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-lg border border-white/10 bg-black/25 px-1.5 py-1.5 leading-none">
-          <span className="text-[11px] font-semibold uppercase leading-none tracking-widest text-red-400">
+          <span className="text-[12px] font-semibold uppercase leading-none tracking-widest text-red-400">
             {wdAbbrev}
           </span>
           <span className="text-[30px] font-bold tabular-nums leading-none text-white">{day}</span>

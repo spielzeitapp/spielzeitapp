@@ -8,10 +8,10 @@ import { supabase } from '../lib/supabaseClient';
 import { isHapticEnabled, setHapticEnabled, triggerHaptic } from '../lib/hapticFeedback';
 
 const rowClass =
-  'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-white transition-colors hover:bg-white/10';
+  'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-[16px] font-semibold text-white transition-colors hover:bg-white/10';
 
 const subRowClass =
-  'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 pl-10 text-left text-sm text-white transition-colors hover:bg-white/10';
+  'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 pl-10 text-left text-[16px] font-semibold text-white transition-colors hover:bg-white/10';
 
 function isTrainerToolsRole(role: string): boolean {
   const r = (role ?? '').trim().toLowerCase();
@@ -166,14 +166,14 @@ export const MoreHubPage: React.FC = () => {
     >
       <div className="mx-auto max-w-4xl space-y-4 lg:max-w-6xl">
         <h1 className="text-2xl font-bold tracking-tight text-white">Mehr</h1>
-        <p className="text-sm text-white/60">Einstellungen und weitere Bereiche</p>
+        <p className="text-[14px] text-white/60">Einstellungen und weitere Bereiche</p>
 
         <div className={rowClass}>
           <span className="flex items-center gap-3">
             <span className="text-lg leading-none" aria-hidden>
               🔘
             </span>
-            <span className="font-medium">Vibration bei Aktionen</span>
+            <span>Vibration bei Aktionen</span>
           </span>
           <button
             type="button"
@@ -204,7 +204,7 @@ export const MoreHubPage: React.FC = () => {
           <Link to="/app/nachrichten" className={rowClass}>
             <span className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-red-400" aria-hidden />
-              <span className="font-medium">Nachrichten</span>
+              <span>Nachrichten</span>
               {unreadCount > 0 && (
                 <span className="ml-2 inline-flex min-h-[17px] min-w-[17px] translate-y-[-1px] items-center justify-center rounded-full bg-red-500 px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-neutral-900">
                   {unreadCount > 99 ? '99+' : unreadCount}
@@ -231,7 +231,7 @@ export const MoreHubPage: React.FC = () => {
               >
                 <span className="flex items-center gap-2">
                   <Wrench className="h-5 w-5 text-red-400" aria-hidden />
-                  <span className="font-medium">Trainer-Tools</span>
+                  <span>Trainer-Tools</span>
                 </span>
                 <ChevronRight
                   className={[
@@ -276,7 +276,7 @@ export const MoreHubPage: React.FC = () => {
           <Link to="/app/profile" className={rowClass}>
             <span className="flex items-center gap-3">
               <Settings className="h-5 w-5 text-red-400" aria-hidden />
-              <span className="font-medium">Einstellungen</span>
+              <span>Einstellungen</span>
             </span>
             <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
           </Link>
@@ -284,8 +284,8 @@ export const MoreHubPage: React.FC = () => {
 
         {canSwitchTeam && (
           <Card className="mt-6 border-white/10 bg-white/5 p-4 text-white">
-            <h2 className="text-sm font-semibold text-white/90">Team / Saison</h2>
-            <label className="mt-2 block text-xs text-white/60" htmlFor="mehr-team-switch">
+            <h2 className="text-[16px] font-semibold text-white">Team / Saison</h2>
+            <label className="mt-2 block text-[12px] text-white/60" htmlFor="mehr-team-switch">
               Aktive Auswahl
             </label>
             <select
@@ -309,7 +309,7 @@ export const MoreHubPage: React.FC = () => {
             onClick={runReminderTest}
             className={`${rowClass} mt-6 border-red-500/40 bg-red-950/30 hover:bg-red-900/40`}
           >
-            <span className="font-medium">🔔 Reminder testen</span>
+            <span>🔔 Reminder testen</span>
           </button>
         )}
       </div>

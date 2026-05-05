@@ -723,7 +723,7 @@ export const TeamPage: React.FC = () => {
             </p>
             <p className="mt-1 text-[14px] text-white/70">{heroSeason}</p>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/75 sm:text-sm">
+          <div className="mt-4 flex flex-wrap gap-2 text-[14px] text-white/70">
             <span className="inline-flex items-center rounded-full border border-white/15 bg-black/35 px-2.5 py-1">
               {tsLoading ? "…" : `${players.length} Spieler`}
             </span>
@@ -994,11 +994,11 @@ export const TeamPage: React.FC = () => {
                             <div className="text-[17px] font-semibold leading-tight text-white whitespace-normal break-words">
                               {rowName}
                             </div>
-                            <div className="mt-0.5 text-[12px] text-white/70">{posLabel}</div>
+                            <div className="mt-0.5 text-[13px] text-white/70">{posLabel}</div>
                           </div>
                         </div>
                       </div>
-                      <div className="pointer-events-none absolute bottom-3 right-4 text-sm font-semibold text-red-400 opacity-80">
+                      <div className="pointer-events-none absolute bottom-3 right-4 text-sm font-bold text-red-400">
                         {p.jersey_number != null ? `#${p.jersey_number}` : "—"}
                       </div>
                     </button>
@@ -1015,9 +1015,9 @@ export const TeamPage: React.FC = () => {
         <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
           <CardTitle className="mt-0">Trainer</CardTitle>
           {teamSeasonId == null && !tsLoading ? (
-            <p className="mt-3 text-sm text-white/55">Bitte Team wählen.</p>
+            <p className="mt-3 text-[14px] text-white/70">Bitte Team wählen.</p>
           ) : staffRows.length === 0 ? (
-            <p className="mt-4 text-center text-sm text-white/50">Keine Trainer hinterlegt</p>
+            <p className="mt-4 text-center text-[14px] font-medium text-white/80">Keine Trainer hinterlegt</p>
           ) : (
             <ul className="mt-4 space-y-2.5">
               {staffRows.map((row) => (
@@ -1035,8 +1035,8 @@ export const TeamPage: React.FC = () => {
                       .toUpperCase() || "—"}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold text-white">{profileDisplayName(row.profiles)}</div>
-                    <div className="mt-0.5 text-xs text-white/55">{staffRoleLabelDe(row.role)}</div>
+                    <div className="truncate text-[17px] font-semibold text-white">{profileDisplayName(row.profiles)}</div>
+                    <div className="mt-0.5 text-[13px] text-white/70">{staffRoleLabelDe(row.role)}</div>
                   </div>
                 </li>
               ))}
@@ -1049,25 +1049,25 @@ export const TeamPage: React.FC = () => {
         <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
           <CardTitle className="mt-0">Training</CardTitle>
           {teamSeasonId == null && !tsLoading ? (
-            <p className="mt-3 text-sm text-white/55">Bitte Team wählen.</p>
+            <p className="mt-3 text-[14px] text-white/70">Bitte Team wählen.</p>
           ) : (
             <div className="mt-4 space-y-3">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
-                  <div className="text-xs text-white/50">Teilnahmequote Team</div>
-                  <div className="mt-1 text-lg font-bold text-white">Noch keine Trainingsdaten</div>
+                  <div className="text-[12px] text-white/60">Teilnahmequote Team</div>
+                  <div className="mt-1 text-[22px] font-bold text-white">Noch keine Trainingsdaten</div>
                 </div>
                 <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
-                  <div className="text-xs text-white/50">Anzahl Trainings</div>
-                  <div className="mt-1 text-lg font-bold text-white">{trainingCount}</div>
+                  <div className="text-[12px] text-white/60">Anzahl Trainings</div>
+                  <div className="mt-1 text-[22px] font-bold text-white">{trainingCount}</div>
                 </div>
                 <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
-                  <div className="text-xs text-white/50">Durchschnittliche Beteiligung</div>
-                  <div className="mt-1 text-lg font-bold text-white">Noch keine Trainingsdaten</div>
+                  <div className="text-[12px] text-white/60">Durchschnittliche Beteiligung</div>
+                  <div className="mt-1 text-[22px] font-bold text-white">Noch keine Trainingsdaten</div>
                 </div>
               </div>
               {trainingCount === 0 ? (
-                <p className="text-center text-sm text-white/50">Noch keine Trainingsdaten</p>
+                <p className="text-center text-[14px] font-medium text-white/80">Noch keine Trainingsdaten</p>
               ) : null}
             </div>
           )}
@@ -1078,13 +1078,13 @@ export const TeamPage: React.FC = () => {
         <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
           <CardTitle className="mt-0">Spiele</CardTitle>
           {teamSeasonId == null && !tsLoading ? (
-            <p className="mt-3 text-sm text-white/55">Bitte Team wählen.</p>
+            <p className="mt-3 text-[14px] text-white/70">Bitte Team wählen.</p>
           ) : recentMatches.length === 0 ? (
-            <p className="mt-4 text-center text-sm text-white/50">Keine Spiele vorhanden</p>
+            <p className="mt-4 text-center text-[14px] font-medium text-white/80">Keine Spiele vorhanden</p>
           ) : (
             <div className="mt-4 space-y-4">
               <div>
-                <p className="mb-2 text-xs uppercase tracking-wide text-white/45">Nächste / letzte Spiele</p>
+                <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-white/60">Nächste / letzte Spiele</p>
                 <ul className="space-y-2.5">
                   {recentMatches.map((m) => (
                     <li
@@ -1092,10 +1092,10 @@ export const TeamPage: React.FC = () => {
                       className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3 text-sm"
                     >
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="font-semibold text-white">{(m.opponent ?? "").trim() || "—"}</span>
+                        <span className="text-[17px] font-semibold text-white">{(m.opponent ?? "").trim() || "—"}</span>
                         <span className="tabular-nums text-white/80">{formatMatchResult(m)}</span>
                       </div>
-                      <div className="mt-1 text-xs text-white/50">{formatMatchDateDe(m.match_date)}</div>
+                      <div className="mt-1 text-[12px] text-white/60">{formatMatchDateDe(m.match_date)}</div>
                     </li>
                   ))}
                 </ul>
