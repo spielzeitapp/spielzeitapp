@@ -126,7 +126,7 @@ export function CompactEventCard({
       <img
         src={navIconUrl('home-ball.png')}
         alt=""
-        className="h-7 w-7 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_6px_rgba(255,90,90,0.2))]"
+        className="h-8 w-8 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_6px_rgba(255,90,90,0.2))]"
         decoding="async"
         draggable={false}
       />
@@ -149,7 +149,7 @@ export function CompactEventCard({
     return (
       <div
         className={[
-          'mb-3 -mx-1 flex min-h-[96px] w-[calc(100%+0.5rem)] min-w-0 flex-row items-stretch gap-3 overflow-hidden rounded-2xl border border-red-900/30 bg-gradient-to-br from-black via-[#0a0a0a] to-[#111] px-2.5 py-3 shadow-[0_0_20px_rgba(255,0,0,0.08)] sm:mx-0 sm:w-full',
+          'relative mb-3 -mx-1 flex min-h-[96px] w-[calc(100%+0.5rem)] min-w-0 flex-row items-stretch gap-3 overflow-hidden rounded-2xl border border-red-900/30 bg-gradient-to-br from-black via-[#0a0a0a] to-[#111] px-2 py-3 shadow-[0_0_20px_rgba(255,0,0,0.08)] sm:mx-0 sm:w-full',
           clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
         ].join(' ')}
         role={clickable ? 'button' : undefined}
@@ -175,7 +175,7 @@ export function CompactEventCard({
           <span className="text-[13px] font-medium tabular-nums leading-tight text-red-400">{timeStr}</span>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center space-y-1.5">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center space-y-1.5 pr-2">
           <div className="flex min-w-0 items-start gap-2">
             <div className="shrink-0 pt-0.5">{inlineTypeIcon}</div>
             <p
@@ -195,18 +195,16 @@ export function CompactEventCard({
           ) : null}
         </div>
 
-        <div className="flex w-[90px] shrink-0 flex-col items-end justify-between self-stretch py-0.5">
-          <div className="flex shrink-0 flex-col items-end opacity-90">{trailing}</div>
-          <div className="flex shrink-0 items-center justify-end self-center pr-3">
-            {clickable ? (
-              <span className="shrink-0 text-[28px] font-light leading-none text-white/55 transition-colors duration-200 group-hover:text-white/80 group-focus-visible:text-white/80" aria-hidden>
-                ›
-              </span>
-            ) : (
-              <span className="block h-6 w-3 shrink-0" aria-hidden />
-            )}
+        <div className="flex w-12 shrink-0 flex-col items-end justify-start py-0.5">
+          <div className="flex w-12 shrink-0 flex-col items-end gap-1 opacity-90 [&>*]:origin-top-right [&>*]:scale-90">
+            {trailing}
           </div>
         </div>
+        {clickable ? (
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[28px] font-light leading-none text-white/55 transition-colors duration-200" aria-hidden>
+            ›
+          </span>
+        ) : null}
       </div>
     );
   }
@@ -226,7 +224,7 @@ export function CompactEventCard({
       <img
         src={navIconUrl('home-ball.png')}
         alt=""
-        className="h-7 w-7 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_6px_rgba(255,90,90,0.2))]"
+        className="h-8 w-8 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_6px_rgba(255,90,90,0.2))]"
         decoding="async"
         draggable={false}
       />
@@ -307,7 +305,7 @@ export function CompactEventCard({
   return (
     <div
       className={[
-        'mb-3 -mx-1 flex w-[calc(100%+0.5rem)] min-w-0 flex-row items-start justify-between gap-2 overflow-x-hidden rounded-2xl border border-red-950/45 bg-zinc-950 px-2.5 py-3 sm:mx-0 sm:w-full',
+        'relative mb-3 -mx-1 flex w-[calc(100%+0.5rem)] min-w-0 flex-row items-start justify-between gap-2 overflow-x-hidden rounded-2xl border border-red-950/45 bg-zinc-950 px-2 py-3 sm:mx-0 sm:w-full',
         clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
@@ -331,7 +329,7 @@ export function CompactEventCard({
         <span className="text-[14px] font-semibold tabular-nums leading-tight text-red-400">{timeStr}</span>
       </div>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 pr-2">
         <div className="flex min-w-0 items-start gap-2">
           <div className="shrink-0 pt-0.5">{iconSlot}</div>
           {titleText}
@@ -340,18 +338,18 @@ export function CompactEventCard({
         {line3}
       </div>
 
-      <div className="flex w-[118px] shrink-0 flex-row items-center justify-end gap-1 pt-0.5">
-        {trailing ? <div className="min-w-0 shrink opacity-90">{trailing}</div> : null}
-        <div className="flex shrink-0 items-center justify-center self-center pr-3">
-          {clickable ? (
-            <span className="shrink-0 text-[28px] font-light leading-none text-white/55 transition-colors duration-200 group-hover:text-white/80 group-focus-visible:text-white/80" aria-hidden>
-              ›
-            </span>
-          ) : (
-            <span className="block h-6 w-3.5 shrink-0" aria-hidden />
-          )}
-        </div>
+      <div className="flex w-12 shrink-0 flex-row items-start justify-end gap-1 pt-0.5">
+        {trailing ? (
+          <div className="min-w-0 shrink opacity-90 [&>*]:origin-top-right [&>*]:scale-90">
+            {trailing}
+          </div>
+        ) : null}
       </div>
+      {clickable ? (
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[28px] font-light leading-none text-white/55 transition-colors duration-200" aria-hidden>
+          ›
+        </span>
+      ) : null}
     </div>
   );
 }
