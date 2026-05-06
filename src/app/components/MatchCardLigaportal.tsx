@@ -67,6 +67,8 @@ type MatchCardLigaportalProps = {
   scheduleNextMatchHero?: boolean;
   /** Nur „Nächstes Spiel“-Hero: Kalender-Icon oben rechts in der Card (neben RSVP/Zähler). */
   onScheduleHeroAddToCalendar?: () => void;
+  /** Event-Detail: Matchcard kompakter wie Schedule-Hero, ohne dessen Header/Actions. */
+  compactDetailGame?: boolean;
 };
 
 export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
@@ -102,6 +104,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   suppressInlineAttendanceCounts = false,
   scheduleNextMatchHero = false,
   onScheduleHeroAddToCalendar,
+  compactDetailGame = false,
 }) => {
   void ourTeamName;
   const ourClubName = getOurTeamDisplayName();
@@ -199,6 +202,16 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           return (raw.split(',')[0]?.trim() || raw) || null;
         })()
       : locationForKickoff;
+  const detailGameKickoffLocation =
+    compactDetailGame && isMatch
+      ? (() => {
+          const p = (placeLine ?? '').trim();
+          if (p) return (p.split(',')[0]?.trim() || p) || null;
+          const raw = (location ?? '').trim();
+          if (!raw) return null;
+          return (raw.split(',')[0]?.trim() || raw) || null;
+        })()
+      : scheduleHeroKickoffLocation;
 
   const handleCardClick = () => {
     if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
@@ -427,7 +440,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             showScore={showScore}
             homeScore={home}
             awayScore={away}
-            kickoffLocation={scheduleHeroKickoffLocation}
+            kickoffLocation={detailGameKickoffLocation}
             meetupTimeOnly={meetupTimeOnly}
             showMeetupPill={Boolean(canSeeSensitiveInfo && meetupTimeOnly)}
             endTimeLabel={endTimeLabel}
@@ -435,6 +448,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             variant="schedule"
             kickoffShowUhr={scheduleNextMatchHero ? false : undefined}
             compactScheduleHero={scheduleNextMatchHero}
+            compactDetailGame={compactDetailGame}
           />
         </>
       ) : (

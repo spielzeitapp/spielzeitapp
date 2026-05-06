@@ -699,9 +699,10 @@ export const EventDetailPage: React.FC = () => {
           ) : null}
         </div>
 
-        <div className="flex w-full min-w-0 flex-col">
+        <div className="-mx-3 flex w-[calc(100%+1.5rem)] min-w-0 max-w-none flex-col sm:mx-0 sm:w-full sm:max-w-full">
           <MatchCardLigaportal
-            className="!overflow-visible w-full max-w-none rounded-2xl"
+            className="!overflow-visible w-full max-w-full rounded-2xl"
+            compactDetailGame
             ourTeamName={ourTeamName}
             opponent={event.opponent}
             isHome={event.is_home}
@@ -724,12 +725,42 @@ export const EventDetailPage: React.FC = () => {
           />
         </div>
 
-        <div className="flex flex-col rounded-xl border border-white/10 bg-black/25 px-3 py-2">
-          {event.kind !== 'match' ? (
-            <p className="text-[12px] uppercase tracking-wide text-white/70">{getDomainEventLabel(event)}</p>
-          ) : null}
-          <p className="text-[14px] font-medium text-white">{formatEventDateTimeLabel(event.starts_at)}</p>
-          {event.location ? <p className="text-[14px] text-white/70">{event.location}</p> : null}
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/80">
+          <div className="grid gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.12em] text-white/60">Datum & Uhrzeit</p>
+              <p className="mt-0.5 text-[14px] font-medium text-white/90">{formatEventDateTimeLabel(event.starts_at)}</p>
+            </div>
+            {(() => {
+              const parsedLoc = splitCombinedLocation(event.location ?? '');
+              const place = (parsedLoc.place ?? '').trim();
+              const address = (parsedLoc.address ?? '').trim();
+              return (
+                <>
+                  {place ? (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-white/60">Spielort / Platzname</p>
+                      <p className="mt-0.5 text-[14px] font-medium text-white/90 break-words">{place}</p>
+                    </div>
+                  ) : null}
+                  {address ? (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-white/60">Adresse / PLZ / Ort</p>
+                      <p className="mt-0.5 text-[14px] font-medium text-white/90 break-words">{address}</p>
+                    </div>
+                  ) : null}
+                </>
+              );
+            })()}
+            {event.meeting_at ? (
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.12em] text-white/60">Treffpunkt</p>
+                <p className="mt-0.5 text-[14px] font-medium text-white/90">
+                  {utcIsoToViennaTimeHHmm(event.meeting_at)} Uhr
+                </p>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {!isFan && (

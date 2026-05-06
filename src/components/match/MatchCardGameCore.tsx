@@ -283,6 +283,8 @@ export type MatchCardGameCoreProps = {
   kickoffShowUhr?: boolean;
   /** Termine „Nächstes Spiel“: kompakteres 3-Spalten-Layout (ohne EventDetail zu beeinflussen). */
   compactScheduleHero?: boolean;
+  /** Event-Detail: kompaktere Team-/Spaltengeometrie ohne Schedule-Hero-Extras. */
+  compactDetailGame?: boolean;
 };
 
 /**
@@ -312,19 +314,22 @@ export function MatchCardGameCore({
   showCenterVs,
   kickoffShowUhr,
   compactScheduleHero = false,
+  compactDetailGame = false,
 }: MatchCardGameCoreProps) {
   const safeLeftName = (leftName || '').trim() || 'Team';
   const safeRightName = (rightName || '').trim() || 'Gegner';
   const hero = variant === 'home-hero';
   const cs = Boolean(compactScheduleHero) && !hero;
+  const cd = Boolean(compactDetailGame) && !hero;
+  const compactTeamLayout = cs || cd;
   const leftSplit = splitPrefixAndName(safeLeftName);
   const rightSplit = splitPrefixAndName(safeRightName);
   const leftLogoUrl = getLogoSrcForDisplayName(safeLeftName, null);
   const rightLogoUrl = getLogoSrcForDisplayName(safeRightName, opponentLogoUrl ?? null);
 
-  const gridMt = hero ? 'mt-8' : cs ? 'mt-2' : 'mt-4';
-  const gridGap = hero ? 'gap-x-2 sm:gap-x-4' : cs ? 'gap-x-1 sm:gap-x-2' : 'gap-x-4';
-  const meetupMt = hero ? 'mt-6' : cs ? 'mt-3' : 'mt-5';
+  const gridMt = hero ? 'mt-8' : compactTeamLayout ? 'mt-2' : 'mt-4';
+  const gridGap = hero ? 'gap-x-2 sm:gap-x-4' : compactTeamLayout ? 'gap-x-1 sm:gap-x-2' : 'gap-x-4';
+  const meetupMt = hero ? 'mt-6' : compactTeamLayout ? 'mt-3' : 'mt-5';
 
   return (
     <>
@@ -344,12 +349,12 @@ export function MatchCardGameCore({
 
       <div
         className={`${gridMt} grid ${
-          cs ? 'grid-cols-[1.16fr_auto_1.16fr]' : 'grid-cols-[1.02fr_auto_1.02fr]'
+          compactTeamLayout ? 'grid-cols-[1.16fr_auto_1.16fr]' : 'grid-cols-[1.02fr_auto_1.02fr]'
         } items-center ${gridGap} ${hero ? 'min-h-[140px] sm:min-h-[160px]' : ''}`}
       >
         <div
           className={`flex min-h-0 min-w-0 flex-col items-center justify-center border-r border-white/[0.12] text-center ${
-            cs ? 'py-1 pr-1 sm:pr-2' : 'py-2 pr-3 sm:pr-5'
+            compactTeamLayout ? 'py-1 pr-1 sm:pr-2' : 'py-2 pr-3 sm:pr-5'
           }`}
         >
           {hero && leftColumnLabel ? (
@@ -360,7 +365,7 @@ export function MatchCardGameCore({
             prefix={leftSplit.prefix || undefined}
             name={leftSplit.name || '–'}
             hero={hero}
-            compact={cs}
+            compact={compactTeamLayout}
           />
         </div>
 
@@ -368,7 +373,7 @@ export function MatchCardGameCore({
           className={`flex min-h-0 min-w-0 flex-col items-center justify-center px-0.5 text-center sm:px-1 ${
             hero
               ? 'max-w-[min(300px,min(94vw,100%))]'
-              : cs
+              : compactTeamLayout
                 ? 'max-w-[92px] sm:max-w-[104px]'
                 : 'max-w-[118px] sm:max-w-[134px]'
           }`}
@@ -387,7 +392,7 @@ export function MatchCardGameCore({
 
         <div
           className={`flex min-h-0 min-w-0 flex-col items-center justify-center border-l border-white/[0.12] text-center ${
-            cs ? 'py-1 pl-1 sm:pl-2' : 'py-2 pl-3 sm:pl-5'
+            compactTeamLayout ? 'py-1 pl-1 sm:pl-2' : 'py-2 pl-3 sm:pl-5'
           }`}
         >
           {hero && rightColumnLabel ? (
@@ -398,7 +403,7 @@ export function MatchCardGameCore({
             prefix={rightSplit.prefix || undefined}
             name={rightSplit.name || '–'}
             hero={hero}
-            compact={cs}
+            compact={compactTeamLayout}
           />
         </div>
       </div>
