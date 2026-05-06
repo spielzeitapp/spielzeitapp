@@ -1,3 +1,5 @@
+import { formatFullLocation } from './eventLocation';
+
 type IcsEventType = 'game' | 'training' | 'event' | 'other';
 
 export type IcsEventLike = {
@@ -128,7 +130,7 @@ export function generateEventIcs(
       }).format(new Date(e.meeting_at))
     : null;
   const location =
-    fullLocationForIcs(e.location, e.location) ||
+    formatFullLocation(e.location, e.location) ||
     (e.location ?? '').trim() ||
     (descriptionText ?? '').trim() ||
     null;

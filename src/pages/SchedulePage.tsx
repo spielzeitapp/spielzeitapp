@@ -798,6 +798,10 @@ export const SchedulePage: React.FC = () => {
       });
     } catch (err) {
       console.error('[Calendar Subscription] ICS create/download failed', err);
+      alert(
+        'Kalender-Fehler: ' +
+          ((err as { message?: string })?.message ?? String(err)),
+      );
       setToastMessage('Kalenderdatei konnte nicht erstellt werden.');
     }
   }, [displayEvents, normalizedUiRole]);

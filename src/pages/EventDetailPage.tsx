@@ -246,6 +246,10 @@ export const EventDetailPage: React.FC = () => {
       downloadTextFile('spielzeitapp-termin.ics', ics, 'text/calendar;charset=utf-8');
     } catch (err) {
       console.error('[EventDetail] single event ICS failed', err);
+      alert(
+        'Kalender-Fehler: ' +
+          ((err as { message?: string })?.message ?? String(err)),
+      );
       setCalendarActionError('Kalenderdatei konnte nicht erstellt werden.');
     }
   }, [event]);
