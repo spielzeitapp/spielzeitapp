@@ -32,6 +32,19 @@ import {
   utcIsoToViennaDateTimeLocal,
   utcIsoToViennaTimeHHmm,
 } from '../lib/viennaTime';
+
+function downloadTextFile(filename: string, content: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 type EventDbRow = {
   id: string;
   team_season_id: string;
@@ -162,7 +175,6 @@ export const EventDetailPage: React.FC = () => {
   const [editTrainingDeadlineDisabled, setEditTrainingDeadlineDisabled] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
-  const [calendarPreparedHintOpen, setCalendarPreparedHintOpen] = useState(false);
   const [calendarActionError, setCalendarActionError] = useState<string | null>(null);
 
   const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | null>(null);
@@ -228,44 +240,13 @@ export const EventDetailPage: React.FC = () => {
 
   const handleAddSingleEventToCalendar = useCallback(async () => {
     if (!event) return;
-    const appBaseUrl = window.location.origin;
 
     try {
-      const ics = generateEventIcs(event as any, { appBaseUrl });
-      const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-      const file = new File([blob], 'spielzeitapp-termin.ics', {
-        type: 'text/calendar',
-      });
-
-      const ua = navigator.userAgent ?? '';
-      const isIosDevice = /iPad|iPhone|iPod/i.test(ua);
-      if (
-        isIosDevice &&
-        typeof navigator !== 'undefined' &&
-        'share' in navigator &&
-        typeof (navigator as any).canShare === 'function' &&
-        (navigator as any).canShare({ files: [file] })
-      ) {
-        await (navigator as any).share({
-          files: [file],
-          title: 'SpielzeitApp Termin',
-          text: 'Kalenderdatei für diesen Termin',
-        });
-        return;
-      }
-
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = 'spielzeitapp-termin.ics';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
-      if (isIosDevice) setCalendarPreparedHintOpen(true);
+      const ics = generateEventIcs(event as any, { appBaseUrl: window.location.origin });
+      downloadTextFile('spielzeitapp-termin.ics', ics, 'text/calendar;charset=utf-8');
     } catch (err) {
       console.error('[EventDetail] single event ICS failed', err);
-      setCalendarActionError('Kalenderdatei konnte nicht erstellt werden. Bitte später erneut versuchen.');
+      setCalendarActionError('Kalenderdatei konnte nicht erstellt werden.');
     }
   }, [event]);
 
@@ -1237,21 +1218,6 @@ export const EventDetailPage: React.FC = () => {
               </div>
             </>
           )}
-        </Modal>
-        <Modal
-          isOpen={calendarPreparedHintOpen}
-          title="Kalenderdatei erstellt"
-          onClose={() => setCalendarPreparedHintOpen(false)}
-          footer={
-            <Button variant="soft" onClick={() => setCalendarPreparedHintOpen(false)}>
-              OK
-            </Button>
-          }
-        >
-          <p className="text-[14px] text-white/75">
-            Die Kalenderdatei wurde erstellt. Falls sie nicht automatisch geöffnet wurde, findest du
-            sie in deinen Downloads und kannst sie mit deiner Kalender-App öffnen.
-          </p>
         </Modal>
         <Modal
           isOpen={Boolean(calendarActionError)}

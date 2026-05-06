@@ -205,9 +205,13 @@ export function downloadEventIcs(
 
 export function downloadCalendarIcs(
   events: IcsEventLike[],
-  opts: { appBaseUrl: string; calendarName?: string; uidDomain?: string }
+  opts: { appBaseUrl: string; calendarName?: string; uidDomain?: string; filename?: string }
 ) {
   const ics = generateCalendarIcs(events, opts);
+  if (opts.filename?.trim()) {
+    downloadTextFile(opts.filename.trim(), ics);
+    return;
+  }
   const safeName = (opts.calendarName ?? 'spielzeitapp').replace(/[^\w\-]+/g, '-').toLowerCase();
   downloadTextFile(`spielzeitapp-kalender-${safeName}.ics`, ics);
 }
