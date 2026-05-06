@@ -1,4 +1,5 @@
 import React from 'react';
+import { CalendarDays } from 'lucide-react';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import type { EventKind, EventStatus } from '../../hooks/useEvents';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
@@ -6,6 +7,7 @@ import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../../components/match/matchCardLabels';
 import { MatchCardGameCore, MatchCardKickoffBlock } from '../../components/match/MatchCardGameCore';
 import { formatHeroDateParts } from '../../components/schedule/scheduleEventViewUtils';
+import { TrainerStatsMini } from '../../components/schedule/TrainerStatsMini';
 
 /** Datum kurz in Europe/Vienna (z. B. Sa. 06.06.2026). */
 function formatDateShortDE(date: Date): string {
@@ -63,6 +65,8 @@ type MatchCardLigaportalProps = {
   suppressInlineAttendanceCounts?: boolean;
   /** Termine-Liste: keine Kurz-Datumszeile über der Card; bei Spielen Datum-Badge in der Karte + optional keine „Uhr“ unter der Zeit. */
   scheduleNextMatchHero?: boolean;
+  /** Nur „Nächstes Spiel“-Hero: Kalender-Icon oben rechts in der Card (neben RSVP/Zähler). */
+  onScheduleHeroAddToCalendar?: () => void;
 };
 
 export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
@@ -97,6 +101,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   suppressInlineAttendanceChip = false,
   suppressInlineAttendanceCounts = false,
   scheduleNextMatchHero = false,
+  onScheduleHeroAddToCalendar,
 }) => {
   void ourTeamName;
   const ourClubName = getOurTeamDisplayName();
@@ -230,10 +235,22 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const showAttendanceCounts =
     canManage && attendanceCounts != null && !suppressInlineAttendanceCounts;
 
+  const showScheduleHeroCalendar =
+    Boolean(
+      scheduleNextMatchHero &&
+        effectiveEventType === 'game' &&
+        status !== 'finished' &&
+        !isPublicView &&
+        onScheduleHeroAddToCalendar,
+    );
+
   const showScheduleHeroTrailing =
     scheduleNextMatchHero &&
     effectiveEventType === 'game' &&
-    ((showAttendanceCounts && attendanceCounts != null) || showManageButtons || showAttendanceChip);
+    ((showAttendanceCounts && attendanceCounts != null) ||
+      showManageButtons ||
+      showAttendanceChip ||
+      showScheduleHeroCalendar);
 
   const compactParentRow = showAttendanceChip && !showAttendanceCounts && !showManageButtons;
   const heroDateParts = formatHeroDateParts(startsAt);
@@ -264,6 +281,13 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 {attendanceCounts.yes + attendanceCounts.open}
               </span>
             </div>
+          ) : scheduleNextMatchHero ? (
+            <TrainerStatsMini
+              yes={attendanceCounts.yes}
+              no={attendanceCounts.no}
+              open={attendanceCounts.open}
+              isTraining={false}
+            />
           ) : (
             <div className="flex items-center gap-1.5" aria-label="Zu-/Absagen">
               <span
@@ -327,6 +351,20 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           {attendanceChipLabel}
         </button>
       )}
+      {showScheduleHeroCalendar && onScheduleHeroAddToCalendar ? (
+        <button
+          type="button"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/14 bg-black/40 text-white/80 shadow-sm backdrop-blur-sm transition hover:border-white/22 hover:bg-white/[0.08] hover:text-white"
+          aria-label="Zum Kalender hinzufügen"
+          title="Zum Kalender hinzufügen"
+          onClick={(e) => {
+            e.stopPropagation();
+            onScheduleHeroAddToCalendar();
+          }}
+        >
+          <CalendarDays className="h-4 w-4" strokeWidth={2} aria-hidden />
+        </button>
+      ) : null}
     </div>
   );
 
@@ -356,7 +394,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           </span>
         </div>
         {showScheduleHeroTrailing ? (
-          <div className="min-w-0 shrink pt-0.5">{attendanceTrailing}</div>
+          <div className="min-w-0 max-w-[min(52%,11.5rem)] shrink pt-0.5 sm:max-w-none">
+            {attendanceTrailing}
+          </div>
         ) : null}
       </div>
     ) : null;

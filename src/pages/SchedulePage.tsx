@@ -136,37 +136,6 @@ function ScheduleHeroToolbarAction({
   );
 }
 
-function scheduleNextGameRsvpButtonClass(status: 'yes' | 'no' | null): string {
-  const base =
-    'rounded-full px-2.5 py-1 text-xs font-semibold text-white shrink-0 border transition-colors';
-  if (status === 'yes') return `${base} bg-emerald-600 border-emerald-500/55`;
-  if (status === 'no') return `${base} bg-red-700 border-red-600/50`;
-  return `${base} border-white/40 bg-white/10 hover:bg-white/20`;
-}
-
-function scheduleNextGameRsvpLabel(status: 'yes' | 'no' | null): string {
-  if (status === 'yes') return 'Zugesagt';
-  if (status === 'no') return 'Abgesagt';
-  return 'Zu-/Absage';
-}
-
-function ScheduleHeroIcsIconButton({ ev }: { ev: EventRow }) {
-  return (
-    <button
-      type="button"
-      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/14 bg-black/40 text-white/80 shadow-sm backdrop-blur-sm transition hover:border-white/22 hover:bg-white/[0.08] hover:text-white"
-      aria-label="Zum Kalender hinzufügen"
-      title="Zum Kalender hinzufügen"
-      onClick={(e) => {
-        e.stopPropagation();
-        downloadEventIcs(ev, { appBaseUrl: window.location.origin });
-      }}
-    >
-      <CalendarDays className="h-4 w-4" strokeWidth={2} aria-hidden />
-    </button>
-  );
-}
-
 export const SchedulePage: React.FC = () => {
   const navigate = useNavigate();
   const { teamLabel, teamSeasonId, role: roleFromHook, loading: tsLoading, error: tsError } =
@@ -1047,47 +1016,6 @@ export const SchedulePage: React.FC = () => {
                           !forcePublicView &&
                           !isFinishedMatch &&
                           (uiRole === 'parent' || uiRole === 'player');
-                        const gameHeroRsvpStatus: 'yes' | 'no' | null =
-                          attendanceStatusMerged === 'yes' || attendanceStatusMerged === 'no'
-                            ? attendanceStatusMerged
-                            : null;
-                        const gameHeroLabelAside =
-                          et === 'game' && !forcePublicView && !isFinishedMatch
-                            ? canManage && heroShowsTrainerStats
-                              ? (
-                                  <div
-                                    className="flex items-center gap-1.5"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <TrainerStatsMini
-                                      yes={countsForCard.yes}
-                                      no={countsForCard.no}
-                                      open={countsForCard.open}
-                                      isTraining={false}
-                                    />
-                                    {ev.status !== 'finished' ? <ScheduleHeroIcsIconButton ev={ev} /> : null}
-                                  </div>
-                                )
-                              : heroShowsParentPill
-                                ? (
-                                    <div
-                                      className="flex items-center gap-1.5"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <button
-                                        type="button"
-                                        className={scheduleNextGameRsvpButtonClass(gameHeroRsvpStatus)}
-                                        onClick={() => setAttendanceModalEvent(ev)}
-                                      >
-                                        {scheduleNextGameRsvpLabel(gameHeroRsvpStatus)}
-                                      </button>
-                                      {ev.status !== 'finished' ? (
-                                        <ScheduleHeroIcsIconButton ev={ev} />
-                                      ) : null}
-                                    </div>
-                                  )
-                                : null
-                            : null;
                         const heroTopRight =
                           normalizedUiRole === 'fan'
                             ? null
@@ -1236,16 +1164,18 @@ export const SchedulePage: React.FC = () => {
                               className="mb-4 -mx-3.5 w-[calc(100%+1.75rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full"
                               {...publicWrap}
                             >
-                              <EventHeroCard
-                                label={heroLabelForEffectiveType(et)}
-                                footer={heroCardFooter}
-                                labelAside={gameHeroLabelAside ?? undefined}
-                              >
+                              <EventHeroCard label={heroLabelForEffectiveType(et)} footer={heroCardFooter}>
                                 <MatchCardLigaportal
                                   className="w-full max-w-full !px-2.5 !py-2.5 sm:!px-3 sm:!py-3"
                                   scheduleNextMatchHero
-                                  suppressInlineAttendanceChip={Boolean(heroShowsParentPill)}
-                                  suppressInlineAttendanceCounts={Boolean(heroShowsTrainerStats)}
+                                  onScheduleHeroAddToCalendar={
+                                    forcePublicView || ev.status === 'finished'
+                                      ? undefined
+                                      : () =>
+                                          downloadEventIcs(ev, {
+                                            appBaseUrl: window.location.origin,
+                                          })
+                                  }
                                   ourTeamName={ourTeamName}
                                   opponent={ev.opponent}
                                   isHome={ev.is_home}
