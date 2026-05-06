@@ -588,6 +588,8 @@
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   display: block;
+  position: relative;
+  z-index: 1000;
 }
 
 /* Mobile: Sheet endet über BottomNav, Safe Area berücksichtigt */
@@ -605,7 +607,7 @@
 .modalHeader {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 20;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -645,12 +647,13 @@
 
 .modalBody {
   padding: 16px;
+  padding-bottom: calc(16px + 1rem + env(safe-area-inset-bottom, 0px));
 }
 
 .modalFooter {
   position: sticky;
   bottom: 0;
-  z-index: 5;
+  z-index: 30;
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -660,6 +663,13 @@
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: auto;
+}
+
+.modalFooter button,
+.modalFooter [role='button'] {
+  pointer-events: auto;
+  touch-action: manipulation;
 }
 
 /* Desktop: Modal zentriert, abgerundet auf allen Seiten */

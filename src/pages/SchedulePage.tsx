@@ -1344,7 +1344,7 @@ export const SchedulePage: React.FC = () => {
             onClose={closeEditModal}
             footer={
               <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={closeEditModal}>
+                <Button variant="ghost" onClick={closeEditModal} className="pointer-events-auto touch-manipulation">
                   Abbrechen
                 </Button>
                 <Button
@@ -1352,6 +1352,7 @@ export const SchedulePage: React.FC = () => {
                   form="edit-event-form"
                   variant="primary"
                   disabled={savingEdit}
+                  className="pointer-events-auto touch-manipulation"
                 >
                   {savingEdit ? 'Speichern…' : 'Speichern'}
                 </Button>
