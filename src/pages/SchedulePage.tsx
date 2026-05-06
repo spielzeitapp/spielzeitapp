@@ -23,7 +23,8 @@ import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } f
 import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
-import { downloadCalendarIcs, downloadEventIcs } from '../lib/ics';
+import { downloadEventIcs } from '../lib/ics';
+import { buildTeamIcsFeedUrl, teamCalendarSlugFromTeamName } from '../lib/calendarFeed';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import type { SeriesEditScope } from '../lib/seriesEditScope';
 import {
@@ -137,7 +138,7 @@ export const SchedulePage: React.FC = () => {
     useActiveTeamSeason();
   const { teamSeasonId: publicTeamId, teamLabel: publicLabel, loading: publicLoading } =
     usePublicTeamSeason();
-  const { selectedMembership, user } = useSession();
+  const { selectedMembership, user, selectedTeamSeason } = useSession();
   const userId = user?.id ?? null;
   const effectiveTeamSeasonId = teamSeasonId ?? publicTeamId;
   const { events, loading: eLoading, error: eError, refetch } = useEvents(effectiveTeamSeasonId);
@@ -153,6 +154,23 @@ export const SchedulePage: React.FC = () => {
     }
     return publicLabel ?? teamLabel ?? 'Spielplan';
   })();
+
+  /** Öffentliche Team-ICS-URL (Slug aus Teamname, sonst Team-UUID). */
+  const teamCalendarSegment = useMemo(() => {
+    const nameFromSeason = selectedTeamSeason?.team?.name?.trim();
+    const nameFromMembership = getTeamNameFromMembership(selectedMembership)?.trim();
+    let fromPublic = publicLabel?.replace(/\s*\([^)]*\)\s*$/, '').trim() || null;
+    if (fromPublic === 'Spielplan') fromPublic = null;
+    const fromTeamLabel = teamLabel?.replace(/\s*\([^)]*\)\s*$/, '').trim() || null;
+    const name = nameFromSeason || nameFromMembership || fromPublic || fromTeamLabel;
+    if (name) return teamCalendarSlugFromTeamName(name);
+    return selectedTeamSeason?.team?.id ?? null;
+  }, [selectedTeamSeason, selectedMembership, publicLabel, teamLabel]);
+
+  const teamIcsFeedUrl = useMemo(() => {
+    if (!teamCalendarSegment) return null;
+    return buildTeamIcsFeedUrl(window.location.origin, teamCalendarSegment);
+  }, [teamCalendarSegment]);
 
   // Public Mode: /schedule und /live = nur Anzeige, KEINE Navigation zu Event-Detail
   const { pathname } = useLocation();
@@ -788,24 +806,23 @@ export const SchedulePage: React.FC = () => {
 
   const pageLoading = loading || eLoading;
   const error = tsError ?? eError;
-  const canShowCalendarActions = Boolean(teamSeasonId && !pageLoading && displayEvents.length > 0);
+  const canShowCalendarActions = Boolean(teamIcsFeedUrl && !pageLoading && displayEvents.length > 0);
 
-  const runCalendarDownload = useCallback(() => {
+  const copyTeamIcsUrl = useCallback(async () => {
+    if (!teamIcsFeedUrl) return;
     try {
-      downloadCalendarIcs(displayEvents, {
-        appBaseUrl: window.location.origin,
-        calendarName: normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine',
-        filename: 'spielzeitapp-team-termine.ics',
-      });
-    } catch (err) {
-      console.error('[Calendar Subscription] ICS create/download failed', err);
-      alert(
-        'Kalender-Fehler: ' +
-          ((err as { message?: string })?.message ?? String(err)),
-      );
-      setToastMessage('Kalenderdatei konnte nicht erstellt werden.');
+      await navigator.clipboard.writeText(teamIcsFeedUrl);
+      setToastMessage('Kalender-URL kopiert.');
+    } catch (e) {
+      console.error('[Calendar Subscription] copy URL failed', e);
+      setToastMessage('URL konnte nicht kopiert werden.');
     }
-  }, [displayEvents, normalizedUiRole]);
+  }, [teamIcsFeedUrl]);
+
+  const openTeamIcsSubscriptionUrl = useCallback(() => {
+    if (!teamIcsFeedUrl) return;
+    window.location.assign(teamIcsFeedUrl);
+  }, [teamIcsFeedUrl]);
 
 
   return (
@@ -1330,47 +1347,67 @@ export const SchedulePage: React.FC = () => {
             <div className="space-y-2">
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2 text-left text-sm font-medium text-white/90 hover:bg-white/[0.08]"
+                className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2.5 text-left hover:bg-white/[0.08]"
                 onClick={() => {
-                  runCalendarDownload();
+                  openTeamIcsSubscriptionUrl();
                   setCalendarSheetOpen(false);
                 }}
               >
-                <span>iPhone Kalender öffnen</span>
-                <span className="text-white/55" aria-hidden>›</span>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-sm font-medium text-white/90">iPhone Kalender</span>
+                  <span className="text-[11px] font-normal leading-snug text-white/55">
+                    Öffnet den abonnierbaren Teamkalender.
+                  </span>
+                </span>
+                <span className="shrink-0 text-white/55" aria-hidden>›</span>
               </button>
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2 text-left text-sm font-medium text-white/90 hover:bg-white/[0.08]"
+                className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2.5 text-left hover:bg-white/[0.08]"
                 onClick={() => {
                   setCalendarSheetOpen(false);
                   setCalendarGuideKind('google');
                 }}
               >
-                <span>Google Kalender</span>
-                <span className="text-white/55" aria-hidden>›</span>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-sm font-medium text-white/90">Google Kalender</span>
+                  <span className="text-[11px] font-normal leading-snug text-white/55">
+                    URL kopieren und in Google Kalender abonnieren.
+                  </span>
+                </span>
+                <span className="shrink-0 text-white/55" aria-hidden>›</span>
               </button>
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2 text-left text-sm font-medium text-white/90 hover:bg-white/[0.08]"
+                className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2.5 text-left hover:bg-white/[0.08]"
                 onClick={() => {
                   setCalendarSheetOpen(false);
                   setCalendarGuideKind('familywall');
                 }}
               >
-                <span>FamilyWall</span>
-                <span className="text-white/55" aria-hidden>›</span>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-sm font-medium text-white/90">FamilyWall</span>
+                  <span className="text-[11px] font-normal leading-snug text-white/55">
+                    URL kopieren und in FamilyWall als ICS-Kalender hinzufügen.
+                  </span>
+                </span>
+                <span className="shrink-0 text-white/55" aria-hidden>›</span>
               </button>
               <button
                 type="button"
-                className="flex w-full items-center justify-between rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2 text-left text-sm font-medium text-white/90 hover:bg-white/[0.08]"
+                className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2.5 text-left hover:bg-white/[0.08]"
                 onClick={() => {
-                  runCalendarDownload();
+                  void copyTeamIcsUrl();
                   setCalendarSheetOpen(false);
                 }}
               >
-                <span>ICS herunterladen</span>
-                <span className="text-white/55" aria-hidden>›</span>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-sm font-medium text-white/90">ICS URL kopieren</span>
+                  <span className="text-[11px] font-normal leading-snug text-white/55">
+                    Kopiert die Abo-URL in die Zwischenablage.
+                  </span>
+                </span>
+                <span className="shrink-0 text-white/55" aria-hidden>›</span>
               </button>
             </div>
           </Modal>
@@ -1387,19 +1424,19 @@ export const SchedulePage: React.FC = () => {
                 <Button
                   variant="primary"
                   onClick={() => {
-                    runCalendarDownload();
+                    void copyTeamIcsUrl();
                     setCalendarGuideKind(null);
                   }}
                 >
-                  ICS herunterladen
+                  ICS URL kopieren
                 </Button>
               </div>
             }
           >
             <p className="text-[14px] text-white/80">
               {calendarGuideKind === 'google'
-                ? 'Für Google Kalender lade die ICS-Datei herunter und importiere sie in Google Kalender.'
-                : 'Für FamilyWall kannst du die ICS-Datei herunterladen und in FamilyWall importieren.'}
+                ? 'Google Kalender unterstützt Kalender-Abos per URL.'
+                : 'In FamilyWall → Kalender → ICS abonnieren → URL einfügen.'}
             </p>
           </Modal>
 

@@ -17,6 +17,24 @@ function escapeIcsText(input) {
     .replace(/;/g, '\\;');
 }
 
+/** Gleiche Regeln wie `teamCalendarSlugFromTeamName` in src/lib/calendarFeed.ts */
+function teamCalendarSlugFromTeamName(name) {
+  return String(name ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'team';
+}
+
+function isUuidLike(s) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(s).trim());
+}
+
 function foldIcsLine(line) {
   const maxLen = 74;
   if (line.length <= maxLen) return line;
@@ -35,7 +53,7 @@ function buildIcsContent(lines) {
 }
 
 function ensureCalendarPrefix(icsBody) {
-  const requiredPrefix = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SpielzeitApp//Calendar//DE'].join('\r\n');
+  const requiredPrefix = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SpielzeitApp//iCal//DE'].join('\r\n');
 
   if (icsBody.startsWith(requiredPrefix)) return icsBody;
 
@@ -43,7 +61,7 @@ function ensureCalendarPrefix(icsBody) {
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//SpielzeitApp//Calendar//DE',
+    'PRODID:-//SpielzeitApp//iCal//DE',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     withoutLeadingCalendar.trim(),
@@ -232,12 +250,17 @@ async function teamIcsHandler(req, res) {
       res.status(400).send('Missing teamId');
       return;
     }
-    const teamId = rawTeamId.replace(/\.ics$/i, '').trim();
-    if (!teamId) {
+    let pathKey = rawTeamId.replace(/\.ics$/i, '').trim();
+    try {
+      pathKey = decodeURIComponent(pathKey);
+    } catch {
+      // keep pathKey as-is
+    }
+    if (!pathKey) {
       res.status(400).send('Invalid teamId');
       return;
     }
-    console.log('[ics-feed] parsed teamId', { teamId, rawTeamId });
+    console.log('[ics-feed] parsed path key', { pathKey, rawTeamId });
 
     const supabaseUrl = getEnv('SUPABASE_URL') || getEnv('VITE_SUPABASE_URL');
     const serviceKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
@@ -250,25 +273,54 @@ async function teamIcsHandler(req, res) {
     const admin = createClient(supabaseUrl, serviceKey);
     console.log('[ics-feed] supabase client created');
 
-    console.log('[ics-feed] team lookup start', { teamId });
+    let resolvedTeamId = null;
+    if (isUuidLike(pathKey)) {
+      resolvedTeamId = pathKey;
+    } else {
+      const slugWanted = pathKey.toLowerCase();
+      const { data: allTeams, error: teamsListError } = await admin.from('teams').select('id, name');
+      if (teamsListError) {
+        console.error('[ics-feed] DB teams list error', teamsListError);
+        res.status(500).send(teamsListError.message ?? 'teams query failed');
+        return;
+      }
+      const matches = (allTeams ?? []).filter((t) => teamCalendarSlugFromTeamName(t.name) === slugWanted);
+      if (matches.length === 0) {
+        res.status(404).send('Team not found');
+        return;
+      }
+      if (matches.length > 1) {
+        console.warn('[ics-feed] ambiguous calendar slug; using first match', {
+          slug: slugWanted,
+          ids: matches.map((m) => m.id),
+        });
+      }
+      resolvedTeamId = matches[0].id;
+    }
+
+    console.log('[ics-feed] team lookup start', { resolvedTeamId });
     const { data: teamData, error: teamError } = await admin
       .from('teams')
       .select('name')
-      .eq('id', teamId)
+      .eq('id', resolvedTeamId)
       .maybeSingle();
     if (teamError) {
       console.error('[ics-feed] DB teams error', teamError);
       res.status(500).send(teamError.message ?? 'teams query failed');
       return;
     }
+    if (!teamData) {
+      res.status(404).send('Team not found');
+      return;
+    }
     console.log('[ics-feed] team lookup end', { hasRow: !!teamData });
     const teamName = teamData?.name ?? 'Team';
 
-    console.log('[ics-feed] team seasons lookup start', { teamId });
+    console.log('[ics-feed] team seasons lookup start', { resolvedTeamId });
     const { data: teamSeasons, error: tsError } = await admin
       .from('team_seasons')
       .select('id, team_id')
-      .eq('team_id', teamId);
+      .eq('team_id', resolvedTeamId);
     if (tsError) {
       console.error('[ics-feed] DB team_seasons error', tsError);
       res.status(500).send(tsError.message);
@@ -283,9 +335,11 @@ async function teamIcsHandler(req, res) {
       teamSeasonCount: teamSeasonIds.length,
       nowIso,
     });
-    const { data: events, error: evError } = await admin
+    const { data: eventsRaw, error: evError } = await admin
       .from('events')
-      .select('id, team_season_id, kind, type, opponent, location, starts_at, meeting_at, notes, created_at, updated_at')
+      .select(
+        'id, team_season_id, kind, type, opponent, location, starts_at, meeting_at, notes, status, created_at, updated_at',
+      )
       .in('team_season_id', teamSeasonIds.length ? teamSeasonIds : ['00000000-0000-0000-0000-000000000000'])
       .gte('starts_at', nowIso)
       .order('starts_at', { ascending: true });
@@ -294,7 +348,8 @@ async function teamIcsHandler(req, res) {
       res.status(500).send(evError.message);
       return;
     }
-    console.log('[ics-feed] events lookup end', { count: (events ?? []).length });
+    const events = (eventsRaw ?? []).filter((e) => String(e.status ?? '').toLowerCase() !== 'canceled');
+    console.log('[ics-feed] events lookup end', { count: events.length });
 
     const appBaseUrl =
       getEnv('APP_BASE_URL') || `${req.headers['x-forwarded-proto'] ?? 'https'}://${req.headers.host}`;
@@ -311,6 +366,7 @@ async function teamIcsHandler(req, res) {
       const description = buildDescription(ev, appBaseUrl);
       const location = buildLocation(ev);
       const stableStamp = pickStableStamp(ev);
+      const eventUrl = `${appBaseUrl}/app/events/${ev.id}`;
 
       return [
         'BEGIN:VEVENT',
@@ -321,6 +377,7 @@ async function teamIcsHandler(req, res) {
         `DTEND:${toIcsUtc(end)}`,
         `SUMMARY:${escapeIcsText(summary)}`,
         location ? `LOCATION:${escapeIcsText(location)}` : undefined,
+        `URL:${escapeIcsText(eventUrl)}`,
         `DESCRIPTION:${escapeIcsText(description)}`,
         'END:VEVENT',
       ].filter(Boolean);
@@ -329,7 +386,7 @@ async function teamIcsHandler(req, res) {
     let ics = buildIcsContent([
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//SpielzeitApp//Calendar//DE',
+      'PRODID:-//SpielzeitApp//iCal//DE',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
       `X-WR-CALNAME:${escapeIcsText(`${teamName} Termine`)}`,
@@ -342,7 +399,7 @@ async function teamIcsHandler(req, res) {
       ics = buildIcsContent([
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
-        'PRODID:-//SpielzeitApp//Calendar//DE',
+        'PRODID:-//SpielzeitApp//iCal//DE',
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
         `X-WR-CALNAME:${escapeIcsText(`${teamName} Termine`)}`,
@@ -361,7 +418,8 @@ async function teamIcsHandler(req, res) {
 
     const previewLines = ics.split('\r\n').slice(0, 15);
     console.info('[ics-feed] response preview', {
-      teamId,
+      teamId: resolvedTeamId,
+      pathKey,
       length: ics.length,
       firstLines: previewLines,
     });

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useSession } from '../auth/useSession';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
-import { buildTeamIcsFeedUrl } from '../lib/calendarFeed';
+import { buildTeamIcsFeedUrl, teamCalendarSlugFromTeamName } from '../lib/calendarFeed';
 import type { CalendarEvent, CalendarView } from './calendar/calendarTypes';
 import {
   notesTitleAndDescription,
@@ -302,10 +302,36 @@ export const CalendarPage: React.FC = () => {
     return null;
   }, [selectedTeamSeasonId, accessibleTeamSeasons, selectedMembership]);
 
+  const selectedTeamNameForFeed = useMemo(() => {
+    if (selectedTeamSeasonId !== 'all') {
+      const selected = accessibleTeamSeasons.find((ts: any) => ts.id === selectedTeamSeasonId);
+      const teamObj = selected?.team ?? (Array.isArray(selected?.teams) ? selected.teams[0] : selected?.teams);
+      const n = teamObj?.name?.trim();
+      if (n) return n;
+    }
+    const fromMembership =
+      selectedMembership?.team_seasons?.team ??
+      (Array.isArray(selectedMembership?.team_seasons?.teams)
+        ? selectedMembership?.team_seasons?.teams[0]
+        : selectedMembership?.team_seasons?.teams);
+    const m = (fromMembership as { name?: string } | null)?.name?.trim();
+    if (m) return m;
+    if (accessibleTeamSeasons.length === 1) {
+      const only = accessibleTeamSeasons[0] as any;
+      const teamObj = only?.team ?? (Array.isArray(only?.teams) ? only.teams[0] : only?.teams);
+      const o = teamObj?.name?.trim();
+      if (o) return o;
+    }
+    return null;
+  }, [selectedTeamSeasonId, accessibleTeamSeasons, selectedMembership]);
+
   const feedUrl = useMemo(() => {
     if (!selectedTeamIdForFeed) return null;
-    return buildTeamIcsFeedUrl(window.location.origin, selectedTeamIdForFeed);
-  }, [selectedTeamIdForFeed]);
+    const segment = selectedTeamNameForFeed
+      ? teamCalendarSlugFromTeamName(selectedTeamNameForFeed)
+      : selectedTeamIdForFeed;
+    return buildTeamIcsFeedUrl(window.location.origin, segment);
+  }, [selectedTeamIdForFeed, selectedTeamNameForFeed]);
 
   const handleSubscribeCalendar = async () => {
     if (!feedUrl) return;
@@ -317,8 +343,9 @@ export const CalendarPage: React.FC = () => {
     try {
       await navigator.clipboard.writeText(feedUrl);
       alert('Feed-URL kopiert.');
-    } catch {
-      window.open(feedUrl, '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      console.error('[CalendarPage] copy feed URL failed', e);
+      alert('URL konnte nicht kopiert werden.');
     }
   };
 
