@@ -181,7 +181,7 @@ export function CompactEventCard({
           <div className="flex shrink-0 flex-col items-end opacity-90">{trailing}</div>
           <div className="flex shrink-0 items-center justify-end self-center pr-3">
             {clickable ? (
-              <span className="shrink-0 text-[24px] font-light leading-none text-white/55 transition-colors duration-200 group-hover:text-white/80 group-focus-visible:text-white/80" aria-hidden>
+              <span className="shrink-0 text-[28px] font-light leading-none text-white/55 transition-colors duration-200 group-hover:text-white/80 group-focus-visible:text-white/80" aria-hidden>
                 ›
               </span>
             ) : (
@@ -305,7 +305,7 @@ export function CompactEventCard({
         {trailing ? <div className="min-w-0 shrink opacity-90">{trailing}</div> : null}
         <div className="flex shrink-0 items-center justify-center self-center pr-3">
           {clickable ? (
-            <span className="shrink-0 text-[24px] font-light leading-none text-white/55 transition-colors duration-200 group-hover:text-white/80 group-focus-visible:text-white/80" aria-hidden>
+            <span className="shrink-0 text-[28px] font-light leading-none text-white/55 transition-colors duration-200 group-hover:text-white/80 group-focus-visible:text-white/80" aria-hidden>
               ›
             </span>
           ) : (

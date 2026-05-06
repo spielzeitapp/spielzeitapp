@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, CircleHelp, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import type { EventKind, EventStatus } from '../../hooks/useEvents';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
@@ -224,26 +224,25 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const showAttendanceChip =
     (role === 'parent' || role === 'player') && onOpenAttendance && !suppressInlineAttendanceChip;
 
-  /* Pill wie Bearbeiten/Löschen: gleiche Höhe/Radius (rounded-full px-3 py-1 text-sm), farblich passend */
   const attendanceChipClass = isTrainingCard
     ? attendanceStatus === 'no'
-      ? 'rounded-full px-2.5 py-0.5 text-xs font-semibold text-white bg-red-700 border border-red-600/50 shrink-0'
-      : 'rounded-full px-2.5 py-0.5 text-xs font-semibold text-white bg-green-600 border border-green-500/50 shrink-0'
+      ? 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-red-400/45 bg-red-600/85 text-white shadow-[0_0_16px_rgba(239,68,68,0.35)] transition-all duration-200'
+      : 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-emerald-400/45 bg-emerald-600/85 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)] transition-all duration-200'
     : attendanceStatus === 'yes'
-      ? 'rounded-full px-2.5 py-0.5 text-xs font-semibold text-white bg-green-600 border border-green-500/50 shrink-0'
+      ? 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-emerald-400/45 bg-emerald-600/85 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)] transition-all duration-200'
       : attendanceStatus === 'no'
-        ? 'rounded-full px-2.5 py-0.5 text-xs font-semibold text-white bg-red-700 border border-red-600/50 shrink-0'
-        : 'rounded-full px-2.5 py-0.5 text-xs font-semibold text-white border border-white/40 bg-white/10 hover:bg-white/20 shrink-0 transition-colors';
+        ? 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-red-400/45 bg-red-600/85 text-white shadow-[0_0_16px_rgba(239,68,68,0.35)] transition-all duration-200'
+        : 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-zinc-700/75 text-white/90 transition-all duration-200';
 
-  const attendanceChipLabel = isTrainingCard
+  const attendanceChipAria = isTrainingCard
     ? attendanceStatus === 'no'
-      ? 'Abwesend'
+      ? 'Abgesagt'
       : 'Dabei'
     : attendanceStatus === 'yes'
       ? 'Zugesagt'
       : attendanceStatus === 'no'
         ? 'Abgesagt'
-        : 'Zu-/Absage';
+        : 'Offen';
 
   const showAttendanceCounts =
     canManage && attendanceCounts != null && !suppressInlineAttendanceCounts;
@@ -360,8 +359,16 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             onOpenAttendance?.();
           }}
           className={attendanceChipClass}
+          aria-label={attendanceChipAria}
+          title={attendanceChipAria}
         >
-          {attendanceChipLabel}
+          {attendanceStatus === 'yes' || (isTrainingCard && attendanceStatus !== 'no') ? (
+            <ThumbsUp className="h-5 w-5" strokeWidth={2} aria-hidden />
+          ) : attendanceStatus === 'no' ? (
+            <ThumbsDown className="h-5 w-5" strokeWidth={2} aria-hidden />
+          ) : (
+            <CircleHelp className="h-5 w-5" strokeWidth={2} aria-hidden />
+          )}
         </button>
       )}
       {showScheduleHeroCalendar && onScheduleHeroAddToCalendar ? (

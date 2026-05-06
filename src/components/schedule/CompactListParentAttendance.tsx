@@ -12,7 +12,7 @@ type Props = {
 };
 
 const btnBase =
-  'ml-2 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border p-0';
+  'ml-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border p-0 transition-all duration-200';
 
 /** Eltern/Spieler: Aktion rechts oben in „Weitere Termine“ (Eltern-Kompaktkarte). */
 export function CompactListParentAttendance({ status, isTraining, onOpen, className = '' }: Props) {
@@ -30,11 +30,11 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
           type="button"
           variant="danger"
           size="sm"
-          className={`${btnBase} border-red-500/35 bg-red-950/60 text-red-100 ${className}`}
+          className={`${btnBase} border-red-400/45 bg-red-600/85 text-white shadow-[0_0_16px_rgba(239,68,68,0.35)] ${className}`}
           onClick={openModal}
           aria-label="Abgesagt"
         >
-          <ThumbsDown className="h-4 w-4" strokeWidth={2} aria-hidden />
+          <ThumbsDown className="h-5 w-5" strokeWidth={2} aria-hidden />
         </AppButton>
       );
     }
@@ -43,11 +43,11 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
         type="button"
         variant="success"
         size="sm"
-        className={`${btnBase} border-emerald-500/35 bg-emerald-950/50 text-emerald-100 ${className}`}
+        className={`${btnBase} border-emerald-400/45 bg-emerald-600/85 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)] ${className}`}
         onClick={openModal}
         aria-label="Dabei"
       >
-        <ThumbsUp className="h-4 w-4" strokeWidth={2} aria-hidden />
+        <ThumbsUp className="h-5 w-5" strokeWidth={2} aria-hidden />
       </AppButton>
     );
   }
@@ -58,11 +58,11 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
         type="button"
         variant="success"
         size="sm"
-        className={`${btnBase} border-emerald-500/35 bg-emerald-950/50 text-emerald-100 ${className}`}
+        className={`${btnBase} border-emerald-400/45 bg-emerald-600/85 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)] ${className}`}
         onClick={openModal}
         aria-label="Zugesagt"
       >
-        <ThumbsUp className="h-4 w-4" strokeWidth={2} aria-hidden />
+        <ThumbsUp className="h-5 w-5" strokeWidth={2} aria-hidden />
       </AppButton>
     );
   }
@@ -72,11 +72,11 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
         type="button"
         variant="danger"
         size="sm"
-        className={`${btnBase} border-red-500/35 bg-red-950/60 text-red-100 ${className}`}
+        className={`${btnBase} border-red-400/45 bg-red-600/85 text-white shadow-[0_0_16px_rgba(239,68,68,0.35)] ${className}`}
         onClick={openModal}
         aria-label="Abgesagt"
       >
-        <ThumbsDown className="h-4 w-4" strokeWidth={2} aria-hidden />
+        <ThumbsDown className="h-5 w-5" strokeWidth={2} aria-hidden />
       </AppButton>
     );
   }
@@ -85,11 +85,11 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
       type="button"
       variant="pending"
       size="sm"
-      className={`${btnBase} border-white/20 bg-white/[0.1] text-white/70 ${className}`}
+      className={`${btnBase} border-white/20 bg-zinc-700/75 text-white/90 ${className}`}
       onClick={openModal}
       aria-label="Offen"
     >
-      <CircleHelp className="h-4 w-4" strokeWidth={2} aria-hidden />
+      <CircleHelp className="h-5 w-5" strokeWidth={2} aria-hidden />
     </AppButton>
   );
 }

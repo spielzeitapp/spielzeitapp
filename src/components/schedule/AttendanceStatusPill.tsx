@@ -18,41 +18,53 @@ export function AttendanceStatusPill({
   compact = false,
   className = '',
 }: Props) {
-  const size = compact ? 'h-7 w-7' : 'h-8 w-8';
-  const iconSize = compact ? 'h-3.5 w-3.5' : 'h-4 w-4';
+  const size = compact ? 'h-10 w-10' : 'h-11 w-11';
+  const iconSize = compact ? 'h-5 w-5' : 'h-[22px] w-[22px]';
   const base =
-    `inline-flex ${size} shrink-0 items-center justify-center rounded-full border transition-colors`;
+    `inline-flex ${size} shrink-0 items-center justify-center rounded-full border transition-all duration-200`;
 
   if (isTraining) {
     if (status === 'no') {
       return (
-        <span className={`${base} border-red-500/35 bg-red-950/55 text-red-100 ${className}`} aria-label="Abgesagt">
+        <span
+          className={`${base} border-red-400/45 bg-red-600/85 text-white shadow-[0_0_16px_rgba(239,68,68,0.35)] ${className}`}
+          aria-label="Abgesagt"
+        >
           <ThumbsDown className={iconSize} strokeWidth={2} aria-hidden />
         </span>
       );
     }
     return (
-      <span className={`${base} border-emerald-500/35 bg-emerald-950/45 text-emerald-100 ${className}`} aria-label="Dabei">
+      <span
+        className={`${base} border-emerald-400/45 bg-emerald-600/85 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)] ${className}`}
+        aria-label="Dabei"
+      >
         <ThumbsUp className={iconSize} strokeWidth={2} aria-hidden />
       </span>
     );
   }
   if (status === 'yes') {
     return (
-      <span className={`${base} border-emerald-500/35 bg-emerald-950/45 text-emerald-100 ${className}`} aria-label="Zugesagt">
+      <span
+        className={`${base} border-emerald-400/45 bg-emerald-600/85 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)] ${className}`}
+        aria-label="Zugesagt"
+      >
         <ThumbsUp className={iconSize} strokeWidth={2} aria-hidden />
       </span>
     );
   }
   if (status === 'no') {
     return (
-      <span className={`${base} border-red-500/35 bg-red-950/55 text-red-100 ${className}`} aria-label="Abgesagt">
+      <span
+        className={`${base} border-red-400/45 bg-red-600/85 text-white shadow-[0_0_16px_rgba(239,68,68,0.35)] ${className}`}
+        aria-label="Abgesagt"
+      >
         <ThumbsDown className={iconSize} strokeWidth={2} aria-hidden />
       </span>
     );
   }
   return (
-    <span className={`${base} border-white/20 bg-white/[0.09] text-white/70 ${className}`} aria-label="Offen">
+    <span className={`${base} border-white/20 bg-zinc-700/75 text-white/90 ${className}`} aria-label="Offen">
       <CircleHelp className={iconSize} strokeWidth={2} aria-hidden />
     </span>
   );
