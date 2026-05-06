@@ -205,6 +205,22 @@ export function downloadEventIcs(
   downloadTextFile(`spielzeitapp-${e.id}.ics`, ics);
 }
 
+/**
+ * Ein Termin als vollständige .ics (BEGIN:VCALENDAR …) – gleiche Technik wie Team-Kalender.
+ * Nur ein VEVENT (intern via generateEventIcs); Safari verarbeitet so zuverlässiger als reines VEVENT.
+ */
+export function downloadSingleEventFullCalendarIcs(
+  e: IcsEventLike,
+  opts: { appBaseUrl: string; uidDomain?: string },
+) {
+  const ics = generateCalendarIcs([e], {
+    appBaseUrl: opts.appBaseUrl,
+    uidDomain: opts.uidDomain,
+    calendarName: 'SpielzeitApp Termin',
+  });
+  downloadTextFile('spielzeitapp-termin.ics', ics);
+}
+
 export function downloadCalendarIcs(
   events: IcsEventLike[],
   opts: { appBaseUrl: string; calendarName?: string; uidDomain?: string; filename?: string }

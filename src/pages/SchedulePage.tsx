@@ -172,6 +172,7 @@ export const SchedulePage: React.FC = () => {
   const [timeFilter, setTimeFilter] = useState<TimeFilterId>('upcoming');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [calendarSheetOpen, setCalendarSheetOpen] = useState(false);
+  const [calendarGuideKind, setCalendarGuideKind] = useState<'google' | 'familywall' | null>(null);
 
   /** Zu-/Absage: Modal + Status. Gespeichertes Event = genau das angeklickte Spiel (ID-Konsistenz). */
   const [attendanceModalEvent, setAttendanceModalEvent] = useState<EventRow | null>(null);
@@ -1342,8 +1343,8 @@ export const SchedulePage: React.FC = () => {
                 type="button"
                 className="flex w-full items-center justify-between rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2 text-left text-sm font-medium text-white/90 hover:bg-white/[0.08]"
                 onClick={() => {
-                  runCalendarDownload();
                   setCalendarSheetOpen(false);
+                  setCalendarGuideKind('google');
                 }}
               >
                 <span>Google Kalender</span>
@@ -1353,8 +1354,8 @@ export const SchedulePage: React.FC = () => {
                 type="button"
                 className="flex w-full items-center justify-between rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2 text-left text-sm font-medium text-white/90 hover:bg-white/[0.08]"
                 onClick={() => {
-                  runCalendarDownload();
                   setCalendarSheetOpen(false);
+                  setCalendarGuideKind('familywall');
                 }}
               >
                 <span>FamilyWall</span>
@@ -1372,6 +1373,34 @@ export const SchedulePage: React.FC = () => {
                 <span className="text-white/55" aria-hidden>›</span>
               </button>
             </div>
+          </Modal>
+
+          <Modal
+            isOpen={calendarGuideKind !== null}
+            title={calendarGuideKind === 'google' ? 'Google Kalender' : 'FamilyWall'}
+            onClose={() => setCalendarGuideKind(null)}
+            footer={
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setCalendarGuideKind(null)}>
+                  Schließen
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    runCalendarDownload();
+                    setCalendarGuideKind(null);
+                  }}
+                >
+                  ICS herunterladen
+                </Button>
+              </div>
+            }
+          >
+            <p className="text-[14px] text-white/80">
+              {calendarGuideKind === 'google'
+                ? 'Für Google Kalender lade die ICS-Datei herunter und importiere sie in Google Kalender.'
+                : 'Für FamilyWall kannst du die ICS-Datei herunterladen und in FamilyWall importieren.'}
+            </p>
           </Modal>
 
           <Modal

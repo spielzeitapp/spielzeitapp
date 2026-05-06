@@ -15,7 +15,7 @@ import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
 import { AppButton } from '../components/ui/AppButton';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
-import { generateEventIcs } from '../lib/ics';
+import { downloadSingleEventFullCalendarIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { upsertMatchForSetup } from '../lib/liveMatchService';
@@ -32,18 +32,6 @@ import {
   utcIsoToViennaDateTimeLocal,
   utcIsoToViennaTimeHHmm,
 } from '../lib/viennaTime';
-
-function downloadTextFile(filename: string, content: string, mimeType: string) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
 
 type EventDbRow = {
   id: string;
@@ -242,13 +230,14 @@ export const EventDetailPage: React.FC = () => {
     if (!event) return;
 
     try {
-      const ics = generateEventIcs(event as any, { appBaseUrl: window.location.origin });
-      downloadTextFile('spielzeitapp-termin.ics', ics, 'text/calendar;charset=utf-8');
-    } catch (err) {
-      console.error('[EventDetail] single event ICS failed', err);
+      downloadSingleEventFullCalendarIcs(event as any, {
+        appBaseUrl: window.location.origin,
+      });
+    } catch (error) {
+      console.error('Event ICS download failed', error, event);
       alert(
         'Kalender-Fehler: ' +
-          ((err as { message?: string })?.message ?? String(err)),
+          ((error as { message?: string })?.message ?? String(error)),
       );
       setCalendarActionError('Kalenderdatei konnte nicht erstellt werden.');
     }
