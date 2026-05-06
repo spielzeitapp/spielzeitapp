@@ -23,7 +23,7 @@ import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } f
 import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
-import { downloadCalendarIcs, downloadEventIcs, generateCalendarIcs } from '../lib/ics';
+import { downloadCalendarIcs, downloadEventIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import type { SeriesEditScope } from '../lib/seriesEditScope';
 import {
@@ -796,20 +796,6 @@ export const SchedulePage: React.FC = () => {
     });
   };
 
-  const copyCalendarIcsLink = async () => {
-    try {
-      const ics = generateCalendarIcs(displayEvents, {
-        appBaseUrl: window.location.origin,
-        calendarName: normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine',
-      });
-      const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-      const blobUrl = URL.createObjectURL(blob);
-      await navigator.clipboard.writeText(blobUrl);
-      setToastMessage('ICS-Link in Zwischenablage kopiert.');
-    } catch {
-      setToastMessage('Kopieren nicht möglich. Bitte ICS-Datei herunterladen.');
-    }
-  };
 
   return (
     <div className="page schedule-page relative min-h-[60vh] scroll-mt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))] [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_50%,rgba(10,0,0,0.99)_100%)] [box-shadow:inset_0_0_120px_rgba(120,20,20,0.12)]">
@@ -845,6 +831,18 @@ export const SchedulePage: React.FC = () => {
                 </div>
               </div>
               <div className="flex shrink-0 flex-row items-start justify-end gap-1.5">
+                {canShowCalendarActions ? (
+                  <button
+                    type="button"
+                    className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-white/12 bg-black/30 px-3 text-[12px] font-semibold text-white/85 shadow-[0_0_10px_rgba(220,38,38,0.14)] transition-all hover:bg-white/[0.06] hover:text-white"
+                    title="Kalender abonnieren"
+                    onClick={() => setCalendarSheetOpen(true)}
+                  >
+                    <CalendarPlus className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+                    <span className="sm:hidden">Abo</span>
+                    <span className="hidden sm:inline">Kalender abonnieren</span>
+                  </button>
+                ) : null}
                 {canManage ? (
                   <button
                     type="button"
@@ -860,32 +858,10 @@ export const SchedulePage: React.FC = () => {
               </div>
             </div>
 
-            {canShowCalendarActions ? (
-              <button
-                type="button"
-                className="group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left shadow-[0_0_20px_rgba(220,38,38,0.14)] backdrop-blur-sm transition hover:bg-white/[0.06]"
-                title="Kalender abonnieren"
-                onClick={() => setCalendarSheetOpen(true)}
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-black/30 text-white/85">
-                    <CalendarDays className="h-4 w-4" aria-hidden />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[14px] font-semibold text-white">Kalender abonnieren</p>
-                    <p className="text-[11px] text-white/60">Apple • Google • FamilyWall</p>
-                  </div>
-                </div>
-                <span className="text-[22px] font-light leading-none text-white/55 transition-colors group-hover:text-white/80" aria-hidden>
-                  ›
-                </span>
-              </button>
-            ) : null}
-
             <div className="flex flex-col gap-2">
               <div className="flex items-stretch gap-2">
                 {normalizedUiRole !== 'fan' ? (
-                  <div className="flex min-h-[42px] min-w-0 flex-1 items-center gap-1 rounded-xl border border-white/12 bg-black/30 p-1 backdrop-blur-sm">
+                  <div className="flex min-h-[40px] min-w-0 flex-1 items-center gap-1 rounded-xl border border-white/12 bg-black/28 p-1 backdrop-blur-sm">
                     {([
                       { id: 'all', label: 'Alle' },
                       { id: 'match', label: 'Spiele' },
@@ -896,9 +872,9 @@ export const SchedulePage: React.FC = () => {
                         key={f.id}
                         type="button"
                         onClick={() => setKindFilter(f.id)}
-                        className={`min-h-[38px] flex-1 rounded-lg px-3 text-[12px] font-medium transition-all ${
+                        className={`min-h-[36px] flex-1 rounded-lg px-2.5 text-[12px] font-medium transition-all ${
                           kindFilter === f.id
-                            ? 'border border-red-400/30 bg-white/[0.12] text-white font-semibold shadow-[0_0_14px_rgba(220,38,38,0.2)]'
+                            ? 'border border-red-400/30 bg-white/[0.11] text-white font-semibold shadow-[0_0_12px_rgba(220,38,38,0.18)]'
                             : 'border border-transparent text-white/75 hover:bg-white/[0.04] hover:text-white/90'
                         }`}
                       >
@@ -913,7 +889,7 @@ export const SchedulePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/app/termine/calendar')}
-                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-black/25 text-white/80 transition hover:bg-white/[0.06] hover:text-white"
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-black/25 text-white/80 transition hover:bg-white/[0.06] hover:text-white"
                   aria-label="Kalenderansicht"
                   title="Kalenderansicht"
                 >
@@ -922,13 +898,13 @@ export const SchedulePage: React.FC = () => {
               </div>
 
               <div className="flex justify-center">
-                <div className="inline-flex min-h-[38px] items-center gap-1 rounded-xl border border-white/15 bg-black/25 p-1">
+                <div className="inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-white/15 bg-black/25 p-1">
                   <button
                     type="button"
                     onClick={() => setTimeFilter('upcoming')}
-                    className={`min-h-[34px] min-w-[92px] rounded-lg px-3 text-[12px] font-medium transition-all ${
+                    className={`min-h-[32px] min-w-[88px] rounded-lg px-3 text-[12px] font-medium transition-all ${
                       timeFilter === 'upcoming'
-                        ? 'border border-red-400/30 bg-white/[0.11] text-white font-semibold shadow-[0_0_12px_rgba(220,38,38,0.18)]'
+                        ? 'border border-red-400/30 bg-white/[0.1] text-white font-semibold shadow-[0_0_10px_rgba(220,38,38,0.16)]'
                         : 'border border-transparent text-white/75 hover:bg-white/[0.04] hover:text-white/90'
                     }`}
                   >
@@ -937,9 +913,9 @@ export const SchedulePage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setTimeFilter('past')}
-                    className={`min-h-[34px] min-w-[92px] rounded-lg px-3 text-[12px] font-medium transition-all ${
+                    className={`min-h-[32px] min-w-[88px] rounded-lg px-3 text-[12px] font-medium transition-all ${
                       timeFilter === 'past'
-                        ? 'border border-red-400/30 bg-white/[0.11] text-white font-semibold shadow-[0_0_12px_rgba(220,38,38,0.18)]'
+                        ? 'border border-red-400/30 bg-white/[0.1] text-white font-semibold shadow-[0_0_10px_rgba(220,38,38,0.16)]'
                         : 'border border-transparent text-white/75 hover:bg-white/[0.04] hover:text-white/90'
                     }`}
                   >
@@ -1386,11 +1362,11 @@ export const SchedulePage: React.FC = () => {
                 type="button"
                 className="flex w-full items-center justify-between rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2 text-left text-sm font-medium text-white/90 hover:bg-white/[0.08]"
                 onClick={() => {
-                  void copyCalendarIcsLink();
+                  runCalendarDownload();
                   setCalendarSheetOpen(false);
                 }}
               >
-                <span>ICS-Link kopieren</span>
+                <span>ICS herunterladen</span>
                 <span className="text-white/55" aria-hidden>›</span>
               </button>
             </div>
