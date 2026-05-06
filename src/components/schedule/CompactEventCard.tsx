@@ -43,6 +43,15 @@ function compactTrainingHeadline(ourTeamName: string, notesTitle: string | null)
   return null;
 }
 
+function splitTrainingTitleLines(trainingTitle: string | null): { top: string; bottom: string | null } {
+  const t = (trainingTitle ?? '').trim();
+  if (!t) return { top: 'Training', bottom: null };
+  const m = t.match(/^(.*)\s+Training$/i);
+  if (!m) return { top: t, bottom: null };
+  const top = (m[1] ?? '').trim();
+  return { top: top || 'Training', bottom: 'Training' };
+}
+
 /** Kurzform für Zeile 2 (z. B. „Meisterschaft“ statt „Meisterschaftsspiel“). */
 function shortMatchTypeLabel(matchType: string | null | undefined): string {
   const f = getMatchTypeLabel(matchType) ?? 'Spiel';
@@ -118,6 +127,7 @@ export function CompactEventCard({
 
   const trainingTitle =
     et === 'training' ? (compactTrainingHeadline(ourTeamName, trainingNotesTitle) ?? 'Training') : null;
+  const trainingTitleLines = splitTrainingTitleLines(trainingTitle);
   const hasTrailing = Boolean(trailing);
   const oppSrc = getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
   const inlineTypeIcon =
@@ -138,14 +148,6 @@ export function CompactEventCard({
   if (parentCompactLayout) {
     const wdAbbrev = formatCompactListWeekdayAbbrev(ev.starts_at);
     const parentTitle = et === 'game' ? oppName : et === 'training' ? trainingTitle : title;
-
-    let parentSubline: string | null = null;
-    if (et === 'game') {
-      const parts = [homeAwayShort, venueOnly].filter(Boolean);
-      parentSubline = parts.length ? parts.join(' • ') : null;
-    } else if (venueOnly) {
-      parentSubline = venueOnly;
-    }
 
     return (
       <div
@@ -179,21 +181,40 @@ export function CompactEventCard({
         <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center space-y-1.5 pr-16">
           <div className="flex min-w-0 items-start gap-2">
             <div className="shrink-0 pt-0.5">{inlineTypeIcon}</div>
-            <p
-              className="min-w-0 flex-1 line-clamp-2 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]"
-              lang="de"
-            >
-              {parentTitle}
-            </p>
+            {et === 'training' ? (
+              <div className="min-w-0 flex-1">
+                <p className="min-w-0 line-clamp-1 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]" lang="de">
+                  {trainingTitleLines.top}
+                </p>
+                {trainingTitleLines.bottom ? (
+                  <p className="min-w-0 line-clamp-1 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]" lang="de">
+                    {trainingTitleLines.bottom}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <p
+                className="min-w-0 flex-1 line-clamp-2 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]"
+                lang="de"
+              >
+                {parentTitle}
+              </p>
+            )}
           </div>
-          {parentSubline ? (
-            <p
-              className="min-w-0 whitespace-normal break-words text-[14px] leading-tight text-white/70"
-              lang="de"
+          {et === 'game' && homeAwayShort ? (
+            <span
+              className={`inline-flex w-fit shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none ${
+                ev.is_home === true
+                  ? 'border-emerald-400/25 bg-emerald-500/12 text-emerald-200'
+                  : ev.is_home === false
+                    ? 'border-red-400/25 bg-red-500/12 text-red-200'
+                    : 'border-white/20 bg-white/10 text-white/75'
+              }`}
             >
-              {parentSubline}
-            </p>
+              {homeAwayShort}
+            </span>
           ) : null}
+          {venueOnly ? <p className="min-w-0 line-clamp-2 text-[14px] leading-tight text-white/72">{venueOnly}</p> : null}
         </div>
 
         {hasTrailing ? (
@@ -245,9 +266,16 @@ export function CompactEventCard({
           {oppName}
         </p>
       ) : et === 'training' ? (
-        <p className={titleClamp} lang="de">
-          {trainingTitle}
-        </p>
+        <>
+          <p className="min-w-0 line-clamp-1 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]" lang="de">
+            {trainingTitleLines.top}
+          </p>
+          {trainingTitleLines.bottom ? (
+            <p className="min-w-0 line-clamp-1 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]" lang="de">
+              {trainingTitleLines.bottom}
+            </p>
+          ) : null}
+        </>
       ) : (
         <p className={titleClamp} lang="de">
           {title}
@@ -272,16 +300,7 @@ export function CompactEventCard({
             {homeAwayShort}
           </span>
         ) : null}
-        {venueOnly ? (
-          <span
-            className={`min-w-0 text-[14px] leading-tight text-white/72 ${
-              venueIsShort ? 'whitespace-nowrap' : 'whitespace-normal break-words'
-            }`}
-            title={venueOnly}
-          >
-            {venueOnly}
-          </span>
-        ) : (
+        {venueOnly ? null : (
           <span className="min-w-0 text-[14px] leading-tight text-white/70">{matchShort}</span>
         )}
       </div>
@@ -294,13 +313,24 @@ export function CompactEventCard({
     ) : null;
 
   const line3 =
-    et !== 'game' && venueOnly ? (
-      <p className="flex min-h-0 min-w-0 max-w-full items-center gap-1 pl-[calc(2rem+0.375rem)] text-[13px] font-medium leading-snug text-white/85">
-        <MapPin className="h-3 w-3 shrink-0 text-rose-300/70" aria-hidden />
-        <span className="min-w-0 flex-1 truncate" title={venueOnly}>
+    venueOnly ? (
+      et === 'game' ? (
+        <p
+          className={`min-w-0 pl-[calc(2rem+0.5rem)] text-[14px] leading-tight text-white/72 line-clamp-2 ${
+            venueIsShort ? 'whitespace-nowrap' : 'whitespace-normal'
+          }`}
+          title={venueOnly}
+        >
           {venueOnly}
-        </span>
-      </p>
+        </p>
+      ) : (
+        <p className="flex min-h-0 min-w-0 max-w-full items-center gap-1 pl-[calc(2rem+0.375rem)] text-[14px] font-medium leading-snug text-white/72 line-clamp-2">
+          <MapPin className="h-3 w-3 shrink-0 text-rose-300/70" aria-hidden />
+          <span className="min-w-0 flex-1" title={venueOnly}>
+            {venueOnly}
+          </span>
+        </p>
+      )
     ) : null;
 
   return (
