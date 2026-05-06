@@ -15,7 +15,7 @@ import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
 import { AppButton } from '../components/ui/AppButton';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
-import { downloadEventIcs, generateEventIcs } from '../lib/ics';
+import { generateEventIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { upsertMatchForSetup } from '../lib/liveMatchService';
@@ -163,6 +163,7 @@ export const EventDetailPage: React.FC = () => {
   const [editError, setEditError] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [calendarPreparedHintOpen, setCalendarPreparedHintOpen] = useState(false);
+  const [calendarActionError, setCalendarActionError] = useState<string | null>(null);
 
   const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | null>(null);
   const [loadingRsvp, setLoadingRsvp] = useState(true);
@@ -230,21 +231,16 @@ export const EventDetailPage: React.FC = () => {
     const appBaseUrl = window.location.origin;
 
     try {
-      // Bestehender Download-Flow zuerst beibehalten.
-      downloadEventIcs(event as any, { appBaseUrl });
-      return;
-    } catch {
-      // Fallback unten.
-    }
-
-    try {
       const ics = generateEventIcs(event as any, { appBaseUrl });
       const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-      const file = new File([blob], `spielzeitapp-termin-${event.id}.ics`, {
+      const file = new File([blob], 'spielzeitapp-termin.ics', {
         type: 'text/calendar',
       });
 
+      const ua = navigator.userAgent ?? '';
+      const isIosDevice = /iPad|iPhone|iPod/i.test(ua);
       if (
+        isIosDevice &&
         typeof navigator !== 'undefined' &&
         'share' in navigator &&
         typeof (navigator as any).canShare === 'function' &&
@@ -261,14 +257,15 @@ export const EventDetailPage: React.FC = () => {
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = objectUrl;
-      link.download = `spielzeitapp-termin-${event.id}.ics`;
+      link.download = 'spielzeitapp-termin.ics';
       document.body.appendChild(link);
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
-      setCalendarPreparedHintOpen(true);
-    } catch {
-      setCalendarPreparedHintOpen(true);
+      if (isIosDevice) setCalendarPreparedHintOpen(true);
+    } catch (err) {
+      console.error('[EventDetail] single event ICS failed', err);
+      setCalendarActionError('Kalenderdatei konnte nicht erstellt werden. Bitte später erneut versuchen.');
     }
   }, [event]);
 
@@ -1243,7 +1240,7 @@ export const EventDetailPage: React.FC = () => {
         </Modal>
         <Modal
           isOpen={calendarPreparedHintOpen}
-          title="Kalenderdatei vorbereitet"
+          title="Kalenderdatei erstellt"
           onClose={() => setCalendarPreparedHintOpen(false)}
           footer={
             <Button variant="soft" onClick={() => setCalendarPreparedHintOpen(false)}>
@@ -1252,9 +1249,21 @@ export const EventDetailPage: React.FC = () => {
           }
         >
           <p className="text-[14px] text-white/75">
-            Die Kalenderdatei wurde vorbereitet. Falls dein Browser den Download blockiert, teile oder
-            oeffne die Datei manuell mit deiner Kalender-App.
+            Die Kalenderdatei wurde erstellt. Falls sie nicht automatisch geöffnet wurde, findest du
+            sie in deinen Downloads und kannst sie mit deiner Kalender-App öffnen.
           </p>
+        </Modal>
+        <Modal
+          isOpen={Boolean(calendarActionError)}
+          title="Kalenderaktion"
+          onClose={() => setCalendarActionError(null)}
+          footer={
+            <Button variant="soft" onClick={() => setCalendarActionError(null)}>
+              OK
+            </Button>
+          }
+        >
+          <p className="text-[14px] text-white/75">{calendarActionError}</p>
         </Modal>
         <Modal
           isOpen={deleteConfirmOpen}

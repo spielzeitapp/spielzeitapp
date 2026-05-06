@@ -23,7 +23,7 @@ import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } f
 import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
-import { downloadCalendarIcs, downloadEventIcs } from '../lib/ics';
+import { downloadCalendarIcs, downloadEventIcs, generateCalendarIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import type { SeriesEditScope } from '../lib/seriesEditScope';
 import {
@@ -172,6 +172,7 @@ export const SchedulePage: React.FC = () => {
   const [timeFilter, setTimeFilter] = useState<TimeFilterId>('upcoming');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [calendarSheetOpen, setCalendarSheetOpen] = useState(false);
+  const [calendarInfoKind, setCalendarInfoKind] = useState<'google' | 'familywall' | null>(null);
 
   /** Zu-/Absage: Modal + Status. Gespeichertes Event = genau das angeklickte Spiel (ID-Konsistenz). */
   const [attendanceModalEvent, setAttendanceModalEvent] = useState<EventRow | null>(null);
@@ -789,12 +790,39 @@ export const SchedulePage: React.FC = () => {
   const error = tsError ?? eError;
   const canShowCalendarActions = Boolean(teamSeasonId && !pageLoading && displayEvents.length > 0);
 
-  const runCalendarDownload = () => {
-    downloadCalendarIcs(displayEvents, {
-      appBaseUrl: window.location.origin,
-      calendarName: normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine',
-    });
-  };
+  const runCalendarDownload = useCallback(() => {
+    const slugify = (input: string) =>
+      input
+        .toLowerCase()
+        .replace(/ä/g, 'ae')
+        .replace(/ö/g, 'oe')
+        .replace(/ü/g, 'ue')
+        .replace(/ß/g, 'ss')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    try {
+      const ics = generateCalendarIcs(displayEvents, {
+        appBaseUrl: window.location.origin,
+        calendarName: normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine',
+      });
+      const teamSlug = slugify(teamSeasonSubtitle) || 'team';
+      const filename = `spielzeitapp-${teamSlug}-termine.ics`;
+      const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1200);
+      return true;
+    } catch (err) {
+      console.error('[Calendar Subscription] ICS create/download failed', err);
+      setToastMessage('Kalenderdatei konnte nicht erstellt werden. Bitte später erneut versuchen.');
+      return false;
+    }
+  }, [displayEvents, normalizedUiRole, teamSeasonSubtitle]);
 
 
   return (
@@ -1325,14 +1353,14 @@ export const SchedulePage: React.FC = () => {
                   setCalendarSheetOpen(false);
                 }}
               >
-                <span>iPhone Kalender</span>
+                <span>iPhone Kalender öffnen</span>
                 <span className="text-white/55" aria-hidden>›</span>
               </button>
               <button
                 type="button"
                 className="flex w-full items-center justify-between rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2 text-left text-sm font-medium text-white/90 hover:bg-white/[0.08]"
                 onClick={() => {
-                  runCalendarDownload();
+                  setCalendarInfoKind('google');
                   setCalendarSheetOpen(false);
                 }}
               >
@@ -1343,7 +1371,7 @@ export const SchedulePage: React.FC = () => {
                 type="button"
                 className="flex w-full items-center justify-between rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2 text-left text-sm font-medium text-white/90 hover:bg-white/[0.08]"
                 onClick={() => {
-                  runCalendarDownload();
+                  setCalendarInfoKind('familywall');
                   setCalendarSheetOpen(false);
                 }}
               >
@@ -1362,6 +1390,40 @@ export const SchedulePage: React.FC = () => {
                 <span className="text-white/55" aria-hidden>›</span>
               </button>
             </div>
+          </Modal>
+          <Modal
+            isOpen={calendarInfoKind !== null}
+            title={calendarInfoKind === 'google' ? 'Google Kalender abonnieren' : 'FamilyWall'}
+            onClose={() => setCalendarInfoKind(null)}
+            footer={
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setCalendarInfoKind(null)}>
+                  Schließen
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    runCalendarDownload();
+                    setCalendarInfoKind(null);
+                  }}
+                >
+                  ICS herunterladen
+                </Button>
+              </div>
+            }
+          >
+            {calendarInfoKind === 'google' ? (
+              <p className="text-[14px] text-white/80">
+                Google Kalender kann ICS-Abos am besten über einen öffentlichen Kalender-Link
+                hinzufügen. Aktuell kannst du die ICS-Datei herunterladen und in Google Kalender
+                importieren.
+              </p>
+            ) : (
+              <p className="text-[14px] text-white/80">
+                Lade die ICS-Datei herunter und importiere sie in FamilyWall oder füge sie dort als
+                Kalender per Datei/URL hinzu.
+              </p>
+            )}
           </Modal>
 
           <Modal
