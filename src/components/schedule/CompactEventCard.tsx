@@ -137,7 +137,7 @@ export function CompactEventCard({
       <img
         src={navIconUrl('home-ball.png')}
         alt=""
-        className="h-5 w-5 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_5px_rgba(255,90,90,0.2))]"
+        className="h-10 w-10 shrink-0 object-contain opacity-95 drop-shadow-[0_0_10px_rgba(255,255,255,0.18)] sm:h-11 sm:w-11"
         decoding="async"
         draggable={false}
       />
@@ -179,7 +179,7 @@ export function CompactEventCard({
         </div>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center space-y-1.5 pr-16">
-          <div className="flex min-w-0 items-start gap-2">
+          <div className={`flex min-w-0 items-start ${et === 'training' ? 'gap-3' : 'gap-2'}`}>
             <div className="shrink-0 pt-0.5">{inlineTypeIcon}</div>
             {et === 'training' ? (
               <div className="min-w-0 flex-1">
@@ -246,7 +246,7 @@ export function CompactEventCard({
       <img
         src={navIconUrl('home-ball.png')}
         alt=""
-        className="h-5 w-5 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_5px_rgba(255,90,90,0.2))]"
+        className="h-10 w-10 shrink-0 object-contain opacity-95 drop-shadow-[0_0_10px_rgba(255,255,255,0.18)] sm:h-11 sm:w-11"
         decoding="async"
         draggable={false}
       />
@@ -361,7 +361,7 @@ export function CompactEventCard({
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 pr-20">
-        <div className="flex min-w-0 items-start gap-2">
+        <div className={`flex min-w-0 items-start ${et === 'training' ? 'gap-3' : 'gap-2'}`}>
           <div className="shrink-0 pt-0.5">{iconSlot}</div>
           {titleText}
         </div>
