@@ -326,19 +326,19 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const scheduleGameHeader =
     scheduleNextMatchHero && effectiveEventType === 'game' ? (
-      <div className="relative z-[1] mb-2 flex w-full min-w-0 items-start justify-between gap-2">
-        <div className="pointer-events-none flex shrink-0 flex-col items-start gap-0.5 rounded-xl border border-white/18 bg-black/68 px-2 py-2 text-left shadow-md backdrop-blur-md sm:gap-1 sm:px-2.5 sm:py-2">
-          <span className="text-[10px] font-black uppercase leading-none tracking-[0.12em] text-red-200 sm:text-[11px]">
+      <div className="relative z-[1] mb-1.5 flex w-full min-w-0 items-start justify-between gap-1.5">
+        <div className="pointer-events-none flex shrink-0 flex-col items-start gap-0 rounded-lg border border-white/18 bg-black/68 px-1.5 py-1.5 text-left shadow-md backdrop-blur-md sm:px-2 sm:py-1.5">
+          <span className="text-[9px] font-black uppercase leading-none tracking-[0.12em] text-red-200 sm:text-[10px]">
             {heroDateParts.wd}
           </span>
-          <span className="text-2xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.65)] sm:text-3xl">
+          <span className="text-xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.65)] sm:text-2xl">
             {heroDateParts.day}
           </span>
-          <span className="text-[10px] font-bold uppercase leading-none tracking-[0.08em] text-white/88 sm:text-[11px]">
+          <span className="text-[9px] font-bold uppercase leading-none tracking-[0.08em] text-white/88 sm:text-[10px]">
             {heroDateParts.mon}
           </span>
         </div>
-        {attendanceTrailing}
+        <div className="min-w-0 shrink pt-0.5">{attendanceTrailing}</div>
       </div>
     ) : null;
 
@@ -375,6 +375,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             descriptionText={descriptionText}
             variant="schedule"
             kickoffShowUhr={scheduleNextMatchHero ? false : undefined}
+            compactScheduleHero={scheduleNextMatchHero}
           />
         </>
       ) : (

@@ -99,24 +99,32 @@ function ScheduleHeroToolbarAction({
   children,
   className = '',
   emphasis = 'secondary',
+  compact = false,
 }: {
   label: string;
   title: string;
   onClick: () => void;
   children: React.ReactNode;
   className?: string;
-  emphasis?: 'primary' | 'secondary';
+  emphasis?: 'primary' | 'secondary' | 'danger';
+  /** Nächstes-Spiel-Hero: niedrigere Toolbar-Höhe */
+  compact?: boolean;
 }) {
   const tone =
     emphasis === 'primary'
       ? 'border-red-500/50 bg-red-600/95 text-white shadow-lg shadow-red-950/40 backdrop-blur-sm hover:border-red-400/70 hover:bg-red-500'
-      : 'border-white/12 bg-black/45 text-white/75 shadow-sm backdrop-blur-sm hover:border-white/22 hover:bg-white/[0.08] hover:text-white/90';
+      : emphasis === 'danger'
+        ? 'border-red-500/35 bg-red-950/55 text-red-100 shadow-sm backdrop-blur-sm hover:border-red-400/45 hover:bg-red-900/65 hover:text-white'
+        : 'border-white/12 bg-black/45 text-white/75 shadow-sm backdrop-blur-sm hover:border-white/22 hover:bg-white/[0.08] hover:text-white/90';
+  const sizeClass = compact
+    ? 'h-9 min-h-9 gap-1 px-2 text-[11px] sm:text-[11px]'
+    : 'h-10 min-h-[2.5rem] gap-1.5 px-2 text-[10px] sm:text-[11px]';
   return (
     <button
       type="button"
       title={title}
       aria-label={title}
-      className={`inline-flex h-10 min-h-[2.5rem] w-full min-w-0 shrink-0 items-center justify-center gap-1.5 rounded-xl border px-2 text-[10px] font-semibold transition sm:text-[11px] ${tone} ${className}`}
+      className={`inline-flex w-full min-w-0 shrink-0 items-center justify-center rounded-xl border font-semibold transition ${sizeClass} ${tone} ${className}`}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
@@ -1032,10 +1040,15 @@ export const SchedulePage: React.FC = () => {
                                 isFinishedMatch && ev.match_id
                                   ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
                                   : navigate(`/app/events/${id}`);
+                        const trainerToolbarCompact = et === 'game';
                         const heroTrainerFooter =
                           canManage && !forcePublicView ? (
                             <div
-                              className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4"
+                              className={
+                                trainerToolbarCompact
+                                  ? 'grid w-full grid-cols-2 gap-3'
+                                  : 'grid w-full grid-cols-2 gap-2 sm:grid-cols-4'
+                              }
                               role="toolbar"
                               aria-label="Trainer-Aktionen"
                               onClick={(e) => e.stopPropagation()}
@@ -1045,6 +1058,7 @@ export const SchedulePage: React.FC = () => {
                                   label="Live starten"
                                   title="Live starten"
                                   emphasis="primary"
+                                  compact={trainerToolbarCompact}
                                   onClick={() => navigate(`/live?matchId=${ev.match_id}`)}
                                 >
                                   <Radio className="h-3.5 w-3.5" strokeWidth={2} />
@@ -1054,6 +1068,7 @@ export const SchedulePage: React.FC = () => {
                                 label="Bearbeiten"
                                 title="Bearbeiten"
                                 emphasis="secondary"
+                                compact={trainerToolbarCompact}
                                 onClick={() => openEditModal(ev)}
                               >
                                 <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
@@ -1061,7 +1076,8 @@ export const SchedulePage: React.FC = () => {
                               <ScheduleHeroToolbarAction
                                 label="Löschen"
                                 title="Löschen"
-                                emphasis="secondary"
+                                emphasis={trainerToolbarCompact ? 'danger' : 'secondary'}
+                                compact={trainerToolbarCompact}
                                 onClick={() => void handleDelete(ev)}
                               >
                                 <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
@@ -1071,6 +1087,7 @@ export const SchedulePage: React.FC = () => {
                                   label="Kalender"
                                   title="Zum Kalender hinzufügen"
                                   emphasis="secondary"
+                                  compact={trainerToolbarCompact}
                                   onClick={() =>
                                     downloadEventIcs(ev, {
                                       appBaseUrl: window.location.origin,
@@ -1086,9 +1103,13 @@ export const SchedulePage: React.FC = () => {
                           heroShowsParentPill && !forcePublicView ? (
                             <div
                               className={
-                                ev.status !== 'finished'
-                                  ? 'grid w-full max-w-md grid-cols-2 gap-2 sm:max-w-lg'
-                                  : 'w-full max-w-md'
+                                et === 'game'
+                                  ? ev.status !== 'finished'
+                                    ? 'grid w-full grid-cols-2 gap-3'
+                                    : 'w-full'
+                                  : ev.status !== 'finished'
+                                    ? 'grid w-full max-w-md grid-cols-2 gap-2 sm:max-w-lg'
+                                    : 'w-full max-w-md'
                               }
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -1097,6 +1118,7 @@ export const SchedulePage: React.FC = () => {
                                   isTraining={et === 'training'}
                                   variant="compact"
                                   compactPrimary
+                                  scheduleMatchHero={et === 'game'}
                                   onOpenAttendance={() => setAttendanceModalEvent(ev)}
                                 />
                               </div>
@@ -1104,8 +1126,12 @@ export const SchedulePage: React.FC = () => {
                                 <Button
                                   type="button"
                                   variant="ghost"
-                                  size="xs"
-                                  className="inline-flex h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-transparent px-3 text-[11px] font-medium text-white/55 hover:border-white/18 hover:bg-white/[0.04] hover:text-white/75"
+                                  size={et === 'game' ? 'default' : 'xs'}
+                                  className={
+                                    et === 'game'
+                                      ? 'inline-flex h-9 min-h-9 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-transparent px-3 text-[12px] font-medium text-white/70 hover:border-white/18 hover:bg-white/[0.04] hover:text-white/85'
+                                      : 'inline-flex h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-transparent px-3 text-[11px] font-medium text-white/55 hover:border-white/18 hover:bg-white/[0.04] hover:text-white/75'
+                                  }
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     downloadEventIcs(ev, { appBaseUrl: window.location.origin });
@@ -1119,7 +1145,7 @@ export const SchedulePage: React.FC = () => {
                           ) : null;
                         const heroCardFooter =
                           heroTrainerFooter || heroParentFooter ? (
-                            <div className="flex flex-col gap-1.5">
+                            <div className={`flex flex-col ${et === 'game' ? 'gap-3 pb-1' : 'gap-1.5'}`}>
                               {heroTrainerFooter}
                               {heroParentFooter}
                             </div>
@@ -1128,10 +1154,14 @@ export const SchedulePage: React.FC = () => {
                           (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url ?? null;
                         if (et === 'game') {
                           return (
-                            <div key={ev.id} className="mb-4 w-full max-w-full" {...publicWrap}>
+                            <div
+                              key={ev.id}
+                              className="mb-4 -mx-1.5 w-[calc(100%+0.75rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full"
+                              {...publicWrap}
+                            >
                               <EventHeroCard label={heroLabelForEffectiveType(et)} footer={heroCardFooter}>
                                 <MatchCardLigaportal
-                                  className="max-w-full scale-[0.98] !px-3 !py-3"
+                                  className="max-w-full !px-2.5 !py-2.5 sm:!px-3 sm:!py-3"
                                   scheduleNextMatchHero
                                   ourTeamName={ourTeamName}
                                   opponent={ev.opponent}

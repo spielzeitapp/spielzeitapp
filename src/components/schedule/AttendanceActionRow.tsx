@@ -9,6 +9,8 @@ type Props = {
   variant?: 'default' | 'hero' | 'compact';
   /** compact: Zu-/Absage als starker Primary-CTA unter der Hero-Karte */
   compactPrimary?: boolean;
+  /** Nächstes-Spiel-Matchcard: gleiche Höhe wie Kalender-Button im 2er-Grid */
+  scheduleMatchHero?: boolean;
 };
 
 /** Eltern/Spieler: öffnet dasselbe Zu-/Absage-Modal wie der Chip auf der Karte. */
@@ -18,6 +20,7 @@ export function AttendanceActionRow({
   disabled = false,
   variant = 'default',
   compactPrimary = false,
+  scheduleMatchHero = false,
 }: Props) {
   const isHero = variant === 'hero';
   const isCompact = variant === 'compact';
@@ -27,11 +30,13 @@ export function AttendanceActionRow({
         <Button
           type="button"
           variant={compactPrimary ? 'primary' : 'pending'}
-          size="xs"
+          size={scheduleMatchHero ? 'default' : 'xs'}
           className={
-            compactPrimary
-              ? 'h-10 min-h-[2.5rem] px-3 text-[11px] font-semibold'
-              : 'h-10 min-h-[2.5rem] px-3 text-[11px] font-semibold'
+            scheduleMatchHero
+              ? 'h-9 min-h-9 w-full px-3 text-[12px] font-semibold'
+              : compactPrimary
+                ? 'h-10 min-h-[2.5rem] px-3 text-[11px] font-semibold'
+                : 'h-10 min-h-[2.5rem] px-3 text-[11px] font-semibold'
           }
           disabled={disabled}
           onClick={onOpenAttendance}
