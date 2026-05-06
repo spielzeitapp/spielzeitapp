@@ -74,15 +74,15 @@ function TeamBlock({ logoUrl, prefix, name, hero, compact = false }: TeamBlockPr
   const imgClass = hero
     ? 'h-[52px] w-[52px] sm:h-[60px] sm:w-[60px]'
     : compact
-      ? 'h-10 w-10 sm:h-11 sm:w-11'
+      ? 'h-9 w-9 sm:h-10 sm:w-10'
       : 'h-12 w-12 sm:h-14 sm:w-14';
   const nameClass = hero
     ? 'mt-1 w-full max-w-[min(200px,46vw)] text-[17px] font-bold leading-snug text-white min-[390px]:text-[17px] sm:max-w-[220px] sm:text-[17px]'
     : compact
-      ? 'mt-1 w-full min-w-0 max-w-full px-0.5 text-[17px] font-semibold leading-tight text-white sm:text-[18px]'
+      ? 'mt-1 w-full min-w-0 max-w-full px-0.5 text-[16px] font-semibold leading-tight text-white sm:text-[18px]'
       : 'mt-0.5 max-w-[184px] text-[17px] font-semibold leading-snug text-white sm:max-w-[200px]';
   return (
-    <div className="flex min-w-0 flex-col items-center text-center">
+    <div className="flex min-w-0 max-w-full flex-col items-center text-center">
       {logoUrl ? (
         <img
           src={logoUrl}
@@ -107,7 +107,15 @@ function TeamBlock({ logoUrl, prefix, name, hero, compact = false }: TeamBlockPr
         </div>
       ) : null}
       <div className={nameClass}>
-        <span className="line-clamp-2 block break-normal [overflow-wrap:normal] [text-wrap:balance]">{name || 'Team'}</span>
+        <span
+          className={
+            compact
+              ? 'line-clamp-2 block min-w-0 max-w-full break-words [overflow-wrap:anywhere]'
+              : 'line-clamp-2 block break-normal [overflow-wrap:normal] [text-wrap:balance]'
+          }
+        >
+          {name || 'Team'}
+        </span>
       </div>
     </div>
   );
@@ -145,6 +153,14 @@ export function MatchCardKickoffBlock({
 
   const locationCompactText = hasLocation
     ? [locationLines.line1, locationLines.line2, locationLines.line3].filter(Boolean).join(' · ')
+    : '';
+  /** Schedule-Hero: weicher umbrechen, kein „ · “ zwischen kurzen Teilen (z. B. Sportplatz + Name). */
+  const locationScheduleHeroText = hasLocation
+    ? locationLines.line3
+      ? locationCompactText
+      : locationLines.line2
+        ? `${locationLines.line1} ${locationLines.line2}`.trim()
+        : locationLines.line1
     : '';
 
   const timeClass = hero
@@ -187,8 +203,8 @@ export function MatchCardKickoffBlock({
       ) : null}
       {hasLocation ? (
         compactScheduleHero ? (
-          <div className="mt-1 min-w-0 max-w-[min(240px,88vw)] px-0.5 text-center text-[13px] font-medium leading-tight text-white/80 break-words line-clamp-2">
-            {locationCompactText}
+          <div className="mt-1 min-w-0 max-w-full px-0.5 text-center text-[13px] font-medium leading-tight text-white/80 break-words [overflow-wrap:break-word] line-clamp-2">
+            {locationScheduleHeroText}
           </div>
         ) : (
           <div

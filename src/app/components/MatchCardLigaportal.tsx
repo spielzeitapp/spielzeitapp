@@ -183,6 +183,18 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const isMatch = effectiveEventType === 'game';
   const kickoffHeaderLabel = showScore && status === 'finished' ? 'ENDSTAND' : 'ANPFIFF';
 
+  /** Nur Schedule „Nächstes Spiel“: Platzname (erstes Komma-Segment), volle Adresse auf EventDetail. */
+  const scheduleHeroKickoffLocation =
+    scheduleNextMatchHero && isMatch
+      ? (() => {
+          const p = (placeLine ?? '').trim();
+          if (p) return (p.split(',')[0]?.trim() || p) || null;
+          const raw = (location ?? '').trim();
+          if (!raw) return null;
+          return (raw.split(',')[0]?.trim() || raw) || null;
+        })()
+      : locationForKickoff;
+
   const handleCardClick = () => {
     if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
   };
@@ -368,7 +380,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             showScore={showScore}
             homeScore={home}
             awayScore={away}
-            kickoffLocation={locationForKickoff}
+            kickoffLocation={scheduleHeroKickoffLocation}
             meetupTimeOnly={meetupTimeOnly}
             showMeetupPill={Boolean(canSeeSensitiveInfo && meetupTimeOnly)}
             endTimeLabel={endTimeLabel}

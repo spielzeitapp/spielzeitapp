@@ -1043,61 +1043,74 @@ export const SchedulePage: React.FC = () => {
                         const trainerToolbarCompact = et === 'game';
                         const heroTrainerFooter =
                           canManage && !forcePublicView ? (
-                            <div
-                              className={
-                                trainerToolbarCompact
-                                  ? 'grid w-full grid-cols-2 gap-3'
-                                  : 'grid w-full grid-cols-2 gap-2 sm:grid-cols-4'
-                              }
-                              role="toolbar"
-                              aria-label="Trainer-Aktionen"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {et === 'game' && ev.match_id && ev.status !== 'finished' ? (
-                                <ScheduleHeroToolbarAction
-                                  label="Live starten"
-                                  title="Live starten"
-                                  emphasis="primary"
-                                  compact={trainerToolbarCompact}
-                                  onClick={() => navigate(`/live?matchId=${ev.match_id}`)}
+                            et === 'game' ? (
+                              ev.match_id && ev.status !== 'finished' ? (
+                                <div
+                                  className="w-full"
+                                  role="toolbar"
+                                  aria-label="Trainer-Aktionen"
+                                  onClick={(e) => e.stopPropagation()}
                                 >
-                                  <Radio className="h-3.5 w-3.5" strokeWidth={2} />
-                                </ScheduleHeroToolbarAction>
-                              ) : null}
-                              <ScheduleHeroToolbarAction
-                                label="Bearbeiten"
-                                title="Bearbeiten"
-                                emphasis="secondary"
-                                compact={trainerToolbarCompact}
-                                onClick={() => openEditModal(ev)}
+                                  <ScheduleHeroToolbarAction
+                                    label="Live starten"
+                                    title="Live starten"
+                                    emphasis="primary"
+                                    compact={trainerToolbarCompact}
+                                    onClick={() => navigate(`/live?matchId=${ev.match_id}`)}
+                                  >
+                                    <Radio className="h-3.5 w-3.5" strokeWidth={2} />
+                                  </ScheduleHeroToolbarAction>
+                                </div>
+                              ) : null
+                            ) : (
+                              <div
+                                className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4"
+                                role="toolbar"
+                                aria-label="Trainer-Aktionen"
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
-                              </ScheduleHeroToolbarAction>
-                              <ScheduleHeroToolbarAction
-                                label="Löschen"
-                                title="Löschen"
-                                emphasis={trainerToolbarCompact ? 'danger' : 'secondary'}
-                                compact={trainerToolbarCompact}
-                                onClick={() => void handleDelete(ev)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-                              </ScheduleHeroToolbarAction>
-                              {ev.status !== 'finished' ? (
+                                {et === 'game' && ev.match_id && ev.status !== 'finished' ? (
+                                  <ScheduleHeroToolbarAction
+                                    label="Live starten"
+                                    title="Live starten"
+                                    emphasis="primary"
+                                    onClick={() => navigate(`/live?matchId=${ev.match_id}`)}
+                                  >
+                                    <Radio className="h-3.5 w-3.5" strokeWidth={2} />
+                                  </ScheduleHeroToolbarAction>
+                                ) : null}
                                 <ScheduleHeroToolbarAction
-                                  label="Kalender"
-                                  title="Zum Kalender hinzufügen"
+                                  label="Bearbeiten"
+                                  title="Bearbeiten"
                                   emphasis="secondary"
-                                  compact={trainerToolbarCompact}
-                                  onClick={() =>
-                                    downloadEventIcs(ev, {
-                                      appBaseUrl: window.location.origin,
-                                    })
-                                  }
+                                  onClick={() => openEditModal(ev)}
                                 >
-                                  <CalendarDays className="h-3.5 w-3.5" strokeWidth={2} />
+                                  <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
                                 </ScheduleHeroToolbarAction>
-                              ) : null}
-                            </div>
+                                <ScheduleHeroToolbarAction
+                                  label="Löschen"
+                                  title="Löschen"
+                                  emphasis="secondary"
+                                  onClick={() => void handleDelete(ev)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                                </ScheduleHeroToolbarAction>
+                                {ev.status !== 'finished' ? (
+                                  <ScheduleHeroToolbarAction
+                                    label="Kalender"
+                                    title="Zum Kalender hinzufügen"
+                                    emphasis="secondary"
+                                    onClick={() =>
+                                      downloadEventIcs(ev, {
+                                        appBaseUrl: window.location.origin,
+                                      })
+                                    }
+                                  >
+                                    <CalendarDays className="h-3.5 w-3.5" strokeWidth={2} />
+                                  </ScheduleHeroToolbarAction>
+                                ) : null}
+                              </div>
+                            )
                           ) : null;
                         const heroParentFooter =
                           heroShowsParentPill && !forcePublicView ? (
@@ -1156,12 +1169,12 @@ export const SchedulePage: React.FC = () => {
                           return (
                             <div
                               key={ev.id}
-                              className="mb-4 -mx-1.5 w-[calc(100%+0.75rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full"
+                              className="mb-4 -mx-3 w-[calc(100%+1.5rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full"
                               {...publicWrap}
                             >
                               <EventHeroCard label={heroLabelForEffectiveType(et)} footer={heroCardFooter}>
                                 <MatchCardLigaportal
-                                  className="max-w-full !px-2.5 !py-2.5 sm:!px-3 sm:!py-3"
+                                  className="w-full max-w-full !px-2.5 !py-2.5 sm:!px-3 sm:!py-3"
                                   scheduleNextMatchHero
                                   ourTeamName={ourTeamName}
                                   opponent={ev.opponent}
