@@ -57,7 +57,7 @@ function CompactOpponentLogo({ src }: { src: string }) {
   if (failed) {
     return (
       <span
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/35 text-[1.2rem] leading-none text-white/90 [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.1))]"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/35 text-[1rem] leading-none text-white/90 [filter:drop-shadow(0_0_5px_rgba(255,255,255,0.07))] sm:h-10 sm:w-10"
         aria-hidden
       >
         ⚽
@@ -68,7 +68,7 @@ function CompactOpponentLogo({ src }: { src: string }) {
     <img
       src={src}
       alt=""
-      className="h-12 w-12 shrink-0 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.1))]"
+      className="h-9 w-9 shrink-0 object-contain [filter:drop-shadow(0_0_5px_rgba(255,255,255,0.07))] sm:h-10 sm:w-10"
       onError={() => setFailed(true)}
     />
   );
@@ -123,13 +123,15 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <img
-        src={navIconUrl('home-ball.png')}
-        alt=""
-        className="h-5 w-5 shrink-0 object-contain opacity-90 [filter:drop-shadow(0_0_7px_rgba(255,90,90,0.25))]"
-        decoding="async"
-        draggable={false}
-      />
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06]">
+        <img
+          src={navIconUrl('home-ball.png')}
+          alt=""
+          className="h-8 w-8 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_6px_rgba(255,90,90,0.2))]"
+          decoding="async"
+          draggable={false}
+        />
+      </span>
     ) : (
       <CalendarDays className="h-5 w-5 shrink-0 text-red-200/85" />
     );
@@ -149,7 +151,7 @@ export function CompactEventCard({
     return (
       <div
         className={[
-          'mb-3 flex min-h-[96px] w-full min-w-0 flex-row items-stretch gap-3 overflow-hidden rounded-2xl border border-red-900/30 bg-gradient-to-br from-black via-[#0a0a0a] to-[#111] px-2.5 py-3 shadow-[0_0_20px_rgba(255,0,0,0.08)]',
+          'mb-3 -mx-1 flex min-h-[96px] w-[calc(100%+0.5rem)] min-w-0 flex-row items-stretch gap-3 overflow-hidden rounded-2xl border border-red-900/30 bg-gradient-to-br from-black via-[#0a0a0a] to-[#111] px-2.5 py-3 shadow-[0_0_20px_rgba(255,0,0,0.08)] sm:mx-0 sm:w-full',
           clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
         ].join(' ')}
         role={clickable ? 'button' : undefined}
@@ -179,7 +181,7 @@ export function CompactEventCard({
           <div className="flex min-w-0 items-start gap-2">
             <div className="shrink-0 pt-0.5">{inlineTypeIcon}</div>
             <p
-              className="min-w-0 break-words line-clamp-2 text-[17px] font-bold leading-tight text-white"
+              className="min-w-0 flex-1 line-clamp-2 text-[17px] font-bold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]"
               lang="de"
             >
               {parentTitle}
@@ -224,13 +226,15 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <img
-        src={navIconUrl('home-ball.png')}
-        alt=""
-        className="h-5 w-5 shrink-0 object-contain opacity-90 [filter:drop-shadow(0_0_7px_rgba(255,90,90,0.25))]"
-        decoding="async"
-        draggable={false}
-      />
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06]">
+        <img
+          src={navIconUrl('home-ball.png')}
+          alt=""
+          className="h-8 w-8 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_6px_rgba(255,90,90,0.2))]"
+          decoding="async"
+          draggable={false}
+        />
+      </span>
     ) : (
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">
         <CalendarDays className="h-5 w-5 text-red-200/85" />
@@ -238,7 +242,7 @@ export function CompactEventCard({
     );
 
   const titleClamp =
-    'line-clamp-2 min-w-0 whitespace-normal text-[17px] font-bold leading-tight text-white [overflow-wrap:normal] [word-break:normal]';
+    'line-clamp-2 min-w-0 flex-1 whitespace-normal text-[17px] font-bold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] [word-break:normal]';
 
   const titleText = (
     <div className="min-w-0 flex-1">
@@ -284,7 +288,7 @@ export function CompactEventCard({
   return (
     <div
       className={[
-        'mb-3 flex w-full min-w-0 flex-row items-start justify-between gap-2 overflow-x-hidden rounded-2xl border border-red-950/45 bg-zinc-950 px-2.5 py-3',
+        'mb-3 -mx-1 flex w-[calc(100%+0.5rem)] min-w-0 flex-row items-start justify-between gap-2 overflow-x-hidden rounded-2xl border border-red-950/45 bg-zinc-950 px-2.5 py-3 sm:mx-0 sm:w-full',
         clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
