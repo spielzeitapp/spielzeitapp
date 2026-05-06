@@ -230,6 +230,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const showAttendanceCounts =
     canManage && attendanceCounts != null && !suppressInlineAttendanceCounts;
 
+  const showScheduleHeroTrailing =
+    scheduleNextMatchHero &&
+    effectiveEventType === 'game' &&
+    ((showAttendanceCounts && attendanceCounts != null) || showManageButtons || showAttendanceChip);
+
   const compactParentRow = showAttendanceChip && !showAttendanceCounts && !showManageButtons;
   const heroDateParts = formatHeroDateParts(startsAt);
 
@@ -350,7 +355,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             {heroDateParts.mon}
           </span>
         </div>
-        <div className="min-w-0 shrink pt-0.5">{attendanceTrailing}</div>
+        {showScheduleHeroTrailing ? (
+          <div className="min-w-0 shrink pt-0.5">{attendanceTrailing}</div>
+        ) : null}
       </div>
     ) : null;
 

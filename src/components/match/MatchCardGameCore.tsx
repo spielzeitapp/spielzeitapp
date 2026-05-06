@@ -74,49 +74,68 @@ function TeamBlock({ logoUrl, prefix, name, hero, compact = false }: TeamBlockPr
   const imgClass = hero
     ? 'h-[52px] w-[52px] sm:h-[60px] sm:w-[60px]'
     : compact
-      ? 'h-9 w-9 sm:h-10 sm:w-10'
+      ? 'h-10 w-10 shrink-0 sm:h-10 sm:w-10'
       : 'h-12 w-12 sm:h-14 sm:w-14';
   const nameClass = hero
     ? 'mt-1 w-full max-w-[min(200px,46vw)] text-[17px] font-bold leading-snug text-white min-[390px]:text-[17px] sm:max-w-[220px] sm:text-[17px]'
     : compact
-      ? 'mt-1 w-full min-w-0 max-w-full px-0.5 text-[16px] font-semibold leading-tight text-white sm:text-[18px]'
+      ? 'w-full min-w-0 max-w-full px-0.5 text-center text-[15px] font-semibold leading-tight text-white'
       : 'mt-0.5 max-w-[184px] text-[17px] font-semibold leading-snug text-white sm:max-w-[200px]';
+
+  const imgNode = logoUrl ? (
+    <img
+      src={logoUrl}
+      alt={name}
+      className={`${imgClass} mx-auto object-contain`}
+      onError={(e) => {
+        const img = e.currentTarget as HTMLImageElement;
+          if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
+          img.src = '/logos/placeholder-shield-a.png';
+      }}
+    />
+  ) : (
+    <img src="/logos/placeholder-shield-a.png" alt="" className={`${imgClass} mx-auto object-contain`} />
+  );
+
+  const prefixNode = prefix ? (
+    <div
+      className={`${
+        compact ? 'text-[10px] sm:text-[11px]' : hero ? 'mt-1.5 text-[12px]' : 'mt-1.5 text-[12px]'
+      } font-semibold uppercase tracking-[0.14em] text-white/90`}
+    >
+      {prefix}
+    </div>
+  ) : null;
+
+  const nameNode = (
+    <div className={nameClass}>
+      <span
+        className={
+          compact
+            ? 'line-clamp-2 block min-w-0 max-w-full text-center break-normal hyphens-none [overflow-wrap:normal]'
+            : 'line-clamp-2 block break-normal [overflow-wrap:normal] [text-wrap:balance]'
+        }
+      >
+        {name || 'Team'}
+      </span>
+    </div>
+  );
+
+  if (compact) {
+    return (
+      <div className="flex min-w-0 max-w-full flex-col items-center justify-center gap-1 text-center">
+        {imgNode}
+        {prefixNode}
+        {nameNode}
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-w-0 max-w-full flex-col items-center text-center">
-      {logoUrl ? (
-        <img
-          src={logoUrl}
-          alt={name}
-          className={`${imgClass} mx-auto object-contain`}
-          onError={(e) => {
-            const img = e.currentTarget as HTMLImageElement;
-              if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
-              img.src = '/logos/placeholder-shield-a.png';
-          }}
-        />
-      ) : (
-        <img src="/logos/placeholder-shield-a.png" alt="" className={`${imgClass} mx-auto object-contain`} />
-      )}
-      {prefix ? (
-        <div
-          className={`${
-            compact ? 'mt-1 text-[10px] sm:text-[11px]' : hero ? 'mt-1.5 text-[12px]' : 'mt-1.5 text-[12px]'
-          } font-semibold uppercase tracking-[0.14em] text-white/90`}
-        >
-          {prefix}
-        </div>
-      ) : null}
-      <div className={nameClass}>
-        <span
-          className={
-            compact
-              ? 'line-clamp-2 block min-w-0 max-w-full break-words [overflow-wrap:anywhere]'
-              : 'line-clamp-2 block break-normal [overflow-wrap:normal] [text-wrap:balance]'
-          }
-        >
-          {name || 'Team'}
-        </span>
-      </div>
+      {imgNode}
+      {prefixNode}
+      {nameNode}
     </div>
   );
 }
@@ -203,7 +222,7 @@ export function MatchCardKickoffBlock({
       ) : null}
       {hasLocation ? (
         compactScheduleHero ? (
-          <div className="mt-1 min-w-0 max-w-full px-0.5 text-center text-[13px] font-medium leading-tight text-white/80 break-words [overflow-wrap:break-word] line-clamp-2">
+          <div className="mt-1 min-w-0 max-w-full px-0.5 text-center text-[12px] font-medium leading-tight text-white/80 break-normal hyphens-none [overflow-wrap:normal] line-clamp-2 sm:text-[13px]">
             {locationScheduleHeroText}
           </div>
         ) : (
@@ -324,13 +343,13 @@ export function MatchCardGameCore({
       ) : null}
 
       <div
-        className={`${gridMt} grid grid-cols-[1.02fr_auto_1.02fr] items-center ${gridGap} ${
-          hero ? 'min-h-[140px] sm:min-h-[160px]' : ''
-        }`}
+        className={`${gridMt} grid ${
+          cs ? 'grid-cols-[1.16fr_auto_1.16fr]' : 'grid-cols-[1.02fr_auto_1.02fr]'
+        } items-center ${gridGap} ${hero ? 'min-h-[140px] sm:min-h-[160px]' : ''}`}
       >
         <div
-          className={`flex min-w-0 flex-col items-center border-r border-white/[0.12] text-center ${
-            cs ? 'py-1 pr-1.5 sm:pr-2.5' : 'py-2 pr-3 sm:pr-5'
+          className={`flex min-h-0 min-w-0 flex-col items-center justify-center border-r border-white/[0.12] text-center ${
+            cs ? 'py-1 pr-1 sm:pr-2' : 'py-2 pr-3 sm:pr-5'
           }`}
         >
           {hero && leftColumnLabel ? (
@@ -346,11 +365,11 @@ export function MatchCardGameCore({
         </div>
 
         <div
-          className={`flex min-w-0 flex-col items-center px-0.5 text-center sm:px-1 ${
+          className={`flex min-h-0 min-w-0 flex-col items-center justify-center px-0.5 text-center sm:px-1 ${
             hero
               ? 'max-w-[min(300px,min(94vw,100%))]'
               : cs
-                ? 'max-w-[108px] sm:max-w-[122px]'
+                ? 'max-w-[92px] sm:max-w-[104px]'
                 : 'max-w-[118px] sm:max-w-[134px]'
           }`}
         >
@@ -367,8 +386,8 @@ export function MatchCardGameCore({
         </div>
 
         <div
-          className={`flex min-w-0 flex-col items-center border-l border-white/[0.12] text-center ${
-            cs ? 'py-1 pl-1.5 sm:pl-2.5' : 'py-2 pl-3 sm:pl-5'
+          className={`flex min-h-0 min-w-0 flex-col items-center justify-center border-l border-white/[0.12] text-center ${
+            cs ? 'py-1 pl-1 sm:pl-2' : 'py-2 pl-3 sm:pl-5'
           }`}
         >
           {hero && rightColumnLabel ? (
