@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
@@ -415,7 +415,6 @@ export const EventDetailPage: React.FC = () => {
         status,
         effectiveRole,
       });
-      if (event?.kind === 'training' && status === 'yes') return;
       let resolvedPlayerId = playerId ?? null;
       if (!eventId) return;
       if (!resolvedPlayerId) {
@@ -431,6 +430,25 @@ export const EventDetailPage: React.FC = () => {
         }
       }
       if (!resolvedPlayerId) return;
+
+      if (event?.kind === 'training' && status === 'yes') {
+        const del = await supabase
+          .from('event_attendance')
+          .delete()
+          .eq('event_id', eventId)
+          .eq('player_id', resolvedPlayerId);
+        if (del.error) return;
+        setRsvpStatus('yes');
+        setEventAttendanceByPlayerId((prev) => {
+          const next = { ...prev };
+          delete next[(resolvedPlayerId ?? '').toLowerCase()];
+          return next;
+        });
+        setAttendanceModalOpen(false);
+        setCancelReason('');
+        await loadEventAttendance();
+        return;
+      }
 
       const payload = {
         event_id: eventId,
@@ -909,9 +927,7 @@ export const EventDetailPage: React.FC = () => {
                   <div className="flex flex-col gap-2">
                     {isTraining ? (
                       <>
-                        <p className="text-[14px] font-medium text-white/90">
-                          Status: {rsvpStatus === 'no' ? 'Abwesend' : 'Dabei'}
-                        </p>
+                        <p className="text-[14px] font-medium text-white/90">Status: {rsvpStatus === 'no' ? 'Abwesend' : 'Dabei'}</p>
                         <p className="mt-1 text-[12px] text-white/70">
                           {event.training_absence_deadline_disabled
                             ? 'Absage jederzeit möglich.'
@@ -920,34 +936,76 @@ export const EventDetailPage: React.FC = () => {
                         {!trainingCancellationAllowed && rsvpStatus !== 'no' ? (
                           <p className="mt-1 text-[12px] text-amber-200/90">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
                         ) : null}
-                        <Button
-                          variant={rsvpStatus === 'no' ? 'negative' : 'negative'}
-                          size="sm"
-                          disabled={rsvpStatus === 'no' || !trainingCancellationAllowed}
-                          className={`mt-3 ${
-                            rsvpStatus === 'no'
-                              ? 'opacity-60 cursor-not-allowed'
-                              : !trainingCancellationAllowed
-                                ? 'opacity-60 cursor-not-allowed'
-                                : ''
-                          }`}
-                          onClick={() => { setCancelReason(''); setAttendanceModalOpen(true); }}
-                        >
-                          {rsvpStatus === 'no' ? 'Abwesend' : trainingCancellationAllowed ? 'Absagen' : 'Zu spät'}
-                        </Button>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <AppButton
+                            type="button"
+                            variant="success"
+                            size="sm"
+                            className={`h-11 w-full gap-2 ${
+                              rsvpStatus !== 'no'
+                                ? 'border border-emerald-400/45 shadow-[0_0_16px_rgba(16,185,129,0.32)]'
+                                : 'border border-white/10'
+                            }`}
+                            onClick={() => void handleRsvp('yes')}
+                          >
+                            <ThumbsUp className="h-4 w-4" aria-hidden />
+                            Dabei
+                          </AppButton>
+                          <AppButton
+                            type="button"
+                            variant="danger"
+                            size="sm"
+                            disabled={!trainingCancellationAllowed && rsvpStatus !== 'no'}
+                            className={`h-11 w-full gap-2 ${
+                              rsvpStatus === 'no'
+                                ? 'border border-red-400/45 shadow-[0_0_16px_rgba(239,68,68,0.28)]'
+                                : 'border border-white/10'
+                            } ${!trainingCancellationAllowed && rsvpStatus !== 'no' ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            onClick={() => {
+                              if (!trainingCancellationAllowed && rsvpStatus !== 'no') return;
+                              void handleRsvp('no');
+                            }}
+                          >
+                            <ThumbsDown className="h-4 w-4" aria-hidden />
+                            Absagen
+                          </AppButton>
+                        </div>
                       </>
                     ) : (
                       <>
                         <p className="text-[14px] text-white/90">
                           Status: {rsvpStatus === 'yes' ? 'Zugesagt' : rsvpStatus === 'no' ? 'Abgesagt' : 'Offen'}
                         </p>
-                        <Button
-                          variant={rsvpStatus === 'yes' ? 'positive' : rsvpStatus === 'no' ? 'negative' : 'pending'}
-                          size="sm"
-                          onClick={() => { setCancelReason(''); setAttendanceModalOpen(true); }}
-                        >
-                          {rsvpStatus === 'yes' ? 'Zugesagt' : rsvpStatus === 'no' ? 'Abgesagt' : 'Zu-/Absage'}
-                        </Button>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <AppButton
+                            type="button"
+                            variant="success"
+                            size="sm"
+                            className={`h-11 w-full gap-2 ${
+                              rsvpStatus === 'yes'
+                                ? 'border border-emerald-400/45 shadow-[0_0_16px_rgba(16,185,129,0.32)]'
+                                : 'border border-white/10'
+                            }`}
+                            onClick={() => void handleRsvp('yes')}
+                          >
+                            <ThumbsUp className="h-4 w-4" aria-hidden />
+                            Zusage
+                          </AppButton>
+                          <AppButton
+                            type="button"
+                            variant="danger"
+                            size="sm"
+                            className={`h-11 w-full gap-2 ${
+                              rsvpStatus === 'no'
+                                ? 'border border-red-400/45 shadow-[0_0_16px_rgba(239,68,68,0.28)]'
+                                : 'border border-white/10'
+                            }`}
+                            onClick={() => void handleRsvp('no')}
+                          >
+                            <ThumbsDown className="h-4 w-4" aria-hidden />
+                            Absage
+                          </AppButton>
+                        </div>
                       </>
                     )}
                   </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin } from 'lucide-react';
+import { CalendarDays, MapPin } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getClubLogo } from '../../lib/teamLogos';
 import { splitCombinedLocation } from '../../lib/eventLocation';
@@ -13,7 +13,6 @@ import {
   scheduleEventTypeLabel,
   eventNotesTitle,
 } from './scheduleEventViewUtils';
-import { EventMotifIcon } from './scheduleFootballMotifIcons';
 
 export type CompactEventCardProps = {
   ev: EventRow;
@@ -57,7 +56,10 @@ function CompactOpponentLogo({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center text-[1rem] leading-none" aria-hidden>
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/35 text-[1.05rem] leading-none text-white/90 [filter:drop-shadow(0_0_6px_rgba(255,255,255,0.08))]"
+        aria-hidden
+      >
         ⚽
       </span>
     );
@@ -66,7 +68,7 @@ function CompactOpponentLogo({ src }: { src: string }) {
     <img
       src={src}
       alt=""
-      className="h-8 w-8 shrink-0 object-contain"
+      className="h-9 w-9 shrink-0 object-contain [filter:drop-shadow(0_0_5px_rgba(255,255,255,0.07))]"
       onError={() => setFailed(true)}
     />
   );
@@ -176,7 +178,7 @@ export function CompactEventCard({
         </div>
 
         <div className="flex w-[90px] shrink-0 flex-col items-end justify-between self-stretch py-0.5">
-          <div className="flex shrink-0 flex-col items-end">{trailing}</div>
+          <div className="flex shrink-0 flex-col items-end opacity-90">{trailing}</div>
           <div className="flex shrink-0 items-center justify-end self-center pr-3">
             {clickable ? (
               <span className="shrink-0 text-[24px] font-light leading-none text-white/55 transition-colors duration-200 group-hover:text-white/80 group-focus-visible:text-white/80" aria-hidden>
@@ -209,13 +211,13 @@ export function CompactEventCard({
       <img
         src={navIconUrl('home-ball.png')}
         alt=""
-        className="h-8 w-8 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_4px_rgba(255,90,90,0.1))]"
+        className="h-9 w-9 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_7px_rgba(255,90,90,0.2))]"
         decoding="async"
         draggable={false}
       />
     ) : (
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center">
-        <EventMotifIcon className="h-6 w-6 text-red-200/85" />
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/25">
+        <CalendarDays className="h-5 w-5 text-red-200/85" />
       </span>
     );
 
@@ -300,7 +302,7 @@ export function CompactEventCard({
       </div>
 
       <div className="flex w-[118px] shrink-0 flex-row items-center justify-end gap-1 pt-0.5">
-        {trailing ? <div className="min-w-0 shrink">{trailing}</div> : null}
+        {trailing ? <div className="min-w-0 shrink opacity-90">{trailing}</div> : null}
         <div className="flex shrink-0 items-center justify-center self-center pr-3">
           {clickable ? (
             <span className="shrink-0 text-[24px] font-light leading-none text-white/55 transition-colors duration-200 group-hover:text-white/80 group-focus-visible:text-white/80" aria-hidden>

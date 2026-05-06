@@ -1,4 +1,5 @@
 import React from 'react';
+import { CircleHelp, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { triggerHaptic } from '../../lib/hapticFeedback';
 import type { AttendanceStatusKind } from './AttendanceStatusPill';
 import { AppButton } from '../ui/AppButton';
@@ -11,10 +12,7 @@ type Props = {
 };
 
 const btnBase =
-  'w-auto ml-2 max-w-[92px] min-w-0 shrink-0 whitespace-nowrap leading-tight inline-flex items-center justify-center gap-0.5';
-
-const iconPop =
-  'compact-rsvp-icon-pop inline-block shrink-0 origin-center transition-all duration-200 ease-out opacity-80 scale-100';
+  'ml-2 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border p-0';
 
 /** Eltern/Spieler: Aktion rechts oben in „Weitere Termine“ (Eltern-Kompaktkarte). */
 export function CompactListParentAttendance({ status, isTraining, onOpen, className = '' }: Props) {
@@ -28,38 +26,70 @@ export function CompactListParentAttendance({ status, isTraining, onOpen, classN
   if (isTraining) {
     if (status === 'no') {
       return (
-        <AppButton type="button" variant="danger" size="sm" className={`${btnBase} ${className}`} onClick={openModal}>
-          <span className={iconPop} aria-hidden>
-            ✕
-          </span>
-          <span className="min-w-0">Abgesagt</span>
+        <AppButton
+          type="button"
+          variant="danger"
+          size="sm"
+          className={`${btnBase} border-red-500/35 bg-red-950/60 text-red-100 ${className}`}
+          onClick={openModal}
+          aria-label="Abgesagt"
+        >
+          <ThumbsDown className="h-4 w-4" strokeWidth={2} aria-hidden />
         </AppButton>
       );
     }
     return (
-      <AppButton type="button" variant="success" size="sm" className={`${btnBase} ${className}`} onClick={openModal}>
-        <span className="min-w-0">✓ Dabei</span>
+      <AppButton
+        type="button"
+        variant="success"
+        size="sm"
+        className={`${btnBase} border-emerald-500/35 bg-emerald-950/50 text-emerald-100 ${className}`}
+        onClick={openModal}
+        aria-label="Dabei"
+      >
+        <ThumbsUp className="h-4 w-4" strokeWidth={2} aria-hidden />
       </AppButton>
     );
   }
 
   if (status === 'yes') {
     return (
-      <AppButton type="button" variant="success" size="sm" className={`${btnBase} ${className}`} onClick={openModal}>
-        <span className="min-w-0">✓ Zugesagt</span>
+      <AppButton
+        type="button"
+        variant="success"
+        size="sm"
+        className={`${btnBase} border-emerald-500/35 bg-emerald-950/50 text-emerald-100 ${className}`}
+        onClick={openModal}
+        aria-label="Zugesagt"
+      >
+        <ThumbsUp className="h-4 w-4" strokeWidth={2} aria-hidden />
       </AppButton>
     );
   }
   if (status === 'no') {
     return (
-      <AppButton type="button" variant="danger" size="sm" className={`${btnBase} ${className}`} onClick={openModal}>
-        <span className="min-w-0">✕ Abgesagt</span>
+      <AppButton
+        type="button"
+        variant="danger"
+        size="sm"
+        className={`${btnBase} border-red-500/35 bg-red-950/60 text-red-100 ${className}`}
+        onClick={openModal}
+        aria-label="Abgesagt"
+      >
+        <ThumbsDown className="h-4 w-4" strokeWidth={2} aria-hidden />
       </AppButton>
     );
   }
   return (
-    <AppButton type="button" variant="pending" size="sm" className={`${btnBase} ${className}`} onClick={openModal}>
-      Zu-/Absagen
+    <AppButton
+      type="button"
+      variant="pending"
+      size="sm"
+      className={`${btnBase} border-white/20 bg-white/[0.1] text-white/70 ${className}`}
+      onClick={openModal}
+      aria-label="Offen"
+    >
+      <CircleHelp className="h-4 w-4" strokeWidth={2} aria-hidden />
     </AppButton>
   );
 }
