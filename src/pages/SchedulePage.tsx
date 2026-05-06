@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { CalendarDays, CalendarPlus, LayoutList, Pencil, Radio, Trash2 } from 'lucide-react';
-import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { CalendarDays, CalendarPlus, Pencil, Radio, Trash2 } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { AppButton } from '../components/ui/AppButton';
@@ -38,11 +38,6 @@ import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocatio
 
 type KindFilterId = 'all' | 'match' | 'training' | 'event';
 type TimeFilterId = 'upcoming' | 'past';
-
-const viewTabIconClass = (active: boolean) =>
-  `flex shrink-0 items-center justify-center gap-1 rounded-md px-2 min-h-[30px] text-[11px] font-medium transition-colors ${
-    active ? 'bg-red-500/15 text-white border border-red-500/30' : 'bg-black/25 text-white/65 border border-white/10 hover:bg-white/10'
-  }`;
 
 function getEventTab(e: EventRow): 'upcoming' | 'live' | 'finished' {
   const s = e.status ?? 'upcoming';
@@ -826,37 +821,12 @@ export const SchedulePage: React.FC = () => {
                 </div>
               </div>
               <div className="flex shrink-0 flex-row items-start justify-end gap-1.5">
-                {teamSeasonId && !pageLoading && displayEvents.length > 0 ? (
-                  <div className="flex flex-col items-end gap-0.5">
-                    <Button
-                      variant="soft"
-                      size="xs"
-                      className="inline-flex max-w-[10.5rem] items-center justify-center gap-1.5 rounded-xl border border-white/12 px-2.5 py-2 text-left sm:max-w-none sm:rounded-full sm:py-1.5"
-                      title="Kalender abonnieren – kompatible Apps u. a.: Apple Kalender, Google Kalender, FamilyWall"
-                      onClick={() =>
-                        downloadCalendarIcs(displayEvents, {
-                          appBaseUrl: window.location.origin,
-                          calendarName: normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine',
-                        })
-                      }
-                    >
-                      <CalendarPlus className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-                      <span className="min-w-0 text-[10px] font-semibold leading-tight sm:text-xs">
-                        <span className="sm:hidden">Kalender</span>
-                        <span className="hidden sm:inline">Kalender abonnieren</span>
-                      </span>
-                    </Button>
-                    <span className="hidden max-w-[11rem] text-right text-[9px] leading-snug text-white/45 sm:block">
-                      Für Apple, Google, FamilyWall
-                    </span>
-                  </div>
-                ) : null}
                 {canManage ? (
                   <button
                     type="button"
                     onClick={() => setCreateModalOpen(true)}
                     disabled={!teamSeasonId}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-500/35 bg-red-500/15 text-lg leading-none text-white disabled:opacity-50 hover:bg-red-500/25"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-500/25 bg-red-500/10 text-[17px] leading-none text-white/95 shadow-[0_0_8px_rgba(220,38,38,0.16)] disabled:opacity-50 hover:bg-red-500/18"
                     aria-label="Termin anlegen"
                     title="Termin anlegen"
                   >
@@ -866,10 +836,10 @@ export const SchedulePage: React.FC = () => {
               </div>
             </div>
 
-            {normalizedUiRole !== 'fan' ? (
-              <div className="flex flex-col gap-1.5">
-                <div className="flex flex-wrap items-stretch gap-1.5">
-                  <div className="flex min-h-[32px] min-w-0 flex-1 gap-0.5 rounded-lg border border-white/10 bg-black/35 p-0.5 backdrop-blur-sm">
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-stretch gap-2">
+                {normalizedUiRole !== 'fan' ? (
+                  <div className="flex min-h-[40px] min-w-0 flex-1 gap-1 rounded-xl border border-white/12 bg-black/35 p-1 backdrop-blur-sm">
                     {([
                       { id: 'all', label: 'Alle' },
                       { id: 'match', label: 'Spiele' },
@@ -880,80 +850,69 @@ export const SchedulePage: React.FC = () => {
                         key={f.id}
                         type="button"
                         onClick={() => setKindFilter(f.id)}
-                        className={`min-h-[30px] flex-1 rounded-md px-1 py-0.5 text-[10px] font-semibold transition-colors sm:min-h-[32px] sm:px-1.5 sm:text-[11px] ${
+                        className={`min-h-[38px] flex-1 rounded-lg px-2.5 text-[12px] font-medium transition-all ${
                           kindFilter === f.id
-                            ? 'border border-white/35 bg-white/15 text-white'
-                            : 'border border-transparent text-white/65 hover:text-white/90'
+                            ? 'border border-red-400/35 bg-white/[0.13] text-white font-semibold shadow-[0_0_16px_rgba(220,38,38,0.22)]'
+                            : 'border border-transparent text-white/80 hover:text-white/95 hover:bg-white/[0.05]'
                         }`}
                       >
                         {f.label}
                       </button>
                     ))}
                   </div>
-                  <div className="ml-auto flex shrink-0 gap-0.5 rounded-lg border border-white/10 bg-black/30 p-0.5">
-                    <NavLink
-                      to="/app/termine"
-                      end
-                      className={({ isActive }) => `${viewTabIconClass(isActive)} min-w-[2.5rem]`}
-                      title="Liste"
-                    >
-                      <LayoutList className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-                      <span className="hidden sm:inline">Liste</span>
-                    </NavLink>
-                    <NavLink
-                      to="/app/termine/calendar"
-                      className={({ isActive }) => `${viewTabIconClass(isActive)} min-w-[2.5rem]`}
-                      title="Kalender"
-                    >
-                      <CalendarDays className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-                      <span className="hidden sm:inline">Kal.</span>
-                    </NavLink>
-                  </div>
-                </div>
-                <div className="flex justify-center px-1 pt-0.5">
+                ) : (
+                  <div className="flex-1" />
+                )}
+
+                {teamSeasonId && !pageLoading && displayEvents.length > 0 ? (
                   <button
                     type="button"
-                    onClick={() => setTimeFilter(timeFilter === 'upcoming' ? 'past' : 'upcoming')}
-                    className="text-[10px] font-medium text-red-400/80 underline decoration-red-500/25 decoration-1 underline-offset-[5px] hover:text-red-200/95"
+                    className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-red-400/25 bg-black/35 px-3 text-[12px] font-semibold text-white/90 shadow-[0_0_14px_rgba(220,38,38,0.16)] transition-all hover:bg-white/[0.06] hover:text-white"
+                    title="Kalender abonnieren – kompatible Apps u. a.: Apple Kalender, Google Kalender, FamilyWall"
+                    onClick={() =>
+                      downloadCalendarIcs(displayEvents, {
+                        appBaseUrl: window.location.origin,
+                        calendarName: normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine',
+                      })
+                    }
                   >
-                    {timeFilter === 'upcoming' ? 'Vergangene anzeigen →' : 'Kommende anzeigen →'}
+                    <CalendarDays className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+                    <span className="sm:hidden">Abo</span>
+                    <span className="hidden sm:inline">Kalender abonnieren</span>
+                    <span className="ml-1 hidden text-[10px] font-medium text-white/50 lg:inline">
+                      Apple • Google • FamilyWall
+                    </span>
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="flex justify-center">
+                <div className="inline-flex min-h-[40px] min-w-[210px] items-center gap-1 rounded-xl border border-white/12 bg-black/35 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setTimeFilter('upcoming')}
+                    className={`min-h-[36px] min-w-[96px] rounded-lg px-3 text-[12px] font-medium transition-all ${
+                      timeFilter === 'upcoming'
+                        ? 'border border-red-400/35 bg-white/[0.13] text-white font-semibold shadow-[0_0_14px_rgba(220,38,38,0.2)]'
+                        : 'border border-transparent text-white/80 hover:bg-white/[0.05] hover:text-white/95'
+                    }`}
+                  >
+                    Kommende
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTimeFilter('past')}
+                    className={`min-h-[36px] min-w-[96px] rounded-lg px-3 text-[12px] font-medium transition-all ${
+                      timeFilter === 'past'
+                        ? 'border border-red-400/35 bg-white/[0.13] text-white font-semibold shadow-[0_0_14px_rgba(220,38,38,0.2)]'
+                        : 'border border-transparent text-white/80 hover:bg-white/[0.05] hover:text-white/95'
+                    }`}
+                  >
+                    Vergangene
                   </button>
                 </div>
               </div>
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                <div className="flex flex-wrap items-center justify-end gap-1.5">
-                  <div className="flex shrink-0 gap-0.5 rounded-lg border border-white/10 bg-black/30 p-0.5">
-                    <NavLink
-                      to="/app/termine"
-                      end
-                      className={({ isActive }) => `${viewTabIconClass(isActive)} min-w-[2.5rem]`}
-                      title="Liste"
-                    >
-                      <LayoutList className="h-3.5 w-3.5 opacity-90" aria-hidden />
-                      <span className="hidden sm:inline">Liste</span>
-                    </NavLink>
-                    <NavLink
-                      to="/app/termine/calendar"
-                      className={({ isActive }) => `${viewTabIconClass(isActive)} min-w-[2.5rem]`}
-                      title="Kalender"
-                    >
-                      <CalendarDays className="h-3.5 w-3.5 opacity-90" aria-hidden />
-                      <span className="hidden sm:inline">Kal.</span>
-                    </NavLink>
-                  </div>
-                </div>
-                <div className="flex justify-center px-1 pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setTimeFilter(timeFilter === 'upcoming' ? 'past' : 'upcoming')}
-                    className="text-[10px] font-medium text-red-400/80 underline decoration-red-500/25 decoration-1 underline-offset-[5px] hover:text-red-200/95"
-                  >
-                    {timeFilter === 'upcoming' ? 'Vergangene anzeigen →' : 'Kommende anzeigen →'}
-                  </button>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
 
           {pageLoading && (
