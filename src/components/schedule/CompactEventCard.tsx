@@ -57,7 +57,7 @@ function CompactOpponentLogo({ src }: { src: string }) {
   if (failed) {
     return (
       <span
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/35 text-[1rem] leading-none text-white/90 [filter:drop-shadow(0_0_5px_rgba(255,255,255,0.07))] sm:h-10 sm:w-10"
+        className="flex h-8 w-8 shrink-0 items-center justify-center text-[1rem] leading-none text-white/90 [filter:drop-shadow(0_0_4px_rgba(255,255,255,0.06))] sm:h-9 sm:w-9"
         aria-hidden
       >
         ⚽
@@ -68,7 +68,7 @@ function CompactOpponentLogo({ src }: { src: string }) {
     <img
       src={src}
       alt=""
-      className="h-9 w-9 shrink-0 object-contain [filter:drop-shadow(0_0_5px_rgba(255,255,255,0.07))] sm:h-10 sm:w-10"
+      className="h-8 w-8 shrink-0 object-contain [filter:drop-shadow(0_0_4px_rgba(255,255,255,0.06))] sm:h-9 sm:w-9"
       onError={() => setFailed(true)}
     />
   );
@@ -123,15 +123,13 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06]">
-        <img
-          src={navIconUrl('home-ball.png')}
-          alt=""
-          className="h-8 w-8 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_6px_rgba(255,90,90,0.2))]"
-          decoding="async"
-          draggable={false}
-        />
-      </span>
+      <img
+        src={navIconUrl('home-ball.png')}
+        alt=""
+        className="h-7 w-7 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_6px_rgba(255,90,90,0.2))]"
+        decoding="async"
+        draggable={false}
+      />
     ) : (
       <CalendarDays className="h-5 w-5 shrink-0 text-red-200/85" />
     );
@@ -181,7 +179,7 @@ export function CompactEventCard({
           <div className="flex min-w-0 items-start gap-2">
             <div className="shrink-0 pt-0.5">{inlineTypeIcon}</div>
             <p
-              className="min-w-0 flex-1 line-clamp-2 text-[17px] font-bold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]"
+              className="min-w-0 flex-1 line-clamp-2 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]"
               lang="de"
             >
               {parentTitle}
@@ -214,8 +212,7 @@ export function CompactEventCard({
   }
 
   const matchShort = shortMatchTypeLabel(ev.match_type);
-  const gameSubtitle =
-    et === 'game' ? (homeAwayShort ? `${homeAwayShort} · ${matchShort}` : matchShort) : null;
+  const venueIsShort = Boolean(venueOnly && venueOnly.length <= 24);
 
   const typeBadgeLabelOther =
     et !== 'game' && et !== 'training'
@@ -226,15 +223,13 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06]">
-        <img
-          src={navIconUrl('home-ball.png')}
-          alt=""
-          className="h-8 w-8 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_6px_rgba(255,90,90,0.2))]"
-          decoding="async"
-          draggable={false}
-        />
-      </span>
+      <img
+        src={navIconUrl('home-ball.png')}
+        alt=""
+        className="h-7 w-7 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_6px_rgba(255,90,90,0.2))]"
+        decoding="async"
+        draggable={false}
+      />
     ) : (
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">
         <CalendarDays className="h-5 w-5 text-red-200/85" />
@@ -242,7 +237,7 @@ export function CompactEventCard({
     );
 
   const titleClamp =
-    'line-clamp-2 min-w-0 flex-1 whitespace-normal text-[17px] font-bold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] [word-break:normal]';
+    'line-clamp-2 min-w-0 flex-1 whitespace-normal text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] [word-break:normal]';
 
   const titleText = (
     <div className="min-w-0 flex-1">
@@ -263,10 +258,34 @@ export function CompactEventCard({
   );
 
   const line2 =
-    et === 'game' && gameSubtitle ? (
-      <p className="line-clamp-1 min-w-0 pl-[calc(2rem+0.375rem)] text-[14px] font-medium leading-snug text-white/70" lang="de">
-        {gameSubtitle}
-      </p>
+    et === 'game' ? (
+      <div className="flex min-w-0 items-center gap-1.5 pl-[calc(2rem+0.5rem)]">
+        {homeAwayShort ? (
+          <span
+            className={`inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none ${
+              ev.is_home === true
+                ? 'border-emerald-400/20 bg-emerald-500/12 text-emerald-200'
+                : ev.is_home === false
+                  ? 'border-red-400/20 bg-red-500/12 text-red-200'
+                  : 'border-white/20 bg-white/10 text-white/75'
+            }`}
+          >
+            {homeAwayShort}
+          </span>
+        ) : null}
+        {venueOnly ? (
+          <span
+            className={`min-w-0 text-[14px] leading-tight text-white/72 ${
+              venueIsShort ? 'whitespace-nowrap' : 'whitespace-normal break-words'
+            }`}
+            title={venueOnly}
+          >
+            {venueOnly}
+          </span>
+        ) : (
+          <span className="min-w-0 text-[14px] leading-tight text-white/70">{matchShort}</span>
+        )}
+      </div>
     ) : et !== 'game' && et !== 'training' && typeBadgeLabelOther ? (
       <span
         className={`inline-flex w-fit max-w-full shrink-0 rounded-full px-2 py-0.5 text-[12px] font-bold uppercase tracking-wide ${eventTypeBadgeClass(et)}`}
@@ -276,7 +295,7 @@ export function CompactEventCard({
     ) : null;
 
   const line3 =
-    venueOnly ? (
+    et !== 'game' && venueOnly ? (
       <p className="flex min-h-0 min-w-0 max-w-full items-center gap-1 pl-[calc(2rem+0.375rem)] text-[13px] font-medium leading-snug text-white/85">
         <MapPin className="h-3 w-3 shrink-0 text-rose-300/70" aria-hidden />
         <span className="min-w-0 flex-1 truncate" title={venueOnly}>
