@@ -417,7 +417,7 @@ export function MatchCardGameCore({
         )}
         {cs ? (
           <span
-            className="mr-2 self-center text-[22px] font-light leading-none text-white/55 transition-opacity group-hover:text-white/80 group-focus-visible:text-white/80"
+            className="self-center pr-3 text-[28px] font-light leading-none text-white/70 transition-all duration-200 group-hover:translate-x-[1px] group-hover:text-white/90 group-focus-visible:translate-x-[1px] group-focus-visible:text-white/90"
             aria-hidden
           >
             ›
