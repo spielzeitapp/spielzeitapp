@@ -118,6 +118,7 @@ export function CompactEventCard({
 
   const trainingTitle =
     et === 'training' ? (compactTrainingHeadline(ourTeamName, trainingNotesTitle) ?? 'Training') : null;
+  const hasTrailing = Boolean(trailing);
   const oppSrc = getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
   const inlineTypeIcon =
     et === 'game' ? (
@@ -126,7 +127,7 @@ export function CompactEventCard({
       <img
         src={navIconUrl('home-ball.png')}
         alt=""
-        className="h-8 w-8 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_6px_rgba(255,90,90,0.2))]"
+        className="h-5 w-5 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_5px_rgba(255,90,90,0.2))]"
         decoding="async"
         draggable={false}
       />
@@ -175,7 +176,7 @@ export function CompactEventCard({
           <span className="text-[13px] font-medium tabular-nums leading-tight text-red-400">{timeStr}</span>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center space-y-1.5 pr-2">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center space-y-1.5 pr-16">
           <div className="flex min-w-0 items-start gap-2">
             <div className="shrink-0 pt-0.5">{inlineTypeIcon}</div>
             <p
@@ -195,13 +196,13 @@ export function CompactEventCard({
           ) : null}
         </div>
 
-        <div className="flex w-12 shrink-0 flex-col items-end justify-start py-0.5">
-          <div className="flex w-12 shrink-0 flex-col items-end gap-1 opacity-90 [&>*]:origin-top-right [&>*]:scale-90">
+        {hasTrailing ? (
+          <div className="absolute right-4 top-4 flex flex-col items-end gap-1.5 opacity-90 [&>*]:origin-top-right [&>*]:scale-90">
             {trailing}
           </div>
-        </div>
+        ) : null}
         {clickable ? (
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[28px] font-light leading-none text-white/55 transition-colors duration-200" aria-hidden>
+          <span className="pointer-events-none absolute bottom-5 right-4 text-[26px] font-light leading-none text-white/55 transition-colors duration-200" aria-hidden>
             ›
           </span>
         ) : null}
@@ -224,7 +225,7 @@ export function CompactEventCard({
       <img
         src={navIconUrl('home-ball.png')}
         alt=""
-        className="h-8 w-8 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_6px_rgba(255,90,90,0.2))]"
+        className="h-5 w-5 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_5px_rgba(255,90,90,0.2))]"
         decoding="async"
         draggable={false}
       />
@@ -329,7 +330,7 @@ export function CompactEventCard({
         <span className="text-[14px] font-semibold tabular-nums leading-tight text-red-400">{timeStr}</span>
       </div>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 pr-2">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 pr-20">
         <div className="flex min-w-0 items-start gap-2">
           <div className="shrink-0 pt-0.5">{iconSlot}</div>
           {titleText}
@@ -338,15 +339,13 @@ export function CompactEventCard({
         {line3}
       </div>
 
-      <div className="flex w-12 shrink-0 flex-row items-start justify-end gap-1 pt-0.5">
-        {trailing ? (
-          <div className="min-w-0 shrink opacity-90 [&>*]:origin-top-right [&>*]:scale-90">
-            {trailing}
-          </div>
-        ) : null}
-      </div>
+      {hasTrailing ? (
+        <div className="absolute right-4 top-4 min-w-0 shrink opacity-90 [&>*]:origin-top-right [&>*]:scale-90">
+          {trailing}
+        </div>
+      ) : null}
       {clickable ? (
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[28px] font-light leading-none text-white/55 transition-colors duration-200" aria-hidden>
+        <span className="pointer-events-none absolute bottom-5 right-4 text-[26px] font-light leading-none text-white/55 transition-colors duration-200" aria-hidden>
           ›
         </span>
       ) : null}
