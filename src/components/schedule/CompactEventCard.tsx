@@ -57,7 +57,7 @@ function CompactOpponentLogo({ src }: { src: string }) {
   if (failed) {
     return (
       <span
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/35 text-[1.05rem] leading-none text-white/90 [filter:drop-shadow(0_0_6px_rgba(255,255,255,0.08))]"
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/35 text-[1.2rem] leading-none text-white/90 [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.1))]"
         aria-hidden
       >
         ⚽
@@ -68,7 +68,7 @@ function CompactOpponentLogo({ src }: { src: string }) {
     <img
       src={src}
       alt=""
-      className="h-9 w-9 shrink-0 object-contain [filter:drop-shadow(0_0_5px_rgba(255,255,255,0.07))]"
+      className="h-12 w-12 shrink-0 object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.1))]"
       onError={() => setFailed(true)}
     />
   );
@@ -118,6 +118,21 @@ export function CompactEventCard({
 
   const trainingTitle =
     et === 'training' ? (compactTrainingHeadline(ourTeamName, trainingNotesTitle) ?? 'Training') : null;
+  const oppSrc = getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
+  const inlineTypeIcon =
+    et === 'game' ? (
+      <CompactOpponentLogo src={oppSrc} />
+    ) : et === 'training' ? (
+      <img
+        src={navIconUrl('home-ball.png')}
+        alt=""
+        className="h-5 w-5 shrink-0 object-contain opacity-90 [filter:drop-shadow(0_0_7px_rgba(255,90,90,0.25))]"
+        decoding="async"
+        draggable={false}
+      />
+    ) : (
+      <CalendarDays className="h-5 w-5 shrink-0 text-red-200/85" />
+    );
 
   if (parentCompactLayout) {
     const wdAbbrev = formatCompactListWeekdayAbbrev(ev.starts_at);
@@ -161,12 +176,15 @@ export function CompactEventCard({
         </div>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center space-y-1.5">
-          <p
-            className="min-w-0 break-words line-clamp-2 text-[17px] font-semibold leading-tight text-white"
-            lang="de"
-          >
-            {parentTitle}
-          </p>
+          <div className="flex min-w-0 items-start gap-2">
+            <div className="shrink-0 pt-0.5">{inlineTypeIcon}</div>
+            <p
+              className="min-w-0 break-words line-clamp-2 text-[17px] font-bold leading-tight text-white"
+              lang="de"
+            >
+              {parentTitle}
+            </p>
+          </div>
           {parentSubline ? (
             <p
               className="min-w-0 whitespace-normal break-words text-[14px] leading-tight text-white/70"
@@ -193,8 +211,6 @@ export function CompactEventCard({
     );
   }
 
-  const oppSrc = getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
-
   const matchShort = shortMatchTypeLabel(ev.match_type);
   const gameSubtitle =
     et === 'game' ? (homeAwayShort ? `${homeAwayShort} · ${matchShort}` : matchShort) : null;
@@ -211,12 +227,12 @@ export function CompactEventCard({
       <img
         src={navIconUrl('home-ball.png')}
         alt=""
-        className="h-9 w-9 shrink-0 object-contain opacity-95 [filter:drop-shadow(0_0_7px_rgba(255,90,90,0.2))]"
+        className="h-5 w-5 shrink-0 object-contain opacity-90 [filter:drop-shadow(0_0_7px_rgba(255,90,90,0.25))]"
         decoding="async"
         draggable={false}
       />
     ) : (
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/25">
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center">
         <CalendarDays className="h-5 w-5 text-red-200/85" />
       </span>
     );
@@ -293,7 +309,7 @@ export function CompactEventCard({
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5">
-        <div className="flex min-w-0 items-start gap-1.5">
+        <div className="flex min-w-0 items-start gap-2">
           <div className="shrink-0 pt-0.5">{iconSlot}</div>
           {titleText}
         </div>
