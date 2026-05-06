@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, MapPin } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getClubLogo } from '../../lib/teamLogos';
 import { splitCombinedLocation } from '../../lib/eventLocation';
@@ -177,11 +177,13 @@ export function CompactEventCard({
 
         <div className="flex w-[90px] shrink-0 flex-col items-end justify-between self-stretch py-0.5">
           <div className="flex shrink-0 flex-col items-end">{trailing}</div>
-          <div className="flex w-3 shrink-0 items-center justify-end">
+          <div className="flex shrink-0 items-center justify-end self-center">
             {clickable ? (
-              <ChevronRight className="h-3 w-3 shrink-0 text-white opacity-60" strokeWidth={2} aria-hidden />
+              <span className="shrink-0 text-[20px] leading-none text-white/45" aria-hidden>
+                ›
+              </span>
             ) : (
-              <span className="block h-3 w-3 shrink-0" aria-hidden />
+              <span className="block h-5 w-3 shrink-0" aria-hidden />
             )}
           </div>
         </div>
@@ -297,13 +299,15 @@ export function CompactEventCard({
         {line3}
       </div>
 
-      <div className="flex w-[118px] shrink-0 flex-row items-start justify-end gap-1 pt-0.5">
+      <div className="flex w-[118px] shrink-0 flex-row items-center justify-end gap-1 pt-0.5">
         {trailing ? <div className="min-w-0 shrink">{trailing}</div> : null}
-        <div className="flex w-3.5 shrink-0 items-center justify-center pt-1">
+        <div className="flex shrink-0 items-center justify-center self-center">
           {clickable ? (
-            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-white/45" strokeWidth={2} aria-hidden />
+            <span className="shrink-0 text-[20px] leading-none text-white/45" aria-hidden>
+              ›
+            </span>
           ) : (
-            <span className="block h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span className="block h-5 w-3.5 shrink-0" aria-hidden />
           )}
         </div>
       </div>

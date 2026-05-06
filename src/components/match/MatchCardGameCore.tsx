@@ -403,11 +403,25 @@ export function MatchCardGameCore({
         </div>
       </div>
 
-      <div className={`${meetupMt} flex min-h-[36px] justify-center`}>
+      <div
+        className={`${meetupMt} flex min-h-[36px] ${
+          cs ? 'items-center justify-between gap-2 px-1' : 'justify-center'
+        }`}
+      >
         {showMeetupPill && meetupTimeOnly ? (
           <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-red-800/80 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800/90">
             <span className="whitespace-nowrap">Treffpunkt: {meetupTimeOnly}</span>
           </div>
+        ) : (
+          <span className="block h-9" aria-hidden />
+        )}
+        {cs ? (
+          <span
+            className="mr-2 self-center text-[22px] font-light leading-none text-white/55 transition-opacity group-hover:text-white/80 group-focus-visible:text-white/80"
+            aria-hidden
+          >
+            ›
+          </span>
         ) : null}
       </div>
 
