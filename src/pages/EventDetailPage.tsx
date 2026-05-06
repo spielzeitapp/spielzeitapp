@@ -15,7 +15,7 @@ import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
 import { AppButton } from '../components/ui/AppButton';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
-import { downloadEventIcs } from '../lib/ics';
+import { downloadEventIcs, generateEventIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { upsertMatchForSetup } from '../lib/liveMatchService';
@@ -162,6 +162,7 @@ export const EventDetailPage: React.FC = () => {
   const [editTrainingDeadlineDisabled, setEditTrainingDeadlineDisabled] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [calendarPreparedHintOpen, setCalendarPreparedHintOpen] = useState(false);
 
   const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | null>(null);
   const [loadingRsvp, setLoadingRsvp] = useState(true);
@@ -223,6 +224,53 @@ export const EventDetailPage: React.FC = () => {
     }
     setLoading(false);
   }, [eventId]);
+
+  const handleAddSingleEventToCalendar = useCallback(async () => {
+    if (!event) return;
+    const appBaseUrl = window.location.origin;
+
+    try {
+      // Bestehender Download-Flow zuerst beibehalten.
+      downloadEventIcs(event as any, { appBaseUrl });
+      return;
+    } catch {
+      // Fallback unten.
+    }
+
+    try {
+      const ics = generateEventIcs(event as any, { appBaseUrl });
+      const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+      const file = new File([blob], `spielzeitapp-termin-${event.id}.ics`, {
+        type: 'text/calendar',
+      });
+
+      if (
+        typeof navigator !== 'undefined' &&
+        'share' in navigator &&
+        typeof (navigator as any).canShare === 'function' &&
+        (navigator as any).canShare({ files: [file] })
+      ) {
+        await (navigator as any).share({
+          files: [file],
+          title: 'SpielzeitApp Termin',
+          text: 'Kalenderdatei für diesen Termin',
+        });
+        return;
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `spielzeitapp-termin-${event.id}.ics`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+      setCalendarPreparedHintOpen(true);
+    } catch {
+      setCalendarPreparedHintOpen(true);
+    }
+  }, [event]);
 
   useEffect(() => {
     loadEvent();
@@ -685,11 +733,7 @@ export const EventDetailPage: React.FC = () => {
             variant="secondary"
             size="sm"
             className="w-full px-3 py-2 text-[13px] sm:w-auto sm:self-end"
-            onClick={() =>
-              downloadEventIcs(event as any, {
-                appBaseUrl: window.location.origin,
-              })
-            }
+            onClick={() => void handleAddSingleEventToCalendar()}
           >
             Zum Kalender hinzufügen
           </AppButton>
@@ -1196,6 +1240,21 @@ export const EventDetailPage: React.FC = () => {
               </div>
             </>
           )}
+        </Modal>
+        <Modal
+          isOpen={calendarPreparedHintOpen}
+          title="Kalenderdatei vorbereitet"
+          onClose={() => setCalendarPreparedHintOpen(false)}
+          footer={
+            <Button variant="soft" onClick={() => setCalendarPreparedHintOpen(false)}>
+              OK
+            </Button>
+          }
+        >
+          <p className="text-[14px] text-white/75">
+            Die Kalenderdatei wurde vorbereitet. Falls dein Browser den Download blockiert, teile oder
+            oeffne die Datei manuell mit deiner Kalender-App.
+          </p>
         </Modal>
         <Modal
           isOpen={deleteConfirmOpen}
