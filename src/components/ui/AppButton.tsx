@@ -37,15 +37,13 @@ export function AppButton({
   fullWidth = false,
   className = '',
   children,
-  onClick,
-  disabled,
   type = 'button',
+  ...rest
 }: AppButtonProps) {
   return (
     <button
       type={type}
-      onClick={onClick}
-      disabled={disabled}
+      {...rest}
       className={[baseClass, variantClass[variant], sizeClass[size], fullWidth ? 'w-full' : '', className].join(' ')}
     >
       {children}

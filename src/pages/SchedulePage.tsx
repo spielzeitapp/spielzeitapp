@@ -364,6 +364,7 @@ export const SchedulePage: React.FC = () => {
 
   const handleEditSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
+    console.debug('[EditModal] submit');
     if (!editEvent) return;
     const opponent = (editOpponent ?? '').trim();
     if (!(editDateTime ?? '').trim()) {
@@ -423,6 +424,7 @@ export const SchedulePage: React.FC = () => {
     let eventErr: { message: string } | null = null;
 
     if (!bulkScope) {
+      console.debug('[EditModal] save result: updating single event');
       console.log('event update payload', fullPayload);
       console.log('event update id', editEvent.id);
       const r = await supabase
@@ -438,6 +440,7 @@ export const SchedulePage: React.FC = () => {
         return;
       }
     } else if (editSeriesScope === 'future' && editEvent.series_id) {
+      console.debug('[EditModal] save result: bulk update future');
       console.log('event bulk update (future) payload', sharedPayload);
       console.log('event bulk update series_id', editEvent.series_id);
       const r = await supabase
@@ -454,6 +457,7 @@ export const SchedulePage: React.FC = () => {
         return;
       }
     } else if (editSeriesScope === 'series' && editEvent.series_id) {
+      console.debug('[EditModal] save result: bulk update series');
       console.log('event bulk update (series) payload', sharedPayload);
       console.log('event bulk update series_id', editEvent.series_id);
       const r = await supabase
@@ -471,6 +475,7 @@ export const SchedulePage: React.FC = () => {
     }
 
     if (eventErr) {
+      console.debug('[EditModal] save error');
       setEditError(eventErr.message);
       setSavingEdit(false);
       return;
@@ -518,6 +523,7 @@ export const SchedulePage: React.FC = () => {
 
     setSavingEdit(false);
     closeEditModal();
+    console.debug('[EditModal] save result');
     await refetch();
   };
 
@@ -1353,6 +1359,7 @@ export const SchedulePage: React.FC = () => {
                   variant="primary"
                   disabled={savingEdit}
                   className="pointer-events-auto touch-manipulation"
+                  onClick={() => console.debug('[EditModal] save click')}
                 >
                   {savingEdit ? 'Speichern…' : 'Speichern'}
                 </Button>
