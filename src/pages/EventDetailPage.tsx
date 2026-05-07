@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Pencil, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
@@ -19,6 +19,8 @@ import { downloadSingleEventFullCalendarIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { upsertMatchForSetup } from '../lib/liveMatchService';
+import { fetchMatchById, updateMatchRow, deleteMatchEventById } from '../lib/liveMatchService';
+import { buildPauseDelimitedPeriodScoreLine } from '../lib/matchEngine';
 import {
   MATCH_FEED_TEMPLATE_KEYS,
   MATCH_FEED_TEMPLATE_LABELS,
@@ -165,6 +167,31 @@ export const EventDetailPage: React.FC = () => {
   const [savingEdit, setSavingEdit] = useState(false);
   const [calendarActionError, setCalendarActionError] = useState<string | null>(null);
 
+  type MatchEventRow = {
+    id: string;
+    match_id: string;
+    type: string;
+    minute: number | null;
+    period: number | null;
+    player_id: string | null;
+    created_at: string;
+  };
+  const [finishedTab, setFinishedTab] = useState<'overview' | 'lineup' | 'timeline' | 'stats'>('overview');
+  const [matchRowLite, setMatchRowLite] = useState<{
+    id: string;
+    status: string | null;
+    score_home: number | null;
+    score_away: number | null;
+    location: string | null;
+    period_scores: unknown | null;
+  } | null>(null);
+  const [matchEvents, setMatchEvents] = useState<MatchEventRow[]>([]);
+  const [matchLoading, setMatchLoading] = useState(false);
+  const [matchError, setMatchError] = useState<string | null>(null);
+  const [reportEditOpen, setReportEditOpen] = useState(false);
+  const [goalMinute, setGoalMinute] = useState(''); // Anzeige-Minute (1..)
+  const [goalTeam, setGoalTeam] = useState<'home' | 'away'>('home');
+
   const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | null>(null);
   const [loadingRsvp, setLoadingRsvp] = useState(true);
   const [cancelReason, setCancelReason] = useState('');
@@ -246,6 +273,99 @@ export const EventDetailPage: React.FC = () => {
   useEffect(() => {
     loadEvent();
   }, [loadEvent]);
+
+  const isFinishedMatchEvent = useMemo(() => {
+    if (!event) return false;
+    const t = (event.type ?? '').trim().toLowerCase();
+    return t === 'game' && event.status === 'finished' && Boolean(event.match_id);
+  }, [event]);
+
+  useEffect(() => {
+    if (!isFinishedMatchEvent || !event?.match_id) return;
+    let cancelled = false;
+    setMatchLoading(true);
+    setMatchError(null);
+    const mid = event.match_id;
+    (async () => {
+      const res = await fetchMatchById(mid);
+      if (cancelled) return;
+      if (res.error) {
+        setMatchRowLite(null);
+        setMatchEvents([]);
+        setMatchError(res.error);
+        setMatchLoading(false);
+        return;
+      }
+      const row = res.data;
+      setMatchRowLite(
+        row
+          ? {
+              id: row.id,
+              status: row.status ?? null,
+              score_home: row.score_home ?? null,
+              score_away: row.score_away ?? null,
+              location: row.location ?? null,
+              period_scores: row.period_scores ?? null,
+            }
+          : null,
+      );
+
+      const { data, error } = await supabase
+        .from('match_events')
+        .select('id, match_id, type, minute, period, player_id, created_at')
+        .eq('match_id', mid)
+        .order('minute', { ascending: true, nullsFirst: true })
+        .order('created_at', { ascending: true });
+      if (cancelled) return;
+      if (error) {
+        setMatchEvents([]);
+        setMatchError(error.message);
+        setMatchLoading(false);
+        return;
+      }
+      setMatchEvents((data ?? []) as MatchEventRow[]);
+      setMatchLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [event?.match_id, isFinishedMatchEvent]);
+
+  const recomputeTotalsFromMatchEvents = useCallback((rows: MatchEventRow[]) => {
+    const home = rows.filter((r) => String(r.type ?? '').toLowerCase() === 'goal').length;
+    const away = rows.filter((r) => String(r.type ?? '').toLowerCase() === 'goal_away').length;
+    return { home, away };
+  }, []);
+
+  const periodLine = useMemo(() => {
+    if (!matchRowLite) return null;
+    try {
+      // Prefer DB period_scores if present (LiveScreen), fallback to pause-delimited from event log.
+      if (matchRowLite.period_scores != null) {
+        // Keep display simple: LiveScreen already uses parsePeriodScores; here we just show fallback line.
+        // (Wir vermeiden hier großen Import/Refactor.)
+      }
+      const engineLike = matchEvents
+        .map((r) => {
+          const ts = Math.max(0, Number(r.minute ?? 0) || 0);
+          const type = String(r.type ?? '').trim();
+          if (type === 'kickoff') return { id: r.id, type: 'start' as const, timestamp: ts, playerId: undefined };
+          if (type === 'final_whistle') return { id: r.id, type: 'end' as const, timestamp: ts, playerId: undefined };
+          if (type === 'period_start') return { id: r.id, type: 'resume' as const, timestamp: ts, playerId: undefined };
+          if (type === 'period_end') return { id: r.id, type: 'pause' as const, timestamp: ts, playerId: undefined };
+          if (type === 'goal_away') return { id: r.id, type: 'goal' as const, timestamp: ts, playerId: undefined };
+          if (type === 'goal') return { id: r.id, type: 'goal' as const, timestamp: ts, playerId: r.player_id ?? undefined };
+          if (type === 'sub_out') return { id: r.id, type: 'sub_out' as const, timestamp: ts, playerId: r.player_id ?? undefined };
+          if (type === 'sub_in') return { id: r.id, type: 'sub_in' as const, timestamp: ts, playerId: r.player_id ?? undefined };
+          return null;
+        })
+        .filter(Boolean) as Array<{ id: string; type: any; timestamp: number; playerId?: string }>;
+      if (engineLike.length === 0) return null;
+      return buildPauseDelimitedPeriodScoreLine(engineLike as any, true);
+    } catch {
+      return null;
+    }
+  }, [matchEvents, matchRowLite]);
 
   const loadFeedFromEvent = useCallback(async () => {
     if (!eventId) return;
@@ -688,6 +808,348 @@ export const EventDetailPage: React.FC = () => {
           <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
             ← Zurück zum Spielplan
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (isFinishedMatchEvent) {
+    const opponentName = (event.opponent ?? 'Gegner').trim() || 'Gegner';
+    const scoreHome = matchRowLite?.score_home ?? null;
+    const scoreAway = matchRowLite?.score_away ?? null;
+    const venue = (() => {
+      const parsed = splitCombinedLocation(matchRowLite?.location ?? event.location ?? '');
+      return (parsed.place ?? '').trim() || (matchRowLite?.location ?? event.location ?? '').trim() || null;
+    })();
+    const homeAway = event.is_home === true ? 'Heim' : event.is_home === false ? 'Auswärts' : null;
+
+    const renderTabButton = (id: 'overview' | 'lineup' | 'timeline' | 'stats', label: string) => (
+      <button
+        type="button"
+        onClick={() => setFinishedTab(id)}
+        className={[
+          'flex-1 rounded-xl px-3 py-2 text-[12px] font-semibold transition-all',
+          finishedTab === id
+            ? 'border border-red-400/30 bg-white/[0.11] text-white shadow-[0_0_12px_rgba(220,38,38,0.18)]'
+            : 'border border-transparent text-white/70 hover:bg-white/[0.04] hover:text-white/90',
+        ].join(' ')}
+      >
+        {label}
+      </button>
+    );
+
+    const minuteLabel = (seconds: number | null) => {
+      const s = Math.max(0, Number(seconds ?? 0) || 0);
+      const m = Math.max(0, Math.floor(s / 60));
+      return `${m}'`;
+    };
+
+    const playerName = (playerId: string | null) => {
+      if (!playerId) return null;
+      const p = players.find((x) => x.id === playerId);
+      return (p?.display_name ?? p?.name ?? '').trim() || null;
+    };
+
+    const timelineEvents = matchEvents;
+
+    const addGoal = async () => {
+      if (!event.match_id) return;
+      const minute = Math.max(0, Number(goalMinute.trim()) || 0);
+      const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
+      try {
+        setMatchError(null);
+        const dbType = goalTeam === 'away' ? 'goal_away' : 'goal';
+        const { error: insErr } = await supabase.from('match_events').insert({
+          match_id: event.match_id,
+          type: dbType,
+          minute: seconds,
+          period: null,
+          player_id: null,
+        });
+        if (insErr) {
+          setMatchError(insErr.message);
+          return;
+        }
+        const { data, error: fetchErr } = await supabase
+          .from('match_events')
+          .select('id, match_id, type, minute, period, player_id, created_at')
+          .eq('match_id', event.match_id)
+          .order('minute', { ascending: true, nullsFirst: true })
+          .order('created_at', { ascending: true });
+        if (fetchErr) {
+          setMatchError(fetchErr.message);
+          return;
+        }
+        const rows = (data ?? []) as MatchEventRow[];
+        setMatchEvents(rows);
+        const totals = recomputeTotalsFromMatchEvents(rows);
+        const { error: updErr } = await updateMatchRow(event.match_id, {
+          score_home: totals.home,
+          score_away: totals.away,
+        });
+        if (updErr) setMatchError(updErr);
+        setMatchRowLite((prev) =>
+          prev ? { ...prev, score_home: totals.home, score_away: totals.away } : prev,
+        );
+        setGoalMinute('');
+      } catch (e: any) {
+        console.error('[FinishedMatchReport] addGoal', e);
+        setMatchError(e?.message ?? 'Speichern fehlgeschlagen.');
+      }
+    };
+
+    const deleteEvent = async (id: string) => {
+      if (!event.match_id) return;
+      const { error: delErr } = await deleteMatchEventById(id);
+      if (delErr) {
+        setMatchError(delErr);
+        return;
+      }
+      const { data, error: fetchErr } = await supabase
+        .from('match_events')
+        .select('id, match_id, type, minute, period, player_id, created_at')
+        .eq('match_id', event.match_id)
+        .order('minute', { ascending: true, nullsFirst: true })
+        .order('created_at', { ascending: true });
+      if (fetchErr) {
+        setMatchError(fetchErr.message);
+        return;
+      }
+      const rows = (data ?? []) as MatchEventRow[];
+      setMatchEvents(rows);
+      const totals = recomputeTotalsFromMatchEvents(rows);
+      const { error: updErr } = await updateMatchRow(event.match_id, {
+        score_home: totals.home,
+        score_away: totals.away,
+      });
+      if (updErr) setMatchError(updErr);
+      setMatchRowLite((prev) =>
+        prev ? { ...prev, score_home: totals.home, score_away: totals.away } : prev,
+      );
+    };
+
+    return (
+      <div className="min-h-screen text-white [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_55%,rgba(10,0,0,0.99)_100%)]">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-28 sm:px-4">
+          <div className="flex flex-col gap-3">
+            <Link to="/app/termine" className="text-[14px] text-white/80 hover:text-white">
+              ← Zurück zum Spielplan
+            </Link>
+          </div>
+
+          <div className="overflow-hidden rounded-[28px] border border-red-500/20 bg-gradient-to-br from-[#180000] via-black to-[#240000] shadow-[0_10px_40px_rgba(255,0,0,0.18)]">
+            <div className="px-3.5 pb-4 pt-4 sm:px-4">
+              <div className="mb-2 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-red-300/70">
+                    {event.match_type ? getDomainEventLabel(event) : 'Spiel'}
+                  </p>
+                  {venue ? (
+                    <p className="mt-1 line-clamp-2 text-[13px] text-white/55">{venue}</p>
+                  ) : null}
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  <span className="rounded-md border border-red-950/80 bg-black/50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-red-200/95">
+                    Endstand
+                  </span>
+                  {homeAway ? (
+                    <span
+                      className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                        event.is_home === true
+                          ? 'border-emerald-400/35 bg-emerald-500/15 text-emerald-200'
+                          : 'border-amber-500/35 bg-amber-500/12 text-amber-100'
+                      }`}
+                    >
+                      {homeAway}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <MatchCardLigaportal
+                className="!overflow-visible w-full max-w-full rounded-2xl !bg-black/30 !border-white/10 !shadow-[0_0_24px_rgba(220,38,38,0.12)]"
+                compactDetailGame
+                ourTeamName={ourTeamName}
+                opponent={opponentName}
+                isHome={event.is_home}
+                startsAt={event.starts_at}
+                status={event.status}
+                kind={event.kind}
+                eventType={(event as any).type ?? undefined}
+                matchType={
+                  event.kind === 'match'
+                    ? (event.match_type ?? (!event.type || event.type === 'game' ? 'league' : event.type))
+                    : null
+                }
+                notes={event.notes}
+                location={event.location}
+                address={event.location}
+                meetupAt={event.meeting_at}
+                showMeetup={showMeetup}
+                scoreHome={scoreHome}
+                scoreAway={scoreAway}
+                isPublicView={true}
+              />
+
+              {periodLine ? (
+                <p className="mt-2 text-center text-sm text-white/50">{periodLine}</p>
+              ) : null}
+
+              <div className="mt-3 rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-center text-[12px] font-bold uppercase tracking-[0.18em] text-white/70">
+                🏆 Termin abgeschlossen
+              </div>
+
+              {isTrainerOrAdmin ? (
+                <div className="mt-3 flex">
+                  <button
+                    type="button"
+                    onClick={() => setReportEditOpen(true)}
+                    className="w-full rounded-2xl border border-red-500/35 bg-red-600/20 px-4 py-3 text-[13px] font-extrabold text-red-100 shadow-[0_0_18px_rgba(220,38,38,0.22)] hover:bg-red-600/25 active:scale-[0.99]"
+                  >
+                    Spielbericht bearbeiten
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex min-h-[42px] items-center gap-1 rounded-2xl border border-white/10 bg-black/30 p-1">
+            {renderTabButton('overview', 'Übersicht')}
+            {renderTabButton('lineup', 'Aufstellung')}
+            {renderTabButton('timeline', 'Liveticker')}
+            {renderTabButton('stats', 'Statistik')}
+          </div>
+
+          {matchLoading ? <p className="text-sm text-white/70">Lade Spielbericht…</p> : null}
+          {matchError ? (
+            <div className="rounded-2xl border border-red-500/25 bg-red-950/40 p-3 text-sm text-red-100">
+              {matchError}
+            </div>
+          ) : null}
+
+          {finishedTab === 'overview' ? (
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/80">
+              <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Kurzinfo</p>
+              <div className="mt-2 grid gap-2 text-[14px]">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-white/60">Gegner</span>
+                  <span className="text-white/90">{opponentName}</span>
+                </div>
+                {venue ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-white/60">Spielort</span>
+                    <span className="text-white/90">{venue}</span>
+                  </div>
+                ) : null}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-white/60">Status</span>
+                  <span className="text-white/90">Beendet</span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {finishedTab === 'lineup' ? (
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/75">
+              <p className="text-[14px]">
+                Aufstellung wird im nächsten Schritt angebunden (Match-Lineup/Bench Tabellen sind bereits vorhanden).
+              </p>
+            </div>
+          ) : null}
+
+          {finishedTab === 'stats' ? (
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/75">
+              <p className="text-[14px]">Statistik folgt (z. B. Karten/Tore/Wechsel aus match_events).</p>
+            </div>
+          ) : null}
+
+          {finishedTab === 'timeline' ? (
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Liveticker</p>
+                <span className="text-[12px] text-white/45">{timelineEvents.length} Ereignisse</span>
+              </div>
+              {timelineEvents.length === 0 ? (
+                <p className="text-[14px] text-white/70">Noch keine Ereignisse erfasst.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {timelineEvents.map((r) => {
+                    const t = String(r.type ?? '').toLowerCase();
+                    const label =
+                      t === 'goal' ? 'Tor (Heim)' : t === 'goal_away' ? 'Tor (Auswärts)' : t === 'sub_out' ? 'Wechsel raus' : t === 'sub_in' ? 'Wechsel rein' : t === 'period_end' ? 'Pause' : t === 'period_start' ? 'Start' : t === 'final_whistle' ? 'Abpfiff' : t === 'kickoff' ? 'Anpfiff' : 'Info';
+                    const name = playerName(r.player_id);
+                    return (
+                      <li key={r.id} className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-black/25 px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-semibold text-white/90">
+                            {label}
+                            {name ? <span className="text-white/55"> · {name}</span> : null}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-white/45">{minuteLabel(r.minute)}</p>
+                        </div>
+                        {isTrainerOrAdmin ? (
+                          <button
+                            type="button"
+                            className="shrink-0 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
+                            onClick={() => void deleteEvent(r.id)}
+                            title="Ereignis löschen"
+                          >
+                            Löschen
+                          </button>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          ) : null}
+
+          <Modal
+            isOpen={reportEditOpen}
+            title="Spielbericht bearbeiten"
+            onClose={() => setReportEditOpen(false)}
+            footer={
+              <Button variant="ghost" onClick={() => setReportEditOpen(false)}>
+                Schließen
+              </Button>
+            }
+          >
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Tor hinzufügen</p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[12px] text-white/60">Minute</span>
+                    <input
+                      value={goalMinute}
+                      onChange={(e) => setGoalMinute(e.target.value)}
+                      inputMode="numeric"
+                      className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                      placeholder="z. B. 12"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[12px] text-white/60">Team</span>
+                    <select
+                      value={goalTeam}
+                      onChange={(e) => setGoalTeam(e.target.value === 'away' ? 'away' : 'home')}
+                      className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                    >
+                      <option value="home">Heim</option>
+                      <option value="away">Auswärts</option>
+                    </select>
+                  </label>
+                </div>
+                <Button variant="primary" className="mt-3 w-full" onClick={() => void addGoal()}>
+                  Tor speichern
+                </Button>
+                <p className="mt-2 text-[12px] text-white/55">
+                  Endstand wird automatisch aus den Toren neu berechnet.
+                </p>
+              </div>
+            </div>
+          </Modal>
         </div>
       </div>
     );
