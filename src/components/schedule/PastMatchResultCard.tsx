@@ -19,6 +19,15 @@ export type PastMatchResultCardProps = {
   onNavigate: (id: string) => void;
 };
 
+function compactTeamName(name: string | null | undefined): string {
+  let s = (name ?? '').trim();
+  if (!s) return 'Team';
+  s = s.replace(/\s*\([^)]*\)\s*$/g, '').trim();
+  s = s.replace(/^U\s*\d{1,2}\s+/i, '').trim();
+  s = s.replace(/^U\d{1,2}\s+/i, '').trim();
+  return s || (name ?? '').trim() || 'Team';
+}
+
 function TeamLogoBlock({ src, label }: { src: string; label: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
@@ -62,8 +71,8 @@ export function PastMatchResultCard({
 
   const oppName = (ev.opponent ?? 'Gegner').trim() || 'Gegner';
   const our = (ourTeamName ?? '').trim() || 'Unser Team';
-  const homeName = ev.is_home === true ? our : ev.is_home === false ? oppName : our;
-  const awayName = ev.is_home === true ? oppName : ev.is_home === false ? our : oppName;
+  const homeName = compactTeamName(ev.is_home === true ? our : ev.is_home === false ? oppName : our);
+  const awayName = compactTeamName(ev.is_home === true ? oppName : ev.is_home === false ? our : oppName);
 
   const homeLogoSrc =
     ev.is_home === true

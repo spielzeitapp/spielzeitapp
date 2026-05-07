@@ -210,6 +210,16 @@ export const EventDetailPage: React.FC = () => {
   const [editEventPlayerId, setEditEventPlayerId] = useState(''); // goal scorer
   const [editSwitchOutPlayerId, setEditSwitchOutPlayerId] = useState('');
   const [editSwitchInPlayerId, setEditSwitchInPlayerId] = useState('');
+  const [lineupRows, setLineupRows] = useState<Array<{ player_id: string | null; slot: string | null }>>([]);
+  const [benchRows, setBenchRows] = useState<Array<{ player_id: string | null }>>([]);
+  const [lineupLoading, setLineupLoading] = useState(false);
+  const [lineupError, setLineupError] = useState<string | null>(null);
+  const [p1h, setP1h] = useState('');
+  const [p1a, setP1a] = useState('');
+  const [p2h, setP2h] = useState('');
+  const [p2a, setP2a] = useState('');
+  const [p3h, setP3h] = useState('');
+  const [p3a, setP3a] = useState('');
 
   const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | null>(null);
   const [loadingRsvp, setLoadingRsvp] = useState(true);
@@ -355,6 +365,40 @@ export const EventDetailPage: React.FC = () => {
     setManualScoreHome(String(Math.max(0, Number(matchRowLite?.score_home ?? 0) || 0)));
     setManualScoreAway(String(Math.max(0, Number(matchRowLite?.score_away ?? 0) || 0)));
   }, [isFinishedMatchEvent, matchRowLite?.score_home, matchRowLite?.score_away]);
+
+  useEffect(() => {
+    if (!isFinishedMatchEvent || !event?.match_id) return;
+    let cancelled = false;
+    setLineupLoading(true);
+    setLineupError(null);
+    (async () => {
+      const [lineupRes, benchRes] = await Promise.all([
+        supabase.from('match_lineup').select('player_id, slot').eq('match_id', event.match_id!),
+        supabase.from('match_bench').select('player_id').eq('match_id', event.match_id!),
+      ]);
+      if (cancelled) return;
+      if (lineupRes.error) {
+        setLineupRows([]);
+        setBenchRows([]);
+        setLineupError(lineupRes.error.message);
+        setLineupLoading(false);
+        return;
+      }
+      if (benchRes.error) {
+        setLineupRows((lineupRes.data ?? []) as Array<{ player_id: string | null; slot: string | null }>);
+        setBenchRows([]);
+        setLineupError(benchRes.error.message);
+        setLineupLoading(false);
+        return;
+      }
+      setLineupRows((lineupRes.data ?? []) as Array<{ player_id: string | null; slot: string | null }>);
+      setBenchRows((benchRes.data ?? []) as Array<{ player_id: string | null }>);
+      setLineupLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [event?.match_id, isFinishedMatchEvent]);
 
   const recomputeTotalsFromMatchEvents = useCallback((rows: MatchEventRow[]) => {
     const home = rows.filter((r) => String(r.type ?? '').toLowerCase() === 'goal').length;
@@ -877,6 +921,11 @@ export const EventDetailPage: React.FC = () => {
     };
 
     const timelineEvents = matchEvents;
+    const periodLineFromInputs =
+      p1h !== '' && p1a !== '' && p2h !== '' && p2a !== '' && p3h !== '' && p3a !== ''
+        ? `(${p1h}:${p1a} | ${p2h}:${p2a} | ${p3h}:${p3a})`
+        : null;
+    const shownPeriodLine = periodLineFromInputs || periodLine;
     const goalScorersLine = timelineEvents
       .filter((r) => String(r.type ?? '').toLowerCase() === 'goal' && r.player_id)
       .slice(0, 6)
@@ -897,6 +946,7 @@ export const EventDetailPage: React.FC = () => {
       const t = String(r.type ?? '').toLowerCase();
       return t === 'sub_out' || t === 'sub_in';
     }).length;
+    const totalEvents = timelineEvents.length;
 
     const reloadMatchEvents = async (): Promise<MatchEventRow[] | null> => {
       if (!event.match_id) return null;
@@ -1098,7 +1148,7 @@ export const EventDetailPage: React.FC = () => {
             </Link>
           </div>
 
-          <div className="overflow-hidden rounded-[26px] border border-red-500/20 bg-gradient-to-br from-[#180000] via-black to-[#240000] shadow-[0_10px_40px_rgba(255,0,0,0.18)]">
+          <div className="-mx-1 w-[calc(100%+0.5rem)] max-w-none overflow-hidden rounded-[26px] border border-red-500/20 bg-gradient-to-br from-[#180000] via-black to-[#240000] shadow-[0_10px_40px_rgba(255,0,0,0.18)] sm:mx-0 sm:w-full">
             <div className="px-3.5 pb-3.5 pt-3.5 sm:px-4 sm:pb-4 sm:pt-4">
               <div className="mb-2 flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -1141,7 +1191,7 @@ export const EventDetailPage: React.FC = () => {
                 isPublicView={true}
               />
 
-              {periodLine ? <p className="mt-1.5 text-center text-sm text-white/52">{periodLine}</p> : null}
+              {shownPeriodLine ? <p className="mt-1.5 text-center text-sm text-white/52">{shownPeriodLine}</p> : null}
               {goalScorersLine ? (
                 <p className="mt-1 text-center text-[12px] text-white/60">
                   Tore: <span className="text-white/82">{goalScorersLine}</span>
@@ -1227,15 +1277,68 @@ export const EventDetailPage: React.FC = () => {
 
           {finishedTab === 'lineup' ? (
             <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/75">
-              <p className="text-[14px]">
-                Aufstellung wird im nächsten Schritt angebunden (Match-Lineup/Bench Tabellen sind bereits vorhanden).
-              </p>
+              <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Kader</p>
+              {lineupLoading ? <p className="mt-2 text-[14px] text-white/70">Lade Aufstellung…</p> : null}
+              {lineupError ? <p className="mt-2 text-[14px] text-red-200">{lineupError}</p> : null}
+              {!lineupLoading && !lineupError ? (
+                lineupRows.length === 0 && benchRows.length === 0 ? (
+                  <p className="mt-2 text-[14px] text-white/70">Keine Aufstellung gespeichert.</p>
+                ) : (
+                  <div className="mt-2 grid gap-3">
+                    <div>
+                      <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-white/55">Auf dem Feld</p>
+                      <ul className="mt-1.5 space-y-1.5">
+                        {lineupRows.map((r, idx) => {
+                          const p = players.find((x) => x.id === r.player_id);
+                          return (
+                            <li key={`${r.player_id ?? 'na'}-${idx}`} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-[13px]">
+                              <span className="text-white/85">{(p?.display_name ?? p?.name ?? 'Spieler').trim()}</span>
+                              <span className="text-white/45">{(r.slot ?? '').trim() || '—'}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-white/55">Bank</p>
+                      <ul className="mt-1.5 space-y-1.5">
+                        {benchRows.map((r, idx) => {
+                          const p = players.find((x) => x.id === r.player_id);
+                          return (
+                            <li key={`${r.player_id ?? 'na'}-${idx}`} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-[13px] text-white/85">
+                              {(p?.display_name ?? p?.name ?? 'Spieler').trim()}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </div>
+                )
+              ) : null}
             </div>
           ) : null}
 
           {finishedTab === 'stats' ? (
             <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/75">
-              <p className="text-[14px]">Statistik folgt (z. B. Karten/Tore/Wechsel aus match_events).</p>
+              <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Stats</p>
+              <div className="mt-2 grid gap-2 text-[14px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/60">Tore Heim</span>
+                  <span className="text-white/90">{scoreHome ?? 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-white/60">Tore Auswärts</span>
+                  <span className="text-white/90">{scoreAway ?? 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-white/60">Wechsel gesamt</span>
+                  <span className="text-white/90">{subCount}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-white/60">Ereignisse gesamt</span>
+                  <span className="text-white/90">{totalEvents}</span>
+                </div>
+              </div>
             </div>
           ) : null}
 
@@ -1308,7 +1411,10 @@ export const EventDetailPage: React.FC = () => {
                             <button
                               type="button"
                               className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
-                              onClick={() => beginEditEvent(r)}
+                              onClick={() => {
+                                beginEditEvent(r);
+                                setReportEditOpen(true);
+                              }}
                               title="Ereignis bearbeiten"
                             >
                               Bearbeiten
@@ -1352,25 +1458,54 @@ export const EventDetailPage: React.FC = () => {
               </div>
             }
           >
-            <div className="grid grid-cols-2 gap-2">
-              <label className="flex flex-col gap-1">
-                <span className="text-[12px] text-white/60">Heimtore</span>
-                <input
-                  value={manualScoreHome}
-                  onChange={(e) => setManualScoreHome(e.target.value)}
-                  inputMode="numeric"
-                  className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[12px] text-white/60">Auswärtstore</span>
-                <input
-                  value={manualScoreAway}
-                  onChange={(e) => setManualScoreAway(e.target.value)}
-                  inputMode="numeric"
-                  className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
-                />
-              </label>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[12px] text-white/60">Heimtore</span>
+                  <input
+                    value={manualScoreHome}
+                    onChange={(e) => setManualScoreHome(e.target.value)}
+                    inputMode="numeric"
+                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[12px] text-white/60">Auswärtstore</span>
+                  <input
+                    value={manualScoreAway}
+                    onChange={(e) => setManualScoreAway(e.target.value)}
+                    inputMode="numeric"
+                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                  />
+                </label>
+              </div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/55">Abschnitte (optional)</p>
+              <div className="grid grid-cols-3 gap-2">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-white/60">A1 Heim</span>
+                  <input value={p1h} onChange={(e) => setP1h(e.target.value)} inputMode="numeric" className="h-9 rounded-xl border border-white/10 bg-black/40 px-2.5 text-[13px] text-white/90" />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-white/60">A2 Heim</span>
+                  <input value={p2h} onChange={(e) => setP2h(e.target.value)} inputMode="numeric" className="h-9 rounded-xl border border-white/10 bg-black/40 px-2.5 text-[13px] text-white/90" />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-white/60">A3 Heim</span>
+                  <input value={p3h} onChange={(e) => setP3h(e.target.value)} inputMode="numeric" className="h-9 rounded-xl border border-white/10 bg-black/40 px-2.5 text-[13px] text-white/90" />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-white/60">A1 Ausw.</span>
+                  <input value={p1a} onChange={(e) => setP1a(e.target.value)} inputMode="numeric" className="h-9 rounded-xl border border-white/10 bg-black/40 px-2.5 text-[13px] text-white/90" />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-white/60">A2 Ausw.</span>
+                  <input value={p2a} onChange={(e) => setP2a(e.target.value)} inputMode="numeric" className="h-9 rounded-xl border border-white/10 bg-black/40 px-2.5 text-[13px] text-white/90" />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-white/60">A3 Ausw.</span>
+                  <input value={p3a} onChange={(e) => setP3a(e.target.value)} inputMode="numeric" className="h-9 rounded-xl border border-white/10 bg-black/40 px-2.5 text-[13px] text-white/90" />
+                </label>
+              </div>
             </div>
           </Modal>
 
