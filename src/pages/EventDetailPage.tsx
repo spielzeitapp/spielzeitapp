@@ -700,14 +700,19 @@ export const EventDetailPage: React.FC = () => {
           <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
             ← Zurück zum Spielplan
           </Link>
-          <AppButton
-            variant="secondary"
-            size="sm"
-            className="w-full px-3 py-2 text-[13px] sm:w-auto sm:self-end"
-            onClick={() => void handleAddSingleEventToCalendar()}
-          >
-            Zum Kalender hinzufügen
-          </AppButton>
+          <div className="flex w-full flex-col gap-1 sm:w-auto sm:self-end">
+            <AppButton
+              variant="secondary"
+              size="sm"
+              className="w-full px-3 py-2 text-[13px] sm:w-auto"
+              onClick={() => void handleAddSingleEventToCalendar()}
+            >
+              Diesen Termin hinzufügen
+            </AppButton>
+            <p className="text-[11px] leading-snug text-white/55 sm:text-right">
+              Fügt nur diesen Termin deinem Kalender hinzu.
+            </p>
+          </div>
           {isTrainerOrAdmin ? (
             <div className="grid w-full grid-cols-2 gap-3">
               <AppButton
