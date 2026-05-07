@@ -1,6 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Pencil, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-react';
+import {
+  CalendarDays,
+  MapPin,
+  Repeat,
+  Shield,
+  Swords,
+  Trophy,
+  UserRound,
+  Users,
+  Pencil,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+} from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
@@ -926,17 +939,17 @@ export const EventDetailPage: React.FC = () => {
         ? `(${p1h}:${p1a} | ${p2h}:${p2a} | ${p3h}:${p3a})`
         : null;
     const shownPeriodLine = periodLineFromInputs || periodLine;
-    const goalScorersLine = timelineEvents
+    const ownGoalScorerEntries = timelineEvents
       .filter((r) => String(r.type ?? '').toLowerCase() === 'goal' && r.player_id)
-      .slice(0, 6)
       .map((r) => {
         const n = playerName(r.player_id) ?? null;
         if (!n) return null;
         const m = Math.max(0, Math.floor((Number(r.minute ?? 0) || 0) / 60));
-        return `${n} ${m}'`;
+        return { text: `${n} ${m}'`, minute: m };
       })
-      .filter(Boolean)
-      .join(', ');
+      .filter((x): x is { text: string; minute: number } => Boolean(x));
+    const shownOwnGoalScorers = ownGoalScorerEntries.slice(0, 4).map((x) => x.text);
+    const ownGoalScorersMore = Math.max(0, ownGoalScorerEntries.length - shownOwnGoalScorers.length);
     const scorerRows = timelineEvents
       .filter((r) => ['goal', 'goal_away'].includes(String(r.type ?? '').toLowerCase()))
       .map((r) => {
@@ -1218,9 +1231,13 @@ export const EventDetailPage: React.FC = () => {
               isPublicView={true}
             />
             {shownPeriodLine ? <p className="mt-1.5 text-center text-sm text-white/52">{shownPeriodLine}</p> : null}
-            {goalScorersLine ? (
-              <p className="mt-1 text-center text-[12px] text-white/60">
-                Tore: <span className="text-white/82">{goalScorersLine}</span>
+            {shownOwnGoalScorers.length > 0 ? (
+              <p className="mt-1 text-center text-[12px] leading-snug text-white/60">
+                <span className="text-white/72">⚽ Tore {compactOurTeamName}:</span>{' '}
+                <span className="line-clamp-2 text-white/85">
+                  {shownOwnGoalScorers.join(', ')}
+                  {ownGoalScorersMore > 0 ? `, … und ${ownGoalScorersMore} weitere` : ''}
+                </span>
               </p>
             ) : null}
             {isTrainerOrAdmin ? (
@@ -1254,34 +1271,34 @@ export const EventDetailPage: React.FC = () => {
 
           {finishedTab === 'overview' ? (
             <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/80">
-              <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Spielbericht Übersicht</p>
+              <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Spielbericht</p>
               <div className="mt-2 grid gap-2 text-[14px]">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-white/60">Ergebnis</span>
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2">
+                  <span className="inline-flex items-center gap-2 text-white/65"><Trophy className="h-3.5 w-3.5" /> Ergebnis</span>
                   <span className="font-semibold text-white/95" style={{ fontVariantNumeric: 'tabular-nums' }}>
                     {(scoreHome ?? 0)} : {(scoreAway ?? 0)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-white/60">Datum / Uhrzeit</span>
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2">
+                  <span className="inline-flex items-center gap-2 text-white/65"><CalendarDays className="h-3.5 w-3.5" /> Datum</span>
                   <span className="text-right text-white/90">{formatEventDateTimeLabel(event.starts_at)}</span>
                 </div>
                 {venue ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-white/60">Spielort</span>
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2">
+                    <span className="inline-flex items-center gap-2 text-white/65"><MapPin className="h-3.5 w-3.5" /> Spielort</span>
                     <span className="text-right text-white/90">{venue}</span>
                   </div>
                 ) : null}
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-white/60">Heim / Auswärts</span>
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2">
+                  <span className="inline-flex items-center gap-2 text-white/65"><Shield className="h-3.5 w-3.5" /> Heim/Auswärts</span>
                   <span className="text-white/90">{homeAway ?? '—'}</span>
                 </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-white/60">Anzahl Tore</span>
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2">
+                  <span className="inline-flex items-center gap-2 text-white/65"><Swords className="h-3.5 w-3.5" /> Tore</span>
                   <span className="text-white/90">{goalCount}</span>
                 </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-white/60">Anzahl Wechsel</span>
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2">
+                  <span className="inline-flex items-center gap-2 text-white/65"><Repeat className="h-3.5 w-3.5" /> Wechsel</span>
                   <span className="text-white/90">{subCount}</span>
                 </div>
               </div>
@@ -1311,7 +1328,7 @@ export const EventDetailPage: React.FC = () => {
                   <div className="mt-2 grid gap-3">
                     <div>
                       <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-white/55">Startelf</p>
-                      <ul className="mt-1.5 space-y-2">
+                      <ul className="mt-1.5 space-y-2 rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.03] p-2">
                         {lineupRows.map((r, idx) => {
                           const p = players.find((x) => x.id === r.player_id);
                           return (
@@ -1363,22 +1380,32 @@ export const EventDetailPage: React.FC = () => {
           {finishedTab === 'stats' ? (
             <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/75">
               <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Stats</p>
-              <div className="mt-2 grid gap-2 text-[14px]">
-                <div className="flex items-center justify-between">
-                  <span className="text-white/60">Tore Heim</span>
-                  <span className="text-white/90">{scoreHome ?? 0}</span>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-[14px]">
+                <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
+                  <p className="text-[11px] text-white/55">Tore Heim</p>
+                  <p className="mt-1 text-xl font-black tabular-nums text-white">{scoreHome ?? 0}</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-white/60">Tore Auswärts</span>
-                  <span className="text-white/90">{scoreAway ?? 0}</span>
+                <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
+                  <p className="text-[11px] text-white/55">Tore Auswärts</p>
+                  <p className="mt-1 text-xl font-black tabular-nums text-white">{scoreAway ?? 0}</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-white/60">Wechsel gesamt</span>
-                  <span className="text-white/90">{subCount}</span>
+                <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
+                  <p className="text-[11px] text-white/55">Wechsel</p>
+                  <p className="mt-1 text-xl font-black tabular-nums text-white">{subCount}</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-white/60">Ereignisse gesamt</span>
-                  <span className="text-white/90">{totalEvents}</span>
+                <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
+                  <p className="text-[11px] text-white/55">Ereignisse</p>
+                  <p className="mt-1 text-xl font-black tabular-nums text-white">{totalEvents}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
+                  <p className="text-[11px] text-white/55">Torschützen</p>
+                  <p className="mt-1 text-xl font-black tabular-nums text-white">{ownGoalScorerEntries.length}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
+                  <p className="text-[11px] text-white/55">Gelbe Karten</p>
+                  <p className="mt-1 text-xl font-black tabular-nums text-white">
+                    {timelineEvents.filter((x) => ['yellow_card', 'card_yellow', 'yellow'].includes(String(x.type ?? '').toLowerCase())).length}
+                  </p>
                 </div>
               </div>
               {scorerRows.length > 0 ? (
@@ -1452,6 +1479,16 @@ export const EventDetailPage: React.FC = () => {
                                   <p className="mt-1 truncate text-sm font-bold text-white">
                                     {name ?? (t === 'goal_away' ? opponentName : compactOurTeamName)}
                                   </p>
+                                </>
+                              ) : ['yellow_card', 'card_yellow', 'yellow'].includes(t) ? (
+                                <>
+                                  <p className="text-[10px] font-black uppercase tracking-wide text-amber-300">🟨 Gelb</p>
+                                  <p className="mt-1 truncate text-sm font-bold text-white">{name ?? 'Spieler'}</p>
+                                </>
+                              ) : ['red_card', 'card_red', 'red'].includes(t) ? (
+                                <>
+                                  <p className="text-[10px] font-black uppercase tracking-wide text-red-300">🟥 Rot</p>
+                                  <p className="mt-1 truncate text-sm font-bold text-white">{name ?? 'Spieler'}</p>
                                 </>
                               ) : (
                                 <p className="text-[13px] font-semibold leading-snug text-gray-200">
