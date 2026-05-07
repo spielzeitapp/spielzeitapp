@@ -8,6 +8,7 @@ import { CreateEventModal } from '../app/components/CreateEventModal';
 import { AttendanceStatusPill, type AttendanceStatusKind } from '../components/schedule/AttendanceStatusPill';
 import { CompactListParentAttendance } from '../components/schedule/CompactListParentAttendance';
 import { CompactEventCard } from '../components/schedule/CompactEventCard';
+import { PastMatchResultCard } from '../components/schedule/PastMatchResultCard';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { EventHeroCard } from '../components/schedule/EventHeroCard';
 import { AttendanceActionRow } from '../components/schedule/AttendanceActionRow';
@@ -1243,8 +1244,8 @@ export const SchedulePage: React.FC = () => {
                   <div
                     className={
                       widenParentFurtherList
-                        ? '-mx-1.5 min-w-0 w-[calc(100%+0.75rem)] max-w-none overflow-x-hidden sm:mx-0 sm:w-full'
-                        : 'min-w-0 w-full'
+                        ? '-mx-1.5 min-w-0 w-[calc(100%+0.75rem)] max-w-none overflow-x-hidden pb-[max(0.25rem,env(safe-area-inset-bottom,0px))] sm:mx-0 sm:w-full'
+                        : 'min-w-0 w-full pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]'
                     }
                   >
                     {showHeroCard && furtherEvents.length > 0 ? (
@@ -1302,6 +1303,26 @@ export const SchedulePage: React.FC = () => {
                         />
                       ) : undefined;
                       const opponentLogo = (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url;
+                      const matchScoreRow = ev.match_id ? matchScoreById[ev.match_id] : undefined;
+                      const showPastResultCard = et === 'game' && ev.status === 'finished';
+                      if (showPastResultCard) {
+                        return (
+                          <PastMatchResultCard
+                            key={ev.id}
+                            ev={ev}
+                            ourTeamName={ourTeamName}
+                            opponentLogoUrl={opponentLogo}
+                            scoreHome={matchScoreRow?.scoreHome ?? null}
+                            scoreAway={matchScoreRow?.scoreAway ?? null}
+                            forcePublicView={forcePublicView}
+                            onNavigate={(id) =>
+                              isFinishedMatch && ev.match_id
+                                ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
+                                : navigate(`/app/events/${id}`)
+                            }
+                          />
+                        );
+                      }
                       return (
                         <CompactEventCard
                           key={ev.id}
