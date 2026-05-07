@@ -19,7 +19,7 @@ import { downloadSingleEventFullCalendarIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { upsertMatchForSetup } from '../lib/liveMatchService';
-import { fetchMatchById, updateMatchRow, deleteMatchEventById } from '../lib/liveMatchService';
+import { fetchMatchById, updateMatchRow } from '../lib/liveMatchService';
 import { buildPauseDelimitedPeriodScoreLine } from '../lib/matchEngine';
 import {
   MATCH_FEED_TEMPLATE_KEYS,
@@ -937,6 +937,13 @@ export const EventDetailPage: React.FC = () => {
       })
       .filter(Boolean)
       .join(', ');
+    const scorerRows = timelineEvents
+      .filter((r) => ['goal', 'goal_away'].includes(String(r.type ?? '').toLowerCase()))
+      .map((r) => {
+        const t = String(r.type ?? '').toLowerCase();
+        const n = playerName(r.player_id) ?? (t === 'goal_away' ? opponentName : compactOurTeamName);
+        return `${n} ${Math.max(0, Math.floor((Number(r.minute ?? 0) || 0) / 60))}'`;
+      });
 
     const goalCount = timelineEvents.filter((r) => {
       const t = String(r.type ?? '').toLowerCase();
@@ -947,6 +954,42 @@ export const EventDetailPage: React.FC = () => {
       return t === 'sub_out' || t === 'sub_in';
     }).length;
     const totalEvents = timelineEvents.length;
+    const tickerRows = (() => {
+      const rows: Array<{ key: string; items: MatchEventRow[] }> = [];
+      let i = 0;
+      while (i < timelineEvents.length) {
+        const cur = timelineEvents[i];
+        const next = timelineEvents[i + 1];
+        const ct = String(cur?.type ?? '').toLowerCase();
+        const nt = String(next?.type ?? '').toLowerCase();
+        const cmin = Number(cur?.minute ?? 0);
+        const nmin = Number(next?.minute ?? 0);
+        if (ct === 'sub_out' && nt === 'sub_in' && cmin === nmin) {
+          rows.push({ key: `subpair_${cur.id}_${next.id}`, items: [cur, next] });
+          i += 2;
+          continue;
+        }
+        rows.push({ key: cur.id, items: [cur] });
+        i += 1;
+      }
+      return rows;
+    })();
+    const scoreBadgeByEventId = (() => {
+      let h = 0;
+      let a = 0;
+      const map = new Map<string, string>();
+      for (const ev of timelineEvents) {
+        const t = String(ev.type ?? '').toLowerCase();
+        if (t === 'goal') {
+          h += 1;
+          map.set(ev.id, `${h}:${a}`);
+        } else if (t === 'goal_away') {
+          a += 1;
+          map.set(ev.id, `${h}:${a}`);
+        }
+      }
+      return map;
+    })();
 
     const reloadMatchEvents = async (): Promise<MatchEventRow[] | null> => {
       if (!event.match_id) return null;
@@ -1009,20 +1052,21 @@ export const EventDetailPage: React.FC = () => {
       }
     };
 
-    const deleteEvent = async (id: string) => {
-      if (!event.match_id) return;
-      const old = timelineEvents.find((x) => x.id === id);
-      const oldType = String(old?.type ?? '').toLowerCase();
-      const { error: delErr } = await deleteMatchEventById(id);
+    const deleteTickerRow = async (items: MatchEventRow[]) => {
+      if (!event.match_id || items.length === 0) return;
+      const ids = items.map((x) => x.id);
+      const didTouchGoals = items.some((x) => {
+        const t = String(x.type ?? '').toLowerCase();
+        return t === 'goal' || t === 'goal_away';
+      });
+      const { error: delErr } = await supabase.from('match_events').delete().in('id', ids);
       if (delErr) {
-        setMatchError(delErr);
+        setMatchError(delErr.message);
         return;
       }
       const rows = await reloadMatchEvents();
       if (!rows) return;
-      if (oldType === 'goal' || oldType === 'goal_away') {
-        await syncScoreFromEvents(rows);
-      }
+      if (didTouchGoals) await syncScoreFromEvents(rows);
     };
 
     const saveManualScore = async () => {
@@ -1148,68 +1192,48 @@ export const EventDetailPage: React.FC = () => {
             </Link>
           </div>
 
-          <div className="-mx-1 w-[calc(100%+0.5rem)] max-w-none overflow-hidden rounded-[26px] border border-red-500/20 bg-gradient-to-br from-[#180000] via-black to-[#240000] shadow-[0_10px_40px_rgba(255,0,0,0.18)] sm:mx-0 sm:w-full">
-            <div className="px-3.5 pb-3.5 pt-3.5 sm:px-4 sm:pb-4 sm:pt-4">
-              <div className="mb-2 flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-red-300/70">
-                    {event.match_type ? getDomainEventLabel(event) : 'Spiel'}
-                  </p>
-                  {venue ? (
-                    <p className="mt-1 line-clamp-1 text-[12px] text-white/55">{venue}</p>
-                  ) : null}
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-2">
-                  <span className="rounded-md border border-red-950/80 bg-black/50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-red-200/95">
-                    Endstand
-                  </span>
-                </div>
+          <div className="-mx-1 w-[calc(100%+0.5rem)] max-w-none sm:mx-0 sm:w-full">
+            <MatchCardLigaportal
+              className="!overflow-visible w-full max-w-none rounded-[26px] !bg-gradient-to-br !from-[#180000] !via-black !to-[#240000] !border-red-500/20 !shadow-[0_10px_40px_rgba(255,0,0,0.18)]"
+              compactDetailGame
+              ourTeamName={compactOurTeamName}
+              opponent={opponentName}
+              isHome={event.is_home}
+              startsAt={event.starts_at}
+              status={'finished'}
+              kind={event.kind}
+              eventType={(event as any).type ?? undefined}
+              matchType={
+                event.kind === 'match'
+                  ? (event.match_type ?? (!event.type || event.type === 'game' ? 'league' : event.type))
+                  : null
+              }
+              notes={event.notes}
+              location={event.location}
+              address={event.location}
+              meetupAt={null}
+              showMeetup={false}
+              scoreHome={scoreHome}
+              scoreAway={scoreAway}
+              isPublicView={true}
+            />
+            {shownPeriodLine ? <p className="mt-1.5 text-center text-sm text-white/52">{shownPeriodLine}</p> : null}
+            {goalScorersLine ? (
+              <p className="mt-1 text-center text-[12px] text-white/60">
+                Tore: <span className="text-white/82">{goalScorersLine}</span>
+              </p>
+            ) : null}
+            {isTrainerOrAdmin ? (
+              <div className="mt-2 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setScoreEditOpen(true)}
+                  className="rounded-lg border border-white/12 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/[0.08]"
+                >
+                  Ergebnis ändern
+                </button>
               </div>
-
-              <MatchCardLigaportal
-                className="!overflow-visible w-full max-w-full rounded-2xl !bg-black/25 !border-white/10 !shadow-[0_0_20px_rgba(220,38,38,0.12)]"
-                compactDetailGame
-                ourTeamName={compactOurTeamName}
-                opponent={opponentName}
-                isHome={event.is_home}
-                startsAt={event.starts_at}
-                status={'finished'}
-                kind={event.kind}
-                eventType={(event as any).type ?? undefined}
-                matchType={
-                  event.kind === 'match'
-                    ? (event.match_type ?? (!event.type || event.type === 'game' ? 'league' : event.type))
-                    : null
-                }
-                notes={event.notes}
-                location={event.location}
-                address={event.location}
-                meetupAt={null}
-                showMeetup={false}
-                scoreHome={scoreHome}
-                scoreAway={scoreAway}
-                isPublicView={true}
-              />
-
-              {shownPeriodLine ? <p className="mt-1.5 text-center text-sm text-white/52">{shownPeriodLine}</p> : null}
-              {goalScorersLine ? (
-                <p className="mt-1 text-center text-[12px] text-white/60">
-                  Tore: <span className="text-white/82">{goalScorersLine}</span>
-                </p>
-              ) : null}
-              {isTrainerOrAdmin ? (
-                <div className="mt-2 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() => setScoreEditOpen(true)}
-                    className="rounded-lg border border-white/12 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/[0.08]"
-                  >
-                    Ergebnis ändern
-                  </button>
-                </div>
-              ) : null}
-
-            </div>
+            ) : null}
           </div>
 
           <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/30 p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -1286,14 +1310,23 @@ export const EventDetailPage: React.FC = () => {
                 ) : (
                   <div className="mt-2 grid gap-3">
                     <div>
-                      <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-white/55">Auf dem Feld</p>
-                      <ul className="mt-1.5 space-y-1.5">
+                      <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-white/55">Startelf</p>
+                      <ul className="mt-1.5 space-y-2">
                         {lineupRows.map((r, idx) => {
                           const p = players.find((x) => x.id === r.player_id);
                           return (
-                            <li key={`${r.player_id ?? 'na'}-${idx}`} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-[13px]">
-                              <span className="text-white/85">{(p?.display_name ?? p?.name ?? 'Spieler').trim()}</span>
-                              <span className="text-white/45">{(r.slot ?? '').trim() || '—'}</span>
+                            <li key={`${r.player_id ?? 'na'}-${idx}`}>
+                              <MatchPlayerRow
+                                player={{
+                                  id: r.player_id ?? `lineup-${idx}`,
+                                  display_name: p?.display_name ?? p?.name ?? 'Spieler',
+                                  name: p?.name ?? p?.display_name ?? 'Spieler',
+                                  position: p?.position ?? null,
+                                  avatar_url: p?.avatar_url ?? null,
+                                  jersey_number: p?.jersey_number ?? null,
+                                }}
+                                rightLabel={(r.slot ?? '').trim() || null}
+                              />
                             </li>
                           );
                         })}
@@ -1301,12 +1334,21 @@ export const EventDetailPage: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-white/55">Bank</p>
-                      <ul className="mt-1.5 space-y-1.5">
+                      <ul className="mt-1.5 space-y-2">
                         {benchRows.map((r, idx) => {
                           const p = players.find((x) => x.id === r.player_id);
                           return (
-                            <li key={`${r.player_id ?? 'na'}-${idx}`} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-[13px] text-white/85">
-                              {(p?.display_name ?? p?.name ?? 'Spieler').trim()}
+                            <li key={`${r.player_id ?? 'na'}-${idx}`}>
+                              <MatchPlayerRow
+                                player={{
+                                  id: r.player_id ?? `bench-${idx}`,
+                                  display_name: p?.display_name ?? p?.name ?? 'Spieler',
+                                  name: p?.name ?? p?.display_name ?? 'Spieler',
+                                  position: p?.position ?? null,
+                                  avatar_url: p?.avatar_url ?? null,
+                                  jersey_number: p?.jersey_number ?? null,
+                                }}
+                              />
                             </li>
                           );
                         })}
@@ -1339,6 +1381,12 @@ export const EventDetailPage: React.FC = () => {
                   <span className="text-white/90">{totalEvents}</span>
                 </div>
               </div>
+              {scorerRows.length > 0 ? (
+                <div className="mt-3 border-t border-white/10 pt-3">
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-white/55">Torschützen</p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-white/82">{scorerRows.join(', ')}</p>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -1352,83 +1400,103 @@ export const EventDetailPage: React.FC = () => {
                 <p className="text-[14px] text-white/70">Noch keine Ereignisse erfasst.</p>
               ) : (
                 <ul className="space-y-2">
-                  {timelineEvents.map((r) => {
+                  {tickerRows.map((row, index) => {
+                    const r = row.items[0];
                     const t = String(r.type ?? '').toLowerCase();
-                    const minuteValue = Number(r.minute ?? 0);
-                    const sameMinuteSwitch = timelineEvents.filter(
-                      (x) =>
-                        Number(x.minute ?? 0) === minuteValue &&
-                        ['sub_out', 'sub_in'].includes(String(x.type ?? '').toLowerCase()),
-                    );
-                    const switchOut = sameMinuteSwitch.find(
-                      (x) => String(x.type ?? '').toLowerCase() === 'sub_out',
-                    );
-                    const switchIn = sameMinuteSwitch.find(
-                      (x) => String(x.type ?? '').toLowerCase() === 'sub_in',
-                    );
-                    const isSwitch = t === 'sub_out' || t === 'sub_in';
-                    const label = isSwitch
-                      ? '🔁 Wechsel'
-                      : t === 'goal'
-                        ? 'Tor (Heim)'
-                        : t === 'goal_away'
-                          ? 'Tor (Auswärts)'
-                          : t === 'period_end'
-                            ? 'Pause'
-                            : t === 'period_start'
-                              ? 'Start'
-                              : t === 'final_whistle'
-                                ? 'Abpfiff'
-                                : t === 'kickoff'
-                                  ? 'Anpfiff'
-                                  : 'Info';
+                    const isPairSwitch =
+                      row.items.length === 2 &&
+                      String(row.items[0]?.type ?? '').toLowerCase() === 'sub_out' &&
+                      String(row.items[1]?.type ?? '').toLowerCase() === 'sub_in';
+                    const isSwitch = isPairSwitch || t === 'sub_out' || t === 'sub_in';
                     const name = playerName(r.player_id);
+                    const switchOutName = isPairSwitch
+                      ? playerName(row.items[0]?.player_id ?? null)
+                      : t === 'sub_out'
+                        ? name
+                        : null;
+                    const switchInName = isPairSwitch
+                      ? playerName(row.items[1]?.player_id ?? null)
+                      : t === 'sub_in'
+                        ? name
+                        : null;
+                    const scoreBadge = scoreBadgeByEventId.get(r.id) ?? null;
+                    const isLast = index === tickerRows.length - 1;
                     return (
-                      <li key={r.id} className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
-                        <div className="flex min-w-0 flex-1 items-start gap-2.5">
-                          <div className="w-10 shrink-0 text-center">
-                            <p className="text-[15px] font-extrabold text-red-200/95">{minuteLabel(r.minute)}</p>
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[12px] font-semibold text-white/90">
-                              {label}
-                              {isSwitch ? (
-                                <span className="text-white/55">
-                                  {switchOut || switchIn
-                                    ? ` · ${(playerName(switchOut?.player_id ?? null) ?? 'Spieler')} → ${(playerName(switchIn?.player_id ?? null) ?? 'Spieler')}`
-                                    : name
-                                      ? ` · ${name}`
-                                      : ''}
-                                </span>
-                              ) : name ? (
-                                <span className="text-white/55"> · {name}</span>
-                              ) : null}
-                            </p>
-                          </div>
+                      <li key={row.key} className="flex gap-2 pb-2 last:pb-0">
+                        <div className="w-10 shrink-0 pt-1 text-right text-xs font-bold tabular-nums text-white/65">
+                          {minuteLabel(r.minute)}
                         </div>
-                        {isTrainerOrAdmin ? (
-                          <div className="flex shrink-0 items-center gap-1.5">
-                            <button
-                              type="button"
-                              className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
-                              onClick={() => {
-                                beginEditEvent(r);
-                                setReportEditOpen(true);
-                              }}
-                              title="Ereignis bearbeiten"
-                            >
-                              Bearbeiten
-                            </button>
-                            <button
-                              type="button"
-                              className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
-                              onClick={() => void deleteEvent(r.id)}
-                              title="Ereignis löschen"
-                            >
-                              Löschen
-                            </button>
+                        <div className="relative flex w-3 shrink-0 flex-col items-center pt-1">
+                          {!isLast ? (
+                            <div className="absolute bottom-0 left-1/2 top-2 w-px -translate-x-1/2 bg-red-600/35" />
+                          ) : null}
+                          <div className="relative z-10 mt-0.5 h-1.5 w-1.5 rounded-full bg-red-500" />
+                        </div>
+                        <div className="min-w-0 flex-1 rounded-2xl border border-white/[0.08] bg-gradient-to-br from-zinc-950/95 via-zinc-950/80 to-black px-3 py-2 shadow-[0_6px_28px_rgba(0,0,0,0.35)]">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              {isSwitch ? (
+                                <>
+                                  <p className="text-[10px] font-black uppercase tracking-wide text-sky-300">🔁 Wechsel</p>
+                                  <p className="mt-1 text-[13px] font-semibold leading-snug text-white/90">
+                                    {switchOutName || switchInName
+                                      ? `${switchOutName ?? 'Spieler'} → ${switchInName ?? 'Spieler'}`
+                                      : 'Wechsel'}
+                                  </p>
+                                </>
+                              ) : t === 'goal' || t === 'goal_away' ? (
+                                <>
+                                  <p className="text-[10px] font-black uppercase tracking-wide text-emerald-300">
+                                    ⚽ {t === 'goal' ? 'Tor Heim' : 'Tor Auswärts'}
+                                  </p>
+                                  <p className="mt-1 truncate text-sm font-bold text-white">
+                                    {name ?? (t === 'goal_away' ? opponentName : compactOurTeamName)}
+                                  </p>
+                                </>
+                              ) : (
+                                <p className="text-[13px] font-semibold leading-snug text-gray-200">
+                                  {t === 'period_end'
+                                    ? 'Pause'
+                                    : t === 'period_start'
+                                      ? 'Start'
+                                      : t === 'final_whistle'
+                                        ? 'Abpfiff'
+                                        : t === 'kickoff'
+                                          ? 'Anpfiff'
+                                          : 'Info'}
+                                </p>
+                              )}
+                            </div>
+                            {scoreBadge ? (
+                              <span className="shrink-0 rounded-full border border-white/15 bg-white/[0.06] px-2 py-0.5 text-[11px] font-extrabold tabular-nums text-white/90">
+                                {scoreBadge}
+                              </span>
+                            ) : null}
                           </div>
-                        ) : null}
+                          {isTrainerOrAdmin ? (
+                            <div className="mt-2 flex justify-end gap-1.5">
+                              <button
+                                type="button"
+                                className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
+                                onClick={() => {
+                                  beginEditEvent(r);
+                                  setReportEditOpen(true);
+                                }}
+                                title="Ereignis bearbeiten"
+                              >
+                                Bearbeiten
+                              </button>
+                              <button
+                                type="button"
+                                className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
+                                onClick={() => void deleteTickerRow(row.items)}
+                                title="Ereignis löschen"
+                              >
+                                Löschen
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
                       </li>
                     );
                   })}
