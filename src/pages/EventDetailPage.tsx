@@ -6,7 +6,7 @@ import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
 import { normalizeRole, canSeeMeetup } from '../lib/roles';
-import { getOurTeamDisplayName } from '../lib/teamLogos';
+import { getClubLogo, getOurTeamDisplayName } from '../lib/teamLogos';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
@@ -822,6 +822,10 @@ export const EventDetailPage: React.FC = () => {
       return (parsed.place ?? '').trim() || (matchRowLite?.location ?? event.location ?? '').trim() || null;
     })();
     const homeAway = event.is_home === true ? 'Heim' : event.is_home === false ? 'Auswärts' : null;
+    const homeTeamName = event.is_home === false ? opponentName : ourTeamName;
+    const awayTeamName = event.is_home === false ? ourTeamName : opponentName;
+    const homeLogo = event.is_home === false ? getClubLogo(opponentName) : getClubLogo(ourTeamName);
+    const awayLogo = event.is_home === false ? getClubLogo(ourTeamName) : getClubLogo(opponentName);
 
     const renderTabButton = (id: 'overview' | 'lineup' | 'timeline' | 'stats', label: string) => (
       <button
@@ -966,37 +970,38 @@ export const EventDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              <MatchCardLigaportal
-                className="!overflow-visible w-full max-w-full rounded-2xl !bg-black/30 !border-white/10 !shadow-[0_0_24px_rgba(220,38,38,0.12)]"
-                compactDetailGame
-                ourTeamName={ourTeamName}
-                opponent={opponentName}
-                isHome={event.is_home}
-                startsAt={event.starts_at}
-                status={event.status}
-                kind={event.kind}
-                eventType={(event as any).type ?? undefined}
-                matchType={
-                  event.kind === 'match'
-                    ? (event.match_type ?? (!event.type || event.type === 'game' ? 'league' : event.type))
-                    : null
-                }
-                notes={event.notes}
-                location={event.location}
-                address={event.location}
-                meetupAt={event.meeting_at}
-                showMeetup={showMeetup}
-                scoreHome={scoreHome}
-                scoreAway={scoreAway}
-                isPublicView={true}
-              />
+              <div className="rounded-2xl border border-white/10 bg-black/25 px-3 py-3 sm:px-4">
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                  <div className="min-w-0 text-center">
+                    <img src={homeLogo} alt="" className="mx-auto h-10 w-10 object-contain sm:h-11 sm:w-11" />
+                    <p className="mt-1.5 line-clamp-2 text-center text-[15px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] [word-break:normal] sm:text-[16px]">
+                      {homeTeamName}
+                    </p>
+                  </div>
+                  <div className="min-w-0 px-1 text-center">
+                    <p
+                      className="text-[2rem] font-black leading-none tracking-tight text-white [text-shadow:0_0_24px_rgba(220,38,38,0.38)] sm:text-[2.4rem]"
+                      style={{ fontVariantNumeric: 'tabular-nums' }}
+                    >
+                      {(scoreHome ?? 0)} : {(scoreAway ?? 0)}
+                    </p>
+                    <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-red-200/90">Endstand</p>
+                  </div>
+                  <div className="min-w-0 text-center">
+                    <img src={awayLogo} alt="" className="mx-auto h-10 w-10 object-contain sm:h-11 sm:w-11" />
+                    <p className="mt-1.5 line-clamp-2 text-center text-[15px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] [word-break:normal] sm:text-[16px]">
+                      {awayTeamName}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               {periodLine ? (
                 <p className="mt-2 text-center text-sm text-white/50">{periodLine}</p>
               ) : null}
 
               <div className="mt-3 rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-center text-[12px] font-bold uppercase tracking-[0.18em] text-white/70">
-                🏆 Termin abgeschlossen
+                Termin abgeschlossen
               </div>
 
               {isTrainerOrAdmin ? (

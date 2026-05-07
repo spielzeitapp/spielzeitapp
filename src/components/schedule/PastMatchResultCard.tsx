@@ -165,13 +165,13 @@ export function PastMatchResultCard({
 
         <div className="mb-4 grid grid-cols-2 gap-2 px-0.5">
           <p
-            className="min-w-0 text-left text-base font-semibold leading-snug text-white [text-wrap:balance] line-clamp-2 sm:text-lg"
+            className="min-w-0 text-center text-[15px] font-semibold leading-snug text-white line-clamp-2 break-normal hyphens-none [overflow-wrap:normal] [word-break:normal] sm:text-[17px]"
             lang="de"
           >
             {homeName}
           </p>
           <p
-            className="min-w-0 text-right text-base font-semibold leading-snug text-white [text-wrap:balance] line-clamp-2 sm:text-lg"
+            className="min-w-0 text-center text-[15px] font-semibold leading-snug text-white line-clamp-2 break-normal hyphens-none [overflow-wrap:normal] [word-break:normal] sm:text-[17px]"
             lang="de"
           >
             {awayName}

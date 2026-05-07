@@ -1315,11 +1315,7 @@ export const SchedulePage: React.FC = () => {
                             scoreHome={matchScoreRow?.scoreHome ?? null}
                             scoreAway={matchScoreRow?.scoreAway ?? null}
                             forcePublicView={forcePublicView}
-                            onNavigate={(id) =>
-                              isFinishedMatch && ev.match_id
-                                ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
-                                : navigate(`/app/events/${id}`)
-                            }
+                            onNavigate={(id) => navigate(`/app/events/${id}`)}
                           />
                         );
                       }
