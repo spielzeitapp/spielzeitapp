@@ -73,6 +73,15 @@ function getDomainEventLabel(event: EventRow): string {
   return 'Termin';
 }
 
+function compactTeamNameForMatchHeader(name: string | null | undefined): string {
+  let s = (name ?? '').trim();
+  if (!s) return 'Team';
+  s = s.replace(/\s*\([^)]*\)\s*$/g, '').trim(); // remove season suffix
+  s = s.replace(/^U\s*\d{1,2}\s+/i, '').trim(); // remove leading age-group
+  s = s.replace(/^U\d{1,2}\s+/i, '').trim();
+  return s || (name ?? '').trim() || 'Team';
+}
+
 function formatEventDateTimeLabel(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
@@ -191,6 +200,13 @@ export const EventDetailPage: React.FC = () => {
   const [reportEditOpen, setReportEditOpen] = useState(false);
   const [goalMinute, setGoalMinute] = useState(''); // Anzeige-Minute (1..)
   const [goalTeam, setGoalTeam] = useState<'home' | 'away'>('home');
+  const [goalPlayerId, setGoalPlayerId] = useState<string>('');
+  const [manualScoreHome, setManualScoreHome] = useState('');
+  const [manualScoreAway, setManualScoreAway] = useState('');
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [editEventMinute, setEditEventMinute] = useState('');
+  const [editEventType, setEditEventType] = useState<'goal' | 'goal_away' | 'sub_out' | 'sub_in'>('goal');
+  const [editEventPlayerId, setEditEventPlayerId] = useState('');
 
   const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | null>(null);
   const [loadingRsvp, setLoadingRsvp] = useState(true);
@@ -330,6 +346,12 @@ export const EventDetailPage: React.FC = () => {
       cancelled = true;
     };
   }, [event?.match_id, isFinishedMatchEvent]);
+
+  useEffect(() => {
+    if (!isFinishedMatchEvent) return;
+    setManualScoreHome(String(Math.max(0, Number(matchRowLite?.score_home ?? 0) || 0)));
+    setManualScoreAway(String(Math.max(0, Number(matchRowLite?.score_away ?? 0) || 0)));
+  }, [isFinishedMatchEvent, matchRowLite?.score_home, matchRowLite?.score_away]);
 
   const recomputeTotalsFromMatchEvents = useCallback((rows: MatchEventRow[]) => {
     const home = rows.filter((r) => String(r.type ?? '').toLowerCase() === 'goal').length;
@@ -822,8 +844,10 @@ export const EventDetailPage: React.FC = () => {
       return (parsed.place ?? '').trim() || (matchRowLite?.location ?? event.location ?? '').trim() || null;
     })();
     const homeAway = event.is_home === true ? 'Heim' : event.is_home === false ? 'Auswärts' : null;
-    const homeTeamName = event.is_home === false ? opponentName : ourTeamName;
-    const awayTeamName = event.is_home === false ? ourTeamName : opponentName;
+    const homeTeamNameRaw = event.is_home === false ? opponentName : ourTeamName;
+    const awayTeamNameRaw = event.is_home === false ? ourTeamName : opponentName;
+    const homeTeamName = compactTeamNameForMatchHeader(homeTeamNameRaw);
+    const awayTeamName = compactTeamNameForMatchHeader(awayTeamNameRaw);
     const homeLogo = event.is_home === false ? getClubLogo(opponentName) : getClubLogo(ourTeamName);
     const awayLogo = event.is_home === false ? getClubLogo(ourTeamName) : getClubLogo(opponentName);
 
@@ -832,7 +856,7 @@ export const EventDetailPage: React.FC = () => {
         type="button"
         onClick={() => setFinishedTab(id)}
         className={[
-          'flex-1 rounded-xl px-3 py-2 text-[12px] font-semibold transition-all',
+          'shrink-0 rounded-xl px-3 py-2 text-[12px] font-semibold transition-all',
           finishedTab === id
             ? 'border border-red-400/30 bg-white/[0.11] text-white shadow-[0_0_12px_rgba(220,38,38,0.18)]'
             : 'border border-transparent text-white/70 hover:bg-white/[0.04] hover:text-white/90',
@@ -856,6 +880,47 @@ export const EventDetailPage: React.FC = () => {
 
     const timelineEvents = matchEvents;
 
+    const goalCount = timelineEvents.filter((r) => {
+      const t = String(r.type ?? '').toLowerCase();
+      return t === 'goal' || t === 'goal_away';
+    }).length;
+    const subCount = timelineEvents.filter((r) => {
+      const t = String(r.type ?? '').toLowerCase();
+      return t === 'sub_out' || t === 'sub_in';
+    }).length;
+
+    const reloadMatchEvents = async (): Promise<MatchEventRow[] | null> => {
+      if (!event.match_id) return null;
+      const { data, error: fetchErr } = await supabase
+        .from('match_events')
+        .select('id, match_id, type, minute, period, player_id, created_at')
+        .eq('match_id', event.match_id)
+        .order('minute', { ascending: true, nullsFirst: true })
+        .order('created_at', { ascending: true });
+      if (fetchErr) {
+        setMatchError(fetchErr.message);
+        return null;
+      }
+      const rows = (data ?? []) as MatchEventRow[];
+      setMatchEvents(rows);
+      return rows;
+    };
+
+    const syncScoreFromEvents = async (rows: MatchEventRow[]) => {
+      if (!event.match_id) return;
+      const totals = recomputeTotalsFromMatchEvents(rows);
+      const { error: updErr } = await updateMatchRow(event.match_id, {
+        score_home: totals.home,
+        score_away: totals.away,
+      });
+      if (updErr) setMatchError(updErr);
+      setMatchRowLite((prev) =>
+        prev ? { ...prev, score_home: totals.home, score_away: totals.away } : prev,
+      );
+      setManualScoreHome(String(totals.home));
+      setManualScoreAway(String(totals.away));
+    };
+
     const addGoal = async () => {
       if (!event.match_id) return;
       const minute = Math.max(0, Number(goalMinute.trim()) || 0);
@@ -868,34 +933,17 @@ export const EventDetailPage: React.FC = () => {
           type: dbType,
           minute: seconds,
           period: null,
-          player_id: null,
+          player_id: goalPlayerId.trim() || null,
         });
         if (insErr) {
           setMatchError(insErr.message);
           return;
         }
-        const { data, error: fetchErr } = await supabase
-          .from('match_events')
-          .select('id, match_id, type, minute, period, player_id, created_at')
-          .eq('match_id', event.match_id)
-          .order('minute', { ascending: true, nullsFirst: true })
-          .order('created_at', { ascending: true });
-        if (fetchErr) {
-          setMatchError(fetchErr.message);
-          return;
-        }
-        const rows = (data ?? []) as MatchEventRow[];
-        setMatchEvents(rows);
-        const totals = recomputeTotalsFromMatchEvents(rows);
-        const { error: updErr } = await updateMatchRow(event.match_id, {
-          score_home: totals.home,
-          score_away: totals.away,
-        });
-        if (updErr) setMatchError(updErr);
-        setMatchRowLite((prev) =>
-          prev ? { ...prev, score_home: totals.home, score_away: totals.away } : prev,
-        );
+        const rows = await reloadMatchEvents();
+        if (!rows) return;
+        await syncScoreFromEvents(rows);
         setGoalMinute('');
+        setGoalPlayerId('');
       } catch (e: any) {
         console.error('[FinishedMatchReport] addGoal', e);
         setMatchError(e?.message ?? 'Speichern fehlgeschlagen.');
@@ -909,87 +957,104 @@ export const EventDetailPage: React.FC = () => {
         setMatchError(delErr);
         return;
       }
-      const { data, error: fetchErr } = await supabase
-        .from('match_events')
-        .select('id, match_id, type, minute, period, player_id, created_at')
-        .eq('match_id', event.match_id)
-        .order('minute', { ascending: true, nullsFirst: true })
-        .order('created_at', { ascending: true });
-      if (fetchErr) {
-        setMatchError(fetchErr.message);
+      const rows = await reloadMatchEvents();
+      if (!rows) return;
+      await syncScoreFromEvents(rows);
+    };
+
+    const saveManualScore = async () => {
+      if (!event.match_id) return;
+      const sh = Math.max(0, Number(manualScoreHome.trim()) || 0);
+      const sa = Math.max(0, Number(manualScoreAway.trim()) || 0);
+      const { error: updErr } = await updateMatchRow(event.match_id, {
+        score_home: sh,
+        score_away: sa,
+      });
+      if (updErr) {
+        setMatchError(updErr);
         return;
       }
-      const rows = (data ?? []) as MatchEventRow[];
-      setMatchEvents(rows);
-      const totals = recomputeTotalsFromMatchEvents(rows);
-      const { error: updErr } = await updateMatchRow(event.match_id, {
-        score_home: totals.home,
-        score_away: totals.away,
-      });
-      if (updErr) setMatchError(updErr);
-      setMatchRowLite((prev) =>
-        prev ? { ...prev, score_home: totals.home, score_away: totals.away } : prev,
+      setMatchRowLite((prev) => (prev ? { ...prev, score_home: sh, score_away: sa } : prev));
+    };
+
+    const beginEditEvent = (r: MatchEventRow) => {
+      setEditingEventId(r.id);
+      setEditEventMinute(String(Math.max(0, Math.floor((Number(r.minute ?? 0) || 0) / 60))));
+      const t = String(r.type ?? '').toLowerCase();
+      setEditEventType(
+        t === 'goal_away' || t === 'sub_out' || t === 'sub_in' ? (t as any) : 'goal',
       );
+      setEditEventPlayerId(r.player_id ?? '');
+    };
+
+    const saveEventEdit = async () => {
+      if (!editingEventId) return;
+      const minute = Math.max(0, Number(editEventMinute.trim()) || 0);
+      const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
+      const { error: updErr } = await supabase
+        .from('match_events')
+        .update({
+          minute: seconds,
+          type: editEventType,
+          player_id: editEventPlayerId.trim() || null,
+        })
+        .eq('id', editingEventId);
+      if (updErr) {
+        setMatchError(updErr.message);
+        return;
+      }
+      const rows = await reloadMatchEvents();
+      if (!rows) return;
+      await syncScoreFromEvents(rows);
+      setEditingEventId(null);
     };
 
     return (
       <div className="min-h-screen text-white [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_55%,rgba(10,0,0,0.99)_100%)]">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-28 sm:px-4">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] sm:px-4">
           <div className="flex flex-col gap-3">
             <Link to="/app/termine" className="text-[14px] text-white/80 hover:text-white">
               ← Zurück zum Spielplan
             </Link>
           </div>
 
-          <div className="overflow-hidden rounded-[28px] border border-red-500/20 bg-gradient-to-br from-[#180000] via-black to-[#240000] shadow-[0_10px_40px_rgba(255,0,0,0.18)]">
-            <div className="px-3.5 pb-4 pt-4 sm:px-4">
-              <div className="mb-2 flex items-start justify-between gap-3">
+          <div className="overflow-hidden rounded-[26px] border border-red-500/20 bg-gradient-to-br from-[#180000] via-black to-[#240000] shadow-[0_10px_40px_rgba(255,0,0,0.18)]">
+            <div className="px-3.5 pb-3.5 pt-3.5 sm:px-4 sm:pb-4 sm:pt-4">
+              <div className="mb-2 flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-red-300/70">
                     {event.match_type ? getDomainEventLabel(event) : 'Spiel'}
                   </p>
                   {venue ? (
-                    <p className="mt-1 line-clamp-2 text-[13px] text-white/55">{venue}</p>
+                    <p className="mt-1 line-clamp-1 text-[12px] text-white/55">{venue}</p>
                   ) : null}
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   <span className="rounded-md border border-red-950/80 bg-black/50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-red-200/95">
                     Endstand
                   </span>
-                  {homeAway ? (
-                    <span
-                      className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                        event.is_home === true
-                          ? 'border-emerald-400/35 bg-emerald-500/15 text-emerald-200'
-                          : 'border-amber-500/35 bg-amber-500/12 text-amber-100'
-                      }`}
-                    >
-                      {homeAway}
-                    </span>
-                  ) : null}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-black/25 px-3 py-3 sm:px-4">
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+              <div className="rounded-2xl border border-white/10 bg-black/25 px-3 py-2.5 sm:px-4">
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 sm:gap-2">
                   <div className="min-w-0 text-center">
-                    <img src={homeLogo} alt="" className="mx-auto h-10 w-10 object-contain sm:h-11 sm:w-11" />
-                    <p className="mt-1.5 line-clamp-2 text-center text-[15px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] [word-break:normal] sm:text-[16px]">
+                    <img src={homeLogo} alt="" className="mx-auto h-11 w-11 max-h-[58px] max-w-[58px] object-contain sm:h-[58px] sm:w-[58px]" />
+                    <p className="mt-1 line-clamp-2 text-center text-[14px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] [word-break:normal] sm:text-[15px]">
                       {homeTeamName}
                     </p>
                   </div>
-                  <div className="min-w-0 px-1 text-center">
+                  <div className="min-w-0 px-0.5 text-center">
                     <p
-                      className="text-[2rem] font-black leading-none tracking-tight text-white [text-shadow:0_0_24px_rgba(220,38,38,0.38)] sm:text-[2.4rem]"
+                      className="text-[1.9rem] font-black leading-none tracking-tight text-white [text-shadow:0_0_24px_rgba(220,38,38,0.38)] sm:text-[2.3rem]"
                       style={{ fontVariantNumeric: 'tabular-nums' }}
                     >
                       {(scoreHome ?? 0)} : {(scoreAway ?? 0)}
                     </p>
-                    <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-red-200/90">Endstand</p>
                   </div>
                   <div className="min-w-0 text-center">
-                    <img src={awayLogo} alt="" className="mx-auto h-10 w-10 object-contain sm:h-11 sm:w-11" />
-                    <p className="mt-1.5 line-clamp-2 text-center text-[15px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] [word-break:normal] sm:text-[16px]">
+                    <img src={awayLogo} alt="" className="mx-auto h-11 w-11 max-h-[58px] max-w-[58px] object-contain sm:h-[58px] sm:w-[58px]" />
+                    <p className="mt-1 line-clamp-2 text-center text-[14px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] [word-break:normal] sm:text-[15px]">
                       {awayTeamName}
                     </p>
                   </div>
@@ -1000,29 +1065,20 @@ export const EventDetailPage: React.FC = () => {
                 <p className="mt-2 text-center text-sm text-white/50">{periodLine}</p>
               ) : null}
 
-              <div className="mt-3 rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-center text-[12px] font-bold uppercase tracking-[0.18em] text-white/70">
+              <div className="mt-2.5 rounded-2xl border border-white/10 bg-black/30 px-3 py-2 text-center text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">
                 Termin abgeschlossen
               </div>
 
-              {isTrainerOrAdmin ? (
-                <div className="mt-3 flex">
-                  <button
-                    type="button"
-                    onClick={() => setReportEditOpen(true)}
-                    className="w-full rounded-2xl border border-red-500/35 bg-red-600/20 px-4 py-3 text-[13px] font-extrabold text-red-100 shadow-[0_0_18px_rgba(220,38,38,0.22)] hover:bg-red-600/25 active:scale-[0.99]"
-                  >
-                    Spielbericht bearbeiten
-                  </button>
-                </div>
-              ) : null}
             </div>
           </div>
 
-          <div className="flex min-h-[42px] items-center gap-1 rounded-2xl border border-white/10 bg-black/30 p-1">
-            {renderTabButton('overview', 'Übersicht')}
-            {renderTabButton('lineup', 'Aufstellung')}
-            {renderTabButton('timeline', 'Liveticker')}
-            {renderTabButton('stats', 'Statistik')}
+          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/30 p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-h-[42px] min-w-max items-center gap-1">
+              {renderTabButton('overview', 'Übersicht')}
+              {renderTabButton('lineup', 'Kader')}
+              {renderTabButton('timeline', 'Ticker')}
+              {renderTabButton('stats', 'Stats')}
+            </div>
           </div>
 
           {matchLoading ? <p className="text-sm text-white/70">Lade Spielbericht…</p> : null}
@@ -1034,23 +1090,48 @@ export const EventDetailPage: React.FC = () => {
 
           {finishedTab === 'overview' ? (
             <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/80">
-              <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Kurzinfo</p>
+              <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Spielbericht Übersicht</p>
               <div className="mt-2 grid gap-2 text-[14px]">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-white/60">Gegner</span>
-                  <span className="text-white/90">{opponentName}</span>
+                  <span className="text-white/60">Ergebnis</span>
+                  <span className="font-semibold text-white/95" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {(scoreHome ?? 0)} : {(scoreAway ?? 0)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-white/60">Datum / Uhrzeit</span>
+                  <span className="text-right text-white/90">{formatEventDateTimeLabel(event.starts_at)}</span>
                 </div>
                 {venue ? (
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-white/60">Spielort</span>
-                    <span className="text-white/90">{venue}</span>
+                    <span className="text-right text-white/90">{venue}</span>
                   </div>
                 ) : null}
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-white/60">Status</span>
-                  <span className="text-white/90">Beendet</span>
+                  <span className="text-white/60">Heim / Auswärts</span>
+                  <span className="text-white/90">{homeAway ?? '—'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-white/60">Anzahl Tore</span>
+                  <span className="text-white/90">{goalCount}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-white/60">Anzahl Wechsel</span>
+                  <span className="text-white/90">{subCount}</span>
                 </div>
               </div>
+              {isTrainerOrAdmin ? (
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setReportEditOpen(true)}
+                    className="w-full rounded-2xl border border-red-500/35 bg-red-600/20 px-4 py-3 text-[13px] font-extrabold text-red-100 shadow-[0_0_18px_rgba(220,38,38,0.22)] hover:bg-red-600/25 active:scale-[0.99]"
+                  >
+                    Spielbericht bearbeiten
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -1084,23 +1165,37 @@ export const EventDetailPage: React.FC = () => {
                       t === 'goal' ? 'Tor (Heim)' : t === 'goal_away' ? 'Tor (Auswärts)' : t === 'sub_out' ? 'Wechsel raus' : t === 'sub_in' ? 'Wechsel rein' : t === 'period_end' ? 'Pause' : t === 'period_start' ? 'Start' : t === 'final_whistle' ? 'Abpfiff' : t === 'kickoff' ? 'Anpfiff' : 'Info';
                     const name = playerName(r.player_id);
                     return (
-                      <li key={r.id} className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-black/25 px-3 py-2">
-                        <div className="min-w-0">
-                          <p className="text-[12px] font-semibold text-white/90">
-                            {label}
-                            {name ? <span className="text-white/55"> · {name}</span> : null}
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-white/45">{minuteLabel(r.minute)}</p>
+                      <li key={r.id} className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
+                        <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                          <div className="w-10 shrink-0 text-center">
+                            <p className="text-[15px] font-extrabold text-red-200/95">{minuteLabel(r.minute)}</p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[12px] font-semibold text-white/90">
+                              {label}
+                              {name ? <span className="text-white/55"> · {name}</span> : null}
+                            </p>
+                          </div>
                         </div>
                         {isTrainerOrAdmin ? (
-                          <button
-                            type="button"
-                            className="shrink-0 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
-                            onClick={() => void deleteEvent(r.id)}
-                            title="Ereignis löschen"
-                          >
-                            Löschen
-                          </button>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <button
+                              type="button"
+                              className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
+                              onClick={() => beginEditEvent(r)}
+                              title="Ereignis bearbeiten"
+                            >
+                              Bearbeiten
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
+                              onClick={() => void deleteEvent(r.id)}
+                              title="Ereignis löschen"
+                            >
+                              Löschen
+                            </button>
+                          </div>
                         ) : null}
                       </li>
                     );
@@ -1121,6 +1216,94 @@ export const EventDetailPage: React.FC = () => {
             }
           >
             <div className="space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Ergebnis korrigieren</p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[12px] text-white/60">Heimtore</span>
+                    <input
+                      value={manualScoreHome}
+                      onChange={(e) => setManualScoreHome(e.target.value)}
+                      inputMode="numeric"
+                      className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[12px] text-white/60">Auswärtstore</span>
+                    <input
+                      value={manualScoreAway}
+                      onChange={(e) => setManualScoreAway(e.target.value)}
+                      inputMode="numeric"
+                      className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                    />
+                  </label>
+                </div>
+                <Button variant="primary" className="mt-3 w-full" onClick={() => void saveManualScore()}>
+                  Ergebnis speichern
+                </Button>
+              </div>
+
+              {editingEventId ? (
+                <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Ereignis bearbeiten</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[12px] text-white/60">Minute</span>
+                      <input
+                        value={editEventMinute}
+                        onChange={(e) => setEditEventMinute(e.target.value)}
+                        inputMode="numeric"
+                        className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[12px] text-white/60">Typ</span>
+                      <select
+                        value={editEventType}
+                        onChange={(e) =>
+                          setEditEventType(
+                            (['goal', 'goal_away', 'sub_out', 'sub_in'] as const).includes(
+                              e.target.value as any,
+                            )
+                              ? (e.target.value as any)
+                              : 'goal',
+                          )
+                        }
+                        className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                      >
+                        <option value="goal">Tor Heim</option>
+                        <option value="goal_away">Tor Auswärts</option>
+                        <option value="sub_out">Wechsel raus</option>
+                        <option value="sub_in">Wechsel rein</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label className="mt-2 flex flex-col gap-1">
+                    <span className="text-[12px] text-white/60">Spieler (optional)</span>
+                    <select
+                      value={editEventPlayerId}
+                      onChange={(e) => setEditEventPlayerId(e.target.value)}
+                      className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                    >
+                      <option value="">—</option>
+                      {players.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {(p.display_name ?? p.name ?? 'Spieler').trim()}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <Button variant="ghost" onClick={() => setEditingEventId(null)}>
+                      Abbrechen
+                    </Button>
+                    <Button variant="primary" onClick={() => void saveEventEdit()}>
+                      Speichern
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Tor hinzufügen</p>
                 <div className="mt-2 grid grid-cols-2 gap-2">
@@ -1146,6 +1329,21 @@ export const EventDetailPage: React.FC = () => {
                     </select>
                   </label>
                 </div>
+                <label className="mt-2 flex flex-col gap-1">
+                  <span className="text-[12px] text-white/60">Torschütze (optional)</span>
+                  <select
+                    value={goalPlayerId}
+                    onChange={(e) => setGoalPlayerId(e.target.value)}
+                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                  >
+                    <option value="">—</option>
+                    {players.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {(p.display_name ?? p.name ?? 'Spieler').trim()}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <Button variant="primary" className="mt-3 w-full" onClick={() => void addGoal()}>
                   Tor speichern
                 </Button>
