@@ -243,6 +243,13 @@ export const EventDetailPage: React.FC = () => {
   const [p2a, setP2a] = useState('');
   const [p3h, setP3h] = useState('');
   const [p3a, setP3a] = useState('');
+  const [scoreGoalRows, setScoreGoalRows] = useState<
+    Array<{ id: string; minute: string; team: 'home' | 'away'; playerId: string }>
+  >([]);
+  const [scoreGoalRowsOriginalSig, setScoreGoalRowsOriginalSig] = useState('');
+  const [scoreNewGoalMinute, setScoreNewGoalMinute] = useState('');
+  const [scoreNewGoalTeam, setScoreNewGoalTeam] = useState<'home' | 'away'>('home');
+  const [scoreNewGoalPlayerId, setScoreNewGoalPlayerId] = useState('');
 
   const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | null>(null);
   const [loadingRsvp, setLoadingRsvp] = useState(true);
@@ -382,6 +389,26 @@ export const EventDetailPage: React.FC = () => {
       cancelled = true;
     };
   }, [event?.match_id, isFinishedMatchEvent]);
+
+  useEffect(() => {
+    if (!scoreEditOpen) return;
+    const goalRows = matchEvents
+      .filter((r) => {
+        const t = String(r.type ?? '').toLowerCase();
+        return t === 'goal' || t === 'goal_away';
+      })
+      .map((r) => ({
+        id: r.id,
+        minute: String(Math.max(0, Math.floor((Number(r.minute ?? 0) || 0) / 60))),
+        team: (String(r.type ?? '').toLowerCase() === 'goal_away' ? 'away' : 'home') as 'home' | 'away',
+        playerId: r.player_id ?? '',
+      }));
+    setScoreGoalRows(goalRows);
+    setScoreGoalRowsOriginalSig(JSON.stringify(goalRows));
+    setScoreNewGoalMinute('');
+    setScoreNewGoalTeam('home');
+    setScoreNewGoalPlayerId('');
+  }, [scoreEditOpen, matchEvents]);
 
   useEffect(() => {
     if (!isFinishedMatchEvent) return;
@@ -981,11 +1008,20 @@ export const EventDetailPage: React.FC = () => {
     const ownGoalScorersMore = Math.max(0, ownGoalScorerEntries.length - shownOwnGoalScorers.length);
     const compactGoalScorerLine = (() => {
       if (ownGoalScorerEntries.length === 0) return null;
-      const first = ownGoalScorerEntries[0]!.text;
-      const match = /^(.+)\s+(\d+')$/.exec(first);
-      const short = match ? `${match[1]} · ${match[2]}` : first;
-      const more = ownGoalScorerEntries.length - 1;
-      return more > 0 ? `${short} · +${more} weitere` : short;
+      const toShort = (line: string) => {
+        const match = /^(.+)\s+(\d+')$/.exec(line);
+        if (!match) return line;
+        const fullName = match[1]!.trim();
+        const minute = match[2]!;
+        const parts = fullName.split(/\s+/).filter(Boolean);
+        if (parts.length <= 1) return `${fullName} • ${minute}`;
+        const first = parts[0]!;
+        const last = parts[parts.length - 1]!;
+        return `${last} ${first[0]?.toUpperCase() ?? ''}. • ${minute}`;
+      };
+      const firstTwo = ownGoalScorerEntries.slice(0, 2).map((x) => toShort(x.text));
+      const more = ownGoalScorerEntries.length - firstTwo.length;
+      return more > 0 ? `${firstTwo.join(' · ')} · +${more} weitere` : firstTwo.join(' · ');
     })();
 
     const goalCount = timelineEvents.filter((r) => {
@@ -1114,6 +1150,57 @@ export const EventDetailPage: React.FC = () => {
 
     const saveManualScore = async () => {
       if (!event.match_id) return;
+      const currentSig = JSON.stringify(scoreGoalRows);
+      const goalsChanged = currentSig !== scoreGoalRowsOriginalSig;
+
+      if (goalsChanged) {
+        const existingGoalRows = matchEvents.filter((r) => {
+          const t = String(r.type ?? '').toLowerCase();
+          return t === 'goal' || t === 'goal_away';
+        });
+        const draftById = new Map(scoreGoalRows.map((x) => [x.id, x]));
+        const toDeleteIds = existingGoalRows.map((x) => x.id).filter((id) => !draftById.has(id));
+
+        if (toDeleteIds.length > 0) {
+          const { error: delErr } = await supabase.from('match_events').delete().in('id', toDeleteIds);
+          if (delErr) {
+            setMatchError(delErr.message);
+            return;
+          }
+        }
+
+        for (const row of scoreGoalRows) {
+          const minute = Math.max(0, Number(row.minute.trim()) || 0);
+          const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
+          const dbType = row.team === 'away' ? 'goal_away' : 'goal';
+          const payload = {
+            match_id: event.match_id,
+            minute: seconds,
+            type: dbType,
+            player_id: row.playerId.trim() || null,
+            period: null,
+          };
+          if (row.id.startsWith('new_goal_')) {
+            const { error: insErr } = await supabase.from('match_events').insert(payload);
+            if (insErr) {
+              setMatchError(insErr.message);
+              return;
+            }
+          } else {
+            const { error: updErr } = await supabase.from('match_events').update(payload).eq('id', row.id);
+            if (updErr) {
+              setMatchError(updErr.message);
+              return;
+            }
+          }
+        }
+
+        const rows = await reloadMatchEvents();
+        if (!rows) return;
+        await syncScoreFromEvents(rows);
+        return;
+      }
+
       const sh = Math.max(0, Number(manualScoreHome.trim()) || 0);
       const sa = Math.max(0, Number(manualScoreAway.trim()) || 0);
       const { error: updErr } = await updateMatchRow(event.match_id, {
@@ -1260,7 +1347,7 @@ export const EventDetailPage: React.FC = () => {
                         {homeSplit.name || homeTeamName}
                       </p>
                       {event.is_home !== false && compactGoalScorerLine ? (
-                        <p className="mt-0.5 text-[11px] leading-tight text-white/70 whitespace-normal break-words [overflow-wrap:anywhere]">
+                        <p className="mt-0.5 text-[0.9rem] font-medium leading-tight text-white/72 whitespace-normal break-words [overflow-wrap:anywhere]">
                           {compactGoalScorerLine}
                         </p>
                       ) : null}
@@ -1309,7 +1396,7 @@ export const EventDetailPage: React.FC = () => {
                         {awaySplit.name || awayTeamName}
                       </p>
                       {event.is_home === false && compactGoalScorerLine ? (
-                        <p className="mt-0.5 text-[11px] leading-tight text-white/70 whitespace-normal break-words [overflow-wrap:anywhere]">
+                        <p className="mt-0.5 text-[0.9rem] font-medium leading-tight text-white/72 whitespace-normal break-words [overflow-wrap:anywhere]">
                           {compactGoalScorerLine}
                         </p>
                       ) : null}
@@ -1696,6 +1783,136 @@ export const EventDetailPage: React.FC = () => {
                   <span className="text-[11px] text-white/60">A3 Ausw.</span>
                   <input value={p3a} onChange={(e) => setP3a(e.target.value)} inputMode="numeric" className="h-9 rounded-xl border border-white/10 bg-black/40 px-2.5 text-[13px] text-white/90" />
                 </label>
+              </div>
+
+              <div className="rounded-2xl border border-red-500/25 bg-black/30 p-3 shadow-[0_0_18px_rgba(220,38,38,0.14)]">
+                <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/60">Tore bearbeiten</p>
+                {scoreGoalRows.length === 0 ? (
+                  <p className="mt-2 text-[12px] text-white/55">Noch keine Tore erfasst.</p>
+                ) : (
+                  <div className="mt-2 space-y-2">
+                    {scoreGoalRows.map((row, idx) => (
+                      <div key={row.id} className="rounded-xl border border-white/10 bg-black/35 p-2.5">
+                        <div className="grid grid-cols-[72px_1fr] gap-2">
+                          <label className="flex flex-col gap-1">
+                            <span className="text-[11px] text-white/60">Minute</span>
+                            <input
+                              value={row.minute}
+                              onChange={(e) =>
+                                setScoreGoalRows((prev) =>
+                                  prev.map((x, i) => (i === idx ? { ...x, minute: e.target.value } : x)),
+                                )
+                              }
+                              inputMode="numeric"
+                              className="h-9 rounded-lg border border-white/10 bg-black/45 px-2 text-[13px] text-white/90"
+                            />
+                          </label>
+                          <label className="flex flex-col gap-1">
+                            <span className="text-[11px] text-white/60">Torschütze</span>
+                            <select
+                              value={row.playerId}
+                              onChange={(e) =>
+                                setScoreGoalRows((prev) =>
+                                  prev.map((x, i) => (i === idx ? { ...x, playerId: e.target.value } : x)),
+                                )
+                              }
+                              className="h-9 rounded-lg border border-white/10 bg-black/45 px-2 text-[13px] text-white/90"
+                            >
+                              <option value="">—</option>
+                              {players.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {(p.display_name ?? p.name ?? 'Spieler').trim()}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between">
+                          <select
+                            value={row.team}
+                            onChange={(e) =>
+                              setScoreGoalRows((prev) =>
+                                prev.map((x, i) =>
+                                  i === idx ? { ...x, team: e.target.value === 'away' ? 'away' : 'home' } : x,
+                                ),
+                              )
+                            }
+                            className="h-8 rounded-lg border border-white/10 bg-black/45 px-2 text-[12px] text-white/85"
+                          >
+                            <option value="home">Tor Heim</option>
+                            <option value="away">Tor Auswärts</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setScoreGoalRows((prev) => prev.filter((_, i) => i !== idx))
+                            }
+                            className="rounded-lg border border-red-400/35 bg-red-500/10 px-2 py-1 text-[11px] font-medium text-red-200/90 hover:bg-red-500/15"
+                          >
+                            Tor löschen
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-3 rounded-xl border border-white/10 bg-black/35 p-2.5">
+                  <p className="text-[11px] font-semibold text-white/60">Neues Tor hinzufügen</p>
+                  <div className="mt-2 grid grid-cols-[72px_88px_1fr] gap-2">
+                    <input
+                      value={scoreNewGoalMinute}
+                      onChange={(e) => setScoreNewGoalMinute(e.target.value)}
+                      inputMode="numeric"
+                      placeholder="Min"
+                      className="h-9 rounded-lg border border-white/10 bg-black/45 px-2 text-[13px] text-white/90"
+                    />
+                    <select
+                      value={scoreNewGoalTeam}
+                      onChange={(e) => setScoreNewGoalTeam(e.target.value === 'away' ? 'away' : 'home')}
+                      className="h-9 rounded-lg border border-white/10 bg-black/45 px-2 text-[12px] text-white/85"
+                    >
+                      <option value="home">Heim</option>
+                      <option value="away">Ausw.</option>
+                    </select>
+                    <select
+                      value={scoreNewGoalPlayerId}
+                      onChange={(e) => setScoreNewGoalPlayerId(e.target.value)}
+                      className="h-9 rounded-lg border border-white/10 bg-black/45 px-2 text-[13px] text-white/90"
+                    >
+                      <option value="">Torschütze (optional)</option>
+                      {players.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {(p.display_name ?? p.name ?? 'Spieler').trim()}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mt-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const minute = scoreNewGoalMinute.trim();
+                        if (!minute) return;
+                        setScoreGoalRows((prev) => [
+                          ...prev,
+                          {
+                            id: `new_goal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                            minute,
+                            team: scoreNewGoalTeam,
+                            playerId: scoreNewGoalPlayerId,
+                          },
+                        ]);
+                        setScoreNewGoalMinute('');
+                        setScoreNewGoalPlayerId('');
+                        setScoreNewGoalTeam('home');
+                      }}
+                      className="rounded-lg border border-red-400/35 bg-transparent px-2.5 py-1 text-[11px] font-medium text-white/85 hover:shadow-[0_0_10px_rgba(220,38,38,0.22)]"
+                    >
+                      Tor hinzufügen
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </Modal>
