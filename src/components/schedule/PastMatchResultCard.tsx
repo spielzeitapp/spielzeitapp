@@ -28,12 +28,35 @@ function compactTeamName(name: string | null | undefined): string {
   return s || (name ?? '').trim() || 'Team';
 }
 
+function tokenLooksLikeAbbrev(token: string): boolean {
+  const t = (token || '').trim();
+  if (t.length < 2 || t.length > 8) return false;
+  const plain = t.replace(/\./g, '');
+  if (plain.length < 2) return false;
+  if (/^[A-Z0-9.]+$/.test(t) && plain.length <= 6) return true;
+  return /^[A-ZÄÖÜ]{2,6}$/.test(t);
+}
+
+function splitPrefixAndName(full: string): { prefix: string; name: string } {
+  const trimmed = (full || '').trim();
+  if (!trimmed) return { prefix: '', name: '' };
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return { prefix: '', name: trimmed };
+  const first = parts[0];
+  const last = parts[parts.length - 1];
+  const firstIsAbbrev = tokenLooksLikeAbbrev(first);
+  const lastIsAbbrev = tokenLooksLikeAbbrev(last);
+  if (firstIsAbbrev && !lastIsAbbrev) return { prefix: first, name: parts.slice(1).join(' ') };
+  if (lastIsAbbrev && !firstIsAbbrev) return { prefix: last, name: parts.slice(0, -1).join(' ') };
+  return { prefix: first, name: parts.slice(1).join(' ') };
+}
+
 function TeamLogoBlock({ src, label }: { src: string; label: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
       <span
-        className="flex h-14 w-14 max-h-16 max-w-[4rem] shrink-0 items-center justify-center text-2xl leading-none text-white/90 [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))] sm:h-16 sm:w-16"
+        className="flex h-10 w-10 shrink-0 items-center justify-center text-xl leading-none text-white/90 [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.12))] sm:h-11 sm:w-11"
         aria-hidden
       >
         ⚽
@@ -44,7 +67,7 @@ function TeamLogoBlock({ src, label }: { src: string; label: string }) {
     <img
       src={src}
       alt=""
-      className="h-14 w-14 max-h-16 max-w-[4rem] shrink-0 object-contain [filter:drop-shadow(0_0_10px_rgba(255,255,255,0.14))] sm:h-16 sm:w-16"
+      className="h-10 w-10 shrink-0 object-contain [filter:drop-shadow(0_0_10px_rgba(255,255,255,0.14))] sm:h-11 sm:w-11"
       onError={() => setFailed(true)}
     />
   );
@@ -94,6 +117,14 @@ export function PastMatchResultCard({
 
   const wdAbbrev = formatCompactListWeekdayAbbrev(ev.starts_at);
   const d = ev.starts_at ? new Date(ev.starts_at) : null;
+  const weekdayBadge =
+    d && !Number.isNaN(d.getTime())
+      ? new Intl.DateTimeFormat('de-AT', { weekday: 'short', timeZone: VIENNA_TZ })
+          .format(d)
+          .replace('.', '')
+          .slice(0, 2)
+          .toUpperCase()
+      : wdAbbrev.replace('.', '').slice(0, 2).toUpperCase();
   const dayBig =
     d && !Number.isNaN(d.getTime())
       ? new Intl.DateTimeFormat('de-AT', { day: '2-digit', timeZone: VIENNA_TZ }).format(d)
@@ -107,6 +138,8 @@ export function PastMatchResultCard({
   const venue = (parsedLoc.place ?? '').trim() || (ev.location ?? '').trim() || null;
 
   const homeAwayLabel = ev.is_home === true ? 'Heim' : ev.is_home === false ? 'Auswärts' : null;
+  const homeSplit = splitPrefixAndName(homeName);
+  const awaySplit = splitPrefixAndName(awayName);
 
   return (
     <div
@@ -132,62 +165,69 @@ export function PastMatchResultCard({
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(220,38,38,0.12),transparent_55%)] opacity-90" />
 
-      <div className="relative px-3.5 pb-4 pt-3.5 sm:px-4 sm:pb-5 sm:pt-4">
-        <div className="mb-4 flex items-start justify-between gap-2">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="flex shrink-0 flex-col leading-none">
-              <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-red-400">{wdAbbrev}</span>
-              <span className="mt-0.5 text-[34px] font-black tabular-nums tracking-tight text-white [text-shadow:0_0_24px_rgba(220,38,38,0.35)] sm:text-[38px]">
-                {dayBig}
-              </span>
-              {monSmall ? (
-                <span className="mt-0.5 text-[12px] font-semibold uppercase tracking-wide text-white/45">
-                  {monSmall}
-                </span>
-              ) : null}
-            </div>
+      <div className="relative px-3.5 pb-4 pt-3.5 sm:px-4 sm:pb-4 sm:pt-4">
+        <div className="mb-2 flex items-start justify-between gap-2">
+          <div className="pointer-events-none flex shrink-0 flex-col items-start gap-0 rounded-lg border border-white/18 bg-black/68 px-1.5 py-1.5 text-left shadow-md backdrop-blur-md sm:px-2 sm:py-1.5">
+            <span className="text-[9px] font-black uppercase leading-none tracking-[0.12em] text-red-200 sm:text-[10px]">
+              {weekdayBadge}
+            </span>
+            <span className="text-xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.65)] sm:text-2xl">
+              {dayBig}
+            </span>
+            <span className="text-[9px] font-bold uppercase leading-none tracking-[0.08em] text-white/88 sm:text-[10px]">
+              {monSmall || '—'}
+            </span>
           </div>
-          <span className="shrink-0 rounded-md border border-red-950/80 bg-black/50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-red-300/95">
+          <span className="shrink-0 rounded-md border border-red-950/80 bg-black/50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-red-200/95">
             Beendet
           </span>
         </div>
 
-        <div className="mb-1 grid grid-cols-[1fr_auto_1fr] items-center gap-1 sm:gap-2">
-          <div className="flex min-w-0 flex-col items-center gap-2">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-x-3">
+          <div className="flex min-w-0 max-w-full flex-col items-center justify-start text-center">
             <TeamLogoBlock src={homeLogoSrc} label={homeName} />
+            {homeSplit.prefix ? (
+              <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
+                {homeSplit.prefix}
+              </div>
+            ) : (
+              <div className="mt-1 h-[14px] sm:h-[16px]" aria-hidden />
+            )}
+            <p className="mt-0.5 line-clamp-2 min-w-0 max-w-full text-center text-[15px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] sm:text-[16px]">
+              {homeSplit.name || homeName}
+            </p>
           </div>
-          <div className="flex min-w-0 flex-col items-center justify-center px-0.5">
+
+          <div className="flex min-w-0 flex-col items-center justify-start px-1">
+            <span className="text-[11px] font-bold uppercase tracking-[0.32em] text-red-300">Endstand</span>
             <span
-              className="text-center text-[2.25rem] font-black leading-none tracking-tight text-white [text-shadow:0_0_28px_rgba(220,38,38,0.45),0_2px_12px_rgba(0,0,0,0.85)] sm:text-5xl"
+              className="mt-1 text-center text-[2.2rem] font-extrabold leading-none tracking-tight text-white tabular-nums sm:text-[2.45rem]"
               style={{ fontVariantNumeric: 'tabular-nums' }}
             >
               {scoreStr}
             </span>
+            <span className="mt-1 text-[12px] text-white/70">ENDSTAND</span>
             {halftimeLine ? (
-              <span className="mt-1.5 text-sm text-white/50">{halftimeLine}</span>
+              <span className="mt-1.5 text-center text-[12px] text-white/50">{halftimeLine}</span>
             ) : null}
           </div>
-          <div className="flex min-w-0 flex-col items-center gap-2">
+
+          <div className="flex min-w-0 max-w-full flex-col items-center justify-start text-center">
             <TeamLogoBlock src={awayLogoSrc} label={awayName} />
+            {awaySplit.prefix ? (
+              <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
+                {awaySplit.prefix}
+              </div>
+            ) : (
+              <div className="mt-1 h-[14px] sm:h-[16px]" aria-hidden />
+            )}
+            <p className="mt-0.5 line-clamp-2 min-w-0 max-w-full text-center text-[15px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] sm:text-[16px]">
+              {awaySplit.name || awayName}
+            </p>
           </div>
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-2 px-0.5">
-          <p
-            className="min-w-0 text-center text-[15px] font-semibold leading-snug text-white line-clamp-2 break-normal hyphens-none [overflow-wrap:normal] [word-break:normal] sm:text-[17px]"
-            lang="de"
-          >
-            {homeName}
-          </p>
-          <p
-            className="min-w-0 text-center text-[15px] font-semibold leading-snug text-white line-clamp-2 break-normal hyphens-none [overflow-wrap:normal] [word-break:normal] sm:text-[17px]"
-            lang="de"
-          >
-            {awayName}
-          </p>
-        </div>
-
-        <div className="flex items-end justify-between gap-2 border-t border-white/[0.07] pt-3">
+        <div className="mt-3 flex items-end justify-between gap-2 border-t border-white/[0.07] pt-3">
           <div className="min-w-0 flex-1 space-y-2">
             {venue ? (
               <p className="line-clamp-2 text-[12px] leading-snug text-white/55 sm:text-[13px]">{venue}</p>
