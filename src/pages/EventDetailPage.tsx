@@ -6,13 +6,12 @@ import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
 import { normalizeRole, canSeeMeetup } from '../lib/roles';
-import { getOurTeamDisplayName } from '../lib/teamLogos';
+import { getClubLogo, getOurTeamDisplayName } from '../lib/teamLogos';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
-import { EventHeroCard } from '../components/schedule/EventHeroCard';
 import { AppButton } from '../components/ui/AppButton';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
@@ -81,6 +80,29 @@ function compactTeamNameForMatchHeader(name: string | null | undefined): string 
   s = s.replace(/^U\s*\d{1,2}\s+/i, '').trim(); // remove leading age-group
   s = s.replace(/^U\d{1,2}\s+/i, '').trim();
   return s || (name ?? '').trim() || 'Team';
+}
+
+function tokenLooksLikeAbbrev(token: string): boolean {
+  const t = (token || '').trim();
+  if (t.length < 2 || t.length > 8) return false;
+  const plain = t.replace(/\./g, '');
+  if (plain.length < 2) return false;
+  if (/^[A-Z0-9.]+$/.test(t) && plain.length <= 6) return true;
+  return /^[A-ZÄÖÜ]{2,6}$/.test(t);
+}
+
+function splitPrefixAndName(full: string): { prefix: string; name: string } {
+  const trimmed = (full || '').trim();
+  if (!trimmed) return { prefix: '', name: '' };
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return { prefix: '', name: trimmed };
+  const first = parts[0];
+  const last = parts[parts.length - 1];
+  const firstIsAbbrev = tokenLooksLikeAbbrev(first);
+  const lastIsAbbrev = tokenLooksLikeAbbrev(last);
+  if (firstIsAbbrev && !lastIsAbbrev) return { prefix: first, name: parts.slice(1).join(' ') };
+  if (lastIsAbbrev && !firstIsAbbrev) return { prefix: last, name: parts.slice(0, -1).join(' ') };
+  return { prefix: first, name: parts.slice(1).join(' ') };
 }
 
 function formatEventDateTimeLabel(iso: string): string {
@@ -893,6 +915,25 @@ export const EventDetailPage: React.FC = () => {
     })();
     const homeAway = event.is_home === true ? 'Heim' : event.is_home === false ? 'Auswärts' : null;
     const compactOurTeamName = compactTeamNameForMatchHeader(ourTeamName);
+    const compactOpponentName = compactTeamNameForMatchHeader(opponentName);
+    const homeTeamName = event.is_home === false ? compactOpponentName : compactOurTeamName;
+    const awayTeamName = event.is_home === false ? compactOurTeamName : compactOpponentName;
+    const homeSplit = splitPrefixAndName(homeTeamName);
+    const awaySplit = splitPrefixAndName(awayTeamName);
+    const homeLogoSrc =
+      event.is_home === false
+        ? getClubLogo(opponentName, { logoUrl: opponentLogo.trim() || undefined })
+        : getClubLogo(ourTeamName);
+    const awayLogoSrc =
+      event.is_home === false
+        ? getClubLogo(ourTeamName)
+        : getClubLogo(opponentName, { logoUrl: opponentLogo.trim() || undefined });
+    const scoreStr =
+      scoreHome != null && scoreAway != null
+        ? `${scoreHome}:${scoreAway}`
+        : scoreHome != null || scoreAway != null
+          ? `${scoreHome ?? '–'}:${scoreAway ?? '–'}`
+          : '–:–';
 
     const renderTabButton = (id: 'overview' | 'lineup' | 'timeline' | 'stats', label: string) => (
       <button
@@ -938,40 +979,6 @@ export const EventDetailPage: React.FC = () => {
       .filter((x): x is { text: string; minute: number } => Boolean(x));
     const shownOwnGoalScorers = ownGoalScorerEntries.slice(0, 4).map((x) => x.text);
     const ownGoalScorersMore = Math.max(0, ownGoalScorerEntries.length - shownOwnGoalScorers.length);
-
-    const finishedHeroBadge = (
-      <span className="shrink-0 rounded-md border border-red-950/80 bg-black/50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-red-300/95">
-        Beendet
-      </span>
-    );
-
-    const finishedHeroFooter = (
-      <div className="w-full space-y-1.5">
-        {shownPeriodLine ? (
-          <p className="text-center text-[13px] tabular-nums text-white/50">{shownPeriodLine}</p>
-        ) : null}
-        {shownOwnGoalScorers.length > 0 ? (
-          <p className="text-center text-[12px] leading-snug text-white/60">
-            <span className="text-white/72">⚽ Tore {compactOurTeamName}:</span>{' '}
-            <span className="line-clamp-2 text-white/85">
-              {shownOwnGoalScorers.join(', ')}
-              {ownGoalScorersMore > 0 ? `, … und ${ownGoalScorersMore} weitere` : ''}
-            </span>
-          </p>
-        ) : null}
-        {isTrainerOrAdmin ? (
-          <div className="flex justify-center pt-0.5">
-            <button
-              type="button"
-              onClick={() => setScoreEditOpen(true)}
-              className="rounded-lg border border-white/12 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/[0.08]"
-            >
-              Ergebnis ändern
-            </button>
-          </div>
-        ) : null}
-      </div>
-    );
 
     const goalCount = timelineEvents.filter((r) => {
       const t = String(r.type ?? '').toLowerCase();
@@ -1221,37 +1228,96 @@ export const EventDetailPage: React.FC = () => {
           </div>
 
           <div className="mb-4 -mx-3.5 w-[calc(100%+1.75rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full">
-            <EventHeroCard label="Spielbericht" labelAside={finishedHeroBadge} footer={finishedHeroFooter}>
-              <MatchCardLigaportal
-                className="w-full max-w-full !px-2.5 !py-2.5 sm:!px-3 sm:!py-3"
-                scheduleNextMatchHero
-                ourTeamName={ourTeamName}
-                opponent={opponentName}
-                isHome={event.is_home}
-                startsAt={event.starts_at}
-                status={'finished'}
-                kind={event.kind}
-                eventType={(event as any).type ?? undefined}
-                matchType={
-                  event.kind === 'match'
-                    ? (event.match_type ?? (!event.type || event.type === 'game' ? 'league' : event.type))
-                    : null
-                }
-                notes={event.notes}
-                location={event.location}
-                address={event.location}
-                meetupAt={null}
-                showMeetup={false}
-                scoreHome={scoreHome}
-                scoreAway={scoreAway}
-                opponentLogoUrl={opponentLogo.trim() ? opponentLogo.trim() : null}
-                isPublicView={true}
-              />
-            </EventHeroCard>
+            <section className="mb-3 w-full pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
+              <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
+                <h2 className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-300/90">Spielbericht</h2>
+                <span className="shrink-0 rounded-md border border-red-500/35 bg-black/55 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-red-200/95">
+                  BEENDET
+                </span>
+              </div>
+
+              <div className="relative w-full overflow-hidden rounded-[2rem] border border-red-500/30 bg-black shadow-[0_0_40px_rgba(255,0,0,0.25)]">
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-black via-[#180000] to-[#3a0000]" />
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,40,40,0.20),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(120,0,0,0.24),transparent_60%)]" />
+                <div className="pointer-events-none absolute inset-0 opacity-45 [background:linear-gradient(180deg,rgba(0,0,0,0.00)_0%,rgba(0,0,0,0.42)_50%,rgba(0,0,0,0.68)_100%)]" />
+
+                <div className="relative z-10 px-3 py-3 sm:px-4 sm:py-4">
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-x-2">
+                    <div className="flex min-w-0 flex-col items-center text-center">
+                      <img src={homeLogoSrc} alt="" className="h-10 w-10 object-contain drop-shadow sm:h-11 sm:w-11" />
+                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
+                        {homeSplit.prefix || ' '}
+                      </p>
+                      <p className="line-clamp-2 min-w-0 text-center text-[16px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]">
+                        {homeSplit.name || homeTeamName}
+                      </p>
+                    </div>
+
+                    <div className="flex min-w-0 flex-col items-center px-1 text-center">
+                      <p className="text-[11px] font-semibold text-white/85">
+                        {event.match_type ? getDomainEventLabel(event) : 'Meisterschaftsspiel'}
+                      </p>
+                      <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.3em] text-red-300">ENDSTAND</p>
+                      <p className="mt-1 text-[2.25rem] font-black leading-none tabular-nums text-white sm:text-[2.5rem]">
+                        {scoreStr}
+                      </p>
+                      {shownPeriodLine ? (
+                        <p className="mt-1 text-[12px] tabular-nums leading-tight text-white/58">{shownPeriodLine}</p>
+                      ) : null}
+                      {isTrainerOrAdmin ? (
+                        <button
+                          type="button"
+                          onClick={() => setScoreEditOpen(true)}
+                          className="mt-2 rounded-lg border border-red-400/40 bg-black/40 px-3 py-1 text-[11px] font-semibold text-white/85 transition hover:shadow-[0_0_12px_rgba(220,38,38,0.25)]"
+                        >
+                          Ergebnis ändern
+                        </button>
+                      ) : null}
+                      {venue ? (
+                        <p className="mt-2 line-clamp-2 text-center text-[12px] leading-snug text-white/75">📍 {venue}</p>
+                      ) : null}
+                      {homeAway ? (
+                        <span
+                          className={`mt-1.5 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                            event.is_home === true
+                              ? 'border-emerald-400/35 bg-emerald-500/15 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                              : 'border-amber-500/35 bg-amber-500/12 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.18)]'
+                          }`}
+                        >
+                          {homeAway}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="flex min-w-0 flex-col items-center text-center">
+                      <img src={awayLogoSrc} alt="" className="h-10 w-10 object-contain drop-shadow sm:h-11 sm:w-11" />
+                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
+                        {awaySplit.prefix || ' '}
+                      </p>
+                      <p className="line-clamp-2 min-w-0 text-center text-[16px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]">
+                        {awaySplit.name || awayTeamName}
+                      </p>
+                      {event.is_home === false && shownOwnGoalScorers.length > 0 ? (
+                        <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-white/65">
+                          ⚽ {shownOwnGoalScorers.join(', ')}
+                          {ownGoalScorersMore > 0 ? `, +${ownGoalScorersMore} weitere` : ''}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                  {event.is_home !== false && shownOwnGoalScorers.length > 0 ? (
+                    <p className="mt-1 pl-[calc(66.66%+0.25rem)] pr-1 text-[11px] leading-snug text-white/65">
+                      ⚽ {shownOwnGoalScorers.join(', ')}
+                      {ownGoalScorersMore > 0 ? `, +${ownGoalScorersMore} weitere` : ''}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </section>
           </div>
 
           <div className="flex justify-center">
-            <div className="inline-flex min-h-[36px] w-full max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-white/15 bg-black/25 p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="inline-flex min-h-[36px] w-full max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-white/15 bg-black/25 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {renderTabButton('overview', 'Übersicht')}
               {renderTabButton('lineup', 'Kader')}
               {renderTabButton('timeline', 'Ticker')}
@@ -1267,9 +1333,9 @@ export const EventDetailPage: React.FC = () => {
           ) : null}
 
           {finishedTab === 'overview' ? (
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <div className="rounded-2xl border border-red-500/20 bg-black/40 p-4 text-white/80 shadow-[0_0_20px_rgba(220,38,38,0.08),inset_0_1px_0_rgba(255,255,255,0.04)]">
               <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Spielbericht</p>
-              <div className="mt-1 divide-y divide-white/[0.07] text-[14px]">
+              <div className="mt-1 divide-y divide-red-400/[0.12] text-[14px]">
                 <div className="flex items-center justify-between gap-4 py-3.5">
                   <span className="shrink-0 text-white/70">⚽ Ergebnis</span>
                   <span className="text-right font-semibold text-white/95 tabular-nums">
