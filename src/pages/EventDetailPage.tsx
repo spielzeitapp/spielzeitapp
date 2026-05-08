@@ -1356,7 +1356,7 @@ export const EventDetailPage: React.FC = () => {
                 </div>
                 {venue ? (
                   <div className="flex items-center justify-between gap-4 py-3.5">
-                    <span className="shrink-0 text-white/70">📍 Spielort</span>
+                    <span className="shrink-0 text-white/70">Spielort</span>
                     <span className="max-w-[min(100%,14rem)] text-right text-white/90 sm:max-w-none">{venue}</span>
                   </div>
                 ) : null}
