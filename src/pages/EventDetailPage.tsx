@@ -1006,23 +1006,17 @@ export const EventDetailPage: React.FC = () => {
       .filter((x): x is { text: string; minute: number } => Boolean(x));
     const shownOwnGoalScorers = ownGoalScorerEntries.slice(0, 4).map((x) => x.text);
     const ownGoalScorersMore = Math.max(0, ownGoalScorerEntries.length - shownOwnGoalScorers.length);
-    const compactGoalScorerLine = (() => {
-      if (ownGoalScorerEntries.length === 0) return null;
-      const toShort = (line: string) => {
-        const match = /^(.+)\s+(\d+')$/.exec(line);
-        if (!match) return line;
-        const fullName = match[1]!.trim();
-        const minute = match[2]!;
-        const parts = fullName.split(/\s+/).filter(Boolean);
-        if (parts.length <= 1) return `${fullName} • ${minute}`;
-        const first = parts[0]!;
-        const last = parts[parts.length - 1]!;
-        return `${last} ${first[0]?.toUpperCase() ?? ''}. • ${minute}`;
-      };
-      const firstTwo = ownGoalScorerEntries.slice(0, 2).map((x) => toShort(x.text));
-      const more = ownGoalScorerEntries.length - firstTwo.length;
-      return more > 0 ? `${firstTwo.join(' · ')} · +${more} weitere` : firstTwo.join(' · ');
-    })();
+    const reportGoalScorerLines = ownGoalScorerEntries.map((entry) => {
+      const match = /^(.+)\s+(\d+')$/.exec(entry.text);
+      if (!match) return `⚽ ${entry.text}`;
+      const fullName = match[1]!.trim();
+      const minute = match[2]!;
+      const parts = fullName.split(/\s+/).filter(Boolean);
+      if (parts.length <= 1) return `⚽ ${fullName} ${minute}`;
+      const first = parts[0]!;
+      const last = parts[parts.length - 1]!;
+      return `⚽ ${last} ${first[0]?.toUpperCase() ?? ''}. ${minute}`;
+    });
 
     const goalCount = timelineEvents.filter((r) => {
       const t = String(r.type ?? '').toLowerCase();
@@ -1033,6 +1027,12 @@ export const EventDetailPage: React.FC = () => {
       return t === 'sub_out' || t === 'sub_in';
     }).length;
     const totalEvents = timelineEvents.length;
+    const yellowCardCount = timelineEvents.filter((x) =>
+      ['yellow_card', 'card_yellow', 'yellow'].includes(String(x.type ?? '').toLowerCase()),
+    ).length;
+    const redCardCount = timelineEvents.filter((x) =>
+      ['red_card', 'card_red', 'red'].includes(String(x.type ?? '').toLowerCase()),
+    ).length;
     const tickerRows = (() => {
       const rows: Array<{ key: string; items: MatchEventRow[] }> = [];
       let i = 0;
@@ -1346,11 +1346,6 @@ export const EventDetailPage: React.FC = () => {
                       <p className="mt-0.5 line-clamp-2 min-w-0 max-w-[8.5rem] text-center text-[14px] font-semibold leading-[1.25] text-white break-normal hyphens-none [overflow-wrap:normal] sm:max-w-[10rem] sm:text-[15px]">
                         {homeSplit.name || homeTeamName}
                       </p>
-                      {event.is_home !== false && compactGoalScorerLine ? (
-                        <p className="mt-0.5 text-[0.9rem] font-medium leading-tight text-white/72 whitespace-normal break-words [overflow-wrap:anywhere]">
-                          {compactGoalScorerLine}
-                        </p>
-                      ) : null}
                     </div>
 
                     <div className="flex min-w-0 flex-col items-center px-1 text-center">
@@ -1364,16 +1359,7 @@ export const EventDetailPage: React.FC = () => {
                       {shownPeriodLine ? (
                         <p className="mt-0 text-[11px] tabular-nums leading-tight text-white/58">{shownPeriodLine}</p>
                       ) : null}
-                      {isTrainerOrAdmin ? (
-                        <button
-                          type="button"
-                          onClick={() => setScoreEditOpen(true)}
-                          className="mt-1 rounded-xl border border-red-400/35 bg-transparent px-2 py-0.5 text-[11px] font-medium text-white/78 transition hover:shadow-[0_0_10px_rgba(220,38,38,0.2)]"
-                        >
-                          Ergebnis ändern
-                        </button>
-                      ) : null}
-                      {venue ? <p className="mt-0.5 line-clamp-2 text-center text-[10px] leading-snug text-white/70">{venue}</p> : null}
+                      {venue ? <p className="mt-0.5 line-clamp-2 text-center text-[0.9rem] leading-snug text-white/65">{venue}</p> : null}
                       {homeAway ? (
                         <span
                           className={`mt-0.5 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
@@ -1395,11 +1381,6 @@ export const EventDetailPage: React.FC = () => {
                       <p className="mt-0.5 line-clamp-2 min-w-0 max-w-[8.5rem] text-center text-[14px] font-semibold leading-[1.25] text-white break-normal hyphens-none [overflow-wrap:normal] sm:max-w-[10rem] sm:text-[15px]">
                         {awaySplit.name || awayTeamName}
                       </p>
-                      {event.is_home === false && compactGoalScorerLine ? (
-                        <p className="mt-0.5 text-[0.9rem] font-medium leading-tight text-white/72 whitespace-normal break-words [overflow-wrap:anywhere]">
-                          {compactGoalScorerLine}
-                        </p>
-                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -1409,10 +1390,10 @@ export const EventDetailPage: React.FC = () => {
 
           <div className="mt-0.5 flex justify-center">
             <div className="inline-flex min-h-[36px] w-full max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-white/15 bg-black/25 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {renderTabButton('overview', 'Übersicht')}
-              {renderTabButton('lineup', 'Kader')}
-              {renderTabButton('timeline', 'Ticker')}
-              {renderTabButton('stats', 'Stats')}
+              {renderTabButton('overview', 'Spielbericht')}
+              {renderTabButton('lineup', 'Aufstellung')}
+              {renderTabButton('timeline', 'Liveticker')}
+              {renderTabButton('stats', 'Statistik')}
             </div>
           </div>
 
@@ -1426,13 +1407,31 @@ export const EventDetailPage: React.FC = () => {
           {finishedTab === 'overview' ? (
             <div className="rounded-2xl border border-white/10 bg-black/45 p-4 text-white/85 shadow-[0_12px_28px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-sm">
               <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Spielbericht</p>
-              <div className="mt-1.5 divide-y divide-white/[0.07] text-[14px]">
+              <div className="mt-1.5 divide-y divide-white/[0.07] text-[13px]">
                 <div className="flex items-center justify-between gap-4 py-3.5">
                   <span className="shrink-0 text-white/70">⚽ Ergebnis</span>
                   <span className="text-right font-semibold text-white/95 tabular-nums">
                     {(scoreHome ?? 0)} : {(scoreAway ?? 0)}
                   </span>
                 </div>
+                {shownPeriodLine ? (
+                  <div className="flex items-center justify-between gap-4 py-3.5">
+                    <span className="shrink-0 text-white/70">⏱ Abschnitte</span>
+                    <span className="text-right text-sm tabular-nums text-white/88">{shownPeriodLine}</span>
+                  </div>
+                ) : null}
+                {reportGoalScorerLines.length > 0 ? (
+                  <div className="py-3.5">
+                    <p className="text-white/70">⚽ Torschützen</p>
+                    <div className="mt-1.5 space-y-1">
+                      {reportGoalScorerLines.map((line, i) => (
+                        <p key={`${line}-${i}`} className="text-[13px] text-white/88">
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between gap-4 py-3.5">
                   <span className="shrink-0 text-white/70">🕒 Datum</span>
                   <span className="max-w-[min(100%,14rem)] text-right text-white/90 sm:max-w-none">
@@ -1456,6 +1455,18 @@ export const EventDetailPage: React.FC = () => {
                 <div className="flex items-center justify-between gap-4 py-3.5">
                   <span className="shrink-0 text-white/70">🔁 Wechsel</span>
                   <span className="tabular-nums text-white/90">{subCount}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4 py-3.5">
+                  <span className="shrink-0 text-white/70">🟨/🟥 Karten</span>
+                  <span className="tabular-nums text-white/90">
+                    {yellowCardCount} / {redCardCount}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-4 py-3.5">
+                  <span className="shrink-0 text-white/70">🏆 Bewerb</span>
+                  <span className="text-right text-white/90">
+                    {event.match_type ? getDomainEventLabel(event) : 'Meisterschaftsspiel'}
+                  </span>
                 </div>
               </div>
               {isTrainerOrAdmin ? (
