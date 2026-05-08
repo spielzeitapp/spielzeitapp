@@ -391,18 +391,6 @@ export const EventDetailPage: React.FC = () => {
   }, [event?.match_id, isFinishedMatchEvent]);
 
   useEffect(() => {
-    if (!reportEditOpen) return;
-    const match = /\((\d+):(\d+)\s*\|\s*(\d+):(\d+)\s*\|\s*(\d+):(\d+)\)/.exec(periodLine ?? '');
-    if (!match) return;
-    setP1h(match[1] ?? '');
-    setP1a(match[2] ?? '');
-    setP2h(match[3] ?? '');
-    setP2a(match[4] ?? '');
-    setP3h(match[5] ?? '');
-    setP3a(match[6] ?? '');
-  }, [periodLine, reportEditOpen]);
-
-  useEffect(() => {
     if (!isFinishedMatchEvent || !event?.match_id) return;
     let cancelled = false;
     setLineupLoading(true);
@@ -471,6 +459,18 @@ export const EventDetailPage: React.FC = () => {
       return null;
     }
   }, [matchEvents, matchRowLite]);
+
+  useEffect(() => {
+    if (!reportEditOpen) return;
+    const match = /\((\d+):(\d+)\s*\|\s*(\d+):(\d+)\s*\|\s*(\d+):(\d+)\)/.exec(periodLine ?? '');
+    if (!match) return;
+    setP1h(match[1] ?? '');
+    setP1a(match[2] ?? '');
+    setP2h(match[3] ?? '');
+    setP2a(match[4] ?? '');
+    setP3h(match[5] ?? '');
+    setP3a(match[6] ?? '');
+  }, [periodLine, reportEditOpen]);
 
   const loadFeedFromEvent = useCallback(async () => {
     if (!eventId) return;
