@@ -224,9 +224,6 @@ export const EventDetailPage: React.FC = () => {
   const [goalMinute, setGoalMinute] = useState(''); // Anzeige-Minute (1..)
   const [goalTeam, setGoalTeam] = useState<'home' | 'away'>('home');
   const [goalPlayerId, setGoalPlayerId] = useState<string>('');
-  const [manualScoreHome, setManualScoreHome] = useState('');
-  const [manualScoreAway, setManualScoreAway] = useState('');
-  const [scoreEditOpen, setScoreEditOpen] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [editEventMinute, setEditEventMinute] = useState('');
   const [editEventType, setEditEventType] = useState<'goal_home' | 'goal_away' | 'switch'>('goal_home');
@@ -243,13 +240,6 @@ export const EventDetailPage: React.FC = () => {
   const [p2a, setP2a] = useState('');
   const [p3h, setP3h] = useState('');
   const [p3a, setP3a] = useState('');
-  const [scoreGoalRows, setScoreGoalRows] = useState<
-    Array<{ id: string; minute: string; team: 'home' | 'away'; playerId: string }>
-  >([]);
-  const [scoreGoalRowsOriginalSig, setScoreGoalRowsOriginalSig] = useState('');
-  const [scoreNewGoalMinute, setScoreNewGoalMinute] = useState('');
-  const [scoreNewGoalTeam, setScoreNewGoalTeam] = useState<'home' | 'away'>('home');
-  const [scoreNewGoalPlayerId, setScoreNewGoalPlayerId] = useState('');
   const [newSwitchMinute, setNewSwitchMinute] = useState('');
   const [newSwitchOutPlayerId, setNewSwitchOutPlayerId] = useState('');
   const [newSwitchInPlayerId, setNewSwitchInPlayerId] = useState('');
@@ -401,30 +391,16 @@ export const EventDetailPage: React.FC = () => {
   }, [event?.match_id, isFinishedMatchEvent]);
 
   useEffect(() => {
-    if (!scoreEditOpen) return;
-    const goalRows = matchEvents
-      .filter((r) => {
-        const t = String(r.type ?? '').toLowerCase();
-        return t === 'goal' || t === 'goal_away';
-      })
-      .map((r) => ({
-        id: r.id,
-        minute: String(Math.max(0, Math.floor((Number(r.minute ?? 0) || 0) / 60))),
-        team: (String(r.type ?? '').toLowerCase() === 'goal_away' ? 'away' : 'home') as 'home' | 'away',
-        playerId: r.player_id ?? '',
-      }));
-    setScoreGoalRows(goalRows);
-    setScoreGoalRowsOriginalSig(JSON.stringify(goalRows));
-    setScoreNewGoalMinute('');
-    setScoreNewGoalTeam('home');
-    setScoreNewGoalPlayerId('');
-  }, [scoreEditOpen, matchEvents]);
-
-  useEffect(() => {
-    if (!isFinishedMatchEvent) return;
-    setManualScoreHome(String(Math.max(0, Number(matchRowLite?.score_home ?? 0) || 0)));
-    setManualScoreAway(String(Math.max(0, Number(matchRowLite?.score_away ?? 0) || 0)));
-  }, [isFinishedMatchEvent, matchRowLite?.score_home, matchRowLite?.score_away]);
+    if (!reportEditOpen) return;
+    const match = /\((\d+):(\d+)\s*\|\s*(\d+):(\d+)\s*\|\s*(\d+):(\d+)\)/.exec(periodLine ?? '');
+    if (!match) return;
+    setP1h(match[1] ?? '');
+    setP1a(match[2] ?? '');
+    setP2h(match[3] ?? '');
+    setP2a(match[4] ?? '');
+    setP3h(match[5] ?? '');
+    setP3a(match[6] ?? '');
+  }, [periodLine, reportEditOpen]);
 
   useEffect(() => {
     if (!isFinishedMatchEvent || !event?.match_id) return;
@@ -1018,14 +994,14 @@ export const EventDetailPage: React.FC = () => {
     const ownGoalScorersMore = Math.max(0, ownGoalScorerEntries.length - shownOwnGoalScorers.length);
     const reportGoalScorerLines = ownGoalScorerEntries.map((entry) => {
       const match = /^(.+)\s+(\d+')$/.exec(entry.text);
-      if (!match) return `⚽ ${entry.text}`;
+      if (!match) return { name: entry.text, minute: '' };
       const fullName = match[1]!.trim();
       const minute = match[2]!;
       const parts = fullName.split(/\s+/).filter(Boolean);
-      if (parts.length <= 1) return `⚽ ${fullName} ${minute}`;
+      if (parts.length <= 1) return { name: fullName, minute };
       const first = parts[0]!;
       const last = parts[parts.length - 1]!;
-      return `⚽ ${last} ${first[0]?.toUpperCase() ?? ''}. ${minute}`;
+      return { name: `${last} ${first[0]?.toUpperCase() ?? ''}.`, minute };
     });
 
     const goalCount = timelineEvents.filter((r) => {
@@ -1259,70 +1235,27 @@ export const EventDetailPage: React.FC = () => {
       setEditingCardId(null);
     };
 
-    const saveManualScore = async () => {
+    const savePeriodScores = async () => {
       if (!event.match_id) return;
-      const currentSig = JSON.stringify(scoreGoalRows);
-      const goalsChanged = currentSig !== scoreGoalRowsOriginalSig;
-
-      if (goalsChanged) {
-        const existingGoalRows = matchEvents.filter((r) => {
-          const t = String(r.type ?? '').toLowerCase();
-          return t === 'goal' || t === 'goal_away';
-        });
-        const draftById = new Map(scoreGoalRows.map((x) => [x.id, x]));
-        const toDeleteIds = existingGoalRows.map((x) => x.id).filter((id) => !draftById.has(id));
-
-        if (toDeleteIds.length > 0) {
-          const { error: delErr } = await supabase.from('match_events').delete().in('id', toDeleteIds);
-          if (delErr) {
-            setMatchError(delErr.message);
-            return;
-          }
-        }
-
-        for (const row of scoreGoalRows) {
-          const minute = Math.max(0, Number(row.minute.trim()) || 0);
-          const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
-          const dbType = row.team === 'away' ? 'goal_away' : 'goal';
-          const payload = {
-            match_id: event.match_id,
-            minute: seconds,
-            type: dbType,
-            player_id: row.playerId.trim() || null,
-            period: null,
-          };
-          if (row.id.startsWith('new_goal_')) {
-            const { error: insErr } = await supabase.from('match_events').insert(payload);
-            if (insErr) {
-              setMatchError(insErr.message);
-              return;
-            }
-          } else {
-            const { error: updErr } = await supabase.from('match_events').update(payload).eq('id', row.id);
-            if (updErr) {
-              setMatchError(updErr.message);
-              return;
-            }
-          }
-        }
-
-        const rows = await reloadMatchEvents();
-        if (!rows) return;
-        await syncScoreFromEvents(rows);
+      const nums = [p1h, p1a, p2h, p2a, p3h, p3a].map((v) => Number(v));
+      if (nums.some((n) => Number.isNaN(n) || n < 0)) {
+        setMatchError('Abschnitte müssen gültige Zahlen >= 0 sein.');
         return;
       }
-
-      const sh = Math.max(0, Number(manualScoreHome.trim()) || 0);
-      const sa = Math.max(0, Number(manualScoreAway.trim()) || 0);
-      const { error: updErr } = await updateMatchRow(event.match_id, {
-        score_home: sh,
-        score_away: sa,
-      });
+      const period_scores = {
+        p1h: Math.floor(nums[0]!),
+        p1a: Math.floor(nums[1]!),
+        p2h: Math.floor(nums[2]!),
+        p2a: Math.floor(nums[3]!),
+        p3h: Math.floor(nums[4]!),
+        p3a: Math.floor(nums[5]!),
+      };
+      const { error: updErr } = await updateMatchRow(event.match_id, { period_scores });
       if (updErr) {
         setMatchError(updErr);
         return;
       }
-      setMatchRowLite((prev) => (prev ? { ...prev, score_home: sh, score_away: sa } : prev));
+      setMatchRowLite((prev) => (prev ? { ...prev, period_scores } : prev));
     };
 
     const beginEditEvent = (r: MatchEventRow) => {
@@ -1512,7 +1445,7 @@ export const EventDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setReportEditOpen(true)}
-                className="inline-flex h-[42px] items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 text-[12px] font-semibold text-white/85 transition hover:border-red-400/35 hover:shadow-[0_0_12px_rgba(220,38,38,0.2)] active:scale-[0.99]"
+                className="inline-flex h-[42px] items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-4 text-[15px] font-semibold text-white/85 transition hover:border-red-400/35 hover:shadow-[0_0_12px_rgba(220,38,38,0.2)] active:scale-[0.99]"
               >
                 <Pencil className="h-3.5 w-3.5" aria-hidden />
                 Spielbericht bearbeiten
@@ -1548,8 +1481,9 @@ export const EventDetailPage: React.FC = () => {
                     <p className="text-white/70">⚽ Torschützen</p>
                     <div className="mt-1.5 space-y-1">
                       {reportGoalScorerLines.map((line, i) => (
-                        <p key={`${line}-${i}`} className="text-[13px] text-white/88">
-                          {line}
+                        <p key={`${line.name}-${i}`} className="text-[13px]">
+                          <span className="text-white/85">{line.name}</span>
+                          {line.minute ? <span className="text-white/55"> · {line.minute}</span> : null}
                         </p>
                       ))}
                     </div>
@@ -1839,277 +1773,227 @@ export const EventDetailPage: React.FC = () => {
           ) : null}
 
           <Modal
-            isOpen={scoreEditOpen}
-            title="Ergebnis ändern"
-            onClose={() => setScoreEditOpen(false)}
-            footer={
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setScoreEditOpen(false)}>
-                  Abbrechen
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={async () => {
-                    await saveManualScore();
-                    setScoreEditOpen(false);
-                  }}
-                >
-                  Speichern
-                </Button>
-              </div>
-            }
-          >
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <label className="flex flex-col gap-1">
-                  <span className="text-[12px] text-white/60">Heimtore</span>
-                  <input
-                    value={manualScoreHome}
-                    onChange={(e) => setManualScoreHome(e.target.value)}
-                    inputMode="numeric"
-                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
-                  />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-[12px] text-white/60">Auswärtstore</span>
-                  <input
-                    value={manualScoreAway}
-                    onChange={(e) => setManualScoreAway(e.target.value)}
-                    inputMode="numeric"
-                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
-                  />
-                </label>
-              </div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/55">Abschnitte (optional)</p>
-              <div className="grid grid-cols-3 gap-2">
-                <label className="flex flex-col gap-1">
-                  <span className="text-[11px] text-white/60">A1 Heim</span>
-                  <input value={p1h} onChange={(e) => setP1h(e.target.value)} inputMode="numeric" className="h-9 rounded-xl border border-white/10 bg-black/40 px-2.5 text-[13px] text-white/90" />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-[11px] text-white/60">A2 Heim</span>
-                  <input value={p2h} onChange={(e) => setP2h(e.target.value)} inputMode="numeric" className="h-9 rounded-xl border border-white/10 bg-black/40 px-2.5 text-[13px] text-white/90" />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-[11px] text-white/60">A3 Heim</span>
-                  <input value={p3h} onChange={(e) => setP3h(e.target.value)} inputMode="numeric" className="h-9 rounded-xl border border-white/10 bg-black/40 px-2.5 text-[13px] text-white/90" />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-[11px] text-white/60">A1 Ausw.</span>
-                  <input value={p1a} onChange={(e) => setP1a(e.target.value)} inputMode="numeric" className="h-9 rounded-xl border border-white/10 bg-black/40 px-2.5 text-[13px] text-white/90" />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-[11px] text-white/60">A2 Ausw.</span>
-                  <input value={p2a} onChange={(e) => setP2a(e.target.value)} inputMode="numeric" className="h-9 rounded-xl border border-white/10 bg-black/40 px-2.5 text-[13px] text-white/90" />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-[11px] text-white/60">A3 Ausw.</span>
-                  <input value={p3a} onChange={(e) => setP3a(e.target.value)} inputMode="numeric" className="h-9 rounded-xl border border-white/10 bg-black/40 px-2.5 text-[13px] text-white/90" />
-                </label>
-              </div>
-
-              <div className="rounded-2xl border border-red-500/25 bg-black/30 p-3 shadow-[0_0_18px_rgba(220,38,38,0.14)]">
-                <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/60">Tore bearbeiten</p>
-                {scoreGoalRows.length === 0 ? (
-                  <p className="mt-2 text-[12px] text-white/55">Noch keine Tore erfasst.</p>
-                ) : (
-                  <div className="mt-2 space-y-2">
-                    {scoreGoalRows.map((row, idx) => (
-                      <div key={row.id} className="rounded-xl border border-white/10 bg-black/35 p-2.5">
-                        <div className="grid grid-cols-[72px_1fr] gap-2">
-                          <label className="flex flex-col gap-1">
-                            <span className="text-[11px] text-white/60">Minute</span>
-                            <input
-                              value={row.minute}
-                              onChange={(e) =>
-                                setScoreGoalRows((prev) =>
-                                  prev.map((x, i) => (i === idx ? { ...x, minute: e.target.value } : x)),
-                                )
-                              }
-                              inputMode="numeric"
-                              className="h-9 rounded-lg border border-white/10 bg-black/45 px-2 text-[13px] text-white/90"
-                            />
-                          </label>
-                          <label className="flex flex-col gap-1">
-                            <span className="text-[11px] text-white/60">Torschütze</span>
-                            <select
-                              value={row.playerId}
-                              onChange={(e) =>
-                                setScoreGoalRows((prev) =>
-                                  prev.map((x, i) => (i === idx ? { ...x, playerId: e.target.value } : x)),
-                                )
-                              }
-                              className="h-9 rounded-lg border border-white/10 bg-black/45 px-2 text-[13px] text-white/90"
-                            >
-                              <option value="">—</option>
-                              {players.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {(p.display_name ?? p.name ?? 'Spieler').trim()}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between">
-                          <select
-                            value={row.team}
-                            onChange={(e) =>
-                              setScoreGoalRows((prev) =>
-                                prev.map((x, i) =>
-                                  i === idx ? { ...x, team: e.target.value === 'away' ? 'away' : 'home' } : x,
-                                ),
-                              )
-                            }
-                            className="h-8 rounded-lg border border-white/10 bg-black/45 px-2 text-[12px] text-white/85"
-                          >
-                            <option value="home">Tor Heim</option>
-                            <option value="away">Tor Auswärts</option>
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setScoreGoalRows((prev) => prev.filter((_, i) => i !== idx))
-                            }
-                            className="rounded-lg border border-red-400/35 bg-red-500/10 px-2 py-1 text-[11px] font-medium text-red-200/90 hover:bg-red-500/15"
-                          >
-                            Tor löschen
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="mt-3 rounded-xl border border-white/10 bg-black/35 p-2.5">
-                  <p className="text-[11px] font-semibold text-white/60">Neues Tor hinzufügen</p>
-                  <div className="mt-2 grid grid-cols-[72px_88px_1fr] gap-2">
-                    <input
-                      value={scoreNewGoalMinute}
-                      onChange={(e) => setScoreNewGoalMinute(e.target.value)}
-                      inputMode="numeric"
-                      placeholder="Min"
-                      className="h-9 rounded-lg border border-white/10 bg-black/45 px-2 text-[13px] text-white/90"
-                    />
-                    <select
-                      value={scoreNewGoalTeam}
-                      onChange={(e) => setScoreNewGoalTeam(e.target.value === 'away' ? 'away' : 'home')}
-                      className="h-9 rounded-lg border border-white/10 bg-black/45 px-2 text-[12px] text-white/85"
-                    >
-                      <option value="home">Heim</option>
-                      <option value="away">Ausw.</option>
-                    </select>
-                    <select
-                      value={scoreNewGoalPlayerId}
-                      onChange={(e) => setScoreNewGoalPlayerId(e.target.value)}
-                      className="h-9 rounded-lg border border-white/10 bg-black/45 px-2 text-[13px] text-white/90"
-                    >
-                      <option value="">Torschütze (optional)</option>
-                      {players.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {(p.display_name ?? p.name ?? 'Spieler').trim()}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="mt-2 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const minute = scoreNewGoalMinute.trim();
-                        if (!minute) return;
-                        setScoreGoalRows((prev) => [
-                          ...prev,
-                          {
-                            id: `new_goal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-                            minute,
-                            team: scoreNewGoalTeam,
-                            playerId: scoreNewGoalPlayerId,
-                          },
-                        ]);
-                        setScoreNewGoalMinute('');
-                        setScoreNewGoalPlayerId('');
-                        setScoreNewGoalTeam('home');
-                      }}
-                      className="rounded-lg border border-red-400/35 bg-transparent px-2.5 py-1 text-[11px] font-medium text-white/85 hover:shadow-[0_0_10px_rgba(220,38,38,0.22)]"
-                    >
-                      Tor hinzufügen
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Modal>
-
-          <Modal
             isOpen={reportEditOpen}
             title="Spielbericht bearbeiten"
+            titleClassName="!text-[22px] !font-bold !leading-tight tracking-tight text-white"
             onClose={() => setReportEditOpen(false)}
             footer={
-              <Button variant="ghost" onClick={() => setReportEditOpen(false)}>
+              <Button variant="ghost" className="min-h-[48px] px-5 text-[16px] font-semibold" onClick={() => setReportEditOpen(false)}>
                 Schließen
               </Button>
             }
           >
-            <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-              <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Ergebnis / Abschnitte</p>
-                <p className="mt-1 text-[12px] text-white/60">
-                  Endstand wird aus Toren berechnet, wenn Tore geändert werden.
-                </p>
-                <div className="mt-2 flex items-center justify-between rounded-xl border border-white/10 bg-black/35 px-3 py-2">
-                  <span className="text-[12px] text-white/65">Endstand</span>
-                  <span className="text-[15px] font-bold tabular-nums text-white">
-                    {(scoreHome ?? 0)}:{(scoreAway ?? 0)}
-                  </span>
+            <div className="space-y-6 pb-1">
+              <div className="rounded-2xl border border-white/10 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <p className="text-[14px] font-bold uppercase tracking-[0.22em] text-white/55">Ergebnis</p>
+                <div className="mt-3 rounded-xl border border-white/10 bg-black/40 px-4 py-4 text-center">
+                  <p className="text-[15px] font-medium text-white/65">Endstand</p>
+                  <p className="mt-1 text-[34px] font-black tabular-nums leading-none text-white">
+                    {(scoreHome ?? 0)} : {(scoreAway ?? 0)}
+                  </p>
+                  <p className="mt-2 text-[15px] leading-snug text-white/60">Wird automatisch aus den Toren berechnet.</p>
                 </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <p className="text-[14px] font-bold uppercase tracking-[0.22em] text-white/55">Abschnitte</p>
+                <p className="mt-2 text-[15px] leading-snug text-white/65">Optional – für Klammerergebnis.</p>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-[15px] font-medium text-white/70">A1 Heim</span>
+                    <input value={p1h} onChange={(e) => setP1h(e.target.value)} inputMode="numeric" className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90" />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-[15px] font-medium text-white/70">A1 Ausw.</span>
+                    <input value={p1a} onChange={(e) => setP1a(e.target.value)} inputMode="numeric" className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90" />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-[15px] font-medium text-white/70">A2 Heim</span>
+                    <input value={p2h} onChange={(e) => setP2h(e.target.value)} inputMode="numeric" className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90" />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-[15px] font-medium text-white/70">A2 Ausw.</span>
+                    <input value={p2a} onChange={(e) => setP2a(e.target.value)} inputMode="numeric" className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90" />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-[15px] font-medium text-white/70">A3 Heim</span>
+                    <input value={p3h} onChange={(e) => setP3h(e.target.value)} inputMode="numeric" className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90" />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-[15px] font-medium text-white/70">A3 Ausw.</span>
+                    <input value={p3a} onChange={(e) => setP3a(e.target.value)} inputMode="numeric" className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90" />
+                  </label>
+                </div>
+                <Button variant="secondary" className="mt-4 min-h-[48px] w-full text-[16px] font-semibold" onClick={() => void savePeriodScores()}>
+                  Abschnitte speichern
+                </Button>
                 {shownPeriodLine ? (
-                  <p className="mt-1.5 text-center text-[12px] tabular-nums text-white/65">{shownPeriodLine}</p>
+                  <p className="mt-3 text-center text-[15px] tabular-nums text-white/60">{shownPeriodLine}</p>
                 ) : null}
-                <Button variant="secondary" className="mt-2 w-full" onClick={() => setScoreEditOpen(true)}>
-                  Ergebnis & Abschnitte bearbeiten
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <p className="text-[14px] font-bold uppercase tracking-[0.22em] text-white/55">Tore</p>
+
+                {editingEventId && (editEventType === 'goal_home' || editEventType === 'goal_away') ? (
+                  <div className="mb-4 mt-4 rounded-2xl border border-red-500/20 bg-red-950/15 p-4 shadow-[0_0_24px_rgba(220,38,38,0.12)]">
+                    <p className="text-[14px] font-bold uppercase tracking-[0.2em] text-white/55">Tor bearbeiten</p>
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className="flex flex-col gap-2">
+                        <span className="text-[15px] font-medium text-white/70">Minute</span>
+                        <input
+                          value={editEventMinute}
+                          onChange={(e) => setEditEventMinute(e.target.value)}
+                          inputMode="numeric"
+                          className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-2">
+                        <span className="text-[15px] font-medium text-white/70">Team</span>
+                        <select
+                          value={editEventType}
+                          onChange={(e) =>
+                            setEditEventType(e.target.value === 'goal_away' ? 'goal_away' : 'goal_home')
+                          }
+                          className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
+                        >
+                          <option value="goal_home">Heim</option>
+                          <option value="goal_away">Auswärts</option>
+                        </select>
+                      </label>
+                    </div>
+                    <label className="mt-3 flex flex-col gap-2">
+                      <span className="text-[15px] font-medium text-white/70">Torschütze (optional)</span>
+                      <select
+                        value={editEventPlayerId}
+                        onChange={(e) => setEditEventPlayerId(e.target.value)}
+                        className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
+                      >
+                        <option value="">—</option>
+                        {players.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {(p.display_name ?? p.name ?? 'Spieler').trim()}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <Button variant="ghost" className="min-h-[48px] text-[16px] font-semibold" onClick={() => setEditingEventId(null)}>
+                        Abbrechen
+                      </Button>
+                      <Button variant="primary" className="min-h-[48px] text-[16px] font-semibold" onClick={() => void saveEventEdit()}>
+                        Speichern
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="mt-4 space-y-3">
+                  {goalEvents.length === 0 ? (
+                    <p className="text-[16px] text-white/55">Keine Tore erfasst.</p>
+                  ) : (
+                    goalEvents.map((g) => (
+                      <div
+                        key={g.id}
+                        className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/40 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xl font-bold text-white">
+                            <span className="mr-1.5" aria-hidden>
+                              ⚽
+                            </span>
+                            {minuteLabel(g.minute)}
+                          </p>
+                          <p className="mt-1 text-[15px] text-white/55">
+                            {String(g.type ?? '').toLowerCase() === 'goal_away' ? 'Auswärts' : 'Heim'}
+                          </p>
+                          <p className="mt-1 text-[17px] font-medium text-white/90">{playerName(g.player_id) ?? 'Spieler offen'}</p>
+                        </div>
+                        <div className="flex gap-2 sm:flex-shrink-0">
+                          <button
+                            type="button"
+                            className="min-h-[48px] flex-1 rounded-xl border border-white/12 bg-white/[0.06] px-4 text-[16px] font-semibold text-white/85 hover:bg-white/[0.1] sm:flex-initial"
+                            onClick={() => beginEditEvent(g)}
+                          >
+                            Bearbeiten
+                          </button>
+                          <button
+                            type="button"
+                            className="min-h-[48px] flex-1 rounded-xl border border-red-400/35 bg-red-500/12 px-4 text-[16px] font-semibold text-red-100 hover:bg-red-500/18 sm:flex-initial"
+                            onClick={() => void deleteTickerRow([g])}
+                          >
+                            Löschen
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-[15px] font-medium text-white/70">Minute</span>
+                    <input
+                      value={goalMinute}
+                      onChange={(e) => setGoalMinute(e.target.value)}
+                      inputMode="numeric"
+                      className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
+                      placeholder="z. B. 12"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-[15px] font-medium text-white/70">Team</span>
+                    <select
+                      value={goalTeam}
+                      onChange={(e) => setGoalTeam(e.target.value === 'away' ? 'away' : 'home')}
+                      className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
+                    >
+                      <option value="home">Heim</option>
+                      <option value="away">Auswärts</option>
+                    </select>
+                  </label>
+                </div>
+                <label className="mt-3 flex flex-col gap-2">
+                  <span className="text-[15px] font-medium text-white/70">Torschütze (optional)</span>
+                  <select
+                    value={goalPlayerId}
+                    onChange={(e) => setGoalPlayerId(e.target.value)}
+                    className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
+                  >
+                    <option value="">—</option>
+                    {players.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {(p.display_name ?? p.name ?? 'Spieler').trim()}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Button variant="primary" className="mt-4 min-h-[48px] w-full text-[16px] font-semibold" onClick={() => void addGoal()}>
+                  + Neues Tor
                 </Button>
               </div>
 
-              {editingEventId ? (
-                <div className="rounded-2xl border border-red-500/25 bg-black/35 p-3 shadow-[0_0_18px_rgba(220,38,38,0.15)]">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Ereignis bearbeiten</p>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <label className="flex flex-col gap-1">
-                      <span className="text-[12px] text-white/60">Minute</span>
+              <div className="rounded-2xl border border-white/10 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <p className="text-[14px] font-bold uppercase tracking-[0.22em] text-white/55">Wechsel</p>
+
+                {editingEventId && editEventType === 'switch' ? (
+                  <div className="mb-4 mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-950/15 p-4 shadow-[0_0_24px_rgba(16,185,129,0.1)]">
+                    <p className="text-[14px] font-bold uppercase tracking-[0.2em] text-white/55">Wechsel bearbeiten</p>
+                    <label className="mt-3 flex flex-col gap-2">
+                      <span className="text-[15px] font-medium text-white/70">Minute</span>
                       <input
                         value={editEventMinute}
                         onChange={(e) => setEditEventMinute(e.target.value)}
                         inputMode="numeric"
-                        className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                        className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                       />
                     </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="text-[12px] text-white/60">Typ</span>
-                      <select
-                        value={editEventType}
-                        onChange={(e) =>
-                          setEditEventType(
-                            (['goal_home', 'goal_away', 'switch'] as const).includes(e.target.value as any)
-                              ? (e.target.value as any)
-                              : 'goal_home',
-                          )
-                        }
-                        className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
-                      >
-                        <option value="goal_home">Tor Heim</option>
-                        <option value="goal_away">Tor Auswärts</option>
-                        <option value="switch">Wechsel</option>
-                      </select>
-                    </label>
-                  </div>
-                  {editEventType === 'switch' ? (
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      <label className="flex flex-col gap-1">
-                        <span className="text-[12px] text-white/60">Spieler raus</span>
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className="flex flex-col gap-2">
+                        <span className="text-[15px] font-medium text-white/70">Spieler raus</span>
                         <select
                           value={editSwitchOutPlayerId}
                           onChange={(e) => setEditSwitchOutPlayerId(e.target.value)}
-                          className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                          className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                         >
                           <option value="">—</option>
                           {players.map((p) => (
@@ -2119,12 +2003,12 @@ export const EventDetailPage: React.FC = () => {
                           ))}
                         </select>
                       </label>
-                      <label className="flex flex-col gap-1">
-                        <span className="text-[12px] text-white/60">Spieler rein</span>
+                      <label className="flex flex-col gap-2">
+                        <span className="text-[15px] font-medium text-white/70">Spieler rein</span>
                         <select
                           value={editSwitchInPlayerId}
                           onChange={(e) => setEditSwitchInPlayerId(e.target.value)}
-                          className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                          className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                         >
                           <option value="">—</option>
                           {players.map((p) => (
@@ -2135,185 +2019,54 @@ export const EventDetailPage: React.FC = () => {
                         </select>
                       </label>
                     </div>
-                  ) : (
-                    <label className="mt-2 flex flex-col gap-1">
-                      <span className="text-[12px] text-white/60">Torschütze (optional)</span>
-                      <select
-                        value={editEventPlayerId}
-                        onChange={(e) => setEditEventPlayerId(e.target.value)}
-                        className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
-                      >
-                        <option value="">—</option>
-                        {players.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {(p.display_name ?? p.name ?? 'Spieler').trim()}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <Button variant="ghost" onClick={() => setEditingEventId(null)}>
-                      Abbrechen
-                    </Button>
-                    <Button variant="primary" onClick={() => void saveEventEdit()}>
-                      Speichern
-                    </Button>
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <Button variant="ghost" className="min-h-[48px] text-[16px] font-semibold" onClick={() => setEditingEventId(null)}>
+                        Abbrechen
+                      </Button>
+                      <Button variant="primary" className="min-h-[48px] text-[16px] font-semibold" onClick={() => void saveEventEdit()}>
+                        Speichern
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
 
-              {editingCardId ? (
-                <div className="rounded-2xl border border-red-500/25 bg-black/35 p-3 shadow-[0_0_18px_rgba(220,38,38,0.15)]">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Karte bearbeiten</p>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <label className="flex flex-col gap-1">
-                      <span className="text-[12px] text-white/60">Minute</span>
-                      <input
-                        value={editCardMinute}
-                        onChange={(e) => setEditCardMinute(e.target.value)}
-                        inputMode="numeric"
-                        className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="text-[12px] text-white/60">Typ</span>
-                      <select
-                        value={editCardType}
-                        onChange={(e) => setEditCardType(e.target.value === 'red_card' ? 'red_card' : 'yellow_card')}
-                        className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
-                      >
-                        <option value="yellow_card">Gelb</option>
-                        <option value="red_card">Rot</option>
-                      </select>
-                    </label>
-                  </div>
-                  <label className="mt-2 flex flex-col gap-1">
-                    <span className="text-[12px] text-white/60">Spieler</span>
-                    <select
-                      value={editCardPlayerId}
-                      onChange={(e) => setEditCardPlayerId(e.target.value)}
-                      className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
-                    >
-                      <option value="">—</option>
-                      {players.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {(p.display_name ?? p.name ?? 'Spieler').trim()}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <Button variant="ghost" onClick={() => setEditingCardId(null)}>
-                      Abbrechen
-                    </Button>
-                    <Button variant="primary" onClick={() => void saveCardEdit()}>
-                      Speichern
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Tore bearbeiten</p>
-                <div className="mt-2 space-y-2">
-                  {goalEvents.length === 0 ? (
-                    <p className="text-[12px] text-white/55">Keine Tore erfasst.</p>
-                  ) : (
-                    goalEvents.map((g) => (
-                      <div key={g.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/35 px-3 py-2">
-                        <p className="text-[12px] text-white/85">
-                          {minuteLabel(g.minute)} · {String(g.type ?? '').toLowerCase() === 'goal_away' ? 'Auswärts' : 'Heim'} ·{' '}
-                          {playerName(g.player_id) ?? 'Spieler'}
-                        </p>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
-                            onClick={() => beginEditEvent(g)}
-                          >
-                            Bearbeiten
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded-lg border border-red-400/35 bg-red-500/10 px-2 py-1 text-[11px] text-red-200/90 hover:bg-red-500/15"
-                            onClick={() => void deleteTickerRow([g])}
-                          >
-                            Löschen
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <label className="flex flex-col gap-1">
-                    <span className="text-[12px] text-white/60">Minute</span>
-                    <input
-                      value={goalMinute}
-                      onChange={(e) => setGoalMinute(e.target.value)}
-                      inputMode="numeric"
-                      className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
-                      placeholder="z. B. 12"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1">
-                    <span className="text-[12px] text-white/60">Team</span>
-                    <select
-                      value={goalTeam}
-                      onChange={(e) => setGoalTeam(e.target.value === 'away' ? 'away' : 'home')}
-                      className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
-                    >
-                      <option value="home">Heim</option>
-                      <option value="away">Auswärts</option>
-                    </select>
-                  </label>
-                </div>
-                <label className="mt-2 flex flex-col gap-1">
-                  <span className="text-[12px] text-white/60">Torschütze (optional)</span>
-                  <select
-                    value={goalPlayerId}
-                    onChange={(e) => setGoalPlayerId(e.target.value)}
-                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
-                  >
-                    <option value="">—</option>
-                    {players.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {(p.display_name ?? p.name ?? 'Spieler').trim()}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <Button variant="primary" className="mt-3 w-full" onClick={() => void addGoal()}>
-                  Neues Tor
-                </Button>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Wechsel bearbeiten</p>
-                <div className="mt-2 space-y-2">
+                <div className="mt-4 space-y-3">
                   {switchRows.length === 0 ? (
-                    <p className="text-[12px] text-white/55">Keine Wechsel erfasst.</p>
+                    <p className="text-[16px] text-white/55">Keine Wechsel erfasst.</p>
                   ) : (
                     switchRows.map((row) => {
                       const outEvent = row.items.find((x) => String(x.type ?? '').toLowerCase() === 'sub_out') ?? row.items[0]!;
                       const inEvent = row.items.find((x) => String(x.type ?? '').toLowerCase() === 'sub_in') ?? row.items[0]!;
                       return (
-                        <div key={row.key} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/35 px-3 py-2">
-                          <p className="text-[12px] text-white/85">
-                            {minuteLabel(outEvent.minute)} · {playerName(outEvent.player_id) ?? 'Spieler'} → {playerName(inEvent.player_id) ?? 'Spieler'}
-                          </p>
-                          <div className="flex items-center gap-1.5">
+                        <div
+                          key={row.key}
+                          className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/40 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xl font-bold text-white">
+                              <span className="mr-1.5" aria-hidden>
+                                🔁
+                              </span>
+                              {minuteLabel(outEvent.minute)}
+                            </p>
+                            <p className="mt-2 text-[16px] text-white/85">
+                              <span className="text-white/55">Raus:</span> {playerName(outEvent.player_id) ?? '—'}
+                            </p>
+                            <p className="mt-0.5 text-[16px] text-white/85">
+                              <span className="text-white/55">Rein:</span> {playerName(inEvent.player_id) ?? '—'}
+                            </p>
+                          </div>
+                          <div className="flex gap-2 sm:flex-shrink-0">
                             <button
                               type="button"
-                              className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
+                              className="min-h-[48px] flex-1 rounded-xl border border-white/12 bg-white/[0.06] px-4 text-[16px] font-semibold text-white/85 hover:bg-white/[0.1] sm:flex-initial"
                               onClick={() => beginEditEvent(outEvent)}
                             >
                               Bearbeiten
                             </button>
                             <button
                               type="button"
-                              className="rounded-lg border border-red-400/35 bg-red-500/10 px-2 py-1 text-[11px] text-red-200/90 hover:bg-red-500/15"
+                              className="min-h-[48px] flex-1 rounded-xl border border-red-400/35 bg-red-500/12 px-4 text-[16px] font-semibold text-red-100 hover:bg-red-500/18 sm:flex-initial"
                               onClick={() => void deleteTickerRow(row.items)}
                             >
                               Löschen
@@ -2324,18 +2077,18 @@ export const EventDetailPage: React.FC = () => {
                     })
                   )}
                 </div>
-                <div className="mt-2 grid grid-cols-3 gap-2">
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <input
                     value={newSwitchMinute}
                     onChange={(e) => setNewSwitchMinute(e.target.value)}
                     inputMode="numeric"
                     placeholder="Minute"
-                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[13px] text-white/90"
+                    className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                   />
                   <select
                     value={newSwitchOutPlayerId}
                     onChange={(e) => setNewSwitchOutPlayerId(e.target.value)}
-                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[13px] text-white/90"
+                    className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                   >
                     <option value="">Raus</option>
                     {players.map((p) => (
@@ -2347,7 +2100,7 @@ export const EventDetailPage: React.FC = () => {
                   <select
                     value={newSwitchInPlayerId}
                     onChange={(e) => setNewSwitchInPlayerId(e.target.value)}
-                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[13px] text-white/90"
+                    className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                   >
                     <option value="">Rein</option>
                     {players.map((p) => (
@@ -2357,36 +2110,97 @@ export const EventDetailPage: React.FC = () => {
                     ))}
                   </select>
                 </div>
-                <Button variant="secondary" className="mt-3 w-full" onClick={() => void addSwitch()}>
-                  Neuer Wechsel
+                <Button variant="secondary" className="mt-4 min-h-[48px] w-full text-[16px] font-semibold" onClick={() => void addSwitch()}>
+                  + Neuer Wechsel
                 </Button>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Karten bearbeiten</p>
-                <div className="mt-2 space-y-2">
+              <div className="rounded-2xl border border-white/10 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <p className="text-[14px] font-bold uppercase tracking-[0.22em] text-white/55">Karten</p>
+
+                {editingCardId ? (
+                  <div className="mb-4 mt-4 rounded-2xl border border-amber-400/25 bg-amber-950/15 p-4 shadow-[0_0_24px_rgba(245,158,11,0.12)]">
+                    <p className="text-[14px] font-bold uppercase tracking-[0.2em] text-white/55">Karte bearbeiten</p>
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className="flex flex-col gap-2">
+                        <span className="text-[15px] font-medium text-white/70">Minute</span>
+                        <input
+                          value={editCardMinute}
+                          onChange={(e) => setEditCardMinute(e.target.value)}
+                          inputMode="numeric"
+                          className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-2">
+                        <span className="text-[15px] font-medium text-white/70">Typ</span>
+                        <select
+                          value={editCardType}
+                          onChange={(e) => setEditCardType(e.target.value === 'red_card' ? 'red_card' : 'yellow_card')}
+                          className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
+                        >
+                          <option value="yellow_card">Gelb</option>
+                          <option value="red_card">Rot</option>
+                        </select>
+                      </label>
+                    </div>
+                    <label className="mt-3 flex flex-col gap-2">
+                      <span className="text-[15px] font-medium text-white/70">Spieler</span>
+                      <select
+                        value={editCardPlayerId}
+                        onChange={(e) => setEditCardPlayerId(e.target.value)}
+                        className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
+                      >
+                        <option value="">—</option>
+                        {players.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {(p.display_name ?? p.name ?? 'Spieler').trim()}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <Button variant="ghost" className="min-h-[48px] text-[16px] font-semibold" onClick={() => setEditingCardId(null)}>
+                        Abbrechen
+                      </Button>
+                      <Button variant="primary" className="min-h-[48px] text-[16px] font-semibold" onClick={() => void saveCardEdit()}>
+                        Speichern
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="mt-4 space-y-3">
                   {cardEvents.length === 0 ? (
-                    <p className="text-[12px] text-white/55">Keine Karten erfasst.</p>
+                    <p className="text-[16px] text-white/55">Keine Karten erfasst.</p>
                   ) : (
                     cardEvents.map((c) => {
                       const t = String(c.type ?? '').toLowerCase();
                       const isRed = ['red_card', 'card_red', 'red'].includes(t);
                       return (
-                        <div key={c.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/35 px-3 py-2">
-                          <p className="text-[12px] text-white/85">
-                            {minuteLabel(c.minute)} · {isRed ? 'Rot' : 'Gelb'} · {playerName(c.player_id) ?? 'Spieler'}
-                          </p>
-                          <div className="flex items-center gap-1.5">
+                        <div
+                          key={c.id}
+                          className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/40 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xl font-bold text-white">
+                              <span className="mr-1.5" aria-hidden>
+                                {isRed ? '🟥' : '🟨'}
+                              </span>
+                              {minuteLabel(c.minute)}
+                            </p>
+                            <p className="mt-1 text-[17px] font-medium text-white/90">{playerName(c.player_id) ?? 'Spieler offen'}</p>
+                          </div>
+                          <div className="flex gap-2 sm:flex-shrink-0">
                             <button
                               type="button"
-                              className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
+                              className="min-h-[48px] flex-1 rounded-xl border border-white/12 bg-white/[0.06] px-4 text-[16px] font-semibold text-white/85 hover:bg-white/[0.1] sm:flex-initial"
                               onClick={() => beginEditCard(c)}
                             >
                               Bearbeiten
                             </button>
                             <button
                               type="button"
-                              className="rounded-lg border border-red-400/35 bg-red-500/10 px-2 py-1 text-[11px] text-red-200/90 hover:bg-red-500/15"
+                              className="min-h-[48px] flex-1 rounded-xl border border-red-400/35 bg-red-500/12 px-4 text-[16px] font-semibold text-red-100 hover:bg-red-500/18 sm:flex-initial"
                               onClick={() => void deleteTickerRow([c])}
                             >
                               Löschen
@@ -2397,18 +2211,18 @@ export const EventDetailPage: React.FC = () => {
                     })
                   )}
                 </div>
-                <div className="mt-2 grid grid-cols-3 gap-2">
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <input
                     value={newCardMinute}
                     onChange={(e) => setNewCardMinute(e.target.value)}
                     inputMode="numeric"
                     placeholder="Minute"
-                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[13px] text-white/90"
+                    className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                   />
                   <select
                     value={newCardType}
                     onChange={(e) => setNewCardType(e.target.value === 'red_card' ? 'red_card' : 'yellow_card')}
-                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[13px] text-white/90"
+                    className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                   >
                     <option value="yellow_card">Gelb</option>
                     <option value="red_card">Rot</option>
@@ -2416,7 +2230,7 @@ export const EventDetailPage: React.FC = () => {
                   <select
                     value={newCardPlayerId}
                     onChange={(e) => setNewCardPlayerId(e.target.value)}
-                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[13px] text-white/90"
+                    className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                   >
                     <option value="">Spieler</option>
                     {players.map((p) => (
@@ -2426,8 +2240,8 @@ export const EventDetailPage: React.FC = () => {
                     ))}
                   </select>
                 </div>
-                <Button variant="secondary" className="mt-3 w-full" onClick={() => void addCard()}>
-                  Neue Karte
+                <Button variant="secondary" className="mt-4 min-h-[48px] w-full text-[16px] font-semibold" onClick={() => void addCard()}>
+                  + Neue Karte
                 </Button>
               </div>
             </div>

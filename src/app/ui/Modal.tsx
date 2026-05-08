@@ -3,6 +3,8 @@ import React, { useEffect, useCallback } from 'react';
 interface ModalProps {
   isOpen: boolean;
   title?: string;
+  /** Zusätzliche Klassen für den Titel (z. B. größere Typo im Match-Editor). */
+  titleClassName?: string;
   onClose: () => void;
   children: React.ReactNode;
   /** Sticky footer (e.g. Abbrechen / Speichern). Buttons bleiben sichtbar. */
@@ -12,6 +14,7 @@ interface ModalProps {
 export const Modal: React.FC<ModalProps> = ({
   isOpen,
   title,
+  titleClassName,
   onClose,
   children,
   footer,
@@ -65,7 +68,7 @@ export const Modal: React.FC<ModalProps> = ({
       >
         <div className="modalHeader">
           {title && (
-            <div id="modal-title" className="modalTitle">
+            <div id="modal-title" className={['modalTitle', titleClassName ?? ''].filter(Boolean).join(' ')}>
               {title}
             </div>
           )}
