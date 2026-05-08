@@ -983,11 +983,9 @@ export const EventDetailPage: React.FC = () => {
       if (ownGoalScorerEntries.length === 0) return null;
       const first = ownGoalScorerEntries[0]!.text;
       const match = /^(.+)\s+(\d+')$/.exec(first);
-      const short = match
-        ? `${match[1].split(/\s+/).filter(Boolean).slice(-1)[0] ?? match[1]} ${match[2]}`
-        : first;
+      const short = match ? `${match[1]} · ${match[2]}` : first;
       const more = ownGoalScorerEntries.length - 1;
-      return more > 0 ? `⚽ ${short} · +${more} weitere` : `⚽ ${short}`;
+      return more > 0 ? `${short} · +${more} weitere` : short;
     })();
 
     const goalCount = timelineEvents.filter((r) => {
