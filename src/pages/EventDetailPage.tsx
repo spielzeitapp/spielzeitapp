@@ -250,6 +250,16 @@ export const EventDetailPage: React.FC = () => {
   const [scoreNewGoalMinute, setScoreNewGoalMinute] = useState('');
   const [scoreNewGoalTeam, setScoreNewGoalTeam] = useState<'home' | 'away'>('home');
   const [scoreNewGoalPlayerId, setScoreNewGoalPlayerId] = useState('');
+  const [newSwitchMinute, setNewSwitchMinute] = useState('');
+  const [newSwitchOutPlayerId, setNewSwitchOutPlayerId] = useState('');
+  const [newSwitchInPlayerId, setNewSwitchInPlayerId] = useState('');
+  const [newCardMinute, setNewCardMinute] = useState('');
+  const [newCardType, setNewCardType] = useState<'yellow_card' | 'red_card'>('yellow_card');
+  const [newCardPlayerId, setNewCardPlayerId] = useState('');
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [editCardMinute, setEditCardMinute] = useState('');
+  const [editCardType, setEditCardType] = useState<'yellow_card' | 'red_card'>('yellow_card');
+  const [editCardPlayerId, setEditCardPlayerId] = useState('');
 
   const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | null>(null);
   const [loadingRsvp, setLoadingRsvp] = useState(true);
@@ -1053,6 +1063,23 @@ export const EventDetailPage: React.FC = () => {
       }
       return rows;
     })();
+    const goalEvents = timelineEvents.filter((r) => {
+      const t = String(r.type ?? '').toLowerCase();
+      return t === 'goal' || t === 'goal_away';
+    });
+    const switchRows = tickerRows.filter((row) => {
+      if (row.items.length === 2) {
+        const t0 = String(row.items[0]?.type ?? '').toLowerCase();
+        const t1 = String(row.items[1]?.type ?? '').toLowerCase();
+        return t0 === 'sub_out' && t1 === 'sub_in';
+      }
+      const t = String(row.items[0]?.type ?? '').toLowerCase();
+      return t === 'sub_out' || t === 'sub_in';
+    });
+    const cardEvents = timelineEvents.filter((r) => {
+      const t = String(r.type ?? '').toLowerCase();
+      return ['yellow_card', 'card_yellow', 'yellow', 'red_card', 'card_red', 'red'].includes(t);
+    });
     const scoreBadgeByEventId = (() => {
       let h = 0;
       let a = 0;
@@ -1146,6 +1173,90 @@ export const EventDetailPage: React.FC = () => {
       const rows = await reloadMatchEvents();
       if (!rows) return;
       if (didTouchGoals) await syncScoreFromEvents(rows);
+    };
+
+    const addSwitch = async () => {
+      if (!event.match_id) return;
+      const minute = Math.max(0, Number(newSwitchMinute.trim()) || 0);
+      const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
+      const payloads: Array<{ match_id: string; type: string; minute: number; period: null; player_id: string | null }> = [];
+      if (newSwitchOutPlayerId.trim()) {
+        payloads.push({
+          match_id: event.match_id,
+          type: 'sub_out',
+          minute: seconds,
+          period: null,
+          player_id: newSwitchOutPlayerId.trim(),
+        });
+      }
+      if (newSwitchInPlayerId.trim()) {
+        payloads.push({
+          match_id: event.match_id,
+          type: 'sub_in',
+          minute: seconds,
+          period: null,
+          player_id: newSwitchInPlayerId.trim(),
+        });
+      }
+      if (payloads.length === 0) return;
+      const { error: insErr } = await supabase.from('match_events').insert(payloads);
+      if (insErr) {
+        setMatchError(insErr.message);
+        return;
+      }
+      await reloadMatchEvents();
+      setNewSwitchMinute('');
+      setNewSwitchOutPlayerId('');
+      setNewSwitchInPlayerId('');
+    };
+
+    const addCard = async () => {
+      if (!event.match_id) return;
+      const minute = Math.max(0, Number(newCardMinute.trim()) || 0);
+      const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
+      const { error: insErr } = await supabase.from('match_events').insert({
+        match_id: event.match_id,
+        type: newCardType,
+        minute: seconds,
+        period: null,
+        player_id: newCardPlayerId.trim() || null,
+      });
+      if (insErr) {
+        setMatchError(insErr.message);
+        return;
+      }
+      await reloadMatchEvents();
+      setNewCardMinute('');
+      setNewCardPlayerId('');
+      setNewCardType('yellow_card');
+    };
+
+    const beginEditCard = (r: MatchEventRow) => {
+      const t = String(r.type ?? '').toLowerCase();
+      setEditingCardId(r.id);
+      setEditCardMinute(String(Math.max(0, Math.floor((Number(r.minute ?? 0) || 0) / 60))));
+      setEditCardType(t === 'red_card' || t === 'card_red' || t === 'red' ? 'red_card' : 'yellow_card');
+      setEditCardPlayerId(r.player_id ?? '');
+    };
+
+    const saveCardEdit = async () => {
+      if (!editingCardId) return;
+      const minute = Math.max(0, Number(editCardMinute.trim()) || 0);
+      const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
+      const { error: updErr } = await supabase
+        .from('match_events')
+        .update({
+          minute: seconds,
+          type: editCardType,
+          player_id: editCardPlayerId.trim() || null,
+        })
+        .eq('id', editingCardId);
+      if (updErr) {
+        setMatchError(updErr.message);
+        return;
+      }
+      await reloadMatchEvents();
+      setEditingCardId(null);
     };
 
     const saveManualScore = async () => {
@@ -1396,6 +1507,18 @@ export const EventDetailPage: React.FC = () => {
               {renderTabButton('stats', 'Statistik')}
             </div>
           </div>
+          {isTrainerOrAdmin ? (
+            <div className="mt-1 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setReportEditOpen(true)}
+                className="inline-flex h-[42px] items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 text-[12px] font-semibold text-white/85 transition hover:border-red-400/35 hover:shadow-[0_0_12px_rgba(220,38,38,0.2)] active:scale-[0.99]"
+              >
+                <Pencil className="h-3.5 w-3.5" aria-hidden />
+                Spielbericht bearbeiten
+              </button>
+            </div>
+          ) : null}
 
           {matchLoading ? <p className="text-sm text-white/70">Lade Spielbericht…</p> : null}
           {matchError ? (
@@ -1469,17 +1592,6 @@ export const EventDetailPage: React.FC = () => {
                   </span>
                 </div>
               </div>
-              {isTrainerOrAdmin ? (
-                <div className="mt-4">
-                  <button
-                    type="button"
-                    onClick={() => setReportEditOpen(true)}
-                    className="w-full rounded-2xl border border-red-500/35 bg-red-600/20 px-4 py-3 text-[13px] font-extrabold text-red-100 shadow-[0_0_18px_rgba(220,38,38,0.22)] hover:bg-red-600/25 active:scale-[0.99]"
-                  >
-                    Spielbericht bearbeiten
-                  </button>
-                </div>
-              ) : null}
             </div>
           ) : null}
 
@@ -1938,10 +2050,28 @@ export const EventDetailPage: React.FC = () => {
               </Button>
             }
           >
-            <div className="space-y-4">
+            <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+              <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Ergebnis / Abschnitte</p>
+                <p className="mt-1 text-[12px] text-white/60">
+                  Endstand wird aus Toren berechnet, wenn Tore geändert werden.
+                </p>
+                <div className="mt-2 flex items-center justify-between rounded-xl border border-white/10 bg-black/35 px-3 py-2">
+                  <span className="text-[12px] text-white/65">Endstand</span>
+                  <span className="text-[15px] font-bold tabular-nums text-white">
+                    {(scoreHome ?? 0)}:{(scoreAway ?? 0)}
+                  </span>
+                </div>
+                {shownPeriodLine ? (
+                  <p className="mt-1.5 text-center text-[12px] tabular-nums text-white/65">{shownPeriodLine}</p>
+                ) : null}
+                <Button variant="secondary" className="mt-2 w-full" onClick={() => setScoreEditOpen(true)}>
+                  Ergebnis & Abschnitte bearbeiten
+                </Button>
+              </div>
 
               {editingEventId ? (
-                <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
+                <div className="rounded-2xl border border-red-500/25 bg-black/35 p-3 shadow-[0_0_18px_rgba(220,38,38,0.15)]">
                   <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Ereignis bearbeiten</p>
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     <label className="flex flex-col gap-1">
@@ -1959,9 +2089,7 @@ export const EventDetailPage: React.FC = () => {
                         value={editEventType}
                         onChange={(e) =>
                           setEditEventType(
-                            (['goal_home', 'goal_away', 'switch'] as const).includes(
-                              e.target.value as any,
-                            )
+                            (['goal_home', 'goal_away', 'switch'] as const).includes(e.target.value as any)
                               ? (e.target.value as any)
                               : 'goal_home',
                           )
@@ -2035,8 +2163,89 @@ export const EventDetailPage: React.FC = () => {
                 </div>
               ) : null}
 
+              {editingCardId ? (
+                <div className="rounded-2xl border border-red-500/25 bg-black/35 p-3 shadow-[0_0_18px_rgba(220,38,38,0.15)]">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Karte bearbeiten</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[12px] text-white/60">Minute</span>
+                      <input
+                        value={editCardMinute}
+                        onChange={(e) => setEditCardMinute(e.target.value)}
+                        inputMode="numeric"
+                        className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[12px] text-white/60">Typ</span>
+                      <select
+                        value={editCardType}
+                        onChange={(e) => setEditCardType(e.target.value === 'red_card' ? 'red_card' : 'yellow_card')}
+                        className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                      >
+                        <option value="yellow_card">Gelb</option>
+                        <option value="red_card">Rot</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label className="mt-2 flex flex-col gap-1">
+                    <span className="text-[12px] text-white/60">Spieler</span>
+                    <select
+                      value={editCardPlayerId}
+                      onChange={(e) => setEditCardPlayerId(e.target.value)}
+                      className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[14px] text-white/90"
+                    >
+                      <option value="">—</option>
+                      {players.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {(p.display_name ?? p.name ?? 'Spieler').trim()}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <Button variant="ghost" onClick={() => setEditingCardId(null)}>
+                      Abbrechen
+                    </Button>
+                    <Button variant="primary" onClick={() => void saveCardEdit()}>
+                      Speichern
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Tor hinzufügen</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Tore bearbeiten</p>
+                <div className="mt-2 space-y-2">
+                  {goalEvents.length === 0 ? (
+                    <p className="text-[12px] text-white/55">Keine Tore erfasst.</p>
+                  ) : (
+                    goalEvents.map((g) => (
+                      <div key={g.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/35 px-3 py-2">
+                        <p className="text-[12px] text-white/85">
+                          {minuteLabel(g.minute)} · {String(g.type ?? '').toLowerCase() === 'goal_away' ? 'Auswärts' : 'Heim'} ·{' '}
+                          {playerName(g.player_id) ?? 'Spieler'}
+                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
+                            onClick={() => beginEditEvent(g)}
+                          >
+                            Bearbeiten
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-lg border border-red-400/35 bg-red-500/10 px-2 py-1 text-[11px] text-red-200/90 hover:bg-red-500/15"
+                            onClick={() => void deleteTickerRow([g])}
+                          >
+                            Löschen
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <label className="flex flex-col gap-1">
                     <span className="text-[12px] text-white/60">Minute</span>
@@ -2076,11 +2285,150 @@ export const EventDetailPage: React.FC = () => {
                   </select>
                 </label>
                 <Button variant="primary" className="mt-3 w-full" onClick={() => void addGoal()}>
-                  Tor speichern
+                  Neues Tor
                 </Button>
-                <p className="mt-2 text-[12px] text-white/55">
-                  Endstand wird automatisch aus den Toren neu berechnet.
-                </p>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Wechsel bearbeiten</p>
+                <div className="mt-2 space-y-2">
+                  {switchRows.length === 0 ? (
+                    <p className="text-[12px] text-white/55">Keine Wechsel erfasst.</p>
+                  ) : (
+                    switchRows.map((row) => {
+                      const outEvent = row.items.find((x) => String(x.type ?? '').toLowerCase() === 'sub_out') ?? row.items[0]!;
+                      const inEvent = row.items.find((x) => String(x.type ?? '').toLowerCase() === 'sub_in') ?? row.items[0]!;
+                      return (
+                        <div key={row.key} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/35 px-3 py-2">
+                          <p className="text-[12px] text-white/85">
+                            {minuteLabel(outEvent.minute)} · {playerName(outEvent.player_id) ?? 'Spieler'} → {playerName(inEvent.player_id) ?? 'Spieler'}
+                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
+                              onClick={() => beginEditEvent(outEvent)}
+                            >
+                              Bearbeiten
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded-lg border border-red-400/35 bg-red-500/10 px-2 py-1 text-[11px] text-red-200/90 hover:bg-red-500/15"
+                              onClick={() => void deleteTickerRow(row.items)}
+                            >
+                              Löschen
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  <input
+                    value={newSwitchMinute}
+                    onChange={(e) => setNewSwitchMinute(e.target.value)}
+                    inputMode="numeric"
+                    placeholder="Minute"
+                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[13px] text-white/90"
+                  />
+                  <select
+                    value={newSwitchOutPlayerId}
+                    onChange={(e) => setNewSwitchOutPlayerId(e.target.value)}
+                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[13px] text-white/90"
+                  >
+                    <option value="">Raus</option>
+                    {players.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {(p.display_name ?? p.name ?? 'Spieler').trim()}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={newSwitchInPlayerId}
+                    onChange={(e) => setNewSwitchInPlayerId(e.target.value)}
+                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[13px] text-white/90"
+                  >
+                    <option value="">Rein</option>
+                    {players.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {(p.display_name ?? p.name ?? 'Spieler').trim()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button variant="secondary" className="mt-3 w-full" onClick={() => void addSwitch()}>
+                  Neuer Wechsel
+                </Button>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">Karten bearbeiten</p>
+                <div className="mt-2 space-y-2">
+                  {cardEvents.length === 0 ? (
+                    <p className="text-[12px] text-white/55">Keine Karten erfasst.</p>
+                  ) : (
+                    cardEvents.map((c) => {
+                      const t = String(c.type ?? '').toLowerCase();
+                      const isRed = ['red_card', 'card_red', 'red'].includes(t);
+                      return (
+                        <div key={c.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/35 px-3 py-2">
+                          <p className="text-[12px] text-white/85">
+                            {minuteLabel(c.minute)} · {isRed ? 'Rot' : 'Gelb'} · {playerName(c.player_id) ?? 'Spieler'}
+                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
+                              onClick={() => beginEditCard(c)}
+                            >
+                              Bearbeiten
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded-lg border border-red-400/35 bg-red-500/10 px-2 py-1 text-[11px] text-red-200/90 hover:bg-red-500/15"
+                              onClick={() => void deleteTickerRow([c])}
+                            >
+                              Löschen
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  <input
+                    value={newCardMinute}
+                    onChange={(e) => setNewCardMinute(e.target.value)}
+                    inputMode="numeric"
+                    placeholder="Minute"
+                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[13px] text-white/90"
+                  />
+                  <select
+                    value={newCardType}
+                    onChange={(e) => setNewCardType(e.target.value === 'red_card' ? 'red_card' : 'yellow_card')}
+                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[13px] text-white/90"
+                  >
+                    <option value="yellow_card">Gelb</option>
+                    <option value="red_card">Rot</option>
+                  </select>
+                  <select
+                    value={newCardPlayerId}
+                    onChange={(e) => setNewCardPlayerId(e.target.value)}
+                    className="h-10 rounded-xl border border-white/10 bg-black/40 px-3 text-[13px] text-white/90"
+                  >
+                    <option value="">Spieler</option>
+                    {players.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {(p.display_name ?? p.name ?? 'Spieler').trim()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button variant="secondary" className="mt-3 w-full" onClick={() => void addCard()}>
+                  Neue Karte
+                </Button>
               </div>
             </div>
           </Modal>
