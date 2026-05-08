@@ -975,6 +975,52 @@ export const EventDetailPage: React.FC = () => {
       return (p?.display_name ?? p?.name ?? '').trim() || null;
     };
 
+    const squadPlayerIds = (() => {
+      const ids = new Set<string>();
+      for (const r of lineupRows) {
+        if (r.player_id) ids.add(r.player_id);
+      }
+      for (const r of benchRows) {
+        if (r.player_id) ids.add(r.player_id);
+      }
+      return ids;
+    })();
+
+    const editorPlayerSelectExtras = new Set<string>();
+    const noteExtra = (id: string | null | undefined) => {
+      const t = (id ?? '').trim();
+      if (t) editorPlayerSelectExtras.add(t);
+    };
+    noteExtra(goalPlayerId);
+    noteExtra(editEventPlayerId);
+    noteExtra(editSwitchOutPlayerId);
+    noteExtra(editSwitchInPlayerId);
+    noteExtra(newSwitchOutPlayerId);
+    noteExtra(newSwitchInPlayerId);
+    noteExtra(newCardPlayerId);
+    noteExtra(editCardPlayerId);
+
+    const editorPlayers =
+      squadPlayerIds.size > 0
+        ? (() => {
+            const list = players.filter((p) => squadPlayerIds.has(p.id));
+            const out = [...list];
+            for (const pid of editorPlayerSelectExtras) {
+              if (squadPlayerIds.has(pid)) continue;
+              const p = players.find((x) => x.id === pid);
+              if (p && !out.some((x) => x.id === p.id)) out.push(p);
+            }
+            return out;
+          })()
+        : [];
+
+    const renderEditorPlayerOptions = () =>
+      editorPlayers.map((p) => (
+        <option key={p.id} value={p.id}>
+          {(p.display_name ?? p.name ?? 'Spieler').trim()}
+        </option>
+      ));
+
     const timelineEvents = matchEvents;
     const periodLineFromInputs =
       p1h !== '' && p1a !== '' && p2h !== '' && p2a !== '' && p3h !== '' && p3a !== ''
@@ -1101,8 +1147,6 @@ export const EventDetailPage: React.FC = () => {
       setMatchRowLite((prev) =>
         prev ? { ...prev, score_home: totals.home, score_away: totals.away } : prev,
       );
-      setManualScoreHome(String(totals.home));
-      setManualScoreAway(String(totals.away));
     };
 
     const addGoal = async () => {
@@ -1136,6 +1180,7 @@ export const EventDetailPage: React.FC = () => {
 
     const deleteTickerRow = async (items: MatchEventRow[]) => {
       if (!event.match_id || items.length === 0) return;
+      setMatchError(null);
       const ids = items.map((x) => x.id);
       const didTouchGoals = items.some((x) => {
         const t = String(x.type ?? '').toLowerCase();
@@ -1217,6 +1262,7 @@ export const EventDetailPage: React.FC = () => {
 
     const saveCardEdit = async () => {
       if (!editingCardId) return;
+      setMatchError(null);
       const minute = Math.max(0, Number(editCardMinute.trim()) || 0);
       const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
       const { error: updErr } = await supabase
@@ -1237,18 +1283,36 @@ export const EventDetailPage: React.FC = () => {
 
     const savePeriodScores = async () => {
       if (!event.match_id) return;
-      const nums = [p1h, p1a, p2h, p2a, p3h, p3a].map((v) => Number(v));
-      if (nums.some((n) => Number.isNaN(n) || n < 0)) {
-        setMatchError('Abschnitte müssen gültige Zahlen >= 0 sein.');
+      const parseCell = (v: string) => {
+        const t = v.trim();
+        if (t === '') return 0;
+        const n = Number(t);
+        return Number.isNaN(n) ? NaN : Math.floor(n);
+      };
+      const h1 = parseCell(p1h);
+      const a1 = parseCell(p1a);
+      const h2 = parseCell(p2h);
+      const a2 = parseCell(p2a);
+      const h3 = parseCell(p3h);
+      const a3 = parseCell(p3a);
+      if ([h1, a1, h2, a2, h3, a3].some((n) => Number.isNaN(n) || n < 0)) {
+        setMatchError('Abschnitte müssen gültige Zahlen >= 0 sein (leer = 0).');
+        return;
+      }
+      const totals = recomputeTotalsFromMatchEvents(matchEvents);
+      const sumH = h1 + h2 + h3;
+      const sumA = a1 + a2 + a3;
+      if (sumH !== totals.home || sumA !== totals.away) {
+        setMatchError('Abschnitte passen nicht zum Endstand.');
         return;
       }
       const period_scores = {
-        p1h: Math.floor(nums[0]!),
-        p1a: Math.floor(nums[1]!),
-        p2h: Math.floor(nums[2]!),
-        p2a: Math.floor(nums[3]!),
-        p3h: Math.floor(nums[4]!),
-        p3a: Math.floor(nums[5]!),
+        p1h: h1,
+        p1a: a1,
+        p2h: h2,
+        p2a: a2,
+        p3h: h3,
+        p3a: a3,
       };
       const { error: updErr } = await updateMatchRow(event.match_id, { period_scores });
       if (updErr) {
@@ -1280,6 +1344,7 @@ export const EventDetailPage: React.FC = () => {
 
     const saveEventEdit = async () => {
       if (!editingEventId) return;
+      setMatchError(null);
       const minute = Math.max(0, Number(editEventMinute.trim()) || 0);
       const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
       const old = timelineEvents.find((x) => x.id === editingEventId);
@@ -1334,8 +1399,8 @@ export const EventDetailPage: React.FC = () => {
           }
         }
       } else {
+        didTouchGoals = true;
         const newDbType = editEventType === 'goal_away' ? 'goal_away' : 'goal';
-        didTouchGoals = didTouchGoals || newDbType === 'goal' || newDbType === 'goal_away';
         const { error: updErr } = await supabase
           .from('match_events')
           .update({
@@ -1870,11 +1935,7 @@ export const EventDetailPage: React.FC = () => {
                         className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                       >
                         <option value="">—</option>
-                        {players.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {(p.display_name ?? p.name ?? 'Spieler').trim()}
-                          </option>
-                        ))}
+                        {renderEditorPlayerOptions()}
                       </select>
                     </label>
                     <div className="mt-4 grid grid-cols-2 gap-3">
@@ -1960,11 +2021,7 @@ export const EventDetailPage: React.FC = () => {
                     className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                   >
                     <option value="">—</option>
-                    {players.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {(p.display_name ?? p.name ?? 'Spieler').trim()}
-                      </option>
-                    ))}
+                    {renderEditorPlayerOptions()}
                   </select>
                 </label>
                 <Button variant="primary" className="mt-4 min-h-[48px] w-full text-[16px] font-semibold" onClick={() => void addGoal()}>
@@ -1996,11 +2053,7 @@ export const EventDetailPage: React.FC = () => {
                           className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                         >
                           <option value="">—</option>
-                          {players.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {(p.display_name ?? p.name ?? 'Spieler').trim()}
-                            </option>
-                          ))}
+                          {renderEditorPlayerOptions()}
                         </select>
                       </label>
                       <label className="flex flex-col gap-2">
@@ -2011,11 +2064,7 @@ export const EventDetailPage: React.FC = () => {
                           className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                         >
                           <option value="">—</option>
-                          {players.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {(p.display_name ?? p.name ?? 'Spieler').trim()}
-                            </option>
-                          ))}
+                          {renderEditorPlayerOptions()}
                         </select>
                       </label>
                     </div>
@@ -2091,11 +2140,7 @@ export const EventDetailPage: React.FC = () => {
                     className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                   >
                     <option value="">Raus</option>
-                    {players.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {(p.display_name ?? p.name ?? 'Spieler').trim()}
-                      </option>
-                    ))}
+                    {renderEditorPlayerOptions()}
                   </select>
                   <select
                     value={newSwitchInPlayerId}
@@ -2103,11 +2148,7 @@ export const EventDetailPage: React.FC = () => {
                     className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                   >
                     <option value="">Rein</option>
-                    {players.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {(p.display_name ?? p.name ?? 'Spieler').trim()}
-                      </option>
-                    ))}
+                    {renderEditorPlayerOptions()}
                   </select>
                 </div>
                 <Button variant="secondary" className="mt-4 min-h-[48px] w-full text-[16px] font-semibold" onClick={() => void addSwitch()}>
@@ -2151,11 +2192,7 @@ export const EventDetailPage: React.FC = () => {
                         className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                       >
                         <option value="">—</option>
-                        {players.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {(p.display_name ?? p.name ?? 'Spieler').trim()}
-                          </option>
-                        ))}
+                        {renderEditorPlayerOptions()}
                       </select>
                     </label>
                     <div className="mt-4 grid grid-cols-2 gap-3">
@@ -2233,11 +2270,7 @@ export const EventDetailPage: React.FC = () => {
                     className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                   >
                     <option value="">Spieler</option>
-                    {players.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {(p.display_name ?? p.name ?? 'Spieler').trim()}
-                      </option>
-                    ))}
+                    {renderEditorPlayerOptions()}
                   </select>
                 </div>
                 <Button variant="secondary" className="mt-4 min-h-[48px] w-full text-[16px] font-semibold" onClick={() => void addCard()}>
