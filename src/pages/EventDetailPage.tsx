@@ -1237,8 +1237,8 @@ export const EventDetailPage: React.FC = () => {
             </Link>
           </div>
 
-          <div className="mb-4 -mx-3.5 w-[calc(100%+1.75rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full">
-            <section className="mb-3 w-full pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
+          <div className="mb-2 -mx-3.5 w-[calc(100%+1.75rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full">
+            <section className="mb-1.5 w-full pb-[max(0.35rem,env(safe-area-inset-bottom,0px))]">
               <div className="mb-1.5 flex items-center justify-between gap-2 px-0.5">
                 <h2 className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-300/90">Spielbericht</h2>
                 <span className="shrink-0 rounded-md border border-red-500/35 bg-black/55 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-red-200/95">
@@ -1247,48 +1247,53 @@ export const EventDetailPage: React.FC = () => {
               </div>
 
               <div className="relative w-full overflow-hidden rounded-[2rem] border border-red-500/30 bg-black shadow-[0_0_40px_rgba(255,0,0,0.25)]">
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#020202] via-[#130304] to-[#2a0507]" />
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.05),transparent_46%),radial-gradient(ellipse_at_bottom,rgba(200,30,30,0.18),transparent_62%)]" />
-                <div className="pointer-events-none absolute inset-0 opacity-55 [background:linear-gradient(180deg,rgba(0,0,0,0.18)_0%,rgba(0,0,0,0.52)_52%,rgba(0,0,0,0.76)_100%)]" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#010101] via-[#120304] to-[#0a0a0a]" />
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.05),transparent_44%),radial-gradient(ellipse_at_bottom,rgba(170,22,30,0.12),transparent_60%)]" />
+                <div className="pointer-events-none absolute inset-0 opacity-55 [background:linear-gradient(180deg,rgba(0,0,0,0.24)_0%,rgba(0,0,0,0.56)_48%,rgba(0,0,0,0.84)_100%)]" />
 
-                <div className="relative z-10 px-3 py-2.5 sm:px-4 sm:py-3">
+                <div className="relative z-10 px-3 py-2 sm:px-4 sm:py-2.5">
                   <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-x-2">
                     <div className="flex min-w-0 flex-col items-center text-center">
                       <img src={homeLogoSrc} alt="" className="h-10 w-10 object-contain drop-shadow sm:h-11 sm:w-11" />
                       <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
                         {homeSplit.prefix || ' '}
                       </p>
-                      <p className="mt-0.5 line-clamp-2 min-w-0 text-center text-[15px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] sm:text-[16px]">
+                      <p className="mt-0.5 line-clamp-2 min-w-0 max-w-[8.5rem] text-center text-[15px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] sm:max-w-[10rem] sm:text-[16px]">
                         {homeSplit.name || homeTeamName}
                       </p>
+                      {event.is_home !== false && compactGoalScorerLine ? (
+                        <p className="mt-0.5 line-clamp-1 text-[11px] leading-tight text-white/70">
+                          {compactGoalScorerLine}
+                        </p>
+                      ) : null}
                     </div>
 
                     <div className="flex min-w-0 flex-col items-center px-1 text-center">
                       <p className="text-[10px] font-semibold text-white/82">
                         {event.match_type ? getDomainEventLabel(event) : 'Meisterschaftsspiel'}
                       </p>
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.26em] text-red-300/90">ENDSTAND</p>
-                      <p className="mt-0.5 text-[2.35rem] font-black leading-none tabular-nums text-white sm:text-[2.6rem]">
+                      <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.32em] text-red-300/90">ENDSTAND</p>
+                      <p className="mt-0.5 text-[2.45rem] font-black leading-none tabular-nums text-white sm:text-[2.72rem]">
                         {scoreStr}
                       </p>
                       {shownPeriodLine ? (
-                        <p className="mt-0.5 text-[11px] tabular-nums leading-tight text-white/58">{shownPeriodLine}</p>
+                        <p className="mt-0 text-[11px] tabular-nums leading-tight text-white/58">{shownPeriodLine}</p>
                       ) : null}
                       {isTrainerOrAdmin ? (
                         <button
                           type="button"
                           onClick={() => setScoreEditOpen(true)}
-                          className="mt-1.5 rounded-xl border border-red-400/35 bg-transparent px-2.5 py-0.5 text-[11px] font-medium text-white/80 transition hover:shadow-[0_0_10px_rgba(220,38,38,0.2)]"
+                          className="mt-1 rounded-xl border border-red-400/35 bg-transparent px-2 py-0.5 text-[11px] font-medium text-white/78 transition hover:shadow-[0_0_10px_rgba(220,38,38,0.2)]"
                         >
                           Ergebnis ändern
                         </button>
                       ) : null}
                       {venue ? (
-                        <p className="mt-1.5 line-clamp-2 text-center text-[11px] leading-snug text-white/72">📍 {venue}</p>
+                        <p className="mt-1 line-clamp-2 text-center text-[10px] leading-snug text-white/70">📍 {venue}</p>
                       ) : null}
                       {homeAway ? (
                         <span
-                          className={`mt-1 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                          className={`mt-0.5 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                             event.is_home === true
                               ? 'border-emerald-400/35 bg-emerald-500/15 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
                               : 'border-amber-500/35 bg-amber-500/12 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.18)]'
@@ -1304,21 +1309,16 @@ export const EventDetailPage: React.FC = () => {
                       <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[11px]">
                         {awaySplit.prefix || ' '}
                       </p>
-                      <p className="mt-0.5 line-clamp-2 min-w-0 text-center text-[15px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] sm:text-[16px]">
+                      <p className="mt-0.5 line-clamp-2 min-w-0 max-w-[8.5rem] text-center text-[15px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal] sm:max-w-[10rem] sm:text-[16px]">
                         {awaySplit.name || awayTeamName}
                       </p>
                       {event.is_home === false && compactGoalScorerLine ? (
-                        <p className="mt-0.5 line-clamp-1 text-[11px] leading-tight text-white/65">
+                        <p className="mt-0.5 line-clamp-1 text-[11px] leading-tight text-white/70">
                           {compactGoalScorerLine}
                         </p>
                       ) : null}
                     </div>
                   </div>
-                  {event.is_home !== false && compactGoalScorerLine ? (
-                    <p className="mt-0.5 pl-[calc(66.66%+0.25rem)] pr-1 text-[11px] leading-tight text-white/65">
-                      {compactGoalScorerLine}
-                    </p>
-                  ) : null}
                 </div>
               </div>
             </section>
@@ -1341,7 +1341,7 @@ export const EventDetailPage: React.FC = () => {
           ) : null}
 
           {finishedTab === 'overview' ? (
-            <div className="rounded-2xl border border-white/10 bg-black/45 p-4 text-white/85 shadow-[0_10px_26px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-sm">
+            <div className="rounded-2xl border border-white/10 bg-black/45 p-4 text-white/85 shadow-[0_12px_28px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-sm">
               <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Spielbericht</p>
               <div className="mt-1 divide-y divide-white/[0.08] text-[14px]">
                 <div className="flex items-center justify-between gap-4 py-3.5">
