@@ -1,19 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import {
-  CalendarDays,
-  MapPin,
-  Repeat,
-  Shield,
-  Swords,
-  Trophy,
-  UserRound,
-  Users,
-  Pencil,
-  ThumbsDown,
-  ThumbsUp,
-  Trash2,
-} from 'lucide-react';
+import { Pencil, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
@@ -25,6 +12,7 @@ import { Card, CardTitle } from '../app/components/ui/Card';
 import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
+import { EventHeroCard } from '../components/schedule/EventHeroCard';
 import { AppButton } from '../components/ui/AppButton';
 import type { EventRow, EventKind, EventStatus } from '../hooks/useEvents';
 import type { PlayerItem } from '../hooks/usePlayers';
@@ -911,10 +899,10 @@ export const EventDetailPage: React.FC = () => {
         type="button"
         onClick={() => setFinishedTab(id)}
         className={[
-          'shrink-0 rounded-xl px-3 py-2 text-[12px] font-semibold transition-all',
+          'shrink-0 whitespace-nowrap rounded-lg border px-3 py-2 text-[12px] font-medium transition-all min-h-[32px]',
           finishedTab === id
-            ? 'border border-red-400/30 bg-white/[0.11] text-white shadow-[0_0_12px_rgba(220,38,38,0.18)]'
-            : 'border border-transparent text-white/70 hover:bg-white/[0.04] hover:text-white/90',
+            ? 'border-red-400/30 bg-white/[0.1] font-semibold text-white shadow-[0_0_10px_rgba(220,38,38,0.16)]'
+            : 'border-transparent text-white/75 hover:bg-white/[0.04] hover:text-white/90',
         ].join(' ')}
       >
         {label}
@@ -950,13 +938,40 @@ export const EventDetailPage: React.FC = () => {
       .filter((x): x is { text: string; minute: number } => Boolean(x));
     const shownOwnGoalScorers = ownGoalScorerEntries.slice(0, 4).map((x) => x.text);
     const ownGoalScorersMore = Math.max(0, ownGoalScorerEntries.length - shownOwnGoalScorers.length);
-    const scorerRows = timelineEvents
-      .filter((r) => ['goal', 'goal_away'].includes(String(r.type ?? '').toLowerCase()))
-      .map((r) => {
-        const t = String(r.type ?? '').toLowerCase();
-        const n = playerName(r.player_id) ?? (t === 'goal_away' ? opponentName : compactOurTeamName);
-        return `${n} ${Math.max(0, Math.floor((Number(r.minute ?? 0) || 0) / 60))}'`;
-      });
+
+    const finishedHeroBadge = (
+      <span className="shrink-0 rounded-md border border-red-950/80 bg-black/50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-red-300/95">
+        Beendet
+      </span>
+    );
+
+    const finishedHeroFooter = (
+      <div className="w-full space-y-1.5">
+        {shownPeriodLine ? (
+          <p className="text-center text-[13px] tabular-nums text-white/50">{shownPeriodLine}</p>
+        ) : null}
+        {shownOwnGoalScorers.length > 0 ? (
+          <p className="text-center text-[12px] leading-snug text-white/60">
+            <span className="text-white/72">⚽ Tore {compactOurTeamName}:</span>{' '}
+            <span className="line-clamp-2 text-white/85">
+              {shownOwnGoalScorers.join(', ')}
+              {ownGoalScorersMore > 0 ? `, … und ${ownGoalScorersMore} weitere` : ''}
+            </span>
+          </p>
+        ) : null}
+        {isTrainerOrAdmin ? (
+          <div className="flex justify-center pt-0.5">
+            <button
+              type="button"
+              onClick={() => setScoreEditOpen(true)}
+              className="rounded-lg border border-white/12 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/[0.08]"
+            >
+              Ergebnis ändern
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
 
     const goalCount = timelineEvents.filter((r) => {
       const t = String(r.type ?? '').toLowerCase();
@@ -1205,56 +1220,38 @@ export const EventDetailPage: React.FC = () => {
             </Link>
           </div>
 
-          <div className="-mx-1 w-[calc(100%+0.5rem)] max-w-none sm:mx-0 sm:w-full">
-            <MatchCardLigaportal
-              className="!overflow-visible w-full max-w-none rounded-[26px] !bg-gradient-to-br !from-[#180000] !via-black !to-[#240000] !border-red-500/20 !shadow-[0_10px_40px_rgba(255,0,0,0.18)]"
-              compactDetailGame
-              ourTeamName={compactOurTeamName}
-              opponent={opponentName}
-              isHome={event.is_home}
-              startsAt={event.starts_at}
-              status={'finished'}
-              kind={event.kind}
-              eventType={(event as any).type ?? undefined}
-              matchType={
-                event.kind === 'match'
-                  ? (event.match_type ?? (!event.type || event.type === 'game' ? 'league' : event.type))
-                  : null
-              }
-              notes={event.notes}
-              location={event.location}
-              address={event.location}
-              meetupAt={null}
-              showMeetup={false}
-              scoreHome={scoreHome}
-              scoreAway={scoreAway}
-              isPublicView={true}
-            />
-            {shownPeriodLine ? <p className="mt-1.5 text-center text-sm text-white/52">{shownPeriodLine}</p> : null}
-            {shownOwnGoalScorers.length > 0 ? (
-              <p className="mt-1 text-center text-[12px] leading-snug text-white/60">
-                <span className="text-white/72">⚽ Tore {compactOurTeamName}:</span>{' '}
-                <span className="line-clamp-2 text-white/85">
-                  {shownOwnGoalScorers.join(', ')}
-                  {ownGoalScorersMore > 0 ? `, … und ${ownGoalScorersMore} weitere` : ''}
-                </span>
-              </p>
-            ) : null}
-            {isTrainerOrAdmin ? (
-              <div className="mt-2 flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => setScoreEditOpen(true)}
-                  className="rounded-lg border border-white/12 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/[0.08]"
-                >
-                  Ergebnis ändern
-                </button>
-              </div>
-            ) : null}
+          <div className="mb-4 -mx-3.5 w-[calc(100%+1.75rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full">
+            <EventHeroCard label="Spielbericht" labelAside={finishedHeroBadge} footer={finishedHeroFooter}>
+              <MatchCardLigaportal
+                className="w-full max-w-full !px-2.5 !py-2.5 sm:!px-3 sm:!py-3"
+                scheduleNextMatchHero
+                ourTeamName={ourTeamName}
+                opponent={opponentName}
+                isHome={event.is_home}
+                startsAt={event.starts_at}
+                status={'finished'}
+                kind={event.kind}
+                eventType={(event as any).type ?? undefined}
+                matchType={
+                  event.kind === 'match'
+                    ? (event.match_type ?? (!event.type || event.type === 'game' ? 'league' : event.type))
+                    : null
+                }
+                notes={event.notes}
+                location={event.location}
+                address={event.location}
+                meetupAt={null}
+                showMeetup={false}
+                scoreHome={scoreHome}
+                scoreAway={scoreAway}
+                opponentLogoUrl={opponentLogo.trim() ? opponentLogo.trim() : null}
+                isPublicView={true}
+              />
+            </EventHeroCard>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/30 p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex min-h-[42px] min-w-max items-center gap-1">
+          <div className="flex justify-center">
+            <div className="inline-flex min-h-[36px] w-full max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-white/15 bg-black/25 p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {renderTabButton('overview', 'Übersicht')}
               {renderTabButton('lineup', 'Kader')}
               {renderTabButton('timeline', 'Ticker')}
@@ -1270,36 +1267,38 @@ export const EventDetailPage: React.FC = () => {
           ) : null}
 
           {finishedTab === 'overview' ? (
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/80">
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
               <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Spielbericht</p>
-              <div className="mt-2 grid gap-2 text-[14px]">
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2">
-                  <span className="inline-flex items-center gap-2 text-white/65"><Trophy className="h-3.5 w-3.5" /> Ergebnis</span>
-                  <span className="font-semibold text-white/95" style={{ fontVariantNumeric: 'tabular-nums' }}>
+              <div className="mt-1 divide-y divide-white/[0.07] text-[14px]">
+                <div className="flex items-center justify-between gap-4 py-3.5">
+                  <span className="shrink-0 text-white/70">⚽ Ergebnis</span>
+                  <span className="text-right font-semibold text-white/95 tabular-nums">
                     {(scoreHome ?? 0)} : {(scoreAway ?? 0)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2">
-                  <span className="inline-flex items-center gap-2 text-white/65"><CalendarDays className="h-3.5 w-3.5" /> Datum</span>
-                  <span className="text-right text-white/90">{formatEventDateTimeLabel(event.starts_at)}</span>
+                <div className="flex items-center justify-between gap-4 py-3.5">
+                  <span className="shrink-0 text-white/70">🕒 Datum</span>
+                  <span className="max-w-[min(100%,14rem)] text-right text-white/90 sm:max-w-none">
+                    {formatEventDateTimeLabel(event.starts_at)}
+                  </span>
                 </div>
                 {venue ? (
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2">
-                    <span className="inline-flex items-center gap-2 text-white/65"><MapPin className="h-3.5 w-3.5" /> Spielort</span>
-                    <span className="text-right text-white/90">{venue}</span>
+                  <div className="flex items-center justify-between gap-4 py-3.5">
+                    <span className="shrink-0 text-white/70">📍 Spielort</span>
+                    <span className="max-w-[min(100%,14rem)] text-right text-white/90 sm:max-w-none">{venue}</span>
                   </div>
                 ) : null}
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2">
-                  <span className="inline-flex items-center gap-2 text-white/65"><Shield className="h-3.5 w-3.5" /> Heim/Auswärts</span>
+                <div className="flex items-center justify-between gap-4 py-3.5">
+                  <span className="shrink-0 text-white/70">🏟 Heim/Auswärts</span>
                   <span className="text-white/90">{homeAway ?? '—'}</span>
                 </div>
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2">
-                  <span className="inline-flex items-center gap-2 text-white/65"><Swords className="h-3.5 w-3.5" /> Tore</span>
-                  <span className="text-white/90">{goalCount}</span>
+                <div className="flex items-center justify-between gap-4 py-3.5">
+                  <span className="shrink-0 text-white/70">⚽ Tore</span>
+                  <span className="tabular-nums text-white/90">{goalCount}</span>
                 </div>
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2">
-                  <span className="inline-flex items-center gap-2 text-white/65"><Repeat className="h-3.5 w-3.5" /> Wechsel</span>
-                  <span className="text-white/90">{subCount}</span>
+                <div className="flex items-center justify-between gap-4 py-3.5">
+                  <span className="shrink-0 text-white/70">🔁 Wechsel</span>
+                  <span className="tabular-nums text-white/90">{subCount}</span>
                 </div>
               </div>
               {isTrainerOrAdmin ? (
@@ -1328,7 +1327,7 @@ export const EventDetailPage: React.FC = () => {
                   <div className="mt-2 grid gap-3">
                     <div>
                       <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-white/55">Startelf</p>
-                      <ul className="mt-1.5 space-y-2 rounded-2xl border border-emerald-400/15 bg-emerald-500/[0.03] p-2">
+                      <ul className="mt-1.5 space-y-2 rounded-2xl border border-emerald-400/20 bg-emerald-500/[0.04] p-2 shadow-[0_0_20px_rgba(16,185,129,0.08)]">
                         {lineupRows.map((r, idx) => {
                           const p = players.find((x) => x.id === r.player_id);
                           return (
@@ -1351,7 +1350,7 @@ export const EventDetailPage: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-white/55">Bank</p>
-                      <ul className="mt-1.5 space-y-2">
+                      <ul className="mt-1.5 space-y-2 rounded-2xl border border-white/10 bg-black/25 p-2 shadow-[0_0_16px_rgba(0,0,0,0.35)]">
                         {benchRows.map((r, idx) => {
                           const p = players.find((x) => x.id === r.player_id);
                           return (
@@ -1378,42 +1377,36 @@ export const EventDetailPage: React.FC = () => {
           ) : null}
 
           {finishedTab === 'stats' ? (
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/75">
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
               <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/60">Stats</p>
               <div className="mt-2 grid grid-cols-2 gap-2 text-[14px]">
-                <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
-                  <p className="text-[11px] text-white/55">Tore Heim</p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-white">{scoreHome ?? 0}</p>
+                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
+                  <p className="text-[11px] font-medium text-white/55">Tore Heim</p>
+                  <p className="mt-1 text-2xl font-black tabular-nums text-white">{scoreHome ?? 0}</p>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
-                  <p className="text-[11px] text-white/55">Tore Auswärts</p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-white">{scoreAway ?? 0}</p>
+                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
+                  <p className="text-[11px] font-medium text-white/55">Tore Auswärts</p>
+                  <p className="mt-1 text-2xl font-black tabular-nums text-white">{scoreAway ?? 0}</p>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
-                  <p className="text-[11px] text-white/55">Wechsel</p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-white">{subCount}</p>
+                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
+                  <p className="text-[11px] font-medium text-white/55">Wechsel</p>
+                  <p className="mt-1 text-2xl font-black tabular-nums text-white">{subCount}</p>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
-                  <p className="text-[11px] text-white/55">Ereignisse</p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-white">{totalEvents}</p>
+                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
+                  <p className="text-[11px] font-medium text-white/55">Ereignisse</p>
+                  <p className="mt-1 text-2xl font-black tabular-nums text-white">{totalEvents}</p>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
-                  <p className="text-[11px] text-white/55">Torschützen</p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-white">{ownGoalScorerEntries.length}</p>
+                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
+                  <p className="text-[11px] font-medium text-white/55">Torschützen</p>
+                  <p className="mt-1 text-2xl font-black tabular-nums text-white">{ownGoalScorerEntries.length}</p>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
-                  <p className="text-[11px] text-white/55">Gelbe Karten</p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-white">
+                <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
+                  <p className="text-[11px] font-medium text-white/55">Gelbe Karten</p>
+                  <p className="mt-1 text-2xl font-black tabular-nums text-white">
                     {timelineEvents.filter((x) => ['yellow_card', 'card_yellow', 'yellow'].includes(String(x.type ?? '').toLowerCase())).length}
                   </p>
                 </div>
               </div>
-              {scorerRows.length > 0 ? (
-                <div className="mt-3 border-t border-white/10 pt-3">
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-white/55">Torschützen</p>
-                  <p className="mt-1 text-[13px] leading-relaxed text-white/82">{scorerRows.join(', ')}</p>
-                </div>
-              ) : null}
             </div>
           ) : null}
 
@@ -1448,9 +1441,24 @@ export const EventDetailPage: React.FC = () => {
                         : null;
                     const scoreBadge = scoreBadgeByEventId.get(r.id) ?? null;
                     const isLast = index === tickerRows.length - 1;
+                    const isGoalEv = t === 'goal' || t === 'goal_away';
+                    const isYellow = ['yellow_card', 'card_yellow', 'yellow'].includes(t);
+                    const isRedCard = ['red_card', 'card_red', 'red'].includes(t);
+                    const eventCardClass = [
+                      'min-w-0 flex-1 rounded-2xl bg-gradient-to-br from-zinc-950/95 via-zinc-950/80 to-black px-3 py-2.5',
+                      isGoalEv
+                        ? 'border border-red-500/30 shadow-[0_0_22px_rgba(220,38,38,0.22)]'
+                        : isSwitch
+                          ? 'border border-white/[0.08] shadow-[0_6px_24px_rgba(0,0,0,0.4)]'
+                          : isYellow
+                            ? 'border border-amber-400/25 shadow-[0_0_14px_rgba(245,158,11,0.14)]'
+                            : isRedCard
+                              ? 'border border-red-500/35 shadow-[0_0_14px_rgba(220,38,38,0.18)]'
+                              : 'border border-white/[0.08] shadow-[0_6px_28px_rgba(0,0,0,0.35)]',
+                    ].join(' ');
                     return (
                       <li key={row.key} className="flex gap-2 pb-2 last:pb-0">
-                        <div className="w-10 shrink-0 pt-1 text-right text-xs font-bold tabular-nums text-white/65">
+                        <div className="w-12 shrink-0 pt-0.5 text-right text-[15px] font-black tabular-nums leading-none text-red-200/90">
                           {minuteLabel(r.minute)}
                         </div>
                         <div className="relative flex w-3 shrink-0 flex-col items-center pt-1">
@@ -1459,36 +1467,44 @@ export const EventDetailPage: React.FC = () => {
                           ) : null}
                           <div className="relative z-10 mt-0.5 h-1.5 w-1.5 rounded-full bg-red-500" />
                         </div>
-                        <div className="min-w-0 flex-1 rounded-2xl border border-white/[0.08] bg-gradient-to-br from-zinc-950/95 via-zinc-950/80 to-black px-3 py-2 shadow-[0_6px_28px_rgba(0,0,0,0.35)]">
+                        <div className={eventCardClass}>
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               {isSwitch ? (
                                 <>
                                   <p className="text-[10px] font-black uppercase tracking-wide text-sky-300">🔁 Wechsel</p>
-                                  <p className="mt-1 text-[13px] font-semibold leading-snug text-white/90">
-                                    {switchOutName || switchInName
-                                      ? `${switchOutName ?? 'Spieler'} → ${switchInName ?? 'Spieler'}`
-                                      : 'Wechsel'}
-                                  </p>
+                                  {switchOutName || switchInName ? (
+                                    <div className="mt-1.5 space-y-0.5">
+                                      <p className="text-[12px] font-semibold leading-snug text-red-200/95">
+                                        Raus · {switchOutName ?? '—'}
+                                      </p>
+                                      <p className="py-0.5 text-center text-[11px] text-white/40">↓</p>
+                                      <p className="text-[12px] font-semibold leading-snug text-emerald-300/95">
+                                        Rein · {switchInName ?? '—'}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <p className="mt-1 text-[13px] text-white/75">Wechsel</p>
+                                  )}
                                 </>
                               ) : t === 'goal' || t === 'goal_away' ? (
                                 <>
                                   <p className="text-[10px] font-black uppercase tracking-wide text-emerald-300">
                                     ⚽ {t === 'goal' ? 'Tor Heim' : 'Tor Auswärts'}
                                   </p>
-                                  <p className="mt-1 truncate text-sm font-bold text-white">
+                                  <p className="mt-1 line-clamp-2 text-sm font-bold leading-snug text-white">
                                     {name ?? (t === 'goal_away' ? opponentName : compactOurTeamName)}
                                   </p>
                                 </>
-                              ) : ['yellow_card', 'card_yellow', 'yellow'].includes(t) ? (
+                              ) : isYellow ? (
                                 <>
                                   <p className="text-[10px] font-black uppercase tracking-wide text-amber-300">🟨 Gelb</p>
-                                  <p className="mt-1 truncate text-sm font-bold text-white">{name ?? 'Spieler'}</p>
+                                  <p className="mt-1 line-clamp-2 text-sm font-bold text-white">{name ?? 'Spieler'}</p>
                                 </>
-                              ) : ['red_card', 'card_red', 'red'].includes(t) ? (
+                              ) : isRedCard ? (
                                 <>
                                   <p className="text-[10px] font-black uppercase tracking-wide text-red-300">🟥 Rot</p>
-                                  <p className="mt-1 truncate text-sm font-bold text-white">{name ?? 'Spieler'}</p>
+                                  <p className="mt-1 line-clamp-2 text-sm font-bold text-white">{name ?? 'Spieler'}</p>
                                 </>
                               ) : (
                                 <p className="text-[13px] font-semibold leading-snug text-gray-200">
