@@ -22,6 +22,7 @@ import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { upsertMatchForSetup } from '../lib/liveMatchService';
 import { fetchMatchById, updateMatchRow } from '../lib/liveMatchService';
 import { buildPauseDelimitedPeriodScoreLine, type MatchEngineEvent } from '../lib/matchEngine';
+import { countStadiumGoalsFromMatchEventRows, normalizeMatchEventGoalType } from '../lib/matchEventScores';
 import {
   MATCH_FEED_TEMPLATE_KEYS,
   MATCH_FEED_TEMPLATE_LABELS,
@@ -426,11 +427,7 @@ export const EventDetailPage: React.FC = () => {
     };
   }, [event?.match_id, isFinishedMatchEvent]);
 
-  const recomputeTotalsFromMatchEvents = useCallback((rows: MatchEventRow[]) => {
-    const home = rows.filter((r) => String(r.type ?? '').toLowerCase() === 'goal').length;
-    const away = rows.filter((r) => String(r.type ?? '').toLowerCase() === 'goal_away').length;
-    return { home, away };
-  }, []);
+  const recomputeTotalsFromMatchEvents = useCallback((rows: MatchEventRow[]) => countStadiumGoalsFromMatchEventRows(rows), []);
 
   const periodLine = useMemo(() => {
     if (!matchRowLite) return null;
@@ -515,6 +512,28 @@ export const EventDetailPage: React.FC = () => {
     setP3h(match[5] ?? '');
     setP3a(match[6] ?? '');
   }, [periodLine, reportEditOpen, matchRowLite?.period_scores]);
+
+  /** Endstand in DB an Tore (nur type goal / goal_away) angleichen — repariert alte falsche score_home/score_away. */
+  useEffect(() => {
+    if (!isFinishedMatchEvent || !event?.match_id || matchLoading) return;
+    const t = countStadiumGoalsFromMatchEventRows(matchEvents);
+    const row = matchRowLite;
+    if (!row) return;
+    const sh = Number(row.score_home ?? 0);
+    const sa = Number(row.score_away ?? 0);
+    if (t.home === sh && t.away === sa) return;
+    let cancelled = false;
+    void (async () => {
+      const { error } = await updateMatchRow(event.match_id!, { score_home: t.home, score_away: t.away });
+      if (cancelled) return;
+      if (!error) {
+        setMatchRowLite((prev) => (prev ? { ...prev, score_home: t.home, score_away: t.away } : prev));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isFinishedMatchEvent, event?.match_id, matchLoading, matchEvents, matchRowLite]);
 
   const loadFeedFromEvent = useCallback(async () => {
     if (!eventId) return;
@@ -942,8 +961,9 @@ export const EventDetailPage: React.FC = () => {
 
   if (isFinishedMatchEvent) {
     const opponentName = (event.opponent ?? 'Gegner').trim() || 'Gegner';
-    const scoreHome = matchRowLite?.score_home ?? null;
-    const scoreAway = matchRowLite?.score_away ?? null;
+    const eventGoalTotals = countStadiumGoalsFromMatchEventRows(matchEvents);
+    const scoreHome = eventGoalTotals.home;
+    const scoreAway = eventGoalTotals.away;
     const venue = (() => {
       const parsed = splitCombinedLocation(matchRowLite?.location ?? event.location ?? '');
       return (parsed.place ?? '').trim() || (matchRowLite?.location ?? event.location ?? '').trim() || null;
@@ -963,12 +983,7 @@ export const EventDetailPage: React.FC = () => {
       event.is_home === false
         ? getClubLogo(ourTeamName)
         : getClubLogo(opponentName, { logoUrl: opponentLogo.trim() || undefined });
-    const scoreStr =
-      scoreHome != null && scoreAway != null
-        ? `${scoreHome}:${scoreAway}`
-        : scoreHome != null || scoreAway != null
-          ? `${scoreHome ?? '–'}:${scoreAway ?? '–'}`
-          : '–:–';
+    const scoreStr = `${scoreHome}:${scoreAway}`;
 
     const renderTabButton = (id: 'overview' | 'lineup' | 'timeline' | 'stats', label: string) => (
       <button
@@ -1061,13 +1076,10 @@ export const EventDetailPage: React.FC = () => {
         : null;
     const shownPeriodLine = periodLineFromInputs || periodLine;
     const goalScorerDisplayRows = timelineEvents
-      .filter((r) => {
-        const t = String(r.type ?? '').toLowerCase();
-        return (t === 'goal' || t === 'goal_away') && r.player_id;
-      })
+      .filter((r) => normalizeMatchEventGoalType(r.type) && r.player_id)
       .map((r) => {
-        const t = String(r.type ?? '').toLowerCase();
-        const teamLabel = t === 'goal_away' ? awayTeamName : homeTeamName;
+        const g = normalizeMatchEventGoalType(r.type);
+        const teamLabel = g === 'goal_away' ? awayTeamName : homeTeamName;
         const n = playerName(r.player_id) ?? '?';
         const m = Math.max(0, Math.floor((Number(r.minute ?? 0) || 0) / 60));
         return { name: n, teamLabel, minute: `${m}'` };
@@ -1135,12 +1147,18 @@ export const EventDetailPage: React.FC = () => {
       let h = 0;
       let a = 0;
       const map = new Map<string, string>();
-      for (const ev of timelineEvents) {
-        const t = String(ev.type ?? '').toLowerCase();
-        if (t === 'goal') {
+      const ordered = [...timelineEvents].sort((x, y) => {
+        const mx = Number(x.minute ?? 0) || 0;
+        const my = Number(y.minute ?? 0) || 0;
+        if (mx !== my) return mx - my;
+        return String(x.created_at ?? '').localeCompare(String(y.created_at ?? ''));
+      });
+      for (const ev of ordered) {
+        const g = normalizeMatchEventGoalType(ev.type);
+        if (g === 'goal') {
           h += 1;
           map.set(ev.id, `${h}:${a}`);
-        } else if (t === 'goal_away') {
+        } else if (g === 'goal_away') {
           a += 1;
           map.set(ev.id, `${h}:${a}`);
         }
@@ -1339,7 +1357,7 @@ export const EventDetailPage: React.FC = () => {
       const sumH = h1 + h2 + h3;
       const sumA = a1 + a2 + a3;
       if (sumH !== totals.home || sumA !== totals.away) {
-        setMatchError('Abschnitte passen nicht zum Endstand.');
+        setMatchError('Abschnitte passen nicht zum Endstand aus den Toren.');
         return;
       }
       const period_scores = {
@@ -1360,11 +1378,9 @@ export const EventDetailPage: React.FC = () => {
       setEditingEventId(r.id);
       setEditEventMinute(String(Math.max(0, Math.floor((Number(r.minute ?? 0) || 0) / 60))));
       const t = String(r.type ?? '').toLowerCase();
-      if (t === 'goal_away') setEditEventType('goal_away');
-      else if (t === 'sub_out' || t === 'sub_in') setEditEventType('switch');
-      else setEditEventType('goal_home');
-      setEditEventPlayerId((t === 'goal' || t === 'goal_away') ? (r.player_id ?? '') : '');
       if (t === 'sub_out' || t === 'sub_in') {
+        setEditEventType('switch');
+        setEditEventPlayerId('');
         const sameMinute = timelineEvents.filter((x) => Number(x.minute ?? 0) === Number(r.minute ?? 0));
         const out = sameMinute.find((x) => String(x.type ?? '').toLowerCase() === 'sub_out');
         const inn = sameMinute.find((x) => String(x.type ?? '').toLowerCase() === 'sub_in');
@@ -1373,6 +1389,10 @@ export const EventDetailPage: React.FC = () => {
       } else {
         setEditSwitchOutPlayerId('');
         setEditSwitchInPlayerId('');
+        if (t === 'goal_away') setEditEventType('goal_away');
+        else if (t === 'goal') setEditEventType('goal_home');
+        else setEditEventType('goal_home');
+        setEditEventPlayerId(normalizeMatchEventGoalType(r.type) ? (r.player_id ?? '') : '');
       }
     };
 
@@ -1580,7 +1600,7 @@ export const EventDetailPage: React.FC = () => {
                 <div className="flex items-center justify-between gap-4 py-3.5">
                   <span className="shrink-0 text-white/70">⚽ Ergebnis</span>
                   <span className="text-right font-semibold text-white/95 tabular-nums">
-                    {(scoreHome ?? 0)} : {(scoreAway ?? 0)}
+                    {scoreHome} : {scoreAway}
                   </span>
                 </div>
                 {shownPeriodLine ? (
@@ -1710,11 +1730,11 @@ export const EventDetailPage: React.FC = () => {
               <div className="mt-2 grid grid-cols-2 gap-2 text-[14px]">
                 <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
                   <p className="text-[11px] font-medium text-white/55">Tore Heim</p>
-                  <p className="mt-1 text-2xl font-black tabular-nums text-white">{scoreHome ?? 0}</p>
+                  <p className="mt-1 text-2xl font-black tabular-nums text-white">{scoreHome}</p>
                 </div>
                 <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
                   <p className="text-[11px] font-medium text-white/55">Tore Auswärts</p>
-                  <p className="mt-1 text-2xl font-black tabular-nums text-white">{scoreAway ?? 0}</p>
+                  <p className="mt-1 text-2xl font-black tabular-nums text-white">{scoreAway}</p>
                 </div>
                 <div className="rounded-xl border border-white/12 bg-gradient-to-br from-black/50 to-red-950/25 px-3 py-3 shadow-[0_0_16px_rgba(220,38,38,0.12)]">
                   <p className="text-[11px] font-medium text-white/55">Wechsel</p>
@@ -1817,11 +1837,11 @@ export const EventDetailPage: React.FC = () => {
                                 </>
                               ) : t === 'goal' || t === 'goal_away' ? (
                                 <>
-                                  <p className="text-[10px] font-black uppercase tracking-wide text-emerald-300">
-                                    ⚽ Tor {t === 'goal' ? homeTeamName : awayTeamName}
+                                  <p className="line-clamp-2 text-[15px] font-bold leading-snug text-white">
+                                    ⚽ {t === 'goal' ? homeTeamName : awayTeamName}
                                   </p>
-                                  <p className="mt-1 line-clamp-2 text-sm font-bold leading-snug text-white">
-                                    {name ? <>Torschütze: {name}</> : <>Ohne Torschütze</>}
+                                  <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-snug text-white/65">
+                                    {name ? `Torschütze: ${name}` : 'Ohne Torschütze'}
                                   </p>
                                 </>
                               ) : isYellow ? (
@@ -1903,7 +1923,7 @@ export const EventDetailPage: React.FC = () => {
                 <div className="mt-3 rounded-xl border border-white/10 bg-black/40 px-4 py-4 text-center">
                   <p className="text-[15px] font-medium text-white/65">Endstand</p>
                   <p className="mt-1 text-[34px] font-black tabular-nums leading-none text-white">
-                    {(scoreHome ?? 0)} : {(scoreAway ?? 0)}
+                    {scoreHome} : {scoreAway}
                   </p>
                   <p className="mt-2 text-[15px] leading-snug text-white/60">Wird automatisch aus den Toren berechnet.</p>
                 </div>
@@ -1971,8 +1991,8 @@ export const EventDetailPage: React.FC = () => {
                           }
                           className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                         >
-                          <option value="goal_home">Heim</option>
-                          <option value="goal_away">Auswärts</option>
+                          <option value="goal_home">Heim (Stadion)</option>
+                          <option value="goal_away">Auswärts (Stadion)</option>
                         </select>
                       </label>
                     </div>
@@ -2014,10 +2034,12 @@ export const EventDetailPage: React.FC = () => {
                             </span>
                             {minuteLabel(g.minute)}
                           </p>
-                          <p className="mt-1 text-[15px] text-white/55">
-                            {String(g.type ?? '').toLowerCase() === 'goal_away' ? 'Auswärts' : 'Heim'}
+                          <p className="mt-1 text-[17px] font-semibold text-white/95">
+                            {String(g.type ?? '').toLowerCase() === 'goal_away' ? awayTeamName : homeTeamName}
                           </p>
-                          <p className="mt-1 text-[17px] font-medium text-white/90">{playerName(g.player_id) ?? 'Spieler offen'}</p>
+                          <p className="mt-1 text-[14px] text-white/60">
+                            {playerName(g.player_id) ? `Torschütze: ${playerName(g.player_id)}` : 'Ohne Torschütze'}
+                          </p>
                         </div>
                         <div className="flex gap-2 sm:flex-shrink-0">
                           <button
@@ -2057,8 +2079,8 @@ export const EventDetailPage: React.FC = () => {
                       onChange={(e) => setGoalTeam(e.target.value === 'away' ? 'away' : 'home')}
                       className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                     >
-                      <option value="home">Heim</option>
-                      <option value="away">Auswärts</option>
+                      <option value="home">Heim (Stadion)</option>
+                      <option value="away">Auswärts (Stadion)</option>
                     </select>
                   </label>
                 </div>
