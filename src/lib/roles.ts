@@ -52,7 +52,13 @@ export const ROLE_LABELS_DE: Record<RoleKey, string> = {
 
 /** Darf Spiele anlegen/bearbeiten/löschen (Spielplan). */
 export function canManageMatches(role: RoleKey | null): boolean {
-  return role === 'trainer' || role === 'admin';
+  if (!role) return false;
+  return (
+    role === 'trainer' ||
+    role === 'admin' ||
+    role === 'head_coach' ||
+    role === 'co_trainer'
+  );
 }
 
 /** Darf Kader/Roster verwalten. */

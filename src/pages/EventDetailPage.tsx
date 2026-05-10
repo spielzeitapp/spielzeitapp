@@ -5,7 +5,8 @@ import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
-import { normalizeRole, canSeeMeetup } from '../lib/roles';
+import { normalizeRole, canSeeMeetup, canManageMatches } from '../lib/roles';
+import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
 import { getClubLogo, getOurTeamDisplayName } from '../lib/teamLogos';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { Card, CardTitle } from '../app/components/ui/Card';
@@ -276,7 +277,8 @@ export const EventDetailPage: React.FC = () => {
   const effectiveRole = normalizeRole(roleFromHook);
   const showMeetup = canSeeMeetup(effectiveRole);
   const isFan = effectiveRole === 'fan';
-  const isTrainerOrAdmin = effectiveRole === 'trainer' || effectiveRole === 'admin';
+  /** Trainer/Chef/Co/Admin: Spielplan & Spielbericht (Membership-Rolle ist bereits normalisiert). */
+  const canTrainerManageEvent = canManageMatches(effectiveRole);
   const ourTeamName = teamLabel ?? getOurTeamDisplayName();
 
   const teamSeasonId = event?.team_season_id ?? null;
@@ -469,6 +471,41 @@ export const EventDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (!reportEditOpen) return;
+    const ps = matchRowLite?.period_scores;
+    if (ps && typeof ps === 'object') {
+      const o = ps as Record<string, unknown>;
+      const fromPair = (k: string): [string, string] | null => {
+        const v = o[k];
+        if (!v || typeof v !== 'object') return null;
+        const p = v as { h?: unknown; a?: unknown };
+        const h = p.h;
+        const a = p.a;
+        if (h === undefined && a === undefined) return null;
+        return [String(h ?? '0'), String(a ?? '0')];
+      };
+      const a = fromPair('p1');
+      const b = fromPair('p2');
+      const c = fromPair('p3');
+      if (a && b && c) {
+        setP1h(a[0]);
+        setP1a(a[1]);
+        setP2h(b[0]);
+        setP2a(b[1]);
+        setP3h(c[0]);
+        setP3a(c[1]);
+        return;
+      }
+      const legacyH = (key: string) => (o[key] !== undefined && o[key] !== null ? String(o[key]) : '');
+      if (legacyH('p1h') !== '' || legacyH('p1a') !== '') {
+        setP1h(legacyH('p1h'));
+        setP1a(legacyH('p1a'));
+        setP2h(legacyH('p2h'));
+        setP2a(legacyH('p2a'));
+        setP3h(legacyH('p3h'));
+        setP3a(legacyH('p3a'));
+        return;
+      }
+    }
     const match = /\((\d+):(\d+)\s*\|\s*(\d+):(\d+)\s*\|\s*(\d+):(\d+)\)/.exec(periodLine ?? '');
     if (!match) return;
     setP1h(match[1] ?? '');
@@ -477,7 +514,7 @@ export const EventDetailPage: React.FC = () => {
     setP2a(match[4] ?? '');
     setP3h(match[5] ?? '');
     setP3a(match[6] ?? '');
-  }, [periodLine, reportEditOpen]);
+  }, [periodLine, reportEditOpen, matchRowLite?.period_scores]);
 
   const loadFeedFromEvent = useCallback(async () => {
     if (!eventId) return;
@@ -504,7 +541,7 @@ export const EventDetailPage: React.FC = () => {
   }, [eventId, event?.kind, loadFeedFromEvent]);
 
   useEffect(() => {
-    if (!event || event.kind !== 'match' || !isTrainerOrAdmin || event.match_id) {
+    if (!event || event.kind !== 'match' || !canTrainerManageEvent || event.match_id) {
       setMatchLinkBusy(false);
       setMatchLinkError(null);
       return;
@@ -570,7 +607,7 @@ export const EventDetailPage: React.FC = () => {
     event?.starts_at,
     event?.opponent,
     event?.location,
-    isTrainerOrAdmin,
+    canTrainerManageEvent,
   ]);
 
   useEffect(() => {
@@ -599,7 +636,7 @@ export const EventDetailPage: React.FC = () => {
   }, [eventId, playerId]);
 
   const saveFeedSettings = useCallback(async () => {
-    if (!eventId || !isTrainerOrAdmin || event?.kind !== 'match') return;
+    if (!eventId || !canTrainerManageEvent || event?.kind !== 'match') return;
     setFeedSaving(true);
     const { error } = await supabase
       .from('events')
@@ -621,7 +658,7 @@ export const EventDetailPage: React.FC = () => {
   }, [
     eventId,
     event?.kind,
-    isTrainerOrAdmin,
+    canTrainerManageEvent,
     showInFeed,
     template,
     playerImage,
@@ -734,7 +771,7 @@ export const EventDetailPage: React.FC = () => {
         targetPlayerId,
         status,
       });
-      if (!eventId || !isTrainerOrAdmin) return;
+      if (!eventId || !canTrainerManageEvent) return;
       if (event?.kind === 'training' && status === 'yes') {
         console.log('[ATTENDANCE FLOW] trainer delete request', {
           table: 'event_attendance',
@@ -770,7 +807,7 @@ export const EventDetailPage: React.FC = () => {
       setEventAttendanceByPlayerId((prev) => ({ ...prev, [(targetPlayerId ?? '').toLowerCase()]: status }));
       await loadEventAttendance();
     },
-    [eventId, event?.kind, isTrainerOrAdmin, loadEventAttendance]
+    [eventId, event?.kind, canTrainerManageEvent, loadEventAttendance]
   );
 
   const getAttendanceStatus = useCallback(
@@ -855,39 +892,17 @@ export const EventDetailPage: React.FC = () => {
   }, [editEvent, editDateTime, editLocation, editLocationAddress, editMeetupAt, editOpponent, editTrainingDeadlineDisabled, closeEditModal, loadEvent]);
 
   const handleDeleteEvent = useCallback(async () => {
-    if (!eventId || !isTrainerOrAdmin || !event) return;
+    if (!eventId || !canTrainerManageEvent || !event) return;
     setDeletingEvent(true);
-    const matchIds = event.match_id ? [event.match_id] : [];
-    const { error } = await supabase.from('events').delete().eq('id', event.id);
-    if (error) {
-      alert(error.message);
-      setDeletingEvent(false);
+    const { error: delErr } = await deleteEventAndRelatedData(event.id, event.match_id ?? null);
+    setDeletingEvent(false);
+    if (delErr) {
+      alert(delErr);
       return;
     }
-    for (const matchId of matchIds) {
-      const { data: refs, error: refsErr } = await supabase
-        .from('events')
-        .select('id')
-        .eq('match_id', matchId)
-        .limit(1);
-      if (refsErr) {
-        alert(refsErr.message);
-        setDeletingEvent(false);
-        return;
-      }
-      if ((refs ?? []).length === 0) {
-        const { error: delMatchErr } = await supabase.from('matches').delete().eq('id', matchId);
-        if (delMatchErr) {
-          alert(delMatchErr.message);
-          setDeletingEvent(false);
-          return;
-        }
-      }
-    }
-    setDeletingEvent(false);
     setDeleteConfirmOpen(false);
     navigate('/app/termine');
-  }, [eventId, event, isTrainerOrAdmin, navigate]);
+  }, [eventId, event, canTrainerManageEvent, navigate]);
 
   if (!eventId) {
     return (
@@ -993,6 +1008,17 @@ export const EventDetailPage: React.FC = () => {
       return ids;
     })();
 
+    const requireSquadPlayer = (id: string | null | undefined, ctx: string): boolean => {
+      const t = String(id ?? '').trim();
+      if (!t) return true;
+      if (squadPlayerIds.size === 0) return true;
+      if (!squadPlayerIds.has(t)) {
+        setMatchError(`${ctx}: nur Spieler aus dem Matchkader (Startelf + Bank).`);
+        return false;
+      }
+      return true;
+    };
+
     const editorPlayerSelectExtras = new Set<string>();
     const noteExtra = (id: string | null | undefined) => {
       const t = (id ?? '').trim();
@@ -1034,28 +1060,24 @@ export const EventDetailPage: React.FC = () => {
         ? `(${p1h}:${p1a} | ${p2h}:${p2a} | ${p3h}:${p3a})`
         : null;
     const shownPeriodLine = periodLineFromInputs || periodLine;
-    const ownGoalScorerEntries = timelineEvents
-      .filter((r) => String(r.type ?? '').toLowerCase() === 'goal' && r.player_id)
-      .map((r) => {
-        const n = playerName(r.player_id) ?? null;
-        if (!n) return null;
-        const m = Math.max(0, Math.floor((Number(r.minute ?? 0) || 0) / 60));
-        return { text: `${n} ${m}'`, minute: m };
+    const goalScorerDisplayRows = timelineEvents
+      .filter((r) => {
+        const t = String(r.type ?? '').toLowerCase();
+        return (t === 'goal' || t === 'goal_away') && r.player_id;
       })
-      .filter((x): x is { text: string; minute: number } => Boolean(x));
-    const shownOwnGoalScorers = ownGoalScorerEntries.slice(0, 4).map((x) => x.text);
-    const ownGoalScorersMore = Math.max(0, ownGoalScorerEntries.length - shownOwnGoalScorers.length);
-    const reportGoalScorerLines = ownGoalScorerEntries.map((entry) => {
-      const match = /^(.+)\s+(\d+')$/.exec(entry.text);
-      if (!match) return { name: entry.text, minute: '' };
-      const fullName = match[1]!.trim();
-      const minute = match[2]!;
-      const parts = fullName.split(/\s+/).filter(Boolean);
-      if (parts.length <= 1) return { name: fullName, minute };
-      const first = parts[0]!;
-      const last = parts[parts.length - 1]!;
-      return { name: `${last} ${first[0]?.toUpperCase() ?? ''}.`, minute };
-    });
+      .map((r) => {
+        const t = String(r.type ?? '').toLowerCase();
+        const teamLabel = t === 'goal_away' ? awayTeamName : homeTeamName;
+        const n = playerName(r.player_id) ?? '?';
+        const m = Math.max(0, Math.floor((Number(r.minute ?? 0) || 0) / 60));
+        return { name: n, teamLabel, minute: `${m}'` };
+      });
+    const ownGoalScorerEntries = goalScorerDisplayRows;
+    const reportGoalScorerLines = goalScorerDisplayRows.map((r) => ({
+      name: r.name,
+      team: r.teamLabel,
+      minute: r.minute,
+    }));
 
     const goalCount = timelineEvents.filter((r) => {
       const t = String(r.type ?? '').toLowerCase();
@@ -1162,6 +1184,7 @@ export const EventDetailPage: React.FC = () => {
       const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
       try {
         setMatchError(null);
+        if (!requireSquadPlayer(goalPlayerId, 'Torschütze')) return;
         const dbType = goalTeam === 'away' ? 'goal_away' : 'goal';
         const { error: insErr } = await supabase.from('match_events').insert({
           match_id: event.match_id,
@@ -1205,6 +1228,9 @@ export const EventDetailPage: React.FC = () => {
 
     const addSwitch = async () => {
       if (!event.match_id) return;
+      setMatchError(null);
+      if (!requireSquadPlayer(newSwitchOutPlayerId, 'Auswechselnder')) return;
+      if (!requireSquadPlayer(newSwitchInPlayerId, 'Einwechselnder')) return;
       const minute = Math.max(0, Number(newSwitchMinute.trim()) || 0);
       const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
       const payloads: Array<{ match_id: string; type: string; minute: number; period: null; player_id: string | null }> = [];
@@ -1240,6 +1266,8 @@ export const EventDetailPage: React.FC = () => {
 
     const addCard = async () => {
       if (!event.match_id) return;
+      setMatchError(null);
+      if (!requireSquadPlayer(newCardPlayerId, 'Karte')) return;
       const minute = Math.max(0, Number(newCardMinute.trim()) || 0);
       const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
       const { error: insErr } = await supabase.from('match_events').insert({
@@ -1270,6 +1298,7 @@ export const EventDetailPage: React.FC = () => {
     const saveCardEdit = async () => {
       if (!editingCardId) return;
       setMatchError(null);
+      if (!requireSquadPlayer(editCardPlayerId, 'Karte')) return;
       const minute = Math.max(0, Number(editCardMinute.trim()) || 0);
       const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
       const { error: updErr } = await supabase
@@ -1314,18 +1343,16 @@ export const EventDetailPage: React.FC = () => {
         return;
       }
       const period_scores = {
-        p1h: h1,
-        p1a: a1,
-        p2h: h2,
-        p2a: a2,
-        p3h: h3,
-        p3a: a3,
+        p1: { h: h1, a: a1 },
+        p2: { h: h2, a: a2 },
+        p3: { h: h3, a: a3 },
       };
       const { error: updErr } = await updateMatchRow(event.match_id, { period_scores });
       if (updErr) {
-        setMatchError(updErr);
+        setMatchError(updErr.message ?? String(updErr));
         return;
       }
+      setMatchError(null);
       setMatchRowLite((prev) => (prev ? { ...prev, period_scores } : prev));
     };
 
@@ -1359,6 +1386,8 @@ export const EventDetailPage: React.FC = () => {
       let didTouchGoals = oldType === 'goal' || oldType === 'goal_away';
 
       if (editEventType === 'switch') {
+        if (!requireSquadPlayer(editSwitchOutPlayerId, 'Auswechselnder')) return;
+        if (!requireSquadPlayer(editSwitchInPlayerId, 'Einwechselnder')) return;
         const companionIds = timelineEvents
           .filter(
             (x) =>
@@ -1406,6 +1435,7 @@ export const EventDetailPage: React.FC = () => {
           }
         }
       } else {
+        if (!requireSquadPlayer(editEventPlayerId, 'Torschütze')) return;
         didTouchGoals = true;
         const newDbType = editEventType === 'goal_away' ? 'goal_away' : 'goal';
         const { error: updErr } = await supabase
@@ -1432,10 +1462,21 @@ export const EventDetailPage: React.FC = () => {
     return (
       <div className="min-h-screen text-white [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_55%,rgba(10,0,0,0.99)_100%)]">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] sm:px-4">
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Link to="/app/termine" className="text-[14px] text-white/80 hover:text-white">
               ← Zurück zum Spielplan
             </Link>
+            {canTrainerManageEvent ? (
+              <AppButton
+                variant="danger"
+                size="sm"
+                className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px] sm:w-auto"
+                onClick={() => setDeleteConfirmOpen(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                Löschen
+              </AppButton>
+            ) : null}
           </div>
 
           <div className="mb-1 -mx-3.5 w-[calc(100%+1.75rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full">
@@ -1512,7 +1553,7 @@ export const EventDetailPage: React.FC = () => {
               {renderTabButton('stats', 'Statistik')}
             </div>
           </div>
-          {isTrainerOrAdmin ? (
+          {canTrainerManageEvent ? (
             <div className="mt-1 flex justify-end">
               <button
                 type="button"
@@ -1553,8 +1594,9 @@ export const EventDetailPage: React.FC = () => {
                     <p className="text-white/70">⚽ Torschützen</p>
                     <div className="mt-1.5 space-y-1">
                       {reportGoalScorerLines.map((line, i) => (
-                        <p key={`${line.name}-${i}`} className="text-[13px]">
+                        <p key={`${line.name}-${line.team}-${i}`} className="text-[13px]">
                           <span className="text-white/85">{line.name}</span>
+                          <span className="text-white/50"> · {line.team}</span>
                           {line.minute ? <span className="text-white/55"> · {line.minute}</span> : null}
                         </p>
                       ))}
@@ -1776,10 +1818,10 @@ export const EventDetailPage: React.FC = () => {
                               ) : t === 'goal' || t === 'goal_away' ? (
                                 <>
                                   <p className="text-[10px] font-black uppercase tracking-wide text-emerald-300">
-                                    ⚽ {t === 'goal' ? 'Tor Heim' : 'Tor Auswärts'}
+                                    ⚽ Tor {t === 'goal' ? homeTeamName : awayTeamName}
                                   </p>
                                   <p className="mt-1 line-clamp-2 text-sm font-bold leading-snug text-white">
-                                    {name ?? (t === 'goal_away' ? opponentName : compactOurTeamName)}
+                                    {name ? <>Torschütze: {name}</> : <>Ohne Torschütze</>}
                                   </p>
                                 </>
                               ) : isYellow ? (
@@ -1812,7 +1854,7 @@ export const EventDetailPage: React.FC = () => {
                               </span>
                             ) : null}
                           </div>
-                          {isTrainerOrAdmin ? (
+                          {canTrainerManageEvent ? (
                             <div className="mt-2 flex justify-end gap-1.5">
                               <button
                                 type="button"
@@ -2286,6 +2328,29 @@ export const EventDetailPage: React.FC = () => {
               </div>
             </div>
           </Modal>
+
+          <Modal
+            isOpen={deleteConfirmOpen}
+            title="Termin löschen?"
+            onClose={() => {
+              if (!deletingEvent) setDeleteConfirmOpen(false);
+            }}
+            footer={
+              <div className="flex justify-end gap-2">
+                <AppButton variant="secondary" onClick={() => setDeleteConfirmOpen(false)} disabled={deletingEvent}>
+                  Abbrechen
+                </AppButton>
+                <AppButton variant="danger" onClick={() => void handleDeleteEvent()} disabled={deletingEvent}>
+                  {deletingEvent ? 'Löschen…' : 'Endgültig löschen'}
+                </AppButton>
+              </div>
+            }
+          >
+            <p className="text-[14px] text-white/75">
+              Diesen Termin wirklich löschen? Alle zugehörigen Spielbericht-, Liveticker-, Aufstellungs- und Statistikdaten
+              werden entfernt.
+            </p>
+          </Modal>
         </div>
       </div>
     );
@@ -2311,7 +2376,7 @@ export const EventDetailPage: React.FC = () => {
               Fügt nur diesen Termin deinem Kalender hinzu.
             </p>
           </div>
-          {isTrainerOrAdmin ? (
+          {canTrainerManageEvent ? (
             <div className="grid w-full grid-cols-2 gap-3">
               <AppButton
                 variant="secondary"
@@ -2403,7 +2468,7 @@ export const EventDetailPage: React.FC = () => {
           <Card className="flex flex-col gap-3">
             <CardTitle>{isTraining ? 'Training-Teilnahme' : 'Zu-/Absagen'}</CardTitle>
 
-            {isTrainerOrAdmin ? (
+            {canTrainerManageEvent ? (
               <div className="flex flex-col gap-3">
                 {isTraining ? (
                   <div className="flex flex-wrap gap-2">
@@ -2648,7 +2713,7 @@ export const EventDetailPage: React.FC = () => {
           </Card>
         ) : null}
 
-        {event.kind === 'match' && isTrainerOrAdmin && (
+        {event.kind === 'match' && canTrainerManageEvent && (
           <Card className="mt-6 flex flex-col gap-2 overflow-hidden">
             <button
               type="button"
@@ -2847,13 +2912,14 @@ export const EventDetailPage: React.FC = () => {
                 onClick={() => void handleDeleteEvent()}
                 disabled={deletingEvent}
               >
-                Termin löschen
+                {deletingEvent ? 'Löschen…' : 'Endgültig löschen'}
               </AppButton>
             </div>
           }
         >
           <p className="text-[14px] text-white/75">
-            Dieser Termin wird dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+            Diesen Termin wirklich löschen? Alle zugehörigen Spielbericht-, Liveticker-, Aufstellungs- und Statistikdaten
+            werden entfernt.
           </p>
         </Modal>
         <Modal
