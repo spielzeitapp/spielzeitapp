@@ -9,7 +9,6 @@ import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import {
   fetchLineupForLiveMatch,
   LIVE_FIELD_SLOT_ORDER,
-  persistLiveMatchBegin,
   replaceMatchLineupAndBench,
   updateMatchRow,
 } from '../../lib/liveMatchService';
@@ -300,14 +299,8 @@ export const MatchLineupPage: React.FC = () => {
     setSaveError(null);
     setStartingLive(true);
     const saved = await saveLineup();
-    if (!saved) {
-      setStartingLive(false);
-      return;
-    }
-    const { error } = await persistLiveMatchBegin(matchId);
     setStartingLive(false);
-    if (error) {
-      setSaveError(error);
+    if (!saved) {
       return;
     }
     navigate(`/app/live?matchId=${encodeURIComponent(matchId)}`);
@@ -575,7 +568,7 @@ export const MatchLineupPage: React.FC = () => {
               onClick={() => void onStartLive()}
               className="min-h-[44px] flex-1 rounded-xl bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-[0_2px_12px_rgba(220,38,38,0.45)] transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-initial"
             >
-              {startingLive ? 'Starte…' : 'Live starten'}
+              {startingLive ? 'Starte…' : 'Zum Liveticker'}
             </button>
           </div>
         </div>

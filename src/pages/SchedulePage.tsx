@@ -1057,8 +1057,8 @@ export const SchedulePage: React.FC = () => {
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <ScheduleHeroToolbarAction
-                                    label="Live starten"
-                                    title="Live starten"
+                                    label="Zum Liveticker"
+                                    title="Zum Liveticker"
                                     emphasis="primary"
                                     compact={trainerToolbarCompact}
                                     onClick={() => navigate(`/live?matchId=${ev.match_id}`)}
@@ -1076,8 +1076,8 @@ export const SchedulePage: React.FC = () => {
                               >
                                 {et === 'game' && ev.match_id && ev.status !== 'finished' ? (
                                   <ScheduleHeroToolbarAction
-                                    label="Live starten"
-                                    title="Live starten"
+                                    label="Zum Liveticker"
+                                    title="Zum Liveticker"
                                     emphasis="primary"
                                     onClick={() => navigate(`/live?matchId=${ev.match_id}`)}
                                   >

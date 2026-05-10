@@ -16,6 +16,7 @@ import {
 } from '../../lib/matchEngine';
 import {
   engineEventToInsertPayload,
+  fetchEventIsHomeByMatchId,
   fetchFirstLiveMatch,
   fetchLineupForLiveMatch,
   fetchMatchById,
@@ -29,6 +30,7 @@ import {
   updateMatchRow,
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
+import { getMatchSides, shortTeamGoalLabel } from '../../lib/matchSides';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
@@ -252,7 +254,7 @@ const mbRound = 'rounded-xl';
 const mbRowBtn = `flex ${mbBtnH} touch-manipulation items-center justify-center gap-1.5 ${mbRound} px-3 text-xs font-semibold transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40`;
 
 function eventIcon(t: MatchEventType): string {
-  if (t === 'goal') return '⚽';
+  if (t === 'goal' || t === 'goal_away') return '⚽';
   if (t === 'sub_out' || t === 'sub_in') return '⇄';
   if (t === 'start') return '▶';
   if (t === 'pause') return '⏸';
@@ -270,9 +272,8 @@ function recomputeScoresFromEvents(evts: MatchEngineEvent[]): { home: number; aw
   let home = 0;
   let away = 0;
   for (const e of sorted) {
-    if (e.type !== 'goal') continue;
-    if (e.playerId) home += 1;
-    else away += 1;
+    if (e.type === 'goal') home += 1;
+    else if (e.type === 'goal_away') away += 1;
   }
   return { home, away };
 }
@@ -281,9 +282,8 @@ function findLastGoalEventIdForSide(events: MatchEngineEvent[], side: 'home' | '
   const sorted = sortMatchEventsChronologically(events);
   for (let i = sorted.length - 1; i >= 0; i -= 1) {
     const e = sorted[i];
-    if (e.type !== 'goal') continue;
-    if (side === 'home' && e.playerId) return e.id;
-    if (side === 'away' && !e.playerId) return e.id;
+    if (side === 'home' && e.type === 'goal') return e.id;
+    if (side === 'away' && e.type === 'goal_away') return e.id;
   }
   return null;
 }
@@ -425,6 +425,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [initialStartingPlayerIds, setInitialStartingPlayerIds] = useState<string[]>([]);
   const [events, setEvents] = useState<MatchEngineEvent[]>([]);
   const [opponentLabel, setOpponentLabel] = useState('Gegner');
+  const [eventIsHome, setEventIsHome] = useState<boolean | null>(null);
   const [scoreHome, setScoreHome] = useState(0);
   const [scoreAway, setScoreAway] = useState(0);
 
@@ -447,6 +448,7 @@ export const LiveMatchScreen: React.FC = () => {
           setEffectiveMatchId(null);
           setMatchRow(null);
           setLineupData(null);
+          setEventIsHome(null);
           setPageLoading(false);
           return;
         }
@@ -457,14 +459,16 @@ export const LiveMatchScreen: React.FC = () => {
         setMatchRow(null);
         setLineupData(null);
         setEvents([]);
+        setEventIsHome(null);
         setPageLoading(false);
         return;
       }
 
-      const [mRes, lineRes, evRes] = await Promise.all([
+      const [mRes, lineRes, evRes, isHomeRes] = await Promise.all([
         fetchMatchById(resolvedId),
         fetchLineupForLiveMatch(resolvedId),
         fetchMatchEvents(resolvedId),
+        fetchEventIsHomeByMatchId(resolvedId),
       ]);
       if (cancelled) return;
       if (mRes.error || !mRes.data) {
@@ -473,11 +477,13 @@ export const LiveMatchScreen: React.FC = () => {
         setMatchRow(null);
         setLineupData(null);
         setEvents([]);
+        setEventIsHome(null);
         setPageLoading(false);
         return;
       }
       setEffectiveMatchId(resolvedId);
       setMatchRow(mRes.data);
+      setEventIsHome(isHomeRes.isHome);
       setLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
       const sorted = sortMatchEventsChronologically(evRes.data);
       setEvents([...sorted].reverse());
@@ -670,13 +676,24 @@ export const LiveMatchScreen: React.FC = () => {
     };
   }, [effectiveMatchId, queueLiveMatchRealtimeUpdate]);
 
-  const homeName = selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
-
+  const homeNameRaw = selectedTeamSeason?.team?.name ?? HOME_FALLBACK;
   const headerOpponent = opponentLabel;
-  const homeDisplayName = cleanTeamDisplayName(homeName);
-  const awayDisplayName = cleanTeamDisplayName(headerOpponent);
-  const homeNameParts = matchboardAbbrevAndClub(homeDisplayName);
-  const awayNameParts = matchboardAbbrevAndClub(awayDisplayName);
+  const sides = useMemo(
+    () =>
+      getMatchSides({
+        isHome: eventIsHome,
+        ownTeamName: homeNameRaw,
+        opponentName: headerOpponent,
+      }),
+    [eventIsHome, homeNameRaw, headerOpponent],
+  );
+  const stadiumHomeDisplay = cleanTeamDisplayName(sides.homeTeamName);
+  const stadiumAwayDisplay = cleanTeamDisplayName(sides.awayTeamName);
+  const homeNameParts = matchboardAbbrevAndClub(stadiumHomeDisplay);
+  const awayNameParts = matchboardAbbrevAndClub(stadiumAwayDisplay);
+  const goalTapHomeLabel = shortTeamGoalLabel(stadiumHomeDisplay);
+  const goalTapAwayLabel = shortTeamGoalLabel(stadiumAwayDisplay);
+  const opponentDisplayName = cleanTeamDisplayName(headerOpponent);
   /** Ohne API-Erweiterung: neutraler Anzeige-Spieltyp (Zielbild). */
   const matchTypeDisplay = 'Freundschaftsspiel';
   const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
@@ -729,6 +746,8 @@ export const LiveMatchScreen: React.FC = () => {
 
   const [homeGoalModalOpen, setHomeGoalModalOpen] = useState(false);
   const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
+  const [awayGoalModalOpen, setAwayGoalModalOpen] = useState(false);
+  const [awayGoalPickId, setAwayGoalPickId] = useState<string>('');
   const [endeConfirmOpen, setEndeConfirmOpen] = useState(false);
   const [spielAbschlussOpen, setSpielAbschlussOpen] = useState(false);
   const [calendarFinalized, setCalendarFinalized] = useState(false);
@@ -1131,7 +1150,7 @@ export const LiveMatchScreen: React.FC = () => {
       const mid = effectiveMatchId;
       setEvents((prev) => {
         const mapped = prev.map((e) => (e.id === tempId ? { ...partial, id } : e));
-        if (partial.type === 'goal') {
+        if (partial.type === 'goal' || partial.type === 'goal_away') {
           const { home: nh, away: na } = recomputeScoresFromEvents(mapped);
           queueMicrotask(() => {
             setScoreHome(nh);
@@ -1356,7 +1375,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const filteredEvents = useMemo(() => {
     const list = [...events].sort((a, b) => b.timestamp - a.timestamp);
-    if (eventsFilter === 'goals') return list.filter((e) => e.type === 'goal');
+    if (eventsFilter === 'goals') return list.filter((e) => e.type === 'goal' || e.type === 'goal_away');
     if (eventsFilter === 'subs') return list.filter((e) => e.type === 'sub_out' || e.type === 'sub_in');
     return list;
   }, [events, eventsFilter]);
@@ -1377,8 +1396,10 @@ export const LiveMatchScreen: React.FC = () => {
     const map = new Map<string, string>();
     for (const ev of sorted) {
       if (ev.type === 'goal') {
-        if (ev.playerId) h += 1;
-        else a += 1;
+        h += 1;
+        map.set(ev.id, `${h}:${a}`);
+      } else if (ev.type === 'goal_away') {
+        a += 1;
         map.set(ev.id, `${h}:${a}`);
       }
     }
@@ -1403,8 +1424,9 @@ export const LiveMatchScreen: React.FC = () => {
       case 'start':
         return 'Anpfiff';
       case 'goal':
-        if (!ev.playerId) return 'Tor Gast';
-        return `Tor · ${name ?? '?'}`;
+        return name ? `⚽ TOR ${stadiumHomeDisplay}: ${name}` : `⚽ TOR ${stadiumHomeDisplay}`;
+      case 'goal_away':
+        return name ? `⚽ TOR ${stadiumAwayDisplay}: ${name}` : `⚽ TOR ${stadiumAwayDisplay}`;
       case 'sub_out':
         return `Raus${name ? `: ${name}` : ''}`;
       case 'sub_in':
@@ -1430,8 +1452,9 @@ export const LiveMatchScreen: React.FC = () => {
       case 'end':
         return 'Schlusspfiff';
       case 'goal':
-        if (!ev.playerId) return `Tor für ${awayDisplayName || 'Gast'}`;
-        return name ? `${name} trifft` : 'Tor für uns';
+        return name ? `${name} trifft für ${stadiumHomeDisplay}` : `Tor für ${stadiumHomeDisplay}`;
+      case 'goal_away':
+        return name ? `${name} trifft für ${stadiumAwayDisplay}` : `Tor für ${stadiumAwayDisplay}`;
       case 'sub_out':
         return name ? `${name} wechselt aus` : 'Auswechslung';
       case 'sub_in':
@@ -1450,13 +1473,13 @@ export const LiveMatchScreen: React.FC = () => {
     showGoalScoreBadge: boolean,
     friendlyFeed = false,
   ) => {
-    const isGoal = ev.type === 'goal';
+    const isHomeGoal = ev.type === 'goal';
+    const isAwayGoal = ev.type === 'goal_away';
+    const isGoal = isHomeGoal || isAwayGoal;
     const isSub = ev.type === 'sub_out' || ev.type === 'sub_in';
-    const isHomeGoal = isGoal && Boolean(ev.playerId);
-    const isAwayGoal = isGoal && !ev.playerId;
     const pl = ev.playerId ? rosterById.get(ev.playerId) : undefined;
     const scoreStr =
-      showGoalScoreBadge && isGoal ? goalScoreBadgeByEventId.get(ev.id) ?? null : null;
+      showGoalScoreBadge && isGoal ? (goalScoreBadgeByEventId.get(ev.id) ?? null) : null;
     const iconTile = isHomeGoal
       ? 'bg-green-700 text-white'
       : isAwayGoal
@@ -1513,27 +1536,33 @@ export const LiveMatchScreen: React.FC = () => {
               {isHomeGoal ? (
                 <>
                   <span className="inline-flex rounded-full border border-green-600 bg-green-950/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-green-100">
-                    Tor
+                    ⚽ TOR {stadiumHomeDisplay}
                   </span>
-                  {friendlyFeed ? (
-                    <p className="mt-0.5 text-[11px] font-semibold text-gray-300">für {homeDisplayName}</p>
-                  ) : null}
-                  <p className="mt-1 truncate text-sm font-semibold leading-snug text-white">
-                    {pl?.name ?? '?'}
-                    {pl?.number != null && String(pl.number).trim() !== '' ? (
-                      <span className="text-gray-300"> ({pl.number})</span>
-                    ) : null}
-                  </p>
+                  {pl ? (
+                    <p className="mt-1 truncate text-sm font-semibold leading-snug text-white">
+                      {pl.name}
+                      {pl.number != null && String(pl.number).trim() !== '' ? (
+                        <span className="text-gray-300"> ({pl.number})</span>
+                      ) : null}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs font-medium text-gray-400">Ohne Torschütze</p>
+                  )}
                 </>
               ) : isAwayGoal ? (
                 <>
-                  <span className="inline-flex rounded-full border border-green-600 bg-green-950/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-green-100">
-                    Tor
+                  <span className="inline-flex rounded-full border border-red-600 bg-red-950/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-red-100">
+                    ⚽ TOR {stadiumAwayDisplay}
                   </span>
-                  {friendlyFeed ? (
-                    <p className="mt-0.5 text-[11px] font-semibold text-white">für {awayDisplayName}!</p>
+                  {pl ? (
+                    <p className="mt-1 truncate text-sm font-semibold leading-snug text-white">
+                      {pl.name}
+                      {pl.number != null && String(pl.number).trim() !== '' ? (
+                        <span className="text-gray-300"> ({pl.number})</span>
+                      ) : null}
+                    </p>
                   ) : (
-                    <p className="mt-1 truncate text-xs font-semibold text-gray-300">{awayDisplayName}</p>
+                    <p className="mt-1 text-xs font-medium text-gray-400">Ohne Torschütze</p>
                   )}
                 </>
               ) : isSub ? (
@@ -1589,17 +1618,19 @@ export const LiveMatchScreen: React.FC = () => {
           <p className="mt-0.5 text-[13px] font-bold leading-snug text-red-300">OUT {outP}</p>
         </>
       );
-    } else if (ev.type === 'goal') {
+    } else if (ev.type === 'goal' || ev.type === 'goal_away') {
       const pl = ev.playerId ? rosterById.get(ev.playerId) : undefined;
+      const teamLine = ev.type === 'goal' ? stadiumHomeDisplay : stadiumAwayDisplay;
+      const homeSide = ev.type === 'goal';
       const badge = goalScoreBadgeByEventId.get(ev.id);
       body = (
         <>
-          <p className="text-[10px] font-black uppercase tracking-wide text-green-400">Tor</p>
-          {ev.playerId ? (
-            <p className="mt-1 truncate text-sm font-bold text-white">{pl?.name ?? '?'}</p>
-          ) : (
-            <p className="mt-1 truncate text-sm font-bold text-white">{awayDisplayName}</p>
-          )}
+          <p
+            className={`text-[10px] font-black uppercase tracking-wide ${homeSide ? 'text-emerald-400' : 'text-red-400'}`}
+          >
+            ⚽ TOR {teamLine}
+          </p>
+          {pl ? <p className="mt-1 truncate text-sm font-bold text-white">{pl.name}</p> : null}
           {badge ? (
             <p className="mt-1 font-mono text-sm font-black tabular-nums text-white">{badge}</p>
           ) : null}
@@ -1618,7 +1649,17 @@ export const LiveMatchScreen: React.FC = () => {
           {lineEl}
           <div className="relative z-10 mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" aria-hidden />
         </div>
-        <div className={`min-w-0 flex-1 px-3 py-2 ${liveCardShell}`}>{body}</div>
+        <div
+          className={`min-w-0 flex-1 px-3 py-2 ${liveCardShell} ${
+            ev.type === 'goal'
+              ? 'border-l-[3px] border-l-emerald-500/75'
+              : ev.type === 'goal_away'
+                ? 'border-r-[3px] border-r-red-500/75'
+                : ''
+          }`}
+        >
+          {body}
+        </div>
       </li>
     );
   };
@@ -1694,12 +1735,12 @@ export const LiveMatchScreen: React.FC = () => {
     );
   }
 
-  const homeLogoLookupName =
+  const ownLogoName =
     selectedTeamSeason?.team?.name?.trim() && selectedTeamSeason.team.name.trim() !== HOME_FALLBACK
       ? selectedTeamSeason.team.name.trim()
       : getOurTeamDisplayName();
-  const homeLogoSrc = getClubLogo(homeLogoLookupName);
-  const awayLogoSrc = getClubLogo(headerOpponent);
+  const homeLogoSrc = getClubLogo(sides.isOwnTeamHome ? ownLogoName : headerOpponent);
+  const awayLogoSrc = getClubLogo(sides.isOwnTeamHome ? headerOpponent : ownLogoName);
   const kickoffRaw = matchRow?.match_date ? new Date(matchRow.match_date) : null;
   const kickoffDateTime =
     kickoffRaw && !Number.isNaN(kickoffRaw.getTime())
@@ -1809,16 +1850,31 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-mono text-[11px] font-bold tabular-nums text-gray-400">{formatMinute(ev.timestamp)}</p>
-                {ev.type === 'goal' && ev.playerId ? (
+                {ev.type === 'goal' ? (
                   <>
-                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-green-400">Tor</p>
-                    <p className="truncate text-sm font-bold text-white">{rosterById.get(ev.playerId)?.name ?? '?'}</p>
-                    <p className="text-[11px] text-gray-500">{homeDisplayName}</p>
+                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-emerald-400">
+                      ⚽ TOR {stadiumHomeDisplay}
+                    </p>
+                    {ev.playerId ? (
+                      <p className="truncate text-sm font-bold text-white">
+                        {rosterById.get(ev.playerId)?.name ?? '?'}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-gray-500">Ohne Torschütze</p>
+                    )}
                   </>
-                ) : ev.type === 'goal' ? (
+                ) : ev.type === 'goal_away' ? (
                   <>
-                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-green-400">Tor</p>
-                    <p className="text-sm font-bold text-white">{awayDisplayName}</p>
+                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-red-400">
+                      ⚽ TOR {stadiumAwayDisplay}
+                    </p>
+                    {ev.playerId ? (
+                      <p className="truncate text-sm font-bold text-white">
+                        {rosterById.get(ev.playerId)?.name ?? '?'}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-gray-500">Ohne Torschütze</p>
+                    )}
                   </>
                 ) : ev.type === 'sub_out' || ev.type === 'sub_in' ? (
                   <>
@@ -1834,7 +1890,7 @@ export const LiveMatchScreen: React.FC = () => {
                   </>
                 )}
               </div>
-              {ev.type === 'goal' && goalScoreBadgeByEventId.get(ev.id) ? (
+              {(ev.type === 'goal' || ev.type === 'goal_away') && goalScoreBadgeByEventId.get(ev.id) ? (
                 <span className="shrink-0 self-start rounded-full border border-green-600/80 bg-green-950/90 px-2 py-0.5 font-mono text-[11px] font-black tabular-nums text-green-100">
                   {goalScoreBadgeByEventId.get(ev.id)}
                 </span>
@@ -2003,7 +2059,7 @@ export const LiveMatchScreen: React.FC = () => {
                         <div className="flex min-w-0 flex-col items-center gap-0.5">
                           <button
                             type="button"
-                            aria-label="Heimtor erfassen. Lange drücken für Rückgängig."
+                            aria-label={`Tor ${stadiumHomeDisplay} erfassen. Lange drücken für Rückgängig.`}
                             className={scoreTapHome}
                             onContextMenu={(e) => e.preventDefault()}
                             onPointerDown={onHomeGoalScorePointerDown}
@@ -2015,16 +2071,33 @@ export const LiveMatchScreen: React.FC = () => {
                                 homeGoalSuppressClickRef.current = false;
                                 return;
                               }
-                              setHomeGoalPickId('');
-                              setHomeGoalModalOpen(true);
+                              if (sides.isOwnTeamHome) {
+                                setHomeGoalPickId('');
+                                setHomeGoalModalOpen(true);
+                                return;
+                              }
+                              void (async () => {
+                                const before = recomputeScoresFromEvents(events);
+                                const res = await persistSingle({
+                                  type: 'goal',
+                                  timestamp: currentMatchSeconds,
+                                });
+                                if (!res.ok || !res.savedId) return;
+                                offerGoalUndo({
+                                  eventId: res.savedId,
+                                  side: 'home',
+                                  prevHome: before.home,
+                                  prevAway: before.away,
+                                });
+                              })();
                             }}
                           >
                             <span className="text-4xl font-bold tabular-nums leading-none sm:text-5xl">
                               {displayScoreHome}
                             </span>
                           </button>
-                          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-400/95 sm:text-[11px]">
-                            HEIM
+                          <span className="max-w-[5.5rem] truncate text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-400/95 sm:max-w-[6.5rem] sm:text-[11px]">
+                            {goalTapHomeLabel}
                           </span>
                         </div>
                         <span
@@ -2036,38 +2109,45 @@ export const LiveMatchScreen: React.FC = () => {
                         <div className="flex min-w-0 flex-col items-center gap-0.5">
                           <button
                             type="button"
-                            aria-label="Gasttor erfassen. Lange drücken für Rückgängig."
+                            aria-label={`Tor ${stadiumAwayDisplay} erfassen. Lange drücken für Rückgängig.`}
                             className={scoreTapAway}
                             onContextMenu={(e) => e.preventDefault()}
                             onPointerDown={onAwayGoalScorePointerDown}
                             onPointerUp={clearAwayGoalLongPress}
                             onPointerLeave={clearAwayGoalLongPress}
                             onPointerCancel={clearAwayGoalLongPress}
-                            onClick={async () => {
+                            onClick={() => {
                               if (awayGoalSuppressClickRef.current) {
                                 awayGoalSuppressClickRef.current = false;
                                 return;
                               }
-                              const before = recomputeScoresFromEvents(events);
-                              const res = await persistSingle({
-                                type: 'goal',
-                                timestamp: currentMatchSeconds,
-                              });
-                              if (!res.ok || !res.savedId) return;
-                              offerGoalUndo({
-                                eventId: res.savedId,
-                                side: 'away',
-                                prevHome: before.home,
-                                prevAway: before.away,
-                              });
+                              if (sides.isOwnTeamHome) {
+                                void (async () => {
+                                  const before = recomputeScoresFromEvents(events);
+                                  const res = await persistSingle({
+                                    type: 'goal_away',
+                                    timestamp: currentMatchSeconds,
+                                  });
+                                  if (!res.ok || !res.savedId) return;
+                                  offerGoalUndo({
+                                    eventId: res.savedId,
+                                    side: 'away',
+                                    prevHome: before.home,
+                                    prevAway: before.away,
+                                  });
+                                })();
+                                return;
+                              }
+                              setAwayGoalPickId('');
+                              setAwayGoalModalOpen(true);
                             }}
                           >
                             <span className="text-4xl font-bold tabular-nums leading-none sm:text-5xl">
                               {displayScoreAway}
                             </span>
                           </button>
-                          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-red-400/90 sm:text-[11px]">
-                            GAST
+                          <span className="max-w-[5.5rem] truncate text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-red-400/90 sm:max-w-[6.5rem] sm:text-[11px]">
+                            {goalTapAwayLabel}
                           </span>
                         </div>
                       </div>
@@ -2263,7 +2343,9 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                     <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-1.5">
                       <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Gegner</span>
-                      <span className="max-w-[65%] text-right text-xs font-medium text-white">{awayDisplayName || '—'}</span>
+                      <span className="max-w-[65%] text-right text-xs font-medium text-white">
+                        {opponentDisplayName || '—'}
+                      </span>
                     </div>
                     <div className="flex justify-between gap-3 border-b border-white/[0.06] pb-1.5">
                       <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Wettbewerb</span>
@@ -3048,7 +3130,7 @@ export const LiveMatchScreen: React.FC = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
-            <h3 className="text-center text-lg font-bold">Heimtor</h3>
+            <h3 className="text-center text-lg font-bold">Tor {stadiumHomeDisplay}</h3>
             <p className="mt-1 text-center text-sm text-white/50">Torschütze wählen, dann bestätigen</p>
 
             <div className="mt-5">
@@ -3099,6 +3181,76 @@ export const LiveMatchScreen: React.FC = () => {
             <button
               type="button"
               onClick={() => setHomeGoalModalOpen(false)}
+              className="mt-3 w-full min-h-[48px] rounded-2xl border border-white/15 text-base font-semibold text-white/80"
+            >
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      )}
+
+      {awayGoalModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-black/70 backdrop-blur-sm"
+          role="presentation"
+          onClick={() => setAwayGoalModalOpen(false)}
+        >
+          <div
+            className="max-h-[85vh] overflow-y-auto rounded-t-3xl border border-white/10 bg-[#141414] px-4 pb-8 pt-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
+            <h3 className="text-center text-lg font-bold">Tor {stadiumAwayDisplay}</h3>
+            <p className="mt-1 text-center text-sm text-white/50">Torschütze wählen, dann bestätigen</p>
+
+            <div className="mt-5">
+              <p className="mb-2 text-xs font-bold uppercase text-red-400/90">Am Feld</p>
+              <div className="flex flex-wrap gap-2">
+                {homeScorerCandidates.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setAwayGoalPickId(p.id)}
+                    className={`min-h-[48px] min-w-[100px] flex-1 rounded-xl px-3 py-2 text-sm font-bold ${
+                      awayGoalPickId === p.id
+                        ? 'bg-red-600 text-white'
+                        : 'bg-white/10 text-white active:bg-white/20'
+                    }`}
+                  >
+                    {p.number || '–'} {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={!awayGoalPickId}
+              onClick={async () => {
+                if (!awayGoalPickId || !effectiveMatchId) return;
+                const before = recomputeScoresFromEvents(events);
+                const res = await persistSingle({
+                  type: 'goal_away',
+                  timestamp: currentMatchSeconds,
+                  playerId: awayGoalPickId,
+                });
+                if (!res.ok || !res.savedId) return;
+                offerGoalUndo({
+                  eventId: res.savedId,
+                  side: 'away',
+                  prevHome: before.home,
+                  prevAway: before.away,
+                });
+                setAwayGoalModalOpen(false);
+                setAwayGoalPickId('');
+              }}
+              className="mt-6 flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-red-600 text-lg font-bold text-white disabled:opacity-35 active:scale-[0.99]"
+            >
+              Tor bestätigen
+            </button>
+            <button
+              type="button"
+              onClick={() => setAwayGoalModalOpen(false)}
               className="mt-3 w-full min-h-[48px] rounded-2xl border border-white/15 text-base font-semibold text-white/80"
             >
               Abbrechen
@@ -3199,7 +3351,8 @@ export const LiveMatchScreen: React.FC = () => {
             <div className="min-w-0">
               <p className="text-sm font-bold leading-tight text-white">Rückgängig</p>
               <p className="mt-0.5 truncate text-[11px] font-medium text-red-100/90">
-                Tor für {goalUndoOffer.side === 'home' ? homeDisplayName || 'Heim' : awayDisplayName || 'Gast'}
+                Tor für{' '}
+                {goalUndoOffer.side === 'home' ? stadiumHomeDisplay || 'Heim' : stadiumAwayDisplay || 'Gast'}
               </p>
             </div>
             <button

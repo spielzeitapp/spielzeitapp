@@ -404,10 +404,10 @@ export const TrainerMatchLineupMvp: React.FC<TrainerMatchLineupMvpProps> = ({
                   setSaveError(err);
                   return;
                 }
-                navigate(`/live?matchId=${matchId}`);
+                navigate(`/app/live?matchId=${encodeURIComponent(matchId)}`);
               }}
             >
-              Live starten
+              Zum Liveticker
             </Button>
           </div>
         </>

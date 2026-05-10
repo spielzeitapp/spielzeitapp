@@ -65,6 +65,7 @@ const ENGINE_TYPES = new Set<MatchEventType>([
   'sub_out',
   'sub_in',
   'goal',
+  'goal_away',
 ]);
 
 /**
@@ -106,9 +107,9 @@ export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent 
   if (row.type === 'goal_away') {
     return {
       id: row.id,
-      type: 'goal',
+      type: 'goal_away',
       timestamp: row.minute ?? 0,
-      playerId: undefined,
+      playerId: row.player_id ?? undefined,
     };
   }
   if (!ENGINE_TYPES.has(row.type as MatchEventType)) return null;
@@ -133,10 +134,7 @@ export function engineEventToInsertPayload(
   ev: Omit<MatchEngineEvent, 'id'>,
   period?: number | null,
 ): InsertMatchEventPayload {
-  const dbType =
-    ev.type === 'goal' && !ev.playerId
-      ? 'goal'
-      : ev.type;
+  const dbType = ev.type === 'goal' ? 'goal' : ev.type === 'goal_away' ? 'goal_away' : (ev.type as string);
   const base: InsertMatchEventPayload = {
     match_id: matchId,
     type: dbType,
@@ -145,6 +143,22 @@ export function engineEventToInsertPayload(
     player_id: ev.playerId ?? null,
   };
   return base;
+}
+
+/** `events.is_home` zum Match (Kalender); für Stadion Heim/Auswärts im Liveticker. */
+export async function fetchEventIsHomeByMatchId(
+  matchId: string,
+): Promise<{ isHome: boolean | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('events')
+    .select('is_home')
+    .eq('match_id', matchId)
+    .maybeSingle();
+
+  if (error) return { isHome: null, error: error.message };
+  const row = data as { is_home?: boolean | null } | null;
+  if (!row || row.is_home == null) return { isHome: null, error: null };
+  return { isHome: Boolean(row.is_home), error: null };
 }
 
 export async function fetchMatchById(matchId: string): Promise<{ data: LiveMatchRow | null; error: string | null }> {

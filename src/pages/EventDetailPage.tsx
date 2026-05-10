@@ -20,7 +20,7 @@ import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { upsertMatchForSetup } from '../lib/liveMatchService';
 import { fetchMatchById, updateMatchRow } from '../lib/liveMatchService';
-import { buildPauseDelimitedPeriodScoreLine } from '../lib/matchEngine';
+import { buildPauseDelimitedPeriodScoreLine, type MatchEngineEvent } from '../lib/matchEngine';
 import {
   MATCH_FEED_TEMPLATE_KEYS,
   MATCH_FEED_TEMPLATE_LABELS,
@@ -446,15 +446,22 @@ export const EventDetailPage: React.FC = () => {
           if (type === 'final_whistle') return { id: r.id, type: 'end' as const, timestamp: ts, playerId: undefined };
           if (type === 'period_start') return { id: r.id, type: 'resume' as const, timestamp: ts, playerId: undefined };
           if (type === 'period_end') return { id: r.id, type: 'pause' as const, timestamp: ts, playerId: undefined };
-          if (type === 'goal_away') return { id: r.id, type: 'goal' as const, timestamp: ts, playerId: undefined };
-          if (type === 'goal') return { id: r.id, type: 'goal' as const, timestamp: ts, playerId: r.player_id ?? undefined };
+          if (type === 'goal_away')
+            return {
+              id: r.id,
+              type: 'goal_away' as const,
+              timestamp: ts,
+              playerId: r.player_id ?? undefined,
+            };
+          if (type === 'goal')
+            return { id: r.id, type: 'goal' as const, timestamp: ts, playerId: r.player_id ?? undefined };
           if (type === 'sub_out') return { id: r.id, type: 'sub_out' as const, timestamp: ts, playerId: r.player_id ?? undefined };
           if (type === 'sub_in') return { id: r.id, type: 'sub_in' as const, timestamp: ts, playerId: r.player_id ?? undefined };
           return null;
         })
-        .filter(Boolean) as Array<{ id: string; type: any; timestamp: number; playerId?: string }>;
+        .filter(Boolean) as MatchEngineEvent[];
       if (engineLike.length === 0) return null;
-      return buildPauseDelimitedPeriodScoreLine(engineLike as any, true);
+      return buildPauseDelimitedPeriodScoreLine(engineLike, true);
     } catch {
       return null;
     }

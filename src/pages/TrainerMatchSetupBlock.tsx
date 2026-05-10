@@ -3,12 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { Button } from '../app/components/ui/Button';
 import type { PlayerItem } from '../hooks/usePlayers';
-import {
-  LIVE_FIELD_SLOT_ORDER,
-  persistLiveMatchBegin,
-  replaceMatchLineupAndBench,
-  saveMatchSquadOnly,
-} from '../lib/liveMatchService';
+import { LIVE_FIELD_SLOT_ORDER, replaceMatchLineupAndBench, saveMatchSquadOnly } from '../lib/liveMatchService';
 import { comparePlayerItems } from '../lib/rosterPlayer';
 import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
 import type { FieldSlotId } from '../types/match';
@@ -33,7 +28,7 @@ const trainerRowSquad = 'border-red-500/35 bg-red-950/25 text-white';
 const trainerRowStarter = 'border-emerald-500/45 bg-emerald-950/35 text-white';
 const trainerRowDisabled = 'cursor-not-allowed opacity-45 hover:bg-white/[0.05]';
 
-/** Trainer: Kader + Startelf + Bank; Live starten speichert match_lineup und navigiert zu /app/live. */
+/** Trainer: Kader + Startelf + Bank; „Zum Liveticker“ speichert nur Aufstellung und navigiert (kein Match-Start in der DB). */
 export function TrainerMatchSetupBlock({
   matchId,
   players,
@@ -284,15 +279,9 @@ export function TrainerMatchSetupBlock({
     const ordered = LIVE_FIELD_SLOT_ORDER.map((s) => startersBySlot[s] ?? null);
     const squadArr = [...squad].filter((pid) => validPlayerIds.has(pid));
     const { error: lineupErr } = await replaceMatchLineupAndBench(matchId, ordered, squadArr);
+    setSavingLive(false);
     if (lineupErr) {
       setSetupError(lineupErr);
-      setSavingLive(false);
-      return;
-    }
-    const { error: liveErr } = await persistLiveMatchBegin(matchId);
-    setSavingLive(false);
-    if (liveErr) {
-      setSetupError(liveErr);
       return;
     }
     navigate(`/app/live?matchId=${encodeURIComponent(matchId)}`);
@@ -467,7 +456,7 @@ export function TrainerMatchSetupBlock({
             disabled={savingLive || savingSquad || savingLineup || starterCount !== MATCH_SETUP_STARTERS_MAX}
             onClick={() => void onLiveStart()}
           >
-            {savingLive ? 'Speichern…' : 'Live starten'}
+            {savingLive ? 'Speichern…' : 'Zum Liveticker'}
           </Button>
         </div>
       )}

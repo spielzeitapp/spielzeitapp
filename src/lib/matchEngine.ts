@@ -17,7 +17,8 @@ export type MatchEventType =
   | 'end'
   | 'sub_out'
   | 'sub_in'
-  | 'goal';
+  | 'goal'
+  | 'goal_away';
 
 export type MatchEngineEvent = {
   id: string;
@@ -32,8 +33,9 @@ const TYPE_ORDER: Record<MatchEventType, number> = {
   sub_out: 2,
   sub_in: 3,
   goal: 4,
-  pause: 5,
-  end: 6,
+  goal_away: 5,
+  pause: 6,
+  end: 7,
 };
 
 /** Aufsteigend nach Spielzeit; bei gleicher Sekunde stabil nach Event-Typ. */
@@ -331,8 +333,9 @@ export function buildPauseDelimitedPeriodScoreLine(events: MatchEngineEvent[], m
 
   for (const e of sorted) {
     if (e.type === 'goal') {
-      if (e.playerId) cum = { h: cum.h + 1, a: cum.a };
-      else cum = { h: cum.h, a: cum.a + 1 };
+      cum = { h: cum.h + 1, a: cum.a };
+    } else if (e.type === 'goal_away') {
+      cum = { h: cum.h, a: cum.a + 1 };
     } else if (e.type === 'pause') {
       pauseSnaps.push({ ...cum });
     } else if (e.type === 'end') {
