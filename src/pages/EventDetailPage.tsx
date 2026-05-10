@@ -22,7 +22,13 @@ import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { upsertMatchForSetup } from '../lib/liveMatchService';
 import { fetchMatchById, updateMatchRow } from '../lib/liveMatchService';
 import { buildPauseDelimitedPeriodScoreLine, type MatchEngineEvent } from '../lib/matchEngine';
-import { countStadiumGoalsFromMatchEventRows, normalizeMatchEventGoalType } from '../lib/matchEventScores';
+import {
+  countStadiumGoalsFromMatchEventRows,
+  formatPeriodScoresBracket,
+  normalizeMatchEventGoalType,
+  parsePeriodScores,
+  sumPeriodScoresTriplet,
+} from '../lib/matchEventScores';
 import {
   MATCH_FEED_TEMPLATE_KEYS,
   MATCH_FEED_TEMPLATE_LABELS,
@@ -429,14 +435,16 @@ export const EventDetailPage: React.FC = () => {
 
   const recomputeTotalsFromMatchEvents = useCallback((rows: MatchEventRow[]) => countStadiumGoalsFromMatchEventRows(rows), []);
 
+  const parsedDbPeriodScores = useMemo(
+    () => (isFinishedMatchEvent ? parsePeriodScores(matchRowLite?.period_scores) : null),
+    [isFinishedMatchEvent, matchRowLite?.period_scores],
+  );
+
   const periodLine = useMemo(() => {
     if (!matchRowLite) return null;
     try {
-      // Prefer DB period_scores if present (LiveScreen), fallback to pause-delimited from event log.
-      if (matchRowLite.period_scores != null) {
-        // Keep display simple: LiveScreen already uses parsePeriodScores; here we just show fallback line.
-        // (Wir vermeiden hier großen Import/Refactor.)
-      }
+      const fromDb = parsePeriodScores(matchRowLite.period_scores);
+      if (fromDb) return formatPeriodScoresBracket(fromDb);
       const engineLike = matchEvents
         .map((r) => {
           const ts = Math.max(0, Number(r.minute ?? 0) || 0);
@@ -465,6 +473,9 @@ export const EventDetailPage: React.FC = () => {
       return null;
     }
   }, [matchEvents, matchRowLite]);
+
+  /** Abgeschlossene Spiele: vollständige Abschnitte in DB → Endstand kommt aus Summe Abschnitte, nicht aus match_events. */
+  const hasManualPeriodScores = Boolean(parsedDbPeriodScores);
 
   useEffect(() => {
     if (!reportEditOpen) return;
@@ -513,9 +524,10 @@ export const EventDetailPage: React.FC = () => {
     setP3a(match[6] ?? '');
   }, [periodLine, reportEditOpen, matchRowLite?.period_scores]);
 
-  /** Endstand in DB an Tore (nur type goal / goal_away) angleichen — repariert alte falsche score_home/score_away. */
+  /** Endstand in DB an Tore (nur type goal / goal_away) angleichen — repariert alte falsche score_home/score_away. Läuft nicht bei manuellen Abschnitten. */
   useEffect(() => {
     if (!isFinishedMatchEvent || !event?.match_id || matchLoading) return;
+    if (parsePeriodScores(matchRowLite?.period_scores)) return;
     const t = countStadiumGoalsFromMatchEventRows(matchEvents);
     const row = matchRowLite;
     if (!row) return;
@@ -962,8 +974,11 @@ export const EventDetailPage: React.FC = () => {
   if (isFinishedMatchEvent) {
     const opponentName = (event.opponent ?? 'Gegner').trim() || 'Gegner';
     const eventGoalTotals = countStadiumGoalsFromMatchEventRows(matchEvents);
-    const scoreHome = eventGoalTotals.home;
-    const scoreAway = eventGoalTotals.away;
+    const displayedScore = hasManualPeriodScores
+      ? sumPeriodScoresTriplet(parsedDbPeriodScores!)
+      : eventGoalTotals;
+    const scoreHome = displayedScore.home;
+    const scoreAway = displayedScore.away;
     const venue = (() => {
       const parsed = splitCombinedLocation(matchRowLite?.location ?? event.location ?? '');
       return (parsed.place ?? '').trim() || (matchRowLite?.location ?? event.location ?? '').trim() || null;
@@ -1074,7 +1089,9 @@ export const EventDetailPage: React.FC = () => {
       p1h !== '' && p1a !== '' && p2h !== '' && p2a !== '' && p3h !== '' && p3a !== ''
         ? `(${p1h}:${p1a} | ${p2h}:${p2a} | ${p3h}:${p3a})`
         : null;
-    const shownPeriodLine = periodLineFromInputs || periodLine;
+    /** Nur gespeicherte oder Engine-Klammer auf dem Spielbericht — nicht unfertige Modal-Eingabe. */
+    const savedOrEngineBracket = periodLine;
+    const shownPeriodLineModalPreview = periodLineFromInputs || savedOrEngineBracket;
     const goalScorerDisplayRows = timelineEvents
       .filter((r) => normalizeMatchEventGoalType(r.type) && r.player_id)
       .map((r) => {
@@ -1185,6 +1202,7 @@ export const EventDetailPage: React.FC = () => {
 
     const syncScoreFromEvents = async (rows: MatchEventRow[]) => {
       if (!event.match_id) return;
+      if (parsePeriodScores(matchRowLite?.period_scores)) return;
       const totals = recomputeTotalsFromMatchEvents(rows);
       const { error: updErr } = await updateMatchRow(event.match_id, {
         score_home: totals.home,
@@ -1353,25 +1371,27 @@ export const EventDetailPage: React.FC = () => {
         setMatchError('Abschnitte müssen gültige Zahlen >= 0 sein (leer = 0).');
         return;
       }
-      const totals = recomputeTotalsFromMatchEvents(matchEvents);
       const sumH = h1 + h2 + h3;
       const sumA = a1 + a2 + a3;
-      if (sumH !== totals.home || sumA !== totals.away) {
-        setMatchError('Abschnitte passen nicht zum Endstand aus den Toren.');
-        return;
-      }
       const period_scores = {
         p1: { h: h1, a: a1 },
         p2: { h: h2, a: a2 },
         p3: { h: h3, a: a3 },
       };
-      const { error: updErr } = await updateMatchRow(event.match_id, { period_scores });
+      const { error: updErr } = await updateMatchRow(event.match_id, {
+        period_scores,
+        score_home: sumH,
+        score_away: sumA,
+      });
       if (updErr) {
         setMatchError(updErr.message ?? String(updErr));
         return;
       }
       setMatchError(null);
-      setMatchRowLite((prev) => (prev ? { ...prev, period_scores } : prev));
+      setMatchRowLite((prev) =>
+        prev ? { ...prev, period_scores, score_home: sumH, score_away: sumA } : prev,
+      );
+      await reloadMatchEvents();
     };
 
     const beginEditEvent = (r: MatchEventRow) => {
@@ -1533,8 +1553,8 @@ export const EventDetailPage: React.FC = () => {
                       <p className="mt-0.5 text-[2.45rem] font-black leading-none tabular-nums text-white sm:text-[2.72rem]">
                         {scoreStr}
                       </p>
-                      {shownPeriodLine ? (
-                        <p className="mt-0 text-[11px] tabular-nums leading-tight text-white/58">{shownPeriodLine}</p>
+                      {savedOrEngineBracket ? (
+                        <p className="mt-0 text-[11px] tabular-nums leading-tight text-white/58">{savedOrEngineBracket}</p>
                       ) : null}
                       {venue ? <p className="mt-0.5 line-clamp-2 text-center text-[0.9rem] leading-snug text-white/65">{venue}</p> : null}
                       {homeAway ? (
@@ -1603,10 +1623,13 @@ export const EventDetailPage: React.FC = () => {
                     {scoreHome} : {scoreAway}
                   </span>
                 </div>
-                {shownPeriodLine ? (
+                {hasManualPeriodScores ? (
+                  <p className="py-2 text-[12px] text-white/50">Endstand aus Abschnitten</p>
+                ) : null}
+                {savedOrEngineBracket ? (
                   <div className="flex items-center justify-between gap-4 py-3.5">
                     <span className="shrink-0 text-white/70">⏱ Abschnitte</span>
-                    <span className="text-right text-sm tabular-nums text-white/88">{shownPeriodLine}</span>
+                    <span className="text-right text-sm tabular-nums text-white/88">{savedOrEngineBracket}</span>
                   </div>
                 ) : null}
                 {reportGoalScorerLines.length > 0 ? (
@@ -1868,7 +1891,7 @@ export const EventDetailPage: React.FC = () => {
                                 </p>
                               )}
                             </div>
-                            {scoreBadge ? (
+                            {!hasManualPeriodScores && scoreBadge ? (
                               <span className="shrink-0 rounded-full border border-white/15 bg-white/[0.06] px-2 py-0.5 text-[11px] font-extrabold tabular-nums text-white/90">
                                 {scoreBadge}
                               </span>
@@ -1921,11 +1944,23 @@ export const EventDetailPage: React.FC = () => {
               <div className="rounded-2xl border border-white/10 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                 <p className="text-[14px] font-bold uppercase tracking-[0.22em] text-white/55">Ergebnis</p>
                 <div className="mt-3 rounded-xl border border-white/10 bg-black/40 px-4 py-4 text-center">
-                  <p className="text-[15px] font-medium text-white/65">Endstand</p>
-                  <p className="mt-1 text-[34px] font-black tabular-nums leading-none text-white">
-                    {scoreHome} : {scoreAway}
+                  {hasManualPeriodScores ? (
+                    <p className="text-[22px] font-black tabular-nums leading-tight text-white sm:text-[28px]">
+                      Endstand aus Abschnitten: {scoreHome} : {scoreAway}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-[15px] font-medium text-white/65">Endstand</p>
+                      <p className="mt-1 text-[34px] font-black tabular-nums leading-none text-white">
+                        {scoreHome} : {scoreAway}
+                      </p>
+                    </>
+                  )}
+                  <p className="mt-2 text-[15px] leading-snug text-white/60">
+                    {hasManualPeriodScores
+                      ? 'Die Abschnitte bestimmen den Endstand. Tore sind nur für Liveticker/Torschützen.'
+                      : 'Wird aus den Toren berechnet, solange keine vollständigen Abschnitte gespeichert sind.'}
                   </p>
-                  <p className="mt-2 text-[15px] leading-snug text-white/60">Wird automatisch aus den Toren berechnet.</p>
                 </div>
               </div>
 
@@ -1961,8 +1996,8 @@ export const EventDetailPage: React.FC = () => {
                 <Button variant="secondary" className="mt-4 min-h-[48px] w-full text-[16px] font-semibold" onClick={() => void savePeriodScores()}>
                   Abschnitte speichern
                 </Button>
-                {shownPeriodLine ? (
-                  <p className="mt-3 text-center text-[15px] tabular-nums text-white/60">{shownPeriodLine}</p>
+                {shownPeriodLineModalPreview ? (
+                  <p className="mt-3 text-center text-[15px] tabular-nums text-white/60">{shownPeriodLineModalPreview}</p>
                 ) : null}
               </div>
 
