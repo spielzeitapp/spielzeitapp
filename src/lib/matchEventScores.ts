@@ -5,9 +5,33 @@
 
 export function normalizeMatchEventGoalType(type: string | null | undefined): 'goal' | 'goal_away' | null {
   const t = String(type ?? '').trim().toLowerCase();
-  if (t === 'goal') return 'goal';
+  if (t === 'goal' || t === 'goal_home') return 'goal';
   if (t === 'goal_away') return 'goal_away';
   return null;
+}
+
+/**
+ * Nur UI-State (z. B. goal_home) → erlaubter DB-Wert für match_events.type.
+ * Niemals "goal_home" in die DB schreiben.
+ */
+export function mapUiGoalTypeToMatchEventDbType(uiType: string | null | undefined): 'goal' | 'goal_away' {
+  const t = String(uiType ?? '').trim().toLowerCase();
+  if (t === 'goal_away') return 'goal_away';
+  return 'goal';
+}
+
+export function friendlyMatchEventWriteError(raw: string | null | undefined): string {
+  const m = String(raw ?? '').trim();
+  const lower = m.toLowerCase();
+  if (
+    !m ||
+    lower.includes('match_events_type_check') ||
+    lower.includes('violates check constraint') ||
+    lower.includes('check constraint')
+  ) {
+    return 'Ereignis konnte nicht gespeichert werden. Bitte Team und Typ prüfen.';
+  }
+  return m;
 }
 
 export function countStadiumGoalsFromMatchEventRows(

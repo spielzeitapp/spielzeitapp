@@ -25,6 +25,8 @@ import { buildPauseDelimitedPeriodScoreLine, type MatchEngineEvent } from '../li
 import {
   countStadiumGoalsFromMatchEventRows,
   formatPeriodScoresBracket,
+  friendlyMatchEventWriteError,
+  mapUiGoalTypeToMatchEventDbType,
   normalizeMatchEventGoalType,
   parsePeriodScores,
   sumPeriodScoresTriplet,
@@ -228,6 +230,8 @@ export const EventDetailPage: React.FC = () => {
   const [matchEvents, setMatchEvents] = useState<MatchEventRow[]>([]);
   const [matchLoading, setMatchLoading] = useState(false);
   const [matchError, setMatchError] = useState<string | null>(null);
+  const [pendingMatchEventDeletes, setPendingMatchEventDeletes] = useState<MatchEventRow[] | null>(null);
+  const [matchEventSingleDeleteBusy, setMatchEventSingleDeleteBusy] = useState(false);
   const [reportEditOpen, setReportEditOpen] = useState(false);
   const [goalMinute, setGoalMinute] = useState(''); // Anzeige-Minute (1..)
   const [goalTeam, setGoalTeam] = useState<'goal_home' | 'goal_away'>('goal_home');
@@ -453,14 +457,15 @@ export const EventDetailPage: React.FC = () => {
           if (type === 'final_whistle') return { id: r.id, type: 'end' as const, timestamp: ts, playerId: undefined };
           if (type === 'period_start') return { id: r.id, type: 'resume' as const, timestamp: ts, playerId: undefined };
           if (type === 'period_end') return { id: r.id, type: 'pause' as const, timestamp: ts, playerId: undefined };
-          if (type === 'goal_away')
+          const gEngine = normalizeMatchEventGoalType(r.type);
+          if (gEngine === 'goal_away')
             return {
               id: r.id,
               type: 'goal_away' as const,
               timestamp: ts,
               playerId: r.player_id ?? undefined,
             };
-          if (type === 'goal')
+          if (gEngine === 'goal')
             return { id: r.id, type: 'goal' as const, timestamp: ts, playerId: r.player_id ?? undefined };
           if (type === 'sub_out') return { id: r.id, type: 'sub_out' as const, timestamp: ts, playerId: r.player_id ?? undefined };
           if (type === 'sub_in') return { id: r.id, type: 'sub_in' as const, timestamp: ts, playerId: r.player_id ?? undefined };
@@ -1108,10 +1113,7 @@ export const EventDetailPage: React.FC = () => {
       minute: r.minute,
     }));
 
-    const goalCount = timelineEvents.filter((r) => {
-      const t = String(r.type ?? '').toLowerCase();
-      return t === 'goal' || t === 'goal_away';
-    }).length;
+    const goalCount = timelineEvents.filter((r) => normalizeMatchEventGoalType(r.type)).length;
     const subCount = timelineEvents.filter((r) => {
       const t = String(r.type ?? '').toLowerCase();
       return t === 'sub_out' || t === 'sub_in';
@@ -1143,10 +1145,7 @@ export const EventDetailPage: React.FC = () => {
       }
       return rows;
     })();
-    const goalEvents = timelineEvents.filter((r) => {
-      const t = String(r.type ?? '').toLowerCase();
-      return t === 'goal' || t === 'goal_away';
-    });
+    const goalEvents = timelineEvents.filter((r) => normalizeMatchEventGoalType(r.type));
     const switchRows = tickerRows.filter((row) => {
       if (row.items.length === 2) {
         const t0 = String(row.items[0]?.type ?? '').toLowerCase();
@@ -1200,18 +1199,23 @@ export const EventDetailPage: React.FC = () => {
       return rows;
     };
 
-    const syncScoreFromEvents = async (rows: MatchEventRow[]) => {
-      if (!event.match_id) return;
-      if (parsePeriodScores(matchRowLite?.period_scores)) return;
+    const syncScoreFromEvents = async (rows: MatchEventRow[]): Promise<boolean> => {
+      if (!event.match_id) return true;
+      if (parsePeriodScores(matchRowLite?.period_scores)) return true;
       const totals = recomputeTotalsFromMatchEvents(rows);
       const { error: updErr } = await updateMatchRow(event.match_id, {
         score_home: totals.home,
         score_away: totals.away,
       });
-      if (updErr) setMatchError(updErr);
+      if (updErr) {
+        setMatchError(friendlyMatchEventWriteError(updErr));
+        return false;
+      }
+      setMatchError(null);
       setMatchRowLite((prev) =>
         prev ? { ...prev, score_home: totals.home, score_away: totals.away } : prev,
       );
+      return true;
     };
 
     const addGoal = async () => {
@@ -1221,7 +1225,7 @@ export const EventDetailPage: React.FC = () => {
       try {
         setMatchError(null);
         if (!requireSquadPlayer(goalPlayerId, 'Torschütze')) return;
-        const dbType = goalTeam === 'goal_away' ? 'goal_away' : 'goal';
+        const dbType = mapUiGoalTypeToMatchEventDbType(goalTeam);
         const { error: insErr } = await supabase.from('match_events').insert({
           match_id: event.match_id,
           type: dbType,
@@ -1230,36 +1234,56 @@ export const EventDetailPage: React.FC = () => {
           player_id: goalPlayerId.trim() || null,
         });
         if (insErr) {
-          setMatchError(insErr.message);
+          setMatchError(friendlyMatchEventWriteError(insErr.message));
           return;
         }
         const rows = await reloadMatchEvents();
         if (!rows) return;
-        await syncScoreFromEvents(rows);
+        const synced = await syncScoreFromEvents(rows);
+        if (!synced) return;
+        setMatchError(null);
         setGoalMinute('');
         setGoalPlayerId('');
       } catch (e: any) {
         console.error('[FinishedMatchReport] addGoal', e);
-        setMatchError(e?.message ?? 'Speichern fehlgeschlagen.');
+        setMatchError(friendlyMatchEventWriteError(e?.message));
       }
     };
 
-    const deleteTickerRow = async (items: MatchEventRow[]) => {
-      if (!event.match_id || items.length === 0) return;
-      setMatchError(null);
+    const requestDeleteTickerRows = (items: MatchEventRow[]) => {
+      if (items.length === 0) return;
+      setPendingMatchEventDeletes(items);
+    };
+
+    const executeDeleteTickerRows = async (items: MatchEventRow[]): Promise<boolean> => {
+      if (!event.match_id || items.length === 0) return false;
       const ids = items.map((x) => x.id);
-      const didTouchGoals = items.some((x) => {
-        const t = String(x.type ?? '').toLowerCase();
-        return t === 'goal' || t === 'goal_away';
-      });
+      const didTouchGoals = items.some((x) => normalizeMatchEventGoalType(x.type) !== null);
       const { error: delErr } = await supabase.from('match_events').delete().in('id', ids);
       if (delErr) {
-        setMatchError(delErr.message);
-        return;
+        setMatchError(friendlyMatchEventWriteError(delErr.message));
+        return false;
       }
       const rows = await reloadMatchEvents();
-      if (!rows) return;
-      if (didTouchGoals) await syncScoreFromEvents(rows);
+      if (!rows) return false;
+      if (didTouchGoals) {
+        const synced = await syncScoreFromEvents(rows);
+        if (!synced) return false;
+      }
+      setMatchError(null);
+      return true;
+    };
+
+    const confirmPendingMatchEventDelete = async () => {
+      const items = pendingMatchEventDeletes;
+      if (!items?.length) return;
+      setMatchEventSingleDeleteBusy(true);
+      try {
+        const ok = await executeDeleteTickerRows(items);
+        if (ok) setPendingMatchEventDeletes(null);
+      } finally {
+        setMatchEventSingleDeleteBusy(false);
+      }
     };
 
     const addSwitch = async () => {
@@ -1291,10 +1315,11 @@ export const EventDetailPage: React.FC = () => {
       if (payloads.length === 0) return;
       const { error: insErr } = await supabase.from('match_events').insert(payloads);
       if (insErr) {
-        setMatchError(insErr.message);
+        setMatchError(friendlyMatchEventWriteError(insErr.message));
         return;
       }
       await reloadMatchEvents();
+      setMatchError(null);
       setNewSwitchMinute('');
       setNewSwitchOutPlayerId('');
       setNewSwitchInPlayerId('');
@@ -1314,10 +1339,11 @@ export const EventDetailPage: React.FC = () => {
         player_id: newCardPlayerId.trim() || null,
       });
       if (insErr) {
-        setMatchError(insErr.message);
+        setMatchError(friendlyMatchEventWriteError(insErr.message));
         return;
       }
       await reloadMatchEvents();
+      setMatchError(null);
       setNewCardMinute('');
       setNewCardPlayerId('');
       setNewCardType('yellow_card');
@@ -1346,10 +1372,11 @@ export const EventDetailPage: React.FC = () => {
         })
         .eq('id', editingCardId);
       if (updErr) {
-        setMatchError(updErr.message);
+        setMatchError(friendlyMatchEventWriteError(updErr.message));
         return;
       }
       await reloadMatchEvents();
+      setMatchError(null);
       setEditingCardId(null);
     };
 
@@ -1423,8 +1450,7 @@ export const EventDetailPage: React.FC = () => {
       const minute = Math.max(0, Number(editEventMinute.trim()) || 0);
       const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
       const old = timelineEvents.find((x) => x.id === editingEventId);
-      const oldType = String(old?.type ?? '').toLowerCase();
-      let didTouchGoals = oldType === 'goal' || oldType === 'goal_away';
+      let didTouchGoals = normalizeMatchEventGoalType(old?.type) !== null;
 
       if (editEventType === 'switch') {
         if (!requireSquadPlayer(editSwitchOutPlayerId, 'Auswechselnder')) return;
@@ -1440,13 +1466,13 @@ export const EventDetailPage: React.FC = () => {
         if (companionIds.length > 0) {
           const { error } = await supabase.from('match_events').delete().in('id', companionIds);
           if (error) {
-            setMatchError(error.message);
+            setMatchError(friendlyMatchEventWriteError(error.message));
             return;
           }
         }
         const { error: delErr } = await supabase.from('match_events').delete().eq('id', editingEventId);
         if (delErr) {
-          setMatchError(delErr.message);
+          setMatchError(friendlyMatchEventWriteError(delErr.message));
           return;
         }
         const payloads: Array<{ match_id: string; type: string; minute: number; period: null; player_id: string | null }> = [];
@@ -1471,14 +1497,14 @@ export const EventDetailPage: React.FC = () => {
         if (payloads.length > 0) {
           const { error: insErr } = await supabase.from('match_events').insert(payloads);
           if (insErr) {
-            setMatchError(insErr.message);
+            setMatchError(friendlyMatchEventWriteError(insErr.message));
             return;
           }
         }
       } else {
         if (!requireSquadPlayer(editEventPlayerId, 'Torschütze')) return;
         didTouchGoals = true;
-        const newDbType = editEventType === 'goal_away' ? 'goal_away' : 'goal';
+        const newDbType = mapUiGoalTypeToMatchEventDbType(editEventType);
         const { error: updErr } = await supabase
           .from('match_events')
           .update({
@@ -1488,15 +1514,17 @@ export const EventDetailPage: React.FC = () => {
           })
           .eq('id', editingEventId);
         if (updErr) {
-          setMatchError(updErr.message);
+          setMatchError(friendlyMatchEventWriteError(updErr.message));
           return;
         }
       }
       const rows = await reloadMatchEvents();
       if (!rows) return;
       if (didTouchGoals) {
-        await syncScoreFromEvents(rows);
+        const synced = await syncScoreFromEvents(rows);
+        if (!synced) return;
       }
+      setMatchError(null);
       setEditingEventId(null);
     };
 
@@ -1859,10 +1887,10 @@ export const EventDetailPage: React.FC = () => {
                                     <p className="mt-1 text-[13px] text-white/75">Wechsel</p>
                                   )}
                                 </>
-                              ) : t === 'goal' || t === 'goal_away' ? (
+                              ) : goalTickerType ? (
                                 <>
                                   <p className="line-clamp-2 text-[15px] font-bold leading-snug text-white">
-                                    Team {t === 'goal' ? homeTeamName : awayTeamName}
+                                    Team {goalTickerType === 'goal_away' ? awayTeamName : homeTeamName}
                                   </p>
                                   <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-snug text-white/65">
                                     {name ? `Torschütze: ${name}` : 'Ohne Torschütze'}
@@ -1914,7 +1942,7 @@ export const EventDetailPage: React.FC = () => {
                               <button
                                 type="button"
                                 className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
-                                onClick={() => void deleteTickerRow(row.items)}
+                                onClick={() => requestDeleteTickerRows(row.items)}
                                 title="Ereignis löschen"
                               >
                                 Löschen
@@ -2088,7 +2116,7 @@ export const EventDetailPage: React.FC = () => {
                           <button
                             type="button"
                             className="min-h-[48px] flex-1 rounded-xl border border-red-400/35 bg-red-500/12 px-4 text-[16px] font-semibold text-red-100 hover:bg-red-500/18 sm:flex-initial"
-                            onClick={() => void deleteTickerRow([g])}
+                            onClick={() => requestDeleteTickerRows([g])}
                           >
                             Löschen
                           </button>
@@ -2223,7 +2251,7 @@ export const EventDetailPage: React.FC = () => {
                             <button
                               type="button"
                               className="min-h-[48px] flex-1 rounded-xl border border-red-400/35 bg-red-500/12 px-4 text-[16px] font-semibold text-red-100 hover:bg-red-500/18 sm:flex-initial"
-                              onClick={() => void deleteTickerRow(row.items)}
+                              onClick={() => requestDeleteTickerRows(row.items)}
                             >
                               Löschen
                             </button>
@@ -2345,7 +2373,7 @@ export const EventDetailPage: React.FC = () => {
                             <button
                               type="button"
                               className="min-h-[48px] flex-1 rounded-xl border border-red-400/35 bg-red-500/12 px-4 text-[16px] font-semibold text-red-100 hover:bg-red-500/18 sm:flex-initial"
-                              onClick={() => void deleteTickerRow([c])}
+                              onClick={() => requestDeleteTickerRows([c])}
                             >
                               Löschen
                             </button>
@@ -2385,6 +2413,34 @@ export const EventDetailPage: React.FC = () => {
                 </Button>
               </div>
             </div>
+          </Modal>
+
+          <Modal
+            isOpen={pendingMatchEventDeletes != null && pendingMatchEventDeletes.length > 0}
+            title="Ereignis löschen?"
+            onClose={() => {
+              if (!matchEventSingleDeleteBusy) setPendingMatchEventDeletes(null);
+            }}
+            footer={
+              <div className="flex justify-end gap-2">
+                <AppButton
+                  variant="secondary"
+                  onClick={() => !matchEventSingleDeleteBusy && setPendingMatchEventDeletes(null)}
+                  disabled={matchEventSingleDeleteBusy}
+                >
+                  Abbrechen
+                </AppButton>
+                <AppButton
+                  variant="danger"
+                  onClick={() => void confirmPendingMatchEventDelete()}
+                  disabled={matchEventSingleDeleteBusy}
+                >
+                  {matchEventSingleDeleteBusy ? 'Löschen…' : 'Löschen'}
+                </AppButton>
+              </div>
+            }
+          >
+            <p className="text-[14px] text-white/75">Dieses Ereignis wirklich löschen?</p>
           </Modal>
 
           <Modal
