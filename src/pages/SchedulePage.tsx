@@ -37,6 +37,11 @@ import {
 import { formatDateTimeDeVienna } from '../lib/notifications/format';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
+import {
+  formatPeriodScoresBracket,
+  parsePeriodScores,
+  sumPeriodScoresTriplet,
+} from '../lib/matchEventScores';
 
 type KindFilterId = 'all' | 'match' | 'training' | 'event';
 type TimeFilterId = 'upcoming' | 'past';
@@ -211,7 +216,9 @@ export const SchedulePage: React.FC = () => {
   const [editError, setEditError] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [matchScoreById, setMatchScoreById] = useState<Record<string, { scoreHome: number; scoreAway: number }>>({});
+  const [matchScoreById, setMatchScoreById] = useState<
+    Record<string, { scoreHome: number; scoreAway: number; periodBracket: string | null }>
+  >({});
 
   useEffect(() => {
     const navState = (location.state as { openEditEventId?: string } | null) ?? null;
@@ -687,15 +694,31 @@ export const SchedulePage: React.FC = () => {
     (async () => {
       const { data, error } = await supabase
         .from('matches')
-        .select('id, score_home, score_away')
+        .select('id, score_home, score_away, period_scores')
         .in('id', matchIds);
       if (cancelled || error) return;
-      const next: Record<string, { scoreHome: number; scoreAway: number }> = {};
-      for (const row of (data ?? []) as Array<{ id: string; score_home: number | null; score_away: number | null }>) {
-        next[row.id] = {
-          scoreHome: Number(row.score_home ?? 0),
-          scoreAway: Number(row.score_away ?? 0),
-        };
+      const next: Record<string, { scoreHome: number; scoreAway: number; periodBracket: string | null }> = {};
+      for (const row of (data ?? []) as Array<{
+        id: string;
+        score_home: number | null;
+        score_away: number | null;
+        period_scores: unknown;
+      }>) {
+        const triplet = parsePeriodScores(row.period_scores);
+        if (triplet) {
+          const s = sumPeriodScoresTriplet(triplet);
+          next[row.id] = {
+            scoreHome: s.home,
+            scoreAway: s.away,
+            periodBracket: formatPeriodScoresBracket(triplet),
+          };
+        } else {
+          next[row.id] = {
+            scoreHome: Number(row.score_home ?? 0),
+            scoreAway: Number(row.score_away ?? 0),
+            periodBracket: null,
+          };
+        }
       }
       setMatchScoreById(next);
     })();
@@ -1314,6 +1337,7 @@ export const SchedulePage: React.FC = () => {
                             opponentLogoUrl={opponentLogo}
                             scoreHome={matchScoreRow?.scoreHome ?? null}
                             scoreAway={matchScoreRow?.scoreAway ?? null}
+                            periodBracketLine={matchScoreRow?.periodBracket ?? null}
                             forcePublicView={forcePublicView}
                             onNavigate={(id) => navigate(`/app/events/${id}`)}
                           />

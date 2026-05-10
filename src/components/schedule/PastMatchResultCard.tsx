@@ -10,9 +10,11 @@ export type PastMatchResultCardProps = {
   ev: EventRow;
   ourTeamName: string;
   opponentLogoUrl?: string | null;
-  /** Aus `matches.score_home` / `score_away` (Heim : Auswärts). */
+  /** Aus `matches.score_home` / `score_away` (Heim : Auswärts), bei gültigen Abschnitten Summe aus period_scores. */
   scoreHome: number | null;
   scoreAway: number | null;
+  /** Klammer aus period_scores, z. B. „(2:3 | 2:0 | 3:2)“. */
+  periodBracketLine?: string | null;
   /** Optional z. B. „(1:0)“ wenn später Daten verfügbar — sonst ausgeblendet. */
   halftimeLine?: string | null;
   forcePublicView: boolean;
@@ -83,6 +85,7 @@ export function PastMatchResultCard({
   opponentLogoUrl,
   scoreHome,
   scoreAway,
+  periodBracketLine,
   halftimeLine,
   forcePublicView,
   onNavigate,
@@ -206,6 +209,11 @@ export function PastMatchResultCard({
             >
               {scoreStr}
             </span>
+            {periodBracketLine ? (
+              <span className="mt-1 max-w-[14rem] text-center text-[11px] font-medium tabular-nums leading-snug text-white/55 sm:max-w-none sm:text-[12px]">
+                {periodBracketLine}
+              </span>
+            ) : null}
             <span className="mt-1 text-[12px] text-white/70">ENDSTAND</span>
             {halftimeLine ? (
               <span className="mt-1.5 text-center text-[12px] text-white/50">{halftimeLine}</span>

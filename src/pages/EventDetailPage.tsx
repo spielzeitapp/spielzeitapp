@@ -230,7 +230,7 @@ export const EventDetailPage: React.FC = () => {
   const [matchError, setMatchError] = useState<string | null>(null);
   const [reportEditOpen, setReportEditOpen] = useState(false);
   const [goalMinute, setGoalMinute] = useState(''); // Anzeige-Minute (1..)
-  const [goalTeam, setGoalTeam] = useState<'home' | 'away'>('home');
+  const [goalTeam, setGoalTeam] = useState<'goal_home' | 'goal_away'>('goal_home');
   const [goalPlayerId, setGoalPlayerId] = useState<string>('');
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [editEventMinute, setEditEventMinute] = useState('');
@@ -1221,7 +1221,7 @@ export const EventDetailPage: React.FC = () => {
       try {
         setMatchError(null);
         if (!requireSquadPlayer(goalPlayerId, 'Torschütze')) return;
-        const dbType = goalTeam === 'away' ? 'goal_away' : 'goal';
+        const dbType = goalTeam === 'goal_away' ? 'goal_away' : 'goal';
         const { error: insErr } = await supabase.from('match_events').insert({
           match_id: event.match_id,
           type: dbType,
@@ -1409,10 +1409,11 @@ export const EventDetailPage: React.FC = () => {
       } else {
         setEditSwitchOutPlayerId('');
         setEditSwitchInPlayerId('');
-        if (t === 'goal_away') setEditEventType('goal_away');
-        else if (t === 'goal') setEditEventType('goal_home');
+        const gType = normalizeMatchEventGoalType(r.type);
+        if (gType === 'goal_away') setEditEventType('goal_away');
+        else if (gType === 'goal') setEditEventType('goal_home');
         else setEditEventType('goal_home');
-        setEditEventPlayerId(normalizeMatchEventGoalType(r.type) ? (r.player_id ?? '') : '');
+        setEditEventPlayerId(gType ? (r.player_id ?? '') : '');
       }
     };
 
@@ -1502,30 +1503,30 @@ export const EventDetailPage: React.FC = () => {
     return (
       <div className="min-h-screen text-white [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_55%,rgba(10,0,0,0.99)_100%)]">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] sm:px-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2">
             <Link to="/app/termine" className="text-[14px] text-white/80 hover:text-white">
               ← Zurück zum Spielplan
             </Link>
-            {canTrainerManageEvent ? (
-              <AppButton
-                variant="danger"
-                size="sm"
-                className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px] sm:w-auto"
-                onClick={() => setDeleteConfirmOpen(true)}
-              >
-                <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                Löschen
-              </AppButton>
-            ) : null}
           </div>
 
           <div className="mb-1 -mx-3.5 w-[calc(100%+1.75rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full">
             <section className="mb-1 w-full pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
-              <div className="mb-1.5 flex items-center justify-between gap-2 px-0.5">
+              <div className="mb-1.5 flex items-start justify-between gap-2 px-0.5">
                 <h2 className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-300/90">Spielbericht</h2>
-                <span className="shrink-0 rounded-md border border-red-500/35 bg-black/55 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-red-200/95">
-                  BEENDET
-                </span>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="rounded-md border border-red-500/35 bg-black/55 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-red-200/95">
+                    BEENDET
+                  </span>
+                  {canTrainerManageEvent ? (
+                    <button
+                      type="button"
+                      className="text-[11px] font-medium text-red-300/70 underline-offset-2 hover:text-red-200 hover:underline"
+                      onClick={() => setDeleteConfirmOpen(true)}
+                    >
+                      Termin löschen
+                    </button>
+                  ) : null}
+                </div>
               </div>
 
               <div className="relative w-full overflow-hidden rounded-[2rem] border border-red-500/30 bg-black shadow-[0_0_40px_rgba(255,0,0,0.25)]">
@@ -1861,7 +1862,7 @@ export const EventDetailPage: React.FC = () => {
                               ) : t === 'goal' || t === 'goal_away' ? (
                                 <>
                                   <p className="line-clamp-2 text-[15px] font-bold leading-snug text-white">
-                                    ⚽ {t === 'goal' ? homeTeamName : awayTeamName}
+                                    Team {t === 'goal' ? homeTeamName : awayTeamName}
                                   </p>
                                   <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-snug text-white/65">
                                     {name ? `Torschütze: ${name}` : 'Ohne Torschütze'}
@@ -2026,8 +2027,8 @@ export const EventDetailPage: React.FC = () => {
                           }
                           className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                         >
-                          <option value="goal_home">Heim (Stadion)</option>
-                          <option value="goal_away">Auswärts (Stadion)</option>
+                          <option value="goal_home">{homeTeamName}</option>
+                          <option value="goal_away">{awayTeamName}</option>
                         </select>
                       </label>
                     </div>
@@ -2070,7 +2071,7 @@ export const EventDetailPage: React.FC = () => {
                             {minuteLabel(g.minute)}
                           </p>
                           <p className="mt-1 text-[17px] font-semibold text-white/95">
-                            {String(g.type ?? '').toLowerCase() === 'goal_away' ? awayTeamName : homeTeamName}
+                            Team {normalizeMatchEventGoalType(g.type) === 'goal_away' ? awayTeamName : homeTeamName}
                           </p>
                           <p className="mt-1 text-[14px] text-white/60">
                             {playerName(g.player_id) ? `Torschütze: ${playerName(g.player_id)}` : 'Ohne Torschütze'}
@@ -2111,11 +2112,11 @@ export const EventDetailPage: React.FC = () => {
                     <span className="text-[15px] font-medium text-white/70">Team</span>
                     <select
                       value={goalTeam}
-                      onChange={(e) => setGoalTeam(e.target.value === 'away' ? 'away' : 'home')}
+                      onChange={(e) => setGoalTeam(e.target.value === 'goal_away' ? 'goal_away' : 'goal_home')}
                       className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                     >
-                      <option value="home">Heim (Stadion)</option>
-                      <option value="away">Auswärts (Stadion)</option>
+                      <option value="goal_home">{homeTeamName}</option>
+                      <option value="goal_away">{awayTeamName}</option>
                     </select>
                   </label>
                 </div>
