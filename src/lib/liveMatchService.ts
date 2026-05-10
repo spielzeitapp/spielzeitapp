@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { debugAssertMatchEventDbType } from './matchEventScores';
 import type { FieldSlotId } from '../types/match';
 import type { MatchEngineEvent, MatchEventType } from './matchEngine';
 
@@ -135,6 +136,7 @@ export function engineEventToInsertPayload(
   period?: number | null,
 ): InsertMatchEventPayload {
   const dbType = ev.type === 'goal' ? 'goal' : ev.type === 'goal_away' ? 'goal_away' : (ev.type as string);
+  debugAssertMatchEventDbType('engineEventToInsertPayload', dbType);
   const base: InsertMatchEventPayload = {
     match_id: matchId,
     type: dbType,
@@ -264,6 +266,12 @@ export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: 
 }
 
 export async function saveMatchEvent(payload: InsertMatchEventPayload): Promise<{ id: string | null; error: string | null }> {
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+    const t = String(payload.type ?? '').trim().toLowerCase();
+    if (t === 'goal_home') {
+      console.error('[match_events] saveMatchEvent: goal_home darf nicht in die DB', payload);
+    }
+  }
   const { data, error } = await supabase.from('match_events').insert(payload).select('id').single();
   if (error) {
     console.error('[liveMatchService] saveMatchEvent', error);
@@ -287,6 +295,13 @@ export async function saveMatchEvents(
   payloads: InsertMatchEventPayload[],
 ): Promise<{ ids: string[]; error: string | null }> {
   if (payloads.length === 0) return { ids: [], error: null };
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+    for (const p of payloads) {
+      if (String(p.type ?? '').trim().toLowerCase() === 'goal_home') {
+        console.error('[match_events] saveMatchEvents: goal_home darf nicht in die DB', p);
+      }
+    }
+  }
   const { data, error } = await supabase.from('match_events').insert(payloads).select('id');
   if (error) {
     console.error('[liveMatchService] saveMatchEvents', error);

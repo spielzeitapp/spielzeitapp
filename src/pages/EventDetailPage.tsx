@@ -24,6 +24,7 @@ import { fetchMatchById, updateMatchRow } from '../lib/liveMatchService';
 import { buildPauseDelimitedPeriodScoreLine, type MatchEngineEvent } from '../lib/matchEngine';
 import {
   countStadiumGoalsFromMatchEventRows,
+  debugAssertMatchEventDbType,
   formatPeriodScoresBracket,
   friendlyMatchEventWriteError,
   mapUiGoalTypeToMatchEventDbType,
@@ -1226,6 +1227,7 @@ export const EventDetailPage: React.FC = () => {
         setMatchError(null);
         if (!requireSquadPlayer(goalPlayerId, 'Torschütze')) return;
         const dbType = mapUiGoalTypeToMatchEventDbType(goalTeam);
+        debugAssertMatchEventDbType('addGoal', dbType);
         const { error: insErr } = await supabase.from('match_events').insert({
           match_id: event.match_id,
           type: dbType,
@@ -1505,6 +1507,7 @@ export const EventDetailPage: React.FC = () => {
         if (!requireSquadPlayer(editEventPlayerId, 'Torschütze')) return;
         didTouchGoals = true;
         const newDbType = mapUiGoalTypeToMatchEventDbType(editEventType);
+        debugAssertMatchEventDbType('saveEventEdit goal', newDbType);
         const { error: updErr } = await supabase
           .from('match_events')
           .update({

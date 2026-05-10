@@ -23,15 +23,27 @@ export function mapUiGoalTypeToMatchEventDbType(uiType: string | null | undefine
 export function friendlyMatchEventWriteError(raw: string | null | undefined): string {
   const m = String(raw ?? '').trim();
   const lower = m.toLowerCase();
+  if (lower.includes('match_events_type_check')) {
+    return 'Ereignis konnte nicht gespeichert werden. Datenbank erlaubt diesen Ereignistyp noch nicht.';
+  }
   if (
     !m ||
-    lower.includes('match_events_type_check') ||
     lower.includes('violates check constraint') ||
     lower.includes('check constraint')
   ) {
     return 'Ereignis konnte nicht gespeichert werden. Bitte Team und Typ prüfen.';
   }
   return m;
+}
+
+/** Nur DEV: goal_home darf nie in die DB. */
+export function debugAssertMatchEventDbType(context: string, dbType: string): void {
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+    const t = String(dbType ?? '').trim().toLowerCase();
+    if (t === 'goal_home') {
+      console.error(`[match_events] ${context}: UI-Typ goal_home darf nicht in die DB geschrieben werden`, dbType);
+    }
+  }
 }
 
 export function countStadiumGoalsFromMatchEventRows(
