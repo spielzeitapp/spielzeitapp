@@ -1291,7 +1291,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   /** MVP: viel Spielzeit raus, wenig rein; max. 3 Paare, kein Spieler doppelt. */
   const substitutionSuggestions = useMemo(() => {
-    if (matchIsFinished) return [];
+    if (matchIsFinished || matchRow?.status !== 'live') return [];
     const squadSet = new Set(squadPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean));
     const fieldIds = onFieldIds.map((id) => String(id ?? '').trim()).filter((id) => squadSet.has(id));
     const benchIds = getBenchPlayers(squadPlayerIds, onFieldIds)
@@ -1333,7 +1333,7 @@ export const LiveMatchScreen: React.FC = () => {
       });
     }
     return pairs;
-  }, [matchIsFinished, squadPlayerIds, onFieldIds, playtimes, rosterById]);
+  }, [matchIsFinished, matchRow?.status, squadPlayerIds, onFieldIds, playtimes, rosterById]);
 
   const squadRosterForPlaytimeList = useMemo(() => {
     const list = roster.filter((p) => squadPlayerIds.includes(p.id));
@@ -2992,7 +2992,11 @@ export const LiveMatchScreen: React.FC = () => {
                 Wechsel-Vorschläge
               </h2>
               <div className="space-y-2">
-                {substitutionSuggestions.length > 0 ? (
+                {matchRow?.status !== 'live' && !matchIsFinished ? (
+                  <p className="rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-center text-sm text-white/55">
+                    Wechselvorschläge sind ab Anpfiff verfügbar.
+                  </p>
+                ) : substitutionSuggestions.length > 0 ? (
                   substitutionSuggestions.map((sug) => (
                     <div
                       key={`sub-sug-${sug.outId}-${sug.inId}`}
