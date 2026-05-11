@@ -585,13 +585,38 @@ function collectSquadUnionFromRaw(lineupRows: RawLineupRow[], benchRows: RawBenc
 }
 
 /**
+ * Bank-Warteschlange: zuerst Reihenfolge aus `match_bench`-Rohzeilen (ohne bereits auf dem Feld),
+ * danach übrige Kader-IDs alphabetisch — deterministisch.
+ */
+function stableBenchQueue(fieldSet: Set<string>, benchRows: RawBenchRow[], sortedU: string[]): string[] {
+  const q: string[] = [];
+  const seen = new Set<string>();
+  for (const row of benchRows) {
+    const p = normLineupPid(row.player_id);
+    if (!p || fieldSet.has(p) || seen.has(p)) continue;
+    seen.add(p);
+    q.push(p);
+  }
+  for (const id of sortedU) {
+    if (!fieldSet.has(id) && !seen.has(id)) {
+      seen.add(id);
+      q.push(id);
+    }
+  }
+  return q;
+}
+
+/**
  * Repariertes 7er-Array + Kader aus Roh-DB: doppelte Feld-Slots bereinigt (erster Slot gewinnt),
+ * leere Slots deterministisch aus der Bank auffüllen (sofern Kader reicht),
  * Kader = Union aller Roh-IDs; Bank = Kader minus Feld (Feld gewinnt bei Doppelbelegung).
  */
 export function computeRepairedLiveLineupFromRaw(
   lineupRows: RawLineupRow[],
   benchRows: RawBenchRow[],
 ): { startingPlayerIds: string[]; squadPlayerIds: string[] } {
+  const U = [...collectSquadUnionFromRaw(lineupRows, benchRows)].sort((a, b) => a.localeCompare(b));
+
   const bySlot: Partial<Record<FieldSlotId, string>> = {};
   for (const row of lineupRows) {
     const slot = normLineupSlot(row.slot);
@@ -614,11 +639,35 @@ export function computeRepairedLiveLineupFromRaw(
       slotOccupants[s] = pid;
     }
   }
-  const startingPlayerIds = LIVE_FIELD_SLOT_ORDER.map((s) => slotOccupants[s] ?? '');
 
-  const U = collectSquadUnionFromRaw(lineupRows, benchRows);
-  const fieldIds = LIVE_FIELD_SLOT_ORDER.map((s) => slotOccupants[s]).filter(
-    (id): id is string => typeof id === 'string' && id.trim().length > 0,
+  const slots = { ...slotOccupants } as Record<FieldSlotId, string | null>;
+  const fieldSetNow = new Set(
+    LIVE_FIELD_SLOT_ORDER.map((s) => normLineupPid(slots[s])).filter(Boolean) as string[],
+  );
+  let benchQueue = stableBenchQueue(fieldSetNow, benchRows, U);
+
+  for (const emptySlot of LIVE_FIELD_SLOT_ORDER) {
+    if (normLineupPid(slots[emptySlot])) continue;
+    const next = benchQueue.shift();
+    if (!next) break;
+    slots[emptySlot] = next;
+    fieldSetNow.add(next);
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      const fieldAfter = LIVE_FIELD_SLOT_ORDER.map((s) => normLineupPid(slots[s]) ?? '').filter(Boolean);
+      const benchAfter = [...benchQueue];
+      console.debug('[liveMatchService] repair: leeren Feld-Slot aufgefüllt', {
+        emptySlot,
+        promotedPlayerId: next,
+        promotedPlayerName: '',
+        fieldAfter,
+        benchAfter,
+      });
+    }
+  }
+
+  const startingPlayerIds = LIVE_FIELD_SLOT_ORDER.map((s) => slots[s] ?? '');
+  const fieldIds = LIVE_FIELD_SLOT_ORDER.map((s) => normLineupPid(slots[s])).filter(
+    (id): id is string => typeof id === 'string' && id.length > 0,
   );
   const fieldSet = new Set(fieldIds);
   const benchOnly = U.filter((id) => !fieldSet.has(id)).sort((a, b) => a.localeCompare(b));
