@@ -1093,7 +1093,17 @@ export const EventDetailPage: React.FC = () => {
         </option>
       ));
 
-    const timelineEvents = matchEvents;
+    const compareFinishedMatchEventsChrono = (x: MatchEventRow, y: MatchEventRow): number => {
+      const mx = finishedReportMinuteDisplayFromDb(x.minute) ?? 0;
+      const my = finishedReportMinuteDisplayFromDb(y.minute) ?? 0;
+      if (mx !== my) return mx - my;
+      const cx = String(x.created_at ?? '');
+      const cy = String(y.created_at ?? '');
+      if (cx !== cy) return cx.localeCompare(cy);
+      return String(x.id).localeCompare(String(y.id));
+    };
+
+    const timelineEvents = [...matchEvents].sort(compareFinishedMatchEventsChrono);
     const periodLineFromInputs =
       p1h !== '' && p1a !== '' && p2h !== '' && p2a !== '' && p3h !== '' && p3a !== ''
         ? `(${p1h}:${p1a} | ${p2h}:${p2a} | ${p3h}:${p3a})`
@@ -1167,13 +1177,7 @@ export const EventDetailPage: React.FC = () => {
       let h = 0;
       let a = 0;
       const map = new Map<string, string>();
-      const ordered = [...timelineEvents].sort((x, y) => {
-        const mx = finishedReportMinuteDisplayFromDb(x.minute) ?? 0;
-        const my = finishedReportMinuteDisplayFromDb(y.minute) ?? 0;
-        if (mx !== my) return mx - my;
-        return String(x.created_at ?? '').localeCompare(String(y.created_at ?? ''));
-      });
-      for (const ev of ordered) {
+      for (const ev of timelineEvents) {
         const g = normalizeMatchEventGoalType(ev.type);
         if (g === 'goal') {
           h += 1;
