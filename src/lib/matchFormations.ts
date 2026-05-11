@@ -1,14 +1,14 @@
 import type { FieldSlotId } from '../types/match';
 
 /** Sichtbare 7er-Systeme (U11); Speicherung bleibt über FieldSlotId in match_lineup. */
-export type U11FormationId = '1-2-2-2' | '1-2-3-1' | '1-3-2-1';
+export type U11FormationId = '1-2-2-2' | '1-2-3-1' | '1-3-2-1' | '1-3-3';
 
 export const DEFAULT_U11_FORMATION: U11FormationId = '1-2-2-2';
 
 /** Wenn `matches.u11_formation_id` NULL ist und kein gültiger lokaler Cache: einheitlicher Pitch-Fallback. */
 export const U11_FORMATION_DB_FALLBACK: U11FormationId = '1-2-3-1';
 
-export const U11_FORMATION_CHOICES: U11FormationId[] = ['1-2-2-2', '1-2-3-1', '1-3-2-1'];
+export const U11_FORMATION_CHOICES: U11FormationId[] = ['1-2-2-2', '1-2-3-1', '1-3-2-1', '1-3-3'];
 
 export type FormationSlotLayout = {
   /** Persistierter Slot (match_lineup / Engine) */
@@ -55,6 +55,15 @@ export const U11_FORMATIONS: Record<U11FormationId, FormationSlotLayout[]> = {
     { slot: 'RW', label: 'RZM', x: 70, y: 42, labelDx: 4, labelDy: 2 },
     { slot: 'ST', label: 'ST', x: 50, y: 17, labelDy: 2 },
   ],
+  '1-3-3': [
+    { slot: 'GK', label: 'GK', x: 50, y: 90, labelDy: 7 },
+    { slot: 'LB', label: 'LV', x: 18, y: 66, labelDx: -5, labelDy: 2 },
+    { slot: 'CM', label: 'IV', x: 50, y: 67, labelDy: 2 },
+    { slot: 'RB', label: 'RV', x: 82, y: 66, labelDx: 5, labelDy: 2 },
+    { slot: 'LW', label: 'LF', x: 24, y: 25, labelDx: -5, labelDy: 2 },
+    { slot: 'ST', label: 'ST', x: 50, y: 18, labelDy: 2 },
+    { slot: 'RW', label: 'RF', x: 76, y: 25, labelDx: 5, labelDy: 2 },
+  ],
 };
 
 const FALLBACK_LABELS: Record<FieldSlotId, string> = {
@@ -68,7 +77,7 @@ const FALLBACK_LABELS: Record<FieldSlotId, string> = {
 };
 
 export function isU11FormationId(v: string | null | undefined): v is U11FormationId {
-  return v === '1-2-2-2' || v === '1-2-3-1' || v === '1-3-2-1';
+  return v === '1-2-2-2' || v === '1-2-3-1' || v === '1-3-2-1' || v === '1-3-3';
 }
 
 export function labelForSlotInFormation(formationId: U11FormationId, storageSlot: FieldSlotId): string {
