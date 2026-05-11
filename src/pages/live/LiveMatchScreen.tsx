@@ -594,6 +594,13 @@ export const LiveMatchScreen: React.FC = () => {
   );
   const isRunning = matchClockStatus === 'live';
   const isPaused = matchClockStatus === 'paused';
+  /** Tore nur bei laufender Uhr (DB: `live_is_running` + Status live). */
+  const isClockRunning = isRunning;
+  const goalBlockedMessage = useMemo(() => {
+    if (matchIsFinished) return 'Spiel beendet – keine weiteren Tore möglich.';
+    if (matchClockStatus === 'not_started') return 'Spiel noch nicht gestartet – Tore erst nach Anpfiff möglich.';
+    return 'Spiel ist pausiert – Tore erst nach Weiter möglich.';
+  }, [matchIsFinished, matchClockStatus]);
 
   useEffect(() => {
     if (!matchRow) return;
@@ -832,6 +839,18 @@ export const LiveMatchScreen: React.FC = () => {
     setSubInPlayerId(null);
     setSubSaving(false);
     setSubSheetView('list');
+    setWechselSheetOpen(true);
+  }, []);
+  /** Wechsel-Sheet mit Vorauswahl — Bestätigung bleibt „Wechsel bestätigen“. */
+  const openWechselSheetWithPreset = useCallback((outgoingPlayerId: string, incomingPlayerId: string) => {
+    const outId = String(outgoingPlayerId ?? '').trim();
+    const inId = String(incomingPlayerId ?? '').trim();
+    if (!outId || !inId || outId === inId) return;
+    setMainTab('overview');
+    setSubOutPlayerId(outId);
+    setSubInPlayerId(inId);
+    setSubSaving(false);
+    setSubSheetView('pitch');
     setWechselSheetOpen(true);
   }, []);
   useEffect(() => {
@@ -1270,6 +1289,62 @@ export const LiveMatchScreen: React.FC = () => {
     [liveLineupBasePlayerIds, squadPlayerIds, events, currentMatchSeconds],
   );
 
+  /** MVP: viel Spielzeit raus, wenig rein; max. 3 Paare, kein Spieler doppelt. */
+  const substitutionSuggestions = useMemo(() => {
+    if (matchIsFinished) return [];
+    const squadSet = new Set(squadPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean));
+    const fieldIds = onFieldIds.map((id) => String(id ?? '').trim()).filter((id) => squadSet.has(id));
+    const benchIds = getBenchPlayers(squadPlayerIds, onFieldIds)
+      .map((id) => String(id ?? '').trim())
+      .filter((id) => squadSet.has(id));
+    if (fieldIds.length === 0 || benchIds.length === 0) return [];
+
+    const fieldSorted = [...new Set(fieldIds)].sort(
+      (a, b) => (playtimes[b] ?? 0) - (playtimes[a] ?? 0),
+    );
+    const benchSorted = [...new Set(benchIds)].sort(
+      (a, b) => (playtimes[a] ?? 0) - (playtimes[b] ?? 0),
+    );
+
+    const used = new Set<string>();
+    const pairs: {
+      outId: string;
+      inId: string;
+      outName: string;
+      inName: string;
+      outSec: number;
+      inSec: number;
+    }[] = [];
+
+    for (const oid of fieldSorted) {
+      if (pairs.length >= 3) break;
+      if (used.has(oid)) continue;
+      const inId = benchSorted.find((bid) => !used.has(bid));
+      if (!inId) break;
+      used.add(oid);
+      used.add(inId);
+      pairs.push({
+        outId: oid,
+        inId,
+        outName: (rosterById.get(oid)?.name ?? '?').trim() || '?',
+        inName: (rosterById.get(inId)?.name ?? '?').trim() || '?',
+        outSec: Math.max(0, playtimes[oid] ?? 0),
+        inSec: Math.max(0, playtimes[inId] ?? 0),
+      });
+    }
+    return pairs;
+  }, [matchIsFinished, squadPlayerIds, onFieldIds, playtimes, rosterById]);
+
+  const squadRosterForPlaytimeList = useMemo(() => {
+    const list = roster.filter((p) => squadPlayerIds.includes(p.id));
+    return [...list].sort((a, b) => {
+      const sa = playtimes[a.id] ?? 0;
+      const sb = playtimes[b.id] ?? 0;
+      if (sa !== sb) return sa - sb;
+      return compareRosterPlayers(a, b);
+    });
+  }, [roster, squadPlayerIds, playtimes]);
+
   const liveSubEventsDebugKey = useMemo(() => {
     const sig = sortMatchEventsChronologically(events)
       .filter((e) => e.type === 'sub_out' || e.type === 'sub_in')
@@ -1321,6 +1396,10 @@ export const LiveMatchScreen: React.FC = () => {
   const persistSingle = useCallback(
     async (partial: Omit<MatchEngineEvent, 'id'>): Promise<{ ok: boolean; savedId?: string }> => {
       if (!effectiveMatchId) return { ok: false };
+      if ((partial.type === 'goal' || partial.type === 'goal_away') && (!isClockRunning || matchIsFinished)) {
+        setSaveError(goalBlockedMessage);
+        return { ok: false };
+      }
       setSaveError(null);
       const tempId = newEventId();
       const optimistic: MatchEngineEvent = { ...partial, id: tempId };
@@ -1353,7 +1432,7 @@ export const LiveMatchScreen: React.FC = () => {
       });
       return { ok: true, savedId: id };
     },
-    [effectiveMatchId, half],
+    [effectiveMatchId, half, isClockRunning, matchIsFinished, goalBlockedMessage],
   );
 
   const onStartClick = async () => {
@@ -2072,8 +2151,8 @@ export const LiveMatchScreen: React.FC = () => {
         : 'border-white/20 bg-zinc-900/95 text-white/55 shadow-[0_0_10px_rgba(0,0,0,0.35)]'
   }`;
   /** Nur Ziffer: Tap = Tor, Long-press = Undo (kein Ball-Icon). */
-  const scoreTapHome = `${mbRowBtn} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-emerald-400/40 bg-gradient-to-b from-emerald-950/92 to-black/75 px-3 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_26px_rgba(16,185,129,0.35)] hover:border-emerald-300/50 hover:shadow-[0_0_32px_rgba(16,185,129,0.42)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5`;
-  const scoreTapAway = `${mbRowBtn} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-red-400/45 bg-gradient-to-b from-red-950/92 to-black/75 px-3 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_26px_rgba(239,68,68,0.38),0_0_12px_rgba(255,255,255,0.06)] hover:border-red-300/50 hover:shadow-[0_0_32px_rgba(239,68,68,0.45)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5`;
+  const scoreTapHome = `${mbRowBtn} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-emerald-400/40 bg-gradient-to-b from-emerald-950/92 to-black/75 px-3 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_26px_rgba(16,185,129,0.35)] hover:border-emerald-300/50 hover:shadow-[0_0_32px_rgba(16,185,129,0.42)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5 disabled:pointer-events-none disabled:opacity-38`;
+  const scoreTapAway = `${mbRowBtn} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-red-400/45 bg-gradient-to-b from-red-950/92 to-black/75 px-3 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_26px_rgba(239,68,68,0.38),0_0_12px_rgba(255,255,255,0.06)] hover:border-red-300/50 hover:shadow-[0_0_32px_rgba(239,68,68,0.45)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5 disabled:pointer-events-none disabled:opacity-38`;
   const mbStart = `${mbRowBtn} rounded-xl border border-emerald-400/50 bg-gradient-to-b from-emerald-600/80 to-emerald-950/85 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_22px_rgba(16,185,129,0.35)] hover:from-emerald-500/85 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]`;
   /** Pause als linke Hauptaktion — dunkelgrün wie Zielbild, klar von Beginn/Weiter (hellgrün) getrennt. */
   const mbPausePrimary = `${mbRowBtn} rounded-xl border border-emerald-800/55 bg-gradient-to-b from-emerald-950/92 to-black/85 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_16px_rgba(6,78,59,0.35)] hover:border-emerald-600/45 hover:from-emerald-900/88`;
@@ -2094,7 +2173,7 @@ export const LiveMatchScreen: React.FC = () => {
     }
   };
   const onHomeGoalScorePointerDown = () => {
-    if (spectatorView || !canControlLiveMatch || matchIsFinished) return;
+    if (spectatorView || !canControlLiveMatch || matchIsFinished || !isClockRunning) return;
     homeGoalSuppressClickRef.current = false;
     clearHomeGoalLongPress();
     homeGoalLpTimerRef.current = window.setTimeout(() => {
@@ -2113,7 +2192,7 @@ export const LiveMatchScreen: React.FC = () => {
     }, 550);
   };
   const onAwayGoalScorePointerDown = () => {
-    if (spectatorView || !canControlLiveMatch || matchIsFinished) return;
+    if (spectatorView || !canControlLiveMatch || matchIsFinished || !isClockRunning) return;
     awayGoalSuppressClickRef.current = false;
     clearAwayGoalLongPress();
     awayGoalLpTimerRef.current = window.setTimeout(() => {
@@ -2357,6 +2436,7 @@ export const LiveMatchScreen: React.FC = () => {
                         <div className="flex min-w-0 flex-col items-center gap-0.5">
                           <button
                             type="button"
+                            disabled={!isClockRunning}
                             aria-label={`Tor ${stadiumHomeDisplay} erfassen. Lange drücken für Rückgängig.`}
                             className={scoreTapHome}
                             onContextMenu={(e) => e.preventDefault()}
@@ -2367,6 +2447,10 @@ export const LiveMatchScreen: React.FC = () => {
                             onClick={() => {
                               if (homeGoalSuppressClickRef.current) {
                                 homeGoalSuppressClickRef.current = false;
+                                return;
+                              }
+                              if (!isClockRunning) {
+                                setSaveError(goalBlockedMessage);
                                 return;
                               }
                               if (sides.isOwnTeamHome) {
@@ -2407,6 +2491,7 @@ export const LiveMatchScreen: React.FC = () => {
                         <div className="flex min-w-0 flex-col items-center gap-0.5">
                           <button
                             type="button"
+                            disabled={!isClockRunning}
                             aria-label={`Tor ${stadiumAwayDisplay} erfassen. Lange drücken für Rückgängig.`}
                             className={scoreTapAway}
                             onContextMenu={(e) => e.preventDefault()}
@@ -2417,6 +2502,10 @@ export const LiveMatchScreen: React.FC = () => {
                             onClick={() => {
                               if (awayGoalSuppressClickRef.current) {
                                 awayGoalSuppressClickRef.current = false;
+                                return;
+                              }
+                              if (!isClockRunning) {
+                                setSaveError(goalBlockedMessage);
                                 return;
                               }
                               if (sides.isOwnTeamHome) {
@@ -2468,6 +2557,11 @@ export const LiveMatchScreen: React.FC = () => {
                         ) : null}
                       </div>
                     )}
+                    {!spectatorView && canControlLiveMatch && isPaused ? (
+                      <p className="mt-1 w-full max-w-[18rem] px-1 text-center text-[10px] font-medium leading-snug text-amber-200/95">
+                        Spiel ist pausiert – Tore erst nach Weiter möglich.
+                      </p>
+                    ) : null}
                     <p className="mt-0.5 w-full text-center font-mono text-[10px] font-medium tabular-nums leading-none text-white/88 sm:text-[11px]">
                       <span className="inline-block whitespace-nowrap tracking-[-0.01em]">{periodScoreLine}</span>
                     </p>
@@ -2632,6 +2726,11 @@ export const LiveMatchScreen: React.FC = () => {
                       <p className="mt-0.5 text-xs font-medium text-white">{benchPlayers.length}</p>
                     </div>
                   </div>
+                  {isPaused ? (
+                    <p className="mt-2 rounded-lg border border-amber-500/35 bg-amber-950/25 px-2.5 py-2 text-center text-[11px] font-semibold leading-snug text-amber-100/95">
+                      Pause läuft – guter Moment für Wechsel.
+                    </p>
+                  ) : null}
                 </section>
               </>
             ) : (
@@ -2878,33 +2977,79 @@ export const LiveMatchScreen: React.FC = () => {
 
         {mainTab === 'time' && (
           <div className="space-y-2">
-            <section>
-              <h2 className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-300">Wechsel-Vorschläge</h2>
-              <div className="grid gap-1.5 sm:grid-cols-2">
-                <div className="rounded-xl border border-emerald-800/35 bg-gradient-to-br from-emerald-950/30 to-black/80 px-2.5 py-2 ring-1 ring-emerald-700/12">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-400/95">Spielzeit erreicht</p>
-                  <p className="mt-1 text-[11px] leading-snug text-white/42">Hinweise zu Einwechslungen folgen.</p>
-                </div>
-                <div className="rounded-xl border border-amber-800/35 bg-gradient-to-br from-amber-950/22 to-black/80 px-2.5 py-2 ring-1 ring-amber-700/12">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-amber-400/95">Wenig Spielzeit</p>
-                  <p className="mt-1 text-[11px] leading-snug text-white/42">Mehr Einsatzzeit: Hinweise folgen.</p>
-                </div>
+            {isPaused ? (
+              <p className="rounded-xl border border-amber-500/40 bg-amber-950/30 px-3 py-2.5 text-center text-sm font-semibold leading-snug text-amber-50 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+                Pause läuft – guter Moment für Wechsel.
+              </p>
+            ) : null}
+            <section
+              className={[
+                'rounded-xl p-0.5',
+                isPaused ? 'ring-2 ring-amber-400/45 ring-offset-2 ring-offset-black' : '',
+              ].join(' ')}
+            >
+              <h2 className="mb-1 px-0.5 text-xs font-bold uppercase tracking-[0.18em] text-gray-300">
+                Wechsel-Vorschläge
+              </h2>
+              <div className="space-y-2">
+                {substitutionSuggestions.length > 0 ? (
+                  substitutionSuggestions.map((sug) => (
+                    <div
+                      key={`sub-sug-${sug.outId}-${sug.inId}`}
+                      className="rounded-xl border border-white/12 bg-zinc-950/90 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                    >
+                      <div className="flex flex-wrap items-baseline justify-between gap-2 gap-y-1">
+                        <p className="text-[13px] font-bold text-white">
+                          <span className="text-white/55">Raus:</span> {sug.outName}{' '}
+                          <span className="font-mono text-xs font-black tabular-nums text-red-400/95">
+                            {formatClock(sug.outSec)}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2 gap-y-1">
+                        <p className="text-[13px] font-bold text-white">
+                          <span className="text-white/55">Rein:</span> {sug.inName}{' '}
+                          <span className="font-mono text-xs font-black tabular-nums text-emerald-400/95">
+                            {formatClock(sug.inSec)}
+                          </span>
+                        </p>
+                      </div>
+                      <p className="mt-1.5 text-[11px] leading-snug text-white/45">Mehr Spielzeit für Bankspieler</p>
+                      <button
+                        type="button"
+                        disabled={matchIsFinished}
+                        onClick={() => openWechselSheetWithPreset(sug.outId, sug.inId)}
+                        className="mt-2 flex min-h-[40px] w-full items-center justify-center rounded-lg border border-emerald-500/45 bg-emerald-950/40 text-xs font-bold text-emerald-100 transition-colors hover:border-emerald-400/55 hover:bg-emerald-900/35 disabled:opacity-35"
+                      >
+                        Vorschlag übernehmen
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-center text-sm text-white/55">
+                    Alle Spieler sind aktuell ausgeglichen.
+                  </p>
+                )}
               </div>
             </section>
             <p className="mb-2 text-sm text-gray-400">Effektive Spielzeit (ohne Pausen)</p>
             <ul className="space-y-3">
-              {sortRosterByNumber(roster.filter((p) => squadPlayerIds.includes(p.id))).map((p) => {
+              {squadRosterForPlaytimeList.map((p) => {
                 const sec = playtimes[p.id] ?? 0;
                 const st = getPlaytimeStatus(sec, currentMatchSeconds, squadPlayerIds.length);
                 const onF = onFieldIds.includes(p.id);
+                const lowOnField = onF && st === 'red';
                 return (
                   <li
                     key={p.id}
-                    className={`flex min-h-[52px] items-center gap-2 rounded-xl border px-3 py-2.5 ${
+                    className={[
+                      'flex min-h-[52px] items-center gap-2 rounded-xl border px-3 py-2.5',
                       onF
-                        ? 'border-emerald-600/40 bg-zinc-950'
-                        : 'border-red-500/20 bg-zinc-950/80 opacity-90'
-                    }`}
+                        ? lowOnField
+                          ? 'border-emerald-500/55 bg-emerald-950/25 ring-1 ring-amber-500/35'
+                          : 'border-emerald-600/45 bg-emerald-950/15'
+                        : 'border-zinc-600/50 bg-zinc-950/95',
+                    ].join(' ')}
                   >
                     <span className={`h-3.5 w-3.5 shrink-0 rounded-full ${ampelDot(st)}`} />
                     <div className="min-w-0 flex-1">
@@ -2913,7 +3058,7 @@ export const LiveMatchScreen: React.FC = () => {
                       </p>
                       <p
                         className={`mt-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
-                          onF ? 'text-emerald-400' : 'text-white/38'
+                          onF ? 'text-emerald-400' : 'text-red-200/45'
                         }`}
                       >
                         {onF ? 'Am Feld' : 'Auf der Bank'}
@@ -2921,7 +3066,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                     <span
                       className={`shrink-0 font-mono text-2xl font-black tabular-nums tracking-tight ${
-                        onF ? 'text-red-500' : 'text-white/40'
+                        onF ? 'text-red-500' : 'text-zinc-400'
                       }`}
                     >
                       {formatClock(sec)}
@@ -3404,9 +3549,13 @@ export const LiveMatchScreen: React.FC = () => {
 
             <button
               type="button"
-              disabled={!homeGoalPickId}
+              disabled={!homeGoalPickId || !isClockRunning}
               onClick={async () => {
                 if (!homeGoalPickId || !effectiveMatchId) return;
+                if (!isClockRunning) {
+                  setSaveError(goalBlockedMessage);
+                  return;
+                }
                 const before = recomputeScoresFromEvents(events);
                 const res = await persistSingle({
                   type: 'goal',
@@ -3474,9 +3623,13 @@ export const LiveMatchScreen: React.FC = () => {
 
             <button
               type="button"
-              disabled={!awayGoalPickId}
+              disabled={!awayGoalPickId || !isClockRunning}
               onClick={async () => {
                 if (!awayGoalPickId || !effectiveMatchId) return;
+                if (!isClockRunning) {
+                  setSaveError(goalBlockedMessage);
+                  return;
+                }
                 const before = recomputeScoresFromEvents(events);
                 const res = await persistSingle({
                   type: 'goal_away',
