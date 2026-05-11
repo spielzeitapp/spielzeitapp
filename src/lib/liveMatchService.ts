@@ -227,33 +227,42 @@ export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: 
   const lineupRows = (lineupRes.data ?? []) as { player_id: string | null; slot?: string | null }[];
   const benchRows = (benchRes.data ?? []) as { player_id: string | null }[];
 
-  const startingPlayerIds = lineupRows
-    .map((row, idx) => ({
-      playerId: row.player_id,
-      slot: String(row.slot ?? '').trim().toUpperCase(),
-      idx,
-    }))
-    .filter((row): row is { playerId: string; slot: string; idx: number } => typeof row.playerId === 'string' && row.playerId.length > 0)
-    .sort((a, b) => {
-      const ai = LIVE_FIELD_SLOT_ORDER.indexOf(a.slot as FieldSlotId);
-      const bi = LIVE_FIELD_SLOT_ORDER.indexOf(b.slot as FieldSlotId);
-      const aOrder = ai === -1 ? Number.MAX_SAFE_INTEGER : ai;
-      const bOrder = bi === -1 ? Number.MAX_SAFE_INTEGER : bi;
-      if (aOrder !== bOrder) return aOrder - bOrder;
-      return a.idx - b.idx;
-    })
-    .map((row) => row.playerId)
-    .filter((id, idx, arr) => arr.indexOf(id) === idx);
+  /** Pro Slot höchstens ein Spieler; doppelte `player_id` über mehrere Slots → erster Slot in Reihenfolge gewinnt. */
+  const bySlot: Partial<Record<FieldSlotId, string>> = {};
+  for (const row of lineupRows) {
+    const slotRaw = String(row.slot ?? '').trim().toUpperCase();
+    const slot = slotRaw as FieldSlotId;
+    const pid = typeof row.player_id === 'string' && row.player_id.length > 0 ? row.player_id.trim() : '';
+    if (!pid || LIVE_FIELD_SLOT_ORDER.indexOf(slot) === -1) continue;
+    bySlot[slot] = pid;
+  }
+  const seenOnField = new Set<string>();
+  const slotOccupants: Record<FieldSlotId, string | null> = {} as Record<FieldSlotId, string | null>;
+  for (const s of LIVE_FIELD_SLOT_ORDER) {
+    const pid = bySlot[s]?.trim() ?? '';
+    if (!pid) {
+      slotOccupants[s] = null;
+      continue;
+    }
+    if (seenOnField.has(pid)) {
+      slotOccupants[s] = null;
+    } else {
+      seenOnField.add(pid);
+      slotOccupants[s] = pid;
+    }
+  }
+  const startingPlayerIds = LIVE_FIELD_SLOT_ORDER.map((s) => slotOccupants[s] ?? '');
 
-  const startingSet = new Set(startingPlayerIds);
+  const startingSet = new Set(startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0));
   const benchPlayerIds = benchRows
     .map((r) => r.player_id)
     .filter((id): id is string => typeof id === 'string' && id.length > 0)
     .filter((id, idx, arr) => arr.indexOf(id) === idx)
     .filter((id) => !startingSet.has(id));
-  const squadPlayerIds = [...startingPlayerIds, ...benchPlayerIds].filter(
-    (id, idx, arr) => arr.indexOf(id) === idx,
-  );
+  const squadPlayerIds = [
+    ...startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0),
+    ...benchPlayerIds,
+  ].filter((id, idx, arr) => arr.indexOf(id) === idx);
   console.log('fetchLineupForLiveMatch final', {
     matchId,
     lineupRows,

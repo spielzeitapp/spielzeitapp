@@ -127,6 +127,65 @@ export function startingLineupToSlotMap(startingPlayerIds: string[]): Record<Fie
   return slots;
 }
 
+/** Entfernt doppelte Spieler-IDs: erster Slot in `FIELD_SLOT_ORDER` gewinnt. */
+export function dedupeFieldSlotMap(slots: Record<FieldSlotId, string | null>): Record<FieldSlotId, string | null> {
+  const next = { ...slots } as Record<FieldSlotId, string | null>;
+  const seen = new Set<string>();
+  for (const s of FIELD_SLOT_ORDER) {
+    const raw = next[s];
+    const pid = raw && String(raw).trim().length > 0 ? String(raw).trim() : '';
+    if (!pid) {
+      next[s] = null;
+      continue;
+    }
+    if (seen.has(pid)) next[s] = null;
+    else seen.add(pid);
+  }
+  return next;
+}
+
+/**
+ * Wechsel im Slot-Raster: Einwechselspieler übernimmt exakt den Slot des Auswechslers;
+ * der Einwechselspieler wird aus allen anderen Slots entfernt. Anschließend Dedupe.
+ */
+export function applySubstitutionToSlots(
+  slots: Record<FieldSlotId, string | null>,
+  outgoingPlayerId: string,
+  incomingPlayerId: string,
+): { slots: Record<FieldSlotId, string | null>; outSlot: FieldSlotId | null } {
+  const out = String(outgoingPlayerId ?? '').trim();
+  const inn = String(incomingPlayerId ?? '').trim();
+  if (!out || !inn) return { slots: dedupeFieldSlotMap({ ...slots }), outSlot: null };
+
+  const next = { ...slots } as Record<FieldSlotId, string | null>;
+  let outSlot: FieldSlotId | null = null;
+  for (const s of FIELD_SLOT_ORDER) {
+    const v = next[s] ? String(next[s]).trim() : '';
+    if (v === out) {
+      outSlot = s;
+      break;
+    }
+  }
+  if (!outSlot) return { slots: dedupeFieldSlotMap(next), outSlot: null };
+
+  next[outSlot] = inn;
+  for (const s of FIELD_SLOT_ORDER) {
+    if (s !== outSlot) {
+      const v = next[s] ? String(next[s]).trim() : '';
+      if (v === inn) next[s] = null;
+    }
+  }
+  return { slots: dedupeFieldSlotMap(next), outSlot };
+}
+
+/** Slot-Karte → Startelf-Array (Index = `FIELD_SLOT_ORDER`), leere Slots als `''`. */
+export function fieldSlotMapToStartingIds(slots: Record<FieldSlotId, string | null>): string[] {
+  return FIELD_SLOT_ORDER.map((s) => {
+    const id = slots[s];
+    return id && String(id).trim().length > 0 ? String(id).trim() : '';
+  });
+}
+
 /**
  * Aktuelle Belegung pro gespeichertem Feld-Slot (wie Startaufstellung / MatchLineupPage).
  * Paar sub_out + sub_in (gleiche Sekunde): Einwechselspieler übernimmt den Slot des Auswechslers.

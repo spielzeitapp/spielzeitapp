@@ -4,13 +4,16 @@ import { useSession } from '../../auth/useSession';
 import { usePlayers } from '../../hooks/usePlayers';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
 import {
+  applySubstitutionToSlots,
   calculatePlayerPlaytimes,
+  fieldSlotMapToStartingIds,
   getBenchPlayers,
   getCurrentOnFieldBySlot,
   getCurrentOnFieldPlayers,
   getPlaytimeStatus,
   handleSubstitution,
   sortMatchEventsChronologically,
+  startingLineupToSlotMap,
   type MatchEngineEvent,
   type MatchEventType,
 } from '../../lib/matchEngine';
@@ -1365,8 +1368,63 @@ export const LiveMatchScreen: React.FC = () => {
       }
 
       setSaveError(null);
-      const nextStarting = startingPlayerIds.map((id) => (id === outgoingPlayerId ? incomingPlayerId : id)).slice(0, 7);
+      const tsSub = currentMatchSeconds;
+      const slotBefore = getCurrentOnFieldBySlot(startingPlayerIds, events, tsSub);
+      const fieldIdsBefore = LIVE_FIELD_SLOT_ORDER.map((s) => String(slotBefore[s] ?? '').trim()).filter(Boolean);
+      const benchIdsBefore = getBenchPlayers(
+        squadPlayerIds,
+        getCurrentOnFieldPlayers(startingPlayerIds, events, tsSub),
+      );
+      const dupIds = (ids: string[]) => {
+        const m = new Map<string, number>();
+        for (const id of ids) m.set(id, (m.get(id) ?? 0) + 1);
+        return [...m.entries()].filter(([, n]) => n > 1).map(([id]) => id);
+      };
+
+      let applied = applySubstitutionToSlots(slotBefore, outgoingPlayerId, incomingPlayerId);
+      if (!applied.outSlot) {
+        applied = applySubstitutionToSlots(
+          startingLineupToSlotMap(startingPlayerIds.slice(0, 7)),
+          outgoingPlayerId,
+          incomingPlayerId,
+        );
+      }
+      const { slots: nextSlots, outSlot } = applied;
+      if (!outSlot) {
+        setSaveError('Spielerposition für Wechsel nicht gefunden.');
+        return false;
+      }
+
+      const nextStarting = fieldSlotMapToStartingIds(nextSlots);
       const nextSquad = [...new Set([...squadPlayerIds, outgoingPlayerId, incomingPlayerId])];
+      const fieldIdsAfter = LIVE_FIELD_SLOT_ORDER.map((s) => String(nextSlots[s] ?? '').trim()).filter(Boolean);
+      const benchIdsAfter = getBenchPlayers(nextSquad, fieldIdsAfter);
+
+      if (import.meta.env.DEV) {
+        const onFieldSetBefore = new Set(fieldIdsBefore);
+        console.debug('[LiveMatch][sub:before]', {
+          outPlayerId: outgoingPlayerId,
+          inPlayerId: incomingPlayerId,
+          outSlot,
+          fieldIdsBefore,
+          benchIdsBefore,
+          duplicatesField: dupIds(fieldIdsBefore),
+          duplicatesBench: dupIds(benchIdsBefore),
+          playersInBoth: benchIdsBefore.filter((id) => onFieldSetBefore.has(id)),
+        });
+        const onFieldSetAfter = new Set(fieldIdsAfter);
+        console.debug('[LiveMatch][sub:after]', {
+          outPlayerId: outgoingPlayerId,
+          inPlayerId: incomingPlayerId,
+          outSlot,
+          fieldIdsAfter,
+          benchIdsAfter,
+          duplicatesField: dupIds(fieldIdsAfter),
+          duplicatesBench: dupIds(benchIdsAfter),
+          playersInBoth: benchIdsAfter.filter((id) => onFieldSetAfter.has(id)),
+        });
+      }
+
       const { error: swapErr } = await replaceMatchLineupAndBench(effectiveMatchId, nextStarting, nextSquad);
       if (swapErr) {
         setSaveError(swapErr);
