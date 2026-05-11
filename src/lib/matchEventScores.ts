@@ -11,13 +11,35 @@ export function normalizeMatchEventGoalType(type: string | null | undefined): 'g
 }
 
 /**
- * Nur UI-State (z. B. goal_home) → erlaubter DB-Wert für match_events.type.
- * Niemals "goal_home" in die DB schreiben.
+ * UI-Auswahl (Stadionseite im Spielbericht) → DB match_events.type.
+ * stadium_home / goal_home → goal (links); stadium_away / goal_away → goal_away (rechts).
+ * Nur die Rückgabewerte goal / goal_away in die DB schreiben, nie die UI-Schlüssel.
  */
 export function mapUiGoalTypeToMatchEventDbType(uiType: string | null | undefined): 'goal' | 'goal_away' {
   const t = String(uiType ?? '').trim().toLowerCase();
-  if (t === 'goal_away') return 'goal_away';
+  if (t === 'stadium_away' || t === 'goal_away') return 'goal_away';
+  if (t === 'stadium_home' || t === 'goal_home') return 'goal';
   return 'goal';
+}
+
+/**
+ * Abgeschlossener Spielbericht: `match_events.minute` = Anzeigeminute (1:1), keine *60- oder -1-Umrechnung beim Speichern.
+ * Legacy-Zeilen: oft (m−1)·60 (durch 60 teilbar, groß) — siehe {@link finishedReportMinuteDisplayFromDb}.
+ */
+export function finishedReportMinuteDbFromInput(inputMinute: number): number {
+  return Math.max(0, Math.floor(Number(inputMinute) || 0));
+}
+
+/**
+ * DB-Rohwert → angezeigte Spielminute. Neu: Ganzzahl ≤130 direkt.
+ * Legacy: große Vielfache von 60 → m = ⌊v/60⌋ + 1 (alter (m−1)·60-Speicher).
+ */
+export function finishedReportMinuteDisplayFromDb(raw: number | null | undefined): number {
+  const v = Math.max(0, Number(raw) || 0);
+  if (v === 0) return 0;
+  if (v <= 130) return v;
+  if (v % 60 === 0) return Math.floor(v / 60) + 1;
+  return v;
 }
 
 export function friendlyMatchEventWriteError(raw: string | null | undefined): string {

@@ -25,6 +25,8 @@ import { buildPauseDelimitedPeriodScoreLine, type MatchEngineEvent } from '../li
 import {
   countStadiumGoalsFromMatchEventRows,
   debugAssertMatchEventDbType,
+  finishedReportMinuteDbFromInput,
+  finishedReportMinuteDisplayFromDb,
   formatPeriodScoresBracket,
   friendlyMatchEventWriteError,
   mapUiGoalTypeToMatchEventDbType,
@@ -235,11 +237,11 @@ export const EventDetailPage: React.FC = () => {
   const [matchEventSingleDeleteBusy, setMatchEventSingleDeleteBusy] = useState(false);
   const [reportEditOpen, setReportEditOpen] = useState(false);
   const [goalMinute, setGoalMinute] = useState(''); // Anzeige-Minute (1..)
-  const [goalTeam, setGoalTeam] = useState<'goal_home' | 'goal_away'>('goal_home');
+  const [goalTeam, setGoalTeam] = useState<'stadium_home' | 'stadium_away'>('stadium_home');
   const [goalPlayerId, setGoalPlayerId] = useState<string>('');
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [editEventMinute, setEditEventMinute] = useState('');
-  const [editEventType, setEditEventType] = useState<'goal_home' | 'goal_away' | 'switch'>('goal_home');
+  const [editEventType, setEditEventType] = useState<'stadium_home' | 'stadium_away' | 'switch'>('stadium_home');
   const [editEventPlayerId, setEditEventPlayerId] = useState(''); // goal scorer
   const [editSwitchOutPlayerId, setEditSwitchOutPlayerId] = useState('');
   const [editSwitchInPlayerId, setEditSwitchInPlayerId] = useState('');
@@ -452,7 +454,8 @@ export const EventDetailPage: React.FC = () => {
       if (fromDb) return formatPeriodScoresBracket(fromDb);
       const engineLike = matchEvents
         .map((r) => {
-          const ts = Math.max(0, Number(r.minute ?? 0) || 0);
+          const raw = Math.max(0, Number(r.minute ?? 0) || 0);
+          const ts = isFinishedMatchEvent ? finishedReportMinuteDisplayFromDb(raw) : raw;
           const type = String(r.type ?? '').trim();
           if (type === 'kickoff') return { id: r.id, type: 'start' as const, timestamp: ts, playerId: undefined };
           if (type === 'final_whistle') return { id: r.id, type: 'end' as const, timestamp: ts, playerId: undefined };
@@ -478,7 +481,7 @@ export const EventDetailPage: React.FC = () => {
     } catch {
       return null;
     }
-  }, [matchEvents, matchRowLite]);
+  }, [matchEvents, matchRowLite, isFinishedMatchEvent]);
 
   /** Abgeschlossene Spiele: vollständige Abschnitte in DB → Endstand kommt aus Summe Abschnitte, nicht aus match_events. */
   const hasManualPeriodScores = Boolean(parsedDbPeriodScores);
@@ -992,6 +995,7 @@ export const EventDetailPage: React.FC = () => {
     const homeAway = event.is_home === true ? 'Heim' : event.is_home === false ? 'Auswärts' : null;
     const compactOurTeamName = compactTeamNameForMatchHeader(ourTeamName);
     const compactOpponentName = compactTeamNameForMatchHeader(opponentName);
+    /** Links im Spielbericht = Stadion-Heim → DB type goal; rechts = Stadion-Auswärts → goal_away (unabhängig von event.is_home). */
     const homeTeamName = event.is_home === false ? compactOpponentName : compactOurTeamName;
     const awayTeamName = event.is_home === false ? compactOurTeamName : compactOpponentName;
     const homeSplit = splitPrefixAndName(homeTeamName);
@@ -1021,9 +1025,8 @@ export const EventDetailPage: React.FC = () => {
       </button>
     );
 
-    const minuteLabel = (seconds: number | null) => {
-      const s = Math.max(0, Number(seconds ?? 0) || 0);
-      const m = Math.max(0, Math.floor(s / 60));
+    const finishedMinuteLabel = (raw: number | null) => {
+      const m = finishedReportMinuteDisplayFromDb(raw);
       return `${m}'`;
     };
 
@@ -1104,7 +1107,7 @@ export const EventDetailPage: React.FC = () => {
         const g = normalizeMatchEventGoalType(r.type);
         const teamLabel = g === 'goal_away' ? awayTeamName : homeTeamName;
         const n = playerName(r.player_id) ?? '?';
-        const m = Math.max(0, Math.floor((Number(r.minute ?? 0) || 0) / 60));
+        const m = finishedReportMinuteDisplayFromDb(Number(r.minute ?? 0) || 0);
         return { name: n, teamLabel, minute: `${m}'` };
       });
     const ownGoalScorerEntries = goalScorerDisplayRows;
@@ -1165,8 +1168,8 @@ export const EventDetailPage: React.FC = () => {
       let a = 0;
       const map = new Map<string, string>();
       const ordered = [...timelineEvents].sort((x, y) => {
-        const mx = Number(x.minute ?? 0) || 0;
-        const my = Number(y.minute ?? 0) || 0;
+        const mx = finishedReportMinuteDisplayFromDb(Number(x.minute ?? 0) || 0);
+        const my = finishedReportMinuteDisplayFromDb(Number(y.minute ?? 0) || 0);
         if (mx !== my) return mx - my;
         return String(x.created_at ?? '').localeCompare(String(y.created_at ?? ''));
       });
@@ -1221,8 +1224,8 @@ export const EventDetailPage: React.FC = () => {
 
     const addGoal = async () => {
       if (!event.match_id) return;
-      const minute = Math.max(0, Number(goalMinute.trim()) || 0);
-      const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
+      const inputMinute = Math.max(0, Number(goalMinute.trim()) || 0);
+      const dbMinute = finishedReportMinuteDbFromInput(inputMinute);
       try {
         setMatchError(null);
         if (!requireSquadPlayer(goalPlayerId, 'Torschütze')) return;
@@ -1231,7 +1234,7 @@ export const EventDetailPage: React.FC = () => {
         const { error: insErr } = await supabase.from('match_events').insert({
           match_id: event.match_id,
           type: dbType,
-          minute: seconds,
+          minute: dbMinute,
           period: null,
           player_id: goalPlayerId.trim() || null,
         });
@@ -1293,14 +1296,14 @@ export const EventDetailPage: React.FC = () => {
       setMatchError(null);
       if (!requireSquadPlayer(newSwitchOutPlayerId, 'Auswechselnder')) return;
       if (!requireSquadPlayer(newSwitchInPlayerId, 'Einwechselnder')) return;
-      const minute = Math.max(0, Number(newSwitchMinute.trim()) || 0);
-      const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
+      const inputMinute = Math.max(0, Number(newSwitchMinute.trim()) || 0);
+      const dbMinute = finishedReportMinuteDbFromInput(inputMinute);
       const payloads: Array<{ match_id: string; type: string; minute: number; period: null; player_id: string | null }> = [];
       if (newSwitchOutPlayerId.trim()) {
         payloads.push({
           match_id: event.match_id,
           type: 'sub_out',
-          minute: seconds,
+          minute: dbMinute,
           period: null,
           player_id: newSwitchOutPlayerId.trim(),
         });
@@ -1309,7 +1312,7 @@ export const EventDetailPage: React.FC = () => {
         payloads.push({
           match_id: event.match_id,
           type: 'sub_in',
-          minute: seconds,
+          minute: dbMinute,
           period: null,
           player_id: newSwitchInPlayerId.trim(),
         });
@@ -1331,12 +1334,12 @@ export const EventDetailPage: React.FC = () => {
       if (!event.match_id) return;
       setMatchError(null);
       if (!requireSquadPlayer(newCardPlayerId, 'Karte')) return;
-      const minute = Math.max(0, Number(newCardMinute.trim()) || 0);
-      const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
+      const inputMinute = Math.max(0, Number(newCardMinute.trim()) || 0);
+      const dbMinute = finishedReportMinuteDbFromInput(inputMinute);
       const { error: insErr } = await supabase.from('match_events').insert({
         match_id: event.match_id,
         type: newCardType,
-        minute: seconds,
+        minute: dbMinute,
         period: null,
         player_id: newCardPlayerId.trim() || null,
       });
@@ -1354,7 +1357,7 @@ export const EventDetailPage: React.FC = () => {
     const beginEditCard = (r: MatchEventRow) => {
       const t = String(r.type ?? '').toLowerCase();
       setEditingCardId(r.id);
-      setEditCardMinute(String(Math.max(0, Math.floor((Number(r.minute ?? 0) || 0) / 60))));
+      setEditCardMinute(String(finishedReportMinuteDisplayFromDb(Number(r.minute ?? 0) || 0)));
       setEditCardType(t === 'red_card' || t === 'card_red' || t === 'red' ? 'red_card' : 'yellow_card');
       setEditCardPlayerId(r.player_id ?? '');
     };
@@ -1363,12 +1366,12 @@ export const EventDetailPage: React.FC = () => {
       if (!editingCardId) return;
       setMatchError(null);
       if (!requireSquadPlayer(editCardPlayerId, 'Karte')) return;
-      const minute = Math.max(0, Number(editCardMinute.trim()) || 0);
-      const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
+      const inputMinute = Math.max(0, Number(editCardMinute.trim()) || 0);
+      const dbMinute = finishedReportMinuteDbFromInput(inputMinute);
       const { error: updErr } = await supabase
         .from('match_events')
         .update({
-          minute: seconds,
+          minute: dbMinute,
           type: editCardType,
           player_id: editCardPlayerId.trim() || null,
         })
@@ -1425,7 +1428,7 @@ export const EventDetailPage: React.FC = () => {
 
     const beginEditEvent = (r: MatchEventRow) => {
       setEditingEventId(r.id);
-      setEditEventMinute(String(Math.max(0, Math.floor((Number(r.minute ?? 0) || 0) / 60))));
+      setEditEventMinute(String(finishedReportMinuteDisplayFromDb(Number(r.minute ?? 0) || 0)));
       const t = String(r.type ?? '').toLowerCase();
       if (t === 'sub_out' || t === 'sub_in') {
         setEditEventType('switch');
@@ -1439,18 +1442,22 @@ export const EventDetailPage: React.FC = () => {
         setEditSwitchOutPlayerId('');
         setEditSwitchInPlayerId('');
         const gType = normalizeMatchEventGoalType(r.type);
-        if (gType === 'goal_away') setEditEventType('goal_away');
-        else if (gType === 'goal') setEditEventType('goal_home');
-        else setEditEventType('goal_home');
+        if (gType === 'goal_away') setEditEventType('stadium_away');
+        else if (gType === 'goal') setEditEventType('stadium_home');
+        else setEditEventType('stadium_home');
         setEditEventPlayerId(gType ? (r.player_id ?? '') : '');
       }
     };
 
     const saveEventEdit = async () => {
       if (!editingEventId) return;
+      if (!event.match_id) {
+        setMatchError('Kein Spiel zugeordnet.');
+        return;
+      }
       setMatchError(null);
-      const minute = Math.max(0, Number(editEventMinute.trim()) || 0);
-      const seconds = Math.max(0, (minute > 0 ? minute - 1 : 0) * 60);
+      const inputMinute = Math.max(0, Number(editEventMinute.trim()) || 0);
+      const dbMinute = finishedReportMinuteDbFromInput(inputMinute);
       const old = timelineEvents.find((x) => x.id === editingEventId);
       let didTouchGoals = normalizeMatchEventGoalType(old?.type) !== null;
 
@@ -1480,18 +1487,18 @@ export const EventDetailPage: React.FC = () => {
         const payloads: Array<{ match_id: string; type: string; minute: number; period: null; player_id: string | null }> = [];
         if (editSwitchOutPlayerId.trim()) {
           payloads.push({
-            match_id: event.match_id!,
+            match_id: event.match_id,
             type: 'sub_out',
-            minute: seconds,
+            minute: dbMinute,
             period: null,
             player_id: editSwitchOutPlayerId.trim(),
           });
         }
         if (editSwitchInPlayerId.trim()) {
           payloads.push({
-            match_id: event.match_id!,
+            match_id: event.match_id,
             type: 'sub_in',
-            minute: seconds,
+            minute: dbMinute,
             period: null,
             player_id: editSwitchInPlayerId.trim(),
           });
@@ -1503,23 +1510,44 @@ export const EventDetailPage: React.FC = () => {
             return;
           }
         }
-      } else {
+      } else if (editEventType === 'stadium_home' || editEventType === 'stadium_away') {
         if (!requireSquadPlayer(editEventPlayerId, 'Torschütze')) return;
         didTouchGoals = true;
         const newDbType = mapUiGoalTypeToMatchEventDbType(editEventType);
         debugAssertMatchEventDbType('saveEventEdit goal', newDbType);
-        const { error: updErr } = await supabase
+        if (import.meta.env.DEV) {
+          console.debug('[FinishedMatchReport] saveGoal', {
+            eventId: editingEventId,
+            inputMinute,
+            dbMinute,
+            selectedTeam: editEventType,
+            dbType: newDbType,
+            playerId: editEventPlayerId.trim() || null,
+          });
+        }
+        const { data: updated, error: updErr } = await supabase
           .from('match_events')
           .update({
-            minute: seconds,
+            minute: dbMinute,
             type: newDbType,
             player_id: editEventPlayerId.trim() || null,
           })
-          .eq('id', editingEventId);
+          .eq('id', editingEventId)
+          .eq('match_id', event.match_id)
+          .select('id');
         if (updErr) {
           setMatchError(friendlyMatchEventWriteError(updErr.message));
           return;
         }
+        if (import.meta.env.DEV && Array.isArray(updated) && updated.length === 0) {
+          console.warn(
+            '[FinishedMatchReport] Tor-Update: select() lieferte 0 Zeilen (RLS?). Reload prüft den Stand.',
+            editingEventId,
+          );
+        }
+      } else {
+        setMatchError('Unbekannter Ereignistyp.');
+        return;
       }
       const rows = await reloadMatchEvents();
       if (!rows) return;
@@ -1825,6 +1853,7 @@ export const EventDetailPage: React.FC = () => {
                 <ul className="space-y-2">
                   {tickerRows.map((row, index) => {
                     const r = row.items[0];
+                    const stadiumGoal = normalizeMatchEventGoalType(r.type);
                     const t = String(r.type ?? '').toLowerCase();
                     const isPairSwitch =
                       row.items.length === 2 &&
@@ -1844,7 +1873,7 @@ export const EventDetailPage: React.FC = () => {
                         : null;
                     const scoreBadge = scoreBadgeByEventId.get(r.id) ?? null;
                     const isLast = index === tickerRows.length - 1;
-                    const isGoalEv = t === 'goal' || t === 'goal_away';
+                    const isGoalEv = stadiumGoal !== null;
                     const isYellow = ['yellow_card', 'card_yellow', 'yellow'].includes(t);
                     const isRedCard = ['red_card', 'card_red', 'red'].includes(t);
                     const eventCardClass = [
@@ -1862,7 +1891,7 @@ export const EventDetailPage: React.FC = () => {
                     return (
                       <li key={row.key} className="flex gap-2 pb-2 last:pb-0">
                         <div className="w-12 shrink-0 pt-0.5 text-right text-[15px] font-black tabular-nums leading-none text-red-200/90">
-                          {minuteLabel(r.minute)}
+                          {finishedMinuteLabel(r.minute)}
                         </div>
                         <div className="relative flex w-3 shrink-0 flex-col items-center pt-1">
                           {!isLast ? (
@@ -1890,10 +1919,10 @@ export const EventDetailPage: React.FC = () => {
                                     <p className="mt-1 text-[13px] text-white/75">Wechsel</p>
                                   )}
                                 </>
-                              ) : goalTickerType ? (
+                              ) : stadiumGoal ? (
                                 <>
                                   <p className="line-clamp-2 text-[15px] font-bold leading-snug text-white">
-                                    Team {goalTickerType === 'goal_away' ? awayTeamName : homeTeamName}
+                                    Team {stadiumGoal === 'goal_away' ? awayTeamName : homeTeamName}
                                   </p>
                                   <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-snug text-white/65">
                                     {name ? `Torschütze: ${name}` : 'Ohne Torschütze'}
@@ -2035,8 +2064,12 @@ export const EventDetailPage: React.FC = () => {
 
               <div className="rounded-2xl border border-white/10 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                 <p className="text-[14px] font-bold uppercase tracking-[0.22em] text-white/55">Tore</p>
+                <p className="mt-2 text-[12px] leading-snug text-white/50">
+                  Team wie im Spielbericht: links = Stadion-Heim (wird als <span className="text-white/65">goal</span> gespeichert), rechts =
+                  Stadion-Auswärts (<span className="text-white/65">goal_away</span>).
+                </p>
 
-                {editingEventId && (editEventType === 'goal_home' || editEventType === 'goal_away') ? (
+                {editingEventId && (editEventType === 'stadium_home' || editEventType === 'stadium_away') ? (
                   <div className="mb-4 mt-4 rounded-2xl border border-red-500/20 bg-red-950/15 p-4 shadow-[0_0_24px_rgba(220,38,38,0.12)]">
                     <p className="text-[14px] font-bold uppercase tracking-[0.2em] text-white/55">Tor bearbeiten</p>
                     <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -2054,12 +2087,12 @@ export const EventDetailPage: React.FC = () => {
                         <select
                           value={editEventType}
                           onChange={(e) =>
-                            setEditEventType(e.target.value === 'goal_away' ? 'goal_away' : 'goal_home')
+                            setEditEventType(e.target.value === 'stadium_away' ? 'stadium_away' : 'stadium_home')
                           }
                           className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                         >
-                          <option value="goal_home">{homeTeamName}</option>
-                          <option value="goal_away">{awayTeamName}</option>
+                          <option value="stadium_home">{homeTeamName}</option>
+                          <option value="stadium_away">{awayTeamName}</option>
                         </select>
                       </label>
                     </div>
@@ -2099,7 +2132,7 @@ export const EventDetailPage: React.FC = () => {
                             <span className="mr-1.5" aria-hidden>
                               ⚽
                             </span>
-                            {minuteLabel(g.minute)}
+                            {finishedMinuteLabel(g.minute)}
                           </p>
                           <p className="mt-1 text-[17px] font-semibold text-white/95">
                             Team {normalizeMatchEventGoalType(g.type) === 'goal_away' ? awayTeamName : homeTeamName}
@@ -2143,11 +2176,11 @@ export const EventDetailPage: React.FC = () => {
                     <span className="text-[15px] font-medium text-white/70">Team</span>
                     <select
                       value={goalTeam}
-                      onChange={(e) => setGoalTeam(e.target.value === 'goal_away' ? 'goal_away' : 'goal_home')}
+                      onChange={(e) => setGoalTeam(e.target.value === 'stadium_away' ? 'stadium_away' : 'stadium_home')}
                       className="min-h-[48px] rounded-xl border border-white/12 bg-black/45 px-3 text-[17px] text-white/90"
                     >
-                      <option value="goal_home">{homeTeamName}</option>
-                      <option value="goal_away">{awayTeamName}</option>
+                      <option value="stadium_home">{homeTeamName}</option>
+                      <option value="stadium_away">{awayTeamName}</option>
                     </select>
                   </label>
                 </div>
@@ -2234,7 +2267,7 @@ export const EventDetailPage: React.FC = () => {
                               <span className="mr-1.5" aria-hidden>
                                 🔁
                               </span>
-                              {minuteLabel(outEvent.minute)}
+                              {finishedMinuteLabel(outEvent.minute)}
                             </p>
                             <p className="mt-2 text-[16px] text-white/85">
                               <span className="text-white/55">Raus:</span> {playerName(outEvent.player_id) ?? '—'}
@@ -2361,7 +2394,7 @@ export const EventDetailPage: React.FC = () => {
                               <span className="mr-1.5" aria-hidden>
                                 {isRed ? '🟥' : '🟨'}
                               </span>
-                              {minuteLabel(c.minute)}
+                              {finishedMinuteLabel(c.minute)}
                             </p>
                             <p className="mt-1 text-[17px] font-medium text-white/90">{playerName(c.player_id) ?? 'Spieler offen'}</p>
                           </div>
