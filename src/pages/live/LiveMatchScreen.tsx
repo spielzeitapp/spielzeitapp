@@ -9,9 +9,10 @@ import {
   fieldSlotMapToStartingIds,
   getBenchPlayers,
   getCurrentOnFieldBySlot,
-  getCurrentOnFieldPlayers,
+  getOnFieldIdsInSlotOrder,
   getPlaytimeStatus,
   handleSubstitution,
+  replaySubstitutionEventsOnSlots,
   sortMatchEventsChronologically,
   startingLineupToSlotMap,
   type MatchEngineEvent,
@@ -21,6 +22,7 @@ import {
   engineEventToInsertPayload,
   fetchEventIsHomeByMatchId,
   fetchFirstLiveMatch,
+  fetchKickoffLineupPlayerIds,
   fetchLineupForLiveMatch,
   fetchMatchById,
   deleteMatchEventById,
@@ -464,6 +466,8 @@ export const LiveMatchScreen: React.FC = () => {
 
   const [squadPlayerIds, setSquadPlayerIds] = useState<string[]>([]);
   const [startingPlayerIds, setStartingPlayerIds] = useState<string[]>([]);
+  /** Kickoff-Feld aus `match_lineup_snapshots` — einzige Basis für Live-Wechsel-Replay (nicht mutierendes DB-Lineup). */
+  const [kickoffStartingPlayerIds, setKickoffStartingPlayerIds] = useState<string[]>([]);
   const [initialStartingPlayerIds, setInitialStartingPlayerIds] = useState<string[]>([]);
   const [events, setEvents] = useState<MatchEngineEvent[]>([]);
   const [opponentLabel, setOpponentLabel] = useState('Gegner');
@@ -506,11 +510,12 @@ export const LiveMatchScreen: React.FC = () => {
         return;
       }
 
-      const [mRes, lineRes, evRes, isHomeRes] = await Promise.all([
+      const [mRes, lineRes, evRes, isHomeRes, kickoffIds] = await Promise.all([
         fetchMatchById(resolvedId),
         fetchLineupForLiveMatch(resolvedId),
         fetchMatchEvents(resolvedId),
         fetchEventIsHomeByMatchId(resolvedId),
+        fetchKickoffLineupPlayerIds(resolvedId),
       ]);
       if (cancelled) return;
       if (mRes.error || !mRes.data) {
@@ -526,9 +531,21 @@ export const LiveMatchScreen: React.FC = () => {
       setEffectiveMatchId(resolvedId);
       setMatchRow(mRes.data);
       setEventIsHome(isHomeRes.isHome);
-      setLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
+      const lineData = lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data;
+      setLineupData(lineData);
       const sorted = sortMatchEventsChronologically(evRes.data);
       setEvents([...sorted].reverse());
+      const kickFromSnap =
+        kickoffIds != null && kickoffIds.some((id) => String(id ?? '').trim().length > 0)
+          ? kickoffIds.slice(0, 7)
+          : null;
+      const kickFinal = kickFromSnap ?? [...lineData.startingPlayerIds].slice(0, 7);
+      setKickoffStartingPlayerIds(kickFinal);
+      if (!kickFromSnap && mRes.data?.status === 'live' && import.meta.env.DEV) {
+        console.warn(
+          '[LiveMatch] Kein Kickoff-Snapshot (match_lineup_snapshots); Replay-Basis = aktuelles match_lineup.',
+        );
+      }
       if (lineRes.error) setSaveError(lineRes.error);
       if (evRes.error) setSaveError(evRes.error);
       setPageLoading(false);
@@ -548,6 +565,14 @@ export const LiveMatchScreen: React.FC = () => {
     roster.forEach((p) => m.set(p.id, p));
     return m;
   }, [roster]);
+
+  /** Live: Kickoff-Snapshot + Events; sonst DB-Lineup (z. B. Setup). */
+  const liveLineupBasePlayerIds = useMemo(() => {
+    const isLive = matchRow?.status === 'live';
+    const hasKickoffPlayer = kickoffStartingPlayerIds.some((id) => String(id ?? '').trim().length > 0);
+    if (isLive && hasKickoffPlayer) return kickoffStartingPlayerIds.slice(0, 7);
+    return startingPlayerIds;
+  }, [matchRow?.status, kickoffStartingPlayerIds, startingPlayerIds]);
 
   const { currentMatchSeconds, half } = useMatchTimer({
     elapsedSeconds: matchRow?.live_elapsed_seconds ?? 0,
@@ -577,8 +602,19 @@ export const LiveMatchScreen: React.FC = () => {
     setScoreAway(Number(matchRow.score_away ?? 0));
   }, [matchRow]);
 
+  const prevEffectiveMatchIdRef = useRef<string | null>(null);
   useEffect(() => {
-    setInitialStartingPlayerIds([]);
+    const prev = prevEffectiveMatchIdRef.current;
+    prevEffectiveMatchIdRef.current = effectiveMatchId;
+    if (!effectiveMatchId) {
+      setInitialStartingPlayerIds([]);
+      setKickoffStartingPlayerIds([]);
+      return;
+    }
+    if (prev != null && prev !== effectiveMatchId) {
+      setInitialStartingPlayerIds([]);
+      setKickoffStartingPlayerIds([]);
+    }
   }, [effectiveMatchId]);
 
   useEffect(() => {
@@ -970,15 +1006,12 @@ export const LiveMatchScreen: React.FC = () => {
     queueRealtimeReload();
   }, [effectiveMatchId, clearGoalUndoTimer, queueRealtimeReload]);
 
-  const onFieldIds = useMemo(
-    () => getCurrentOnFieldPlayers(startingPlayerIds, events, currentMatchSeconds),
-    [startingPlayerIds, events, currentMatchSeconds],
+  const onFieldBySlot = useMemo(
+    () => getCurrentOnFieldBySlot(liveLineupBasePlayerIds, events, currentMatchSeconds),
+    [liveLineupBasePlayerIds, events, currentMatchSeconds],
   );
 
-  const onFieldBySlot = useMemo(
-    () => getCurrentOnFieldBySlot(startingPlayerIds, events, currentMatchSeconds),
-    [startingPlayerIds, events, currentMatchSeconds],
-  );
+  const onFieldIds = useMemo(() => getOnFieldIdsInSlotOrder(onFieldBySlot), [onFieldBySlot]);
 
   const fieldPlayers = useMemo(() => {
     const set = new Set(onFieldIds);
@@ -1232,9 +1265,56 @@ export const LiveMatchScreen: React.FC = () => {
   ]);
 
   const playtimes = useMemo(
-    () => calculatePlayerPlaytimes(startingPlayerIds, squadPlayerIds, events, currentMatchSeconds),
-    [startingPlayerIds, squadPlayerIds, events, currentMatchSeconds],
+    () => calculatePlayerPlaytimes(liveLineupBasePlayerIds, squadPlayerIds, events, currentMatchSeconds),
+    [liveLineupBasePlayerIds, squadPlayerIds, events, currentMatchSeconds],
   );
+
+  const liveSubEventsDebugKey = useMemo(() => {
+    const sig = sortMatchEventsChronologically(events)
+      .filter((e) => e.type === 'sub_out' || e.type === 'sub_in')
+      .map((e) => `${e.id}:${e.type}:${e.timestamp}:${e.createdAt ?? ''}`)
+      .join('|');
+    return `${sig}::${liveLineupBasePlayerIds.join(',')}`;
+  }, [events, liveLineupBasePlayerIds]);
+
+  const liveDbgMatchSecRef = useRef(currentMatchSeconds);
+  liveDbgMatchSecRef.current = currentMatchSeconds;
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || matchRow?.status !== 'live') return;
+    if (!liveLineupBasePlayerIds.some((id) => String(id ?? '').trim())) return;
+    const tDbg = liveDbgMatchSecRef.current;
+    const subs = sortMatchEventsChronologically(events).filter(
+      (e) => e.timestamp <= tDbg && (e.type === 'sub_out' || e.type === 'sub_in'),
+    );
+    if (subs.length === 0) return;
+    console.table(
+      subs.map((e) => ({
+        minute: e.timestamp,
+        type: e.type,
+        player_id: e.playerId ?? '',
+        playerName: (e.playerId && rosterById.get(e.playerId)?.name) || '',
+        created_at: e.createdAt ?? '',
+      })),
+    );
+    const replay = replaySubstitutionEventsOnSlots(liveLineupBasePlayerIds, events, tDbg, {
+      squadPlayerIds,
+      collectSteps: true,
+    });
+    if (replay.steps?.length) {
+      console.table(
+        replay.steps.map((s) => ({
+          step: s.step,
+          kind: s.kind,
+          out: s.outPlayerId ?? '',
+          in: s.inPlayerId ?? '',
+          duplicatesField: s.duplicatesField.join(','),
+          duplicatesBench: s.duplicatesBench.join(','),
+          playersInBoth: s.playersInBoth.join(','),
+        })),
+      );
+    }
+  }, [liveSubEventsDebugKey, events, liveLineupBasePlayerIds, matchRow?.status, rosterById, squadPlayerIds]);
   const periodScores = useMemo(() => parsePeriodScores(matchRow?.period_scores), [matchRow?.period_scores]);
 
   const persistSingle = useCallback(
@@ -1402,12 +1482,9 @@ export const LiveMatchScreen: React.FC = () => {
 
       setSaveError(null);
       const tsSub = currentMatchSeconds;
-      const slotBefore = getCurrentOnFieldBySlot(startingPlayerIds, events, tsSub);
+      const slotBefore = getCurrentOnFieldBySlot(liveLineupBasePlayerIds, events, tsSub);
       const fieldIdsBefore = LIVE_FIELD_SLOT_ORDER.map((s) => String(slotBefore[s] ?? '').trim()).filter(Boolean);
-      const benchIdsBefore = getBenchPlayers(
-        squadPlayerIds,
-        getCurrentOnFieldPlayers(startingPlayerIds, events, tsSub),
-      );
+      const benchIdsBefore = getBenchPlayers(squadPlayerIds, getOnFieldIdsInSlotOrder(slotBefore));
       const dupIds = (ids: string[]) => {
         const m = new Map<string, number>();
         for (const id of ids) m.set(id, (m.get(id) ?? 0) + 1);
@@ -1417,7 +1494,7 @@ export const LiveMatchScreen: React.FC = () => {
       let applied = applySubstitutionToSlots(slotBefore, outgoingPlayerId, incomingPlayerId);
       if (!applied.outSlot) {
         applied = applySubstitutionToSlots(
-          startingLineupToSlotMap(startingPlayerIds.slice(0, 7)),
+          startingLineupToSlotMap(liveLineupBasePlayerIds.slice(0, 7)),
           outgoingPlayerId,
           incomingPlayerId,
         );
@@ -1480,8 +1557,8 @@ export const LiveMatchScreen: React.FC = () => {
       const tempOut = newEventId();
       const tempIn = newEventId();
       setEvents((prev) => [
-        { ...inPartial, id: tempIn },
         { ...outPartial, id: tempOut },
+        { ...inPartial, id: tempIn },
         ...prev,
       ]);
       const payloads = [
@@ -1512,7 +1589,7 @@ export const LiveMatchScreen: React.FC = () => {
       events,
       onFieldIds,
       half,
-      startingPlayerIds,
+      liveLineupBasePlayerIds,
       squadPlayerIds,
     ],
   );

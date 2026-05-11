@@ -25,6 +25,8 @@ export type MatchEngineEvent = {
   type: MatchEventType;
   timestamp: number;
   playerId?: string;
+  /** DB `created_at` (ISO), für stabile Wechsel-Paarung bei gleicher Spielsekunde. */
+  createdAt?: string;
 };
 
 const TYPE_ORDER: Record<MatchEventType, number> = {
@@ -38,10 +40,13 @@ const TYPE_ORDER: Record<MatchEventType, number> = {
   end: 7,
 };
 
-/** Aufsteigend nach Spielzeit; bei gleicher Sekunde stabil nach Event-Typ. */
+/** Aufsteigend nach Spielzeit; bei gleicher Sekunde zuerst `createdAt`, dann Event-Typ. */
 export function sortMatchEventsChronologically(events: MatchEngineEvent[]): MatchEngineEvent[] {
   return [...events].sort((a, b) => {
     if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+    const ca = a.createdAt ?? '';
+    const cb = b.createdAt ?? '';
+    if (ca !== cb) return ca.localeCompare(cb);
     return TYPE_ORDER[a.type] - TYPE_ORDER[b.type];
   });
 }
@@ -86,33 +91,9 @@ function isClockRunningAtImplicitStart(matchSecond: number, allSorted: MatchEngi
   return running && !ended;
 }
 
-/** Startelf ab Sekunde 0; Wechsel bis einschließlich `atMatchSecond` angewendet. */
-export function getCurrentOnFieldPlayers(
-  startingPlayerIds: string[],
-  events: MatchEngineEvent[],
-  atMatchSecond: number,
-): string[] {
-  const sorted = sortMatchEventsChronologically(events);
-  const t = Math.max(0, atMatchSecond);
-  let field = startingPlayerIds.slice(0, 7);
-
-  const applySub = (type: 'sub_out' | 'sub_in', pid: string | undefined) => {
-    if (!pid) return;
-    if (type === 'sub_out') {
-      field = field.filter((id) => id !== pid);
-      return;
-    }
-    if (!field.includes(pid) && field.length < 7) {
-      field = [...field, pid];
-    }
-  };
-
-  for (const e of sorted) {
-    if (e.timestamp > t) break;
-    if (e.type === 'sub_out') applySub('sub_out', e.playerId);
-    else if (e.type === 'sub_in') applySub('sub_in', e.playerId);
-  }
-  return field;
+/** Feldspieler-IDs in Slot-Reihenfolge (GK … ST), ohne Leerstrings. */
+export function getOnFieldIdsInSlotOrder(slots: Record<FieldSlotId, string | null>): string[] {
+  return FIELD_SLOT_ORDER.map((s) => String(slots[s] ?? '').trim()).filter(Boolean);
 }
 
 /** Startelf aus `startingPlayerIds` (Index = FIELD_SLOT_ORDER) als Slot-Map. */
@@ -186,65 +167,164 @@ export function fieldSlotMapToStartingIds(slots: Record<FieldSlotId, string | nu
   });
 }
 
+export function getBenchPlayers(squadPlayerIds: string[], onFieldPlayerIds: string[]): string[] {
+  const on = new Set(onFieldPlayerIds);
+  return squadPlayerIds.filter((id) => !on.has(id));
+}
+
+function sortSubEventsForSlotReplay(subs: MatchEngineEvent[]): MatchEngineEvent[] {
+  return [...subs].sort((a, b) => {
+    if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
+    const ca = a.createdAt ?? '';
+    const cb = b.createdAt ?? '';
+    if (ca !== cb) return ca.localeCompare(cb);
+    if (a.type !== b.type) return TYPE_ORDER[a.type] - TYPE_ORDER[b.type];
+    return a.id.localeCompare(b.id);
+  });
+}
+
+function dupIdsInList(ids: string[]): string[] {
+  const m = new Map<string, number>();
+  for (const id of ids) m.set(id, (m.get(id) ?? 0) + 1);
+  return [...m.entries()].filter(([, n]) => n > 1).map(([id]) => id);
+}
+
+export type LiveSubReplayStepDebug = {
+  step: number;
+  kind: 'pair' | 'orphan_in' | 'orphan_out';
+  outPlayerId: string | null;
+  inPlayerId: string | null;
+  fieldBySlot: Record<FieldSlotId, string | null>;
+  benchIds: string[];
+  duplicatesField: string[];
+  duplicatesBench: string[];
+  playersInBoth: string[];
+};
+
 /**
- * Aktuelle Belegung pro gespeichertem Feld-Slot (wie Startaufstellung / MatchLineupPage).
- * Paar sub_out + sub_in (gleiche Sekunde): Einwechselspieler übernimmt den Slot des Auswechslers.
- * Nur Anzeige-Hilfe — `getCurrentOnFieldPlayers` bleibt für Engine/Bank unverändert.
+ * Wendet nur Wechsel-Events auf die Kickoff-Slot-Karte an (FIFO: nächster sub_in mit ältestem offenen sub_out).
+ * `squadPlayerIds` nur nötig, wenn `collectSteps` true (Bank-Spiegel für DEV).
+ */
+export function replaySubstitutionEventsOnSlots(
+  kickoffStartingPlayerIds: string[],
+  events: MatchEngineEvent[],
+  atMatchSecond: number,
+  opts?: { squadPlayerIds?: string[]; collectSteps?: boolean },
+): {
+  slots: Record<FieldSlotId, string | null>;
+  hadOrphanIn: boolean;
+  orphanOutRemaining: number;
+  steps?: LiveSubReplayStepDebug[];
+} {
+  const t = Math.max(0, atMatchSecond);
+  let slots = dedupeFieldSlotMap(startingLineupToSlotMap(kickoffStartingPlayerIds.slice(0, 7)));
+
+  const subs = sortSubEventsForSlotReplay(
+    sortMatchEventsChronologically(events).filter(
+      (e) => e.timestamp <= t && (e.type === 'sub_out' || e.type === 'sub_in'),
+    ),
+  );
+
+  const pendingOut: string[] = [];
+  let hadOrphanIn = false;
+  const steps: LiveSubReplayStepDebug[] = [];
+  let stepIdx = 0;
+
+  const pushStep = (
+    kind: LiveSubReplayStepDebug['kind'],
+    outPlayerId: string | null,
+    inPlayerId: string | null,
+  ) => {
+    if (!opts?.collectSteps) return;
+    const squad = opts.squadPlayerIds ?? [];
+    const fieldIds = getOnFieldIdsInSlotOrder(slots);
+    const benchIds = getBenchPlayers(squad, fieldIds);
+    const fieldSet = new Set(fieldIds);
+    const dupF = dupIdsInList(fieldIds);
+    const dupB = dupIdsInList(benchIds);
+    const both = benchIds.filter((id) => fieldSet.has(id));
+    stepIdx += 1;
+    steps.push({
+      step: stepIdx,
+      kind,
+      outPlayerId,
+      inPlayerId,
+      fieldBySlot: { ...slots },
+      benchIds,
+      duplicatesField: dupF,
+      duplicatesBench: dupB,
+      playersInBoth: both,
+    });
+  };
+
+  for (const e of subs) {
+    if (e.type === 'sub_out' && e.playerId) {
+      const pid = String(e.playerId).trim();
+      if (pid) pendingOut.push(pid);
+    } else if (e.type === 'sub_in' && e.playerId) {
+      const inn = String(e.playerId).trim();
+      if (!inn) continue;
+      if (pendingOut.length > 0) {
+        const out = pendingOut.shift()!;
+        slots = applySubstitutionToSlots(slots, out, inn).slots;
+        pushStep('pair', out, inn);
+      } else {
+        hadOrphanIn = true;
+        const already = FIELD_SLOT_ORDER.some((s) => slots[s] === inn);
+        if (!already) {
+          const empty = FIELD_SLOT_ORDER.find((s) => !slots[s]);
+          if (empty) slots[empty] = inn;
+        }
+        slots = dedupeFieldSlotMap(slots);
+        pushStep('orphan_in', null, inn);
+      }
+    }
+  }
+
+  let orphanOutRemaining = 0;
+  for (const out of pendingOut) {
+    orphanOutRemaining += 1;
+    const slot = FIELD_SLOT_ORDER.find((s) => slots[s] === out);
+    if (slot) slots[slot] = null;
+    pushStep('orphan_out', out, null);
+  }
+
+  slots = dedupeFieldSlotMap(slots);
+
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV && (hadOrphanIn || orphanOutRemaining > 0)) {
+    console.warn('[matchEngine] substitution replay: unpaired sub_out/sub_in', {
+      hadOrphanIn,
+      orphanOutRemaining,
+    });
+  }
+
+  return {
+    slots,
+    hadOrphanIn,
+    orphanOutRemaining,
+    steps: opts?.collectSteps ? steps : undefined,
+  };
+}
+
+/**
+ * Aktuelle Belegung pro Slot: **Kickoff-Aufstellung** + alle Wechsel chronologisch
+ * (FIFO-Paarung sub_out → sub_in bei gleicher Spielsekunde über `createdAt` / Typ / id).
  */
 export function getCurrentOnFieldBySlot(
   startingPlayerIds: string[],
   events: MatchEngineEvent[],
   atMatchSecond: number,
 ): Record<FieldSlotId, string | null> {
-  const sorted = sortMatchEventsChronologically(events);
-  const t = Math.max(0, atMatchSecond);
-  const slots = startingLineupToSlotMap(startingPlayerIds.slice(0, 7));
-
-  let i = 0;
-  while (i < sorted.length) {
-    const e = sorted[i];
-    if (e.timestamp > t) break;
-
-    const next = sorted[i + 1];
-    if (
-      e.type === 'sub_out' &&
-      next?.type === 'sub_in' &&
-      next.timestamp === e.timestamp &&
-      e.playerId &&
-      next.playerId
-    ) {
-      const slot = FIELD_SLOT_ORDER.find((s) => slots[s] === e.playerId);
-      if (slot) slots[slot] = next.playerId;
-      i += 2;
-      continue;
-    }
-
-    if (e.type === 'sub_out' && e.playerId) {
-      const slot = FIELD_SLOT_ORDER.find((s) => slots[s] === e.playerId);
-      if (slot) slots[slot] = null;
-      i += 1;
-      continue;
-    }
-
-    if (e.type === 'sub_in' && e.playerId) {
-      const already = FIELD_SLOT_ORDER.some((s) => slots[s] === e.playerId);
-      if (!already) {
-        const empty = FIELD_SLOT_ORDER.find((s) => !slots[s]);
-        if (empty) slots[empty] = e.playerId;
-      }
-      i += 1;
-      continue;
-    }
-
-    i += 1;
-  }
-
-  return slots;
+  return replaySubstitutionEventsOnSlots(startingPlayerIds, events, atMatchSecond).slots;
 }
 
-export function getBenchPlayers(squadPlayerIds: string[], onFieldPlayerIds: string[]): string[] {
-  const on = new Set(onFieldPlayerIds);
-  return squadPlayerIds.filter((id) => !on.has(id));
+/** Aktuelle Feldspieler-IDs = gleiche Quelle wie `getCurrentOnFieldBySlot`, Reihenfolge GK…ST. */
+export function getCurrentOnFieldPlayers(
+  startingPlayerIds: string[],
+  events: MatchEngineEvent[],
+  atMatchSecond: number,
+): string[] {
+  return getOnFieldIdsInSlotOrder(getCurrentOnFieldBySlot(startingPlayerIds, events, atMatchSecond));
 }
 
 export type PlayerPlaytimeMap = Record<string, number>;

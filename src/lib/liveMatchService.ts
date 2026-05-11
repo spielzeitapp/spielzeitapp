@@ -73,12 +73,14 @@ const ENGINE_TYPES = new Set<MatchEventType>([
  * DB-Spalte `minute` speichert hier Spielsekunden seit Anpfiff (nicht Anzeige-Minute).
  */
 export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent | null {
+  const createdAt = row.created_at;
   if (row.type === 'kickoff') {
     return {
       id: row.id,
       type: 'start',
       timestamp: row.minute ?? 0,
       playerId: undefined,
+      createdAt,
     };
   }
   if (row.type === 'final_whistle') {
@@ -87,6 +89,7 @@ export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent 
       type: 'end',
       timestamp: row.minute ?? 0,
       playerId: undefined,
+      createdAt,
     };
   }
   if (row.type === 'period_start') {
@@ -95,6 +98,7 @@ export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent 
       type: 'resume',
       timestamp: row.minute ?? 0,
       playerId: undefined,
+      createdAt,
     };
   }
   if (row.type === 'period_end') {
@@ -103,6 +107,7 @@ export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent 
       type: 'pause',
       timestamp: row.minute ?? 0,
       playerId: undefined,
+      createdAt,
     };
   }
   if (row.type === 'goal_away') {
@@ -111,6 +116,7 @@ export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent 
       type: 'goal_away',
       timestamp: row.minute ?? 0,
       playerId: row.player_id ?? undefined,
+      createdAt,
     };
   }
   if (!ENGINE_TYPES.has(row.type as MatchEventType)) return null;
@@ -119,6 +125,7 @@ export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent 
     type: row.type as MatchEventType,
     timestamp: row.minute ?? 0,
     playerId: row.player_id ?? undefined,
+    createdAt,
   };
 }
 
@@ -272,6 +279,53 @@ export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: 
   });
 
   return { data: { startingPlayerIds, squadPlayerIds }, error: null };
+}
+
+/** Kickoff-Snapshot (`match_lineup_snapshots.snapshot_type = kickoff`) → 7er-Array in Slot-Reihenfolge; fehlt → `null`. */
+export async function fetchKickoffLineupPlayerIds(matchId: string): Promise<string[] | null> {
+  const mid = matchId?.trim();
+  if (!mid) return null;
+
+  const { data, error } = await supabase
+    .from('match_lineup_snapshots')
+    .select('player_id, slot')
+    .eq('match_id', mid)
+    .eq('snapshot_type', 'kickoff');
+
+  if (error) {
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.warn('[liveMatchService] fetchKickoffLineupPlayerIds', error.message);
+    }
+    return null;
+  }
+
+  const rows = (data ?? []) as { player_id: string | null; slot?: string | null }[];
+  if (rows.length === 0) return null;
+
+  const bySlot: Partial<Record<FieldSlotId, string>> = {};
+  for (const row of rows) {
+    const slotRaw = String(row.slot ?? '').trim().toUpperCase();
+    const slot = slotRaw as FieldSlotId;
+    const pid = typeof row.player_id === 'string' && row.player_id.length > 0 ? row.player_id.trim() : '';
+    if (!pid || LIVE_FIELD_SLOT_ORDER.indexOf(slot) === -1) continue;
+    if (bySlot[slot] == null) bySlot[slot] = pid;
+  }
+  const seenOnField = new Set<string>();
+  const slotOccupants: Record<FieldSlotId, string | null> = {} as Record<FieldSlotId, string | null>;
+  for (const s of LIVE_FIELD_SLOT_ORDER) {
+    const pid = bySlot[s]?.trim() ?? '';
+    if (!pid) {
+      slotOccupants[s] = null;
+      continue;
+    }
+    if (seenOnField.has(pid)) {
+      slotOccupants[s] = null;
+    } else {
+      seenOnField.add(pid);
+      slotOccupants[s] = pid;
+    }
+  }
+  return LIVE_FIELD_SLOT_ORDER.map((s) => slotOccupants[s] ?? '');
 }
 
 export async function saveMatchEvent(payload: InsertMatchEventPayload): Promise<{ id: string | null; error: string | null }> {
