@@ -245,6 +245,21 @@ const spectatorTabBtnActive =
 const spectatorTabBtnIdle =
   'text-gray-500 hover:border-white/[0.06] hover:bg-white/[0.04] hover:text-gray-200';
 
+/** Kompakte Tabs: weniger Höhe, keine große rote Aktiv-Kapsel. */
+const tabNavWrapTrainer =
+  'mt-1.5 flex w-full gap-0.5 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/45 p-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+const trainerTabBtn =
+  'shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors sm:px-3 sm:text-[12px]';
+const trainerTabBtnActive = 'bg-white/12 text-white ring-1 ring-white/12';
+const trainerTabBtnIdle = 'text-white/45 hover:bg-white/[0.06] hover:text-white/85';
+
+const spectatorTabWrapCompact =
+  'mt-2 flex gap-0.5 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/45 p-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+const spectatorTabBtnCompact =
+  'flex h-9 min-h-9 shrink-0 flex-1 items-center justify-center rounded-lg border border-transparent px-1.5 text-center text-[11px] font-semibold transition-colors sm:text-[12px]';
+const spectatorTabBtnCompactActive = `${trainerTabBtnActive} border-white/10`;
+const spectatorTabBtnCompactIdle = 'text-white/45 hover:bg-white/[0.05] hover:text-white/85';
+
 const liveCardShell =
   'rounded-2xl border border-white/[0.08] bg-gradient-to-br from-zinc-950/95 via-zinc-950/80 to-black shadow-[0_6px_28px_rgba(0,0,0,0.35)]';
 
@@ -288,9 +303,10 @@ function findLastGoalEventIdForSide(events: MatchEngineEvent[], side: 'home' | '
   return null;
 }
 
-/** Liveticker-Zeilen für Zuschauer: chronologisch, Wechsel-Paar an gleicher Minute zusammen. */
-function buildSpectatorTickerRows(events: MatchEngineEvent[]): { key: string; items: MatchEngineEvent[] }[] {
-  const asc = sortMatchEventsChronologically(events);
+type EventsFilter = 'all' | 'goals' | 'subs';
+
+/** Wechsel-Paare (sub_out + sub_in gleiche Sekunde) in chronologischer Liste zusammenfassen. */
+function pairSubstitutionEventsInOrder(asc: MatchEngineEvent[]): { key: string; items: MatchEngineEvent[] }[] {
   const rows: { key: string; items: MatchEngineEvent[] }[] = [];
   let i = 0;
   while (i < asc.length) {
@@ -307,7 +323,29 @@ function buildSpectatorTickerRows(events: MatchEngineEvent[]): { key: string; it
   return rows;
 }
 
-type EventsFilter = 'all' | 'goals' | 'subs';
+/** Liveticker-Zeilen für Zuschauer: chronologisch, Wechsel-Paar an gleicher Minute zusammen. */
+function buildSpectatorTickerRows(events: MatchEngineEvent[]): { key: string; items: MatchEngineEvent[] }[] {
+  return pairSubstitutionEventsInOrder(sortMatchEventsChronologically(events));
+}
+
+/**
+ * Trainer-Liveticker: neueste zuerst, Wechsel-Paare nicht trennen.
+ * Filter „Tore“: nur Tor-Events; „Wechsel“: nur Sub-Events mit Paar-Logik; „Alle“: alle Events mit Paar-Logik.
+ */
+function buildLiveTickerRows(events: MatchEngineEvent[], filter: EventsFilter): { key: string; items: MatchEngineEvent[] }[] {
+  if (filter === 'goals') {
+    const goals = events.filter((e) => e.type === 'goal' || e.type === 'goal_away');
+    const desc = [...goals].sort((a, b) => b.timestamp - a.timestamp || b.id.localeCompare(a.id));
+    return desc.map((e) => ({ key: e.id, items: [e] }));
+  }
+  if (filter === 'subs') {
+    const subs = events.filter((e) => e.type === 'sub_out' || e.type === 'sub_in');
+    const paired = pairSubstitutionEventsInOrder(sortMatchEventsChronologically(subs));
+    return paired.slice().reverse();
+  }
+  const paired = pairSubstitutionEventsInOrder(sortMatchEventsChronologically(events));
+  return paired.slice().reverse();
+}
 
 function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
   return [...list].sort(compareRosterPlayers);
@@ -1407,12 +1445,7 @@ export const LiveMatchScreen: React.FC = () => {
     }
   }, [subOutPlayerId, subInPlayerId, persistSubstitution, queueRealtimeReload, closeWechselSheet]);
 
-  const filteredEvents = useMemo(() => {
-    const list = [...events].sort((a, b) => b.timestamp - a.timestamp);
-    if (eventsFilter === 'goals') return list.filter((e) => e.type === 'goal' || e.type === 'goal_away');
-    if (eventsFilter === 'subs') return list.filter((e) => e.type === 'sub_out' || e.type === 'sub_in');
-    return list;
-  }, [events, eventsFilter]);
+  const trainerTickerRows = useMemo(() => buildLiveTickerRows(events, eventsFilter), [events, eventsFilter]);
 
   const spectatorTickerRows = useMemo(() => buildSpectatorTickerRows(events), [events]);
 
@@ -1643,13 +1676,16 @@ export const LiveMatchScreen: React.FC = () => {
 
     let body: React.ReactNode;
     if (row.items.length === 2 && row.items[0].type === 'sub_out' && row.items[1].type === 'sub_in') {
-      const outP = rosterById.get(row.items[0].playerId ?? '')?.name ?? '?';
-      const inP = rosterById.get(row.items[1].playerId ?? '')?.name ?? '?';
+      const outP = rosterById.get(row.items[0].playerId ?? '')?.name ?? '—';
+      const inP = rosterById.get(row.items[1].playerId ?? '')?.name ?? '—';
       body = (
         <>
-          <p className="text-[10px] font-black uppercase tracking-wide text-sky-400">Wechsel</p>
-          <p className="mt-1 text-[13px] font-bold leading-snug text-emerald-400">IN {inP}</p>
-          <p className="mt-0.5 text-[13px] font-bold leading-snug text-red-300">OUT {outP}</p>
+          <p className="text-[10px] font-black uppercase tracking-wide text-sky-300">🔁 Wechsel</p>
+          <div className="mt-1.5 space-y-0.5">
+            <p className="text-[12px] font-semibold leading-snug text-red-200/95">Raus · {outP}</p>
+            <p className="py-0.5 text-center text-[11px] text-white/40">↓</p>
+            <p className="text-[12px] font-semibold leading-snug text-emerald-300/95">Rein · {inP}</p>
+          </div>
         </>
       );
     } else if (ev.type === 'goal' || ev.type === 'goal_away') {
@@ -1696,6 +1732,65 @@ export const LiveMatchScreen: React.FC = () => {
         </div>
       </li>
     );
+  };
+
+  const renderTrainerTickerRow = (
+    row: { key: string; items: MatchEngineEvent[] },
+    index: number,
+    listLength: number,
+  ) => {
+    const ev = row.items[0];
+    const isPair =
+      row.items.length === 2 &&
+      row.items[0].type === 'sub_out' &&
+      row.items[1].type === 'sub_in' &&
+      row.items[1].timestamp === row.items[0].timestamp;
+
+    if (isPair) {
+      const outEv = row.items[0];
+      const inEv = row.items[1];
+      const outName = rosterById.get(outEv.playerId ?? '')?.name ?? '—';
+      const inName = rosterById.get(inEv.playerId ?? '')?.name ?? '—';
+      const t = outEv.timestamp;
+      const lineConnector =
+        index < listLength - 1 ? (
+          <div
+            className="absolute top-2.5 bottom-0 left-1/2 w-1 -translate-x-1/2 rounded-full bg-red-600/35"
+            aria-hidden
+          />
+        ) : null;
+      return (
+        <li key={row.key} className="relative flex gap-0 pb-2.5 last:pb-0 md:pb-3">
+          <div className="flex w-11 shrink-0 flex-col items-end pr-1 pt-0.5 md:w-14 md:pr-1.5">
+            <span className="text-sm font-bold tabular-nums leading-none text-white md:text-base">{formatMinute(t)}</span>
+          </div>
+          <div className="relative flex w-3 shrink-0 flex-col items-center pt-1 md:w-4">
+            {lineConnector}
+            <div className="relative z-10 h-2 w-2 shrink-0 rounded-full bg-red-600" aria-hidden />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex min-h-0 items-stretch gap-2 rounded-lg border border-white/10 bg-zinc-950 px-2 py-1.5 shadow-[0_6px_24px_rgba(0,0,0,0.35)] md:gap-2 md:px-2.5 md:py-2">
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-sky-950/80 text-sm text-sky-200 ring-1 ring-sky-500/30 md:h-9 md:w-9 md:text-base"
+                aria-hidden
+              >
+                ⇄
+              </div>
+              <div className="min-w-0 flex-1 py-0.5">
+                <p className="text-[10px] font-black uppercase tracking-wide text-sky-300">🔁 Wechsel</p>
+                <div className="mt-1.5 space-y-0.5">
+                  <p className="text-[12px] font-semibold leading-snug text-red-200/95">Raus · {outName}</p>
+                  <p className="py-0.5 text-center text-[11px] text-white/40">↓</p>
+                  <p className="text-[12px] font-semibold leading-snug text-emerald-300/95">Rein · {inName}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </li>
+      );
+    }
+
+    return renderTimelineRow(ev, index, listLength, true, true);
   };
 
   const selectClass =
@@ -2259,55 +2354,85 @@ export const LiveMatchScreen: React.FC = () => {
           )}
 
           {spectatorView ? (
-            <nav className={spectatorTabWrap} aria-label="Live-Ansicht">
+            <nav className={spectatorTabWrapCompact} aria-label="Live-Ansicht">
               <button
                 type="button"
-                className={`${spectatorTabBtnBase} ${mainTab === 'overview' ? spectatorTabBtnActive : spectatorTabBtnIdle}`}
+                className={`${spectatorTabBtnCompact} ${mainTab === 'overview' ? spectatorTabBtnCompactActive : spectatorTabBtnCompactIdle}`}
                 onClick={() => setMainTab('overview')}
               >
                 Übersicht
               </button>
               <button
                 type="button"
-                className={`${spectatorTabBtnBase} ${mainTab === 'lineup' ? spectatorTabBtnActive : spectatorTabBtnIdle}`}
+                className={`${spectatorTabBtnCompact} ${mainTab === 'lineup' ? spectatorTabBtnCompactActive : spectatorTabBtnCompactIdle}`}
                 onClick={() => setMainTab('lineup')}
               >
                 Aufstellung
               </button>
               <button
                 type="button"
-                className={`${spectatorTabBtnBase} ${mainTab === 'events' ? spectatorTabBtnActive : spectatorTabBtnIdle}`}
+                className={`${spectatorTabBtnCompact} ${mainTab === 'events' ? spectatorTabBtnCompactActive : spectatorTabBtnCompactIdle}`}
                 onClick={() => setMainTab('events')}
               >
                 Liveticker
               </button>
             </nav>
-          ) : (
-            <nav className={tabNavWrap} aria-label="Live-Ansicht">
+          ) : canControlLiveMatch && mainTab === 'lineup' ? (
+            <div
+              className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-white/[0.06] px-2 pb-2 pt-0.5"
+              aria-label="Navigation Aufstellung"
+            >
               <button
                 type="button"
-                className={`${tabNavBtnBase} ${mainTab === 'overview' ? tabNavBtnActive : tabNavBtnIdle}`}
+                onClick={() => setMainTab('events')}
+                className="inline-flex min-h-[36px] items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-950/30 px-3 py-1 text-[12px] font-semibold text-emerald-100 hover:border-emerald-400/50 hover:bg-emerald-950/45"
+              >
+                ← Liveticker
+              </button>
+              <span className="hidden text-[10px] text-white/25 sm:inline" aria-hidden>
+                |
+              </span>
+              <button
+                type="button"
+                onClick={() => setMainTab('overview')}
+                className="min-h-[36px] rounded-lg px-2 py-1 text-[11px] font-medium text-white/50 hover:bg-white/[0.05] hover:text-white/85"
+              >
+                Übersicht
+              </button>
+              <button
+                type="button"
+                onClick={() => setMainTab('time')}
+                className="min-h-[36px] rounded-lg px-2 py-1 text-[11px] font-medium text-white/50 hover:bg-white/[0.05] hover:text-white/85"
+              >
+                Statistik
+              </button>
+            </div>
+          ) : (
+            <nav className={tabNavWrapTrainer} aria-label="Live-Ansicht">
+              <button
+                type="button"
+                className={`${trainerTabBtn} ${mainTab === 'overview' ? trainerTabBtnActive : trainerTabBtnIdle}`}
                 onClick={() => setMainTab('overview')}
               >
                 Übersicht
               </button>
               <button
                 type="button"
-                className={`${tabNavBtnBase} ${mainTab === 'lineup' ? tabNavBtnActive : tabNavBtnIdle}`}
+                className={`${trainerTabBtn} ${mainTab === 'lineup' ? trainerTabBtnActive : trainerTabBtnIdle}`}
                 onClick={() => setMainTab('lineup')}
               >
                 Aufstellung
               </button>
               <button
                 type="button"
-                className={`${tabNavBtnBase} ${mainTab === 'events' ? tabNavBtnActive : tabNavBtnIdle}`}
+                className={`${trainerTabBtn} ${mainTab === 'events' ? trainerTabBtnActive : trainerTabBtnIdle}`}
                 onClick={() => setMainTab('events')}
               >
-                Liveticker
+                Ticker
               </button>
               <button
                 type="button"
-                className={`${tabNavBtnBase} ${mainTab === 'time' ? tabNavBtnActive : tabNavBtnIdle}`}
+                className={`${trainerTabBtn} ${mainTab === 'time' ? trainerTabBtnActive : trainerTabBtnIdle}`}
                 onClick={() => setMainTab('time')}
               >
                 Statistik
@@ -2410,16 +2535,18 @@ export const LiveMatchScreen: React.FC = () => {
             className="space-y-2 px-0 pt-2 sm:space-y-3 sm:px-2"
             style={{ paddingBottom: 'calc(160px + env(safe-area-inset-bottom, 0px))' }}
           >
-            <section className="space-y-2 rounded-2xl border border-white/[0.08] bg-black/40 p-2">
-              <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-                <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">LIVE-AUFSTELLUNG</h3>
+            <section className="space-y-1.5 rounded-2xl border border-white/[0.08] bg-black/40 p-1.5 sm:space-y-2 sm:p-2">
+              <div className="flex flex-wrap items-center justify-between gap-1.5 px-0.5 sm:px-1">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/65 sm:text-[11px]">
+                  Live-Aufstellung
+                </h3>
                 {canControlLiveMatch ? (
                   <button
                     type="button"
                     onClick={() => setFormationSheetOpen(true)}
-                    className="inline-flex shrink-0 items-center rounded-full border border-red-500/35 bg-red-950/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-red-100/95 shadow-[0_0_12px_rgba(239,68,68,0.12)] transition-colors active:scale-[0.98] hover:border-red-400/45 hover:bg-red-950/55 sm:text-[11px]"
+                    className="inline-flex min-h-[32px] shrink-0 items-center rounded-lg border border-red-500/35 bg-red-950/40 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-red-100/95 transition-colors active:scale-[0.98] hover:border-red-400/45 hover:bg-red-950/55 sm:text-[10px]"
                   >
-                    Formation ändern
+                    Formation
                   </button>
                 ) : null}
               </div>
@@ -2429,6 +2556,7 @@ export const LiveMatchScreen: React.FC = () => {
                   slots={safeLineupSlots as Record<FieldSlotId, string | null>}
                   emphasizedPlayerId={null}
                   slotHighlightBySlot={slotHighlightBySlot}
+                  className="max-h-[min(58dvh,34rem)] sm:max-h-[min(62dvh,38rem)]"
                   renderSlotContent={({ slot, label, playerId, isGk }) => {
                     if (!playerId) return null;
                     const player = rosterById.get(playerId) ?? null;
@@ -2495,13 +2623,13 @@ export const LiveMatchScreen: React.FC = () => {
                 </p>
               )}
 
-              <div className="rounded-xl border border-white/10 bg-black/25 p-2">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/60">Live-Bank</p>
+              <div className="rounded-lg border border-white/10 bg-black/30 p-1.5 sm:p-2">
+                <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white/55">Bank</p>
                 {safeBenchRowsCount === 0 ? (
-                  <p className="text-xs text-white/50">Keine Bankspieler</p>
+                  <p className="text-[11px] text-white/45">Keine Bankspieler</p>
                 ) : (
-                  <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
-                    <div className="flex min-w-min flex-nowrap items-start gap-2">
+                  <div className="overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch]">
+                    <div className="flex min-w-min flex-nowrap items-start gap-1.5 sm:gap-2">
                       {(Array.isArray(safeBenchRows) ? safeBenchRows : []).map((row, idx) => {
                         const posLabel = getPositionLabel(row.position) || '–';
                         return (
@@ -2570,8 +2698,8 @@ export const LiveMatchScreen: React.FC = () => {
         )}
 
         {mainTab === 'events' && (
-          <div className="space-y-3">
-            <div className="flex gap-1.5 sm:gap-2">
+          <div className="space-y-2">
+            <div className="flex gap-1 rounded-lg border border-white/10 bg-black/40 p-0.5 sm:gap-1.5">
               {(
                 [
                   ['all', 'Alle'],
@@ -2583,23 +2711,21 @@ export const LiveMatchScreen: React.FC = () => {
                   key={key}
                   type="button"
                   onClick={() => setEventsFilter(key)}
-                  className={`min-h-[36px] flex-1 rounded-lg px-2 py-1.5 text-xs font-bold tracking-wide transition-colors sm:text-sm ${
-                    eventsFilter === key
-                      ? 'bg-red-500 text-white'
-                      : 'border border-red-500/20 bg-neutral-900 text-gray-400 hover:text-white'
+                  className={`min-h-[32px] flex-1 rounded-md px-2 py-1 text-[11px] font-semibold transition-colors sm:min-h-[34px] sm:text-xs ${
+                    eventsFilter === key ? trainerTabBtnActive : 'text-white/45 hover:text-white/75'
                   }`}
                 >
                   {label}
                 </button>
               ))}
             </div>
-            {filteredEvents.length === 0 ? (
+            {trainerTickerRows.length === 0 ? (
               <p className={`px-4 py-8 text-center text-sm text-gray-400 ${liveCardShell} border-red-500/20`}>
                 Keine Einträge für diesen Filter.
               </p>
             ) : (
               <ul className="max-h-[60vh] overflow-y-auto rounded-xl border border-red-500/30 bg-black px-1 py-2 sm:px-2 sm:py-3">
-                {filteredEvents.map((ev, i, arr) => renderTimelineRow(ev, i, arr.length, true, true))}
+                {trainerTickerRows.map((row, i, arr) => renderTrainerTickerRow(row, i, arr.length))}
               </ul>
             )}
           </div>
