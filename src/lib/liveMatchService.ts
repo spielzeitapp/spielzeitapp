@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient';
 import { debugAssertMatchEventDbType } from './matchEventScores';
 import type { FieldSlotId } from '../types/match';
-import type { MatchEngineEvent, MatchEventType } from './matchEngine';
+import { getBenchPlayers, type MatchEngineEvent, type MatchEventType } from './matchEngine';
 
 /** Reihenfolge der Slots = Startelf-Reihenfolge (7er). */
 export const LIVE_FIELD_SLOT_ORDER: FieldSlotId[] = ['GK', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'];
@@ -495,6 +495,146 @@ export async function replaceMatchLineupAndBench(
   });
 
   return { error: null };
+}
+
+export type LiveLineupRepairResult = {
+  inconsistent: boolean;
+  repaired: boolean;
+  error: string | null;
+};
+
+type RawLineupRow = { player_id: string | null; slot?: string | null };
+type RawBenchRow = { player_id: string | null };
+
+function normLineupPid(raw: string | null | undefined): string | null {
+  const v = String(raw ?? '').trim();
+  return v.length > 0 ? v : null;
+}
+
+function normLineupSlot(raw: string | null | undefined): FieldSlotId | null {
+  const s = String(raw ?? '').trim().toUpperCase() as FieldSlotId;
+  return LIVE_FIELD_SLOT_ORDER.indexOf(s) >= 0 ? s : null;
+}
+
+/** Alle `player_id` aus Feld- und Bank-Rohzeilen (Match-Kader-Umfang). */
+function collectSquadUnionFromRaw(lineupRows: RawLineupRow[], benchRows: RawBenchRow[]): string[] {
+  const s = new Set<string>();
+  for (const row of lineupRows) {
+    const p = normLineupPid(row.player_id);
+    if (p) s.add(p);
+  }
+  for (const row of benchRows) {
+    const p = normLineupPid(row.player_id);
+    if (p) s.add(p);
+  }
+  return [...s];
+}
+
+/**
+ * Repariertes 7er-Array + Kader aus Roh-DB: doppelte Feld-Slots bereinigt (erster Slot gewinnt),
+ * Kader = Union aller Roh-IDs; Bank = Kader minus Feld (Feld gewinnt bei Doppelbelegung).
+ */
+export function computeRepairedLiveLineupFromRaw(
+  lineupRows: RawLineupRow[],
+  benchRows: RawBenchRow[],
+): { startingPlayerIds: string[]; squadPlayerIds: string[] } {
+  const bySlot: Partial<Record<FieldSlotId, string>> = {};
+  for (const row of lineupRows) {
+    const slot = normLineupSlot(row.slot);
+    const pid = normLineupPid(row.player_id);
+    if (!slot || !pid) continue;
+    if (bySlot[slot] == null) bySlot[slot] = pid;
+  }
+  const seenOnField = new Set<string>();
+  const slotOccupants: Record<FieldSlotId, string | null> = {} as Record<FieldSlotId, string | null>;
+  for (const s of LIVE_FIELD_SLOT_ORDER) {
+    const pid = bySlot[s]?.trim() ?? '';
+    if (!pid) {
+      slotOccupants[s] = null;
+      continue;
+    }
+    if (seenOnField.has(pid)) {
+      slotOccupants[s] = null;
+    } else {
+      seenOnField.add(pid);
+      slotOccupants[s] = pid;
+    }
+  }
+  const startingPlayerIds = LIVE_FIELD_SLOT_ORDER.map((s) => slotOccupants[s] ?? '');
+
+  const U = collectSquadUnionFromRaw(lineupRows, benchRows);
+  const fieldIds = LIVE_FIELD_SLOT_ORDER.map((s) => slotOccupants[s]).filter(
+    (id): id is string => typeof id === 'string' && id.trim().length > 0,
+  );
+  const fieldSet = new Set(fieldIds);
+  const benchOnly = U.filter((id) => !fieldSet.has(id)).sort((a, b) => a.localeCompare(b));
+  const squadPlayerIds = [...new Set([...fieldIds, ...benchOnly])];
+
+  return { startingPlayerIds, squadPlayerIds };
+}
+
+function snapshotRepairedLineupBench(startingPlayerIds: string[], squadPlayerIds: string[]): string {
+  const parts: string[] = [];
+  for (let i = 0; i < LIVE_FIELD_SLOT_ORDER.length; i++) {
+    const slot = LIVE_FIELD_SLOT_ORDER[i];
+    const p = normLineupPid(startingPlayerIds[i]);
+    if (p) parts.push(`${slot}:${p}`);
+  }
+  const onField = LIVE_FIELD_SLOT_ORDER.map((_, i) => normLineupPid(startingPlayerIds[i])).filter(
+    Boolean,
+  ) as string[];
+  const bench = getBenchPlayers(squadPlayerIds, onField).sort((a, b) => a.localeCompare(b));
+  for (const p of bench) parts.push(`B:${p}`);
+  parts.sort();
+  return parts.join('|');
+}
+
+function snapshotRawLineupBench(lineupRows: RawLineupRow[], benchRows: RawBenchRow[]): string {
+  const parts: string[] = [];
+  for (const row of lineupRows) {
+    const slot = normLineupSlot(row.slot);
+    const pid = normLineupPid(row.player_id);
+    if (slot && pid) parts.push(`${slot}:${pid}`);
+  }
+  for (const row of benchRows) {
+    const pid = normLineupPid(row.player_id);
+    if (pid) parts.push(`B:${pid}`);
+  }
+  parts.sort();
+  return parts.join('|');
+}
+
+export function liveLineupRawDiffersFromRepaired(lineupRows: RawLineupRow[], benchRows: RawBenchRow[]): boolean {
+  const { startingPlayerIds, squadPlayerIds } = computeRepairedLiveLineupFromRaw(lineupRows, benchRows);
+  return snapshotRawLineupBench(lineupRows, benchRows) !== snapshotRepairedLineupBench(startingPlayerIds, squadPlayerIds);
+}
+
+/**
+ * Liest `match_lineup` + `match_bench`, vergleicht mit bereinigtem Soll-Zustand; bei Abweichung einmalig `replaceMatchLineupAndBench`.
+ */
+export async function repairLiveMatchLineupBenchIfNeeded(matchId: string): Promise<LiveLineupRepairResult> {
+  const mid = matchId?.trim();
+  if (!mid) return { inconsistent: false, repaired: false, error: null };
+
+  const [lineupRes, benchRes] = await Promise.all([
+    supabase.from('match_lineup').select('player_id, slot').eq('match_id', mid),
+    supabase.from('match_bench').select('player_id').eq('match_id', mid),
+  ]);
+
+  if (lineupRes.error) return { inconsistent: false, repaired: false, error: lineupRes.error.message };
+  if (benchRes.error) return { inconsistent: false, repaired: false, error: benchRes.error.message };
+
+  const lineupRows = (lineupRes.data ?? []) as RawLineupRow[];
+  const benchRows = (benchRes.data ?? []) as RawBenchRow[];
+
+  if (!liveLineupRawDiffersFromRepaired(lineupRows, benchRows)) {
+    return { inconsistent: false, repaired: false, error: null };
+  }
+
+  const { startingPlayerIds, squadPlayerIds } = computeRepairedLiveLineupFromRaw(lineupRows, benchRows);
+  const { error } = await replaceMatchLineupAndBench(mid, startingPlayerIds, squadPlayerIds);
+  if (error) return { inconsistent: true, repaired: false, error };
+  return { inconsistent: true, repaired: true, error: null };
 }
 
 const KICKOFF_LINEUP_SNAPSHOT_TYPE = 'kickoff';

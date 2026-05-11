@@ -28,6 +28,7 @@ import {
   getMatchLiveClockStatus,
   LIVE_FIELD_SLOT_ORDER,
   replaceMatchLineupAndBench,
+  repairLiveMatchLineupBenchIfNeeded,
   saveMatchEvent,
   saveMatchEvents,
   updateMatchRow,
@@ -598,6 +599,28 @@ export const LiveMatchScreen: React.FC = () => {
     );
   }, [matchRow, lineupData]);
 
+  /** Trainer: beschädigte DB-Zeilen für Lineup/Bank einmal bereinigen (nur bei Abweichung). */
+  useEffect(() => {
+    if (!effectiveMatchId || !canControlLiveMatch || matchIsFinished) return;
+    if (matchRow?.status !== 'live') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { repaired, error } = await repairLiveMatchLineupBenchIfNeeded(effectiveMatchId);
+        if (error) setSaveError(error);
+        if (!repaired || cancelled) return;
+        const lineRes = await fetchLineupForLiveMatch(effectiveMatchId);
+        if (cancelled || lineRes.error) return;
+        setLineupData(lineRes.data);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveMatchId, canControlLiveMatch, matchIsFinished, matchRow?.status]);
+
   const reloadMatchSetupFromDb = useCallback(async () => {
     if (!effectiveMatchId) return;
     if (lineupReloadInFlightRef.current) {
@@ -605,15 +628,25 @@ export const LiveMatchScreen: React.FC = () => {
       return;
     }
     lineupReloadInFlightRef.current = true;
-    const lineRes = await fetchLineupForLiveMatch(effectiveMatchId);
-    lineupReloadInFlightRef.current = false;
-    setLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
-    if (lineRes.error) setSaveError(lineRes.error);
+    try {
+      if (canControlLiveMatch && matchRow?.status === 'live') {
+        const { repaired, error } = await repairLiveMatchLineupBenchIfNeeded(effectiveMatchId);
+        if (error) setSaveError(error);
+        if (import.meta.env.DEV && repaired) {
+          console.debug('[LiveMatch] lineup/bench repaired from DB');
+        }
+      }
+      const lineRes = await fetchLineupForLiveMatch(effectiveMatchId);
+      setLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
+      if (lineRes.error) setSaveError(lineRes.error);
+    } finally {
+      lineupReloadInFlightRef.current = false;
+    }
     if (lineupReloadPendingRef.current) {
       lineupReloadPendingRef.current = false;
       void reloadMatchSetupFromDb();
     }
-  }, [effectiveMatchId]);
+  }, [effectiveMatchId, canControlLiveMatch, matchRow?.status]);
 
   const reloadLiveMatchState = useCallback(async () => {
     if (!effectiveMatchId || realtimeReloadInFlightRef.current) return;
