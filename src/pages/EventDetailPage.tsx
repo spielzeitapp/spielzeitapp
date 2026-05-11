@@ -1539,11 +1539,9 @@ export const EventDetailPage: React.FC = () => {
           setMatchError(friendlyMatchEventWriteError(updErr.message));
           return;
         }
-        if (import.meta.env.DEV && (!updatedRows || updatedRows.length === 0)) {
-          console.warn(
-            '[FinishedMatchReport] Tor-Update: select() ohne Zeile (häufig RLS). Reload prüft den Stand.',
-            editingEventId,
-          );
+        if (!updatedRows || updatedRows.length === 0) {
+          setMatchError('Ereignis konnte nicht aktualisiert werden. Bitte Rechte/Team prüfen.');
+          return;
         }
       } else {
         setMatchError('Unbekannter Ereignistyp.');
