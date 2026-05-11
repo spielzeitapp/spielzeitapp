@@ -2891,61 +2891,53 @@ export const LiveMatchScreen: React.FC = () => {
             aria-labelledby="wechsel-sheet-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto mt-1.5 h-0.5 w-7 shrink-0 rounded-full bg-red-400/35" />
-            <div className="shrink-0 px-2 pb-0 pt-1.5 text-center">
+            <div className="mx-auto mt-1 h-0.5 w-5 shrink-0 rounded-full bg-red-400/30" aria-hidden />
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/[0.07] px-2.5 pb-1.5 pt-1">
               <h3 id="wechsel-sheet-title" className="text-sm font-black tracking-tight text-white">
                 Wechsel
               </h3>
-              {wechselSheetPickLabels.outLabel || wechselSheetPickLabels.inLabel ? (
-                <div className="mt-1 flex flex-wrap justify-center gap-1">
-                  {wechselSheetPickLabels.outLabel ? (
-                    <span className="max-w-[48%] truncate rounded-full border border-red-500/40 bg-red-950/55 px-2 py-0.5 text-[9px] font-bold text-red-100 sm:max-w-[12rem] sm:text-[10px]">
-                      Raus: {wechselSheetPickLabels.outLabel}
-                    </span>
-                  ) : null}
-                  {wechselSheetPickLabels.inLabel ? (
-                    <span className="max-w-[48%] truncate rounded-full border border-emerald-500/40 bg-emerald-950/45 px-2 py-0.5 text-[9px] font-bold text-emerald-100 sm:max-w-[12rem] sm:text-[10px]">
-                      Rein: {wechselSheetPickLabels.inLabel}
-                    </span>
-                  ) : null}
-                </div>
-              ) : null}
+              <div
+                className="inline-flex h-9 min-h-[36px] max-w-[13.5rem] flex-1 items-stretch justify-end overflow-hidden rounded-lg border border-white/12 bg-black/70 p-px sm:max-w-[15rem]"
+                role="tablist"
+                aria-label="Ansicht"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={subSheetView === 'list'}
+                  onClick={() => setSubSheetView('list')}
+                  className={[
+                    'min-h-[36px] flex-1 px-2.5 text-center text-[11px] font-bold leading-none transition-colors sm:text-xs',
+                    subSheetView === 'list'
+                      ? 'rounded-md bg-red-600 text-white shadow-[0_0_8px_rgba(220,38,38,0.25)]'
+                      : 'rounded-md text-white/45 hover:bg-white/[0.06] hover:text-white/80',
+                  ].join(' ')}
+                >
+                  Liste
+                </button>
+                <span className="w-px shrink-0 self-stretch bg-white/12" aria-hidden />
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={subSheetView === 'pitch'}
+                  onClick={() => setSubSheetView('pitch')}
+                  className={[
+                    'min-h-[36px] flex-1 px-2.5 text-center text-[11px] font-bold leading-none transition-colors sm:text-xs',
+                    subSheetView === 'pitch'
+                      ? 'rounded-md bg-red-600 text-white shadow-[0_0_8px_rgba(220,38,38,0.25)]'
+                      : 'rounded-md text-white/45 hover:bg-white/[0.06] hover:text-white/80',
+                  ].join(' ')}
+                >
+                  Spielfeld
+                </button>
+              </div>
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden px-2 pb-0.5 pt-0.5">
-              <div className="flex w-full shrink-0 justify-center px-0.5">
-                <div className="inline-flex w-full max-w-[17rem] rounded-lg border border-white/10 bg-black/55 p-px shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                  <button
-                    type="button"
-                    onClick={() => setSubSheetView('list')}
-                    className={[
-                      'min-h-[30px] flex-1 rounded-md py-1 text-center text-[10px] font-bold leading-none transition-colors',
-                      subSheetView === 'list'
-                        ? 'bg-red-600/95 text-white shadow-[0_0_10px_rgba(239,68,68,0.22)]'
-                        : 'text-white/50 hover:text-white/85',
-                    ].join(' ')}
-                  >
-                    Liste
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSubSheetView('pitch')}
-                    className={[
-                      'min-h-[30px] flex-1 rounded-md py-1 text-center text-[10px] font-bold leading-none transition-colors',
-                      subSheetView === 'pitch'
-                        ? 'bg-red-600/95 text-white shadow-[0_0_10px_rgba(239,68,68,0.22)]'
-                        : 'text-white/50 hover:text-white/85',
-                    ].join(' ')}
-                  >
-                    Spielfeld
-                  </button>
-                </div>
-              </div>
-
+            <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden px-2 pb-0.5 pt-1">
               {subSheetView === 'list' ? (
                 <div
                   className="grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-hidden sm:gap-2.5"
-                  style={{ minHeight: 'min(44dvh, 15.5rem)' }}
+                  style={{ minHeight: 'min(50dvh, 17.5rem)' }}
                 >
                   <div className="flex min-h-0 flex-1 flex-col gap-0.5">
                     <p className="shrink-0 text-[9px] font-black uppercase tracking-[0.14em] text-red-300/95">Raus · Feld</p>
@@ -3132,7 +3124,7 @@ export const LiveMatchScreen: React.FC = () => {
                               </div>
                             );
                           }}
-                          className="max-h-[min(50dvh,52vh)] sm:max-h-[min(52dvh,34rem)]"
+                          className="max-h-[min(58dvh,58vh)] sm:max-h-[min(60dvh,38rem)]"
                         />
                       </div>
                       <section className="shrink-0 border-t border-white/[0.08] pt-1.5">
