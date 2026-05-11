@@ -71,7 +71,7 @@ function LiveMatchLogoTile({
 }: {
   src: string;
   liveGlow: boolean;
-  size?: 'md' | 'hero' | 'heroLg' | 'schedule' | 'board';
+  size?: 'md' | 'hero' | 'heroLg' | 'schedule' | 'board' | 'boardSm';
 }) {
   const [imgSrc, setImgSrc] = useState(isValidLogoUrl(src) ? src : '/logos/placeholder-shield-a.png');
   useEffect(() => {
@@ -79,25 +79,29 @@ function LiveMatchLogoTile({
   }, [src]);
   const glow = liveGlow ? 'shadow-[0_0_12px_rgba(255,0,0,0.3)]' : '';
   const box =
-    size === 'board'
-      ? 'h-[5.25rem] w-[5.25rem] sm:h-28 sm:w-28'
-      : size === 'schedule'
-        ? 'h-12 w-12'
-        : size === 'heroLg'
+    size === 'boardSm'
+      ? 'h-[4.25rem] w-[4.25rem] sm:h-[4.5rem] sm:w-[4.5rem]'
+      : size === 'board'
+        ? 'h-[5.25rem] w-[5.25rem] sm:h-28 sm:w-28'
+        : size === 'schedule'
+          ? 'h-12 w-12'
+          : size === 'heroLg'
           ? 'h-[6.25rem] w-[6.25rem] sm:h-[6.75rem] sm:w-[6.75rem] md:h-[7.25rem] md:w-[7.25rem]'
-          : size === 'hero'
-            ? 'h-14 w-14'
-            : 'h-14 w-14 sm:h-[3.75rem] sm:w-[3.75rem]';
+            : size === 'hero'
+              ? 'h-14 w-14'
+              : 'h-14 w-14 sm:h-[3.75rem] sm:w-[3.75rem]';
   const imgClass =
-    size === 'board'
-      ? 'h-full w-full max-h-[4.75rem] max-w-[4.75rem] object-contain drop-shadow-[0_0_16px_rgba(255,255,255,0.2)] sm:max-h-[6.5rem] sm:max-w-[6.5rem]'
-      : size === 'schedule'
-        ? 'h-12 w-12 object-contain drop-shadow'
-        : size === 'heroLg'
+    size === 'boardSm'
+      ? 'h-full w-full max-h-[3.85rem] max-w-[3.85rem] object-contain drop-shadow-[0_0_12px_rgba(255,255,255,0.16)] sm:max-h-[4.1rem] sm:max-w-[4.1rem]'
+      : size === 'board'
+        ? 'h-full w-full max-h-[4.75rem] max-w-[4.75rem] object-contain drop-shadow-[0_0_16px_rgba(255,255,255,0.2)] sm:max-h-[6.5rem] sm:max-w-[6.5rem]'
+        : size === 'schedule'
+          ? 'h-12 w-12 object-contain drop-shadow'
+          : size === 'heroLg'
           ? 'max-h-[5rem] max-w-[5rem] object-contain p-0.5 sm:max-h-[5.5rem] sm:max-w-[5.5rem] md:max-h-[6rem] md:max-w-[6rem]'
-          : size === 'hero'
-            ? 'max-h-11 max-w-11 object-contain p-0.5'
-            : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
+            : size === 'hero'
+              ? 'max-h-11 max-w-11 object-contain p-0.5'
+              : 'max-h-11 max-w-11 object-contain p-0.5 sm:max-h-[3rem] sm:max-w-[3rem]';
   return (
     <div className={`flex shrink-0 items-center justify-center ${box} ${glow}`}>
       <img
@@ -121,6 +125,36 @@ function formatClock(totalSec: number): string {
 function formatMinute(ts: number): string {
   const min = Math.floor(ts / 60);
   return `${min}'`;
+}
+
+/** Coach-Vorschläge: Liniengruppe vom Slot (Live) — TW separat. */
+type CoachLineGroup = 'DEF' | 'MID' | 'OFF';
+
+function coachLineGroupFromSlot(slot: FieldSlotId): CoachLineGroup | 'GK' {
+  if (slot === 'GK') return 'GK';
+  if (slot === 'LB' || slot === 'RB') return 'DEF';
+  if (slot === 'ST') return 'OFF';
+  return 'MID';
+}
+
+function coachLineGroupFromRosterPosition(pos: string | null | undefined): CoachLineGroup | 'GK' {
+  const c = String(pos ?? '').trim().toUpperCase();
+  if (!c || c === 'GK') return 'GK';
+  if (['LB', 'RB', 'LV', 'RV'].includes(c)) return 'DEF';
+  if (['ST', 'LS', 'RS'].includes(c)) return 'OFF';
+  return 'MID';
+}
+
+function slotForFieldPlayer(
+  slots: Record<FieldSlotId, string | null>,
+  playerId: string,
+): FieldSlotId | null {
+  const want = String(playerId ?? '').trim();
+  if (!want) return null;
+  for (const s of LIVE_FIELD_SLOT_ORDER) {
+    if (String(slots[s] ?? '').trim() === want) return s;
+  }
+  return null;
 }
 
 const FORMATION_OPTION_LABELS: Record<U11FormationId, string> = {
@@ -827,18 +861,25 @@ export const LiveMatchScreen: React.FC = () => {
   const [subOutPlayerId, setSubOutPlayerId] = useState<string | null>(null);
   const [subInPlayerId, setSubInPlayerId] = useState<string | null>(null);
   const [subSaving, setSubSaving] = useState(false);
+  const [subSuggestionsExpanded, setSubSuggestionsExpanded] = useState(false);
+  const [subRecommendedOutId, setSubRecommendedOutId] = useState<string | null>(null);
+  const [subRecommendedInId, setSubRecommendedInId] = useState<string | null>(null);
   const closeWechselSheet = useCallback(() => {
     setWechselSheetOpen(false);
     setSubSheetView('list');
     setSubOutPlayerId(null);
     setSubInPlayerId(null);
     setSubSaving(false);
+    setSubRecommendedOutId(null);
+    setSubRecommendedInId(null);
   }, []);
   const openWechselSheet = useCallback(() => {
     setSubOutPlayerId(null);
     setSubInPlayerId(null);
     setSubSaving(false);
     setSubSheetView('list');
+    setSubRecommendedOutId(null);
+    setSubRecommendedInId(null);
     setWechselSheetOpen(true);
   }, []);
   /** Wechsel-Sheet mit Vorauswahl — Bestätigung bleibt „Wechsel bestätigen“. */
@@ -851,6 +892,8 @@ export const LiveMatchScreen: React.FC = () => {
     setSubInPlayerId(inId);
     setSubSaving(false);
     setSubSheetView('pitch');
+    setSubRecommendedOutId(outId);
+    setSubRecommendedInId(inId);
     setWechselSheetOpen(true);
   }, []);
   useEffect(() => {
@@ -1289,22 +1332,27 @@ export const LiveMatchScreen: React.FC = () => {
     [liveLineupBasePlayerIds, squadPlayerIds, events, currentMatchSeconds],
   );
 
-  /** MVP: viel Spielzeit raus, wenig rein; max. 3 Paare, kein Spieler doppelt. */
+  /**
+   * Wechsel-Vorschläge: kein TW; bevorzugt gleiche Liniengruppe (DEF/MID/OFF), sonst Fallback.
+   * Max. 3 Paare, kein Spieler doppelt.
+   */
   const substitutionSuggestions = useMemo(() => {
     if (matchIsFinished || matchRow?.status !== 'live') return [];
     const squadSet = new Set(squadPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean));
-    const fieldIds = onFieldIds.map((id) => String(id ?? '').trim()).filter((id) => squadSet.has(id));
-    const benchIds = getBenchPlayers(squadPlayerIds, onFieldIds)
+    const slots = onFieldBySlot as Record<FieldSlotId, string | null>;
+    const gkId = String(slots?.GK ?? '').trim();
+
+    const fieldIdsAll = onFieldIds.map((id) => String(id ?? '').trim()).filter((id) => squadSet.has(id));
+    const fieldIds = fieldIdsAll.filter((id) => id && id !== gkId);
+    const benchIdsRaw = getBenchPlayers(squadPlayerIds, onFieldIds)
       .map((id) => String(id ?? '').trim())
       .filter((id) => squadSet.has(id));
+    const benchIds = benchIdsRaw.filter((id) => coachLineGroupFromRosterPosition(rosterById.get(id)?.position) !== 'GK');
     if (fieldIds.length === 0 || benchIds.length === 0) return [];
 
-    const fieldSorted = [...new Set(fieldIds)].sort(
-      (a, b) => (playtimes[b] ?? 0) - (playtimes[a] ?? 0),
-    );
-    const benchSorted = [...new Set(benchIds)].sort(
-      (a, b) => (playtimes[a] ?? 0) - (playtimes[b] ?? 0),
-    );
+    const pt = (id: string) => Math.max(0, playtimes[id] ?? 0);
+    const fieldSorted = [...new Set(fieldIds)].sort((a, b) => pt(b) - pt(a));
+    const benchSorted = [...new Set(benchIds)].sort((a, b) => pt(a) - pt(b));
 
     const used = new Set<string>();
     const pairs: {
@@ -1316,11 +1364,10 @@ export const LiveMatchScreen: React.FC = () => {
       inSec: number;
     }[] = [];
 
-    for (const oid of fieldSorted) {
-      if (pairs.length >= 3) break;
-      if (used.has(oid)) continue;
-      const inId = benchSorted.find((bid) => !used.has(bid));
-      if (!inId) break;
+    const tryPair = (oid: string, matcher: (bid: string) => boolean): boolean => {
+      if (used.has(oid)) return false;
+      const inId = benchSorted.find((bid) => !used.has(bid) && matcher(bid));
+      if (!inId) return false;
       used.add(oid);
       used.add(inId);
       pairs.push({
@@ -1328,12 +1375,33 @@ export const LiveMatchScreen: React.FC = () => {
         inId,
         outName: (rosterById.get(oid)?.name ?? '?').trim() || '?',
         inName: (rosterById.get(inId)?.name ?? '?').trim() || '?',
-        outSec: Math.max(0, playtimes[oid] ?? 0),
-        inSec: Math.max(0, playtimes[inId] ?? 0),
+        outSec: pt(oid),
+        inSec: pt(inId),
       });
+      return true;
+    };
+
+    for (const oid of fieldSorted) {
+      if (pairs.length >= 3) break;
+      const slot = slotForFieldPlayer(slots, oid);
+      if (!slot || slot === 'GK') continue;
+      const gOut = coachLineGroupFromSlot(slot);
+      if (gOut === 'GK') continue;
+      tryPair(oid, (bid) => coachLineGroupFromRosterPosition(rosterById.get(bid)?.position) === gOut);
+    }
+    for (const oid of fieldSorted) {
+      if (pairs.length >= 3) break;
+      const slot = slotForFieldPlayer(slots, oid);
+      if (!slot || slot === 'GK') continue;
+      tryPair(oid, () => true);
     }
     return pairs;
-  }, [matchIsFinished, matchRow?.status, squadPlayerIds, onFieldIds, playtimes, rosterById]);
+  }, [matchIsFinished, matchRow?.status, squadPlayerIds, onFieldIds, onFieldBySlot, playtimes, rosterById]);
+
+  const subSuggestionSig = substitutionSuggestions.map((s) => `${s.outId}:${s.inId}`).join('|');
+  useEffect(() => {
+    setSubSuggestionsExpanded(false);
+  }, [subSuggestionSig]);
 
   const squadRosterForPlaytimeList = useMemo(() => {
     const list = roster.filter((p) => squadPlayerIds.includes(p.id));
@@ -2158,7 +2226,9 @@ export const LiveMatchScreen: React.FC = () => {
   const mbPausePrimary = `${mbRowBtn} rounded-xl border border-emerald-800/55 bg-gradient-to-b from-emerald-950/92 to-black/85 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_16px_rgba(6,78,59,0.35)] hover:border-emerald-600/45 hover:from-emerald-900/88`;
   const mbEnd = `${mbRowBtn} rounded-xl border border-red-500/50 bg-gradient-to-b from-red-600/75 to-red-950/88 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_24px_rgba(220,38,38,0.38)] hover:from-red-500/78 hover:shadow-[0_0_32px_rgba(220,38,38,0.45)]`;
   const mbWechsel = `${mbRowBtn} w-full rounded-xl border border-white/22 bg-zinc-950/85 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/30 hover:bg-zinc-900/90`;
-  const mbSpielEnde = `${mbRowBtn} w-full rounded-xl border-2 border-amber-400/65 bg-black/90 text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_18px_rgba(245,158,11,0.12)] hover:border-amber-300/75 hover:bg-black enabled:hover:shadow-[0_0_22px_rgba(245,158,11,0.22)]`;
+  /** Während Live: zurückhaltend (disabled). Nach Ende: klarer Gold-Abschluss. */
+  const mbSpielEndeWhileLive = `${mbRowBtn} w-full rounded-xl border border-amber-500/30 bg-black/80 text-amber-100/70 shadow-none opacity-55`;
+  const mbSpielEndeReady = `${mbRowBtn} w-full rounded-xl border-2 border-amber-400/80 bg-gradient-to-b from-amber-950/50 to-black/92 text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_28px_rgba(234,179,8,0.35),0_0_48px_rgba(245,158,11,0.18)] hover:border-amber-300/90 enabled:hover:shadow-[0_0_36px_rgba(250,204,21,0.38)]`;
 
   const clearHomeGoalLongPress = () => {
     if (homeGoalLpTimerRef.current != null) {
@@ -2365,7 +2435,7 @@ export const LiveMatchScreen: React.FC = () => {
       >
         <div
           className={`${layoutShell} ${
-            spectatorView ? 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0' : 'px-2 pb-1.5 pt-0.5 md:px-4 md:pb-1.5 md:pt-1'
+            spectatorView ? 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0' : 'px-2 pb-1 pt-0 md:px-4 md:pb-1 md:pt-0.5'
           }`}
         >
           {matchboardVisible && (
@@ -2403,14 +2473,14 @@ export const LiveMatchScreen: React.FC = () => {
                     'radial-gradient(ellipse 92% 52% at 50% -8%, rgba(220,38,38,0.12), transparent 58%)',
                 }}
               />
-              <div className="relative z-[1] w-full px-[15px] py-2.5 pb-1.5">
+              <div className="relative z-[1] w-full px-3 py-1.5 pb-1 sm:px-[13px]">
                 {matchTypeDisplay ? (
                   <div className="flex justify-center">
-                    <p className="text-lg font-semibold text-white sm:text-xl">{matchTypeDisplay}</p>
+                    <p className="text-base font-semibold text-white sm:text-lg">{matchTypeDisplay}</p>
                   </div>
                 ) : null}
 
-                <div className={`flex justify-center ${matchTypeDisplay ? 'mt-2' : 'mt-1.5'}`}>
+                <div className={`flex justify-center ${matchTypeDisplay ? 'mt-1.5' : 'mt-1'}`}>
                   <div className={liveBadgeClassName}>
                     {hasClockStarted && !matchIsFinished ? (
                       <span className="text-[10px] leading-none text-red-100 sm:text-[11px]" aria-hidden>
@@ -2422,10 +2492,10 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
 
                 {/* Logo + Namen unter Logo | Score + Labels + Perioden | Logo + Namen */}
-                <div className={`flex items-start justify-between gap-2 sm:gap-3 ${matchTypeDisplay ? 'mt-3' : 'mt-2.5'}`}>
-                  <div className="flex min-w-0 w-[30%] max-w-[9.5rem] flex-col items-center sm:max-w-[10.5rem]">
-                    <LiveMatchLogoTile src={homeLogoSrc} liveGlow={false} size="board" />
-                    <div className="mt-1.5 w-full px-0.5">
+                <div className={`flex items-start justify-between gap-1.5 sm:gap-2.5 ${matchTypeDisplay ? 'mt-2' : 'mt-1.5'}`}>
+                  <div className="flex min-w-0 w-[30%] max-w-[8.75rem] flex-col items-center sm:max-w-[9.5rem]">
+                    <LiveMatchLogoTile src={homeLogoSrc} liveGlow={false} size="boardSm" />
+                    <div className="mt-1 w-full px-0.5">
                       <MatchboardTeamNameLines parts={homeNameParts} align="center" tight />
                     </div>
                   </div>
@@ -2474,7 +2544,7 @@ export const LiveMatchScreen: React.FC = () => {
                               })();
                             }}
                           >
-                            <span className="text-4xl font-bold tabular-nums leading-none sm:text-5xl">
+                            <span className="text-3xl font-bold tabular-nums leading-none sm:text-4xl">
                               {displayScoreHome}
                             </span>
                           </button>
@@ -2483,7 +2553,7 @@ export const LiveMatchScreen: React.FC = () => {
                           </span>
                         </div>
                         <span
-                          className="shrink-0 select-none pt-1 text-3xl font-bold leading-none text-white/90 tabular-nums sm:pt-1.5 sm:text-4xl"
+                          className="shrink-0 select-none pt-0.5 text-2xl font-bold leading-none text-white/90 tabular-nums sm:pt-1 sm:text-3xl"
                           aria-hidden
                         >
                           :
@@ -2529,7 +2599,7 @@ export const LiveMatchScreen: React.FC = () => {
                               setAwayGoalModalOpen(true);
                             }}
                           >
-                            <span className="text-4xl font-bold tabular-nums leading-none sm:text-5xl">
+                            <span className="text-3xl font-bold tabular-nums leading-none sm:text-4xl">
                               {displayScoreAway}
                             </span>
                           </button>
@@ -2562,14 +2632,14 @@ export const LiveMatchScreen: React.FC = () => {
                         Spiel ist pausiert – Tore erst nach Weiter möglich.
                       </p>
                     ) : null}
-                    <p className="mt-0.5 w-full text-center font-mono text-[10px] font-medium tabular-nums leading-none text-white/88 sm:text-[11px]">
+                    <p className="mt-0.5 w-full text-center font-mono text-[9px] font-medium tabular-nums leading-none text-white/80 sm:text-[10px]">
                       <span className="inline-block whitespace-nowrap tracking-[-0.01em]">{periodScoreLine}</span>
                     </p>
                   </div>
 
-                  <div className="flex min-w-0 w-[30%] max-w-[9.5rem] flex-col items-center sm:max-w-[10.5rem]">
-                    <LiveMatchLogoTile src={awayLogoSrc} liveGlow={false} size="board" />
-                    <div className="mt-1.5 w-full px-0.5">
+                  <div className="flex min-w-0 w-[30%] max-w-[8.75rem] flex-col items-center sm:max-w-[9.5rem]">
+                    <LiveMatchLogoTile src={awayLogoSrc} liveGlow={false} size="boardSm" />
+                    <div className="mt-1 w-full px-0.5">
                       <MatchboardTeamNameLines parts={awayNameParts} align="center" tight />
                     </div>
                   </div>
@@ -2577,7 +2647,7 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
 
               {!spectatorView && canControlLiveMatch ? (
-                <div className="relative z-[1] mt-0 space-y-1 border-t border-red-500/35 bg-black/55 px-[15px] py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-12px_32px_rgba(220,38,38,0.12)] backdrop-blur-md">
+                <div className="relative z-[1] mt-0 space-y-1 border-t border-red-500/35 bg-black/55 px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-12px_32px_rgba(220,38,38,0.12)] backdrop-blur-md">
                   {renderTrainerClockActionRow('gap-1.5')}
 
                   {!matchIsFinished ? (
@@ -2597,7 +2667,9 @@ export const LiveMatchScreen: React.FC = () => {
                     onClick={() => {
                       if (matchIsFinished && !calendarFinalized) setSpielAbschlussOpen(true);
                     }}
-                    className={`${mbSpielEnde} gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[11px] disabled:opacity-35`}
+                    className={`${
+                      matchIsFinished && !calendarFinalized ? mbSpielEndeReady : mbSpielEndeWhileLive
+                    } gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[11px] disabled:opacity-35`}
                   >
                     <span aria-hidden>🏆</span>
                     {calendarFinalized ? 'Termin abgeschlossen' : 'Spiel abschließen'}
@@ -2727,8 +2799,11 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                   </div>
                   {isPaused ? (
-                    <p className="mt-2 rounded-lg border border-amber-500/35 bg-amber-950/25 px-2.5 py-2 text-center text-[11px] font-semibold leading-snug text-amber-100/95">
-                      Pause läuft – guter Moment für Wechsel.
+                    <p className="mt-1.5 rounded-lg border border-amber-400/25 bg-gradient-to-br from-amber-950/40 via-yellow-950/20 to-black/70 px-2.5 py-1.5 text-center text-[11px] font-semibold leading-snug text-amber-50/95 shadow-[0_0_20px_rgba(251,191,36,0.12),inset_0_1px_0_rgba(255,255,255,0.06)]">
+                      <span aria-hidden className="mr-1">
+                        ☕
+                      </span>
+                      Pause läuft – Zeit für Wechsel & Anpassungen.
                     </p>
                   ) : null}
                 </section>
@@ -2976,68 +3051,84 @@ export const LiveMatchScreen: React.FC = () => {
         )}
 
         {mainTab === 'time' && (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {isPaused ? (
-              <p className="rounded-xl border border-amber-500/40 bg-amber-950/30 px-3 py-2.5 text-center text-sm font-semibold leading-snug text-amber-50 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
-                Pause läuft – guter Moment für Wechsel.
+              <p className="rounded-lg border border-amber-400/25 bg-gradient-to-br from-amber-950/45 via-yellow-950/22 to-black/75 px-2.5 py-2 text-center text-[12px] font-semibold leading-snug text-amber-50/95 shadow-[0_0_22px_rgba(251,191,36,0.14),inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <span aria-hidden className="mr-1">
+                  ☕
+                </span>
+                Pause läuft – Zeit für Wechsel & Anpassungen.
               </p>
             ) : null}
             <section
               className={[
-                'rounded-xl p-0.5',
-                isPaused ? 'ring-2 ring-amber-400/45 ring-offset-2 ring-offset-black' : '',
+                'rounded-lg p-0.5',
+                isPaused ? 'ring-2 ring-amber-300/35 ring-offset-1 ring-offset-black shadow-[0_0_24px_rgba(251,191,36,0.12)]' : '',
               ].join(' ')}
             >
-              <h2 className="mb-1 px-0.5 text-xs font-bold uppercase tracking-[0.18em] text-gray-300">
+              <h2 className="mb-0.5 px-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-gray-400">
                 Wechsel-Vorschläge
               </h2>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {matchRow?.status !== 'live' && !matchIsFinished ? (
-                  <p className="rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-center text-sm text-white/55">
+                  <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center text-[12px] text-white/55">
                     Wechselvorschläge sind ab Anpfiff verfügbar.
                   </p>
                 ) : substitutionSuggestions.length > 0 ? (
-                  substitutionSuggestions.map((sug) => (
-                    <div
-                      key={`sub-sug-${sug.outId}-${sug.inId}`}
-                      className="rounded-xl border border-white/12 bg-zinc-950/90 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
-                    >
-                      <div className="flex flex-wrap items-baseline justify-between gap-2 gap-y-1">
-                        <p className="text-[13px] font-bold text-white">
-                          <span className="text-white/55">Raus:</span> {sug.outName}{' '}
-                          <span className="font-mono text-xs font-black tabular-nums text-red-400/95">
-                            {formatClock(sug.outSec)}
-                          </span>
-                        </p>
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2 gap-y-1">
-                        <p className="text-[13px] font-bold text-white">
-                          <span className="text-white/55">Rein:</span> {sug.inName}{' '}
-                          <span className="font-mono text-xs font-black tabular-nums text-emerald-400/95">
-                            {formatClock(sug.inSec)}
-                          </span>
-                        </p>
-                      </div>
-                      <p className="mt-1.5 text-[11px] leading-snug text-white/45">Mehr Spielzeit für Bankspieler</p>
+                  <>
+                    {(subSuggestionsExpanded ? substitutionSuggestions : substitutionSuggestions.slice(0, 2)).map(
+                      (sug) => (
+                        <div
+                          key={`sub-sug-${sug.outId}-${sug.inId}`}
+                          className="rounded-lg border border-white/10 bg-zinc-950/90 px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                        >
+                          <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
+                            <p className="min-w-0 text-[12px] font-bold leading-tight text-white">
+                              <span className="font-normal text-white/50">Raus</span> {sug.outName}
+                              <span className="ml-1 font-mono text-[11px] font-semibold tabular-nums text-red-400/90">
+                                {formatClock(sug.outSec)}
+                              </span>
+                            </p>
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
+                            <p className="min-w-0 text-[12px] font-bold leading-tight text-white">
+                              <span className="font-normal text-white/50">Rein</span> {sug.inName}
+                              <span className="ml-1 font-mono text-[11px] font-semibold tabular-nums text-emerald-400/90">
+                                {formatClock(sug.inSec)}
+                              </span>
+                            </p>
+                          </div>
+                          <p className="mt-0.5 text-[10px] leading-snug text-white/40">Mehr Spielzeit für Bankspieler</p>
+                          <button
+                            type="button"
+                            disabled={matchIsFinished}
+                            onClick={() => openWechselSheetWithPreset(sug.outId, sug.inId)}
+                            className="mt-1 flex h-10 w-full items-center justify-center rounded-md border border-emerald-500/40 bg-emerald-950/35 text-[11px] font-bold text-emerald-100/95 transition-colors hover:border-emerald-400/50 hover:bg-emerald-900/30 disabled:opacity-35"
+                          >
+                            Vorschlag übernehmen
+                          </button>
+                        </div>
+                      ),
+                    )}
+                    {substitutionSuggestions.length > 2 ? (
                       <button
                         type="button"
-                        disabled={matchIsFinished}
-                        onClick={() => openWechselSheetWithPreset(sug.outId, sug.inId)}
-                        className="mt-2 flex min-h-[40px] w-full items-center justify-center rounded-lg border border-emerald-500/45 bg-emerald-950/40 text-xs font-bold text-emerald-100 transition-colors hover:border-emerald-400/55 hover:bg-emerald-900/35 disabled:opacity-35"
+                        onClick={() => setSubSuggestionsExpanded((v) => !v)}
+                        className="flex h-9 w-full items-center justify-center rounded-md border border-white/10 bg-transparent text-[11px] font-semibold text-white/50 transition-colors hover:border-amber-400/25 hover:bg-white/[0.04] hover:text-amber-100/80"
                       >
-                        Vorschlag übernehmen
+                        {subSuggestionsExpanded ? 'Weniger anzeigen' : 'Weitere Vorschläge anzeigen'}
                       </button>
-                    </div>
-                  ))
+                    ) : null}
+                  </>
                 ) : (
-                  <p className="rounded-xl border border-white/10 bg-black/40 px-3 py-3 text-center text-sm text-white/55">
+                  <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center text-[12px] text-white/55">
                     Alle Spieler sind aktuell ausgeglichen.
                   </p>
                 )}
               </div>
             </section>
-            <p className="mb-2 text-sm text-gray-400">Effektive Spielzeit (ohne Pausen)</p>
-            <ul className="space-y-3">
+            <p className="mb-1 text-[13px] text-gray-400">Effektive Spielzeit (ohne Pausen)</p>
+            <ul className="space-y-1.5">
               {squadRosterForPlaytimeList.map((p) => {
                 const sec = playtimes[p.id] ?? 0;
                 const st = getPlaytimeStatus(sec, currentMatchSeconds, squadPlayerIds.length);
@@ -3047,30 +3138,37 @@ export const LiveMatchScreen: React.FC = () => {
                   <li
                     key={p.id}
                     className={[
-                      'flex min-h-[52px] items-center gap-2 rounded-xl border px-3 py-2.5',
+                      'flex min-h-[46px] items-center gap-2 rounded-lg border px-2 py-1.5',
                       onF
                         ? lowOnField
-                          ? 'border-emerald-500/55 bg-emerald-950/25 ring-1 ring-amber-500/35'
-                          : 'border-emerald-600/45 bg-emerald-950/15'
-                        : 'border-zinc-600/50 bg-zinc-950/95',
+                          ? 'border-emerald-500/50 bg-emerald-950/20 ring-1 ring-amber-500/30'
+                          : 'border-emerald-600/40 bg-emerald-950/12'
+                        : 'border-zinc-700/40 bg-zinc-950/90',
                     ].join(' ')}
                   >
-                    <span className={`h-3.5 w-3.5 shrink-0 rounded-full ${ampelDot(st)}`} />
+                    <span className="flex shrink-0 items-center gap-1.5" aria-hidden>
+                      {onF ? (
+                        <span className="h-2 w-2 rounded-full bg-emerald-500/90 shadow-[0_0_6px_rgba(16,185,129,0.45)]" />
+                      ) : (
+                        <span className="h-2 w-2 rounded-full bg-zinc-500/80" />
+                      )}
+                      <span className={`h-2.5 w-2.5 rounded-full ${ampelDot(st)}`} />
+                    </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[15px] font-semibold text-white">
+                      <p className="truncate text-[14px] font-semibold text-white">
                         {p.number || '–'} · {p.name}
                       </p>
                       <p
-                        className={`mt-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
-                          onF ? 'text-emerald-400' : 'text-red-200/45'
+                        className={`mt-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] ${
+                          onF ? 'text-emerald-300' : 'text-zinc-500'
                         }`}
                       >
                         {onF ? 'Am Feld' : 'Auf der Bank'}
                       </p>
                     </div>
                     <span
-                      className={`shrink-0 font-mono text-2xl font-black tabular-nums tracking-tight ${
-                        onF ? 'text-red-500' : 'text-zinc-400'
+                      className={`shrink-0 font-mono text-base font-semibold tabular-nums tracking-tight ${
+                        onF ? 'text-red-400/90' : 'text-zinc-500'
                       }`}
                     >
                       {formatClock(sec)}
@@ -3256,6 +3354,7 @@ export const LiveMatchScreen: React.FC = () => {
                             const posLabel = getPositionLabel(row.position) || slotBadge;
                             const num = rosterP?.number ?? row?.jersey_number ?? null;
                             const selected = subOutPlayerId === pid;
+                            const recOut = Boolean(subRecommendedOutId && subRecommendedOutId === pid && !selected);
                             const isGk = posLabel === 'TW' || slotBadge === 'TW';
                             return (
                               <button
@@ -3267,7 +3366,9 @@ export const LiveMatchScreen: React.FC = () => {
                                   'bg-gradient-to-br from-red-950/40 via-black/75 to-black/92',
                                   selected
                                     ? 'border-red-500 shadow-[0_0_18px_rgba(239,68,68,0.38)] ring-2 ring-red-500/50'
-                                    : 'border-white/[0.1] hover:border-red-500/35',
+                                    : recOut
+                                      ? 'border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.2)] ring-1 ring-emerald-500/35'
+                                      : 'border-white/[0.1] hover:border-red-500/35',
                                 ].join(' ')}
                               >
                                 <div className="pointer-events-none shrink-0">
@@ -3315,6 +3416,7 @@ export const LiveMatchScreen: React.FC = () => {
                             const posLabel = getPositionLabel(row.position) || '–';
                             const num = rosterP?.number ?? row?.jersey_number ?? null;
                             const selected = subInPlayerId === pid;
+                            const recIn = Boolean(subRecommendedInId && subRecommendedInId === pid && !selected);
                             const isGk = posLabel === 'TW';
                             return (
                               <button
@@ -3326,7 +3428,9 @@ export const LiveMatchScreen: React.FC = () => {
                                   'bg-gradient-to-br from-emerald-950/25 via-black/75 to-black/92',
                                   selected
                                     ? 'border-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.38)] ring-2 ring-emerald-400/55'
-                                    : 'border-white/[0.1] hover:border-emerald-500/32',
+                                    : recIn
+                                      ? 'border-emerald-400/45 shadow-[0_0_12px_rgba(16,185,129,0.22)] ring-1 ring-emerald-400/40'
+                                      : 'border-white/[0.1] hover:border-emerald-500/32',
                                 ].join(' ')}
                               >
                                 <div className="pointer-events-none shrink-0">
@@ -3389,13 +3493,19 @@ export const LiveMatchScreen: React.FC = () => {
                               return s === '—' || !s ? 'Spieler' : s;
                             })();
                             const isOutPick = String(subOutPlayerId ?? '').trim() === String(playerId).trim();
+                            const recOutPitch =
+                              Boolean(subRecommendedOutId) &&
+                              String(subRecommendedOutId ?? '').trim() === String(playerId).trim() &&
+                              !isOutPick;
                             return (
                               <div
                                 className={[
                                   'pointer-events-none relative flex w-full max-w-[min(22vw,5.25rem)] flex-col items-center rounded-lg transition-shadow duration-200',
                                   isOutPick
                                     ? 'shadow-[0_0_22px_rgba(239,68,68,0.55),0_0_8px_rgba(239,68,68,0.35)]'
-                                    : '',
+                                    : recOutPitch
+                                      ? 'shadow-[0_0_14px_rgba(16,185,129,0.35)] ring-1 ring-emerald-400/45 rounded-lg'
+                                      : '',
                                 ].join(' ')}
                               >
                                 <LeibchenJersey
@@ -3438,6 +3548,10 @@ export const LiveMatchScreen: React.FC = () => {
                                 const posLabel = getPositionLabel(row.position) || '–';
                                 const num = row.jersey_number ?? row.number ?? '–';
                                 const selected = subInPlayerId === pid;
+                                const recInPitch =
+                                  Boolean(subRecommendedInId) &&
+                                  String(subRecommendedInId ?? '').trim() === pid &&
+                                  !selected;
                                 return (
                                   <button
                                     key={`sub-pitch-bench-${row.id || idx}`}
@@ -3448,7 +3562,9 @@ export const LiveMatchScreen: React.FC = () => {
                                       'flex w-[4.65rem] shrink-0 flex-col items-center rounded-xl border bg-black/35 px-1 py-1 transition-all active:scale-[0.98] sm:w-[5.1rem]',
                                       selected
                                         ? 'border-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.48)] ring-2 ring-emerald-400/65'
-                                        : 'border-white/14 hover:border-emerald-500/38',
+                                        : recInPitch
+                                          ? 'border-emerald-400/50 shadow-[0_0_12px_rgba(16,185,129,0.28)] ring-1 ring-emerald-400/45'
+                                          : 'border-white/14 hover:border-emerald-500/38',
                                     ].join(' ')}
                                   >
                                     <LeibchenJersey
