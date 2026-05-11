@@ -2773,12 +2773,12 @@ export const LiveMatchScreen: React.FC = () => {
               {wechselSheetPickLabels.outLabel || wechselSheetPickLabels.inLabel ? (
                 <div className="mt-1 flex flex-wrap justify-center gap-1">
                   {wechselSheetPickLabels.outLabel ? (
-                    <span className="max-w-[48%] truncate rounded-full border border-red-500/40 bg-red-950/55 px-1.5 py-px text-[8px] font-bold text-red-100 sm:max-w-[11rem]">
+                    <span className="max-w-[48%] truncate rounded-full border border-red-500/40 bg-red-950/55 px-2 py-0.5 text-[9px] font-bold text-red-100 sm:max-w-[12rem] sm:text-[10px]">
                       Raus: {wechselSheetPickLabels.outLabel}
                     </span>
                   ) : null}
                   {wechselSheetPickLabels.inLabel ? (
-                    <span className="max-w-[48%] truncate rounded-full border border-emerald-500/40 bg-emerald-950/45 px-1.5 py-px text-[8px] font-bold text-emerald-100 sm:max-w-[11rem]">
+                    <span className="max-w-[48%] truncate rounded-full border border-emerald-500/40 bg-emerald-950/45 px-2 py-0.5 text-[9px] font-bold text-emerald-100 sm:max-w-[12rem] sm:text-[10px]">
                       Rein: {wechselSheetPickLabels.inLabel}
                     </span>
                   ) : null}
@@ -2818,8 +2818,8 @@ export const LiveMatchScreen: React.FC = () => {
 
               {subSheetView === 'list' ? (
                 <div
-                  className="grid min-h-0 flex-1 grid-cols-2 gap-1.5 overflow-hidden sm:gap-2"
-                  style={{ minHeight: 'min(42dvh, 12rem)' }}
+                  className="grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-hidden sm:gap-2.5"
+                  style={{ minHeight: 'min(44dvh, 15.5rem)' }}
                 >
                   <div className="flex min-h-0 flex-1 flex-col gap-0.5">
                     <p className="shrink-0 text-[9px] font-black uppercase tracking-[0.14em] text-red-300/95">Raus · Feld</p>
@@ -2829,7 +2829,7 @@ export const LiveMatchScreen: React.FC = () => {
                       </p>
                     ) : (
                       <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1.5">
                           {substitutionFieldRows.map((row) => {
                             const slot = row?.slot;
                             const pid =
@@ -2837,40 +2837,44 @@ export const LiveMatchScreen: React.FC = () => {
                                 ? String(onFieldBySlot[slot] ?? '').trim()
                                 : '';
                             if (!pid) return null;
-                            const name = String(row?.display_name ?? 'Spieler').trim() || 'Spieler';
+                            const rosterP = rosterById.get(pid) ?? null;
+                            const name = String(row?.display_name ?? rosterP?.name ?? 'Spieler').trim() || 'Spieler';
                             const shortName = mobileLineupName(name);
                             const slotBadge = String(row?.rightLabel ?? '–').trim() || '—';
-                            const num = row?.jersey_number ?? null;
+                            const posLabel = getPositionLabel(row.position) || slotBadge;
+                            const num = rosterP?.number ?? row?.jersey_number ?? null;
                             const selected = subOutPlayerId === pid;
-                            const initials = name
-                              .split(/\s+/)
-                              .filter(Boolean)
-                              .slice(0, 2)
-                              .map((p) => p[0])
-                              .join('')
-                              .toUpperCase();
+                            const isGk = posLabel === 'TW' || slotBadge === 'TW';
                             return (
                               <button
                                 key={`sub-out-${slot}-${pid}`}
                                 type="button"
                                 onClick={() => setSubOutPlayerId(pid)}
                                 className={[
-                                  'flex h-[56px] min-h-[52px] max-h-[60px] shrink-0 items-center gap-1.5 rounded-lg border px-1.5 py-1 text-left transition-all active:scale-[0.99]',
-                                  'bg-gradient-to-br from-red-950/35 via-black/80 to-black/90',
+                                  'flex h-[80px] min-h-[72px] max-h-[84px] shrink-0 items-center gap-2 rounded-xl border px-2 py-1.5 text-left transition-all active:scale-[0.99]',
+                                  'bg-gradient-to-br from-red-950/40 via-black/75 to-black/92',
                                   selected
-                                    ? 'border-red-500 shadow-[0_0_14px_rgba(239,68,68,0.35)] ring-1 ring-red-500/55'
-                                    : 'border-white/[0.08] hover:border-red-500/30',
+                                    ? 'border-red-500 shadow-[0_0_18px_rgba(239,68,68,0.38)] ring-2 ring-red-500/50'
+                                    : 'border-white/[0.1] hover:border-red-500/35',
                                 ].join(' ')}
                               >
-                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-red-500/25 bg-zinc-900 text-[8px] font-black text-white/90">
-                                  {initials || '·'}
+                                <div className="pointer-events-none shrink-0">
+                                  <LeibchenJersey
+                                    lastName={shortName}
+                                    number={num ?? '–'}
+                                    position={posLabel}
+                                    variant={isGk ? 'goalkeeper' : 'field'}
+                                    size="compact"
+                                    pitchStyleBack
+                                    className="!h-[3.45rem] !w-[2.72rem] sm:!h-[3.85rem] sm:!w-[3.05rem]"
+                                  />
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate text-[11px] font-bold leading-tight text-white">
-                                    <span className="tabular-nums text-red-200/90">{num != null ? `${num} ` : '— '}</span>
+                                <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+                                  <p className="truncate text-[14px] font-bold leading-snug text-white sm:text-[15px]">
+                                    <span className="tabular-nums text-red-200">{num != null ? `${num} · ` : ''}</span>
                                     {shortName}
                                   </p>
-                                  <span className="mt-0.5 inline-flex rounded border border-red-500/35 bg-red-950/45 px-1 py-px text-[6px] font-bold uppercase tracking-wide text-red-100/95">
+                                  <span className="inline-flex w-fit rounded-md border border-red-500/35 bg-red-950/50 px-1.5 py-px text-[7px] font-bold uppercase tracking-wide text-red-100/95">
                                     {slotBadge}
                                   </span>
                                 </div>
@@ -2890,43 +2894,47 @@ export const LiveMatchScreen: React.FC = () => {
                       </p>
                     ) : (
                       <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1.5">
                           {substitutionBenchRows.map((row) => {
                             const pid = String(row?.id ?? '').trim();
                             if (!pid) return null;
-                            const name = String(row?.display_name ?? 'Spieler').trim() || 'Spieler';
+                            const rosterP = rosterById.get(pid) ?? null;
+                            const name = String(row?.display_name ?? rosterP?.name ?? 'Spieler').trim() || 'Spieler';
                             const shortName = mobileLineupName(name);
-                            const num = row?.jersey_number ?? null;
+                            const posLabel = getPositionLabel(row.position) || '–';
+                            const num = rosterP?.number ?? row?.jersey_number ?? null;
                             const selected = subInPlayerId === pid;
-                            const initials = name
-                              .split(/\s+/)
-                              .filter(Boolean)
-                              .slice(0, 2)
-                              .map((p) => p[0])
-                              .join('')
-                              .toUpperCase();
+                            const isGk = posLabel === 'TW';
                             return (
                               <button
                                 key={`sub-in-${pid}`}
                                 type="button"
                                 onClick={() => setSubInPlayerId(pid)}
                                 className={[
-                                  'flex h-[56px] min-h-[52px] max-h-[60px] shrink-0 items-center gap-1.5 rounded-lg border px-1.5 py-1 text-left transition-all active:scale-[0.99]',
-                                  'bg-gradient-to-br from-emerald-950/20 via-black/80 to-black/90',
+                                  'flex h-[80px] min-h-[72px] max-h-[84px] shrink-0 items-center gap-2 rounded-xl border px-2 py-1.5 text-left transition-all active:scale-[0.99]',
+                                  'bg-gradient-to-br from-emerald-950/25 via-black/75 to-black/92',
                                   selected
-                                    ? 'border-emerald-500 shadow-[0_0_14px_rgba(16,185,129,0.32)] ring-1 ring-emerald-500/50'
-                                    : 'border-white/[0.08] hover:border-emerald-500/28',
+                                    ? 'border-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.38)] ring-2 ring-emerald-400/55'
+                                    : 'border-white/[0.1] hover:border-emerald-500/32',
                                 ].join(' ')}
                               >
-                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-emerald-500/25 bg-zinc-900 text-[8px] font-black text-white/90">
-                                  {initials || '·'}
+                                <div className="pointer-events-none shrink-0">
+                                  <LeibchenJersey
+                                    lastName={shortName}
+                                    number={num ?? '–'}
+                                    position={posLabel}
+                                    variant={isGk ? 'goalkeeper' : 'field'}
+                                    size="compact"
+                                    pitchStyleBack
+                                    className="!h-[3.45rem] !w-[2.72rem] sm:!h-[3.85rem] sm:!w-[3.05rem]"
+                                  />
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate text-[11px] font-bold leading-tight text-white">
-                                    <span className="tabular-nums text-emerald-200/90">{num != null ? `${num} ` : '— '}</span>
+                                <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+                                  <p className="truncate text-[14px] font-bold leading-snug text-white sm:text-[15px]">
+                                    <span className="tabular-nums text-emerald-200">{num != null ? `${num} · ` : ''}</span>
                                     {shortName}
                                   </p>
-                                  <span className="mt-0.5 inline-flex rounded border border-amber-500/35 bg-amber-950/40 px-1 py-px text-[6px] font-bold uppercase tracking-wide text-amber-100/95">
+                                  <span className="inline-flex w-fit rounded-md border border-amber-500/35 bg-amber-950/45 px-1.5 py-px text-[7px] font-bold uppercase tracking-wide text-amber-100/95">
                                     Bank
                                   </span>
                                 </div>
@@ -2987,9 +2995,10 @@ export const LiveMatchScreen: React.FC = () => {
                                   variant={isGk ? 'goalkeeper' : 'field'}
                                   size="compact"
                                   pitchStyleBack
+                                  className="sm:!h-[4.1rem] sm:!w-[3.25rem]"
                                 />
                                 <span
-                                  className="mt-0.5 w-full min-w-0 truncate rounded-md bg-black/85 px-1 py-0.5 text-center text-[9px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 sm:text-[10px]"
+                                  className="mt-0.5 w-full min-w-0 truncate rounded-md bg-black/85 px-1 py-0.5 text-center text-[10px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 sm:text-[11px]"
                                   title={rawName}
                                 >
                                   {shortName}
@@ -2997,23 +3006,26 @@ export const LiveMatchScreen: React.FC = () => {
                               </div>
                             );
                           }}
-                          className="max-h-[min(36dvh,42vh)]"
+                          className="max-h-[min(50dvh,52vh)] sm:max-h-[min(52dvh,34rem)]"
                         />
                       </div>
-                      <section className="shrink-0 border-t border-white/[0.06] pt-1.5">
-                        <p className="mb-1 px-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-300/90">Bank</p>
+                      <section className="shrink-0 border-t border-white/[0.08] pt-1.5">
+                        <p className="mb-1 px-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-300/90">
+                          Bank
+                        </p>
                         {substitutionBenchRows.length === 0 ? (
                           <p className="rounded-md border border-emerald-500/15 bg-black/50 px-1.5 py-1 text-[10px] text-white/45">
                             Keine Bankspieler.
                           </p>
                         ) : (
                           <div className="-mx-0.5 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch]">
-                            <div className="flex min-w-min flex-nowrap gap-1.5 px-0.5">
+                            <div className="flex min-w-min flex-nowrap items-start gap-2 px-0.5">
                               {substitutionBenchRows.map((row, idx) => {
                                 const pid = String(row?.id ?? '').trim();
                                 if (!pid) return null;
                                 const name = String(row?.display_name ?? 'Spieler').trim() || 'Spieler';
                                 const shortName = mobileLineupName(name);
+                                const posLabel = getPositionLabel(row.position) || '–';
                                 const num = row.jersey_number ?? row.number ?? '–';
                                 const selected = subInPlayerId === pid;
                                 return (
@@ -3023,14 +3035,24 @@ export const LiveMatchScreen: React.FC = () => {
                                     onClick={() => setSubInPlayerId(pid)}
                                     title={name}
                                     className={[
-                                      'flex min-w-[4.25rem] max-w-[5.5rem] shrink-0 flex-col items-stretch rounded-lg border px-1.5 py-1 text-left transition-all active:scale-[0.98]',
+                                      'flex w-[4.65rem] shrink-0 flex-col items-center rounded-xl border bg-black/35 px-1 py-1 transition-all active:scale-[0.98] sm:w-[5.1rem]',
                                       selected
-                                        ? 'border-emerald-400 bg-emerald-950/35 shadow-[0_0_12px_rgba(16,185,129,0.45)] ring-1 ring-emerald-400/70'
-                                        : 'border-white/12 bg-black/40 hover:border-emerald-500/35',
+                                        ? 'border-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.48)] ring-2 ring-emerald-400/65'
+                                        : 'border-white/14 hover:border-emerald-500/38',
                                     ].join(' ')}
                                   >
-                                    <span className="text-[10px] font-black tabular-nums text-emerald-200/95">{num}</span>
-                                    <span className="line-clamp-2 text-[9px] font-bold leading-snug text-white">{shortName}</span>
+                                    <LeibchenJersey
+                                      lastName={shortName}
+                                      number={num}
+                                      position={posLabel}
+                                      variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
+                                      size="compact"
+                                      pitchStyleBack
+                                      className="!h-[3.25rem] !w-[2.55rem] sm:!h-[3.55rem] sm:!w-[2.8rem]"
+                                    />
+                                    <span className="mt-0.5 w-full min-w-0 truncate text-center text-[10px] font-bold leading-tight text-white sm:text-[11px]">
+                                      {shortName}
+                                    </span>
                                   </button>
                                 );
                               })}
@@ -3075,7 +3097,7 @@ export const LiveMatchScreen: React.FC = () => {
                     : wechselSheetPickLabels.outLabel && wechselSheetPickLabels.inLabel
                       ? (() => {
                           const s = `${wechselSheetPickLabels.outLabel} → ${wechselSheetPickLabels.inLabel}`;
-                          return s.length <= 26 ? s : 'Wechsel bestätigen';
+                          return s.length <= 30 ? s : 'Wechsel bestätigen';
                         })()
                       : 'Wechsel bestätigen'}
                 </button>
