@@ -175,19 +175,46 @@ function mapRowToEventRow(r: EventDbRow): EventRow {
   };
 }
 
-/** Sortierung für Trainerliste: Dabei/Zugesagt → Offen → Abgesagt/Abwesend, danach alphabetisch. */
-function sortPlayersByAttendanceStatus(
-  players: PlayerItem[],
-  getStatus: (playerId: string) => 'yes' | 'no' | null,
-): PlayerItem[] {
-  const rank = (s: 'yes' | 'no' | 'open') => (s === 'yes' ? 0 : s === 'open' ? 1 : 2);
-  const nameOf = (p: PlayerItem) => (p.display_name ?? p.name ?? '').trim().toLocaleLowerCase('de-AT');
+type AttendanceBucket = 'open' | 'yes' | 'no';
+
+function bucketRank(s: AttendanceBucket): number {
+  // Trainer-Flow: Offen zuerst, dann Dabei, dann Abwesend.
+  return s === 'open' ? 0 : s === 'yes' ? 1 : 2;
+}
+
+function statusBucket(getStatus: (playerId: string) => 'yes' | 'no' | null, playerId: string): AttendanceBucket {
+  const s = getStatus(playerId);
+  return s === 'yes' ? 'yes' : s === 'no' ? 'no' : 'open';
+}
+
+function comparePlayersInBucket(a: PlayerItem, b: PlayerItem): number {
+  const an = a.jersey_number != null ? Number(a.jersey_number) : null;
+  const bn = b.jersey_number != null ? Number(b.jersey_number) : null;
+  if (an != null && bn != null && an !== bn) return an - bn;
+  if (an != null && bn == null) return -1;
+  if (an == null && bn != null) return 1;
+
+  const aLast = (a.last_name ?? '').trim().toLocaleLowerCase('de-AT');
+  const bLast = (b.last_name ?? '').trim().toLocaleLowerCase('de-AT');
+  const byLast = aLast.localeCompare(bLast, 'de-AT');
+  if (byLast !== 0) return byLast;
+
+  const aFirst = (a.first_name ?? '').trim().toLocaleLowerCase('de-AT');
+  const bFirst = (b.first_name ?? '').trim().toLocaleLowerCase('de-AT');
+  const byFirst = aFirst.localeCompare(bFirst, 'de-AT');
+  if (byFirst !== 0) return byFirst;
+
+  return (a.display_name ?? '').trim().toLocaleLowerCase('de-AT').localeCompare((b.display_name ?? '').trim().toLocaleLowerCase('de-AT'), 'de-AT');
+}
+
+/** Sortierung RSVP-Spielerliste: OFFEN → DABEI → ABWESEND; innerhalb Gruppe: # aufsteigend, sonst Nachname/Vorname. */
+function sortPlayersByRsvpBuckets(players: PlayerItem[], getStatus: (playerId: string) => 'yes' | 'no' | null): PlayerItem[] {
   return [...players].sort((a, b) => {
-    const sa = getStatus(a.id) ?? 'open';
-    const sb = getStatus(b.id) ?? 'open';
-    const byStatus = rank(sa) - rank(sb);
-    if (byStatus !== 0) return byStatus;
-    return nameOf(a).localeCompare(nameOf(b), 'de-AT');
+    const ba = statusBucket(getStatus, a.id);
+    const bb = statusBucket(getStatus, b.id);
+    const byBucket = bucketRank(ba) - bucketRank(bb);
+    if (byBucket !== 0) return byBucket;
+    return comparePlayersInBucket(a, b);
   });
 }
 
@@ -2662,92 +2689,150 @@ export const EventDetailPage: React.FC = () => {
                     <p className="text-[14px] text-white/70">Keine Spieler im Kader.</p>
                   )}
                   {!playersLoading && !loadingEventAttendance && players.length > 0 && (
-                    <ul className="flex flex-col gap-0 space-y-4">
-                      {sortPlayersByAttendanceStatus(players, getAttendanceStatus).map((player, idx, arr) => {
-                        const status = getAttendanceStatus(player.id);
-                        const groupTitle = status === 'yes' ? 'Dabei' : status === 'no' ? 'Abgesagt' : 'Offen';
-                        const prev = idx > 0 ? getAttendanceStatus(arr[idx - 1].id) : null;
-                        const prevGroupTitle = prev === 'yes' ? 'Dabei' : prev === 'no' ? 'Abgesagt' : 'Offen';
-                        const showGroupHeading = idx === 0 || groupTitle !== prevGroupTitle;
-                        const chipLabel = isTraining
-                          ? status === 'no'
-                            ? 'ABWESEND'
-                            : 'DABEI'
-                          : status === 'yes'
-                            ? 'DABEI'
-                            : status === 'no'
-                              ? 'ABWESEND'
-                              : 'OFFEN';
+                    (() => {
+                      const sorted = sortPlayersByRsvpBuckets(players, getAttendanceStatus);
+                      const openPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'open');
+                      const yesPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'yes');
+                      const noPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'no');
+
+                      const renderGroup = (title: 'OFFEN' | 'DABEI' | 'ABWESEND', group: PlayerItem[]) => {
+                        if (group.length === 0) return null;
                         return (
-                          <li key={player.id} className="flex flex-col gap-2 py-1">
-                            {showGroupHeading ? (
-                              <p className="mb-2 mt-4 text-[12px] font-semibold uppercase tracking-[0.22em] text-white/60">
-                                {groupTitle}
-                              </p>
-                            ) : null}
-                            <MatchPlayerRow
-                              player={player}
-                              status={status ?? "open"}
-                              rightLabel={chipLabel}
-                            />
-                            <div className="mt-2 min-w-0 pl-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                                {isTraining ? (
-                                  <>
-                                    <AppButton
-                                      type="button"
-                                      size="sm"
-                                      variant={!trainingCancellationAllowed || status === 'no' ? 'secondary' : 'danger'}
-                                      disabled={!trainingCancellationAllowed || status === 'no'}
-                                      onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                      className="px-3 py-1.5 text-[13px]"
-                                    >
-                                      {status === 'no' ? 'Abwesend' : !trainingCancellationAllowed ? 'Zu spät' : 'Absagen'}
-                                    </AppButton>
-                                    <AppButton
-                                      type="button"
-                                      size="sm"
-                                      variant="success"
-                                      disabled={status !== 'no'}
-                                      onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                      className="px-3 py-1.5 text-[13px]"
-                                    >
-                                      Dabei
-                                    </AppButton>
-                                  </>
-                                ) : (
-                                  <div className="flex gap-2">
-                                    <AppButton
-                                      type="button"
-                                      size="sm"
-                                      variant="success"
-                                      onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                      className="px-3 py-1.5 text-[13px]"
-                                    >
-                                      Dabei
-                                    </AppButton>
-                                    <AppButton
-                                      type="button"
-                                      size="sm"
-                                      variant="danger"
-                                      onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                      className="px-3 py-1.5 text-[13px]"
-                                    >
-                                      Abwesend
-                                    </AppButton>
-                                  </div>
-                                )}
-                              </div>
-                              {isTraining && status === 'no' && eventAttendanceReasonByPlayerId[(player.id ?? '').toLowerCase()] ? (
-                                <span className="mt-1 block text-[12px] text-white/70">
-                                  Grund: {eventAttendanceReasonByPlayerId[(player.id ?? '').toLowerCase()]}
-                                </span>
-                              ) : null}
-                            </div>
-                          </li>
+                          <div className="flex flex-col gap-2">
+                            <p className="mb-1 mt-4 text-[12px] font-semibold uppercase tracking-[0.22em] text-white/60">
+                              {title}
+                            </p>
+                            <ul className="-mx-2 flex flex-col gap-2 sm:mx-0">
+                              {group.map((player) => {
+                                const status = getAttendanceStatus(player.id);
+                                const bucket = statusBucket(getAttendanceStatus, player.id);
+                                const badge =
+                                  bucket === 'yes' ? 'DABEI' : bucket === 'no' ? 'ABWESEND' : 'OFFEN';
+                                const num = player.jersey_number != null ? `#${player.jersey_number}` : null;
+                                const pos = (player.position ?? '').trim();
+                                const sub = [pos || null, num].filter(Boolean).join(' · ') || '—';
+                                const isOpen = bucket === 'open';
+
+                                return (
+                                  <li key={player.id} className="w-full">
+                                    <div className="w-full rounded-2xl border border-white/12 bg-gradient-to-br from-red-950/25 via-black/55 to-black/80 px-3 py-3 shadow-[0_0_18px_rgba(220,38,38,0.12),inset_0_1px_0_rgba(255,255,255,0.04)]">
+                                      <div className="flex items-start gap-3">
+                                        <div className="shrink-0">
+                                          {player.avatar_url ? (
+                                            <img
+                                              src={player.avatar_url}
+                                              alt=""
+                                              className="h-11 w-11 rounded-xl border border-white/12 object-cover bg-black/30"
+                                            />
+                                          ) : (
+                                            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-black/35 text-[12px] font-bold text-white/70">
+                                              {(player.first_name?.trim()?.[0] ?? '—').toUpperCase()}
+                                              {(player.last_name?.trim()?.[0] ?? '').toUpperCase()}
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-start justify-between gap-2">
+                                            <p className="min-w-0 text-[15px] font-bold leading-snug text-white/95 line-clamp-2">
+                                              {player.display_name}
+                                            </p>
+                                            <span
+                                              className={[
+                                                'shrink-0 rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em]',
+                                                bucket === 'yes'
+                                                  ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200'
+                                                  : bucket === 'no'
+                                                    ? 'border-red-400/40 bg-red-500/15 text-red-200'
+                                                    : 'border-white/18 bg-white/10 text-white/70',
+                                              ].join(' ')}
+                                            >
+                                              {badge}
+                                            </span>
+                                          </div>
+                                          <p className="mt-0.5 text-[12px] font-medium text-white/70">{sub}</p>
+                                        </div>
+                                      </div>
+
+                                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                                        {isTraining ? (
+                                          <>
+                                            <AppButton
+                                              type="button"
+                                              size="sm"
+                                              variant={!trainingCancellationAllowed || bucket === 'no' ? 'secondary' : 'danger'}
+                                              disabled={!trainingCancellationAllowed || bucket === 'no'}
+                                              onClick={() => handleTrainerRsvp(player.id, 'no')}
+                                              className="h-10 px-3 text-[13px]"
+                                            >
+                                              {bucket === 'no' ? 'Abwesend' : !trainingCancellationAllowed ? 'Zu spät' : 'Abwesend'}
+                                            </AppButton>
+                                            <AppButton
+                                              type="button"
+                                              size="sm"
+                                              variant="success"
+                                              disabled={bucket === 'yes'}
+                                              onClick={() => handleTrainerRsvp(player.id, 'yes')}
+                                              className={[
+                                                'h-10 px-3 text-[13px]',
+                                                isOpen ? 'shadow-[0_0_18px_rgba(16,185,129,0.18)]' : 'opacity-80',
+                                              ].join(' ')}
+                                            >
+                                              Dabei
+                                            </AppButton>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <AppButton
+                                              type="button"
+                                              size="sm"
+                                              variant="success"
+                                              onClick={() => handleTrainerRsvp(player.id, 'yes')}
+                                              className={[
+                                                'h-10 px-3 text-[13px]',
+                                                isOpen ? 'shadow-[0_0_18px_rgba(16,185,129,0.18)]' : 'opacity-80',
+                                              ].join(' ')}
+                                            >
+                                              Dabei
+                                            </AppButton>
+                                            <AppButton
+                                              type="button"
+                                              size="sm"
+                                              variant="danger"
+                                              onClick={() => handleTrainerRsvp(player.id, 'no')}
+                                              className={[
+                                                'h-10 px-3 text-[13px]',
+                                                isOpen ? 'shadow-[0_0_18px_rgba(239,68,68,0.16)]' : 'opacity-80',
+                                              ].join(' ')}
+                                            >
+                                              Abwesend
+                                            </AppButton>
+                                          </>
+                                        )}
+                                      </div>
+
+                                      {isTraining && bucket === 'no' && eventAttendanceReasonByPlayerId[(player.id ?? '').toLowerCase()] ? (
+                                        <span className="mt-2 block text-[12px] text-white/70">
+                                          Grund: {eventAttendanceReasonByPlayerId[(player.id ?? '').toLowerCase()]}
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
                         );
-                      })}
-                    </ul>
+                      };
+
+                      return (
+                        <div className="flex flex-col gap-1">
+                          {renderGroup('OFFEN', openPlayers)}
+                          {renderGroup('DABEI', yesPlayers)}
+                          {renderGroup('ABWESEND', noPlayers)}
+                        </div>
+                      );
+                    })()
                   )}
                 </div>
               </div>
