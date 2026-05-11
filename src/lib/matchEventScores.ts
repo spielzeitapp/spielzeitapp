@@ -23,23 +23,25 @@ export function mapUiGoalTypeToMatchEventDbType(uiType: string | null | undefine
 }
 
 /**
- * Abgeschlossener Spielbericht: `match_events.minute` = Anzeigeminute (1:1), keine *60- oder -1-Umrechnung beim Speichern.
- * Legacy-Zeilen: oft (m−1)·60 (durch 60 teilbar, groß) — siehe {@link finishedReportMinuteDisplayFromDb}.
+ * Abgeschlossener Spielbericht: Speichern der echten Spielminute (Ganzzahl, z. B. 16).
  */
-export function finishedReportMinuteDbFromInput(inputMinute: number): number {
-  return Math.max(0, Math.floor(Number(inputMinute) || 0));
+export function finishedReportMinuteDbFromInput(input: unknown): number {
+  const n = Number(input);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.round(n));
 }
 
 /**
- * DB-Rohwert → angezeigte Spielminute. Neu: Ganzzahl ≤130 direkt.
- * Legacy: große Vielfache von 60 → m = ⌊v/60⌋ + 1 (alter (m−1)·60-Speicher).
+ * DB-Rohwert → Anzeige-Spielminute. Neue Zeilen: Wert ≤ 200 ist direkt die Minute.
+ * Alte Live-/Timerwerte (Sekunden oder (Minute−1)·60): typisch > 200 → ⌊n/60⌋ + 1.
  */
-export function finishedReportMinuteDisplayFromDb(raw: number | null | undefined): number {
-  const v = Math.max(0, Number(raw) || 0);
-  if (v === 0) return 0;
-  if (v <= 130) return v;
-  if (v % 60 === 0) return Math.floor(v / 60) + 1;
-  return v;
+export function finishedReportMinuteDisplayFromDb(rawMinute: number | null | undefined): number | null {
+  const n = Number(rawMinute);
+  if (!Number.isFinite(n)) return null;
+
+  if (n > 200) return Math.max(0, Math.floor(n / 60) + 1);
+
+  return Math.max(0, Math.round(n));
 }
 
 export function friendlyMatchEventWriteError(raw: string | null | undefined): string {

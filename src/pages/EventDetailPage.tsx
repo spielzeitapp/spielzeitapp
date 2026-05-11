@@ -455,7 +455,7 @@ export const EventDetailPage: React.FC = () => {
       const engineLike = matchEvents
         .map((r) => {
           const raw = Math.max(0, Number(r.minute ?? 0) || 0);
-          const ts = isFinishedMatchEvent ? finishedReportMinuteDisplayFromDb(raw) : raw;
+          const ts = isFinishedMatchEvent ? (finishedReportMinuteDisplayFromDb(r.minute) ?? 0) : raw;
           const type = String(r.type ?? '').trim();
           if (type === 'kickoff') return { id: r.id, type: 'start' as const, timestamp: ts, playerId: undefined };
           if (type === 'final_whistle') return { id: r.id, type: 'end' as const, timestamp: ts, playerId: undefined };
@@ -1026,7 +1026,7 @@ export const EventDetailPage: React.FC = () => {
     );
 
     const finishedMinuteLabel = (raw: number | null) => {
-      const m = finishedReportMinuteDisplayFromDb(raw);
+      const m = finishedReportMinuteDisplayFromDb(raw) ?? 0;
       return `${m}'`;
     };
 
@@ -1107,7 +1107,7 @@ export const EventDetailPage: React.FC = () => {
         const g = normalizeMatchEventGoalType(r.type);
         const teamLabel = g === 'goal_away' ? awayTeamName : homeTeamName;
         const n = playerName(r.player_id) ?? '?';
-        const m = finishedReportMinuteDisplayFromDb(Number(r.minute ?? 0) || 0);
+        const m = finishedReportMinuteDisplayFromDb(r.minute) ?? 0;
         return { name: n, teamLabel, minute: `${m}'` };
       });
     const ownGoalScorerEntries = goalScorerDisplayRows;
@@ -1168,8 +1168,8 @@ export const EventDetailPage: React.FC = () => {
       let a = 0;
       const map = new Map<string, string>();
       const ordered = [...timelineEvents].sort((x, y) => {
-        const mx = finishedReportMinuteDisplayFromDb(Number(x.minute ?? 0) || 0);
-        const my = finishedReportMinuteDisplayFromDb(Number(y.minute ?? 0) || 0);
+        const mx = finishedReportMinuteDisplayFromDb(x.minute) ?? 0;
+        const my = finishedReportMinuteDisplayFromDb(y.minute) ?? 0;
         if (mx !== my) return mx - my;
         return String(x.created_at ?? '').localeCompare(String(y.created_at ?? ''));
       });
@@ -1224,8 +1224,7 @@ export const EventDetailPage: React.FC = () => {
 
     const addGoal = async () => {
       if (!event.match_id) return;
-      const inputMinute = Math.max(0, Number(goalMinute.trim()) || 0);
-      const dbMinute = finishedReportMinuteDbFromInput(inputMinute);
+      const dbMinute = finishedReportMinuteDbFromInput(goalMinute.trim());
       try {
         setMatchError(null);
         if (!requireSquadPlayer(goalPlayerId, 'Torschütze')) return;
@@ -1296,8 +1295,7 @@ export const EventDetailPage: React.FC = () => {
       setMatchError(null);
       if (!requireSquadPlayer(newSwitchOutPlayerId, 'Auswechselnder')) return;
       if (!requireSquadPlayer(newSwitchInPlayerId, 'Einwechselnder')) return;
-      const inputMinute = Math.max(0, Number(newSwitchMinute.trim()) || 0);
-      const dbMinute = finishedReportMinuteDbFromInput(inputMinute);
+      const dbMinute = finishedReportMinuteDbFromInput(newSwitchMinute.trim());
       const payloads: Array<{ match_id: string; type: string; minute: number; period: null; player_id: string | null }> = [];
       if (newSwitchOutPlayerId.trim()) {
         payloads.push({
@@ -1334,8 +1332,7 @@ export const EventDetailPage: React.FC = () => {
       if (!event.match_id) return;
       setMatchError(null);
       if (!requireSquadPlayer(newCardPlayerId, 'Karte')) return;
-      const inputMinute = Math.max(0, Number(newCardMinute.trim()) || 0);
-      const dbMinute = finishedReportMinuteDbFromInput(inputMinute);
+      const dbMinute = finishedReportMinuteDbFromInput(newCardMinute.trim());
       const { error: insErr } = await supabase.from('match_events').insert({
         match_id: event.match_id,
         type: newCardType,
@@ -1357,7 +1354,7 @@ export const EventDetailPage: React.FC = () => {
     const beginEditCard = (r: MatchEventRow) => {
       const t = String(r.type ?? '').toLowerCase();
       setEditingCardId(r.id);
-      setEditCardMinute(String(finishedReportMinuteDisplayFromDb(Number(r.minute ?? 0) || 0)));
+      setEditCardMinute(String(finishedReportMinuteDisplayFromDb(r.minute) ?? 0));
       setEditCardType(t === 'red_card' || t === 'card_red' || t === 'red' ? 'red_card' : 'yellow_card');
       setEditCardPlayerId(r.player_id ?? '');
     };
@@ -1366,8 +1363,7 @@ export const EventDetailPage: React.FC = () => {
       if (!editingCardId) return;
       setMatchError(null);
       if (!requireSquadPlayer(editCardPlayerId, 'Karte')) return;
-      const inputMinute = Math.max(0, Number(editCardMinute.trim()) || 0);
-      const dbMinute = finishedReportMinuteDbFromInput(inputMinute);
+      const dbMinute = finishedReportMinuteDbFromInput(editCardMinute.trim());
       const { error: updErr } = await supabase
         .from('match_events')
         .update({
@@ -1428,7 +1424,7 @@ export const EventDetailPage: React.FC = () => {
 
     const beginEditEvent = (r: MatchEventRow) => {
       setEditingEventId(r.id);
-      setEditEventMinute(String(finishedReportMinuteDisplayFromDb(Number(r.minute ?? 0) || 0)));
+      setEditEventMinute(String(finishedReportMinuteDisplayFromDb(r.minute) ?? 0));
       const t = String(r.type ?? '').toLowerCase();
       if (t === 'sub_out' || t === 'sub_in') {
         setEditEventType('switch');
@@ -1451,13 +1447,13 @@ export const EventDetailPage: React.FC = () => {
 
     const saveEventEdit = async () => {
       if (!editingEventId) return;
-      if (!event.match_id) {
-        setMatchError('Kein Spiel zugeordnet.');
+      if (!event.id || !event.match_id) {
+        setMatchError('Termin oder Spiel nicht vollständig zugeordnet.');
         return;
       }
       setMatchError(null);
-      const inputMinute = Math.max(0, Number(editEventMinute.trim()) || 0);
-      const dbMinute = finishedReportMinuteDbFromInput(inputMinute);
+      const editMinuteRaw = editEventMinute.trim();
+      const dbMinute = finishedReportMinuteDbFromInput(editMinuteRaw);
       const old = timelineEvents.find((x) => x.id === editingEventId);
       let didTouchGoals = normalizeMatchEventGoalType(old?.type) !== null;
 
@@ -1515,17 +1511,7 @@ export const EventDetailPage: React.FC = () => {
         didTouchGoals = true;
         const newDbType = mapUiGoalTypeToMatchEventDbType(editEventType);
         debugAssertMatchEventDbType('saveEventEdit goal', newDbType);
-        if (import.meta.env.DEV) {
-          console.debug('[FinishedMatchReport] saveGoal', {
-            eventId: editingEventId,
-            inputMinute,
-            dbMinute,
-            selectedTeam: editEventType,
-            dbType: newDbType,
-            playerId: editEventPlayerId.trim() || null,
-          });
-        }
-        const { data: updated, error: updErr } = await supabase
+        const { data: updatedRows, error: updErr } = await supabase
           .from('match_events')
           .update({
             minute: dbMinute,
@@ -1533,15 +1519,29 @@ export const EventDetailPage: React.FC = () => {
             player_id: editEventPlayerId.trim() || null,
           })
           .eq('id', editingEventId)
-          .eq('match_id', event.match_id)
           .select('id');
+        if (import.meta.env.DEV) {
+          console.debug('[FinishedMatchReport] saveGoal', {
+            eventId: event.id,
+            matchId: event.match_id,
+            matchEventId: editingEventId,
+            oldMinute: old?.minute ?? null,
+            editMinute: editMinuteRaw,
+            dbMinute,
+            selectedTeam: editEventType,
+            dbType: newDbType,
+            playerId: editEventPlayerId.trim() || null,
+            updateError: updErr?.message ?? null,
+            updateReturnedIds: updatedRows?.map((x) => x.id) ?? [],
+          });
+        }
         if (updErr) {
           setMatchError(friendlyMatchEventWriteError(updErr.message));
           return;
         }
-        if (import.meta.env.DEV && Array.isArray(updated) && updated.length === 0) {
+        if (import.meta.env.DEV && (!updatedRows || updatedRows.length === 0)) {
           console.warn(
-            '[FinishedMatchReport] Tor-Update: select() lieferte 0 Zeilen (RLS?). Reload prüft den Stand.',
+            '[FinishedMatchReport] Tor-Update: select() ohne Zeile (häufig RLS). Reload prüft den Stand.',
             editingEventId,
           );
         }
