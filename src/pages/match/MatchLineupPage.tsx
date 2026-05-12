@@ -355,34 +355,39 @@ export const MatchLineupPage: React.FC = () => {
   return (
     <div className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-gradient-to-b from-[#050505] via-[#120808] to-[#0a0606] text-white">
       <style>{`@media (max-width: 639px){ nav[aria-label="Hauptnavigation"]{ display:none !important; } }`}</style>
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/94 px-3 py-2.5 backdrop-blur sm:px-4 sm:py-3">
-        <div className="mx-auto flex max-w-xl flex-col gap-2.5">
+      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-2 overflow-y-auto px-2 pb-[12.5rem] pt-3 sm:gap-2.5 sm:px-3 sm:pb-[28rem] sm:pt-4">
+        <section
+          aria-label="Aufstellung Navigation"
+          className="rounded-xl border border-white/[0.12] bg-black/55 p-3 shadow-[0_8px_28px_rgba(0,0,0,0.42)] ring-1 ring-white/[0.05] sm:p-3.5"
+        >
           <div className="flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-white/12 bg-white/[0.05] px-3 text-xs font-semibold text-white/90 hover:bg-white/[0.1] active:scale-[0.99]"
+              className="inline-flex min-h-9 shrink-0 items-center rounded-lg border border-white/12 bg-white/[0.06] px-2.5 text-xs font-semibold text-white/92 hover:bg-white/[0.11] active:scale-[0.99]"
             >
               ← Termin
             </button>
+            <h1 className="text-right text-xs font-black uppercase tracking-[0.14em] text-white sm:text-sm">Aufstellung</h1>
+          </div>
+          <div className="mt-1.5 flex items-center justify-between gap-2">
+            {matchRow?.opponent ? (
+              <p className="min-w-0 flex-1 truncate text-[11px] leading-snug text-white/50 sm:text-xs">vs. {matchRow.opponent}</p>
+            ) : (
+              <span className="min-w-0 flex-1" aria-hidden />
+            )}
             <button
               type="button"
               onClick={() => navigate('/app/termine')}
-              className="inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg border border-white/12 bg-white/[0.05] text-white/80 hover:bg-white/[0.1] hover:text-white active:scale-[0.99]"
+              className="inline-flex h-9 min-h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.05] text-white/75 hover:bg-white/[0.1] hover:text-white active:scale-[0.99]"
               aria-label="Termine – Spieler oder Termin"
               title="Termine"
             >
-              <Plus className="h-5 w-5" strokeWidth={2.25} />
+              <Plus className="h-4 w-4" strokeWidth={2.25} />
             </button>
           </div>
-          <div className="flex min-w-0 flex-col gap-1">
-            <h1 className="text-sm font-black uppercase tracking-[0.12em] text-white sm:text-base">Aufstellung</h1>
-            {matchRow?.opponent ? (
-              <p className="truncate text-xs leading-snug text-white/55 sm:text-[13px]">vs. {matchRow.opponent}</p>
-            ) : null}
-          </div>
           <div
-            className="flex h-11 w-full min-h-11 shrink-0 items-stretch overflow-hidden rounded-lg border border-white/12 bg-black/75 p-0.5 shadow-inner"
+            className="mt-2.5 flex h-10 w-full min-h-10 shrink-0 items-stretch overflow-hidden rounded-lg border border-white/12 bg-black/70 p-0.5 shadow-inner sm:h-11 sm:min-h-11"
             role="tablist"
             aria-label="Aufstellungsansicht"
           >
@@ -392,7 +397,7 @@ export const MatchLineupPage: React.FC = () => {
               aria-selected={lineupViewMode === 'list'}
               onClick={() => setLineupViewMode('list')}
               className={[
-                'min-h-10 flex-1 rounded-md px-2 text-center text-sm font-bold leading-tight transition-colors',
+                'min-h-9 flex-1 rounded-md px-2 text-center text-sm font-bold leading-tight transition-colors sm:min-h-10',
                 lineupViewMode === 'list'
                   ? 'bg-red-600 text-white shadow-sm'
                   : 'text-white/45 hover:bg-white/[0.06] hover:text-white/85',
@@ -407,7 +412,7 @@ export const MatchLineupPage: React.FC = () => {
               aria-selected={lineupViewMode === 'pitch'}
               onClick={() => setLineupViewMode('pitch')}
               className={[
-                'min-h-10 flex-1 rounded-md px-2 text-center text-sm font-bold leading-tight transition-colors',
+                'min-h-9 flex-1 rounded-md px-2 text-center text-sm font-bold leading-tight transition-colors sm:min-h-10',
                 lineupViewMode === 'pitch'
                   ? 'bg-red-600 text-white shadow-sm'
                   : 'text-white/45 hover:bg-white/[0.06] hover:text-white/85',
@@ -416,10 +421,7 @@ export const MatchLineupPage: React.FC = () => {
               Spielfeld
             </button>
           </div>
-        </div>
-      </header>
-
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-2 overflow-y-auto px-2 py-2 pb-[12.5rem] sm:gap-2.5 sm:px-3 sm:pb-[28rem]">
+        </section>
         {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
         {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
         {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}
