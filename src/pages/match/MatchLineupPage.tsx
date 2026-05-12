@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronLeft } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import type { PlayerItem } from '../../hooks/usePlayers';
@@ -393,41 +393,19 @@ export const MatchLineupPage: React.FC = () => {
           lineupViewMode === 'list' ? 'overflow-hidden' : 'overflow-y-auto',
         ].join(' ')}
       >
-        <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-0 py-2">
+        <header className="relative flex min-h-[2.75rem] shrink-0 items-center justify-center px-0 py-2">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="inline-flex min-w-0 shrink-0 items-center gap-0.5 justify-self-start text-sm font-medium text-zinc-300 transition-colors hover:text-zinc-100 active:opacity-80"
+            className="absolute left-0 top-1/2 z-[1] inline-flex -translate-y-1/2 items-center gap-0.5 text-sm font-medium text-zinc-300 transition-colors hover:text-zinc-100 active:opacity-80"
             aria-label="Zurück"
           >
             <ChevronLeft className="h-4 w-4 shrink-0 -ml-0.5" strokeWidth={2} />
             <span>Zurück</span>
           </button>
-          <h1 className="shrink-0 whitespace-nowrap px-1 text-center text-base font-black uppercase tracking-[0.18em] text-white">
+          <h1 className="w-full whitespace-nowrap px-20 text-center text-base font-black uppercase tracking-[0.18em] text-white sm:px-24">
             Aufstellung
           </h1>
-          <div className="relative min-w-0 justify-self-end">
-            <label htmlFor="lineup-formation-select" className="sr-only">
-              Formation
-            </label>
-            <select
-              id="lineup-formation-select"
-              value={formationId}
-              onChange={(e) => {
-                const id = e.target.value as U11FormationId;
-                setFormationId(id);
-                if (matchId) writeStoredU11Formation(matchId, id);
-              }}
-              className="h-9 max-w-[7.5rem] cursor-pointer appearance-none rounded-lg border border-white/12 bg-zinc-950/80 py-0 pl-3 pr-8 text-sm font-bold text-white shadow-sm outline-none transition-colors hover:border-white/20 focus-visible:ring-2 focus-visible:ring-red-500/40 sm:max-w-[8.5rem]"
-            >
-              {U11_FORMATION_CHOICES.map((id) => (
-                <option key={id} value={id}>
-                  {id}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" aria-hidden strokeWidth={2.25} />
-          </div>
         </header>
 
         <div
