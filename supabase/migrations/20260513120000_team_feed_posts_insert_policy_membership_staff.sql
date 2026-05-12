@@ -27,7 +27,7 @@ CREATE POLICY "team_feed_posts_insert_staff"
         FROM public.memberships m2
         WHERE m2.team_season_id = team_feed_posts.team_season_id
           AND m2.user_id = auth.uid()
-          AND lower(trim(m2.role)) IN (
+          AND lower(trim(m2.role::text)) IN (
             'admin',
             'trainer',
             'head_coach',
