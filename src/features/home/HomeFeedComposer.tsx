@@ -216,7 +216,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
     userId,
   ]);
 
-  if (!isStaffBackendRole(backendRole)) return null;
+  if (!isFeedComposerStaff(backendRole, membershipRole)) return null;
 
   const statusLabel =
     phase === 'uploading' ? 'Datei wird hochgeladen…' : phase === 'saving' ? 'Beitrag wird gespeichert…' : null;
