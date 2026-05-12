@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import type { PlayerItem } from '../../hooks/usePlayers';
@@ -97,7 +98,6 @@ export const MatchLineupPage: React.FC = () => {
   const assignFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [formationId, setFormationId] = useState<U11FormationId>(U11_FORMATION_DB_FALLBACK);
   const [isMobile, setIsMobile] = useState(false);
-  const [benchOpen, setBenchOpen] = useState(true);
   const [lineupViewMode, setLineupViewMode] = useState<'pitch' | 'list'>('pitch');
 
   useEffect(() => {
@@ -355,34 +355,32 @@ export const MatchLineupPage: React.FC = () => {
   return (
     <div className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-gradient-to-b from-[#050505] via-[#120808] to-[#0a0606] text-white">
       <style>{`@media (max-width: 639px){ nav[aria-label="Hauptnavigation"]{ display:none !important; } }`}</style>
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/92 px-2.5 py-2 backdrop-blur sm:px-4 sm:py-3">
-        <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-2">
-          <div className="min-w-0">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="mb-0.5 inline-flex min-h-[32px] items-center rounded-lg border border-white/15 bg-white/[0.05] px-2 text-[11px] font-semibold text-white/90 hover:bg-white/[0.09] sm:min-h-[36px] sm:px-2.5 sm:text-xs"
-            >
-              ← Zurück
-            </button>
-            <h1 className="text-base font-bold sm:text-lg">AUFSTELLUNG</h1>
-            <p className="truncate text-xs text-white/60 sm:text-sm">{matchRow?.opponent ? `vs. ${matchRow.opponent}` : 'Spiel'}</p>
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/94 px-2 py-0.5 backdrop-blur sm:px-3 sm:py-1">
+        <div className="mx-auto flex max-w-xl items-center gap-1">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex min-h-8 shrink-0 items-center rounded-md border border-white/12 bg-white/[0.04] px-1.5 text-[10px] font-semibold text-white/88 hover:bg-white/[0.08] sm:min-h-8 sm:px-2 sm:text-[11px]"
+          >
+            ← Termin
+          </button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[10px] font-black uppercase tracking-[0.14em] text-white sm:text-[11px]">Aufstellung</h1>
+            {matchRow?.opponent ? (
+              <p className="truncate text-[8px] leading-tight text-white/38 sm:text-[9px]">vs. {matchRow.opponent}</p>
+            ) : null}
           </div>
-          <span className="hidden rounded-full border border-red-500/40 bg-red-500/15 px-3 py-1 text-xs font-semibold text-red-300 sm:inline-flex">
-            Trainer
-          </span>
-        </div>
-      </header>
-
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-1 overflow-y-auto px-1 py-0.5 pb-[10.5rem] sm:gap-2 sm:px-2 sm:py-1 sm:pb-[28rem]">
-        {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
-        {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
-        {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}
-        {saveMsg ? <p className="text-sm text-emerald-300">{saveMsg}</p> : null}
-
-        <div className="flex justify-center px-0.5 pt-0.5">
+          <button
+            type="button"
+            onClick={() => navigate('/app/termine')}
+            className="inline-flex h-8 min-h-8 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.04] px-1.5 text-white/72 hover:bg-white/[0.08] hover:text-white"
+            aria-label="Termine – Spieler oder Termin"
+            title="Termine"
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+          </button>
           <div
-            className="inline-flex h-9 w-full max-w-[16.5rem] shrink-0 items-stretch overflow-hidden rounded-lg border border-white/12 bg-black/70 p-px shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+            className="inline-flex h-8 min-h-8 w-[10.5rem] shrink-0 items-stretch overflow-hidden rounded-md border border-white/12 bg-black/70 p-px sm:w-[11rem]"
             role="tablist"
             aria-label="Aufstellungsansicht"
           >
@@ -392,35 +390,42 @@ export const MatchLineupPage: React.FC = () => {
               aria-selected={lineupViewMode === 'list'}
               onClick={() => setLineupViewMode('list')}
               className={[
-                'min-h-9 flex-1 px-2 text-center text-[11px] font-bold leading-none transition-colors sm:text-xs',
+                'flex-1 px-1.5 text-center text-[10px] font-bold leading-tight transition-colors sm:text-[11px]',
                 lineupViewMode === 'list'
-                  ? 'rounded-md bg-red-600 text-white shadow-[0_0_8px_rgba(220,38,38,0.22)]'
-                  : 'rounded-md text-white/45 hover:bg-white/[0.06] hover:text-white/78',
+                  ? 'rounded-[5px] bg-red-600 text-white'
+                  : 'rounded-[5px] text-white/42 hover:bg-white/[0.06] hover:text-white/75',
               ].join(' ')}
             >
               Liste
             </button>
-            <span className="w-px shrink-0 self-stretch bg-white/12" aria-hidden />
+            <span className="w-px shrink-0 self-stretch bg-white/10" aria-hidden />
             <button
               type="button"
               role="tab"
               aria-selected={lineupViewMode === 'pitch'}
               onClick={() => setLineupViewMode('pitch')}
               className={[
-                'min-h-9 flex-1 px-2 text-center text-[11px] font-bold leading-none transition-colors sm:text-xs',
+                'flex-1 px-1.5 text-center text-[10px] font-bold leading-tight transition-colors sm:text-[11px]',
                 lineupViewMode === 'pitch'
-                  ? 'rounded-md bg-red-600 text-white shadow-[0_0_8px_rgba(220,38,38,0.22)]'
-                  : 'rounded-md text-white/45 hover:bg-white/[0.06] hover:text-white/78',
+                  ? 'rounded-[5px] bg-red-600 text-white'
+                  : 'rounded-[5px] text-white/42 hover:bg-white/[0.06] hover:text-white/75',
               ].join(' ')}
             >
               Spielfeld
             </button>
           </div>
         </div>
+      </header>
 
-        <div className="px-0.5 pt-0.5">
-          <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-white/38">Formation</p>
-          <div className="mt-0.5 flex flex-wrap gap-1 sm:gap-1.5">
+      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-0.5 overflow-y-auto px-1 py-0.5 pb-[9.75rem] sm:gap-1 sm:px-2 sm:pb-[28rem]">
+        {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
+        {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
+        {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}
+        {saveMsg ? <p className="text-sm text-emerald-300">{saveMsg}</p> : null}
+
+        <div className="-mx-0.5 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+          <div className="flex flex-nowrap items-center gap-0.5 px-0.5 py-0">
+            <span className="shrink-0 pl-0.5 text-[7px] font-bold uppercase tracking-wider text-white/28">Form</span>
             {U11_FORMATION_CHOICES.map((id) => {
               const active = formationId === id;
               return (
@@ -432,10 +437,10 @@ export const MatchLineupPage: React.FC = () => {
                     if (matchId) writeStoredU11Formation(matchId, id);
                   }}
                   className={[
-                    'min-h-[28px] rounded-md border px-2 py-1 text-[10px] font-bold transition-all duration-200 ease-out sm:min-h-[32px] sm:px-2.5 sm:py-1 sm:text-[11px]',
+                    'shrink-0 rounded border px-1 py-[3px] text-[8px] font-bold leading-none transition-all sm:px-1.5 sm:text-[9px]',
                     active
-                      ? 'border-red-500/80 bg-red-500/22 text-white shadow-[0_0_14px_rgba(239,68,68,0.35)]'
-                      : 'border-white/12 bg-black/35 text-white/72 hover:border-white/22 hover:bg-black/45',
+                      ? 'border-red-500/75 bg-red-500/20 text-white shadow-[0_0_10px_rgba(239,68,68,0.25)]'
+                      : 'border-white/10 bg-black/40 text-white/68 hover:border-white/18',
                   ].join(' ')}
                 >
                   {id}
@@ -447,14 +452,14 @@ export const MatchLineupPage: React.FC = () => {
 
         {lineupViewMode === 'pitch' ? (
           <>
-            <section className="space-y-1 p-0 sm:space-y-1.5 sm:rounded-xl sm:border sm:border-white/[0.08] sm:bg-black/45 sm:p-2 sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:ring-1 sm:ring-red-950/30">
-              <div className="flex items-center justify-between px-0.5">
-                <h2 className="text-[10px] font-black uppercase tracking-[0.14em] text-white/88 sm:text-[11px]">
-                  Startaufstellung
-                </h2>
-                <span className="text-[10px] font-semibold text-white/50 sm:text-xs">{starterCount}/7</span>
-              </div>
-              <section className="-mx-0.5 sm:mx-0">
+            <section className="relative p-0 sm:rounded-xl sm:border sm:border-white/[0.08] sm:bg-black/40 sm:p-1.5 sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:ring-1 sm:ring-red-950/28">
+              <span
+                className="pointer-events-none absolute right-1.5 top-1.5 z-[3] rounded border border-white/12 bg-black/70 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white/90 shadow-sm sm:right-2 sm:top-2"
+                aria-label={`Belegte Startplätze ${starterCount} von 7`}
+              >
+                {starterCount}/7
+              </span>
+              <div className="-mx-0.5 sm:mx-0">
                 <LineupFormationPitch
                   formationId={formationId}
                   slots={slots}
@@ -462,7 +467,7 @@ export const MatchLineupPage: React.FC = () => {
                   onSlotTap={onTapSlot}
                   selectedBankPlayerId={selectedBankPlayerId}
                   assignFlashSlot={assignFlashSlot}
-                  className="max-h-[min(64dvh,32rem)] w-full sm:max-h-[min(42rem,68vh)]"
+                  className="max-h-[min(72dvh,36rem)] w-full sm:max-h-[min(42rem,70vh)]"
                   renderSlotContent={({ label, labelDx, labelDy, playerId, flash, isGk, emphasize }) => {
                     const player = playerId ? playersById.get(playerId) : null;
                     if (!player) return null;
@@ -483,71 +488,55 @@ export const MatchLineupPage: React.FC = () => {
                     );
                   }}
                 />
-              </section>
+              </div>
             </section>
 
-            <section className="rounded-lg border border-white/[0.1] bg-black/40 p-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.38)] sm:rounded-xl sm:p-2 sm:ring-1 sm:ring-red-950/35">
-              <button
-                type="button"
-                onClick={() => setBenchOpen((v) => !v)}
-                className="mb-1 flex w-full items-center justify-between border-b border-white/[0.06] pb-1 text-left"
-              >
-                <h2 className="text-[10px] font-black uppercase tracking-[0.14em] text-white/88 sm:text-[11px]">
-                  Ersatzbank
-                </h2>
-                <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-white/45">
-                  {bankIds.length}
-                  <span aria-hidden>{benchOpen ? '▾' : '▸'}</span>
-                </span>
-              </button>
-              {benchOpen ? (
-                <>
-                  <div className="-mx-0.5 overflow-x-auto pb-0.5 pl-0.5 pr-0.5 [-webkit-overflow-scrolling:touch]">
-                    <div className="flex min-w-min flex-nowrap items-start gap-1">
-                      {bankIds.map((id) => {
-                        const p = playersById.get(id);
-                        if (!p) return null;
-                        const isSelected = selectedBankPlayerId === id;
-                        const posLabel = benchPositionLabel(p);
-                        return (
-                          <button
-                            key={id}
-                            type="button"
-                            onClick={() => onTapBankPlayer(id)}
-                            className={[
-                              'shrink-0 rounded-lg px-1 py-0.5 transition-all active:scale-[0.98]',
-                              isSelected
-                                ? 'border border-emerald-400/75 bg-emerald-950/28 shadow-[0_0_12px_rgba(16,185,129,0.28)] ring-1 ring-emerald-400/45'
-                                : 'border border-white/10 bg-black/30 hover:border-white/18',
-                            ].join(' ')}
-                          >
-                            <div className="flex flex-col items-center">
-                              <LeibchenJersey
-                                lastName={mobileLineupName(playerFamilyName(p))}
-                                number={p.jersey_number}
-                                position={posLabel}
-                                variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
-                                size="compact"
-                                className="!h-[2.7rem] !w-[2.1rem] sm:!h-[3rem] sm:!w-[2.4rem]"
-                                showBackPrint={false}
-                                pitchStyleBack
-                                selected={isSelected}
-                              />
-                              <span className="mt-0.5 max-w-[3.25rem] truncate text-center text-[9px] font-bold tabular-nums text-white/95">
-                                {p.jersey_number ?? '–'}
-                              </span>
-                              <span className="max-w-[3.5rem] truncate text-center text-[8px] font-semibold leading-tight text-white/55">
-                                {mobileLineupName(playerFamilyName(p))}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  {bankIds.length === 0 ? <p className="text-[11px] text-white/48">Keine Spieler auf der Bank.</p> : null}
-                </>
-              ) : null}
+            <section className="rounded-lg border border-white/[0.08] bg-black/35 px-1 py-1 shadow-[0_4px_16px_rgba(0,0,0,0.35)] sm:rounded-xl sm:px-1.5 sm:py-1.5 sm:ring-1 sm:ring-red-950/30">
+              <div className="mb-0.5 flex items-center justify-between gap-2 px-0.5">
+                <h2 className="text-[9px] font-black uppercase tracking-[0.14em] text-white/75">Ersatzbank</h2>
+                <span className="text-[9px] font-semibold tabular-nums text-white/38">{bankIds.length}</span>
+              </div>
+              <div className="-mx-0.5 overflow-x-auto pb-0.5 pl-0.5 pr-0.5 [-webkit-overflow-scrolling:touch]">
+                <div className="flex min-w-min flex-nowrap items-end gap-0.5">
+                  {bankIds.map((id) => {
+                    const p = playersById.get(id);
+                    if (!p) return null;
+                    const isSelected = selectedBankPlayerId === id;
+                    const posLabel = benchPositionLabel(p);
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => onTapBankPlayer(id)}
+                        className={[
+                          'shrink-0 rounded-md px-0.5 py-0.5 transition-all active:scale-[0.98]',
+                          isSelected
+                            ? 'border border-emerald-400/70 bg-emerald-950/25 shadow-[0_0_10px_rgba(16,185,129,0.22)] ring-1 ring-emerald-400/40'
+                            : 'border border-white/8 bg-black/28 hover:border-white/15',
+                        ].join(' ')}
+                      >
+                        <div className="flex w-[3.35rem] max-w-[3.35rem] flex-col items-center sm:w-[3.5rem] sm:max-w-[3.5rem]">
+                          <LeibchenJersey
+                            lastName={mobileLineupName(playerFamilyName(p))}
+                            number={p.jersey_number}
+                            position={posLabel}
+                            variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
+                            size="compact"
+                            className="!h-[2.35rem] !w-[1.85rem] sm:!h-[2.55rem] sm:!w-[2rem]"
+                            showBackPrint={false}
+                            pitchStyleBack
+                            selected={isSelected}
+                          />
+                          <span className="mt-0.5 w-full truncate text-center text-[8px] font-semibold leading-tight text-white/65">
+                            {mobileLineupName(playerFamilyName(p))}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {bankIds.length === 0 ? <p className="px-0.5 text-[10px] text-white/45">Keine Spieler auf der Bank.</p> : null}
             </section>
           </>
         ) : (
@@ -557,7 +546,7 @@ export const MatchLineupPage: React.FC = () => {
               style={{ minHeight: 'min(50dvh, 17rem)' }}
             >
               <div className="flex min-h-0 min-w-0 flex-col gap-1">
-                <h2 className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-white/88">Startaufstellung</h2>
+                <h2 className="shrink-0 text-[9px] font-black uppercase tracking-[0.14em] text-white/75">Startaufstellung</h2>
                 <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
                   {LIVE_FIELD_SLOT_ORDER.map((slot) => {
                     const pid = slots[slot];
@@ -608,7 +597,7 @@ export const MatchLineupPage: React.FC = () => {
                 </div>
               </div>
               <div className="flex min-h-0 min-w-0 flex-col gap-1 border-l border-white/[0.06] pl-1.5 sm:pl-2">
-                <h2 className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-white/88">Ersatzbank</h2>
+                <h2 className="shrink-0 text-[9px] font-black uppercase tracking-[0.14em] text-white/75">Ersatzbank</h2>
                 <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
                   {bankIds.length === 0 ? (
                     <p className="text-[11px] text-white/48">Keine Bankspieler.</p>
