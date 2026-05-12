@@ -12,6 +12,14 @@ const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 150 * 1024 * 1024;
 
+const TEAM_FEED_BUCKET = 'team-feed' as const;
+
+function sanitizeTeamFeedObjectPathSegment(teamSeasonId: string): string | null {
+  const s = teamSeasonId.trim().replace(/^\/+|\/+$/g, '');
+  if (!s || s.includes('/') || /\s/.test(s)) return null;
+  return s;
+}
+
 /** Staff laut user_roles ODER Team-Mitgliedschaft (Trainer/Co/Chef — normalizeRole mappt Co/Chef → trainer). */
 function isFeedComposerStaff(
   backendRole: string | null | undefined,
@@ -156,14 +164,61 @@ export const HomeFeedComposer: React.FC<Props> = ({
 
     const folder = draftKind === 'video' ? 'videos' : 'images';
     const ext = extForMime(draftFile.type, draftKind);
-    const objectPath = `${folder}/${teamSeasonId}/${crypto.randomUUID()}.${ext}`;
+    const seasonSeg = sanitizeTeamFeedObjectPathSegment(teamSeasonId);
+    if (!seasonSeg) {
+      setError('Ungültige team_season_id für den Speicherpfad.');
+      setBusy(false);
+      setPhase('idle');
+      setUploadPct(0);
+      clearProgressTimer();
+      return;
+    }
+    const objectPath = `${folder}/${seasonSeg}/${crypto.randomUUID()}.${ext}`.replace(/\/+/g, '/');
+
+    const contentType =
+      draftFile.type && draftFile.type.trim() !== ''
+        ? draftFile.type
+        : draftKind === 'image'
+          ? 'image/jpeg'
+          : 'video/mp4';
+
+    const fileForUpload =
+      draftFile.type && draftFile.type.trim() !== ''
+        ? draftFile
+        : new File([draftFile], draftFile.name, { type: contentType });
 
     try {
-      const { error: upErr } = await supabase.storage.from('team-feed').upload(objectPath, draftFile, {
+      console.warn('[HomeFeedComposer][storage-upload] vor Upload', {
+        bucket: TEAM_FEED_BUCKET,
+        path: objectPath,
+        file_name: draftFile.name,
+        file_type: draftFile.type,
+        file_size: draftFile.size,
+        contentType,
+      });
+
+      const { error: upErr } = await supabase.storage.from(TEAM_FEED_BUCKET).upload(objectPath, fileForUpload, {
         cacheControl: '3600',
         upsert: false,
+        contentType,
       });
-      if (upErr) throw new Error(upErr.message);
+      if (upErr) {
+        const se = upErr as {
+          message: string;
+          status?: number;
+          statusCode?: string;
+          error?: string;
+          details?: string;
+        };
+        console.error('[HomeFeedComposer][storage-upload] fehlgeschlagen', {
+          message: se.message,
+          statusCode: se.statusCode,
+          status: se.status,
+          error: se.error,
+          details: se.details,
+        });
+        throw new Error(se.message);
+      }
 
       clearProgressTimer();
       setUploadPct(92);
@@ -206,7 +261,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
           details: insErr.details,
           hint: insErr.hint,
         });
-        await supabase.storage.from('team-feed').remove([objectPath]).catch(() => undefined);
+        await supabase.storage.from(TEAM_FEED_BUCKET).remove([objectPath]).catch(() => undefined);
         throw new Error(insErr.message);
       }
 
