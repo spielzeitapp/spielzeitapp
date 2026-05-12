@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MessageCircle, Pause, Play, Share2 } from 'lucide-react';
+import { Heart, Maximize, MessageCircle, Pause, Play, Share2, Volume2, VolumeX } from 'lucide-react';
 import type { TeamFeedPostDbRow } from '../../lib/matchdayFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
@@ -15,17 +15,35 @@ function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
 }
 
+/** Erster Frame sichtbar machen, wenn kein Server-Poster existiert (ohne URL-Fragment an signierte URLs zu hängen). */
+function seekNearStart(video: HTMLVideoElement) {
+  try {
+    if (Number.isFinite(video.duration) && video.duration > 0) {
+      video.currentTime = Math.min(0.04, video.duration * 0.01);
+    } else {
+      video.currentTime = 0.001;
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel }) => {
   const wrapRef = useRef<HTMLDivElement>(null);
+  const videoShellRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [inView, setInView] = useState(false);
   const [srcLoaded, setSrcLoaded] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [nativeControls, setNativeControls] = useState(false);
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
 
   const resolvedSrc = useFeedMediaSrc(post.media_url);
   const thumbSrc = useFeedMediaSrc(post.thumbnail_url);
+  const hasServerPoster = Boolean(post.thumbnail_url?.trim() && thumbSrc);
+  const posterAttr = hasServerPoster ? thumbSrc ?? undefined : undefined;
 
   useEffect(() => {
     try {
@@ -60,12 +78,19 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel }) => {
 
   useEffect(() => {
     const v = videoRef.current;
-    if (!v || !srcLoaded) return;
+    if (!v || !srcLoaded || !resolvedSrc) return;
+    v.playsInline = true;
     if (!inView) {
       v.pause();
       setPlaying(false);
+      v.muted = true;
+      setMuted(true);
+      return;
     }
-  }, [inView, srcLoaded]);
+    v.muted = true;
+    setMuted(true);
+    void v.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+  }, [inView, srcLoaded, resolvedSrc]);
 
   const syncPlaying = useCallback(() => {
     const v = videoRef.current;
@@ -75,7 +100,6 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel }) => {
   const onTogglePlay = useCallback(() => {
     const v = videoRef.current;
     if (!v || !resolvedSrc) return;
-    v.muted = true;
     v.playsInline = true;
     if (v.paused) {
       void v.play().then(syncPlaying).catch(() => setPlaying(false));
@@ -84,6 +108,51 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel }) => {
       setPlaying(false);
     }
   }, [resolvedSrc, syncPlaying]);
+
+  const onUnmuteAndPlay = useCallback(() => {
+    const v = videoRef.current;
+    if (!v || !resolvedSrc) return;
+    v.playsInline = true;
+    v.muted = false;
+    setMuted(false);
+    void v.play().then(syncPlaying).catch(() => {
+      setNativeControls(true);
+      setPlaying(false);
+    });
+  }, [resolvedSrc, syncPlaying]);
+
+  const onMute = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = true;
+    setMuted(true);
+    syncPlaying();
+  }, [syncPlaying]);
+
+  const onToggleFullscreen = useCallback(() => {
+    const shell = videoShellRef.current;
+    const v = videoRef.current;
+    const wv = v as HTMLVideoElement & { webkitEnterFullscreen?: () => void };
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+      return;
+    }
+    if (shell?.requestFullscreen) {
+      void shell.requestFullscreen().catch(() => {
+        try {
+          wv?.webkitEnterFullscreen?.();
+        } catch {
+          /* ignore */
+        }
+      });
+      return;
+    }
+    try {
+      wv?.webkitEnterFullscreen?.();
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const onToggleLike = useCallback(() => {
     const next = !liked;
@@ -121,7 +190,12 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel }) => {
   }, [post.caption, post.id, post.media_url, resolvedSrc]);
 
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
-  const posterResolved = thumbSrc ?? undefined;
+
+  const onVideoLoadedData = useCallback(() => {
+    const v = videoRef.current;
+    if (!v || hasServerPoster) return;
+    seekNearStart(v);
+  }, [hasServerPoster]);
 
   return (
     <article
@@ -148,21 +222,23 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel }) => {
 
       <div className="space-y-3 px-2 pb-3 pt-3 sm:px-3">
         <div
-          className="relative mx-auto w-full max-w-[min(100%,420px)] overflow-hidden rounded-2xl border border-red-900/30 bg-black"
+          ref={videoShellRef}
+          className="relative mx-auto w-full max-w-[min(100%,420px)] overflow-hidden rounded-2xl border border-red-900/30 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black"
           style={{ aspectRatio: '9 / 16' }}
         >
           {srcLoaded && resolvedSrc ? (
             <video
               ref={videoRef}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover bg-zinc-900"
               src={resolvedSrc}
-              poster={posterResolved}
-              muted
+              poster={posterAttr}
+              muted={muted}
               playsInline
               preload="metadata"
-              controls={false}
+              controls={nativeControls}
               onPlay={syncPlaying}
               onPause={syncPlaying}
+              onLoadedData={onVideoLoadedData}
             />
           ) : (
             <div className="flex h-full min-h-[200px] w-full items-center justify-center bg-gradient-to-b from-zinc-900 to-black px-4 text-center text-xs text-white/45">
@@ -174,15 +250,49 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel }) => {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={onTogglePlay}
-            disabled={!resolvedSrc || !srcLoaded}
-            className="absolute bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white shadow-lg backdrop-blur-md transition hover:bg-black/75 disabled:opacity-35"
-            aria-label={playing ? 'Pause' : 'Abspielen'}
-          >
-            {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 pl-0.5" />}
-          </button>
+          {srcLoaded && resolvedSrc && !nativeControls ? (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent pb-2 pt-10">
+              <div className="pointer-events-auto flex items-center justify-center gap-2 px-2">
+                <button
+                  type="button"
+                  onClick={onTogglePlay}
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white shadow-lg backdrop-blur-md transition hover:bg-black/75"
+                  aria-label={playing ? 'Pause' : 'Abspielen'}
+                >
+                  {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 pl-0.5" />}
+                </button>
+                <div className="min-w-0 flex-1" />
+                {muted ? (
+                  <button
+                    type="button"
+                    onClick={onUnmuteAndPlay}
+                    className="flex h-12 min-w-[3rem] shrink-0 items-center justify-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-3 text-[11px] font-semibold text-white shadow-lg backdrop-blur-md transition hover:bg-black/75"
+                    aria-label="Ton einschalten"
+                  >
+                    <VolumeX className="h-5 w-5 shrink-0" />
+                    <span className="hidden sm:inline">Ton an</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onMute}
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white shadow-lg backdrop-blur-md transition hover:bg-black/75"
+                    aria-label="Stumm schalten"
+                  >
+                    <Volume2 className="h-5 w-5" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onToggleFullscreen}
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white shadow-lg backdrop-blur-md transition hover:bg-black/75"
+                  aria-label="Vollbild"
+                >
+                  <Maximize className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <p className="px-1 text-sm leading-relaxed text-white/90">{post.caption}</p>
