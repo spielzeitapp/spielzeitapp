@@ -13,7 +13,7 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 150 * 1024 * 1024;
 
 /** Staff laut user_roles ODER Team-Mitgliedschaft (Trainer/Co/Chef — normalizeRole mappt Co/Chef → trainer). */
-export function isFeedComposerStaff(
+function isFeedComposerStaff(
   backendRole: string | null | undefined,
   membershipRole: string | null | undefined,
 ): boolean {
