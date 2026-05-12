@@ -83,6 +83,7 @@ export const HomePage: React.FC = () => {
                 backendRole={backendRole}
                 teamSeasonId={teamSeasonId}
                 teamId={teamId}
+                userId={session?.user?.id ?? null}
                 onPosted={() => void refetchFeed()}
               />
             ) : null}
@@ -92,13 +93,9 @@ export const HomePage: React.FC = () => {
               {teamFeedLoading ? (
                 <p className="text-sm text-white/50">Feed wird geladen…</p>
               ) : teamFeedPosts.length === 0 ? (
-                <div
-                  className="rounded-2xl border border-white/10 bg-[#141414] p-5 shadow-lg"
-                  style={{ boxShadow: '0 12px 28px rgba(0,0,0,0.3)' }}
-                >
-                  <p className="text-sm leading-relaxed text-white/70">
-                    Neueste Infos und Team-Updates erscheinen hier. Am Spieltag siehst du automatisch den
-                    Matchday-Post. Trainer können Fotos und Videos direkt posten.
+                <div className="rounded-xl border border-white/[0.07] bg-[#141414]/90 px-3 py-3">
+                  <p className="text-xs leading-relaxed text-white/55">
+                    Noch keine Beiträge. Am Spieltag erscheint der Matchday-Post. Trainer posten Fotos/Videos oben.
                   </p>
                 </div>
               ) : (

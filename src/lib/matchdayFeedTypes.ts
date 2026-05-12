@@ -28,6 +28,8 @@ export type TeamFeedPostDbRow = {
   media_url: string | null;
   thumbnail_url: string | null;
   duration_seconds: number | null;
+  created_by?: string | null;
+  updated_at?: string | null;
 };
 
 export type TeamFeedPostRow = {

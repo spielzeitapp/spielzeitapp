@@ -9,7 +9,7 @@ import {
 import { supabase } from '../lib/supabaseClient';
 
 const FEED_SELECT =
-  'id, team_season_id, team_id, event_id, post_kind, caption, payload, created_at, media_type, media_url, thumbnail_url, duration_seconds';
+  'id, team_season_id, team_id, event_id, post_kind, caption, payload, created_at, updated_at, created_by, media_type, media_url, thumbnail_url, duration_seconds';
 
 async function fetchPosts(teamSeasonId: string): Promise<{
   posts: ClassifiedFeedPost[];
