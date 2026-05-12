@@ -171,7 +171,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
 
       const cap = caption.trim() || (draftKind === 'video' ? 'Neues Video' : 'Neues Foto');
       const dedupeKey = `manual:${crypto.randomUUID()}`;
-      const { error: insErr } = await supabase.from('team_feed_posts').insert({
+      const insertPayload = {
         team_season_id: teamSeasonId,
         team_id: teamId,
         event_id: null,
@@ -184,7 +184,20 @@ export const HomeFeedComposer: React.FC<Props> = ({
         thumbnail_url: null,
         duration_seconds: null,
         created_by: userId,
+      };
+
+      const { data: authSnap } = await supabase.auth.getSession();
+      const authUid = authSnap?.session?.user?.id ?? null;
+      console.info('[HomeFeedComposer] pre-insert', {
+        auth_uid: authUid,
+        backendRole,
+        membershipRole,
+        team_id: teamId,
+        team_season_id: teamSeasonId,
+        insertPayload,
       });
+
+      const { error: insErr } = await supabase.from('team_feed_posts').insert(insertPayload);
       if (insErr) {
         await supabase.storage.from('team-feed').remove([objectPath]).catch(() => undefined);
         throw new Error(insErr.message);
@@ -203,12 +216,14 @@ export const HomeFeedComposer: React.FC<Props> = ({
       setUploadPct(0);
     }
   }, [
+    backendRole,
     busy,
     caption,
     clearDraft,
     clearProgressTimer,
     draftFile,
     draftKind,
+    membershipRole,
     onPosted,
     startFakeUploadProgress,
     teamId,
