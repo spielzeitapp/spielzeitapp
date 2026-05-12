@@ -14,6 +14,22 @@ export type MatchdayFeedPayload = {
   deep_link: string;
 };
 
+/** Rohzeile aus Supabase (inkl. optionaler Medien-Felder). */
+export type TeamFeedPostDbRow = {
+  id: string;
+  team_season_id: string;
+  team_id: string;
+  event_id: string | null;
+  post_kind: string;
+  caption: string;
+  payload: unknown;
+  created_at: string;
+  media_type: string | null;
+  media_url: string | null;
+  thumbnail_url: string | null;
+  duration_seconds: number | null;
+};
+
 export type TeamFeedPostRow = {
   id: string;
   team_season_id: string;
@@ -23,7 +39,46 @@ export type TeamFeedPostRow = {
   caption: string;
   payload: MatchdayFeedPayload;
   created_at: string;
+  media_type?: string | null;
+  media_url?: string | null;
+  thumbnail_url?: string | null;
+  duration_seconds?: number | null;
 };
+
+export type ClassifiedFeedPost =
+  | { kind: 'matchday'; post: TeamFeedPostRow }
+  | { kind: 'image'; post: TeamFeedPostDbRow }
+  | { kind: 'video'; post: TeamFeedPostDbRow };
+
+export function classifyTeamFeedPost(row: TeamFeedPostDbRow): ClassifiedFeedPost | null {
+  const mt = (row.media_type ?? '').toLowerCase().trim();
+  if (mt === 'video' && row.media_url) {
+    return { kind: 'video', post: row };
+  }
+  if (mt === 'image' && row.media_url) {
+    return { kind: 'image', post: row };
+  }
+  const pl = parseMatchdayPayload(row.payload);
+  if (!pl) return null;
+  const eventId = row.event_id ?? pl.event_id;
+  return {
+    kind: 'matchday',
+    post: {
+      id: row.id,
+      team_season_id: row.team_season_id,
+      team_id: row.team_id,
+      event_id: eventId,
+      post_kind: row.post_kind,
+      caption: row.caption,
+      payload: pl,
+      created_at: row.created_at,
+      media_type: row.media_type,
+      media_url: row.media_url,
+      thumbnail_url: row.thumbnail_url,
+      duration_seconds: row.duration_seconds,
+    },
+  };
+}
 
 export function parseMatchdayPayload(raw: unknown): MatchdayFeedPayload | null {
   if (!raw || typeof raw !== 'object') return null;

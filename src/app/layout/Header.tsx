@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Bell } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabaseClient';
@@ -9,9 +10,18 @@ const logo = import.meta.env.BASE_URL + 'logos/nsg-goelsental.png';
 const ROLE_LABEL_DE: Record<string, string> = {
   admin: 'Admin',
   trainer: 'Trainer',
+  head_coach: 'Cheftrainer',
+  co_trainer: 'Co-Trainer',
   parent: 'Eltern',
   player: 'Spieler',
   fan: 'Fan',
+};
+
+const BACKEND_STAFF_BADGE_DE: Record<string, string> = {
+  admin: 'Admin',
+  head_coach: 'Cheftrainer',
+  trainer: 'Trainer',
+  co_trainer: 'Co-Trainer',
 };
 
 /** Öffentliche Routen: nur Logo + App-Name (Header wird dort nicht gerendert). */
@@ -26,7 +36,13 @@ const APP_LOGIN_REDIRECT = '/login';
 export const Header: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { membershipError, effectiveRole, loading: sessionLoading, backendRole } = useSession();
+  const {
+    membershipError,
+    effectiveRole,
+    loading: sessionLoading,
+    backendRole,
+    selectedTeamSeason,
+  } = useSession();
   const { user, loading: authLoading } = useAuth();
   const publicView = isPublicRoute(pathname);
   const isRoleChoice = pathname === '/app/role-choice';
@@ -38,6 +54,16 @@ export const Header: React.FC = () => {
   const isStaff =
     !!backendRole &&
     ['admin', 'head_coach', 'trainer', 'co_trainer'].includes(backendRole.toLowerCase());
+
+  const teamSubline =
+    pathname.startsWith('/app') && (selectedTeamSeason?.team?.name ?? '').trim().length > 0
+      ? (selectedTeamSeason?.team?.name ?? '').trim()
+      : 'NSG Gölsental';
+
+  const staffBackendBadge =
+    isStaff && backendRole
+      ? (BACKEND_STAFF_BADGE_DE[backendRole.toLowerCase()] ?? backendRole)
+      : null;
 
   const [pendingRequestsCount, setPendingRequestsCount] = useState<number | null>(null);
 
@@ -81,19 +107,19 @@ export const Header: React.FC = () => {
         {/* Links: Logo + Branding (im internen Bereich klickbar → /app/home) */}
         <div className="flex min-w-0 flex-1 items-center gap-3">
           {pathname.startsWith('/app') ? (
-            <Link to="/app/home" className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+            <Link to="/app/home" className="flex min-w-0 items-center gap-2 sm:gap-3">
               <img
                 src={logo}
                 alt=""
-                className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-white/10 sm:h-12 sm:w-12"
-                width={48}
-                height={48}
+                className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-white/10 sm:h-11 sm:w-11 md:h-12 md:w-12"
+                width={44}
+                height={44}
               />
               <div className="min-w-0 pr-1">
-                <div className="truncate text-base font-semibold leading-tight text-white sm:text-lg">
+                <div className="truncate text-[15px] font-semibold leading-tight text-white sm:text-base md:text-lg">
                   SpielzeitApp
                 </div>
-                <div className="truncate text-[10px] font-medium text-white/45 sm:text-[11px]">NSG Gölsental</div>
+                <div className="truncate text-[10px] font-medium text-white/45 sm:text-[11px]">{teamSubline}</div>
               </div>
             </Link>
           ) : (
@@ -149,6 +175,15 @@ export const Header: React.FC = () => {
                   Login
                 </button>
               )}
+              {authLoading || !user ? null : pathname.startsWith('/app') ? (
+                <Link
+                  to="/app/nachrichten"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white transition-colors hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-black"
+                  aria-label="Nachrichten"
+                >
+                  <Bell className="h-[1.15rem] w-[1.15rem]" strokeWidth={2} aria-hidden />
+                </Link>
+              ) : null}
               {authLoading || !user ? null : (
                 <Link
                   to={pathname.startsWith('/app') ? APP_PROFILE : '/profile'}
@@ -161,11 +196,20 @@ export const Header: React.FC = () => {
                 </Link>
               )}
             </div>
-            {roleLabel && !sessionLoading && !authLoading && (
-              <span className="rounded-full border border-white/10 bg-white/[0.07] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white/70 sm:text-[10px]">
-                {roleLabel}
-              </span>
-            )}
+            {!sessionLoading && !authLoading && (roleLabel || staffBackendBadge) ? (
+              <div className="flex max-w-[11rem] flex-wrap justify-end gap-1 sm:max-w-none">
+                {roleLabel ? (
+                  <span className="rounded-full border border-white/10 bg-white/[0.07] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white/70 sm:text-[10px]">
+                    {roleLabel}
+                  </span>
+                ) : null}
+                {staffBackendBadge ? (
+                  <span className="rounded-full border border-red-500/35 bg-red-950/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-red-200/90 sm:text-[10px]">
+                    {staffBackendBadge}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         )}
       </div>
