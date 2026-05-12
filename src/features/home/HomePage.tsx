@@ -23,12 +23,13 @@ export const HomePage: React.FC = () => {
     loading: sessionLoading,
     selectedTeamSeason,
     backendRole,
+    membershipRole,
   } = useSession();
   const { events, loading: evLoading } = useEvents(teamSeasonId);
   const { session } = useAuth();
   const { profile, loading: profileLoading } = useProfile(session?.user?.id ?? null);
   const teamName = selectedTeamSeason?.team?.name ?? 'Team';
-  const teamId = selectedTeamSeason?.team?.id ?? '';
+  const teamId = String(selectedTeamSeason?.team?.id ?? selectedTeamSeason?.team_id ?? '');
 
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -78,18 +79,18 @@ export const HomePage: React.FC = () => {
 
         {!loading && showContent && (
           <div className="space-y-4">
-            {teamSeasonId && teamId ? (
-              <HomeFeedComposer
-                backendRole={backendRole}
-                teamSeasonId={teamSeasonId}
-                teamId={teamId}
-                userId={session?.user?.id ?? null}
-                onPosted={() => void refetchFeed()}
-              />
-            ) : null}
-
             <section className="space-y-3" aria-label="Team-Feed">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-300/90">Feed</p>
+              {teamSeasonId && teamId ? (
+                <HomeFeedComposer
+                  backendRole={backendRole}
+                  membershipRole={membershipRole}
+                  teamSeasonId={teamSeasonId}
+                  teamId={teamId}
+                  userId={session?.user?.id ?? null}
+                  onPosted={() => void refetchFeed()}
+                />
+              ) : null}
               {teamFeedLoading ? (
                 <p className="text-sm text-white/50">Feed wird geladen…</p>
               ) : teamFeedPosts.length === 0 ? (

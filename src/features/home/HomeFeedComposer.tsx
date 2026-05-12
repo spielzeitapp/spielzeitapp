@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Camera, Clapperboard, ImagePlus, Send, Trophy, Video, X } from 'lucide-react';
+import { normalizeRole } from '../../auth/useSession';
 import { supabase } from '../../lib/supabaseClient';
 
 const STAFF_ROLES = new Set(['admin', 'head_coach', 'trainer', 'co_trainer']);
@@ -11,9 +12,18 @@ const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 150 * 1024 * 1024;
 
-function isStaffBackendRole(role: string | null | undefined): boolean {
-  if (!role) return false;
-  return STAFF_ROLES.has(role.trim().toLowerCase());
+/** Staff laut user_roles ODER Team-Mitgliedschaft (Trainer/Co/Chef — normalizeRole mappt Co/Chef → trainer). */
+export function isFeedComposerStaff(
+  backendRole: string | null | undefined,
+  membershipRole: string | null | undefined,
+): boolean {
+  const br = (backendRole ?? '').trim().toLowerCase();
+  if (STAFF_ROLES.has(br)) return true;
+  const mr = (membershipRole ?? '').trim();
+  if (!mr) return false;
+  if (STAFF_ROLES.has(mr.toLowerCase())) return true;
+  const n = normalizeRole(mr);
+  return n === 'trainer' || n === 'admin';
 }
 
 function extForMime(mime: string, kind: 'image' | 'video'): string {
@@ -29,6 +39,8 @@ function extForMime(mime: string, kind: 'image' | 'video'): string {
 
 type Props = {
   backendRole: string;
+  /** Rohrolle aus memberships für aktuelle team_season_id (z. B. trainer, co_trainer). */
+  membershipRole: string | null;
   teamSeasonId: string;
   teamId: string;
   userId: string | null;
@@ -37,6 +49,7 @@ type Props = {
 
 export const HomeFeedComposer: React.FC<Props> = ({
   backendRole,
+  membershipRole,
   teamSeasonId,
   teamId,
   userId,
@@ -228,7 +241,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
         <div className="relative">
           <div className="flex items-center gap-2">
             <Clapperboard className="h-5 w-5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
-            <h2 className="text-base font-bold tracking-tight text-white">Beitrag erstellen</h2>
+            <h2 className="text-base font-bold tracking-tight text-white">+ Beitrag erstellen</h2>
           </div>
           <p className="mt-1 text-xs leading-snug text-white/50">
             JPG/PNG/WebP bis 10 MB · MP4/MOV/WebM bis 150 MB · nur für Staff.
@@ -257,7 +270,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
               className="flex min-h-[48px] touch-manipulation flex-col items-center justify-center gap-1 rounded-2xl border border-red-500/25 bg-red-950/35 px-2 py-2.5 text-center text-xs font-semibold text-red-100 transition active:scale-[0.98] disabled:opacity-45"
             >
               <ImagePlus className="h-5 w-5 text-red-300" strokeWidth={2} aria-hidden />
-              Foto wählen
+              Foto posten
             </button>
             <button
               type="button"
@@ -266,7 +279,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
               className="flex min-h-[48px] touch-manipulation flex-col items-center justify-center gap-1 rounded-2xl border border-red-500/25 bg-red-950/35 px-2 py-2.5 text-center text-xs font-semibold text-red-100 transition active:scale-[0.98] disabled:opacity-45"
             >
               <Video className="h-5 w-5 text-red-300" strokeWidth={2} aria-hidden />
-              Video wählen
+              Video posten
             </button>
           </div>
 
