@@ -35,11 +35,11 @@ function PitchPlayerMarkerInner({
       : '!h-[44px] !w-[38px] shrink-0 sm:!h-[48px] sm:!w-[40px]';
 
   const nameMax =
-    mode === 'pitch' ? 'max-w-[124px] sm:max-w-[140px]' : 'max-w-[3.75rem] sm:max-w-[4.25rem]';
-  const wrapperMax = mode === 'pitch' ? 'max-w-[128px] sm:max-w-[144px]' : 'max-w-[5.25rem] sm:max-w-[5.75rem]';
+    mode === 'pitch' ? 'max-w-[148px] sm:max-w-[160px]' : 'max-w-[3.75rem] sm:max-w-[4.25rem]';
+  const wrapperMax = mode === 'pitch' ? 'max-w-[152px] sm:max-w-[164px]' : 'max-w-[5.25rem] sm:max-w-[5.75rem]';
 
   const trimmedName = lastName.trim();
-  const pitchName = mode === 'pitch' && trimmedName.length > 13 ? `${trimmedName.slice(0, 11)}...` : trimmedName;
+  const displayName = trimmedName || '—';
 
   return (
     <div
@@ -65,12 +65,12 @@ function PitchPlayerMarkerInner({
       <span
         className={
           mode === 'pitch'
-            ? `mt-[-1px] max-w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-full bg-black/45 px-[5px] py-[2px] text-center text-[12px] font-extrabold leading-[1.08] text-white sm:text-[13px] ${nameMax}`
+            ? `mt-0.5 line-clamp-2 max-w-full whitespace-normal rounded-xl bg-zinc-950/90 px-2.5 py-1 text-center text-[13px] font-extrabold leading-tight text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:text-sm ${nameMax}`
             : `mt-0.5 w-full truncate text-center text-sm font-bold leading-tight text-white ${nameMax}`
         }
         style={mode === 'pitch' ? { transform: `translate(${nameOffsetX}px, ${nameOffsetY}px)` } : undefined}
       >
-        {(mode === 'pitch' ? pitchName : trimmedName) || '—'}
+        {displayName}
       </span>
     </div>
   );
