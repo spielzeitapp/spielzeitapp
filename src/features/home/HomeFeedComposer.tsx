@@ -1,10 +1,8 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Camera, Clapperboard, ImagePlus, Send, Trophy, Video, X } from 'lucide-react';
-import { normalizeRole } from '../../auth/useSession';
 import { supabase } from '../../lib/supabaseClient';
-
-const STAFF_ROLES = new Set(['admin', 'head_coach', 'trainer', 'co_trainer']);
+import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
@@ -293,7 +291,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
     userId,
   ]);
 
-  if (!isFeedComposerStaff(backendRole, membershipRole)) return null;
+  if (!canStaffManageTeamFeed(backendRole, membershipRole)) return null;
 
   const statusLabel =
     phase === 'uploading' ? 'Datei wird hochgeladen…' : phase === 'saving' ? 'Beitrag wird gespeichert…' : null;

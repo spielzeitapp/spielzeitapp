@@ -11,12 +11,16 @@ import { supabase } from '../../lib/supabaseClient';
 import { MatchdayPosterCard, type MatchdayPosterVisualStatus } from './MatchdayPosterCard';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { matchdayPosterDomToPngBlob } from '../../lib/matchdayPosterExport';
+import { FeedPostDeleteButton } from './FeedPostDeleteButton';
+import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 
 type Props = {
   post: TeamFeedPostRow;
   /** Aktueller Termin aus dem Kalender — für LIVE / ENDSTAND / Logos live halten. */
   liveEvent?: EventRow | null;
   teamLabel: string;
+  staffCanDelete?: boolean;
+  onFeedPostDeleted?: () => void;
 };
 
 function likeStorageKey(postId: string): string {
@@ -32,7 +36,13 @@ function formatKickoff(iso: string): string {
   );
 }
 
-export const MatchdayFeedPostCard: React.FC<Props> = ({ post, liveEvent, teamLabel }) => {
+export const MatchdayFeedPostCard: React.FC<Props> = ({
+  post,
+  liveEvent,
+  teamLabel,
+  staffCanDelete,
+  onFeedPostDeleted,
+}) => {
   const p = post.payload as MatchdayFeedPayload;
   const posterCaptureRef = useRef<HTMLDivElement>(null);
   const [liked, setLiked] = useState(false);
@@ -247,9 +257,14 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({ post, liveEvent, teamLab
           </p>
           <p className="mt-1 text-[11px] text-white/50">{whenLabel}</p>
         </div>
-        <span className="shrink-0 rounded-full border border-red-500/25 bg-red-950/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/95">
-          Matchday
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          {staffCanDelete && onFeedPostDeleted ? (
+            <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
+          ) : null}
+          <span className="shrink-0 rounded-full border border-red-500/25 bg-red-950/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/95">
+            Matchday
+          </span>
+        </div>
       </header>
 
       <div className="space-y-4 px-3 pb-4 pt-4 sm:px-4">

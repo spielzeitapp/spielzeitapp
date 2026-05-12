@@ -5,17 +5,21 @@ import type { TeamFeedPostDbRow } from '../../lib/matchdayFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
 import { shareFeedContent } from '../../lib/feedShare';
+import { FeedPostDeleteButton } from './FeedPostDeleteButton';
+import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 
 type Props = {
   post: TeamFeedPostDbRow;
   teamLabel: string;
+  staffCanDelete?: boolean;
+  onFeedPostDeleted?: () => void;
 };
 
 function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
 }
 
-export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel }) => {
+export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDelete, onFeedPostDeleted }) => {
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
   const resolvedSrc = useFeedMediaSrc(post.media_url);
@@ -81,9 +85,14 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel }) => {
           </p>
           <p className="mt-0.5 text-[11px] text-white/50">{whenLabel}</p>
         </div>
-        <span className="shrink-0 rounded-full border border-red-500/35 bg-red-950/55 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/95">
-          Foto
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          {staffCanDelete && onFeedPostDeleted ? (
+            <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
+          ) : null}
+          <span className="shrink-0 rounded-full border border-red-500/35 bg-red-950/55 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/95">
+            Foto
+          </span>
+        </div>
       </header>
 
       <div className="space-y-3 px-2 pb-3 pt-3 sm:px-3">

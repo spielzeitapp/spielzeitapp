@@ -5,10 +5,14 @@ import type { TeamFeedPostDbRow } from '../../lib/matchdayFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
 import { shareFeedContent } from '../../lib/feedShare';
+import { FeedPostDeleteButton } from './FeedPostDeleteButton';
+import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 
 type Props = {
   post: TeamFeedPostDbRow;
   teamLabel: string;
+  staffCanDelete?: boolean;
+  onFeedPostDeleted?: () => void;
 };
 
 function likeStorageKey(postId: string): string {
@@ -28,7 +32,7 @@ function seekNearStart(video: HTMLVideoElement) {
   }
 }
 
-export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel }) => {
+export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDelete, onFeedPostDeleted }) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const videoShellRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -215,9 +219,14 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel }) => {
           </p>
           <p className="mt-0.5 text-[11px] text-white/50">{whenLabel}</p>
         </div>
-        <span className="shrink-0 rounded-full border border-red-500/35 bg-red-950/55 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/95">
-          Video
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          {staffCanDelete && onFeedPostDeleted ? (
+            <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
+          ) : null}
+          <span className="shrink-0 rounded-full border border-red-500/35 bg-red-950/55 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/95">
+            Video
+          </span>
+        </div>
       </header>
 
       <div className="space-y-3 px-2 pb-3 pt-3 sm:px-3">

@@ -14,6 +14,7 @@ import { HomeFeedPostRenderer } from '../../components/feed/HomeFeedPostRenderer
 import type { EventRow } from '../../hooks/useEvents';
 import { HomeFeedComposer } from './HomeFeedComposer';
 import { HomeUpcomingMatchCompact } from './HomeUpcomingMatchCompact';
+import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 
 const FEED_DEMO = import.meta.env.VITE_HOME_FEED_DEMO === '1';
 
@@ -48,6 +49,7 @@ export const HomePage: React.FC = () => {
   }, [events, now]);
 
   const { posts: teamFeedPosts, loading: teamFeedLoading, refetch: refetchFeed } = useTeamFeedPosts(teamSeasonId);
+  const staffCanDeleteFeed = canStaffManageTeamFeed(backendRole, membershipRole);
 
   const eventById = useMemo(() => {
     const source = FEED_DEMO ? buildDemoHomeMatchEvents(now) : (events ?? []);
@@ -107,6 +109,8 @@ export const HomePage: React.FC = () => {
                       item={item}
                       eventById={eventById}
                       teamLabel={teamName}
+                      staffCanDelete={staffCanDeleteFeed}
+                      onFeedPostDeleted={() => void refetchFeed()}
                     />
                   ))}
                 </div>
