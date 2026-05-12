@@ -3783,42 +3783,48 @@ export const LiveMatchScreen: React.FC = () => {
 
       {endeConfirmOpen && (
         <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/85 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/85 px-4 pb-6 backdrop-blur-sm pt-[max(72px,env(safe-area-inset-top,0px))] sm:items-center sm:py-8"
           role="presentation"
           onClick={() => setEndeConfirmOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border-2 border-red-500/55 bg-zinc-950 p-5 shadow-[0_0_40px_rgba(0,0,0,0.85)] sm:p-6"
+            className="my-2 flex w-full max-w-md max-h-[calc(100dvh-180px)] max-sm:-translate-y-[8vh] flex-col overflow-hidden rounded-2xl border-2 border-red-500/55 bg-zinc-950 shadow-[0_0_40px_rgba(0,0,0,0.85)] sm:my-0 sm:max-h-[min(calc(100dvh-120px),40rem)] sm:translate-y-0"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="ende-match-title"
           >
-            <h3 id="ende-match-title" className="text-xl font-black text-white sm:text-2xl">
-              Spiel beenden?
-            </h3>
-            <p className="mt-3 text-[15px] font-medium leading-snug text-zinc-300 sm:text-base">
-              Die Uhr stoppt, der Live-Modus endet und der Endstand wird gespeichert. Anschließend kannst du den Kalender-Termin mit{' '}
-              <span className="font-semibold text-white">Spiel abschließen</span> abschließen.
-            </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-row-reverse">
-              <button
-                type="button"
-                className="flex min-h-[52px] flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-red-600 to-red-950 text-base font-black uppercase tracking-wide text-white shadow-[0_0_24px_rgba(220,38,38,0.35)] active:scale-[0.99]"
-                onClick={async () => {
-                  setEndeConfirmOpen(false);
-                  await persistMatchEndWithoutCalendar();
-                }}
-              >
-                Ende
-              </button>
-              <button
-                type="button"
-                className="flex min-h-[52px] flex-1 items-center justify-center rounded-xl border-2 border-white/20 bg-zinc-900 text-base font-bold text-white active:scale-[0.99]"
-                onClick={() => setEndeConfirmOpen(false)}
-              >
-                Abbrechen
-              </button>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5 sm:px-6 sm:pt-6">
+              <h3 id="ende-match-title" className="text-xl font-black text-white sm:text-2xl">
+                Spiel beenden?
+              </h3>
+              <p className="mt-3 text-[15px] font-medium leading-snug text-zinc-300 sm:text-base">
+                Die Uhr stoppt, der Live-Modus endet und der Endstand wird gespeichert. Anschließend kannst du den Kalender-Termin mit{' '}
+                <span className="font-semibold text-white">Spiel abschließen</span> abschließen.
+              </p>
+            </div>
+            <div
+              className="sticky bottom-0 z-10 shrink-0 border-t border-white/[0.08] bg-zinc-950 px-5 pt-4 max-sm:pb-[max(120px,calc(env(safe-area-inset-bottom,0px)+96px))] sm:px-6 sm:pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]"
+            >
+              <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-stretch">
+                <button
+                  type="button"
+                  className="flex min-h-[52px] min-w-0 flex-1 items-center justify-center rounded-xl border-2 border-white/20 bg-zinc-900 text-base font-bold text-white active:scale-[0.99]"
+                  onClick={() => setEndeConfirmOpen(false)}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  className="flex min-h-[52px] min-w-0 flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-red-600 to-red-950 text-base font-black uppercase tracking-wide text-white shadow-[0_0_24px_rgba(220,38,38,0.35)] active:scale-[0.99]"
+                  onClick={async () => {
+                    setEndeConfirmOpen(false);
+                    await persistMatchEndWithoutCalendar();
+                  }}
+                >
+                  Ende
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -3826,38 +3832,44 @@ export const LiveMatchScreen: React.FC = () => {
 
       {spielAbschlussOpen && (
         <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/85 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/85 px-4 pb-6 backdrop-blur-sm pt-[max(72px,env(safe-area-inset-top,0px))] sm:items-center sm:py-8"
           role="presentation"
           onClick={() => setSpielAbschlussOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border-2 border-amber-500/45 bg-zinc-950 p-5 shadow-[0_0_40px_rgba(0,0,0,0.85)] sm:p-6"
+            className="my-2 flex w-full max-w-md max-h-[calc(100dvh-180px)] max-sm:-translate-y-[8vh] flex-col overflow-hidden rounded-2xl border-2 border-amber-500/45 bg-zinc-950 shadow-[0_0_40px_rgba(0,0,0,0.85)] sm:my-0 sm:max-h-[min(calc(100dvh-120px),40rem)] sm:translate-y-0"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="spiel-abschluss-title"
           >
-            <h3 id="spiel-abschluss-title" className="text-xl font-black text-white sm:text-2xl">
-              Kalender abschließen?
-            </h3>
-            <p className="mt-3 text-[15px] font-medium leading-snug text-zinc-300 sm:text-base">
-              Der verknüpfte Termin wird im Spielplan als beendet markiert. Danach wechselt die Ansicht zur App-Übersicht.
-            </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-row-reverse">
-              <button
-                type="button"
-                className="flex min-h-[52px] flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-amber-600 to-amber-950 text-base font-black uppercase tracking-wide text-white shadow-[0_0_20px_rgba(245,158,11,0.28)] active:scale-[0.99]"
-                onClick={() => void finalizeCalendarForMatch()}
-              >
-                Abschließen
-              </button>
-              <button
-                type="button"
-                className="flex min-h-[52px] flex-1 items-center justify-center rounded-xl border-2 border-white/20 bg-zinc-900 text-base font-bold text-white active:scale-[0.99]"
-                onClick={() => setSpielAbschlussOpen(false)}
-              >
-                Abbrechen
-              </button>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5 sm:px-6 sm:pt-6">
+              <h3 id="spiel-abschluss-title" className="text-xl font-black text-white sm:text-2xl">
+                Kalender abschließen?
+              </h3>
+              <p className="mt-3 text-[15px] font-medium leading-snug text-zinc-300 sm:text-base">
+                Der verknüpfte Termin wird im Spielplan als beendet markiert. Danach wechselt die Ansicht zur App-Übersicht.
+              </p>
+            </div>
+            <div
+              className="sticky bottom-0 z-10 shrink-0 border-t border-white/[0.08] bg-zinc-950 px-5 pt-4 max-sm:pb-[max(120px,calc(env(safe-area-inset-bottom,0px)+96px))] sm:px-6 sm:pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]"
+            >
+              <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-stretch">
+                <button
+                  type="button"
+                  className="flex min-h-[52px] min-w-0 flex-1 items-center justify-center rounded-xl border-2 border-white/20 bg-zinc-900 text-base font-bold text-white active:scale-[0.99]"
+                  onClick={() => setSpielAbschlussOpen(false)}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  className="flex min-h-[52px] min-w-0 flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-amber-600 to-amber-950 text-base font-black uppercase tracking-wide text-white shadow-[0_0_20px_rgba(245,158,11,0.28)] active:scale-[0.99]"
+                  onClick={() => void finalizeCalendarForMatch()}
+                >
+                  Abschließen
+                </button>
+              </div>
             </div>
           </div>
         </div>
