@@ -188,17 +188,24 @@ export const HomeFeedComposer: React.FC<Props> = ({
 
       const { data: authSnap } = await supabase.auth.getSession();
       const authUid = authSnap?.session?.user?.id ?? null;
-      console.info('[HomeFeedComposer] pre-insert', {
+      const rlsDebug = {
         auth_uid: authUid,
         backendRole,
         membershipRole,
         team_id: teamId,
         team_season_id: teamSeasonId,
-        insertPayload,
-      });
+      };
+      console.warn('[HomeFeedComposer][RLS-debug] kontext', rlsDebug);
+      console.warn('[HomeFeedComposer][RLS-debug] insertPayload', JSON.stringify(insertPayload, null, 2));
 
       const { error: insErr } = await supabase.from('team_feed_posts').insert(insertPayload);
       if (insErr) {
+        console.error('[HomeFeedComposer][RLS-debug] insert fehlgeschlagen', {
+          message: insErr.message,
+          code: insErr.code,
+          details: insErr.details,
+          hint: insErr.hint,
+        });
         await supabase.storage.from('team-feed').remove([objectPath]).catch(() => undefined);
         throw new Error(insErr.message);
       }
