@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import type { PlayerItem } from '../../hooks/usePlayers';
-import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
@@ -66,6 +65,11 @@ function benchPositionLabel(p: PlayerItem): string {
   return mapped.toUpperCase();
 }
 
+function mobileLineupName(name: string): string {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+  return parts.length > 1 ? parts[parts.length - 1]! : name || '—';
+}
+
 export const MatchLineupPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -93,7 +97,8 @@ export const MatchLineupPage: React.FC = () => {
   const assignFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [formationId, setFormationId] = useState<U11FormationId>(U11_FORMATION_DB_FALLBACK);
   const [isMobile, setIsMobile] = useState(false);
-  const [benchOpen, setBenchOpen] = useState(false);
+  const [benchOpen, setBenchOpen] = useState(true);
+  const [lineupViewMode, setLineupViewMode] = useState<'pitch' | 'list'>('pitch');
 
   useEffect(() => {
     let cancelled = false;
@@ -369,179 +374,290 @@ export const MatchLineupPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-1 overflow-y-auto px-1 py-1 pb-[11rem] sm:gap-3 sm:px-3 sm:py-2 sm:pb-[30rem]">
+      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-1 overflow-y-auto px-1 py-0.5 pb-[10.5rem] sm:gap-2 sm:px-2 sm:py-1 sm:pb-[28rem]">
         {playersError ? <p className="text-sm text-red-400">{playersError}</p> : null}
         {lineupError ? <p className="text-sm text-red-400">{lineupError}</p> : null}
         {saveError ? <p className="text-sm text-red-400">{saveError}</p> : null}
         {saveMsg ? <p className="text-sm text-emerald-300">{saveMsg}</p> : null}
 
-        <section className="space-y-1.5 p-0 sm:space-y-2 sm:rounded-[1.25rem] sm:border sm:border-white/[0.08] sm:bg-black/50 sm:p-2.5 sm:shadow-[0_0_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.04)] sm:ring-1 sm:ring-red-950/35">
-          <div className="flex items-center justify-between px-0.5 pt-0.5">
-            <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-white/90 sm:text-sm">Startelf</h2>
-            <span className="text-xs font-medium text-white/55">{starterCount}/7</span>
-          </div>
-          <div className="px-0.5">
-            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/45 sm:text-[10px]">Formation</p>
-            <div className="mt-1 flex flex-wrap gap-1.5 sm:mt-1.5 sm:gap-2">
-              {U11_FORMATION_CHOICES.map((id) => {
-                const active = formationId === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => {
-                      setFormationId(id);
-                      if (matchId) writeStoredU11Formation(matchId, id);
-                    }}
-                    className={[
-                      'min-h-[32px] rounded-lg border px-2.5 py-1.5 text-[11px] font-bold transition-all duration-200 ease-out sm:min-h-[40px] sm:px-3 sm:py-2 sm:text-xs',
-                      active
-                        ? 'scale-105 border-2 border-red-500/90 bg-red-500/25 text-white shadow-[0_0_22px_rgba(239,68,68,0.55),0_0_12px_rgba(248,113,113,0.35)]'
-                        : 'border-white/15 bg-black/30 text-white/75 hover:border-white/25 hover:bg-black/40',
-                    ].join(' ')}
-                  >
-                    {id}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <section>
-            <LineupFormationPitch
-              formationId={formationId}
-              slots={slots}
-              interactive
-              onSlotTap={onTapSlot}
-              selectedBankPlayerId={selectedBankPlayerId}
-              assignFlashSlot={assignFlashSlot}
-              renderSlotContent={({ label, labelDx, labelDy, playerId, flash, isGk, emphasize }) => {
-                const player = playerId ? playersById.get(playerId) : null;
-                if (!player) return null;
-                return (
-                  <div className="pointer-events-none">
-                    <PitchPlayerMarker
-                      lastName={playerFamilyName(player)}
-                      number={player.jersey_number}
-                      positionBadge={getPositionLabel(label) || label}
-                      variant={isGk ? 'goalkeeper' : 'field'}
-                      mode="pitch"
-                      nameOffsetX={labelDx}
-                      nameOffsetY={labelDy}
-                      assignFlash={flash}
-                      emphasize={emphasize}
-                    />
-                  </div>
-                );
-              }}
-            />
-          </section>
-        </section>
-
-        <section className="rounded-xl border border-white/[0.1] bg-black/45 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.42)] transition-all duration-300 sm:rounded-2xl sm:bg-black/55 sm:p-4 sm:shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] sm:ring-1 sm:ring-red-950/40">
-          <button
-            type="button"
-            onClick={() => setBenchOpen((v) => !v)}
-            className="mb-1 flex w-full items-center justify-between border-b border-white/5 pb-2 text-left sm:mb-2 sm:pb-3"
+        <div className="flex justify-center px-0.5 pt-0.5">
+          <div
+            className="inline-flex h-9 w-full max-w-[16.5rem] shrink-0 items-stretch overflow-hidden rounded-lg border border-white/12 bg-black/70 p-px shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+            role="tablist"
+            aria-label="Aufstellungsansicht"
           >
-            <h2 className="text-xs font-extrabold uppercase tracking-[0.14em] text-white/95 sm:text-sm">BANK</h2>
-            <span className="inline-flex items-center gap-2 text-xs font-medium text-white/45">
-              {bankIds.length} Spieler
-              <span aria-hidden>{benchOpen ? '▾' : '▸'}</span>
-            </span>
-          </button>
-          {benchOpen ? (
-            <>
-              <div className="-mx-1 overflow-x-auto pb-0.5 pl-1 pr-1 [-webkit-overflow-scrolling:touch]">
-                <div className="flex min-w-min flex-nowrap items-start gap-1.5 transition-all duration-300 sm:gap-2">
-                  {bankIds.map((id) => {
-                    const p = playersById.get(id);
-                    if (!p) return null;
-                    const isSelected = selectedBankPlayerId === id;
+            <button
+              type="button"
+              role="tab"
+              aria-selected={lineupViewMode === 'list'}
+              onClick={() => setLineupViewMode('list')}
+              className={[
+                'min-h-9 flex-1 px-2 text-center text-[11px] font-bold leading-none transition-colors sm:text-xs',
+                lineupViewMode === 'list'
+                  ? 'rounded-md bg-red-600 text-white shadow-[0_0_8px_rgba(220,38,38,0.22)]'
+                  : 'rounded-md text-white/45 hover:bg-white/[0.06] hover:text-white/78',
+              ].join(' ')}
+            >
+              Liste
+            </button>
+            <span className="w-px shrink-0 self-stretch bg-white/12" aria-hidden />
+            <button
+              type="button"
+              role="tab"
+              aria-selected={lineupViewMode === 'pitch'}
+              onClick={() => setLineupViewMode('pitch')}
+              className={[
+                'min-h-9 flex-1 px-2 text-center text-[11px] font-bold leading-none transition-colors sm:text-xs',
+                lineupViewMode === 'pitch'
+                  ? 'rounded-md bg-red-600 text-white shadow-[0_0_8px_rgba(220,38,38,0.22)]'
+                  : 'rounded-md text-white/45 hover:bg-white/[0.06] hover:text-white/78',
+              ].join(' ')}
+            >
+              Spielfeld
+            </button>
+          </div>
+        </div>
+
+        <div className="px-0.5 pt-0.5">
+          <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-white/38">Formation</p>
+          <div className="mt-0.5 flex flex-wrap gap-1 sm:gap-1.5">
+            {U11_FORMATION_CHOICES.map((id) => {
+              const active = formationId === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    setFormationId(id);
+                    if (matchId) writeStoredU11Formation(matchId, id);
+                  }}
+                  className={[
+                    'min-h-[28px] rounded-md border px-2 py-1 text-[10px] font-bold transition-all duration-200 ease-out sm:min-h-[32px] sm:px-2.5 sm:py-1 sm:text-[11px]',
+                    active
+                      ? 'border-red-500/80 bg-red-500/22 text-white shadow-[0_0_14px_rgba(239,68,68,0.35)]'
+                      : 'border-white/12 bg-black/35 text-white/72 hover:border-white/22 hover:bg-black/45',
+                  ].join(' ')}
+                >
+                  {id}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {lineupViewMode === 'pitch' ? (
+          <>
+            <section className="space-y-1 p-0 sm:space-y-1.5 sm:rounded-xl sm:border sm:border-white/[0.08] sm:bg-black/45 sm:p-2 sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:ring-1 sm:ring-red-950/30">
+              <div className="flex items-center justify-between px-0.5">
+                <h2 className="text-[10px] font-black uppercase tracking-[0.14em] text-white/88 sm:text-[11px]">
+                  Startaufstellung
+                </h2>
+                <span className="text-[10px] font-semibold text-white/50 sm:text-xs">{starterCount}/7</span>
+              </div>
+              <section className="-mx-0.5 sm:mx-0">
+                <LineupFormationPitch
+                  formationId={formationId}
+                  slots={slots}
+                  interactive
+                  onSlotTap={onTapSlot}
+                  selectedBankPlayerId={selectedBankPlayerId}
+                  assignFlashSlot={assignFlashSlot}
+                  className="max-h-[min(64dvh,32rem)] w-full sm:max-h-[min(42rem,68vh)]"
+                  renderSlotContent={({ label, labelDx, labelDy, playerId, flash, isGk, emphasize }) => {
+                    const player = playerId ? playersById.get(playerId) : null;
+                    if (!player) return null;
+                    return (
+                      <div className="pointer-events-none">
+                        <PitchPlayerMarker
+                          lastName={playerFamilyName(player)}
+                          number={player.jersey_number}
+                          positionBadge={getPositionLabel(label) || label}
+                          variant={isGk ? 'goalkeeper' : 'field'}
+                          mode="pitch"
+                          nameOffsetX={labelDx}
+                          nameOffsetY={labelDy}
+                          assignFlash={flash}
+                          emphasize={emphasize}
+                        />
+                      </div>
+                    );
+                  }}
+                />
+              </section>
+            </section>
+
+            <section className="rounded-lg border border-white/[0.1] bg-black/40 p-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.38)] sm:rounded-xl sm:p-2 sm:ring-1 sm:ring-red-950/35">
+              <button
+                type="button"
+                onClick={() => setBenchOpen((v) => !v)}
+                className="mb-1 flex w-full items-center justify-between border-b border-white/[0.06] pb-1 text-left"
+              >
+                <h2 className="text-[10px] font-black uppercase tracking-[0.14em] text-white/88 sm:text-[11px]">
+                  Ersatzbank
+                </h2>
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-white/45">
+                  {bankIds.length}
+                  <span aria-hidden>{benchOpen ? '▾' : '▸'}</span>
+                </span>
+              </button>
+              {benchOpen ? (
+                <>
+                  <div className="-mx-0.5 overflow-x-auto pb-0.5 pl-0.5 pr-0.5 [-webkit-overflow-scrolling:touch]">
+                    <div className="flex min-w-min flex-nowrap items-start gap-1">
+                      {bankIds.map((id) => {
+                        const p = playersById.get(id);
+                        if (!p) return null;
+                        const isSelected = selectedBankPlayerId === id;
+                        const posLabel = benchPositionLabel(p);
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => onTapBankPlayer(id)}
+                            className={[
+                              'shrink-0 rounded-lg px-1 py-0.5 transition-all active:scale-[0.98]',
+                              isSelected
+                                ? 'border border-emerald-400/75 bg-emerald-950/28 shadow-[0_0_12px_rgba(16,185,129,0.28)] ring-1 ring-emerald-400/45'
+                                : 'border border-white/10 bg-black/30 hover:border-white/18',
+                            ].join(' ')}
+                          >
+                            <div className="flex flex-col items-center">
+                              <LeibchenJersey
+                                lastName={mobileLineupName(playerFamilyName(p))}
+                                number={p.jersey_number}
+                                position={posLabel}
+                                variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
+                                size="compact"
+                                className="!h-[2.7rem] !w-[2.1rem] sm:!h-[3rem] sm:!w-[2.4rem]"
+                                showBackPrint={false}
+                                pitchStyleBack
+                                selected={isSelected}
+                              />
+                              <span className="mt-0.5 max-w-[3.25rem] truncate text-center text-[9px] font-bold tabular-nums text-white/95">
+                                {p.jersey_number ?? '–'}
+                              </span>
+                              <span className="max-w-[3.5rem] truncate text-center text-[8px] font-semibold leading-tight text-white/55">
+                                {mobileLineupName(playerFamilyName(p))}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {bankIds.length === 0 ? <p className="text-[11px] text-white/48">Keine Spieler auf der Bank.</p> : null}
+                </>
+              ) : null}
+            </section>
+          </>
+        ) : (
+          <section className="min-h-0 flex-1 rounded-lg border border-white/[0.08] bg-black/35 p-1.5 sm:rounded-xl sm:p-2">
+            <div
+              className="grid max-h-[min(72dvh,36rem)] min-h-[14rem] grid-cols-2 gap-1.5 sm:max-h-[min(75dvh,40rem)] sm:gap-2"
+              style={{ minHeight: 'min(50dvh, 17rem)' }}
+            >
+              <div className="flex min-h-0 min-w-0 flex-col gap-1">
+                <h2 className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-white/88">Startaufstellung</h2>
+                <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
+                  {LIVE_FIELD_SLOT_ORDER.map((slot) => {
+                    const pid = slots[slot];
+                    const p = pid ? playersById.get(pid) : null;
+                    const posLabel = getPositionLabel(labelForSlotInFormation(formationId, slot)) || '—';
+                    const isGk = slot === 'GK';
+                    if (p) {
+                      const shortName = mobileLineupName(playerFamilyName(p));
+                      return (
+                        <button
+                          key={`list-f-${slot}`}
+                          type="button"
+                          onClick={() => onTapSlot(slot)}
+                          className="flex h-[4.5rem] min-h-[4.25rem] w-full shrink-0 items-center gap-1.5 rounded-xl border border-white/[0.1] bg-gradient-to-br from-red-950/35 via-black/78 to-black/92 px-1.5 py-1 text-left transition-all hover:border-red-500/32 active:scale-[0.99]"
+                        >
+                          <div className="pointer-events-none shrink-0">
+                            <LeibchenJersey
+                              lastName={shortName}
+                              number={p.jersey_number ?? '–'}
+                              position={posLabel}
+                              variant={isGk ? 'goalkeeper' : 'field'}
+                              size="compact"
+                              pitchStyleBack
+                              className="!h-[2.85rem] !w-[2.25rem] sm:!h-[3.1rem] sm:!w-[2.5rem]"
+                            />
+                          </div>
+                          <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 overflow-hidden">
+                            <p className="truncate text-[12px] font-bold leading-tight text-white">{shortName}</p>
+                            <span className="inline-flex w-fit rounded-md border border-red-500/30 bg-red-950/45 px-1 py-px text-[7px] font-bold uppercase tracking-wide text-red-100/90">
+                              {posLabel}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    }
                     return (
                       <button
-                        key={id}
+                        key={`list-f-${slot}`}
                         type="button"
-                        onClick={() => onTapBankPlayer(id)}
-                        className={[
-                          'shrink-0 rounded-lg px-1.5 py-1 transition-all duration-300 ease-out active:scale-95 sm:rounded-xl sm:px-2 sm:py-2',
-                          isSelected
-                            ? 'border-2 border-emerald-400/85 bg-emerald-950/30 shadow-[0_0_22px_rgba(16,185,129,0.4)]'
-                            : 'border border-white/12 bg-black/35 hover:border-white/22 hover:bg-black/45',
-                        ].join(' ')}
+                        onClick={() => onTapSlot(slot)}
+                        className="flex h-[4.5rem] min-h-[4.25rem] w-full shrink-0 flex-col items-center justify-center rounded-xl border border-dashed border-white/14 bg-black/40 px-1.5 py-1 text-center transition-all active:scale-[0.99] hover:border-white/22"
                       >
-                        <div className="flex flex-col items-center">
-                          <LeibchenJersey
-                            lastName={playerFamilyName(p)}
-                            number={p.jersey_number}
-                            position={benchPositionLabel(p)}
-                            variant="field"
-                            size="compact"
-                            className="!h-[3.1rem] !w-[2.45rem] sm:!h-[3.6rem] sm:!w-[2.85rem]"
-                            showBackPrint={false}
-                            pitchStyleBack
-                            selected={isSelected}
-                          />
-                          <span className="mt-0.5 max-w-[68px] truncate text-center text-[10px] font-bold leading-tight text-white sm:text-xs">
-                            {playerFamilyName(p)}
-                          </span>
-                        </div>
+                        <span className="text-[9px] font-black uppercase tracking-wide text-white/40">{posLabel}</span>
+                        <span className="mt-0.5 text-[10px] font-semibold text-white/45">Frei</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
-              {bankIds.length === 0 ? <p className="text-xs text-white/50">Keine Spieler auf der Bank.</p> : null}
-            </>
-          ) : null}
-        </section>
-
-        <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
-          <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-white/55">Startaufstellung Liste</h2>
-          <div className="space-y-1.5">
-            {LIVE_FIELD_SLOT_ORDER.map((slot) => {
-              const pid = slots[slot];
-              const p = pid ? playersById.get(pid) : null;
-              const posLabel = getPositionLabel(labelForSlotInFormation(formationId, slot)) || "—";
-              return (
-                <div key={`row-${slot}`} className="relative">
-                  <span className="absolute left-3 top-3 z-10 rounded-md border border-red-500/40 bg-red-950/60 px-2 py-0.5 text-[10px] font-bold text-red-200">
-                    {posLabel}
-                  </span>
-                  {p ? (
-                    <MatchPlayerRow
-                      player={{ ...p, position: posLabel }}
-                    />
+              <div className="flex min-h-0 min-w-0 flex-col gap-1 border-l border-white/[0.06] pl-1.5 sm:pl-2">
+                <h2 className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-white/88">Ersatzbank</h2>
+                <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
+                  {bankIds.length === 0 ? (
+                    <p className="text-[11px] text-white/48">Keine Bankspieler.</p>
                   ) : (
-                    <div className="rounded-2xl border border-white/15 bg-gradient-to-br from-zinc-900/60 via-black/70 to-black p-3 pl-14 text-sm text-white/60">
-                      {posLabel} frei
-                    </div>
+                    bankIds.map((id) => {
+                      const p = playersById.get(id);
+                      if (!p) return null;
+                      const posLabel = benchPositionLabel(p);
+                      const shortName = mobileLineupName(playerFamilyName(p));
+                      const isSelected = selectedBankPlayerId === id;
+                      return (
+                        <button
+                          key={`list-b-${id}`}
+                          type="button"
+                          onClick={() => onTapBankPlayer(id)}
+                          className={[
+                            'flex h-[4.5rem] min-h-[4.25rem] w-full shrink-0 items-center gap-1.5 rounded-xl border px-1.5 py-1 text-left transition-all active:scale-[0.99]',
+                            'bg-gradient-to-br from-emerald-950/22 via-black/78 to-black/92',
+                            isSelected
+                              ? 'border-emerald-400 shadow-[0_0_14px_rgba(16,185,129,0.32)] ring-1 ring-emerald-400/50'
+                              : 'border-white/[0.1] hover:border-emerald-500/28',
+                          ].join(' ')}
+                        >
+                          <div className="pointer-events-none shrink-0">
+                            <LeibchenJersey
+                              lastName={shortName}
+                              number={p.jersey_number ?? '–'}
+                              position={posLabel}
+                              variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
+                              size="compact"
+                              pitchStyleBack
+                              className="!h-[2.85rem] !w-[2.25rem] sm:!h-[3.1rem] sm:!w-[2.5rem]"
+                            />
+                          </div>
+                          <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 overflow-hidden">
+                            <p className="truncate text-[12px] font-bold leading-tight text-white">{shortName}</p>
+                            <span className="inline-flex w-fit rounded-md border border-amber-500/28 bg-amber-950/40 px-1 py-px text-[7px] font-bold uppercase tracking-wide text-amber-100/90">
+                              Bank
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })
                   )}
                 </div>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
-          <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-white/55">Bank Liste</h2>
-          {bankIds.length === 0 ? (
-            <p className="text-sm text-white/55">Keine Bankspieler</p>
-          ) : (
-            <div className="space-y-1.5">
-              {bankIds.map((id) => {
-                const p = playersById.get(id);
-                if (!p) return null;
-                return (
-                  <MatchPlayerRow
-                    key={`bank-list-${id}`}
-                    player={p}
-                    rightLabel="Bank"
-                  />
-                );
-              })}
+              </div>
             </div>
-          )}
-        </section>
+          </section>
+        )}
       </main>
 
       <div
@@ -552,7 +668,7 @@ export const MatchLineupPage: React.FC = () => {
         }}
       >
         <div className="mx-auto flex max-w-xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-xs font-medium text-white/55">Startelf: {starterCount}/7</span>
+          <span className="text-xs font-medium text-white/55">Startaufstellung: {starterCount}/7</span>
           <div className="flex w-full items-stretch justify-end gap-2 sm:w-auto">
             <button
               type="button"
