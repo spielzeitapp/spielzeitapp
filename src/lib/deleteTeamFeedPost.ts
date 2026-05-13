@@ -79,8 +79,27 @@ type RpcDeletePayload = {
   reason?: string;
 };
 
+function scheduleOptionalStorageRemove(paths: string[]) {
+  if (paths.length === 0) return;
+  void (async () => {
+    try {
+      const { error } = await supabase.storage.from(TEAM_FEED_BUCKET).remove(paths);
+      if (error) {
+        console.warn('[deleteTeamFeedPostClient] storage.remove (async)', {
+          message: error.message,
+          code: error.statusCode,
+        });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn('[deleteTeamFeedPostClient] storage.remove threw (async)', msg);
+    }
+  })();
+}
+
 /**
- * Storage optional (blockiert nie), DB-Löschung ausschließlich per RPC `public.delete_team_feed_post(p_post_id)`.
+ * DB-Löschung per RPC `public.delete_team_feed_post_v2(p_post_id)`.
+ * Storage-Cleanup danach optional im Hintergrund — blockiert den Erfolg nie.
  */
 export async function deleteTeamFeedPostClient(input: FeedPostDeleteInput): Promise<{
   ok: boolean;
@@ -103,30 +122,14 @@ export async function deleteTeamFeedPostClient(input: FeedPostDeleteInput): Prom
     storagePathCount: paths.length,
   });
 
-  if (paths.length > 0) {
-    try {
-      const { error } = await supabase.storage.from(TEAM_FEED_BUCKET).remove(paths);
-      if (error) {
-        storageWarnings.push(error.message);
-        console.warn('[deleteTeamFeedPostClient] storage.remove', {
-          message: error.message,
-          code: error.statusCode,
-        });
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      storageWarnings.push(msg);
-      console.warn('[deleteTeamFeedPostClient] storage.remove threw', msg);
-    }
-  }
-
-  const { data: rpcData, error: rpcErr } = await supabase.rpc('delete_team_feed_post', {
+  const { data: rpcData, error: rpcErr } = await supabase.rpc('delete_team_feed_post_v2', {
     p_post_id: postId,
   });
 
-  console.info('[deleteTeamFeedPostClient] RPC delete_team_feed_post', {
-    data: rpcData,
-    error: rpcErr
+  console.log('[deleteTeamFeedPostClient] RPC delete_team_feed_post_v2', {
+    postId: input.id,
+    rpcData,
+    rpcError: rpcErr
       ? {
           message: rpcErr.message,
           code: rpcErr.code,
@@ -141,7 +144,7 @@ export async function deleteTeamFeedPostClient(input: FeedPostDeleteInput): Prom
     const missingFn =
       /function .* does not exist|could not find the function/i.test(msg) || rpcErr.code === '42883';
     const dbError = missingFn
-      ? `RPC delete_team_feed_post fehlt oder ist nicht erreichbar: ${msg} (Code: ${rpcErr.code ?? '—'})`
+      ? `RPC delete_team_feed_post_v2 fehlt oder ist nicht erreichbar: ${msg} (Code: ${rpcErr.code ?? '—'})`
       : `Löschen fehlgeschlagen: ${msg}${rpcErr.code ? ` [${rpcErr.code}]` : ''}${rpcErr.details ? ` · ${rpcErr.details}` : ''}${rpcErr.hint ? ` · ${rpcErr.hint}` : ''}`;
     return { ok: false, storageWarnings, dbError };
   }
@@ -169,6 +172,7 @@ export async function deleteTeamFeedPostClient(input: FeedPostDeleteInput): Prom
   }
 
   if (row.ok === true) {
+    scheduleOptionalStorageRemove(paths);
     return { ok: true, storageWarnings, dbError: null };
   }
 

@@ -19,16 +19,16 @@ export const FeedPostDeleteButton: React.FC<Props> = ({ input, onDeleted }) => {
         team_season_id: input.team_season_id,
       });
       const res = await deleteTeamFeedPostClient(input);
-      console.info('[FeedPostDeleteButton] delete result', {
-        ok: res.ok,
-        dbError: res.dbError,
-        storageWarnings: res.storageWarnings,
-      });
       if (!res.ok) {
         window.alert(`Beitrag konnte nicht gelöscht werden: ${res.dbError ?? 'Unbekannter Fehler'}`);
         return;
       }
       onDeleted();
+      console.info('[FeedPostDeleteButton] delete result', {
+        ok: res.ok,
+        dbError: res.dbError,
+        storageWarnings: res.storageWarnings,
+      });
       if (res.storageWarnings.length > 0) {
         window.alert(
           `Beitrag wurde aus dem Feed entfernt. Datei im Speicher konnte nicht vollständig gelöscht werden: ${res.storageWarnings.join(' · ')}`,
