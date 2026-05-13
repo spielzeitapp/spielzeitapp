@@ -273,6 +273,9 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
     captionLen: caption.length,
   });
 
+  const { data: sessionData } = await supabase.auth.getSession();
+  const uid = sessionData?.session?.user?.id ?? null;
+
   const { data: rpcData, error: rpcErr } = await supabase.rpc('ensure_result_feed_post_for_match', {
     p_match_id: mid,
     p_caption: caption,
@@ -286,7 +289,39 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
       details: rpcErr.details,
       hint: rpcErr.hint,
     });
-    return { ok: false, error: rpcErr.message };
+    const missingFn =
+      /could not find the function|function .* does not exist|404/i.test(String(rpcErr.message ?? '')) ||
+      rpcErr.code === '42883';
+    if (!missingFn) {
+      return { ok: false, error: rpcErr.message };
+    }
+    rfLog('rpc missing (Migration?), fallback client insert', { matchId: mid });
+    const { error: insErr } = await supabase.from('team_feed_posts').insert({
+      team_season_id: match.team_season_id,
+      team_id: teamInfo.teamId,
+      event_id,
+      post_kind: 'result_auto',
+      caption,
+      payload,
+      dedupe_key,
+      media_type: 'result',
+      media_url: null,
+      thumbnail_url: null,
+      duration_seconds: null,
+      created_by: uid,
+    });
+    if (insErr) {
+      rfLog('fallback insert failed', {
+        message: insErr.message,
+        code: insErr.code,
+      });
+      if (insErr.code === '23505') {
+        return { ok: true, created: false, reason: 'duplicate_race' };
+      }
+      return { ok: false, error: insErr.message };
+    }
+    rfLog('fallback insert success', { matchId: mid, dedupe_key });
+    return { ok: true, created: true };
   }
 
   const row = rpcData as RpcResultRow | null;
