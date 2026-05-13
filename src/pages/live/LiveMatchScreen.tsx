@@ -1598,8 +1598,18 @@ export const LiveMatchScreen: React.FC = () => {
             }
           : null,
       );
+      console.info('[resultFeed][LiveMatch] persistMatchEndWithoutCalendar OK', {
+        matchId: effectiveMatchId,
+        status: 'finished',
+        score_home: fh,
+        score_away: fa,
+      });
       void ensureResultFeedPostForMatch(effectiveMatchId).then((res) => {
-        if (!res.ok && import.meta.env.DEV) console.warn('[ensureResultFeedPost]', res.error);
+        console.info('[resultFeed][LiveMatch] ensureResultFeedPostForMatch', {
+          matchId: effectiveMatchId,
+          ...res,
+        });
+        if (!res.ok) console.warn('[resultFeed][LiveMatch] ensure failed', res.error);
       });
     }
   };

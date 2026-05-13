@@ -14,6 +14,10 @@ export type EnsureResultFeedPostResult =
   | { ok: true; created: boolean; reason?: string }
   | { ok: false; error: string };
 
+function rfLog(phase: string, data: Record<string, unknown>): void {
+  console.info(`[resultFeed] ${phase}`, data);
+}
+
 function dedupeKeyForMatch(matchId: string): string {
   return `result_feed:${matchId}`;
 }
@@ -23,12 +27,42 @@ type TeamSeasonJoinRow = {
   teams: { name: string | null } | { name: string | null }[] | null;
 };
 
-function teamNameFromSeasonRow(row: TeamSeasonJoinRow | null): { teamId: string; name: string } | null {
-  if (!row?.team_id) return null;
-  const raw = row.teams;
-  const t = Array.isArray(raw) ? raw[0] : raw;
-  const name = (t?.name != null ? String(t.name).trim() : '') || 'Unser Team';
-  return { teamId: row.team_id, name };
+async function resolveTeamForSeason(teamSeasonId: string): Promise<{ teamId: string; name: string } | null> {
+  const { data: tsRow, error: tsErr } = await supabase
+    .from('team_seasons')
+    .select('team_id, teams(name)')
+    .eq('id', teamSeasonId)
+    .maybeSingle();
+
+  if (!tsErr && tsRow?.team_id) {
+    const row = tsRow as TeamSeasonJoinRow;
+    const raw = row.teams;
+    const t = Array.isArray(raw) ? raw[0] : raw;
+    const nameFromJoin = (t?.name != null ? String(t.name).trim() : '') || '';
+    return { teamId: row.team_id, name: nameFromJoin || 'Unser Team' };
+  }
+
+  rfLog('resolveTeamForSeason: join failed or empty, fallback team_id only', {
+    teamSeasonId,
+    error: tsErr?.message ?? null,
+  });
+
+  const { data: minimal, error: minErr } = await supabase
+    .from('team_seasons')
+    .select('team_id')
+    .eq('id', teamSeasonId)
+    .maybeSingle();
+
+  if (minErr || !minimal?.team_id) {
+    rfLog('resolveTeamForSeason: fallback failed', { error: minErr?.message ?? 'no team_id' });
+    return null;
+  }
+
+  const teamId = minimal.team_id as string;
+  const { data: teamRow } = await supabase.from('teams').select('name').eq('id', teamId).maybeSingle();
+  const n = (teamRow as { name?: string | null } | null)?.name;
+  const name = (n != null && String(n).trim()) ? String(n).trim() : 'Unser Team';
+  return { teamId, name };
 }
 
 type EventRowLite = {
@@ -44,39 +78,65 @@ type EventRowLite = {
   opponent_slug?: string | null;
 };
 
+type RpcResultRow = {
+  ok?: boolean;
+  created?: boolean;
+  error?: string;
+  reason?: string;
+};
+
 /**
  * Idempotent: legt genau einen Ergebnis-Feedpost pro Match an (dedupe_key).
- * Nur wenn `matches.status === 'finished'`. Kein Post bei laufendem Spiel.
+ * Nur wenn `matches.status === 'finished'`. INSERT über RPC (SECURITY DEFINER), analog Matchday-Automation.
  */
 export async function ensureResultFeedPostForMatch(matchId: string): Promise<EnsureResultFeedPostResult> {
   const mid = matchId?.trim();
-  if (!mid) return { ok: false, error: 'Keine Match-ID.' };
-
-  const { data: match, error: matchErr } = await fetchMatchById(mid);
-  if (matchErr) return { ok: false, error: matchErr };
-  if (!match) return { ok: false, error: 'Spiel nicht gefunden.' };
-  if (match.status !== 'finished') {
-    return { ok: true, created: false, reason: 'not_finished' };
+  if (!mid) {
+    rfLog('ensureResultFeedPostForMatch', { error: 'empty_match_id' });
+    return { ok: false, error: 'Keine Match-ID.' };
   }
 
   const dedupe_key = dedupeKeyForMatch(mid);
+
+  const { data: match, error: matchErr } = await fetchMatchById(mid);
+  rfLog('match loaded', {
+    matchId: mid,
+    ok: !matchErr && !!match,
+    error: matchErr ?? null,
+    status: match?.status ?? null,
+    team_season_id: match?.team_season_id ?? null,
+    score_home: match?.score_home ?? null,
+    score_away: match?.score_away ?? null,
+  });
+
+  if (matchErr) return { ok: false, error: matchErr };
+  if (!match) return { ok: false, error: 'Spiel nicht gefunden.' };
+  if (match.status !== 'finished') {
+    rfLog('skip: not_finished', { matchId: mid, status: match.status, dedupe_key });
+    return { ok: true, created: false, reason: 'not_finished' };
+  }
+
   const { data: existing, error: exErr } = await supabase
     .from('team_feed_posts')
     .select('id')
     .eq('dedupe_key', dedupe_key)
     .maybeSingle();
+
+  rfLog('dedupe check', { dedupe_key, exists: !!existing?.id, selectError: exErr?.message ?? null });
+
   if (exErr) return { ok: false, error: exErr.message };
   if (existing?.id) return { ok: true, created: false, reason: 'already_exists' };
 
-  const { data: tsRow, error: tsErr } = await supabase
-    .from('team_seasons')
-    .select('team_id, teams(name)')
-    .eq('id', match.team_season_id)
-    .maybeSingle();
+  const teamInfo = await resolveTeamForSeason(match.team_season_id);
+  rfLog('team resolved', {
+    team_season_id: match.team_season_id,
+    teamId: teamInfo?.teamId ?? null,
+    teamName: teamInfo?.name ?? null,
+  });
 
-  if (tsErr) return { ok: false, error: tsErr.message };
-  const teamInfo = teamNameFromSeasonRow(tsRow as TeamSeasonJoinRow | null);
-  if (!teamInfo) return { ok: false, error: 'Team zur Saison nicht gefunden.' };
+  if (!teamInfo) {
+    return { ok: false, error: 'Team zur Saison nicht gefunden.' };
+  }
 
   const { data: evRaw, error: evErr } = await supabase
     .from('events')
@@ -86,8 +146,10 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
     .eq('match_id', mid)
     .maybeSingle();
 
-  if (evErr) return { ok: false, error: evErr.message };
-  const ev = (evRaw ?? null) as EventRowLite | null;
+  if (evErr) {
+    rfLog('events lookup warning (using fallbacks)', { matchId: mid, error: evErr.message });
+  }
+  const ev = (evErr ? null : evRaw) as EventRowLite | null;
 
   const opponentName = (ev?.opponent ?? match.opponent ?? '').trim() || 'Gegner';
   const ownTeamName = teamInfo.name;
@@ -109,15 +171,17 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
   const oppSlug = ev?.opponent_slug ?? null;
   const home_logo_url = sides.isOwnTeamHome
     ? getClubLogo(sides.homeTeamName)
-    : getClubLogo(sides.homeTeamName, { slug: oppSlug, logoUrl: oppLogo });
+    : getClubLogo(sides.homeTeamName, { slug: oppSlug ?? undefined, logoUrl: oppLogo });
   const away_logo_url = sides.isOwnTeamHome
-    ? getClubLogo(sides.awayTeamName, { slug: oppSlug, logoUrl: oppLogo })
+    ? getClubLogo(sides.awayTeamName, { slug: oppSlug ?? undefined, logoUrl: oppLogo })
     : getClubLogo(sides.awayTeamName);
 
   const locParsed = splitCombinedLocation(ev?.location ?? match.location ?? null);
-  const location = formatFullLocation(locParsed.place, ev?.address ?? null) || (match.location ?? '').trim() || '—';
+  const location =
+    formatFullLocation(locParsed.place, ev?.address ?? null) || (match.location ?? '').trim() || '—';
 
-  const { data: goalRows, error: gErr } = await supabase
+  let goalRows: { id?: string; type?: string; minute?: number | null; player_id?: string | null }[] = [];
+  const { data: goalsData, error: gErr } = await supabase
     .from('match_events')
     .select('id, type, minute, player_id')
     .eq('match_id', mid)
@@ -125,16 +189,18 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
     .order('minute', { ascending: true, nullsFirst: true })
     .order('created_at', { ascending: true });
 
-  if (gErr) return { ok: false, error: gErr.message };
+  if (gErr) {
+    rfLog('match_events goals warning', { matchId: mid, error: gErr.message });
+  } else {
+    goalRows = (goalsData ?? []) as typeof goalRows;
+  }
 
   const ourGoalTypes: Set<string> = sides.isOwnTeamHome ? new Set(['goal']) : new Set(['goal_away']);
-  const ourGoals = (goalRows ?? []).filter((r) => ourGoalTypes.has(String((r as { type?: string }).type ?? '')));
+  const ourGoals = goalRows.filter((r) => ourGoalTypes.has(String(r.type ?? '')));
 
   const playerIds = [
     ...new Set(
-      ourGoals
-        .map((r) => (r as { player_id?: string | null }).player_id)
-        .filter((id): id is string => typeof id === 'string' && id.length > 0),
+      ourGoals.map((r) => r.player_id).filter((id): id is string => typeof id === 'string' && id.length > 0),
     ),
   ];
 
@@ -144,20 +210,22 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
       .from('players')
       .select('id, first_name, last_name')
       .in('id', playerIds);
-    if (pErr) return { ok: false, error: pErr.message };
-    for (const pr of players ?? []) {
-      const row = pr as { id: string; first_name?: string | null; last_name?: string | null };
-      const fn = (row.first_name ?? '').trim();
-      const ln = (row.last_name ?? '').trim();
-      const dn = [fn, ln].join(' ').replace(/\s+/g, ' ').trim() || 'Spieler';
-      nameByPlayer.set(row.id, dn);
+    if (pErr) {
+      rfLog('players lookup warning', { error: pErr.message });
+    } else {
+      for (const pr of players ?? []) {
+        const row = pr as { id: string; first_name?: string | null; last_name?: string | null };
+        const fn = (row.first_name ?? '').trim();
+        const ln = (row.last_name ?? '').trim();
+        const dn = [fn, ln].join(' ').replace(/\s+/g, ' ').trim() || 'Spieler';
+        nameByPlayer.set(row.id, dn);
+      }
     }
   }
 
   const scorers: ResultFeedScorer[] = ourGoals.map((r) => {
-    const row = r as { player_id?: string | null; minute?: number | null };
-    const pid = row.player_id;
-    const label = formatGoalMinuteLabel(row.minute);
+    const pid = r.player_id;
+    const label = formatGoalMinuteLabel(r.minute);
     const player_name = pid && nameByPlayer.has(pid) ? nameByPlayer.get(pid)! : '—';
     return { player_name, minute_label: label };
   });
@@ -197,32 +265,46 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
     resultState: result_state,
   });
 
-  const { data: sessionData } = await supabase.auth.getSession();
-  const uid = sessionData?.session?.user?.id ?? null;
-
-  const { error: insErr } = await supabase.from('team_feed_posts').insert({
-    team_season_id: match.team_season_id,
-    team_id: teamInfo.teamId,
-    event_id,
-    post_kind: 'result_auto',
-    caption,
-    payload,
+  rfLog('calling rpc ensure_result_feed_post_for_match', {
+    matchId: mid,
     dedupe_key,
+    post_kind: 'result_auto',
     media_type: 'result',
-    media_url: null,
-    thumbnail_url: null,
-    duration_seconds: null,
-    created_by: uid,
+    captionLen: caption.length,
   });
 
-  if (insErr) {
-    if (insErr.code === '23505') {
-      return { ok: true, created: false, reason: 'duplicate_race' };
-    }
-    return { ok: false, error: insErr.message };
+  const { data: rpcData, error: rpcErr } = await supabase.rpc('ensure_result_feed_post_for_match', {
+    p_match_id: mid,
+    p_caption: caption,
+    p_payload: payload as unknown as Record<string, unknown>,
+  });
+
+  if (rpcErr) {
+    rfLog('rpc failed', {
+      message: rpcErr.message,
+      code: rpcErr.code,
+      details: rpcErr.details,
+      hint: rpcErr.hint,
+    });
+    return { ok: false, error: rpcErr.message };
   }
 
-  return { ok: true, created: true };
+  const row = rpcData as RpcResultRow | null;
+  rfLog('rpc result', { raw: rpcData });
+
+  if (!row || row.ok === false) {
+    const err = row?.error ?? 'rpc_ok_missing';
+    rfLog('rpc logical error', { error: err });
+    return { ok: false, error: err };
+  }
+
+  if (row.created) {
+    rfLog('insert success', { matchId: mid, dedupe_key, post_kind: 'result_auto', media_type: 'result' });
+  } else {
+    rfLog('no new row', { matchId: mid, reason: row.reason ?? null });
+  }
+
+  return { ok: true, created: !!row.created, reason: row.reason };
 }
 
 /** Beim Feed-Laden: fehlende Ergebnis-Posts für kürzlich beendete Spiele nachziehen (Dedupe). */
@@ -240,10 +322,10 @@ export async function ensureRecentResultFeedPostsForSeason(teamSeasonId: string)
 
   if (error || !data?.length) return;
 
-  for (const row of data as { id: string }[]) {
-    const res = await ensureResultFeedPostForMatch(row.id);
-    if (!res.ok && import.meta.env.DEV) {
-      console.warn('[ensureRecentResultFeedPostsForSeason]', row.id, res.error);
+  for (const r of data as { id: string }[]) {
+    const res = await ensureResultFeedPostForMatch(r.id);
+    if (!res.ok) {
+      rfLog('ensureRecentResultFeedPostsForSeason', { matchId: r.id, error: res.error });
     }
   }
 }
