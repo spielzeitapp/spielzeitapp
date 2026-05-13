@@ -31,6 +31,7 @@ import {
   LIVE_FIELD_SLOT_ORDER,
   replaceMatchLineupAndBench,
   repairLiveMatchLineupBenchIfNeeded,
+  persistPositionSwap,
   saveMatchEvent,
   saveMatchEvents,
   updateMatchRow,
@@ -320,6 +321,7 @@ const mbRowBtn = `flex ${mbBtnH} touch-manipulation items-center justify-center 
 function eventIcon(t: MatchEventType): string {
   if (t === 'goal' || t === 'goal_away') return '⚽';
   if (t === 'sub_out' || t === 'sub_in') return '⇄';
+  if (t === 'position_swap') return '↔';
   if (t === 'start') return '▶';
   if (t === 'pause') return '⏸';
   if (t === 'resume') return '▶';
@@ -875,6 +877,12 @@ export const LiveMatchScreen: React.FC = () => {
   const [subSuggestionsExpanded, setSubSuggestionsExpanded] = useState(false);
   const [subRecommendedOutId, setSubRecommendedOutId] = useState<string | null>(null);
   const [subRecommendedInId, setSubRecommendedInId] = useState<string | null>(null);
+  /** Spielfeld: Bank-Wechsel vs. reiner Positionswechsel (keine Bank / kein persistSubstitution). */
+  const [pitchSubMode, setPitchSubMode] = useState<'substitution' | 'position_swap'>('substitution');
+  const [posSwapSlotA, setPosSwapSlotA] = useState<FieldSlotId | null>(null);
+  const [posSwapSlotB, setPosSwapSlotB] = useState<FieldSlotId | null>(null);
+  const [posSwapConfirmOpen, setPosSwapConfirmOpen] = useState(false);
+  const [posSwapSaving, setPosSwapSaving] = useState(false);
   const closeWechselSheet = useCallback(() => {
     setWechselSheetOpen(false);
     setSubSheetView('list');
@@ -883,6 +891,11 @@ export const LiveMatchScreen: React.FC = () => {
     setSubSaving(false);
     setSubRecommendedOutId(null);
     setSubRecommendedInId(null);
+    setPitchSubMode('substitution');
+    setPosSwapSlotA(null);
+    setPosSwapSlotB(null);
+    setPosSwapConfirmOpen(false);
+    setPosSwapSaving(false);
   }, []);
   const openWechselSheet = useCallback(() => {
     setSubOutPlayerId(null);
@@ -891,6 +904,11 @@ export const LiveMatchScreen: React.FC = () => {
     setSubSheetView('list');
     setSubRecommendedOutId(null);
     setSubRecommendedInId(null);
+    setPitchSubMode('substitution');
+    setPosSwapSlotA(null);
+    setPosSwapSlotB(null);
+    setPosSwapConfirmOpen(false);
+    setPosSwapSaving(false);
     setWechselSheetOpen(true);
   }, []);
   /** Wechsel-Sheet mit Vorauswahl — Bestätigung bleibt „Wechsel bestätigen“. */
@@ -1248,6 +1266,28 @@ export const LiveMatchScreen: React.FC = () => {
     return {};
   }, [subOutPlayerId, safeLineupSlots, safeSlotOrder]);
 
+  const posSwapPitchHighlight = useMemo((): Partial<Record<FieldSlotId, 'in' | 'out'>> => {
+    if (pitchSubMode !== 'position_swap' || !posSwapSlotA) return {};
+    const h: Partial<Record<FieldSlotId, 'in' | 'out'>> = { [posSwapSlotA]: 'out' };
+    if (posSwapSlotB) h[posSwapSlotB] = 'out';
+    return h;
+  }, [pitchSubMode, posSwapSlotA, posSwapSlotB]);
+
+  const wechselPitchSlotHighlight = useMemo(() => {
+    if (pitchSubMode === 'position_swap') return posSwapPitchHighlight;
+    return subPitchSlotHighlight;
+  }, [pitchSubMode, posSwapPitchHighlight, subPitchSlotHighlight]);
+
+  const posSwapConfirmLabels = useMemo(() => {
+    if (!posSwapSlotA || !posSwapSlotB) return { a: '', b: '' };
+    const slots = lineupSlotsForDisplay as Record<FieldSlotId, string | null>;
+    const ida = String(slots[posSwapSlotA] ?? '').trim();
+    const idb = String(slots[posSwapSlotB] ?? '').trim();
+    const na = mobileLineupName((rosterById.get(ida)?.name ?? '—').trim() || '—');
+    const nb = mobileLineupName((rosterById.get(idb)?.name ?? '—').trim() || '—');
+    return { a: na, b: nb };
+  }, [posSwapSlotA, posSwapSlotB, lineupSlotsForDisplay, rosterById]);
+
   const [substitutionTransitionBySlot, setSubstitutionTransitionBySlot] = useState<
     Partial<Record<FieldSlotId, { outgoingPlayerId: string | null; incomingPlayerId: string | null }>>
   >({});
@@ -1290,12 +1330,34 @@ export const LiveMatchScreen: React.FC = () => {
       const incoming = String(current[slot] ?? '').trim();
       return Boolean(outgoing && incoming && outgoing !== incoming);
     });
-    if (firstSwapSlot) {
+    const isPureFieldSwap =
+      changedSlots.length === 2 &&
+      (() => {
+        const [s1, s2] = changedSlots;
+        const a1 = String(prev[s1] ?? '').trim();
+        const b1 = String(current[s1] ?? '').trim();
+        const a2 = String(prev[s2] ?? '').trim();
+        const b2 = String(current[s2] ?? '').trim();
+        return Boolean(a1 && b1 && a2 && b2 && a1 === b2 && a2 === b1);
+      })();
+    if (firstSwapSlot && !isPureFieldSwap) {
       const outId = String(prev[firstSwapSlot] ?? '').trim();
       const inId = String(current[firstSwapSlot] ?? '').trim();
       const outName = mobileLineupName((rosterById.get(outId)?.name ?? 'Spieler').trim() || 'Spieler');
       const inName = mobileLineupName((rosterById.get(inId)?.name ?? 'Spieler').trim() || 'Spieler');
       setSubstitutionToastText(`🔁 ${outName} raus – ${inName} rein`);
+      if (substitutionToastTimerRef.current != null) window.clearTimeout(substitutionToastTimerRef.current);
+      substitutionToastTimerRef.current = window.setTimeout(() => {
+        setSubstitutionToastText(null);
+        substitutionToastTimerRef.current = null;
+      }, 2000);
+    } else if (isPureFieldSwap) {
+      const [s1, s2] = changedSlots;
+      const id1 = String(current[s1] ?? '').trim();
+      const id2 = String(current[s2] ?? '').trim();
+      const n1 = mobileLineupName((rosterById.get(id1)?.name ?? 'Spieler').trim() || 'Spieler');
+      const n2 = mobileLineupName((rosterById.get(id2)?.name ?? 'Spieler').trim() || 'Spieler');
+      setSubstitutionToastText(`↔ ${n1} · ${n2}`);
       if (substitutionToastTimerRef.current != null) window.clearTimeout(substitutionToastTimerRef.current);
       substitutionToastTimerRef.current = window.setTimeout(() => {
         setSubstitutionToastText(null);
@@ -1785,6 +1847,67 @@ export const LiveMatchScreen: React.FC = () => {
     }
   }, [subOutPlayerId, subInPlayerId, persistSubstitution, queueRealtimeReload, closeWechselSheet]);
 
+  useEffect(() => {
+    if (subSheetView === 'list') {
+      setPitchSubMode('substitution');
+      setPosSwapSlotA(null);
+      setPosSwapSlotB(null);
+      setPosSwapConfirmOpen(false);
+    }
+  }, [subSheetView]);
+
+  useEffect(() => {
+    if (pitchSubMode === 'position_swap') {
+      setSubOutPlayerId(null);
+      setSubInPlayerId(null);
+    } else {
+      setPosSwapSlotA(null);
+      setPosSwapSlotB(null);
+      setPosSwapConfirmOpen(false);
+    }
+  }, [pitchSubMode]);
+
+  const confirmPositionSwap = useCallback(async () => {
+    if (!effectiveMatchId || !posSwapSlotA || !posSwapSlotB || posSwapSlotA === posSwapSlotB || matchIsFinished) return;
+    setPosSwapSaving(true);
+    setSaveError(null);
+    try {
+      const map = lineupSlotsForDisplay as Record<FieldSlotId, string | null>;
+      const { error } = await persistPositionSwap({
+        matchId: effectiveMatchId,
+        slotA: posSwapSlotA,
+        slotB: posSwapSlotB,
+        currentSlots: map,
+        squadPlayerIds,
+        timestamp: currentMatchSeconds,
+        period: half,
+      });
+      if (error) {
+        setSaveError(error);
+        return;
+      }
+      setPosSwapConfirmOpen(false);
+      setPosSwapSlotA(null);
+      setPosSwapSlotB(null);
+      void queueRealtimeReload();
+    } catch (e) {
+      console.error('[LiveMatch] confirmPositionSwap', e);
+      setSaveError('Positionswechsel fehlgeschlagen.');
+    } finally {
+      setPosSwapSaving(false);
+    }
+  }, [
+    effectiveMatchId,
+    posSwapSlotA,
+    posSwapSlotB,
+    matchIsFinished,
+    lineupSlotsForDisplay,
+    squadPlayerIds,
+    currentMatchSeconds,
+    half,
+    queueRealtimeReload,
+  ]);
+
   const trainerTickerRows = useMemo(() => buildLiveTickerRows(events, eventsFilter), [events, eventsFilter]);
 
   const spectatorTickerRows = useMemo(() => buildSpectatorTickerRows(events), [events]);
@@ -1866,6 +1989,8 @@ export const LiveMatchScreen: React.FC = () => {
         return name ? `${name} wechselt aus` : 'Auswechslung';
       case 'sub_in':
         return name ? `${name} wechselt ein` : 'Einwechslung';
+      case 'position_swap':
+        return 'Positionen getauscht';
       case 'pause':
         return 'Kurze Unterbrechung';
       default:
@@ -3348,6 +3473,7 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
             </div>
 
+            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden px-2 pb-0.5 pt-1">
               {subSheetView === 'list' ? (
                 <div
@@ -3484,13 +3610,56 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
+                <div className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
                   {!canRenderLivePitch ? (
                     <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center text-[10px] text-white/50">
                       Aufstellung wird geladen …
                     </p>
                   ) : (
                     <>
+                      <div className="flex shrink-0 flex-col gap-1 px-0.5">
+                        <div
+                          className="flex min-h-[38px] rounded-lg border border-white/12 bg-black/55 p-0.5 shadow-inner shadow-black/40"
+                          role="tablist"
+                          aria-label="Spielfeld-Modus"
+                        >
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={pitchSubMode === 'substitution'}
+                            onClick={() => setPitchSubMode('substitution')}
+                            className={[
+                              'min-h-[34px] flex-1 rounded-md px-2 text-center text-[10px] font-black uppercase tracking-wide transition-colors sm:text-[11px]',
+                              pitchSubMode === 'substitution'
+                                ? 'bg-red-600 text-white shadow-[0_0_10px_rgba(220,38,38,0.28)]'
+                                : 'text-white/45 hover:bg-white/[0.06] hover:text-white/75',
+                            ].join(' ')}
+                          >
+                            Wechsel
+                          </button>
+                          <span className="w-px shrink-0 self-stretch bg-white/10" aria-hidden />
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={pitchSubMode === 'position_swap'}
+                            onClick={() => setPitchSubMode('position_swap')}
+                            className={[
+                              'min-h-[34px] flex-1 rounded-md px-2 text-center text-[10px] font-black uppercase tracking-wide transition-colors sm:text-[11px]',
+                              pitchSubMode === 'position_swap'
+                                ? 'bg-red-600 text-white shadow-[0_0_10px_rgba(220,38,38,0.28)]'
+                                : 'text-white/45 hover:bg-white/[0.06] hover:text-white/75',
+                            ].join(' ')}
+                          >
+                            Position tauschen
+                          </button>
+                        </div>
+                        {pitchSubMode === 'position_swap' && posSwapSlotA && !posSwapConfirmOpen ? (
+                          <p className="text-center text-[10px] font-bold leading-tight text-red-200/95 sm:text-[11px]">
+                            Zweiten Spieler wählen
+                          </p>
+                        ) : null}
+                      </div>
+
                       <div className="mx-auto w-full max-w-md shrink-0 overflow-hidden px-0.5">
                         <LineupFormationPitch
                           formationId={safeFormationId}
@@ -3502,9 +3671,26 @@ export const LiveMatchScreen: React.FC = () => {
                                 ? (safeLineupSlots as Record<FieldSlotId, string | null>)[slot]
                                 : null;
                             const pid = String(raw ?? '').trim();
+                            if (pitchSubMode === 'position_swap') {
+                              if (posSwapConfirmOpen || posSwapSaving) return;
+                              if (!pid) return;
+                              if (!posSwapSlotA) {
+                                setPosSwapSlotA(slot);
+                                return;
+                              }
+                              if (posSwapSlotA === slot) {
+                                setPosSwapSlotA(null);
+                                setPosSwapSlotB(null);
+                                setPosSwapConfirmOpen(false);
+                                return;
+                              }
+                              setPosSwapSlotB(slot);
+                              setPosSwapConfirmOpen(true);
+                              return;
+                            }
                             if (pid) setSubOutPlayerId(pid);
                           }}
-                          slotHighlightBySlot={subPitchSlotHighlight}
+                          slotHighlightBySlot={wechselPitchSlotHighlight}
                           emphasizedPlayerId={null}
                           renderSlotContent={({ slot, label, playerId, isGk }) => {
                             if (!playerId) return null;
@@ -3515,6 +3701,8 @@ export const LiveMatchScreen: React.FC = () => {
                               const s = mobileLineupName(rawName);
                               return s === '—' || !s ? 'Spieler' : s;
                             })();
+                            const isPosSwapPick =
+                              pitchSubMode === 'position_swap' && posSwapSlotA === slot && Boolean(playerId);
                             const isOutPick = String(subOutPlayerId ?? '').trim() === String(playerId).trim();
                             const recOutPitch =
                               Boolean(subRecommendedOutId) &&
@@ -3523,12 +3711,14 @@ export const LiveMatchScreen: React.FC = () => {
                             return (
                               <div
                                 className={[
-                                  'pointer-events-none relative flex w-full max-w-[min(22vw,5.25rem)] flex-col items-center rounded-lg transition-shadow duration-200',
-                                  isOutPick
-                                    ? 'shadow-[0_0_22px_rgba(239,68,68,0.55),0_0_8px_rgba(239,68,68,0.35)]'
-                                    : recOutPitch
-                                      ? 'shadow-[0_0_14px_rgba(16,185,129,0.35)] ring-1 ring-emerald-400/45 rounded-lg'
-                                      : '',
+                                  'pointer-events-none relative flex w-full max-w-[min(22vw,5.25rem)] flex-col items-center rounded-lg transition-[transform,box-shadow] duration-200',
+                                  isPosSwapPick
+                                    ? 'scale-[1.07] shadow-[0_0_22px_rgba(239,68,68,0.58),0_0_10px_rgba(239,68,68,0.4)]'
+                                    : isOutPick
+                                      ? 'shadow-[0_0_22px_rgba(239,68,68,0.55),0_0_8px_rgba(239,68,68,0.35)]'
+                                      : recOutPitch
+                                        ? 'shadow-[0_0_14px_rgba(16,185,129,0.35)] ring-1 ring-emerald-400/45 rounded-lg'
+                                        : '',
                                 ].join(' ')}
                               >
                                 <LeibchenJersey
@@ -3538,7 +3728,10 @@ export const LiveMatchScreen: React.FC = () => {
                                   variant={isGk ? 'goalkeeper' : 'field'}
                                   size="compact"
                                   pitchStyleBack
-                                  className="sm:!h-[4.1rem] sm:!w-[3.25rem]"
+                                  className={[
+                                    'sm:!h-[4.1rem] sm:!w-[3.25rem]',
+                                    isPosSwapPick ? 'ring-2 ring-red-500/70' : '',
+                                  ].join(' ')}
                                 />
                                 <span
                                   className="mt-0.5 w-full min-w-0 truncate rounded-md bg-black/85 px-1 py-0.5 text-center text-[10px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 sm:text-[11px]"
@@ -3552,7 +3745,12 @@ export const LiveMatchScreen: React.FC = () => {
                           className="max-h-[min(58dvh,58vh)] sm:max-h-[min(60dvh,38rem)]"
                         />
                       </div>
-                      <section className="shrink-0 border-t border-white/[0.08] pt-1.5">
+                      <section
+                        className={[
+                          'shrink-0 border-t border-white/[0.08] pt-1.5 transition-opacity duration-200',
+                          pitchSubMode === 'position_swap' ? 'pointer-events-none opacity-[0.32]' : '',
+                        ].join(' ')}
+                      >
                         <p className="mb-1 px-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-300/90">
                           Bank
                         </p>
@@ -3615,43 +3813,118 @@ export const LiveMatchScreen: React.FC = () => {
               )}
             </div>
 
+            {posSwapConfirmOpen && posSwapSlotA && posSwapSlotB && subSheetView === 'pitch' ? (
+              <div className="pointer-events-auto absolute inset-0 z-[120] flex flex-col justify-end pb-1">
+                <button
+                  type="button"
+                  aria-label="Abbrechen"
+                  disabled={posSwapSaving}
+                  className="absolute inset-0 bg-black/55 backdrop-blur-[3px] transition-opacity disabled:opacity-60"
+                  onClick={() => {
+                    if (posSwapSaving) return;
+                    setPosSwapConfirmOpen(false);
+                    setPosSwapSlotA(null);
+                    setPosSwapSlotB(null);
+                  }}
+                />
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="pos-swap-confirm-title"
+                  className="relative mx-1 rounded-xl border border-red-500/35 bg-gradient-to-b from-zinc-950/98 via-zinc-950/95 to-black px-3 pb-3 pt-3 shadow-[0_0_28px_rgba(239,68,68,0.25),0_-8px_32px_rgba(0,0,0,0.65)]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-white/18" />
+                  <h3
+                    id="pos-swap-confirm-title"
+                    className="text-center text-[13px] font-black uppercase tracking-[0.12em] text-white sm:text-sm"
+                  >
+                    Positionen tauschen?
+                  </h3>
+                  <p className="mt-2 text-center text-[13px] font-semibold leading-snug text-white/85 sm:text-[14px]">
+                    {posSwapConfirmLabels.a} ↔ {posSwapConfirmLabels.b}
+                  </p>
+                  <div className="mt-4 flex min-h-[46px] flex-row gap-2">
+                    <button
+                      type="button"
+                      disabled={posSwapSaving}
+                      onClick={() => {
+                        setPosSwapConfirmOpen(false);
+                        setPosSwapSlotA(null);
+                        setPosSwapSlotB(null);
+                      }}
+                      className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-[12px] font-bold text-white/88 backdrop-blur-sm hover:bg-zinc-800 disabled:opacity-45"
+                    >
+                      Abbrechen
+                    </button>
+                    <button
+                      type="button"
+                      disabled={posSwapSaving || matchIsFinished}
+                      onClick={() => void confirmPositionSwap()}
+                      className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl bg-red-600 px-2 text-[12px] font-black text-white shadow-[0_0_16px_rgba(220,38,38,0.45)] disabled:opacity-40"
+                    >
+                      {posSwapSaving ? '…' : 'Positionen tauschen'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             <footer
               className="sticky bottom-0 z-[70] shrink-0 border-t border-red-500/15 bg-black/90 px-2 pt-1.5 backdrop-blur-md"
               style={{
                 paddingBottom: 'calc(110px + env(safe-area-inset-bottom))',
               }}
             >
-              <div className="flex flex-row gap-2">
-                <button
-                  type="button"
-                  disabled={subSaving}
-                  onClick={closeWechselSheet}
-                  className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-xs font-bold text-white/85 hover:bg-zinc-800 disabled:opacity-45"
-                >
-                  Abbrechen
-                </button>
-                <button
-                  type="button"
-                  disabled={
-                    subSaving ||
-                    !String(subOutPlayerId ?? '').trim() ||
-                    !String(subInPlayerId ?? '').trim() ||
-                    String(subOutPlayerId ?? '').trim() === String(subInPlayerId ?? '').trim()
-                  }
-                  onClick={() => void confirmSubstitution()}
-                  className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-emerald-600 px-1 text-xs font-bold text-white shadow-[0_0_14px_rgba(16,185,129,0.32)] disabled:opacity-35"
-                >
-                  {subSaving
-                    ? '…'
-                    : wechselSheetPickLabels.outLabel && wechselSheetPickLabels.inLabel
-                      ? (() => {
-                          const s = `${wechselSheetPickLabels.outLabel} → ${wechselSheetPickLabels.inLabel}`;
-                          return s.length <= 30 ? s : 'Wechsel bestätigen';
-                        })()
-                      : 'Wechsel bestätigen'}
-                </button>
-              </div>
+              {subSheetView === 'pitch' && pitchSubMode === 'position_swap' ? (
+                <div className="flex flex-row gap-2">
+                  <button
+                    type="button"
+                    disabled={subSaving || posSwapSaving}
+                    onClick={closeWechselSheet}
+                    className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-xs font-bold text-white/85 hover:bg-zinc-800 disabled:opacity-45"
+                  >
+                    Abbrechen
+                  </button>
+                  <div className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] px-2 text-center text-[10px] font-semibold leading-snug text-white/42">
+                    Zwei Feldspieler antippen
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-row gap-2">
+                  <button
+                    type="button"
+                    disabled={subSaving || posSwapSaving}
+                    onClick={closeWechselSheet}
+                    className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-xs font-bold text-white/85 hover:bg-zinc-800 disabled:opacity-45"
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      subSaving ||
+                      posSwapSaving ||
+                      !String(subOutPlayerId ?? '').trim() ||
+                      !String(subInPlayerId ?? '').trim() ||
+                      String(subOutPlayerId ?? '').trim() === String(subInPlayerId ?? '').trim()
+                    }
+                    onClick={() => void confirmSubstitution()}
+                    className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-emerald-600 px-1 text-xs font-bold text-white shadow-[0_0_14px_rgba(16,185,129,0.32)] disabled:opacity-35"
+                  >
+                    {subSaving
+                      ? '…'
+                      : wechselSheetPickLabels.outLabel && wechselSheetPickLabels.inLabel
+                        ? (() => {
+                            const s = `${wechselSheetPickLabels.outLabel} → ${wechselSheetPickLabels.inLabel}`;
+                            return s.length <= 30 ? s : 'Wechsel bestätigen';
+                          })()
+                        : 'Wechsel bestätigen'}
+                  </button>
+                </div>
+              )}
             </footer>
+            </div>
           </div>
         </div>
       ) : null}

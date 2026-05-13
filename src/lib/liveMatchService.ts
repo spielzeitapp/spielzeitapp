@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient';
 import { debugAssertMatchEventDbType } from './matchEventScores';
 import type { FieldSlotId } from '../types/match';
-import { getBenchPlayers, type MatchEngineEvent, type MatchEventType } from './matchEngine';
+import { getBenchPlayers, fieldSlotMapToStartingIds, swapTwoOccupiedFieldSlots, type MatchEngineEvent, type MatchEventType } from './matchEngine';
 
 /** Reihenfolge der Slots = Startelf-Reihenfolge (7er). */
 export const LIVE_FIELD_SLOT_ORDER: FieldSlotId[] = ['GK', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'];
@@ -56,6 +56,7 @@ export type MatchEventDbRow = {
   period: number | null;
   player_id: string | null;
   created_at: string;
+  payload?: unknown;
 };
 
 const ENGINE_TYPES = new Set<MatchEventType>([
@@ -119,6 +120,19 @@ export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent 
       createdAt,
     };
   }
+  if (row.type === 'position_swap') {
+    const p = row.payload && typeof row.payload === 'object' ? (row.payload as Record<string, unknown>) : {};
+    const swapWith =
+      typeof p.swap_player_id === 'string' && p.swap_player_id.trim().length > 0 ? p.swap_player_id.trim() : '';
+    return {
+      id: row.id,
+      type: 'position_swap',
+      timestamp: row.minute ?? 0,
+      playerId: row.player_id ?? undefined,
+      swapWithPlayerId: swapWith || undefined,
+      createdAt,
+    };
+  }
   if (!ENGINE_TYPES.has(row.type as MatchEventType)) return null;
   return {
     id: row.id,
@@ -135,6 +149,7 @@ export type InsertMatchEventPayload = {
   minute: number;
   period?: number | null;
   player_id?: string | null;
+  payload?: Record<string, unknown> | null;
 };
 
 export function engineEventToInsertPayload(
@@ -142,6 +157,17 @@ export function engineEventToInsertPayload(
   ev: Omit<MatchEngineEvent, 'id'>,
   period?: number | null,
 ): InsertMatchEventPayload {
+  if (ev.type === 'position_swap') {
+    debugAssertMatchEventDbType('engineEventToInsertPayload', 'position_swap');
+    return {
+      match_id: matchId,
+      type: 'position_swap',
+      minute: ev.timestamp,
+      period: period ?? null,
+      player_id: ev.playerId ?? null,
+      payload: { swap_player_id: ev.swapWithPlayerId ?? null },
+    };
+  }
   const dbType = ev.type === 'goal' ? 'goal' : ev.type === 'goal_away' ? 'goal_away' : (ev.type as string);
   debugAssertMatchEventDbType('engineEventToInsertPayload', dbType);
   const base: InsertMatchEventPayload = {
@@ -202,7 +228,7 @@ export async function fetchFirstLiveMatch(): Promise<{ data: LiveMatchRow | null
 export async function fetchMatchEvents(matchId: string): Promise<{ data: MatchEngineEvent[]; error: string | null }> {
   const { data, error } = await supabase
     .from('match_events')
-    .select('id, match_id, type, minute, period, player_id, created_at')
+    .select('id, match_id, type, minute, period, player_id, created_at, payload')
     .eq('match_id', matchId)
     .order('minute', { ascending: true, nullsFirst: true })
     .order('created_at', { ascending: true });
@@ -549,6 +575,40 @@ export async function replaceMatchLineupAndBench(
   });
 
   return { error: null };
+}
+
+/**
+ * Nur Slot-Tausch am laufenden Spiel: `match_lineup` ersetzen + ein `position_swap`-Event.
+ * Kein persistSubstitution / keine sub_out/sub_in-Events.
+ */
+export async function persistPositionSwap(params: {
+  matchId: string;
+  slotA: FieldSlotId;
+  slotB: FieldSlotId;
+  currentSlots: Record<FieldSlotId, string | null>;
+  squadPlayerIds: string[];
+  timestamp: number;
+  period: number | null;
+}): Promise<{ error: string | null; eventId: string | null }> {
+  const mid = params.matchId?.trim();
+  if (!mid) return { error: 'Kein Match.', eventId: null };
+  const swapped = swapTwoOccupiedFieldSlots(params.currentSlots, params.slotA, params.slotB);
+  if (!swapped) return { error: 'Positionswechsel nicht möglich.', eventId: null };
+  const nextStarting = fieldSlotMapToStartingIds(swapped);
+  const lineupRes = await replaceMatchLineupAndBench(mid, nextStarting, params.squadPlayerIds);
+  if (lineupRes.error) return { error: lineupRes.error, eventId: null };
+
+  const pidA = String(params.currentSlots[params.slotA] ?? '').trim();
+  const pidB = String(params.currentSlots[params.slotB] ?? '').trim();
+  const { id, error } = await saveMatchEvent({
+    match_id: mid,
+    type: 'position_swap',
+    minute: params.timestamp,
+    period: params.period ?? null,
+    player_id: pidA || null,
+    payload: { swap_player_id: pidB || null },
+  });
+  return { error: error ?? null, eventId: id };
 }
 
 export type LiveLineupRepairResult = {

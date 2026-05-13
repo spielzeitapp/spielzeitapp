@@ -18,7 +18,9 @@ export type MatchEventType =
   | 'sub_out'
   | 'sub_in'
   | 'goal'
-  | 'goal_away';
+  | 'goal_away'
+  /** Nur Slot-Tausch am Feld; kein Bank-Wechsel, keine Spielzeit-Logik wie sub_* . */
+  | 'position_swap';
 
 export type MatchEngineEvent = {
   id: string;
@@ -27,6 +29,8 @@ export type MatchEngineEvent = {
   playerId?: string;
   /** DB `created_at` (ISO), für stabile Wechsel-Paarung bei gleicher Spielsekunde. */
   createdAt?: string;
+  /** `position_swap`: zweiter Spieler (UUID), Tausch nur zwischen diesen beiden auf dem Feld. */
+  swapWithPlayerId?: string;
 };
 
 const TYPE_ORDER: Record<MatchEventType, number> = {
@@ -34,6 +38,8 @@ const TYPE_ORDER: Record<MatchEventType, number> = {
   resume: 1,
   sub_out: 2,
   sub_in: 3,
+  /** Gleiche Spielsekunde wie Wechsel: zuerst sub_out/sub_in, dann Positionskorrektur. */
+  position_swap: 3.5,
   goal: 4,
   goal_away: 5,
   pause: 6,
@@ -172,6 +178,39 @@ export function getBenchPlayers(squadPlayerIds: string[], onFieldPlayerIds: stri
   return squadPlayerIds.filter((id) => !on.has(id));
 }
 
+/** Tauscht nur die Belegung zweier Slots (beide müssen Spieler haben). */
+export function swapTwoOccupiedFieldSlots(
+  slots: Record<FieldSlotId, string | null>,
+  slotA: FieldSlotId,
+  slotB: FieldSlotId,
+): Record<FieldSlotId, string | null> | null {
+  if (slotA === slotB) return null;
+  const a = String(slots[slotA] ?? '').trim();
+  const b = String(slots[slotB] ?? '').trim();
+  if (!a || !b || a === b) return null;
+  const next = { ...slots };
+  next[slotA] = b;
+  next[slotB] = a;
+  return dedupeFieldSlotMap(next);
+}
+
+function applyPositionSwapByPlayerIds(
+  slots: Record<FieldSlotId, string | null>,
+  playerA: string,
+  playerB: string,
+): Record<FieldSlotId, string | null> {
+  const a = String(playerA ?? '').trim();
+  const b = String(playerB ?? '').trim();
+  if (!a || !b || a === b) return slots;
+  const slotA = FIELD_SLOT_ORDER.find((s) => slots[s] === a) ?? null;
+  const slotB = FIELD_SLOT_ORDER.find((s) => slots[s] === b) ?? null;
+  if (!slotA || !slotB || slotA === slotB) return slots;
+  const next = { ...slots };
+  next[slotA] = b;
+  next[slotB] = a;
+  return dedupeFieldSlotMap(next);
+}
+
 function sortSubEventsForSlotReplay(subs: MatchEngineEvent[]): MatchEngineEvent[] {
   return [...subs].sort((a, b) => {
     if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp;
@@ -221,7 +260,9 @@ export function replaySubstitutionEventsOnSlots(
 
   const subs = sortSubEventsForSlotReplay(
     sortMatchEventsChronologically(events).filter(
-      (e) => e.timestamp <= t && (e.type === 'sub_out' || e.type === 'sub_in'),
+      (e) =>
+        e.timestamp <= t &&
+        (e.type === 'sub_out' || e.type === 'sub_in' || e.type === 'position_swap'),
     ),
   );
 
@@ -258,6 +299,12 @@ export function replaySubstitutionEventsOnSlots(
   };
 
   for (const e of subs) {
+    if (e.type === 'position_swap') {
+      const a = String(e.playerId ?? '').trim();
+      const b = String(e.swapWithPlayerId ?? '').trim();
+      if (a && b) slots = applyPositionSwapByPlayerIds(slots, a, b);
+      continue;
+    }
     if (e.type === 'sub_out' && e.playerId) {
       const pid = String(e.playerId).trim();
       if (pid) pendingOut.push(pid);
