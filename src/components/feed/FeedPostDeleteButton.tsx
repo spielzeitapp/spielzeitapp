@@ -14,7 +14,16 @@ export const FeedPostDeleteButton: React.FC<Props> = ({ input, onDeleted }) => {
     if (!window.confirm('Diesen Beitrag wirklich löschen?')) return;
     setBusy(true);
     try {
+      console.info('[FeedPostDeleteButton] delete start', {
+        id: input.id,
+        team_season_id: input.team_season_id,
+      });
       const res = await deleteTeamFeedPostClient(input);
+      console.info('[FeedPostDeleteButton] delete result', {
+        ok: res.ok,
+        dbError: res.dbError,
+        storageWarnings: res.storageWarnings,
+      });
       if (!res.ok) {
         window.alert(`Beitrag konnte nicht gelöscht werden: ${res.dbError ?? 'Unbekannter Fehler'}`);
         return;
@@ -25,6 +34,9 @@ export const FeedPostDeleteButton: React.FC<Props> = ({ input, onDeleted }) => {
         );
       }
       onDeleted();
+    } catch (e) {
+      console.error('[FeedPostDeleteButton] delete threw', e);
+      window.alert(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }

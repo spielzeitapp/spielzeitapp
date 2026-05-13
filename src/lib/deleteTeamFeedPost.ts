@@ -72,31 +72,124 @@ export function collectTeamFeedStoragePaths(input: FeedPostDeleteInput): string[
   return [...out];
 }
 
-export type DeleteTeamFeedPostResult = {
-  ok: boolean;
-  storageWarnings: string[];
-  dbError: string | null;
+function logSupabaseErr(ctx: string, err: { message?: string; code?: string; details?: string; hint?: string } | null) {
+  if (!err) return;
+  console.warn(`[deleteTeamFeedPostClient] ${ctx}`, {
+    message: err.message,
+    code: err.code,
+    details: err.details,
+    hint: err.hint,
+  });
+}
+
+type RpcDeletePayload = {
+  ok?: boolean;
+  deleted?: boolean;
+  error?: string;
+  reason?: string;
 };
 
 /**
- * Reihenfolge: Storage best-effort, dann DB-Zeile. Speicher-Fehler in storageWarnings, kein stilles Versagen.
+ * Reihenfolge: Storage best-effort, dann DB-DELETE.
+ * Wichtig: Bei RLS kann DELETE 0 Zeilen löschen ohne error — daher .select('id') prüfen.
+ * Fallback: SECURITY DEFINER RPC delete_team_feed_post (nach Migration).
  */
-export async function deleteTeamFeedPostClient(input: FeedPostDeleteInput): Promise<DeleteTeamFeedPostResult> {
+export async function deleteTeamFeedPostClient(input: FeedPostDeleteInput): Promise<{
+  ok: boolean;
+  storageWarnings: string[];
+  dbError: string | null;
+}> {
   const paths = [...new Set(collectTeamFeedStoragePaths(input).filter(Boolean))];
   const storageWarnings: string[] = [];
+
+  console.info('[deleteTeamFeedPostClient] start', {
+    postId: input.id,
+    team_season_id: input.team_season_id,
+    storagePathCount: paths.length,
+  });
 
   if (paths.length > 0) {
     try {
       const { error } = await supabase.storage.from(TEAM_FEED_BUCKET).remove(paths);
-      if (error) storageWarnings.push(error.message);
+      if (error) {
+        storageWarnings.push(error.message);
+        logSupabaseErr('storage.remove', error);
+      }
     } catch (e) {
-      storageWarnings.push(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      storageWarnings.push(msg);
+      console.warn('[deleteTeamFeedPostClient] storage.remove threw', msg);
     }
   }
 
-  const { error: delErr } = await supabase.from('team_feed_posts').delete().eq('id', input.id);
-  if (delErr) {
-    return { ok: false, storageWarnings, dbError: delErr.message };
+  const { data: delRows, error: delErr } = await supabase
+    .from('team_feed_posts')
+    .delete()
+    .eq('id', input.id)
+    .select('id');
+
+  logSupabaseErr('table.delete', delErr);
+
+  console.info('[deleteTeamFeedPostClient] direct delete response', {
+    postId: input.id,
+    rowCount: delRows?.length ?? 0,
+    error: delErr?.message ?? null,
+    code: delErr?.code ?? null,
+  });
+
+  if (!delErr && Array.isArray(delRows) && delRows.length > 0) {
+    return { ok: true, storageWarnings, dbError: null };
   }
-  return { ok: true, storageWarnings, dbError: null };
+
+  console.warn('[deleteTeamFeedPostClient] direct delete ineffective, trying RPC', {
+    postId: input.id,
+    hadError: !!delErr,
+    rowCount: delRows?.length ?? 0,
+  });
+
+  const { data: rpcData, error: rpcErr } = await supabase.rpc('delete_team_feed_post', {
+    p_post_id: input.id,
+  });
+
+  logSupabaseErr('rpc.delete_team_feed_post', rpcErr);
+
+  if (rpcErr) {
+    const hint =
+      /function .* does not exist|could not find the function/i.test(String(rpcErr.message ?? ''))
+        ? ' Migration delete_team_feed_post auf Supabase ausführen.'
+        : '';
+    const dbError = `${delErr?.message ?? 'DELETE 0 Zeilen'} · RPC: ${rpcErr.message}${hint}`;
+    console.warn('[deleteTeamFeedPostClient] RPC failed', {
+      message: rpcErr.message,
+      code: rpcErr.code,
+      details: rpcErr.details,
+      hint: rpcErr.hint,
+    });
+    return { ok: false, storageWarnings, dbError };
+  }
+
+  const row = rpcData as RpcDeletePayload | null;
+  console.info('[deleteTeamFeedPostClient] RPC raw', rpcData);
+
+  if (!row || row.ok === false) {
+    return {
+      ok: false,
+      storageWarnings,
+      dbError: row?.error ?? 'RPC: unbekannte Antwort',
+    };
+  }
+
+  if (row.reason === 'not_found' || row.reason === 'already_gone') {
+    return { ok: true, storageWarnings, dbError: null };
+  }
+
+  if (row.deleted) {
+    return { ok: true, storageWarnings, dbError: null };
+  }
+
+  return {
+    ok: false,
+    storageWarnings,
+    dbError: row.error ?? 'RPC: konnte Post nicht löschen (deleted=false)',
+  };
 }
