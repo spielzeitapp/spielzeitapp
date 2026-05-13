@@ -22,31 +22,46 @@ export function mapUiGoalTypeToMatchEventDbType(uiType: string | null | undefine
   return 'goal';
 }
 
-/** Obergrenze für manuell gepflegte Spielminuten (Spielbericht / U11). */
+/** Obergrenze für manuell gepflegte Anzeige-Spielminute (Spielbericht / U11). */
 export const FINISHED_REPORT_MAX_MINUTE = 90;
 
 /**
- * Abgeschlossener Spielbericht: Speichern der echten Spielminute (Ganzzahl, z. B. 16).
+ * Abgeschlossener Spielbericht (manuell): UI-Anzeige-Minute 1…90 → DB `minute` = effektive Spielsekunde (0…5340).
+ * Ungültige Eingabe → -1.
  */
 export function finishedReportMinuteDbFromInput(input: unknown): number {
-  const n = Number(input);
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(FINISHED_REPORT_MAX_MINUTE, Math.round(n)));
+  const raw = typeof input === 'string' ? input.trim() : input;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return -1;
+  const display = Math.round(n);
+  if (display < 1 || display > FINISHED_REPORT_MAX_MINUTE) return -1;
+  return Math.max(0, (display - 1) * 60);
 }
 
 /**
- * DB-Rohwert → Anzeige-Spielminute. Neue Zeilen: Wert ≤ 200 ist direkt die Minute.
- * Alte Live-/Timerwerte (Sekunden oder (Minute−1)·60): typisch > 200 → ⌊n/60⌋ + 1.
+ * DB `minute` = effektive Spielsekunde → Anzeige-Minute für Spielbericht / Feed: ⌊s/60⌋ + 1, max. 90.
+ * (Live und manuell gepflegte Zeilen nach Umstellung speichern dasselbe Format.)
+ */
+export function finishedReportDisplayMinuteFromStoredSeconds(rawSecond: number | null | undefined): number {
+  const s = Math.max(0, Math.floor(Number(rawSecond) || 0));
+  const uncapped = Math.floor(s / 60) + 1;
+  return Math.min(FINISHED_REPORT_MAX_MINUTE, Math.max(1, uncapped));
+}
+
+/**
+ * DB-Rohwert → Anzeige-Spielminute (null bei fehlendem/ungültigem Wert).
  */
 export function finishedReportMinuteDisplayFromDb(rawMinute: number | null | undefined): number | null {
   const n = Number(rawMinute);
   if (!Number.isFinite(n)) return null;
+  if (n < 0) return null;
+  return finishedReportDisplayMinuteFromStoredSeconds(n);
+}
 
-  let m: number;
-  if (n > 200) m = Math.max(0, Math.floor(n / 60) + 1);
-  else m = Math.max(0, Math.round(n));
-
-  return Math.min(FINISHED_REPORT_MAX_MINUTE, m);
+/** Ohne Clamp 90 – nur für DEV-Warnungen / Diagnose. */
+export function finishedReportUncappedDisplayMinuteFromSeconds(rawSecond: number | null | undefined): number {
+  const s = Math.max(0, Math.floor(Number(rawSecond) || 0));
+  return Math.floor(s / 60) + 1;
 }
 
 export function friendlyMatchEventWriteError(raw: string | null | undefined): string {

@@ -28,6 +28,7 @@ import {
   FINISHED_REPORT_MAX_MINUTE,
   finishedReportMinuteDbFromInput,
   finishedReportMinuteDisplayFromDb,
+  finishedReportUncappedDisplayMinuteFromSeconds,
   formatPeriodScoresBracket,
   friendlyMatchEventWriteError,
   mapUiGoalTypeToMatchEventDbType,
@@ -248,6 +249,7 @@ export const EventDetailPage: React.FC = () => {
     period: number | null;
     player_id: string | null;
     created_at: string;
+    payload?: unknown;
   };
   const [finishedTab, setFinishedTab] = useState<'overview' | 'lineup' | 'timeline' | 'stats'>('overview');
   const [matchRowLite, setMatchRowLite] = useState<{
@@ -415,7 +417,7 @@ export const EventDetailPage: React.FC = () => {
 
       const { data, error } = await supabase
         .from('match_events')
-        .select('id, match_id, type, minute, period, player_id, created_at')
+        .select('id, match_id, type, minute, period, player_id, created_at, payload')
         .eq('match_id', mid)
         .order('minute', { ascending: true, nullsFirst: true })
         .order('created_at', { ascending: true });
@@ -482,8 +484,7 @@ export const EventDetailPage: React.FC = () => {
       if (fromDb) return formatPeriodScoresBracket(fromDb);
       const engineLike = matchEvents
         .map((r) => {
-          const raw = Math.max(0, Number(r.minute ?? 0) || 0);
-          const ts = isFinishedMatchEvent ? (finishedReportMinuteDisplayFromDb(r.minute) ?? 0) : raw;
+          const ts = Math.max(0, Math.floor(Number(r.minute ?? 0) || 0));
           const type = String(r.type ?? '').trim();
           if (type === 'kickoff') return { id: r.id, type: 'start' as const, timestamp: ts, playerId: undefined };
           if (type === 'final_whistle') return { id: r.id, type: 'end' as const, timestamp: ts, playerId: undefined };
@@ -499,8 +500,11 @@ export const EventDetailPage: React.FC = () => {
             };
           if (gEngine === 'goal')
             return { id: r.id, type: 'goal' as const, timestamp: ts, playerId: r.player_id ?? undefined };
-          if (type === 'sub_out') return { id: r.id, type: 'sub_out' as const, timestamp: ts, playerId: r.player_id ?? undefined };
-          if (type === 'sub_in') return { id: r.id, type: 'sub_in' as const, timestamp: ts, playerId: r.player_id ?? undefined };
+          const tl = String(type).trim().toLowerCase();
+          if (tl === 'sub_out' || tl === 'substitution_out')
+            return { id: r.id, type: 'sub_out' as const, timestamp: ts, playerId: r.player_id ?? undefined };
+          if (tl === 'sub_in' || tl === 'substitution_in')
+            return { id: r.id, type: 'sub_in' as const, timestamp: ts, playerId: r.player_id ?? undefined };
           return null;
         })
         .filter(Boolean) as MatchEngineEvent[];
@@ -509,7 +513,7 @@ export const EventDetailPage: React.FC = () => {
     } catch {
       return null;
     }
-  }, [matchEvents, matchRowLite, isFinishedMatchEvent]);
+  }, [matchEvents, matchRowLite]);
 
   /** Abgeschlossene Spiele: vollständige Abschnitte in DB → Endstand kommt aus Summe Abschnitte, nicht aus match_events. */
   const hasManualPeriodScores = Boolean(parsedDbPeriodScores);
@@ -1058,6 +1062,18 @@ export const EventDetailPage: React.FC = () => {
       return `${m}'`;
     };
 
+    const FINISHED_SUB_PAIR_GAP_SEC = 5;
+    const matchEventStoredSeconds = (r: Pick<MatchEventRow, 'minute'>) =>
+      Math.max(0, Math.floor(Number(r.minute ?? 0) || 0));
+    const normalizeSubEventType = (type: string | null | undefined): string => {
+      const t = String(type ?? '').trim().toLowerCase();
+      if (t === 'substitution_out') return 'sub_out';
+      if (t === 'substitution_in') return 'sub_in';
+      return t;
+    };
+    const sameSubstitutionEditWindow = (a: MatchEventRow, b: MatchEventRow): boolean =>
+      Math.abs(matchEventStoredSeconds(a) - matchEventStoredSeconds(b)) <= FINISHED_SUB_PAIR_GAP_SEC;
+
     const playerName = (playerId: string | null) => {
       if (!playerId) return null;
       const p = players.find((x) => x.id === playerId);
@@ -1122,12 +1138,9 @@ export const EventDetailPage: React.FC = () => {
       ));
 
     const compareFinishedMatchEventsChrono = (x: MatchEventRow, y: MatchEventRow): number => {
-      const mx = finishedReportMinuteDisplayFromDb(x.minute) ?? 0;
-      const my = finishedReportMinuteDisplayFromDb(y.minute) ?? 0;
-      if (mx !== my) return mx - my;
-      const cx = String(x.created_at ?? '');
-      const cy = String(y.created_at ?? '');
-      if (cx !== cy) return cx.localeCompare(cy);
+      const sx = matchEventStoredSeconds(x);
+      const sy = matchEventStoredSeconds(y);
+      if (sx !== sy) return sx - sy;
       return String(x.id).localeCompare(String(y.id));
     };
 
@@ -1156,10 +1169,88 @@ export const EventDetailPage: React.FC = () => {
     }));
 
     const goalCount = timelineEvents.filter((r) => normalizeMatchEventGoalType(r.type)).length;
-    const subCount = timelineEvents.filter((r) => {
-      const t = String(r.type ?? '').toLowerCase();
-      return t === 'sub_out' || t === 'sub_in';
+    const tickerRows = (() => {
+      const rows: Array<{ key: string; items: MatchEventRow[] }> = [];
+      const used = new Set<string>();
+      const GAP = FINISHED_SUB_PAIR_GAP_SEC;
+      for (let i = 0; i < timelineEvents.length; i++) {
+        const cur = timelineEvents[i];
+        if (used.has(cur.id)) continue;
+        const ct = normalizeSubEventType(cur.type);
+        if (ct === 'position_swap') {
+          used.add(cur.id);
+          rows.push({ key: cur.id, items: [cur] });
+          continue;
+        }
+        if (ct === 'sub_out') {
+          let pairJ = -1;
+          for (let j = i + 1; j < timelineEvents.length; j++) {
+            const cand = timelineEvents[j];
+            if (used.has(cand.id)) continue;
+            const nt = normalizeSubEventType(cand.type);
+            if (nt === 'sub_in' && Math.abs(matchEventStoredSeconds(cur) - matchEventStoredSeconds(cand)) <= GAP) {
+              pairJ = j;
+              break;
+            }
+          }
+          if (pairJ >= 0) {
+            const inn = timelineEvents[pairJ];
+            used.add(cur.id);
+            used.add(inn.id);
+            rows.push({ key: `subpair_${cur.id}_${inn.id}`, items: [cur, inn] });
+            continue;
+          }
+        }
+        if (ct === 'sub_in') {
+          let pairJ = -1;
+          for (let j = i - 1; j >= 0; j--) {
+            const cand = timelineEvents[j];
+            if (used.has(cand.id)) continue;
+            const pt = normalizeSubEventType(cand.type);
+            if (pt === 'sub_out' && Math.abs(matchEventStoredSeconds(cur) - matchEventStoredSeconds(cand)) <= GAP) {
+              pairJ = j;
+              break;
+            }
+          }
+          if (pairJ >= 0) {
+            const outt = timelineEvents[pairJ];
+            used.add(cur.id);
+            used.add(outt.id);
+            rows.push({ key: `subpair_${outt.id}_${cur.id}`, items: [outt, cur] });
+            continue;
+          }
+        }
+        used.add(cur.id);
+        rows.push({ key: cur.id, items: [cur] });
+      }
+      return rows;
+    })();
+    const subCount = tickerRows.filter((row) => {
+      if (row.items.length !== 2) return false;
+      const t0 = normalizeSubEventType(row.items[0]?.type);
+      const t1 = normalizeSubEventType(row.items[1]?.type);
+      return t0 === 'sub_out' && t1 === 'sub_in';
     }).length;
+    if (typeof import.meta !== 'undefined' && import.meta.env.DEV) {
+      for (const r of timelineEvents) {
+        const u = finishedReportUncappedDisplayMinuteFromSeconds(r.minute);
+        if (u > FINISHED_REPORT_MAX_MINUTE) {
+          console.warn('[EventDetail finished report] Spielminute > 90 (ungeclampft)', {
+            id: r.id,
+            type: r.type,
+            seconds: matchEventStoredSeconds(r),
+            uncappedDisplayMinute: u,
+          });
+        }
+      }
+      for (const row of tickerRows) {
+        if (row.items.length !== 1) continue;
+        const t = normalizeSubEventType(row.items[0]?.type);
+        if (t === 'sub_out' || t === 'sub_in') {
+          console.warn('[EventDetail finished report] Wechsel ohne Paar (sub_out/sub_in einzeln)', row.items[0]);
+        }
+      }
+    }
     const totalEvents = timelineEvents.length;
     const yellowCardCount = timelineEvents.filter((x) =>
       ['yellow_card', 'card_yellow', 'yellow'].includes(String(x.type ?? '').toLowerCase()),
@@ -1167,34 +1258,14 @@ export const EventDetailPage: React.FC = () => {
     const redCardCount = timelineEvents.filter((x) =>
       ['red_card', 'card_red', 'red'].includes(String(x.type ?? '').toLowerCase()),
     ).length;
-    const tickerRows = (() => {
-      const rows: Array<{ key: string; items: MatchEventRow[] }> = [];
-      let i = 0;
-      while (i < timelineEvents.length) {
-        const cur = timelineEvents[i];
-        const next = timelineEvents[i + 1];
-        const ct = String(cur?.type ?? '').toLowerCase();
-        const nt = String(next?.type ?? '').toLowerCase();
-        const cmin = Number(cur?.minute ?? 0);
-        const nmin = Number(next?.minute ?? 0);
-        if (ct === 'sub_out' && nt === 'sub_in' && cmin === nmin) {
-          rows.push({ key: `subpair_${cur.id}_${next.id}`, items: [cur, next] });
-          i += 2;
-          continue;
-        }
-        rows.push({ key: cur.id, items: [cur] });
-        i += 1;
-      }
-      return rows;
-    })();
     const goalEvents = timelineEvents.filter((r) => normalizeMatchEventGoalType(r.type));
     const switchRows = tickerRows.filter((row) => {
       if (row.items.length === 2) {
-        const t0 = String(row.items[0]?.type ?? '').toLowerCase();
-        const t1 = String(row.items[1]?.type ?? '').toLowerCase();
+        const t0 = normalizeSubEventType(row.items[0]?.type);
+        const t1 = normalizeSubEventType(row.items[1]?.type);
         return t0 === 'sub_out' && t1 === 'sub_in';
       }
-      const t = String(row.items[0]?.type ?? '').toLowerCase();
+      const t = normalizeSubEventType(row.items[0]?.type);
       return t === 'sub_out' || t === 'sub_in';
     });
     const cardEvents = timelineEvents.filter((r) => {
@@ -1222,7 +1293,7 @@ export const EventDetailPage: React.FC = () => {
       if (!event.match_id) return null;
       const { data, error: fetchErr } = await supabase
         .from('match_events')
-        .select('id, match_id, type, minute, period, player_id, created_at')
+        .select('id, match_id, type, minute, period, player_id, created_at, payload')
         .eq('match_id', event.match_id)
         .order('minute', { ascending: true, nullsFirst: true })
         .order('created_at', { ascending: true });
@@ -1260,7 +1331,7 @@ export const EventDetailPage: React.FC = () => {
         setMatchError(null);
         if (!requireSquadPlayer(goalPlayerId, 'Torschütze')) return;
         const dbMinute = finishedReportMinuteDbFromInput(goalMinute.trim());
-        if (dbMinute < 1 || dbMinute > FINISHED_REPORT_MAX_MINUTE) {
+        if (dbMinute < 0) {
           setMatchError(`Minute muss zwischen 1 und ${FINISHED_REPORT_MAX_MINUTE} liegen.`);
           return;
         }
@@ -1332,7 +1403,7 @@ export const EventDetailPage: React.FC = () => {
       if (!requireSquadPlayer(newSwitchOutPlayerId, 'Auswechselnder')) return;
       if (!requireSquadPlayer(newSwitchInPlayerId, 'Einwechselnder')) return;
       const dbMinute = finishedReportMinuteDbFromInput(newSwitchMinute.trim());
-      if (dbMinute < 1 || dbMinute > FINISHED_REPORT_MAX_MINUTE) {
+      if (dbMinute < 0) {
         setMatchError(`Minute muss zwischen 1 und ${FINISHED_REPORT_MAX_MINUTE} liegen.`);
         return;
       }
@@ -1373,7 +1444,7 @@ export const EventDetailPage: React.FC = () => {
       setMatchError(null);
       if (!requireSquadPlayer(newCardPlayerId, 'Karte')) return;
       const dbMinute = finishedReportMinuteDbFromInput(newCardMinute.trim());
-      if (dbMinute < 1 || dbMinute > FINISHED_REPORT_MAX_MINUTE) {
+      if (dbMinute < 0) {
         setMatchError(`Minute muss zwischen 1 und ${FINISHED_REPORT_MAX_MINUTE} liegen.`);
         return;
       }
@@ -1408,7 +1479,7 @@ export const EventDetailPage: React.FC = () => {
       setMatchError(null);
       if (!requireSquadPlayer(editCardPlayerId, 'Karte')) return;
       const dbMinute = finishedReportMinuteDbFromInput(editCardMinute.trim());
-      if (dbMinute < 1 || dbMinute > FINISHED_REPORT_MAX_MINUTE) {
+      if (dbMinute < 0) {
         setMatchError(`Minute muss zwischen 1 und ${FINISHED_REPORT_MAX_MINUTE} liegen.`);
         return;
       }
@@ -1473,13 +1544,13 @@ export const EventDetailPage: React.FC = () => {
     const beginEditEvent = (r: MatchEventRow) => {
       setEditingEventId(r.id);
       setEditEventMinute(String(finishedReportMinuteDisplayFromDb(r.minute) ?? 0));
-      const t = String(r.type ?? '').toLowerCase();
+      const t = normalizeSubEventType(r.type);
       if (t === 'sub_out' || t === 'sub_in') {
         setEditEventType('switch');
         setEditEventPlayerId('');
-        const sameMinute = timelineEvents.filter((x) => Number(x.minute ?? 0) === Number(r.minute ?? 0));
-        const out = sameMinute.find((x) => String(x.type ?? '').toLowerCase() === 'sub_out');
-        const inn = sameMinute.find((x) => String(x.type ?? '').toLowerCase() === 'sub_in');
+        const sameMinute = timelineEvents.filter((x) => sameSubstitutionEditWindow(x, r));
+        const out = sameMinute.find((x) => normalizeSubEventType(x.type) === 'sub_out');
+        const inn = sameMinute.find((x) => normalizeSubEventType(x.type) === 'sub_in');
         setEditSwitchOutPlayerId(out?.player_id ?? '');
         setEditSwitchInPlayerId(inn?.player_id ?? '');
       } else {
@@ -1502,7 +1573,7 @@ export const EventDetailPage: React.FC = () => {
       setMatchError(null);
       const editMinuteRaw = editEventMinute.trim();
       const dbMinute = finishedReportMinuteDbFromInput(editMinuteRaw);
-      if (dbMinute < 1 || dbMinute > FINISHED_REPORT_MAX_MINUTE) {
+      if (dbMinute < 0) {
         setMatchError(`Minute muss zwischen 1 und ${FINISHED_REPORT_MAX_MINUTE} liegen.`);
         return;
       }
@@ -1516,8 +1587,9 @@ export const EventDetailPage: React.FC = () => {
           .filter(
             (x) =>
               x.id !== editingEventId &&
-              Number(x.minute ?? 0) === Number(old?.minute ?? 0) &&
-              ['sub_out', 'sub_in'].includes(String(x.type ?? '').toLowerCase()),
+              old != null &&
+              sameSubstitutionEditWindow(x, old) &&
+              ['sub_out', 'sub_in', 'substitution_out', 'substitution_in'].includes(String(x.type ?? '').toLowerCase()),
           )
           .map((x) => x.id);
         if (companionIds.length > 0) {
@@ -1903,24 +1975,32 @@ export const EventDetailPage: React.FC = () => {
                 <ul className="space-y-2">
                   {tickerRows.map((row, index) => {
                     const r = row.items[0];
+                    const t0 = normalizeSubEventType(row.items[0]?.type);
+                    const t1 = row.items[1] ? normalizeSubEventType(row.items[1]?.type) : '';
                     const stadiumGoal = normalizeMatchEventGoalType(r.type);
                     const t = String(r.type ?? '').toLowerCase();
-                    const isPairSwitch =
-                      row.items.length === 2 &&
-                      String(row.items[0]?.type ?? '').toLowerCase() === 'sub_out' &&
-                      String(row.items[1]?.type ?? '').toLowerCase() === 'sub_in';
-                    const isSwitch = isPairSwitch || t === 'sub_out' || t === 'sub_in';
+                    const isPairSwitch = row.items.length === 2 && t0 === 'sub_out' && t1 === 'sub_in';
+                    const isPosSwap = t0 === 'position_swap';
+                    const isSwitch = isPairSwitch || (!isPosSwap && (t0 === 'sub_out' || t0 === 'sub_in'));
                     const name = playerName(r.player_id);
                     const switchOutName = isPairSwitch
                       ? playerName(row.items[0]?.player_id ?? null)
-                      : t === 'sub_out'
+                      : t0 === 'sub_out'
                         ? name
                         : null;
                     const switchInName = isPairSwitch
                       ? playerName(row.items[1]?.player_id ?? null)
-                      : t === 'sub_in'
+                      : t0 === 'sub_in'
                         ? name
                         : null;
+                    const swapWithId =
+                      isPosSwap && r.payload && typeof r.payload === 'object'
+                        ? String((r.payload as Record<string, unknown>).swap_player_id ?? '').trim()
+                        : '';
+                    const swapWithName = swapWithId ? playerName(swapWithId) : null;
+                    const minuteSourceSec = isPairSwitch
+                      ? Math.max(matchEventStoredSeconds(row.items[0]!), matchEventStoredSeconds(row.items[1]!))
+                      : matchEventStoredSeconds(r);
                     const scoreBadge = scoreBadgeByEventId.get(r.id) ?? null;
                     const isLast = index === tickerRows.length - 1;
                     const isGoalEv = stadiumGoal !== null;
@@ -1932,16 +2012,18 @@ export const EventDetailPage: React.FC = () => {
                         ? 'border border-red-500/30 shadow-[0_0_22px_rgba(220,38,38,0.22)]'
                         : isSwitch
                           ? 'border border-white/[0.08] shadow-[0_6px_24px_rgba(0,0,0,0.4)]'
-                          : isYellow
-                            ? 'border border-amber-400/25 shadow-[0_0_14px_rgba(245,158,11,0.14)]'
-                            : isRedCard
-                              ? 'border border-red-500/35 shadow-[0_0_14px_rgba(220,38,38,0.18)]'
-                              : 'border border-white/[0.08] shadow-[0_6px_28px_rgba(0,0,0,0.35)]',
+                          : isPosSwap
+                            ? 'border border-violet-400/20 shadow-[0_0_14px_rgba(139,92,246,0.12)]'
+                            : isYellow
+                              ? 'border border-amber-400/25 shadow-[0_0_14px_rgba(245,158,11,0.14)]'
+                              : isRedCard
+                                ? 'border border-red-500/35 shadow-[0_0_14px_rgba(220,38,38,0.18)]'
+                                : 'border border-white/[0.08] shadow-[0_6px_28px_rgba(0,0,0,0.35)]',
                     ].join(' ');
                     return (
                       <li key={row.key} className="flex gap-2 pb-2 last:pb-0">
                         <div className="w-12 shrink-0 pt-0.5 text-right text-[15px] font-black tabular-nums leading-none text-red-200/90">
-                          {finishedMinuteLabel(r.minute)}
+                          {finishedMinuteLabel(minuteSourceSec)}
                         </div>
                         <div className="relative flex w-3 shrink-0 flex-col items-center pt-1">
                           {!isLast ? (
@@ -1952,19 +2034,22 @@ export const EventDetailPage: React.FC = () => {
                         <div className={eventCardClass}>
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                              {isSwitch ? (
+                              {isPosSwap ? (
+                                <>
+                                  <p className="text-[10px] font-black uppercase tracking-wide text-violet-300">⇄ Positionswechsel</p>
+                                  <p className="mt-1 line-clamp-2 text-[13px] font-semibold leading-snug text-white/90">
+                                    {(name ?? '—') + ' ↔ ' + (swapWithName ?? '—')}
+                                  </p>
+                                </>
+                              ) : isSwitch ? (
                                 <>
                                   <p className="text-[10px] font-black uppercase tracking-wide text-sky-300">🔁 Wechsel</p>
                                   {switchOutName || switchInName ? (
-                                    <div className="mt-1.5 space-y-0.5">
-                                      <p className="text-[12px] font-semibold leading-snug text-red-200/95">
-                                        Raus · {switchOutName ?? '—'}
-                                      </p>
-                                      <p className="py-0.5 text-center text-[11px] text-white/40">↓</p>
-                                      <p className="text-[12px] font-semibold leading-snug text-emerald-300/95">
-                                        Rein · {switchInName ?? '—'}
-                                      </p>
-                                    </div>
+                                    <p className="mt-1 text-[12px] font-semibold leading-snug text-white/90">
+                                      <span className="text-red-200/95">Raus {switchOutName ?? '—'}</span>
+                                      <span className="mx-1.5 text-white/35">→</span>
+                                      <span className="text-emerald-300/95">Rein {switchInName ?? '—'}</span>
+                                    </p>
                                   ) : (
                                     <p className="mt-1 text-[13px] text-white/75">Wechsel</p>
                                   )}
@@ -2010,17 +2095,19 @@ export const EventDetailPage: React.FC = () => {
                           </div>
                           {canTrainerManageEvent ? (
                             <div className="mt-2 flex justify-end gap-1.5">
-                              <button
-                                type="button"
-                                className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
-                                onClick={() => {
-                                  beginEditEvent(r);
-                                  setReportEditOpen(true);
-                                }}
-                                title="Ereignis bearbeiten"
-                              >
-                                Bearbeiten
-                              </button>
+                              {!isPosSwap ? (
+                                <button
+                                  type="button"
+                                  className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
+                                  onClick={() => {
+                                    beginEditEvent(r);
+                                    setReportEditOpen(true);
+                                  }}
+                                  title="Ereignis bearbeiten"
+                                >
+                                  Bearbeiten
+                                </button>
+                              ) : null}
                               <button
                                 type="button"
                                 className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] text-white/70 hover:bg-white/[0.07]"
@@ -2319,11 +2406,10 @@ export const EventDetailPage: React.FC = () => {
                               </span>
                               {finishedMinuteLabel(outEvent.minute)}
                             </p>
-                            <p className="mt-2 text-[16px] text-white/85">
-                              <span className="text-white/55">Raus:</span> {playerName(outEvent.player_id) ?? '—'}
-                            </p>
-                            <p className="mt-0.5 text-[16px] text-white/85">
-                              <span className="text-white/55">Rein:</span> {playerName(inEvent.player_id) ?? '—'}
+                            <p className="mt-1 text-[16px] font-semibold leading-snug text-white/90">
+                              <span className="text-red-200/90">Raus {playerName(outEvent.player_id) ?? '—'}</span>
+                              <span className="mx-1.5 text-white/35">→</span>
+                              <span className="text-emerald-300/90">Rein {playerName(inEvent.player_id) ?? '—'}</span>
                             </p>
                           </div>
                           <div className="flex gap-2 sm:flex-shrink-0">

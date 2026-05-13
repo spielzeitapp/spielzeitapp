@@ -2,7 +2,7 @@
  * Automatische Ergebnis-Feedposts (MVP: JSON + UI, kein PNG/Storage).
  */
 
-import { displayMatchMinuteFromEffectiveSeconds } from './matchEngine';
+import { finishedReportDisplayMinuteFromStoredSeconds } from './matchEventScores';
 
 export type ResultFeedScorer = {
   player_name: string;
@@ -83,7 +83,7 @@ export function parseResultFeedPayload(raw: unknown): ResultFeedPayload | null {
 
 export function formatGoalMinuteLabel(seconds: number | null | undefined): string {
   const s = Math.max(0, Math.floor(Number(seconds ?? 0) || 0));
-  const m = displayMatchMinuteFromEffectiveSeconds(s);
+  const m = finishedReportDisplayMinuteFromStoredSeconds(s);
   return m <= 0 ? "0'" : `${m}'`;
 }
 
