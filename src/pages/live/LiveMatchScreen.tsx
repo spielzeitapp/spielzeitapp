@@ -302,10 +302,17 @@ const spectatorTabBtnCompact =
 const spectatorTabBtnCompactActive = `${trainerTabBtnActive} border-white/10`;
 const spectatorTabBtnCompactIdle = 'text-white/45 hover:bg-white/[0.05] hover:text-white/85';
 
+/** Live Hub: große Touch-Ziele, kein Mini-Tab-Gefühl. */
+const hubNavSpectator = 'mt-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-2.5';
+const hubNavTrainer = 'mt-2 grid w-full grid-cols-2 gap-2 sm:gap-2.5';
+const hubNavBtn =
+  'flex min-h-[52px] w-full touch-manipulation items-center justify-center rounded-2xl border border-white/12 bg-white/[0.07] px-3 py-3.5 text-[15px] font-extrabold tracking-tight text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_22px_rgba(0,0,0,0.38)] backdrop-blur-md transition active:scale-[0.98] sm:min-h-[56px] sm:text-base';
+const liveModuleBackBar =
+  'mt-0 flex min-h-[48px] shrink-0 flex-wrap items-center gap-2 border-b border-white/10 bg-black/60 px-2 py-2 backdrop-blur-md sm:px-3';
+
 const liveCardShell =
   'rounded-2xl border border-white/[0.08] bg-gradient-to-br from-zinc-950/95 via-zinc-950/80 to-black shadow-[0_6px_28px_rgba(0,0,0,0.35)]';
 
-/** Trainer-Matchboard: einheitliche Höhe/Rundung für Steuerung + Score-Tap-Zellen. */
 const mbBtnH = 'h-10 min-h-10';
 const mbRound = 'rounded-xl';
 const mbRowBtn = `flex ${mbBtnH} touch-manipulation items-center justify-center gap-1.5 ${mbRound} px-3 text-xs font-semibold transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40`;
@@ -345,7 +352,7 @@ function findLastGoalEventIdForSide(events: MatchEngineEvent[], side: 'home' | '
   return null;
 }
 
-type EventsFilter = 'all' | 'goals' | 'subs';
+type EventsFilter = 'all' | 'goals' | 'subs' | 'cards';
 
 /** Wechsel-Paare (sub_out + sub_in gleiche Sekunde) in chronologischer Liste zusammenfassen. */
 function pairSubstitutionEventsInOrder(asc: MatchEngineEvent[]): { key: string; items: MatchEngineEvent[] }[] {
@@ -375,6 +382,9 @@ function buildSpectatorTickerRows(events: MatchEngineEvent[]): { key: string; it
  * Filter „Tore“: nur Tor-Events; „Wechsel“: nur Sub-Events mit Paar-Logik; „Alle“: alle Events mit Paar-Logik.
  */
 function buildLiveTickerRows(events: MatchEngineEvent[], filter: EventsFilter): { key: string; items: MatchEngineEvent[] }[] {
+  if (filter === 'cards') {
+    return [];
+  }
   if (filter === 'goals') {
     const goals = events.filter((e) => e.type === 'goal' || e.type === 'goal_away');
     const desc = [...goals].sort((a, b) => b.timestamp - a.timestamp || b.id.localeCompare(a.id));
@@ -849,11 +859,11 @@ export const LiveMatchScreen: React.FC = () => {
   const opponentDisplayName = cleanTeamDisplayName(headerOpponent);
   /** Ohne API-Erweiterung: neutraler Anzeige-Spieltyp (Zielbild). */
   const matchTypeDisplay = 'Freundschaftsspiel';
-  const [mainTab, setMainTab] = useState<'overview' | 'lineup' | 'events' | 'time'>('overview');
+  const [mainTab, setMainTab] = useState<'hub' | 'overview' | 'lineup' | 'events' | 'time'>('hub');
   const [eventsFilter, setEventsFilter] = useState<EventsFilter>('all');
   useEffect(() => {
     if (!canControlLiveMatch && mainTab === 'time') {
-      setMainTab('overview');
+      setMainTab('hub');
     }
   }, [canControlLiveMatch, mainTab]);
 
@@ -898,7 +908,7 @@ export const LiveMatchScreen: React.FC = () => {
     setWechselSheetOpen(true);
   }, []);
   useEffect(() => {
-    if (wechselSheetOpen && mainTab !== 'overview') closeWechselSheet();
+    if (wechselSheetOpen && mainTab !== 'overview' && mainTab !== 'hub') closeWechselSheet();
   }, [wechselSheetOpen, mainTab, closeWechselSheet]);
 
   const [formationSheetOpen, setFormationSheetOpen] = useState(false);
@@ -1883,17 +1893,21 @@ export const LiveMatchScreen: React.FC = () => {
         ? 'bg-red-700 text-white'
         : isSub
           ? friendlyFeed
-            ? 'bg-sky-900 text-sky-100'
+            ? 'bg-zinc-800 text-zinc-200'
             : 'bg-zinc-800 text-zinc-200'
           : 'bg-zinc-800 text-zinc-400';
 
     const cardBorder = isHomeGoal
-      ? 'border-green-600/50'
+      ? friendlyFeed
+        ? 'border-red-500/45 shadow-[0_0_28px_rgba(220,38,38,0.32)]'
+        : 'border-green-600/50'
       : isAwayGoal
-        ? 'border-red-600/50'
+        ? friendlyFeed
+          ? 'border-red-500/45 shadow-[0_0_28px_rgba(220,38,38,0.32)]'
+          : 'border-red-600/50'
         : isSub
           ? friendlyFeed
-            ? 'border-sky-700/40'
+            ? 'border-zinc-500/35 bg-zinc-950/85'
             : 'border-zinc-600'
           : 'border-zinc-700';
 
@@ -1901,8 +1915,18 @@ export const LiveMatchScreen: React.FC = () => {
       ? 'rounded-full border border-green-600 bg-green-950/90 px-2 py-0.5 font-mono text-[10px] font-black tabular-nums text-green-100 md:px-2.5 md:py-1 md:text-[11px]'
       : 'rounded-full border border-red-600 bg-red-950/90 px-2 py-0.5 font-mono text-[10px] font-black tabular-nums text-red-100 md:px-2.5 md:py-1 md:text-[11px]';
 
+    const tickerCardShell = friendlyFeed
+      ? 'gap-3 rounded-2xl px-3 py-3 md:gap-3 md:px-4 md:py-3.5'
+      : 'gap-2 rounded-lg px-2 py-1.5 md:gap-2 md:px-2.5 md:py-2';
+    const tickerIconBox = friendlyFeed
+      ? 'h-10 w-10 rounded-xl text-lg md:h-11 md:w-11 md:text-xl'
+      : 'h-8 w-8 rounded-md text-sm md:h-9 md:w-9 md:text-base';
+
     return (
-      <li key={ev.id} className="relative flex gap-0 pb-2.5 last:pb-0 md:pb-3">
+      <li
+        key={ev.id}
+        className={`relative flex gap-0 ${friendlyFeed ? 'pb-4 last:pb-0 md:pb-5' : 'pb-2.5 last:pb-0 md:pb-3'}`}
+      >
         <div className="flex w-11 shrink-0 flex-col items-end pr-1 pt-0.5 md:w-14 md:pr-1.5">
           <span className="text-sm font-bold tabular-nums leading-none text-white md:text-base">
             {formatMinute(ev.timestamp)}
@@ -1921,10 +1945,10 @@ export const LiveMatchScreen: React.FC = () => {
         </div>
         <div className="min-w-0 flex-1">
           <div
-            className={`flex min-h-0 items-stretch gap-2 rounded-lg border bg-zinc-950 px-2 py-1.5 md:gap-2 md:px-2.5 md:py-2 ${cardBorder}`}
+            className={`flex min-h-0 items-stretch border bg-zinc-950 ${tickerCardShell} ${cardBorder}`}
           >
             <div
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm md:h-9 md:w-9 md:text-base ${iconTile}`}
+              className={`flex shrink-0 items-center justify-center ${tickerIconBox} ${iconTile}`}
               aria-hidden
             >
               {eventIcon(ev.type)}
@@ -1932,7 +1956,13 @@ export const LiveMatchScreen: React.FC = () => {
             <div className="min-w-0 flex-1 py-0.5">
               {isHomeGoal ? (
                 <>
-                  <span className="inline-flex rounded-full border border-green-600 bg-green-950/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-green-100">
+                  <span
+                    className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${
+                      friendlyFeed
+                        ? 'border-red-500/50 bg-red-950/80 text-red-50 shadow-[0_0_18px_rgba(220,38,38,0.35)]'
+                        : 'border-green-600 bg-green-950/80 text-green-100'
+                    }`}
+                  >
                     ⚽ TOR {stadiumHomeDisplay}
                   </span>
                   {pl ? (
@@ -1948,7 +1978,13 @@ export const LiveMatchScreen: React.FC = () => {
                 </>
               ) : isAwayGoal ? (
                 <>
-                  <span className="inline-flex rounded-full border border-red-600 bg-red-950/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-red-100">
+                  <span
+                    className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${
+                      friendlyFeed
+                        ? 'border-red-500/50 bg-red-950/80 text-red-50 shadow-[0_0_18px_rgba(220,38,38,0.35)]'
+                        : 'border-red-600 bg-red-950/80 text-red-100'
+                    }`}
+                  >
                     ⚽ TOR {stadiumAwayDisplay}
                   </span>
                   {pl ? (
@@ -1969,7 +2005,7 @@ export const LiveMatchScreen: React.FC = () => {
                   ) : null}
                   <p
                     className={`${friendlyFeed ? '' : 'mt-1 '}text-sm font-semibold leading-snug ${
-                      ev.type === 'sub_out' ? 'text-red-300' : 'text-emerald-300'
+                      friendlyFeed ? 'text-zinc-200' : ev.type === 'sub_out' ? 'text-red-300' : 'text-emerald-300'
                     }`}
                   >
                     {friendlyFeed ? parentLiveEventDescription(ev) : eventLabel(ev)}
@@ -2099,19 +2135,19 @@ export const LiveMatchScreen: React.FC = () => {
             <div className="relative z-10 h-2 w-2 shrink-0 rounded-full bg-red-600" aria-hidden />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex min-h-0 items-stretch gap-2 rounded-lg border border-white/10 bg-zinc-950 px-2 py-1.5 shadow-[0_6px_24px_rgba(0,0,0,0.35)] md:gap-2 md:px-2.5 md:py-2">
+            <div className="flex min-h-0 items-stretch gap-3 rounded-2xl border border-zinc-500/35 bg-zinc-950/88 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] md:gap-3 md:px-4 md:py-3.5">
               <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-sky-950/80 text-sm text-sky-200 ring-1 ring-sky-500/30 md:h-9 md:w-9 md:text-base"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-600/50 bg-zinc-900 text-lg text-zinc-200 md:h-11 md:w-11"
                 aria-hidden
               >
                 ⇄
               </div>
               <div className="min-w-0 flex-1 py-0.5">
-                <p className="text-[10px] font-black uppercase tracking-wide text-sky-300">🔁 Wechsel</p>
-                <div className="mt-1.5 space-y-0.5">
-                  <p className="text-[12px] font-semibold leading-snug text-red-200/95">Raus · {outName}</p>
-                  <p className="py-0.5 text-center text-[11px] text-white/40">↓</p>
-                  <p className="text-[12px] font-semibold leading-snug text-emerald-300/95">Rein · {inName}</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-zinc-400">Wechsel</p>
+                <div className="mt-2 space-y-1">
+                  <p className="text-[14px] font-semibold leading-snug text-zinc-200">Raus · {outName}</p>
+                  <p className="py-0.5 text-center text-xs text-white/35">↓</p>
+                  <p className="text-[14px] font-semibold leading-snug text-zinc-200">Rein · {inName}</p>
                 </div>
               </div>
             </div>
@@ -2221,7 +2257,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const layoutShell = 'mx-auto w-full max-w-none';
   const spectatorView = !canControlLiveMatch;
-  const matchboardVisible = spectatorView || (canControlLiveMatch && mainTab === 'overview');
+  const matchboardVisible = mainTab === 'hub';
   const liveBadgeAnimating = hasClockStarted && isRunning && !matchIsFinished;
   const liveBadgeShell =
     'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] sm:px-3 sm:text-[11px] uppercase';
@@ -2418,9 +2454,9 @@ export const LiveMatchScreen: React.FC = () => {
     );
   };
 
-  /** Höhe unter globalem App-Header (main pt-24); Matchboard+Tabs fix, Inhalt scrollt (inkl. pb-28 für Bottom-Nav). */
+  /** Höhe unter globalem App-Header (main pt); Matchboard+Hub fix, Module scrollen (inkl. pb für Bottom-Nav). */
   const liveShellOuter =
-    'relative flex h-[calc(100svh-6rem)] max-h-[calc(100svh-6rem)] flex-col overflow-hidden text-white';
+    'relative flex h-[calc(100svh-5.5rem)] max-h-[calc(100svh-5.5rem)] flex-col overflow-hidden text-white';
 
   return (
     <div className={liveShellOuter}>
@@ -2456,7 +2492,7 @@ export const LiveMatchScreen: React.FC = () => {
             <div
               className={`relative mx-auto mb-0 w-full max-w-none overflow-hidden rounded-2xl border border-red-500/30 bg-black/82 shadow-[0_0_40px_rgba(239,68,68,0.18),0_8px_40px_rgba(0,0,0,0.45)] backdrop-blur-md ${
                 spectatorView ? 'md:max-w-xl' : 'md:max-w-2xl'
-              } ${mainTab === 'lineup' ? 'origin-top scale-[0.9] sm:scale-100' : ''}`}
+              }`}
             >
               <div
                 className="pointer-events-none absolute inset-0 rounded-2xl bg-cover opacity-[0.12] brightness-[0.4] saturate-[0.68]"
@@ -2702,92 +2738,54 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
           )}
 
-          {spectatorView ? (
-            <nav className={spectatorTabWrapCompact} aria-label="Live-Ansicht">
-              <button
-                type="button"
-                className={`${spectatorTabBtnCompact} ${mainTab === 'overview' ? spectatorTabBtnCompactActive : spectatorTabBtnCompactIdle}`}
-                onClick={() => setMainTab('overview')}
-              >
+          {mainTab === 'hub' ? (
+            <nav className={spectatorView ? hubNavSpectator : hubNavTrainer} aria-label="Live Hub">
+              <button type="button" className={hubNavBtn} onClick={() => setMainTab('overview')}>
                 Übersicht
               </button>
-              <button
-                type="button"
-                className={`${spectatorTabBtnCompact} ${mainTab === 'lineup' ? spectatorTabBtnCompactActive : spectatorTabBtnCompactIdle}`}
-                onClick={() => setMainTab('lineup')}
-              >
+              <button type="button" className={hubNavBtn} onClick={() => setMainTab('lineup')}>
                 Aufstellung
               </button>
-              <button
-                type="button"
-                className={`${spectatorTabBtnCompact} ${mainTab === 'events' ? spectatorTabBtnCompactActive : spectatorTabBtnCompactIdle}`}
-                onClick={() => setMainTab('events')}
-              >
+              <button type="button" className={hubNavBtn} onClick={() => setMainTab('events')}>
                 Liveticker
               </button>
+              {!spectatorView ? (
+                <button type="button" className={hubNavBtn} onClick={() => setMainTab('time')}>
+                  Statistik
+                </button>
+              ) : null}
             </nav>
-          ) : canControlLiveMatch && mainTab === 'lineup' ? (
-            <div
-              className="mt-1 flex items-center justify-between gap-2 border-b border-white/[0.06] px-2 pb-1.5 pt-0.5"
-              aria-label="Navigation Aufstellung"
-            >
-              <button
-                type="button"
-                onClick={() => setMainTab('events')}
-                className="inline-flex min-h-[34px] items-center gap-1 rounded-lg border border-white/12 bg-black/55 px-2.5 py-1 text-[12px] font-semibold text-white/90 hover:border-white/18 hover:bg-black/65"
-              >
-                ← Liveticker
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormationSheetOpen(true)}
-                className="inline-flex min-h-[34px] shrink-0 items-center rounded-lg border border-red-500/28 bg-red-950/35 px-2.5 py-1 text-[11px] font-bold tracking-tight text-red-100/95 transition-colors hover:border-red-400/40 hover:bg-red-950/50 active:scale-[0.99]"
-              >
-                Formation
-              </button>
-            </div>
           ) : (
-            <nav className={tabNavWrapTrainer} aria-label="Live-Ansicht">
+            <div className={liveModuleBackBar} aria-label="Zurück zum Live Hub">
               <button
                 type="button"
-                className={`${trainerTabBtn} ${mainTab === 'overview' ? trainerTabBtnActive : trainerTabBtnIdle}`}
-                onClick={() => setMainTab('overview')}
+                onClick={() => setMainTab('hub')}
+                className="inline-flex min-h-[44px] min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm font-bold text-white shadow-sm backdrop-blur-sm transition active:scale-[0.98]"
               >
-                Übersicht
+                <span aria-hidden>←</span>
+                <span>Livespiel</span>
               </button>
-              <button
-                type="button"
-                className={`${trainerTabBtn} ${mainTab === 'lineup' ? trainerTabBtnActive : trainerTabBtnIdle}`}
-                onClick={() => setMainTab('lineup')}
-              >
-                Aufstellung
-              </button>
-              <button
-                type="button"
-                className={`${trainerTabBtn} ${mainTab === 'events' ? trainerTabBtnActive : trainerTabBtnIdle}`}
-                onClick={() => setMainTab('events')}
-              >
-                Ticker
-              </button>
-              <button
-                type="button"
-                className={`${trainerTabBtn} ${mainTab === 'time' ? trainerTabBtnActive : trainerTabBtnIdle}`}
-                onClick={() => setMainTab('time')}
-              >
-                Statistik
-              </button>
-            </nav>
+              {canControlLiveMatch && mainTab === 'lineup' ? (
+                <button
+                  type="button"
+                  onClick={() => setFormationSheetOpen(true)}
+                  className="ml-auto inline-flex min-h-[44px] shrink-0 items-center rounded-xl border border-red-500/35 bg-red-950/45 px-3 py-2 text-xs font-extrabold uppercase tracking-wide text-red-100 shadow-[0_0_16px_rgba(220,38,38,0.2)] transition-colors hover:border-red-400/45 hover:bg-red-950/60 active:scale-[0.98]"
+                >
+                  Formation
+                </button>
+              ) : null}
+            </div>
           )}
         </div>
       </header>
 
       <div
-        className={`relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} pb-40 pt-1 md:px-4 lg:px-5 md:py-4 ${
-          mainTab === 'lineup' ? 'px-0 py-1 sm:px-2 sm:py-2' : 'px-2 py-2'
+        className={`relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} pb-40 md:px-4 lg:px-5 md:py-4 ${
+          mainTab === 'hub' ? 'px-2 pt-1 pb-2' : mainTab === 'lineup' ? 'px-0 py-0 sm:py-1' : 'px-2 py-3 pt-2'
         } ${wechselSheetOpen ? 'brightness-[0.92]' : ''}`}
       >
         {mainTab === 'overview' && (
-          <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-3'}>
+          <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>
             {canControlLiveMatch ? (
               <>
                 <section>
@@ -2879,17 +2877,16 @@ export const LiveMatchScreen: React.FC = () => {
 
         {mainTab === 'lineup' && (
           <div
-            className="space-y-1.5 px-0 pt-1.5 sm:space-y-2 sm:px-2"
-            style={{ paddingBottom: 'calc(160px + env(safe-area-inset-bottom, 0px))' }}
+            className="flex min-h-0 flex-1 flex-col gap-3 px-2 pb-[calc(140px+env(safe-area-inset-bottom,0px))] pt-2 sm:px-3"
           >
-            <section className="space-y-1 rounded-2xl border border-white/[0.08] bg-black/35 p-1 sm:space-y-1.5 sm:p-1.5">
+            <section className="flex min-h-0 flex-1 flex-col gap-2 sm:rounded-2xl sm:border sm:border-white/[0.08] sm:bg-black/30 sm:p-1.5">
               {canRenderLivePitch ? (
                 <LineupFormationPitch
                   formationId={safeFormationId}
                   slots={safeLineupSlots as Record<FieldSlotId, string | null>}
                   emphasizedPlayerId={null}
                   slotHighlightBySlot={slotHighlightBySlot}
-                  className="max-h-[min(66dvh,42rem)]"
+                  className="min-h-[46dvh] max-h-[min(74dvh,52rem)] w-full flex-1"
                   renderSlotContent={({ slot, label, playerId, isGk }) => {
                     if (!playerId) return null;
                     const player = rosterById.get(playerId) ?? null;
@@ -2956,34 +2953,35 @@ export const LiveMatchScreen: React.FC = () => {
                 </p>
               )}
 
-              <div className="rounded-lg border border-white/10 bg-black/25 p-1 sm:p-1.5">
-                <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white/50">Bank</p>
+              <div className="rounded-xl border border-white/10 bg-black/40 p-2 sm:p-2.5">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">Bank</p>
                 {safeBenchRowsCount === 0 ? (
-                  <p className="text-[11px] text-white/45">Keine Bankspieler</p>
+                  <p className="text-[12px] text-white/45">Keine Bankspieler</p>
                 ) : (
-                  <div className="overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch]">
-                    <div className="flex min-w-min flex-nowrap items-start gap-1.25 sm:gap-1.5">
+                  <div className="overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+                    <div className="flex min-w-min flex-nowrap items-start gap-2 sm:gap-2.5">
                       {(Array.isArray(safeBenchRows) ? safeBenchRows : []).map((row, idx) => {
                         const posLabel = getPositionLabel(row.position) || '–';
+                        const fullBenchName = String(row.display_name || row.name || 'Spieler').trim() || 'Spieler';
                         return (
                           <div
                             key={`live-bench-tile-${row.id || idx}`}
-                            className="flex w-[4.55rem] min-w-0 shrink-0 flex-col items-center rounded-lg border border-white/12 bg-black/30 px-1 py-1 sm:w-[5.1rem]"
+                            className="flex w-[7.25rem] min-w-0 shrink-0 flex-col items-center rounded-xl border border-white/12 bg-black/45 px-1.5 py-2 sm:w-[8.5rem]"
                           >
                             <LeibchenJersey
-                              lastName={mobileLineupName(row.display_name || row.name || 'Spieler')}
+                              lastName={mobileLineupName(fullBenchName)}
                               number={row.jersey_number ?? row.number ?? '–'}
                               position={posLabel}
                               variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
                               size="compact"
                               pitchStyleBack
-                              className="!h-[3.0rem] !w-[2.35rem] sm:!h-[3.5rem] sm:!w-[2.75rem]"
+                              className="!h-[3.35rem] !w-[2.6rem] sm:!h-[3.85rem] sm:!w-[3rem]"
                             />
                             <span
-                              className="mt-0.5 block w-full min-w-0 truncate text-center text-[10px] font-bold leading-tight text-white sm:text-xs"
-                              title={String(row.display_name || row.name || 'Spieler')}
+                              className="mt-1.5 line-clamp-2 block w-full min-w-0 overflow-hidden px-0.5 text-center text-[11px] font-semibold leading-snug text-white [overflow-wrap:anywhere] sm:text-xs"
+                              title={fullBenchName}
                             >
-                              {mobileLineupName(row.display_name || row.name || 'Spieler')}
+                              {fullBenchName}
                             </span>
                           </div>
                         );
@@ -2994,70 +2992,81 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
             </section>
 
-            <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
-              <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">STARTAUFSTELLUNG</h3>
-              {safeLineupRowsCount === 0 ? (
-                <p className="text-sm text-white/55">Keine Startaufstellung</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {(Array.isArray(safeLineupRows) ? safeLineupRows : []).map((row) => (
-                    <MatchPlayerRow
-                      key={`lineup-row-${row.slot}`}
-                      player={row}
-                      rightLabel={row.rightLabel}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
+            {canControlLiveMatch ? (
+              <>
+                <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
+                  <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">STARTAUFSTELLUNG</h3>
+                  {safeLineupRowsCount === 0 ? (
+                    <p className="text-sm text-white/55">Keine Startaufstellung</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {(Array.isArray(safeLineupRows) ? safeLineupRows : []).map((row) => (
+                        <MatchPlayerRow
+                          key={`lineup-row-${row.slot}`}
+                          player={row}
+                          rightLabel={row.rightLabel}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
 
-            <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
-              <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">BANK</h3>
-              {safeBenchRowsCount === 0 ? (
-                <p className="text-sm text-white/55">Keine Bankspieler</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {(Array.isArray(safeBenchRows) ? safeBenchRows : []).map((row, idx) => (
-                    <MatchPlayerRow
-                      key={`bench-row-${row.id || idx}`}
-                      player={row}
-                      rightLabel="Bank"
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
+                <section className="space-y-2 rounded-2xl border border-white/[0.06] bg-black/25 p-3 opacity-95">
+                  <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">BANK</h3>
+                  {safeBenchRowsCount === 0 ? (
+                    <p className="text-sm text-white/55">Keine Bankspieler</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {(Array.isArray(safeBenchRows) ? safeBenchRows : []).map((row, idx) => (
+                        <MatchPlayerRow
+                          key={`bench-row-${row.id || idx}`}
+                          player={row}
+                          rightLabel="Bank"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </>
+            ) : null}
           </div>
         )}
 
         {mainTab === 'events' && (
-          <div className="space-y-2">
-            <div className="flex gap-1 rounded-lg border border-white/10 bg-black/40 p-0.5 sm:gap-1.5">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 px-1 pb-4 sm:px-2">
+            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/12 bg-black/50 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:grid-cols-4">
               {(
                 [
                   ['all', 'Alle'],
                   ['goals', 'Tore'],
                   ['subs', 'Wechsel'],
+                  ['cards', 'Karten'],
                 ] as const
               ).map(([key, label]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setEventsFilter(key)}
-                  className={`min-h-[32px] flex-1 rounded-md px-2 py-1 text-[11px] font-semibold transition-colors sm:min-h-[34px] sm:text-xs ${
-                    eventsFilter === key ? trainerTabBtnActive : 'text-white/45 hover:text-white/75'
+                  className={`min-h-[44px] rounded-xl px-2 py-2 text-[12px] font-extrabold tracking-tight transition-colors sm:min-h-[48px] sm:text-sm ${
+                    eventsFilter === key
+                      ? 'border border-red-500/45 bg-gradient-to-b from-red-600/90 to-red-950/90 text-white shadow-[0_0_20px_rgba(220,38,38,0.25)]'
+                      : 'border border-transparent text-white/50 hover:border-white/10 hover:bg-white/[0.05] hover:text-white/85'
                   }`}
                 >
                   {label}
                 </button>
               ))}
             </div>
-            {trainerTickerRows.length === 0 ? (
-              <p className={`px-4 py-8 text-center text-sm text-gray-400 ${liveCardShell} border-red-500/20`}>
+            {eventsFilter === 'cards' ? (
+              <p className="rounded-2xl border border-amber-400/25 bg-amber-950/20 px-4 py-10 text-center text-sm font-medium leading-relaxed text-amber-100/90">
+                Keine Karten erfasst.
+              </p>
+            ) : trainerTickerRows.length === 0 ? (
+              <p className="rounded-2xl border border-white/10 bg-black/40 px-4 py-10 text-center text-sm text-zinc-400">
                 Keine Einträge für diesen Filter.
               </p>
             ) : (
-              <ul className="max-h-[60vh] overflow-y-auto rounded-xl border border-red-500/30 bg-black px-1 py-2 sm:px-2 sm:py-3">
+              <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto rounded-2xl border border-red-500/25 bg-black/55 px-2 py-3 sm:px-3 sm:py-4">
                 {trainerTickerRows.map((row, i, arr) => renderTrainerTickerRow(row, i, arr.length))}
               </ul>
             )}

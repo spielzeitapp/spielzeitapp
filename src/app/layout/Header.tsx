@@ -9,12 +9,12 @@ import { getClubLogo } from '../../lib/teamLogos';
 const logo = import.meta.env.BASE_URL + 'logos/nsg-goelsental.png';
 
 const iconBtnClass =
-  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_12px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors hover:border-white/22 hover:bg-white/[0.09] focus:outline-none focus-visible:ring-1 focus-visible:ring-red-500/45 focus-visible:ring-offset-1 focus-visible:ring-offset-black sm:h-10 sm:w-10';
+  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_12px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors hover:border-white/22 hover:bg-white/[0.09] focus:outline-none focus-visible:ring-1 focus-visible:ring-red-500/40 focus-visible:ring-offset-0 sm:h-10 sm:w-10';
 
 function AppWordmark({ compact }: { compact?: boolean }) {
   const sz = compact
-    ? 'text-[clamp(0.95rem,4.2vw,1.2rem)]'
-    : 'text-[clamp(1.05rem,4.5vw,1.35rem)]';
+    ? 'text-[clamp(1.05rem,4.5vw,1.34rem)]'
+    : 'text-[clamp(1.15rem,4.8vw,1.48rem)]';
   return (
     <h1
       className={`font-black italic leading-[1.02] tracking-tight ${sz}`}
@@ -88,14 +88,6 @@ export const Header: React.FC = () => {
     !!backendRole &&
     ['admin', 'head_coach', 'trainer', 'co_trainer'].includes(backendRole.toLowerCase());
 
-  const headerTeamName = useMemo(
-    () => (selectedTeamSeason?.team?.name ?? '').trim(),
-    [selectedTeamSeason?.team?.name],
-  );
-
-  const teamSubline =
-    pathname.startsWith('/app') && headerTeamName.length > 0 ? headerTeamName : 'NSG Gölsental';
-
   const headerTeamLogo = useMemo(() => {
     const tn = (selectedTeamSeason?.team?.name ?? '').trim();
     if (pathname.startsWith('/app') && tn) return getClubLogo(tn);
@@ -145,7 +137,7 @@ export const Header: React.FC = () => {
 
   return (
     <header className="fixed left-0 top-0 z-50 w-full border-b border-white/[0.07] bg-gradient-to-b from-zinc-950/[0.97] via-black/[0.9] to-black/[0.82] pt-[env(safe-area-inset-top,0px)] shadow-[0_10px_36px_-10px_rgba(0,0,0,0.72),inset_0_-1px_0_rgba(220,38,38,0.06)] backdrop-blur-xl backdrop-saturate-150">
-      <div className="mx-auto flex min-h-[3rem] w-full max-w-screen-2xl items-center justify-between gap-2 px-3 py-1 md:px-8 md:py-1.5">
+      <div className="mx-auto flex min-h-[2.75rem] w-full max-w-screen-2xl items-center justify-between gap-2 px-3 py-0.5 md:px-8 md:py-1">
         {/* Links: Logo + Branding (im internen Bereich klickbar → /app/home) */}
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
           {pathname.startsWith('/app') ? (
@@ -159,9 +151,6 @@ export const Header: React.FC = () => {
               />
               <div className="min-w-0 pr-1">
                 <AppWordmark compact />
-                <div className="mt-0.5 max-w-[min(100%,14rem)] truncate text-[10px] font-medium leading-snug text-zinc-300 sm:max-w-[20rem] sm:text-[11px] sm:text-zinc-400">
-                  {teamSubline}
-                </div>
                 {membershipError ? (
                   <span className="mt-0.5 block truncate text-[9px] text-amber-400/95" role="alert">
                     {membershipError}
@@ -238,7 +227,7 @@ export const Header: React.FC = () => {
                   </Link>
                   {isStaff && staffBackendBadge ? (
                     <span
-                      className="max-w-[5.5rem] truncate rounded-full border border-red-500/25 bg-black/45 px-2 py-0.5 text-center text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-300"
+                      className="max-w-[6.5rem] truncate rounded-full border border-white/10 bg-black/50 px-3 py-1 text-center text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-300"
                       title={staffBackendBadge}
                     >
                       {staffBackendBadge}
@@ -248,7 +237,7 @@ export const Header: React.FC = () => {
               )}
             </div>
             {!sessionLoading && !authLoading && !isStaff && roleLabel ? (
-              <span className="rounded-full border border-white/10 bg-white/[0.05] px-1.5 py-0.5 text-[8px] font-medium uppercase tracking-wide text-white/55 sm:text-[9px]">
+              <span className="rounded-full border border-white/10 bg-black/50 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-300">
                 {roleLabel}
               </span>
             ) : null}
