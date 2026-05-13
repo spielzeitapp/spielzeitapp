@@ -82,12 +82,16 @@ export type DeleteTeamFeedPostResult = {
  * Reihenfolge: Storage best-effort, dann DB-Zeile. Speicher-Fehler in storageWarnings, kein stilles Versagen.
  */
 export async function deleteTeamFeedPostClient(input: FeedPostDeleteInput): Promise<DeleteTeamFeedPostResult> {
-  const paths = collectTeamFeedStoragePaths(input);
+  const paths = [...new Set(collectTeamFeedStoragePaths(input).filter(Boolean))];
   const storageWarnings: string[] = [];
 
   if (paths.length > 0) {
-    const { error } = await supabase.storage.from(TEAM_FEED_BUCKET).remove(paths);
-    if (error) storageWarnings.push(error.message);
+    try {
+      const { error } = await supabase.storage.from(TEAM_FEED_BUCKET).remove(paths);
+      if (error) storageWarnings.push(error.message);
+    } catch (e) {
+      storageWarnings.push(e instanceof Error ? e.message : String(e));
+    }
   }
 
   const { error: delErr } = await supabase.from('team_feed_posts').delete().eq('id', input.id);

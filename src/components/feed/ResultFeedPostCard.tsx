@@ -27,21 +27,28 @@ function formatPeriodScoresBrief(value: unknown): string | null {
   if (!value || typeof value !== 'object') return null;
   const o = value as Record<string, { h?: unknown; a?: unknown } | undefined>;
   const seg = (key: string) => {
-    const p = o[key];
-    if (!p || typeof p !== 'object') return '-:-';
-    const h = Math.max(0, Math.trunc(Number(p.h) || 0));
-    const a = Math.max(0, Math.trunc(Number(p.a) || 0));
+    const pr = o[key];
+    if (!pr || typeof pr !== 'object') return '-:-';
+    const h = Math.max(0, Math.trunc(Number(pr.h) || 0));
+    const a = Math.max(0, Math.trunc(Number(pr.a) || 0));
     return `${h}:${a}`;
   };
-  return `${seg('p1')} · ${seg('p2')} · ${seg('p3')}`;
+  const line = `${seg('p1')} · ${seg('p2')} · ${seg('p3')}`;
+  if (line === '-:- · -:- · -:-') return null;
+  return line;
 }
 
-/** Nur Darstellung: 0' / keine Minute → Gedankenstrich */
-function formatScorerMinuteLabel(minuteLabel: string): string {
+function isSensibleScorerMinute(minuteLabel: string): boolean {
   const t = minuteLabel.trim();
+  if (!t || t === '—') return false;
   const m = /^(\d+)/.exec(t);
-  if (m && m[1] === '0') return '—';
-  return t || '—';
+  if (m && m[1] === '0') return false;
+  return true;
+}
+
+function isRealScorerName(name: string): boolean {
+  const n = name.trim();
+  return n.length > 0 && n !== '—' && n !== '–';
 }
 
 function LogoImg({ src }: { src: string }) {
@@ -49,12 +56,11 @@ function LogoImg({ src }: { src: string }) {
   useEffect(() => {
     setImgSrc(isValidLogoUrl(src) ? src : '/logos/placeholder-shield-a.png');
   }, [src]);
-  const box = 'h-[3.25rem] w-[3.25rem] sm:h-[4.25rem] sm:w-[4.25rem]';
   return (
     <img
       src={imgSrc}
       alt=""
-      className={`${box} shrink-0 object-contain drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]`}
+      className="h-[3.75rem] w-[3.75rem] shrink-0 object-contain drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)] sm:h-[4.5rem] sm:w-[4.5rem]"
       onError={() => {
         if (imgSrc !== '/logos/placeholder-shield-a.png') setImgSrc('/logos/placeholder-shield-a.png');
       }}
@@ -86,7 +92,7 @@ function CaptionBody({ text }: { text: string }) {
           {'\n'}
         </>
       ) : null}
-      <span className="font-extrabold tracking-wide text-white drop-shadow-[0_0_14px_rgba(248,113,113,0.55),0_1px_0_rgba(220,38,38,0.9)]">
+      <span className="bg-gradient-to-r from-red-500 via-red-400 to-white bg-clip-text font-extrabold tracking-wide text-transparent drop-shadow-[0_0_18px_rgba(248,113,113,0.45)]">
         {nodes.tag}
       </span>
     </>
@@ -116,12 +122,21 @@ export const ResultFeedPostCard: React.FC<Props> = ({
   const meetingLabel = p.meeting_at ? formatMeetupTimeOnlyDe(p.meeting_at) : null;
   const periodLine = formatPeriodScoresBrief(p.period_scores);
 
-  const accent =
+  const filteredScorers = useMemo(
+    () => p.scorers.filter((s) => isRealScorerName(s.player_name)),
+    [p.scorers],
+  );
+  const showScorerMinutes = useMemo(
+    () => filteredScorers.some((s) => isSensibleScorerMinute(s.minute_label)),
+    [filteredScorers],
+  );
+
+  const winTint =
     p.result_state === 'win'
-      ? 'from-emerald-950/90 via-zinc-950/95 to-black'
+      ? 'from-emerald-950/[0.55] via-zinc-950/90 to-[#050508]'
       : p.result_state === 'loss'
-        ? 'from-zinc-900/95 via-zinc-950/95 to-black'
-        : 'from-slate-900/95 via-zinc-950/95 to-black';
+        ? 'from-zinc-900/80 via-[#0a0808] to-black'
+        : 'from-slate-900/75 via-zinc-950/92 to-[#050508]';
 
   const onToggleLike = useCallback(() => {
     const next = !liked;
@@ -152,125 +167,143 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
   const toGame = p.deep_link.startsWith('/') ? p.deep_link : `/${p.deep_link}`;
 
+  const metaBits = [
+    p.match_type?.trim() || null,
+    kickoffLabel !== '—' ? `Anpfiff ${kickoffLabel}` : null,
+    meetingLabel ? `Treff ${meetingLabel}` : null,
+  ].filter(Boolean);
+  const locTrim = (p.location ?? '').trim();
+  const metaLine = [...metaBits, locTrim || null].filter(Boolean).join(' · ');
+
   return (
     <article
-      className="w-full min-w-0 overflow-hidden rounded-3xl border border-red-600/35 bg-[#060606] shadow-xl pb-[max(1.5rem,calc(0.5rem+env(safe-area-inset-bottom,0px)))]"
+      className="w-full min-w-0 overflow-hidden rounded-3xl border border-red-600/30 bg-[#050508] shadow-xl"
       style={{
         boxShadow:
-          'inset 0 0 70px rgba(120,20,20,0.1), 0 20px 44px rgba(0,0,0,0.58), 0 0 0 1px rgba(220,38,38,0.12), 0 0 36px -8px rgba(220,38,38,0.16)',
+          'inset 0 0 60px rgba(80,10,10,0.12), 0 16px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(220,38,38,0.1), 0 0 28px -6px rgba(220,38,38,0.12)',
       }}
     >
-      <header className="border-b border-white/[0.05] bg-black/35 px-3 pt-3 sm:px-4">
-        <div className="flex items-start justify-between gap-3">
+      <div className={`relative bg-gradient-to-b ${winTint} px-2.5 pb-2 pt-2 sm:px-3`}>
+        <div
+          className="pointer-events-none absolute inset-0 opacity-90"
+          style={{
+            background:
+              'radial-gradient(ellipse 95% 55% at 50% 18%, rgba(220,38,38,0.22) 0%, transparent 52%), radial-gradient(ellipse 80% 45% at 50% 100%, rgba(0,0,0,0.55) 0%, transparent 55%)',
+          }}
+        />
+        <div className="pointer-events-none absolute inset-x-0 top-[28%] h-[42%] bg-[radial-gradient(ellipse_70%_80%_at_50%_50%,rgba(255,255,255,0.06),transparent_70%)]" />
+
+        <div className="relative flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <FeedCardHeaderBrand teamLabel={teamLabel} />
-            <p className="mt-0.5 text-[10px] leading-snug text-white/45 sm:text-[11px]">{whenLabel}</p>
+            <p className="mt-0.5 text-[9px] leading-tight text-white/38 sm:text-[10px]">{whenLabel}</p>
           </div>
           {staffCanDelete && onFeedPostDeleted ? (
-            <div className="shrink-0 pt-0.5">
+            <div className="shrink-0">
               <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
             </div>
           ) : null}
         </div>
-        <div className="flex justify-center pb-3 pt-2">
-          <span className="inline-flex items-center justify-center rounded-full border border-amber-400/50 bg-gradient-to-b from-amber-500/25 to-amber-950/60 px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-amber-50 shadow-[0_0_20px_rgba(251,191,36,0.15)] sm:px-5 sm:text-xs sm:tracking-[0.22em]">
+
+        <div className="relative flex justify-center pb-1 pt-1">
+          <span
+            className="inline-flex items-center justify-center rounded-full border border-amber-300/55 bg-gradient-to-b from-amber-400/35 via-amber-600/20 to-amber-950/70 px-[0.65rem] py-1 text-[10px] font-black uppercase tracking-[0.24em] text-amber-50 shadow-[0_0_28px_rgba(251,191,36,0.45),0_0_12px_rgba(245,158,11,0.25),inset_0_1px_0_rgba(255,255,255,0.2)] sm:px-4 sm:text-[11px] sm:tracking-[0.26em]"
+            aria-label="Endstand"
+          >
             Endstand
           </span>
         </div>
-      </header>
 
-      <div
-        className={`relative overflow-hidden bg-gradient-to-br px-3 pb-4 pt-1 sm:px-4 sm:pb-5 ${accent}`}
-        style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)' }}
-      >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_0%,rgba(220,38,38,0.14),transparent)]" />
-
-        <div className="relative grid grid-cols-[1fr_auto_1fr] items-end gap-x-1 gap-y-1 sm:gap-x-3">
-          <div className="flex min-w-0 flex-col items-center gap-1 text-center">
-            <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/35">Heim</span>
+        <div className="relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-0.5 gap-y-0 px-0 sm:gap-x-1">
+          <div className="flex min-w-0 flex-col items-center gap-0.5 text-center">
+            <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-white/28">Heim</span>
             <LogoImg src={p.home_logo_url} />
-            <p className="max-w-full break-words px-0.5 text-center text-[12px] font-bold leading-snug text-white [text-wrap:balance] sm:text-sm">
+            <p className="line-clamp-2 max-w-full break-words px-0.5 text-center text-[10px] font-bold leading-tight text-white/88 [text-wrap:balance] sm:text-[11px]">
               {p.home_team_name}
             </p>
           </div>
-          <div className="flex min-w-0 flex-col items-center justify-end pb-1">
+
+          <div className="flex min-w-0 flex-col items-center justify-center px-0.5 sm:px-1">
             <p
-              className="text-[2.85rem] font-black tabular-nums leading-[0.95] tracking-tight text-white sm:text-[3.35rem] sm:leading-none"
-              style={{ textShadow: '0 4px 32px rgba(0,0,0,0.55), 0 0 1px rgba(255,255,255,0.08)' }}
+              className="text-[3.35rem] font-black tabular-nums leading-none tracking-tighter text-white sm:text-[4rem] sm:tracking-tight"
+              style={{
+                textShadow:
+                  '0 0 40px rgba(0,0,0,0.75), 0 6px 28px rgba(0,0,0,0.55), 0 0 2px rgba(255,255,255,0.12)',
+              }}
             >
               {p.home_score}
-              <span className="mx-0.5 text-white/30 sm:mx-1">:</span>
+              <span className="mx-0.5 align-middle text-[0.55em] font-black text-white/28 sm:mx-1">:</span>
               {p.away_score}
             </p>
           </div>
-          <div className="flex min-w-0 flex-col items-center gap-1 text-center">
-            <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/35">Gast</span>
+
+          <div className="flex min-w-0 flex-col items-center gap-0.5 text-center">
+            <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-white/28">Gast</span>
             <LogoImg src={p.away_logo_url} />
-            <p className="max-w-full break-words px-0.5 text-center text-[12px] font-bold leading-snug text-white [text-wrap:balance] sm:text-sm">
+            <p className="line-clamp-2 max-w-full break-words px-0.5 text-center text-[10px] font-bold leading-tight text-white/88 [text-wrap:balance] sm:text-[11px]">
               {p.away_team_name}
             </p>
           </div>
         </div>
 
-        <div className="relative mt-4 space-y-0.5 text-center text-[11px] text-white/55 sm:text-[12px]">
-          {p.match_type ? <p className="text-[11px] font-medium text-white/65">{p.match_type}</p> : null}
-          <p>Anpfiff · {kickoffLabel}</p>
-          {meetingLabel ? <p>Treffpunkt · {meetingLabel}</p> : null}
-          <p className="line-clamp-2 break-words text-white/50">{p.location}</p>
+        <div className="relative mt-1.5 space-y-0.5 text-center">
+          {metaLine ? (
+            <p className="line-clamp-2 px-1 text-[10px] leading-snug text-white/48 sm:text-[11px]">{metaLine}</p>
+          ) : null}
+          {periodLine ? (
+            <p className="text-[8px] font-medium tabular-nums tracking-wide text-white/28 sm:text-[9px]">
+              Drittel {periodLine}
+            </p>
+          ) : null}
+          <p className="pt-0.5">
+            <Link
+              to={toGame}
+              className="inline-flex touch-manipulation text-[10px] font-semibold text-amber-200/90 underline decoration-amber-500/40 underline-offset-2 transition hover:text-amber-100"
+            >
+              Zum Spiel
+            </Link>
+          </p>
         </div>
 
-        {periodLine ? (
-          <p className="relative mt-2 text-center text-[9px] font-medium tabular-nums tracking-wide text-white/32 sm:text-[10px]">
-            <span className="mr-1 text-white/25">Drittel</span>
-            {periodLine}
-          </p>
-        ) : null}
-
-        {p.scorers.length > 0 ? (
-          <div className="relative mt-3 rounded-xl border border-white/[0.06] bg-black/25 px-2.5 py-1.5 sm:px-3 sm:py-2">
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">Torschützen</p>
-            <ul className="mt-1 space-y-0.5">
-              {p.scorers.map((s, i) => (
-                <li
-                  key={`${s.player_name}-${s.minute_label}-${i}`}
-                  className="grid grid-cols-[1fr_auto] items-baseline gap-x-3 text-[13px] leading-tight text-white/88 sm:text-sm"
-                >
-                  <span className="min-w-0 break-words [text-wrap:balance]">{s.player_name}</span>
-                  <span className="w-10 shrink-0 text-right tabular-nums text-white/45">
-                    {formatScorerMinuteLabel(s.minute_label)}
-                  </span>
-                </li>
-              ))}
+        {filteredScorers.length > 0 ? (
+          <div className="relative mt-1.5 rounded-lg bg-black/28 px-2 py-1 sm:px-2.5 sm:py-1.5">
+            <p className="text-[8px] font-semibold uppercase tracking-wider text-white/35">Torschützen</p>
+            <ul className="mt-0.5 space-y-0">
+              {filteredScorers.map((s, i) => {
+                const minOk = isSensibleScorerMinute(s.minute_label);
+                const minShown = showScorerMinutes && minOk ? s.minute_label.trim() : null;
+                return (
+                  <li
+                    key={`${s.player_name}-${i}`}
+                    className={`grid gap-x-2 text-[12px] leading-tight text-white/90 sm:text-[13px] ${showScorerMinutes ? 'grid-cols-[1fr_auto]' : 'grid-cols-1'}`}
+                  >
+                    <span className="min-w-0 break-words [text-wrap:balance]">{s.player_name.trim()}</span>
+                    {showScorerMinutes ? (
+                      <span className="w-9 shrink-0 text-right tabular-nums text-[11px] text-white/40 sm:w-10 sm:text-xs">
+                        {minShown ?? ''}
+                      </span>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ) : null}
-
-        <div className="relative mt-3 flex justify-center">
-          <Link
-            to={toGame}
-            className="inline-flex min-h-9 touch-manipulation items-center justify-center rounded-lg border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[11px] font-semibold text-white/80 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
-          >
-            Zum Spiel
-          </Link>
-        </div>
       </div>
 
-      <div className="min-w-0 space-y-3 px-3 pt-6 sm:px-4 sm:pt-7">
-        <p className="whitespace-pre-line px-0.5 text-[16px] font-medium leading-relaxed text-white/95 sm:text-[17px]">
+      <div className="min-w-0 border-t border-white/[0.04] bg-[#060606]/95 px-2.5 pb-[max(0.5rem,calc(0.25rem+env(safe-area-inset-bottom,0px)))] pt-3 sm:px-3 sm:pt-3.5">
+        <p className="whitespace-pre-line px-0.5 text-[16px] font-medium leading-snug text-white/94 sm:text-[17px]">
           <CaptionBody text={post.caption} />
         </p>
 
-        {shareHint ? <p className="text-center text-[13px] text-white/65">{shareHint}</p> : null}
+        {shareHint ? <p className="mt-2 text-center text-[12px] text-white/55">{shareHint}</p> : null}
 
-        <div
-          className="flex items-center justify-between gap-0.5 border-t border-white/[0.06] px-0.5 pb-[max(0.75rem,calc(0.35rem+env(safe-area-inset-bottom,0px)))] pt-3"
-          style={{ boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.06)' }}
-        >
+        <div className="mt-3 flex items-center justify-between gap-0.5 px-0.5">
           <button
             type="button"
             onClick={onToggleLike}
             className={`inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold transition-colors ${
-              liked ? 'text-red-400' : 'text-white/68 hover:bg-white/[0.06] hover:text-white/92'
+              liked ? 'text-red-400' : 'text-white/65 hover:bg-white/[0.05] hover:text-white/90'
             }`}
             aria-pressed={liked}
           >
@@ -279,7 +312,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
           </button>
           <Link
             to="/app/nachrichten"
-            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold text-white/55 transition-colors hover:bg-white/[0.04] hover:text-white/88"
+            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold text-white/52 transition-colors hover:bg-white/[0.04] hover:text-white/85"
           >
             <MessageCircle className="h-4 w-4" strokeWidth={2} />
             Kommentar
@@ -287,7 +320,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
           <button
             type="button"
             onClick={() => void onShare()}
-            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold text-white/68 transition-colors hover:bg-white/[0.06] hover:text-white/92"
+            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold text-white/65 transition-colors hover:bg-white/[0.05] hover:text-white/90"
           >
             <Share2 className="h-4 w-4 shrink-0" strokeWidth={2} />
             Teilen
