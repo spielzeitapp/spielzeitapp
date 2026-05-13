@@ -94,7 +94,7 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
 
       <div className="relative z-[1] flex flex-col items-center space-y-6 sm:space-y-7">
         {/* Branding + emotionale Bühnenzeile — nah an Welcome (Kicker rot, Headline weiß) */}
-        <div className="w-full max-w-md space-y-2 text-center">
+        <div className="w-full max-w-none space-y-2 text-center">
           <p className="text-[10px] font-bold uppercase tracking-[0.26em] text-red-400 sm:text-[11px]">
             Matchday
           </p>
@@ -112,7 +112,7 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
         </div>
 
         {/* Duell — großzügig für Share / Thumbnail */}
-        <div className="flex w-full max-w-lg items-center justify-between gap-2 sm:gap-5">
+        <div className="flex w-full max-w-none items-center justify-between gap-2 sm:gap-5">
           <div className="flex min-w-0 flex-1 flex-col items-center gap-3">
             <LogoImg src={homeLogoUrl} alt={homeTeamName} />
             <p className="w-full px-0.5 text-center text-[13px] font-semibold leading-snug text-white/92 sm:text-base">
@@ -148,7 +148,7 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
 
         {/* Infos — ruhig, editorial */}
         <div
-          className="w-full max-w-md space-y-2 rounded-2xl border border-white/[0.06] bg-black/20 px-4 py-3.5 text-center sm:px-5 sm:py-4"
+          className="w-full max-w-none space-y-2 rounded-2xl border border-white/[0.06] bg-black/20 px-4 py-3.5 text-center sm:px-5 sm:py-4"
           style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)' }}
         >
           <p className="text-xs text-white/82 sm:text-sm">

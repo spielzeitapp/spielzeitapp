@@ -232,7 +232,7 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
       <div className="min-w-0 space-y-3 px-3 pb-3 pt-3 sm:px-4">
         <div
           ref={videoShellRef}
-          className="relative mx-auto w-full max-w-full min-w-0 overflow-hidden rounded-2xl border border-red-900/30 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black"
+          className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-red-900/30 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black"
           style={{ aspectRatio: '9 / 16' }}
         >
           {srcLoaded && resolvedSrc ? (

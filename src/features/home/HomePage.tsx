@@ -63,10 +63,10 @@ export const HomePage: React.FC = () => {
 
   return (
     <div
-      className="page app-home min-h-[60vh] w-full min-w-0 overflow-x-hidden px-4 pb-28 pt-4 sm:px-4 md:px-6 lg:px-2"
+      className="page app-home min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-28 pt-4 sm:px-4 md:px-0"
       style={{ backgroundColor: '#0b0b0b' }}
     >
-      <div className="mx-auto w-full min-w-0 max-w-3xl space-y-4">
+      <div className="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl">
         <HomeHeader welcomeLine={welcomeLine} teamName={teamName} backendRole={backendRole} />
 
         {loading && <p className="text-sm text-white/50">Laden…</p>}
