@@ -18,20 +18,6 @@ function sanitizeTeamFeedObjectPathSegment(teamSeasonId: string): string | null 
   return s;
 }
 
-/** Staff laut user_roles ODER Team-Mitgliedschaft (Trainer/Co/Chef — normalizeRole mappt Co/Chef → trainer). */
-function isFeedComposerStaff(
-  backendRole: string | null | undefined,
-  membershipRole: string | null | undefined,
-): boolean {
-  const br = (backendRole ?? '').trim().toLowerCase();
-  if (STAFF_ROLES.has(br)) return true;
-  const mr = (membershipRole ?? '').trim();
-  if (!mr) return false;
-  if (STAFF_ROLES.has(mr.toLowerCase())) return true;
-  const n = normalizeRole(mr);
-  return n === 'trainer' || n === 'admin';
-}
-
 function extForMime(mime: string, kind: 'image' | 'video'): string {
   if (kind === 'image') {
     if (mime === 'image/png') return 'png';
@@ -68,6 +54,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
   const [caption, setCaption] = useState('');
   const [draftFile, setDraftFile] = useState<File | null>(null);
   const [draftKind, setDraftKind] = useState<'image' | 'video' | null>(null);
+  const [composerExpanded, setComposerExpanded] = useState(false);
   const progressTimerRef = useRef<number | null>(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
   const vidInputRef = useRef<HTMLInputElement>(null);
@@ -266,6 +253,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
       setUploadPct(100);
       setCaption('');
       clearDraft();
+      setComposerExpanded(false);
       onPosted();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -306,14 +294,52 @@ export const HomeFeedComposer: React.FC<Props> = ({
       aria-label="Beitrag erstellen"
     >
       <div
-        className="rounded-[1.35rem] bg-gradient-to-b from-[#1a0a0a] via-[#0c0c0c] to-[#080404] px-4 py-4 sm:px-5"
+        className={`rounded-[1.35rem] bg-gradient-to-b from-[#1a0a0a] via-[#0c0c0c] to-[#080404] px-4 sm:px-5 ${composerExpanded ? 'py-4' : 'py-3'}`}
         style={{
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
         }}
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(ellipse_80%_100%_at_50%_0%,rgba(220,38,38,0.2),transparent)] opacity-90" />
 
-        <div className="relative">
+        <input
+          ref={imgInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={onImageChange}
+        />
+        <input
+          ref={vidInputRef}
+          type="file"
+          accept="video/mp4,video/quicktime,video/webm"
+          className="hidden"
+          onChange={onVideoChange}
+        />
+
+        {!composerExpanded ? (
+          <button
+            type="button"
+            className="relative w-full touch-manipulation rounded-[1.25rem] px-1 py-1 text-left transition active:scale-[0.99]"
+            onClick={() => setComposerExpanded(true)}
+            aria-expanded={composerExpanded}
+          >
+            <div className="flex items-center gap-2">
+              <Clapperboard className="h-5 w-5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
+              <span className="text-base font-bold tracking-tight text-white">+ Beitrag erstellen</span>
+            </div>
+            <p className="mt-1 text-xs leading-snug text-white/50">Foto oder Video posten</p>
+          </button>
+        ) : (
+        <div className="relative pr-10">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setComposerExpanded(false)}
+            className="absolute right-0 top-0 z-10 flex min-h-[36px] min-w-[36px] touch-manipulation items-center justify-center rounded-xl border border-white/12 bg-black/40 text-white/65 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+            aria-label="Schließen"
+          >
+            <X className="h-4 w-4" strokeWidth={2} aria-hidden />
+          </button>
           <div className="flex items-center gap-2">
             <Clapperboard className="h-5 w-5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
             <h2 className="text-base font-bold tracking-tight text-white">+ Beitrag erstellen</h2>
@@ -321,21 +347,6 @@ export const HomeFeedComposer: React.FC<Props> = ({
           <p className="mt-1 text-xs leading-snug text-white/50">
             JPG/PNG/WebP bis 10 MB · MP4/MOV/WebM bis 150 MB · nur für Staff.
           </p>
-
-          <input
-            ref={imgInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={onImageChange}
-          />
-          <input
-            ref={vidInputRef}
-            type="file"
-            accept="video/mp4,video/quicktime,video/webm"
-            className="hidden"
-            onChange={onVideoChange}
-          />
 
           <div className="mt-3 grid grid-cols-2 gap-2">
             <button
@@ -438,6 +449,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
             </p>
           ) : null}
         </div>
+        )}
       </div>
     </section>
   );
