@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, ChevronRight, LayoutGrid, Settings, Wrench } from 'lucide-react';
+import { Bell, ChevronRight, Settings, Wrench } from 'lucide-react';
 import { Card } from '../app/components/ui/Card';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
@@ -210,13 +210,6 @@ export const MoreHubPage: React.FC = () => {
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
-            </span>
-            <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-          </Link>
-          <Link to="/app/table" className={rowClass}>
-            <span className="flex items-center gap-3">
-              <LayoutGrid className="h-5 w-5 text-red-400" aria-hidden />
-              <span className="font-medium">Tabelle</span>
             </span>
             <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
           </Link>
