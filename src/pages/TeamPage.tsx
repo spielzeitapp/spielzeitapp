@@ -667,7 +667,8 @@ export const TeamPage: React.FC = () => {
         onEdit={handleEditFromProfile}
       />
     ) : null}
-    <div className="mx-auto w-full space-y-4 px-4 pb-36">
+    <div className="w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-36 sm:px-4 md:px-0">
+      <div className="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl">
       {/* Team Hero */}
       <div className="relative overflow-hidden rounded-2xl border border-red-500/25 bg-[#111] shadow-[0_12px_48px_rgba(0,0,0,0.5)]">
         <img
@@ -1104,6 +1105,7 @@ export const TeamPage: React.FC = () => {
           )}
         </Card>
       ) : null}
+      </div>
     </div>
     </>
   );

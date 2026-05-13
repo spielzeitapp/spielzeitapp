@@ -157,14 +157,14 @@ export const MoreHubPage: React.FC = () => {
 
   return (
     <div
-      className="page mehr-hub min-h-[60vh] w-full px-4 py-6 md:px-6"
+      className="page mehr-hub min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 py-6 sm:px-4 md:px-0"
       style={{
         background:
           'linear-gradient(180deg, rgba(40,5,5,0.97) 0%, rgba(20,0,0,0.98) 50%, rgba(10,0,0,0.99) 100%)',
         boxShadow: 'inset 0 0 120px rgba(120,20,20,0.12)',
       }}
     >
-      <div className="mx-auto max-w-4xl space-y-4 lg:max-w-6xl">
+      <div className="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl">
         <h1 className="text-2xl font-bold tracking-tight text-white">Mehr</h1>
         <p className="text-[14px] text-white/60">Einstellungen und weitere Bereiche</p>
 

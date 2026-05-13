@@ -29,7 +29,13 @@ export const InternalLayout: React.FC = () => {
   const { memberships, loading: sessionLoading, backendRole } = useSession();
   const isLiveRoute = location.pathname.startsWith('/app/live');
   const pathClean = location.pathname.replace(/\/+$/, '') || '/';
-  const isHomeRoute = pathClean === '/app/home';
+  /** Wie Home/Termine: kein doppeltes Horizontal-Padding zur Shell — Seite steuert px-3/sm:px-4, ab md wie üblich Shell-Padding. */
+  const isWideMobileShellRoute =
+    pathClean === '/app/home' ||
+    pathClean === '/app/team' ||
+    pathClean.startsWith('/app/team/') ||
+    pathClean === '/app/mehr' ||
+    pathClean.startsWith('/app/mehr/');
 
   useSyncPendingProfile(user ?? null);
   useSyncProfileFromUserMetadata(user ?? null);
@@ -104,7 +110,7 @@ export const InternalLayout: React.FC = () => {
             className={`mx-auto w-full min-w-0 ${
               isLiveRoute
                 ? 'max-w-none px-2 md:px-3 lg:px-4'
-                : isHomeRoute
+                : isWideMobileShellRoute
                   ? 'max-w-none px-0 md:max-w-[96rem] md:px-6 lg:px-8'
                   : 'max-w-[96rem] px-3 md:px-6 lg:px-8'
             }`}
