@@ -1,7 +1,14 @@
 import { supabase } from './supabaseClient';
 import { debugAssertMatchEventDbType } from './matchEventScores';
 import type { FieldSlotId } from '../types/match';
-import { getBenchPlayers, fieldSlotMapToStartingIds, swapTwoOccupiedFieldSlots, type MatchEngineEvent, type MatchEventType } from './matchEngine';
+import {
+  clampEffectiveMatchSeconds,
+  getBenchPlayers,
+  fieldSlotMapToStartingIds,
+  swapTwoOccupiedFieldSlots,
+  type MatchEngineEvent,
+  type MatchEventType,
+} from './matchEngine';
 
 /** Reihenfolge der Slots = Startelf-Reihenfolge (7er). */
 export const LIVE_FIELD_SLOT_ORDER: FieldSlotId[] = ['GK', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'];
@@ -37,15 +44,16 @@ export function getMatchLiveClockStatus(
   return 'paused';
 }
 
-/** Anzeige-Sekunden (Reload-sicher): live_elapsed_seconds + (now − live_started_at) bei laufender Uhr. */
+/** @deprecated Nutze `useMatchTimer` — hier nur noch begrenzte Rückwärtskompatibilität (geclamped). */
 export function computeLiveMatchElapsedSeconds(row: LiveMatchRow | null, nowMs = Date.now()): number {
   if (!row) return 0;
   const base = Math.max(0, Number(row.live_elapsed_seconds ?? 0) || 0);
-  if (row.status === 'finished') return base;
-  if (!row.live_is_running || !row.live_started_at) return base;
+  if (row.status === 'finished') return clampEffectiveMatchSeconds(base);
+  if (!row.live_is_running || !row.live_started_at) return clampEffectiveMatchSeconds(base);
   const started = new Date(row.live_started_at).getTime();
-  if (Number.isNaN(started)) return base;
-  return base + Math.max(0, Math.floor((nowMs - started) / 1000));
+  if (Number.isNaN(started)) return clampEffectiveMatchSeconds(base);
+  const raw = base + Math.max(0, Math.floor((nowMs - started) / 1000));
+  return clampEffectiveMatchSeconds(raw);
 }
 
 export type MatchEventDbRow = {
@@ -157,12 +165,14 @@ export function engineEventToInsertPayload(
   ev: Omit<MatchEngineEvent, 'id'>,
   period?: number | null,
 ): InsertMatchEventPayload {
+  const safeMinute = clampEffectiveMatchSeconds(ev.timestamp);
+
   if (ev.type === 'position_swap') {
     debugAssertMatchEventDbType('engineEventToInsertPayload', 'position_swap');
     return {
       match_id: matchId,
       type: 'position_swap',
-      minute: ev.timestamp,
+      minute: safeMinute,
       period: period ?? null,
       player_id: ev.playerId ?? null,
       payload: { swap_player_id: ev.swapWithPlayerId ?? null },
@@ -173,7 +183,7 @@ export function engineEventToInsertPayload(
   const base: InsertMatchEventPayload = {
     match_id: matchId,
     type: dbType,
-    minute: ev.timestamp,
+    minute: safeMinute,
     period: period ?? null,
     player_id: ev.playerId ?? null,
   };
@@ -603,7 +613,7 @@ export async function persistPositionSwap(params: {
   const { id, error } = await saveMatchEvent({
     match_id: mid,
     type: 'position_swap',
-    minute: params.timestamp,
+    minute: clampEffectiveMatchSeconds(params.timestamp),
     period: params.period ?? null,
     player_id: pidA || null,
     payload: { swap_player_id: pidB || null },

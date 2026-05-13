@@ -6,6 +6,8 @@ import { useMatchTimer } from '../../hooks/useMatchTimer';
 import {
   applySubstitutionToSlots,
   calculatePlayerPlaytimes,
+  clampEffectiveMatchSeconds,
+  displayMatchMinuteFromEffectiveSeconds,
   fieldSlotMapToStartingIds,
   getBenchPlayers,
   getCurrentOnFieldBySlot,
@@ -125,8 +127,8 @@ function formatClock(totalSec: number): string {
 }
 
 function formatMinute(ts: number): string {
-  const min = Math.floor(ts / 60);
-  return `${min}'`;
+  const m = displayMatchMinuteFromEffectiveSeconds(ts);
+  return m <= 0 ? "0'" : `${m}'`;
 }
 
 /** Coach-Vorschläge: Liniengruppe vom Slot (Live) — TW separat. */
@@ -1543,12 +1545,16 @@ export const LiveMatchScreen: React.FC = () => {
       }
       setSaveError(null);
       const tempId = newEventId();
-      const optimistic: MatchEngineEvent = { ...partial, id: tempId };
+      const evForSave: Omit<MatchEngineEvent, 'id'> =
+        partial.type === 'goal' || partial.type === 'goal_away'
+          ? { ...partial, timestamp: clampEffectiveMatchSeconds(partial.timestamp) }
+          : partial;
+      const optimistic: MatchEngineEvent = { ...evForSave, id: tempId };
       setEvents((prev) => [optimistic, ...prev]);
       if (partial.type === 'start' || partial.type === 'pause' || partial.type === 'resume' || partial.type === 'end') {
         return { ok: true };
       }
-      const payload = engineEventToInsertPayload(effectiveMatchId, partial, half);
+      const payload = engineEventToInsertPayload(effectiveMatchId, evForSave, half);
       const { id, error } = await saveMatchEvent(payload);
       if (error || !id) {
         console.error('[LiveMatch] saveMatchEvent', error);
@@ -1558,7 +1564,7 @@ export const LiveMatchScreen: React.FC = () => {
       }
       const mid = effectiveMatchId;
       setEvents((prev) => {
-        const mapped = prev.map((e) => (e.id === tempId ? { ...partial, id } : e));
+        const mapped = prev.map((e) => (e.id === tempId ? { ...evForSave, id } : e));
         if (partial.type === 'goal' || partial.type === 'goal_away') {
           const { home: nh, away: na } = recomputeScoresFromEvents(mapped);
           queueMicrotask(() => {

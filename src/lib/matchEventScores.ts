@@ -22,13 +22,16 @@ export function mapUiGoalTypeToMatchEventDbType(uiType: string | null | undefine
   return 'goal';
 }
 
+/** Obergrenze für manuell gepflegte Spielminuten (Spielbericht / U11). */
+export const FINISHED_REPORT_MAX_MINUTE = 90;
+
 /**
  * Abgeschlossener Spielbericht: Speichern der echten Spielminute (Ganzzahl, z. B. 16).
  */
 export function finishedReportMinuteDbFromInput(input: unknown): number {
   const n = Number(input);
   if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.round(n));
+  return Math.max(0, Math.min(FINISHED_REPORT_MAX_MINUTE, Math.round(n)));
 }
 
 /**
@@ -39,9 +42,11 @@ export function finishedReportMinuteDisplayFromDb(rawMinute: number | null | und
   const n = Number(rawMinute);
   if (!Number.isFinite(n)) return null;
 
-  if (n > 200) return Math.max(0, Math.floor(n / 60) + 1);
+  let m: number;
+  if (n > 200) m = Math.max(0, Math.floor(n / 60) + 1);
+  else m = Math.max(0, Math.round(n));
 
-  return Math.max(0, Math.round(n));
+  return Math.min(FINISHED_REPORT_MAX_MINUTE, m);
 }
 
 export function friendlyMatchEventWriteError(raw: string | null | undefined): string {

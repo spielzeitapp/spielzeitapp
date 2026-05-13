@@ -7,6 +7,22 @@ import type { FieldSlotId } from '../types/match';
 
 export const MATCH_HALF_DURATION_SEC = 25 * 60; // 1500
 
+/** Obergrenze für gespeicherte / angezeigte Spielsekunden (U11, verhindert z. B. 128′-Artefakte). */
+export const U11_MATCH_CLOCK_MAX_SECONDS = 90 * 60;
+
+/** Effektive Spielsekunden auf sinnvollen Bereich begrenzen (vor Speichern in `match_events.minute`). */
+export function clampEffectiveMatchSeconds(sec: number): number {
+  const n = Math.max(0, Math.floor(Number(sec) || 0));
+  return Math.min(n, U11_MATCH_CLOCK_MAX_SECONDS);
+}
+
+/** Anzeige-Spielminute (1…90) aus effektiven Spielsekunden; 0 Sek → 0 (nur Uhr). */
+export function displayMatchMinuteFromEffectiveSeconds(sec: number): number {
+  const s = clampEffectiveMatchSeconds(sec);
+  if (s <= 0) return 0;
+  return Math.max(1, Math.min(90, Math.ceil(s / 60)));
+}
+
 /** Gleiche Reihenfolge wie DB-/Aufstellung (`match_lineup.slot` / LIVE_FIELD_SLOT_ORDER). */
 export const FIELD_SLOT_ORDER: FieldSlotId[] = ['GK', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'];
 

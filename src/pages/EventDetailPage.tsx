@@ -25,6 +25,7 @@ import { buildPauseDelimitedPeriodScoreLine, type MatchEngineEvent } from '../li
 import {
   countStadiumGoalsFromMatchEventRows,
   debugAssertMatchEventDbType,
+  FINISHED_REPORT_MAX_MINUTE,
   finishedReportMinuteDbFromInput,
   finishedReportMinuteDisplayFromDb,
   formatPeriodScoresBracket,
@@ -1255,10 +1256,14 @@ export const EventDetailPage: React.FC = () => {
 
     const addGoal = async () => {
       if (!event.match_id) return;
-      const dbMinute = finishedReportMinuteDbFromInput(goalMinute.trim());
       try {
         setMatchError(null);
         if (!requireSquadPlayer(goalPlayerId, 'Torschütze')) return;
+        const dbMinute = finishedReportMinuteDbFromInput(goalMinute.trim());
+        if (dbMinute < 1 || dbMinute > FINISHED_REPORT_MAX_MINUTE) {
+          setMatchError(`Minute muss zwischen 1 und ${FINISHED_REPORT_MAX_MINUTE} liegen.`);
+          return;
+        }
         const dbType = mapUiGoalTypeToMatchEventDbType(goalTeam);
         debugAssertMatchEventDbType('addGoal', dbType);
         const { error: insErr } = await supabase.from('match_events').insert({
@@ -1327,6 +1332,10 @@ export const EventDetailPage: React.FC = () => {
       if (!requireSquadPlayer(newSwitchOutPlayerId, 'Auswechselnder')) return;
       if (!requireSquadPlayer(newSwitchInPlayerId, 'Einwechselnder')) return;
       const dbMinute = finishedReportMinuteDbFromInput(newSwitchMinute.trim());
+      if (dbMinute < 1 || dbMinute > FINISHED_REPORT_MAX_MINUTE) {
+        setMatchError(`Minute muss zwischen 1 und ${FINISHED_REPORT_MAX_MINUTE} liegen.`);
+        return;
+      }
       const payloads: Array<{ match_id: string; type: string; minute: number; period: null; player_id: string | null }> = [];
       if (newSwitchOutPlayerId.trim()) {
         payloads.push({
@@ -1364,6 +1373,10 @@ export const EventDetailPage: React.FC = () => {
       setMatchError(null);
       if (!requireSquadPlayer(newCardPlayerId, 'Karte')) return;
       const dbMinute = finishedReportMinuteDbFromInput(newCardMinute.trim());
+      if (dbMinute < 1 || dbMinute > FINISHED_REPORT_MAX_MINUTE) {
+        setMatchError(`Minute muss zwischen 1 und ${FINISHED_REPORT_MAX_MINUTE} liegen.`);
+        return;
+      }
       const { error: insErr } = await supabase.from('match_events').insert({
         match_id: event.match_id,
         type: newCardType,
@@ -1395,6 +1408,10 @@ export const EventDetailPage: React.FC = () => {
       setMatchError(null);
       if (!requireSquadPlayer(editCardPlayerId, 'Karte')) return;
       const dbMinute = finishedReportMinuteDbFromInput(editCardMinute.trim());
+      if (dbMinute < 1 || dbMinute > FINISHED_REPORT_MAX_MINUTE) {
+        setMatchError(`Minute muss zwischen 1 und ${FINISHED_REPORT_MAX_MINUTE} liegen.`);
+        return;
+      }
       const { error: updErr } = await supabase
         .from('match_events')
         .update({
@@ -1485,6 +1502,10 @@ export const EventDetailPage: React.FC = () => {
       setMatchError(null);
       const editMinuteRaw = editEventMinute.trim();
       const dbMinute = finishedReportMinuteDbFromInput(editMinuteRaw);
+      if (dbMinute < 1 || dbMinute > FINISHED_REPORT_MAX_MINUTE) {
+        setMatchError(`Minute muss zwischen 1 und ${FINISHED_REPORT_MAX_MINUTE} liegen.`);
+        return;
+      }
       const old = timelineEvents.find((x) => x.id === editingEventId);
       let didTouchGoals = normalizeMatchEventGoalType(old?.type) !== null;
 
