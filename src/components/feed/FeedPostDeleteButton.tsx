@@ -28,12 +28,12 @@ export const FeedPostDeleteButton: React.FC<Props> = ({ input, onDeleted }) => {
         window.alert(`Beitrag konnte nicht gelöscht werden: ${res.dbError ?? 'Unbekannter Fehler'}`);
         return;
       }
+      onDeleted();
       if (res.storageWarnings.length > 0) {
         window.alert(
           `Beitrag wurde aus dem Feed entfernt. Datei im Speicher konnte nicht vollständig gelöscht werden: ${res.storageWarnings.join(' · ')}`,
         );
       }
-      onDeleted();
     } catch (e) {
       console.error('[FeedPostDeleteButton] delete threw', e);
       window.alert(e instanceof Error ? e.message : String(e));

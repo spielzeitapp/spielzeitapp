@@ -72,16 +72,6 @@ export function collectTeamFeedStoragePaths(input: FeedPostDeleteInput): string[
   return [...out];
 }
 
-function logSupabaseErr(ctx: string, err: { message?: string; code?: string; details?: string; hint?: string } | null) {
-  if (!err) return;
-  console.warn(`[deleteTeamFeedPostClient] ${ctx}`, {
-    message: err.message,
-    code: err.code,
-    details: err.details,
-    hint: err.hint,
-  });
-}
-
 type RpcDeletePayload = {
   ok?: boolean;
   deleted?: boolean;
@@ -90,20 +80,25 @@ type RpcDeletePayload = {
 };
 
 /**
- * Reihenfolge: Storage best-effort, dann DB-DELETE.
- * Wichtig: Bei RLS kann DELETE 0 Zeilen löschen ohne error — daher .select('id') prüfen.
- * Fallback: SECURITY DEFINER RPC delete_team_feed_post (nach Migration).
+ * Storage optional (blockiert nie), DB-Löschung ausschließlich per RPC `public.delete_team_feed_post(p_post_id)`.
  */
 export async function deleteTeamFeedPostClient(input: FeedPostDeleteInput): Promise<{
   ok: boolean;
   storageWarnings: string[];
   dbError: string | null;
 }> {
-  const paths = [...new Set(collectTeamFeedStoragePaths(input).filter(Boolean))];
+  const postId = String(input?.id ?? '').trim();
   const storageWarnings: string[] = [];
 
+  if (!postId) {
+    console.error('[deleteTeamFeedPostClient] missing post id', { input });
+    return { ok: false, storageWarnings, dbError: 'Keine Beitrags-ID (post.id fehlt oder ist leer).' };
+  }
+
+  const paths = [...new Set(collectTeamFeedStoragePaths(input).filter(Boolean))];
+
   console.info('[deleteTeamFeedPostClient] start', {
-    postId: input.id,
+    postId,
     team_season_id: input.team_season_id,
     storagePathCount: paths.length,
   });
@@ -113,7 +108,10 @@ export async function deleteTeamFeedPostClient(input: FeedPostDeleteInput): Prom
       const { error } = await supabase.storage.from(TEAM_FEED_BUCKET).remove(paths);
       if (error) {
         storageWarnings.push(error.message);
-        logSupabaseErr('storage.remove', error);
+        console.warn('[deleteTeamFeedPostClient] storage.remove', {
+          message: error.message,
+          code: error.statusCode,
+        });
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -122,74 +120,65 @@ export async function deleteTeamFeedPostClient(input: FeedPostDeleteInput): Prom
     }
   }
 
-  const { data: delRows, error: delErr } = await supabase
-    .from('team_feed_posts')
-    .delete()
-    .eq('id', input.id)
-    .select('id');
-
-  logSupabaseErr('table.delete', delErr);
-
-  console.info('[deleteTeamFeedPostClient] direct delete response', {
-    postId: input.id,
-    rowCount: delRows?.length ?? 0,
-    error: delErr?.message ?? null,
-    code: delErr?.code ?? null,
-  });
-
-  if (!delErr && Array.isArray(delRows) && delRows.length > 0) {
-    return { ok: true, storageWarnings, dbError: null };
-  }
-
-  console.warn('[deleteTeamFeedPostClient] direct delete ineffective, trying RPC', {
-    postId: input.id,
-    hadError: !!delErr,
-    rowCount: delRows?.length ?? 0,
-  });
-
   const { data: rpcData, error: rpcErr } = await supabase.rpc('delete_team_feed_post', {
-    p_post_id: input.id,
+    p_post_id: postId,
   });
 
-  logSupabaseErr('rpc.delete_team_feed_post', rpcErr);
+  console.info('[deleteTeamFeedPostClient] RPC delete_team_feed_post', {
+    data: rpcData,
+    error: rpcErr
+      ? {
+          message: rpcErr.message,
+          code: rpcErr.code,
+          details: rpcErr.details,
+          hint: rpcErr.hint,
+        }
+      : null,
+  });
 
   if (rpcErr) {
-    const hint =
-      /function .* does not exist|could not find the function/i.test(String(rpcErr.message ?? ''))
-        ? ' Migration delete_team_feed_post auf Supabase ausführen.'
-        : '';
-    const dbError = `${delErr?.message ?? 'DELETE 0 Zeilen'} · RPC: ${rpcErr.message}${hint}`;
-    console.warn('[deleteTeamFeedPostClient] RPC failed', {
-      message: rpcErr.message,
-      code: rpcErr.code,
-      details: rpcErr.details,
-      hint: rpcErr.hint,
-    });
+    const msg = String(rpcErr.message ?? '');
+    const missingFn =
+      /function .* does not exist|could not find the function/i.test(msg) || rpcErr.code === '42883';
+    const dbError = missingFn
+      ? `RPC delete_team_feed_post fehlt oder ist nicht erreichbar: ${msg} (Code: ${rpcErr.code ?? '—'})`
+      : `Löschen fehlgeschlagen: ${msg}${rpcErr.code ? ` [${rpcErr.code}]` : ''}${rpcErr.details ? ` · ${rpcErr.details}` : ''}${rpcErr.hint ? ` · ${rpcErr.hint}` : ''}`;
     return { ok: false, storageWarnings, dbError };
   }
 
-  const row = rpcData as RpcDeletePayload | null;
-  console.info('[deleteTeamFeedPostClient] RPC raw', rpcData);
+  const row =
+    typeof rpcData === 'object' && rpcData !== null
+      ? (rpcData as RpcDeletePayload)
+      : (typeof rpcData === 'string'
+          ? (() => {
+              try {
+                return JSON.parse(rpcData) as RpcDeletePayload;
+              } catch {
+                return null;
+              }
+            })()
+          : null);
 
-  if (!row || row.ok === false) {
+  if (!row) {
+    console.error('[deleteTeamFeedPostClient] RPC returned empty/unparseable data', rpcData);
     return {
       ok: false,
       storageWarnings,
-      dbError: row?.error ?? 'RPC: unbekannte Antwort',
+      dbError: 'RPC lieferte keine verwertbare Antwort (data leer).',
     };
   }
 
-  if (row.reason === 'not_found' || row.reason === 'already_gone') {
+  if (row.ok === true) {
     return { ok: true, storageWarnings, dbError: null };
   }
 
-  if (row.deleted) {
-    return { ok: true, storageWarnings, dbError: null };
-  }
+  const errKey = String(row.error ?? '').toLowerCase();
+  const human =
+    errKey === 'forbidden'
+      ? 'Keine Berechtigung: nur Staff/Admin für diese Team-Saison darf Feed-Beiträge löschen.'
+      : errKey === 'not_authenticated'
+        ? 'Nicht angemeldet.'
+        : row.error ?? 'RPC meldet Fehler (ok=false).';
 
-  return {
-    ok: false,
-    storageWarnings,
-    dbError: row.error ?? 'RPC: konnte Post nicht löschen (deleted=false)',
-  };
+  return { ok: false, storageWarnings, dbError: human };
 }
