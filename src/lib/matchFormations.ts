@@ -55,16 +55,27 @@ export const U11_FORMATIONS: Record<U11FormationId, FormationSlotLayout[]> = {
     { slot: 'RW', label: 'RZM', x: 70, y: 42, labelDx: 4, labelDy: 2 },
     { slot: 'ST', label: 'ST', x: 50, y: 17, labelDy: 2 },
   ],
+  /** 1 GK + 6 Feld — Reihenfolge: hinten nach vorne, ST zuletzt (höchste Paint-Order), damit der Mittelstürmer bei Überlappung mit LF/RF antippbar bleibt. */
   '1-3-3': [
     { slot: 'GK', label: 'GK', x: 50, y: 90, labelDy: 7 },
     { slot: 'LB', label: 'LV', x: 18, y: 66, labelDx: -5, labelDy: 2 },
     { slot: 'CM', label: 'IV', x: 50, y: 67, labelDy: 2 },
     { slot: 'RB', label: 'RV', x: 82, y: 66, labelDx: 5, labelDy: 2 },
-    { slot: 'LW', label: 'LF', x: 24, y: 25, labelDx: -5, labelDy: 2 },
-    { slot: 'ST', label: 'ST', x: 50, y: 18, labelDy: 2 },
-    { slot: 'RW', label: 'RF', x: 76, y: 25, labelDx: 5, labelDy: 2 },
+    { slot: 'LW', label: 'LF', x: 22, y: 28, labelDx: -5, labelDy: 2 },
+    { slot: 'RW', label: 'RF', x: 78, y: 28, labelDx: 5, labelDy: 2 },
+    { slot: 'ST', label: 'ST', x: 50, y: 20, labelDy: 2 },
   ],
 };
+
+if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+  for (const fid of U11_FORMATION_CHOICES) {
+    const rows = U11_FORMATIONS[fid];
+    const slots = rows.map((r) => r.slot);
+    if (rows.length !== 7 || new Set(slots).size !== 7) {
+      throw new Error(`U11_FORMATIONS[${fid}] muss genau 7 eindeutige Slots (GK + 6 Feld) haben.`);
+    }
+  }
+}
 
 const FALLBACK_LABELS: Record<FieldSlotId, string> = {
   GK: 'GK',
@@ -77,7 +88,8 @@ const FALLBACK_LABELS: Record<FieldSlotId, string> = {
 };
 
 export function isU11FormationId(v: string | null | undefined): v is U11FormationId {
-  return v === '1-2-2-2' || v === '1-2-3-1' || v === '1-3-2-1' || v === '1-3-3';
+  const s = String(v ?? '').trim();
+  return s === '1-2-2-2' || s === '1-2-3-1' || s === '1-3-2-1' || s === '1-3-3';
 }
 
 export function labelForSlotInFormation(formationId: U11FormationId, storageSlot: FieldSlotId): string {

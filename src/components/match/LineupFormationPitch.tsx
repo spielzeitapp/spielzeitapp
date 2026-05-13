@@ -1,7 +1,7 @@
 import React from 'react';
 import type { FieldSlotId } from '../../types/match';
 import type { U11FormationId } from '../../lib/matchFormations';
-import { U11_FORMATIONS } from '../../lib/matchFormations';
+import { U11_FORMATIONS, isU11FormationId } from '../../lib/matchFormations';
 
 const PITCH_SURFACE: React.CSSProperties = {
   backgroundImage: [
@@ -105,8 +105,11 @@ export function LineupFormationPitch({
   const formationKeys = Object.keys(U11_FORMATIONS) as U11FormationId[];
   const fallbackFormationId =
     (formationKeys.find((id) => id === '1-2-3-1') as U11FormationId | undefined) ?? formationKeys[0];
-  const safeFormationId =
-    formationId && Array.isArray(U11_FORMATIONS[formationId]) ? formationId : (fallbackFormationId ?? formationId);
+  const rawFormation = String(formationId ?? '').trim();
+  const safeFormationId: U11FormationId =
+    isU11FormationId(rawFormation) && Array.isArray(U11_FORMATIONS[rawFormation])
+      ? rawFormation
+      : (fallbackFormationId ?? formationKeys[0]);
   const layout = U11_FORMATIONS[safeFormationId] ?? [];
   const safeSlots = slots ?? ({} as Record<FieldSlotId, string | null>);
 
@@ -171,7 +174,7 @@ export function LineupFormationPitch({
         className="absolute inset-x-[3.5%] z-[1] min-h-0"
         style={{ top: 'calc(3.5% + 16px)', bottom: 'calc(3.5% + 20px)' }}
       >
-        {layout.map(({ slot, label, x, y, labelDx = 0, labelDy = 0 }) => {
+        {layout.map(({ slot, label, x, y, labelDx = 0, labelDy = 0 }, layoutIdx) => {
           const playerId = safeSlots[slot] ?? null;
           const empty = !playerId;
           const dropHint = empty && Boolean(selectedBankPlayerId) && interactive;
@@ -193,7 +196,12 @@ export function LineupFormationPitch({
             emphasize,
           });
 
-          const slotStyle = { left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' } as const;
+          const slotStyle = {
+            left: `${x}%`,
+            top: `${y}%`,
+            transform: 'translate(-50%, -50%)',
+            zIndex: layoutIdx + 1,
+          } as const;
 
           /** Begrenzt Breite pro Slot, damit Namens-Labels nicht in Nachbar-Slots laufen. */
           const content = (
@@ -205,7 +213,7 @@ export function LineupFormationPitch({
           if (!interactive || !onSlotTap) {
             return (
               <div
-                key={slot}
+                key={`${safeFormationId}-${layoutIdx}-${slot}`}
                 className={[
                   'pointer-events-none absolute flex flex-col items-center justify-center rounded-full transition-all duration-300 ease-out',
                   highlight === 'in' ? 'ring-2 ring-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : '',
@@ -220,7 +228,7 @@ export function LineupFormationPitch({
 
           return (
             <button
-              key={slot}
+              key={`${safeFormationId}-${layoutIdx}-${slot}`}
               type="button"
               onClick={() => onSlotTap(slot)}
               title={label}
