@@ -1,3 +1,5 @@
+import { parseResultFeedPayload, type ResultFeedPayload } from './resultFeedTypes';
+
 export type MatchdayFeedPayload = {
   display_home_name: string;
   display_away_name: string;
@@ -47,18 +49,27 @@ export type TeamFeedPostRow = {
   duration_seconds?: number | null;
 };
 
+export type ResultFeedPostRow = Omit<TeamFeedPostDbRow, 'payload'> & { payload: ResultFeedPayload };
+
 export type ClassifiedFeedPost =
   | { kind: 'matchday'; post: TeamFeedPostRow }
   | { kind: 'image'; post: TeamFeedPostDbRow }
-  | { kind: 'video'; post: TeamFeedPostDbRow };
+  | { kind: 'video'; post: TeamFeedPostDbRow }
+  | { kind: 'result'; post: ResultFeedPostRow };
 
 export function classifyTeamFeedPost(row: TeamFeedPostDbRow): ClassifiedFeedPost | null {
   const mt = (row.media_type ?? '').toLowerCase().trim();
+  const pk = (row.post_kind ?? '').toLowerCase().trim();
   if (mt === 'video' && row.media_url) {
     return { kind: 'video', post: row };
   }
   if (mt === 'image' && row.media_url) {
     return { kind: 'image', post: row };
+  }
+  if (mt === 'result' || pk === 'result_auto') {
+    const rpl = parseResultFeedPayload(row.payload);
+    if (!rpl) return null;
+    return { kind: 'result', post: { ...row, payload: rpl } };
   }
   const pl = parseMatchdayPayload(row.payload);
   if (!pl) return null;

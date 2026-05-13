@@ -4,6 +4,7 @@ import type { EventRow } from '../../hooks/useEvents';
 import { MatchdayFeedPostCard } from './MatchdayFeedPostCard';
 import { VideoFeedPostCard } from './VideoFeedPostCard';
 import { ImageFeedPostCard } from './ImageFeedPostCard';
+import { ResultFeedPostCard } from './ResultFeedPostCard';
 
 type Props = {
   item: ClassifiedFeedPost;
@@ -34,6 +35,16 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
   if (item.kind === 'video') {
     return (
       <VideoFeedPostCard
+        post={item.post}
+        teamLabel={teamLabel}
+        staffCanDelete={staffCanDelete}
+        onFeedPostDeleted={onFeedPostDeleted}
+      />
+    );
+  }
+  if (item.kind === 'result') {
+    return (
+      <ResultFeedPostCard
         post={item.post}
         teamLabel={teamLabel}
         staffCanDelete={staffCanDelete}

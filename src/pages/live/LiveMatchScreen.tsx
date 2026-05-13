@@ -53,6 +53,7 @@ import { getPositionLabel } from '../../lib/positionLabels';
 import { supabase } from '../../lib/supabaseClient';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
 import { isValidLogoUrl } from '../../utils/logoResolver';
+import { ensureResultFeedPostForMatch } from '../../lib/ensureResultFeedPost';
 
 const HOME_FALLBACK = 'Unser Team';
 
@@ -1597,6 +1598,9 @@ export const LiveMatchScreen: React.FC = () => {
             }
           : null,
       );
+      void ensureResultFeedPostForMatch(effectiveMatchId).then((res) => {
+        if (!res.ok && import.meta.env.DEV) console.warn('[ensureResultFeedPost]', res.error);
+      });
     }
   };
 

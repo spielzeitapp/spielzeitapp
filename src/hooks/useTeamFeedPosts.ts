@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ensureMatchdayFeedPostForSeason } from '../lib/matchdayAutomation';
+import { ensureRecentResultFeedPostsForSeason } from '../lib/ensureResultFeedPost';
 import { logMatchdayFeedSeasonContext } from '../lib/matchdayFeedDebug';
 import {
   classifyTeamFeedPost,
@@ -57,6 +58,7 @@ export function useTeamFeedPosts(teamSeasonId: string | null) {
     try {
       await logMatchdayFeedSeasonContext(teamSeasonId);
       const ensureRes = await ensureMatchdayFeedPostForSeason(teamSeasonId);
+      await ensureRecentResultFeedPostsForSeason(teamSeasonId);
       console.info('[matchday] (4b) ensureMatchdayFeedPostForSeason Rückgabe =', {
         rpcOk: ensureRes.rpcOk,
         rpcError: ensureRes.rpcError,
@@ -92,6 +94,8 @@ export function useTeamFeedPosts(teamSeasonId: string | null) {
         await logMatchdayFeedSeasonContext(teamSeasonId);
         if (cancelled) return;
         const ensureRes = await ensureMatchdayFeedPostForSeason(teamSeasonId);
+        if (cancelled) return;
+        await ensureRecentResultFeedPostsForSeason(teamSeasonId);
         if (cancelled) return;
         console.info('[matchday] (4b) ensureMatchdayFeedPostForSeason Rückgabe =', {
           rpcOk: ensureRes.rpcOk,
