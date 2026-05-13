@@ -242,7 +242,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
 
   return (
     <article
-      className="w-full overflow-hidden rounded-3xl border border-red-950/40 bg-[#0a0a0a] shadow-xl"
+      className="w-full min-w-0 overflow-hidden rounded-3xl border border-red-950/40 bg-[#0a0a0a] shadow-xl"
       style={{
         boxShadow:
           'inset 0 0 80px rgba(80,10,10,0.08), 0 20px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(220,38,38,0.07)',
@@ -267,7 +267,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
         </div>
       </header>
 
-      <div className="space-y-4 px-3 pb-4 pt-4 sm:px-4">
+      <div className="min-w-0 space-y-4 px-3 pb-4 pt-4 sm:px-5">
         <p className="text-sm leading-relaxed text-white/90 sm:text-base">{post.caption}</p>
         <MatchdayPosterCard
           ref={posterCaptureRef}

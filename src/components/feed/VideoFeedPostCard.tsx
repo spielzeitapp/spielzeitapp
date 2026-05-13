@@ -204,7 +204,7 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
   return (
     <article
       ref={wrapRef}
-      className="w-full overflow-hidden rounded-3xl border border-red-600/35 bg-[#060606] shadow-xl"
+      className="w-full min-w-0 overflow-hidden rounded-3xl border border-red-600/35 bg-[#060606] shadow-xl"
       style={{
         boxShadow:
           'inset 0 0 70px rgba(120,20,20,0.12), 0 20px 44px rgba(0,0,0,0.58), 0 0 0 1px rgba(220,38,38,0.12), 0 0 36px -8px rgba(220,38,38,0.18)',
@@ -229,10 +229,10 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
         </div>
       </header>
 
-      <div className="space-y-3 px-2 pb-3 pt-3 sm:px-3">
+      <div className="min-w-0 space-y-3 px-3 pb-3 pt-3 sm:px-4">
         <div
           ref={videoShellRef}
-          className="relative mx-auto w-full max-w-[min(100%,420px)] overflow-hidden rounded-2xl border border-red-900/30 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black"
+          className="relative mx-auto w-full max-w-full min-w-0 overflow-hidden rounded-2xl border border-red-900/30 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black"
           style={{ aspectRatio: '9 / 16' }}
         >
           {srcLoaded && resolvedSrc ? (

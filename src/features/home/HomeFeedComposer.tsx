@@ -298,7 +298,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
 
   return (
     <section
-      className="relative overflow-hidden rounded-3xl border border-red-500/35 p-[1px] shadow-2xl"
+      className="relative w-full min-w-0 overflow-hidden rounded-3xl border border-red-500/35 p-[1px] shadow-2xl"
       style={{
         boxShadow:
           '0 0 0 1px rgba(220,38,38,0.12), 0 16px 40px rgba(0,0,0,0.55), 0 0 48px -12px rgba(220,38,38,0.25)',
@@ -306,7 +306,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
       aria-label="Beitrag erstellen"
     >
       <div
-        className="rounded-[1.35rem] bg-gradient-to-b from-[#1a0a0a] via-[#0c0c0c] to-[#080404] px-3 py-4 sm:px-4"
+        className="rounded-[1.35rem] bg-gradient-to-b from-[#1a0a0a] via-[#0c0c0c] to-[#080404] px-4 py-4 sm:px-5"
         style={{
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
         }}

@@ -63,10 +63,10 @@ export const HomePage: React.FC = () => {
 
   return (
     <div
-      className="page app-home min-h-[60vh] w-full px-3 pb-28 pt-4 sm:px-4 md:px-6"
+      className="page app-home min-h-[60vh] w-full min-w-0 overflow-x-hidden px-4 pb-28 pt-4 sm:px-4 md:px-6 lg:px-2"
       style={{ backgroundColor: '#0b0b0b' }}
     >
-      <div className="mx-auto w-full max-w-xl space-y-4 lg:max-w-2xl">
+      <div className="mx-auto w-full min-w-0 max-w-3xl space-y-4">
         <HomeHeader welcomeLine={welcomeLine} teamName={teamName} backendRole={backendRole} />
 
         {loading && <p className="text-sm text-white/50">Laden…</p>}
@@ -80,8 +80,8 @@ export const HomePage: React.FC = () => {
         )}
 
         {!loading && showContent && (
-          <div className="space-y-4">
-            <section className="space-y-3" aria-label="Team-Feed">
+          <div className="min-w-0 space-y-4">
+            <section className="min-w-0 space-y-3" aria-label="Team-Feed">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-300/90">Feed</p>
               {teamSeasonId && teamId ? (
                 <HomeFeedComposer
@@ -102,7 +102,7 @@ export const HomePage: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="min-w-0 space-y-4">
                   {teamFeedPosts.map((item) => (
                     <HomeFeedPostRenderer
                       key={item.post.id}

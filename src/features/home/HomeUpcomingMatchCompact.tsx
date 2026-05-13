@@ -46,7 +46,7 @@ export const HomeUpcomingMatchCompact: React.FC<Props> = ({ pick }) => {
 
   return (
     <section
-      className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-[#101010] shadow-lg"
+      className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-red-500/30 bg-[#101010] shadow-lg"
       style={{
         boxShadow: '0 0 0 1px rgba(220,38,38,0.08), 0 10px 28px rgba(0,0,0,0.45)',
       }}
