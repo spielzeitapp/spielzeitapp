@@ -100,7 +100,7 @@ export const InternalLayout: React.FC = () => {
       <div className="app min-h-screen bg-black text-white">
         <Header />
         <main
-          className={`app__content appMain pt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))] ${
+          className={`app__content appMain pt-[max(5.35rem,calc(3.45rem+env(safe-area-inset-top,0px)))] ${
             isTouchLayout
               ? 'pb-[max(10rem,calc(7.5rem+env(safe-area-inset-bottom,0px)))] lg:pb-24'
               : 'pb-24'

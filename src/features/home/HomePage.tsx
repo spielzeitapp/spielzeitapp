@@ -7,7 +7,6 @@ import {
   buildDemoHomeMatchEvents,
   pickHomeMatchCard,
 } from './homeFeedBuilder';
-import { HomeHeader } from './HomeHeader';
 import { useTeamFeedPosts } from '../../hooks/useTeamFeedPosts';
 import { HomeFeedPostRenderer } from '../../components/feed/HomeFeedPostRenderer';
 import type { EventRow } from '../../hooks/useEvents';
@@ -63,19 +62,10 @@ export const HomePage: React.FC = () => {
 
   return (
     <div
-      className="page app-home min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-28 pt-4 sm:px-4 md:px-0"
+      className="page app-home min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-28 pt-2 sm:px-4 md:px-0"
       style={{ backgroundColor: '#0b0b0b' }}
     >
-      <div className="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl">
-        <HomeHeader teamName={teamName} backendRole={backendRole} />
-
-        {!loading && showContent && (
-          <div className="min-w-0 space-y-1 pt-1">
-            <h2 className="text-lg font-bold tracking-tight text-white sm:text-xl">Matchday Feed</h2>
-            <p className="text-[13px] font-medium leading-snug text-white/72 sm:text-sm">{teamSeasonLine}</p>
-          </div>
-        )}
-
+      <div className="mx-auto w-full min-w-0 max-w-none space-y-3 md:max-w-3xl lg:max-w-4xl">
         {loading && <p className="text-sm text-white/50">Laden…</p>}
 
         {!loading && !teamSeasonId && !FEED_DEMO && (
@@ -87,76 +77,83 @@ export const HomePage: React.FC = () => {
         )}
 
         {!loading && showContent && (
-          <div className="min-w-0 space-y-4">
-            {teamSeasonId && teamId ? (
-              <HomeFeedComposer
-                backendRole={backendRole}
-                membershipRole={membershipRole}
-                teamSeasonId={teamSeasonId}
-                teamId={teamId}
-                userId={session?.user?.id ?? null}
-                onPosted={() => void refetchFeed()}
-              />
-            ) : null}
+          <div className="min-w-0 space-y-2">
+            <div className="min-w-0 space-y-0.5">
+              <h2 className="text-lg font-bold tracking-tight text-white sm:text-xl">Matchday Feed</h2>
+              <p className="text-[12px] font-medium leading-snug text-white/65 sm:text-[13px]">{teamSeasonLine}</p>
+            </div>
 
-            {spieltagHintPick ? <HomeSpieltagHintCard pick={spieltagHintPick} /> : null}
+            <div className="min-w-0 space-y-3">
+              {teamSeasonId && teamId ? (
+                <HomeFeedComposer
+                  backendRole={backendRole}
+                  membershipRole={membershipRole}
+                  teamSeasonId={teamSeasonId}
+                  teamId={teamId}
+                  userId={session?.user?.id ?? null}
+                  onPosted={() => void refetchFeed()}
+                />
+              ) : null}
 
-            <section className="min-w-0 space-y-3" aria-label="Team-Feed">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-red-300/95 sm:text-xs">
-                Im Feed
-              </p>
-              {teamFeedLoading ? (
-                <p className="text-sm text-white/50">Feed wird geladen…</p>
-              ) : teamFeedPosts.length === 0 ? (
-                <div className="rounded-xl border border-white/[0.07] bg-[#141414]/90 px-3 py-3">
-                  <p className="text-xs leading-relaxed text-white/55">
-                    Noch keine Beiträge. Am Spieltag erscheint der Matchday-Post. Trainer posten Fotos/Videos oben.
-                  </p>
-                </div>
-              ) : (
-                <div className="min-w-0 space-y-4">
-                  {teamFeedPosts.map((item) => (
-                    <HomeFeedPostRenderer
-                      key={item.post.id}
-                      item={item}
-                      eventById={eventById}
-                      teamLabel={teamName}
-                      staffCanDelete={staffCanDeleteFeed}
-                      onFeedPostDeleted={() => void refetchFeed()}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
+              {spieltagHintPick ? <HomeSpieltagHintCard pick={spieltagHintPick} /> : null}
 
-            {showNextMatchCompact && matchPick ? (
-              <section className="space-y-2" aria-label="Nächstes Spiel">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50 sm:text-xs">
-                  Nächstes Spiel
+              <section className="min-w-0 space-y-3" aria-label="Team-Feed">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-red-300/95 sm:text-xs">
+                  Im Feed
                 </p>
-                <HomeUpcomingMatchCompact pick={matchPick} teamName={teamName} />
+                {teamFeedLoading ? (
+                  <p className="text-sm text-white/50">Feed wird geladen…</p>
+                ) : teamFeedPosts.length === 0 ? (
+                  <div className="rounded-xl border border-white/[0.07] bg-[#141414]/90 px-3 py-3">
+                    <p className="text-xs leading-relaxed text-white/55">
+                      Noch keine Beiträge. Am Spieltag erscheint der Matchday-Post. Trainer posten Fotos/Videos oben.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="min-w-0 space-y-4">
+                    {teamFeedPosts.map((item) => (
+                      <HomeFeedPostRenderer
+                        key={item.post.id}
+                        item={item}
+                        eventById={eventById}
+                        teamLabel={teamName}
+                        staffCanDelete={staffCanDeleteFeed}
+                        onFeedPostDeleted={() => void refetchFeed()}
+                      />
+                    ))}
+                  </div>
+                )}
               </section>
-            ) : !matchPick ? (
-              <div
-                className="rounded-2xl border border-white/[0.08] bg-[#141414] px-4 py-8 text-center shadow-lg"
-                style={{ boxShadow: '0 12px 28px rgba(0,0,0,0.3)' }}
-              >
-                <p className="text-base font-semibold text-white/90">Kein Spiel in Sicht</p>
-                <p className="mt-2 text-sm leading-relaxed text-white/55">
-                  Für dein Team ist aktuell kein kommendes Spiel eingetragen.
-                </p>
-                <Link
-                  to="/app/termine"
-                  className="mt-5 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-red-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-red-600"
-                >
-                  Zu den Terminen
-                </Link>
-              </div>
-            ) : null}
 
-            <div className="rounded-2xl border border-white/10 bg-[#141414] p-4 shadow-lg">
-              <p className="text-xs font-semibold uppercase tracking-wide text-red-300/90">Offene Aufgaben</p>
-              <p className="mt-2 text-sm text-white/70">Keine offenen Aufgaben. Alles erledigt.</p>
+              {showNextMatchCompact && matchPick ? (
+                <section className="space-y-2" aria-label="Nächstes Spiel">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50 sm:text-xs">
+                    Nächstes Spiel
+                  </p>
+                  <HomeUpcomingMatchCompact pick={matchPick} teamName={teamName} />
+                </section>
+              ) : !matchPick ? (
+                <div
+                  className="rounded-2xl border border-white/[0.08] bg-[#141414] px-4 py-8 text-center shadow-lg"
+                  style={{ boxShadow: '0 12px 28px rgba(0,0,0,0.3)' }}
+                >
+                  <p className="text-base font-semibold text-white/90">Kein Spiel in Sicht</p>
+                  <p className="mt-2 text-sm leading-relaxed text-white/55">
+                    Für dein Team ist aktuell kein kommendes Spiel eingetragen.
+                  </p>
+                  <Link
+                    to="/app/termine"
+                    className="mt-5 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-red-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-red-600"
+                  >
+                    Zu den Terminen
+                  </Link>
+                </div>
+              ) : null}
+
+              <div className="rounded-2xl border border-white/10 bg-[#141414] p-4 shadow-lg">
+                <p className="text-xs font-semibold uppercase tracking-wide text-red-300/90">Offene Aufgaben</p>
+                <p className="mt-2 text-sm text-white/70">Keine offenen Aufgaben. Alles erledigt.</p>
+              </div>
             </div>
           </div>
         )}
