@@ -9,7 +9,7 @@ import { getClubLogo } from '../../lib/teamLogos';
 const logo = import.meta.env.BASE_URL + 'logos/nsg-goelsental.png';
 
 const iconBtnClass =
-  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/18 bg-white/[0.07] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-md transition-colors hover:border-white/28 hover:bg-white/[0.11] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 sm:h-10 sm:w-10';
+  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_12px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors hover:border-white/22 hover:bg-white/[0.09] focus:outline-none focus-visible:ring-1 focus-visible:ring-red-500/45 focus-visible:ring-offset-1 focus-visible:ring-offset-black sm:h-10 sm:w-10';
 
 function AppWordmark({ compact }: { compact?: boolean }) {
   const sz = compact
@@ -88,16 +88,13 @@ export const Header: React.FC = () => {
     !!backendRole &&
     ['admin', 'head_coach', 'trainer', 'co_trainer'].includes(backendRole.toLowerCase());
 
-  const teamLineApp = useMemo(() => {
-    const tn = (selectedTeamSeason?.team?.name ?? '').trim();
-    const sn = (selectedTeamSeason?.season?.name ?? '').trim();
-    if (tn && sn) return `${tn} · ${sn}`;
-    if (tn) return tn;
-    return '';
-  }, [selectedTeamSeason?.team?.name, selectedTeamSeason?.season?.name]);
+  const headerTeamName = useMemo(
+    () => (selectedTeamSeason?.team?.name ?? '').trim(),
+    [selectedTeamSeason?.team?.name],
+  );
 
   const teamSubline =
-    pathname.startsWith('/app') && teamLineApp.length > 0 ? teamLineApp : 'NSG Gölsental';
+    pathname.startsWith('/app') && headerTeamName.length > 0 ? headerTeamName : 'NSG Gölsental';
 
   const headerTeamLogo = useMemo(() => {
     const tn = (selectedTeamSeason?.team?.name ?? '').trim();
@@ -148,7 +145,7 @@ export const Header: React.FC = () => {
 
   return (
     <header className="fixed left-0 top-0 z-50 w-full border-b border-white/[0.07] bg-gradient-to-b from-zinc-950/[0.97] via-black/[0.9] to-black/[0.82] pt-[env(safe-area-inset-top,0px)] shadow-[0_10px_36px_-10px_rgba(0,0,0,0.72),inset_0_-1px_0_rgba(220,38,38,0.06)] backdrop-blur-xl backdrop-saturate-150">
-      <div className="mx-auto flex min-h-[3.25rem] w-full max-w-screen-2xl items-center justify-between gap-2 px-3 py-1.5 md:px-8 md:py-2">
+      <div className="mx-auto flex min-h-[3rem] w-full max-w-screen-2xl items-center justify-between gap-2 px-3 py-1 md:px-8 md:py-1.5">
         {/* Links: Logo + Branding (im internen Bereich klickbar → /app/home) */}
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
           {pathname.startsWith('/app') ? (
@@ -156,13 +153,13 @@ export const Header: React.FC = () => {
               <img
                 src={headerTeamLogo}
                 alt=""
-                className="h-9 w-9 shrink-0 rounded-full object-contain ring-2 ring-white/12 ring-offset-2 ring-offset-zinc-950/80 sm:h-10 sm:w-10"
+                className="h-9 w-9 shrink-0 rounded-full border border-white/10 object-contain shadow-[0_0_20px_rgba(220,38,38,0.18)] sm:h-10 sm:w-10"
                 width={40}
                 height={40}
               />
               <div className="min-w-0 pr-1">
                 <AppWordmark compact />
-                <div className="mt-0.5 truncate text-[9px] font-medium leading-tight text-white/50 sm:text-[10px]">
+                <div className="mt-0.5 max-w-[min(100%,14rem)] truncate text-[10px] font-medium leading-snug text-zinc-300 sm:max-w-[20rem] sm:text-[11px] sm:text-zinc-400">
                   {teamSubline}
                 </div>
                 {membershipError ? (
@@ -177,13 +174,13 @@ export const Header: React.FC = () => {
               <img
                 src={logo}
                 alt=""
-                className="h-9 w-9 shrink-0 rounded-full object-cover"
+                className="h-9 w-9 shrink-0 rounded-full border border-white/10 object-cover shadow-[0_0_20px_rgba(220,38,38,0.14)]"
                 width={36}
                 height={36}
               />
               <div className="min-w-0">
                 <AppWordmark />
-                <div className="text-xs text-white/60">
+                <div className="text-xs text-zinc-400">
                   NSG Gölsental
                 </div>
                 {!publicView && membershipError && (
@@ -204,7 +201,7 @@ export const Header: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/admin/join-requests')}
-                  className="hidden rounded-full border border-white/14 bg-white/[0.06] px-2.5 py-1.5 text-[11px] font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-sm transition-colors hover:bg-white/[0.1] sm:inline-flex"
+                  className="hidden rounded-full border border-white/14 bg-white/[0.06] px-2.5 py-1.5 text-[11px] font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm transition-colors hover:bg-white/[0.1] sm:inline-flex"
                 >
                   Anfragen
                   {typeof pendingRequestsCount === 'number' && pendingRequestsCount > 0 && (
@@ -218,34 +215,36 @@ export const Header: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => navigate(APP_LOGIN_REDIRECT)}
-                  className="rounded-full border border-white/14 bg-white/[0.06] px-3 py-1.5 text-[11px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-colors hover:bg-white/[0.1]"
+                  className="rounded-full border border-white/14 bg-white/[0.06] px-3 py-1.5 text-[11px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:bg-white/[0.1]"
                 >
                   Login
                 </button>
               )}
               {authLoading || !user ? null : pathname.startsWith('/app') ? (
                 <Link to="/app/nachrichten" className={iconBtnClass} aria-label="Nachrichten">
-                  <Bell className="h-[1.05rem] w-[1.05rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
+                  <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
                 </Link>
               ) : null}
               {authLoading || !user ? null : (
-                <Link
-                  to={pathname.startsWith('/app') ? APP_PROFILE : '/profile'}
-                  className={iconBtnClass}
-                  aria-label="Profil"
-                >
-                  <svg viewBox="0 0 24 24" className="h-[1.05rem] w-[1.05rem] sm:h-5 sm:w-5" stroke="currentColor" strokeWidth="1.85" fill="none" aria-hidden>
-                    <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4.5V20h14v-1.5C19 16 16 14 12 14z" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </Link>
-              )}
-              {authLoading || !user || !isStaff || !staffBackendBadge ? null : (
-                <span
-                  className="max-w-[4.5rem] truncate rounded-full border border-red-500/25 bg-red-950/30 px-1.5 py-0.5 text-[7px] font-semibold uppercase leading-none tracking-wider text-red-200/88 sm:max-w-[5.5rem] sm:px-2 sm:text-[8px]"
-                  title={staffBackendBadge}
-                >
-                  {staffBackendBadge}
-                </span>
+                <div className="flex flex-col items-end gap-0.5">
+                  <Link
+                    to={pathname.startsWith('/app') ? APP_PROFILE : '/profile'}
+                    className={iconBtnClass}
+                    aria-label="Profil"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" stroke="currentColor" strokeWidth="1.85" fill="none" aria-hidden>
+                      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4 0-7 2-7 4.5V20h14v-1.5C19 16 16 14 12 14z" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </Link>
+                  {isStaff && staffBackendBadge ? (
+                    <span
+                      className="max-w-[5.5rem] truncate rounded-full border border-red-500/25 bg-black/45 px-2 py-0.5 text-center text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-300"
+                      title={staffBackendBadge}
+                    >
+                      {staffBackendBadge}
+                    </span>
+                  ) : null}
+                </div>
               )}
             </div>
             {!sessionLoading && !authLoading && !isStaff && roleLabel ? (
