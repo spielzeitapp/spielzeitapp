@@ -62,13 +62,13 @@ export const HomeUpcomingMatchCompact: React.FC<Props> = ({ pick }) => {
               {titleLine}
             </span>
             {matchLabel ? (
-              <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">{matchLabel}</span>
+              <span className="text-[10px] font-medium uppercase tracking-wide text-white/50">{matchLabel}</span>
             ) : null}
           </div>
           <p className="truncate text-sm font-semibold text-white">
             {ourClub} <span className="text-white/35">vs</span> {opponent}
           </p>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/55">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/65">
             <span className="inline-flex items-center gap-1">
               <Clock className="h-3.5 w-3.5 shrink-0 text-red-400/80" aria-hidden />
               {timeStr}

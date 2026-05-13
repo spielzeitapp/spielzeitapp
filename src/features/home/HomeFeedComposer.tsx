@@ -294,12 +294,14 @@ export const HomeFeedComposer: React.FC<Props> = ({
       aria-label="Beitrag erstellen"
     >
       <div
-        className={`rounded-[1.35rem] bg-gradient-to-b from-[#1a0a0a] via-[#0c0c0c] to-[#080404] px-4 sm:px-5 ${composerExpanded ? 'py-4' : 'py-3'}`}
+        className={`rounded-[1.35rem] bg-gradient-to-b from-[#1a0a0a] via-[#0c0c0c] to-[#080404] px-4 sm:px-5 ${composerExpanded ? 'py-4' : 'py-2.5'}`}
         style={{
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
         }}
       >
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(ellipse_80%_100%_at_50%_0%,rgba(220,38,38,0.2),transparent)] opacity-90" />
+        <div
+          className={`pointer-events-none absolute inset-x-0 top-0 bg-[radial-gradient(ellipse_80%_100%_at_50%_0%,rgba(220,38,38,0.2),transparent)] opacity-90 ${composerExpanded ? 'h-24' : 'h-14'}`}
+        />
 
         <input
           ref={imgInputRef}
@@ -319,7 +321,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
         {!composerExpanded ? (
           <button
             type="button"
-            className="relative w-full touch-manipulation rounded-[1.25rem] px-1 py-1 text-left transition active:scale-[0.99]"
+            className="relative w-full touch-manipulation rounded-[1.25rem] py-0.5 pl-0.5 pr-1 text-left transition active:scale-[0.99]"
             onClick={() => setComposerExpanded(true)}
             aria-expanded={composerExpanded}
           >

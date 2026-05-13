@@ -12,6 +12,7 @@ import { MatchdayPosterCard, type MatchdayPosterVisualStatus } from './MatchdayP
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { matchdayPosterDomToPngBlob } from '../../lib/matchdayPosterExport';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
+import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 
 type Props = {
@@ -249,13 +250,9 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
       }}
     >
       <header className="flex items-start justify-between gap-3 border-b border-white/[0.05] bg-black/25 px-4 py-3.5 sm:px-5">
-        <div>
-          <p className="text-xs font-semibold text-white">
-            SpielzeitApp
-            <span className="font-normal text-white/40"> · </span>
-            <span className="text-red-300/90">{teamLabel}</span>
-          </p>
-          <p className="mt-1 text-[11px] text-white/50">{whenLabel}</p>
+        <div className="min-w-0 flex-1">
+          <FeedCardHeaderBrand teamLabel={teamLabel} />
+          <p className="mt-1 text-xs text-white/65">{whenLabel}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {staffCanDelete && onFeedPostDeleted ? (
@@ -268,7 +265,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
       </header>
 
       <div className="min-w-0 space-y-4 px-3 pb-4 pt-4 sm:px-5">
-        <p className="text-sm leading-relaxed text-white/90 sm:text-base">{post.caption}</p>
+        <p className="text-[15px] font-medium leading-relaxed text-white/95 sm:text-base">{post.caption}</p>
         <MatchdayPosterCard
           ref={posterCaptureRef}
           homeTeamName={p.display_home_name}
@@ -285,7 +282,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           matchType={p.match_type}
         />
         {shareHint ? (
-          <p className="text-center text-xs text-white/55">{shareHint}</p>
+          <p className="text-center text-[13px] text-white/65">{shareHint}</p>
         ) : null}
         <div
           className="flex items-center justify-between gap-1 border-t border-white/[0.06] pt-3.5"
@@ -306,7 +303,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           </button>
           <Link
             to={`/app/events/${p.event_id}`}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold text-white/55 transition-colors hover:bg-white/[0.04] hover:text-white/88"
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold text-white/68 transition-colors hover:bg-white/[0.06] hover:text-white/92"
           >
             <MessageCircle className="h-4 w-4" strokeWidth={2} />
             Kommentar
@@ -314,7 +311,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           <button
             type="button"
             onClick={() => void onShare()}
-            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold text-white/55 transition-colors hover:bg-white/[0.04] hover:text-white/88 active:bg-white/[0.06]"
+            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold text-white/68 transition-colors hover:bg-white/[0.06] hover:text-white/92 active:bg-white/[0.08]"
             aria-label="Matchday teilen"
           >
             <Share2 className="h-4 w-4 shrink-0" strokeWidth={2} />

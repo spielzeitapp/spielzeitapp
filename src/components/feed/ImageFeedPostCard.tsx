@@ -6,6 +6,7 @@ import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
+import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 
 type Props = {
@@ -77,13 +78,9 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
       }}
     >
       <header className="flex items-start justify-between gap-3 border-b border-white/[0.05] bg-black/35 px-3 py-3 sm:px-4">
-        <div className="min-w-0">
-          <p className="truncate text-xs font-semibold text-white">
-            SpielzeitApp
-            <span className="font-normal text-white/40"> · </span>
-            <span className="text-red-300/90">{teamLabel}</span>
-          </p>
-          <p className="mt-0.5 text-[11px] text-white/50">{whenLabel}</p>
+        <div className="min-w-0 flex-1">
+          <FeedCardHeaderBrand teamLabel={teamLabel} />
+          <p className="mt-1 text-xs text-white/65">{whenLabel}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {staffCanDelete && onFeedPostDeleted ? (
@@ -107,14 +104,14 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
             />
           </div>
         ) : (
-          <div className="rounded-2xl border border-white/10 bg-black/40 px-4 py-8 text-center text-xs text-white/45">
+          <div className="rounded-2xl border border-white/10 bg-black/40 px-4 py-8 text-center text-xs text-white/55">
             Bild konnte nicht geladen werden.
           </div>
         )}
 
-        <p className="px-1 text-sm leading-relaxed text-white/90">{post.caption}</p>
+        <p className="px-0.5 text-[15px] font-medium leading-relaxed text-white/95 sm:text-base">{post.caption}</p>
 
-        {shareHint ? <p className="text-center text-xs text-white/55">{shareHint}</p> : null}
+        {shareHint ? <p className="text-center text-[13px] text-white/65">{shareHint}</p> : null}
 
         <div
           className="flex items-center justify-between gap-0.5 border-t border-white/[0.06] px-0.5 pt-3"
@@ -123,8 +120,8 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
           <button
             type="button"
             onClick={onToggleLike}
-            className={`inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-colors ${
-              liked ? 'text-red-400' : 'text-white/55 hover:bg-white/[0.04] hover:text-white/88'
+            className={`inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold transition-colors ${
+              liked ? 'text-red-400' : 'text-white/68 hover:bg-white/[0.06] hover:text-white/92'
             }`}
             aria-pressed={liked}
           >
@@ -141,7 +138,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
           <button
             type="button"
             onClick={() => void onShare()}
-            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold text-white/55 transition-colors hover:bg-white/[0.04] hover:text-white/88"
+            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold text-white/68 transition-colors hover:bg-white/[0.06] hover:text-white/92"
           >
             <Share2 className="h-4 w-4 shrink-0" strokeWidth={2} />
             Teilen

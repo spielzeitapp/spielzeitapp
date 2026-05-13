@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
-import { useProfile, welcomeGreetingFromProfile } from '../../auth/useProfile';
 import { useAuth } from '../../auth/AuthProvider';
 import { useEvents } from '../../hooks/useEvents';
 import {
@@ -14,6 +13,7 @@ import { HomeFeedPostRenderer } from '../../components/feed/HomeFeedPostRenderer
 import type { EventRow } from '../../hooks/useEvents';
 import { HomeFeedComposer } from './HomeFeedComposer';
 import { HomeUpcomingMatchCompact } from './HomeUpcomingMatchCompact';
+import { HomeSpieltagHintCard } from './HomeSpieltagHintCard';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 
 const FEED_DEMO = import.meta.env.VITE_HOME_FEED_DEMO === '1';
@@ -28,8 +28,9 @@ export const HomePage: React.FC = () => {
   } = useSession();
   const { events, loading: evLoading } = useEvents(teamSeasonId);
   const { session } = useAuth();
-  const { profile, loading: profileLoading } = useProfile(session?.user?.id ?? null);
   const teamName = selectedTeamSeason?.team?.name ?? 'Team';
+  const seasonLabel = (selectedTeamSeason?.season?.name ?? '').trim() || '—';
+  const teamSeasonLine = `${teamName} · ${seasonLabel}`;
   const teamId = String(selectedTeamSeason?.team?.id ?? selectedTeamSeason?.team_id ?? '');
 
   const [now, setNow] = useState(() => new Date());
@@ -37,11 +38,6 @@ export const HomePage: React.FC = () => {
     const id = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(id);
   }, []);
-
-  const welcomeLine = useMemo(() => {
-    const name = !profileLoading ? welcomeGreetingFromProfile(profile) : '';
-    return name ? `Herzlich willkommen, ${name}!` : 'Herzlich willkommen!';
-  }, [profile, profileLoading]);
 
   const matchPick = useMemo(() => {
     const source = FEED_DEMO ? buildDemoHomeMatchEvents(now) : (events ?? []);
@@ -61,13 +57,24 @@ export const HomePage: React.FC = () => {
   const loading = sessionLoading || evLoading;
   const showContent = teamSeasonId || FEED_DEMO;
 
+  const spieltagHintPick =
+    matchPick && (matchPick.status === 'today' || matchPick.status === 'tomorrow') ? matchPick : null;
+  const showNextMatchCompact = Boolean(matchPick && matchPick.status === 'next');
+
   return (
     <div
       className="page app-home min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-28 pt-4 sm:px-4 md:px-0"
       style={{ backgroundColor: '#0b0b0b' }}
     >
       <div className="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl">
-        <HomeHeader welcomeLine={welcomeLine} teamName={teamName} backendRole={backendRole} />
+        <HomeHeader teamName={teamName} backendRole={backendRole} />
+
+        {!loading && showContent && (
+          <div className="min-w-0 space-y-1 pt-1">
+            <h2 className="text-lg font-bold tracking-tight text-white sm:text-xl">Matchday Feed</h2>
+            <p className="text-[13px] font-medium leading-snug text-white/72 sm:text-sm">{teamSeasonLine}</p>
+          </div>
+        )}
 
         {loading && <p className="text-sm text-white/50">Laden…</p>}
 
@@ -81,18 +88,23 @@ export const HomePage: React.FC = () => {
 
         {!loading && showContent && (
           <div className="min-w-0 space-y-4">
+            {teamSeasonId && teamId ? (
+              <HomeFeedComposer
+                backendRole={backendRole}
+                membershipRole={membershipRole}
+                teamSeasonId={teamSeasonId}
+                teamId={teamId}
+                userId={session?.user?.id ?? null}
+                onPosted={() => void refetchFeed()}
+              />
+            ) : null}
+
+            {spieltagHintPick ? <HomeSpieltagHintCard pick={spieltagHintPick} /> : null}
+
             <section className="min-w-0 space-y-3" aria-label="Team-Feed">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-300/90">Feed</p>
-              {teamSeasonId && teamId ? (
-                <HomeFeedComposer
-                  backendRole={backendRole}
-                  membershipRole={membershipRole}
-                  teamSeasonId={teamSeasonId}
-                  teamId={teamId}
-                  userId={session?.user?.id ?? null}
-                  onPosted={() => void refetchFeed()}
-                />
-              ) : null}
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-red-300/95 sm:text-xs">
+                Im Feed
+              </p>
               {teamFeedLoading ? (
                 <p className="text-sm text-white/50">Feed wird geladen…</p>
               ) : teamFeedPosts.length === 0 ? (
@@ -117,12 +129,14 @@ export const HomePage: React.FC = () => {
               )}
             </section>
 
-            {matchPick ? (
+            {showNextMatchCompact && matchPick ? (
               <section className="space-y-2" aria-label="Nächstes Spiel">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">Nächstes Spiel</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50 sm:text-xs">
+                  Nächstes Spiel
+                </p>
                 <HomeUpcomingMatchCompact pick={matchPick} teamName={teamName} />
               </section>
-            ) : (
+            ) : !matchPick ? (
               <div
                 className="rounded-2xl border border-white/[0.08] bg-[#141414] px-4 py-8 text-center shadow-lg"
                 style={{ boxShadow: '0 12px 28px rgba(0,0,0,0.3)' }}
@@ -138,7 +152,7 @@ export const HomePage: React.FC = () => {
                   Zu den Terminen
                 </Link>
               </div>
-            )}
+            ) : null}
 
             <div className="rounded-2xl border border-white/10 bg-[#141414] p-4 shadow-lg">
               <p className="text-xs font-semibold uppercase tracking-wide text-red-300/90">Offene Aufgaben</p>
