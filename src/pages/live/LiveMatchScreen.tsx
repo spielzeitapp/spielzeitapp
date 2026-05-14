@@ -39,7 +39,7 @@ import {
   updateMatchRow,
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
-import { getMatchSides, shortTeamGoalLabel } from '../../lib/matchSides';
+import { getMatchSides } from '../../lib/matchSides';
 import { countOccupiedFieldSlots, mergeLivePitchSlotsFromDb } from '../../lib/liveLineupNormalize';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
@@ -859,8 +859,6 @@ export const LiveMatchScreen: React.FC = () => {
   const stadiumAwayDisplay = cleanTeamDisplayName(sides.awayTeamName);
   const homeNameParts = matchboardAbbrevAndClub(stadiumHomeDisplay);
   const awayNameParts = matchboardAbbrevAndClub(stadiumAwayDisplay);
-  const goalTapHomeLabel = shortTeamGoalLabel(stadiumHomeDisplay);
-  const goalTapAwayLabel = shortTeamGoalLabel(stadiumAwayDisplay);
   const opponentDisplayName = cleanTeamDisplayName(headerOpponent);
   /** Ohne API-Erweiterung: neutraler Anzeige-Spieltyp (Zielbild). */
   const matchTypeDisplay = 'Freundschaftsspiel';
@@ -958,6 +956,8 @@ export const LiveMatchScreen: React.FC = () => {
   const [homeGoalPickId, setHomeGoalPickId] = useState<string>('');
   const [awayGoalModalOpen, setAwayGoalModalOpen] = useState(false);
   const [awayGoalPickId, setAwayGoalPickId] = useState<string>('');
+  const [pauseConfirmOpen, setPauseConfirmOpen] = useState(false);
+  const [pauseConfirmSaving, setPauseConfirmSaving] = useState(false);
   const [endeConfirmOpen, setEndeConfirmOpen] = useState(false);
   const [spielAbschlussOpen, setSpielAbschlussOpen] = useState(false);
   const [calendarFinalized, setCalendarFinalized] = useState(false);
@@ -1736,25 +1736,52 @@ export const LiveMatchScreen: React.FC = () => {
     }
   };
 
-  const onPauseClick = async () => {
+  const openPauseConfirm = useCallback(() => {
     if (!canControlLiveMatch || !isRunning || matchIsFinished || !effectiveMatchId) return;
-    const { ok } = await persistSingle({ type: 'pause', timestamp: currentMatchSeconds });
-    if (!ok) return;
-    const frozen = currentMatchSeconds;
-    const section = resolveSectionForPause(periodScores);
-    const totals = recomputeScoresFromEvents(events);
-    const nextPeriodScores = computeUpdatedPeriodScores(periodScores, section, totals);
-    const { error } = await updateMatchRow(effectiveMatchId, {
-      live_elapsed_seconds: frozen,
-      live_is_running: false,
-      period_scores: nextPeriodScores,
-    });
-    if (error) setSaveError(error);
-    else
+    setPauseConfirmOpen(true);
+  }, [canControlLiveMatch, isRunning, matchIsFinished, effectiveMatchId]);
+
+  const executeConfirmedPause = useCallback(async () => {
+    if (!canControlLiveMatch || !isRunning || matchIsFinished || !effectiveMatchId) return;
+    setPauseConfirmSaving(true);
+    setSaveError(null);
+    try {
+      const { ok } = await persistSingle({ type: 'pause', timestamp: currentMatchSeconds });
+      if (!ok) return;
+      const frozen = currentMatchSeconds;
+      const section = resolveSectionForPause(periodScores);
+      const totals = recomputeScoresFromEvents(events);
+      const nextPeriodScores = computeUpdatedPeriodScores(periodScores, section, totals);
+      const { error } = await updateMatchRow(effectiveMatchId, {
+        live_elapsed_seconds: frozen,
+        live_is_running: false,
+        period_scores: nextPeriodScores,
+      });
+      if (error) {
+        setSaveError(error);
+        return;
+      }
       setMatchRow((prev) =>
         prev ? { ...prev, live_elapsed_seconds: frozen, live_is_running: false, period_scores: nextPeriodScores } : null,
       );
-  };
+      setPauseConfirmOpen(false);
+    } finally {
+      setPauseConfirmSaving(false);
+    }
+  }, [
+    canControlLiveMatch,
+    isRunning,
+    matchIsFinished,
+    effectiveMatchId,
+    currentMatchSeconds,
+    periodScores,
+    events,
+    persistSingle,
+  ]);
+
+  useEffect(() => {
+    if (matchIsFinished) setPauseConfirmOpen(false);
+  }, [matchIsFinished]);
 
   /** Ende: Uhr stoppen, Match in DB beenden, Endstand aus Toren — ohne Kalender-Termin (kommt bei „Spiel abschließen“). */
   const persistMatchEndWithoutCalendar = async () => {
@@ -2696,7 +2723,7 @@ export const LiveMatchScreen: React.FC = () => {
         {matchClockStatus === 'live' ? (
           <button
             type="button"
-            onClick={() => void onPauseClick()}
+            onClick={openPauseConfirm}
             disabled={matchClockStatus === 'finished'}
             aria-label="Spiel anhalten"
             className={`${mbPausePrimary} ${trainerClockRowBtn} px-2 text-[11px] sm:text-xs`}
@@ -2837,7 +2864,7 @@ export const LiveMatchScreen: React.FC = () => {
                   <div className="flex min-w-0 shrink flex-col items-center gap-1 px-0.5 sm:px-1">
                     {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                       <div className="flex items-start justify-center gap-1 sm:gap-2 motion-safe:transition-transform motion-safe:duration-300">
-                        <div className="flex min-w-0 flex-col items-center gap-0.5">
+                        <div className="flex min-w-0 flex-col items-center">
                           <button
                             type="button"
                             disabled={!isClockRunning}
@@ -2882,9 +2909,6 @@ export const LiveMatchScreen: React.FC = () => {
                               {displayScoreHome}
                             </span>
                           </button>
-                          <span className="max-w-[5.5rem] truncate text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-400/95 sm:max-w-[6.5rem] sm:text-[11px]">
-                            {goalTapHomeLabel}
-                          </span>
                         </div>
                         <span
                           className="shrink-0 select-none pt-0.5 text-2xl font-bold leading-none text-white/90 tabular-nums sm:pt-1 sm:text-3xl"
@@ -2892,7 +2916,7 @@ export const LiveMatchScreen: React.FC = () => {
                         >
                           :
                         </span>
-                        <div className="flex min-w-0 flex-col items-center gap-0.5">
+                        <div className="flex min-w-0 flex-col items-center">
                           <button
                             type="button"
                             disabled={!isClockRunning}
@@ -2937,9 +2961,6 @@ export const LiveMatchScreen: React.FC = () => {
                               {displayScoreAway}
                             </span>
                           </button>
-                          <span className="max-w-[5.5rem] truncate text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-red-400/90 sm:max-w-[6.5rem] sm:text-[11px]">
-                            {goalTapAwayLabel}
-                          </span>
                         </div>
                       </div>
                     ) : (
@@ -4223,6 +4244,58 @@ export const LiveMatchScreen: React.FC = () => {
             >
               Abbrechen
             </button>
+          </div>
+        </div>
+      )}
+
+      {pauseConfirmOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex min-h-dvh items-center justify-center overflow-y-auto overscroll-y-contain bg-black/85 px-4 pt-[max(3rem,env(safe-area-inset-top,0px))] pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] backdrop-blur-sm sm:py-6"
+          role="presentation"
+          onClick={() => {
+            if (!pauseConfirmSaving) setPauseConfirmOpen(false);
+          }}
+        >
+          <div
+            className="my-auto flex w-full max-w-md max-h-[82dvh] flex-col overflow-hidden rounded-2xl border-2 border-emerald-700/55 bg-zinc-950 shadow-[0_0_40px_rgba(0,0,0,0.85)]"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pause-confirm-title"
+          >
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3 pt-4 sm:px-5 sm:pt-5">
+              <h3 id="pause-confirm-title" className="text-2xl font-black leading-tight tracking-tight text-white">
+                Pause aktivieren?
+              </h3>
+              <p className="mt-2 text-[15px] font-medium leading-snug text-zinc-300 sm:text-base">
+                Das aktuelle Drittel wird abgeschlossen und der Zwischenstand wird übernommen.
+              </p>
+            </div>
+            <div
+              className="sticky bottom-0 z-10 shrink-0 border-t border-white/[0.06] bg-zinc-950 px-4 pt-2.5 sm:px-5"
+              style={{
+                paddingBottom: 'max(12px, calc(env(safe-area-inset-bottom, 0px) + 5.25rem))',
+              }}
+            >
+              <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-stretch">
+                <button
+                  type="button"
+                  className="flex h-14 min-h-14 min-w-0 flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-950 px-3 text-sm font-semibold text-zinc-300 shadow-none active:scale-[0.99] disabled:opacity-45"
+                  disabled={pauseConfirmSaving}
+                  onClick={() => setPauseConfirmOpen(false)}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  className="flex h-14 min-h-14 min-w-0 flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-emerald-700 to-emerald-950 px-3 text-sm font-black uppercase tracking-wide text-white shadow-[0_0_22px_rgba(16,185,129,0.28)] active:scale-[0.99] disabled:opacity-45"
+                  disabled={pauseConfirmSaving}
+                  onClick={() => void executeConfirmedPause()}
+                >
+                  {pauseConfirmSaving ? '…' : 'Pause aktivieren'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
