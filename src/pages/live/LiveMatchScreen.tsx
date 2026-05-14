@@ -377,11 +377,6 @@ function pairSubstitutionEventsInOrder(asc: MatchEngineEvent[]): { key: string; 
   return rows;
 }
 
-/** Liveticker-Zeilen für Zuschauer: chronologisch, Wechsel-Paar an gleicher Minute zusammen. */
-function buildSpectatorTickerRows(events: MatchEngineEvent[]): { key: string; items: MatchEngineEvent[] }[] {
-  return pairSubstitutionEventsInOrder(sortMatchEventsChronologically(events));
-}
-
 /**
  * Trainer-Liveticker: neueste zuerst, Wechsel-Paare nicht trennen.
  * Filter „Tore“: nur Tor-Events; „Wechsel“: nur Sub-Events mit Paar-Logik; „Alle“: alle Events mit Paar-Logik.
@@ -402,6 +397,50 @@ function buildLiveTickerRows(events: MatchEngineEvent[], filter: EventsFilter): 
   }
   const paired = pairSubstitutionEventsInOrder(sortMatchEventsChronologically(events));
   return paired.slice().reverse();
+}
+
+type TickerSegmentRow = { key: string; items: MatchEngineEvent[] };
+
+/** Sortierung innerhalb gleicher Anzeige-Minute: Tore → Karten → Wechsel → Positionswechsel → übrig. */
+function tickerSegmentSortRank(items: MatchEngineEvent[]): number {
+  if (items.length === 2 && items[0].type === 'sub_out' && items[1]?.type === 'sub_in') return 3;
+  const t = items[0]?.type;
+  if (t === 'goal' || t === 'goal_away') return 0;
+  if (t === 'yellow_card' || t === 'red_card' || t === 'second_yellow') return 1;
+  if (t === 'sub_out' || t === 'sub_in') return 3;
+  if (t === 'position_swap') return 4;
+  return 10;
+}
+
+/** Nur Anzeige: benachbarte Zeilen gleicher `formatMinute`-Minute zu einem Block zusammenfassen. */
+function groupTickerRowsByDisplayMinute(rows: TickerSegmentRow[]): {
+  groupKey: string;
+  minuteLabel: string;
+  segments: TickerSegmentRow[];
+}[] {
+  const groups: { groupKey: string; minuteLabel: string; segments: TickerSegmentRow[] }[] = [];
+  for (const row of rows) {
+    const ts = row.items[0]?.timestamp ?? 0;
+    const label = formatMinute(ts);
+    const last = groups[groups.length - 1];
+    if (last && last.minuteLabel === label) {
+      last.segments.push(row);
+      last.groupKey = `${last.groupKey}__${row.key}`;
+    } else {
+      groups.push({ groupKey: row.key, minuteLabel: label, segments: [row] });
+    }
+  }
+  for (const g of groups) {
+    const withIdx = g.segments.map((s, i) => ({ s, i }));
+    withIdx.sort((a, b) => {
+      const ra = tickerSegmentSortRank(a.s.items);
+      const rb = tickerSegmentSortRank(b.s.items);
+      if (ra !== rb) return ra - rb;
+      return a.i - b.i;
+    });
+    g.segments = withIdx.map((x) => x.s);
+  }
+  return groups;
 }
 
 function sortRosterByNumber(list: RosterPlayer[]): RosterPlayer[] {
@@ -2094,9 +2133,26 @@ export const LiveMatchScreen: React.FC = () => {
     ],
   );
 
-  const trainerTickerRows = useMemo(() => buildLiveTickerRows(events, eventsFilter), [events, eventsFilter]);
+  const trainerTickerGroups = useMemo(
+    () => groupTickerRowsByDisplayMinute(buildLiveTickerRows(events, eventsFilter)),
+    [events, eventsFilter],
+  );
 
-  const spectatorTickerRows = useMemo(() => buildSpectatorTickerRows(events), [events]);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    for (const e of events) {
+      if (e.type !== 'position_swap') continue;
+      const a = String(e.playerId ?? '').trim();
+      const b = String(e.swapWithPlayerId ?? '').trim();
+      if (!a || !b) {
+        console.warn('[LiveTicker] position_swap ohne vollständigen Spielerbezug (payload)', {
+          id: e.id,
+          playerId: e.playerId,
+          swapWithPlayerId: e.swapWithPlayerId,
+        });
+      }
+    }
+  }, [events]);
 
   const spectatorLastActionEvent = useMemo(() => {
     const ranked = events.filter((e) => e.type !== 'pause');
@@ -2134,6 +2190,19 @@ export const LiveMatchScreen: React.FC = () => {
     return `${half}. Drittel`;
   }, [matchIsFinished, matchRow?.live_period, half]);
 
+  const positionSwapPrimaryLine = useCallback(
+    (ev: MatchEngineEvent): string | null => {
+      const a = String(ev.playerId ?? '').trim();
+      const b = String(ev.swapWithPlayerId ?? '').trim();
+      if (!a || !b) return null;
+      const na = mobileLineupName((rosterById.get(a)?.name ?? '').trim() || '—');
+      const nb = mobileLineupName((rosterById.get(b)?.name ?? '').trim() || '—');
+      if ((!na || na === '—') && (!nb || nb === '—')) return null;
+      return `↔ ${na} ⇄ ${nb}`;
+    },
+    [rosterById],
+  );
+
   const eventLabel = (ev: MatchEngineEvent): string => {
     const name = ev.playerId ? rosterById.get(ev.playerId)?.name : undefined;
     switch (ev.type) {
@@ -2153,6 +2222,8 @@ export const LiveMatchScreen: React.FC = () => {
         return 'Weiter';
       case 'end':
         return 'Spielende';
+      case 'position_swap':
+        return positionSwapPrimaryLine(ev) ?? 'Positionswechsel';
       default:
         return ev.type;
     }
@@ -2176,7 +2247,7 @@ export const LiveMatchScreen: React.FC = () => {
       case 'sub_in':
         return name ? `${name} wechselt ein` : 'Einwechslung';
       case 'position_swap':
-        return 'Positionen getauscht';
+        return positionSwapPrimaryLine(ev) ?? 'Positionswechsel';
       case 'pause':
         return 'Kurze Unterbrechung';
       default:
@@ -2190,233 +2261,184 @@ export const LiveMatchScreen: React.FC = () => {
     listLength: number,
     showGoalScoreBadge: boolean,
     friendlyFeed = false,
+    spectatorCompact = false,
+    embedOnly = false,
   ) => {
     const isHomeGoal = ev.type === 'goal';
     const isAwayGoal = ev.type === 'goal_away';
     const isGoal = isHomeGoal || isAwayGoal;
     const isSub = ev.type === 'sub_out' || ev.type === 'sub_in';
+    const isPosSwap = ev.type === 'position_swap';
     const pl = ev.playerId ? rosterById.get(ev.playerId) : undefined;
+    const posSwapLine = isPosSwap ? positionSwapPrimaryLine(ev) : null;
     const scoreStr =
       showGoalScoreBadge && isGoal ? (goalScoreBadgeByEventId.get(ev.id) ?? null) : null;
     const iconTile = isHomeGoal
       ? 'bg-green-700 text-white'
       : isAwayGoal
         ? 'bg-red-700 text-white'
-        : isSub
-          ? friendlyFeed
+        : isPosSwap
+          ? 'border border-zinc-600/45 bg-zinc-900/85 text-zinc-200'
+          : isSub
             ? 'bg-zinc-800 text-zinc-200'
-            : 'bg-zinc-800 text-zinc-200'
-          : 'bg-zinc-800 text-zinc-400';
+            : 'bg-zinc-800 text-zinc-400';
 
-    const cardBorder = isHomeGoal
-      ? friendlyFeed
-        ? 'border-red-500/45 shadow-[0_0_28px_rgba(220,38,38,0.32)]'
-        : 'border-green-600/50'
-      : isAwayGoal
+    const cardBorder = isPosSwap
+      ? 'border-zinc-600/40 bg-zinc-950/75 shadow-none'
+      : isHomeGoal
         ? friendlyFeed
-          ? 'border-red-500/45 shadow-[0_0_28px_rgba(220,38,38,0.32)]'
-          : 'border-red-600/50'
-        : isSub
+          ? 'border-red-500/45 shadow-[0_0_20px_rgba(220,38,38,0.22)]'
+          : 'border-green-600/50'
+        : isAwayGoal
           ? friendlyFeed
-            ? 'border-zinc-500/35 bg-zinc-950/85'
-            : 'border-zinc-600'
-          : 'border-zinc-700';
+            ? 'border-red-500/45 shadow-[0_0_20px_rgba(220,38,38,0.22)]'
+            : 'border-red-600/50'
+          : isSub
+            ? friendlyFeed
+              ? 'border-zinc-500/35 bg-zinc-950/90'
+              : 'border-zinc-600'
+            : 'border-zinc-700';
 
     const scorePillClass = isHomeGoal
       ? 'rounded-full border border-green-600 bg-green-950/90 px-2 py-0.5 font-mono text-[10px] font-black tabular-nums text-green-100 md:px-2.5 md:py-1 md:text-[11px]'
       : 'rounded-full border border-red-600 bg-red-950/90 px-2 py-0.5 font-mono text-[10px] font-black tabular-nums text-red-100 md:px-2.5 md:py-1 md:text-[11px]';
 
     const tickerCardShell = friendlyFeed
-      ? 'gap-3 rounded-2xl px-3 py-3 md:gap-3 md:px-4 md:py-3.5'
+      ? isPosSwap
+        ? 'gap-1.5 rounded-xl px-2 py-1.5'
+        : 'gap-2 rounded-xl px-2.5 py-2 md:gap-2 md:px-3 md:py-2.5'
       : 'gap-2 rounded-lg px-2 py-1.5 md:gap-2 md:px-2.5 md:py-2';
-    const tickerIconBox = friendlyFeed
-      ? 'h-10 w-10 rounded-xl text-lg md:h-11 md:w-11 md:text-xl'
-      : 'h-8 w-8 rounded-md text-sm md:h-9 md:w-9 md:text-base';
+    const tickerIconBox =
+      friendlyFeed && isPosSwap
+        ? 'h-7 w-7 shrink-0 rounded-lg text-sm'
+        : friendlyFeed
+          ? 'h-9 w-9 shrink-0 rounded-lg text-base md:h-10 md:w-10 md:text-lg'
+          : 'h-8 w-8 rounded-md text-sm md:h-9 md:w-9 md:text-base';
+
+    const card = (
+      <div className={`flex min-h-0 items-stretch border bg-zinc-950 ${tickerCardShell} ${cardBorder}`}>
+        <div className={`flex shrink-0 items-center justify-center ${tickerIconBox} ${iconTile}`} aria-hidden>
+          {eventIcon(ev.type)}
+        </div>
+        <div className="min-w-0 flex-1 py-0.5">
+          {isHomeGoal ? (
+            <>
+              <span
+                className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${
+                  friendlyFeed
+                    ? 'border-red-500/50 bg-red-950/80 text-red-50 shadow-[0_0_14px_rgba(220,38,38,0.28)]'
+                    : 'border-green-600 bg-green-950/80 text-green-100'
+                }`}
+              >
+                ⚽ TOR {stadiumHomeDisplay}
+              </span>
+              {pl ? (
+                <p className="mt-0.5 truncate text-sm font-semibold leading-snug text-white">
+                  {pl.name}
+                  {pl.number != null && String(pl.number).trim() !== '' ? (
+                    <span className="text-gray-300"> ({pl.number})</span>
+                  ) : null}
+                </p>
+              ) : (
+                <p className="mt-0.5 text-xs font-medium text-gray-400">Ohne Torschütze</p>
+              )}
+            </>
+          ) : isAwayGoal ? (
+            <>
+              <span
+                className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${
+                  friendlyFeed
+                    ? 'border-red-500/50 bg-red-950/80 text-red-50 shadow-[0_0_14px_rgba(220,38,38,0.28)]'
+                    : 'border-red-600 bg-red-950/80 text-red-100'
+                }`}
+              >
+                ⚽ TOR {stadiumAwayDisplay}
+              </span>
+              {pl ? (
+                <p className="mt-0.5 truncate text-sm font-semibold leading-snug text-white">
+                  {pl.name}
+                  {pl.number != null && String(pl.number).trim() !== '' ? (
+                    <span className="text-gray-300"> ({pl.number})</span>
+                  ) : null}
+                </p>
+              ) : (
+                <p className="mt-0.5 text-xs font-medium text-gray-400">Ohne Torschütze</p>
+              )}
+            </>
+          ) : isPosSwap ? (
+            <>
+              <p className="text-[12px] font-semibold leading-snug text-zinc-100">
+                {posSwapLine ?? 'Positionswechsel'}
+              </p>
+              {posSwapLine && !spectatorCompact ? (
+                <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+                  Positionswechsel
+                </p>
+              ) : null}
+            </>
+          ) : isSub ? (
+            <>
+              {!friendlyFeed ? (
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-400">Wechsel</p>
+              ) : null}
+              <p
+                className={`${friendlyFeed ? '' : 'mt-1 '}text-sm font-semibold leading-snug ${
+                  friendlyFeed ? 'text-zinc-200' : ev.type === 'sub_out' ? 'text-red-300' : 'text-emerald-300'
+                }`}
+              >
+                {friendlyFeed ? parentLiveEventDescription(ev) : eventLabel(ev)}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm font-semibold text-white/90">
+              {friendlyFeed ? parentLiveEventDescription(ev) : eventLabel(ev)}
+            </p>
+          )}
+        </div>
+        {scoreStr ? (
+          <div className="flex shrink-0 items-start pt-0.5">
+            <span className={scorePillClass}>{scoreStr}</span>
+          </div>
+        ) : null}
+      </div>
+    );
+
+    if (embedOnly) {
+      return <div className="w-full min-w-0">{card}</div>;
+    }
 
     return (
       <li
         key={ev.id}
-        className={`relative flex gap-0 ${friendlyFeed ? 'pb-4 last:pb-0 md:pb-5' : 'pb-2.5 last:pb-0 md:pb-3'}`}
+        className={`relative flex gap-0 ${friendlyFeed ? 'pb-1.5 last:pb-0 md:pb-2' : 'pb-2.5 last:pb-0 md:pb-3'}`}
       >
-        <div className="flex w-11 shrink-0 flex-col items-end pr-1 pt-0.5 md:w-14 md:pr-1.5">
-          <span className="text-sm font-bold tabular-nums leading-none text-white md:text-base">
+        <div className="flex w-10 shrink-0 flex-col items-end pr-0.5 pt-0.5 md:w-12 md:pr-1">
+          <span className="text-xs font-bold tabular-nums leading-none text-white md:text-sm">
             {formatMinute(ev.timestamp)}
           </span>
         </div>
-        <div className="relative flex w-3 shrink-0 flex-col items-center pt-1 md:w-4">
+        <div className="relative flex w-2.5 shrink-0 flex-col items-center pt-0.5 md:w-3">
           {index < listLength - 1 ? (
             <div
-              className={`absolute top-2.5 bottom-0 left-1/2 w-1 -translate-x-1/2 rounded-full ${
-                friendlyFeed ? 'bg-red-600/35' : 'bg-zinc-700'
+              className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${
+                friendlyFeed ? 'top-1.5 w-px bg-zinc-600/45' : 'top-2.5 w-1 rounded-full bg-zinc-700'
               }`}
               aria-hidden
             />
           ) : null}
-          <div className="relative z-10 h-2 w-2 shrink-0 rounded-full bg-red-600" aria-hidden />
-        </div>
-        <div className="min-w-0 flex-1">
           <div
-            className={`flex min-h-0 items-stretch border bg-zinc-950 ${tickerCardShell} ${cardBorder}`}
-          >
-            <div
-              className={`flex shrink-0 items-center justify-center ${tickerIconBox} ${iconTile}`}
-              aria-hidden
-            >
-              {eventIcon(ev.type)}
-            </div>
-            <div className="min-w-0 flex-1 py-0.5">
-              {isHomeGoal ? (
-                <>
-                  <span
-                    className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${
-                      friendlyFeed
-                        ? 'border-red-500/50 bg-red-950/80 text-red-50 shadow-[0_0_18px_rgba(220,38,38,0.35)]'
-                        : 'border-green-600 bg-green-950/80 text-green-100'
-                    }`}
-                  >
-                    ⚽ TOR {stadiumHomeDisplay}
-                  </span>
-                  {pl ? (
-                    <p className="mt-1 truncate text-sm font-semibold leading-snug text-white">
-                      {pl.name}
-                      {pl.number != null && String(pl.number).trim() !== '' ? (
-                        <span className="text-gray-300"> ({pl.number})</span>
-                      ) : null}
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-xs font-medium text-gray-400">Ohne Torschütze</p>
-                  )}
-                </>
-              ) : isAwayGoal ? (
-                <>
-                  <span
-                    className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wide ${
-                      friendlyFeed
-                        ? 'border-red-500/50 bg-red-950/80 text-red-50 shadow-[0_0_18px_rgba(220,38,38,0.35)]'
-                        : 'border-red-600 bg-red-950/80 text-red-100'
-                    }`}
-                  >
-                    ⚽ TOR {stadiumAwayDisplay}
-                  </span>
-                  {pl ? (
-                    <p className="mt-1 truncate text-sm font-semibold leading-snug text-white">
-                      {pl.name}
-                      {pl.number != null && String(pl.number).trim() !== '' ? (
-                        <span className="text-gray-300"> ({pl.number})</span>
-                      ) : null}
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-xs font-medium text-gray-400">Ohne Torschütze</p>
-                  )}
-                </>
-              ) : isSub ? (
-                <>
-                  {!friendlyFeed ? (
-                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-zinc-400">Wechsel</p>
-                  ) : null}
-                  <p
-                    className={`${friendlyFeed ? '' : 'mt-1 '}text-sm font-semibold leading-snug ${
-                      friendlyFeed ? 'text-zinc-200' : ev.type === 'sub_out' ? 'text-red-300' : 'text-emerald-300'
-                    }`}
-                  >
-                    {friendlyFeed ? parentLiveEventDescription(ev) : eventLabel(ev)}
-                  </p>
-                </>
-              ) : (
-                <p className="text-sm font-semibold text-white/90">
-                  {friendlyFeed ? parentLiveEventDescription(ev) : eventLabel(ev)}
-                </p>
-              )}
-            </div>
-            {scoreStr ? (
-              <div className="flex shrink-0 items-start pt-0.5">
-                <span className={scorePillClass}>{scoreStr}</span>
-              </div>
-            ) : null}
-          </div>
+            className={`relative z-10 h-1.5 w-1.5 shrink-0 rounded-full ${
+              friendlyFeed ? 'bg-zinc-500' : 'bg-red-600'
+            }`}
+            aria-hidden
+          />
         </div>
+        <div className="min-w-0 flex-1">{card}</div>
       </li>
     );
   };
 
-  const renderSpectatorTickerRow = (
-    row: { key: string; items: MatchEngineEvent[] },
-    index: number,
-    rowCount: number,
-  ) => {
-    const ev = row.items[0];
-    const minute = formatMinute(ev.timestamp);
-    const isLast = index === rowCount - 1;
-    const lineEl = !isLast ? (
-      <div className="absolute top-2 bottom-0 left-1/2 w-px -translate-x-1/2 bg-red-600/35" aria-hidden />
-    ) : null;
-
-    let body: React.ReactNode;
-    if (row.items.length === 2 && row.items[0].type === 'sub_out' && row.items[1].type === 'sub_in') {
-      const outP = rosterById.get(row.items[0].playerId ?? '')?.name ?? '—';
-      const inP = rosterById.get(row.items[1].playerId ?? '')?.name ?? '—';
-      body = (
-        <>
-          <p className="text-[10px] font-black uppercase tracking-wide text-sky-300">🔁 Wechsel</p>
-          <div className="mt-1.5 space-y-0.5">
-            <p className="text-[12px] font-semibold leading-snug text-red-200/95">Raus · {outP}</p>
-            <p className="py-0.5 text-center text-[11px] text-white/40">↓</p>
-            <p className="text-[12px] font-semibold leading-snug text-emerald-300/95">Rein · {inP}</p>
-          </div>
-        </>
-      );
-    } else if (ev.type === 'goal' || ev.type === 'goal_away') {
-      const pl = ev.playerId ? rosterById.get(ev.playerId) : undefined;
-      const teamLine = ev.type === 'goal' ? stadiumHomeDisplay : stadiumAwayDisplay;
-      const homeSide = ev.type === 'goal';
-      const badge = goalScoreBadgeByEventId.get(ev.id);
-      body = (
-        <>
-          <p
-            className={`text-[10px] font-black uppercase tracking-wide ${homeSide ? 'text-emerald-400' : 'text-red-400'}`}
-          >
-            ⚽ TOR {teamLine}
-          </p>
-          {pl ? <p className="mt-1 truncate text-sm font-bold text-white">{pl.name}</p> : null}
-          {badge ? (
-            <p className="mt-1 font-mono text-sm font-black tabular-nums text-white">{badge}</p>
-          ) : null}
-        </>
-      );
-    } else {
-      body = (
-        <p className="text-[13px] font-semibold leading-snug text-gray-200">{parentLiveEventDescription(ev)}</p>
-      );
-    }
-
-    return (
-      <li key={row.key} className="flex gap-2 pb-2 last:pb-0">
-        <div className="w-10 shrink-0 pt-1 text-right text-xs font-bold tabular-nums text-gray-400">{minute}</div>
-        <div className="relative flex w-3 shrink-0 flex-col items-center pt-1">
-          {lineEl}
-          <div className="relative z-10 mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" aria-hidden />
-        </div>
-        <div
-          className={`min-w-0 flex-1 px-3 py-2 ${liveCardShell} ${
-            ev.type === 'goal'
-              ? 'border-l-[3px] border-l-emerald-500/75'
-              : ev.type === 'goal_away'
-                ? 'border-r-[3px] border-r-red-500/75'
-                : ''
-          }`}
-        >
-          {body}
-        </div>
-      </li>
-    );
-  };
-
-  const renderTrainerTickerRow = (
-    row: { key: string; items: MatchEngineEvent[] },
-    index: number,
-    listLength: number,
-  ) => {
-    const ev = row.items[0];
+  const renderTrainerTickerSegment = (row: TickerSegmentRow) => {
     const isPair =
       row.items.length === 2 &&
       row.items[0].type === 'sub_out' &&
@@ -2428,46 +2450,60 @@ export const LiveMatchScreen: React.FC = () => {
       const inEv = row.items[1];
       const outName = rosterById.get(outEv.playerId ?? '')?.name ?? '—';
       const inName = rosterById.get(inEv.playerId ?? '')?.name ?? '—';
-      const t = outEv.timestamp;
-      const lineConnector =
-        index < listLength - 1 ? (
-          <div
-            className="absolute top-2.5 bottom-0 left-1/2 w-1 -translate-x-1/2 rounded-full bg-red-600/35"
-            aria-hidden
-          />
-        ) : null;
       return (
-        <li key={row.key} className="relative flex gap-0 pb-2.5 last:pb-0 md:pb-3">
-          <div className="flex w-11 shrink-0 flex-col items-end pr-1 pt-0.5 md:w-14 md:pr-1.5">
-            <span className="text-sm font-bold tabular-nums leading-none text-white md:text-base">{formatMinute(t)}</span>
+        <div
+          key={row.key}
+          className="flex min-h-0 items-stretch gap-2 rounded-xl border border-zinc-600/40 bg-zinc-950/88 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] md:gap-2 md:px-2.5 md:py-2"
+        >
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-600/50 bg-zinc-900 text-base text-zinc-200"
+            aria-hidden
+          >
+            ⇄
           </div>
-          <div className="relative flex w-3 shrink-0 flex-col items-center pt-1 md:w-4">
-            {lineConnector}
-            <div className="relative z-10 h-2 w-2 shrink-0 rounded-full bg-red-600" aria-hidden />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex min-h-0 items-stretch gap-3 rounded-2xl border border-zinc-500/35 bg-zinc-950/88 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] md:gap-3 md:px-4 md:py-3.5">
-              <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-600/50 bg-zinc-900 text-lg text-zinc-200 md:h-11 md:w-11"
-                aria-hidden
-              >
-                ⇄
-              </div>
-              <div className="min-w-0 flex-1 py-0.5">
-                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-zinc-400">Wechsel</p>
-                <div className="mt-2 space-y-1">
-                  <p className="text-[14px] font-semibold leading-snug text-zinc-200">Raus · {outName}</p>
-                  <p className="py-0.5 text-center text-xs text-white/35">↓</p>
-                  <p className="text-[14px] font-semibold leading-snug text-zinc-200">Rein · {inName}</p>
-                </div>
-              </div>
+          <div className="min-w-0 flex-1 py-0.5">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">Wechsel</p>
+            <div className="mt-1 space-y-0.5">
+              <p className="text-[13px] font-semibold leading-snug text-zinc-200">Raus · {outName}</p>
+              <p className="py-0.5 text-center text-[10px] text-white/35">↓</p>
+              <p className="text-[13px] font-semibold leading-snug text-zinc-200">Rein · {inName}</p>
             </div>
           </div>
-        </li>
+        </div>
       );
     }
 
-    return renderTimelineRow(ev, index, listLength, true, true);
+    const ev = row.items[0];
+    return (
+      <div key={row.key} className="w-full min-w-0">
+        {renderTimelineRow(ev, 0, 1, true, true, spectatorView, true)}
+      </div>
+    );
+  };
+
+  const renderTrainerTickerMinuteGroup = (
+    group: { groupKey: string; minuteLabel: string; segments: TickerSegmentRow[] },
+    groupIndex: number,
+    groupCount: number,
+  ) => {
+    const lineConnector =
+      groupIndex < groupCount - 1 ? (
+        <div className="absolute top-1.5 bottom-0 left-1/2 w-px -translate-x-1/2 bg-zinc-600/45" aria-hidden />
+      ) : null;
+    return (
+      <li key={group.groupKey} className="relative flex gap-0 pb-1.5 last:pb-0 md:pb-2">
+        <div className="flex w-10 shrink-0 flex-col items-end pr-0.5 pt-0.5 md:w-12 md:pr-1">
+          <span className="text-xs font-bold tabular-nums leading-none text-white md:text-sm">{group.minuteLabel}</span>
+        </div>
+        <div className="relative flex w-2.5 shrink-0 flex-col items-center pt-0.5 md:w-3">
+          {lineConnector}
+          <div className="relative z-10 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-500" aria-hidden />
+        </div>
+        <div className="min-w-0 flex-1 space-y-1">
+          {group.segments.map((seg) => renderTrainerTickerSegment(seg))}
+        </div>
+      </li>
+    );
   };
 
   const selectClass =
@@ -2683,6 +2719,17 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : (
                       <p className="text-[11px] text-gray-500">Ohne Torschütze</p>
                     )}
+                  </>
+                ) : ev.type === 'position_swap' ? (
+                  <>
+                    <p className="mt-0.5 text-sm font-semibold leading-snug text-white">
+                      {positionSwapPrimaryLine(ev) ?? 'Positionswechsel'}
+                    </p>
+                    {positionSwapPrimaryLine(ev) ? (
+                      <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                        Positionswechsel
+                      </p>
+                    ) : null}
                   </>
                 ) : ev.type === 'sub_out' || ev.type === 'sub_in' ? (
                   <>
@@ -3417,13 +3464,13 @@ export const LiveMatchScreen: React.FC = () => {
               <p className="rounded-2xl border border-amber-400/25 bg-amber-950/20 px-4 py-10 text-center text-sm font-medium leading-relaxed text-amber-100/90">
                 Keine Karten erfasst.
               </p>
-            ) : trainerTickerRows.length === 0 ? (
+            ) : trainerTickerGroups.length === 0 ? (
               <p className="rounded-2xl border border-white/10 bg-black/40 px-4 py-10 text-center text-sm text-zinc-400">
                 Keine Einträge für diesen Filter.
               </p>
             ) : (
-              <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto rounded-2xl border border-red-500/25 bg-black/55 px-2 py-3 sm:px-3 sm:py-4">
-                {trainerTickerRows.map((row, i, arr) => renderTrainerTickerRow(row, i, arr.length))}
+              <ul className="min-h-0 flex-1 space-y-0 overflow-y-auto rounded-2xl border border-zinc-600/30 bg-black/55 px-1.5 py-2 sm:px-2 sm:py-3">
+                {trainerTickerGroups.map((g, i, arr) => renderTrainerTickerMinuteGroup(g, i, arr.length))}
               </ul>
             )}
           </div>
