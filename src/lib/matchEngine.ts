@@ -36,7 +36,10 @@ export type MatchEventType =
   | 'goal'
   | 'goal_away'
   /** Nur Slot-Tausch am Feld; kein Bank-Wechsel, keine Spielzeit-Logik wie sub_* . */
-  | 'position_swap';
+  | 'position_swap'
+  /** U11 FairPlay: zusätzlicher Spieler ohne normalen Wechsel / ohne Slot-Remap. */
+  | 'extra_player_on'
+  | 'extra_player_off';
 
 export type MatchEngineEvent = {
   id: string;
@@ -56,6 +59,8 @@ const TYPE_ORDER: Record<MatchEventType, number> = {
   sub_in: 3,
   /** Gleiche Spielsekunde wie Wechsel: zuerst sub_out/sub_in, dann Positionskorrektur. */
   position_swap: 3.5,
+  extra_player_on: 3.52,
+  extra_player_off: 3.53,
   goal: 4,
   goal_away: 5,
   pause: 6,
@@ -71,6 +76,20 @@ export function sortMatchEventsChronologically(events: MatchEngineEvent[]): Matc
     if (ca !== cb) return ca.localeCompare(cb);
     return TYPE_ORDER[a.type] - TYPE_ORDER[b.type];
   });
+}
+
+/** Chronologisch aufsteigend — aktuelle FairPlay-Zusatzspieler-ID (letztes on/off). */
+export function fairPlayExtraPlayerIdFromSortedEvents(sortedAsc: MatchEngineEvent[]): string | null {
+  let cur: string | null = null;
+  for (const e of sortedAsc) {
+    if (e.type === 'extra_player_on') {
+      const id = String(e.playerId ?? '').trim();
+      if (id) cur = id;
+    } else if (e.type === 'extra_player_off') {
+      cur = null;
+    }
+  }
+  return cur;
 }
 
 type ClockState = { running: boolean; ended: boolean };

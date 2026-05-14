@@ -15,6 +15,7 @@ import {
   getPlaytimeStatus,
   handleSubstitution,
   replaySubstitutionEventsOnSlots,
+  fairPlayExtraPlayerIdFromSortedEvents,
   sortMatchEventsChronologically,
   startingLineupToSlotMap,
   type MatchEngineEvent,
@@ -31,6 +32,8 @@ import {
   fetchMatchEvents,
   getMatchLiveClockStatus,
   LIVE_FIELD_SLOT_ORDER,
+  persistExtraPlayerOff,
+  persistExtraPlayerOn,
   replaceMatchLineupAndBench,
   repairLiveMatchLineupBenchIfNeeded,
   persistPositionSwap,
@@ -325,6 +328,8 @@ function eventIcon(t: MatchEventType): string {
   if (t === 'goal' || t === 'goal_away') return '⚽';
   if (t === 'sub_out' || t === 'sub_in') return '⇄';
   if (t === 'position_swap') return '↔';
+  if (t === 'extra_player_on') return '🟡';
+  if (t === 'extra_player_off') return '🔴';
   if (t === 'start') return '▶';
   if (t === 'pause') return '⏸';
   if (t === 'resume') return '▶';
@@ -409,6 +414,7 @@ function tickerSegmentSortRank(items: MatchEngineEvent[]): number {
   if (t === 'yellow_card' || t === 'red_card' || t === 'second_yellow') return 1;
   if (t === 'sub_out' || t === 'sub_in') return 3;
   if (t === 'position_swap') return 4;
+  if (t === 'extra_player_on' || t === 'extra_player_off') return 4.5;
   return 10;
 }
 
@@ -924,6 +930,11 @@ export const LiveMatchScreen: React.FC = () => {
   const [posSwapSlotB, setPosSwapSlotB] = useState<FieldSlotId | null>(null);
   const [posSwapConfirmOpen, setPosSwapConfirmOpen] = useState(false);
   const [posSwapSaving, setPosSwapSaving] = useState(false);
+  const [fairPlayExtraSheetOpen, setFairPlayExtraSheetOpen] = useState(false);
+  const [fairPlayExtraPickId, setFairPlayExtraPickId] = useState<string | null>(null);
+  const [fairPlayExtraSaving, setFairPlayExtraSaving] = useState(false);
+  const [fairPlayRemoveDialogOpen, setFairPlayRemoveDialogOpen] = useState(false);
+  const [fairPlayRemoveSaving, setFairPlayRemoveSaving] = useState(false);
   const closeWechselSheet = useCallback(() => {
     setWechselSheetOpen(false);
     setSubSheetView('list');
@@ -1182,16 +1193,41 @@ export const LiveMatchScreen: React.FC = () => {
 
   const onFieldIds = useMemo(() => getOnFieldIdsInSlotOrder(lineupSlotsForDisplay), [lineupSlotsForDisplay]);
 
+  const eventsSortedAsc = useMemo(() => sortMatchEventsChronologically(events), [events]);
+  const fairPlayExtraPlayerId = useMemo(
+    () => fairPlayExtraPlayerIdFromSortedEvents(eventsSortedAsc),
+    [eventsSortedAsc],
+  );
+  const fairPlayGoalDiffOwnMinusOpp = useMemo(() => {
+    const own = sides.isOwnTeamHome ? displayScoreHome : displayScoreAway;
+    const opp = sides.isOwnTeamHome ? displayScoreAway : displayScoreHome;
+    return own - opp;
+  }, [sides.isOwnTeamHome, displayScoreHome, displayScoreAway]);
+  const fairPlayRuleActivatable = fairPlayGoalDiffOwnMinusOpp <= -4;
+  const fairPlayMustRemoveExtra = Boolean(fairPlayExtraPlayerId) && fairPlayGoalDiffOwnMinusOpp > -4;
+  const fairPlayExtraDisplayName = useMemo(() => {
+    const id = fairPlayExtraPlayerId?.trim();
+    if (!id) return '';
+    const raw = rosterById.get(id)?.name?.trim();
+    return raw && raw.length > 0 ? raw : 'Spieler';
+  }, [fairPlayExtraPlayerId, rosterById]);
+
+  const onFieldIdsIncludingFairPlayExtra = useMemo(() => {
+    const ex = fairPlayExtraPlayerId?.trim();
+    if (!ex || onFieldIds.includes(ex)) return onFieldIds;
+    return [...onFieldIds, ex];
+  }, [onFieldIds, fairPlayExtraPlayerId]);
+
   const fieldPlayers = useMemo(() => {
     const set = new Set(onFieldIds);
     return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
   }, [onFieldIds, roster]);
 
   const benchPlayers = useMemo(() => {
-    const ids = getBenchPlayers(squadPlayerIds, onFieldIds);
+    const ids = getBenchPlayers(squadPlayerIds, onFieldIdsIncludingFairPlayExtra);
     const list = ids.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 });
     return sortRosterByNumber(list);
-  }, [squadPlayerIds, onFieldIds, rosterById]);
+  }, [squadPlayerIds, onFieldIdsIncludingFairPlayExtra, rosterById]);
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
 
   useEffect(() => {
@@ -1737,6 +1773,89 @@ export const LiveMatchScreen: React.FC = () => {
     [effectiveMatchId, half, isClockRunning, matchIsFinished, goalBlockedMessage],
   );
 
+  const closeFairPlayExtraSheet = useCallback(() => {
+    setFairPlayExtraSheetOpen(false);
+    setFairPlayExtraPickId(null);
+    setFairPlayExtraSaving(false);
+  }, []);
+
+  const openFairPlayExtraSheet = useCallback(() => {
+    setFairPlayExtraPickId(null);
+    setFairPlayExtraSaving(false);
+    setFairPlayExtraSheetOpen(true);
+  }, []);
+
+  const runPersistFairPlayExtraOn = useCallback(async () => {
+    const pid = String(fairPlayExtraPickId ?? '').trim();
+    const mid = effectiveMatchId?.trim();
+    if (!mid || !pid || fairPlayExtraSaving) return;
+    setFairPlayExtraSaving(true);
+    setSaveError(null);
+    const tempId = newEventId();
+    const ts = clampEffectiveMatchSeconds(currentMatchSeconds);
+    const optimistic: MatchEngineEvent = { id: tempId, type: 'extra_player_on', timestamp: ts, playerId: pid };
+    setEvents((prev) => [optimistic, ...prev]);
+    const { eventId, error } = await persistExtraPlayerOn({
+      matchId: mid,
+      playerId: pid,
+      currentMatchSeconds: ts,
+      period: half,
+    });
+    if (error || !eventId) {
+      setEvents((prev) => prev.filter((e) => e.id !== tempId));
+      setSaveError(error ?? 'FairPlay konnte nicht gespeichert werden.');
+      setFairPlayExtraSaving(false);
+      return;
+    }
+    setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...optimistic, id: eventId } : e)));
+    closeFairPlayExtraSheet();
+    setFairPlayExtraSaving(false);
+    void queueRealtimeReload();
+  }, [
+    fairPlayExtraPickId,
+    effectiveMatchId,
+    fairPlayExtraSaving,
+    currentMatchSeconds,
+    half,
+    closeFairPlayExtraSheet,
+    queueRealtimeReload,
+  ]);
+
+  const runPersistFairPlayExtraOff = useCallback(async () => {
+    const pid = String(fairPlayExtraPlayerId ?? '').trim();
+    const mid = effectiveMatchId?.trim();
+    if (!mid || !pid || fairPlayRemoveSaving) return;
+    setFairPlayRemoveSaving(true);
+    setSaveError(null);
+    const tempId = newEventId();
+    const ts = clampEffectiveMatchSeconds(currentMatchSeconds);
+    const optimistic: MatchEngineEvent = { id: tempId, type: 'extra_player_off', timestamp: ts, playerId: pid };
+    setEvents((prev) => [optimistic, ...prev]);
+    const { eventId, error } = await persistExtraPlayerOff({
+      matchId: mid,
+      playerId: pid,
+      currentMatchSeconds: ts,
+      period: half,
+    });
+    if (error || !eventId) {
+      setEvents((prev) => prev.filter((e) => e.id !== tempId));
+      setSaveError(error ?? 'FairPlay konnte nicht gespeichert werden.');
+      setFairPlayRemoveSaving(false);
+      return;
+    }
+    setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...optimistic, id: eventId } : e)));
+    setFairPlayRemoveDialogOpen(false);
+    setFairPlayRemoveSaving(false);
+    void queueRealtimeReload();
+  }, [
+    fairPlayExtraPlayerId,
+    effectiveMatchId,
+    fairPlayRemoveSaving,
+    currentMatchSeconds,
+    half,
+    queueRealtimeReload,
+  ]);
+
   const onStartClick = async () => {
     if (!canControlLiveMatch || matchIsFinished || isRunning || !effectiveMatchId) return;
     if (!hasClockStarted) {
@@ -2154,6 +2273,35 @@ export const LiveMatchScreen: React.FC = () => {
     }
   }, [events]);
 
+  useEffect(() => {
+    if (!import.meta.env.DEV || matchRow?.status !== 'live') return;
+    const asc = sortMatchEventsChronologically(events);
+    let depth = 0;
+    let maxDepth = 0;
+    for (const e of asc) {
+      if (e.type === 'extra_player_on') depth += 1;
+      if (e.type === 'extra_player_off') depth = Math.max(0, depth - 1);
+      maxDepth = Math.max(maxDepth, depth);
+    }
+    if (maxDepth > 1) {
+      console.warn('[FairPlay] Mehr als ein Zusatzspieler (überlappende extra_player_on)', { maxDepth });
+    }
+    const ex = fairPlayExtraPlayerId?.trim();
+    if (!ex) return;
+    if (onFieldIds.includes(ex)) {
+      console.warn('[FairPlay] Zusatzspieler steht in einem normalen Feld-Slot', { playerId: ex });
+    }
+    if (!rosterById.has(ex)) {
+      console.warn('[FairPlay] Zusatzspieler nicht im Kader / kein Feldbezug', { playerId: ex });
+    }
+    if (fairPlayGoalDiffOwnMinusOpp > -4) {
+      console.warn('[FairPlay] Zusatzspieler aktiv obwohl keine FairPlay-Situation (weniger als 4 Tore Rückstand)', {
+        playerId: ex,
+        eigenMinusGegner: fairPlayGoalDiffOwnMinusOpp,
+      });
+    }
+  }, [matchRow?.status, events, fairPlayExtraPlayerId, onFieldIds, rosterById, fairPlayGoalDiffOwnMinusOpp]);
+
   const spectatorLastActionEvent = useMemo(() => {
     const ranked = events.filter((e) => e.type !== 'pause');
     if (ranked.length === 0) return null;
@@ -2224,6 +2372,14 @@ export const LiveMatchScreen: React.FC = () => {
         return 'Spielende';
       case 'position_swap':
         return positionSwapPrimaryLine(ev) ?? 'Positionswechsel';
+      case 'extra_player_on': {
+        const n = name ? `${name} als Zusatzspieler eingesetzt` : 'Zusatzspieler eingesetzt';
+        return `🟡 FairPlay: ${n}`;
+      }
+      case 'extra_player_off': {
+        const n = name ? `${name} als Zusatzspieler entfernt` : 'Zusatzspieler entfernt';
+        return `🔴 FairPlay: ${n}`;
+      }
       default:
         return ev.type;
     }
@@ -2248,6 +2404,14 @@ export const LiveMatchScreen: React.FC = () => {
         return name ? `${name} wechselt ein` : 'Einwechslung';
       case 'position_swap':
         return positionSwapPrimaryLine(ev) ?? 'Positionswechsel';
+      case 'extra_player_on':
+        return name
+          ? `🟡 FairPlay: ${name} als Zusatzspieler eingesetzt`
+          : '🟡 FairPlay: Zusatzspieler eingesetzt';
+      case 'extra_player_off':
+        return name
+          ? `🔴 FairPlay: ${name} als Zusatzspieler entfernt`
+          : '🔴 FairPlay: Zusatzspieler entfernt';
       case 'pause':
         return 'Kurze Unterbrechung';
       default:
@@ -2269,6 +2433,9 @@ export const LiveMatchScreen: React.FC = () => {
     const isGoal = isHomeGoal || isAwayGoal;
     const isSub = ev.type === 'sub_out' || ev.type === 'sub_in';
     const isPosSwap = ev.type === 'position_swap';
+    const isFairPlayOn = ev.type === 'extra_player_on';
+    const isFairPlayOff = ev.type === 'extra_player_off';
+    const isFairPlay = isFairPlayOn || isFairPlayOff;
     const pl = ev.playerId ? rosterById.get(ev.playerId) : undefined;
     const posSwapLine = isPosSwap ? positionSwapPrimaryLine(ev) : null;
     const scoreStr =
@@ -2279,25 +2446,33 @@ export const LiveMatchScreen: React.FC = () => {
         ? 'bg-red-700 text-white'
         : isPosSwap
           ? 'border border-zinc-600/45 bg-zinc-900/85 text-zinc-200'
-          : isSub
-            ? 'bg-zinc-800 text-zinc-200'
-            : 'bg-zinc-800 text-zinc-400';
+          : isFairPlayOn
+            ? 'border border-amber-500/55 bg-amber-950/90 text-amber-100'
+            : isFairPlayOff
+              ? 'border border-red-500/55 bg-red-950/90 text-red-100'
+              : isSub
+                ? 'bg-zinc-800 text-zinc-200'
+                : 'bg-zinc-800 text-zinc-400';
 
     const cardBorder = isPosSwap
       ? 'border-zinc-600/40 bg-zinc-950/75 shadow-none'
-      : isHomeGoal
-        ? friendlyFeed
-          ? 'border-red-500/45 shadow-[0_0_20px_rgba(220,38,38,0.22)]'
-          : 'border-green-600/50'
-        : isAwayGoal
+      : isFairPlay
+        ? isFairPlayOn
+          ? 'border-amber-500/40 bg-amber-950/35 shadow-[0_0_18px_rgba(245,158,11,0.12)]'
+          : 'border-red-500/40 bg-red-950/30 shadow-[0_0_18px_rgba(239,68,68,0.12)]'
+        : isHomeGoal
           ? friendlyFeed
             ? 'border-red-500/45 shadow-[0_0_20px_rgba(220,38,38,0.22)]'
-            : 'border-red-600/50'
-          : isSub
+            : 'border-green-600/50'
+          : isAwayGoal
             ? friendlyFeed
-              ? 'border-zinc-500/35 bg-zinc-950/90'
-              : 'border-zinc-600'
-            : 'border-zinc-700';
+              ? 'border-red-500/45 shadow-[0_0_20px_rgba(220,38,38,0.22)]'
+              : 'border-red-600/50'
+            : isSub
+              ? friendlyFeed
+                ? 'border-zinc-500/35 bg-zinc-950/90'
+                : 'border-zinc-600'
+              : 'border-zinc-700';
 
     const scorePillClass = isHomeGoal
       ? 'rounded-full border border-green-600 bg-green-950/90 px-2 py-0.5 font-mono text-[10px] font-black tabular-nums text-green-100 md:px-2.5 md:py-1 md:text-[11px]'
@@ -2373,6 +2548,17 @@ export const LiveMatchScreen: React.FC = () => {
               {posSwapLine && !spectatorCompact ? (
                 <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
                   Positionswechsel
+                </p>
+              ) : null}
+            </>
+          ) : isFairPlay ? (
+            <>
+              <p className="text-[12px] font-semibold leading-snug text-white/95">
+                {parentLiveEventDescription(ev)}
+              </p>
+              {!spectatorCompact ? (
+                <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-amber-200/70">
+                  FairPlay
                 </p>
               ) : null}
             </>
@@ -2731,6 +2917,13 @@ export const LiveMatchScreen: React.FC = () => {
                       </p>
                     ) : null}
                   </>
+                ) : ev.type === 'extra_player_on' || ev.type === 'extra_player_off' ? (
+                  <>
+                    <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-amber-300/95">
+                      FairPlay
+                    </p>
+                    <p className="mt-0.5 text-sm font-semibold leading-snug text-white">{parentLiveEventDescription(ev)}</p>
+                  </>
                 ) : ev.type === 'sub_out' || ev.type === 'sub_in' ? (
                   <>
                     <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-sky-400">Wechsel</p>
@@ -3064,6 +3257,69 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
               </div>
 
+              {matchRow?.status === 'live' && !matchIsFinished && (fairPlayRuleActivatable || fairPlayExtraPlayerId) ? (
+                <div className="relative z-[1] border-t border-white/10 px-2.5 py-1.5 sm:px-3">
+                  <div
+                    className={[
+                      'rounded-2xl border px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:px-3',
+                      fairPlayMustRemoveExtra
+                        ? 'border-red-500/45 bg-gradient-to-br from-red-950/55 to-black/70'
+                        : fairPlayExtraPlayerId
+                          ? 'border-amber-500/40 bg-gradient-to-br from-amber-950/40 to-black/65'
+                          : 'border-amber-400/35 bg-gradient-to-br from-yellow-950/35 to-black/60',
+                    ].join(' ')}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="shrink-0 text-lg leading-none" aria-hidden>
+                        {fairPlayMustRemoveExtra ? '🔴' : fairPlayExtraPlayerId ? '🟠' : '🟡'}
+                      </span>
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-white/85">
+                          {fairPlayMustRemoveExtra
+                            ? 'Zusatzspieler entfernen'
+                            : fairPlayExtraPlayerId
+                              ? 'FairPlay-Zusatzspieler aktiv'
+                              : 'FairPlay-Regel aktiv'}
+                        </p>
+                        <p className="text-[12px] font-semibold leading-snug text-white/95">
+                          {fairPlayMustRemoveExtra
+                            ? 'Nur noch 3 Tore Unterschied'
+                            : fairPlayExtraPlayerId
+                              ? `${mobileLineupName(fairPlayExtraDisplayName)} als Zusatzspieler am Feld`
+                              : '4 Tore Rückstand — Zusatzspieler möglich'}
+                        </p>
+                      </div>
+                    </div>
+                    {canControlLiveMatch ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {fairPlayExtraPlayerId ? (
+                          <button
+                            type="button"
+                            onClick={() => setFairPlayRemoveDialogOpen(true)}
+                            className={`min-h-10 w-full rounded-xl border px-3 py-2 text-center text-xs font-bold active:scale-[0.98] sm:text-sm ${
+                              fairPlayMustRemoveExtra
+                                ? 'border-red-400/55 bg-red-950/55 text-red-50'
+                                : 'border-white/20 bg-black/40 text-white'
+                            }`}
+                          >
+                            Zusatzspieler entfernen
+                          </button>
+                        ) : null}
+                        {!fairPlayExtraPlayerId && fairPlayRuleActivatable ? (
+                          <button
+                            type="button"
+                            onClick={openFairPlayExtraSheet}
+                            className="min-h-10 w-full rounded-xl border border-amber-400/50 bg-amber-950/60 px-3 py-2 text-center text-xs font-bold text-amber-50 active:scale-[0.98] sm:text-sm"
+                          >
+                            + Zusatzspieler
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
               {!spectatorView && canControlLiveMatch ? (
                 <div className="relative z-[1] mt-0 space-y-1 border-t border-red-500/35 bg-black/55 px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-12px_32px_rgba(220,38,38,0.12)] backdrop-blur-md">
                   {renderTrainerClockActionRow('gap-1.5')}
@@ -3193,7 +3449,9 @@ export const LiveMatchScreen: React.FC = () => {
                     </div>
                     <div className="rounded-lg border border-white/10 bg-black/35 px-2 py-1.5">
                       <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-500">Am Feld</p>
-                      <p className="mt-0.5 text-xs font-medium text-white">{fieldPlayers.length}</p>
+                      <p className="mt-0.5 text-xs font-medium text-white">
+                        {`${onFieldIds.length + (fairPlayExtraPlayerId ? 1 : 0)}/7 aktiv`}
+                      </p>
                     </div>
                     <div className="rounded-lg border border-white/10 bg-black/35 px-2 py-1.5">
                       <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-500">Bank</p>
@@ -3279,7 +3537,8 @@ export const LiveMatchScreen: React.FC = () => {
                 ) : null}
               </div>
               {canRenderLivePitch ? (
-                <LineupFormationPitch
+                <>
+                  <LineupFormationPitch
                   formationId={safeFormationId}
                   slots={safeLineupSlots as Record<FieldSlotId, string | null>}
                   interactive={Boolean(canControlLiveMatch && lineupPositionMode && !matchIsFinished)}
@@ -3355,6 +3614,44 @@ export const LiveMatchScreen: React.FC = () => {
                     );
                   }}
                 />
+                {fairPlayExtraPlayerId ? (
+                  <div className="flex flex-col items-center justify-center px-1 pt-0.5">
+                    <p className="mb-1 text-[9px] font-black uppercase tracking-[0.16em] text-amber-200/80">
+                      FairPlay · Extra
+                    </p>
+                    <div className="relative inline-flex flex-col items-center">
+                      <span
+                        className="absolute -right-0.5 -top-0.5 z-[2] rounded-full border border-amber-300/90 bg-amber-400 px-1 py-0 text-[8px] font-black leading-none text-black shadow-sm"
+                        aria-label="Zusatzspieler"
+                      >
+                        +1
+                      </span>
+                      {(() => {
+                        const pid = fairPlayExtraPlayerId.trim();
+                        const player = rosterById.get(pid) ?? null;
+                        const rawName = (player?.displayName ?? player?.name ?? '').trim() || 'Spieler';
+                        const shortName = mobileLineupName(rawName);
+                        return (
+                          <>
+                            <LeibchenJersey
+                              lastName={shortName === '—' || !shortName ? 'Spieler' : shortName}
+                              number={player?.number ?? '–'}
+                              position="FP"
+                              variant="field"
+                              size="compact"
+                              pitchStyleBack
+                              className="ring-1 ring-amber-400/50"
+                            />
+                            <span className="mt-0.5 max-w-[10rem] truncate rounded-md bg-black/85 px-1 py-0.5 text-center text-[9px] font-semibold text-white ring-1 ring-white/15">
+                              {shortName}
+                            </span>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                ) : null}
+                </>
               ) : (
                 <p className="rounded-xl border border-white/10 bg-black/25 px-3 py-4 text-sm text-white/55">
                   Live-Aufstellung wird geladen
@@ -4157,6 +4454,144 @@ export const LiveMatchScreen: React.FC = () => {
                 className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-red-600 px-2 text-[12px] font-black text-white shadow-[0_0_18px_rgba(220,38,38,0.5)] disabled:opacity-40"
               >
                 {posSwapSaving ? '…' : 'Tauschen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {canControlLiveMatch && fairPlayExtraSheetOpen && !matchIsFinished ? (
+        <div
+          className="fixed inset-0 z-[10050] flex flex-col justify-end bg-black/80 backdrop-blur-sm"
+          role="presentation"
+          onClick={() => {
+            if (fairPlayExtraSaving) return;
+            closeFairPlayExtraSheet();
+          }}
+        >
+          <div
+            className="flex min-h-0 max-h-[78dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-amber-500/25 bg-gradient-to-b from-amber-950/40 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65)]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="fairplay-extra-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mt-1 h-0.5 w-5 shrink-0 rounded-full bg-amber-400/35" aria-hidden />
+            <div className="shrink-0 border-b border-white/[0.07] px-3 py-2">
+              <h3 id="fairplay-extra-title" className="text-sm font-black tracking-tight text-white">
+                {fairPlayExtraPickId ? 'Bestätigen' : 'Zusatzspieler auswählen'}
+              </h3>
+            </div>
+            {fairPlayExtraPickId ? (
+              <div className="flex min-h-0 flex-1 flex-col gap-3 px-3 py-3">
+                <p className="text-center text-[13px] font-semibold leading-snug text-white/90">
+                  {`${mobileLineupName(rosterById.get(fairPlayExtraPickId)?.name ?? 'Spieler')} als Zusatzspieler einsetzen?`}
+                </p>
+                <div
+                  className="mt-auto flex gap-2 border-t border-white/10 pt-3"
+                  style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
+                >
+                  <button
+                    type="button"
+                    disabled={fairPlayExtraSaving}
+                    onClick={() => setFairPlayExtraPickId(null)}
+                    className="min-h-11 flex-1 rounded-xl border border-white/15 bg-zinc-900 text-sm font-bold text-white disabled:opacity-45"
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    type="button"
+                    disabled={fairPlayExtraSaving}
+                    onClick={() => void runPersistFairPlayExtraOn()}
+                    className="min-h-11 flex-1 rounded-xl border border-amber-400/50 bg-amber-500 text-sm font-black text-black shadow-sm disabled:opacity-45"
+                  >
+                    {fairPlayExtraSaving ? '…' : 'Einsetzen'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 py-2 [-webkit-overflow-scrolling:touch]"
+                style={{ paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}
+              >
+                {benchPlayers.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-white/50">Keine Bankspieler.</p>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {benchPlayers.map((p) => {
+                      const shortName = mobileLineupName(p.name);
+                      const posLabel = getPositionLabel(p.position ?? '') || '–';
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setFairPlayExtraPickId(p.id)}
+                          className="flex min-h-[64px] items-center gap-2 rounded-xl border border-white/10 bg-black/50 px-2 py-2 text-left transition-transform active:scale-[0.99]"
+                        >
+                          <div className="pointer-events-none shrink-0">
+                            <LeibchenJersey
+                              lastName={shortName === '—' || !shortName ? 'Spieler' : shortName}
+                              number={p.number ?? '–'}
+                              position={posLabel}
+                              variant="field"
+                              size="compact"
+                              pitchStyleBack
+                              className="!h-[3.2rem] !w-[2.55rem]"
+                            />
+                          </div>
+                          <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">{p.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {canControlLiveMatch && fairPlayRemoveDialogOpen && fairPlayExtraPlayerId && !matchIsFinished ? (
+        <div
+          className="pointer-events-auto fixed inset-0 z-[10055] flex flex-col justify-end bg-black/65 backdrop-blur-sm"
+          style={{ paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))' }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="fairplay-remove-title"
+            className="relative z-[1] mx-auto mb-0 w-[min(100%,22rem)] rounded-2xl border border-red-500/35 bg-gradient-to-b from-zinc-950/98 to-black px-3 pb-4 pt-3 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-white/18" />
+            <h3
+              id="fairplay-remove-title"
+              className="text-center text-[13px] font-black uppercase tracking-[0.1em] text-white"
+            >
+              Zusatzspieler entfernen
+            </h3>
+            <p className="mt-2 text-center text-[13px] font-semibold leading-snug text-white/85">
+              {`${mobileLineupName(fairPlayExtraDisplayName)} entfernen?`}
+            </p>
+            <div className="mt-4 flex min-h-[48px] flex-row gap-2">
+              <button
+                type="button"
+                disabled={fairPlayRemoveSaving}
+                onClick={() => {
+                  if (fairPlayRemoveSaving) return;
+                  setFairPlayRemoveDialogOpen(false);
+                }}
+                className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-[12px] font-bold text-white/88 disabled:opacity-45"
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                disabled={fairPlayRemoveSaving}
+                onClick={() => void runPersistFairPlayExtraOff()}
+                className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-red-600 px-2 text-[12px] font-black text-white shadow-[0_0_18px_rgba(220,38,38,0.45)] disabled:opacity-40"
+              >
+                {fairPlayRemoveSaving ? '…' : 'Entfernen'}
               </button>
             </div>
           </div>
