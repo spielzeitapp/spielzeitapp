@@ -40,6 +40,7 @@ import {
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
 import { getMatchSides, shortTeamGoalLabel } from '../../lib/matchSides';
+import { countOccupiedFieldSlots, mergeLivePitchSlotsFromDb } from '../../lib/liveLineupNormalize';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
@@ -933,9 +934,11 @@ export const LiveMatchScreen: React.FC = () => {
 
   const [formationSheetOpen, setFormationSheetOpen] = useState(false);
   const [formationSaving, setFormationSaving] = useState(false);
+  const [formationPendingId, setFormationPendingId] = useState<U11FormationId | null>(null);
   const closeFormationSheet = useCallback(() => {
     setFormationSheetOpen(false);
     setFormationSaving(false);
+    setFormationPendingId(null);
   }, []);
   useEffect(() => {
     if (formationSheetOpen && mainTab !== 'lineup') closeFormationSheet();
@@ -1105,7 +1108,37 @@ export const LiveMatchScreen: React.FC = () => {
     [liveLineupBasePlayerIds, events, currentMatchSeconds],
   );
 
-  const onFieldIds = useMemo(() => getOnFieldIdsInSlotOrder(onFieldBySlot), [onFieldBySlot]);
+  const safeSlotOrder = Array.isArray(LIVE_FIELD_SLOT_ORDER) ? LIVE_FIELD_SLOT_ORDER : [];
+  const lineupSlotsForDisplay = useMemo(() => {
+    const base = onFieldBySlot && typeof onFieldBySlot === 'object' ? onFieldBySlot : ({} as Record<FieldSlotId, string | null>);
+    const merged =
+      matchRow?.status === 'live' && startingPlayerIds.some((id) => String(id ?? '').trim().length > 0)
+        ? mergeLivePitchSlotsFromDb(base, startingPlayerIds)
+        : base;
+    if (typeof import.meta !== 'undefined' && import.meta.env.DEV && matchRow?.status === 'live') {
+      const n = countOccupiedFieldSlots(merged);
+      if (n < 7) {
+        console.warn('[LiveMatch] Live formation / pitch: weniger als 7 Feldspieler nach DB-Merge', {
+          mergedCount: n,
+          replayCount: countOccupiedFieldSlots(base),
+        });
+      }
+    }
+    const out = { ...merged };
+    const seen = new Set<string>();
+    for (const slot of safeSlotOrder) {
+      const pid = out[slot];
+      if (!pid) continue;
+      if (seen.has(pid)) {
+        out[slot] = null;
+        continue;
+      }
+      seen.add(pid);
+    }
+    return out;
+  }, [onFieldBySlot, safeSlotOrder, matchRow?.status, startingPlayerIds]);
+
+  const onFieldIds = useMemo(() => getOnFieldIdsInSlotOrder(lineupSlotsForDisplay), [lineupSlotsForDisplay]);
 
   const fieldPlayers = useMemo(() => {
     const set = new Set(onFieldIds);
@@ -1118,22 +1151,42 @@ export const LiveMatchScreen: React.FC = () => {
     return sortRosterByNumber(list);
   }, [squadPlayerIds, onFieldIds, rosterById]);
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
-  const safeSlotOrder = Array.isArray(LIVE_FIELD_SLOT_ORDER) ? LIVE_FIELD_SLOT_ORDER : [];
-  const lineupSlotsForDisplay = useMemo(() => {
-    const base = onFieldBySlot && typeof onFieldBySlot === 'object' ? onFieldBySlot : ({} as Record<FieldSlotId, string | null>);
-    const out = { ...base };
-    const seen = new Set<string>();
-    for (const slot of safeSlotOrder) {
-      const pid = out[slot];
-      if (!pid) continue;
-      if (seen.has(pid)) {
-        out[slot] = null;
-        continue;
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || matchRow?.status !== 'live') return;
+    const replay = getCurrentOnFieldBySlot(liveLineupBasePlayerIds, events, currentMatchSeconds);
+    const dbMap = startingLineupToSlotMap(startingPlayerIds.slice(0, 7));
+    const rIds = new Set(getOnFieldIdsInSlotOrder(replay));
+    const dIds = new Set(getOnFieldIdsInSlotOrder(dbMap));
+    if (rIds.size === dIds.size && rIds.size === 0) return;
+    let diff = false;
+    for (const id of rIds) {
+      if (!dIds.has(id)) {
+        diff = true;
+        break;
       }
-      seen.add(pid);
     }
-    return out;
-  }, [onFieldBySlot, safeSlotOrder]);
+    if (!diff) {
+      for (const id of dIds) {
+        if (!rIds.has(id)) {
+          diff = true;
+          break;
+        }
+      }
+    }
+    if (diff) {
+      console.warn('[LiveMatch] Trainer lineup state mismatch (Replay vs DB-Startelf)', {
+        replayIds: [...rIds],
+        dbIds: [...dIds],
+      });
+    }
+    const squad = new Set(squadPlayerIds.map((x) => String(x ?? '').trim()).filter(Boolean));
+    for (const id of rIds) {
+      if (!squad.has(id)) {
+        console.warn('[LiveMatch] Player lost from live squad (on field but not in squad state)', { playerId: id });
+      }
+    }
+  }, [liveLineupBasePlayerIds, events, startingPlayerIds, squadPlayerIds, matchRow?.status]);
 
   /** Single Source of Truth: `matches.u11_formation_id` (Realtime), kein localStorage. */
   const safeFormationId = useMemo((): U11FormationId => {
@@ -1141,39 +1194,68 @@ export const LiveMatchScreen: React.FC = () => {
     return isU11FormationId(raw) ? raw : U11_FORMATION_DB_FALLBACK;
   }, [matchRow]);
 
-  const applyLiveFormation = useCallback(
-    async (id: U11FormationId) => {
+  const requestFormationChange = useCallback(
+    (id: U11FormationId) => {
       if (!effectiveMatchId || !canControlLiveMatch || formationSaving) return;
       if (id === safeFormationId) {
         closeFormationSheet();
         return;
       }
-      setFormationSaving(true);
-      setSaveError(null);
-      const { error } = await updateMatchRow(effectiveMatchId, { u11_formation_id: id });
-      setFormationSaving(false);
-      if (error) {
-        setSaveError(error);
+      setFormationPendingId(id);
+    },
+    [effectiveMatchId, canControlLiveMatch, formationSaving, safeFormationId, closeFormationSheet],
+  );
+
+  const confirmFormationChange = useCallback(async () => {
+    const id = formationPendingId;
+    if (!id || !effectiveMatchId || !canControlLiveMatch || formationSaving) return;
+    setFormationSaving(true);
+    setSaveError(null);
+    try {
+      const slots = getCurrentOnFieldBySlot(liveLineupBasePlayerIds, events, currentMatchSeconds);
+      const ordered = fieldSlotMapToStartingIds(slots);
+      const active = ordered.filter((x) => String(x ?? '').trim().length > 0);
+      if (import.meta.env.DEV && active.length < 7) {
+        console.warn('[LiveMatch] Live formation remap lost active player', {
+          activeCount: active.length,
+          ordered,
+        });
+      }
+      const { error: rowErr } = await updateMatchRow(effectiveMatchId, { u11_formation_id: id });
+      if (rowErr) {
+        setSaveError(rowErr);
         return;
       }
-      void queueRealtimeReload();
+      const { error: lineErr } = await replaceMatchLineupAndBench(effectiveMatchId, ordered, squadPlayerIds);
+      if (lineErr) {
+        setSaveError(lineErr);
+        return;
+      }
+      setStartingPlayerIds(ordered);
+      setFormationPendingId(null);
       closeFormationSheet();
       setFormationChangeToast(true);
-    },
-    [
-      effectiveMatchId,
-      canControlLiveMatch,
-      formationSaving,
-      safeFormationId,
-      closeFormationSheet,
-      queueRealtimeReload,
-    ],
-  );
+      void queueRealtimeReload();
+    } finally {
+      setFormationSaving(false);
+    }
+  }, [
+    formationPendingId,
+    effectiveMatchId,
+    canControlLiveMatch,
+    formationSaving,
+    liveLineupBasePlayerIds,
+    events,
+    currentMatchSeconds,
+    squadPlayerIds,
+    closeFormationSheet,
+    queueRealtimeReload,
+  ]);
 
   const safeLineupRows = useMemo(
     () =>
       safeSlotOrder.map((slot) => {
-        const playerId = onFieldBySlot?.[slot] ?? null;
+        const playerId = lineupSlotsForDisplay?.[slot] ?? null;
         const player = playerId ? rosterById.get(playerId) ?? null : null;
         return {
           id: player?.id ?? slot,
@@ -1185,7 +1267,7 @@ export const LiveMatchScreen: React.FC = () => {
           avatar_url: player?.avatarUrl ?? null,
         };
       }),
-    [safeSlotOrder, onFieldBySlot, rosterById, safeFormationId],
+    [safeSlotOrder, lineupSlotsForDisplay, rosterById, safeFormationId],
   );
   const safeBenchRows = useMemo(
     () =>
@@ -1204,10 +1286,10 @@ export const LiveMatchScreen: React.FC = () => {
     return safeLineupRows.filter((row) => {
       const slot = row?.slot;
       if (!slot) return false;
-      const pid = onFieldBySlot?.[slot];
+      const pid = lineupSlotsForDisplay?.[slot];
       return typeof pid === 'string' && pid.length > 0;
     });
-  }, [safeLineupRows, onFieldBySlot]);
+  }, [safeLineupRows, lineupSlotsForDisplay]);
 
   const substitutionBenchRows = useMemo(() => {
     if (!Array.isArray(safeBenchRows)) return [];
@@ -1226,8 +1308,8 @@ export const LiveMatchScreen: React.FC = () => {
               (substitutionFieldRows.find((r) => {
                 const sl = r?.slot;
                 const id =
-                  sl && onFieldBySlot && typeof onFieldBySlot === 'object'
-                    ? String(onFieldBySlot[sl] ?? '').trim()
+                  sl && lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object'
+                    ? String(lineupSlotsForDisplay[sl] ?? '').trim()
                     : '';
                 return id === outPid;
               })?.display_name ?? 'Spieler'),
@@ -1246,7 +1328,7 @@ export const LiveMatchScreen: React.FC = () => {
         )
       : '';
     return { outLabel, inLabel };
-  }, [subOutPlayerId, subInPlayerId, rosterById, substitutionFieldRows, substitutionBenchRows, onFieldBySlot]);
+  }, [subOutPlayerId, subInPlayerId, rosterById, substitutionFieldRows, substitutionBenchRows, lineupSlotsForDisplay]);
 
   const safeLineupSlots = useMemo(
     () => (lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object' ? lineupSlotsForDisplay : {}),
@@ -1414,7 +1496,7 @@ export const LiveMatchScreen: React.FC = () => {
   const substitutionSuggestions = useMemo(() => {
     if (matchIsFinished || matchRow?.status !== 'live') return [];
     const squadSet = new Set(squadPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean));
-    const slots = onFieldBySlot as Record<FieldSlotId, string | null>;
+    const slots = lineupSlotsForDisplay as Record<FieldSlotId, string | null>;
     const gkId = String(slots?.GK ?? '').trim();
 
     const fieldIdsAll = onFieldIds.map((id) => String(id ?? '').trim()).filter((id) => squadSet.has(id));
@@ -1471,7 +1553,7 @@ export const LiveMatchScreen: React.FC = () => {
       tryPair(oid, () => true);
     }
     return pairs;
-  }, [matchIsFinished, matchRow?.status, squadPlayerIds, onFieldIds, onFieldBySlot, playtimes, rosterById]);
+  }, [matchIsFinished, matchRow?.status, squadPlayerIds, onFieldIds, lineupSlotsForDisplay, playtimes, rosterById]);
 
   const subSuggestionSig = substitutionSuggestions.map((s) => `${s.outId}:${s.inId}`).join('|');
   useEffect(() => {
@@ -3361,9 +3443,38 @@ export const LiveMatchScreen: React.FC = () => {
                   Formation ändern
                 </h3>
                 <p className="mt-0.5 text-[11px] leading-snug text-white/45">
-                  Nur Darstellung — Spieler bleiben auf den Slots
+                  {formationPendingId
+                    ? 'Alle aktiven Feldspieler inkl. Torwart bleiben erhalten; nur die Darstellung der Positionen ändert sich.'
+                    : 'Andere Systeme wählen — die 7 aktiven Spieler bleiben auf den Slots erhalten.'}
                 </p>
               </div>
+              {formationPendingId ? (
+                <div className="mx-3 mb-2 shrink-0 rounded-2xl border border-amber-400/35 bg-amber-950/25 px-3 py-3">
+                  <p className="text-center text-[13px] font-black text-amber-100">Formation wechseln?</p>
+                  <p className="mt-1.5 text-center text-[12px] font-medium leading-snug text-white/80">
+                    Alle {countOccupiedFieldSlots(getCurrentOnFieldBySlot(liveLineupBasePlayerIds, events, currentMatchSeconds))}{' '}
+                    aktiven Spieler bleiben erhalten und werden bei Bedarf auf die neuen Slot-Positionen abgebildet.
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      disabled={formationSaving}
+                      onClick={() => setFormationPendingId(null)}
+                      className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-[12px] font-bold text-white/88 hover:bg-zinc-800 disabled:opacity-45"
+                    >
+                      Abbrechen
+                    </button>
+                    <button
+                      type="button"
+                      disabled={formationSaving}
+                      onClick={() => void confirmFormationChange()}
+                      className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-amber-500 px-2 text-[12px] font-black text-amber-950 shadow-[0_0_16px_rgba(245,158,11,0.35)] disabled:opacity-45"
+                    >
+                      {formationSaving ? '…' : 'Übernehmen'}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain px-3 [-webkit-overflow-scrolling:touch] pb-2">
                 {U11_FORMATION_CHOICES.map((id) => {
                   const active = id === safeFormationId;
@@ -3372,7 +3483,7 @@ export const LiveMatchScreen: React.FC = () => {
                       key={`formation-pick-${id}`}
                       type="button"
                       disabled={formationSaving}
-                      onClick={() => void applyLiveFormation(id)}
+                      onClick={() => requestFormationChange(id)}
                       className={[
                         'flex w-full items-stretch gap-3 rounded-2xl border p-3 text-left transition-all active:scale-[0.99] disabled:opacity-45',
                         active
@@ -3407,7 +3518,7 @@ export const LiveMatchScreen: React.FC = () => {
               <footer
                 className="shrink-0 border-t border-red-500/15 bg-black/80 px-3 pt-2 backdrop-blur-md"
                 style={{
-                  paddingBottom: 'calc(110px + env(safe-area-inset-bottom, 0px))',
+                  paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))',
                 }}
               >
                 <button
@@ -3426,7 +3537,7 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="fixed inset-0 z-[9999] flex flex-col justify-end bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-[10000] flex flex-col justify-end bg-black/80 backdrop-blur-sm"
           role="presentation"
           onClick={closeWechselSheet}
         >
@@ -3479,6 +3590,24 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
             </div>
 
+            <div className="shrink-0 border-b border-white/[0.07] bg-black/95 px-2.5 py-2">
+              <p className="text-[9px] font-black uppercase tracking-[0.14em] text-white/45">Modus</p>
+              <p className="text-[12px] font-bold text-white">
+                {subSheetView === 'pitch' && pitchSubMode === 'position_swap' ? 'Position tauschen' : 'Spielerwechsel'}
+              </p>
+              {subSheetView === 'pitch' && pitchSubMode === 'position_swap' ? (
+                <p className="mt-1 text-[11px] font-medium leading-snug text-violet-200/90">
+                  Zwei Feldspieler auf dem Spielfeld antippen, dann unten bestätigen.
+                </p>
+              ) : (
+                <p className="mt-1 truncate text-[11px] font-semibold leading-snug text-emerald-200/95">
+                  {wechselSheetPickLabels.outLabel || wechselSheetPickLabels.inLabel
+                    ? `Raus ${wechselSheetPickLabels.outLabel || '…'} → Rein ${wechselSheetPickLabels.inLabel || '…'}`
+                    : 'Schritt 1: Raus wählen · Schritt 2: Rein wählen'}
+                </p>
+              )}
+            </div>
+
             <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden px-2 pb-0.5 pt-1">
               {subSheetView === 'list' ? (
@@ -3487,7 +3616,7 @@ export const LiveMatchScreen: React.FC = () => {
                   style={{ minHeight: 'min(50dvh, 17.5rem)' }}
                 >
                   <div className="flex min-h-0 flex-1 flex-col gap-0.5">
-                    <p className="shrink-0 text-[9px] font-black uppercase tracking-[0.14em] text-red-300/95">Raus · Feld</p>
+                    <p className="shrink-0 text-[9px] font-black uppercase tracking-[0.14em] text-red-300/95">Raus · Feld · inkl. TW</p>
                     {substitutionFieldRows.length === 0 ? (
                       <p className="shrink-0 rounded-md border border-red-500/15 bg-black/50 px-1.5 py-1 text-[10px] text-white/45">
                         Keine Feldspieler.
@@ -3498,8 +3627,8 @@ export const LiveMatchScreen: React.FC = () => {
                           {substitutionFieldRows.map((row) => {
                             const slot = row?.slot;
                             const pid =
-                              slot && onFieldBySlot && typeof onFieldBySlot === 'object'
-                                ? String(onFieldBySlot[slot] ?? '').trim()
+                              slot && lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object'
+                                ? String(lineupSlotsForDisplay[slot] ?? '').trim()
                                 : '';
                             if (!pid) return null;
                             const rosterP = rosterById.get(pid) ?? null;
@@ -3820,12 +3949,15 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
 
             {posSwapConfirmOpen && posSwapSlotA && posSwapSlotB && subSheetView === 'pitch' ? (
-              <div className="pointer-events-auto absolute inset-0 z-[120] flex flex-col justify-end pb-1">
+              <div
+                className="pointer-events-auto fixed inset-0 z-[10060] flex flex-col justify-end"
+                style={{ paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))' }}
+              >
                 <button
                   type="button"
                   aria-label="Abbrechen"
                   disabled={posSwapSaving}
-                  className="absolute inset-0 bg-black/55 backdrop-blur-[3px] transition-opacity disabled:opacity-60"
+                  className="absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity disabled:opacity-60"
                   onClick={() => {
                     if (posSwapSaving) return;
                     setPosSwapConfirmOpen(false);
@@ -3837,7 +3969,7 @@ export const LiveMatchScreen: React.FC = () => {
                   role="dialog"
                   aria-modal="true"
                   aria-labelledby="pos-swap-confirm-title"
-                  className="relative mx-1 rounded-xl border border-red-500/35 bg-gradient-to-b from-zinc-950/98 via-zinc-950/95 to-black px-3 pb-3 pt-3 shadow-[0_0_28px_rgba(239,68,68,0.25),0_-8px_32px_rgba(0,0,0,0.65)]"
+                  className="relative z-[1] mx-auto mb-0 w-[min(100%,24rem)] rounded-2xl border border-red-500/40 bg-gradient-to-b from-zinc-950/98 via-zinc-950/95 to-black px-3 pb-4 pt-3 shadow-[0_0_32px_rgba(239,68,68,0.35),0_-12px_40px_rgba(0,0,0,0.75)]"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-white/18" />
@@ -3850,7 +3982,7 @@ export const LiveMatchScreen: React.FC = () => {
                   <p className="mt-2 text-center text-[13px] font-semibold leading-snug text-white/85 sm:text-[14px]">
                     {posSwapConfirmLabels.a} ↔ {posSwapConfirmLabels.b}
                   </p>
-                  <div className="mt-4 flex min-h-[46px] flex-row gap-2">
+                  <div className="mt-4 flex min-h-[48px] flex-row gap-2">
                     <button
                       type="button"
                       disabled={posSwapSaving}
@@ -3859,7 +3991,7 @@ export const LiveMatchScreen: React.FC = () => {
                         setPosSwapSlotA(null);
                         setPosSwapSlotB(null);
                       }}
-                      className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-[12px] font-bold text-white/88 backdrop-blur-sm hover:bg-zinc-800 disabled:opacity-45"
+                      className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-[12px] font-bold text-white/88 backdrop-blur-sm hover:bg-zinc-800 disabled:opacity-45"
                     >
                       Abbrechen
                     </button>
@@ -3867,7 +3999,7 @@ export const LiveMatchScreen: React.FC = () => {
                       type="button"
                       disabled={posSwapSaving || matchIsFinished}
                       onClick={() => void confirmPositionSwap()}
-                      className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl bg-red-600 px-2 text-[12px] font-black text-white shadow-[0_0_16px_rgba(220,38,38,0.45)] disabled:opacity-40"
+                      className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-red-600 px-2 text-[12px] font-black text-white shadow-[0_0_18px_rgba(220,38,38,0.5)] disabled:opacity-40"
                     >
                       {posSwapSaving ? '…' : 'Positionen tauschen'}
                     </button>
@@ -3879,7 +4011,7 @@ export const LiveMatchScreen: React.FC = () => {
             <footer
               className="sticky bottom-0 z-[70] shrink-0 border-t border-red-500/15 bg-black/90 px-2 pt-1.5 backdrop-blur-md"
               style={{
-                paddingBottom: 'calc(110px + env(safe-area-inset-bottom))',
+                paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))',
               }}
             >
               {subSheetView === 'pitch' && pitchSubMode === 'position_swap' ? (
