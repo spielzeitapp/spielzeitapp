@@ -2862,7 +2862,24 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
 
                   <div className="flex min-w-0 shrink flex-col items-center gap-1 px-0.5 sm:px-1">
-                    {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
+                    <div className="relative flex w-full min-w-0 flex-col items-center gap-1">
+                      {isPaused && !matchIsFinished ? (
+                        <div className="pointer-events-none absolute inset-0 z-[5] flex items-center justify-center px-1">
+                          <div
+                            className="max-w-[min(100%,10.5rem)] rounded-xl border border-amber-400/30 bg-black/55 px-2.5 py-1 shadow-[0_4px_24px_rgba(0,0,0,0.45)] backdrop-blur-md sm:max-w-[12rem] sm:px-3 sm:py-1.5"
+                            role="status"
+                            aria-label="Pause. Tore nach Weiter möglich."
+                          >
+                            <p className="text-center text-[9px] font-black uppercase tracking-[0.14em] text-amber-100/95 sm:text-[10px]">
+                              <span aria-hidden>⏸</span> PAUSE
+                            </p>
+                            <p className="mt-0.5 text-center text-[8px] font-semibold leading-tight text-white/75 sm:text-[9px]">
+                              Tore nach Weiter möglich
+                            </p>
+                          </div>
+                        </div>
+                      ) : null}
+                      {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                       <div className="flex items-start justify-center gap-1 sm:gap-2 motion-safe:transition-transform motion-safe:duration-300">
                         <div className="flex min-w-0 flex-col items-center">
                           <button
@@ -2982,11 +2999,7 @@ export const LiveMatchScreen: React.FC = () => {
                         ) : null}
                       </div>
                     )}
-                    {!spectatorView && canControlLiveMatch && isPaused ? (
-                      <p className="mt-1 w-full max-w-[18rem] px-1 text-center text-[10px] font-medium leading-snug text-amber-200/95">
-                        Spiel ist pausiert – Tore erst nach Weiter möglich.
-                      </p>
-                    ) : null}
+                    </div>
                     <p className="mt-0.5 w-full text-center font-mono text-[9px] font-medium tabular-nums leading-none text-white/80 sm:text-[10px]">
                       <span className="inline-block whitespace-nowrap tracking-[-0.01em]">{periodScoreLine}</span>
                     </p>
