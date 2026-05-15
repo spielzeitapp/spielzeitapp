@@ -3,6 +3,7 @@ import { debugAssertMatchEventDbType } from './matchEventScores';
 import type { FieldSlotId } from '../types/match';
 import {
   clampEffectiveMatchSeconds,
+  computeLiveMatchSecondsFromClockState,
   getBenchPlayers,
   getOnFieldIdsInSlotOrder,
   fieldSlotMapToStartingIds,
@@ -49,16 +50,18 @@ export function getMatchLiveClockStatus(
   return 'paused';
 }
 
-/** @deprecated Nutze `useMatchTimer` — hier nur noch begrenzte Rückwärtskompatibilität (geclamped). */
+/** @deprecated Nutze `useMatchTimer` — Wall-Clock + Akkumulator (geclamped). */
 export function computeLiveMatchElapsedSeconds(row: LiveMatchRow | null, nowMs = Date.now()): number {
   if (!row) return 0;
-  const base = Math.max(0, Number(row.live_elapsed_seconds ?? 0) || 0);
-  if (row.status === 'finished') return clampEffectiveMatchSeconds(base);
-  if (!row.live_is_running || !row.live_started_at) return clampEffectiveMatchSeconds(base);
-  const started = new Date(row.live_started_at).getTime();
-  if (Number.isNaN(started)) return clampEffectiveMatchSeconds(base);
-  const raw = base + Math.max(0, Math.floor((nowMs - started) / 1000));
-  return clampEffectiveMatchSeconds(raw);
+  return computeLiveMatchSecondsFromClockState(
+    {
+      elapsedSeconds: row.live_elapsed_seconds,
+      isRunning: row.live_is_running,
+      hasEnded: row.status === 'finished',
+      startedAtISO: row.live_is_running ? row.live_started_at : null,
+    },
+    nowMs,
+  );
 }
 
 export type MatchEventDbRow = {

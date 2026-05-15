@@ -16,6 +16,72 @@ export function clampEffectiveMatchSeconds(sec: number): number {
   return Math.min(n, U11_MATCH_CLOCK_MAX_SECONDS);
 }
 
+/** Persistierter Live-Uhr-Zustand (DB `matches.live_*`). */
+export type LiveMatchClockPersisted = {
+  elapsedSeconds?: number | null;
+  isRunning?: boolean | null;
+  hasEnded?: boolean | null;
+  /** Wall-Clock-Start des aktuellen Laufsegments (nur wenn `isRunning`). */
+  startedAtISO?: string | null;
+};
+
+/**
+ * Effektive Spielsekunden aus Akkumulator + Wall-Clock des Laufsegments.
+ * Keine lokale Hochzählung — robust gegen Sleep, Hintergrund, Tab-Throttling.
+ */
+export function computeLiveMatchSecondsFromClockState(
+  state: LiveMatchClockPersisted,
+  nowMs: number = Date.now(),
+): number {
+  const base = clampEffectiveMatchSeconds(Number(state.elapsedSeconds ?? 0) || 0);
+  if (state.hasEnded) return base;
+  if (!state.isRunning || !state.startedAtISO) return base;
+  const startedMs = new Date(state.startedAtISO).getTime();
+  if (Number.isNaN(startedMs)) return base;
+  const segmentSec = Math.max(0, Math.floor((nowMs - startedMs) / 1000));
+  const capLeft = Math.max(0, U11_MATCH_CLOCK_MAX_SECONDS - base);
+  return clampEffectiveMatchSeconds(base + Math.min(segmentSec, capLeft));
+}
+
+/**
+ * Optional: Pause/Resume/End-Events als Plausibilitätsanker (Reload, veraltete DB).
+ */
+export function reconcileLiveMatchSecondsWithClockEvents(
+  state: LiveMatchClockPersisted,
+  events: MatchEngineEvent[] | undefined,
+  nowMs: number = Date.now(),
+): number {
+  const wall = computeLiveMatchSecondsFromClockState(state, nowMs);
+  if (!events?.length) return wall;
+
+  const sorted = sortMatchEventsChronologically(events);
+  const endEv = [...sorted].reverse().find((e) => e.type === 'end');
+  if (state.hasEnded && endEv) {
+    return clampEffectiveMatchSeconds(endEv.timestamp);
+  }
+
+  if (!state.isRunning) {
+    let lastPause = -1;
+    for (const e of sorted) {
+      if (e.type === 'pause') lastPause = Math.max(lastPause, e.timestamp);
+    }
+    if (lastPause >= 0 && Math.abs(wall - lastPause) > 1) {
+      return clampEffectiveMatchSeconds(lastPause);
+    }
+    return wall;
+  }
+
+  let runAnchor = -1;
+  for (const e of sorted) {
+    if (e.type === 'start') runAnchor = Math.max(runAnchor, e.timestamp);
+    if (e.type === 'resume') runAnchor = Math.max(runAnchor, e.timestamp);
+  }
+  if (runAnchor >= 0 && wall + 1 < runAnchor) {
+    return clampEffectiveMatchSeconds(runAnchor);
+  }
+  return wall;
+}
+
 /** Anzeige-Spielminute (1…90) aus effektiven Spielsekunden; 0 Sek → 0 (nur Uhr). */
 export function displayMatchMinuteFromEffectiveSeconds(sec: number): number {
   const s = clampEffectiveMatchSeconds(sec);

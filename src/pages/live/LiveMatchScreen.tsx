@@ -722,7 +722,8 @@ export const LiveMatchScreen: React.FC = () => {
     elapsedSeconds: matchRow?.live_elapsed_seconds ?? 0,
     isRunning: matchRow?.live_is_running ?? false,
     hasEnded: matchRow?.status === 'finished',
-    startedAtISO: matchRow?.live_started_at ?? null,
+    startedAtISO: matchRow?.live_is_running ? matchRow?.live_started_at ?? null : null,
+    clockEvents: events,
   });
 
   const hasClockStarted = useMemo(
