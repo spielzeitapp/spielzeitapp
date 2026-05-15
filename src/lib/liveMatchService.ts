@@ -141,6 +141,37 @@ export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent 
       createdAt,
     };
   }
+  if (row.type === 'substitution') {
+    const p = row.payload && typeof row.payload === 'object' ? (row.payload as Record<string, unknown>) : {};
+    const playerIn =
+      typeof p.player_in_id === 'string' && p.player_in_id.trim().length > 0 ? p.player_in_id.trim() : '';
+    return {
+      id: row.id,
+      type: 'substitution',
+      timestamp: row.minute ?? 0,
+      playerId: row.player_id ?? undefined,
+      swapWithPlayerId: playerIn || undefined,
+      createdAt,
+    };
+  }
+  if (row.type === 'substitution_out') {
+    return {
+      id: row.id,
+      type: 'sub_out',
+      timestamp: row.minute ?? 0,
+      playerId: row.player_id ?? undefined,
+      createdAt,
+    };
+  }
+  if (row.type === 'substitution_in') {
+    return {
+      id: row.id,
+      type: 'sub_in',
+      timestamp: row.minute ?? 0,
+      playerId: row.player_id ?? undefined,
+      createdAt,
+    };
+  }
   if (row.type === 'extra_player_on' || row.type === 'extra_player_off') {
     return {
       id: row.id,
@@ -185,6 +216,20 @@ export function engineEventToInsertPayload(
       period: period ?? null,
       player_id: ev.playerId ?? null,
       payload: null,
+    };
+  }
+
+  if (ev.type === 'substitution') {
+    const outId = String(ev.playerId ?? '').trim();
+    const inId = String(ev.swapWithPlayerId ?? '').trim();
+    debugAssertMatchEventDbType('engineEventToInsertPayload', 'substitution');
+    return {
+      match_id: matchId,
+      type: 'substitution',
+      minute: safeMinute,
+      period: period ?? null,
+      player_id: outId || null,
+      payload: { player_in_id: inId || null },
     };
   }
 

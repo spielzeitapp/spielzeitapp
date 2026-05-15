@@ -33,6 +33,8 @@ export type MatchEventType =
   | 'end'
   | 'sub_out'
   | 'sub_in'
+  /** Ein DB-Event: playerId = Raus, swapWithPlayerId = Rein (payload.player_in_id). */
+  | 'substitution'
   | 'goal'
   | 'goal_away'
   /** Nur Slot-Tausch am Feld; kein Bank-Wechsel, keine Spielzeit-Logik wie sub_* . */
@@ -57,6 +59,7 @@ const TYPE_ORDER: Record<MatchEventType, number> = {
   resume: 1,
   sub_out: 2,
   sub_in: 3,
+  substitution: 3.25,
   /** Gleiche Spielsekunde wie Wechsel: zuerst sub_out/sub_in, dann Positionskorrektur. */
   position_swap: 3.5,
   extra_player_on: 3.52,
@@ -297,7 +300,10 @@ export function replaySubstitutionEventsOnSlots(
     sortMatchEventsChronologically(events).filter(
       (e) =>
         e.timestamp <= t &&
-        (e.type === 'sub_out' || e.type === 'sub_in' || e.type === 'position_swap'),
+        (e.type === 'sub_out' ||
+          e.type === 'sub_in' ||
+          e.type === 'substitution' ||
+          e.type === 'position_swap'),
     ),
   );
 
@@ -338,6 +344,15 @@ export function replaySubstitutionEventsOnSlots(
       const a = String(e.playerId ?? '').trim();
       const b = String(e.swapWithPlayerId ?? '').trim();
       if (a && b) slots = applyPositionSwapByPlayerIds(slots, a, b);
+      continue;
+    }
+    if (e.type === 'substitution') {
+      const out = String(e.playerId ?? '').trim();
+      const inn = String(e.swapWithPlayerId ?? '').trim();
+      if (out && inn) {
+        slots = applySubstitutionToSlots(slots, out, inn).slots;
+        pushStep('pair', out, inn);
+      }
       continue;
     }
     if (e.type === 'sub_out' && e.playerId) {

@@ -1069,7 +1069,12 @@ export const EventDetailPage: React.FC = () => {
       const t = String(type ?? '').trim().toLowerCase();
       if (t === 'substitution_out') return 'sub_out';
       if (t === 'substitution_in') return 'sub_in';
+      if (t === 'substitution') return 'substitution';
       return t;
+    };
+    const substitutionInPlayerIdFromRow = (row: MatchEventRow): string => {
+      const p = row.payload && typeof row.payload === 'object' ? (row.payload as Record<string, unknown>) : {};
+      return typeof p.player_in_id === 'string' ? p.player_in_id.trim() : '';
     };
     const sameSubstitutionEditWindow = (a: MatchEventRow, b: MatchEventRow): boolean =>
       Math.abs(matchEventStoredSeconds(a) - matchEventStoredSeconds(b)) <= FINISHED_SUB_PAIR_GAP_SEC;
@@ -1182,6 +1187,11 @@ export const EventDetailPage: React.FC = () => {
           rows.push({ key: cur.id, items: [cur] });
           continue;
         }
+        if (ct === 'substitution') {
+          used.add(cur.id);
+          rows.push({ key: cur.id, items: [cur] });
+          continue;
+        }
         if (ct === 'sub_out') {
           let pairJ = -1;
           for (let j = i + 1; j < timelineEvents.length; j++) {
@@ -1226,8 +1236,9 @@ export const EventDetailPage: React.FC = () => {
       return rows;
     })();
     const subCount = tickerRows.filter((row) => {
-      if (row.items.length !== 2) return false;
       const t0 = normalizeSubEventType(row.items[0]?.type);
+      if (row.items.length === 1 && t0 === 'substitution') return true;
+      if (row.items.length !== 2) return false;
       const t1 = normalizeSubEventType(row.items[1]?.type);
       return t0 === 'sub_out' && t1 === 'sub_in';
     }).length;
@@ -1260,8 +1271,9 @@ export const EventDetailPage: React.FC = () => {
     ).length;
     const goalEvents = timelineEvents.filter((r) => normalizeMatchEventGoalType(r.type));
     const switchRows = tickerRows.filter((row) => {
+      const t0 = normalizeSubEventType(row.items[0]?.type);
+      if (row.items.length === 1 && t0 === 'substitution') return true;
       if (row.items.length === 2) {
-        const t0 = normalizeSubEventType(row.items[0]?.type);
         const t1 = normalizeSubEventType(row.items[1]?.type);
         return t0 === 'sub_out' && t1 === 'sub_in';
       }
@@ -1979,20 +1991,28 @@ export const EventDetailPage: React.FC = () => {
                     const t1 = row.items[1] ? normalizeSubEventType(row.items[1]?.type) : '';
                     const stadiumGoal = normalizeMatchEventGoalType(r.type);
                     const t = String(r.type ?? '').toLowerCase();
+                    const isAtomicSubstitution = row.items.length === 1 && t0 === 'substitution';
                     const isPairSwitch = row.items.length === 2 && t0 === 'sub_out' && t1 === 'sub_in';
                     const isPosSwap = t0 === 'position_swap';
-                    const isSwitch = isPairSwitch || (!isPosSwap && (t0 === 'sub_out' || t0 === 'sub_in'));
+                    const isSwitch =
+                      isAtomicSubstitution ||
+                      isPairSwitch ||
+                      (!isPosSwap && (t0 === 'sub_out' || t0 === 'sub_in'));
                     const name = playerName(r.player_id);
-                    const switchOutName = isPairSwitch
+                    const switchOutName = isAtomicSubstitution
                       ? playerName(row.items[0]?.player_id ?? null)
-                      : t0 === 'sub_out'
-                        ? name
-                        : null;
-                    const switchInName = isPairSwitch
-                      ? playerName(row.items[1]?.player_id ?? null)
-                      : t0 === 'sub_in'
-                        ? name
-                        : null;
+                      : isPairSwitch
+                        ? playerName(row.items[0]?.player_id ?? null)
+                        : t0 === 'sub_out'
+                          ? name
+                          : null;
+                    const switchInName = isAtomicSubstitution
+                      ? playerName(substitutionInPlayerIdFromRow(row.items[0]!) || null)
+                      : isPairSwitch
+                        ? playerName(row.items[1]?.player_id ?? null)
+                        : t0 === 'sub_in'
+                          ? name
+                          : null;
                     const swapWithId =
                       isPosSwap && r.payload && typeof r.payload === 'object'
                         ? String((r.payload as Record<string, unknown>).swap_player_id ?? '').trim()
@@ -2392,8 +2412,20 @@ export const EventDetailPage: React.FC = () => {
                     <p className="text-[16px] text-white/55">Keine Wechsel erfasst.</p>
                   ) : (
                     switchRows.map((row) => {
-                      const outEvent = row.items.find((x) => String(x.type ?? '').toLowerCase() === 'sub_out') ?? row.items[0]!;
-                      const inEvent = row.items.find((x) => String(x.type ?? '').toLowerCase() === 'sub_in') ?? row.items[0]!;
+                      const isAtomic =
+                        row.items.length === 1 &&
+                        normalizeSubEventType(row.items[0]?.type) === 'substitution';
+                      const outEvent =
+                        row.items.find((x) => {
+                          const t = normalizeSubEventType(x.type);
+                          return t === 'sub_out' || t === 'substitution';
+                        }) ?? row.items[0]!;
+                      const inEvent = isAtomic
+                        ? ({
+                            ...outEvent,
+                            player_id: substitutionInPlayerIdFromRow(outEvent) || outEvent.player_id,
+                          } as MatchEventRow)
+                        : (row.items.find((x) => normalizeSubEventType(x.type) === 'sub_in') ?? row.items[0]!);
                       return (
                         <div
                           key={row.key}

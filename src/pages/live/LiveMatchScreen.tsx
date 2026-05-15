@@ -38,7 +38,6 @@ import {
   repairLiveMatchLineupBenchIfNeeded,
   persistPositionSwap,
   saveMatchEvent,
-  saveMatchEvents,
   updateMatchRow,
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
@@ -326,7 +325,7 @@ const mbRowBtn = `flex ${mbBtnH} touch-manipulation items-center justify-center 
 
 function eventIcon(t: MatchEventType): string {
   if (t === 'goal' || t === 'goal_away') return '⚽';
-  if (t === 'sub_out' || t === 'sub_in') return '⇄';
+  if (t === 'sub_out' || t === 'sub_in' || t === 'substitution') return '⇄';
   if (t === 'position_swap') return '↔';
   if (t === 'extra_player_on') return '🟡';
   if (t === 'extra_player_off') return '🔴';
@@ -364,22 +363,64 @@ function findLastGoalEventIdForSide(events: MatchEngineEvent[], side: 'home' | '
 
 type EventsFilter = 'all' | 'goals' | 'subs' | 'cards';
 
-/** Wechsel-Paare (sub_out + sub_in gleiche Sekunde) in chronologischer Liste zusammenfassen. */
+/**
+ * Wechsel in chronologischer Reihenfolge: atomare `substitution`-Events einzeln;
+ * Legacy sub_out/sub_in per FIFO paaren (auch wenn dazwischen Tore o. Ä. liegen).
+ */
 function pairSubstitutionEventsInOrder(asc: MatchEngineEvent[]): { key: string; items: MatchEngineEvent[] }[] {
   const rows: { key: string; items: MatchEngineEvent[] }[] = [];
-  let i = 0;
-  while (i < asc.length) {
-    const e = asc[i];
-    const n = asc[i + 1];
-    if (e.type === 'sub_out' && n?.type === 'sub_in' && n.timestamp === e.timestamp) {
-      rows.push({ key: `subpair_${e.id}_${n.id}`, items: [e, n] });
-      i += 2;
-    } else {
+  const pendingOut: MatchEngineEvent[] = [];
+
+  for (const e of asc) {
+    if (e.type === 'substitution') {
       rows.push({ key: e.id, items: [e] });
-      i += 1;
+      continue;
     }
+    if (e.type === 'sub_out') {
+      pendingOut.push(e);
+      continue;
+    }
+    if (e.type === 'sub_in') {
+      const out = pendingOut.shift();
+      if (out) rows.push({ key: `subpair_${out.id}_${e.id}`, items: [out, e] });
+      else rows.push({ key: e.id, items: [e] });
+      continue;
+    }
+    rows.push({ key: e.id, items: [e] });
+  }
+  for (const out of pendingOut) {
+    rows.push({ key: out.id, items: [out] });
   }
   return rows;
+}
+
+function substitutionOutInIds(ev: MatchEngineEvent): { outId: string; inId: string } {
+  if (ev.type === 'substitution') {
+    return {
+      outId: String(ev.playerId ?? '').trim(),
+      inId: String(ev.swapWithPlayerId ?? '').trim(),
+    };
+  }
+  return { outId: '', inId: '' };
+}
+
+function isSubstitutionTickerPair(row: { items: MatchEngineEvent[] }): boolean {
+  if (row.items.length === 1 && row.items[0]?.type === 'substitution') return true;
+  return (
+    row.items.length === 2 &&
+    row.items[0].type === 'sub_out' &&
+    row.items[1]?.type === 'sub_in'
+  );
+}
+
+function formatSubstitutionTickerLine(
+  rosterById: Map<string, RosterPlayer>,
+  outPlayerId: string,
+  inPlayerId: string,
+): string {
+  const outName = mobileLineupName((rosterById.get(outPlayerId)?.name ?? '').trim() || '—');
+  const inName = mobileLineupName((rosterById.get(inPlayerId)?.name ?? '').trim() || '—');
+  return `Raus ${outName} → Rein ${inName}`;
 }
 
 /**
@@ -396,7 +437,9 @@ function buildLiveTickerRows(events: MatchEngineEvent[], filter: EventsFilter): 
     return desc.map((e) => ({ key: e.id, items: [e] }));
   }
   if (filter === 'subs') {
-    const subs = events.filter((e) => e.type === 'sub_out' || e.type === 'sub_in');
+    const subs = events.filter(
+      (e) => e.type === 'sub_out' || e.type === 'sub_in' || e.type === 'substitution',
+    );
     const paired = pairSubstitutionEventsInOrder(sortMatchEventsChronologically(subs));
     return paired.slice().reverse();
   }
@@ -408,11 +451,11 @@ type TickerSegmentRow = { key: string; items: MatchEngineEvent[] };
 
 /** Sortierung innerhalb gleicher Anzeige-Minute: Tore → Karten → Wechsel → Positionswechsel → übrig. */
 function tickerSegmentSortRank(items: MatchEngineEvent[]): number {
-  if (items.length === 2 && items[0].type === 'sub_out' && items[1]?.type === 'sub_in') return 3;
+  if (isSubstitutionTickerPair({ items })) return 3;
   const t = items[0]?.type;
   if (t === 'goal' || t === 'goal_away') return 0;
   if (t === 'yellow_card' || t === 'red_card' || t === 'second_yellow') return 1;
-  if (t === 'sub_out' || t === 'sub_in') return 3;
+  if (t === 'sub_out' || t === 'sub_in' || t === 'substitution') return 3;
   if (t === 'position_swap') return 4;
   if (t === 'extra_player_on' || t === 'extra_player_off') return 4.5;
   return 10;
@@ -968,7 +1011,7 @@ export const LiveMatchScreen: React.FC = () => {
     const outId = String(outgoingPlayerId ?? '').trim();
     const inId = String(incomingPlayerId ?? '').trim();
     if (!outId || !inId || outId === inId) return;
-    setMainTab('overview');
+    setMainTab('hub');
     setSubOutPlayerId(outId);
     setSubInPlayerId(inId);
     setSubSaving(false);
@@ -1021,6 +1064,7 @@ export const LiveMatchScreen: React.FC = () => {
   const goalUndoTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const goalUndoFadeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const substitutionToastTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const subSaveInFlightRef = useRef(false);
   const substitutionAnimTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const substitutionHighlightTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const realtimeReloadTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
@@ -1681,7 +1725,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const liveSubEventsDebugKey = useMemo(() => {
     const sig = sortMatchEventsChronologically(events)
-      .filter((e) => e.type === 'sub_out' || e.type === 'sub_in')
+      .filter((e) => e.type === 'sub_out' || e.type === 'sub_in' || e.type === 'substitution')
       .map((e) => `${e.id}:${e.type}:${e.timestamp}:${e.createdAt ?? ''}`)
       .join('|');
     return `${sig}::${liveLineupBasePlayerIds.join(',')}`;
@@ -2007,10 +2051,27 @@ export const LiveMatchScreen: React.FC = () => {
 
   const persistSubstitution = useCallback(
     async (outgoingPlayerId: string, incomingPlayerId: string): Promise<boolean> => {
+      const outId = String(outgoingPlayerId ?? '').trim();
+      const inId = String(incomingPlayerId ?? '').trim();
+      if (!outId) {
+        if (import.meta.env.DEV) console.warn('[LiveMatch] persistSubstitution: missing playerOutId');
+        setSaveError('Bitte zuerst den auswechselnden Spieler wählen.');
+        return false;
+      }
+      if (!inId) {
+        if (import.meta.env.DEV) console.warn('[LiveMatch] persistSubstitution: missing playerInId');
+        setSaveError('Bitte zuerst den einwechselnden Spieler wählen.');
+        return false;
+      }
+      if (outId === inId) {
+        setSaveError('Raus und Rein müssen unterschiedliche Spieler sein.');
+        return false;
+      }
       if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId) return false;
+
       const check = handleSubstitution({
-        outgoingPlayerId,
-        incomingPlayerId,
+        outgoingPlayerId: outId,
+        incomingPlayerId: inId,
         currentTimestamp: currentMatchSeconds,
         events,
         currentOnFieldPlayerIds: onFieldIds,
@@ -2032,12 +2093,12 @@ export const LiveMatchScreen: React.FC = () => {
         return [...m.entries()].filter(([, n]) => n > 1).map(([id]) => id);
       };
 
-      let applied = applySubstitutionToSlots(slotBefore, outgoingPlayerId, incomingPlayerId);
+      let applied = applySubstitutionToSlots(slotBefore, outId, inId);
       if (!applied.outSlot) {
         applied = applySubstitutionToSlots(
           startingLineupToSlotMap(liveLineupBasePlayerIds.slice(0, 7)),
-          outgoingPlayerId,
-          incomingPlayerId,
+          outId,
+          inId,
         );
       }
       const { slots: nextSlots, outSlot } = applied;
@@ -2047,15 +2108,15 @@ export const LiveMatchScreen: React.FC = () => {
       }
 
       const nextStarting = fieldSlotMapToStartingIds(nextSlots);
-      const nextSquad = [...new Set([...squadPlayerIds, outgoingPlayerId, incomingPlayerId])];
+      const nextSquad = [...new Set([...squadPlayerIds, outId, inId])];
       const fieldIdsAfter = LIVE_FIELD_SLOT_ORDER.map((s) => String(nextSlots[s] ?? '').trim()).filter(Boolean);
       const benchIdsAfter = getBenchPlayers(nextSquad, fieldIdsAfter);
 
       if (import.meta.env.DEV) {
         const onFieldSetBefore = new Set(fieldIdsBefore);
         console.debug('[LiveMatch][sub:before]', {
-          outPlayerId: outgoingPlayerId,
-          inPlayerId: incomingPlayerId,
+          outPlayerId: outId,
+          inPlayerId: inId,
           outSlot,
           fieldIdsBefore,
           benchIdsBefore,
@@ -2065,8 +2126,8 @@ export const LiveMatchScreen: React.FC = () => {
         });
         const onFieldSetAfter = new Set(fieldIdsAfter);
         console.debug('[LiveMatch][sub:after]', {
-          outPlayerId: outgoingPlayerId,
-          inPlayerId: incomingPlayerId,
+          outPlayerId: outId,
+          inPlayerId: inId,
           outSlot,
           fieldIdsAfter,
           benchIdsAfter,
@@ -2076,50 +2137,33 @@ export const LiveMatchScreen: React.FC = () => {
         });
       }
 
-      const { error: swapErr } = await replaceMatchLineupAndBench(effectiveMatchId, nextStarting, nextSquad);
-      if (swapErr) {
-        setSaveError(swapErr);
+      const ts = currentMatchSeconds;
+      const subPartial: Omit<MatchEngineEvent, 'id'> = {
+        type: 'substitution',
+        timestamp: ts,
+        playerId: outId,
+        swapWithPlayerId: inId,
+      };
+      const tempId = newEventId();
+      const payload = engineEventToInsertPayload(effectiveMatchId, subPartial, half);
+      const { id, error } = await saveMatchEvent(payload);
+      if (error || !id) {
+        console.error('[LiveMatch] saveMatchEvent substitution', error);
+        setSaveError(error ?? 'Wechsel konnte nicht gespeichert werden.');
         return false;
       }
+
+      const { error: swapErr } = await replaceMatchLineupAndBench(effectiveMatchId, nextStarting, nextSquad);
+      if (swapErr) {
+        console.error('[LiveMatch] replaceMatchLineupAndBench after substitution', swapErr);
+        setSaveError(swapErr);
+        await deleteMatchEventById(id);
+        return false;
+      }
+
       setStartingPlayerIds(nextStarting);
       setSquadPlayerIds(nextSquad);
-
-      const ts = currentMatchSeconds;
-      const outPartial: Omit<MatchEngineEvent, 'id'> = {
-        type: 'sub_out',
-        timestamp: ts,
-        playerId: outgoingPlayerId,
-      };
-      const inPartial: Omit<MatchEngineEvent, 'id'> = {
-        type: 'sub_in',
-        timestamp: ts,
-        playerId: incomingPlayerId,
-      };
-      const tempOut = newEventId();
-      const tempIn = newEventId();
-      setEvents((prev) => [
-        { ...outPartial, id: tempOut },
-        { ...inPartial, id: tempIn },
-        ...prev,
-      ]);
-      const payloads = [
-        engineEventToInsertPayload(effectiveMatchId, outPartial, half),
-        engineEventToInsertPayload(effectiveMatchId, inPartial, half),
-      ];
-      const { ids, error } = await saveMatchEvents(payloads);
-      if (error || ids.length < 2) {
-        console.error('[LiveMatch] saveMatchEvents subs', error);
-        setSaveError(error ?? 'Wechsel durchgeführt, aber Wechsel-Event konnte nicht gespeichert werden.');
-        setEvents((prev) => prev.filter((e) => e.id !== tempOut && e.id !== tempIn));
-        return true;
-      }
-      setEvents((prev) =>
-        prev.map((e) => {
-          if (e.id === tempOut) return { ...outPartial, id: ids[0] };
-          if (e.id === tempIn) return { ...inPartial, id: ids[1] };
-          return e;
-        }),
-      );
+      setEvents((prev) => [{ ...subPartial, id }, ...prev.filter((e) => e.id !== tempId)]);
       return true;
     },
     [
@@ -2138,21 +2182,46 @@ export const LiveMatchScreen: React.FC = () => {
   const confirmSubstitution = useCallback(async () => {
     const outId = String(subOutPlayerId ?? '').trim();
     const inId = String(subInPlayerId ?? '').trim();
-    if (!outId || !inId || outId === inId) return;
+    if (!outId) {
+      if (import.meta.env.DEV) console.warn('[LiveMatch] confirmSubstitution: missing playerOutId');
+      setSaveError('Bitte zuerst den auswechselnden Spieler wählen.');
+      return;
+    }
+    if (!inId) {
+      if (import.meta.env.DEV) console.warn('[LiveMatch] confirmSubstitution: missing playerInId');
+      setSaveError('Bitte zuerst den einwechselnden Spieler wählen.');
+      return;
+    }
+    if (outId === inId) return;
+    if (subSaveInFlightRef.current) {
+      if (import.meta.env.DEV) console.warn('[LiveMatch] confirmSubstitution: duplicate save while saving');
+      return;
+    }
+    subSaveInFlightRef.current = true;
     setSubSaving(true);
     try {
       const ok = await persistSubstitution(outId, inId);
       if (ok) {
         void queueRealtimeReload();
-        closeWechselSheet();
+        setSubOutPlayerId(null);
+        setSubInPlayerId(null);
+        setSubRecommendedOutId(null);
+        setSubRecommendedInId(null);
+        setSubstitutionToastText('Wechsel gespeichert');
+        if (substitutionToastTimerRef.current != null) window.clearTimeout(substitutionToastTimerRef.current);
+        substitutionToastTimerRef.current = window.setTimeout(() => {
+          setSubstitutionToastText(null);
+          substitutionToastTimerRef.current = null;
+        }, 2200);
       }
     } catch (e) {
       console.error('[LiveMatch] confirmSubstitution', e);
       setSaveError('Wechsel konnte nicht abgeschlossen werden.');
     } finally {
+      subSaveInFlightRef.current = false;
       setSubSaving(false);
     }
-  }, [subOutPlayerId, subInPlayerId, persistSubstitution, queueRealtimeReload, closeWechselSheet]);
+  }, [subOutPlayerId, subInPlayerId, persistSubstitution, queueRealtimeReload]);
 
   useEffect(() => {
     if (subSheetView === 'list') {
@@ -2364,6 +2433,10 @@ export const LiveMatchScreen: React.FC = () => {
         return `Raus${name ? `: ${name}` : ''}`;
       case 'sub_in':
         return `Rein${name ? `: ${name}` : ''}`;
+      case 'substitution': {
+        const { outId, inId } = substitutionOutInIds(ev);
+        return formatSubstitutionTickerLine(rosterById, outId, inId);
+      }
       case 'pause':
         return 'Pause';
       case 'resume':
@@ -2402,6 +2475,10 @@ export const LiveMatchScreen: React.FC = () => {
         return name ? `${name} wechselt aus` : 'Auswechslung';
       case 'sub_in':
         return name ? `${name} wechselt ein` : 'Einwechslung';
+      case 'substitution': {
+        const { outId, inId } = substitutionOutInIds(ev);
+        return formatSubstitutionTickerLine(rosterById, outId, inId);
+      }
       case 'position_swap':
         return positionSwapPrimaryLine(ev) ?? 'Positionswechsel';
       case 'extra_player_on':
@@ -2431,7 +2508,7 @@ export const LiveMatchScreen: React.FC = () => {
     const isHomeGoal = ev.type === 'goal';
     const isAwayGoal = ev.type === 'goal_away';
     const isGoal = isHomeGoal || isAwayGoal;
-    const isSub = ev.type === 'sub_out' || ev.type === 'sub_in';
+    const isSub = ev.type === 'sub_out' || ev.type === 'sub_in' || ev.type === 'substitution';
     const isPosSwap = ev.type === 'position_swap';
     const isFairPlayOn = ev.type === 'extra_player_on';
     const isFairPlayOff = ev.type === 'extra_player_off';
@@ -2625,17 +2702,15 @@ export const LiveMatchScreen: React.FC = () => {
   };
 
   const renderTrainerTickerSegment = (row: TickerSegmentRow) => {
-    const isPair =
-      row.items.length === 2 &&
-      row.items[0].type === 'sub_out' &&
-      row.items[1].type === 'sub_in' &&
-      row.items[1].timestamp === row.items[0].timestamp;
-
-    if (isPair) {
-      const outEv = row.items[0];
-      const inEv = row.items[1];
-      const outName = rosterById.get(outEv.playerId ?? '')?.name ?? '—';
-      const inName = rosterById.get(inEv.playerId ?? '')?.name ?? '—';
+    if (isSubstitutionTickerPair(row)) {
+      const atomic = row.items[0]?.type === 'substitution' ? row.items[0] : null;
+      const outId = atomic
+        ? substitutionOutInIds(atomic).outId
+        : String(row.items[0]?.playerId ?? '').trim();
+      const inId = atomic
+        ? substitutionOutInIds(atomic).inId
+        : String(row.items[1]?.playerId ?? '').trim();
+      const line = formatSubstitutionTickerLine(rosterById, outId, inId);
       return (
         <div
           key={row.key}
@@ -2649,11 +2724,7 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
           <div className="min-w-0 flex-1 py-0.5">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">Wechsel</p>
-            <div className="mt-1 space-y-0.5">
-              <p className="text-[13px] font-semibold leading-snug text-zinc-200">Raus · {outName}</p>
-              <p className="py-0.5 text-center text-[10px] text-white/35">↓</p>
-              <p className="text-[13px] font-semibold leading-snug text-zinc-200">Rein · {inName}</p>
-            </div>
+            <p className="mt-1 text-[13px] font-semibold leading-snug text-zinc-200">{line}</p>
           </div>
         </div>
       );
@@ -4370,7 +4441,7 @@ export const LiveMatchScreen: React.FC = () => {
                   onClick={closeWechselSheet}
                   className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-xs font-bold text-white/85 hover:bg-zinc-800 disabled:opacity-45"
                 >
-                  Abbrechen
+                  Zurück zum Livespiel
                 </button>
                 <button
                   type="button"
