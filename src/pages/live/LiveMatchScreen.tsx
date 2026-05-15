@@ -19,7 +19,6 @@ import {
   fairPlayExtraPlayerIdFromSortedEvents,
   sortMatchEventsChronologically,
   startingLineupToSlotMap,
-  resolveReplayAtMatchSecond,
   type MatchEngineEvent,
   type MatchEventType,
 } from '../../lib/matchEngine';
