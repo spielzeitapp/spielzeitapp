@@ -118,7 +118,23 @@ export type MatchEngineEvent = {
   createdAt?: string;
   /** `position_swap`: zweiter Spieler (UUID), Tausch nur zwischen diesen beiden auf dem Feld. */
   swapWithPlayerId?: string;
+  /** `extra_player_off`: Zusatzspieler-Session (`playerId`); dieser Spieler verlässt das Feld. */
+  fairPlayRemovedPlayerId?: string;
 };
+
+/** Spieler, der bei FairPlay-Ende das Feld verlässt (`payload.removed_player_id` oder Legacy `playerId`). */
+export function fairPlayRemovedPlayerIdFromEvent(e: MatchEngineEvent): string | null {
+  if (e.type !== 'extra_player_off') return null;
+  const removed = String(e.fairPlayRemovedPlayerId ?? '').trim();
+  if (removed) return removed;
+  return String(e.playerId ?? '').trim() || null;
+}
+
+/** Zusatzspieler der FairPlay-Session (`player_id` am Event). */
+export function fairPlayExtraPlayerIdFromOffEvent(e: MatchEngineEvent): string | null {
+  if (e.type !== 'extra_player_off') return null;
+  return String(e.playerId ?? '').trim() || null;
+}
 
 const TYPE_ORDER: Record<MatchEventType, number> = {
   start: 0,
@@ -835,12 +851,28 @@ export function statsMatchEventRowToEngine(row: {
   if (type === 'substitution_in') {
     return { id, type: 'sub_in', timestamp: minute, playerId: row.player_id ?? undefined, createdAt };
   }
-  if (type === 'extra_player_on' || type === 'extra_player_off') {
+  if (type === 'extra_player_on') {
     return {
       id,
-      type: type as 'extra_player_on' | 'extra_player_off',
+      type: 'extra_player_on',
       timestamp: minute,
       playerId: row.player_id ?? undefined,
+      createdAt,
+    };
+  }
+  if (type === 'extra_player_off') {
+    const p = row.payload && typeof row.payload === 'object' ? (row.payload as Record<string, unknown>) : {};
+    const removedRaw =
+      typeof p.removed_player_id === 'string' && p.removed_player_id.trim().length > 0
+        ? p.removed_player_id.trim()
+        : '';
+    const extraId = String(row.player_id ?? '').trim();
+    return {
+      id,
+      type: 'extra_player_off',
+      timestamp: minute,
+      playerId: extraId || undefined,
+      fairPlayRemovedPlayerId: removedRaw || extraId || undefined,
       createdAt,
     };
   }

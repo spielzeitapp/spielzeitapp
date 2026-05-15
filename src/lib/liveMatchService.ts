@@ -180,12 +180,28 @@ export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent 
       createdAt,
     };
   }
-  if (row.type === 'extra_player_on' || row.type === 'extra_player_off') {
+  if (row.type === 'extra_player_on') {
     return {
       id: row.id,
-      type: row.type as MatchEventType,
+      type: 'extra_player_on',
       timestamp: row.minute ?? 0,
       playerId: row.player_id ?? undefined,
+      createdAt,
+    };
+  }
+  if (row.type === 'extra_player_off') {
+    const p = row.payload && typeof row.payload === 'object' ? (row.payload as Record<string, unknown>) : {};
+    const removedRaw =
+      typeof p.removed_player_id === 'string' && p.removed_player_id.trim().length > 0
+        ? p.removed_player_id.trim()
+        : '';
+    const extraId = String(row.player_id ?? '').trim();
+    return {
+      id: row.id,
+      type: 'extra_player_off',
+      timestamp: row.minute ?? 0,
+      playerId: extraId || undefined,
+      fairPlayRemovedPlayerId: removedRaw || extraId || undefined,
       createdAt,
     };
   }
@@ -215,15 +231,28 @@ export function engineEventToInsertPayload(
 ): InsertMatchEventPayload {
   const safeMinute = clampEffectiveMatchSeconds(ev.timestamp);
 
-  if (ev.type === 'extra_player_on' || ev.type === 'extra_player_off') {
-    debugAssertMatchEventDbType('engineEventToInsertPayload', ev.type);
+  if (ev.type === 'extra_player_on') {
+    debugAssertMatchEventDbType('engineEventToInsertPayload', 'extra_player_on');
     return {
       match_id: matchId,
-      type: ev.type,
+      type: 'extra_player_on',
       minute: safeMinute,
       period: period ?? null,
       player_id: ev.playerId ?? null,
       payload: null,
+    };
+  }
+  if (ev.type === 'extra_player_off') {
+    const extraId = String(ev.playerId ?? '').trim();
+    const removedId = String(ev.fairPlayRemovedPlayerId ?? extraId).trim();
+    debugAssertMatchEventDbType('engineEventToInsertPayload', 'extra_player_off');
+    return {
+      match_id: matchId,
+      type: 'extra_player_off',
+      minute: safeMinute,
+      period: period ?? null,
+      player_id: extraId || null,
+      payload: { removed_player_id: removedId || null },
     };
   }
 
@@ -726,32 +755,78 @@ export async function persistExtraPlayerOn(params: {
   return { error: null, eventId: id };
 }
 
-/** FairPlay-Zusatzspieler entfernen: Event + zurück auf `match_bench`. */
+/**
+ * FairPlay beenden: `player_id` = Zusatzspieler-Session, `payload.removed_player_id` = Feld verlässt.
+ * Wenn removed === extra → Zusatzspieler auf Bank; sonst gewählter Spieler auf Bank, Extra übernimmt Slot.
+ */
 export async function persistExtraPlayerOff(params: {
   matchId: string;
-  playerId: string;
+  /** Ursprünglicher FairPlay-Zusatzspieler (Event player_id). */
+  extraPlayerId: string;
+  /** Spieler, der das Feld verlässt. */
+  removedPlayerId: string;
   currentMatchSeconds: number;
   period: number | null;
+  /** Aktuelle Slot-Belegung (7er), wenn ein anderer Feldspieler rausgeht. */
+  currentStartingPlayerIds?: string[];
+  squadPlayerIds?: string[];
 }): Promise<{ error: string | null; eventId: string | null }> {
   const mid = params.matchId?.trim();
-  const pid = String(params.playerId ?? '').trim();
-  if (!mid || !pid) return { error: 'Ungültige Eingabe.', eventId: null };
-  const payload = engineEventToInsertPayload(
-    mid,
-    {
-      type: 'extra_player_off',
-      timestamp: clampEffectiveMatchSeconds(params.currentMatchSeconds),
-      playerId: pid,
-    },
-    params.period,
-  );
-  const { id, error } = await saveMatchEvent(payload);
+  const extraId = String(params.extraPlayerId ?? '').trim();
+  const removedId = String(params.removedPlayerId ?? '').trim();
+  if (!mid || !extraId || !removedId) return { error: 'Ungültige Eingabe.', eventId: null };
+
+  const ts = clampEffectiveMatchSeconds(params.currentMatchSeconds);
+  const { id, error } = await saveMatchEvent({
+    match_id: mid,
+    type: 'extra_player_off',
+    minute: ts,
+    period: params.period ?? null,
+    player_id: extraId,
+    payload: { removed_player_id: removedId },
+  });
   if (error || !id) return { error: error ?? 'Ereignis konnte nicht gespeichert werden.', eventId: null };
-  const { error: benchErr } = await supabase.from('match_bench').insert({ match_id: mid, player_id: pid });
-  if (benchErr) {
-    console.error('[liveMatchService] persistExtraPlayerOff match_bench insert', benchErr);
-    return { error: benchErr.message, eventId: id };
+
+  if (removedId === extraId) {
+    const { error: benchErr } = await supabase.from('match_bench').insert({ match_id: mid, player_id: extraId });
+    if (benchErr) {
+      console.error('[liveMatchService] persistExtraPlayerOff match_bench insert', benchErr);
+      return { error: benchErr.message, eventId: id };
+    }
+    return { error: null, eventId: id };
   }
+
+  const squad = params.squadPlayerIds ?? [];
+  if (!params.currentStartingPlayerIds?.length) {
+    return { error: 'Aufstellung fehlt für Feldwechsel.', eventId: id };
+  }
+
+  const slots = startingLineupToSlotMap(params.currentStartingPlayerIds.slice(0, 7));
+  let placed = false;
+  for (const slot of LIVE_FIELD_SLOT_ORDER) {
+    if (String(slots[slot] ?? '').trim() === removedId) {
+      slots[slot] = extraId;
+      placed = true;
+      break;
+    }
+  }
+  if (!placed) {
+    for (const slot of LIVE_FIELD_SLOT_ORDER) {
+      if (!String(slots[slot] ?? '').trim()) {
+        slots[slot] = extraId;
+        placed = true;
+        break;
+      }
+    }
+  }
+  if (!placed) {
+    return { error: 'Gewählter Spieler nicht auf dem Feld gefunden.', eventId: id };
+  }
+
+  const nextStarting = fieldSlotMapToStartingIds(dedupeFieldSlotMap(slots));
+  const lineupRes = await replaceMatchLineupAndBench(mid, nextStarting, squad);
+  if (lineupRes.error) return { error: lineupRes.error, eventId: id };
+
   return { error: null, eventId: id };
 }
 

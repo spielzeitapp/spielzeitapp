@@ -17,6 +17,7 @@ import {
   handleSubstitution,
   replaySubstitutionEventsOnSlots,
   fairPlayExtraPlayerIdFromSortedEvents,
+  fairPlayRemovedPlayerIdFromEvent,
   sortMatchEventsChronologically,
   startingLineupToSlotMap,
   type MatchEngineEvent,
@@ -985,7 +986,8 @@ export const LiveMatchScreen: React.FC = () => {
   const [fairPlayExtraSheetOpen, setFairPlayExtraSheetOpen] = useState(false);
   const [fairPlayExtraPickId, setFairPlayExtraPickId] = useState<string | null>(null);
   const [fairPlayExtraSaving, setFairPlayExtraSaving] = useState(false);
-  const [fairPlayRemoveDialogOpen, setFairPlayRemoveDialogOpen] = useState(false);
+  const [fairPlayRemoveSheetOpen, setFairPlayRemoveSheetOpen] = useState(false);
+  const [fairPlayRemovePickId, setFairPlayRemovePickId] = useState<string | null>(null);
   const [fairPlayRemoveSaving, setFairPlayRemoveSaving] = useState(false);
   const closeWechselSheet = useCallback(() => {
     setWechselSheetOpen(false);
@@ -1281,6 +1283,12 @@ export const LiveMatchScreen: React.FC = () => {
     const list = ids.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 });
     return sortRosterByNumber(list);
   }, [squadPlayerIds, onFieldIdsIncludingFairPlayExtra, rosterById]);
+
+  const fairPlayRemoveFieldRows = useMemo(() => {
+    const ids = [...new Set(onFieldIdsIncludingFairPlayExtra.map((id) => String(id ?? '').trim()).filter(Boolean))];
+    const list = ids.map((id) => rosterById.get(id)).filter((p): p is RosterPlayer => Boolean(p));
+    return sortRosterByNumber(list);
+  }, [onFieldIdsIncludingFairPlayExtra, rosterById]);
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
 
   useEffect(() => {
@@ -1646,10 +1654,15 @@ export const LiveMatchScreen: React.FC = () => {
     safeSlotOrder,
   ]);
 
-  const playtimeFinalSecond = useMemo(
-    () => resolveReplayAtMatchSecond(eventsSortedAsc, matchRow?.live_elapsed_seconds ?? currentMatchSeconds),
-    [eventsSortedAsc, matchRow?.live_elapsed_seconds, currentMatchSeconds],
-  );
+  /** Live: laufende Uhr als Cap; nach Ende Events/DB-Endsekunde (kein 00:00 bei laufendem Spiel). */
+  const playtimeFinalSecond = useMemo(() => {
+    const eventCap = resolveReplayAtMatchSecond(
+      eventsSortedAsc,
+      matchIsFinished ? matchRow?.live_elapsed_seconds ?? currentMatchSeconds : currentMatchSeconds,
+    );
+    if (matchIsFinished) return eventCap;
+    return clampEffectiveMatchSeconds(Math.max(currentMatchSeconds, eventCap));
+  }, [eventsSortedAsc, matchRow?.live_elapsed_seconds, currentMatchSeconds, matchIsFinished]);
 
   const playtimes = useMemo(
     () =>
@@ -1849,6 +1862,18 @@ export const LiveMatchScreen: React.FC = () => {
     setFairPlayExtraSheetOpen(true);
   }, []);
 
+  const closeFairPlayRemoveSheet = useCallback(() => {
+    setFairPlayRemoveSheetOpen(false);
+    setFairPlayRemovePickId(null);
+    setFairPlayRemoveSaving(false);
+  }, []);
+
+  const openFairPlayRemoveSheet = useCallback(() => {
+    setFairPlayRemovePickId(null);
+    setFairPlayRemoveSaving(false);
+    setFairPlayRemoveSheetOpen(true);
+  }, []);
+
   const runPersistFairPlayExtraOn = useCallback(async () => {
     const pid = String(fairPlayExtraPickId ?? '').trim();
     const mid = effectiveMatchId?.trim();
@@ -1886,20 +1911,30 @@ export const LiveMatchScreen: React.FC = () => {
   ]);
 
   const runPersistFairPlayExtraOff = useCallback(async () => {
-    const pid = String(fairPlayExtraPlayerId ?? '').trim();
+    const extraId = String(fairPlayExtraPlayerId ?? '').trim();
+    const removedId = String(fairPlayRemovePickId ?? '').trim();
     const mid = effectiveMatchId?.trim();
-    if (!mid || !pid || fairPlayRemoveSaving) return;
+    if (!mid || !extraId || !removedId || fairPlayRemoveSaving) return;
     setFairPlayRemoveSaving(true);
     setSaveError(null);
     const tempId = newEventId();
     const ts = clampEffectiveMatchSeconds(currentMatchSeconds);
-    const optimistic: MatchEngineEvent = { id: tempId, type: 'extra_player_off', timestamp: ts, playerId: pid };
+    const optimistic: MatchEngineEvent = {
+      id: tempId,
+      type: 'extra_player_off',
+      timestamp: ts,
+      playerId: extraId,
+      fairPlayRemovedPlayerId: removedId,
+    };
     setEvents((prev) => [optimistic, ...prev]);
     const { eventId, error } = await persistExtraPlayerOff({
       matchId: mid,
-      playerId: pid,
+      extraPlayerId: extraId,
+      removedPlayerId: removedId,
       currentMatchSeconds: ts,
       period: half,
+      currentStartingPlayerIds: fieldSlotMapToStartingIds(lineupSlotsForDisplay),
+      squadPlayerIds,
     });
     if (error || !eventId) {
       setEvents((prev) => prev.filter((e) => e.id !== tempId));
@@ -1908,15 +1943,34 @@ export const LiveMatchScreen: React.FC = () => {
       return;
     }
     setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...optimistic, id: eventId } : e)));
-    setFairPlayRemoveDialogOpen(false);
+    if (removedId !== extraId) {
+      const slots = { ...lineupSlotsForDisplay } as Record<FieldSlotId, string | null>;
+      for (const slot of LIVE_FIELD_SLOT_ORDER) {
+        if (String(slots[slot] ?? '').trim() === removedId) {
+          slots[slot] = extraId;
+          break;
+        }
+      }
+      const nextStarting = fieldSlotMapToStartingIds(slots);
+      setStartingPlayerIds(nextStarting);
+      if (lineupData) {
+        setLineupData({ startingPlayerIds: nextStarting, squadPlayerIds });
+      }
+    }
+    closeFairPlayRemoveSheet();
     setFairPlayRemoveSaving(false);
     void queueRealtimeReload();
   }, [
     fairPlayExtraPlayerId,
+    fairPlayRemovePickId,
     effectiveMatchId,
     fairPlayRemoveSaving,
     currentMatchSeconds,
     half,
+    lineupSlotsForDisplay,
+    squadPlayerIds,
+    lineupData,
+    closeFairPlayRemoveSheet,
     queueRealtimeReload,
   ]);
 
@@ -2491,8 +2545,13 @@ export const LiveMatchScreen: React.FC = () => {
         return `🟡 FairPlay: ${n}`;
       }
       case 'extra_player_off': {
-        const n = name ? `${name} als Zusatzspieler entfernt` : 'Zusatzspieler entfernt';
-        return `🔴 FairPlay: ${n}`;
+        const removedId = fairPlayRemovedPlayerIdFromEvent(ev);
+        const removedName = removedId
+          ? mobileLineupName(rosterById.get(removedId)?.name ?? 'Spieler')
+          : name
+            ? mobileLineupName(name)
+            : 'Spieler';
+        return `🔴 FairPlay: ${removedName} vom Feld genommen`;
       }
       default:
         return ev.type;
@@ -2526,10 +2585,15 @@ export const LiveMatchScreen: React.FC = () => {
         return name
           ? `🟡 FairPlay: ${name} als Zusatzspieler eingesetzt`
           : '🟡 FairPlay: Zusatzspieler eingesetzt';
-      case 'extra_player_off':
-        return name
-          ? `🔴 FairPlay: ${name} als Zusatzspieler entfernt`
-          : '🔴 FairPlay: Zusatzspieler entfernt';
+      case 'extra_player_off': {
+        const removedId = fairPlayRemovedPlayerIdFromEvent(ev);
+        const removedName = removedId
+          ? mobileLineupName(rosterById.get(removedId)?.name ?? 'Spieler')
+          : name
+            ? mobileLineupName(name)
+            : 'Spieler';
+        return `🔴 FairPlay: ${removedName} vom Feld genommen`;
+      }
       case 'pause':
         return 'Kurze Unterbrechung';
       default:
@@ -3388,14 +3452,14 @@ export const LiveMatchScreen: React.FC = () => {
                       <div className="min-w-0 flex-1 space-y-0.5">
                         <p className="text-[11px] font-black uppercase tracking-[0.14em] text-white/85">
                           {fairPlayMustRemoveExtra
-                            ? 'Zusatzspieler entfernen'
+                            ? 'Ein Spieler muss vom Feld'
                             : fairPlayExtraPlayerId
                               ? 'FairPlay-Zusatzspieler aktiv'
                               : 'FairPlay-Regel aktiv'}
                         </p>
                         <p className="text-[12px] font-semibold leading-snug text-white/95">
                           {fairPlayMustRemoveExtra
-                            ? 'Nur noch 3 Tore Unterschied'
+                            ? 'Nur noch 3 Tore Unterschied — Feldspieler wählen'
                             : fairPlayExtraPlayerId
                               ? `${mobileLineupName(fairPlayExtraDisplayName)} als Zusatzspieler am Feld`
                               : '4 Tore Rückstand — Zusatzspieler möglich'}
@@ -3407,14 +3471,14 @@ export const LiveMatchScreen: React.FC = () => {
                         {fairPlayExtraPlayerId ? (
                           <button
                             type="button"
-                            onClick={() => setFairPlayRemoveDialogOpen(true)}
+                            onClick={openFairPlayRemoveSheet}
                             className={`min-h-10 w-full rounded-xl border px-3 py-2 text-center text-xs font-bold active:scale-[0.98] sm:text-sm ${
                               fairPlayMustRemoveExtra
                                 ? 'border-red-400/55 bg-red-950/55 text-red-50'
                                 : 'border-white/20 bg-black/40 text-white'
                             }`}
                           >
-                            Zusatzspieler entfernen
+                            {fairPlayMustRemoveExtra ? 'Spieler entfernen' : 'Zusatzspieler entfernen'}
                           </button>
                         ) : null}
                         {!fairPlayExtraPlayerId && fairPlayRuleActivatable ? (
@@ -4675,64 +4739,117 @@ export const LiveMatchScreen: React.FC = () => {
         </div>
       ) : null}
 
-      {canControlLiveMatch && fairPlayRemoveDialogOpen && fairPlayExtraPlayerId && !matchIsFinished ? (
+      {canControlLiveMatch && fairPlayRemoveSheetOpen && fairPlayExtraPlayerId && !matchIsFinished ? (
         <div
           className="pointer-events-auto fixed inset-0 z-[10055] flex flex-col justify-end bg-black/65 backdrop-blur-sm"
           style={{ paddingBottom: LIVE_SHEET_BOTTOM_CLEARANCE }}
           role="presentation"
           onClick={() => {
             if (fairPlayRemoveSaving) return;
-            setFairPlayRemoveDialogOpen(false);
+            closeFairPlayRemoveSheet();
           }}
         >
           <div
+            className={[
+              'relative z-[1] flex w-full flex-col overflow-hidden rounded-t-2xl border border-red-500/35 bg-gradient-to-b from-red-950/40 via-black to-black text-white shadow-[0_-8px_40px_rgba(0,0,0,0.72)]',
+              fairPlayRemovePickId ? 'max-h-[min(42dvh,22rem)]' : 'max-h-[min(68dvh,28rem)]',
+            ].join(' ')}
             role="dialog"
             aria-modal="true"
             aria-labelledby="fairplay-remove-title"
-            className="relative z-[1] mx-auto w-full max-w-md rounded-t-2xl border border-red-500/35 bg-gradient-to-b from-zinc-950/98 to-black shadow-[0_-8px_36px_rgba(0,0,0,0.75)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto mt-1.5 h-1 w-8 shrink-0 rounded-full bg-white/20" aria-hidden />
+            <div className="mx-auto mt-1.5 h-1 w-8 shrink-0 rounded-full bg-red-400/40" aria-hidden />
             <div className="shrink-0 border-b border-white/[0.07] px-3 py-1.5">
               <h3
                 id="fairplay-remove-title"
                 className="text-[11px] font-black uppercase tracking-[0.14em] text-red-300/95"
               >
-                Zusatzspieler entfernen
+                {fairPlayRemovePickId ? 'Entfernen bestätigen' : 'Spieler vom Feld'}
               </h3>
+              {!fairPlayRemovePickId ? (
+                <p className="mt-0.5 text-[12px] font-medium text-white/55">
+                  {fairPlayMustRemoveExtra
+                    ? 'Ein Spieler muss vom Feld — Zusatzspieler darf bleiben'
+                    : 'Feldspieler wählen, der auf die Bank geht'}
+                </p>
+              ) : null}
             </div>
-            <div className="shrink-0 px-3 py-2.5">
-              <p className="text-center text-[15px] font-bold leading-snug text-white">
-                {mobileLineupName(fairPlayExtraDisplayName)}
-              </p>
-              <p className="mt-1 text-center text-[12px] font-medium leading-snug text-white/65">
-                vom Feld entfernen und zurück auf die Bank?
-              </p>
-            </div>
-            <footer
-              className="sticky bottom-0 shrink-0 border-t border-red-500/20 bg-black/95 px-3 pt-2 backdrop-blur-md"
-              style={{ paddingBottom: LIVE_SHEET_FOOTER_SAFE_PB }}
-            >
-              <button
-                type="button"
-                disabled={fairPlayRemoveSaving}
-                onClick={() => void runPersistFairPlayExtraOff()}
-                className="flex min-h-[52px] w-full touch-manipulation items-center justify-center rounded-xl bg-red-600 text-[15px] font-black text-white shadow-[0_0_20px_rgba(220,38,38,0.4)] active:scale-[0.99] disabled:opacity-40"
-              >
-                {fairPlayRemoveSaving ? '…' : 'Zusatzspieler entfernen'}
-              </button>
-              <button
-                type="button"
-                disabled={fairPlayRemoveSaving}
-                onClick={() => {
-                  if (fairPlayRemoveSaving) return;
-                  setFairPlayRemoveDialogOpen(false);
-                }}
-                className="mt-2 flex min-h-[44px] w-full touch-manipulation items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-sm font-bold text-white/88 active:scale-[0.99] disabled:opacity-45"
-              >
-                Abbrechen
-              </button>
-            </footer>
+            {fairPlayRemovePickId ? (
+              <>
+                <div className="shrink-0 px-3 py-2.5">
+                  <p className="text-center text-[15px] font-bold leading-snug text-white">
+                    {mobileLineupName(rosterById.get(fairPlayRemovePickId)?.name ?? 'Spieler')}
+                  </p>
+                  <p className="mt-1 text-center text-[12px] font-medium leading-snug text-white/65">
+                    {String(fairPlayRemovePickId).trim() === String(fairPlayExtraPlayerId ?? '').trim()
+                      ? 'Zusatzspieler verlässt das Feld (7/7)'
+                      : 'verlässt das Feld — Zusatzspieler bleibt am Feld'}
+                  </p>
+                </div>
+                <footer
+                  className="sticky bottom-0 z-10 shrink-0 border-t border-red-500/20 bg-black/95 px-3 pt-2 backdrop-blur-md"
+                  style={{ paddingBottom: LIVE_SHEET_FOOTER_SAFE_PB }}
+                >
+                  <button
+                    type="button"
+                    disabled={fairPlayRemoveSaving}
+                    onClick={() => void runPersistFairPlayExtraOff()}
+                    className="flex min-h-[52px] w-full touch-manipulation items-center justify-center rounded-xl bg-red-600 text-[15px] font-black text-white shadow-[0_0_20px_rgba(220,38,38,0.4)] active:scale-[0.99] disabled:opacity-40"
+                  >
+                    {fairPlayRemoveSaving ? '…' : 'Vom Feld nehmen'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={fairPlayRemoveSaving}
+                    onClick={() => setFairPlayRemovePickId(null)}
+                    className="mt-2 flex min-h-[44px] w-full touch-manipulation items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-sm font-bold text-white/88 active:scale-[0.99] disabled:opacity-45"
+                  >
+                    Zurück zur Auswahl
+                  </button>
+                </footer>
+              </>
+            ) : (
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 py-1.5 [-webkit-overflow-scrolling:touch]">
+                {fairPlayRemoveFieldRows.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-white/50">Keine Feldspieler.</p>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {fairPlayRemoveFieldRows.map((p) => {
+                      const shortName = mobileLineupName(p.name);
+                      const posLabel = getPositionLabel(p.position ?? '') || '–';
+                      const isExtra = String(p.id).trim() === String(fairPlayExtraPlayerId ?? '').trim();
+                      return (
+                        <button
+                          key={`fairplay-remove-pick-${p.id}`}
+                          type="button"
+                          onClick={() => setFairPlayRemovePickId(p.id)}
+                          className="flex min-h-[64px] items-center gap-2 rounded-xl border border-white/10 bg-black/50 px-2 py-2 text-left transition-transform active:scale-[0.99]"
+                        >
+                          <div className="pointer-events-none shrink-0">
+                            <LeibchenJersey
+                              lastName={shortName === '—' || !shortName ? 'Spieler' : shortName}
+                              number={p.number ?? '–'}
+                              position={posLabel}
+                              variant="field"
+                              size="compact"
+                              pitchStyleBack
+                              className="!h-[3.2rem] !w-[2.55rem]"
+                            />
+                          </div>
+                          <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">
+                            {p.name}
+                            {isExtra ? (
+                              <span className="ml-1 text-[10px] font-semibold text-amber-300/90">Zusatz</span>
+                            ) : null}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       ) : null}
