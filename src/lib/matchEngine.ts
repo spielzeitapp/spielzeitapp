@@ -652,6 +652,155 @@ export function resolvePlaytimeFinalMatchSecond(params: {
   return clampEffectiveMatchSeconds(Math.max(clock, stored, maxEv, eventCap));
 }
 
+export type LiveMatchReplayDiagnostics = {
+  warnings: string[];
+  maxEventSecond: number;
+  finalSecond: number;
+  orphanInIgnored: number;
+  orphanOutIgnored: number;
+};
+
+export type LiveMatchReplayState = {
+  slotsBySlot: Record<FieldSlotId, string | null>;
+  onFieldPlayerIds: string[];
+  /** 7 Slots + FairPlay-Extra (wenn aktiv und nicht bereits im Slot). */
+  activePlayerIds: string[];
+  benchPlayerIds: string[];
+  fairPlayExtraPlayerId: string | null;
+  playtimeSecondsByPlayerId: PlayerPlaytimeMap;
+  diagnostics: LiveMatchReplayDiagnostics;
+};
+
+export type DeriveLiveMatchReplayParams = {
+  /** Kickoff-Snapshot (Replay-Basis für Slots). */
+  kickoffLineup: string[];
+  squadPlayerIds: string[];
+  events: MatchEngineEvent[];
+  finalSecond: number;
+  fallbackStartingPlayerIds?: string[];
+  /** Kickoff nur für Spielzeit (falls abweichend von `kickoffLineup`). */
+  kickoffLineupForPlaytime?: string[];
+  previousPlaytimesByPlayerId?: PlayerPlaytimeMap;
+  /** DEV: Warnung wenn aktive Menge leer bei laufender Spielzeit. */
+  isLiveMatchRunning?: boolean;
+};
+
+function warnLiveReplayDevtools(message: string, detail?: Record<string, unknown>): void {
+  if (typeof import.meta === 'undefined' || !import.meta.env?.DEV) return;
+  console.warn(`[liveReplay] ${message}`, detail ?? {});
+}
+
+/**
+ * Zentrale Live-Wahrheit: Feld-Slots, Bank, FairPlay, aktive Spieler, Spielzeiten — ein Replay-Pfad.
+ */
+export function deriveLiveMatchReplayState(params: DeriveLiveMatchReplayParams): LiveMatchReplayState {
+  const warnings: string[] = [];
+  const eventsAsc = sortMatchEventsChronologically(params.events);
+  const finalSecond = clampEffectiveMatchSeconds(params.finalSecond);
+  const maxEventSecond = maxEventSecondFromEvents(eventsAsc);
+
+  if (finalSecond < maxEventSecond) {
+    warnings.push('finalSecond_below_maxEvent');
+    warnLiveReplayDevtools('finalSecond < maxEventSecond', { finalSecond, maxEventSecond });
+  }
+
+  const kickoff = params.kickoffLineup.slice(0, 7);
+  const fallback = (params.fallbackStartingPlayerIds ?? kickoff).slice(0, 7);
+  const kickoffPlaytime = (params.kickoffLineupForPlaytime ?? kickoff).slice(0, 7);
+  const squad = params.squadPlayerIds;
+  const squadSet = new Set(squad.map((id) => String(id ?? '').trim()).filter(Boolean));
+
+  const fallbackSlotMap = fallback.some((id) => String(id ?? '').trim())
+    ? startingLineupToSlotMap(fallback)
+    : undefined;
+
+  const replayResult = replaySubstitutionEventsOnSlots(kickoff, eventsAsc, finalSecond, {
+    squadPlayerIds: squad,
+    fallbackSlotMap,
+  });
+
+  const slotsBySlot = dedupeFieldSlotMap(replayResult.slots);
+  const onFieldPlayerIds = getOnFieldIdsInSlotOrder(slotsBySlot);
+
+  const eventsUpToFinal = eventsAsc.filter((e) => (eventMatchSecondOrNull(e) ?? 0) <= finalSecond);
+  const fairPlayExtraPlayerId = fairPlayExtraPlayerIdFromSortedEvents(eventsUpToFinal);
+
+  const activePlayerIds = [...onFieldPlayerIds];
+  const extra = fairPlayExtraPlayerId?.trim();
+  if (extra && !activePlayerIds.includes(extra)) {
+    activePlayerIds.push(extra);
+  }
+
+  const benchPlayerIds = getBenchPlayers(squad, activePlayerIds);
+
+  const playtimeRaw = computePlayerPlaytimeFromEvents({
+    kickoffStartingPlayerIds: kickoffPlaytime,
+    fallbackStartingPlayerIds: fallback,
+    squadPlayerIds: squad,
+    events: eventsAsc,
+    finalMatchSecond: finalSecond,
+  });
+
+  const playtimeSecondsByPlayerId: PlayerPlaytimeMap = { ...playtimeRaw };
+  const prev = params.previousPlaytimesByPlayerId;
+  if (prev) {
+    for (const [pid, sec] of Object.entries(playtimeSecondsByPlayerId)) {
+      const p = prev[pid] ?? 0;
+      if (sec < p - 1) {
+        warnings.push(`playtime_drop:${pid}`);
+        warnLiveReplayDevtools('Spielzeit sinkt gegenüber letzter Berechnung', { pid, prev: p, next: sec });
+        playtimeSecondsByPlayerId[pid] = p;
+      }
+    }
+  }
+
+  const fieldSet = new Set(onFieldPlayerIds);
+  const benchSet = new Set(benchPlayerIds);
+  const playersInBoth = onFieldPlayerIds.filter((id) => benchSet.has(id));
+  if (playersInBoth.length > 0) {
+    warnings.push('player_in_field_and_bench');
+    warnLiveReplayDevtools('Spieler doppelt Feld/Bank', { playersInBoth });
+  }
+
+  if (extra && benchSet.has(extra) && fieldSet.has(extra)) {
+    warnings.push('extra_in_field_and_bench');
+    warnLiveReplayDevtools('Zusatzspieler gleichzeitig Feld und Bank', { extra });
+  }
+
+  for (const slot of FIELD_SLOT_ORDER) {
+    const pid = String(slotsBySlot[slot] ?? '').trim();
+    if (pid && !squadSet.has(pid)) {
+      warnings.push(`unknown_slot_player:${slot}`);
+      warnLiveReplayDevtools('Slot mit unbekanntem Spieler (nicht im Kader)', { slot, pid });
+    }
+  }
+
+  if (params.isLiveMatchRunning && activePlayerIds.length === 0 && finalSecond > 0) {
+    warnings.push('active_set_empty');
+    warnLiveReplayDevtools('activePlayerSet leer bei laufendem Spiel', { finalSecond });
+  }
+
+  if (replayResult.orphanInIgnored > 0 || replayResult.orphanOutIgnored > 0) {
+    warnings.push('orphan_legacy_subs');
+  }
+
+  return {
+    slotsBySlot,
+    onFieldPlayerIds,
+    activePlayerIds,
+    benchPlayerIds,
+    fairPlayExtraPlayerId,
+    playtimeSecondsByPlayerId,
+    diagnostics: {
+      warnings,
+      maxEventSecond,
+      finalSecond,
+      orphanInIgnored: replayResult.orphanInIgnored,
+      orphanOutIgnored: replayResult.orphanOutIgnored,
+    },
+  };
+}
+
 /**
  * Aktuelle Belegung pro Slot: **Kickoff-Aufstellung** + alle Wechsel chronologisch
  * (FIFO-Paarung sub_out → sub_in bei gleicher Spielsekunde über `createdAt` / Typ / id).

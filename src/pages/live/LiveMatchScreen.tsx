@@ -5,8 +5,7 @@ import { usePlayers } from '../../hooks/usePlayers';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
 import {
   applySubstitutionToSlots,
-  computePlayerPlaytimeFromEvents,
-  maxEventSecondFromEvents,
+  deriveLiveMatchReplayState,
   resolvePlaytimeFinalMatchSecond,
   resolveReplayAtMatchSecond,
   clampEffectiveMatchSeconds,
@@ -14,12 +13,10 @@ import {
   displayMatchMinuteFromEffectiveSeconds,
   fieldSlotMapToStartingIds,
   getBenchPlayers,
-  getCurrentOnFieldBySlot,
   getOnFieldIdsInSlotOrder,
   getPlaytimeStatus,
   handleSubstitution,
   replaySubstitutionEventsOnSlots,
-  fairPlayExtraPlayerIdFromSortedEvents,
   fairPlayRemovedPlayerIdFromEvent,
   sortMatchEventsChronologically,
   startingLineupToSlotMap,
@@ -48,7 +45,7 @@ import {
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
 import { getMatchSides } from '../../lib/matchSides';
-import { countOccupiedFieldSlots, mergeLivePitchSlotsFromDb } from '../../lib/liveLineupNormalize';
+import { countOccupiedFieldSlots } from '../../lib/liveLineupNormalize';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
@@ -1216,48 +1213,61 @@ export const LiveMatchScreen: React.FC = () => {
     queueRealtimeReload();
   }, [effectiveMatchId, clearGoalUndoTimer, queueRealtimeReload]);
 
-  const onFieldBySlot = useMemo(
-    () => getCurrentOnFieldBySlot(liveLineupBasePlayerIds, events, currentMatchSeconds),
-    [liveLineupBasePlayerIds, events, currentMatchSeconds],
+  const safeSlotOrder = Array.isArray(LIVE_FIELD_SLOT_ORDER) ? LIVE_FIELD_SLOT_ORDER : [];
+  const eventsSortedAsc = useMemo(() => sortMatchEventsChronologically(events), [events]);
+
+  const playtimeFinalSecond = useMemo(
+    () =>
+      resolvePlaytimeFinalMatchSecond({
+        events: eventsSortedAsc,
+        currentMatchSeconds,
+        liveElapsedSeconds: matchRow?.live_elapsed_seconds,
+        isFinished: matchIsFinished,
+      }),
+    [eventsSortedAsc, matchRow?.live_elapsed_seconds, currentMatchSeconds, matchIsFinished],
   );
 
-  const safeSlotOrder = Array.isArray(LIVE_FIELD_SLOT_ORDER) ? LIVE_FIELD_SLOT_ORDER : [];
-  const lineupSlotsForDisplay = useMemo(() => {
-    const base = onFieldBySlot && typeof onFieldBySlot === 'object' ? onFieldBySlot : ({} as Record<FieldSlotId, string | null>);
-    const merged =
-      matchRow?.status === 'live' && startingPlayerIds.some((id) => String(id ?? '').trim().length > 0)
-        ? mergeLivePitchSlotsFromDb(base, startingPlayerIds)
-        : base;
-    if (typeof import.meta !== 'undefined' && import.meta.env.DEV && matchRow?.status === 'live') {
-      const n = countOccupiedFieldSlots(merged);
-      if (n < 7) {
-        console.warn('[LiveMatch] Live formation / pitch: weniger als 7 Feldspieler nach DB-Merge', {
-          mergedCount: n,
-          replayCount: countOccupiedFieldSlots(base),
+  const prevPlaytimesRef = useRef<PlayerPlaytimeMap>({});
+
+  const liveReplayState = useMemo(() => {
+    const state = deriveLiveMatchReplayState({
+      kickoffLineup: liveLineupBasePlayerIds,
+      kickoffLineupForPlaytime: kickoffStartingPlayerIds.slice(0, 7),
+      squadPlayerIds,
+      events: eventsSortedAsc,
+      finalSecond: playtimeFinalSecond,
+      fallbackStartingPlayerIds: startingPlayerIds.slice(0, 7),
+      previousPlaytimesByPlayerId: prevPlaytimesRef.current,
+      isLiveMatchRunning: matchRow?.status === 'live' && isRunning && !matchIsFinished,
+    });
+    prevPlaytimesRef.current = state.playtimeSecondsByPlayerId;
+    if (import.meta.env.DEV && matchRow?.status === 'live') {
+      const n = countOccupiedFieldSlots(state.slotsBySlot);
+      if (n < 7 && !state.fairPlayExtraPlayerId) {
+        console.warn('[LiveMatch] Replay: weniger als 7 Feldspieler in Slots', {
+          slotCount: n,
+          warnings: state.diagnostics.warnings,
         });
       }
     }
-    const out = { ...merged };
-    const seen = new Set<string>();
-    for (const slot of safeSlotOrder) {
-      const pid = out[slot];
-      if (!pid) continue;
-      if (seen.has(pid)) {
-        out[slot] = null;
-        continue;
-      }
-      seen.add(pid);
-    }
-    return out;
-  }, [onFieldBySlot, safeSlotOrder, matchRow?.status, startingPlayerIds]);
+    return state;
+  }, [
+    liveLineupBasePlayerIds,
+    kickoffStartingPlayerIds,
+    squadPlayerIds,
+    eventsSortedAsc,
+    playtimeFinalSecond,
+    startingPlayerIds,
+    matchRow?.status,
+    isRunning,
+    matchIsFinished,
+  ]);
 
-  const onFieldIds = useMemo(() => getOnFieldIdsInSlotOrder(lineupSlotsForDisplay), [lineupSlotsForDisplay]);
-
-  const eventsSortedAsc = useMemo(() => sortMatchEventsChronologically(events), [events]);
-  const fairPlayExtraPlayerId = useMemo(
-    () => fairPlayExtraPlayerIdFromSortedEvents(eventsSortedAsc),
-    [eventsSortedAsc],
-  );
+  const lineupSlotsForDisplay = liveReplayState.slotsBySlot;
+  const onFieldIds = liveReplayState.onFieldPlayerIds;
+  const activePlayerIds = liveReplayState.activePlayerIds;
+  const fairPlayExtraPlayerId = liveReplayState.fairPlayExtraPlayerId;
+  const playtimes = liveReplayState.playtimeSecondsByPlayerId;
   const fairPlayGoalDiffOwnMinusOpp = useMemo(() => {
     const own = sides.isOwnTeamHome ? displayScoreHome : displayScoreAway;
     const opp = sides.isOwnTeamHome ? displayScoreAway : displayScoreHome;
@@ -1272,65 +1282,24 @@ export const LiveMatchScreen: React.FC = () => {
     return raw && raw.length > 0 ? raw : 'Spieler';
   }, [fairPlayExtraPlayerId, rosterById]);
 
-  const onFieldIdsIncludingFairPlayExtra = useMemo(() => {
-    const ex = fairPlayExtraPlayerId?.trim();
-    if (!ex || onFieldIds.includes(ex)) return onFieldIds;
-    return [...onFieldIds, ex];
-  }, [onFieldIds, fairPlayExtraPlayerId]);
-
   const fieldPlayers = useMemo(() => {
     const set = new Set(onFieldIds);
     return sortRosterByNumber(roster.filter((p) => set.has(p.id)));
   }, [onFieldIds, roster]);
 
   const benchPlayers = useMemo(() => {
-    const ids = getBenchPlayers(squadPlayerIds, onFieldIdsIncludingFairPlayExtra);
-    const list = ids.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 });
+    const list = liveReplayState.benchPlayerIds.map(
+      (id) => rosterById.get(id) ?? { id, name: '—', number: 0 },
+    );
     return sortRosterByNumber(list);
-  }, [squadPlayerIds, onFieldIdsIncludingFairPlayExtra, rosterById]);
+  }, [liveReplayState.benchPlayerIds, rosterById]);
 
   const fairPlayRemoveFieldRows = useMemo(() => {
-    const ids = [...new Set(onFieldIdsIncludingFairPlayExtra.map((id) => String(id ?? '').trim()).filter(Boolean))];
+    const ids = [...new Set(activePlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean))];
     const list = ids.map((id) => rosterById.get(id)).filter((p): p is RosterPlayer => Boolean(p));
     return sortRosterByNumber(list);
-  }, [onFieldIdsIncludingFairPlayExtra, rosterById]);
+  }, [activePlayerIds, rosterById]);
   const homeScorerCandidates = useMemo(() => sortRosterByNumber(fieldPlayers), [fieldPlayers]);
-
-  useEffect(() => {
-    if (!import.meta.env.DEV || matchRow?.status !== 'live') return;
-    const replay = getCurrentOnFieldBySlot(liveLineupBasePlayerIds, events, currentMatchSeconds);
-    const dbMap = startingLineupToSlotMap(startingPlayerIds.slice(0, 7));
-    const rIds = new Set(getOnFieldIdsInSlotOrder(replay));
-    const dIds = new Set(getOnFieldIdsInSlotOrder(dbMap));
-    if (rIds.size === dIds.size && rIds.size === 0) return;
-    let diff = false;
-    for (const id of rIds) {
-      if (!dIds.has(id)) {
-        diff = true;
-        break;
-      }
-    }
-    if (!diff) {
-      for (const id of dIds) {
-        if (!rIds.has(id)) {
-          diff = true;
-          break;
-        }
-      }
-    }
-    if (diff) {
-      console.warn('[LiveMatch] Trainer lineup state mismatch (Replay vs DB-Startelf)', {
-        replayIds: [...rIds],
-        dbIds: [...dIds],
-      });
-    }
-    const squad = new Set(squadPlayerIds.map((x) => String(x ?? '').trim()).filter(Boolean));
-    for (const id of rIds) {
-      if (!squad.has(id)) {
-        console.warn('[LiveMatch] Player lost from live squad (on field but not in squad state)', { playerId: id });
-      }
-    }
-  }, [liveLineupBasePlayerIds, events, startingPlayerIds, squadPlayerIds, matchRow?.status]);
 
   /** Single Source of Truth: `matches.u11_formation_id` (Realtime), kein localStorage. */
   const safeFormationId = useMemo((): U11FormationId => {
@@ -1356,8 +1325,7 @@ export const LiveMatchScreen: React.FC = () => {
     setFormationSaving(true);
     setSaveError(null);
     try {
-      const slots = getCurrentOnFieldBySlot(liveLineupBasePlayerIds, events, currentMatchSeconds);
-      const ordered = fieldSlotMapToStartingIds(slots);
+      const ordered = fieldSlotMapToStartingIds(liveReplayState.slotsBySlot);
       const active = ordered.filter((x) => String(x ?? '').trim().length > 0);
       if (import.meta.env.DEV && active.length < 7) {
         console.warn('[LiveMatch] Live formation remap lost active player', {
@@ -1388,9 +1356,7 @@ export const LiveMatchScreen: React.FC = () => {
     effectiveMatchId,
     canControlLiveMatch,
     formationSaving,
-    liveLineupBasePlayerIds,
-    events,
-    currentMatchSeconds,
+    liveReplayState.slotsBySlot,
     squadPlayerIds,
     closeFormationSheet,
     queueRealtimeReload,
@@ -1659,82 +1625,6 @@ export const LiveMatchScreen: React.FC = () => {
     safeSlotOrder,
   ]);
 
-  const playtimeFinalSecond = useMemo(
-    () =>
-      resolvePlaytimeFinalMatchSecond({
-        events: eventsSortedAsc,
-        currentMatchSeconds,
-        liveElapsedSeconds: matchRow?.live_elapsed_seconds,
-        isFinished: matchIsFinished,
-      }),
-    [eventsSortedAsc, matchRow?.live_elapsed_seconds, currentMatchSeconds, matchIsFinished],
-  );
-
-  const playtimesRaw = useMemo(
-    () =>
-      computePlayerPlaytimeFromEvents({
-        kickoffStartingPlayerIds: kickoffStartingPlayerIds.slice(0, 7),
-        fallbackStartingPlayerIds: startingPlayerIds.slice(0, 7),
-        squadPlayerIds,
-        events: eventsSortedAsc,
-        finalMatchSecond: playtimeFinalSecond,
-      }),
-    [
-      kickoffStartingPlayerIds,
-      startingPlayerIds,
-      squadPlayerIds,
-      eventsSortedAsc,
-      playtimeFinalSecond,
-    ],
-  );
-
-  const prevPlaytimesRef = useRef<PlayerPlaytimeMap>({});
-  const playtimes = useMemo(() => {
-    const prev = prevPlaytimesRef.current;
-    const out: PlayerPlaytimeMap = { ...playtimesRaw };
-    if (import.meta.env.DEV) {
-      const maxEv = maxEventSecondFromEvents(eventsSortedAsc);
-      if (playtimeFinalSecond < maxEv) {
-        console.warn('[playtime] playtimeFinalSecond < maxEventSecond', {
-          playtimeFinalSecond,
-          maxEventSecond: maxEv,
-          currentMatchSeconds,
-          liveElapsed: matchRow?.live_elapsed_seconds,
-        });
-      }
-      if (
-        matchRow?.status === 'live' &&
-        !matchIsFinished &&
-        currentMatchSeconds < maxEv
-      ) {
-        console.warn('[playtime] currentMatchSeconds < maxEventSecond während live', {
-          currentMatchSeconds,
-          maxEventSecond: maxEv,
-        });
-      }
-      for (const [pid, sec] of Object.entries(out)) {
-        const p = prev[pid] ?? 0;
-        if (sec < p - 1) {
-          console.warn('[playtime] berechnete Spielerzeit sinkt', { pid, prev: p, next: sec });
-        }
-      }
-    }
-    for (const [pid, sec] of Object.entries(out)) {
-      const p = prev[pid] ?? 0;
-      if (sec < p) out[pid] = p;
-    }
-    prevPlaytimesRef.current = out;
-    return out;
-  }, [
-    playtimesRaw,
-    eventsSortedAsc,
-    playtimeFinalSecond,
-    currentMatchSeconds,
-    matchRow?.live_elapsed_seconds,
-    matchRow?.status,
-    matchIsFinished,
-  ]);
-
   /**
    * Wechsel-Vorschläge: kein TW; bevorzugt gleiche Liniengruppe (DEF/MID/OFF), sonst Fallback.
    * Max. 3 Paare, kein Spieler doppelt.
@@ -1747,7 +1637,7 @@ export const LiveMatchScreen: React.FC = () => {
 
     const fieldIdsAll = onFieldIds.map((id) => String(id ?? '').trim()).filter((id) => squadSet.has(id));
     const fieldIds = fieldIdsAll.filter((id) => id && id !== gkId);
-    const benchIdsRaw = getBenchPlayers(squadPlayerIds, onFieldIds)
+    const benchIdsRaw = liveReplayState.benchPlayerIds
       .map((id) => String(id ?? '').trim())
       .filter((id) => squadSet.has(id));
     const benchIds = benchIdsRaw.filter((id) => coachLineGroupFromRosterPosition(rosterById.get(id)?.position) !== 'GK');
@@ -1799,7 +1689,16 @@ export const LiveMatchScreen: React.FC = () => {
       tryPair(oid, () => true);
     }
     return pairs;
-  }, [matchIsFinished, matchRow?.status, squadPlayerIds, onFieldIds, lineupSlotsForDisplay, playtimes, rosterById]);
+  }, [
+    matchIsFinished,
+    matchRow?.status,
+    squadPlayerIds,
+    onFieldIds,
+    lineupSlotsForDisplay,
+    playtimes,
+    rosterById,
+    liveReplayState.benchPlayerIds,
+  ]);
 
   const subSuggestionSig = substitutionSuggestions.map((s) => `${s.outId}:${s.inId}`).join('|');
   useEffect(() => {
@@ -2003,20 +1902,6 @@ export const LiveMatchScreen: React.FC = () => {
       return;
     }
     setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...optimistic, id: eventId } : e)));
-    if (removedId !== extraId) {
-      const slots = { ...lineupSlotsForDisplay } as Record<FieldSlotId, string | null>;
-      for (const slot of LIVE_FIELD_SLOT_ORDER) {
-        if (String(slots[slot] ?? '').trim() === removedId) {
-          slots[slot] = extraId;
-          break;
-        }
-      }
-      const nextStarting = fieldSlotMapToStartingIds(slots);
-      setStartingPlayerIds(nextStarting);
-      if (lineupData) {
-        setLineupData({ startingPlayerIds: nextStarting, squadPlayerIds });
-      }
-    }
     closeFairPlayRemoveSheet();
     setFairPlayRemoveSaving(false);
     void queueRealtimeReload();
@@ -2029,7 +1914,6 @@ export const LiveMatchScreen: React.FC = () => {
     half,
     lineupSlotsForDisplay,
     squadPlayerIds,
-    lineupData,
     closeFairPlayRemoveSheet,
     queueRealtimeReload,
   ]);
@@ -2239,9 +2123,17 @@ export const LiveMatchScreen: React.FC = () => {
 
       setSaveError(null);
       const tsSub = currentMatchSeconds;
-      const slotBefore = getCurrentOnFieldBySlot(liveLineupBasePlayerIds, events, tsSub);
-      const fieldIdsBefore = LIVE_FIELD_SLOT_ORDER.map((s) => String(slotBefore[s] ?? '').trim()).filter(Boolean);
-      const benchIdsBefore = getBenchPlayers(squadPlayerIds, getOnFieldIdsInSlotOrder(slotBefore));
+      const replayBefore = deriveLiveMatchReplayState({
+        kickoffLineup: liveLineupBasePlayerIds,
+        kickoffLineupForPlaytime: kickoffStartingPlayerIds.slice(0, 7),
+        squadPlayerIds,
+        events,
+        finalSecond: tsSub,
+        fallbackStartingPlayerIds: startingPlayerIds.slice(0, 7),
+      });
+      const slotBefore = replayBefore.slotsBySlot;
+      const fieldIdsBefore = replayBefore.onFieldPlayerIds;
+      const benchIdsBefore = replayBefore.benchPlayerIds;
       const dupIds = (ids: string[]) => {
         const m = new Map<string, number>();
         for (const id of ids) m.set(id, (m.get(id) ?? 0) + 1);
@@ -2330,6 +2222,8 @@ export const LiveMatchScreen: React.FC = () => {
       onFieldIds,
       half,
       liveLineupBasePlayerIds,
+      kickoffStartingPlayerIds,
+      startingPlayerIds,
       squadPlayerIds,
     ],
   );
@@ -3686,7 +3580,7 @@ export const LiveMatchScreen: React.FC = () => {
                     <div className="rounded-lg border border-white/10 bg-black/35 px-2 py-1.5">
                       <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-500">Am Feld</p>
                       <p className="mt-0.5 text-xs font-medium text-white">
-                        {`${onFieldIds.length + (fairPlayExtraPlayerId ? 1 : 0)}/7 aktiv`}
+                        {`${activePlayerIds.length}/7 aktiv`}
                       </p>
                     </div>
                     <div className="rounded-lg border border-white/10 bg-black/35 px-2 py-1.5">
@@ -4175,7 +4069,7 @@ export const LiveMatchScreen: React.FC = () => {
                 <div className="mx-3 mb-2 shrink-0 rounded-2xl border border-amber-400/35 bg-amber-950/25 px-3 py-3">
                   <p className="text-center text-[13px] font-black text-amber-100">Formation wechseln?</p>
                   <p className="mt-1.5 text-center text-[12px] font-medium leading-snug text-white/80">
-                    Alle {countOccupiedFieldSlots(getCurrentOnFieldBySlot(liveLineupBasePlayerIds, events, currentMatchSeconds))}{' '}
+                    Alle {countOccupiedFieldSlots(lineupSlotsForDisplay)}{' '}
                     aktiven Spieler bleiben erhalten und werden bei Bedarf auf die neuen Slot-Positionen abgebildet.
                   </p>
                   <div className="mt-3 flex gap-2">
