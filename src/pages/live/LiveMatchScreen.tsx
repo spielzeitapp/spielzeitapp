@@ -325,6 +325,10 @@ const mbBtnH = 'h-10 min-h-10';
 const mbRound = 'rounded-xl';
 const mbRowBtn = `flex ${mbBtnH} touch-manipulation items-center justify-center gap-1.5 ${mbRound} px-3 text-xs font-semibold transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40`;
 
+/** BottomNav (~76px) + Safe Area — Live-Sheets/Confirm über Nav & Safari-Bar */
+const LIVE_SHEET_BOTTOM_CLEARANCE = 'calc(4.75rem + env(safe-area-inset-bottom, 0px))';
+const LIVE_SHEET_FOOTER_SAFE_PB = 'max(0.75rem, env(safe-area-inset-bottom, 0px))';
+
 function eventIcon(t: MatchEventType): string {
   if (t === 'goal' || t === 'goal_away') return '⚽';
   if (t === 'sub_out' || t === 'sub_in' || t === 'substitution') return '⇄';
@@ -4559,6 +4563,7 @@ export const LiveMatchScreen: React.FC = () => {
       {canControlLiveMatch && fairPlayExtraSheetOpen && !matchIsFinished ? (
         <div
           className="fixed inset-0 z-[10050] flex flex-col justify-end bg-black/80 backdrop-blur-sm"
+          style={{ paddingBottom: LIVE_SHEET_BOTTOM_CLEARANCE }}
           role="presentation"
           onClick={() => {
             if (fairPlayExtraSaving) return;
@@ -4566,50 +4571,61 @@ export const LiveMatchScreen: React.FC = () => {
           }}
         >
           <div
-            className="flex min-h-0 max-h-[78dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-amber-500/25 bg-gradient-to-b from-amber-950/40 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65)]"
+            className={[
+              'flex w-full flex-col overflow-hidden rounded-t-2xl border border-amber-500/25 bg-gradient-to-b from-amber-950/45 via-black to-black text-white shadow-[0_-8px_40px_rgba(0,0,0,0.72)]',
+              fairPlayExtraPickId ? 'max-h-[min(42dvh,22rem)]' : 'max-h-[min(68dvh,28rem)]',
+            ].join(' ')}
             role="dialog"
             aria-modal="true"
             aria-labelledby="fairplay-extra-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto mt-1 h-0.5 w-5 shrink-0 rounded-full bg-amber-400/35" aria-hidden />
-            <div className="shrink-0 border-b border-white/[0.07] px-3 py-2">
-              <h3 id="fairplay-extra-title" className="text-sm font-black tracking-tight text-white">
-                {fairPlayExtraPickId ? 'Bestätigen' : 'Zusatzspieler auswählen'}
+            <div className="mx-auto mt-1.5 h-1 w-8 shrink-0 rounded-full bg-amber-400/40" aria-hidden />
+            <div className="shrink-0 border-b border-white/[0.07] px-3 py-1.5">
+              <h3
+                id="fairplay-extra-title"
+                className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-200/95"
+              >
+                {fairPlayExtraPickId ? 'FairPlay bestätigen' : 'Zusatzspieler'}
               </h3>
+              {!fairPlayExtraPickId ? (
+                <p className="mt-0.5 text-[12px] font-medium text-white/55">Spieler von der Bank wählen</p>
+              ) : null}
             </div>
             {fairPlayExtraPickId ? (
-              <div className="flex min-h-0 flex-1 flex-col gap-3 px-3 py-3">
-                <p className="text-center text-[13px] font-semibold leading-snug text-white/90">
-                  {`${mobileLineupName(rosterById.get(fairPlayExtraPickId)?.name ?? 'Spieler')} als Zusatzspieler einsetzen?`}
-                </p>
-                <div
-                  className="mt-auto flex gap-2 border-t border-white/10 pt-3"
-                  style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
+              <>
+                <div className="shrink-0 px-3 py-2.5">
+                  <p className="text-center text-[15px] font-bold leading-snug text-white">
+                    {mobileLineupName(rosterById.get(fairPlayExtraPickId)?.name ?? 'Spieler')}
+                  </p>
+                  <p className="mt-1 text-center text-[12px] font-medium leading-snug text-white/65">
+                    als Zusatzspieler am Feld einsetzen?
+                  </p>
+                </div>
+                <footer
+                  className="sticky bottom-0 z-10 shrink-0 border-t border-amber-500/20 bg-black/95 px-3 pt-2 backdrop-blur-md"
+                  style={{ paddingBottom: LIVE_SHEET_FOOTER_SAFE_PB }}
                 >
                   <button
                     type="button"
                     disabled={fairPlayExtraSaving}
-                    onClick={() => setFairPlayExtraPickId(null)}
-                    className="min-h-11 flex-1 rounded-xl border border-white/15 bg-zinc-900 text-sm font-bold text-white disabled:opacity-45"
+                    onClick={() => void runPersistFairPlayExtraOn()}
+                    className="flex min-h-[52px] w-full touch-manipulation items-center justify-center rounded-xl border border-amber-300/55 bg-amber-500 text-[15px] font-black text-black shadow-[0_0_20px_rgba(245,158,11,0.35)] active:scale-[0.99] disabled:opacity-45"
                   >
-                    Abbrechen
+                    {fairPlayExtraSaving ? '…' : 'Zusatzspieler einsetzen'}
                   </button>
                   <button
                     type="button"
                     disabled={fairPlayExtraSaving}
-                    onClick={() => void runPersistFairPlayExtraOn()}
-                    className="min-h-11 flex-1 rounded-xl border border-amber-400/50 bg-amber-500 text-sm font-black text-black shadow-sm disabled:opacity-45"
+                    onClick={() => setFairPlayExtraPickId(null)}
+                    className="mt-2 flex min-h-[44px] w-full touch-manipulation items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-sm font-bold text-white/88 active:scale-[0.99] disabled:opacity-45"
                   >
-                    {fairPlayExtraSaving ? '…' : 'Einsetzen'}
+                    Zurück zur Auswahl
                   </button>
-                </div>
-              </div>
+                </footer>
+              </>
             ) : (
-              <div
-                className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 py-2 [-webkit-overflow-scrolling:touch]"
-                style={{ paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}
-              >
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 py-1.5 [-webkit-overflow-scrolling:touch]">
                 {benchPlayers.length === 0 ? (
                   <p className="py-4 text-center text-sm text-white/50">Keine Bankspieler.</p>
                 ) : (
@@ -4650,26 +4666,49 @@ export const LiveMatchScreen: React.FC = () => {
       {canControlLiveMatch && fairPlayRemoveDialogOpen && fairPlayExtraPlayerId && !matchIsFinished ? (
         <div
           className="pointer-events-auto fixed inset-0 z-[10055] flex flex-col justify-end bg-black/65 backdrop-blur-sm"
-          style={{ paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))' }}
+          style={{ paddingBottom: LIVE_SHEET_BOTTOM_CLEARANCE }}
+          role="presentation"
+          onClick={() => {
+            if (fairPlayRemoveSaving) return;
+            setFairPlayRemoveDialogOpen(false);
+          }}
         >
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="fairplay-remove-title"
-            className="relative z-[1] mx-auto mb-0 w-[min(100%,22rem)] rounded-2xl border border-red-500/35 bg-gradient-to-b from-zinc-950/98 to-black px-3 pb-4 pt-3 shadow-xl"
+            className="relative z-[1] mx-auto w-full max-w-md rounded-t-2xl border border-red-500/35 bg-gradient-to-b from-zinc-950/98 to-black shadow-[0_-8px_36px_rgba(0,0,0,0.75)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-white/18" />
-            <h3
-              id="fairplay-remove-title"
-              className="text-center text-[13px] font-black uppercase tracking-[0.1em] text-white"
+            <div className="mx-auto mt-1.5 h-1 w-8 shrink-0 rounded-full bg-white/20" aria-hidden />
+            <div className="shrink-0 border-b border-white/[0.07] px-3 py-1.5">
+              <h3
+                id="fairplay-remove-title"
+                className="text-[11px] font-black uppercase tracking-[0.14em] text-red-300/95"
+              >
+                Zusatzspieler entfernen
+              </h3>
+            </div>
+            <div className="shrink-0 px-3 py-2.5">
+              <p className="text-center text-[15px] font-bold leading-snug text-white">
+                {mobileLineupName(fairPlayExtraDisplayName)}
+              </p>
+              <p className="mt-1 text-center text-[12px] font-medium leading-snug text-white/65">
+                vom Feld entfernen und zurück auf die Bank?
+              </p>
+            </div>
+            <footer
+              className="sticky bottom-0 shrink-0 border-t border-red-500/20 bg-black/95 px-3 pt-2 backdrop-blur-md"
+              style={{ paddingBottom: LIVE_SHEET_FOOTER_SAFE_PB }}
             >
-              Zusatzspieler entfernen
-            </h3>
-            <p className="mt-2 text-center text-[13px] font-semibold leading-snug text-white/85">
-              {`${mobileLineupName(fairPlayExtraDisplayName)} entfernen?`}
-            </p>
-            <div className="mt-4 flex min-h-[48px] flex-row gap-2">
+              <button
+                type="button"
+                disabled={fairPlayRemoveSaving}
+                onClick={() => void runPersistFairPlayExtraOff()}
+                className="flex min-h-[52px] w-full touch-manipulation items-center justify-center rounded-xl bg-red-600 text-[15px] font-black text-white shadow-[0_0_20px_rgba(220,38,38,0.4)] active:scale-[0.99] disabled:opacity-40"
+              >
+                {fairPlayRemoveSaving ? '…' : 'Zusatzspieler entfernen'}
+              </button>
               <button
                 type="button"
                 disabled={fairPlayRemoveSaving}
@@ -4677,19 +4716,11 @@ export const LiveMatchScreen: React.FC = () => {
                   if (fairPlayRemoveSaving) return;
                   setFairPlayRemoveDialogOpen(false);
                 }}
-                className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-[12px] font-bold text-white/88 disabled:opacity-45"
+                className="mt-2 flex min-h-[44px] w-full touch-manipulation items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-sm font-bold text-white/88 active:scale-[0.99] disabled:opacity-45"
               >
                 Abbrechen
               </button>
-              <button
-                type="button"
-                disabled={fairPlayRemoveSaving}
-                onClick={() => void runPersistFairPlayExtraOff()}
-                className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-red-600 px-2 text-[12px] font-black text-white shadow-[0_0_18px_rgba(220,38,38,0.45)] disabled:opacity-40"
-              >
-                {fairPlayRemoveSaving ? '…' : 'Entfernen'}
-              </button>
-            </div>
+            </footer>
           </div>
         </div>
       ) : null}
