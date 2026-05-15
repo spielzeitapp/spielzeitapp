@@ -58,7 +58,15 @@ type EventRow = {
   type: string;
   minute: number | null;
   player_id: string | null;
+  payload?: unknown;
 };
+
+function substitutionInPlayerIdFromEvent(e: EventRow): string | null {
+  if (String(e.type ?? '').trim() !== 'substitution') return null;
+  const p = e.payload && typeof e.payload === 'object' ? (e.payload as Record<string, unknown>) : {};
+  const id = typeof p.player_in_id === 'string' ? p.player_in_id.trim() : '';
+  return id || null;
+}
 
 type SnapshotRow = {
   match_id: string;
@@ -106,7 +114,10 @@ function playerAppearedInMatch(
   const kick = kickoffByMatch.get(matchId);
   if (kick?.has(playerId)) return true;
   const evs = eventsByMatch.get(matchId) ?? [];
-  return evs.some((e) => String(e.player_id ?? '').trim() === playerId);
+  return evs.some((e) => {
+    if (String(e.player_id ?? '').trim() === playerId) return true;
+    return substitutionInPlayerIdFromEvent(e) === playerId;
+  });
 }
 
 function goalsInMatchForPlayer(events: EventRow[], playerId: string): number {
@@ -136,7 +147,7 @@ function cardCountsInMatchForPlayer(events: EventRow[], playerId: string): { yel
   return { yellow, red };
 }
 
-/** MVP-Minuten: Kickoff-Set, sub_out/sub_in in Spielsekunden, live_elapsed_seconds = Ende. */
+/** MVP-Minuten: Kickoff-Set, Wechsel (substitution + Legacy sub_out/sub_in), live_elapsed_seconds = Ende. */
 function minutesPlayedInMatchMvp(
   playerId: string,
   totalSec: number,
@@ -145,15 +156,22 @@ function minutesPlayedInMatchMvp(
 ): { minutes: number; subInSec: number | null; subOutSec: number | null } {
   let subOutSec: number | null = null;
   let subInSec: number | null = null;
+  const pid = playerId.trim();
   for (const e of events) {
-    if (String(e.player_id ?? '').trim() !== playerId) continue;
     const t = e.minute != null ? Math.max(0, Math.floor(Number(e.minute))) : null;
     if (t == null) continue;
-    if (e.type === 'sub_out') {
+    const type = String(e.type ?? '').trim();
+    const outId = String(e.player_id ?? '').trim();
+    if (type === 'sub_out' && outId === pid) {
       if (subOutSec == null || t < subOutSec) subOutSec = t;
     }
-    if (e.type === 'sub_in') {
+    if (type === 'sub_in' && outId === pid) {
       if (subInSec == null || t < subInSec) subInSec = t;
+    }
+    if (type === 'substitution') {
+      if (outId === pid && (subOutSec == null || t < subOutSec)) subOutSec = t;
+      const inId = substitutionInPlayerIdFromEvent(e);
+      if (inId === pid && (subInSec == null || t < subInSec)) subInSec = t;
     }
   }
 
@@ -239,7 +257,7 @@ async function fetchEventsForMatches(matchIds: string[]): Promise<EventRow[]> {
   for (const batch of chunk(matchIds, 80)) {
     const { data, error } = await supabase
       .from('match_events')
-      .select('match_id, type, minute, player_id')
+      .select('match_id, type, minute, player_id, payload')
       .in('match_id', batch);
     if (error) {
       console.warn('[playerStatsService] match_events', error.message);

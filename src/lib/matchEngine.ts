@@ -278,37 +278,130 @@ export type LiveSubReplayStepDebug = {
   playersInBoth: string[];
 };
 
+export type LiveSubReplayResult = {
+  slots: Record<FieldSlotId, string | null>;
+  hadOrphanIn: boolean;
+  orphanOutRemaining: number;
+  orphanInIgnored: number;
+  orphanOutIgnored: number;
+  steps?: LiveSubReplayStepDebug[];
+};
+
+/** Kickoff-Basis für Event-Replay (immer Snapshot, nicht End-DB-Lineup). */
+export function pickKickoffLineupBaseForReplay(
+  kickoffStartingPlayerIds: string[],
+  fallbackStartingPlayerIds?: string[],
+): string[] {
+  const kick = kickoffStartingPlayerIds.slice(0, 7);
+  if (kick.some((id) => String(id ?? '').trim().length > 0)) return kick;
+  return (fallbackStartingPlayerIds ?? []).slice(0, 7);
+}
+
+function mergeFieldSlotsPreferReplay(
+  replay: Record<FieldSlotId, string | null>,
+  fallback: Record<FieldSlotId, string | null>,
+): Record<FieldSlotId, string | null> {
+  const next = { ...replay } as Record<FieldSlotId, string | null>;
+  for (const s of FIELD_SLOT_ORDER) {
+    if (!String(next[s] ?? '').trim() && String(fallback[s] ?? '').trim()) {
+      next[s] = fallback[s];
+    }
+  }
+  return dedupeFieldSlotMap(next);
+}
+
 /**
- * Wendet nur Wechsel-Events auf die Kickoff-Slot-Karte an (FIFO: nächster sub_in mit ältestem offenen sub_out).
- * `squadPlayerIds` nur nötig, wenn `collectSteps` true (Bank-Spiegel für DEV).
+ * Legacy sub_out/sub_in → atomare substitution-Events; unvollständige Paare verwerfen.
+ * Atomare substitution bleibt unverändert.
+ */
+export function canonicalSubstitutionEventsForReplay(
+  events: MatchEngineEvent[],
+  atMatchSecond: number,
+): { canonical: MatchEngineEvent[]; orphanInIgnored: number; orphanOutIgnored: number } {
+  const t = Math.max(0, atMatchSecond);
+  const sorted = sortMatchEventsChronologically(events).filter((e) => e.timestamp <= t);
+  const canonical: MatchEngineEvent[] = [];
+  const pendingOut: MatchEngineEvent[] = [];
+  let orphanInIgnored = 0;
+  let orphanOutIgnored = 0;
+
+  for (const e of sorted) {
+    if (e.type === 'position_swap') {
+      orphanOutIgnored += pendingOut.length;
+      pendingOut.length = 0;
+      canonical.push(e);
+      continue;
+    }
+    if (e.type === 'substitution') {
+      orphanOutIgnored += pendingOut.length;
+      pendingOut.length = 0;
+      const outId = String(e.playerId ?? '').trim();
+      const inId = String(e.swapWithPlayerId ?? '').trim();
+      if (outId && inId && outId !== inId) canonical.push(e);
+      continue;
+    }
+    if (e.type === 'sub_out') {
+      const outId = String(e.playerId ?? '').trim();
+      if (outId) pendingOut.push(e);
+      continue;
+    }
+    if (e.type === 'sub_in') {
+      const inId = String(e.playerId ?? '').trim();
+      if (!inId) continue;
+      const outEv = pendingOut.shift();
+      if (!outEv) {
+        orphanInIgnored += 1;
+        continue;
+      }
+      const outId = String(outEv.playerId ?? '').trim();
+      if (!outId || outId === inId) {
+        orphanOutIgnored += 1;
+        orphanInIgnored += 1;
+        continue;
+      }
+      canonical.push({
+        id: `replaypair_${outEv.id}_${e.id}`,
+        type: 'substitution',
+        timestamp: Math.max(outEv.timestamp, e.timestamp),
+        playerId: outId,
+        swapWithPlayerId: inId,
+        createdAt: e.createdAt ?? outEv.createdAt,
+      });
+    }
+  }
+  orphanOutIgnored += pendingOut.length;
+  return { canonical, orphanInIgnored, orphanOutIgnored };
+}
+
+/**
+ * Wendet valide Wechsel + Positionswechsel auf Kickoff-Slots an.
+ * Kein halbes Legacy-Wechseln: keine orphan_in/orphan_out-Feldänderung.
  */
 export function replaySubstitutionEventsOnSlots(
   kickoffStartingPlayerIds: string[],
   events: MatchEngineEvent[],
   atMatchSecond: number,
-  opts?: { squadPlayerIds?: string[]; collectSteps?: boolean },
-): {
-  slots: Record<FieldSlotId, string | null>;
-  hadOrphanIn: boolean;
-  orphanOutRemaining: number;
-  steps?: LiveSubReplayStepDebug[];
-} {
+  opts?: {
+    squadPlayerIds?: string[];
+    collectSteps?: boolean;
+    /** Letzte valide DB-Aufstellung: füllt leere Slots nach fehlerhaftem Replay. */
+    fallbackSlotMap?: Record<FieldSlotId, string | null>;
+  },
+): LiveSubReplayResult {
   const t = Math.max(0, atMatchSecond);
-  let slots = dedupeFieldSlotMap(startingLineupToSlotMap(kickoffStartingPlayerIds.slice(0, 7)));
+  const kickoffBase = pickKickoffLineupBaseForReplay(
+    kickoffStartingPlayerIds,
+    opts?.fallbackSlotMap
+      ? fieldSlotMapToStartingIds(opts.fallbackSlotMap)
+      : undefined,
+  );
+  let slots = dedupeFieldSlotMap(startingLineupToSlotMap(kickoffBase));
 
+  const { canonical, orphanInIgnored, orphanOutIgnored } = canonicalSubstitutionEventsForReplay(events, t);
   const subs = sortSubEventsForSlotReplay(
-    sortMatchEventsChronologically(events).filter(
-      (e) =>
-        e.timestamp <= t &&
-        (e.type === 'sub_out' ||
-          e.type === 'sub_in' ||
-          e.type === 'substitution' ||
-          e.type === 'position_swap'),
-    ),
+    canonical.filter((e) => e.type === 'substitution' || e.type === 'position_swap'),
   );
 
-  const pendingOut: string[] = [];
-  let hadOrphanIn = false;
   const steps: LiveSubReplayStepDebug[] = [];
   let stepIdx = 0;
 
@@ -322,9 +415,6 @@ export function replaySubstitutionEventsOnSlots(
     const fieldIds = getOnFieldIdsInSlotOrder(slots);
     const benchIds = getBenchPlayers(squad, fieldIds);
     const fieldSet = new Set(fieldIds);
-    const dupF = dupIdsInList(fieldIds);
-    const dupB = dupIdsInList(benchIds);
-    const both = benchIds.filter((id) => fieldSet.has(id));
     stepIdx += 1;
     steps.push({
       step: stepIdx,
@@ -333,9 +423,9 @@ export function replaySubstitutionEventsOnSlots(
       inPlayerId,
       fieldBySlot: { ...slots },
       benchIds,
-      duplicatesField: dupF,
-      duplicatesBench: dupB,
-      playersInBoth: both,
+      duplicatesField: dupIdsInList(fieldIds),
+      duplicatesBench: dupIdsInList(benchIds),
+      playersInBoth: benchIds.filter((id) => fieldSet.has(id)),
     });
   };
 
@@ -349,58 +439,59 @@ export function replaySubstitutionEventsOnSlots(
     if (e.type === 'substitution') {
       const out = String(e.playerId ?? '').trim();
       const inn = String(e.swapWithPlayerId ?? '').trim();
-      if (out && inn) {
-        slots = applySubstitutionToSlots(slots, out, inn).slots;
+      if (!out || !inn || out === inn) continue;
+      const applied = applySubstitutionToSlots(slots, out, inn);
+      if (applied.outSlot) {
+        slots = applied.slots;
         pushStep('pair', out, inn);
-      }
-      continue;
-    }
-    if (e.type === 'sub_out' && e.playerId) {
-      const pid = String(e.playerId).trim();
-      if (pid) pendingOut.push(pid);
-    } else if (e.type === 'sub_in' && e.playerId) {
-      const inn = String(e.playerId).trim();
-      if (!inn) continue;
-      if (pendingOut.length > 0) {
-        const out = pendingOut.shift()!;
-        slots = applySubstitutionToSlots(slots, out, inn).slots;
-        pushStep('pair', out, inn);
-      } else {
-        hadOrphanIn = true;
-        const already = FIELD_SLOT_ORDER.some((s) => slots[s] === inn);
-        if (!already) {
-          const empty = FIELD_SLOT_ORDER.find((s) => !slots[s]);
-          if (empty) slots[empty] = inn;
-        }
-        slots = dedupeFieldSlotMap(slots);
-        pushStep('orphan_in', null, inn);
       }
     }
   }
 
-  let orphanOutRemaining = 0;
-  for (const out of pendingOut) {
-    orphanOutRemaining += 1;
-    const slot = FIELD_SLOT_ORDER.find((s) => slots[s] === out);
-    if (slot) slots[slot] = null;
-    pushStep('orphan_out', out, null);
+  if (opts?.fallbackSlotMap) {
+    slots = mergeFieldSlotsPreferReplay(slots, opts.fallbackSlotMap);
+  }
+
+  const fieldCount = getOnFieldIdsInSlotOrder(slots).length;
+  if (fieldCount < 7 && opts?.fallbackSlotMap) {
+    slots = mergeFieldSlotsPreferReplay(slots, opts.fallbackSlotMap);
   }
 
   slots = dedupeFieldSlotMap(slots);
 
-  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV && (hadOrphanIn || orphanOutRemaining > 0)) {
-    console.warn('[matchEngine] substitution replay: unpaired sub_out/sub_in', {
-      hadOrphanIn,
-      orphanOutRemaining,
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV && (orphanInIgnored > 0 || orphanOutIgnored > 0)) {
+    console.warn('[matchEngine] substitution replay: unpaired legacy sub_out/sub_in ignored', {
+      orphanInIgnored,
+      orphanOutIgnored,
+      fieldCountAfter: getOnFieldIdsInSlotOrder(slots).length,
     });
   }
 
   return {
     slots,
-    hadOrphanIn,
-    orphanOutRemaining,
+    hadOrphanIn: orphanInIgnored > 0,
+    orphanOutRemaining: orphanOutIgnored,
+    orphanInIgnored,
+    orphanOutIgnored,
     steps: opts?.collectSteps ? steps : undefined,
   };
+}
+
+/** Effektive End-Spielsekunde für Replay (End-Event, sonst cap aus Events/Uhr). */
+export function resolveReplayAtMatchSecond(
+  events: MatchEngineEvent[],
+  liveElapsedSeconds: number | null | undefined,
+): number {
+  const sorted = sortMatchEventsChronologically(events);
+  let endSec = -1;
+  for (const e of sorted) {
+    if (e.type === 'end') endSec = Math.max(endSec, e.timestamp);
+  }
+  if (endSec >= 0) return clampEffectiveMatchSeconds(endSec);
+  let maxEv = 0;
+  for (const e of sorted) maxEv = Math.max(maxEv, e.timestamp);
+  const elapsed = clampEffectiveMatchSeconds(Number(liveElapsedSeconds ?? 0) || 0);
+  return clampEffectiveMatchSeconds(Math.max(elapsed, maxEv));
 }
 
 /**

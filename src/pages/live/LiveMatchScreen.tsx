@@ -18,6 +18,7 @@ import {
   fairPlayExtraPlayerIdFromSortedEvents,
   sortMatchEventsChronologically,
   startingLineupToSlotMap,
+  resolveReplayAtMatchSecond,
   type MatchEngineEvent,
   type MatchEventType,
 } from '../../lib/matchEngine';
@@ -36,6 +37,7 @@ import {
   persistExtraPlayerOn,
   replaceMatchLineupAndBench,
   repairLiveMatchLineupBenchIfNeeded,
+  syncFinalLineupBenchFromEventReplay,
   persistPositionSwap,
   saveMatchEvent,
   updateMatchRow,
@@ -705,13 +707,12 @@ export const LiveMatchScreen: React.FC = () => {
     return m;
   }, [roster]);
 
-  /** Live: Kickoff-Snapshot + Events; sonst DB-Lineup (z. B. Setup). */
+  /** Replay-Basis: immer Kickoff-Snapshot wenn vorhanden (auch nach Matchende — sonst Doppel-Replay). */
   const liveLineupBasePlayerIds = useMemo(() => {
-    const isLive = matchRow?.status === 'live';
     const hasKickoffPlayer = kickoffStartingPlayerIds.some((id) => String(id ?? '').trim().length > 0);
-    if (isLive && hasKickoffPlayer) return kickoffStartingPlayerIds.slice(0, 7);
-    return startingPlayerIds;
-  }, [matchRow?.status, kickoffStartingPlayerIds, startingPlayerIds]);
+    if (hasKickoffPlayer) return kickoffStartingPlayerIds.slice(0, 7);
+    return startingPlayerIds.slice(0, 7);
+  }, [kickoffStartingPlayerIds, startingPlayerIds]);
 
   const { currentMatchSeconds, half } = useMatchTimer({
     elapsedSeconds: matchRow?.live_elapsed_seconds ?? 0,
@@ -811,7 +812,10 @@ export const LiveMatchScreen: React.FC = () => {
     }
     lineupReloadInFlightRef.current = true;
     try {
-      if (canControlLiveMatch && matchRow?.status === 'live') {
+      if (
+        canControlLiveMatch &&
+        (matchRow?.status === 'live' || matchRow?.status === 'finished')
+      ) {
         const { repaired, error } = await repairLiveMatchLineupBenchIfNeeded(effectiveMatchId);
         if (error) setSaveError(error);
         if (import.meta.env.DEV && repaired) {
@@ -2021,6 +2025,27 @@ export const LiveMatchScreen: React.FC = () => {
             }
           : null,
       );
+      const atReplay = resolveReplayAtMatchSecond(events, frozen);
+      const syncRes = await syncFinalLineupBenchFromEventReplay({
+        matchId: effectiveMatchId,
+        kickoffStartingPlayerIds: kickoffStartingPlayerIds.slice(0, 7),
+        squadPlayerIds,
+        events: sortMatchEventsChronologically(events),
+        atMatchSecond: atReplay,
+        fallbackStartingPlayerIds: startingPlayerIds.slice(0, 7),
+      });
+      if (syncRes.error) {
+        setSaveError(syncRes.error);
+      } else {
+        setStartingPlayerIds(syncRes.startingPlayerIds);
+        setSquadPlayerIds(syncRes.squadPlayerIds);
+        if (lineupData) {
+          setLineupData({
+            startingPlayerIds: syncRes.startingPlayerIds,
+            squadPlayerIds: syncRes.squadPlayerIds,
+          });
+        }
+      }
       console.info('[resultFeed][LiveMatch] persistMatchEndWithoutCalendar OK', {
         matchId: effectiveMatchId,
         status: 'finished',
