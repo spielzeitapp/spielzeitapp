@@ -455,6 +455,48 @@ export function canonicalSubstitutionEventsForReplay(
   return { canonical, orphanInIgnored, orphanOutIgnored };
 }
 
+/** FairPlay-Ende: Feld verlässt / Zusatzspieler übernimmt Slot (7/7 nach `extra_player_off`). */
+function applyFairPlayEventsToSlots(
+  slots: Record<FieldSlotId, string | null>,
+  events: MatchEngineEvent[],
+  atMatchSecond: number,
+): Record<FieldSlotId, string | null> {
+  const t = Math.max(0, atMatchSecond);
+  const sorted = sortMatchEventsChronologically(events).filter((e) => e.timestamp <= t);
+  let next = { ...slots } as Record<FieldSlotId, string | null>;
+  for (const e of sorted) {
+    if (e.type !== 'extra_player_off') continue;
+    const removed = fairPlayRemovedPlayerIdFromEvent(e);
+    const extraId = fairPlayExtraPlayerIdFromOffEvent(e);
+    if (!removed) continue;
+    if (extraId && removed === extraId) {
+      for (const s of FIELD_SLOT_ORDER) {
+        if (String(next[s] ?? '').trim() === extraId) next[s] = null;
+      }
+      continue;
+    }
+    if (!extraId) continue;
+    let placed = false;
+    for (const s of FIELD_SLOT_ORDER) {
+      if (String(next[s] ?? '').trim() === removed) {
+        next[s] = extraId;
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      for (const s of FIELD_SLOT_ORDER) {
+        if (!String(next[s] ?? '').trim()) {
+          next[s] = extraId;
+          placed = true;
+          break;
+        }
+      }
+    }
+  }
+  return dedupeFieldSlotMap(next);
+}
+
 /**
  * Wendet valide Wechsel + Positionswechsel auf Kickoff-Slots an.
  * Kein halbes Legacy-Wechseln: keine orphan_in/orphan_out-Feldänderung.
@@ -530,6 +572,8 @@ export function replaySubstitutionEventsOnSlots(
     }
   }
 
+  slots = applyFairPlayEventsToSlots(slots, events, t);
+
   if (opts?.fallbackSlotMap) {
     slots = mergeFieldSlotsPreferReplay(slots, opts.fallbackSlotMap);
   }
@@ -559,6 +603,16 @@ export function replaySubstitutionEventsOnSlots(
   };
 }
 
+/** Höchste Spielsekunde in Events (ohne End-Sonderfall). */
+export function maxEventSecondFromEvents(events: MatchEngineEvent[]): number {
+  let maxEv = 0;
+  for (const e of events) {
+    if (e.timestamp == null || !Number.isFinite(e.timestamp)) continue;
+    maxEv = Math.max(maxEv, clampEffectiveMatchSeconds(e.timestamp));
+  }
+  return clampEffectiveMatchSeconds(maxEv);
+}
+
 /** Effektive End-Spielsekunde für Replay (End-Event, sonst cap aus Events/Uhr). */
 export function resolveReplayAtMatchSecond(
   events: MatchEngineEvent[],
@@ -570,10 +624,32 @@ export function resolveReplayAtMatchSecond(
     if (e.type === 'end') endSec = Math.max(endSec, e.timestamp);
   }
   if (endSec >= 0) return clampEffectiveMatchSeconds(endSec);
-  let maxEv = 0;
-  for (const e of sorted) maxEv = Math.max(maxEv, e.timestamp);
+  const maxEv = maxEventSecondFromEvents(sorted);
   const elapsed = clampEffectiveMatchSeconds(Number(liveElapsedSeconds ?? 0) || 0);
   return clampEffectiveMatchSeconds(Math.max(elapsed, maxEv));
+}
+
+/**
+ * Cap für Spielzeit-Rekonstruktion: nie unter Event-Fortschritt oder persistierter Uhr fallen
+ * (Pause, Reload, FairPlay, veraltete `live_elapsed_seconds`).
+ */
+export function resolvePlaytimeFinalMatchSecond(params: {
+  events: MatchEngineEvent[];
+  currentMatchSeconds: number;
+  liveElapsedSeconds?: number | null;
+  isFinished: boolean;
+}): number {
+  const clock = clampEffectiveMatchSeconds(params.currentMatchSeconds);
+  const stored = clampEffectiveMatchSeconds(Number(params.liveElapsedSeconds ?? 0) || 0);
+  const maxEv = maxEventSecondFromEvents(params.events);
+  const eventCap = resolveReplayAtMatchSecond(
+    params.events,
+    Math.max(clock, stored, maxEv),
+  );
+  if (params.isFinished) {
+    return clampEffectiveMatchSeconds(Math.max(eventCap, maxEv, stored));
+  }
+  return clampEffectiveMatchSeconds(Math.max(clock, stored, maxEv, eventCap));
 }
 
 /**
@@ -601,6 +677,8 @@ export type PlayerPlaytimeMap = Record<string, number>;
 
 export type ComputePlayerPlaytimeParams = {
   kickoffStartingPlayerIds: string[];
+  /** Wenn Kickoff-Snapshot leer: aktuelle Startelf / DB-Fallback. */
+  fallbackStartingPlayerIds?: string[];
   squadPlayerIds: string[];
   events: MatchEngineEvent[];
   /** Effektive End-Spielsekunde (End-Event, Uhr oder `resolveReplayAtMatchSecond`). */
@@ -751,7 +829,21 @@ function warnPlaytimeDevtools(sortedAsc: MatchEngineEvent[]): void {
 export function computePlayerPlaytimeFromEvents(params: ComputePlayerPlaytimeParams): PlayerPlaytimeMap {
   const sorted = sortMatchEventsChronologically(params.events);
   const cap = clampEffectiveMatchSeconds(params.finalMatchSecond);
-  const kickoff = pickKickoffLineupBaseForReplay(params.kickoffStartingPlayerIds, params.kickoffStartingPlayerIds);
+  const kickoff = pickKickoffLineupBaseForReplay(
+    params.kickoffStartingPlayerIds,
+    params.fallbackStartingPlayerIds ?? params.kickoffStartingPlayerIds,
+  );
+
+  if (isDevPlaytimeWarn()) {
+    const kickoffEmpty = !kickoff.some((id) => String(id ?? '').trim().length > 0);
+    const squadHasPlayers = params.squadPlayerIds.some((id) => String(id ?? '').trim().length > 0);
+    if (kickoffEmpty && squadHasPlayers) {
+      console.warn('[playtime] Kickoff-Lineup leer obwohl Kader/Lineup vorhanden', {
+        kickoffLen: params.kickoffStartingPlayerIds.length,
+        fallbackLen: params.fallbackStartingPlayerIds?.length ?? 0,
+      });
+    }
+  }
 
   warnPlaytimeDevtools(sorted);
 
@@ -783,6 +875,9 @@ export function computePlayerPlaytimeFromEvents(params: ComputePlayerPlaytimePar
       }
 
       const active = activePlayerIdsAtSecond(kickoff, sorted, a);
+      if (isDevPlaytimeWarn() && active.size === 0 && cap > 0) {
+        console.warn('[playtime] activePlayerSet leer obwohl Match-Zeit läuft', { at: a, cap });
+      }
       if (isDevPlaytimeWarn() && active.size > 8) {
         console.warn('[playtime] ungewöhnlich viele aktive Feldspieler', { at: a, count: active.size });
       }

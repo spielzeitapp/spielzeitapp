@@ -6,8 +6,11 @@ import { useMatchTimer } from '../../hooks/useMatchTimer';
 import {
   applySubstitutionToSlots,
   computePlayerPlaytimeFromEvents,
+  maxEventSecondFromEvents,
+  resolvePlaytimeFinalMatchSecond,
   resolveReplayAtMatchSecond,
   clampEffectiveMatchSeconds,
+  type PlayerPlaytimeMap,
   displayMatchMinuteFromEffectiveSeconds,
   fieldSlotMapToStartingIds,
   getBenchPlayers,
@@ -329,6 +332,8 @@ const mbRowBtn = `flex ${mbBtnH} touch-manipulation items-center justify-center 
 /** BottomNav (~76px) + Safe Area — Live-Sheets/Confirm über Nav & Safari-Bar */
 const LIVE_SHEET_BOTTOM_CLEARANCE = 'calc(4.75rem + env(safe-area-inset-bottom, 0px))';
 const LIVE_SHEET_FOOTER_SAFE_PB = 'max(0.75rem, env(safe-area-inset-bottom, 0px))';
+/** FairPlay-Entfernen bestätigen: BottomNav + Safari Home-Indicator */
+const LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB = 'calc(env(safe-area-inset-bottom, 0px) + 7.5rem)';
 
 function eventIcon(t: MatchEventType): string {
   if (t === 'goal' || t === 'goal_away') return '⚽';
@@ -1654,26 +1659,81 @@ export const LiveMatchScreen: React.FC = () => {
     safeSlotOrder,
   ]);
 
-  /** Live: laufende Uhr als Cap; nach Ende Events/DB-Endsekunde (kein 00:00 bei laufendem Spiel). */
-  const playtimeFinalSecond = useMemo(() => {
-    const eventCap = resolveReplayAtMatchSecond(
-      eventsSortedAsc,
-      matchIsFinished ? matchRow?.live_elapsed_seconds ?? currentMatchSeconds : currentMatchSeconds,
-    );
-    if (matchIsFinished) return eventCap;
-    return clampEffectiveMatchSeconds(Math.max(currentMatchSeconds, eventCap));
-  }, [eventsSortedAsc, matchRow?.live_elapsed_seconds, currentMatchSeconds, matchIsFinished]);
+  const playtimeFinalSecond = useMemo(
+    () =>
+      resolvePlaytimeFinalMatchSecond({
+        events: eventsSortedAsc,
+        currentMatchSeconds,
+        liveElapsedSeconds: matchRow?.live_elapsed_seconds,
+        isFinished: matchIsFinished,
+      }),
+    [eventsSortedAsc, matchRow?.live_elapsed_seconds, currentMatchSeconds, matchIsFinished],
+  );
 
-  const playtimes = useMemo(
+  const playtimesRaw = useMemo(
     () =>
       computePlayerPlaytimeFromEvents({
-        kickoffStartingPlayerIds: liveLineupBasePlayerIds,
+        kickoffStartingPlayerIds: kickoffStartingPlayerIds.slice(0, 7),
+        fallbackStartingPlayerIds: startingPlayerIds.slice(0, 7),
         squadPlayerIds,
         events: eventsSortedAsc,
         finalMatchSecond: playtimeFinalSecond,
       }),
-    [liveLineupBasePlayerIds, squadPlayerIds, eventsSortedAsc, playtimeFinalSecond],
+    [
+      kickoffStartingPlayerIds,
+      startingPlayerIds,
+      squadPlayerIds,
+      eventsSortedAsc,
+      playtimeFinalSecond,
+    ],
   );
+
+  const prevPlaytimesRef = useRef<PlayerPlaytimeMap>({});
+  const playtimes = useMemo(() => {
+    const prev = prevPlaytimesRef.current;
+    const out: PlayerPlaytimeMap = { ...playtimesRaw };
+    if (import.meta.env.DEV) {
+      const maxEv = maxEventSecondFromEvents(eventsSortedAsc);
+      if (playtimeFinalSecond < maxEv) {
+        console.warn('[playtime] playtimeFinalSecond < maxEventSecond', {
+          playtimeFinalSecond,
+          maxEventSecond: maxEv,
+          currentMatchSeconds,
+          liveElapsed: matchRow?.live_elapsed_seconds,
+        });
+      }
+      if (
+        matchRow?.status === 'live' &&
+        !matchIsFinished &&
+        currentMatchSeconds < maxEv
+      ) {
+        console.warn('[playtime] currentMatchSeconds < maxEventSecond während live', {
+          currentMatchSeconds,
+          maxEventSecond: maxEv,
+        });
+      }
+      for (const [pid, sec] of Object.entries(out)) {
+        const p = prev[pid] ?? 0;
+        if (sec < p - 1) {
+          console.warn('[playtime] berechnete Spielerzeit sinkt', { pid, prev: p, next: sec });
+        }
+      }
+    }
+    for (const [pid, sec] of Object.entries(out)) {
+      const p = prev[pid] ?? 0;
+      if (sec < p) out[pid] = p;
+    }
+    prevPlaytimesRef.current = out;
+    return out;
+  }, [
+    playtimesRaw,
+    eventsSortedAsc,
+    playtimeFinalSecond,
+    currentMatchSeconds,
+    matchRow?.live_elapsed_seconds,
+    matchRow?.status,
+    matchIsFinished,
+  ]);
 
   /**
    * Wechsel-Vorschläge: kein TW; bevorzugt gleiche Liniengruppe (DEF/MID/OFF), sonst Fallback.
@@ -4752,7 +4812,7 @@ export const LiveMatchScreen: React.FC = () => {
           <div
             className={[
               'relative z-[1] flex w-full flex-col overflow-hidden rounded-t-2xl border border-red-500/35 bg-gradient-to-b from-red-950/40 via-black to-black text-white shadow-[0_-8px_40px_rgba(0,0,0,0.72)]',
-              fairPlayRemovePickId ? 'max-h-[min(42dvh,22rem)]' : 'max-h-[min(68dvh,28rem)]',
+              fairPlayRemovePickId ? 'max-h-[min(36dvh,20rem)]' : 'max-h-[min(68dvh,28rem)]',
             ].join(' ')}
             role="dialog"
             aria-modal="true"
@@ -4789,7 +4849,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
                 <footer
                   className="sticky bottom-0 z-10 shrink-0 border-t border-red-500/20 bg-black/95 px-3 pt-2 backdrop-blur-md"
-                  style={{ paddingBottom: LIVE_SHEET_FOOTER_SAFE_PB }}
+                  style={{ paddingBottom: LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB }}
                 >
                   <button
                     type="button"
