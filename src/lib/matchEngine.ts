@@ -583,49 +583,202 @@ export function getCurrentOnFieldPlayers(
 
 export type PlayerPlaytimeMap = Record<string, number>;
 
-/**
- * Effektive Spielzeit nur bei laufender Uhr; Pausen zählen nicht.
- * Segment [a,b) mit b = nächster Breakpoint oder aktuelle Spielsekunde.
- */
-export function calculatePlayerPlaytimes(
-  startingPlayerIds: string[],
+export type ComputePlayerPlaytimeParams = {
+  kickoffStartingPlayerIds: string[];
+  squadPlayerIds: string[];
+  events: MatchEngineEvent[];
+  /** Effektive End-Spielsekunde (End-Event, Uhr oder `resolveReplayAtMatchSecond`). */
+  finalMatchSecond: number;
+};
+
+const CLOCK_EVENT_TYPES = new Set<MatchEventType>(['start', 'pause', 'resume', 'end']);
+const LINEUP_PLAYTIME_EVENT_TYPES = new Set<MatchEventType>([
+  'substitution',
+  'sub_out',
+  'sub_in',
+  'extra_player_on',
+  'extra_player_off',
+]);
+
+function isDevPlaytimeWarn(): boolean {
+  return typeof import.meta !== 'undefined' && Boolean(import.meta.env?.DEV);
+}
+
+function eventMatchSecondOrNull(e: MatchEngineEvent): number | null {
+  if (e.timestamp == null || !Number.isFinite(e.timestamp)) return null;
+  return clampEffectiveMatchSeconds(e.timestamp);
+}
+
+function fairPlayExtraPlayerIdAtSecond(sortedAsc: MatchEngineEvent[], atSec: number): string | null {
+  const t = Math.max(0, atSec);
+  const sub = sortedAsc.filter((e) => (eventMatchSecondOrNull(e) ?? 0) <= t);
+  return fairPlayExtraPlayerIdFromSortedEvents(sub);
+}
+
+function activePlayerIdsAtSecond(
+  kickoff: string[],
+  sortedAsc: MatchEngineEvent[],
+  atSec: number,
+): Set<string> {
+  const t = Math.max(0, atSec);
+  const onField = getCurrentOnFieldPlayers(kickoff, sortedAsc, t);
+  const active = new Set(onField.map((id) => String(id).trim()).filter(Boolean));
+  const extra = fairPlayExtraPlayerIdAtSecond(sortedAsc, t);
+  if (extra) active.add(extra);
+  return active;
+}
+
+/** Effektive Laufsegmente [a,b) innerhalb [0,cap] — Pausen ausgeschlossen. */
+function buildEffectiveRunningSegments(sortedAsc: MatchEngineEvent[], cap: number): Array<[number, number]> {
+  const capN = clampEffectiveMatchSeconds(cap);
+  if (capN <= 0) return [];
+
+  const hasClock = sortedAsc.some((e) => CLOCK_EVENT_TYPES.has(e.type));
+  if (!hasClock) return [[0, capN]];
+
+  const hasStart = sortedAsc.some((e) => e.type === 'start');
+  const cuts = new Set<number>([0, capN]);
+  for (const e of sortedAsc) {
+    if (!CLOCK_EVENT_TYPES.has(e.type)) continue;
+    const t = eventMatchSecondOrNull(e);
+    if (t == null || t < 0 || t > capN) continue;
+    cuts.add(t);
+  }
+  const points = [...cuts].sort((a, b) => a - b);
+  const segments: Array<[number, number]> = [];
+
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const a = points[i];
+    const b = points[i + 1];
+    if (b <= a) continue;
+    const running = hasStart
+      ? clockStateAfterEvents(sortedAsc.filter((e) => (eventMatchSecondOrNull(e) ?? 0) <= a)).running
+      : isClockRunningAtImplicitStart(a, sortedAsc);
+    if (running) segments.push([a, b]);
+  }
+  return segments;
+}
+
+function collectPlaytimePlayerIds(
+  kickoff: string[],
   squadPlayerIds: string[],
-  events: MatchEngineEvent[],
-  currentMatchSeconds: number,
-): PlayerPlaytimeMap {
-  const sorted = sortMatchEventsChronologically(events);
-  const cap = Math.max(0, currentMatchSeconds);
-  const hasClockControlEvents = sorted.some(
-    (e) => e.type === 'start' || e.type === 'resume' || e.type === 'pause' || e.type === 'end',
+  sortedAsc: MatchEngineEvent[],
+): Set<string> {
+  const ids = new Set<string>();
+  const add = (raw: string | null | undefined) => {
+    const id = String(raw ?? '').trim();
+    if (id) ids.add(id);
+  };
+  for (const id of squadPlayerIds) add(id);
+  for (const id of kickoff) add(id);
+  for (const e of sortedAsc) {
+    add(e.playerId);
+    add(e.swapWithPlayerId);
+  }
+  return ids;
+}
+
+function warnPlaytimeDevtools(sortedAsc: MatchEngineEvent[]): void {
+  if (!isDevPlaytimeWarn()) return;
+
+  for (const e of sortedAsc) {
+    if (eventMatchSecondOrNull(e) == null) {
+      console.warn('[playtime] Event ohne gültige Spielsekunde', { id: e.id, type: e.type });
+    }
+    if (e.type === 'substitution') {
+      const outId = String(e.playerId ?? '').trim();
+      const inId = String(e.swapWithPlayerId ?? '').trim();
+      if (!outId || !inId) {
+        console.warn('[playtime] substitution ohne playerOut/playerIn', { id: e.id, outId, inId });
+      }
+    }
+  }
+
+  const { orphanInIgnored, orphanOutIgnored } = canonicalSubstitutionEventsForReplay(
+    sortedAsc,
+    U11_MATCH_CLOCK_MAX_SECONDS,
   );
-  const hasExplicitStart = sorted.some((e) => e.type === 'start');
+  if (orphanInIgnored > 0 || orphanOutIgnored > 0) {
+    console.warn('[playtime] Legacy-Wechsel unvollständig (ignoriert)', { orphanInIgnored, orphanOutIgnored });
+  }
+
+  let extraActive: string | null = null;
+  for (const e of sortedAsc) {
+    if (e.type === 'extra_player_off') {
+      const offId = String(e.playerId ?? '').trim();
+      if (!extraActive) {
+        console.warn('[playtime] extra_player_off ohne aktiven Zusatzspieler', { id: e.id, offId });
+      } else if (offId && offId !== extraActive) {
+        console.warn('[playtime] extra_player_off für anderen Spieler', {
+          id: e.id,
+          expected: extraActive,
+          got: offId,
+        });
+      }
+      extraActive = null;
+    } else if (e.type === 'extra_player_on') {
+      const onId = String(e.playerId ?? '').trim();
+      if (extraActive && onId && onId !== extraActive) {
+        console.warn('[playtime] Zusatzspieler doppelt aktiv (überlappende on-Events)', {
+          prev: extraActive,
+          next: onId,
+        });
+      }
+      if (onId) extraActive = onId;
+    }
+  }
+}
+
+/**
+ * Spielzeit pro Spieler aus Events rekonstruieren (Kickoff, Wechsel, FairPlay, Uhr ohne Pausen).
+ */
+export function computePlayerPlaytimeFromEvents(params: ComputePlayerPlaytimeParams): PlayerPlaytimeMap {
+  const sorted = sortMatchEventsChronologically(params.events);
+  const cap = clampEffectiveMatchSeconds(params.finalMatchSecond);
+  const kickoff = pickKickoffLineupBaseForReplay(params.kickoffStartingPlayerIds, params.kickoffStartingPlayerIds);
+
+  warnPlaytimeDevtools(sorted);
 
   const seconds: PlayerPlaytimeMap = {};
-  for (const id of squadPlayerIds) seconds[id] = 0;
+  const trackIds = collectPlaytimePlayerIds(kickoff, params.squadPlayerIds, sorted);
+  for (const id of trackIds) seconds[id] = 0;
 
-  const breakpoints = new Set<number>([0, cap]);
-  for (const e of sorted) {
-    if (e.timestamp >= 0 && e.timestamp <= cap) breakpoints.add(e.timestamp);
-  }
-  const breaks = [...breakpoints].sort((a, b) => a - b);
+  const runningSegments = buildEffectiveRunningSegments(sorted, cap);
 
-  for (let i = 0; i < breaks.length - 1; i++) {
-    const a = breaks[i];
-    const b = breaks[i + 1];
-    const len = b - a;
-    if (len <= 0) continue;
-    // Fallback: Wenn keine Clock-Control-Events vorhanden sind (DB speichert oft nur Tor/Wechsel),
-    // interpretieren wir `currentMatchSeconds` als effektive Spielzeit und zählen [0..cap] durch.
-    // Falls Pause/Resume vorhanden sind, aber kein explizites Start-Event, nehmen wir impliziten Start ab 0 an.
-    const runningAtA = !hasClockControlEvents
-      ? true
-      : hasExplicitStart
-        ? isClockRunningAt(a, sorted)
-        : isClockRunningAtImplicitStart(a, sorted);
-    if (!runningAtA) continue;
-    const onField = getCurrentOnFieldPlayers(startingPlayerIds, sorted, a);
-    for (const pid of onField) {
-      if (seconds[pid] !== undefined) seconds[pid] += len;
+  for (const [runA, runB] of runningSegments) {
+    const subCuts = new Set<number>([runA, runB]);
+    for (const e of sorted) {
+      if (!LINEUP_PLAYTIME_EVENT_TYPES.has(e.type)) continue;
+      const t = eventMatchSecondOrNull(e);
+      if (t == null || t < runA || t > runB) continue;
+      subCuts.add(t);
+    }
+    const points = [...subCuts].sort((a, b) => a - b);
+
+    for (let i = 0; i < points.length - 1; i += 1) {
+      const a = points[i];
+      const b = points[i + 1];
+      const dur = b - a;
+      if (dur <= 0) {
+        if (dur < 0 && isDevPlaytimeWarn()) {
+          console.warn('[playtime] negative Segmentdauer', { a, b, dur });
+        }
+        continue;
+      }
+
+      const active = activePlayerIdsAtSecond(kickoff, sorted, a);
+      if (isDevPlaytimeWarn() && active.size > 8) {
+        console.warn('[playtime] ungewöhnlich viele aktive Feldspieler', { at: a, count: active.size });
+      }
+
+      for (const pid of active) {
+        const prev = seconds[pid] ?? 0;
+        seconds[pid] = prev + dur;
+        if (isDevPlaytimeWarn() && seconds[pid] < prev) {
+          console.warn('[playtime] Spielzeit würde sinken', { pid, prev, next: seconds[pid] });
+          seconds[pid] = prev;
+        }
+      }
     }
   }
 
@@ -633,6 +786,98 @@ export function calculatePlayerPlaytimes(
     if (seconds[id] < 0) seconds[id] = 0;
   }
   return seconds;
+}
+
+/** DB-Zeile (Statistik/Reports) → Engine-Event. */
+export function statsMatchEventRowToEngine(row: {
+  id?: string;
+  match_id?: string;
+  type?: string;
+  minute?: number | null;
+  player_id?: string | null;
+  payload?: unknown;
+  created_at?: string;
+}): MatchEngineEvent | null {
+  const id = String(row.id ?? `stat_${row.match_id ?? 'm'}_${row.type ?? 'ev'}_${row.minute ?? 0}`).trim();
+  const createdAt = row.created_at ?? undefined;
+  const minute = row.minute != null ? clampEffectiveMatchSeconds(Number(row.minute)) : 0;
+  const type = String(row.type ?? '').trim();
+
+  if (type === 'kickoff') {
+    return { id, type: 'start', timestamp: minute, createdAt };
+  }
+  if (type === 'final_whistle') {
+    return { id, type: 'end', timestamp: minute, createdAt };
+  }
+  if (type === 'period_start') {
+    return { id, type: 'resume', timestamp: minute, createdAt };
+  }
+  if (type === 'period_end') {
+    return { id, type: 'pause', timestamp: minute, createdAt };
+  }
+  if (type === 'substitution') {
+    const p = row.payload && typeof row.payload === 'object' ? (row.payload as Record<string, unknown>) : {};
+    const playerIn =
+      typeof p.player_in_id === 'string' && p.player_in_id.trim().length > 0 ? p.player_in_id.trim() : '';
+    const outId = String(row.player_id ?? '').trim();
+    return {
+      id,
+      type: 'substitution',
+      timestamp: minute,
+      playerId: outId || undefined,
+      swapWithPlayerId: playerIn || undefined,
+      createdAt,
+    };
+  }
+  if (type === 'substitution_out') {
+    return { id, type: 'sub_out', timestamp: minute, playerId: row.player_id ?? undefined, createdAt };
+  }
+  if (type === 'substitution_in') {
+    return { id, type: 'sub_in', timestamp: minute, playerId: row.player_id ?? undefined, createdAt };
+  }
+  if (type === 'extra_player_on' || type === 'extra_player_off') {
+    return {
+      id,
+      type: type as 'extra_player_on' | 'extra_player_off',
+      timestamp: minute,
+      playerId: row.player_id ?? undefined,
+      createdAt,
+    };
+  }
+  if (
+    type === 'start' ||
+    type === 'pause' ||
+    type === 'resume' ||
+    type === 'end' ||
+    type === 'sub_out' ||
+    type === 'sub_in' ||
+    type === 'goal' ||
+    type === 'goal_away'
+  ) {
+    return {
+      id,
+      type: type as MatchEventType,
+      timestamp: minute,
+      playerId: row.player_id ?? undefined,
+      createdAt,
+    };
+  }
+  return null;
+}
+
+/** @deprecated Alias — nutze `computePlayerPlaytimeFromEvents`. */
+export function calculatePlayerPlaytimes(
+  startingPlayerIds: string[],
+  squadPlayerIds: string[],
+  events: MatchEngineEvent[],
+  currentMatchSeconds: number,
+): PlayerPlaytimeMap {
+  return computePlayerPlaytimeFromEvents({
+    kickoffStartingPlayerIds: startingPlayerIds,
+    squadPlayerIds,
+    events,
+    finalMatchSecond: currentMatchSeconds,
+  });
 }
 
 export type PlaytimeAmpel = 'red' | 'yellow' | 'green';

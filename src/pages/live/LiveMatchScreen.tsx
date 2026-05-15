@@ -5,7 +5,8 @@ import { usePlayers } from '../../hooks/usePlayers';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
 import {
   applySubstitutionToSlots,
-  calculatePlayerPlaytimes,
+  computePlayerPlaytimeFromEvents,
+  resolveReplayAtMatchSecond,
   clampEffectiveMatchSeconds,
   displayMatchMinuteFromEffectiveSeconds,
   fieldSlotMapToStartingIds,
@@ -1646,9 +1647,20 @@ export const LiveMatchScreen: React.FC = () => {
     safeSlotOrder,
   ]);
 
+  const playtimeFinalSecond = useMemo(
+    () => resolveReplayAtMatchSecond(eventsSortedAsc, matchRow?.live_elapsed_seconds ?? currentMatchSeconds),
+    [eventsSortedAsc, matchRow?.live_elapsed_seconds, currentMatchSeconds],
+  );
+
   const playtimes = useMemo(
-    () => calculatePlayerPlaytimes(liveLineupBasePlayerIds, squadPlayerIds, events, currentMatchSeconds),
-    [liveLineupBasePlayerIds, squadPlayerIds, events, currentMatchSeconds],
+    () =>
+      computePlayerPlaytimeFromEvents({
+        kickoffStartingPlayerIds: liveLineupBasePlayerIds,
+        squadPlayerIds,
+        events: eventsSortedAsc,
+        finalMatchSecond: playtimeFinalSecond,
+      }),
+    [liveLineupBasePlayerIds, squadPlayerIds, eventsSortedAsc, playtimeFinalSecond],
   );
 
   /**

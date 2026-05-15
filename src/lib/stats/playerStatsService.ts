@@ -1,4 +1,11 @@
 import { supabase } from '../supabaseClient';
+import {
+  computePlayerPlaytimeFromEvents,
+  FIELD_SLOT_ORDER,
+  resolveReplayAtMatchSecond,
+  statsMatchEventRowToEngine,
+  type MatchEngineEvent,
+} from '../matchEngine';
 
 export type PlayerSeasonStats = {
   games: number;
@@ -59,6 +66,8 @@ type EventRow = {
   minute: number | null;
   player_id: string | null;
   payload?: unknown;
+  id?: string;
+  created_at?: string;
 };
 
 function substitutionInPlayerIdFromEvent(e: EventRow): string | null {
@@ -73,6 +82,35 @@ type SnapshotRow = {
   player_id: string;
   slot: string;
 };
+
+/** Kickoff-Startelf in Slot-Reihenfolge (7er) pro Match. */
+function buildKickoffLineupByMatch(
+  snapshots: SnapshotRow[],
+  fallbackLineup: Map<string, Set<string>>,
+): Map<string, string[]> {
+  const slotMaps = new Map<string, Map<string, string>>();
+  for (const s of snapshots) {
+    const mid = String(s.match_id ?? '').trim();
+    const pid = String(s.player_id ?? '').trim();
+    const slot = String(s.slot ?? '').trim();
+    if (!mid || !pid || !slot) continue;
+    if (!slotMaps.has(mid)) slotMaps.set(mid, new Map());
+    slotMaps.get(mid)!.set(slot, pid);
+  }
+  const out = new Map<string, string[]>();
+  for (const [mid, slots] of slotMaps) {
+    out.set(
+      mid,
+      FIELD_SLOT_ORDER.map((slot) => String(slots.get(slot) ?? '').trim()),
+    );
+  }
+  for (const [mid, set] of fallbackLineup) {
+    if (!out.has(mid) || out.get(mid)!.every((id) => !id)) {
+      out.set(mid, [...set].slice(0, 7));
+    }
+  }
+  return out;
+}
 
 function buildKickoffSetByMatch(
   snapshots: SnapshotRow[],
@@ -147,13 +185,20 @@ function cardCountsInMatchForPlayer(events: EventRow[], playerId: string): { yel
   return { yellow, red };
 }
 
-/** MVP-Minuten: Kickoff-Set, Wechsel (substitution + Legacy sub_out/sub_in), live_elapsed_seconds = Ende. */
-function minutesPlayedInMatchMvp(
+function eventRowsToEngineEvents(rows: EventRow[]): MatchEngineEvent[] {
+  const out: MatchEngineEvent[] = [];
+  for (const row of rows) {
+    const ev = statsMatchEventRowToEngine(row);
+    if (ev) out.push(ev);
+  }
+  return out;
+}
+
+/** Nur für Badge-Labels (EIN/Teilzeit), Minuten kommen aus `computePlayerPlaytimeFromEvents`. */
+function substitutionBadgeSeconds(
   playerId: string,
-  totalSec: number,
-  wasStarter: boolean,
   events: EventRow[],
-): { minutes: number; subInSec: number | null; subOutSec: number | null } {
+): { subInSec: number | null; subOutSec: number | null } {
   let subOutSec: number | null = null;
   let subInSec: number | null = null;
   const pid = playerId.trim();
@@ -174,22 +219,7 @@ function minutesPlayedInMatchMvp(
       if (inId === pid && (subInSec == null || t < subInSec)) subInSec = t;
     }
   }
-
-  const totalMin = Math.floor(totalSec / 60);
-
-  if (wasStarter) {
-    if (subOutSec != null) {
-      return { minutes: Math.floor(subOutSec / 60), subInSec, subOutSec };
-    }
-    return { minutes: totalMin, subInSec, subOutSec: null };
-  }
-
-  if (subInSec != null) {
-    const playedSec = Math.max(0, totalSec - subInSec);
-    return { minutes: Math.floor(playedSec / 60), subInSec, subOutSec };
-  }
-
-  return { minutes: 0, subInSec: null, subOutSec: null };
+  return { subInSec, subOutSec };
 }
 
 function badgeForRow(args: {
@@ -257,7 +287,7 @@ async function fetchEventsForMatches(matchIds: string[]): Promise<EventRow[]> {
   for (const batch of chunk(matchIds, 80)) {
     const { data, error } = await supabase
       .from('match_events')
-      .select('match_id, type, minute, player_id, payload')
+      .select('id, match_id, type, minute, player_id, payload, created_at')
       .in('match_id', batch);
     if (error) {
       console.warn('[playerStatsService] match_events', error.message);
@@ -306,6 +336,7 @@ function aggregateForPlayer(
 
   const matchIds = matches.map((m) => m.id);
   const kickoffByMatch = buildKickoffSetByMatch(snapshots, lineupFallback);
+  const kickoffLineupByMatch = buildKickoffLineupByMatch(snapshots, lineupFallback);
   const eventsByMatch = collectEventsByMatch(events);
 
   let games = 0;
@@ -330,13 +361,23 @@ function aggregateForPlayer(
     const kickSet = kickoffByMatch.get(mid) ?? new Set<string>();
     const wasStarter = kickSet.has(pid);
 
-    const totalSec = matchTotalSeconds(m.live_elapsed_seconds);
-    const { minutes: mMin, subInSec, subOutSec } = minutesPlayedInMatchMvp(pid, totalSec, wasStarter, evs);
+    const kickoffIds = kickoffLineupByMatch.get(mid) ?? [];
+    const squadSet = new Set<string>([...(lineupFallback.get(mid) ?? []), ...kickSet]);
+    const engineEvs = eventRowsToEngineEvents(evs);
+    const finalSec = resolveReplayAtMatchSecond(engineEvs, m.live_elapsed_seconds);
+    const playtimes = computePlayerPlaytimeFromEvents({
+      kickoffStartingPlayerIds: kickoffIds,
+      squadPlayerIds: [...squadSet],
+      events: engineEvs,
+      finalMatchSecond: finalSec,
+    });
+    const mMin = Math.floor(Math.max(0, playtimes[pid] ?? 0) / 60);
+    const { subInSec, subOutSec } = substitutionBadgeSeconds(pid, evs);
     minutes += mMin;
 
     const sh = Number(m.score_home ?? 0);
     const sa = Number(m.score_away ?? 0);
-    const totalMin = Math.floor(totalSec / 60);
+    const totalMin = Math.floor(finalSec / 60);
     const badge = badgeForRow({
       wasStarter,
       minutes: mMin,
