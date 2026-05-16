@@ -319,7 +319,7 @@ const hubNavTrainer = 'mt-2 grid w-full grid-cols-2 gap-2 sm:gap-2.5';
 const hubNavBtn =
   'flex min-h-[52px] w-full touch-manipulation items-center justify-center rounded-2xl border border-white/12 bg-white/[0.07] px-3 py-3.5 text-[15px] font-extrabold tracking-tight text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_22px_rgba(0,0,0,0.38)] backdrop-blur-md transition active:scale-[0.98] sm:min-h-[56px] sm:text-base';
 const liveModuleBackBar =
-  'mt-0 flex min-h-[48px] shrink-0 flex-wrap items-center gap-2 border-b border-white/10 bg-black/60 px-2 py-2 backdrop-blur-md sm:px-3';
+  'sticky top-0 z-40 mt-0 flex min-h-[48px] shrink-0 flex-wrap items-center gap-2 border-b border-white/10 bg-black/85 px-2 py-2 backdrop-blur-md sm:px-3';
 
 const liveCardShell =
   'rounded-2xl border border-white/[0.08] bg-gradient-to-br from-zinc-950/95 via-zinc-950/80 to-black shadow-[0_6px_28px_rgba(0,0,0,0.35)]';
@@ -331,8 +331,14 @@ const mbRowBtn = `flex ${mbBtnH} touch-manipulation items-center justify-center 
 /** BottomNav (~76px) + Safe Area — Live-Sheets/Confirm über Nav & Safari-Bar */
 const LIVE_SHEET_BOTTOM_CLEARANCE = 'calc(4.75rem + env(safe-area-inset-bottom, 0px))';
 const LIVE_SHEET_FOOTER_SAFE_PB = 'max(0.75rem, env(safe-area-inset-bottom, 0px))';
-/** FairPlay-Entfernen bestätigen: BottomNav + Safari Home-Indicator */
-const LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB = 'calc(env(safe-area-inset-bottom, 0px) + 7.5rem)';
+/** Sheet-CTA: BottomNav + Safari Home-Indicator */
+const LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB = 'calc(120px + env(safe-area-inset-bottom, 0px))';
+const LIVE_SHEET_MAX_HEIGHT = 'min(80dvh, 40rem)';
+const LIVE_SCROLL_BOTTOM_PAD = 'calc(140px + env(safe-area-inset-bottom, 0px))';
+/** iOS: kein Kopieren/Lookup auf Ergebnis & Uhr */
+const SCOREBOARD_NO_SELECT =
+  'select-none touch-manipulation [-webkit-touch-callout:none] [-webkit-user-select:none] [user-select:none]';
+export const LIVE_NAV_RESET_EVENT = 'spielzeit:live-nav-reset';
 
 function eventIcon(t: MatchEventType): string {
   if (t === 'goal' || t === 'goal_away') return '⚽';
@@ -1078,6 +1084,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [goalUndoToastClosing, setGoalUndoToastClosing] = useState(false);
   const goalUndoTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const goalUndoFadeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const liveScrollRef = useRef<HTMLDivElement>(null);
   const substitutionToastTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const subSaveInFlightRef = useRef(false);
   const substitutionAnimTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
@@ -1943,6 +1950,26 @@ export const LiveMatchScreen: React.FC = () => {
     squadPlayerIds,
     closeFairPlayRemoveSheet,
     queueRealtimeReload,
+  ]);
+
+  useEffect(() => {
+    const onLiveNavReset = () => {
+      setMainTab('hub');
+      closeWechselSheet();
+      closeFormationSheet();
+      closeFairPlayExtraSheet();
+      closeFairPlayRemoveSheet();
+      setFormationPendingId(null);
+      setLineupPositionMode(false);
+      liveScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    window.addEventListener(LIVE_NAV_RESET_EVENT, onLiveNavReset);
+    return () => window.removeEventListener(LIVE_NAV_RESET_EVENT, onLiveNavReset);
+  }, [
+    closeWechselSheet,
+    closeFormationSheet,
+    closeFairPlayExtraSheet,
+    closeFairPlayRemoveSheet,
   ]);
 
   const onStartClick = async () => {
@@ -2959,8 +2986,8 @@ export const LiveMatchScreen: React.FC = () => {
         : 'border-white/20 bg-zinc-900/95 text-white/55 shadow-[0_0_10px_rgba(0,0,0,0.35)]'
   }`;
   /** Nur Ziffer: Tap = Tor, Long-press = Undo (kein Ball-Icon). */
-  const scoreTapHome = `${mbRowBtn} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-emerald-400/40 bg-gradient-to-b from-emerald-950/92 to-black/75 px-3 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_26px_rgba(16,185,129,0.35)] hover:border-emerald-300/50 hover:shadow-[0_0_32px_rgba(16,185,129,0.42)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5 disabled:pointer-events-none disabled:opacity-38`;
-  const scoreTapAway = `${mbRowBtn} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-red-400/45 bg-gradient-to-b from-red-950/92 to-black/75 px-3 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_26px_rgba(239,68,68,0.38),0_0_12px_rgba(255,255,255,0.06)] hover:border-red-300/50 hover:shadow-[0_0_32px_rgba(239,68,68,0.45)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5 disabled:pointer-events-none disabled:opacity-38`;
+  const scoreTapHome = `${mbRowBtn} ${SCOREBOARD_NO_SELECT} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-emerald-400/40 bg-gradient-to-b from-emerald-950/92 to-black/75 px-3 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_26px_rgba(16,185,129,0.35)] hover:border-emerald-300/50 hover:shadow-[0_0_32px_rgba(16,185,129,0.42)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5 disabled:pointer-events-none disabled:opacity-38`;
+  const scoreTapAway = `${mbRowBtn} ${SCOREBOARD_NO_SELECT} gap-0 min-h-[48px] min-w-[2.85rem] shrink-0 rounded-xl border border-red-400/45 bg-gradient-to-b from-red-950/92 to-black/75 px-3 text-red-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_26px_rgba(239,68,68,0.38),0_0_12px_rgba(255,255,255,0.06)] hover:border-red-300/50 hover:shadow-[0_0_32px_rgba(239,68,68,0.45)] active:scale-[0.97] sm:min-w-[3.1rem] sm:px-3.5 disabled:pointer-events-none disabled:opacity-38`;
   const mbStart = `${mbRowBtn} rounded-xl border border-emerald-400/50 bg-gradient-to-b from-emerald-600/80 to-emerald-950/85 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_22px_rgba(16,185,129,0.35)] hover:from-emerald-500/85 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]`;
   /** Pause als linke Hauptaktion — dunkelgrün wie Zielbild, klar von Beginn/Weiter (hellgrün) getrennt. */
   const mbPausePrimary = `${mbRowBtn} rounded-xl border border-emerald-800/55 bg-gradient-to-b from-emerald-950/92 to-black/85 text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_16px_rgba(6,78,59,0.35)] hover:border-emerald-600/45 hover:from-emerald-900/88`;
@@ -3231,7 +3258,7 @@ export const LiveMatchScreen: React.FC = () => {
                     'radial-gradient(ellipse 92% 52% at 50% -8%, rgba(220,38,38,0.12), transparent 58%)',
                 }}
               />
-              <div className="relative z-[1] w-full px-3 py-1.5 pb-1 sm:px-[13px]">
+              <div className={`relative z-[1] w-full px-3 py-1.5 pb-1 sm:px-[13px] ${SCOREBOARD_NO_SELECT}`}>
                 {matchTypeDisplay ? (
                   <div className="flex justify-center">
                     <p className="text-base font-semibold text-white sm:text-lg">{matchTypeDisplay}</p>
@@ -3272,14 +3299,14 @@ export const LiveMatchScreen: React.FC = () => {
                     isPaused && !matchIsFinished ? 'mt-1.5' : matchTypeDisplay ? 'mt-2' : 'mt-1.5'
                   }`}
                 >
-                  <div className="flex min-w-0 w-[30%] max-w-[8.75rem] flex-col items-center sm:max-w-[9.5rem]">
+                  <div className={`flex min-w-0 w-[30%] max-w-[8.75rem] flex-col items-center sm:max-w-[9.5rem] ${SCOREBOARD_NO_SELECT}`}>
                     <LiveMatchLogoTile src={homeLogoSrc} liveGlow={false} size="boardSm" />
                     <div className="mt-1 w-full px-0.5">
                       <MatchboardTeamNameLines parts={homeNameParts} align="center" tight />
                     </div>
                   </div>
 
-                  <div className="flex min-w-0 shrink flex-col items-center gap-1 px-0.5 sm:px-1">
+                  <div className={`flex min-w-0 shrink flex-col items-center gap-1 px-0.5 sm:px-1 ${SCOREBOARD_NO_SELECT}`}>
                     {!spectatorView && canControlLiveMatch && !matchIsFinished ? (
                       <div className="flex items-start justify-center gap-1 sm:gap-2 motion-safe:transition-transform motion-safe:duration-300">
                         <div className="flex min-w-0 flex-col items-center">
@@ -3382,7 +3409,7 @@ export const LiveMatchScreen: React.FC = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center gap-1">
+                      <div className={`flex flex-col items-center gap-1 ${SCOREBOARD_NO_SELECT}`}>
                         <div className="flex items-center justify-center motion-safe:transition-transform motion-safe:duration-300">
                           <span className="text-center text-5xl font-bold leading-none text-white tabular-nums whitespace-nowrap sm:text-6xl">
                             {displayScoreHome}
@@ -3392,7 +3419,7 @@ export const LiveMatchScreen: React.FC = () => {
                         </div>
                         {!matchIsFinished ? (
                           <span
-                            className="liveTimer inline-flex items-center justify-center rounded-full bg-red-600 px-4 py-1 font-mono text-base font-bold tabular-nums leading-none text-white shadow-[0_0_26px_rgba(220,38,38,0.55),inset_0_1px_0_rgba(255,255,255,0.12)] sm:text-lg"
+                            className={`liveTimer inline-flex items-center justify-center rounded-full bg-red-600 px-4 py-1 font-mono text-base font-bold tabular-nums leading-none text-white shadow-[0_0_26px_rgba(220,38,38,0.55),inset_0_1px_0_rgba(255,255,255,0.12)] sm:text-lg ${SCOREBOARD_NO_SELECT}`}
                             aria-live="polite"
                           >
                             {formatClock(currentMatchSeconds)}
@@ -3400,12 +3427,12 @@ export const LiveMatchScreen: React.FC = () => {
                         ) : null}
                       </div>
                     )}
-                    <p className="mt-0.5 w-full text-center font-mono text-[9px] font-medium tabular-nums leading-none text-white/80 sm:text-[10px]">
+                    <p className={`mt-0.5 w-full text-center font-mono text-[9px] font-medium tabular-nums leading-none text-white/80 sm:text-[10px] ${SCOREBOARD_NO_SELECT}`}>
                       <span className="inline-block whitespace-nowrap tracking-[-0.01em]">{periodScoreLine}</span>
                     </p>
                   </div>
 
-                  <div className="flex min-w-0 w-[30%] max-w-[8.75rem] flex-col items-center sm:max-w-[9.5rem]">
+                  <div className={`flex min-w-0 w-[30%] max-w-[8.75rem] flex-col items-center sm:max-w-[9.5rem] ${SCOREBOARD_NO_SELECT}`}>
                     <LiveMatchLogoTile src={awayLogoSrc} liveGlow={false} size="boardSm" />
                     <div className="mt-1 w-full px-0.5">
                       <MatchboardTeamNameLines parts={awayNameParts} align="center" tight />
@@ -3480,6 +3507,33 @@ export const LiveMatchScreen: React.FC = () => {
               {!spectatorView && canControlLiveMatch ? (
                 <div className="relative z-[1] mt-0 space-y-1 border-t border-red-500/35 bg-black/55 px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-12px_32px_rgba(220,38,38,0.12)] backdrop-blur-md">
                   {renderTrainerClockActionRow('gap-1.5')}
+
+                  {goalUndoOffer ? (
+                    <div
+                      className={`flex items-center justify-between gap-2 rounded-xl border border-red-400/45 bg-gradient-to-r from-red-950/95 to-black/90 px-3 py-2 shadow-[0_0_18px_rgba(220,38,38,0.22)] transition-all duration-300 ${
+                        goalUndoToastClosing ? 'scale-[0.98] opacity-0' : 'scale-100 opacity-100'
+                      }`}
+                      role="status"
+                    >
+                      <p className="min-w-0 flex-1 truncate text-[12px] font-semibold leading-tight text-white">
+                        <span className="font-black text-red-200">Rückgängig</span>
+                        <span className="text-white/85">
+                          {' '}
+                          · Tor für{' '}
+                          {goalUndoOffer.side === 'home'
+                            ? stadiumHomeDisplay || 'Heim'
+                            : stadiumAwayDisplay || 'Gast'}
+                        </span>
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void undoLastGoal()}
+                        className="shrink-0 rounded-lg border border-white/25 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white active:scale-[0.98]"
+                      >
+                        ↶ Rückgängig
+                      </button>
+                    </div>
+                  ) : null}
 
                   {!matchIsFinished ? (
                     <button
@@ -3583,9 +3637,10 @@ export const LiveMatchScreen: React.FC = () => {
       </header>
 
       <div
-        className={`relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} pb-40 md:px-4 lg:px-5 md:py-4 ${
+        ref={liveScrollRef}
+        className={`relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} md:px-4 lg:px-5 md:py-4 ${
           mainTab === 'hub' ? 'px-2 pt-1 pb-2' : mainTab === 'lineup' ? 'px-0 py-0 sm:py-1' : 'px-2 py-3 pt-2'
-        } ${wechselSheetOpen ? 'brightness-[0.92]' : ''}`}
+        } ${mainTab !== 'hub' ? 'pb-[calc(140px+env(safe-area-inset-bottom,0px))]' : ''} ${wechselSheetOpen ? 'brightness-[0.92]' : ''}`}
       >
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>
@@ -3681,10 +3736,8 @@ export const LiveMatchScreen: React.FC = () => {
         )}
 
         {mainTab === 'lineup' && (
-          <div
-            className="flex min-h-0 flex-1 flex-col gap-3 px-2 pb-[calc(140px+env(safe-area-inset-bottom,0px))] pt-2 sm:px-3"
-          >
-            <section className="flex min-h-0 flex-1 flex-col gap-2 sm:rounded-2xl sm:border sm:border-white/[0.08] sm:bg-black/30 sm:p-1.5">
+          <div className="flex flex-col gap-2 px-2 pt-2 sm:px-3">
+            <section className="flex flex-col gap-2 sm:rounded-2xl sm:border sm:border-white/[0.08] sm:bg-black/30 sm:p-1.5">
               <div className="px-0.5">
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/55">Live-Aufstellung</p>
                 {canControlLiveMatch && lineupPositionMode && !matchIsFinished ? (
@@ -3702,7 +3755,11 @@ export const LiveMatchScreen: React.FC = () => {
                   onSlotTap={handleLineupPositionSlotTap}
                   emphasizedPlayerId={null}
                   slotHighlightBySlot={mainLineupPitchSlotHighlight}
-                  className="min-h-[46dvh] max-h-[min(74dvh,52rem)] w-full flex-1"
+                  className={
+                    fairPlayExtraPlayerId
+                      ? 'min-h-[34dvh] max-h-[min(48dvh,26rem)] w-full shrink-0'
+                      : 'min-h-[40dvh] max-h-[min(56dvh,32rem)] w-full shrink-0'
+                  }
                   renderSlotContent={({ slot, label, playerId, isGk }) => {
                     if (!playerId) return null;
                     const player = rosterById.get(playerId) ?? null;
@@ -3772,13 +3829,13 @@ export const LiveMatchScreen: React.FC = () => {
                   }}
                 />
                 {fairPlayExtraPlayerId ? (
-                  <div className="flex flex-col items-center justify-center px-1 pt-0.5">
-                    <p className="mb-1 text-[9px] font-black uppercase tracking-[0.16em] text-amber-200/80">
-                      FairPlay · Extra
-                    </p>
-                    <div className="relative inline-flex flex-col items-center">
+                  <div className="flex shrink-0 items-center justify-center gap-2 px-1 py-0.5">
+                    <span className="text-[8px] font-black uppercase tracking-[0.12em] text-amber-200/85">
+                      FairPlay +1
+                    </span>
+                    <div className="relative flex items-center gap-1.5">
                       <span
-                        className="absolute -right-0.5 -top-0.5 z-[2] rounded-full border border-amber-300/90 bg-amber-400 px-1 py-0 text-[8px] font-black leading-none text-black shadow-sm"
+                        className="absolute -right-1 -top-1 z-[2] rounded-full border border-amber-300/90 bg-amber-400 px-0.5 text-[7px] font-black leading-none text-black"
                         aria-label="Zusatzspieler"
                       >
                         +1
@@ -3797,14 +3854,14 @@ export const LiveMatchScreen: React.FC = () => {
                               variant="field"
                               size="compact"
                               pitchStyleBack
-                              className="ring-1 ring-amber-400/50"
+                              className="!h-[2.5rem] !w-[2rem] ring-1 ring-amber-400/45"
                             />
-                            <span className="mt-0.5 max-w-[10rem] truncate rounded-md bg-black/85 px-1 py-0.5 text-center text-[9px] font-semibold text-white ring-1 ring-white/15">
-                              {shortName}
-                            </span>
-                            <span className="mt-0.5 font-mono text-[10px] font-bold tabular-nums text-amber-200/90">
-                              {formatClock(playtimes[pid] ?? 0)}
-                            </span>
+                            <div className="min-w-0 text-left">
+                              <p className="max-w-[5.5rem] truncate text-[9px] font-semibold text-white">{shortName}</p>
+                              <p className="font-mono text-[9px] font-bold tabular-nums text-amber-200/90">
+                                {formatClock(playtimes[pid] ?? 0)}
+                              </p>
+                            </div>
                           </>
                         );
                       })()}
@@ -4100,7 +4157,7 @@ export const LiveMatchScreen: React.FC = () => {
             onClick={closeFormationSheet}
           >
             <div
-              className="flex max-h-[78dvh] min-h-0 w-full flex-col overflow-hidden rounded-t-3xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
+              className="flex min-h-0 w-full max-h-[min(80dvh,40rem)] flex-col overflow-hidden rounded-t-3xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
               role="dialog"
               aria-modal="true"
               aria-labelledby="formation-sheet-title"
@@ -4186,9 +4243,7 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
               <footer
                 className="shrink-0 border-t border-red-500/15 bg-black/80 px-3 pt-2 backdrop-blur-md"
-                style={{
-                  paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))',
-                }}
+                style={{ paddingBottom: LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB }}
               >
                 <button
                   type="button"
@@ -4211,7 +4266,7 @@ export const LiveMatchScreen: React.FC = () => {
           onClick={closeWechselSheet}
         >
           <div
-            className="flex min-h-0 max-h-[88dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
+            className="flex min-h-0 w-full max-h-[min(80dvh,40rem)] flex-col overflow-hidden rounded-t-3xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
             role="dialog"
             aria-modal="true"
             aria-labelledby="wechsel-sheet-title"
@@ -4541,9 +4596,7 @@ export const LiveMatchScreen: React.FC = () => {
 
             <footer
               className="sticky bottom-0 z-[70] shrink-0 border-t border-red-500/15 bg-black/90 px-2 pt-1.5 backdrop-blur-md"
-              style={{
-                paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))',
-              }}
+              style={{ paddingBottom: LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB }}
             >
               <div className="flex flex-row gap-2">
                 <button
@@ -4655,7 +4708,7 @@ export const LiveMatchScreen: React.FC = () => {
           <div
             className={[
               'flex w-full flex-col overflow-hidden rounded-t-2xl border border-amber-500/25 bg-gradient-to-b from-amber-950/45 via-black to-black text-white shadow-[0_-8px_40px_rgba(0,0,0,0.72)]',
-              fairPlayExtraPickId ? 'max-h-[min(42dvh,22rem)]' : 'max-h-[min(68dvh,28rem)]',
+              fairPlayExtraPickId ? 'max-h-[min(42dvh,22rem)]' : 'max-h-[min(80dvh,40rem)]',
             ].join(' ')}
             role="dialog"
             aria-modal="true"
@@ -4686,7 +4739,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
                 <footer
                   className="sticky bottom-0 z-10 shrink-0 border-t border-amber-500/20 bg-black/95 px-3 pt-2 backdrop-blur-md"
-                  style={{ paddingBottom: LIVE_SHEET_FOOTER_SAFE_PB }}
+                  style={{ paddingBottom: LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB }}
                 >
                   <button
                     type="button"
@@ -4758,7 +4811,7 @@ export const LiveMatchScreen: React.FC = () => {
           <div
             className={[
               'relative z-[1] flex w-full flex-col overflow-hidden rounded-t-2xl border border-red-500/35 bg-gradient-to-b from-red-950/40 via-black to-black text-white shadow-[0_-8px_40px_rgba(0,0,0,0.72)]',
-              fairPlayRemovePickId ? 'max-h-[min(36dvh,20rem)]' : 'max-h-[min(68dvh,28rem)]',
+              fairPlayRemovePickId ? 'max-h-[min(36dvh,20rem)]' : 'max-h-[min(80dvh,40rem)]',
             ].join(' ')}
             role="dialog"
             aria-modal="true"
@@ -5160,30 +5213,6 @@ export const LiveMatchScreen: React.FC = () => {
         </div>
       )}
 
-      {canControlLiveMatch && !matchIsFinished && goalUndoOffer ? (
-        <div className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] left-1/2 z-[70] w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2">
-          <div
-            className={`pointer-events-auto flex items-center justify-between gap-3 rounded-2xl border border-red-400/45 bg-gradient-to-b from-red-900/95 via-red-950/95 to-black/95 px-4 py-3 shadow-[0_14px_36px_rgba(0,0,0,0.5),0_0_26px_rgba(220,38,38,0.28),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-md transition-all duration-300 ${
-              goalUndoToastClosing ? 'translate-y-2 scale-[0.985] opacity-0' : 'translate-y-0 scale-100 opacity-100'
-            }`}
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-bold leading-tight text-white">Rückgängig</p>
-              <p className="mt-0.5 truncate text-[11px] font-medium text-red-100/90">
-                Tor für{' '}
-                {goalUndoOffer.side === 'home' ? stadiumHomeDisplay || 'Heim' : stadiumAwayDisplay || 'Gast'}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void undoLastGoal()}
-              className="shrink-0 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20"
-            >
-              ↶ Rückgängig
-            </button>
-          </div>
-        </div>
-      ) : null}
       {substitutionToastText ? (
         <div className="pointer-events-none fixed top-[calc(env(safe-area-inset-top,0px)+4.2rem)] left-1/2 z-[80] w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2">
           <div className="rounded-xl border border-emerald-400/35 bg-black/85 px-3 py-2 text-center text-xs font-semibold text-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.2)] backdrop-blur-md">

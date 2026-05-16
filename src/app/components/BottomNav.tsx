@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { useSession } from '../../auth/useSession';
 import { normalizeRole } from '../../lib/roles';
@@ -39,6 +39,7 @@ function NavItem({
   isLiveTab,
   liveMatchActive,
   badgeCount,
+  onReclick,
 }: {
   to: string;
   end?: boolean;
@@ -48,15 +49,24 @@ function NavItem({
   /** Nur true bei Tab „Live“ UND DB-Status `live` (kein Puls/Label bei beendetem Spiel). */
   liveMatchActive?: boolean;
   badgeCount?: number;
+  onReclick?: () => void;
 }) {
   const base = navAssetBase();
+  const { pathname } = useLocation();
   const isHomeBall = iconFile === 'home-ball.png';
   const showLiveIndicators = Boolean(isLiveTab && liveMatchActive);
+  const isOnTargetRoute = end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`);
 
   return (
     <NavLink
       to={to}
       end={end}
+      onClick={(e) => {
+        if (onReclick && isOnTargetRoute) {
+          e.preventDefault();
+          onReclick();
+        }
+      }}
       className="group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 overflow-visible px-0.5 pb-1 pt-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2D2D]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
     >
       {({ isActive }) => (
@@ -118,6 +128,8 @@ function NavItem({
 
 export const BottomNav: React.FC = () => {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { effectiveRole } = useSession();
   const unreadCount = useUnreadCount(user?.id);
@@ -131,6 +143,14 @@ export const BottomNav: React.FC = () => {
   const isApp = pathname.startsWith('/app');
   /** Echtes laufendes Spiel: eine Zeile mit status === 'live' (beendet → kein Eintrag, Indikatoren aus). */
   const hasLiveMatch = useAppHasLiveMatch();
+  const { liveMatchId } = useAppLiveMatchState();
+
+  const handleLiveTabReclick = () => {
+    window.dispatchEvent(new CustomEvent(LIVE_NAV_RESET_EVENT));
+    const fromUrl = searchParams.get('matchId')?.trim() || '';
+    const matchId = liveMatchId || fromUrl;
+    navigate(matchId ? `/app/live?matchId=${encodeURIComponent(matchId)}` : '/app/live');
+  };
 
   return (
     <nav
@@ -180,6 +200,7 @@ export const BottomNav: React.FC = () => {
               isLiveTab={t.live}
               liveMatchActive={t.live ? hasLiveMatch : false}
               badgeCount={t.to === '/app/mehr' ? mehrBadge : undefined}
+              onReclick={t.live ? handleLiveTabReclick : undefined}
             />
           ))}
         </div>
