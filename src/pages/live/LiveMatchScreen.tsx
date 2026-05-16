@@ -5,7 +5,9 @@ import { usePlayers } from '../../hooks/usePlayers';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
 import {
   applySubstitutionToSlots,
+  collectLiveStatPlayerIds,
   deriveLiveMatchReplayState,
+  liveStatPlayerSortRank,
   resolvePlaytimeFinalMatchSecond,
   resolveReplayAtMatchSecond,
   clampEffectiveMatchSeconds,
@@ -1706,14 +1708,39 @@ export const LiveMatchScreen: React.FC = () => {
   }, [subSuggestionSig]);
 
   const squadRosterForPlaytimeList = useMemo(() => {
-    const list = roster.filter((p) => squadPlayerIds.includes(p.id));
+    const ids = collectLiveStatPlayerIds(liveReplayState, squadPlayerIds);
+    const list = ids.map((id) => rosterById.get(id) ?? { id, name: '—', number: 0 });
     return [...list].sort((a, b) => {
+      const ra = liveStatPlayerSortRank(a.id, liveReplayState);
+      const rb = liveStatPlayerSortRank(b.id, liveReplayState);
+      if (ra !== rb) return ra - rb;
       const sa = playtimes[a.id] ?? 0;
       const sb = playtimes[b.id] ?? 0;
-      if (sa !== sb) return sa - sb;
+      if (sa !== sb) return sb - sa;
       return compareRosterPlayers(a, b);
     });
-  }, [roster, squadPlayerIds, playtimes]);
+  }, [liveReplayState, squadPlayerIds, playtimes, rosterById]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const ex = fairPlayExtraPlayerId?.trim();
+    if (!ex) return;
+    const inStats = squadRosterForPlaytimeList.some((p) => p.id === ex);
+    if (!inStats) {
+      console.warn('[liveReplay] FairPlay-Extra aktiv, fehlt in Statistikrows', { extra: ex });
+    }
+    if (playtimes[ex] == null) {
+      console.warn('[liveReplay] FairPlay-Extra aktiv, playtimeSeconds fehlt', { extra: ex });
+    }
+    if (liveReplayState.benchPlayerIds.includes(ex)) {
+      console.warn('[liveReplay] FairPlay-Extra aktiv, aber in benchPlayerIds', { extra: ex });
+    }
+  }, [
+    fairPlayExtraPlayerId,
+    squadRosterForPlaytimeList,
+    playtimes,
+    liveReplayState.benchPlayerIds,
+  ]);
 
   const liveSubEventsDebugKey = useMemo(() => {
     const sig = sortMatchEventsChronologically(events)
@@ -3775,6 +3802,9 @@ export const LiveMatchScreen: React.FC = () => {
                             <span className="mt-0.5 max-w-[10rem] truncate rounded-md bg-black/85 px-1 py-0.5 text-center text-[9px] font-semibold text-white ring-1 ring-white/15">
                               {shortName}
                             </span>
+                            <span className="mt-0.5 font-mono text-[10px] font-bold tabular-nums text-amber-200/90">
+                              {formatClock(playtimes[pid] ?? 0)}
+                            </span>
                           </>
                         );
                       })()}
@@ -3985,23 +4015,32 @@ export const LiveMatchScreen: React.FC = () => {
               {squadRosterForPlaytimeList.map((p) => {
                 const sec = playtimes[p.id] ?? 0;
                 const st = getPlaytimeStatus(sec, currentMatchSeconds, squadPlayerIds.length);
-                const onF = onFieldIds.includes(p.id);
-                const lowOnField = onF && st === 'red';
+                const isFairPlayExtra =
+                  Boolean(fairPlayExtraPlayerId) && String(fairPlayExtraPlayerId).trim() === p.id;
+                const isActive = activePlayerIds.includes(p.id);
+                const lowOnField = isActive && st === 'red';
                 return (
                   <li
                     key={p.id}
                     className={[
                       'flex min-h-[46px] items-center gap-2 rounded-lg border px-2 py-1.5',
-                      onF
-                        ? lowOnField
-                          ? 'border-emerald-500/50 bg-emerald-950/20 ring-1 ring-amber-500/30'
-                          : 'border-emerald-600/40 bg-emerald-950/12'
+                      isActive
+                        ? isFairPlayExtra
+                          ? 'border-amber-500/45 bg-amber-950/18 ring-1 ring-amber-400/35'
+                          : lowOnField
+                            ? 'border-emerald-500/50 bg-emerald-950/20 ring-1 ring-amber-500/30'
+                            : 'border-emerald-600/40 bg-emerald-950/12'
                         : 'border-zinc-700/40 bg-zinc-950/90',
                     ].join(' ')}
                   >
                     <span className="flex shrink-0 items-center gap-1.5" aria-hidden>
-                      {onF ? (
-                        <span className="h-2 w-2 rounded-full bg-emerald-500/90 shadow-[0_0_6px_rgba(16,185,129,0.45)]" />
+                      {isActive ? (
+                        <span
+                          className={[
+                            'h-2 w-2 rounded-full shadow-[0_0_6px_rgba(16,185,129,0.45)]',
+                            isFairPlayExtra ? 'bg-amber-400/95' : 'bg-emerald-500/90',
+                          ].join(' ')}
+                        />
                       ) : (
                         <span className="h-2 w-2 rounded-full bg-zinc-500/80" />
                       )}
@@ -4010,18 +4049,31 @@ export const LiveMatchScreen: React.FC = () => {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[14px] font-semibold text-white">
                         {p.number || '–'} · {p.name}
+                        {isFairPlayExtra ? (
+                          <span className="ml-1.5 inline-flex rounded border border-amber-400/50 bg-amber-500/20 px-1 py-px text-[9px] font-black text-amber-100">
+                            +1
+                          </span>
+                        ) : null}
                       </p>
                       <p
                         className={`mt-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] ${
-                          onF ? 'text-emerald-300' : 'text-zinc-500'
+                          isActive
+                            ? isFairPlayExtra
+                              ? 'text-amber-200/95'
+                              : 'text-emerald-300'
+                            : 'text-zinc-500'
                         }`}
                       >
-                        {onF ? 'Am Feld' : 'Auf der Bank'}
+                        {isFairPlayExtra && isActive
+                          ? 'Am Feld · Zusatz'
+                          : isActive
+                            ? 'Am Feld'
+                            : 'Auf der Bank'}
                       </p>
                     </div>
                     <span
                       className={`shrink-0 font-mono text-base font-semibold tabular-nums tracking-tight ${
-                        onF ? 'text-red-400/90' : 'text-zinc-500'
+                        isActive ? 'text-red-400/90' : 'text-zinc-500'
                       }`}
                     >
                       {formatClock(sec)}

@@ -762,9 +762,35 @@ export function deriveLiveMatchReplayState(params: DeriveLiveMatchReplayParams):
     warnLiveReplayDevtools('Spieler doppelt Feld/Bank', { playersInBoth });
   }
 
+  if (extra && benchSet.has(extra)) {
+    warnings.push('fairplay_extra_on_bench');
+    warnLiveReplayDevtools('FairPlay-Zusatzspieler in benchPlayerIds', { extra });
+  }
+
+  if (extra && !activePlayerIds.includes(extra)) {
+    warnings.push('fairplay_extra_not_in_active');
+    warnLiveReplayDevtools('fairPlayExtraPlayerId nicht in activePlayerIds', { extra });
+  }
+
+  if (extra) {
+    if (playtimeSecondsByPlayerId[extra] == null && !Object.prototype.hasOwnProperty.call(playtimeRaw, extra)) {
+      playtimeSecondsByPlayerId[extra] = 0;
+    }
+    if (finalSecond > 0 && (playtimeSecondsByPlayerId[extra] ?? 0) <= 0 && params.isLiveMatchRunning) {
+      const hasOn = eventsUpToFinal.some((e) => e.type === 'extra_player_on' && String(e.playerId ?? '').trim() === extra);
+      if (hasOn) {
+        warnings.push('fairplay_extra_playtime_zero');
+        warnLiveReplayDevtools('FairPlay-Extra aktiv aber playtimeSeconds fehlt/0', {
+          extra,
+          finalSecond,
+        });
+      }
+    }
+  }
+
   if (extra && benchSet.has(extra) && fieldSet.has(extra)) {
     warnings.push('extra_in_field_and_bench');
-    warnLiveReplayDevtools('Zusatzspieler gleichzeitig Feld und Bank', { extra });
+    warnLiveReplayDevtools('Zusatzspieler gleichzeitig Feld-Slot und Bank', { extra });
   }
 
   for (const slot of FIELD_SLOT_ORDER) {
@@ -799,6 +825,39 @@ export function deriveLiveMatchReplayState(params: DeriveLiveMatchReplayParams):
       orphanOutIgnored: replayResult.orphanOutIgnored,
     },
   };
+}
+
+/** Alle Spieler-IDs für Live-Statistik / Listen (Kader ∪ Replay ∪ Spielzeiten). */
+export function collectLiveStatPlayerIds(
+  state: Pick<
+    LiveMatchReplayState,
+    'onFieldPlayerIds' | 'benchPlayerIds' | 'activePlayerIds' | 'fairPlayExtraPlayerId' | 'playtimeSecondsByPlayerId'
+  >,
+  squadPlayerIds: string[],
+): string[] {
+  const ids = new Set<string>();
+  const add = (raw: string | null | undefined) => {
+    const id = String(raw ?? '').trim();
+    if (id) ids.add(id);
+  };
+  for (const id of squadPlayerIds) add(id);
+  for (const id of state.onFieldPlayerIds) add(id);
+  for (const id of state.benchPlayerIds) add(id);
+  for (const id of state.activePlayerIds) add(id);
+  add(state.fairPlayExtraPlayerId);
+  for (const id of Object.keys(state.playtimeSecondsByPlayerId)) add(id);
+  return [...ids];
+}
+
+/** Sortier-Rang: 0 = aktiv (inkl. FairPlay-Extra), 1 = Bank, 2 = übrig. */
+export function liveStatPlayerSortRank(
+  playerId: string,
+  state: Pick<LiveMatchReplayState, 'activePlayerIds' | 'benchPlayerIds'>,
+): number {
+  const id = String(playerId).trim();
+  if (state.activePlayerIds.includes(id)) return 0;
+  if (state.benchPlayerIds.includes(id)) return 1;
+  return 2;
 }
 
 /**
