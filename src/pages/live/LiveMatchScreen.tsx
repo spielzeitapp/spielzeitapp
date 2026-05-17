@@ -315,9 +315,9 @@ const spectatorTabBtnCompactIdle = 'text-white/45 hover:bg-white/[0.05] hover:te
 
 /** Live Hub: große Touch-Ziele, kein Mini-Tab-Gefühl. */
 const hubNavSpectator = 'mt-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-2.5';
-const hubNavTrainer = 'mt-2 grid w-full grid-cols-2 gap-2 sm:gap-2.5';
+const hubNavTrainer = 'mt-1.5 grid w-full grid-cols-2 gap-1.5 sm:gap-2';
 const hubNavBtn =
-  'flex min-h-[52px] w-full touch-manipulation items-center justify-center rounded-2xl border border-white/12 bg-white/[0.07] px-3 py-3.5 text-[15px] font-extrabold tracking-tight text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_22px_rgba(0,0,0,0.38)] backdrop-blur-md transition active:scale-[0.98] sm:min-h-[56px] sm:text-base';
+  'flex min-h-[46px] w-full touch-manipulation items-center justify-center rounded-2xl border border-white/12 bg-white/[0.07] px-3 py-2.5 text-[14px] font-extrabold tracking-tight text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_22px_rgba(0,0,0,0.38)] backdrop-blur-md transition active:scale-[0.98] sm:min-h-[48px] sm:text-[15px]';
 const liveModuleBackBar =
   'sticky top-0 z-40 mt-0 flex min-h-[48px] shrink-0 flex-wrap items-center gap-2 border-b border-white/10 bg-black/85 px-2 py-2 backdrop-blur-md sm:px-3';
 
@@ -335,6 +335,13 @@ const LIVE_SHEET_FOOTER_SAFE_PB = 'max(0.75rem, env(safe-area-inset-bottom, 0px)
 const LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB = 'calc(120px + env(safe-area-inset-bottom, 0px))';
 const LIVE_SHEET_MAX_HEIGHT = 'min(80dvh, 40rem)';
 const LIVE_SCROLL_BOTTOM_PAD = 'calc(140px + env(safe-area-inset-bottom, 0px))';
+/** FairPlay-Sheets über BottomNav (~96px + Safe Area) */
+const FAIRPLAY_SHEET_BOTTOM_OFFSET = 'calc(96px + env(safe-area-inset-bottom, 0px))';
+const FAIRPLAY_SHEET_MAX_HEIGHT = 'min(70dvh, 34rem)';
+const FAIRPLAY_SHEET_LIST_BOTTOM_PAD = 'calc(120px + env(safe-area-inset-bottom, 0px))';
+const LIVE_HUB_SCROLL_BOTTOM_PAD = 'calc(170px + env(safe-area-inset-bottom, 0px))';
+const FAIRPLAY_SHEET_OVERLAY =
+  'fixed inset-0 z-[10000] flex flex-col justify-end bg-black/80 backdrop-blur-sm';
 /** iOS: kein Kopieren/Lookup auf Ergebnis & Uhr */
 const SCOREBOARD_NO_SELECT =
   'select-none touch-manipulation [-webkit-touch-callout:none] [-webkit-user-select:none] [user-select:none]';
@@ -1085,6 +1092,20 @@ export const LiveMatchScreen: React.FC = () => {
   const goalUndoTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const goalUndoFadeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const liveScrollRef = useRef<HTMLDivElement>(null);
+  const liveHubScrollRef = useRef<HTMLElement>(null);
+
+  const releaseLiveBodyScrollLock = useCallback(() => {
+    document.body.style.overflow = '';
+  }, []);
+
+  const stabilizeLiveHubAfterFairPlay = useCallback(() => {
+    releaseLiveBodyScrollLock();
+    window.setTimeout(() => {
+      liveHubScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      liveScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
+  }, [releaseLiveBodyScrollLock]);
   const substitutionToastTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const subSaveInFlightRef = useRef(false);
   const substitutionAnimTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
@@ -1847,7 +1868,8 @@ export const LiveMatchScreen: React.FC = () => {
     setFairPlayExtraSheetOpen(false);
     setFairPlayExtraPickId(null);
     setFairPlayExtraSaving(false);
-  }, []);
+    releaseLiveBodyScrollLock();
+  }, [releaseLiveBodyScrollLock]);
 
   const openFairPlayExtraSheet = useCallback(() => {
     setFairPlayExtraPickId(null);
@@ -1859,7 +1881,8 @@ export const LiveMatchScreen: React.FC = () => {
     setFairPlayRemoveSheetOpen(false);
     setFairPlayRemovePickId(null);
     setFairPlayRemoveSaving(false);
-  }, []);
+    releaseLiveBodyScrollLock();
+  }, [releaseLiveBodyScrollLock]);
 
   const openFairPlayRemoveSheet = useCallback(() => {
     setFairPlayRemovePickId(null);
@@ -1892,6 +1915,8 @@ export const LiveMatchScreen: React.FC = () => {
     setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...optimistic, id: eventId } : e)));
     closeFairPlayExtraSheet();
     setFairPlayExtraSaving(false);
+    setMainTab('hub');
+    stabilizeLiveHubAfterFairPlay();
     void queueRealtimeReload();
   }, [
     fairPlayExtraPickId,
@@ -1900,6 +1925,7 @@ export const LiveMatchScreen: React.FC = () => {
     currentMatchSeconds,
     half,
     closeFairPlayExtraSheet,
+    stabilizeLiveHubAfterFairPlay,
     queueRealtimeReload,
   ]);
 
@@ -1938,6 +1964,8 @@ export const LiveMatchScreen: React.FC = () => {
     setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...optimistic, id: eventId } : e)));
     closeFairPlayRemoveSheet();
     setFairPlayRemoveSaving(false);
+    setMainTab('hub');
+    stabilizeLiveHubAfterFairPlay();
     void queueRealtimeReload();
   }, [
     fairPlayExtraPlayerId,
@@ -1949,8 +1977,15 @@ export const LiveMatchScreen: React.FC = () => {
     lineupSlotsForDisplay,
     squadPlayerIds,
     closeFairPlayRemoveSheet,
+    stabilizeLiveHubAfterFairPlay,
     queueRealtimeReload,
   ]);
+
+  const fairPlaySheetOpen = fairPlayExtraSheetOpen || fairPlayRemoveSheetOpen;
+  useEffect(() => {
+    if (fairPlaySheetOpen) return;
+    releaseLiveBodyScrollLock();
+  }, [fairPlaySheetOpen, releaseLiveBodyScrollLock]);
 
   useEffect(() => {
     const onLiveNavReset = () => {
@@ -1961,6 +1996,8 @@ export const LiveMatchScreen: React.FC = () => {
       closeFairPlayRemoveSheet();
       setFormationPendingId(null);
       setLineupPositionMode(false);
+      releaseLiveBodyScrollLock();
+      liveHubScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
       liveScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     };
     window.addEventListener(LIVE_NAV_RESET_EVENT, onLiveNavReset);
@@ -1970,6 +2007,7 @@ export const LiveMatchScreen: React.FC = () => {
     closeFormationSheet,
     closeFairPlayExtraSheet,
     closeFairPlayRemoveSheet,
+    releaseLiveBodyScrollLock,
   ]);
 
   const onStartClick = async () => {
@@ -3214,8 +3252,11 @@ export const LiveMatchScreen: React.FC = () => {
       </div>
       <div className="relative z-[1] flex min-h-0 flex-1 flex-col">
       <header
-        className={`shrink-0 border-b border-red-500/35 bg-black/78 shadow-[0_4px_32px_rgba(0,0,0,0.5)] backdrop-blur-md ${
-          spectatorView ? '' : ''
+        ref={mainTab === 'hub' ? liveHubScrollRef : undefined}
+        className={`border-b border-red-500/35 bg-black/78 shadow-[0_4px_32px_rgba(0,0,0,0.5)] backdrop-blur-md ${
+          mainTab === 'hub'
+            ? 'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
+            : 'shrink-0'
         }`}
       >
         <div
@@ -3442,10 +3483,10 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
 
               {matchRow?.status === 'live' && !matchIsFinished && (fairPlayRuleActivatable || fairPlayExtraPlayerId) ? (
-                <div className="relative z-[1] border-t border-white/10 px-2.5 py-1.5 sm:px-3">
+                <div className="relative z-[1] border-t border-white/10 px-2 py-1 sm:px-2.5">
                   <div
                     className={[
-                      'rounded-2xl border px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:px-3',
+                      'rounded-xl border px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:px-2.5',
                       fairPlayMustRemoveExtra
                         ? 'border-red-500/45 bg-gradient-to-br from-red-950/55 to-black/70'
                         : fairPlayExtraPlayerId
@@ -3453,8 +3494,8 @@ export const LiveMatchScreen: React.FC = () => {
                           : 'border-amber-400/35 bg-gradient-to-br from-yellow-950/35 to-black/60',
                     ].join(' ')}
                   >
-                    <div className="flex items-start gap-2">
-                      <span className="shrink-0 text-lg leading-none" aria-hidden>
+                    <div className="flex items-start gap-1.5">
+                      <span className="shrink-0 text-base leading-none" aria-hidden>
                         {fairPlayMustRemoveExtra ? '🔴' : fairPlayExtraPlayerId ? '🟠' : '🟡'}
                       </span>
                       <div className="min-w-0 flex-1 space-y-0.5">
@@ -3465,7 +3506,7 @@ export const LiveMatchScreen: React.FC = () => {
                               ? 'FairPlay-Zusatzspieler aktiv'
                               : 'FairPlay-Regel aktiv'}
                         </p>
-                        <p className="text-[12px] font-semibold leading-snug text-white/95">
+                        <p className="text-[11px] font-semibold leading-snug text-white/95">
                           {fairPlayMustRemoveExtra
                             ? 'Nur noch 3 Tore Unterschied — Feldspieler wählen'
                             : fairPlayExtraPlayerId
@@ -3475,12 +3516,12 @@ export const LiveMatchScreen: React.FC = () => {
                       </div>
                     </div>
                     {canControlLiveMatch ? (
-                      <div className="mt-2 flex flex-wrap gap-2">
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {fairPlayExtraPlayerId ? (
                           <button
                             type="button"
                             onClick={openFairPlayRemoveSheet}
-                            className={`min-h-10 w-full rounded-xl border px-3 py-2 text-center text-xs font-bold active:scale-[0.98] sm:text-sm ${
+                            className={`min-h-9 w-full rounded-lg border px-2.5 py-1.5 text-center text-[11px] font-bold active:scale-[0.98] sm:text-xs ${
                               fairPlayMustRemoveExtra
                                 ? 'border-red-400/55 bg-red-950/55 text-red-50'
                                 : 'border-white/20 bg-black/40 text-white'
@@ -3493,7 +3534,7 @@ export const LiveMatchScreen: React.FC = () => {
                           <button
                             type="button"
                             onClick={openFairPlayExtraSheet}
-                            className="min-h-10 w-full rounded-xl border border-amber-400/50 bg-amber-950/60 px-3 py-2 text-center text-xs font-bold text-amber-50 active:scale-[0.98] sm:text-sm"
+                            className="min-h-9 w-full rounded-lg border border-amber-400/50 bg-amber-950/60 px-2.5 py-1.5 text-center text-[11px] font-bold text-amber-50 active:scale-[0.98] sm:text-xs"
                           >
                             + Zusatzspieler
                           </button>
@@ -3574,7 +3615,10 @@ export const LiveMatchScreen: React.FC = () => {
           )}
 
           {mainTab === 'hub' ? (
-            <nav className={spectatorView ? hubNavSpectator : hubNavTrainer} aria-label="Live Hub">
+            <nav
+              className={`${spectatorView ? hubNavSpectator : hubNavTrainer} pb-[calc(170px+env(safe-area-inset-bottom,0px))]`}
+              aria-label="Live Hub"
+            >
               <button type="button" className={hubNavBtn} onClick={() => setMainTab('overview')}>
                 Übersicht
               </button>
@@ -3638,9 +3682,11 @@ export const LiveMatchScreen: React.FC = () => {
 
       <div
         ref={liveScrollRef}
-        className={`relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} md:px-4 lg:px-5 md:py-4 ${
-          mainTab === 'hub' ? 'px-2 pt-1 pb-2' : mainTab === 'lineup' ? 'px-0 py-0 sm:py-1' : 'px-2 py-3 pt-2'
-        } ${mainTab !== 'hub' ? 'pb-[calc(140px+env(safe-area-inset-bottom,0px))]' : ''} ${wechselSheetOpen ? 'brightness-[0.92]' : ''}`}
+        className={`relative min-h-0 overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} md:px-4 lg:px-5 md:py-4 ${
+          mainTab === 'hub'
+            ? 'hidden'
+            : 'flex-1 overflow-y-auto px-2 py-3 pt-2 pb-[calc(140px+env(safe-area-inset-bottom,0px))]'
+        } ${mainTab === 'lineup' ? '!px-0 !py-0 sm:!py-1' : ''} ${wechselSheetOpen ? 'brightness-[0.92]' : ''}`}
       >
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>
@@ -4697,8 +4743,7 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && fairPlayExtraSheetOpen && !matchIsFinished ? (
         <div
-          className="fixed inset-0 z-[10050] flex flex-col justify-end bg-black/80 backdrop-blur-sm"
-          style={{ paddingBottom: LIVE_SHEET_BOTTOM_CLEARANCE }}
+          className={FAIRPLAY_SHEET_OVERLAY}
           role="presentation"
           onClick={() => {
             if (fairPlayExtraSaving) return;
@@ -4706,10 +4751,8 @@ export const LiveMatchScreen: React.FC = () => {
           }}
         >
           <div
-            className={[
-              'flex w-full flex-col overflow-hidden rounded-t-2xl border border-amber-500/25 bg-gradient-to-b from-amber-950/45 via-black to-black text-white shadow-[0_-8px_40px_rgba(0,0,0,0.72)]',
-              fairPlayExtraPickId ? 'max-h-[min(42dvh,22rem)]' : 'max-h-[min(80dvh,40rem)]',
-            ].join(' ')}
+            className="mx-auto flex w-full max-w-lg max-h-[min(70dvh,34rem)] flex-col overflow-y-auto rounded-t-2xl border border-amber-500/25 bg-gradient-to-b from-amber-950/45 via-black to-black text-white shadow-[0_-8px_40px_rgba(0,0,0,0.72)]"
+            style={{ marginBottom: FAIRPLAY_SHEET_BOTTOM_OFFSET }}
             role="dialog"
             aria-modal="true"
             aria-labelledby="fairplay-extra-title"
@@ -4739,7 +4782,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
                 <footer
                   className="sticky bottom-0 z-10 shrink-0 border-t border-amber-500/20 bg-black/95 px-3 pt-2 backdrop-blur-md"
-                  style={{ paddingBottom: LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB }}
+                  style={{ paddingBottom: LIVE_SHEET_FOOTER_SAFE_PB }}
                 >
                   <button
                     type="button"
@@ -4760,7 +4803,10 @@ export const LiveMatchScreen: React.FC = () => {
                 </footer>
               </>
             ) : (
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 py-1.5 [-webkit-overflow-scrolling:touch]">
+              <div
+                className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 py-1.5 [-webkit-overflow-scrolling:touch]"
+                style={{ paddingBottom: FAIRPLAY_SHEET_LIST_BOTTOM_PAD }}
+              >
                 {benchPlayers.length === 0 ? (
                   <p className="py-4 text-center text-sm text-white/50">Keine Bankspieler.</p>
                 ) : (
@@ -4800,8 +4846,7 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && fairPlayRemoveSheetOpen && fairPlayExtraPlayerId && !matchIsFinished ? (
         <div
-          className="pointer-events-auto fixed inset-0 z-[10055] flex flex-col justify-end bg-black/65 backdrop-blur-sm"
-          style={{ paddingBottom: LIVE_SHEET_BOTTOM_CLEARANCE }}
+          className={FAIRPLAY_SHEET_OVERLAY}
           role="presentation"
           onClick={() => {
             if (fairPlayRemoveSaving) return;
@@ -4809,10 +4854,8 @@ export const LiveMatchScreen: React.FC = () => {
           }}
         >
           <div
-            className={[
-              'relative z-[1] flex w-full flex-col overflow-hidden rounded-t-2xl border border-red-500/35 bg-gradient-to-b from-red-950/40 via-black to-black text-white shadow-[0_-8px_40px_rgba(0,0,0,0.72)]',
-              fairPlayRemovePickId ? 'max-h-[min(36dvh,20rem)]' : 'max-h-[min(80dvh,40rem)]',
-            ].join(' ')}
+            className="relative z-[1] mx-auto flex w-full max-w-lg max-h-[min(70dvh,34rem)] flex-col overflow-y-auto rounded-t-2xl border border-red-500/35 bg-gradient-to-b from-red-950/40 via-black to-black text-white shadow-[0_-8px_40px_rgba(0,0,0,0.72)]"
+            style={{ marginBottom: FAIRPLAY_SHEET_BOTTOM_OFFSET }}
             role="dialog"
             aria-modal="true"
             aria-labelledby="fairplay-remove-title"
@@ -4848,7 +4891,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
                 <footer
                   className="sticky bottom-0 z-10 shrink-0 border-t border-red-500/20 bg-black/95 px-3 pt-2 backdrop-blur-md"
-                  style={{ paddingBottom: LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB }}
+                  style={{ paddingBottom: LIVE_SHEET_FOOTER_SAFE_PB }}
                 >
                   <button
                     type="button"
@@ -4869,7 +4912,10 @@ export const LiveMatchScreen: React.FC = () => {
                 </footer>
               </>
             ) : (
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 py-1.5 [-webkit-overflow-scrolling:touch]">
+              <div
+                className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 py-1.5 [-webkit-overflow-scrolling:touch]"
+                style={{ paddingBottom: FAIRPLAY_SHEET_LIST_BOTTOM_PAD }}
+              >
                 {fairPlayRemoveFieldRows.length === 0 ? (
                   <p className="py-4 text-center text-sm text-white/50">Keine Feldspieler.</p>
                 ) : (
