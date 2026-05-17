@@ -3,11 +3,13 @@ import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router
 import { useAuth } from '../../auth/AuthProvider';
 import { useSession } from '../../auth/useSession';
 import { normalizeRole } from '../../lib/roles';
-import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
+import { useAppHasLiveMatch, useAppLiveMatchState } from '../../hooks/useAppHasLiveMatch';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 
 /** Akzent wie Zielbild / Welcome (#FF2D2D, weich nutzbar). */
 const ACCENT = '#FF2D2D';
+/** Gleicher Name wie in LiveMatchScreen — kein Import aus der Page (Bundle). */
+const LIVE_NAV_RESET_EVENT = 'spielzeit:live-nav-reset';
 
 function navAssetBase(): string {
   const b = import.meta.env.BASE_URL || '/';
