@@ -342,15 +342,14 @@ const FAIRPLAY_SHEET_LIST_BOTTOM_PAD = 'calc(120px + env(safe-area-inset-bottom,
 const LIVE_HUB_SCROLL_BOTTOM_PAD = 'calc(170px + env(safe-area-inset-bottom, 0px))';
 const FAIRPLAY_SHEET_OVERLAY =
   'fixed inset-0 z-[10000] flex flex-col justify-end bg-black/80 backdrop-blur-sm';
-/** Wechsel-Sheet: unter App-Header (~96px) + über BottomNav (~96px) */
+/** Wechsel-Sheet: unter App-Header (~96px) + über BottomNav (~78px) */
 const WECHSEL_SHEET_TOP_OFFSET = 'calc(96px + env(safe-area-inset-top, 0px))';
-const WECHSEL_SHEET_BOTTOM_OFFSET = 'calc(96px + env(safe-area-inset-bottom, 0px))';
-const WECHSEL_SHEET_MAX_HEIGHT =
-  'calc(100dvh - 96px - 96px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))';
+const WECHSEL_SHEET_BOTTOM_OFFSET = 'calc(78px + env(safe-area-inset-bottom, 0px))';
 /** Wechsel: eigener Screen unter App-Header, über Hub (opaque, kein Hub-Scroll) */
 const WECHSEL_SCREEN_SHELL =
   'fixed inset-x-0 z-[40] flex flex-col overflow-hidden border-t border-red-500/30 bg-black text-white';
-const WECHSEL_SCREEN_FOOTER_PB = 'calc(120px + env(safe-area-inset-bottom, 0px))';
+/** Footer im Screen — BottomNav-Abstand kommt vom Screen-bottom (78px) */
+const WECHSEL_SCREEN_FOOTER_PB = 'max(0.5rem, env(safe-area-inset-bottom, 0px))';
 /** iOS: kein Kopieren/Lookup auf Ergebnis & Uhr */
 const SCOREBOARD_NO_SELECT =
   'select-none touch-manipulation [-webkit-touch-callout:none] [-webkit-user-select:none] [user-select:none]';
@@ -4412,10 +4411,9 @@ export const LiveMatchScreen: React.FC = () => {
               </p>
             </div>
 
-            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pb-0 pt-0">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-2 pb-0 pt-0.5">
               {subSheetView === 'list' ? (
-                <div className="grid min-h-0 flex-1 grid-cols-2 gap-1.5 overflow-hidden sm:gap-2">
+                <div className="grid min-h-0 flex-1 grid-cols-2 gap-1 overflow-hidden sm:gap-1.5">
                   <div className="flex min-h-0 flex-1 flex-col gap-0.5">
                     <p className="shrink-0 text-[9px] font-black uppercase tracking-[0.14em] text-red-300/95">Raus · Feld · inkl. TW</p>
                     {substitutionFieldRows.length === 0 ? (
@@ -4424,7 +4422,7 @@ export const LiveMatchScreen: React.FC = () => {
                       </p>
                     ) : (
                       <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
-                        <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-col gap-1">
                           {substitutionFieldRows.map((row) => {
                             const slot = row?.slot;
                             const pid =
@@ -4447,7 +4445,7 @@ export const LiveMatchScreen: React.FC = () => {
                                 type="button"
                                 onClick={() => setSubOutPlayerId(pid)}
                                 className={[
-                                  'flex h-[72px] min-h-[64px] max-h-[76px] shrink-0 items-center gap-1.5 rounded-xl border px-2 py-1 text-left transition-all active:scale-[0.99]',
+                                  'flex h-[58px] min-h-[54px] max-h-[62px] shrink-0 items-center gap-1 rounded-lg border px-1.5 py-0.5 text-left transition-all active:scale-[0.99]',
                                   'bg-gradient-to-br from-red-950/40 via-black/75 to-black/92',
                                   selected
                                     ? 'border-red-500 shadow-[0_0_18px_rgba(239,68,68,0.38)] ring-2 ring-red-500/50'
@@ -4464,14 +4462,14 @@ export const LiveMatchScreen: React.FC = () => {
                                     variant={isGk ? 'goalkeeper' : 'field'}
                                     size="compact"
                                     pitchStyleBack
-                                    className="!h-[3.45rem] !w-[2.72rem] sm:!h-[3.85rem] sm:!w-[3.05rem]"
+                                    className="!h-[2.75rem] !w-[2.15rem] sm:!h-[3rem] sm:!w-[2.45rem]"
                                   />
                                 </div>
-                                <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-                                  <p className="truncate text-[14px] font-bold leading-snug text-white sm:text-[15px]">
+                                <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                                  <p className="truncate text-[13px] font-bold leading-snug text-white">
                                     {shortName}
                                   </p>
-                                  <span className="inline-flex w-fit rounded-md border border-red-500/35 bg-red-950/50 px-1.5 py-px text-[7px] font-bold uppercase tracking-wide text-red-100/95">
+                                  <span className="inline-flex w-fit rounded-md border border-red-500/35 bg-red-950/50 px-1 py-px text-[7px] font-bold uppercase tracking-wide text-red-100/95">
                                     {slotBadge}
                                   </span>
                                 </div>
@@ -4491,7 +4489,7 @@ export const LiveMatchScreen: React.FC = () => {
                       </p>
                     ) : (
                       <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
-                        <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-col gap-1">
                           {substitutionBenchRows.map((row) => {
                             const pid = String(row?.id ?? '').trim();
                             if (!pid) return null;
@@ -4509,7 +4507,7 @@ export const LiveMatchScreen: React.FC = () => {
                                 type="button"
                                 onClick={() => setSubInPlayerId(pid)}
                                 className={[
-                                  'flex h-[72px] min-h-[64px] max-h-[76px] shrink-0 items-center gap-1.5 rounded-xl border px-2 py-1 text-left transition-all active:scale-[0.99]',
+                                  'flex h-[58px] min-h-[54px] max-h-[62px] shrink-0 items-center gap-1 rounded-lg border px-1.5 py-0.5 text-left transition-all active:scale-[0.99]',
                                   'bg-gradient-to-br from-emerald-950/25 via-black/75 to-black/92',
                                   selected
                                     ? 'border-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.38)] ring-2 ring-emerald-400/55'
@@ -4526,14 +4524,14 @@ export const LiveMatchScreen: React.FC = () => {
                                     variant={isGk ? 'goalkeeper' : 'field'}
                                     size="compact"
                                     pitchStyleBack
-                                    className="!h-[3.45rem] !w-[2.72rem] sm:!h-[3.85rem] sm:!w-[3.05rem]"
+                                    className="!h-[2.75rem] !w-[2.15rem] sm:!h-[3rem] sm:!w-[2.45rem]"
                                   />
                                 </div>
-                                <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-                                  <p className="truncate text-[14px] font-bold leading-snug text-white sm:text-[15px]">
+                                <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                                  <p className="truncate text-[13px] font-bold leading-snug text-white">
                                     {shortName}
                                   </p>
-                                  <span className="inline-flex w-fit rounded-md border border-amber-500/35 bg-amber-950/45 px-1.5 py-px text-[7px] font-bold uppercase tracking-wide text-amber-100/95">
+                                  <span className="inline-flex w-fit rounded-md border border-amber-500/35 bg-amber-950/45 px-1 py-px text-[7px] font-bold uppercase tracking-wide text-amber-100/95">
                                     Bank
                                   </span>
                                 </div>
@@ -4546,14 +4544,15 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="relative flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5 pb-1">
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5 pb-1">
                   {!canRenderLivePitch ? (
                     <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center text-[10px] text-white/50">
                       Aufstellung wird geladen …
                     </p>
                   ) : (
                     <>
-                      <div className="mx-auto w-full max-w-md shrink-0 overflow-hidden px-0.5">
+                      <div className="mx-auto flex min-h-[14rem] w-full max-w-md flex-1 flex-col overflow-hidden px-0.5">
                         <LineupFormationPitch
                           formationId={safeFormationId}
                           slots={(safeLineupSlots ?? {}) as Record<FieldSlotId, string | null>}
@@ -4613,7 +4612,7 @@ export const LiveMatchScreen: React.FC = () => {
                               </div>
                             );
                           }}
-                          className="max-h-[min(44dvh,26rem)] sm:max-h-[min(46dvh,28rem)]"
+                          className="min-h-[14rem] max-h-[min(52dvh,32rem)] flex-1 sm:max-h-[min(54dvh,34rem)]"
                         />
                       </div>
                       <section className="shrink-0 border-t border-white/[0.08] pt-1 transition-opacity duration-200">
@@ -4676,6 +4675,7 @@ export const LiveMatchScreen: React.FC = () => {
                     </>
                   )}
                 </div>
+                </div>
               )}
             </div>
 
@@ -4688,7 +4688,7 @@ export const LiveMatchScreen: React.FC = () => {
                   type="button"
                   disabled={subSaving || posSwapSaving}
                   onClick={closeWechselSheet}
-                  className="flex min-h-[42px] flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-[11px] font-bold text-white/85 hover:bg-zinc-800 disabled:opacity-45"
+                  className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-[11px] font-bold text-white/85 hover:bg-zinc-800 disabled:opacity-45"
                 >
                   Zurück zum Livespiel
                 </button>
@@ -4702,7 +4702,7 @@ export const LiveMatchScreen: React.FC = () => {
                     String(subOutPlayerId ?? '').trim() === String(subInPlayerId ?? '').trim()
                   }
                   onClick={() => void confirmSubstitution()}
-                  className="flex min-h-[42px] flex-1 items-center justify-center rounded-xl bg-emerald-600 px-1 text-[11px] font-bold text-white shadow-[0_0_14px_rgba(16,185,129,0.32)] disabled:opacity-35"
+                  className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl bg-emerald-600 px-1 text-[11px] font-bold text-white shadow-[0_0_14px_rgba(16,185,129,0.32)] disabled:opacity-35"
                 >
                   {subSaving
                     ? '…'
@@ -4715,7 +4715,6 @@ export const LiveMatchScreen: React.FC = () => {
                 </button>
               </div>
             </footer>
-            </div>
           </div>
         </div>
       ) : null}
