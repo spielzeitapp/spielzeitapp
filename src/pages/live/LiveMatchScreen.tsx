@@ -342,6 +342,13 @@ const FAIRPLAY_SHEET_LIST_BOTTOM_PAD = 'calc(120px + env(safe-area-inset-bottom,
 const LIVE_HUB_SCROLL_BOTTOM_PAD = 'calc(170px + env(safe-area-inset-bottom, 0px))';
 const FAIRPLAY_SHEET_OVERLAY =
   'fixed inset-0 z-[10000] flex flex-col justify-end bg-black/80 backdrop-blur-sm';
+/** Wechsel-Sheet: unter App-Header (~96px) + über BottomNav (~96px) */
+const WECHSEL_SHEET_TOP_OFFSET = 'calc(96px + env(safe-area-inset-top, 0px))';
+const WECHSEL_SHEET_BOTTOM_OFFSET = 'calc(96px + env(safe-area-inset-bottom, 0px))';
+const WECHSEL_SHEET_MAX_HEIGHT =
+  'calc(100dvh - 96px - 96px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))';
+const WECHSEL_SHEET_OVERLAY =
+  'fixed inset-x-0 bottom-0 z-[10000] flex flex-col justify-end bg-black/80 backdrop-blur-sm';
 /** iOS: kein Kopieren/Lookup auf Ergebnis & Uhr */
 const SCOREBOARD_NO_SELECT =
   'select-none touch-manipulation [-webkit-touch-callout:none] [-webkit-user-select:none] [user-select:none]';
@@ -4307,13 +4314,14 @@ export const LiveMatchScreen: React.FC = () => {
 
       {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
         <div
-          className="fixed inset-0 z-[10000] flex flex-col justify-end bg-black/80 backdrop-blur-sm"
+          className={WECHSEL_SHEET_OVERLAY}
+          style={{ top: WECHSEL_SHEET_TOP_OFFSET, paddingBottom: WECHSEL_SHEET_BOTTOM_OFFSET }}
           role="presentation"
           onClick={closeWechselSheet}
         >
           <div
-            className="flex min-h-0 w-full max-h-[min(86dvh,42rem)] flex-col overflow-hidden rounded-t-2xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
-            style={{ marginBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))' }}
+            className="flex min-h-0 w-full flex-col overflow-hidden rounded-t-2xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
+            style={{ maxHeight: WECHSEL_SHEET_MAX_HEIGHT }}
             role="dialog"
             aria-modal="true"
             aria-labelledby="wechsel-sheet-title"
@@ -4376,10 +4384,7 @@ export const LiveMatchScreen: React.FC = () => {
             <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pb-0 pt-0">
               {subSheetView === 'list' ? (
-                <div
-                  className="grid min-h-0 flex-1 grid-cols-2 gap-1.5 overflow-hidden sm:gap-2"
-                  style={{ minHeight: 'min(54dvh, 21rem)' }}
-                >
+                <div className="grid min-h-0 flex-1 grid-cols-2 gap-1.5 overflow-hidden sm:gap-2">
                   <div className="flex min-h-0 flex-1 flex-col gap-0.5">
                     <p className="shrink-0 text-[9px] font-black uppercase tracking-[0.14em] text-red-300/95">Raus · Feld · inkl. TW</p>
                     {substitutionFieldRows.length === 0 ? (
