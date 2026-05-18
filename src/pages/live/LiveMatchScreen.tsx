@@ -347,8 +347,10 @@ const WECHSEL_SHEET_TOP_OFFSET = 'calc(96px + env(safe-area-inset-top, 0px))';
 const WECHSEL_SHEET_BOTTOM_OFFSET = 'calc(96px + env(safe-area-inset-bottom, 0px))';
 const WECHSEL_SHEET_MAX_HEIGHT =
   'calc(100dvh - 96px - 96px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))';
-const WECHSEL_SHEET_OVERLAY =
-  'fixed inset-x-0 bottom-0 z-[10000] flex flex-col justify-end bg-black/80 backdrop-blur-sm';
+/** Wechsel: eigener Screen unter App-Header, über Hub (opaque, kein Hub-Scroll) */
+const WECHSEL_SCREEN_SHELL =
+  'fixed inset-x-0 z-[40] flex flex-col overflow-hidden border-t border-red-500/30 bg-black text-white';
+const WECHSEL_SCREEN_FOOTER_PB = 'calc(120px + env(safe-area-inset-bottom, 0px))';
 /** iOS: kein Kopieren/Lookup auf Ergebnis & Uhr */
 const SCOREBOARD_NO_SELECT =
   'select-none touch-manipulation [-webkit-touch-callout:none] [-webkit-user-select:none] [user-select:none]';
@@ -1995,6 +1997,26 @@ export const LiveMatchScreen: React.FC = () => {
   }, [fairPlaySheetOpen, releaseLiveBodyScrollLock]);
 
   useEffect(() => {
+    if (!wechselSheetOpen) {
+      releaseLiveBodyScrollLock();
+      document.documentElement.style.overflow = '';
+      const t = window.setTimeout(() => {
+        liveHubScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+        liveScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 50);
+      return () => window.clearTimeout(t);
+    }
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
+    };
+  }, [wechselSheetOpen, releaseLiveBodyScrollLock]);
+
+  useEffect(() => {
     const onLiveNavReset = () => {
       setMainTab('hub');
       closeWechselSheet();
@@ -3237,10 +3259,13 @@ export const LiveMatchScreen: React.FC = () => {
   /** Höhe unter globalem App-Header (main pt); Matchboard+Hub fix, Module scrollen (inkl. pb für Bottom-Nav). */
   const liveShellOuter =
     'relative flex h-[calc(100svh-5.5rem)] max-h-[calc(100svh-5.5rem)] flex-col overflow-hidden text-white';
+  const wechselScreenActive = Boolean(canControlLiveMatch && wechselSheetOpen && !matchIsFinished);
 
   return (
     <div className={liveShellOuter}>
       <style>{`@keyframes liveSubIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes liveSubOut{from{opacity:.92;transform:translateY(0)}to{opacity:0;transform:translateY(10px)}}`}</style>
+      {!wechselScreenActive ? (
+      <>
       <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
         <div
           className="absolute inset-0 bg-cover opacity-[0.22] brightness-[0.42] saturate-[0.72]"
@@ -3693,7 +3718,7 @@ export const LiveMatchScreen: React.FC = () => {
           mainTab === 'hub'
             ? 'hidden'
             : 'flex-1 overflow-y-auto px-2 py-3 pt-2 pb-[calc(140px+env(safe-area-inset-bottom,0px))]'
-        } ${mainTab === 'lineup' ? '!px-0 !py-0 sm:!py-1' : ''} ${wechselSheetOpen ? 'brightness-[0.92]' : ''}`}
+        } ${mainTab === 'lineup' ? '!px-0 !py-0 sm:!py-1' : ''}`}
       >
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>
@@ -4195,6 +4220,9 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
         )}
       </div>
+      </div>
+      </>
+      ) : null}
 
       {canControlLiveMatch && formationSheetOpen ? (
         <div className="fixed inset-0 z-[9998] flex h-[100dvh] flex-col bg-black/75 backdrop-blur-sm">
@@ -4312,23 +4340,26 @@ export const LiveMatchScreen: React.FC = () => {
         </div>
       ) : null}
 
-      {canControlLiveMatch && wechselSheetOpen && !matchIsFinished ? (
+      {wechselScreenActive ? (
         <div
-          className={WECHSEL_SHEET_OVERLAY}
-          style={{ top: WECHSEL_SHEET_TOP_OFFSET, paddingBottom: WECHSEL_SHEET_BOTTOM_OFFSET }}
-          role="presentation"
-          onClick={closeWechselSheet}
+          className={WECHSEL_SCREEN_SHELL}
+          style={{ top: WECHSEL_SHEET_TOP_OFFSET, bottom: WECHSEL_SHEET_BOTTOM_OFFSET }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="wechsel-sheet-title"
         >
-          <div
-            className="flex min-h-0 w-full flex-col overflow-hidden rounded-t-2xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
-            style={{ maxHeight: WECHSEL_SHEET_MAX_HEIGHT }}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="wechsel-sheet-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mt-0.5 h-0.5 w-5 shrink-0 rounded-full bg-red-400/30" aria-hidden />
-            <div className="flex shrink-0 items-center justify-between gap-1.5 border-b border-white/[0.07] px-2 pb-0.5 pt-0.5">
+          <div aria-hidden className="pointer-events-none absolute inset-0 z-0 bg-black">
+            <div
+              className="absolute inset-0 bg-cover opacity-[0.14] brightness-[0.38] saturate-[0.7]"
+              style={{
+                backgroundImage: `url(${matchboardWelcomeHeroSrc()})`,
+                backgroundPosition: 'center 43%',
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black via-red-950/75 to-black" />
+          </div>
+          <div className="relative z-[1] flex min-h-0 flex-1 flex-col">
+            <div className="flex shrink-0 items-center justify-between gap-1.5 border-b border-white/[0.07] bg-black/90 px-2 pb-1 pt-1">
               <h3 id="wechsel-sheet-title" className="shrink-0 text-[13px] font-black leading-none tracking-tight text-white">
                 Wechsel
               </h3>
@@ -4515,10 +4546,7 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div
-                  className="relative flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5"
-                  style={{ paddingBottom: 'calc(88px + env(safe-area-inset-bottom, 0px))' }}
-                >
+                <div className="relative flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5 pb-1">
                   {!canRenderLivePitch ? (
                     <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center text-[10px] text-white/50">
                       Aufstellung wird geladen …
@@ -4653,7 +4681,7 @@ export const LiveMatchScreen: React.FC = () => {
 
             <footer
               className="sticky bottom-0 z-[70] shrink-0 border-t border-red-500/15 bg-black/90 px-2 pt-1 backdrop-blur-md"
-              style={{ paddingBottom: LIVE_SHEET_FOOTER_SAFE_PB }}
+              style={{ paddingBottom: WECHSEL_SCREEN_FOOTER_PB }}
             >
               <div className="flex flex-row gap-1.5">
                 <button
@@ -5284,7 +5312,6 @@ export const LiveMatchScreen: React.FC = () => {
           </div>
         </div>
       ) : null}
-      </div>
     </div>
   );
 };
