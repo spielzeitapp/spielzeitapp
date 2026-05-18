@@ -4312,19 +4312,20 @@ export const LiveMatchScreen: React.FC = () => {
           onClick={closeWechselSheet}
         >
           <div
-            className="flex min-h-0 w-full max-h-[min(80dvh,40rem)] flex-col overflow-hidden rounded-t-3xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
+            className="flex min-h-0 w-full max-h-[min(86dvh,42rem)] flex-col overflow-hidden rounded-t-2xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
+            style={{ marginBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))' }}
             role="dialog"
             aria-modal="true"
             aria-labelledby="wechsel-sheet-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto mt-1 h-0.5 w-5 shrink-0 rounded-full bg-red-400/30" aria-hidden />
-            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/[0.07] px-2.5 pb-1.5 pt-1">
-              <h3 id="wechsel-sheet-title" className="text-sm font-black tracking-tight text-white">
+            <div className="mx-auto mt-0.5 h-0.5 w-5 shrink-0 rounded-full bg-red-400/30" aria-hidden />
+            <div className="flex shrink-0 items-center justify-between gap-1.5 border-b border-white/[0.07] px-2 pb-0.5 pt-0.5">
+              <h3 id="wechsel-sheet-title" className="shrink-0 text-[13px] font-black leading-none tracking-tight text-white">
                 Wechsel
               </h3>
               <div
-                className="inline-flex h-9 min-h-[36px] max-w-[13.5rem] flex-1 items-stretch justify-end overflow-hidden rounded-lg border border-white/12 bg-black/70 p-px sm:max-w-[15rem]"
+                className="inline-flex h-8 min-h-8 max-w-[12.5rem] flex-1 items-stretch justify-end overflow-hidden rounded-md border border-white/12 bg-black/70 p-px sm:max-w-[14rem]"
                 role="tablist"
                 aria-label="Ansicht"
               >
@@ -4334,7 +4335,7 @@ export const LiveMatchScreen: React.FC = () => {
                   aria-selected={subSheetView === 'list'}
                   onClick={() => setSubSheetView('list')}
                   className={[
-                    'min-h-[36px] flex-1 px-2.5 text-center text-[11px] font-bold leading-none transition-colors sm:text-xs',
+                    'min-h-8 flex-1 px-2 text-center text-[10px] font-bold leading-none transition-colors sm:text-[11px]',
                     subSheetView === 'list'
                       ? 'rounded-md bg-red-600 text-white shadow-[0_0_8px_rgba(220,38,38,0.25)]'
                       : 'rounded-md text-white/45 hover:bg-white/[0.06] hover:text-white/80',
@@ -4349,7 +4350,7 @@ export const LiveMatchScreen: React.FC = () => {
                   aria-selected={subSheetView === 'pitch'}
                   onClick={() => setSubSheetView('pitch')}
                   className={[
-                    'min-h-[36px] flex-1 px-2.5 text-center text-[11px] font-bold leading-none transition-colors sm:text-xs',
+                    'min-h-8 flex-1 px-2 text-center text-[10px] font-bold leading-none transition-colors sm:text-[11px]',
                     subSheetView === 'pitch'
                       ? 'rounded-md bg-red-600 text-white shadow-[0_0_8px_rgba(220,38,38,0.25)]'
                       : 'rounded-md text-white/45 hover:bg-white/[0.06] hover:text-white/80',
@@ -4360,10 +4361,12 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
             </div>
 
-            <div className="shrink-0 border-b border-white/[0.07] bg-black/95 px-2.5 py-2">
-              <p className="text-[9px] font-black uppercase tracking-[0.14em] text-white/45">Modus</p>
-              <p className="text-[12px] font-bold text-white">Spielerwechsel</p>
-              <p className="mt-1 truncate text-[11px] font-semibold leading-snug text-emerald-200/95">
+            <div className="shrink-0 border-b border-white/[0.07] bg-black/95 px-2 py-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] font-bold leading-none text-white">Spielerwechsel</p>
+                <span className="text-[8px] font-black uppercase tracking-[0.12em] text-white/40">Modus</span>
+              </div>
+              <p className="mt-0.5 truncate text-[10px] font-semibold leading-snug text-emerald-200/95">
                 {wechselSheetPickLabels.outLabel || wechselSheetPickLabels.inLabel
                   ? `Raus ${wechselSheetPickLabels.outLabel || '…'} → Rein ${wechselSheetPickLabels.inLabel || '…'}`
                   : 'Schritt 1: Raus wählen · Schritt 2: Rein wählen'}
@@ -4371,11 +4374,11 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
 
             <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-            <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden px-2 pb-0.5 pt-1">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pb-0 pt-0">
               {subSheetView === 'list' ? (
                 <div
-                  className="grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-hidden sm:gap-2.5"
-                  style={{ minHeight: 'min(50dvh, 17.5rem)' }}
+                  className="grid min-h-0 flex-1 grid-cols-2 gap-1.5 overflow-hidden sm:gap-2"
+                  style={{ minHeight: 'min(54dvh, 21rem)' }}
                 >
                   <div className="flex min-h-0 flex-1 flex-col gap-0.5">
                     <p className="shrink-0 text-[9px] font-black uppercase tracking-[0.14em] text-red-300/95">Raus · Feld · inkl. TW</p>
@@ -4408,7 +4411,7 @@ export const LiveMatchScreen: React.FC = () => {
                                 type="button"
                                 onClick={() => setSubOutPlayerId(pid)}
                                 className={[
-                                  'flex h-[80px] min-h-[72px] max-h-[84px] shrink-0 items-center gap-2 rounded-xl border px-2 py-1.5 text-left transition-all active:scale-[0.99]',
+                                  'flex h-[72px] min-h-[64px] max-h-[76px] shrink-0 items-center gap-1.5 rounded-xl border px-2 py-1 text-left transition-all active:scale-[0.99]',
                                   'bg-gradient-to-br from-red-950/40 via-black/75 to-black/92',
                                   selected
                                     ? 'border-red-500 shadow-[0_0_18px_rgba(239,68,68,0.38)] ring-2 ring-red-500/50'
@@ -4470,7 +4473,7 @@ export const LiveMatchScreen: React.FC = () => {
                                 type="button"
                                 onClick={() => setSubInPlayerId(pid)}
                                 className={[
-                                  'flex h-[80px] min-h-[72px] max-h-[84px] shrink-0 items-center gap-2 rounded-xl border px-2 py-1.5 text-left transition-all active:scale-[0.99]',
+                                  'flex h-[72px] min-h-[64px] max-h-[76px] shrink-0 items-center gap-1.5 rounded-xl border px-2 py-1 text-left transition-all active:scale-[0.99]',
                                   'bg-gradient-to-br from-emerald-950/25 via-black/75 to-black/92',
                                   selected
                                     ? 'border-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.38)] ring-2 ring-emerald-400/55'
@@ -4507,7 +4510,10 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
+                <div
+                  className="relative flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5"
+                  style={{ paddingBottom: 'calc(88px + env(safe-area-inset-bottom, 0px))' }}
+                >
                   {!canRenderLivePitch ? (
                     <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center text-[10px] text-white/50">
                       Aufstellung wird geladen …
@@ -4574,10 +4580,10 @@ export const LiveMatchScreen: React.FC = () => {
                               </div>
                             );
                           }}
-                          className="max-h-[min(58dvh,58vh)] sm:max-h-[min(60dvh,38rem)]"
+                          className="max-h-[min(44dvh,26rem)] sm:max-h-[min(46dvh,28rem)]"
                         />
                       </div>
-                      <section className="shrink-0 border-t border-white/[0.08] pt-1.5 transition-opacity duration-200">
+                      <section className="shrink-0 border-t border-white/[0.08] pt-1 transition-opacity duration-200">
                         <p className="mb-1 px-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-300/90">
                           Bank
                         </p>
@@ -4641,15 +4647,15 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
 
             <footer
-              className="sticky bottom-0 z-[70] shrink-0 border-t border-red-500/15 bg-black/90 px-2 pt-1.5 backdrop-blur-md"
-              style={{ paddingBottom: LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB }}
+              className="sticky bottom-0 z-[70] shrink-0 border-t border-red-500/15 bg-black/90 px-2 pt-1 backdrop-blur-md"
+              style={{ paddingBottom: LIVE_SHEET_FOOTER_SAFE_PB }}
             >
-              <div className="flex flex-row gap-2">
+              <div className="flex flex-row gap-1.5">
                 <button
                   type="button"
                   disabled={subSaving || posSwapSaving}
                   onClick={closeWechselSheet}
-                  className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-xs font-bold text-white/85 hover:bg-zinc-800 disabled:opacity-45"
+                  className="flex min-h-[42px] flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-[11px] font-bold text-white/85 hover:bg-zinc-800 disabled:opacity-45"
                 >
                   Zurück zum Livespiel
                 </button>
@@ -4663,7 +4669,7 @@ export const LiveMatchScreen: React.FC = () => {
                     String(subOutPlayerId ?? '').trim() === String(subInPlayerId ?? '').trim()
                   }
                   onClick={() => void confirmSubstitution()}
-                  className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-emerald-600 px-1 text-xs font-bold text-white shadow-[0_0_14px_rgba(16,185,129,0.32)] disabled:opacity-35"
+                  className="flex min-h-[42px] flex-1 items-center justify-center rounded-xl bg-emerald-600 px-1 text-[11px] font-bold text-white shadow-[0_0_14px_rgba(16,185,129,0.32)] disabled:opacity-35"
                 >
                   {subSaving
                     ? '…'
