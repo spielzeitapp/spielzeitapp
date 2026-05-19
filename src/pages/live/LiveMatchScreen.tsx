@@ -342,12 +342,14 @@ const FAIRPLAY_SHEET_LIST_BOTTOM_PAD = 'calc(120px + env(safe-area-inset-bottom,
 const LIVE_HUB_SCROLL_BOTTOM_PAD = 'calc(170px + env(safe-area-inset-bottom, 0px))';
 const FAIRPLAY_SHEET_OVERLAY =
   'fixed inset-0 z-[10000] flex flex-col justify-end bg-black/80 backdrop-blur-sm';
-/** Wechsel-Sheet: unter App-Header (~96px) + über BottomNav (~78px) */
-const WECHSEL_SHEET_TOP_OFFSET = 'calc(92px + env(safe-area-inset-top, 0px))';
+/** Wechsel-Sheet: direkt unter App-Header + über BottomNav (~78px) */
+const WECHSEL_SHEET_TOP_OFFSET = 'calc(80px + env(safe-area-inset-top, 0px))';
 const WECHSEL_SHEET_BOTTOM_OFFSET = 'calc(78px + env(safe-area-inset-bottom, 0px))';
 /** Wechsel: eigener Screen unter App-Header, über Hub (opaque, kein Hub-Scroll) */
 const WECHSEL_SCREEN_SHELL =
-  'fixed inset-x-0 z-[40] flex flex-col overflow-hidden border-t border-red-500/30 bg-black text-white';
+  'fixed inset-x-0 z-[40] flex min-h-0 flex-col overflow-hidden border-t border-red-500/30 bg-black text-white';
+/** Spielfeld-Tab: Scroll-Ende über Footer/BottomNav */
+const WECHSEL_PITCH_TAB_SCROLL_BOTTOM_PAD = 'calc(150px + env(safe-area-inset-bottom, 0px))';
 /** Footer im Screen — BottomNav-Abstand kommt vom Screen-bottom (78px) */
 const WECHSEL_SCREEN_FOOTER_PB = 'max(0.5rem, env(safe-area-inset-bottom, 0px))';
 /** Wechsel-Content: Abstand am Scroll-Ende über dem sticky Footer */
@@ -4431,18 +4433,10 @@ export const LiveMatchScreen: React.FC = () => {
           aria-modal="true"
           aria-labelledby="wechsel-sheet-title"
         >
-          <div aria-hidden className="pointer-events-none absolute inset-0 z-0 bg-black">
-            <div
-              className="absolute inset-0 bg-cover opacity-[0.14] brightness-[0.38] saturate-[0.7]"
-              style={{
-                backgroundImage: `url(${matchboardWelcomeHeroSrc()})`,
-                backgroundPosition: 'center 43%',
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black via-red-950/75 to-black" />
-          </div>
+          <div aria-hidden className="pointer-events-none absolute inset-0 z-0 bg-black" />
           <div className="relative z-[1] flex min-h-0 flex-1 flex-col">
-            <div className="flex shrink-0 items-center justify-between gap-1 border-b border-white/[0.07] bg-black/90 px-2 py-0.5">
+            <div className="sticky top-0 z-20 shrink-0 bg-black">
+            <div className="flex items-center justify-between gap-1 border-b border-white/[0.07] px-2 py-0.5">
               <h3 id="wechsel-sheet-title" className="shrink-0 text-[12px] font-black leading-none tracking-tight text-white">
                 Wechsel
               </h3>
@@ -4483,15 +4477,23 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
             </div>
 
-            <div className="shrink-0 border-b border-white/[0.07] bg-black/95 px-2 py-0.5">
+            <div className="border-b border-white/[0.07] px-2 py-0.5">
               <p className="truncate text-[10px] font-semibold leading-snug text-emerald-200/95">
                 {wechselSheetPickLabels.outLabel || wechselSheetPickLabels.inLabel
                   ? `Raus ${wechselSheetPickLabels.outLabel || '…'} → Rein ${wechselSheetPickLabels.inLabel || '…'}`
                   : 'Schritt 1: Raus wählen · Schritt 2: Rein wählen'}
               </p>
             </div>
+            </div>
 
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-2 pb-0 pt-0.5">
+            <div
+              className={[
+                'flex min-h-0 min-w-0 flex-1 flex-col px-2 pb-0 pt-0.5',
+                subSheetView === 'pitch'
+                  ? 'overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
+                  : 'overflow-hidden',
+              ].join(' ')}
+            >
               {subSheetView === 'list' ? (
                 <div className="grid min-h-0 flex-1 grid-cols-2 gap-1 overflow-hidden sm:gap-1.5">
                   <div className="flex min-h-0 flex-1 flex-col gap-0.5">
@@ -4629,19 +4631,14 @@ export const LiveMatchScreen: React.FC = () => {
                     )}
                   </div>
                 </div>
+              ) : !canRenderLivePitch ? (
+                <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center text-[10px] text-white/50">
+                  Aufstellung wird geladen …
+                </p>
               ) : (
-                <div
-                  className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
-                  style={{ paddingBottom: WECHSEL_CONTENT_SCROLL_BOTTOM_PAD }}
-                >
-                  {!canRenderLivePitch ? (
-                    <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center text-[10px] text-white/50">
-                      Aufstellung wird geladen …
-                    </p>
-                  ) : (
-                    <>
-                      <div className="mx-auto w-full max-w-md shrink-0 overflow-hidden px-0.5">
-                        <LineupFormationPitch
+                <>
+                  <div className="mx-auto w-full max-w-md px-0.5">
+                    <LineupFormationPitch
                           formationId={safeFormationId}
                           slots={(safeLineupSlots ?? {}) as Record<FieldSlotId, string | null>}
                           interactive
@@ -4700,21 +4697,24 @@ export const LiveMatchScreen: React.FC = () => {
                               </div>
                             );
                           }}
-                          className="min-h-[10rem] max-h-[min(36dvh,23.5rem)] w-full sm:max-h-[min(38dvh,25rem)]"
+                          className="min-h-[11rem] max-h-[min(46dvh,28rem)] w-full sm:max-h-[min(48dvh,30rem)]"
                         />
-                      </div>
-                      <section className="border-t border-white/[0.08] pt-1 pb-1 transition-opacity duration-200">
-                        <p className="mb-1 px-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-300/90">
-                          Bank
-                        </p>
-                        {substitutionBenchRows.length === 0 ? (
-                          <p className="rounded-md border border-emerald-500/15 bg-black/50 px-1.5 py-1 text-[10px] text-white/45">
-                            Keine Bankspieler.
-                          </p>
-                        ) : (
-                          <div className="-mx-0.5 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch]">
-                            <div className="flex min-w-min flex-nowrap items-start gap-2 px-0.5">
-                              {substitutionBenchRows.map((row, idx) => {
+                  </div>
+                  <section
+                    className="border-t border-white/[0.08] pt-1 transition-opacity duration-200"
+                    style={{ paddingBottom: WECHSEL_PITCH_TAB_SCROLL_BOTTOM_PAD }}
+                  >
+                    <p className="mb-1 px-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-300/90">
+                      Bank
+                    </p>
+                    {substitutionBenchRows.length === 0 ? (
+                      <p className="rounded-md border border-emerald-500/15 bg-black/50 px-1.5 py-1 text-[10px] text-white/45">
+                        Keine Bankspieler.
+                      </p>
+                    ) : (
+                      <div className="-mx-0.5 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch]">
+                        <div className="flex min-w-min flex-nowrap items-start gap-2 px-0.5">
+                          {substitutionBenchRows.map((row, idx) => {
                                 const pid = String(row?.id ?? '').trim();
                                 if (!pid) return null;
                                 const name = String(row?.display_name ?? 'Spieler').trim() || 'Spieler';
@@ -4759,15 +4759,13 @@ export const LiveMatchScreen: React.FC = () => {
                             </div>
                           </div>
                         )}
-                      </section>
-                    </>
-                  )}
-                </div>
+                  </section>
+                </>
               )}
             </div>
 
             <footer
-              className="sticky bottom-0 z-[70] shrink-0 border-t border-red-500/15 bg-black/90 px-2 pt-0.5 backdrop-blur-md"
+              className="sticky bottom-0 z-30 shrink-0 border-t border-red-500/15 bg-black/95 px-2 pt-0.5 backdrop-blur-md"
               style={{ paddingBottom: WECHSEL_SCREEN_FOOTER_PB }}
             >
               <div className="flex flex-row gap-1.5">
