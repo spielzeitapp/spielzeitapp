@@ -350,6 +350,8 @@ const WECHSEL_SCREEN_SHELL =
   'fixed inset-x-0 z-[40] flex flex-col overflow-hidden border-t border-red-500/30 bg-black text-white';
 /** Footer im Screen — BottomNav-Abstand kommt vom Screen-bottom (78px) */
 const WECHSEL_SCREEN_FOOTER_PB = 'max(0.5rem, env(safe-area-inset-bottom, 0px))';
+/** Wechsel-Content: Abstand am Scroll-Ende über dem sticky Footer */
+const WECHSEL_CONTENT_SCROLL_BOTTOM_PAD = 'max(0.75rem, env(safe-area-inset-bottom, 0px))';
 /** iOS: kein Kopieren/Lookup auf Ergebnis & Uhr */
 const SCOREBOARD_NO_SELECT =
   'select-none touch-manipulation [-webkit-touch-callout:none] [-webkit-user-select:none] [user-select:none]';
@@ -4499,7 +4501,10 @@ export const LiveMatchScreen: React.FC = () => {
                         Keine Feldspieler.
                       </p>
                     ) : (
-                      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
+                      <div
+                        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5"
+                        style={{ paddingBottom: WECHSEL_CONTENT_SCROLL_BOTTOM_PAD }}
+                      >
                         <div className="flex flex-col gap-1">
                           {substitutionFieldRows.map((row) => {
                             const slot = row?.slot;
@@ -4523,7 +4528,7 @@ export const LiveMatchScreen: React.FC = () => {
                                 type="button"
                                 onClick={() => setSubOutPlayerId(pid)}
                                 className={[
-                                  'flex h-[58px] min-h-[54px] max-h-[62px] shrink-0 items-center gap-1 rounded-lg border px-1.5 py-0.5 text-left transition-all active:scale-[0.99]',
+                                  'flex h-[61px] min-h-[58px] max-h-[66px] shrink-0 items-center gap-1.5 rounded-lg border px-1.5 py-0.5 text-left transition-all active:scale-[0.99]',
                                   'bg-gradient-to-br from-red-950/40 via-black/75 to-black/92',
                                   selected
                                     ? 'border-red-500 shadow-[0_0_18px_rgba(239,68,68,0.38)] ring-2 ring-red-500/50'
@@ -4540,14 +4545,14 @@ export const LiveMatchScreen: React.FC = () => {
                                     variant={isGk ? 'goalkeeper' : 'field'}
                                     size="compact"
                                     pitchStyleBack
-                                    className="!h-[2.75rem] !w-[2.15rem] sm:!h-[3rem] sm:!w-[2.45rem]"
+                                    className="!h-[2.9rem] !w-[2.28rem] sm:!h-[3.1rem] sm:!w-[2.55rem]"
                                   />
                                 </div>
                                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
-                                  <p className="truncate text-[13px] font-bold leading-snug text-white">
+                                  <p className="truncate text-[14px] font-bold leading-snug text-white">
                                     {shortName}
                                   </p>
-                                  <span className="inline-flex w-fit rounded-md border border-red-500/35 bg-red-950/50 px-1 py-px text-[7px] font-bold uppercase tracking-wide text-red-100/95">
+                                  <span className="inline-flex w-fit rounded-md border border-red-500/35 bg-red-950/50 px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-red-100/95">
                                     {slotBadge}
                                   </span>
                                 </div>
@@ -4566,7 +4571,10 @@ export const LiveMatchScreen: React.FC = () => {
                         Keine Bankspieler.
                       </p>
                     ) : (
-                      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5">
+                      <div
+                        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] pr-0.5"
+                        style={{ paddingBottom: WECHSEL_CONTENT_SCROLL_BOTTOM_PAD }}
+                      >
                         <div className="flex flex-col gap-1">
                           {substitutionBenchRows.map((row) => {
                             const pid = String(row?.id ?? '').trim();
@@ -4585,7 +4593,7 @@ export const LiveMatchScreen: React.FC = () => {
                                 type="button"
                                 onClick={() => setSubInPlayerId(pid)}
                                 className={[
-                                  'flex h-[58px] min-h-[54px] max-h-[62px] shrink-0 items-center gap-1 rounded-lg border px-1.5 py-0.5 text-left transition-all active:scale-[0.99]',
+                                  'flex h-[61px] min-h-[58px] max-h-[66px] shrink-0 items-center gap-1.5 rounded-lg border px-1.5 py-0.5 text-left transition-all active:scale-[0.99]',
                                   'bg-gradient-to-br from-emerald-950/25 via-black/75 to-black/92',
                                   selected
                                     ? 'border-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.38)] ring-2 ring-emerald-400/55'
@@ -4602,14 +4610,14 @@ export const LiveMatchScreen: React.FC = () => {
                                     variant={isGk ? 'goalkeeper' : 'field'}
                                     size="compact"
                                     pitchStyleBack
-                                    className="!h-[2.75rem] !w-[2.15rem] sm:!h-[3rem] sm:!w-[2.45rem]"
+                                    className="!h-[2.9rem] !w-[2.28rem] sm:!h-[3.1rem] sm:!w-[2.55rem]"
                                   />
                                 </div>
                                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
-                                  <p className="truncate text-[13px] font-bold leading-snug text-white">
+                                  <p className="truncate text-[14px] font-bold leading-snug text-white">
                                     {shortName}
                                   </p>
-                                  <span className="inline-flex w-fit rounded-md border border-amber-500/35 bg-amber-950/45 px-1 py-px text-[7px] font-bold uppercase tracking-wide text-amber-100/95">
+                                  <span className="inline-flex w-fit rounded-md border border-amber-500/35 bg-amber-950/45 px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-amber-100/95">
                                     Bank
                                   </span>
                                 </div>
@@ -4622,7 +4630,10 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div
+                  className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
+                  style={{ paddingBottom: WECHSEL_CONTENT_SCROLL_BOTTOM_PAD }}
+                >
                   {!canRenderLivePitch ? (
                     <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center text-[10px] text-white/50">
                       Aufstellung wird geladen …
@@ -4689,10 +4700,10 @@ export const LiveMatchScreen: React.FC = () => {
                               </div>
                             );
                           }}
-                          className="min-h-[11rem] max-h-[min(44dvh,27rem)] w-full sm:max-h-[min(46dvh,29rem)]"
+                          className="min-h-[10rem] max-h-[min(36dvh,23.5rem)] w-full sm:max-h-[min(38dvh,25rem)]"
                         />
                       </div>
-                      <section className="shrink-0 border-t border-white/[0.08] pt-1 pb-0.5 transition-opacity duration-200">
+                      <section className="border-t border-white/[0.08] pt-1 pb-1 transition-opacity duration-200">
                         <p className="mb-1 px-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-300/90">
                           Bank
                         </p>
