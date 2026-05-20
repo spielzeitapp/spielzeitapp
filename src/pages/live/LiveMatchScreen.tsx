@@ -652,69 +652,88 @@ function KickoffRosterPlayerCard({
   onClick,
 }: KickoffRosterPlayerCardProps) {
   const avatarSrc = String(avatarUrl ?? '').trim() || '/avatars/player-placeholder.png';
-  const jersey =
-    jerseyNumber != null && String(jerseyNumber).trim() !== '' && String(jerseyNumber) !== '–'
-      ? String(jerseyNumber)
-      : null;
   const isStarter = variant === 'starter';
+  const posUpper = positionLabel.trim().toUpperCase();
+  const isGk = posUpper === 'TW' || posUpper === 'GK';
+  const shortName = mobileLineupName(name);
+  const jerseyLastName =
+    shortName && shortName !== '—' ? shortName : (name.trim().split(/\s+/).filter(Boolean).pop() ?? name);
+  const avatarSize = isStarter ? 'h-[52px] w-[52px] sm:h-14 sm:w-14' : 'h-12 w-12';
+  const jerseySizeClass = isStarter ? '!h-[3rem] !w-[2.35rem] sm:!h-[3.1rem] sm:!w-[2.45rem]' : '!h-[2.7rem] !w-[2.1rem]';
   const shell = [
     'relative w-full text-left',
-    isStarter
-      ? 'rounded-2xl border border-red-900/40 bg-gradient-to-br from-red-900/40 via-black/80 to-black p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur'
-      : 'rounded-xl border border-white/10 bg-black/55 p-2.5 backdrop-blur-sm',
-    onClick ? 'transition-all duration-150 active:scale-[0.98] hover:border-red-500/45 hover:shadow-[0_0_18px_rgba(239,68,68,0.16)]' : '',
+    'rounded-xl border border-white/10 backdrop-blur-sm',
+    'bg-gradient-to-r from-red-950/40 via-black/88 to-black/92',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_18px_rgba(220,38,38,0.1)]',
+    isStarter ? 'min-h-[72px] px-2.5 py-2' : 'min-h-[64px] px-2 py-1.5 opacity-[0.94]',
+    onClick
+      ? 'transition-all duration-150 active:scale-[0.99] active:bg-red-950/25 hover:border-red-500/28 hover:shadow-[0_0_22px_rgba(239,68,68,0.14)]'
+      : '',
   ]
     .filter(Boolean)
     .join(' ');
   const inner = (
-    <>
-      <div className={`flex items-center gap-2.5 ${isStarter ? 'pr-9' : 'pr-8'}`}>
-        <div className={isStarter ? 'h-11 w-11 shrink-0 sm:h-12 sm:w-12' : 'h-10 w-10 shrink-0'}>
-          <img
-            src={avatarSrc}
-            alt=""
-            className={[
-              'rounded-full border border-white/12 object-cover',
-              isStarter ? 'h-11 w-11 sm:h-12 sm:w-12' : 'h-10 w-10',
-            ].join(' ')}
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = 'none';
-              const next = e.currentTarget.nextElementSibling as HTMLElement | null;
-              if (next) next.style.display = 'flex';
-            }}
-          />
-          <div
-            className={[
-              'hidden items-center justify-center rounded-full border border-white/12 bg-zinc-800 font-black text-white/90',
-              isStarter ? 'h-11 w-11 text-sm sm:h-12 sm:w-12' : 'h-10 w-10 text-xs',
-            ].join(' ')}
-          >
-            {kickoffSquadRowInitials(name)}
-          </div>
-        </div>
-        <div className="min-w-0 flex-1">
-          <p
-            className={[
-              'leading-tight text-white whitespace-normal break-words',
-              isStarter ? 'text-[15px] font-bold sm:text-[16px]' : 'text-[13px] font-semibold text-white/92',
-            ].join(' ')}
-          >
-            {name}
-          </p>
-          <p className={isStarter ? 'mt-0.5 text-[11px] text-white/70 sm:text-[12px]' : 'mt-0.5 text-[10px] text-white/55'}>
-            {positionLabel}
-          </p>
+    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:gap-2.5">
+      <div className={`relative shrink-0 ${avatarSize}`}>
+        <div
+          className="pointer-events-none absolute -inset-0.5 rounded-full bg-red-600/25 blur-[5px]"
+          aria-hidden
+        />
+        <img
+          src={avatarSrc}
+          alt=""
+          className={[
+            'relative z-[1] rounded-full border-2 border-white/15 object-cover',
+            'shadow-[0_0_14px_rgba(239,68,68,0.28)] ring-1 ring-red-500/30',
+            avatarSize,
+          ].join(' ')}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = 'none';
+            const next = e.currentTarget.nextElementSibling as HTMLElement | null;
+            if (next) next.style.display = 'flex';
+          }}
+        />
+        <div
+          className={[
+            'relative z-[1] hidden items-center justify-center rounded-full border-2 border-white/15 bg-zinc-900/95 font-black text-white/90',
+            'shadow-[0_0_12px_rgba(239,68,68,0.2)] ring-1 ring-red-500/25',
+            avatarSize,
+            isStarter ? 'text-sm' : 'text-xs',
+          ].join(' ')}
+        >
+          {kickoffSquadRowInitials(name)}
         </div>
       </div>
-      <div
-        className={[
-          'pointer-events-none absolute font-bold tabular-nums text-red-400',
-          isStarter ? 'bottom-2.5 right-3 text-sm' : 'bottom-2 right-2.5 text-[11px] text-red-400/75',
-        ].join(' ')}
-      >
-        {jersey != null ? `#${jersey}` : '—'}
+      <div className="min-w-0 py-0.5">
+        <p
+          className={[
+            'leading-tight text-white whitespace-normal break-words',
+            isStarter ? 'text-[16px] font-bold tracking-tight sm:text-[17px]' : 'text-[14px] font-semibold text-white/90',
+          ].join(' ')}
+        >
+          {name}
+        </p>
+        <p
+          className={[
+            'mt-0.5 font-semibold uppercase tracking-[0.14em] text-white/45',
+            isStarter ? 'text-[10px]' : 'text-[9px] text-white/40',
+          ].join(' ')}
+        >
+          {positionLabel}
+        </p>
       </div>
-    </>
+      <div className="flex shrink-0 items-center justify-center self-center pl-0.5">
+        <LeibchenJersey
+          lastName={jerseyLastName}
+          number={jerseyNumber ?? '–'}
+          position={positionLabel}
+          variant={isGk ? 'goalkeeper' : 'field'}
+          size="compact"
+          pitchStyleBack
+          className={`pointer-events-none ${jerseySizeClass} ${isStarter ? '' : 'opacity-88'}`}
+        />
+      </div>
+    </div>
   );
   if (onClick) {
     return (
@@ -3997,10 +4016,10 @@ export const LiveMatchScreen: React.FC = () => {
                       setLineupPositionMode(false);
                     }}
                     className={[
-                      'inline-flex min-h-[34px] shrink-0 items-center justify-center rounded-lg border px-2.5 text-[10px] font-extrabold uppercase tracking-wide transition-colors active:scale-[0.98]',
+                      'inline-flex shrink-0 items-center justify-center rounded-lg border uppercase tracking-wide transition-colors active:scale-[0.98]',
                       lineupPanelView === 'live'
-                        ? 'border-emerald-400/70 bg-emerald-950/55 text-emerald-50 shadow-[0_0_22px_rgba(16,185,129,0.42),0_0_10px_rgba(16,185,129,0.22)] ring-1 ring-emerald-400/35'
-                        : 'border-white/14 bg-white/[0.06] text-white/80 hover:border-white/22 hover:bg-white/[0.1]',
+                        ? 'min-h-[36px] border-emerald-400/75 bg-emerald-950/60 px-3 text-[11px] font-extrabold text-emerald-50 shadow-[0_0_26px_rgba(16,185,129,0.48),0_0_12px_rgba(16,185,129,0.28)] ring-1 ring-emerald-400/40'
+                        : 'min-h-[30px] border-white/12 bg-white/[0.04] px-2.5 text-[9px] font-semibold text-white/50 hover:border-white/18 hover:bg-white/[0.07] hover:text-white/65',
                     ].join(' ')}
                   >
                     Live
@@ -4014,13 +4033,13 @@ export const LiveMatchScreen: React.FC = () => {
                       setFormationSheetOpen(false);
                     }}
                     className={[
-                      'inline-flex min-h-[30px] max-w-[6.75rem] shrink-0 items-center justify-center rounded-md border px-1.5 text-[8px] font-semibold uppercase leading-tight tracking-wide text-white/50 transition-colors active:scale-[0.98] sm:max-w-none sm:px-2 sm:text-[9px]',
+                      'inline-flex min-h-[26px] max-w-[5.5rem] shrink-0 items-center justify-center rounded-md border px-1 text-[7px] font-medium uppercase leading-tight tracking-wide transition-colors active:scale-[0.98] sm:max-w-none sm:min-h-[28px] sm:px-1.5 sm:text-[8px]',
                       lineupPanelView === 'kickoff'
-                        ? 'border-white/20 bg-white/[0.06] text-white/85'
-                        : 'border-transparent bg-transparent text-white/40 hover:bg-white/[0.05] hover:text-white/65',
+                        ? 'border-white/14 bg-white/[0.05] text-white/65'
+                        : 'border-transparent bg-transparent text-white/28 hover:bg-white/[0.04] hover:text-white/45',
                     ].join(' ')}
                   >
-                    Startaufstellung
+                    Startelf
                   </button>
                   {canControlLiveMatch && lineupPanelView === 'live' ? (
                     <>
@@ -4055,13 +4074,18 @@ export const LiveMatchScreen: React.FC = () => {
                   ) : null}
                 </div>
               </div>
-              <div className="border-b border-white/[0.07] px-2 py-0.5">
+              <div
+                className={[
+                  'border-b border-white/[0.07] px-2',
+                  lineupPanelView === 'kickoff' ? 'py-0.5' : 'py-0.5',
+                ].join(' ')}
+              >
                 {lineupPanelView === 'kickoff' ? (
                   <>
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-red-300/90">STARTAUFSTELLUNG</p>
-                    <p className="mt-0.5 text-[10px] leading-snug text-white/55">
-                      <span className="text-white/75">Startaufstellung vor Anpfiff</span>
-                      <span className="text-white/35"> · </span>
+                    <p className="text-[9px] font-black uppercase tracking-[0.14em] text-red-300/75">STARTAUFSTELLUNG</p>
+                    <p className="text-[8px] leading-snug text-white/40">
+                      <span>Startaufstellung vor Anpfiff</span>
+                      <span className="text-white/25"> · </span>
                       <span>Snapshot vom Spielbeginn</span>
                     </p>
                   </>
@@ -4088,7 +4112,7 @@ export const LiveMatchScreen: React.FC = () => {
                     Zur Startaufstellung liegen noch keine Daten vor.
                   </p>
                 ) : (
-                  <ul className="flex flex-col gap-2 pb-2">
+                  <ul className="flex flex-col gap-1.5 pb-1.5">
                     <li className="sr-only">Startaufstellung, Snapshot vom Spielbeginn — Spielerliste</li>
                     {kickoffSafeLineupRows
                       .filter((row) => {
@@ -4254,7 +4278,7 @@ export const LiveMatchScreen: React.FC = () => {
                   kickoffBenchRows.length === 0 ? (
                     <p className="text-[12px] text-white/45">Keine weiteren Spieler im Kader</p>
                   ) : (
-                    <ul className="flex flex-col gap-1.5">
+                    <ul className="flex flex-col gap-1">
                       {kickoffBenchRows.map((row, idx) => {
                         const posLabel = getPositionLabel(row.position) || '–';
                         const fullBenchName = String(row.display_name || 'Spieler').trim() || 'Spieler';
