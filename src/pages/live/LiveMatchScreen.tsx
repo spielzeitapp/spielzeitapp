@@ -1085,6 +1085,18 @@ export const LiveMatchScreen: React.FC = () => {
     if (mainTab !== 'lineup' && lineupPanelView !== 'live') setLineupPanelView('live');
   }, [mainTab, lineupPanelView]);
 
+  /** Beim Wechsel in den Aufstellung-Tab: bei laufendem Spiel immer zuerst Live-Mannschaft zeigen. */
+  const prevMainTabForLineupDefaultRef = useRef(mainTab);
+  useEffect(() => {
+    const enteredLineup = mainTab === 'lineup' && prevMainTabForLineupDefaultRef.current !== 'lineup';
+    prevMainTabForLineupDefaultRef.current = mainTab;
+    if (enteredLineup && matchRow?.status === 'live') {
+      setLineupPanelView('live');
+      setLineupPositionMode(false);
+      setFormationSheetOpen(false);
+    }
+  }, [mainTab, matchRow?.status]);
+
   const [formationChangeToast, setFormationChangeToast] = useState(false);
   useEffect(() => {
     if (!formationChangeToast) return;
@@ -1466,6 +1478,7 @@ export const LiveMatchScreen: React.FC = () => {
   }, [safeSlotOrder, kickoffStartingPlayerIds]);
 
   /** Kickoff-Bank (Kader minus Startelf-Snapshot) — nur Ansicht im Startelf-Tab. */
+  // TODO: future: best lineup / successful lineup analytics
   const kickoffBenchRows = useMemo(() => {
     const onField = new Set(
       kickoffStartingPlayerIds.map((id) => String(id ?? '').trim()).filter((id) => id.length > 0),
@@ -3824,18 +3837,18 @@ export const LiveMatchScreen: React.FC = () => {
         {mainTab === 'lineup' && (
           <div className="flex min-h-0 flex-1 flex-col bg-black">
             <div className="sticky top-0 z-20 shrink-0 bg-black">
-              <div className="flex items-center border-b border-white/[0.07] px-2 py-1">
+              <div className="flex items-center border-b border-white/[0.07] px-2 py-0.5">
                 <button
                   type="button"
                   onClick={() => setMainTab('hub')}
-                  className="inline-flex min-h-[36px] min-w-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[12px] font-bold text-white transition active:scale-[0.98]"
+                  className="inline-flex min-h-[40px] min-w-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[12px] font-bold text-white transition active:scale-[0.98]"
                 >
                   <span aria-hidden>←</span>
                   <span>Livespiel</span>
                 </button>
               </div>
-              <div className="overflow-x-auto border-b border-white/[0.07] px-2 py-1 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="flex min-w-min flex-nowrap items-stretch gap-1 sm:min-w-0 sm:flex-wrap">
+              <div className="overflow-x-auto border-b border-white/[0.07] px-2 py-0.5 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex min-w-min flex-nowrap items-center gap-1 sm:min-w-0 sm:flex-wrap">
                   <button
                     type="button"
                     aria-pressed={lineupPanelView === 'live'}
@@ -3844,9 +3857,9 @@ export const LiveMatchScreen: React.FC = () => {
                       setLineupPositionMode(false);
                     }}
                     className={[
-                      'inline-flex min-h-[32px] shrink-0 items-center justify-center rounded-lg border px-2.5 text-[10px] font-extrabold uppercase tracking-wide transition-colors active:scale-[0.98]',
+                      'inline-flex min-h-[36px] shrink-0 items-center justify-center rounded-lg border px-3 text-[11px] font-extrabold uppercase tracking-wide transition-colors active:scale-[0.98]',
                       lineupPanelView === 'live'
-                        ? 'border-emerald-400/45 bg-emerald-950/40 text-emerald-50 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                        ? 'border-emerald-400/70 bg-emerald-950/55 text-emerald-50 shadow-[0_0_22px_rgba(16,185,129,0.42),0_0_10px_rgba(16,185,129,0.22)] ring-1 ring-emerald-400/35'
                         : 'border-white/14 bg-white/[0.06] text-white/80 hover:border-white/22 hover:bg-white/[0.1]',
                     ].join(' ')}
                   >
@@ -3861,35 +3874,35 @@ export const LiveMatchScreen: React.FC = () => {
                       setFormationSheetOpen(false);
                     }}
                     className={[
-                      'inline-flex min-h-[32px] shrink-0 items-center justify-center rounded-lg border px-2.5 text-[10px] font-extrabold uppercase tracking-wide transition-colors active:scale-[0.98]',
+                      'inline-flex min-h-[30px] shrink-0 items-center justify-center rounded-md border px-2 text-[9px] font-semibold uppercase tracking-wide text-white/55 transition-colors active:scale-[0.98]',
                       lineupPanelView === 'kickoff'
-                        ? 'border-amber-400/50 bg-amber-950/45 text-amber-50 shadow-[0_0_10px_rgba(251,191,36,0.2)]'
-                        : 'border-white/14 bg-white/[0.06] text-white/80 hover:border-white/22 hover:bg-white/[0.1]',
+                        ? 'border-white/25 bg-white/[0.08] text-white/90'
+                        : 'border-transparent bg-transparent text-white/45 hover:bg-white/[0.06] hover:text-white/70',
                     ].join(' ')}
                   >
                     Startelf
                   </button>
-                  {canControlLiveMatch ? (
+                  {canControlLiveMatch && lineupPanelView === 'live' ? (
                     <>
                       <button
                         type="button"
-                        disabled={matchIsFinished || lineupPanelView === 'kickoff'}
+                        disabled={matchIsFinished}
                         onClick={() => {
                           setLineupPositionMode(false);
                           setFormationSheetOpen(true);
                         }}
-                        className="inline-flex min-h-[32px] shrink-0 items-center justify-center rounded-lg border border-red-500/35 bg-red-950/45 px-2.5 text-[10px] font-extrabold uppercase tracking-wide text-red-100 transition-colors hover:border-red-400/45 hover:bg-red-950/60 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+                        className="inline-flex min-h-[36px] shrink-0 items-center justify-center rounded-lg border border-red-500/35 bg-red-950/45 px-2.5 text-[10px] font-extrabold uppercase tracking-wide text-red-100 transition-colors hover:border-red-400/45 hover:bg-red-950/60 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                       >
                         Formation
                       </button>
                       <button
                         type="button"
-                        disabled={matchIsFinished || lineupPanelView === 'kickoff'}
+                        disabled={matchIsFinished}
                         title="Positionen auf dem Feld tauschen"
                         aria-pressed={lineupPositionMode}
                         onClick={() => setLineupPositionMode((v) => !v)}
                         className={[
-                          'inline-flex min-h-[32px] shrink-0 items-center justify-center gap-0.5 rounded-lg border px-2.5 text-[10px] font-extrabold uppercase tracking-wide transition-colors active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40',
+                          'inline-flex min-h-[36px] shrink-0 items-center justify-center gap-0.5 rounded-lg border px-2.5 text-[10px] font-extrabold uppercase tracking-wide transition-colors active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40',
                           lineupPositionMode
                             ? 'border-violet-400/55 bg-violet-950/55 text-violet-50 shadow-[0_0_12px_rgba(139,92,246,0.25)]'
                             : 'border-white/14 bg-white/[0.06] text-white/80 hover:border-white/22 hover:bg-white/[0.1]',
@@ -3903,25 +3916,29 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
               </div>
               <div className="border-b border-white/[0.07] px-2 py-0.5">
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/55">
-                  {lineupPanelView === 'kickoff' ? 'Startelf (Kickoff)' : 'Live-Aufstellung'}
-                </p>
-                {lineupPanelView === 'live' && canControlLiveMatch && lineupPositionMode && !matchIsFinished ? (
-                  <p className="mt-0.5 text-[11px] font-semibold leading-snug text-violet-200/90">
-                    Zwei Feldspieler antippen, dann bestätigen.
-                  </p>
-                ) : lineupPanelView === 'kickoff' ? (
-                  <p className="mt-0.5 text-[11px] font-medium leading-snug text-amber-100/75">
-                    Snapshot vom Anpfiff — nur Ansicht.
-                  </p>
-                ) : null}
+                {lineupPanelView === 'kickoff' ? (
+                  <>
+                    <p className="text-[11px] font-semibold leading-tight text-white/85">Startelf vor Anpfiff</p>
+                    <p className="mt-0.5 text-[10px] leading-snug text-white/50">Snapshot vom Spielbeginn</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[11px] font-semibold leading-tight text-white/90">Mannschaft am Feld</p>
+                    <p className="mt-0.5 text-[10px] leading-snug text-emerald-200/55">Stand jetzt im Spiel</p>
+                    {canControlLiveMatch && lineupPositionMode && !matchIsFinished ? (
+                      <p className="mt-0.5 text-[10px] font-semibold leading-snug text-violet-200/90">
+                        Zwei Feldspieler antippen, dann bestätigen.
+                      </p>
+                    ) : null}
+                  </>
+                )}
               </div>
             </div>
-            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain px-2 pt-1 [-webkit-overflow-scrolling:touch]">
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain px-2 pt-0.5 [-webkit-overflow-scrolling:touch]">
               {lineupPanelView === 'kickoff' ? (
                 kickoffSafeLineupRowsCount === 0 ? (
                   <p className="rounded-xl border border-white/10 bg-black/25 px-3 py-4 text-sm text-white/55">
-                    Keine Kickoff-Daten.
+                    Zur Startelf liegen noch keine Daten vor.
                   </p>
                 ) : canRenderLivePitch ? (
                   <div className="mx-auto w-full max-w-md px-0.5">
@@ -3930,7 +3947,7 @@ export const LiveMatchScreen: React.FC = () => {
                     slots={kickoffLineupSlotsForDisplay as Record<FieldSlotId, string | null>}
                     interactive={false}
                     emphasizedPlayerId={null}
-                    className="min-h-[11rem] max-h-[min(46dvh,28rem)] w-full sm:max-h-[min(48dvh,30rem)]"
+                    className="min-h-[11rem] max-h-[min(50dvh,30rem)] w-full sm:max-h-[min(52dvh,32rem)]"
                     renderSlotContent={({ label, playerId, isGk }) => {
                       if (!playerId) return null;
                       const player = rosterById.get(playerId) ?? null;
@@ -3963,7 +3980,7 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 ) : (
                   <p className="rounded-xl border border-white/10 bg-black/25 px-3 py-4 text-sm text-white/55">
-                    Startelf wird geladen …
+                    Wird geladen …
                   </p>
                 )
               ) : canRenderLivePitch ? (
@@ -3976,7 +3993,7 @@ export const LiveMatchScreen: React.FC = () => {
                   onSlotTap={handleLineupPositionSlotTap}
                   emphasizedPlayerId={null}
                   slotHighlightBySlot={mainLineupPitchSlotHighlight}
-                  className="min-h-[11rem] max-h-[min(46dvh,28rem)] w-full sm:max-h-[min(48dvh,30rem)]"
+                  className="min-h-[11rem] max-h-[min(50dvh,30rem)] w-full sm:max-h-[min(52dvh,32rem)]"
                   renderSlotContent={({ slot, label, playerId, isGk }) => {
                     if (!playerId) return null;
                     const player = rosterById.get(playerId) ?? null;
@@ -4089,7 +4106,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </>
               ) : (
                 <p className="rounded-xl border border-white/10 bg-black/25 px-3 py-4 text-sm text-white/55">
-                  Live-Aufstellung wird geladen
+                  Mannschaft wird geladen …
                 </p>
               )}
 
@@ -4097,12 +4114,12 @@ export const LiveMatchScreen: React.FC = () => {
                 className="mt-1 border-t border-white/[0.08] pt-1"
                 style={{ paddingBottom: LINEUP_CONTENT_SCROLL_BOTTOM_PAD }}
               >
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">
-                  {lineupPanelView === 'kickoff' ? 'Startelf-Bank' : 'Bank'}
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                  {lineupPanelView === 'kickoff' ? 'Ersatz beim Anpfiff' : 'Ersatzbank'}
                 </p>
                 {lineupPanelView === 'kickoff' ? (
                   kickoffBenchRows.length === 0 ? (
-                    <p className="text-[12px] text-white/45">Keine Bankspieler am Anpfiff</p>
+                    <p className="text-[12px] text-white/45">Keine weiteren Spieler im Kader</p>
                   ) : (
                     <div className="overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
                       <div className="flex min-w-min flex-nowrap items-start gap-2 sm:gap-2.5">
@@ -4112,7 +4129,7 @@ export const LiveMatchScreen: React.FC = () => {
                           return (
                             <div
                               key={`kickoff-bench-tile-${row.id || idx}`}
-                              className="flex w-[7.25rem] min-w-0 shrink-0 flex-col items-center rounded-xl border border-amber-500/20 bg-black/45 px-1.5 py-2 sm:w-[8.5rem]"
+                              className="flex w-[7.25rem] min-w-0 shrink-0 flex-col items-center rounded-xl border border-white/12 bg-black/40 px-1.5 py-2 sm:w-[8.5rem]"
                             >
                               <LeibchenJersey
                                 lastName={mobileLineupName(fullBenchName)}
