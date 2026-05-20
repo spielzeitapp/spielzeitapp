@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
-import { usePlayers } from '../../hooks/usePlayers';
+import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
+import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
+import { canManageRoster, normalizeRole } from '../../lib/roles';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
 import {
   applySubstitutionToSlots,
@@ -626,6 +628,104 @@ function resolveSectionForEnd(scores: PeriodScoresState): 1 | 2 | 3 {
   return 3;
 }
 
+function kickoffSquadRowInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return (parts[0] ?? '?').slice(0, 2).toUpperCase();
+}
+
+type KickoffRosterPlayerCardProps = {
+  name: string;
+  positionLabel: string;
+  jerseyNumber: number | string | null | undefined;
+  avatarUrl: string | null | undefined;
+  variant: 'starter' | 'bench';
+  onClick?: () => void;
+};
+
+function KickoffRosterPlayerCard({
+  name,
+  positionLabel,
+  jerseyNumber,
+  avatarUrl,
+  variant,
+  onClick,
+}: KickoffRosterPlayerCardProps) {
+  const avatarSrc = String(avatarUrl ?? '').trim() || '/avatars/player-placeholder.png';
+  const jersey =
+    jerseyNumber != null && String(jerseyNumber).trim() !== '' && String(jerseyNumber) !== '–'
+      ? String(jerseyNumber)
+      : null;
+  const isStarter = variant === 'starter';
+  const shell = [
+    'relative w-full text-left',
+    isStarter
+      ? 'rounded-2xl border border-red-900/40 bg-gradient-to-br from-red-900/40 via-black/80 to-black p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur'
+      : 'rounded-xl border border-white/10 bg-black/55 p-2.5 backdrop-blur-sm',
+    onClick ? 'transition-all duration-150 active:scale-[0.98] hover:border-red-500/45 hover:shadow-[0_0_18px_rgba(239,68,68,0.16)]' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const inner = (
+    <>
+      <div className={`flex items-center gap-2.5 ${isStarter ? 'pr-9' : 'pr-8'}`}>
+        <div className={isStarter ? 'h-11 w-11 shrink-0 sm:h-12 sm:w-12' : 'h-10 w-10 shrink-0'}>
+          <img
+            src={avatarSrc}
+            alt=""
+            className={[
+              'rounded-full border border-white/12 object-cover',
+              isStarter ? 'h-11 w-11 sm:h-12 sm:w-12' : 'h-10 w-10',
+            ].join(' ')}
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = 'none';
+              const next = e.currentTarget.nextElementSibling as HTMLElement | null;
+              if (next) next.style.display = 'flex';
+            }}
+          />
+          <div
+            className={[
+              'hidden items-center justify-center rounded-full border border-white/12 bg-zinc-800 font-black text-white/90',
+              isStarter ? 'h-11 w-11 text-sm sm:h-12 sm:w-12' : 'h-10 w-10 text-xs',
+            ].join(' ')}
+          >
+            {kickoffSquadRowInitials(name)}
+          </div>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p
+            className={[
+              'leading-tight text-white whitespace-normal break-words',
+              isStarter ? 'text-[15px] font-bold sm:text-[16px]' : 'text-[13px] font-semibold text-white/92',
+            ].join(' ')}
+          >
+            {name}
+          </p>
+          <p className={isStarter ? 'mt-0.5 text-[11px] text-white/70 sm:text-[12px]' : 'mt-0.5 text-[10px] text-white/55'}>
+            {positionLabel}
+          </p>
+        </div>
+      </div>
+      <div
+        className={[
+          'pointer-events-none absolute font-bold tabular-nums text-red-400',
+          isStarter ? 'bottom-2.5 right-3 text-sm' : 'bottom-2 right-2.5 text-[11px] text-red-400/75',
+        ].join(' ')}
+      >
+        {jersey != null ? `#${jersey}` : '—'}
+      </div>
+    </>
+  );
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={shell}>
+        {inner}
+      </button>
+    );
+  }
+  return <div className={shell}>{inner}</div>;
+}
+
 export const LiveMatchScreen: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -742,6 +842,32 @@ export const LiveMatchScreen: React.FC = () => {
     roster.forEach((p) => m.set(p.id, p));
     return m;
   }, [roster]);
+
+  const playersById = useMemo(() => {
+    const m = new Map<string, PlayerItem>();
+    safePlayers.forEach((p) => m.set(p.id, p));
+    return m;
+  }, [safePlayers]);
+
+  const canManagePlayers = canManageRoster(normalizeRole(backendRole ?? null));
+
+  const [kickoffProfilePlayer, setKickoffProfilePlayer] = useState<PlayerItem | null>(null);
+
+  const openKickoffPlayerProfile = useCallback(
+    (playerId: string) => {
+      const pid = String(playerId ?? '').trim();
+      if (!pid || pid.startsWith('kickoff-')) return;
+      const p = playersById.get(pid);
+      if (p) setKickoffProfilePlayer(p);
+    },
+    [playersById],
+  );
+
+  useEffect(() => {
+    if (!kickoffProfilePlayer?.id) return;
+    const next = playersById.get(kickoffProfilePlayer.id);
+    if (next) setKickoffProfilePlayer(next);
+  }, [playersById, kickoffProfilePlayer?.id]);
 
   /** Replay-Basis: immer Kickoff-Snapshot wenn vorhanden (auch nach Matchende — sonst Doppel-Replay). */
   const liveLineupBasePlayerIds = useMemo(() => {
@@ -1483,6 +1609,7 @@ export const LiveMatchScreen: React.FC = () => {
           display_name: player?.name ?? 'Spieler',
           position: player?.position ?? null,
           jersey_number: player?.number ?? null,
+          avatar_url: player?.avatarUrl ?? null,
         };
       });
   }, [squadPlayerIds, kickoffStartingPlayerIds, rosterById]);
@@ -3303,7 +3430,30 @@ export const LiveMatchScreen: React.FC = () => {
     'relative flex h-[calc(100svh-5.5rem)] max-h-[calc(100svh-5.5rem)] flex-col overflow-hidden text-white';
   const wechselScreenActive = Boolean(canControlLiveMatch && wechselSheetOpen && !matchIsFinished);
 
+  const kickoffProfilePhotoUrl = kickoffProfilePlayer
+    ? (kickoffProfilePlayer.avatar_url ?? '').trim() || null
+    : null;
+  const kickoffTeamSeasonLabel =
+    selectedTeamSeason?.team?.name?.trim() && selectedTeamSeason.team.name.trim() !== HOME_FALLBACK
+      ? selectedTeamSeason.team.name.trim()
+      : getOurTeamDisplayName();
+
   return (
+    <>
+      {kickoffProfilePlayer ? (
+        <PlayerProfileModal
+          player={kickoffProfilePlayer}
+          role={backendRole ?? null}
+          teamSeasonLabel={kickoffTeamSeasonLabel}
+          photoUrl={kickoffProfilePhotoUrl}
+          canManage={canManagePlayers}
+          onClose={() => setKickoffProfilePlayer(null)}
+          onEdit={() => {
+            setKickoffProfilePlayer(null);
+            navigate('/app/team');
+          }}
+        />
+      ) : null}
     <div className={liveShellOuter}>
       <style>{`@keyframes liveSubIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes liveSubOut{from{opacity:.92;transform:translateY(0)}to{opacity:0;transform:translateY(10px)}}`}</style>
       {!wechselScreenActive ? (
@@ -3908,7 +4058,7 @@ export const LiveMatchScreen: React.FC = () => {
               <div className="border-b border-white/[0.07] px-2 py-0.5">
                 {lineupPanelView === 'kickoff' ? (
                   <>
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-red-300/90">Startaufstellung</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-red-300/90">STARTAUFSTELLUNG</p>
                     <p className="mt-0.5 text-[10px] leading-snug text-white/55">
                       <span className="text-white/75">Startaufstellung vor Anpfiff</span>
                       <span className="text-white/35"> · </span>
@@ -3938,35 +4088,33 @@ export const LiveMatchScreen: React.FC = () => {
                     Zur Startaufstellung liegen noch keine Daten vor.
                   </p>
                 ) : (
-                  <div className="flex flex-col gap-1.5 pb-2">
-                    <div className="sr-only">
-                      Startaufstellung, Snapshot vom Spielbeginn — Spielerliste
-                    </div>
-                    {kickoffSafeLineupRows.map((row) => {
-                      const pos = String(row.rightLabel ?? '–').trim() || '–';
-                      const rawName = String(row.display_name ?? '').trim();
-                      const name = rawName && rawName !== '—' ? rawName : '—';
-                      return (
-                        <div
-                          key={`kickoff-line-${row.slot}`}
-                          className="flex min-h-[44px] items-center gap-2.5 rounded-xl border border-red-500/22 bg-gradient-to-r from-black/70 via-red-950/25 to-black/80 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:min-h-[46px]"
-                        >
-                          <span
-                            className="w-9 shrink-0 text-right text-[10px] font-black tabular-nums tracking-wide text-red-200/80 sm:w-10 sm:text-[11px]"
-                            title={pos}
-                          >
-                            {pos}
-                          </span>
-                          <span className="text-red-300/35" aria-hidden>
-                            ·
-                          </span>
-                          <p className="min-w-0 flex-1 truncate text-[14px] font-bold leading-tight text-white sm:text-[15px]">
-                            {name}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <ul className="flex flex-col gap-2 pb-2">
+                    <li className="sr-only">Startaufstellung, Snapshot vom Spielbeginn — Spielerliste</li>
+                    {kickoffSafeLineupRows
+                      .filter((row) => {
+                        const n = String(row.display_name ?? '').trim();
+                        return n.length > 0 && n !== '—';
+                      })
+                      .map((row) => {
+                        const pos = String(row.rightLabel ?? '–').trim() || '–';
+                        const name = String(row.display_name ?? '').trim() || '—';
+                        const canOpenProfile = !String(row.id ?? '').startsWith('kickoff-');
+                        return (
+                          <li key={`kickoff-line-${row.slot}`} className="w-full">
+                            <KickoffRosterPlayerCard
+                              name={name}
+                              positionLabel={pos}
+                              jerseyNumber={row.jersey_number}
+                              avatarUrl={row.avatar_url}
+                              variant="starter"
+                              onClick={
+                                canOpenProfile ? () => openKickoffPlayerProfile(String(row.id)) : undefined
+                              }
+                            />
+                          </li>
+                        );
+                      })}
+                  </ul>
                 )
               ) : canRenderLivePitch ? (
                 <>
@@ -4100,34 +4248,31 @@ export const LiveMatchScreen: React.FC = () => {
                 style={lineupPanelView === 'live' ? { paddingBottom: LINEUP_CONTENT_SCROLL_BOTTOM_PAD } : undefined}
               >
                 <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/45">
-                  {lineupPanelView === 'kickoff' ? 'Ersatz beim Anpfiff' : 'Ersatzbank'}
+                  {lineupPanelView === 'kickoff' ? 'ERSATZ BEIM ANPFIFF' : 'Ersatzbank'}
                 </p>
                 {lineupPanelView === 'kickoff' ? (
                   kickoffBenchRows.length === 0 ? (
                     <p className="text-[12px] text-white/45">Keine weiteren Spieler im Kader</p>
                   ) : (
-                    <div className="flex flex-col gap-1">
+                    <ul className="flex flex-col gap-1.5">
                       {kickoffBenchRows.map((row, idx) => {
                         const posLabel = getPositionLabel(row.position) || '–';
                         const fullBenchName = String(row.display_name || 'Spieler').trim() || 'Spieler';
-                        const num = row.jersey_number != null ? String(row.jersey_number) : null;
+                        const pid = String(row.id ?? '').trim();
                         return (
-                          <div
-                            key={`kickoff-bench-row-${row.id || idx}`}
-                            className="flex min-h-[40px] items-center gap-2 rounded-lg border border-white/10 bg-black/55 px-2.5 py-1.5 backdrop-blur-sm"
-                          >
-                            <span className="w-8 shrink-0 text-[9px] font-black tabular-nums text-white/45">{posLabel}</span>
-                            <span className="text-white/30" aria-hidden>
-                              ·
-                            </span>
-                            <p className="min-w-0 flex-1 truncate text-[12px] font-semibold text-white/92">{fullBenchName}</p>
-                            {num ? (
-                              <span className="shrink-0 text-[10px] font-bold tabular-nums text-white/40">#{num}</span>
-                            ) : null}
-                          </div>
+                          <li key={`kickoff-bench-row-${row.id || idx}`} className="w-full">
+                            <KickoffRosterPlayerCard
+                              name={fullBenchName}
+                              positionLabel={posLabel}
+                              jerseyNumber={row.jersey_number}
+                              avatarUrl={row.avatar_url}
+                              variant="bench"
+                              onClick={pid ? () => openKickoffPlayerProfile(pid) : undefined}
+                            />
+                          </li>
                         );
                       })}
-                    </div>
+                    </ul>
                   )
                 ) : safeBenchRowsCount === 0 ? (
                   <p className="text-[12px] text-white/45">Keine Bankspieler</p>
@@ -5453,6 +5598,7 @@ export const LiveMatchScreen: React.FC = () => {
         </div>
       ) : null}
     </div>
+    </>
   );
 };
 
