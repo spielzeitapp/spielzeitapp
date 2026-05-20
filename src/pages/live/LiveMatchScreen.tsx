@@ -634,6 +634,47 @@ function kickoffSquadRowInitials(name: string): string {
   return (parts[0] ?? '?').slice(0, 2).toUpperCase();
 }
 
+/** Trikot-Badge für Startaufstellung — gleiche Komponente/Props wie Pitch & Live-Bank. */
+function KickoffSquadJerseyBadge({
+  name,
+  positionLabel,
+  jerseyNumber,
+  compact = false,
+}: {
+  name: string;
+  positionLabel: string;
+  jerseyNumber: number | string | null | undefined;
+  compact?: boolean;
+}) {
+  const posUpper = positionLabel.trim().toUpperCase();
+  const isGk = posUpper === 'TW' || posUpper === 'GK';
+  const shortName = mobileLineupName(name);
+  const lastName =
+    shortName && shortName !== '—' ? shortName : (name.trim().split(/\s+/).filter(Boolean).pop() ?? name);
+  const jerseyPx = compact
+    ? { h: '2.75rem', w: '2.1rem' }
+    : { h: '3rem', w: '2.35rem' };
+
+  return (
+    <div
+      className="flex shrink-0 items-center justify-center overflow-visible"
+      style={{ width: jerseyPx.w, height: jerseyPx.h, minWidth: jerseyPx.w, minHeight: jerseyPx.h }}
+      aria-hidden
+    >
+      <LeibchenJersey
+        lastName={lastName}
+        number={jerseyNumber ?? '–'}
+        position={positionLabel}
+        variant={isGk ? 'goalkeeper' : 'field'}
+        size="compact"
+        pitchStyleBack
+        showBackPrint={false}
+        className={compact ? '!h-[2.75rem] !w-[2.1rem] shrink-0' : '!h-[3rem] !w-[2.35rem] shrink-0'}
+      />
+    </div>
+  );
+}
+
 type KickoffRosterPlayerCardProps = {
   name: string;
   positionLabel: string;
@@ -653,15 +694,9 @@ function KickoffRosterPlayerCard({
 }: KickoffRosterPlayerCardProps) {
   const avatarSrc = String(avatarUrl ?? '').trim() || '/avatars/player-placeholder.png';
   const isStarter = variant === 'starter';
-  const posUpper = positionLabel.trim().toUpperCase();
-  const isGk = posUpper === 'TW' || posUpper === 'GK';
-  const shortName = mobileLineupName(name);
-  const jerseyLastName =
-    shortName && shortName !== '—' ? shortName : (name.trim().split(/\s+/).filter(Boolean).pop() ?? name);
   const avatarSize = isStarter ? 'h-[52px] w-[52px] sm:h-14 sm:w-14' : 'h-12 w-12';
-  const jerseySizeClass = isStarter ? '!h-[3rem] !w-[2.35rem] sm:!h-[3.1rem] sm:!w-[2.45rem]' : '!h-[2.7rem] !w-[2.1rem]';
   const shell = [
-    'relative w-full text-left',
+    'relative w-full overflow-visible text-left',
     'rounded-xl border border-white/10 backdrop-blur-sm',
     'bg-gradient-to-r from-red-950/40 via-black/88 to-black/92',
     'shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_18px_rgba(220,38,38,0.1)]',
@@ -722,15 +757,12 @@ function KickoffRosterPlayerCard({
           {positionLabel}
         </p>
       </div>
-      <div className="flex shrink-0 items-center justify-center self-center pl-0.5">
-        <LeibchenJersey
-          lastName={jerseyLastName}
-          number={jerseyNumber ?? '–'}
-          position={positionLabel}
-          variant={isGk ? 'goalkeeper' : 'field'}
-          size="compact"
-          pitchStyleBack
-          className={`pointer-events-none ${jerseySizeClass} ${isStarter ? '' : 'opacity-88'}`}
+      <div className="flex shrink-0 items-center justify-center self-center">
+        <KickoffSquadJerseyBadge
+          name={name}
+          positionLabel={positionLabel}
+          jerseyNumber={jerseyNumber}
+          compact={!isStarter}
         />
       </div>
     </div>
