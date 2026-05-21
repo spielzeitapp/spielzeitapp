@@ -708,6 +708,10 @@ const LINEUP_VIEW_TAB_BASE =
 const LINEUP_TRAINER_ACTION_BTN =
   'inline-flex h-[38px] shrink-0 items-center justify-center whitespace-nowrap rounded-lg border px-2.5 text-xs font-medium uppercase tracking-[0.03em] transition-all duration-200 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-40';
 
+/** Kompakter Zurück-Button in der Aufstellung-Titelzeile (Hub). */
+const LINEUP_COMPACT_BACK_BTN =
+  'inline-flex h-9 min-h-[34px] shrink-0 items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.05] px-2 text-[11px] font-bold text-white transition active:scale-[0.98]';
+
 /** Startelf-Liste: Scroll-Puffer über BottomNav */
 const KICKOFF_LINEUP_SCROLL_BOTTOM_PAD = LINEUP_CONTENT_SCROLL_BOTTOM_PAD;
 
@@ -4101,20 +4105,7 @@ export const LiveMatchScreen: React.FC = () => {
         {mainTab === 'lineup' && (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
             <div className="z-20 shrink-0 border-b border-white/10 bg-black/95 backdrop-blur-md">
-              <div className="flex items-center px-2 pt-0.5 pb-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    clearSubstitutionToast();
-                    setMainTab('hub');
-                  }}
-                  className="inline-flex min-h-[32px] min-w-0 items-center gap-1 rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-xs font-bold text-white transition active:scale-[0.98] sm:text-sm"
-                >
-                  <span aria-hidden>←</span>
-                  <span>Livespiel</span>
-                </button>
-              </div>
-              <div className="overflow-x-auto px-2 pb-0.5 pr-3 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="overflow-x-auto px-2 pt-1 pb-0.5 pr-3 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div className="flex w-max min-w-full items-center gap-1">
                   <button
                     type="button"
@@ -4184,25 +4175,43 @@ export const LiveMatchScreen: React.FC = () => {
                   ) : null}
                 </div>
               </div>
-              <div className="border-t border-white/10 px-2 py-0.5">
-                {lineupPanelView === 'kickoff' ? (
-                  <>
-                    <p className="text-[9px] font-black uppercase tracking-[0.12em] text-red-400/90">STARTAUFSTELLUNG</p>
-                    <p className="text-[8px] leading-snug text-white/38">
-                      Startaufstellung vor Anpfiff · Snapshot vom Spielbeginn
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-[15px] font-semibold leading-tight text-white/90">Mannschaft am Feld</p>
-                    <p className="mt-0 text-[11px] leading-snug text-white/45">Stand jetzt im Spiel</p>
-                    {canControlLiveMatch && lineupPositionMode && !matchIsFinished ? (
-                      <p className="mt-0.5 text-[10px] font-semibold leading-snug text-violet-200/90">
-                        Zwei Feldspieler antippen, dann bestätigen.
-                      </p>
-                    ) : null}
-                  </>
-                )}
+              <div className="border-t border-white/10 px-2 py-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    {lineupPanelView === 'kickoff' ? (
+                      <>
+                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-red-400/90">
+                          STARTAUFSTELLUNG
+                        </p>
+                        <p className="text-[8px] leading-snug text-white/38">
+                          Startaufstellung vor Anpfiff · Snapshot vom Spielbeginn
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[15px] font-semibold leading-tight text-white/90">Mannschaft am Feld</p>
+                        <p className="mt-0 text-[11px] leading-snug text-white/45">Stand jetzt im Spiel</p>
+                        {canControlLiveMatch && lineupPositionMode && !matchIsFinished ? (
+                          <p className="mt-0.5 text-[10px] font-semibold leading-snug text-violet-200/90">
+                            Zwei Feldspieler antippen, dann bestätigen.
+                          </p>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearSubstitutionToast();
+                      setMainTab('hub');
+                    }}
+                    className={LINEUP_COMPACT_BACK_BTN}
+                    aria-label="Zurück zum Live Hub"
+                  >
+                    <span aria-hidden>←</span>
+                    <span>Live</span>
+                  </button>
+                </div>
               </div>
             </div>
             <div
@@ -4251,7 +4260,7 @@ export const LiveMatchScreen: React.FC = () => {
                 )
               ) : canRenderLivePitch ? (
                 <>
-                  <div className="mx-auto w-full max-w-md px-0.5">
+                  <div className="mx-auto w-full max-w-md overflow-hidden px-0.5">
                   <LineupFormationPitch
                   formationId={safeFormationId}
                   slots={safeLineupSlots as Record<FieldSlotId, string | null>}
@@ -4259,8 +4268,8 @@ export const LiveMatchScreen: React.FC = () => {
                   onSlotTap={handleLineupPositionSlotTap}
                   emphasizedPlayerId={null}
                   slotHighlightBySlot={mainLineupPitchSlotHighlight}
-                  className="min-h-[10rem] max-h-[min(44dvh,27rem)] w-full sm:max-h-[min(46dvh,29rem)]"
-                  renderSlotContent={({ slot, label, playerId, isGk }) => {
+                  className="min-h-[10rem] max-h-[min(48dvh,28rem)] w-full sm:max-h-[min(50dvh,30rem)]"
+                  renderSlotContent={({ slot, label, labelDx, labelDy, playerId, isGk }) => {
                     if (!playerId) return null;
                     const player = rosterById.get(playerId) ?? null;
                     const posLabel = getPositionLabel(label) || '–';
@@ -4271,10 +4280,12 @@ export const LiveMatchScreen: React.FC = () => {
                     })();
                     const isPosSwapPick =
                       lineupPositionMode && posSwapSlotA === slot && Boolean(playerId) && !posSwapConfirmOpen;
+                    const nameOffsetX = labelDx ?? 0;
+                    const nameOffsetY = (labelDy ?? 0) + 3;
                     return (
                       <div
                         className={[
-                          'pointer-events-none relative flex w-full max-w-[min(22vw,5.25rem)] flex-col items-center',
+                          'pointer-events-none relative flex w-full max-w-[min(20vw,5.6rem)] flex-col items-center overflow-hidden',
                           isPosSwapPick ? 'scale-[1.04]' : '',
                         ].join(' ')}
                       >
@@ -4319,8 +4330,9 @@ export const LiveMatchScreen: React.FC = () => {
                           />
                         </div>
                         <span
-                          className="mx-auto mt-0.5 block w-full min-w-0 max-w-[6.4rem] truncate rounded-md bg-black/85 px-2 py-0.5 text-center text-[9px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 transition-all duration-300 ease-out sm:text-[10px]"
+                          className="mx-auto mt-1 block w-full min-w-0 max-w-[5.6rem] truncate rounded-md bg-black/85 px-1.5 py-0.5 text-center text-[8px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 transition-all duration-300 ease-out sm:text-[9px]"
                           title={rawName}
+                          style={{ transform: `translate(${nameOffsetX}px, ${nameOffsetY}px)` }}
                         >
                           {shortName}
                         </span>
