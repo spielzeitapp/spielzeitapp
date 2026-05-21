@@ -703,14 +703,14 @@ function kickoffPositionParts(
 }
 
 const LINEUP_VIEW_TAB_BASE =
-  'inline-flex h-[38px] w-auto min-w-[4.6rem] shrink-0 items-center justify-center overflow-hidden rounded-lg border px-2.5 text-sm font-semibold uppercase tracking-[0.04em] transition-all duration-200 active:scale-[0.99]';
+  'inline-flex h-[36px] w-auto min-w-[4.9rem] shrink-0 items-center justify-center overflow-hidden rounded-lg border px-3 text-[11px] font-semibold uppercase tracking-[0.04em] transition-all duration-300 active:scale-[0.99] sm:min-w-[5.1rem] sm:text-sm';
 
 const LINEUP_TRAINER_ACTION_BTN =
-  'inline-flex h-[38px] shrink-0 items-center justify-center whitespace-nowrap rounded-lg border px-2.5 text-xs font-medium uppercase tracking-[0.03em] transition-all duration-200 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-40';
+  'inline-flex h-[36px] shrink-0 items-center justify-center whitespace-nowrap rounded-lg border px-3 text-[11px] font-semibold uppercase tracking-[0.03em] transition-all duration-300 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-40 sm:text-xs';
 
 /** Kompakter Zurück-Button in der Aufstellung-Titelzeile (Hub). */
 const LINEUP_COMPACT_BACK_BTN =
-  'inline-flex h-8 min-h-[32px] shrink-0 items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.05] px-2 text-xs font-bold text-white transition active:scale-[0.98] sm:h-9 sm:min-h-[34px] sm:text-sm';
+  'inline-flex h-8 min-h-[32px] max-w-[5.5rem] shrink-0 items-center gap-0 rounded-lg border border-white/10 bg-white/[0.05] px-1.5 text-sm font-semibold text-white transition-all duration-300 active:scale-[0.98]';
 
 /** Live-Pitch: Namensbadge-Versatz (nur Darstellung, Formation-Daten unverändert). */
 function liveLineupPitchNameOffset(
@@ -724,13 +724,13 @@ function liveLineupPitchNameOffset(
 
   let liftDy = 0;
   if (slot === 'GK') {
-    liftDy = -14;
+    liftDy = -16;
   } else if (y >= 64) {
-    liftDy = -10;
+    liftDy = -12;
   } else if (y >= 36) {
-    liftDy = -5;
+    liftDy = -6;
   } else if (y <= 22) {
-    liftDy = 0;
+    liftDy = 2;
   }
 
   return { dx, dy: baseDy + liftDy };
@@ -757,8 +757,8 @@ function KickoffSquadJerseyBadge({
   const lastName =
     shortName && shortName !== '—' ? shortName : (name.trim().split(/\s+/).filter(Boolean).pop() ?? name);
   const jerseyPx = compact
-    ? { h: '3.25rem', w: '2.5rem' }
-    : { h: '3.5rem', w: '2.75rem' };
+    ? { h: '3.38rem', w: '2.6rem' }
+    : { h: '3.64rem', w: '2.86rem' };
 
   return (
     <div
@@ -774,7 +774,7 @@ function KickoffSquadJerseyBadge({
         size="compact"
         pitchStyleBack
         showBackPrint={false}
-        className={compact ? '!h-[3.25rem] !w-[2.5rem] shrink-0' : '!h-[3.5rem] !w-[2.75rem] shrink-0'}
+        className={compact ? '!h-[3.38rem] !w-[2.6rem] shrink-0' : '!h-[3.64rem] !w-[2.86rem] shrink-0'}
       />
     </div>
   );
@@ -805,9 +805,9 @@ function KickoffRosterPlayerCard({
   const avatarSize = isStarter ? 'h-14 w-14 sm:h-[60px] sm:w-[60px]' : 'h-[52px] w-[52px]';
   const shell = [
     'relative w-full overflow-visible text-left',
-    'rounded-xl border border-white/10 ring-1 ring-red-500/20 backdrop-blur-sm',
-    'bg-gradient-to-r from-red-950/45 via-zinc-950/95 to-black',
-    'shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_20px_rgba(220,38,38,0.12)]',
+    'rounded-xl border border-white/10 ring-1 ring-red-500/18 backdrop-blur-sm',
+    'bg-gradient-to-r from-red-950/50 via-zinc-950/98 to-black',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_18px_rgba(220,38,38,0.1)]',
     isStarter ? 'min-h-[78px] px-3 py-2.5 sm:min-h-[80px]' : 'min-h-[70px] px-2.5 py-2 opacity-[0.96]',
     onClick
       ? 'cursor-pointer transition-all duration-150 active:scale-[0.985] active:bg-red-950/30 hover:border-red-500/35 hover:shadow-[0_0_24px_rgba(239,68,68,0.16)]'
@@ -851,21 +851,21 @@ function KickoffRosterPlayerCard({
         <p
           className={[
             'leading-tight text-white whitespace-normal break-words',
-            isStarter ? 'text-[17px] font-bold tracking-tight sm:text-[18px]' : 'text-[15px] font-bold text-white/92',
+            isStarter ? 'text-[18px] font-bold tracking-tight sm:text-[19px]' : 'text-[15px] font-bold text-white/92',
           ].join(' ')}
         >
           {name}
         </p>
         <p
           className={[
-            'mt-0.5 truncate font-medium leading-snug normal-case',
-            isStarter ? 'text-[10px] sm:text-[11px]' : 'text-[9px]',
+            'mt-1 truncate font-medium leading-snug normal-case',
+            isStarter ? 'text-[12px]' : 'text-[11px]',
           ].join(' ')}
           title={`${posShort} · ${posFull}`}
         >
           <span className="font-semibold text-red-400/90">{posShort}</span>
-          <span className="text-white/35"> · </span>
-          <span className="text-white/55">{posFull}</span>
+          <span className="text-white/40"> · </span>
+          <span className="text-white/60">{posFull}</span>
         </p>
       </div>
       <div className="flex shrink-0 items-center justify-center self-center pr-1 sm:pr-1.5">
@@ -4142,8 +4142,8 @@ export const LiveMatchScreen: React.FC = () => {
                     className={[
                       LINEUP_VIEW_TAB_BASE,
                       lineupPanelView === 'live'
-                        ? 'border-emerald-500/75 bg-emerald-950/55 text-emerald-50 shadow-[inset_0_0_16px_rgba(16,185,129,0.42),inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-emerald-500/40'
-                        : 'border-white/[0.08] bg-black/25 text-white/55 hover:border-white/15 hover:bg-white/[0.06]',
+                        ? 'border-emerald-500/75 bg-emerald-950/55 text-emerald-50 shadow-[inset_0_0_18px_rgba(16,185,129,0.45),inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-emerald-500/40'
+                        : 'border-white/10 bg-black/30 text-white/65 hover:border-white/18 hover:bg-white/[0.07] hover:text-white/85',
                     ].join(' ')}
                   >
                     LIVE
@@ -4160,8 +4160,8 @@ export const LiveMatchScreen: React.FC = () => {
                     className={[
                       LINEUP_VIEW_TAB_BASE,
                       lineupPanelView === 'kickoff'
-                        ? 'border-white/55 bg-gradient-to-br from-red-900/50 via-zinc-900 to-black font-bold text-white shadow-[inset_0_0_14px_rgba(255,255,255,0.14),inset_0_0_16px_rgba(220,38,38,0.2)] ring-1 ring-white/30'
-                        : 'border-white/[0.08] bg-black/25 text-white/55 hover:border-white/15 hover:bg-white/[0.06]',
+                        ? 'border-white/55 bg-gradient-to-br from-red-900/50 via-zinc-900 to-black font-bold text-white shadow-[inset_0_0_16px_rgba(255,255,255,0.16),inset_0_0_18px_rgba(220,38,38,0.22)] ring-1 ring-white/30'
+                        : 'border-white/10 bg-black/30 text-white/65 hover:border-white/18 hover:bg-white/[0.07] hover:text-white/85',
                     ].join(' ')}
                   >
                     START
@@ -4175,7 +4175,7 @@ export const LiveMatchScreen: React.FC = () => {
                           setLineupPositionMode(false);
                           setFormationSheetOpen(true);
                         }}
-                        className={`${LINEUP_TRAINER_ACTION_BTN} min-w-[5rem] border-red-500/20 bg-red-950/35 text-white/80 hover:border-red-500/30 hover:bg-red-950/50`}
+                        className={`${LINEUP_TRAINER_ACTION_BTN} min-w-[5.25rem] border-red-500/20 bg-red-950/35 text-white/85 hover:border-red-500/30 hover:bg-red-950/50`}
                       >
                         Formation
                       </button>
@@ -4187,10 +4187,10 @@ export const LiveMatchScreen: React.FC = () => {
                         onClick={() => setLineupPositionMode((v) => !v)}
                         className={[
                           LINEUP_TRAINER_ACTION_BTN,
-                          'min-w-[4rem]',
+                          'min-w-[4.25rem]',
                           lineupPositionMode
-                            ? 'border-white/40 bg-white/[0.08] text-white shadow-[inset_0_0_10px_rgba(255,255,255,0.12)] ring-1 ring-white/25'
-                            : 'border-white/[0.08] bg-black/25 text-white/70 hover:border-white/15 hover:bg-white/[0.05]',
+                            ? 'border-white/40 bg-white/[0.08] text-white shadow-[inset_0_0_12px_rgba(255,255,255,0.14)] ring-1 ring-white/25'
+                            : 'border-white/10 bg-black/30 text-white/70 hover:border-white/18 hover:bg-white/[0.06] hover:text-white/88',
                         ].join(' ')}
                       >
                         POS
@@ -4200,23 +4200,23 @@ export const LiveMatchScreen: React.FC = () => {
                 </div>
               </div>
               <div className="border-t border-white/10 px-2 py-0.5">
-                <div className="flex items-start justify-between gap-1.5">
-                  <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1">
+                  <div className="min-w-0 flex-1 pr-1">
                     {lineupPanelView === 'kickoff' ? (
                       <>
-                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-red-400/90">
+                        <p className="text-[11px] font-black uppercase tracking-[0.1em] text-red-400/90">
                           STARTAUFSTELLUNG
                         </p>
-                        <p className="text-[8px] leading-snug text-white/38">
+                        <p className="max-w-[calc(100%-0.25rem)] text-[12px] font-medium leading-snug text-white/65">
                           Startaufstellung vor Anpfiff · Snapshot vom Spielbeginn
                         </p>
                       </>
                     ) : (
                       <>
                         <p className="text-[15px] font-semibold leading-tight text-white/90">Mannschaft am Feld</p>
-                        <p className="mt-0 text-[11px] leading-snug text-white/45">Stand jetzt im Spiel</p>
+                        <p className="mt-0 text-[12px] leading-snug text-white/60">Stand jetzt im Spiel</p>
                         {canControlLiveMatch && lineupPositionMode && !matchIsFinished ? (
-                          <p className="mt-0.5 text-[10px] font-semibold leading-snug text-violet-200/90">
+                          <p className="mt-0.5 text-[11px] font-semibold leading-snug text-violet-200/95">
                             Zwei Feldspieler antippen, dann bestätigen.
                           </p>
                         ) : null}
@@ -4232,8 +4232,10 @@ export const LiveMatchScreen: React.FC = () => {
                     className={LINEUP_COMPACT_BACK_BTN}
                     aria-label="Zurück zum Live Hub"
                   >
-                    <span aria-hidden>←</span>
-                    <span>Livespiel</span>
+                    <span aria-hidden className="shrink-0">
+                      ←
+                    </span>
+                    <span className="truncate">Livespiel</span>
                   </button>
                 </div>
               </div>
@@ -4309,11 +4311,12 @@ export const LiveMatchScreen: React.FC = () => {
                       safeFormationId,
                     );
                     const labelBelowJersey = (U11_FORMATIONS[safeFormationId] ?? []).find((s) => s.slot === slot)?.y ?? 50;
-                    const nameBadgeMt = labelBelowJersey >= 64 || slot === 'GK' ? 'mt-0.5' : 'mt-1';
+                    const nameBadgeMt =
+                      labelBelowJersey >= 64 || slot === 'GK' ? 'mt-1' : 'mt-1.5';
                     return (
                       <div
                         className={[
-                          'pointer-events-none relative flex w-full max-w-[min(21vw,6rem)] flex-col items-center overflow-visible',
+                          'pointer-events-none relative flex w-full max-w-[min(22vw,6.35rem)] flex-col items-center overflow-visible',
                           isPosSwapPick ? 'scale-[1.04]' : '',
                         ].join(' ')}
                       >
@@ -4359,7 +4362,7 @@ export const LiveMatchScreen: React.FC = () => {
                         </div>
                         <span
                           className={[
-                            'mx-auto block w-full min-w-0 max-w-[6rem] truncate rounded-md bg-black/85 px-1.5 py-0.5 text-center text-[8px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 transition-all duration-300 ease-out sm:text-[9px]',
+                            'mx-auto block w-full min-w-0 max-w-[6.25rem] truncate rounded-md bg-black/88 px-2 py-0.5 text-center text-[11px] font-medium leading-tight text-white shadow-sm ring-1 ring-white/15 transition-all duration-300 ease-out',
                             nameBadgeMt,
                           ].join(' ')}
                           title={rawName}
@@ -4374,12 +4377,12 @@ export const LiveMatchScreen: React.FC = () => {
                   </div>
                 {fairPlayExtraPlayerId ? (
                   <div className="flex shrink-0 items-center justify-center gap-2 px-1 py-0">
-                    <span className="text-[8px] font-black uppercase tracking-[0.12em] text-amber-200/85">
+                    <span className="text-[11px] font-black uppercase tracking-[0.12em] text-amber-200/85">
                       FairPlay +1
                     </span>
                     <div className="relative flex items-center gap-1.5">
                       <span
-                        className="absolute -right-1 -top-1 z-[2] rounded-full border border-amber-300/90 bg-amber-400 px-0.5 text-[7px] font-black leading-none text-black"
+                        className="absolute -right-1 -top-1 z-[2] rounded-full border border-amber-300/90 bg-amber-400 px-0.5 text-[11px] font-black leading-none text-black"
                         aria-label="Zusatzspieler"
                       >
                         +1
@@ -4401,8 +4404,8 @@ export const LiveMatchScreen: React.FC = () => {
                               className="!h-[2.5rem] !w-[2rem] ring-1 ring-amber-400/45"
                             />
                             <div className="min-w-0 text-left">
-                              <p className="max-w-[5.5rem] truncate text-[9px] font-semibold text-white">{shortName}</p>
-                              <p className="font-mono text-[9px] font-bold tabular-nums text-amber-200/90">
+                              <p className="max-w-[5.5rem] truncate text-[11px] font-semibold text-white">{shortName}</p>
+                              <p className="font-mono text-[11px] font-bold tabular-nums text-amber-200/90">
                                 {formatClock(playtimes[pid] ?? 0)}
                               </p>
                             </div>
@@ -4429,8 +4432,8 @@ export const LiveMatchScreen: React.FC = () => {
                   className={[
                     'font-black uppercase tracking-[0.12em]',
                     lineupPanelView === 'kickoff'
-                      ? 'mb-1 text-[9px] text-red-400/85'
-                      : 'mb-1.5 text-[9px] text-white/45',
+                      ? 'mb-1 text-[11px] text-red-400/85'
+                      : 'mb-1.5 text-[11px] text-white/55',
                   ].join(' ')}
                 >
                   {lineupPanelView === 'kickoff' ? 'ERSATZ BEIM ANPFIFF' : 'Ersatzbank'}
