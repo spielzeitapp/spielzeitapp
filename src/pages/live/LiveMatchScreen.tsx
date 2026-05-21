@@ -661,15 +661,23 @@ function kickoffPositionParts(
   shortLabel: string,
   rosterPosition?: string | null,
 ): { short: string; full: string } {
-  const short = (shortLabel || getPositionLabel(rosterPosition) || '–').trim().toUpperCase();
+  const rosterShort = rosterPosition
+    ? (getPositionLabel(rosterPosition) || String(rosterPosition)).trim().toUpperCase()
+    : '';
+  let short = (shortLabel || rosterShort || '').trim().toUpperCase();
+  if (!short || short === '–' || short === '-') short = rosterShort;
+  if (!short || short === '–' || short === '-') short = '–';
   let full = KICKOFF_POSITION_FULL_DE[short];
   if (!full && rosterPosition) {
     const fromRoster = getPositionFull(rosterPosition).trim();
     if (fromRoster) full = fromRoster.toUpperCase();
   }
-  if (!full) full = short;
+  if (!full || full === '–') full = short === '–' ? 'POSITION' : short;
   return { short, full };
 }
+
+const LINEUP_VIEW_TAB_BASE =
+  'inline-flex h-[38px] min-w-[5.5rem] max-w-[9rem] flex-1 shrink-0 items-center justify-center overflow-hidden rounded-lg border px-3 text-sm font-semibold uppercase tracking-[0.05em] transition-colors active:scale-[0.98]';
 
 /** Kickoff-Liste: etwas mehr Scroll-Puffer über BottomNav */
 const KICKOFF_LINEUP_SCROLL_BOTTOM_PAD = 'calc(158px + env(safe-area-inset-bottom, 0px))';
@@ -793,13 +801,14 @@ function KickoffRosterPlayerCard({
         </p>
         <p
           className={[
-            'mt-0.5 font-semibold uppercase leading-snug',
-            isStarter ? 'text-[10px] tracking-[0.1em] sm:text-[11px]' : 'text-[9px] tracking-[0.08em]',
+            'mt-0.5 truncate font-semibold uppercase leading-snug',
+            isStarter ? 'text-[10px] tracking-[0.06em] sm:text-[11px]' : 'text-[9px] tracking-[0.05em]',
           ].join(' ')}
+          title={`${posShort} · ${posFull}`}
         >
           <span className="text-red-400/95">{posShort}</span>
-          <span className="text-white/30"> · </span>
-          <span className="text-white/55">{posFull}</span>
+          <span className="text-white/35"> · </span>
+          <span className="text-white/60">{posFull}</span>
         </p>
       </div>
       <div className="flex shrink-0 items-center justify-center self-center pr-1 sm:pr-1.5">
@@ -4073,17 +4082,18 @@ export const LiveMatchScreen: React.FC = () => {
         {mainTab === 'lineup' && (
           <div className="flex min-h-0 flex-1 flex-col bg-black">
             <div className="sticky top-0 z-20 shrink-0 border-b border-white/[0.07] bg-black">
-              <div className="flex items-center px-2 pt-0.5 pb-0">
+              <div className="flex items-center px-2 pt-0.5">
                 <button
                   type="button"
                   onClick={() => setMainTab('hub')}
-                  className="inline-flex min-h-[34px] min-w-0 items-center gap-1 rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs font-bold text-white transition active:scale-[0.98] sm:text-sm"
+                  className="inline-flex min-h-[32px] min-w-0 items-center gap-1 rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-xs font-bold text-white transition active:scale-[0.98] sm:text-sm"
                 >
                   <span aria-hidden>←</span>
                   <span>Livespiel</span>
                 </button>
               </div>
-              <div className="flex items-stretch gap-1.5 px-2 pb-1 pt-0.5">
+              <div className="overflow-x-auto px-2 pb-0.5 pt-0.5 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex min-w-min items-stretch gap-2">
                   <button
                     type="button"
                     aria-pressed={lineupPanelView === 'live'}
@@ -4092,16 +4102,13 @@ export const LiveMatchScreen: React.FC = () => {
                       setLineupPositionMode(false);
                     }}
                     className={[
-                      'inline-flex min-h-[40px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border text-sm font-bold uppercase tracking-wide transition-colors active:scale-[0.98]',
+                      LINEUP_VIEW_TAB_BASE,
                       lineupPanelView === 'live'
-                        ? 'border-emerald-400/80 bg-emerald-950/55 text-emerald-50 shadow-[0_0_28px_rgba(16,185,129,0.5),0_0_12px_rgba(16,185,129,0.3)] ring-1 ring-emerald-400/45'
-                        : 'border-white/12 bg-white/[0.04] text-white/55 hover:border-white/20 hover:bg-white/[0.08] hover:text-white/75',
+                        ? 'border-emerald-500/70 bg-emerald-950/50 text-emerald-50 shadow-[inset_0_0_14px_rgba(16,185,129,0.38)] ring-1 ring-emerald-500/35'
+                        : 'border-white/12 bg-white/[0.04] text-white/55 hover:border-white/20 hover:bg-white/[0.08]',
                     ].join(' ')}
                   >
-                    <span className="text-[11px] font-black text-emerald-400/95" aria-hidden>
-                      ((•))
-                    </span>
-                    <span>Live</span>
+                    LIVE
                   </button>
                   <button
                     type="button"
@@ -4112,13 +4119,13 @@ export const LiveMatchScreen: React.FC = () => {
                       setFormationSheetOpen(false);
                     }}
                     className={[
-                      'inline-flex min-h-[36px] min-w-0 flex-[1.2] items-center justify-center rounded-lg border px-1.5 text-center text-[9px] font-semibold uppercase leading-tight tracking-wide transition-colors active:scale-[0.98] sm:px-2 sm:text-[10px]',
+                      LINEUP_VIEW_TAB_BASE,
                       lineupPanelView === 'kickoff'
-                        ? 'border-white/55 bg-white/[0.07] text-white shadow-[0_0_12px_rgba(255,255,255,0.08)]'
-                        : 'border-white/14 bg-white/[0.03] text-white/45 hover:border-white/25 hover:text-white/65',
+                        ? 'border-white/45 bg-gradient-to-br from-red-950/40 via-zinc-900/95 to-black text-white shadow-[inset_0_0_12px_rgba(255,255,255,0.1)] ring-1 ring-white/25'
+                        : 'border-white/12 bg-white/[0.04] text-white/50 hover:border-white/22 hover:bg-white/[0.07] hover:text-white/70',
                     ].join(' ')}
                   >
-                    STARTAUFSTELLUNG
+                    START
                   </button>
                   {canControlLiveMatch && lineupPanelView === 'live' ? (
                     <>
@@ -4129,7 +4136,7 @@ export const LiveMatchScreen: React.FC = () => {
                           setLineupPositionMode(false);
                           setFormationSheetOpen(true);
                         }}
-                        className="inline-flex min-h-[34px] shrink-0 items-center justify-center rounded-lg border border-red-500/35 bg-red-950/45 px-2.5 text-[10px] font-extrabold uppercase tracking-wide text-red-100 transition-colors hover:border-red-400/45 hover:bg-red-950/60 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+                        className="inline-flex h-[38px] min-w-[5.75rem] shrink-0 items-center justify-center rounded-lg border border-red-500/35 bg-red-950/45 px-2.5 text-xs font-semibold uppercase tracking-[0.05em] text-red-100 transition-colors hover:border-red-400/45 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                       >
                         Formation
                       </button>
@@ -4140,10 +4147,10 @@ export const LiveMatchScreen: React.FC = () => {
                         aria-pressed={lineupPositionMode}
                         onClick={() => setLineupPositionMode((v) => !v)}
                         className={[
-                          'inline-flex min-h-[34px] shrink-0 items-center justify-center gap-0.5 rounded-lg border px-2.5 text-[10px] font-extrabold uppercase tracking-wide transition-colors active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40',
+                          'inline-flex h-[38px] min-w-[4.5rem] shrink-0 items-center justify-center gap-0.5 rounded-lg border px-2.5 text-xs font-semibold uppercase tracking-[0.05em] transition-colors active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40',
                           lineupPositionMode
-                            ? 'border-violet-400/55 bg-violet-950/55 text-violet-50 shadow-[0_0_12px_rgba(139,92,246,0.25)]'
-                            : 'border-white/14 bg-white/[0.06] text-white/80 hover:border-white/22 hover:bg-white/[0.1]',
+                            ? 'border-violet-400/55 bg-violet-950/55 text-violet-50 shadow-[inset_0_0_10px_rgba(139,92,246,0.28)]'
+                            : 'border-white/14 bg-white/[0.06] text-white/75',
                         ].join(' ')}
                       >
                         <span aria-hidden>↔</span>
@@ -4151,8 +4158,9 @@ export const LiveMatchScreen: React.FC = () => {
                       </button>
                     </>
                   ) : null}
+                </div>
               </div>
-              <div className="border-t border-white/[0.06] px-2 py-0.5">
+              <div className="border-t border-white/[0.05] px-2 py-0.5">
                 {lineupPanelView === 'kickoff' ? (
                   <>
                     <p className="text-[9px] font-black uppercase tracking-[0.12em] text-red-400/90">STARTAUFSTELLUNG</p>
@@ -4202,7 +4210,8 @@ export const LiveMatchScreen: React.FC = () => {
                           <li key={`kickoff-line-${row.slot}`} className="w-full">
                             <KickoffRosterPlayerCard
                               name={name}
-                              positionLabel={pos}
+                              positionShort={pos}
+                              rosterPosition={row.position}
                               jerseyNumber={row.jersey_number}
                               avatarUrl={row.avatar_url}
                               variant="starter"
