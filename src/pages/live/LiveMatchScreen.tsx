@@ -3997,11 +3997,13 @@ export const LiveMatchScreen: React.FC = () => {
 
       <div
         ref={liveScrollRef}
-        className={`relative min-h-0 overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} md:px-4 lg:px-5 md:py-4 ${
+        className={`relative min-h-0 overscroll-y-contain [-webkit-overflow-scrolling:touch] ${layoutShell} ${
           mainTab === 'hub'
             ? 'hidden'
-            : 'flex-1 overflow-y-auto px-2 py-3 pt-2 pb-[calc(140px+env(safe-area-inset-bottom,0px))]'
-        } ${mainTab === 'lineup' ? 'flex min-h-0 flex-1 flex-col overflow-hidden !px-0 !py-0' : ''}`}
+            : mainTab === 'lineup'
+              ? 'flex min-h-0 flex-1 flex-col overflow-hidden !px-0 !py-0 md:px-0 md:py-0 lg:px-0'
+              : 'flex-1 overflow-y-auto px-2 py-3 pt-2 pb-[calc(140px+env(safe-area-inset-bottom,0px))] md:px-4 md:py-4 lg:px-5'
+        }`}
       >
         {mainTab === 'overview' && (
           <div className={canControlLiveMatch ? 'space-y-2' : 'space-y-4'}>
@@ -4097,8 +4099,8 @@ export const LiveMatchScreen: React.FC = () => {
         )}
 
         {mainTab === 'lineup' && (
-          <div className="flex min-h-0 flex-1 flex-col bg-black">
-            <div className="sticky top-0 z-20 shrink-0 border-b border-white/10 bg-black">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
+            <div className="z-20 shrink-0 border-b border-white/10 bg-black/95 backdrop-blur-md">
               <div className="flex items-center px-2 pt-0.5 pb-0">
                 <button
                   type="button"
@@ -4204,7 +4206,7 @@ export const LiveMatchScreen: React.FC = () => {
               </div>
             </div>
             <div
-              className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain px-2 pt-0.5 [-webkit-overflow-scrolling:touch]"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pt-0.5 [-webkit-overflow-scrolling:touch]"
               style={{
                 paddingBottom:
                   lineupPanelView === 'kickoff'
