@@ -57,6 +57,7 @@ import {
   isU11FormationId,
   labelForSlotInFormation,
   U11_FORMATION_CHOICES,
+  U11_FORMATIONS,
   U11_FORMATION_DB_FALLBACK,
   type U11FormationId,
 } from '../../lib/matchFormations';
@@ -178,19 +179,42 @@ const FORMATION_OPTION_LABELS: Record<U11FormationId, string> = {
   '1-3-3': 'Offensiver',
 };
 
-/** Kleines Feld-Icon für Formation-Karten im Sheet. */
-function MiniPitchIcon({ className }: { className?: string }) {
+/** Mini-Pitch mit Slot-Punkten für Formation-Karten im Coach-Sheet. */
+function MiniFormationPitchPreview({
+  formationId,
+  active = false,
+  className,
+}: {
+  formationId: U11FormationId;
+  active?: boolean;
+  className?: string;
+}) {
+  const slots = U11_FORMATIONS[formationId];
   return (
     <div
       className={[
-        'relative flex h-12 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-emerald-500/35 bg-gradient-to-b from-emerald-800/45 to-emerald-950/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]',
+        'relative h-[4.5rem] w-[3.35rem] shrink-0 overflow-hidden rounded-xl border bg-gradient-to-b from-emerald-950/55 via-zinc-950/90 to-black shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]',
+        active ? 'border-emerald-400/45 shadow-[0_0_14px_rgba(16,185,129,0.22)]' : 'border-white/12',
         className ?? '',
       ].join(' ')}
       aria-hidden
     >
-      <div className="absolute inset-[12%] rounded-[3px] border border-white/22" />
-      <div className="absolute left-1/2 top-1/2 h-[38%] w-[38%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25" />
-      <div className="absolute bottom-[14%] left-1/2 h-[22%] w-[55%] -translate-x-1/2 rounded-t-[6px] border border-white/22 border-b-0" />
+      <div className="absolute inset-[9%] rounded-lg border border-white/12 bg-emerald-950/35" />
+      <div className="absolute left-1/2 top-[18%] h-[32%] w-[42%] -translate-x-1/2 rounded-full border border-white/10" />
+      {slots.map((s) => (
+        <span
+          key={s.slot}
+          className={[
+            'absolute h-[7px] w-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full border',
+            s.slot === 'GK'
+              ? 'border-amber-200/80 bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.45)]'
+              : active
+                ? 'border-emerald-100/90 bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.55)]'
+                : 'border-white/45 bg-white/90',
+          ].join(' ')}
+          style={{ left: `${s.x}%`, top: `${s.y}%` }}
+        />
+      ))}
     </div>
   );
 }
@@ -4621,117 +4645,131 @@ export const LiveMatchScreen: React.FC = () => {
       ) : null}
 
       {canControlLiveMatch && formationSheetOpen ? (
-        <div className="fixed inset-0 z-[9998] flex h-[100dvh] flex-col bg-black/75 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[9998] flex items-end justify-center">
           <button
             type="button"
-            className="h-[34dvh] max-h-[36dvh] min-h-[32dvh] w-full flex-shrink-0 cursor-default border-0 bg-transparent p-0"
+            className="absolute inset-0 border-0 bg-black/78 backdrop-blur-md transition-opacity duration-200"
             onClick={closeFormationSheet}
             aria-label="Schließen"
           />
           <div
-            className="flex min-h-0 flex-1 flex-col justify-end"
-            role="presentation"
-            onClick={closeFormationSheet}
+            className="relative flex h-[min(90dvh,820px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.35rem] border border-white/10 border-b-0 bg-gradient-to-b from-zinc-950/98 via-black to-black text-white shadow-[0_-20px_60px_rgba(0,0,0,0.75),0_0_40px_rgba(220,38,38,0.08)] transition-all duration-200 sm:max-w-none"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="formation-sheet-title"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="flex min-h-0 w-full max-h-[min(80dvh,40rem)] flex-col overflow-hidden rounded-t-3xl border border-red-500/20 bg-gradient-to-b from-red-950/35 via-black to-black text-white shadow-[0_-12px_48px_rgba(0,0,0,0.65),0_0_28px_rgba(239,68,68,0.1)]"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="formation-sheet-title"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-red-400/35" />
-              <div className="shrink-0 px-3 pb-3 pt-2 text-center">
-                <h3 id="formation-sheet-title" className="text-base font-black tracking-tight text-white">
-                  Formation ändern
-                </h3>
-                <p className="mt-0.5 text-[11px] leading-snug text-white/45">
-                  {formationPendingId
-                    ? 'Alle aktiven Feldspieler inkl. Torwart bleiben erhalten; nur die Darstellung der Positionen ändert sich.'
-                    : 'Andere Systeme wählen — die 7 aktiven Spieler bleiben auf den Slots erhalten.'}
-                </p>
-              </div>
-              {formationPendingId ? (
-                <div className="mx-3 mb-2 shrink-0 rounded-2xl border border-amber-400/35 bg-amber-950/25 px-3 py-3">
-                  <p className="text-center text-[13px] font-black text-amber-100">Formation wechseln?</p>
-                  <p className="mt-1.5 text-center text-[12px] font-medium leading-snug text-white/80">
-                    Alle {countOccupiedFieldSlots(lineupSlotsForDisplay)}{' '}
-                    aktiven Spieler bleiben erhalten und werden bei Bedarf auf die neuen Slot-Positionen abgebildet.
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      type="button"
-                      disabled={formationSaving}
-                      onClick={() => setFormationPendingId(null)}
-                      className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-[12px] font-bold text-white/88 hover:bg-zinc-800 disabled:opacity-45"
-                    >
-                      Abbrechen
-                    </button>
-                    <button
-                      type="button"
-                      disabled={formationSaving}
-                      onClick={() => void confirmFormationChange()}
-                      className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-amber-500 px-2 text-[12px] font-black text-amber-950 shadow-[0_0_16px_rgba(245,158,11,0.35)] disabled:opacity-45"
-                    >
-                      {formationSaving ? '…' : 'Übernehmen'}
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-y-contain px-3 [-webkit-overflow-scrolling:touch] pb-2">
-                {U11_FORMATION_CHOICES.map((id) => {
-                  const active = id === safeFormationId;
-                  return (
-                    <button
-                      key={`formation-pick-${id}`}
-                      type="button"
-                      disabled={formationSaving}
-                      onClick={() => requestFormationChange(id)}
-                      className={[
-                        'flex w-full items-stretch gap-3 rounded-2xl border p-3 text-left transition-all active:scale-[0.99] disabled:opacity-45',
-                        active
-                          ? 'border-emerald-500/65 bg-emerald-950/35 shadow-[0_0_20px_rgba(16,185,129,0.18)] ring-1 ring-emerald-500/45'
-                          : 'border-white/[0.1] bg-black/45 hover:border-red-500/28 hover:bg-black/55',
-                      ].join(' ')}
-                    >
-                      <MiniPitchIcon
-                        className={
-                          active ? 'border-emerald-400/50 shadow-[0_0_12px_rgba(16,185,129,0.2)]' : 'opacity-90'
-                        }
-                      />
-                      <div className="min-w-0 flex-1 py-0.5">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xl font-black tabular-nums tracking-tight text-white sm:text-2xl">
-                            {id}
-                          </span>
-                          {active ? (
-                            <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-emerald-950 shadow-sm">
-                              Aktuell
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="mt-1 text-[12px] font-medium leading-snug text-white/50">
-                          {FORMATION_OPTION_LABELS[id]}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-              <footer
-                className="shrink-0 border-t border-red-500/15 bg-black/80 px-3 pt-2 backdrop-blur-md"
-                style={{ paddingBottom: LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB }}
-              >
-                <button
-                  type="button"
-                  disabled={formationSaving}
-                  onClick={closeFormationSheet}
-                  className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-sm font-bold text-white/85 hover:bg-zinc-800 disabled:opacity-45"
-                >
-                  Schließen
-                </button>
-              </footer>
+            <div className="shrink-0 px-4 pt-2.5 pb-1">
+              <div className="mx-auto h-1 w-10 rounded-full bg-white/25 shadow-[0_0_8px_rgba(255,255,255,0.12)]" />
             </div>
+            <div className="shrink-0 px-4 pb-3 pt-2 text-center">
+              <h3 id="formation-sheet-title" className="text-lg font-black tracking-tight text-white">
+                Formation ändern
+              </h3>
+              <p className="mt-1 text-[12px] leading-snug text-white/45">
+                {formationPendingId
+                  ? 'Alle aktiven Feldspieler inkl. Torwart bleiben erhalten; nur die Darstellung der Positionen ändert sich.'
+                  : 'System wählen — die 7 aktiven Spieler bleiben auf den Slots erhalten.'}
+              </p>
+            </div>
+            {formationPendingId ? (
+              <div className="mx-4 mb-3 shrink-0 rounded-2xl border border-amber-400/35 bg-gradient-to-br from-amber-950/40 to-black/80 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <p className="text-center text-[14px] font-black text-amber-100">Formation wechseln?</p>
+                <p className="mt-1.5 text-center text-[12px] font-medium leading-snug text-white/75">
+                  Alle {countOccupiedFieldSlots(lineupSlotsForDisplay)} aktiven Spieler bleiben erhalten und werden bei
+                  Bedarf auf die neuen Slot-Positionen abgebildet.
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={formationSaving}
+                    onClick={() => setFormationPendingId(null)}
+                    className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-900/90 text-sm font-semibold text-white/85 transition-all duration-200 hover:bg-zinc-800 active:scale-[0.99] disabled:opacity-45"
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    type="button"
+                    disabled={formationSaving}
+                    onClick={() => void confirmFormationChange()}
+                    className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl bg-amber-500 text-sm font-black text-amber-950 shadow-[0_0_18px_rgba(245,158,11,0.32)] transition-all duration-200 hover:bg-amber-400 active:scale-[0.99] disabled:opacity-45"
+                  >
+                    {formationSaving ? '…' : 'Übernehmen'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            <div
+              className={[
+                'flex min-h-0 flex-1 flex-col px-4',
+                U11_FORMATION_CHOICES.length > 4
+                  ? 'overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
+                  : 'justify-center gap-4 py-2',
+              ].join(' ')}
+            >
+              {U11_FORMATION_CHOICES.map((id) => {
+                const active = id === safeFormationId;
+                return (
+                  <button
+                    key={`formation-pick-${id}`}
+                    type="button"
+                    disabled={formationSaving}
+                    onClick={() => requestFormationChange(id)}
+                    className={[
+                      'grid w-full min-h-[92px] grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl border px-3.5 py-3.5 text-left transition-all duration-200 active:scale-[0.99] disabled:opacity-45 sm:min-h-[96px]',
+                      active
+                        ? 'border-emerald-400/40 bg-gradient-to-r from-emerald-950/50 via-zinc-950/95 to-black shadow-[0_0_24px_rgba(16,185,129,0.2),inset_0_1px_0_rgba(255,255,255,0.06)] ring-2 ring-emerald-500/35 hover:scale-[1.01]'
+                        : 'border-white/10 bg-gradient-to-r from-red-950/25 via-zinc-950/90 to-black hover:border-white/18 hover:bg-zinc-900/80 hover:scale-[1.01] hover:shadow-[0_0_16px_rgba(255,255,255,0.04)]',
+                    ].join(' ')}
+                  >
+                    <MiniFormationPitchPreview formationId={id} active={active} />
+                    <div className="min-w-0 py-0.5">
+                      <p className="text-2xl font-black tabular-nums leading-none tracking-tight text-white sm:text-[1.65rem]">
+                        {id}
+                      </p>
+                      <p className="mt-1.5 text-[13px] font-medium leading-snug text-white/55">
+                        {FORMATION_OPTION_LABELS[id]}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-center justify-center self-stretch pl-1">
+                      {active ? (
+                        <>
+                          <span
+                            className="mb-1.5 flex h-9 w-9 items-center justify-center rounded-full border-2 border-emerald-400/70 bg-emerald-500/20 shadow-[0_0_14px_rgba(16,185,129,0.45)]"
+                            aria-hidden
+                          >
+                            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                          </span>
+                          <span className="text-[9px] font-extrabold uppercase tracking-[0.14em] text-emerald-300">
+                            Aktiv
+                          </span>
+                        </>
+                      ) : (
+                        <span
+                          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-lg font-light text-white/45"
+                          aria-hidden
+                        >
+                          ›
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <footer
+              className="sticky bottom-0 z-10 shrink-0 border-t border-white/10 bg-black/92 px-4 pt-3 backdrop-blur-xl"
+              style={{ paddingBottom: LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB }}
+            >
+              <button
+                type="button"
+                disabled={formationSaving}
+                onClick={closeFormationSheet}
+                className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-sm font-bold text-white/90 transition-all duration-200 hover:border-white/20 hover:bg-zinc-800 active:scale-[0.99] disabled:opacity-45"
+              >
+                Schließen
+              </button>
+            </footer>
           </div>
         </div>
       ) : null}
