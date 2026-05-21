@@ -353,7 +353,7 @@ const WECHSEL_SCREEN_SHELL =
 /** Spielfeld-Tab: Scroll-Ende über Footer/BottomNav */
 const WECHSEL_PITCH_TAB_SCROLL_BOTTOM_PAD = 'calc(150px + env(safe-area-inset-bottom, 0px))';
 /** Aufstellung: Pitch + Bank — Abstand über BottomNav (Live + Startelf) */
-const LINEUP_CONTENT_SCROLL_BOTTOM_PAD = 'calc(172px + env(safe-area-inset-bottom, 0px))';
+const LINEUP_CONTENT_SCROLL_BOTTOM_PAD = 'calc(182px + env(safe-area-inset-bottom, 0px))';
 /** Footer im Screen — BottomNav-Abstand kommt vom Screen-bottom (78px) */
 const WECHSEL_SCREEN_FOOTER_PB = 'max(0.5rem, env(safe-area-inset-bottom, 0px))';
 /** Wechsel-Content: Abstand am Scroll-Ende über dem sticky Footer */
@@ -677,7 +677,10 @@ function kickoffPositionParts(
 }
 
 const LINEUP_VIEW_TAB_BASE =
-  'inline-flex h-[36px] w-auto min-w-[4.6rem] shrink-0 items-center justify-center overflow-hidden rounded-lg border px-2.5 text-sm font-semibold uppercase tracking-[0.04em] transition-colors active:scale-[0.98]';
+  'inline-flex h-[38px] w-auto min-w-[4.6rem] shrink-0 items-center justify-center overflow-hidden rounded-lg border px-2.5 text-sm font-semibold uppercase tracking-[0.04em] transition-all duration-200 active:scale-[0.99]';
+
+const LINEUP_TRAINER_ACTION_BTN =
+  'inline-flex h-[38px] shrink-0 items-center justify-center whitespace-nowrap rounded-lg border px-2.5 text-xs font-medium uppercase tracking-[0.03em] transition-all duration-200 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-40';
 
 /** Startelf-Liste: Scroll-Puffer über BottomNav */
 const KICKOFF_LINEUP_SCROLL_BOTTOM_PAD = LINEUP_CONTENT_SCROLL_BOTTOM_PAD;
@@ -4084,7 +4087,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </button>
               </div>
               <div className="overflow-x-auto px-2 pb-0.5 pr-3 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="flex w-max min-w-full items-stretch gap-1.5">
+                <div className="flex w-max min-w-full items-center gap-1">
                   <button
                     type="button"
                     aria-pressed={lineupPanelView === 'live'}
@@ -4096,8 +4099,8 @@ export const LiveMatchScreen: React.FC = () => {
                     className={[
                       LINEUP_VIEW_TAB_BASE,
                       lineupPanelView === 'live'
-                        ? 'border-emerald-500/70 bg-emerald-950/50 text-emerald-50 shadow-[inset_0_0_12px_rgba(16,185,129,0.35)] ring-1 ring-emerald-500/30'
-                        : 'border-white/[0.08] bg-black/25 text-white/55 hover:border-white/15 hover:bg-white/[0.05]',
+                        ? 'border-emerald-500/75 bg-emerald-950/55 text-emerald-50 shadow-[inset_0_0_16px_rgba(16,185,129,0.42),inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-emerald-500/40'
+                        : 'border-white/[0.08] bg-black/25 text-white/55 hover:border-white/15 hover:bg-white/[0.06]',
                     ].join(' ')}
                   >
                     LIVE
@@ -4114,8 +4117,8 @@ export const LiveMatchScreen: React.FC = () => {
                     className={[
                       LINEUP_VIEW_TAB_BASE,
                       lineupPanelView === 'kickoff'
-                        ? 'border-white/55 bg-gradient-to-br from-red-900/50 via-zinc-900 to-black font-bold text-white shadow-[inset_0_0_14px_rgba(255,255,255,0.12),inset_0_0_18px_rgba(220,38,38,0.22)] ring-1 ring-white/30'
-                        : 'border-white/[0.08] bg-black/25 text-white/55 hover:border-white/15 hover:bg-white/[0.05]',
+                        ? 'border-white/55 bg-gradient-to-br from-red-900/50 via-zinc-900 to-black font-bold text-white shadow-[inset_0_0_14px_rgba(255,255,255,0.14),inset_0_0_16px_rgba(220,38,38,0.2)] ring-1 ring-white/30'
+                        : 'border-white/[0.08] bg-black/25 text-white/55 hover:border-white/15 hover:bg-white/[0.06]',
                     ].join(' ')}
                   >
                     START
@@ -4129,7 +4132,7 @@ export const LiveMatchScreen: React.FC = () => {
                           setLineupPositionMode(false);
                           setFormationSheetOpen(true);
                         }}
-                        className="inline-flex h-[36px] min-w-[5rem] shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-red-500/35 bg-red-950/45 px-2.5 text-[10px] font-semibold uppercase tracking-[0.03em] text-red-100 transition-colors hover:border-red-400/45 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 sm:text-xs"
+                        className={`${LINEUP_TRAINER_ACTION_BTN} min-w-[5rem] border-red-500/20 bg-red-950/35 text-white/80 hover:border-red-500/30 hover:bg-red-950/50`}
                       >
                         Formation
                       </button>
@@ -4140,10 +4143,11 @@ export const LiveMatchScreen: React.FC = () => {
                         aria-pressed={lineupPositionMode}
                         onClick={() => setLineupPositionMode((v) => !v)}
                         className={[
-                          'inline-flex h-[36px] min-w-[3.5rem] shrink-0 items-center justify-center whitespace-nowrap rounded-lg border px-2.5 text-[10px] font-semibold uppercase tracking-[0.03em] transition-colors active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 sm:text-xs',
+                          LINEUP_TRAINER_ACTION_BTN,
+                          'min-w-[4rem]',
                           lineupPositionMode
-                            ? 'border-violet-400/55 bg-violet-950/55 text-violet-50 shadow-[inset_0_0_10px_rgba(139,92,246,0.28)]'
-                            : 'border-white/[0.08] bg-black/25 text-white/55',
+                            ? 'border-white/40 bg-white/[0.08] text-white shadow-[inset_0_0_10px_rgba(255,255,255,0.12)] ring-1 ring-white/25'
+                            : 'border-white/[0.08] bg-black/25 text-white/70 hover:border-white/15 hover:bg-white/[0.05]',
                         ].join(' ')}
                       >
                         POS
@@ -4162,8 +4166,8 @@ export const LiveMatchScreen: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <p className="text-[11px] font-semibold leading-tight text-white/90">Mannschaft am Feld</p>
-                    <p className="mt-0.5 text-[10px] leading-snug text-emerald-200/55">Stand jetzt im Spiel</p>
+                    <p className="text-[15px] font-semibold leading-tight text-white/90">Mannschaft am Feld</p>
+                    <p className="mt-0 text-[11px] leading-snug text-white/45">Stand jetzt im Spiel</p>
                     {canControlLiveMatch && lineupPositionMode && !matchIsFinished ? (
                       <p className="mt-0.5 text-[10px] font-semibold leading-snug text-violet-200/90">
                         Zwei Feldspieler antippen, dann bestätigen.
@@ -4287,7 +4291,7 @@ export const LiveMatchScreen: React.FC = () => {
                           />
                         </div>
                         <span
-                          className="mt-0.5 w-full min-w-0 truncate rounded-md bg-black/85 px-1 py-0.5 text-center text-[9px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 transition-all duration-300 ease-out sm:text-[10px]"
+                          className="mx-auto mt-0.5 block w-full min-w-0 max-w-[6.4rem] truncate rounded-md bg-black/85 px-2 py-0.5 text-center text-[9px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 transition-all duration-300 ease-out sm:text-[10px]"
                           title={rawName}
                         >
                           {shortName}
@@ -4344,7 +4348,7 @@ export const LiveMatchScreen: React.FC = () => {
                 </p>
               )}
 
-              <section className="mt-2 border-t border-white/[0.08] pt-2 pb-1">
+              <section className="mt-2 border-t border-white/[0.08] pt-2 pb-2">
                 <p
                   className={[
                     'font-black uppercase tracking-[0.12em]',
@@ -4383,15 +4387,15 @@ export const LiveMatchScreen: React.FC = () => {
                 ) : safeBenchRowsCount === 0 ? (
                   <p className="text-[12px] text-white/45">Keine Bankspieler</p>
                 ) : (
-                  <div className="overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-                    <div className="flex min-w-min flex-nowrap items-start gap-2 sm:gap-2.5">
+                  <div className="overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <div className="flex min-w-min flex-nowrap items-start gap-1.5 sm:gap-2">
                       {(Array.isArray(safeBenchRows) ? safeBenchRows : []).map((row, idx) => {
                         const posLabel = getPositionLabel(row.position) || '–';
                         const fullBenchName = String(row.display_name || row.name || 'Spieler').trim() || 'Spieler';
                         return (
                           <div
                             key={`live-bench-tile-${row.id || idx}`}
-                            className="flex w-[7.25rem] min-w-0 shrink-0 flex-col items-center rounded-xl border border-white/12 bg-black/45 px-1.5 py-2 sm:w-[8.5rem]"
+                            className="flex w-[6.75rem] min-w-0 shrink-0 flex-col items-center rounded-xl border border-white/12 bg-black/45 px-1.5 py-1.5 sm:w-[7.75rem]"
                           >
                             <LeibchenJersey
                               lastName={mobileLineupName(fullBenchName)}
@@ -4400,7 +4404,7 @@ export const LiveMatchScreen: React.FC = () => {
                               variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
                               size="compact"
                               pitchStyleBack
-                              className="!h-[3.35rem] !w-[2.6rem] sm:!h-[3.85rem] sm:!w-[3rem]"
+                              className="!h-[3.1rem] !w-[2.42rem] sm:!h-[3.55rem] sm:!w-[2.75rem]"
                             />
                             <span
                               className="mt-1.5 line-clamp-2 block w-full min-w-0 overflow-hidden px-0.5 text-center text-[11px] font-semibold leading-snug text-white [overflow-wrap:anywhere] sm:text-xs"
