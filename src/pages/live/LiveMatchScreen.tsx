@@ -193,8 +193,8 @@ function MiniFormationPitchPreview({
   return (
     <div
       className={[
-        'relative h-[4.5rem] w-[3.35rem] shrink-0 overflow-hidden rounded-xl border bg-gradient-to-b from-emerald-950/55 via-zinc-950/90 to-black shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]',
-        active ? 'border-emerald-400/45 shadow-[0_0_14px_rgba(16,185,129,0.22)]' : 'border-white/12',
+        'relative h-[3.25rem] w-[2.85rem] shrink-0 overflow-hidden rounded-lg border bg-gradient-to-b from-emerald-950/55 via-zinc-950/90 to-black shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]',
+        active ? 'border-emerald-400/40 shadow-[0_0_10px_rgba(16,185,129,0.18)]' : 'border-white/12',
         className ?? '',
       ].join(' ')}
       aria-hidden
@@ -205,7 +205,7 @@ function MiniFormationPitchPreview({
         <span
           key={s.slot}
           className={[
-            'absolute h-[7px] w-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full border',
+            'absolute h-[6px] w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full border',
             s.slot === 'GK'
               ? 'border-amber-200/80 bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.45)]'
               : active
@@ -359,6 +359,8 @@ const LIVE_SHEET_BOTTOM_CLEARANCE = 'calc(4.75rem + env(safe-area-inset-bottom, 
 const LIVE_SHEET_FOOTER_SAFE_PB = 'max(0.75rem, env(safe-area-inset-bottom, 0px))';
 /** Sheet-CTA: BottomNav + Safari Home-Indicator */
 const LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB = 'calc(120px + env(safe-area-inset-bottom, 0px))';
+/** Formation-Sheet: nur Home-Indicator, kein BottomNav-Offset */
+const FORMATION_SHEET_FOOTER_PB = 'max(0.65rem, env(safe-area-inset-bottom, 0px))';
 const LIVE_SHEET_MAX_HEIGHT = 'min(80dvh, 40rem)';
 const LIVE_SCROLL_BOTTOM_PAD = 'calc(140px + env(safe-area-inset-bottom, 0px))';
 /** FairPlay-Sheets über BottomNav (~96px + Safe Area) */
@@ -4653,23 +4655,23 @@ export const LiveMatchScreen: React.FC = () => {
             aria-label="Schließen"
           />
           <div
-            className="relative flex h-[min(90dvh,820px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.35rem] border border-white/10 border-b-0 bg-gradient-to-b from-zinc-950/98 via-black to-black text-white shadow-[0_-20px_60px_rgba(0,0,0,0.75),0_0_40px_rgba(220,38,38,0.08)] transition-all duration-200 sm:max-w-none"
+            className="relative flex max-h-[min(90dvh,820px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.35rem] border border-white/10 border-b-0 bg-gradient-to-b from-zinc-950/98 via-black to-black text-white shadow-[0_-20px_60px_rgba(0,0,0,0.75),0_0_40px_rgba(220,38,38,0.08)] transition-all duration-200 sm:max-w-none"
             role="dialog"
             aria-modal="true"
             aria-labelledby="formation-sheet-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="shrink-0 px-4 pt-2.5 pb-1">
-              <div className="mx-auto h-1 w-10 rounded-full bg-white/25 shadow-[0_0_8px_rgba(255,255,255,0.12)]" />
+            <div className="shrink-0 px-4 pt-2 pb-0.5">
+              <div className="mx-auto h-1 w-9 rounded-full bg-white/25" />
             </div>
-            <div className="shrink-0 px-4 pb-3 pt-2 text-center">
-              <h3 id="formation-sheet-title" className="text-lg font-black tracking-tight text-white">
+            <div className="shrink-0 px-4 pb-2 pt-1.5 text-center">
+              <h3 id="formation-sheet-title" className="text-base font-black tracking-tight text-white">
                 Formation ändern
               </h3>
-              <p className="mt-1 text-[12px] leading-snug text-white/45">
+              <p className="mt-0.5 truncate text-[11px] leading-tight text-white/45">
                 {formationPendingId
-                  ? 'Alle aktiven Feldspieler inkl. Torwart bleiben erhalten; nur die Darstellung der Positionen ändert sich.'
-                  : 'System wählen — die 7 aktiven Spieler bleiben auf den Slots erhalten.'}
+                  ? 'Spieler bleiben erhalten — nur Positionen ändern sich.'
+                  : '7 aktive Spieler bleiben auf den Slots erhalten.'}
               </p>
             </div>
             {formationPendingId ? (
@@ -4701,10 +4703,10 @@ export const LiveMatchScreen: React.FC = () => {
             ) : null}
             <div
               className={[
-                'flex min-h-0 flex-1 flex-col px-4',
+                'min-h-0 flex-1 flex-col px-4',
                 U11_FORMATION_CHOICES.length > 4
-                  ? 'overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
-                  : 'justify-center gap-4 py-2',
+                  ? 'flex overflow-y-auto overscroll-y-contain py-1 [-webkit-overflow-scrolling:touch]'
+                  : 'flex justify-center gap-2 py-1',
               ].join(' ')}
             >
               {U11_FORMATION_CHOICES.map((id) => {
@@ -4716,37 +4718,37 @@ export const LiveMatchScreen: React.FC = () => {
                     disabled={formationSaving}
                     onClick={() => requestFormationChange(id)}
                     className={[
-                      'grid w-full min-h-[92px] grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl border px-3.5 py-3.5 text-left transition-all duration-200 active:scale-[0.99] disabled:opacity-45 sm:min-h-[96px]',
+                      'grid w-full min-h-[76px] shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all duration-200 active:scale-[0.99] disabled:opacity-45 sm:min-h-[78px]',
                       active
-                        ? 'border-emerald-400/40 bg-gradient-to-r from-emerald-950/50 via-zinc-950/95 to-black shadow-[0_0_24px_rgba(16,185,129,0.2),inset_0_1px_0_rgba(255,255,255,0.06)] ring-2 ring-emerald-500/35 hover:scale-[1.01]'
-                        : 'border-white/10 bg-gradient-to-r from-red-950/25 via-zinc-950/90 to-black hover:border-white/18 hover:bg-zinc-900/80 hover:scale-[1.01] hover:shadow-[0_0_16px_rgba(255,255,255,0.04)]',
+                        ? 'border-emerald-400/40 bg-gradient-to-r from-emerald-950/45 via-zinc-950/95 to-black shadow-[0_0_14px_rgba(16,185,129,0.16),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-emerald-500/30'
+                        : 'border-white/10 bg-gradient-to-r from-red-950/20 via-zinc-950/90 to-black hover:border-white/16 hover:bg-zinc-900/75',
                     ].join(' ')}
                   >
                     <MiniFormationPitchPreview formationId={id} active={active} />
-                    <div className="min-w-0 py-0.5">
-                      <p className="text-2xl font-black tabular-nums leading-none tracking-tight text-white sm:text-[1.65rem]">
+                    <div className="min-w-0">
+                      <p className="text-xl font-black tabular-nums leading-none tracking-tight text-white">
                         {id}
                       </p>
-                      <p className="mt-1.5 text-[13px] font-medium leading-snug text-white/55">
+                      <p className="mt-1 text-[12px] font-medium leading-tight text-white/55">
                         {FORMATION_OPTION_LABELS[id]}
                       </p>
                     </div>
-                    <div className="flex shrink-0 flex-col items-center justify-center self-stretch pl-1">
+                    <div className="flex shrink-0 flex-col items-center justify-center pl-0.5">
                       {active ? (
                         <>
                           <span
-                            className="mb-1.5 flex h-9 w-9 items-center justify-center rounded-full border-2 border-emerald-400/70 bg-emerald-500/20 shadow-[0_0_14px_rgba(16,185,129,0.45)]"
+                            className="mb-1 flex h-7 w-7 items-center justify-center rounded-full border border-emerald-400/60 bg-emerald-500/15 shadow-[0_0_10px_rgba(16,185,129,0.35)]"
                             aria-hidden
                           >
-                            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                            <span className="h-2 w-2 rounded-full bg-emerald-400" />
                           </span>
-                          <span className="text-[9px] font-extrabold uppercase tracking-[0.14em] text-emerald-300">
+                          <span className="text-[8px] font-extrabold uppercase tracking-[0.12em] text-emerald-300/95">
                             Aktiv
                           </span>
                         </>
                       ) : (
                         <span
-                          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-lg font-light text-white/45"
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-base text-white/40"
                           aria-hidden
                         >
                           ›
@@ -4758,14 +4760,14 @@ export const LiveMatchScreen: React.FC = () => {
               })}
             </div>
             <footer
-              className="sticky bottom-0 z-10 shrink-0 border-t border-white/10 bg-black/92 px-4 pt-3 backdrop-blur-xl"
-              style={{ paddingBottom: LIVE_SHEET_FOOTER_CONFIRM_SAFE_PB }}
+              className="shrink-0 border-t border-white/10 bg-black/95 px-4 pt-2 backdrop-blur-md"
+              style={{ paddingBottom: FORMATION_SHEET_FOOTER_PB }}
             >
               <button
                 type="button"
                 disabled={formationSaving}
                 onClick={closeFormationSheet}
-                className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-sm font-bold text-white/90 transition-all duration-200 hover:border-white/20 hover:bg-zinc-800 active:scale-[0.99] disabled:opacity-45"
+                className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-sm font-bold text-white/90 transition-all duration-200 hover:border-white/18 hover:bg-zinc-800 active:scale-[0.99] disabled:opacity-45"
               >
                 Schließen
               </button>
