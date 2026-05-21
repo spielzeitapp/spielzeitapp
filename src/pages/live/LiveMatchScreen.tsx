@@ -710,7 +710,31 @@ const LINEUP_TRAINER_ACTION_BTN =
 
 /** Kompakter Zurück-Button in der Aufstellung-Titelzeile (Hub). */
 const LINEUP_COMPACT_BACK_BTN =
-  'inline-flex h-9 min-h-[34px] shrink-0 items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.05] px-2 text-[11px] font-bold text-white transition active:scale-[0.98]';
+  'inline-flex h-8 min-h-[32px] shrink-0 items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.05] px-2 text-xs font-bold text-white transition active:scale-[0.98] sm:h-9 sm:min-h-[34px] sm:text-sm';
+
+/** Live-Pitch: Namensbadge-Versatz (nur Darstellung, Formation-Daten unverändert). */
+function liveLineupPitchNameOffset(
+  slot: FieldSlotId,
+  formationId: U11FormationId,
+): { dx: number; dy: number } {
+  const row = (U11_FORMATIONS[formationId] ?? []).find((s) => s.slot === slot);
+  const dx = row?.labelDx ?? 0;
+  const baseDy = row?.labelDy ?? 0;
+  const y = row?.y ?? 50;
+
+  let liftDy = 0;
+  if (slot === 'GK') {
+    liftDy = -14;
+  } else if (y >= 64) {
+    liftDy = -10;
+  } else if (y >= 36) {
+    liftDy = -5;
+  } else if (y <= 22) {
+    liftDy = 0;
+  }
+
+  return { dx, dy: baseDy + liftDy };
+}
 
 /** Startelf-Liste: Scroll-Puffer über BottomNav */
 const KICKOFF_LINEUP_SCROLL_BOTTOM_PAD = LINEUP_CONTENT_SCROLL_BOTTOM_PAD;
@@ -4105,8 +4129,8 @@ export const LiveMatchScreen: React.FC = () => {
         {mainTab === 'lineup' && (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
             <div className="z-20 shrink-0 border-b border-white/10 bg-black/95 backdrop-blur-md">
-              <div className="overflow-x-auto px-2 pt-1 pb-0.5 pr-3 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="flex w-max min-w-full items-center gap-1">
+              <div className="overflow-x-auto px-2 pt-0 pb-0 pr-3 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex w-max min-w-full items-center gap-0.5">
                   <button
                     type="button"
                     aria-pressed={lineupPanelView === 'live'}
@@ -4175,8 +4199,8 @@ export const LiveMatchScreen: React.FC = () => {
                   ) : null}
                 </div>
               </div>
-              <div className="border-t border-white/10 px-2 py-1">
-                <div className="flex items-start justify-between gap-2">
+              <div className="border-t border-white/10 px-2 py-0.5">
+                <div className="flex items-start justify-between gap-1.5">
                   <div className="min-w-0 flex-1">
                     {lineupPanelView === 'kickoff' ? (
                       <>
@@ -4209,13 +4233,13 @@ export const LiveMatchScreen: React.FC = () => {
                     aria-label="Zurück zum Live Hub"
                   >
                     <span aria-hidden>←</span>
-                    <span>Live</span>
+                    <span>Livespiel</span>
                   </button>
                 </div>
               </div>
             </div>
             <div
-              className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pt-0.5 [-webkit-overflow-scrolling:touch]"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-2 pt-0 [-webkit-overflow-scrolling:touch]"
               style={{
                 paddingBottom:
                   lineupPanelView === 'kickoff'
@@ -4260,7 +4284,7 @@ export const LiveMatchScreen: React.FC = () => {
                 )
               ) : canRenderLivePitch ? (
                 <>
-                  <div className="mx-auto w-full max-w-md overflow-hidden px-0.5">
+                  <div className="mx-auto mb-0 w-full max-w-md overflow-hidden px-0.5 pb-0">
                   <LineupFormationPitch
                   formationId={safeFormationId}
                   slots={safeLineupSlots as Record<FieldSlotId, string | null>}
@@ -4269,7 +4293,7 @@ export const LiveMatchScreen: React.FC = () => {
                   emphasizedPlayerId={null}
                   slotHighlightBySlot={mainLineupPitchSlotHighlight}
                   className="min-h-[10rem] max-h-[min(48dvh,28rem)] w-full sm:max-h-[min(50dvh,30rem)]"
-                  renderSlotContent={({ slot, label, labelDx, labelDy, playerId, isGk }) => {
+                  renderSlotContent={({ slot, label, playerId, isGk }) => {
                     if (!playerId) return null;
                     const player = rosterById.get(playerId) ?? null;
                     const posLabel = getPositionLabel(label) || '–';
@@ -4280,12 +4304,16 @@ export const LiveMatchScreen: React.FC = () => {
                     })();
                     const isPosSwapPick =
                       lineupPositionMode && posSwapSlotA === slot && Boolean(playerId) && !posSwapConfirmOpen;
-                    const nameOffsetX = labelDx ?? 0;
-                    const nameOffsetY = (labelDy ?? 0) + 3;
+                    const { dx: nameOffsetX, dy: nameOffsetY } = liveLineupPitchNameOffset(
+                      slot,
+                      safeFormationId,
+                    );
+                    const labelBelowJersey = (U11_FORMATIONS[safeFormationId] ?? []).find((s) => s.slot === slot)?.y ?? 50;
+                    const nameBadgeMt = labelBelowJersey >= 64 || slot === 'GK' ? 'mt-0.5' : 'mt-1';
                     return (
                       <div
                         className={[
-                          'pointer-events-none relative flex w-full max-w-[min(20vw,5.6rem)] flex-col items-center overflow-hidden',
+                          'pointer-events-none relative flex w-full max-w-[min(21vw,6rem)] flex-col items-center overflow-visible',
                           isPosSwapPick ? 'scale-[1.04]' : '',
                         ].join(' ')}
                       >
@@ -4330,7 +4358,10 @@ export const LiveMatchScreen: React.FC = () => {
                           />
                         </div>
                         <span
-                          className="mx-auto mt-1 block w-full min-w-0 max-w-[5.6rem] truncate rounded-md bg-black/85 px-1.5 py-0.5 text-center text-[8px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 transition-all duration-300 ease-out sm:text-[9px]"
+                          className={[
+                            'mx-auto block w-full min-w-0 max-w-[6rem] truncate rounded-md bg-black/85 px-1.5 py-0.5 text-center text-[8px] font-semibold leading-tight text-white shadow-sm ring-1 ring-white/15 transition-all duration-300 ease-out sm:text-[9px]',
+                            nameBadgeMt,
+                          ].join(' ')}
                           title={rawName}
                           style={{ transform: `translate(${nameOffsetX}px, ${nameOffsetY}px)` }}
                         >
@@ -4342,7 +4373,7 @@ export const LiveMatchScreen: React.FC = () => {
                 />
                   </div>
                 {fairPlayExtraPlayerId ? (
-                  <div className="flex shrink-0 items-center justify-center gap-2 px-1 py-0.5">
+                  <div className="flex shrink-0 items-center justify-center gap-2 px-1 py-0">
                     <span className="text-[8px] font-black uppercase tracking-[0.12em] text-amber-200/85">
                       FairPlay +1
                     </span>
@@ -4388,7 +4419,12 @@ export const LiveMatchScreen: React.FC = () => {
                 </p>
               )}
 
-              <section className="mt-2 border-t border-white/[0.08] pt-2 pb-2">
+              <section
+                className={[
+                  'border-t border-white/[0.08] pb-2',
+                  lineupPanelView === 'kickoff' ? 'mt-2 pt-2' : 'mt-1 pt-1.5',
+                ].join(' ')}
+              >
                 <p
                   className={[
                     'font-black uppercase tracking-[0.12em]',
