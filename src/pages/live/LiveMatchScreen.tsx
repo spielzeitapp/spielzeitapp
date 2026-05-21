@@ -4655,20 +4655,25 @@ export const LiveMatchScreen: React.FC = () => {
             aria-label="Schließen"
           />
           <div
-            className="relative flex max-h-[min(90dvh,820px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.35rem] border border-white/10 border-b-0 bg-gradient-to-b from-zinc-950/98 via-black to-black text-white shadow-[0_-20px_60px_rgba(0,0,0,0.75),0_0_40px_rgba(220,38,38,0.08)] transition-all duration-200 sm:max-w-none"
+            className={[
+              'relative flex w-full max-w-lg flex-col overflow-hidden rounded-t-[1.35rem] border border-white/10 border-b-0 bg-gradient-to-b from-zinc-950/98 via-black to-black text-white shadow-[0_-20px_60px_rgba(0,0,0,0.75),0_0_40px_rgba(220,38,38,0.08)] transition-all duration-200 sm:max-w-none',
+              U11_FORMATION_CHOICES.length <= 4
+                ? 'h-auto max-h-[min(92dvh,820px)]'
+                : 'max-h-[min(90dvh,820px)] min-h-0',
+            ].join(' ')}
             role="dialog"
             aria-modal="true"
             aria-labelledby="formation-sheet-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="shrink-0 px-4 pt-2 pb-0.5">
-              <div className="mx-auto h-1 w-9 rounded-full bg-white/25" />
+            <div className="shrink-0 px-4 pt-1.5 pb-0.5">
+              <div className="mx-auto h-1 w-8 rounded-full bg-white/25" />
             </div>
-            <div className="shrink-0 px-4 pb-2 pt-1.5 text-center">
-              <h3 id="formation-sheet-title" className="text-base font-black tracking-tight text-white">
+            <div className="shrink-0 px-4 pb-1.5 pt-1 text-center">
+              <h3 id="formation-sheet-title" className="text-[15px] font-black tracking-tight text-white">
                 Formation ändern
               </h3>
-              <p className="mt-0.5 truncate text-[11px] leading-tight text-white/45">
+              <p className="mt-0.5 truncate text-[10px] leading-tight text-white/45">
                 {formationPendingId
                   ? 'Spieler bleiben erhalten — nur Positionen ändern sich.'
                   : '7 aktive Spieler bleiben auf den Slots erhalten.'}
@@ -4703,10 +4708,10 @@ export const LiveMatchScreen: React.FC = () => {
             ) : null}
             <div
               className={[
-                'min-h-0 flex-1 flex-col px-4',
+                'flex shrink-0 flex-col px-4',
                 U11_FORMATION_CHOICES.length > 4
-                  ? 'flex overflow-y-auto overscroll-y-contain py-1 [-webkit-overflow-scrolling:touch]'
-                  : 'flex justify-center gap-2 py-1',
+                  ? 'min-h-0 flex-1 gap-2 overflow-y-auto overscroll-y-contain py-1 [-webkit-overflow-scrolling:touch]'
+                  : 'gap-1.5 py-0.5',
               ].join(' ')}
             >
               {U11_FORMATION_CHOICES.map((id) => {
@@ -4718,7 +4723,7 @@ export const LiveMatchScreen: React.FC = () => {
                     disabled={formationSaving}
                     onClick={() => requestFormationChange(id)}
                     className={[
-                      'grid w-full min-h-[76px] shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all duration-200 active:scale-[0.99] disabled:opacity-45 sm:min-h-[78px]',
+                      'grid w-full min-h-[72px] shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition-all duration-200 active:scale-[0.99] disabled:opacity-45 sm:min-h-[74px]',
                       active
                         ? 'border-emerald-400/40 bg-gradient-to-r from-emerald-950/45 via-zinc-950/95 to-black shadow-[0_0_14px_rgba(16,185,129,0.16),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-emerald-500/30'
                         : 'border-white/10 bg-gradient-to-r from-red-950/20 via-zinc-950/90 to-black hover:border-white/16 hover:bg-zinc-900/75',
@@ -4760,7 +4765,7 @@ export const LiveMatchScreen: React.FC = () => {
               })}
             </div>
             <footer
-              className="shrink-0 border-t border-white/10 bg-black/95 px-4 pt-2 backdrop-blur-md"
+              className="mt-auto shrink-0 border-t border-white/10 bg-black/95 px-4 pt-1.5 backdrop-blur-md"
               style={{ paddingBottom: FORMATION_SHEET_FOOTER_PB }}
             >
               <button
