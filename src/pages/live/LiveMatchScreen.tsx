@@ -677,7 +677,7 @@ function kickoffPositionParts(
 }
 
 const LINEUP_VIEW_TAB_BASE =
-  'inline-flex h-[38px] min-w-[5.5rem] max-w-[9rem] flex-1 shrink-0 items-center justify-center overflow-hidden rounded-lg border px-3 text-sm font-semibold uppercase tracking-[0.05em] transition-colors active:scale-[0.98]';
+  'inline-flex h-[36px] w-auto min-w-[4.6rem] shrink-0 items-center justify-center overflow-hidden rounded-lg border px-2.5 text-sm font-semibold uppercase tracking-[0.04em] transition-colors active:scale-[0.98]';
 
 /** Kickoff-Liste: etwas mehr Scroll-Puffer über BottomNav */
 const KICKOFF_LINEUP_SCROLL_BOTTOM_PAD = 'calc(158px + env(safe-area-inset-bottom, 0px))';
@@ -1238,6 +1238,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [subSuggestionsExpanded, setSubSuggestionsExpanded] = useState(false);
   const [subRecommendedOutId, setSubRecommendedOutId] = useState<string | null>(null);
   const [subRecommendedInId, setSubRecommendedInId] = useState<string | null>(null);
+  const [substitutionToastText, setSubstitutionToastText] = useState<string | null>(null);
   /** Aufstellung-Tab: Positionswechsel direkt auf dem Spielfeld (nur Feldspieler). */
   const [lineupPositionMode, setLineupPositionMode] = useState(false);
   /** Aufstellung: Live-Feld vs. Startaufstellung-Snapshot (read-only). */
@@ -1369,6 +1370,23 @@ export const LiveMatchScreen: React.FC = () => {
     }, 50);
   }, [releaseLiveBodyScrollLock]);
   const substitutionToastTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+
+  const clearSubstitutionToast = useCallback(() => {
+    if (substitutionToastTimerRef.current != null) {
+      window.clearTimeout(substitutionToastTimerRef.current);
+      substitutionToastTimerRef.current = null;
+    }
+    setSubstitutionToastText(null);
+  }, []);
+
+  const showSubstitutionToast = useCallback((message: string, ms = 2200) => {
+    clearSubstitutionToast();
+    setSubstitutionToastText(message);
+    substitutionToastTimerRef.current = window.setTimeout(() => {
+      setSubstitutionToastText(null);
+      substitutionToastTimerRef.current = null;
+    }, ms);
+  }, [clearSubstitutionToast]);
   const subSaveInFlightRef = useRef(false);
   const substitutionAnimTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const substitutionHighlightTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
@@ -1831,7 +1849,6 @@ export const LiveMatchScreen: React.FC = () => {
     }
     return merged;
   }, [slotHighlightBySlot, lineupPosSwapRingHighlight]);
-  const [substitutionToastText, setSubstitutionToastText] = useState<string | null>(null);
   const canRenderLivePitch = safeSlotOrder.length > 0 && safeFormationId != null;
   const safeBenchRowsCount = Array.isArray(safeBenchRows) ? safeBenchRows.length : 0;
 
@@ -1863,46 +1880,6 @@ export const LiveMatchScreen: React.FC = () => {
     setSubstitutionTransitionBySlot(nextTransition);
     setSlotHighlightBySlot(nextHighlight);
 
-    const firstSwapSlot = changedSlots.find((slot) => {
-      const outgoing = String(prev[slot] ?? '').trim();
-      const incoming = String(current[slot] ?? '').trim();
-      return Boolean(outgoing && incoming && outgoing !== incoming);
-    });
-    const isPureFieldSwap =
-      changedSlots.length === 2 &&
-      (() => {
-        const [s1, s2] = changedSlots;
-        const a1 = String(prev[s1] ?? '').trim();
-        const b1 = String(current[s1] ?? '').trim();
-        const a2 = String(prev[s2] ?? '').trim();
-        const b2 = String(current[s2] ?? '').trim();
-        return Boolean(a1 && b1 && a2 && b2 && a1 === b2 && a2 === b1);
-      })();
-    if (firstSwapSlot && !isPureFieldSwap) {
-      const outId = String(prev[firstSwapSlot] ?? '').trim();
-      const inId = String(current[firstSwapSlot] ?? '').trim();
-      const outName = mobileLineupName((rosterById.get(outId)?.name ?? 'Spieler').trim() || 'Spieler');
-      const inName = mobileLineupName((rosterById.get(inId)?.name ?? 'Spieler').trim() || 'Spieler');
-      setSubstitutionToastText(`🔁 ${outName} raus – ${inName} rein`);
-      if (substitutionToastTimerRef.current != null) window.clearTimeout(substitutionToastTimerRef.current);
-      substitutionToastTimerRef.current = window.setTimeout(() => {
-        setSubstitutionToastText(null);
-        substitutionToastTimerRef.current = null;
-      }, 2000);
-    } else if (isPureFieldSwap) {
-      const [s1, s2] = changedSlots;
-      const id1 = String(current[s1] ?? '').trim();
-      const id2 = String(current[s2] ?? '').trim();
-      const n1 = mobileLineupName((rosterById.get(id1)?.name ?? 'Spieler').trim() || 'Spieler');
-      const n2 = mobileLineupName((rosterById.get(id2)?.name ?? 'Spieler').trim() || 'Spieler');
-      setSubstitutionToastText(`↔ ${n1} · ${n2}`);
-      if (substitutionToastTimerRef.current != null) window.clearTimeout(substitutionToastTimerRef.current);
-      substitutionToastTimerRef.current = window.setTimeout(() => {
-        setSubstitutionToastText(null);
-        substitutionToastTimerRef.current = null;
-      }, 2000);
-    }
-
     if (substitutionAnimTimerRef.current != null) window.clearTimeout(substitutionAnimTimerRef.current);
     substitutionAnimTimerRef.current = window.setTimeout(() => {
       setSubstitutionTransitionBySlot({});
@@ -1917,6 +1894,11 @@ export const LiveMatchScreen: React.FC = () => {
 
     prevLineupSlotsRef.current = { ...current };
   }, [safeLineupSlots, safeSlotOrder, rosterById]);
+
+  useEffect(() => {
+    clearSubstitutionToast();
+    prevLineupSlotsRef.current = { ...(safeLineupSlots as Partial<Record<FieldSlotId, string | null>>) };
+  }, [mainTab, clearSubstitutionToast]);
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
@@ -2646,17 +2628,14 @@ export const LiveMatchScreen: React.FC = () => {
     try {
       const ok = await persistSubstitution(outId, inId);
       if (ok) {
+        const outName = mobileLineupName((rosterById.get(outId)?.name ?? 'Spieler').trim() || 'Spieler');
+        const inName = mobileLineupName((rosterById.get(inId)?.name ?? 'Spieler').trim() || 'Spieler');
         void queueRealtimeReload();
         setSubOutPlayerId(null);
         setSubInPlayerId(null);
         setSubRecommendedOutId(null);
         setSubRecommendedInId(null);
-        setSubstitutionToastText('Wechsel gespeichert');
-        if (substitutionToastTimerRef.current != null) window.clearTimeout(substitutionToastTimerRef.current);
-        substitutionToastTimerRef.current = window.setTimeout(() => {
-          setSubstitutionToastText(null);
-          substitutionToastTimerRef.current = null;
-        }, 2200);
+        showSubstitutionToast(`🔁 ${outName} raus – ${inName} rein`);
       }
     } catch (e) {
       console.error('[LiveMatch] confirmSubstitution', e);
@@ -2665,7 +2644,7 @@ export const LiveMatchScreen: React.FC = () => {
       subSaveInFlightRef.current = false;
       setSubSaving(false);
     }
-  }, [subOutPlayerId, subInPlayerId, persistSubstitution, queueRealtimeReload]);
+  }, [subOutPlayerId, subInPlayerId, persistSubstitution, queueRealtimeReload, rosterById, showSubstitutionToast]);
 
   useEffect(() => {
     if (subSheetView === 'list') {
@@ -3582,7 +3561,9 @@ export const LiveMatchScreen: React.FC = () => {
       <div className="relative z-[1] flex min-h-0 flex-1 flex-col">
       <header
         ref={mainTab === 'hub' ? liveHubScrollRef : undefined}
-        className={`border-b border-red-500/35 bg-black/78 shadow-[0_4px_32px_rgba(0,0,0,0.5)] backdrop-blur-md ${
+        className={`border-b bg-black/78 shadow-[0_4px_32px_rgba(0,0,0,0.5)] backdrop-blur-md ${
+          mainTab === 'lineup' ? 'border-white/10' : 'border-red-500/35'
+        } ${
           mainTab === 'hub'
             ? 'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]'
             : 'shrink-0'
@@ -3875,7 +3856,14 @@ export const LiveMatchScreen: React.FC = () => {
               ) : null}
 
               {!spectatorView && canControlLiveMatch ? (
-                <div className="relative z-[1] mt-0 space-y-1 border-t border-red-500/35 bg-black/55 px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-12px_32px_rgba(220,38,38,0.12)] backdrop-blur-md">
+                <div
+                  className={[
+                    'relative z-[1] mt-0 space-y-1 border-t bg-black/55 px-3 py-1.5 backdrop-blur-md',
+                    mainTab === 'lineup'
+                      ? 'border-white/10 shadow-none'
+                      : 'border-red-500/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-12px_32px_rgba(220,38,38,0.12)]',
+                  ].join(' ')}
+                >
                   {renderTrainerClockActionRow('gap-1.5')}
 
                   {goalUndoOffer ? (
@@ -4081,30 +4069,34 @@ export const LiveMatchScreen: React.FC = () => {
 
         {mainTab === 'lineup' && (
           <div className="flex min-h-0 flex-1 flex-col bg-black">
-            <div className="sticky top-0 z-20 shrink-0 border-b border-white/[0.07] bg-black">
-              <div className="flex items-center px-2 pt-0.5">
+            <div className="sticky top-0 z-20 shrink-0 border-b border-white/10 bg-black">
+              <div className="flex items-center px-2 pt-0.5 pb-0">
                 <button
                   type="button"
-                  onClick={() => setMainTab('hub')}
+                  onClick={() => {
+                    clearSubstitutionToast();
+                    setMainTab('hub');
+                  }}
                   className="inline-flex min-h-[32px] min-w-0 items-center gap-1 rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-xs font-bold text-white transition active:scale-[0.98] sm:text-sm"
                 >
                   <span aria-hidden>←</span>
                   <span>Livespiel</span>
                 </button>
               </div>
-              <div className="overflow-x-auto px-2 pb-0.5 pt-0.5 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="flex min-w-min items-stretch gap-2">
+              <div className="overflow-x-auto px-2 pb-0.5 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex min-w-min items-stretch gap-1.5">
                   <button
                     type="button"
                     aria-pressed={lineupPanelView === 'live'}
                     onClick={() => {
+                      clearSubstitutionToast();
                       setLineupPanelView('live');
                       setLineupPositionMode(false);
                     }}
                     className={[
                       LINEUP_VIEW_TAB_BASE,
                       lineupPanelView === 'live'
-                        ? 'border-emerald-500/70 bg-emerald-950/50 text-emerald-50 shadow-[inset_0_0_14px_rgba(16,185,129,0.38)] ring-1 ring-emerald-500/35'
+                        ? 'border-emerald-500/70 bg-emerald-950/50 text-emerald-50 shadow-[inset_0_0_12px_rgba(16,185,129,0.35)] ring-1 ring-emerald-500/30'
                         : 'border-white/12 bg-white/[0.04] text-white/55 hover:border-white/20 hover:bg-white/[0.08]',
                     ].join(' ')}
                   >
@@ -4114,6 +4106,7 @@ export const LiveMatchScreen: React.FC = () => {
                     type="button"
                     aria-pressed={lineupPanelView === 'kickoff'}
                     onClick={() => {
+                      clearSubstitutionToast();
                       setLineupPanelView('kickoff');
                       setLineupPositionMode(false);
                       setFormationSheetOpen(false);
@@ -4121,7 +4114,7 @@ export const LiveMatchScreen: React.FC = () => {
                     className={[
                       LINEUP_VIEW_TAB_BASE,
                       lineupPanelView === 'kickoff'
-                        ? 'border-white/45 bg-gradient-to-br from-red-950/40 via-zinc-900/95 to-black text-white shadow-[inset_0_0_12px_rgba(255,255,255,0.1)] ring-1 ring-white/25'
+                        ? 'border-white/55 bg-gradient-to-br from-red-900/50 via-zinc-900 to-black font-bold text-white shadow-[inset_0_0_14px_rgba(255,255,255,0.12),inset_0_0_18px_rgba(220,38,38,0.22)] ring-1 ring-white/30'
                         : 'border-white/12 bg-white/[0.04] text-white/50 hover:border-white/22 hover:bg-white/[0.07] hover:text-white/70',
                     ].join(' ')}
                   >
@@ -4136,7 +4129,7 @@ export const LiveMatchScreen: React.FC = () => {
                           setLineupPositionMode(false);
                           setFormationSheetOpen(true);
                         }}
-                        className="inline-flex h-[38px] min-w-[5.75rem] shrink-0 items-center justify-center rounded-lg border border-red-500/35 bg-red-950/45 px-2.5 text-xs font-semibold uppercase tracking-[0.05em] text-red-100 transition-colors hover:border-red-400/45 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+                        className="inline-flex h-[36px] min-w-[5.4rem] shrink-0 items-center justify-center rounded-lg border border-red-500/35 bg-red-950/45 px-2 text-xs font-semibold uppercase tracking-[0.04em] text-red-100 transition-colors hover:border-red-400/45 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
                       >
                         Formation
                       </button>
@@ -4147,20 +4140,20 @@ export const LiveMatchScreen: React.FC = () => {
                         aria-pressed={lineupPositionMode}
                         onClick={() => setLineupPositionMode((v) => !v)}
                         className={[
-                          'inline-flex h-[38px] min-w-[4.5rem] shrink-0 items-center justify-center gap-0.5 rounded-lg border px-2.5 text-xs font-semibold uppercase tracking-[0.05em] transition-colors active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40',
+                          'inline-flex h-[36px] min-w-[4.4rem] shrink-0 items-center justify-center gap-0.5 rounded-lg border px-2 text-xs font-semibold uppercase tracking-[0.04em] transition-colors active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40',
                           lineupPositionMode
                             ? 'border-violet-400/55 bg-violet-950/55 text-violet-50 shadow-[inset_0_0_10px_rgba(139,92,246,0.28)]'
                             : 'border-white/14 bg-white/[0.06] text-white/75',
                         ].join(' ')}
                       >
                         <span aria-hidden>↔</span>
-                        <span>Pos.</span>
+                        <span>Pos</span>
                       </button>
                     </>
                   ) : null}
                 </div>
               </div>
-              <div className="border-t border-white/[0.05] px-2 py-0.5">
+              <div className="border-t border-white/10 px-2 py-0.5">
                 {lineupPanelView === 'kickoff' ? (
                   <>
                     <p className="text-[9px] font-black uppercase tracking-[0.12em] text-red-400/90">STARTAUFSTELLUNG</p>
