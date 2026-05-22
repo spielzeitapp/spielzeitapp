@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { usePlayerStats } from "../../hooks/usePlayerStats";
+import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
 import { Button } from "../../app/components/ui/Button";
 import { AppButton } from "../ui/AppButton";
 import { getPlayerBirthDisplayLines } from "../../lib/playerBirthDisplay";
@@ -161,6 +162,11 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     player.id,
     player.team_season_id,
   );
+  const {
+    stats: trainingStats,
+    loading: trainingStatsLoading,
+    error: trainingStatsError,
+  } = usePlayerTrainingStats(player.id, player.team_season_id);
 
   const goalsPer90Display = useMemo(() => {
     const v = Number(stats.goalsPer90);
@@ -182,9 +188,11 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const positionFull = getPositionFull(player.position);
   const birthDisplayLines = getPlayerBirthDisplayLines(role, player.birthdate);
 
-  const trainingParticipationPct = 0;
-  const trainingsAttended = 0;
-  const trainingsTotal = 0;
+  const trainingParticipationPct = trainingStats.ratePct;
+  const trainingsPresent = trainingStats.present;
+  const trainingsAbsent = trainingStats.absent;
+  const trainingsInjured = trainingStats.injured;
+  const trainingsOpen = trainingStats.open;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -457,22 +465,38 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             <div className="rounded-2xl border border-white/10 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <div className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-red-400/85" strokeWidth={1.75} aria-hidden />
-                <h4 className="text-[12px] font-extrabold uppercase tracking-wide text-red-300/90">Training</h4>
+                <h4 className="text-[12px] font-extrabold uppercase tracking-wide text-red-300/90">
+                  Trainingsbeteiligung
+                </h4>
               </div>
-              <div className="mt-4 flex items-baseline justify-between gap-2">
-                <span className="text-[14px] text-white/70">Teilnahmequote</span>
-                <span className="text-[22px] font-bold tabular-nums text-white">{trainingParticipationPct}%</span>
-              </div>
-              <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-white/10">
-                <div
-                  className="h-full max-w-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-400 shadow-[0_0_14px_rgba(239,68,68,0.45)] transition-[width] duration-300"
-                  style={{ width: `${Math.min(100, Math.max(0, trainingParticipationPct))}%` }}
-                />
-              </div>
-              <p className="mt-3 text-[12px] text-white/70">
-                Teilgenommen: <span className="font-bold text-white">{trainingsAttended}</span> · Einheiten:{" "}
-                <span className="font-bold text-white">{trainingsTotal}</span>
-              </p>
+              {trainingStatsLoading ? (
+                <p className="mt-4 text-[13px] text-white/65">Lade Trainingsdaten…</p>
+              ) : trainingStatsError ? (
+                <p className="mt-4 text-[13px] text-red-300/90">{trainingStatsError}</p>
+              ) : (
+                <>
+                  <div className="mt-4 flex items-baseline justify-between gap-2">
+                    <span className="text-[14px] text-white/70">Quote (Dabei / Dabei+Abwesend)</span>
+                    <span className="text-[22px] font-bold tabular-nums text-white">{trainingParticipationPct}%</span>
+                  </div>
+                  <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full max-w-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-400 shadow-[0_0_14px_rgba(239,68,68,0.45)] transition-[width] duration-300"
+                      style={{ width: `${Math.min(100, Math.max(0, trainingParticipationPct))}%` }}
+                    />
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <SeasonMiniCell label="Dabei" value={String(trainingsPresent)} />
+                    <SeasonMiniCell label="Abwesend" value={String(trainingsAbsent)} />
+                    <SeasonMiniCell label="Verletzt" value={String(trainingsInjured)} />
+                    <SeasonMiniCell label="Offen" value={String(trainingsOpen)} />
+                  </div>
+                  <p className="mt-3 text-[11px] leading-relaxed text-white/55">
+                    Verletzt und offen zählen nicht in die Quote. Basis: {trainingStats.sessionsCounted} vergangene
+                    Trainingseinheiten.
+                  </p>
+                </>
+              )}
             </div>
           ) : null}
 

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-type AttendanceStatus = 'yes' | 'no';
+type AttendanceStatus = 'yes' | 'no' | 'injured';
 
 type EventAttendancePayload = {
   event_id: string;

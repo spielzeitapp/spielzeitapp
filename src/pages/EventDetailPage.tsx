@@ -19,6 +19,12 @@ import type { PlayerItem } from '../hooks/usePlayers';
 import { downloadSingleEventFullCalendarIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
+import {
+  dbStatusToTrainingAttendance,
+  trainingAttendanceToDb,
+  type TrainingAttendanceStatus,
+} from '../lib/trainingAttendance';
+import { TrainingAttendancePanel } from '../components/events/TrainingAttendancePanel';
 import { upsertMatchForSetup } from '../lib/liveMatchService';
 import { fetchMatchById, updateMatchRow } from '../lib/liveMatchService';
 import { buildPauseDelimitedPeriodScoreLine, type MatchEngineEvent } from '../lib/matchEngine';
@@ -296,11 +302,13 @@ export const EventDetailPage: React.FC = () => {
   const [editCardType, setEditCardType] = useState<'yellow_card' | 'red_card'>('yellow_card');
   const [editCardPlayerId, setEditCardPlayerId] = useState('');
 
-  const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | null>(null);
+  const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | 'injured' | null>(null);
   const [loadingRsvp, setLoadingRsvp] = useState(true);
   const [cancelReason, setCancelReason] = useState('');
   /** Für Trainer: alle Zu-/Absagen dieses Events aus event_attendance. */
-  const [eventAttendanceByPlayerId, setEventAttendanceByPlayerId] = useState<Record<string, 'yes' | 'no'>>({});
+  const [eventAttendanceByPlayerId, setEventAttendanceByPlayerId] = useState<
+    Record<string, 'yes' | 'no' | 'injured'>
+  >({});
   const [eventAttendanceReasonByPlayerId, setEventAttendanceReasonByPlayerId] = useState<Record<string, string | null>>({});
   const [loadingEventAttendance, setLoadingEventAttendance] = useState(false);
   /** Spiel-Termine ohne events.match_id: einmalig Match-Zeile anlegen und verknüpfen (RLS: matches_insert). */
@@ -697,8 +705,13 @@ export const EventDetailPage: React.FC = () => {
         .eq('player_id', playerId)
         .maybeSingle();
 
-      if (!err && data && (data.status === 'yes' || data.status === 'no')) {
-        setRsvpStatus(data.status as 'yes' | 'no');
+      if (!err && data) {
+        const st = String(data.status ?? '').toLowerCase();
+        if (st === 'yes' || st === 'no' || st === 'injured') {
+          setRsvpStatus(st as 'yes' | 'no' | 'injured');
+        } else {
+          setRsvpStatus(null);
+        }
       } else {
         setRsvpStatus(null);
       }
@@ -748,10 +761,13 @@ export const EventDetailPage: React.FC = () => {
       .select('player_id, status')
       .eq('event_id', eventId);
     if (!err && data) {
-        const byPlayer: Record<string, 'yes' | 'no'> = {};
+        const byPlayer: Record<string, 'yes' | 'no' | 'injured'> = {};
         for (const row of data as { player_id: string; status: string }[]) {
           const pid = (row.player_id ?? '').toLowerCase();
-          if (row.status === 'yes' || row.status === 'no') byPlayer[pid] = row.status as 'yes' | 'no';
+          const st = String(row.status ?? '').toLowerCase();
+          if (st === 'yes' || st === 'no' || st === 'injured') {
+            byPlayer[pid] = st as 'yes' | 'no' | 'injured';
+          }
         }
         setEventAttendanceByPlayerId(byPlayer);
         setEventAttendanceReasonByPlayerId({});
@@ -791,25 +807,6 @@ export const EventDetailPage: React.FC = () => {
       }
       if (!resolvedPlayerId) return;
 
-      if (event?.kind === 'training' && status === 'yes') {
-        const del = await supabase
-          .from('event_attendance')
-          .delete()
-          .eq('event_id', eventId)
-          .eq('player_id', resolvedPlayerId);
-        if (del.error) return;
-        setRsvpStatus('yes');
-        setEventAttendanceByPlayerId((prev) => {
-          const next = { ...prev };
-          delete next[(resolvedPlayerId ?? '').toLowerCase()];
-          return next;
-        });
-        setAttendanceModalOpen(false);
-        setCancelReason('');
-        await loadEventAttendance();
-        return;
-      }
-
       const payload = {
         event_id: eventId,
         player_id: resolvedPlayerId,
@@ -844,25 +841,6 @@ export const EventDetailPage: React.FC = () => {
         status,
       });
       if (!eventId || !canTrainerManageEvent) return;
-      if (event?.kind === 'training' && status === 'yes') {
-        console.log('[ATTENDANCE FLOW] trainer delete request', {
-          table: 'event_attendance',
-          where: { event_id: eventId, player_id: targetPlayerId },
-        });
-        const del = await supabase
-          .from('event_attendance')
-          .delete()
-          .eq('event_id', eventId)
-          .eq('player_id', targetPlayerId);
-        if (del.error) return;
-        setEventAttendanceByPlayerId((prev) => {
-          const next = { ...prev };
-          delete next[(targetPlayerId ?? '').toLowerCase()];
-          return next;
-        });
-        await loadEventAttendance();
-        return;
-      }
       const payload = {
         event_id: eventId,
         player_id: targetPlayerId,
@@ -883,8 +861,49 @@ export const EventDetailPage: React.FC = () => {
   );
 
   const getAttendanceStatus = useCallback(
-    (pid: string): 'yes' | 'no' | null => eventAttendanceByPlayerId[(pid ?? '').toLowerCase()] ?? null,
-    [eventAttendanceByPlayerId]
+    (pid: string): 'yes' | 'no' | null => {
+      const raw = eventAttendanceByPlayerId[(pid ?? '').toLowerCase()];
+      if (raw === 'yes' || raw === 'no') return raw;
+      return null;
+    },
+    [eventAttendanceByPlayerId],
+  );
+
+  const getTrainingAttendanceStatus = useCallback(
+    (pid: string): TrainingAttendanceStatus =>
+      dbStatusToTrainingAttendance(eventAttendanceByPlayerId[(pid ?? '').toLowerCase()]),
+    [eventAttendanceByPlayerId],
+  );
+
+  const handleTrainerTrainingStatus = useCallback(
+    async (targetPlayerId: string, next: TrainingAttendanceStatus) => {
+      if (!eventId || !canTrainerManageEvent) return;
+      const pidKey = (targetPlayerId ?? '').toLowerCase();
+      const dbStatus = trainingAttendanceToDb(next);
+      if (dbStatus === null) {
+        const del = await supabase
+          .from('event_attendance')
+          .delete()
+          .eq('event_id', eventId)
+          .eq('player_id', targetPlayerId);
+        if (del.error) return;
+        setEventAttendanceByPlayerId((prev) => {
+          const n = { ...prev };
+          delete n[pidKey];
+          return n;
+        });
+      } else {
+        const result = await upsertEventAttendanceMinimal(supabase, {
+          event_id: eventId,
+          player_id: targetPlayerId,
+          status: dbStatus,
+        });
+        if (result.error) return;
+        setEventAttendanceByPlayerId((prev) => ({ ...prev, [pidKey]: dbStatus }));
+      }
+      await loadEventAttendance();
+    },
+    [eventId, canTrainerManageEvent, loadEventAttendance],
   );
 
   const openEditModal = useCallback((e: EventRow) => {
@@ -2788,17 +2807,28 @@ export const EventDetailPage: React.FC = () => {
 
             {canTrainerManageEvent ? (
               <div className="flex flex-col gap-3">
+                {event.kind === 'match' && event.match_id ? (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    className="mb-1 w-full py-3"
+                    onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(event.match_id)}`)}
+                  >
+                    Match vorbereiten
+                  </Button>
+                ) : null}
                 {isTraining ? (
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full px-3 py-1 text-sm font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
-                      Dabei: {Math.max(0, players.length - Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length)}
-                    </span>
-                    <span className="rounded-full px-3 py-1 text-sm font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
-                      Abwesend: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
-                    </span>
-                  </div>
+                  <TrainingAttendancePanel
+                    players={players}
+                    getStatus={getTrainingAttendanceStatus}
+                    onSetStatus={(playerId, status) => void handleTrainerTrainingStatus(playerId, status)}
+                    loading={playersLoading || loadingEventAttendance}
+                    absenceLocked={!trainingCancellationAllowed}
+                    className="pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))]"
+                  />
                 ) : (
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <>
+                <div className="mt-2 flex flex-wrap gap-2">
                     <span className="rounded-full px-3 py-1 text-sm font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
                       Zugesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length}
                     </span>
@@ -2809,17 +2839,6 @@ export const EventDetailPage: React.FC = () => {
                       Offen: {Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}
                     </span>
                   </div>
-                )}
-                {event.kind === 'match' && event.match_id ? (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    className="mb-4 w-full py-3"
-                    onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(event.match_id)}`)}
-                  >
-                    Match vorbereiten
-                  </Button>
-                ) : null}
                 <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
                   {(playersLoading || loadingEventAttendance) && (
                     <p className="text-[14px] text-white/70">Lade…</p>
@@ -2894,34 +2913,6 @@ export const EventDetailPage: React.FC = () => {
                                       </div>
 
                                       <div className="mt-3 flex flex-wrap items-center gap-2">
-                                        {isTraining ? (
-                                          <>
-                                            <AppButton
-                                              type="button"
-                                              size="sm"
-                                              variant={!trainingCancellationAllowed || bucket === 'no' ? 'secondary' : 'danger'}
-                                              disabled={!trainingCancellationAllowed || bucket === 'no'}
-                                              onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                              className="h-10 px-3 text-[13px]"
-                                            >
-                                              {bucket === 'no' ? 'Abwesend' : !trainingCancellationAllowed ? 'Zu spät' : 'Abwesend'}
-                                            </AppButton>
-                                            <AppButton
-                                              type="button"
-                                              size="sm"
-                                              variant="success"
-                                              disabled={bucket === 'yes'}
-                                              onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                              className={[
-                                                'h-10 px-3 text-[13px]',
-                                                isOpen ? 'shadow-[0_0_18px_rgba(16,185,129,0.18)]' : 'opacity-80',
-                                              ].join(' ')}
-                                            >
-                                              Dabei
-                                            </AppButton>
-                                          </>
-                                        ) : (
-                                          <>
                                             <AppButton
                                               type="button"
                                               size="sm"
@@ -2946,15 +2937,7 @@ export const EventDetailPage: React.FC = () => {
                                             >
                                               Abwesend
                                             </AppButton>
-                                          </>
-                                        )}
                                       </div>
-
-                                      {isTraining && bucket === 'no' && eventAttendanceReasonByPlayerId[(player.id ?? '').toLowerCase()] ? (
-                                        <span className="mt-2 block text-[12px] text-white/70">
-                                          Grund: {eventAttendanceReasonByPlayerId[(player.id ?? '').toLowerCase()]}
-                                        </span>
-                                      ) : null}
                                     </div>
                                   </li>
                                 );
@@ -2974,6 +2957,8 @@ export const EventDetailPage: React.FC = () => {
                     })()
                   )}
                 </div>
+                  </>
+                )}
               </div>
             ) : (effectiveRole === 'player' || effectiveRole === 'parent') ? (
               <div className="flex flex-col gap-2">
@@ -2986,7 +2971,16 @@ export const EventDetailPage: React.FC = () => {
                   <div className="flex flex-col gap-2">
                     {isTraining ? (
                       <>
-                        <p className="text-[14px] font-medium text-white/90">Status: {rsvpStatus === 'no' ? 'Abwesend' : 'Dabei'}</p>
+                        <p className="text-[14px] font-medium text-white/90">
+                          Status:{' '}
+                          {rsvpStatus === 'no'
+                            ? 'Abwesend'
+                            : rsvpStatus === 'injured'
+                              ? 'Verletzt'
+                              : rsvpStatus === 'yes'
+                                ? 'Dabei'
+                                : 'Offen'}
+                        </p>
                         <p className="mt-1 text-[12px] text-white/70">
                           {event.training_absence_deadline_disabled
                             ? 'Absage jederzeit möglich.'
