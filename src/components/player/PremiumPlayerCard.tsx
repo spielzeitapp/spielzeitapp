@@ -1,7 +1,9 @@
 import React from 'react';
 import { getPositionLabel } from '../../lib/positionLabels';
 import {
+  premiumPlayerAvatarBloomClass,
   premiumPlayerAvatarRingClass,
+  premiumPlayerAvatarSizeClass,
   premiumPlayerAvatarSrc,
   premiumPlayerCardGlowClass,
   premiumPlayerCardShellClass,
@@ -18,12 +20,9 @@ export type { PremiumPlayerCardPlayer, PremiumPlayerCardTone };
 
 type Props = {
   player: PremiumPlayerCardPlayer;
-  /** Position · #Nr — falls nicht gesetzt aus player.position + jersey_number */
   subline?: string | null;
   density?: PremiumPlayerCardDensity;
-  /** utility = ruhig (Kader, Training); matchday = Live/Startaufstellung */
   tone?: PremiumPlayerCardTone;
-  /** Startelf / aktiver Slot — Matchday-Hero ohne Utility-Selected-Ring */
   active?: boolean;
   selected?: boolean;
   onClick?: () => void;
@@ -57,7 +56,7 @@ export const PremiumPlayerCard: React.FC<Props> = ({
   const initials = premiumPlayerInitials(name);
   const sub = buildSubline(player, subline);
   const isMatchday = tone === 'matchday';
-  const avatarSize = density === 'compact' ? 'h-9 w-9' : 'h-10 w-10 sm:h-11 sm:w-11';
+  const avatarSize = premiumPlayerAvatarSizeClass(tone, density);
 
   const shellClass = premiumPlayerCardShellClass({
     tone,
@@ -71,14 +70,9 @@ export const PremiumPlayerCard: React.FC<Props> = ({
   const body = (
     <>
       <div className={premiumPlayerCardGlowClass(tone)} aria-hidden />
-      <div className="relative flex items-center gap-2.5">
+      <div className={`relative flex items-center ${isMatchday ? 'gap-3' : 'gap-2.5'}`}>
         <div className={`relative shrink-0 ${avatarSize}`}>
-          {isMatchday ? (
-            <div
-              className="pointer-events-none absolute -inset-0.5 rounded-full bg-red-600/25 blur-[5px]"
-              aria-hidden
-            />
-          ) : null}
+          {isMatchday ? <div className={premiumPlayerAvatarBloomClass()} aria-hidden /> : null}
           <img
             src={avatarSrc}
             alt=""
@@ -90,7 +84,7 @@ export const PremiumPlayerCard: React.FC<Props> = ({
             }}
           />
           <div
-            className={`relative z-[1] hidden ${avatarSize} items-center justify-center rounded-full border border-white/10 bg-zinc-900/90 text-[10px] font-bold text-white/80`}
+            className={`relative z-[1] hidden ${avatarSize} items-center justify-center rounded-full border border-[#2a1216]/80 bg-zinc-950/95 text-[11px] font-bold text-white/75`}
           >
             {initials}
           </div>
@@ -99,9 +93,21 @@ export const PremiumPlayerCard: React.FC<Props> = ({
           <p className={premiumPlayerNameClass(density, tone)}>{name}</p>
           <p className={premiumPlayerSublineClass(tone)}>{sub}</p>
         </div>
-        {trailing ? <div className="flex shrink-0 flex-col items-end justify-center gap-1">{trailing}</div> : null}
+        {trailing ? (
+          <div
+            className={`flex shrink-0 flex-col items-end justify-center gap-1 ${isMatchday ? 'opacity-[0.82]' : ''}`}
+          >
+            {trailing}
+          </div>
+        ) : null}
       </div>
-      {footer ? <div className="relative mt-2 border-t border-white/[0.05] pt-2">{footer}</div> : null}
+      {footer ? (
+        <div
+          className={`relative mt-2 pt-2 ${isMatchday ? 'border-t border-black/40' : 'border-t border-white/[0.05]'}`}
+        >
+          {footer}
+        </div>
+      ) : null}
     </>
   );
 

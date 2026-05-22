@@ -26,7 +26,7 @@ import type { FieldSlotId } from '../../types/match';
 import { getPositionLabel } from '../../lib/positionLabels';
 import {
   matchdayBenchTileClass,
-  matchdayJerseyGlowWrapClass,
+  matchdayJerseyWrapClass,
   matchdayLineupListRowClass,
   matchdayLineupPositionBadgeClass,
 } from '../../lib/matchdayPlayerCard';
@@ -576,7 +576,7 @@ export const MatchLineupPage: React.FC = () => {
                 : 'calc(100dvh - 6rem - 11.25rem - 9.5rem)',
             }}
           >
-            <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-gradient-to-br from-[#141416]/90 via-zinc-950/80 to-black p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_24px_rgba(224,33,41,0.05)] sm:p-2">
+            <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-transparent bg-gradient-to-br from-[#101012]/95 via-zinc-950/85 to-black p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.012),0_0_24px_rgba(224,33,41,0.05)] sm:p-2">
               <div className="grid h-full min-h-0 flex-1 grid-cols-2 gap-2">
                 <div className="flex min-h-0 min-w-0 flex-col gap-1">
                   <h2 className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">Startaufstellung</h2>
@@ -595,7 +595,7 @@ export const MatchLineupPage: React.FC = () => {
                             onClick={() => onTapSlot(slot)}
                             className={matchdayLineupListRowClass({ role: 'starter' })}
                           >
-                            <div className={matchdayJerseyGlowWrapClass()}>
+                            <div className={matchdayJerseyWrapClass()}>
                               <LeibchenJersey
                                 lastName={shortName}
                                 number={p.jersey_number ?? '–'}
@@ -648,7 +648,7 @@ export const MatchLineupPage: React.FC = () => {
                             onClick={() => onTapBankPlayer(id)}
                             className={matchdayLineupListRowClass({ role: 'bench', selected: isSelected })}
                           >
-                            <div className={matchdayJerseyGlowWrapClass()}>
+                            <div className={matchdayJerseyWrapClass()}>
                               <LeibchenJersey
                                 lastName={shortName}
                                 number={p.jersey_number ?? '–'}

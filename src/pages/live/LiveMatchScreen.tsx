@@ -751,15 +751,15 @@ function KickoffSquadJerseyBadge({
     shortName && shortName !== '—' ? shortName : (name.trim().split(/\s+/).filter(Boolean).pop() ?? name);
   const jerseyPx = matchday
     ? compact
-      ? { h: '2.9rem', w: '2.22rem' }
-      : { h: '3.05rem', w: '2.35rem' }
+      ? { h: '2.45rem', w: '1.9rem' }
+      : { h: '2.55rem', w: '2rem' }
     : compact
       ? { h: '2.65rem', w: '2.05rem' }
       : { h: '2.85rem', w: '2.2rem' };
   const jerseyClass = matchday
     ? compact
-      ? '!h-[2.9rem] !w-[2.22rem]'
-      : '!h-[3.05rem] !w-[2.35rem]'
+      ? '!h-[2.45rem] !w-[1.9rem]'
+      : '!h-[2.55rem] !w-[2rem]'
     : compact
       ? '!h-[2.65rem] !w-[2.05rem]'
       : '!h-[2.85rem] !w-[2.2rem]';
@@ -768,7 +768,7 @@ function KickoffSquadJerseyBadge({
     <div
       className={[
         'flex shrink-0 items-center justify-center overflow-visible',
-        matchday ? 'drop-shadow-[0_4px_14px_rgba(224,33,41,0.2)]' : '',
+        matchday ? 'opacity-[0.82] drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]' : '',
       ].join(' ')}
       style={{ width: jerseyPx.w, height: jerseyPx.h, minWidth: jerseyPx.w, minHeight: jerseyPx.h }}
       aria-hidden
@@ -4207,7 +4207,7 @@ export const LiveMatchScreen: React.FC = () => {
             >
               {lineupPanelView === 'kickoff' ? (
                 kickoffSafeLineupRowsCount === 0 ? (
-                  <p className="rounded-[20px] border border-red-500/18 bg-gradient-to-br from-[#141416]/90 to-black px-3 py-4 text-[13px] text-white/55 shadow-[0_0_24px_rgba(224,33,41,0.06)] backdrop-blur-[2px]">
+                  <p className="rounded-[20px] border border-transparent bg-gradient-to-br from-[#101012]/90 to-black px-3 py-4 text-[13px] text-white/55 shadow-[0_6px_24px_rgba(0,0,0,0.5),0_0_24px_rgba(224,33,41,0.06)] backdrop-blur-[2px]">
                     Zur Startaufstellung liegen noch keine Daten vor.
                   </p>
                 ) : (
@@ -4426,7 +4426,7 @@ export const LiveMatchScreen: React.FC = () => {
                         return (
                           <div
                             key={`live-bench-tile-${row.id || idx}`}
-                            className="flex w-[6.15rem] min-w-0 shrink-0 flex-col items-center rounded-xl border border-white/[0.1] bg-gradient-to-b from-[#121214] to-black/90 px-1 py-1.5 shadow-[0_4px_18px_rgba(0,0,0,0.38),0_0_16px_rgba(224,33,41,0.05)] sm:w-[6.65rem]"
+                            className="flex w-[6.15rem] min-w-0 shrink-0 flex-col items-center rounded-xl border border-transparent bg-gradient-to-b from-[#101012] to-black px-1 py-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.48),0_0_18px_rgba(224,33,41,0.04)] sm:w-[6.65rem]"
                           >
                             <LeibchenJersey
                               lastName={mobileLineupName(fullBenchName)}
