@@ -20,7 +20,7 @@ import { downloadSingleEventFullCalendarIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import {
-  dbStatusToTrainingAttendance,
+  resolveTrainingAttendanceStatus,
   trainingAttendanceToDb,
   type TrainingAttendanceStatus,
 } from '../lib/trainingAttendance';
@@ -307,7 +307,7 @@ export const EventDetailPage: React.FC = () => {
   const [cancelReason, setCancelReason] = useState('');
   /** Für Trainer: alle Zu-/Absagen dieses Events aus event_attendance. */
   const [eventAttendanceByPlayerId, setEventAttendanceByPlayerId] = useState<
-    Record<string, 'yes' | 'no' | 'injured'>
+    Record<string, 'yes' | 'no' | 'injured' | 'external_training'>
   >({});
   const [eventAttendanceReasonByPlayerId, setEventAttendanceReasonByPlayerId] = useState<Record<string, string | null>>({});
   const [loadingEventAttendance, setLoadingEventAttendance] = useState(false);
@@ -707,7 +707,7 @@ export const EventDetailPage: React.FC = () => {
 
       if (!err && data) {
         const st = String(data.status ?? '').toLowerCase();
-        if (st === 'yes' || st === 'no' || st === 'injured') {
+        if (st === 'yes' || st === 'no' || st === 'injured' || st === 'external_training') {
           setRsvpStatus(st as 'yes' | 'no' | 'injured');
         } else {
           setRsvpStatus(null);
@@ -761,12 +761,12 @@ export const EventDetailPage: React.FC = () => {
       .select('player_id, status')
       .eq('event_id', eventId);
     if (!err && data) {
-        const byPlayer: Record<string, 'yes' | 'no' | 'injured'> = {};
+        const byPlayer: Record<string, 'yes' | 'no' | 'injured' | 'external_training'> = {};
         for (const row of data as { player_id: string; status: string }[]) {
           const pid = (row.player_id ?? '').toLowerCase();
           const st = String(row.status ?? '').toLowerCase();
-          if (st === 'yes' || st === 'no' || st === 'injured') {
-            byPlayer[pid] = st as 'yes' | 'no' | 'injured';
+          if (st === 'yes' || st === 'no' || st === 'injured' || st === 'external_training') {
+            byPlayer[pid] = st as 'yes' | 'no' | 'injured' | 'external_training';
           }
         }
         setEventAttendanceByPlayerId(byPlayer);
@@ -871,8 +871,11 @@ export const EventDetailPage: React.FC = () => {
 
   const getTrainingAttendanceStatus = useCallback(
     (pid: string): TrainingAttendanceStatus =>
-      dbStatusToTrainingAttendance(eventAttendanceByPlayerId[(pid ?? '').toLowerCase()]),
-    [eventAttendanceByPlayerId],
+      resolveTrainingAttendanceStatus(
+        eventAttendanceByPlayerId[(pid ?? '').toLowerCase()],
+        event?.starts_at ?? null,
+      ),
+    [eventAttendanceByPlayerId, event?.starts_at],
   );
 
   const handleTrainerTrainingStatus = useCallback(
@@ -2979,7 +2982,10 @@ export const EventDetailPage: React.FC = () => {
                               ? 'Verletzt'
                               : rsvpStatus === 'yes'
                                 ? 'Dabei'
-                                : 'Offen'}
+                                : resolveTrainingAttendanceStatus(null, event?.starts_at ?? null) ===
+                                    'legacy_unknown'
+                                  ? 'Nicht erfasst'
+                                  : 'Offen'}
                         </p>
                         <p className="mt-1 text-[12px] text-white/70">
                           {event.training_absence_deadline_disabled

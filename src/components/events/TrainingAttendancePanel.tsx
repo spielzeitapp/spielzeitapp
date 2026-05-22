@@ -13,7 +13,6 @@ type Props = {
   getStatus: (playerId: string) => TrainingAttendanceStatus;
   onSetStatus: (playerId: string, status: TrainingAttendanceStatus) => void;
   loading?: boolean;
-  /** Absage-Deadline aktiv und vorbei → Abwesend-Button ggf. gesperrt */
   absenceLocked?: boolean;
   className?: string;
 };
@@ -43,6 +42,12 @@ function badgeClass(status: TrainingAttendanceStatus): string {
   if (status === 'injured') {
     return 'border-amber-400/45 bg-amber-500/15 text-amber-100';
   }
+  if (status === 'external') {
+    return 'border-violet-400/45 bg-violet-500/15 text-violet-100';
+  }
+  if (status === 'legacy_unknown') {
+    return 'border-white/15 bg-white/6 text-white/50';
+  }
   return 'border-white/18 bg-white/10 text-white/65';
 }
 
@@ -54,7 +59,13 @@ const STAT_CHIPS: {
   { key: 'present', label: 'Dabei', className: 'border-emerald-500/40 bg-emerald-600/15 text-emerald-300' },
   { key: 'absent', label: 'Abwesend', className: 'border-red-500/40 bg-red-600/15 text-red-300' },
   { key: 'injured', label: 'Verletzt', className: 'border-amber-500/40 bg-amber-600/15 text-amber-200' },
+  { key: 'external', label: 'LAZ', className: 'border-violet-500/40 bg-violet-600/15 text-violet-200' },
   { key: 'open', label: 'Offen', className: 'border-white/20 bg-white/8 text-white/70' },
+  {
+    key: 'legacyUnknown',
+    label: 'N. erf.',
+    className: 'border-white/15 bg-white/6 text-white/55',
+  },
 ];
 
 export const TrainingAttendancePanel: React.FC<Props> = ({
@@ -81,10 +92,14 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
     [players, getStatus],
   );
 
+  const visibleChips = STAT_CHIPS.filter(
+    (c) => c.key !== 'legacyUnknown' || counts.legacyUnknown > 0,
+  );
+
   return (
     <div className={`flex flex-col gap-3 ${className}`}>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {STAT_CHIPS.map(({ key, label, className: chipCls }) => (
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {visibleChips.map(({ key, label, className: chipCls }) => (
           <div
             key={key}
             className={`rounded-xl border px-2.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${chipCls}`}
@@ -136,14 +151,14 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                     </span>
                   </div>
 
-                  <div className="mt-2 grid grid-cols-3 gap-1.5">
+                  <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                     <AppButton
                       type="button"
                       size="sm"
                       variant={status === 'absent' ? 'secondary' : 'danger'}
                       disabled={absenceLocked || status === 'absent'}
                       onClick={() => onSetStatus(player.id, 'absent')}
-                      className="h-9 min-w-0 px-1.5 text-[11px] font-semibold"
+                      className="h-9 min-w-0 px-1 text-[10px] font-semibold sm:text-[11px]"
                     >
                       {absenceLocked && status !== 'absent' ? 'Zu spät' : 'Abwesend'}
                     </AppButton>
@@ -153,7 +168,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                       variant="secondary"
                       disabled={status === 'injured'}
                       onClick={() => onSetStatus(player.id, 'injured')}
-                      className={`h-9 min-w-0 px-1.5 text-[11px] font-semibold ${
+                      className={`h-9 min-w-0 px-1 text-[10px] font-semibold sm:text-[11px] ${
                         status === 'injured'
                           ? 'border-amber-500/50 text-amber-100'
                           : 'border-amber-500/35 text-amber-200/90 hover:bg-amber-950/30'
@@ -164,10 +179,24 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                     <AppButton
                       type="button"
                       size="sm"
+                      variant="secondary"
+                      disabled={status === 'external'}
+                      onClick={() => onSetStatus(player.id, 'external')}
+                      className={`h-9 min-w-0 px-1 text-[10px] font-semibold sm:text-[11px] ${
+                        status === 'external'
+                          ? 'border-violet-500/50 text-violet-100'
+                          : 'border-violet-500/35 text-violet-200/90 hover:bg-violet-950/30'
+                      }`}
+                    >
+                      LAZ
+                    </AppButton>
+                    <AppButton
+                      type="button"
+                      size="sm"
                       variant="success"
                       disabled={status === 'present'}
                       onClick={() => onSetStatus(player.id, 'present')}
-                      className="h-9 min-w-0 px-1.5 text-[11px] font-semibold"
+                      className="h-9 min-w-0 px-1 text-[10px] font-semibold sm:text-[11px]"
                     >
                       Dabei
                     </AppButton>

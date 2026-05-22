@@ -1,16 +1,26 @@
 /** Training-Teilnahme (UI); Match/Event nutzt weiterhin yes/no. */
 
-export type TrainingAttendanceStatus = 'open' | 'present' | 'absent' | 'injured';
+export type TrainingAttendanceStatus =
+  | 'open'
+  | 'present'
+  | 'absent'
+  | 'injured'
+  | 'external'
+  | 'legacy_unknown';
 
-export type TrainingAttendanceDbStatus = 'yes' | 'no' | 'injured';
+export type TrainingAttendanceDbStatus = 'yes' | 'no' | 'injured' | 'external_training';
 
 export type TrainingAttendanceStats = {
-  ratePct: number;
+  /** Team-Trainingsbeteiligung: yes / (yes + no) */
+  teamRatePct: number;
+  /** Trainingsaktivität gesamt: (yes + external) / (yes + external + no) */
+  activityRatePct: number;
   present: number;
   absent: number;
   injured: number;
+  external: number;
   open: number;
-  /** Abgeschlossene Trainingseinheiten (starts_at in der Vergangenheit) */
+  legacyUnknown: number;
   sessionsCounted: number;
 };
 
@@ -19,40 +29,70 @@ const TRAINING_STATUS_LABEL: Record<TrainingAttendanceStatus, string> = {
   present: 'Dabei',
   absent: 'Abwesend',
   injured: 'Verletzt',
+  external: 'LAZ',
+  legacy_unknown: 'Nicht erfasst',
 };
 
 export function trainingAttendanceLabel(status: TrainingAttendanceStatus): string {
   return TRAINING_STATUS_LABEL[status];
 }
 
-/** DB-Zeile → UI-Status. Fehlende Zeile = open. */
+/** DB-Zeile → UI-Status (nur wenn Zeile existiert). */
 export function dbStatusToTrainingAttendance(
   raw: string | null | undefined,
-): TrainingAttendanceStatus {
+): TrainingAttendanceStatus | null {
   const s = String(raw ?? '').trim().toLowerCase();
+  if (!s) return null;
   if (s === 'yes') return 'present';
   if (s === 'no') return 'absent';
   if (s === 'injured') return 'injured';
+  if (s === 'external_training') return 'external';
+  if (s === 'maybe') return 'legacy_unknown';
+  return 'legacy_unknown';
+}
+
+/**
+ * Fehlende Zeile: vergangenes Training → legacy_unknown; zukünftiges/aktuelles → open.
+ */
+export function resolveTrainingAttendanceStatus(
+  rawDbStatus: string | null | undefined,
+  eventStartsAtIso: string | null | undefined,
+  nowMs: number = Date.now(),
+): TrainingAttendanceStatus {
+  const mapped = dbStatusToTrainingAttendance(rawDbStatus);
+  if (mapped) return mapped;
+
+  const startsMs = eventStartsAtIso ? Date.parse(eventStartsAtIso) : Number.NaN;
+  if (Number.isFinite(startsMs) && startsMs < nowMs) {
+    return 'legacy_unknown';
+  }
   return 'open';
 }
 
 export function trainingAttendanceToDb(status: TrainingAttendanceStatus): TrainingAttendanceDbStatus | null {
-  if (status === 'open') return null;
+  if (status === 'open' || status === 'legacy_unknown') return null;
   if (status === 'present') return 'yes';
   if (status === 'absent') return 'no';
+  if (status === 'external') return 'external_training';
   return 'injured';
 }
 
 export function trainingAttendanceBucketRank(status: TrainingAttendanceStatus): number {
   if (status === 'open') return 0;
-  if (status === 'present') return 1;
-  if (status === 'injured') return 2;
-  return 3;
+  if (status === 'legacy_unknown') return 1;
+  if (status === 'present') return 2;
+  if (status === 'external') return 3;
+  if (status === 'injured') return 4;
+  return 5;
+}
+
+function pct(num: number, denom: number): number {
+  return denom > 0 ? Math.round((num / denom) * 100) : 0;
 }
 
 /**
- * attendanceRate = present / (present + absent)
- * injured und open fließen nicht in den Nenner ein.
+ * Nur für Profil-Auswertung (vergangene Einheiten, bereits aufgelöste Status).
+ * injured, open, legacy_unknown nicht im Nenner.
  */
 export function computeTrainingAttendanceStats(
   sessionStatuses: TrainingAttendanceStatus[],
@@ -60,27 +100,48 @@ export function computeTrainingAttendanceStats(
   let present = 0;
   let absent = 0;
   let injured = 0;
+  let external = 0;
   let open = 0;
+  let legacyUnknown = 0;
+
   for (const st of sessionStatuses) {
     if (st === 'present') present += 1;
     else if (st === 'absent') absent += 1;
     else if (st === 'injured') injured += 1;
+    else if (st === 'external') external += 1;
+    else if (st === 'legacy_unknown') legacyUnknown += 1;
     else open += 1;
   }
-  const denom = present + absent;
-  const ratePct = denom > 0 ? Math.round((present / denom) * 100) : 0;
+
+  const teamDenom = present + absent;
+  const activityDenom = present + external + absent;
+
   return {
-    ratePct,
+    teamRatePct: pct(present, teamDenom),
+    activityRatePct: pct(present + external, activityDenom),
     present,
     absent,
     injured,
+    external,
     open,
+    legacyUnknown,
     sessionsCounted: sessionStatuses.length,
   };
 }
 
-export function countTrainingAttendanceByStatus(
-  statuses: TrainingAttendanceStatus[],
-): Pick<TrainingAttendanceStats, 'present' | 'absent' | 'injured' | 'open'> {
-  return computeTrainingAttendanceStats(statuses);
+export type TrainingAttendanceCounts = Pick<
+  TrainingAttendanceStats,
+  'present' | 'absent' | 'injured' | 'external' | 'open' | 'legacyUnknown'
+>;
+
+export function countTrainingAttendanceByStatus(statuses: TrainingAttendanceStatus[]): TrainingAttendanceCounts {
+  const s = computeTrainingAttendanceStats(statuses);
+  return {
+    present: s.present,
+    absent: s.absent,
+    injured: s.injured,
+    external: s.external,
+    open: s.open,
+    legacyUnknown: s.legacyUnknown,
+  };
 }

@@ -1,22 +1,25 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   computeTrainingAttendanceStats,
-  dbStatusToTrainingAttendance,
+  resolveTrainingAttendanceStatus,
   type TrainingAttendanceStats,
 } from '../lib/trainingAttendance';
 import { supabase } from '../lib/supabaseClient';
 
 const EMPTY_STATS: TrainingAttendanceStats = {
-  ratePct: 0,
+  teamRatePct: 0,
+  activityRatePct: 0,
   present: 0,
   absent: 0,
   injured: 0,
+  external: 0,
   open: 0,
+  legacyUnknown: 0,
   sessionsCounted: 0,
 };
 
 /**
- * Trainingsbeteiligung eines Spielers in der Saison (nur vergangene Einheiten für die Quote).
+ * Trainingsbeteiligung eines Spielers (nur vergangene Trainingseinheiten der Saison).
  */
 export function usePlayerTrainingStats(playerId: string | null, teamSeasonId: string | null) {
   const [stats, setStats] = useState<TrainingAttendanceStats>(EMPTY_STATS);
@@ -34,7 +37,8 @@ export function usePlayerTrainingStats(playerId: string | null, teamSeasonId: st
     setLoading(true);
     setError(null);
     try {
-      const nowIso = new Date().toISOString();
+      const nowMs = Date.now();
+      const nowIso = new Date(nowMs).toISOString();
       const { data: events, error: evErr } = await supabase
         .from('events')
         .select('id, starts_at')
@@ -46,12 +50,12 @@ export function usePlayerTrainingStats(playerId: string | null, teamSeasonId: st
 
       if (evErr) throw evErr;
       const eventRows = (events ?? []) as { id: string; starts_at: string }[];
-      const eventIds = eventRows.map((e) => e.id).filter(Boolean);
-      if (eventIds.length === 0) {
+      if (eventRows.length === 0) {
         setStats(EMPTY_STATS);
         return;
       }
 
+      const eventIds = eventRows.map((e) => e.id).filter(Boolean);
       const { data: attRows, error: attErr } = await supabase
         .from('event_attendance')
         .select('event_id, status')
@@ -66,8 +70,12 @@ export function usePlayerTrainingStats(playerId: string | null, teamSeasonId: st
         statusByEvent.set(String(row.event_id).toLowerCase(), row.status);
       }
 
-      const sessionStatuses = eventIds.map((eid) =>
-        dbStatusToTrainingAttendance(statusByEvent.get(eid.toLowerCase())),
+      const sessionStatuses = eventRows.map((ev) =>
+        resolveTrainingAttendanceStatus(
+          statusByEvent.get(String(ev.id).toLowerCase()),
+          ev.starts_at,
+          nowMs,
+        ),
       );
       setStats(computeTrainingAttendanceStats(sessionStatuses));
     } catch (e) {

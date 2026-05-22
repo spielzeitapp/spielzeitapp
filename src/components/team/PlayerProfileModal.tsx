@@ -188,11 +188,14 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const positionFull = getPositionFull(player.position);
   const birthDisplayLines = getPlayerBirthDisplayLines(role, player.birthdate);
 
-  const trainingParticipationPct = trainingStats.ratePct;
+  const teamTrainingRatePct = trainingStats.teamRatePct;
+  const activityTrainingRatePct = trainingStats.activityRatePct;
   const trainingsPresent = trainingStats.present;
   const trainingsAbsent = trainingStats.absent;
   const trainingsInjured = trainingStats.injured;
+  const trainingsExternal = trainingStats.external;
   const trainingsOpen = trainingStats.open;
+  const trainingsLegacyUnknown = trainingStats.legacyUnknown;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -475,25 +478,51 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 <p className="mt-4 text-[13px] text-red-300/90">{trainingStatsError}</p>
               ) : (
                 <>
-                  <div className="mt-4 flex items-baseline justify-between gap-2">
-                    <span className="text-[14px] text-white/70">Quote (Dabei / Dabei+Abwesend)</span>
-                    <span className="text-[22px] font-bold tabular-nums text-white">{trainingParticipationPct}%</span>
+                  <div className="mt-4 space-y-3">
+                    <div>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-[13px] text-white/70">Team-Trainingsbeteiligung</span>
+                        <span className="text-[20px] font-bold tabular-nums text-white">{teamTrainingRatePct}%</span>
+                      </div>
+                      <p className="mt-0.5 text-[10px] text-white/50">Dabei ÷ (Dabei + Abwesend)</p>
+                      <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-400"
+                          style={{ width: `${Math.min(100, Math.max(0, teamTrainingRatePct))}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-[13px] text-white/70">Trainingsaktivität gesamt</span>
+                        <span className="text-[20px] font-bold tabular-nums text-white">
+                          {activityTrainingRatePct}%
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[10px] text-white/50">
+                        (Dabei + LAZ) ÷ (Dabei + LAZ + Abwesend)
+                      </p>
+                      <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-violet-600 via-red-500 to-emerald-500"
+                          style={{ width: `${Math.min(100, Math.max(0, activityTrainingRatePct))}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full max-w-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-400 shadow-[0_0_14px_rgba(239,68,68,0.45)] transition-[width] duration-300"
-                      style={{ width: `${Math.min(100, Math.max(0, trainingParticipationPct))}%` }}
-                    />
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
                     <SeasonMiniCell label="Dabei" value={String(trainingsPresent)} />
                     <SeasonMiniCell label="Abwesend" value={String(trainingsAbsent)} />
                     <SeasonMiniCell label="Verletzt" value={String(trainingsInjured)} />
+                    <SeasonMiniCell label="LAZ" value={String(trainingsExternal)} />
                     <SeasonMiniCell label="Offen" value={String(trainingsOpen)} />
+                    {trainingsLegacyUnknown > 0 ? (
+                      <SeasonMiniCell label="N. erf." value={String(trainingsLegacyUnknown)} />
+                    ) : null}
                   </div>
                   <p className="mt-3 text-[11px] leading-relaxed text-white/55">
-                    Verletzt und offen zählen nicht in die Quote. Basis: {trainingStats.sessionsCounted} vergangene
-                    Trainingseinheiten.
+                    Verletzt, offen und nicht erfasst zählen nicht in die Quoten. Basis:{' '}
+                    {trainingStats.sessionsCounted} vergangene Trainingseinheiten.
                   </p>
                 </>
               )}
