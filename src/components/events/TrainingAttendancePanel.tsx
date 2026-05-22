@@ -13,7 +13,6 @@ type Props = {
   getStatus: (playerId: string) => TrainingAttendanceStatus;
   onSetStatus: (playerId: string, status: TrainingAttendanceStatus) => void;
   loading?: boolean;
-  absenceLocked?: boolean;
   className?: string;
 };
 
@@ -73,7 +72,6 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
   getStatus,
   onSetStatus,
   loading = false,
-  absenceLocked = false,
   className = '',
 }) => {
   const counts = useMemo(() => {
@@ -156,11 +154,11 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                       type="button"
                       size="sm"
                       variant={status === 'absent' ? 'secondary' : 'danger'}
-                      disabled={absenceLocked || status === 'absent'}
+                      disabled={status === 'absent'}
                       onClick={() => onSetStatus(player.id, 'absent')}
                       className="h-9 min-w-0 px-1 text-[10px] font-semibold sm:text-[11px]"
                     >
-                      {absenceLocked && status !== 'absent' ? 'Zu spät' : 'Abwesend'}
+                      Abwesend
                     </AppButton>
                     <AppButton
                       type="button"

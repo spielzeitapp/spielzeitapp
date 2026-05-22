@@ -2826,7 +2826,6 @@ export const EventDetailPage: React.FC = () => {
                     getStatus={getTrainingAttendanceStatus}
                     onSetStatus={(playerId, status) => void handleTrainerTrainingStatus(playerId, status)}
                     loading={playersLoading || loadingEventAttendance}
-                    absenceLocked={!trainingCancellationAllowed}
                     className="pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))]"
                   />
                 ) : (
