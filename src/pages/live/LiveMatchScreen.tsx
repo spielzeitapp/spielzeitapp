@@ -4185,7 +4185,7 @@ export const LiveMatchScreen: React.FC = () => {
                         onClick={() => setLineupPositionMode((v) => !v)}
                         className={[
                           LINEUP_TRAINER_ACTION_BTN,
-                          'min-w-[4.25rem]',
+                          'min-w-[4.4rem] shrink-0 px-3 text-[13px]',
                           lineupPositionMode
                             ? 'border-red-500/14 bg-black/38 text-white/76 shadow-[0_0_10px_rgba(220,38,38,0.10)]'
                             : 'border-white/[0.08] bg-black/28 text-white/58 hover:border-white/12 hover:bg-black/34 hover:text-white/72',
@@ -4214,11 +4214,11 @@ export const LiveMatchScreen: React.FC = () => {
                         <p className="text-[15px] font-semibold leading-tight text-white/90">Mannschaft am Feld</p>
                         <p className="text-[12px] leading-snug text-white/52">Stand jetzt im Spiel</p>
                         {canControlLiveMatch && lineupPositionMode && !matchIsFinished ? (
-                          <p className="mt-1 max-w-[18rem] text-[12px] font-medium leading-snug text-amber-300/90">
+                          <p className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium leading-snug text-amber-300/90">
                             <span aria-hidden className="mr-0.5">
                               ↔
                             </span>
-                            2 Spieler wählen und Position tauschen
+                            2 Spieler antippen & tauschen
                           </p>
                         ) : null}
                       </div>
