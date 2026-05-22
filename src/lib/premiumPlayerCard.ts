@@ -64,15 +64,17 @@ export function premiumPlayerCardShellClass(opts?: {
   className?: string;
 }): string {
   const highlighted = Boolean(opts?.active || opts?.selected);
+  const isMatchday = (opts?.tone ?? 'utility') === 'matchday';
   return dsCardShellClass({
     active: highlighted,
     interactive: opts?.interactive,
+    matchday: isMatchday,
     className: opts?.className,
   });
 }
 
-export function premiumPlayerCardGlowClass(): string {
-  return dsCardAmbientGlowClass();
+export function premiumPlayerCardGlowClass(tone?: PremiumPlayerCardTone): string {
+  return dsCardAmbientGlowClass(tone === 'matchday');
 }
 
 export function premiumPlayerNameClass(): string {

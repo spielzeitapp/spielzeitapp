@@ -30,7 +30,14 @@ import {
   matchdayLineupListRowClass,
   matchdayLineupPositionBadgeClass,
 } from '../../lib/matchdayPlayerCard';
-import { dsFormationTabClass, DS_LIST_GAP } from '../../lib/premiumDesignSystem';
+import {
+  dsFormationTabClass,
+  dsPrimaryCtaClass,
+  dsSecondaryCtaClass,
+  dsSegmentTabClass,
+  DS_JERSEY_STARTER,
+  DS_LIST_GAP,
+} from '../../lib/premiumDesignSystem';
 
 type MatchRowLite = {
   id: string;
@@ -416,7 +423,7 @@ export const MatchLineupPage: React.FC = () => {
         </header>
 
         <div
-          className="mb-2 mt-2 flex h-10 w-full shrink-0 overflow-hidden rounded-[10px] border border-white/[0.07] bg-zinc-950/80 p-px"
+          className="mb-2 mt-2 flex h-10 w-full shrink-0 overflow-hidden rounded-[12px] border border-transparent bg-[#121214] p-px shadow-[0_4px_16px_rgba(0,0,0,0.35)]"
           role="tablist"
           aria-label="Aufstellungsansicht"
         >
@@ -425,27 +432,17 @@ export const MatchLineupPage: React.FC = () => {
             role="tab"
             aria-selected={lineupViewMode === 'list'}
             onClick={() => setLineupViewMode('list')}
-            className={[
-              'flex-1 rounded-[9px] px-2 text-center text-sm font-semibold transition-colors',
-              lineupViewMode === 'list'
-                ? 'bg-red-600 text-white'
-                : 'bg-transparent text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200',
-            ].join(' ')}
+            className={dsSegmentTabClass(lineupViewMode === 'list')}
           >
             Liste
           </button>
-          <span className="w-px shrink-0 self-stretch bg-white/[0.06]" aria-hidden />
+          <span className="w-px shrink-0 self-stretch bg-[#2a2a2e]/80" aria-hidden />
           <button
             type="button"
             role="tab"
             aria-selected={lineupViewMode === 'pitch'}
             onClick={() => setLineupViewMode('pitch')}
-            className={[
-              'flex-1 rounded-[9px] px-2 text-center text-sm font-semibold transition-colors',
-              lineupViewMode === 'pitch'
-                ? 'bg-red-600 text-white'
-                : 'bg-transparent text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200',
-            ].join(' ')}
+            className={dsSegmentTabClass(lineupViewMode === 'pitch')}
           >
             Spielfeld
           </button>
@@ -544,7 +541,7 @@ export const MatchLineupPage: React.FC = () => {
                           position={posLabel}
                           variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
                           size="compact"
-                          className="!h-[2.5rem] !w-[1.95rem] shrink-0 opacity-[0.72]"
+                          className={`${DS_JERSEY_STARTER} shrink-0 opacity-[0.84]`}
                           showBackPrint={false}
                           pitchStyleBack
                           selected={isSelected}
@@ -599,7 +596,7 @@ export const MatchLineupPage: React.FC = () => {
                                 variant={isGk ? 'goalkeeper' : 'field'}
                                 size="compact"
                                 pitchStyleBack
-                                className="!h-[2.5rem] !w-[1.95rem] opacity-[0.72]"
+                                className={`${DS_JERSEY_STARTER} opacity-[0.84]`}
                               />
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden py-0.5">
@@ -652,7 +649,7 @@ export const MatchLineupPage: React.FC = () => {
                                 variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
                                 size="compact"
                                 pitchStyleBack
-                                className="!h-[2.5rem] !w-[1.95rem] opacity-[0.72]"
+                                className={`${DS_JERSEY_STARTER} opacity-[0.84]`}
                               />
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden py-0.5">
@@ -685,7 +682,7 @@ export const MatchLineupPage: React.FC = () => {
             type="button"
             disabled={savingLineup || startingLive}
             onClick={() => void saveLineup()}
-            className="flex h-14 min-h-14 flex-1 items-center justify-center rounded-xl border border-white/16 bg-white/[0.05] px-2 text-xs font-semibold leading-tight text-white/95 transition-colors hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
+            className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-xs font-semibold leading-tight ${dsSecondaryCtaClass()}`}
           >
             {savingLineup ? 'Speichern…' : 'Aufstellung speichern'}
           </button>
@@ -693,7 +690,7 @@ export const MatchLineupPage: React.FC = () => {
             type="button"
             disabled={starterCount < 7 || savingLineup || startingLive}
             onClick={() => void onStartLive()}
-            className="flex h-14 min-h-14 flex-1 items-center justify-center rounded-xl bg-red-600 px-2 text-xs font-bold leading-tight text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-xs font-bold leading-tight ${dsPrimaryCtaClass()}`}
           >
             {startingLive ? 'Starte…' : 'Zum Liveticker'}
           </button>

@@ -6,6 +6,7 @@ import type { PlayerItem } from '../hooks/usePlayers';
 import { LIVE_FIELD_SLOT_ORDER, replaceMatchLineupAndBench, saveMatchSquadOnly } from '../lib/liveMatchService';
 import { comparePlayerItems } from '../lib/rosterPlayer';
 import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
+import { dsPrimaryCtaClass } from '../lib/premiumDesignSystem';
 import type { FieldSlotId } from '../types/match';
 
 const MATCH_SETUP_STARTERS_MAX = 7;
@@ -451,15 +452,14 @@ export function TrainerMatchSetupBlock({
             „Aufstellung speichern“: Startelf + Bank. „Kader speichern“: nur Bank (Startelf in der DB unverändert).
           </p>
 
-          <Button
+          <button
             type="button"
-            variant="primary"
-            className="min-h-[52px] w-full rounded-2xl text-base font-bold"
+            className={`min-h-[52px] w-full text-base font-bold ${dsPrimaryCtaClass()}`}
             disabled={savingLive || savingSquad || savingLineup || starterCount !== MATCH_SETUP_STARTERS_MAX}
             onClick={() => void onLiveStart()}
           >
             {savingLive ? 'Speichern…' : 'Zum Liveticker'}
-          </Button>
+          </button>
         </div>
       )}
     </div>

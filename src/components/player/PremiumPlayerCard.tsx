@@ -67,7 +67,7 @@ export const PremiumPlayerCard: React.FC<Props> = ({
 
   const body = (
     <>
-      <div className={premiumPlayerCardGlowClass()} aria-hidden />
+      <div className={premiumPlayerCardGlowClass(tone)} aria-hidden />
       <div className={`relative flex items-center ${DS_CARD_INNER_GAP}`}>
         <div className={`relative shrink-0 ${avatarSize}`}>
           <div className={premiumPlayerAvatarBloomClass()} aria-hidden />

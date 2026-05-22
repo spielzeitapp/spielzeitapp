@@ -16,13 +16,14 @@ const baseClass =
 
 const variantClass: Record<AppButtonVariant, string> = {
   primary:
-    'bg-gradient-to-r from-red-700 via-red-600 to-red-500 text-white border border-red-300/20 shadow-[0_0_18px_rgba(239,68,68,0.28)]',
+    'bg-gradient-to-r from-[#ef3b43] via-[#e02129] to-[#c41a22] text-white border border-[#ff5a5f]/18 shadow-[0_6px_20px_rgba(224,33,41,0.28)]',
   success:
-    'bg-green-600/90 text-white border border-green-300/20 shadow-[0_0_14px_rgba(34,197,94,0.24)]',
-  secondary: 'bg-white/7 text-white/85 border border-white/15 shadow-none',
+    'bg-gradient-to-b from-emerald-600/95 to-emerald-800/90 text-white border border-emerald-500/20 shadow-[0_4px_16px_rgba(25,195,125,0.18)]',
+  secondary:
+    'bg-gradient-to-b from-[#1e1e24] to-[#121214] text-white/88 border border-[#2a2a2e]/70 shadow-[0_2px_10px_rgba(0,0,0,0.3)]',
   danger:
-    'bg-red-700/90 text-white border border-red-300/20 shadow-[0_0_14px_rgba(239,68,68,0.22)]',
-  pending: 'bg-slate-700/75 text-white/90 border border-white/10 shadow-none',
+    'bg-gradient-to-b from-[#d42830]/95 to-[#8f1418]/95 text-white border border-red-500/18 shadow-[0_4px_16px_rgba(224,33,41,0.22)]',
+  pending: 'bg-[#1a1a1f] text-white/75 border border-[#2a2a2e] shadow-none',
 };
 
 const sizeClass: Record<AppButtonSize, string> = {

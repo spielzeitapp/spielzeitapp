@@ -25,6 +25,17 @@ import {
   type TrainingAttendanceStatus,
 } from '../lib/trainingAttendance';
 import { TrainingAttendancePanel } from '../components/events/TrainingAttendancePanel';
+import { PremiumPlayerCard } from '../components/player/PremiumPlayerCard';
+import { PremiumStatusBadge } from '../components/player/PremiumStatusBadge';
+import {
+  dsPrimaryCtaClass,
+  dsRsvpChoiceClass,
+  dsSectionLabelClass,
+  dsStatusChipClass,
+  DS_LIST_GAP,
+  DS_STAT_GRID_GAP,
+  type DsChipTone,
+} from '../lib/premiumDesignSystem';
 import { upsertMatchForSetup } from '../lib/liveMatchService';
 import { fetchMatchById, updateMatchRow } from '../lib/liveMatchService';
 import { buildPauseDelimitedPeriodScoreLine, type MatchEngineEvent } from '../lib/matchEngine';
@@ -2811,14 +2822,13 @@ export const EventDetailPage: React.FC = () => {
             {canTrainerManageEvent ? (
               <div className="flex flex-col gap-3">
                 {event.kind === 'match' && event.match_id ? (
-                  <Button
+                  <button
                     type="button"
-                    variant="primary"
-                    className="mb-1 w-full py-3"
+                    className={`mb-1 w-full ${dsPrimaryCtaClass()}`}
                     onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(event.match_id)}`)}
                   >
                     Match vorbereiten
-                  </Button>
+                  </button>
                 ) : null}
                 {isTraining ? (
                   <TrainingAttendancePanel
@@ -2830,18 +2840,18 @@ export const EventDetailPage: React.FC = () => {
                   />
                 ) : (
                   <>
-                <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="rounded-full px-3 py-1 text-sm font-semibold bg-green-600/20 text-green-400 border border-green-500/40">
+                <div className={`mt-2 flex flex-wrap ${DS_STAT_GRID_GAP}`}>
+                    <span className={dsStatusChipClass('present')}>
                       Zugesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length}
                     </span>
-                    <span className="rounded-full px-3 py-1 text-sm font-semibold bg-red-600/20 text-red-400 border border-red-500/40">
+                    <span className={dsStatusChipClass('absent')}>
                       Abgesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
                     </span>
-                    <span className="rounded-full px-3 py-1 text-sm font-semibold bg-white/10 text-white/70 border border-white/25">
+                    <span className={dsStatusChipClass('open')}>
                       Offen: {Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}
                     </span>
                   </div>
-                <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
+                <div className={`flex flex-col ${DS_LIST_GAP} border-t border-[#2a2a2e]/60 pt-3`}>
                   {(playersLoading || loadingEventAttendance) && (
                     <p className="text-[14px] text-white/70">Lade…</p>
                   )}
@@ -2858,89 +2868,47 @@ export const EventDetailPage: React.FC = () => {
                       const renderGroup = (title: 'OFFEN' | 'DABEI' | 'ABWESEND', group: PlayerItem[]) => {
                         if (group.length === 0) return null;
                         return (
-                          <div className="flex flex-col gap-2">
-                            <p className="mb-1 mt-4 text-[12px] font-semibold uppercase tracking-[0.22em] text-white/60">
-                              {title}
-                            </p>
-                            <ul className="-mx-2 flex flex-col gap-2 sm:mx-0">
+                          <div className={`flex flex-col ${DS_LIST_GAP}`}>
+                            <p className={`mb-0.5 mt-3 ${dsSectionLabelClass()}`}>{title}</p>
+                            <ul className={`flex flex-col ${DS_LIST_GAP}`}>
                               {group.map((player) => {
-                                const status = getAttendanceStatus(player.id);
                                 const bucket = statusBucket(getAttendanceStatus, player.id);
                                 const badge =
                                   bucket === 'yes' ? 'DABEI' : bucket === 'no' ? 'ABWESEND' : 'OFFEN';
+                                const chipTone: DsChipTone =
+                                  bucket === 'yes' ? 'present' : bucket === 'no' ? 'absent' : 'open';
                                 const num = player.jersey_number != null ? `#${player.jersey_number}` : null;
                                 const pos = (player.position ?? '').trim();
                                 const sub = [pos || null, num].filter(Boolean).join(' · ') || '—';
-                                const isOpen = bucket === 'open';
 
                                 return (
                                   <li key={player.id} className="w-full">
-                                    <div className="w-full rounded-2xl border border-white/12 bg-gradient-to-br from-red-950/25 via-black/55 to-black/80 px-3 py-3 shadow-[0_0_18px_rgba(220,38,38,0.12),inset_0_1px_0_rgba(255,255,255,0.04)]">
-                                      <div className="flex items-start gap-3">
-                                        <div className="shrink-0">
-                                          {player.avatar_url ? (
-                                            <img
-                                              src={player.avatar_url}
-                                              alt=""
-                                              className="h-11 w-11 rounded-xl border border-white/12 object-cover bg-black/30"
-                                            />
-                                          ) : (
-                                            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-black/35 text-[12px] font-bold text-white/70">
-                                              {(player.first_name?.trim()?.[0] ?? '—').toUpperCase()}
-                                              {(player.last_name?.trim()?.[0] ?? '').toUpperCase()}
-                                            </div>
-                                          )}
+                                    <PremiumPlayerCard
+                                      player={player}
+                                      subline={sub}
+                                      density="compact"
+                                      trailing={
+                                        <PremiumStatusBadge label={badge} tone={chipTone} />
+                                      }
+                                      footer={
+                                        <div className={`grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleTrainerRsvp(player.id, 'yes')}
+                                            className={dsRsvpChoiceClass('yes', bucket === 'yes')}
+                                          >
+                                            Dabei
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleTrainerRsvp(player.id, 'no')}
+                                            className={dsRsvpChoiceClass('no', bucket === 'no')}
+                                          >
+                                            Abwesend
+                                          </button>
                                         </div>
-
-                                        <div className="min-w-0 flex-1">
-                                          <div className="flex items-start justify-between gap-2">
-                                            <p className="min-w-0 text-[15px] font-bold leading-snug text-white/95 line-clamp-2">
-                                              {player.display_name}
-                                            </p>
-                                            <span
-                                              className={[
-                                                'shrink-0 rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em]',
-                                                bucket === 'yes'
-                                                  ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200'
-                                                  : bucket === 'no'
-                                                    ? 'border-red-400/40 bg-red-500/15 text-red-200'
-                                                    : 'border-white/18 bg-white/10 text-white/70',
-                                              ].join(' ')}
-                                            >
-                                              {badge}
-                                            </span>
-                                          </div>
-                                          <p className="mt-0.5 text-[12px] font-medium text-white/70">{sub}</p>
-                                        </div>
-                                      </div>
-
-                                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                                            <AppButton
-                                              type="button"
-                                              size="sm"
-                                              variant="success"
-                                              onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                              className={[
-                                                'h-10 px-3 text-[13px]',
-                                                isOpen ? 'shadow-[0_0_18px_rgba(16,185,129,0.18)]' : 'opacity-80',
-                                              ].join(' ')}
-                                            >
-                                              Dabei
-                                            </AppButton>
-                                            <AppButton
-                                              type="button"
-                                              size="sm"
-                                              variant="danger"
-                                              onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                              className={[
-                                                'h-10 px-3 text-[13px]',
-                                                isOpen ? 'shadow-[0_0_18px_rgba(239,68,68,0.16)]' : 'opacity-80',
-                                              ].join(' ')}
-                                            >
-                                              Abwesend
-                                            </AppButton>
-                                      </div>
-                                    </div>
+                                      }
+                                    />
                                   </li>
                                 );
                               })}
@@ -2994,31 +2962,19 @@ export const EventDetailPage: React.FC = () => {
                         {!trainingCancellationAllowed && rsvpStatus !== 'no' ? (
                           <p className="mt-1 text-[12px] text-amber-200/90">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
                         ) : null}
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          <AppButton
+                        <div className={`mt-3 grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
+                          <button
                             type="button"
-                            variant="success"
-                            size="sm"
-                            className={`h-11 w-full gap-2 ${
-                              rsvpStatus !== 'no'
-                                ? 'border border-emerald-400/45 shadow-[0_0_16px_rgba(16,185,129,0.32)]'
-                                : 'border border-white/10'
-                            }`}
+                            className={dsRsvpChoiceClass('yes', rsvpStatus !== 'no')}
                             onClick={() => void handleRsvp('yes')}
                           >
                             <ThumbsUp className="h-4 w-4" aria-hidden />
                             Dabei
-                          </AppButton>
-                          <AppButton
+                          </button>
+                          <button
                             type="button"
-                            variant="danger"
-                            size="sm"
                             disabled={!trainingCancellationAllowed && rsvpStatus !== 'no'}
-                            className={`h-11 w-full gap-2 ${
-                              rsvpStatus === 'no'
-                                ? 'border border-red-400/45 shadow-[0_0_16px_rgba(239,68,68,0.28)]'
-                                : 'border border-white/10'
-                            } ${!trainingCancellationAllowed && rsvpStatus !== 'no' ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            className={dsRsvpChoiceClass('no', rsvpStatus === 'no')}
                             onClick={() => {
                               if (!trainingCancellationAllowed && rsvpStatus !== 'no') return;
                               void handleRsvp('no');
@@ -3026,7 +2982,7 @@ export const EventDetailPage: React.FC = () => {
                           >
                             <ThumbsDown className="h-4 w-4" aria-hidden />
                             Absagen
-                          </AppButton>
+                          </button>
                         </div>
                       </>
                     ) : (
@@ -3034,35 +2990,23 @@ export const EventDetailPage: React.FC = () => {
                         <p className="text-[14px] text-white/90">
                           Status: {rsvpStatus === 'yes' ? 'Zugesagt' : rsvpStatus === 'no' ? 'Abgesagt' : 'Offen'}
                         </p>
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          <AppButton
+                        <div className={`mt-3 grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
+                          <button
                             type="button"
-                            variant="success"
-                            size="sm"
-                            className={`h-11 w-full gap-2 ${
-                              rsvpStatus === 'yes'
-                                ? 'border border-emerald-400/45 shadow-[0_0_16px_rgba(16,185,129,0.32)]'
-                                : 'border border-white/10'
-                            }`}
+                            className={dsRsvpChoiceClass('yes', rsvpStatus === 'yes')}
                             onClick={() => void handleRsvp('yes')}
                           >
                             <ThumbsUp className="h-4 w-4" aria-hidden />
                             Zusage
-                          </AppButton>
-                          <AppButton
+                          </button>
+                          <button
                             type="button"
-                            variant="danger"
-                            size="sm"
-                            className={`h-11 w-full gap-2 ${
-                              rsvpStatus === 'no'
-                                ? 'border border-red-400/45 shadow-[0_0_16px_rgba(239,68,68,0.28)]'
-                                : 'border border-white/10'
-                            }`}
+                            className={dsRsvpChoiceClass('no', rsvpStatus === 'no')}
                             onClick={() => void handleRsvp('no')}
                           >
                             <ThumbsDown className="h-4 w-4" aria-hidden />
                             Absage
-                          </AppButton>
+                          </button>
                         </div>
                       </>
                     )}
