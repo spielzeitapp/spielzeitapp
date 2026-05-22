@@ -758,8 +758,8 @@ function KickoffSquadJerseyBadge({
   const jerseyClass = matchday ? (compact ? DS_JERSEY_COMPACT : DS_JERSEY_STARTER) : compact ? '!h-[2.65rem] !w-[2.05rem]' : '!h-[2.85rem] !w-[2.2rem]';
   const jerseyPx = matchday
     ? compact
-      ? { h: '2.65rem', w: '2.08rem' }
-      : { h: '2.8rem', w: '2.2rem' }
+      ? { h: '2.92rem', w: '2.29rem' }
+      : { h: '3.08rem', w: '2.42rem' }
     : compact
       ? { h: '2.65rem', w: '2.05rem' }
       : { h: '2.85rem', w: '2.2rem' };
@@ -768,7 +768,7 @@ function KickoffSquadJerseyBadge({
     <div
       className={[
         'flex shrink-0 items-center justify-center overflow-visible',
-        matchday ? 'opacity-[0.84] drop-shadow-[0_2px_10px_rgba(0,0,0,0.35),0_0_12px_rgba(224,33,41,0.08)]' : '',
+        matchday ? 'opacity-90 drop-shadow-[0_2px_12px_rgba(0,0,0,0.38),0_0_16px_rgba(255,40,40,0.1)]' : '',
       ].join(' ')}
       style={{ width: jerseyPx.w, height: jerseyPx.h, minWidth: jerseyPx.w, minHeight: jerseyPx.h }}
       aria-hidden

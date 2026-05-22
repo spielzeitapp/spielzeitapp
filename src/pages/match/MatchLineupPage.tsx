@@ -423,7 +423,7 @@ export const MatchLineupPage: React.FC = () => {
         </header>
 
         <div
-          className="mb-2 mt-2 flex h-10 w-full shrink-0 overflow-hidden rounded-[12px] border border-transparent bg-[#121214] p-px shadow-[0_4px_16px_rgba(0,0,0,0.35)]"
+          className="mb-2 mt-2 flex h-10 w-full shrink-0 overflow-hidden rounded-[12px] border border-transparent bg-[rgba(18,18,22,0.88)] p-px shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_18px_rgba(255,40,40,0.05)]"
           role="tablist"
           aria-label="Aufstellungsansicht"
         >
@@ -596,7 +596,7 @@ export const MatchLineupPage: React.FC = () => {
                                 variant={isGk ? 'goalkeeper' : 'field'}
                                 size="compact"
                                 pitchStyleBack
-                                className={`${DS_JERSEY_STARTER} opacity-[0.84]`}
+                                className={`${DS_JERSEY_STARTER} opacity-90`}
                               />
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden py-0.5">
@@ -649,7 +649,7 @@ export const MatchLineupPage: React.FC = () => {
                                 variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
                                 size="compact"
                                 pitchStyleBack
-                                className={`${DS_JERSEY_STARTER} opacity-[0.84]`}
+                                className={`${DS_JERSEY_STARTER} opacity-90`}
                               />
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden py-0.5">

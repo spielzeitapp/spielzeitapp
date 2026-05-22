@@ -280,7 +280,7 @@ export const MatchPreparationPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#0a0a0a] text-white">
+    <div className="min-h-[100dvh] bg-[#090909] text-white">
       <header className="sticky top-0 z-20 border-b border-white/10 bg-black/90 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
           <div>

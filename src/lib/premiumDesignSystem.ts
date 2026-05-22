@@ -1,6 +1,9 @@
 /**
- * SpielzeitApp Premium Design System — Referenzbild + Visual Balance Pass.
+ * SpielzeitApp — Cinematic Stadium UI (Welcome / Zielbild).
+ * Tiefe via Glow & Ambient Light — keine weißen Outlines.
  */
+
+export const DS_APP_BG = '#090909';
 
 export const DS_CARD_RADIUS = 'rounded-[22px]';
 export const DS_CARD_PAD = 'px-2.5 py-2';
@@ -9,17 +12,17 @@ export const DS_LIST_GAP = 'gap-1.5';
 export const DS_SECTION_GAP = 'gap-3';
 export const DS_STAT_GRID_GAP = 'gap-1.5';
 
-/** Leicht über App-Background (#0a0a0b) — cinematic lift. */
+/** cardSurface — beleuchtete Matchday-Card im Stadion. */
 export const DS_CARD_BG =
-  'bg-gradient-to-br from-[#1a1a1f] via-[#141418] to-[#0a0a0c]';
+  'bg-[linear-gradient(180deg,rgba(34,12,16,0.96)_0%,rgba(12,12,14,0.98)_100%)]';
 export const DS_CARD_BG_MATCHDAY =
-  'bg-gradient-to-br from-[#1e1a1f] via-[#161214] to-[#0a080a]';
+  'bg-[linear-gradient(180deg,rgba(42,14,18,0.97)_0%,rgba(14,10,12,0.98)_100%)]';
 export const DS_CARD_BORDER = 'border border-transparent';
 
 const CARD_SHADOW =
-  'shadow-[0_8px_30px_rgba(0,0,0,0.52),0_0_28px_rgba(224,33,41,0.07),inset_0_1px_0_rgba(255,255,255,0.025)]';
+  'shadow-[0_0_40px_rgba(255,40,40,0.12),0_8px_28px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.03)]';
 const CARD_SHADOW_ACTIVE =
-  'shadow-[0_10px_36px_rgba(0,0,0,0.58),0_0_36px_rgba(224,33,41,0.12),inset_0_1px_0_rgba(255,255,255,0.035)]';
+  'shadow-[0_0_44px_rgba(255,40,40,0.16),0_10px_32px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.03)]';
 
 export function dsCardShellClass(opts?: {
   active?: boolean;
@@ -35,7 +38,7 @@ export function dsCardShellClass(opts?: {
     opts?.active ? CARD_SHADOW_ACTIVE : CARD_SHADOW,
     DS_CARD_PAD,
     opts?.interactive
-      ? 'cursor-pointer transition-[transform,box-shadow] duration-200 active:scale-[0.99] hover:shadow-[0_10px_34px_rgba(0,0,0,0.55),0_0_32px_rgba(224,33,41,0.09)]'
+      ? 'cursor-pointer transition-[transform,box-shadow] duration-200 active:scale-[0.99] hover:shadow-[0_0_44px_rgba(255,40,40,0.14),0_10px_32px_rgba(0,0,0,0.46),inset_0_1px_0_rgba(255,255,255,0.035)]'
       : '',
     opts?.className ?? '',
   ]
@@ -45,19 +48,19 @@ export function dsCardShellClass(opts?: {
 
 export function dsCardAmbientGlowClass(matchday?: boolean): string {
   if (matchday) {
-    return 'pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_95%_75%_at_8%_0%,rgba(224,33,41,0.12),transparent_58%),radial-gradient(ellipse_55%_45%_at_100%_90%,rgba(122,15,20,0.07),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.03)_0%,transparent_28%)]';
+    return 'pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_100%_80%_at_10%_0%,rgba(255,40,40,0.14),transparent_55%),linear-gradient(180deg,rgba(255,60,60,0.04)_0%,transparent_32%)]';
   }
-  return 'pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_92%_72%_at_6%_0%,rgba(224,33,41,0.09),transparent_60%),radial-gradient(ellipse_50%_40%_at_100%_100%,rgba(122,15,20,0.05),transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.02)_0%,transparent_24%)]';
+  return 'pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_95%_70%_at_8%_0%,rgba(255,40,40,0.1),transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.03)_0%,transparent_26%)]';
 }
 
 export const DS_AVATAR_SIZE = 'h-[3.75rem] w-[3.75rem]';
 
 export function dsAvatarRingClass(): string {
-  return 'rounded-full border border-[#3a2024]/90 object-cover bg-[#121214] shadow-[0_0_20px_rgba(224,33,41,0.14),0_4px_14px_rgba(0,0,0,0.38)]';
+  return 'rounded-full border border-[rgba(80,24,28,0.55)] object-cover bg-[rgba(18,10,12,0.95)] shadow-[0_0_22px_rgba(255,40,40,0.14),0_4px_14px_rgba(0,0,0,0.35)]';
 }
 
 export function dsAvatarBloomClass(): string {
-  return 'pointer-events-none absolute -inset-1 rounded-full bg-[radial-gradient(circle,rgba(224,33,41,0.2)_0%,rgba(122,15,20,0.07)_48%,transparent_72%)] blur-[7px]';
+  return 'pointer-events-none absolute -inset-1 rounded-full bg-[radial-gradient(circle,rgba(255,40,40,0.22)_0%,rgba(120,18,28,0.08)_45%,transparent_72%)] blur-[8px]';
 }
 
 export function dsPlayerNameClass(): string {
@@ -69,22 +72,22 @@ export function dsPlayerSublineClass(): string {
 }
 
 export function dsSectionLabelClass(): string {
-  return 'text-[10px] font-semibold uppercase tracking-[0.14em] text-white/48';
+  return 'text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50';
 }
 
 export function dsJerseyNumberClass(): string {
-  return 'text-[11px] font-medium tabular-nums text-white/35';
+  return 'text-[11px] font-medium tabular-nums text-white/40';
 }
 
-/** Trikot ~12 % größer, etwas präsenter — Spieler bleibt Hero. */
+/** Trikot +10–12 %, 90 % Opacity, Stadium-Glow. */
 export function dsJerseyWrapClass(): string {
-  return 'pointer-events-none shrink-0 opacity-[0.84] drop-shadow-[0_2px_10px_rgba(0,0,0,0.35),0_0_12px_rgba(224,33,41,0.08)]';
+  return 'pointer-events-none shrink-0 opacity-90 drop-shadow-[0_2px_12px_rgba(0,0,0,0.38),0_0_16px_rgba(255,40,40,0.1)]';
 }
 
-export const DS_JERSEY_COMPACT = '!h-[2.65rem] !w-[2.08rem]';
-export const DS_JERSEY_STARTER = '!h-[2.8rem] !w-[2.2rem]';
+export const DS_JERSEY_COMPACT = '!h-[2.92rem] !w-[2.29rem]';
+export const DS_JERSEY_STARTER = '!h-[3.08rem] !w-[2.42rem]';
 
-export const DS_CARD_FOOTER_DIVIDER = 'border-t border-[#2a2a2e]/70';
+export const DS_CARD_FOOTER_DIVIDER = 'border-t border-[rgba(80,24,28,0.35)]';
 
 export type DsChipTone =
   | 'present'
@@ -95,75 +98,80 @@ export type DsChipTone =
   | 'neutral'
   | 'selected';
 
+const CHIP_BASE =
+  'inline-flex max-w-[9rem] shrink-0 items-center justify-center rounded-full border border-transparent';
+
 const CHIP_TONE: Record<DsChipTone, string> = {
-  present: 'border-emerald-800/55 bg-emerald-900/42 text-emerald-100/92',
-  absent: 'border-red-900/55 bg-red-900/38 text-red-100/88',
-  injured: 'border-amber-900/55 bg-amber-900/38 text-amber-50/90',
-  external: 'border-violet-900/55 bg-violet-900/40 text-violet-100/88',
-  open: 'border-[#3a3a42] bg-[#1a1a1f] text-white/58',
-  neutral: 'border-[#323238] bg-[#16161a] text-white/48',
-  selected: 'border-red-900/55 bg-red-900/38 text-red-50/92',
+  present:
+    'h-[22px] px-2.5 text-[9px] font-bold uppercase tracking-[0.08em] leading-none bg-[rgba(20,110,70,0.30)] text-[#8DFFB7] shadow-[0_0_18px_rgba(40,255,120,0.10)]',
+  external:
+    'h-[22px] px-2.5 text-[9px] font-bold uppercase tracking-[0.08em] leading-none bg-[rgba(16,70,48,0.24)] text-[#63D98D]',
+  absent:
+    'h-[22px] px-2.5 text-[9px] font-bold uppercase tracking-[0.08em] leading-none bg-[rgba(120,18,28,0.32)] text-[#FF8D98]',
+  injured:
+    'h-[22px] px-2.5 text-[9px] font-bold uppercase tracking-[0.08em] leading-none bg-[rgba(120,60,10,0.30)] text-[#FFB15A]',
+  open:
+    'h-[22px] px-2.5 text-[9px] font-bold uppercase tracking-[0.08em] leading-none bg-[rgba(18,18,22,0.75)] text-[#8E8E93]',
+  neutral:
+    'h-[22px] px-2.5 text-[9px] font-bold uppercase tracking-[0.08em] leading-none bg-[rgba(18,18,22,0.65)] text-white/45',
+  selected:
+    'h-[22px] px-2.5 text-[9px] font-bold uppercase tracking-[0.08em] leading-none bg-[rgba(120,18,28,0.36)] text-[#FF8D98] shadow-[0_0_14px_rgba(255,40,40,0.08)]',
 };
 
 export function dsStatusChipClass(tone: DsChipTone = 'neutral'): string {
-  return [
-    'inline-flex max-w-[9rem] shrink-0 items-center justify-center rounded-full border',
-    'h-[22px] px-2.5 text-[9px] font-bold uppercase tracking-[0.08em] leading-none',
-    CHIP_TONE[tone],
-  ].join(' ');
+  return [CHIP_BASE, CHIP_TONE[tone]].join(' ');
 }
 
 export function dsStatChipBoxClass(tone: DsChipTone): string {
-  return [
-    DS_CARD_RADIUS,
-    'border px-2.5 py-1.5 text-center shadow-[0_4px_16px_rgba(0,0,0,0.35)]',
-    CHIP_TONE[tone],
-  ].join(' ');
+  return [DS_CARD_RADIUS, 'border border-transparent px-2.5 py-1.5 text-center', CARD_SHADOW, CHIP_TONE[tone]].join(
+    ' ',
+  );
 }
+
+const ACTION_BASE =
+  'h-8 min-w-0 rounded-[14px] border border-transparent px-2 text-[10px] font-semibold transition-[background,box-shadow] duration-150 disabled:cursor-default disabled:opacity-50 sm:text-[11px]';
 
 export function dsActionButtonClass(
   tone: 'absent' | 'injured' | 'external' | 'present',
   active?: boolean,
 ): string {
-  const base =
-    'h-8 min-w-0 rounded-[14px] border px-2 text-[10px] font-semibold transition-[background,box-shadow] duration-150 disabled:cursor-default disabled:opacity-50 sm:text-[11px]';
   const tones: Record<typeof tone, { idle: string; on: string }> = {
-    absent: {
-      idle: 'border-red-900/45 bg-red-900/32 text-red-100/80 hover:bg-red-800/42 shadow-[0_2px_10px_rgba(0,0,0,0.3)]',
-      on: 'border-red-800/50 bg-gradient-to-b from-red-800/55 to-red-950/50 text-red-50/95 shadow-[0_0_14px_rgba(224,33,41,0.12)]',
-    },
-    injured: {
-      idle: 'border-amber-900/45 bg-amber-900/30 text-amber-50/80 hover:bg-amber-900/42',
-      on: 'border-amber-800/50 bg-amber-900/48 text-amber-50/92 shadow-[0_0_12px_rgba(255,138,0,0.1)]',
+    present: {
+      idle: 'bg-[rgba(20,110,70,0.22)] text-[#8DFFB7] hover:bg-[rgba(20,110,70,0.30)]',
+      on: 'bg-[rgba(20,110,70,0.30)] text-[#8DFFB7] shadow-[0_0_18px_rgba(40,255,120,0.10)]',
     },
     external: {
-      idle: 'border-violet-900/45 bg-violet-900/30 text-violet-100/80 hover:bg-violet-900/42',
-      on: 'border-violet-800/50 bg-violet-900/48 text-violet-50/92',
+      idle: 'bg-[rgba(16,70,48,0.18)] text-[#63D98D] hover:bg-[rgba(16,70,48,0.24)]',
+      on: 'bg-[rgba(16,70,48,0.24)] text-[#63D98D]',
     },
-    present: {
-      idle: 'border-emerald-900/45 bg-emerald-900/30 text-emerald-50/80 hover:bg-emerald-900/42',
-      on: 'border-emerald-800/50 bg-emerald-900/48 text-emerald-50/95 shadow-[0_0_12px_rgba(25,195,125,0.1)]',
+    absent: {
+      idle: 'bg-[rgba(120,18,28,0.22)] text-[#FF8D98] hover:bg-[rgba(120,18,28,0.30)]',
+      on: 'bg-[rgba(120,18,28,0.32)] text-[#FF8D98] shadow-[0_0_14px_rgba(255,40,40,0.08)]',
+    },
+    injured: {
+      idle: 'bg-[rgba(120,60,10,0.22)] text-[#FFB15A] hover:bg-[rgba(120,60,10,0.28)]',
+      on: 'bg-[rgba(120,60,10,0.30)] text-[#FFB15A]',
     },
   };
-  return [base, active ? tones[tone].on : tones[tone].idle].join(' ');
+  return [ACTION_BASE, active ? tones[tone].on : tones[tone].idle].join(' ');
 }
 
 export function dsRsvpChoiceClass(kind: 'yes' | 'no', active: boolean): string {
   const base =
-    'inline-flex h-11 w-full items-center justify-center gap-2 rounded-[16px] border font-semibold text-sm transition-[background,box-shadow] duration-150 active:scale-[0.98] disabled:opacity-50';
+    'inline-flex h-11 w-full items-center justify-center gap-2 rounded-[16px] border border-transparent font-semibold text-sm transition-[background,box-shadow,transform] duration-150 active:scale-[0.98] disabled:opacity-50';
   if (kind === 'yes') {
     return [
       base,
       active
-        ? 'border-emerald-700/45 bg-gradient-to-b from-emerald-700/55 to-emerald-950/50 text-emerald-50 shadow-[0_4px_18px_rgba(25,195,125,0.18)]'
-        : 'border-[#2a2a2e] bg-gradient-to-b from-[#1a1a1f] to-[#101012] text-white/75 hover:from-[#1e1e24] hover:text-white/90',
+        ? 'bg-[rgba(20,110,70,0.30)] text-[#8DFFB7] shadow-[0_0_18px_rgba(40,255,120,0.10)]'
+        : 'bg-[rgba(18,18,22,0.88)] text-[#F2F2F2] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_18px_rgba(255,40,40,0.05)] hover:bg-[rgba(24,14,16,0.92)]',
     ].join(' ');
   }
   return [
     base,
     active
-      ? 'border-red-800/45 bg-gradient-to-b from-[#c41f28]/70 to-red-950/55 text-red-50 shadow-[0_4px_18px_rgba(224,33,41,0.2)]'
-      : 'border-[#2a2a2e] bg-gradient-to-b from-[#1a1a1f] to-[#101012] text-white/75 hover:from-[#1e1e24] hover:text-white/90',
+      ? 'bg-[rgba(120,18,28,0.32)] text-[#FF8D98] shadow-[0_0_18px_rgba(255,40,40,0.12)]'
+      : 'bg-[rgba(18,18,22,0.88)] text-[#F2F2F2] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_18px_rgba(255,40,40,0.05)] hover:bg-[rgba(24,14,16,0.92)]',
   ].join(' ');
 }
 
@@ -183,8 +191,8 @@ export function dsLineupRowClass(opts: { role: 'starter' | 'bench'; selected?: b
   if (opts.selected) {
     return [
       base,
-      'bg-gradient-to-r from-emerald-950/28 via-[#141418] to-[#0a0a0c]',
-      'shadow-[0_8px_28px_rgba(0,0,0,0.5),0_0_24px_rgba(25,195,125,0.09),inset_0_1px_0_rgba(255,255,255,0.02)]',
+      'bg-[linear-gradient(180deg,rgba(20,90,55,0.28)_0%,rgba(12,12,14,0.98)_100%)]',
+      'shadow-[0_0_32px_rgba(40,255,120,0.08),0_8px_28px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.03)]',
     ].join(' ');
   }
   return [base, DS_CARD_BG_MATCHDAY, CARD_SHADOW].join(' ');
@@ -192,9 +200,9 @@ export function dsLineupRowClass(opts: { role: 'starter' | 'bench'; selected?: b
 
 export function dsLineupPositionPillClass(role: 'starter' | 'bench'): string {
   if (role === 'starter') {
-    return 'inline-flex h-[20px] items-center rounded-md border border-red-900/55 bg-red-900/42 px-1.5 text-[9px] font-bold uppercase tracking-wide text-red-100/85';
+    return 'inline-flex h-[20px] items-center rounded-md border border-transparent bg-[rgba(120,18,28,0.28)] px-1.5 text-[9px] font-bold uppercase tracking-wide text-[#FF8D98]';
   }
-  return 'inline-flex h-[20px] items-center rounded-md border border-[#323238] bg-[#1a1a1f] px-1.5 text-[9px] font-bold uppercase tracking-wide text-white/50';
+  return 'inline-flex h-[20px] items-center rounded-md border border-transparent bg-[rgba(18,18,22,0.75)] px-1.5 text-[9px] font-bold uppercase tracking-wide text-[#8E8E93]';
 }
 
 export function dsBenchTileClass(selected?: boolean): string {
@@ -203,17 +211,20 @@ export function dsBenchTileClass(selected?: boolean): string {
     'rounded-[18px] border border-transparent px-1.5 py-1.5 transition-[box-shadow,transform] duration-200 active:scale-[0.99] sm:w-[6.4rem]',
     DS_CARD_BG_MATCHDAY,
     selected
-      ? 'shadow-[0_8px_26px_rgba(0,0,0,0.5),0_0_22px_rgba(25,195,125,0.1)]'
+      ? 'shadow-[0_0_32px_rgba(40,255,120,0.08),0_8px_26px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.03)]'
       : CARD_SHADOW,
   ].join(' ');
 }
 
+const TAB_INACTIVE =
+  'border border-transparent bg-[rgba(18,18,22,0.88)] text-white/48 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_18px_rgba(255,40,40,0.05)] hover:bg-[rgba(24,14,16,0.9)] hover:text-white/68';
+
 export function dsFormationTabClass(active: boolean): string {
   return [
-    'h-8 shrink-0 rounded-[14px] border px-2.5 text-[11px] font-semibold leading-none transition-[background,box-shadow] duration-150',
+    'h-8 shrink-0 rounded-[14px] px-2.5 text-[11px] font-semibold leading-none transition-[background,box-shadow] duration-150',
     active
-      ? 'border-red-800/40 bg-gradient-to-r from-[#d42830]/90 to-[#a81820]/95 text-white shadow-[0_4px_14px_rgba(224,33,41,0.22)]'
-      : 'border-transparent bg-[#1a1a1f] text-white/48 hover:bg-[#222228] hover:text-white/65',
+      ? 'border border-transparent bg-[linear-gradient(135deg,#FF4747_0%,#E31D2F_100%)] text-white shadow-[0_0_22px_rgba(255,40,40,0.2)]'
+      : TAB_INACTIVE,
   ].join(' ');
 }
 
@@ -221,34 +232,35 @@ export function dsSegmentTabClass(active: boolean): string {
   return [
     'flex-1 rounded-[10px] px-2 text-center text-sm font-semibold transition-[background,box-shadow,color] duration-150',
     active
-      ? 'bg-gradient-to-r from-[#e02129] to-[#b81820] text-white shadow-[0_4px_16px_rgba(224,33,41,0.28)]'
-      : 'bg-transparent text-white/42 hover:bg-white/[0.04] hover:text-white/62',
+      ? 'border border-transparent bg-[linear-gradient(135deg,#FF4747_0%,#E31D2F_100%)] text-white shadow-[0_0_22px_rgba(255,40,40,0.2)]'
+      : TAB_INACTIVE,
   ].join(' ');
 }
 
 export function dsStickyCtaBarClass(): string {
-  return 'fixed inset-x-0 z-[70] border-t border-[#2a2a2e]/50 bg-[#0a0a0b]/82 px-4 py-2.5 shadow-[0_-10px_36px_rgba(0,0,0,0.42)] backdrop-blur-xl';
+  return 'fixed inset-x-0 z-[70] border-t border-[rgba(80,24,28,0.4)] bg-[rgba(9,9,9,0.88)] px-4 py-2.5 shadow-[0_-10px_36px_rgba(0,0,0,0.4)] backdrop-blur-xl';
 }
 
 export function dsPrimaryCtaClass(): string {
   return [
-    'rounded-[18px] border border-[#ff5a5f]/20',
-    'bg-gradient-to-r from-[#ef3b43] via-[#e02129] to-[#c41a22]',
+    'rounded-[18px] border border-transparent',
+    'bg-[linear-gradient(135deg,#FF4747_0%,#E31D2F_100%)]',
     'px-4 py-2.5 text-sm font-semibold text-white',
-    'shadow-[0_8px_26px_rgba(224,33,41,0.32),0_0_18px_rgba(224,33,41,0.14)]',
-    'transition-[background,box-shadow,transform] duration-150',
-    'hover:from-[#f24a52] hover:via-[#e82a32] hover:shadow-[0_10px_28px_rgba(224,33,41,0.38)]',
+    'shadow-[0_0_28px_rgba(255,40,40,0.22)]',
+    'transition-[box-shadow,transform] duration-150',
+    'hover:shadow-[0_0_32px_rgba(255,40,40,0.28)]',
     'active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45',
   ].join(' ');
 }
 
 export function dsSecondaryCtaClass(): string {
   return [
-    'rounded-[18px] border border-[#2a2a2e]/80',
-    'bg-gradient-to-b from-[#1e1e24] to-[#121214]',
-    'px-4 py-2.5 text-sm font-semibold text-white/88',
-    'shadow-[0_4px_18px_rgba(0,0,0,0.35)]',
-    'transition-[background,box-shadow] duration-150 hover:from-[#24242c] hover:text-white',
+    'rounded-[18px] border border-transparent',
+    'bg-[rgba(18,18,22,0.88)] text-[#F2F2F2]',
+    'px-4 py-2.5 text-sm font-semibold',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_18px_rgba(255,40,40,0.05)]',
+    'transition-[background,box-shadow] duration-150',
+    'hover:bg-[rgba(24,14,16,0.92)]',
     'active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45',
   ].join(' ');
 }
