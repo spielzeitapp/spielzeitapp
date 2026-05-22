@@ -711,27 +711,26 @@ const LINEUP_HUB_TAB_BTN =
 const LINEUP_TRAINER_ACTION_BTN =
   'inline-flex h-[38px] shrink-0 items-center justify-center whitespace-nowrap rounded-2xl border px-3 text-[11px] font-semibold uppercase tracking-[0.03em] transition-all duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 sm:text-xs';
 
-/** Live-Pitch: Badge direkt unter Trikot, horizontal aus Formation-Layout (nur UI). */
+/** Live-Pitch: Badge unter Trikot; nutzt formationsspezifische labelDx/labelDy (nur UI). */
 function liveLineupPitchNameOffset(
   slot: FieldSlotId,
   formationId: U11FormationId,
 ): { dx: number; dy: number } {
   const row = (U11_FORMATIONS[formationId] ?? []).find((s) => s.slot === slot);
   const dx = row?.labelDx ?? 0;
+  const baseDy = row?.labelDy ?? 0;
   const y = row?.y ?? 50;
 
-  let dy = 0;
+  let addDy = 2;
   if (slot === 'GK') {
-    dy = 1;
-  } else if (y <= 22) {
-    dy = 1;
-  } else if (y >= 64) {
-    dy = 2;
-  } else {
-    dy = 3;
+    addDy = 1;
+  } else if (y <= 20) {
+    addDy = 1;
+  } else if (y >= 66) {
+    addDy = 3;
   }
 
-  return { dx, dy };
+  return { dx, dy: baseDy + addDy };
 }
 
 /** Startelf-Liste: Scroll-Puffer über BottomNav */
@@ -4771,9 +4770,9 @@ export const LiveMatchScreen: React.FC = () => {
                     disabled={formationSaving}
                     onClick={() => requestFormationChange(id)}
                     className={[
-                      'grid w-full min-h-[72px] shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition-all duration-200 active:scale-[0.99] disabled:opacity-45 sm:min-h-[74px]',
+                      'grid w-full min-h-[70px] shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 rounded-xl border px-2.5 py-[7px] text-left transition-all duration-200 active:scale-[0.99] disabled:opacity-45 sm:min-h-[72px]',
                       active
-                        ? 'border-emerald-400/40 bg-gradient-to-r from-emerald-950/45 via-zinc-950/95 to-black shadow-[0_0_14px_rgba(16,185,129,0.16),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-emerald-500/30'
+                        ? 'border-emerald-400/35 bg-gradient-to-r from-emerald-950/45 via-zinc-950/95 to-black shadow-[0_0_10px_rgba(16,185,129,0.12),inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-emerald-500/25'
                         : 'border-white/10 bg-gradient-to-r from-red-950/20 via-zinc-950/90 to-black hover:border-white/16 hover:bg-zinc-900/75',
                     ].join(' ')}
                   >
@@ -4790,12 +4789,12 @@ export const LiveMatchScreen: React.FC = () => {
                       {active ? (
                         <>
                           <span
-                            className="mb-1 flex h-7 w-7 items-center justify-center rounded-full border border-emerald-400/60 bg-emerald-500/15 shadow-[0_0_10px_rgba(16,185,129,0.35)]"
+                            className="mb-0.5 flex h-6 w-6 items-center justify-center rounded-full border border-emerald-400/50 bg-emerald-500/12 shadow-[0_0_8px_rgba(16,185,129,0.22)]"
                             aria-hidden
                           >
-                            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                           </span>
-                          <span className="text-[8px] font-extrabold uppercase tracking-[0.12em] text-emerald-300/95">
+                          <span className="text-[8px] font-extrabold uppercase tracking-[0.1em] text-emerald-300/90">
                             Aktiv
                           </span>
                         </>
@@ -5794,8 +5793,8 @@ export const LiveMatchScreen: React.FC = () => {
         </div>
       ) : null}
       {formationChangeToast ? (
-        <div className="pointer-events-none fixed bottom-[calc(110px+env(safe-area-inset-bottom,0px))] left-1/2 z-[10001] w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2">
-          <div className="rounded-xl border border-emerald-400/45 bg-black/90 px-4 py-2.5 text-center text-sm font-semibold text-emerald-50 shadow-[0_0_24px_rgba(16,185,129,0.28)] backdrop-blur-md">
+        <div className="pointer-events-none fixed bottom-[calc(96px+env(safe-area-inset-bottom,0px))] left-1/2 z-[10001] w-[calc(100%-2rem)] max-w-[17rem] -translate-x-1/2">
+          <div className="rounded-lg border border-emerald-400/25 bg-black/78 px-3 py-2 text-center text-[14px] font-medium text-emerald-50/95 shadow-[0_4px_16px_rgba(0,0,0,0.45)] backdrop-blur-sm">
             ✓ Formation geändert
           </div>
         </div>

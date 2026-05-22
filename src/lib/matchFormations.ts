@@ -25,45 +25,45 @@ export type FormationSlotLayout = {
 /**
  * Koordinaten in Prozent (0–100): x von links, y von oben.
  * Zuordnung zu FieldSlotId wie in den Kommentaren — nur Darstellung, keine DB-Änderung.
+ * labelDx/labelDy: Namensbadge-Offsets (px), Außen nach innen, TW leicht angehoben.
  */
-/** Gleichmäßige Reihen: Sturm ~21, MF ~45, Abwehr ~67, TW ~83 (Abstand zum Rand) */
 export const U11_FORMATIONS: Record<U11FormationId, FormationSlotLayout[]> = {
   '1-2-2-2': [
-    { slot: 'GK', label: 'GK', x: 50, y: 90, labelDy: 7 },
-    { slot: 'LB', label: 'LV', x: 30, y: 68, labelDx: -4, labelDy: 2 },
-    { slot: 'RB', label: 'RV', x: 70, y: 68, labelDx: 4, labelDy: 2 },
-    { slot: 'LW', label: 'LM', x: 24, y: 42, labelDx: -4, labelDy: 2 },
-    { slot: 'RW', label: 'RM', x: 76, y: 42, labelDx: 4, labelDy: 2 },
-    { slot: 'CM', label: 'LS', x: 32, y: 18, labelDx: -4, labelDy: 2 },
-    { slot: 'ST', label: 'RS', x: 68, y: 18, labelDx: 4, labelDy: 2 },
+    { slot: 'GK', label: 'GK', x: 50, y: 86, labelDy: -5 },
+    { slot: 'LB', label: 'LV', x: 26, y: 71, labelDx: 5, labelDy: 3 },
+    { slot: 'RB', label: 'RV', x: 74, y: 71, labelDx: -5, labelDy: 3 },
+    { slot: 'LW', label: 'LM', x: 19, y: 40, labelDx: 6, labelDy: 2 },
+    { slot: 'RW', label: 'RM', x: 81, y: 40, labelDx: -6, labelDy: 2 },
+    { slot: 'CM', label: 'LS', x: 33, y: 17, labelDx: -3, labelDy: 1 },
+    { slot: 'ST', label: 'RS', x: 67, y: 17, labelDx: 3, labelDy: 1 },
   ],
   '1-2-3-1': [
-    { slot: 'GK', label: 'GK', x: 50, y: 90, labelDy: 7 },
-    { slot: 'LB', label: 'LV', x: 28, y: 68, labelDx: -4, labelDy: 2 },
-    { slot: 'RB', label: 'RV', x: 72, y: 68, labelDx: 4, labelDy: 2 },
-    { slot: 'LW', label: 'LA', x: 20, y: 45, labelDx: -5, labelDy: 2 },
-    { slot: 'CM', label: 'ZM', x: 50, y: 40, labelDy: 2 },
-    { slot: 'RW', label: 'RA', x: 80, y: 45, labelDx: 5, labelDy: 2 },
-    { slot: 'ST', label: 'ST', x: 50, y: 17, labelDy: 2 },
+    { slot: 'GK', label: 'GK', x: 50, y: 86, labelDy: -5 },
+    { slot: 'LB', label: 'LV', x: 24, y: 70, labelDx: 5, labelDy: 3 },
+    { slot: 'RB', label: 'RV', x: 76, y: 70, labelDx: -5, labelDy: 3 },
+    { slot: 'LW', label: 'LA', x: 15, y: 44, labelDx: 7, labelDy: 2 },
+    { slot: 'CM', label: 'ZM', x: 50, y: 35, labelDy: 2 },
+    { slot: 'RW', label: 'RA', x: 85, y: 44, labelDx: -7, labelDy: 2 },
+    { slot: 'ST', label: 'ST', x: 50, y: 14, labelDy: 1 },
   ],
   '1-3-2-1': [
-    { slot: 'GK', label: 'GK', x: 50, y: 90, labelDy: 7 },
-    { slot: 'LB', label: 'LV', x: 18, y: 65, labelDx: -5, labelDy: 2 },
-    { slot: 'CM', label: 'IV', x: 50, y: 66, labelDy: 2 },
-    { slot: 'RB', label: 'RV', x: 82, y: 65, labelDx: 5, labelDy: 2 },
-    { slot: 'LW', label: 'LZM', x: 30, y: 42, labelDx: -4, labelDy: 2 },
-    { slot: 'RW', label: 'RZM', x: 70, y: 42, labelDx: 4, labelDy: 2 },
-    { slot: 'ST', label: 'ST', x: 50, y: 17, labelDy: 2 },
+    { slot: 'GK', label: 'GK', x: 50, y: 86, labelDy: -5 },
+    { slot: 'LB', label: 'LV', x: 14, y: 68, labelDx: 6, labelDy: 3 },
+    { slot: 'CM', label: 'IV', x: 50, y: 71, labelDy: 3 },
+    { slot: 'RB', label: 'RV', x: 86, y: 68, labelDx: -6, labelDy: 3 },
+    { slot: 'LW', label: 'LZM', x: 28, y: 38, labelDx: -4, labelDy: 2 },
+    { slot: 'RW', label: 'RZM', x: 72, y: 38, labelDx: 4, labelDy: 2 },
+    { slot: 'ST', label: 'ST', x: 50, y: 14, labelDy: 1 },
   ],
   /** 1 GK + 6 Feld — Reihenfolge: hinten nach vorne, ST zuletzt (höchste Paint-Order), damit der Mittelstürmer bei Überlappung mit LF/RF antippbar bleibt. */
   '1-3-3': [
-    { slot: 'GK', label: 'GK', x: 50, y: 90, labelDy: 7 },
-    { slot: 'LB', label: 'LV', x: 18, y: 66, labelDx: -5, labelDy: 2 },
-    { slot: 'CM', label: 'IV', x: 50, y: 67, labelDy: 2 },
-    { slot: 'RB', label: 'RV', x: 82, y: 66, labelDx: 5, labelDy: 2 },
-    { slot: 'LW', label: 'LF', x: 22, y: 28, labelDx: -5, labelDy: 2 },
-    { slot: 'RW', label: 'RF', x: 78, y: 28, labelDx: 5, labelDy: 2 },
-    { slot: 'ST', label: 'ST', x: 50, y: 20, labelDy: 2 },
+    { slot: 'GK', label: 'GK', x: 50, y: 86, labelDy: -5 },
+    { slot: 'LB', label: 'LV', x: 14, y: 67, labelDx: 6, labelDy: 3 },
+    { slot: 'CM', label: 'IV', x: 50, y: 70, labelDy: 3 },
+    { slot: 'RB', label: 'RV', x: 86, y: 67, labelDx: -6, labelDy: 3 },
+    { slot: 'LW', label: 'LF', x: 17, y: 24, labelDx: 6, labelDy: 1 },
+    { slot: 'RW', label: 'RF', x: 83, y: 24, labelDx: -6, labelDy: 1 },
+    { slot: 'ST', label: 'ST', x: 50, y: 12, labelDy: 0 },
   ],
 };
 

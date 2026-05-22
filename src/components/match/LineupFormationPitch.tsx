@@ -171,8 +171,8 @@ export function LineupFormationPitch({
       </svg>
 
       <div
-        className="absolute inset-x-[3.5%] z-[1] min-h-0"
-        style={{ top: 'calc(3.5% + 16px)', bottom: 'calc(3.5% + 20px)' }}
+        className="absolute inset-x-[4%] z-[1] min-h-0"
+        style={{ top: 'calc(3.5% + 14px)', bottom: 'calc(3.5% + 26px)' }}
       >
         {layout.map(({ slot, label, x, y, labelDx = 0, labelDy = 0 }, layoutIdx) => {
           const playerId = safeSlots[slot] ?? null;
@@ -205,7 +205,7 @@ export function LineupFormationPitch({
 
           /** Begrenzt Breite pro Slot, damit Namens-Labels nicht in Nachbar-Slots laufen. */
           const content = (
-            <div className="flex max-w-[min(22vw,5.25rem)] flex-col items-center justify-center origin-center scale-[0.9]">
+            <div className="flex max-w-[min(19vw,4.85rem)] flex-col items-center justify-center origin-center scale-[0.88]">
               {inner}
             </div>
           );
