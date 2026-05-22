@@ -97,8 +97,29 @@ function scheduleOptionalStorageRemove(paths: string[]) {
   })();
 }
 
+/** Direktes DELETE (RLS + can_delete_team_feed_post); Fallback wenn RPC fehlt/scheitert. */
+async function tryDirectFeedPostDelete(postId: string): Promise<{ ok: boolean; error: string | null }> {
+  const { data, error } = await supabase.from('team_feed_posts').delete().eq('id', postId).select('id');
+
+  console.log('[deleteTeamFeedPostClient] direct DELETE team_feed_posts', {
+    postId,
+    deletedRows: Array.isArray(data) ? data.length : 0,
+    error: error
+      ? { message: error.message, code: error.code, details: error.details, hint: error.hint }
+      : null,
+  });
+
+  if (error) {
+    return { ok: false, error: error.message ?? 'DELETE fehlgeschlagen' };
+  }
+  if (Array.isArray(data) && data.length > 0) {
+    return { ok: true, error: null };
+  }
+  return { ok: false, error: 'Keine Zeile gelöscht (Berechtigung oder Post nicht gefunden).' };
+}
+
 /**
- * DB-Löschung per RPC `public.delete_team_feed_post_v2(p_post_id)`.
+ * DB-Löschung per RPC `public.delete_team_feed_post_v2(p_post_id)`, Fallback direktes DELETE.
  * Storage-Cleanup danach optional im Hintergrund — blockiert den Erfolg nie.
  */
 export async function deleteTeamFeedPostClient(input: FeedPostDeleteInput): Promise<{
@@ -143,8 +164,18 @@ export async function deleteTeamFeedPostClient(input: FeedPostDeleteInput): Prom
     const msg = String(rpcErr.message ?? '');
     const missingFn =
       /function .* does not exist|could not find the function/i.test(msg) || rpcErr.code === '42883';
+    console.warn('[deleteTeamFeedPostClient] RPC error, trying direct DELETE', {
+      missingFn,
+      message: msg,
+      code: rpcErr.code,
+    });
+    const direct = await tryDirectFeedPostDelete(postId);
+    if (direct.ok) {
+      scheduleOptionalStorageRemove(paths);
+      return { ok: true, storageWarnings, dbError: null };
+    }
     const dbError = missingFn
-      ? `RPC delete_team_feed_post_v2 fehlt oder ist nicht erreichbar: ${msg} (Code: ${rpcErr.code ?? '—'})`
+      ? `RPC delete_team_feed_post_v2 fehlt: ${msg}. Direktes Löschen: ${direct.error ?? 'fehlgeschlagen'}`
       : `Löschen fehlgeschlagen: ${msg}${rpcErr.code ? ` [${rpcErr.code}]` : ''}${rpcErr.details ? ` · ${rpcErr.details}` : ''}${rpcErr.hint ? ` · ${rpcErr.hint}` : ''}`;
     return { ok: false, storageWarnings, dbError };
   }
@@ -183,6 +214,15 @@ export async function deleteTeamFeedPostClient(input: FeedPostDeleteInput): Prom
       : errKey === 'not_authenticated'
         ? 'Nicht angemeldet.'
         : row.error ?? 'RPC meldet Fehler (ok=false).';
+
+  if (errKey === 'forbidden') {
+    console.warn('[deleteTeamFeedPostClient] RPC ok=false, trying direct DELETE', { row });
+    const direct = await tryDirectFeedPostDelete(postId);
+    if (direct.ok) {
+      scheduleOptionalStorageRemove(paths);
+      return { ok: true, storageWarnings, dbError: null };
+    }
+  }
 
   return { ok: false, storageWarnings, dbError: human };
 }
