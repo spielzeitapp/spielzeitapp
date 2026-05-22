@@ -703,7 +703,7 @@ function kickoffPositionParts(
 }
 
 const LINEUP_VIEW_TAB_BASE =
-  'inline-flex h-[38px] w-auto min-w-[4.75rem] shrink-0 items-center justify-center whitespace-nowrap overflow-hidden rounded-2xl border px-3 text-[11px] font-semibold uppercase tracking-[0.04em] transition-all duration-200 active:scale-[0.985] sm:min-w-[5rem] sm:text-sm';
+  'inline-flex h-[38px] w-auto min-w-[4.75rem] shrink-0 items-center justify-center whitespace-nowrap overflow-hidden rounded-2xl border px-3 text-[11px] font-semibold uppercase tracking-[0.04em] transition-all duration-200 active:scale-[0.987] sm:min-w-[5rem] sm:text-sm';
 
 const LINEUP_HUB_TAB_BTN =
   'inline-flex h-[34px] shrink-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-2xl border border-white/10 bg-black/35 px-3 text-[13px] font-medium text-white/88 transition-all duration-200 hover:bg-white/[0.05] active:scale-[0.985]';
@@ -722,13 +722,13 @@ function liveLineupPitchNameOffset(
 
   let dy = 0;
   if (slot === 'GK') {
-    dy = 0;
-  } else if (y <= 22) {
-    dy = 0;
-  } else if (y >= 64) {
     dy = 1;
-  } else {
+  } else if (y <= 22) {
+    dy = 1;
+  } else if (y >= 64) {
     dy = 2;
+  } else {
+    dy = 3;
   }
 
   return { dx, dy };
@@ -4126,7 +4126,7 @@ export const LiveMatchScreen: React.FC = () => {
 
         {mainTab === 'lineup' && (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
-            <div className="z-20 shrink-0 border-b border-white/[0.06] bg-black/95 backdrop-blur-md">
+            <div className="z-20 shrink-0 border-b border-white/[0.05] bg-black/95 backdrop-blur-md">
               <div className="overflow-x-auto px-2 pt-0 pb-0 pr-3 [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div className="flex w-max min-w-full items-center gap-1">
                   <button
@@ -4187,8 +4187,8 @@ export const LiveMatchScreen: React.FC = () => {
                           LINEUP_TRAINER_ACTION_BTN,
                           'min-w-[4.25rem]',
                           lineupPositionMode
-                            ? 'border-red-500/30 bg-red-950/35 text-white/90 shadow-[inset_0_0_10px_rgba(220,38,38,0.18)] ring-1 ring-red-500/28'
-                            : 'border-white/[0.08] bg-black/30 text-white/68 hover:border-white/15 hover:bg-white/[0.06] hover:text-white/80',
+                            ? 'border-red-500/14 bg-black/38 text-white/76 shadow-[0_0_10px_rgba(220,38,38,0.10)]'
+                            : 'border-white/[0.08] bg-black/28 text-white/58 hover:border-white/12 hover:bg-black/34 hover:text-white/72',
                         ].join(' ')}
                       >
                         POS
@@ -4197,7 +4197,7 @@ export const LiveMatchScreen: React.FC = () => {
                   ) : null}
                 </div>
               </div>
-              <div className="border-t border-white/[0.06] px-2 py-1">
+              <div className="border-t border-white/[0.05] px-2 py-1">
                 <div className="flex items-start justify-between gap-1.5">
                   <div className="min-w-0 flex-1">
                     {lineupPanelView === 'kickoff' ? (
@@ -4212,10 +4212,13 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : (
                       <div className="flex flex-col gap-0.5">
                         <p className="text-[15px] font-semibold leading-tight text-white/90">Mannschaft am Feld</p>
-                        <p className="text-[12px] leading-snug text-white/60">Stand jetzt im Spiel</p>
+                        <p className="text-[12px] leading-snug text-white/52">Stand jetzt im Spiel</p>
                         {canControlLiveMatch && lineupPositionMode && !matchIsFinished ? (
-                          <p className="text-[11px] font-semibold leading-snug text-amber-200/95">
-                            Zwei Feldspieler antippen, dann bestätigen.
+                          <p className="mt-1 max-w-[18rem] text-[12px] font-medium leading-snug text-amber-300/90">
+                            <span aria-hidden className="mr-0.5">
+                              ↔
+                            </span>
+                            2 Spieler wählen und Position tauschen
                           </p>
                         ) : null}
                       </div>
@@ -4355,7 +4358,7 @@ export const LiveMatchScreen: React.FC = () => {
                           />
                         </div>
                         <span
-                          className="mx-auto mt-1 block w-full min-w-0 max-w-[6.5rem] truncate rounded-full border border-white/12 bg-black/84 px-2 py-[3px] text-center text-[11px] font-semibold leading-tight text-white/94 shadow-[0_2px_8px_rgba(0,0,0,0.35)] backdrop-blur-md transition-all duration-200"
+                          className="mx-auto mt-1 block w-full min-w-0 max-w-[6.5rem] truncate rounded-full border border-white/10 bg-black/78 px-2 py-[3px] text-center text-[11px] font-medium leading-tight text-white/95 shadow-[0_2px_10px_rgba(0,0,0,0.42)] backdrop-blur-sm transition-all duration-200"
                           title={rawName}
                           style={{ transform: `translate(${nameOffsetX}px, ${nameOffsetY}px)` }}
                         >
@@ -4416,7 +4419,7 @@ export const LiveMatchScreen: React.FC = () => {
 
               <section
                 className={[
-                  'border-t border-white/[0.08] pb-2',
+                  'border-t border-white/[0.05] pb-2',
                   lineupPanelView === 'kickoff' ? 'mt-2 pt-2' : 'mt-0.5 pt-1',
                 ].join(' ')}
               >
