@@ -1,6 +1,8 @@
 import React from 'react';
 import { getPositionLabel } from '../../lib/positionLabels';
 import {
+  DS_CARD_FOOTER_DIVIDER,
+  DS_CARD_INNER_GAP,
   premiumPlayerAvatarBloomClass,
   premiumPlayerAvatarRingClass,
   premiumPlayerAvatarSizeClass,
@@ -11,17 +13,15 @@ import {
   premiumPlayerInitials,
   premiumPlayerNameClass,
   premiumPlayerSublineClass,
-  type PremiumPlayerCardDensity,
   type PremiumPlayerCardPlayer,
   type PremiumPlayerCardTone,
 } from '../../lib/premiumPlayerCard';
-
 export type { PremiumPlayerCardPlayer, PremiumPlayerCardTone };
 
 type Props = {
   player: PremiumPlayerCardPlayer;
   subline?: string | null;
-  density?: PremiumPlayerCardDensity;
+  density?: 'default' | 'compact';
   tone?: PremiumPlayerCardTone;
   active?: boolean;
   selected?: boolean;
@@ -42,7 +42,6 @@ function buildSubline(player: PremiumPlayerCardPlayer, override?: string | null)
 export const PremiumPlayerCard: React.FC<Props> = ({
   player,
   subline,
-  density = 'default',
   tone = 'utility',
   active = false,
   selected = false,
@@ -55,28 +54,27 @@ export const PremiumPlayerCard: React.FC<Props> = ({
   const avatarSrc = premiumPlayerAvatarSrc(player);
   const initials = premiumPlayerInitials(name);
   const sub = buildSubline(player, subline);
-  const isMatchday = tone === 'matchday';
-  const avatarSize = premiumPlayerAvatarSizeClass(tone, density);
+  const avatarSize = premiumPlayerAvatarSizeClass();
+  const highlighted = active || selected;
 
   const shellClass = premiumPlayerCardShellClass({
     tone,
-    active,
-    selected: tone === 'utility' ? selected : active || selected,
+    active: highlighted,
+    selected: highlighted,
     interactive: Boolean(onClick),
-    density,
     className,
   });
 
   const body = (
     <>
-      <div className={premiumPlayerCardGlowClass(tone)} aria-hidden />
-      <div className={`relative flex items-center ${isMatchday ? 'gap-3' : 'gap-2.5'}`}>
+      <div className={premiumPlayerCardGlowClass()} aria-hidden />
+      <div className={`relative flex items-center ${DS_CARD_INNER_GAP}`}>
         <div className={`relative shrink-0 ${avatarSize}`}>
-          {isMatchday ? <div className={premiumPlayerAvatarBloomClass()} aria-hidden /> : null}
+          <div className={premiumPlayerAvatarBloomClass()} aria-hidden />
           <img
             src={avatarSrc}
             alt=""
-            className={`relative z-[1] ${avatarSize} ${premiumPlayerAvatarRingClass(tone)}`}
+            className={`relative z-[1] ${avatarSize} ${premiumPlayerAvatarRingClass()}`}
             onError={(e) => {
               (e.currentTarget as HTMLImageElement).style.display = 'none';
               const next = e.currentTarget.nextElementSibling as HTMLElement | null;
@@ -84,30 +82,18 @@ export const PremiumPlayerCard: React.FC<Props> = ({
             }}
           />
           <div
-            className={`relative z-[1] hidden ${avatarSize} items-center justify-center rounded-full border border-[#2a1216]/80 bg-zinc-950/95 text-[11px] font-bold text-white/75`}
+            className={`relative z-[1] hidden ${avatarSize} items-center justify-center rounded-full border border-[#2a2a2e] bg-[#0a0a0b] text-[11px] font-semibold text-white/70`}
           >
             {initials}
           </div>
         </div>
         <div className="min-w-0 flex-1 py-0.5">
-          <p className={premiumPlayerNameClass(density, tone)}>{name}</p>
-          <p className={premiumPlayerSublineClass(tone)}>{sub}</p>
+          <p className={premiumPlayerNameClass()}>{name}</p>
+          <p className={premiumPlayerSublineClass()}>{sub}</p>
         </div>
-        {trailing ? (
-          <div
-            className={`flex shrink-0 flex-col items-end justify-center gap-1 ${isMatchday ? 'opacity-[0.82]' : ''}`}
-          >
-            {trailing}
-          </div>
-        ) : null}
+        {trailing ? <div className="flex shrink-0 flex-col items-end justify-center gap-1">{trailing}</div> : null}
       </div>
-      {footer ? (
-        <div
-          className={`relative mt-2 pt-2 ${isMatchday ? 'border-t border-black/40' : 'border-t border-white/[0.05]'}`}
-        >
-          {footer}
-        </div>
-      ) : null}
+      {footer ? <div className={`relative mt-2 pt-2 ${DS_CARD_FOOTER_DIVIDER}`}>{footer}</div> : null}
     </>
   );
 

@@ -30,6 +30,7 @@ import {
   matchdayLineupListRowClass,
   matchdayLineupPositionBadgeClass,
 } from '../../lib/matchdayPlayerCard';
+import { dsFormationTabClass, DS_LIST_GAP } from '../../lib/premiumDesignSystem';
 
 type MatchRowLite = {
   id: string;
@@ -462,12 +463,7 @@ export const MatchLineupPage: React.FC = () => {
                     setFormationId(id);
                     if (matchId) writeStoredU11Formation(matchId, id);
                   }}
-                  className={[
-                    'h-9 shrink-0 rounded-lg border px-3 text-xs font-bold leading-none transition-colors',
-                    active
-                      ? 'border-red-500/40 bg-red-600/20 text-white'
-                      : 'border-white/[0.08] bg-black/45 text-zinc-300 hover:border-white/15 hover:bg-black/55',
-                  ].join(' ')}
+                  className={dsFormationTabClass(active)}
                 >
                   {id}
                 </button>
@@ -548,7 +544,7 @@ export const MatchLineupPage: React.FC = () => {
                           position={posLabel}
                           variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
                           size="compact"
-                          className="!h-[4rem] !w-[3.1rem] shrink-0 sm:!h-[4.15rem] sm:!w-[3.2rem]"
+                          className="!h-[2.5rem] !w-[1.95rem] shrink-0 opacity-[0.72]"
                           showBackPrint={false}
                           pitchStyleBack
                           selected={isSelected}
@@ -576,11 +572,11 @@ export const MatchLineupPage: React.FC = () => {
                 : 'calc(100dvh - 6rem - 11.25rem - 9.5rem)',
             }}
           >
-            <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-transparent bg-gradient-to-br from-[#101012]/95 via-zinc-950/85 to-black p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.012),0_0_24px_rgba(224,33,41,0.05)] sm:p-2">
+            <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-[22px] border border-transparent bg-gradient-to-br from-[#121214] via-[#0a0a0c] to-black p-1.5 shadow-[0_6px_28px_rgba(0,0,0,0.5),0_0_24px_rgba(224,33,41,0.05)] sm:p-2">
               <div className="grid h-full min-h-0 flex-1 grid-cols-2 gap-2">
                 <div className="flex min-h-0 min-w-0 flex-col gap-1">
                   <h2 className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">Startaufstellung</h2>
-                  <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch]">
+                  <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch] flex flex-col ${DS_LIST_GAP}`}>
                     {LIVE_FIELD_SLOT_ORDER.map((slot) => {
                       const pid = slots[slot];
                       const p = pid ? playersById.get(pid) : null;
@@ -603,7 +599,7 @@ export const MatchLineupPage: React.FC = () => {
                                 variant={isGk ? 'goalkeeper' : 'field'}
                                 size="compact"
                                 pitchStyleBack
-                                className="!h-[3.75rem] !w-[2.95rem] sm:!h-[3.9rem] sm:!w-[3.05rem]"
+                                className="!h-[2.5rem] !w-[1.95rem] opacity-[0.72]"
                               />
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden py-0.5">
@@ -631,7 +627,7 @@ export const MatchLineupPage: React.FC = () => {
                 </div>
                 <div className="flex min-h-0 min-w-0 flex-col gap-1 border-l border-white/[0.08] pl-2">
                   <h2 className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">Ersatzbank</h2>
-                  <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch]">
+                  <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch] flex flex-col ${DS_LIST_GAP}`}>
                     {bankIds.length === 0 ? (
                       <p className="text-xs text-zinc-500">Keine Bankspieler.</p>
                     ) : (
@@ -656,7 +652,7 @@ export const MatchLineupPage: React.FC = () => {
                                 variant={posLabel === 'TW' ? 'goalkeeper' : 'field'}
                                 size="compact"
                                 pitchStyleBack
-                                className="!h-[3.75rem] !w-[2.95rem] sm:!h-[3.9rem] sm:!w-[3.05rem]"
+                                className="!h-[2.5rem] !w-[1.95rem] opacity-[0.72]"
                               />
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden py-0.5">

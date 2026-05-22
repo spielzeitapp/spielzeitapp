@@ -340,7 +340,7 @@ export function TrainerMatchSetupBlock({
               <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/45">Matchkader</p>
               <p className="text-xs text-white/50">Tippe eine Zeile, um den Spieler für dieses Spiel zu wählen.</p>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               {sortedPlayers.map((p) => {
                 const playerId = normalizeId(p.id);
                 const inSquad = playerId ? squad.has(playerId) : false;
@@ -385,7 +385,7 @@ export function TrainerMatchSetupBlock({
             {squadPlayersSorted.length === 0 ? (
               <p className="text-sm text-white/55">Zuerst Spieler im Matchkader auswählen.</p>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 {squadPlayersSorted.map((p) => {
                   const playerId = normalizeId(p.id);
                   const isSt = playerId ? starterIdSet.has(playerId) : false;

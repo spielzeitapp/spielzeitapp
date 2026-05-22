@@ -5,6 +5,15 @@ import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { saveMatchSquadOnly } from '../../lib/liveMatchService';
 import { supabase } from '../../lib/supabaseClient';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
+import {
+  dsPrimaryCtaClass,
+  dsSectionLabelClass,
+  dsStatusChipClass,
+  dsStickyCtaBarClass,
+  DS_LIST_GAP,
+  DS_SECTION_GAP,
+  type DsChipTone,
+} from '../../lib/premiumDesignSystem';
 
 type MatchRowLite = {
   id: string;
@@ -209,10 +218,10 @@ export const MatchPreparationPage: React.FC = () => {
   const selectedSet = useMemo(() => new Set(selectedPlayersAvailableOnly), [selectedPlayersAvailableOnly]);
 
   const renderSection = (title: string, list: typeof players, status: PrepStatus) => (
-    <section className="space-y-1.5">
-      <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">{title}</h2>
-      {list.length === 0 ? <p className="text-xs text-white/45">Keine Spieler</p> : null}
-      <div className="space-y-1">
+    <section className={`flex flex-col ${DS_SECTION_GAP}`}>
+      <h2 className={dsSectionLabelClass()}>{title}</h2>
+      {list.length === 0 ? <p className="text-xs text-white/42">Keine Spieler</p> : null}
+      <div className={`flex flex-col ${DS_LIST_GAP}`}>
         {list.map((p) => {
           const selected = selectedSet.has(p.id);
           const disabled = status !== 'available';
@@ -292,30 +301,30 @@ export const MatchPreparationPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-xl space-y-4 px-4 py-3 pb-48">
+      <main className={`mx-auto max-w-xl flex flex-col ${DS_SECTION_GAP} px-4 py-3 pb-48`}>
         {(playersLoading || attendanceLoading) ? <p className="text-sm text-white/55">Lade Spieler und Status…</p> : null}
         {(playersError || attendanceError) ? <p className="text-sm text-red-400">{playersError ?? attendanceError}</p> : null}
         <div className="flex flex-wrap gap-1.5">
-          <span className="rounded-full border border-emerald-500/25 bg-emerald-950/40 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-200/90">
-            Zugesagt {summary.yes}
-          </span>
-          <span className="rounded-full border border-white/12 bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-semibold text-white/55">
-            Offen {summary.open}
-          </span>
-          <span className="rounded-full border border-red-500/22 bg-red-950/35 px-2.5 py-0.5 text-[10px] font-semibold text-red-200/85">
-            Abgesagt {summary.no}
-          </span>
-          <span className="rounded-full border border-white/12 bg-black/50 px-2.5 py-0.5 text-[10px] font-semibold text-white/70">
-            Ausgewählt {summary.selected}
-          </span>
+          {(
+            [
+              ['present', `Zugesagt ${summary.yes}`],
+              ['open', `Offen ${summary.open}`],
+              ['absent', `Abgesagt ${summary.no}`],
+              ['neutral', `Ausgewählt ${summary.selected}`],
+            ] as const
+          ).map(([tone, label]) => (
+            <span key={tone} className={dsStatusChipClass(tone as DsChipTone)}>
+              {label}
+            </span>
+          ))}
         </div>
 
         {renderSection('Verfügbar', grouped.available, 'available')}
         {renderSection('Offen', grouped.open, 'open')}
         {renderSection('Abgesagt', grouped.absent, 'absent')}
 
-        <section className="space-y-1.5">
-          <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">Matchkader: {selectedPlayersAvailableOnly.length} Spieler</h2>
+        <section className={`flex flex-col ${DS_SECTION_GAP}`}>
+          <h2 className={dsSectionLabelClass()}>Matchkader: {selectedPlayersAvailableOnly.length} Spieler</h2>
           {selectedPlayersAvailableOnly.length === 0 ? (
             <p className="text-xs text-white/45">Noch keine Spieler ausgewählt.</p>
           ) : (
@@ -337,21 +346,21 @@ export const MatchPreparationPage: React.FC = () => {
       </main>
 
       <div
-        className="fixed inset-x-0 z-[70] border-t border-white/[0.06] bg-gradient-to-t from-black via-black/95 to-black/80 px-4 py-2.5 shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-md"
+        className={dsStickyCtaBarClass()}
         style={{
           bottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
           paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
         }}
       >
         <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
-          <span className="text-[11px] font-medium text-white/50">
+          <span className="text-[11px] font-medium text-white/45">
             Ausgewählt: {selectedPlayersAvailableOnly.length}
           </span>
           <button
             type="button"
             disabled={selectedPlayersAvailableOnly.length === 0 || persisting}
             onClick={() => void onContinueToLineup()}
-            className="rounded-[18px] border border-red-500/25 bg-gradient-to-r from-red-700/90 via-red-600/95 to-red-800/90 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(127,29,29,0.28)] transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+            className={dsPrimaryCtaClass()}
           >
             {persisting ? 'Speichern…' : 'Weiter zur Aufstellung'}
           </button>

@@ -6,6 +6,14 @@ import {
   trainingAttendanceLabel,
   type TrainingAttendanceStatus,
 } from '../../lib/trainingAttendance';
+import {
+  dsActionButtonClass,
+  dsStatChipBoxClass,
+  DS_LIST_GAP,
+  DS_SECTION_GAP,
+  DS_STAT_GRID_GAP,
+  type DsChipTone,
+} from '../../lib/premiumDesignSystem';
 import { PremiumPlayerCard } from '../player/PremiumPlayerCard';
 import { PremiumStatusBadge, type PremiumStatusBadgeTone } from '../player/PremiumStatusBadge';
 
@@ -41,25 +49,14 @@ function statusTone(status: TrainingAttendanceStatus): PremiumStatusBadgeTone {
   return 'open';
 }
 
-const STAT_CHIPS: {
-  key: keyof ReturnType<typeof countTrainingAttendanceByStatus>;
-  label: string;
-  className: string;
-}[] = [
-  { key: 'present', label: 'Dabei', className: 'border-emerald-500/25 bg-emerald-950/40 text-emerald-200/90' },
-  { key: 'absent', label: 'Abwesend', className: 'border-red-500/22 bg-red-950/35 text-red-200/85' },
-  { key: 'injured', label: 'Verletzt', className: 'border-amber-500/25 bg-amber-950/35 text-amber-100/90' },
-  { key: 'external', label: 'LAZ', className: 'border-violet-500/25 bg-violet-950/40 text-violet-100/90' },
-  { key: 'open', label: 'Offen', className: 'border-white/12 bg-white/[0.04] text-white/55' },
-  {
-    key: 'legacyUnknown',
-    label: 'N. erf.',
-    className: 'border-white/10 bg-black/40 text-white/45',
-  },
+const STAT_CHIPS: { key: keyof ReturnType<typeof countTrainingAttendanceByStatus>; label: string; tone: DsChipTone }[] = [
+  { key: 'present', label: 'Dabei', tone: 'present' },
+  { key: 'absent', label: 'Abwesend', tone: 'absent' },
+  { key: 'injured', label: 'Verletzt', tone: 'injured' },
+  { key: 'external', label: 'LAZ', tone: 'external' },
+  { key: 'open', label: 'Offen', tone: 'open' },
+  { key: 'legacyUnknown', label: 'N. erf.', tone: 'neutral' },
 ];
-
-const ACTION_BTN =
-  'h-8 min-w-0 rounded-full border px-1.5 text-[10px] font-semibold transition-colors disabled:cursor-default disabled:opacity-55 sm:text-[11px]';
 
 export const TrainingAttendancePanel: React.FC<Props> = ({
   players,
@@ -89,25 +86,22 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
   );
 
   return (
-    <div className={`flex flex-col gap-2.5 ${className}`}>
-      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-        {visibleChips.map(({ key, label, className: chipCls }) => (
-          <div
-            key={key}
-            className={`rounded-[18px] border px-2 py-1.5 text-center ${chipCls}`}
-          >
-            <div className="text-[9px] font-bold uppercase tracking-[0.1em] opacity-85">{label}</div>
-            <div className="mt-0.5 text-[18px] font-bold tabular-nums leading-none">{counts[key]}</div>
+    <div className={`flex flex-col ${DS_SECTION_GAP} ${className}`}>
+      <div className={`grid grid-cols-2 ${DS_STAT_GRID_GAP} sm:grid-cols-3`}>
+        {visibleChips.map(({ key, label, tone }) => (
+          <div key={key} className={dsStatChipBoxClass(tone)}>
+            <div className="text-[9px] font-bold uppercase tracking-[0.1em] opacity-80">{label}</div>
+            <div className="mt-0.5 text-[17px] font-bold tabular-nums leading-none">{counts[key]}</div>
           </div>
         ))}
       </div>
 
       {loading ? (
-        <p className="text-[13px] text-white/55">Lade Teilnahme…</p>
+        <p className="text-[13px] text-white/50">Lade Teilnahme…</p>
       ) : players.length === 0 ? (
-        <p className="text-[13px] text-white/55">Keine Spieler im Kader.</p>
+        <p className="text-[13px] text-white/50">Keine Spieler im Kader.</p>
       ) : (
-        <ul className="flex flex-col gap-1.5 pb-1">
+        <ul className={`flex flex-col ${DS_LIST_GAP} pb-1`}>
           {sorted.map((player) => {
             const status = getStatus(player.id);
             const num = player.jersey_number != null ? `#${player.jersey_number}` : null;
@@ -127,12 +121,12 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                     />
                   }
                   footer={
-                    <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
+                    <div className={`grid grid-cols-2 ${DS_STAT_GRID_GAP} sm:grid-cols-4`}>
                       <button
                         type="button"
                         disabled={status === 'absent'}
                         onClick={() => onSetStatus(player.id, 'absent')}
-                        className={`${ACTION_BTN} border-red-500/30 bg-red-950/50 text-red-200/90 hover:bg-red-950/70`}
+                        className={dsActionButtonClass('absent', status === 'absent')}
                       >
                         Abwesend
                       </button>
@@ -140,7 +134,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                         type="button"
                         disabled={status === 'injured'}
                         onClick={() => onSetStatus(player.id, 'injured')}
-                        className={`${ACTION_BTN} border-amber-500/30 bg-amber-950/45 text-amber-100/90 hover:bg-amber-950/65`}
+                        className={dsActionButtonClass('injured', status === 'injured')}
                       >
                         Verletzt
                       </button>
@@ -148,7 +142,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                         type="button"
                         disabled={status === 'external'}
                         onClick={() => onSetStatus(player.id, 'external')}
-                        className={`${ACTION_BTN} border-violet-500/30 bg-violet-950/45 text-violet-100/90 hover:bg-violet-950/65`}
+                        className={dsActionButtonClass('external', status === 'external')}
                       >
                         LAZ
                       </button>
@@ -156,7 +150,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                         type="button"
                         disabled={status === 'present'}
                         onClick={() => onSetStatus(player.id, 'present')}
-                        className={`${ACTION_BTN} border-emerald-500/30 bg-emerald-950/45 text-emerald-100/90 hover:bg-emerald-950/65`}
+                        className={dsActionButtonClass('present', status === 'present')}
                       >
                         Dabei
                       </button>

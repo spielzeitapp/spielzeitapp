@@ -54,6 +54,12 @@ import { LineupFormationPitch } from '../../components/match/LineupFormationPitc
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { PremiumPlayerCard } from '../../components/player/PremiumPlayerCard';
 import {
+  DS_JERSEY_COMPACT,
+  DS_JERSEY_STARTER,
+  DS_LIST_GAP,
+} from '../../lib/premiumDesignSystem';
+import { matchdayBenchTileClass } from '../../lib/matchdayPlayerCard';
+import {
   isU11FormationId,
   labelForSlotInFormation,
   U11_FORMATION_CHOICES,
@@ -749,26 +755,20 @@ function KickoffSquadJerseyBadge({
   const shortName = mobileLineupName(name);
   const lastName =
     shortName && shortName !== '—' ? shortName : (name.trim().split(/\s+/).filter(Boolean).pop() ?? name);
+  const jerseyClass = matchday ? (compact ? DS_JERSEY_COMPACT : DS_JERSEY_STARTER) : compact ? '!h-[2.65rem] !w-[2.05rem]' : '!h-[2.85rem] !w-[2.2rem]';
   const jerseyPx = matchday
     ? compact
-      ? { h: '2.45rem', w: '1.9rem' }
-      : { h: '2.55rem', w: '2rem' }
+      ? { h: '2.35rem', w: '1.85rem' }
+      : { h: '2.5rem', w: '1.95rem' }
     : compact
       ? { h: '2.65rem', w: '2.05rem' }
       : { h: '2.85rem', w: '2.2rem' };
-  const jerseyClass = matchday
-    ? compact
-      ? '!h-[2.45rem] !w-[1.9rem]'
-      : '!h-[2.55rem] !w-[2rem]'
-    : compact
-      ? '!h-[2.65rem] !w-[2.05rem]'
-      : '!h-[2.85rem] !w-[2.2rem]';
 
   return (
     <div
       className={[
         'flex shrink-0 items-center justify-center overflow-visible',
-        matchday ? 'opacity-[0.82] drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]' : '',
+        matchday ? 'opacity-[0.72] drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]' : '',
       ].join(' ')}
       style={{ width: jerseyPx.w, height: jerseyPx.h, minWidth: jerseyPx.w, minHeight: jerseyPx.h }}
       aria-hidden
@@ -4211,7 +4211,7 @@ export const LiveMatchScreen: React.FC = () => {
                     Zur Startaufstellung liegen noch keine Daten vor.
                   </p>
                 ) : (
-                  <ul className="flex flex-col gap-2 pb-1">
+                  <ul className={`flex flex-col ${DS_LIST_GAP} pb-1`}>
                     <li className="sr-only">Startaufstellung, Snapshot vom Spielbeginn — Spielerliste</li>
                     {kickoffSafeLineupRows
                       .filter((row) => {
@@ -4394,7 +4394,7 @@ export const LiveMatchScreen: React.FC = () => {
                   kickoffBenchRows.length === 0 ? (
                     <p className="text-[12px] text-white/45">Keine weiteren Spieler im Kader</p>
                   ) : (
-                    <ul className="flex flex-col gap-1.5 pb-2">
+                    <ul className={`flex flex-col ${DS_LIST_GAP} pb-2`}>
                       {kickoffBenchRows.map((row, idx) => {
                         const posLabel = getPositionLabel(row.position) || '–';
                         const fullBenchName = String(row.display_name || 'Spieler').trim() || 'Spieler';
@@ -4426,7 +4426,7 @@ export const LiveMatchScreen: React.FC = () => {
                         return (
                           <div
                             key={`live-bench-tile-${row.id || idx}`}
-                            className="flex w-[6.15rem] min-w-0 shrink-0 flex-col items-center rounded-xl border border-transparent bg-gradient-to-b from-[#101012] to-black px-1 py-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.48),0_0_18px_rgba(224,33,41,0.04)] sm:w-[6.65rem]"
+                            className={`w-[6.15rem] min-w-0 sm:w-[6.65rem] ${matchdayBenchTileClass()}`}
                           >
                             <LeibchenJersey
                               lastName={mobileLineupName(fullBenchName)}

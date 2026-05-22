@@ -45,7 +45,7 @@ export const MatchPlayerRow: React.FC<{
           {rightLabel ? (
             <PremiumStatusBadge label={rightLabel} tone={statusTone(status)} />
           ) : null}
-          <span className={premiumJerseyNumberClass(tone)}>{number != null ? `#${number}` : "—"}</span>
+          <span className={premiumJerseyNumberClass()}>{number != null ? `#${number}` : "—"}</span>
         </>
       }
     />
