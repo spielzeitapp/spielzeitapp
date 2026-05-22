@@ -52,7 +52,6 @@ import { getMatchSides } from '../../lib/matchSides';
 import { countOccupiedFieldSlots } from '../../lib/liveLineupNormalize';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
-import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 import { PremiumPlayerCard } from '../../components/player/PremiumPlayerCard';
 import {
   isU11FormationId,
@@ -737,24 +736,40 @@ function KickoffSquadJerseyBadge({
   positionLabel,
   jerseyNumber,
   compact = false,
+  matchday = true,
 }: {
   name: string;
   positionLabel: string;
   jerseyNumber: number | string | null | undefined;
   compact?: boolean;
+  matchday?: boolean;
 }) {
   const posUpper = positionLabel.trim().toUpperCase();
   const isGk = posUpper === 'TW' || posUpper === 'GK';
   const shortName = mobileLineupName(name);
   const lastName =
     shortName && shortName !== '—' ? shortName : (name.trim().split(/\s+/).filter(Boolean).pop() ?? name);
-  const jerseyPx = compact
-    ? { h: '2.65rem', w: '2.05rem' }
-    : { h: '2.85rem', w: '2.2rem' };
+  const jerseyPx = matchday
+    ? compact
+      ? { h: '2.9rem', w: '2.22rem' }
+      : { h: '3.05rem', w: '2.35rem' }
+    : compact
+      ? { h: '2.65rem', w: '2.05rem' }
+      : { h: '2.85rem', w: '2.2rem' };
+  const jerseyClass = matchday
+    ? compact
+      ? '!h-[2.9rem] !w-[2.22rem]'
+      : '!h-[3.05rem] !w-[2.35rem]'
+    : compact
+      ? '!h-[2.65rem] !w-[2.05rem]'
+      : '!h-[2.85rem] !w-[2.2rem]';
 
   return (
     <div
-      className="flex shrink-0 items-center justify-center overflow-visible"
+      className={[
+        'flex shrink-0 items-center justify-center overflow-visible',
+        matchday ? 'drop-shadow-[0_4px_14px_rgba(224,33,41,0.2)]' : '',
+      ].join(' ')}
       style={{ width: jerseyPx.w, height: jerseyPx.h, minWidth: jerseyPx.w, minHeight: jerseyPx.h }}
       aria-hidden
     >
@@ -766,7 +781,7 @@ function KickoffSquadJerseyBadge({
         size="compact"
         pitchStyleBack
         showBackPrint={false}
-        className={compact ? '!h-[2.65rem] !w-[2.05rem] shrink-0' : '!h-[2.85rem] !w-[2.2rem] shrink-0'}
+        className={`shrink-0 ${jerseyClass}`}
       />
     </div>
   );
@@ -803,6 +818,8 @@ function KickoffRosterPlayerCard({
 
   return (
     <PremiumPlayerCard
+      tone="matchday"
+      active={isStarter}
       player={{
         display_name: name,
         position: positionShort,
@@ -812,13 +829,14 @@ function KickoffRosterPlayerCard({
       subline={subline}
       density="compact"
       onClick={onClick}
-      className={isStarter ? '' : 'opacity-[0.96]'}
+      className={isStarter ? '' : 'opacity-[0.94]'}
       trailing={
         <KickoffSquadJerseyBadge
           name={name}
           positionLabel={posShort}
           jerseyNumber={jerseyNumber}
-          compact
+          compact={!isStarter}
+          matchday
         />
       }
     />
@@ -4189,7 +4207,7 @@ export const LiveMatchScreen: React.FC = () => {
             >
               {lineupPanelView === 'kickoff' ? (
                 kickoffSafeLineupRowsCount === 0 ? (
-                  <p className="rounded-xl border border-red-500/15 bg-black/50 px-3 py-4 text-[13px] text-white/55 backdrop-blur-[2px]">
+                  <p className="rounded-[20px] border border-red-500/18 bg-gradient-to-br from-[#141416]/90 to-black px-3 py-4 text-[13px] text-white/55 shadow-[0_0_24px_rgba(224,33,41,0.06)] backdrop-blur-[2px]">
                     Zur Startaufstellung liegen noch keine Daten vor.
                   </p>
                 ) : (
@@ -4408,7 +4426,7 @@ export const LiveMatchScreen: React.FC = () => {
                         return (
                           <div
                             key={`live-bench-tile-${row.id || idx}`}
-                            className="flex w-[6.15rem] min-w-0 shrink-0 flex-col items-center rounded-xl border border-white/12 bg-black/45 px-1 py-1.5 sm:w-[6.65rem]"
+                            className="flex w-[6.15rem] min-w-0 shrink-0 flex-col items-center rounded-xl border border-white/[0.1] bg-gradient-to-b from-[#121214] to-black/90 px-1 py-1.5 shadow-[0_4px_18px_rgba(0,0,0,0.38),0_0_16px_rgba(224,33,41,0.05)] sm:w-[6.65rem]"
                           >
                             <LeibchenJersey
                               lastName={mobileLineupName(fullBenchName)}

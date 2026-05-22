@@ -1,7 +1,7 @@
 import React from "react";
 import { PremiumPlayerCard } from "../player/PremiumPlayerCard";
 import { PremiumStatusBadge, type PremiumStatusBadgeTone } from "../player/PremiumStatusBadge";
-import { premiumJerseyNumberClass } from "../../lib/premiumPlayerCard";
+import { premiumJerseyNumberClass, type PremiumPlayerCardTone } from "../../lib/premiumPlayerCard";
 
 type MatchRowPlayer = {
   id: string;
@@ -26,21 +26,26 @@ export const MatchPlayerRow: React.FC<{
   selected?: boolean;
   rightLabel?: string | null;
   onClick?: () => void;
-}> = ({ player, status, selected = false, rightLabel, onClick }) => {
+  /** Nur Startaufstellung / Matchday-Setup — Utility-Screens bleiben default. */
+  tone?: PremiumPlayerCardTone;
+}> = ({ player, status, selected = false, rightLabel, onClick, tone = "utility" }) => {
   const number = player.jersey_number ?? player.number ?? null;
+  const isMatchday = tone === "matchday";
 
   return (
     <PremiumPlayerCard
       player={player}
       density="compact"
-      selected={selected}
+      tone={tone}
+      active={isMatchday && selected}
+      selected={!isMatchday && selected}
       onClick={onClick}
       trailing={
         <>
           {rightLabel ? (
             <PremiumStatusBadge label={rightLabel} tone={statusTone(status)} />
           ) : null}
-          <span className={premiumJerseyNumberClass()}>{number != null ? `#${number}` : "—"}</span>
+          <span className={premiumJerseyNumberClass(tone)}>{number != null ? `#${number}` : "—"}</span>
         </>
       }
     />

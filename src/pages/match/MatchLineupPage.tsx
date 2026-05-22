@@ -24,6 +24,12 @@ import {
 import { supabase } from '../../lib/supabaseClient';
 import type { FieldSlotId } from '../../types/match';
 import { getPositionLabel } from '../../lib/positionLabels';
+import {
+  matchdayBenchTileClass,
+  matchdayJerseyGlowWrapClass,
+  matchdayLineupListRowClass,
+  matchdayLineupPositionBadgeClass,
+} from '../../lib/matchdayPlayerCard';
 
 type MatchRowLite = {
   id: string;
@@ -534,12 +540,7 @@ export const MatchLineupPage: React.FC = () => {
                         key={id}
                         type="button"
                         onClick={() => onTapBankPlayer(id)}
-                        className={[
-                          'flex min-h-[6.5rem] w-[6.25rem] shrink-0 flex-col items-center rounded-xl border px-1.5 py-1.5 transition-all active:scale-[0.99] sm:w-[6.5rem] sm:min-h-[6.75rem]',
-                          isSelected
-                            ? 'border-emerald-500/50 bg-emerald-950/25 ring-1 ring-emerald-400/35'
-                            : 'border-white/[0.1] bg-zinc-950/50 hover:border-white/18',
-                        ].join(' ')}
+                        className={matchdayBenchTileClass(isSelected)}
                       >
                         <LeibchenJersey
                           lastName={mobileLineupName(playerFamilyName(p))}
@@ -575,7 +576,7 @@ export const MatchLineupPage: React.FC = () => {
                 : 'calc(100dvh - 6rem - 11.25rem - 9.5rem)',
             }}
           >
-            <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-zinc-950/45 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-2">
+            <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-gradient-to-br from-[#141416]/90 via-zinc-950/80 to-black p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_24px_rgba(224,33,41,0.05)] sm:p-2">
               <div className="grid h-full min-h-0 flex-1 grid-cols-2 gap-2">
                 <div className="flex min-h-0 min-w-0 flex-col gap-1">
                   <h2 className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">Startaufstellung</h2>
@@ -592,9 +593,9 @@ export const MatchLineupPage: React.FC = () => {
                             key={`list-f-${slot}`}
                             type="button"
                             onClick={() => onTapSlot(slot)}
-                            className="flex w-full shrink-0 items-center gap-2 rounded-xl border border-red-500/15 bg-black/50 px-2 py-1.5 text-left shadow-sm transition-colors hover:border-red-500/35 active:scale-[0.99]"
+                            className={matchdayLineupListRowClass({ role: 'starter' })}
                           >
-                            <div className="pointer-events-none shrink-0">
+                            <div className={matchdayJerseyGlowWrapClass()}>
                               <LeibchenJersey
                                 lastName={shortName}
                                 number={p.jersey_number ?? '–'}
@@ -645,12 +646,9 @@ export const MatchLineupPage: React.FC = () => {
                             key={`list-b-${id}`}
                             type="button"
                             onClick={() => onTapBankPlayer(id)}
-                            className={[
-                              'flex w-full shrink-0 items-center gap-2 rounded-xl border border-white/[0.1] bg-black/50 px-2 py-1.5 text-left shadow-sm transition-colors active:scale-[0.99]',
-                              isSelected ? 'ring-1 ring-emerald-400/40 border-emerald-500/35' : 'hover:border-white/16',
-                            ].join(' ')}
+                            className={matchdayLineupListRowClass({ role: 'bench', selected: isSelected })}
                           >
-                            <div className="pointer-events-none shrink-0">
+                            <div className={matchdayJerseyGlowWrapClass()}>
                               <LeibchenJersey
                                 lastName={shortName}
                                 number={p.jersey_number ?? '–'}
@@ -663,7 +661,7 @@ export const MatchLineupPage: React.FC = () => {
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden py-0.5">
                               <p className="line-clamp-2 text-sm font-semibold leading-snug text-white">{shortName}</p>
-                              <span className="inline-flex w-fit rounded-md border border-white/15 bg-zinc-800/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-zinc-200/90">
+                              <span className={matchdayLineupPositionBadgeClass('bench')}>
                                 Bank
                               </span>
                             </div>

@@ -395,6 +395,7 @@ export function TrainerMatchSetupBlock({
                       <MatchPlayerRow
                         key={playerId ?? String(p.id)}
                         player={p}
+                        tone="matchday"
                         selected={isSt}
                         rightLabel={isSt ? 'Startelf' : 'Bank'}
                         status={isSt ? 'yes' : 'open'}
@@ -419,6 +420,7 @@ export function TrainerMatchSetupBlock({
                   <MatchPlayerRow
                     key={playerId ?? String(p.id)}
                     player={p}
+                    tone="matchday"
                     rightLabel="Bank"
                     status="open"
                   />
