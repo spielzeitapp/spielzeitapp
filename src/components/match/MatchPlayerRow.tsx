@@ -1,5 +1,7 @@
 import React from "react";
-import { getPositionLabel } from "../../lib/positionLabels";
+import { PremiumPlayerCard } from "../player/PremiumPlayerCard";
+import { PremiumStatusBadge, type PremiumStatusBadgeTone } from "../player/PremiumStatusBadge";
+import { premiumJerseyNumberClass } from "../../lib/premiumPlayerCard";
 
 type MatchRowPlayer = {
   id: string;
@@ -12,6 +14,12 @@ type MatchRowPlayer = {
   number?: number | null;
 };
 
+function statusTone(status?: "open" | "yes" | "no"): PremiumStatusBadgeTone {
+  if (status === "yes") return "present";
+  if (status === "no") return "absent";
+  return "open";
+}
+
 export const MatchPlayerRow: React.FC<{
   player: MatchRowPlayer;
   status?: "open" | "yes" | "no";
@@ -19,78 +27,22 @@ export const MatchPlayerRow: React.FC<{
   rightLabel?: string | null;
   onClick?: () => void;
 }> = ({ player, status, selected = false, rightLabel, onClick }) => {
-  const name = (player.display_name ?? player.name ?? "Spieler").trim() || "Spieler";
   const number = player.jersey_number ?? player.number ?? null;
-  const position = getPositionLabel(player.position) || "—";
-  const avatarSrc = (player.avatar_url ?? player.avatarUrl ?? "").trim() || "/avatars/player-placeholder.png";
-  const initials = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join("")
-    .toUpperCase();
 
-  const statusClass =
-    status === "yes"
-      ? "bg-emerald-600/25 text-emerald-100 border-emerald-500/40"
-      : status === "no"
-        ? "bg-red-600/25 text-red-100 border-red-500/40"
-        : "bg-amber-600/20 text-amber-100 border-amber-500/35";
-  const shellClass = selected
-    ? "border-red-900/35 bg-gradient-to-br from-black/90 to-red-950/20"
-    : "border-red-900/35 bg-gradient-to-br from-black/90 to-red-950/20";
-
-  const body = (
-    <div
-      className={[
-        "w-full rounded-2xl border px-3 py-3 text-left transition-all duration-150",
-        shellClass,
-        onClick ? "active:scale-[0.98]" : "",
-      ].join(" ")}
-    >
-      <div className="flex items-start gap-3">
-        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/15 bg-zinc-800">
-          <img
-            src={avatarSrc}
-            alt=""
-            className="h-full w-full object-cover"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-              const n = e.currentTarget.nextElementSibling as HTMLElement | null;
-              if (n) n.style.display = "flex";
-            }}
-          />
-          <span className="hidden h-full w-full items-center justify-center text-xs font-black text-white/90">
-            {initials || "SP"}
-          </span>
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="line-clamp-2 whitespace-normal break-words text-[16px] font-semibold leading-tight text-white">
-            {name}
-          </div>
-          <div className="mt-0.5 text-[11px] text-gray-400">{position}</div>
-        </div>
-        <div className="flex shrink-0 min-w-[72px] flex-col items-end justify-between self-stretch gap-2">
-          {rightLabel ? (
-            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusClass}`}>
-              {rightLabel}
-            </span>
-          ) : (
-            <span className="h-[22px]" aria-hidden />
-          )}
-          <div className="text-sm font-semibold text-red-300/90">
-            {number != null ? `#${number}` : "—"}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  if (!onClick) return body;
   return (
-    <button type="button" onClick={onClick} className="w-full text-left">
-      {body}
-    </button>
+    <PremiumPlayerCard
+      player={player}
+      density="compact"
+      selected={selected}
+      onClick={onClick}
+      trailing={
+        <>
+          {rightLabel ? (
+            <PremiumStatusBadge label={rightLabel} tone={statusTone(status)} />
+          ) : null}
+          <span className={premiumJerseyNumberClass()}>{number != null ? `#${number}` : "—"}</span>
+        </>
+      }
+    />
   );
 };

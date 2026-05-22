@@ -6,7 +6,8 @@ import {
   trainingAttendanceLabel,
   type TrainingAttendanceStatus,
 } from '../../lib/trainingAttendance';
-import { AppButton } from '../ui/AppButton';
+import { PremiumPlayerCard } from '../player/PremiumPlayerCard';
+import { PremiumStatusBadge, type PremiumStatusBadgeTone } from '../player/PremiumStatusBadge';
 
 type Props = {
   players: PlayerItem[];
@@ -31,23 +32,13 @@ function comparePlayers(a: PlayerItem, b: PlayerItem): number {
   return aFirst.localeCompare(bFirst, 'de-AT');
 }
 
-function badgeClass(status: TrainingAttendanceStatus): string {
-  if (status === 'present') {
-    return 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200';
-  }
-  if (status === 'absent') {
-    return 'border-red-400/40 bg-red-500/15 text-red-200';
-  }
-  if (status === 'injured') {
-    return 'border-amber-400/45 bg-amber-500/15 text-amber-100';
-  }
-  if (status === 'external') {
-    return 'border-violet-400/45 bg-violet-500/15 text-violet-100';
-  }
-  if (status === 'legacy_unknown') {
-    return 'border-white/15 bg-white/6 text-white/50';
-  }
-  return 'border-white/18 bg-white/10 text-white/65';
+function statusTone(status: TrainingAttendanceStatus): PremiumStatusBadgeTone {
+  if (status === 'present') return 'present';
+  if (status === 'absent') return 'absent';
+  if (status === 'injured') return 'injured';
+  if (status === 'external') return 'external';
+  if (status === 'legacy_unknown') return 'neutral';
+  return 'open';
 }
 
 const STAT_CHIPS: {
@@ -55,17 +46,20 @@ const STAT_CHIPS: {
   label: string;
   className: string;
 }[] = [
-  { key: 'present', label: 'Dabei', className: 'border-emerald-500/40 bg-emerald-600/15 text-emerald-300' },
-  { key: 'absent', label: 'Abwesend', className: 'border-red-500/40 bg-red-600/15 text-red-300' },
-  { key: 'injured', label: 'Verletzt', className: 'border-amber-500/40 bg-amber-600/15 text-amber-200' },
-  { key: 'external', label: 'LAZ', className: 'border-violet-500/40 bg-violet-600/15 text-violet-200' },
-  { key: 'open', label: 'Offen', className: 'border-white/20 bg-white/8 text-white/70' },
+  { key: 'present', label: 'Dabei', className: 'border-emerald-500/25 bg-emerald-950/40 text-emerald-200/90' },
+  { key: 'absent', label: 'Abwesend', className: 'border-red-500/22 bg-red-950/35 text-red-200/85' },
+  { key: 'injured', label: 'Verletzt', className: 'border-amber-500/25 bg-amber-950/35 text-amber-100/90' },
+  { key: 'external', label: 'LAZ', className: 'border-violet-500/25 bg-violet-950/40 text-violet-100/90' },
+  { key: 'open', label: 'Offen', className: 'border-white/12 bg-white/[0.04] text-white/55' },
   {
     key: 'legacyUnknown',
     label: 'N. erf.',
-    className: 'border-white/15 bg-white/6 text-white/55',
+    className: 'border-white/10 bg-black/40 text-white/45',
   },
 ];
+
+const ACTION_BTN =
+  'h-8 min-w-0 rounded-full border px-1.5 text-[10px] font-semibold transition-colors disabled:cursor-default disabled:opacity-55 sm:text-[11px]';
 
 export const TrainingAttendancePanel: React.FC<Props> = ({
   players,
@@ -95,25 +89,25 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
   );
 
   return (
-    <div className={`flex flex-col gap-3 ${className}`}>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+    <div className={`flex flex-col gap-2.5 ${className}`}>
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
         {visibleChips.map(({ key, label, className: chipCls }) => (
           <div
             key={key}
-            className={`rounded-xl border px-2.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${chipCls}`}
+            className={`rounded-[18px] border px-2 py-1.5 text-center ${chipCls}`}
           >
-            <div className="text-[10px] font-bold uppercase tracking-[0.12em] opacity-90">{label}</div>
-            <div className="mt-0.5 text-[20px] font-bold tabular-nums leading-none">{counts[key]}</div>
+            <div className="text-[9px] font-bold uppercase tracking-[0.1em] opacity-85">{label}</div>
+            <div className="mt-0.5 text-[18px] font-bold tabular-nums leading-none">{counts[key]}</div>
           </div>
         ))}
       </div>
 
       {loading ? (
-        <p className="text-[13px] text-white/65">Lade Teilnahme…</p>
+        <p className="text-[13px] text-white/55">Lade Teilnahme…</p>
       ) : players.length === 0 ? (
-        <p className="text-[13px] text-white/65">Keine Spieler im Kader.</p>
+        <p className="text-[13px] text-white/55">Keine Spieler im Kader.</p>
       ) : (
-        <ul className="flex flex-col gap-2 pb-1">
+        <ul className="flex flex-col gap-1.5 pb-1">
           {sorted.map((player) => {
             const status = getStatus(player.id);
             const num = player.jersey_number != null ? `#${player.jersey_number}` : null;
@@ -122,84 +116,53 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
 
             return (
               <li key={player.id}>
-                <div className="rounded-xl border border-white/10 bg-gradient-to-br from-red-950/20 via-black/50 to-black/75 px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                  <div className="flex items-center gap-2.5">
-                    {player.avatar_url ? (
-                      <img
-                        src={player.avatar_url}
-                        alt=""
-                        className="h-9 w-9 shrink-0 rounded-lg border border-white/10 object-cover bg-black/30"
-                      />
-                    ) : (
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/35 text-[11px] font-bold text-white/70">
-                        {(player.first_name?.trim()?.[0] ?? '—').toUpperCase()}
-                        {(player.last_name?.trim()?.[0] ?? '').toUpperCase()}
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[14px] font-bold leading-tight text-white/95">
-                        {player.display_name}
-                      </p>
-                      <p className="truncate text-[11px] text-white/60">{sub}</p>
+                <PremiumPlayerCard
+                  player={player}
+                  subline={sub}
+                  density="compact"
+                  trailing={
+                    <PremiumStatusBadge
+                      label={trainingAttendanceLabel(status)}
+                      tone={statusTone(status)}
+                    />
+                  }
+                  footer={
+                    <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
+                      <button
+                        type="button"
+                        disabled={status === 'absent'}
+                        onClick={() => onSetStatus(player.id, 'absent')}
+                        className={`${ACTION_BTN} border-red-500/30 bg-red-950/50 text-red-200/90 hover:bg-red-950/70`}
+                      >
+                        Abwesend
+                      </button>
+                      <button
+                        type="button"
+                        disabled={status === 'injured'}
+                        onClick={() => onSetStatus(player.id, 'injured')}
+                        className={`${ACTION_BTN} border-amber-500/30 bg-amber-950/45 text-amber-100/90 hover:bg-amber-950/65`}
+                      >
+                        Verletzt
+                      </button>
+                      <button
+                        type="button"
+                        disabled={status === 'external'}
+                        onClick={() => onSetStatus(player.id, 'external')}
+                        className={`${ACTION_BTN} border-violet-500/30 bg-violet-950/45 text-violet-100/90 hover:bg-violet-950/65`}
+                      >
+                        LAZ
+                      </button>
+                      <button
+                        type="button"
+                        disabled={status === 'present'}
+                        onClick={() => onSetStatus(player.id, 'present')}
+                        className={`${ACTION_BTN} border-emerald-500/30 bg-emerald-950/45 text-emerald-100/90 hover:bg-emerald-950/65`}
+                      >
+                        Dabei
+                      </button>
                     </div>
-                    <span
-                      className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${badgeClass(status)}`}
-                    >
-                      {trainingAttendanceLabel(status)}
-                    </span>
-                  </div>
-
-                  <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                    <AppButton
-                      type="button"
-                      size="sm"
-                      variant={status === 'absent' ? 'secondary' : 'danger'}
-                      disabled={status === 'absent'}
-                      onClick={() => onSetStatus(player.id, 'absent')}
-                      className="h-9 min-w-0 px-1 text-[10px] font-semibold sm:text-[11px]"
-                    >
-                      Abwesend
-                    </AppButton>
-                    <AppButton
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      disabled={status === 'injured'}
-                      onClick={() => onSetStatus(player.id, 'injured')}
-                      className={`h-9 min-w-0 px-1 text-[10px] font-semibold sm:text-[11px] ${
-                        status === 'injured'
-                          ? 'border-amber-500/50 text-amber-100'
-                          : 'border-amber-500/35 text-amber-200/90 hover:bg-amber-950/30'
-                      }`}
-                    >
-                      Verletzt
-                    </AppButton>
-                    <AppButton
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      disabled={status === 'external'}
-                      onClick={() => onSetStatus(player.id, 'external')}
-                      className={`h-9 min-w-0 px-1 text-[10px] font-semibold sm:text-[11px] ${
-                        status === 'external'
-                          ? 'border-violet-500/50 text-violet-100'
-                          : 'border-violet-500/35 text-violet-200/90 hover:bg-violet-950/30'
-                      }`}
-                    >
-                      LAZ
-                    </AppButton>
-                    <AppButton
-                      type="button"
-                      size="sm"
-                      variant="success"
-                      disabled={status === 'present'}
-                      onClick={() => onSetStatus(player.id, 'present')}
-                      className="h-9 min-w-0 px-1 text-[10px] font-semibold sm:text-[11px]"
-                    >
-                      Dabei
-                    </AppButton>
-                  </div>
-                </div>
+                  }
+                />
               </li>
             );
           })}

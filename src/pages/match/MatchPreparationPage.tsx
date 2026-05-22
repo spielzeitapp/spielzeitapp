@@ -212,7 +212,7 @@ export const MatchPreparationPage: React.FC = () => {
     <section className="space-y-1.5">
       <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">{title}</h2>
       {list.length === 0 ? <p className="text-xs text-white/45">Keine Spieler</p> : null}
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         {list.map((p) => {
           const selected = selectedSet.has(p.id);
           const disabled = status !== 'available';
@@ -296,16 +296,16 @@ export const MatchPreparationPage: React.FC = () => {
         {(playersLoading || attendanceLoading) ? <p className="text-sm text-white/55">Lade Spieler und Status…</p> : null}
         {(playersError || attendanceError) ? <p className="text-sm text-red-400">{playersError ?? attendanceError}</p> : null}
         <div className="flex flex-wrap gap-1.5">
-          <span className="rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300">
+          <span className="rounded-full border border-emerald-500/25 bg-emerald-950/40 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-200/90">
             Zugesagt {summary.yes}
           </span>
-          <span className="rounded-full border border-amber-500/35 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300">
+          <span className="rounded-full border border-white/12 bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-semibold text-white/55">
             Offen {summary.open}
           </span>
-          <span className="rounded-full border border-red-500/35 bg-red-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-red-300">
+          <span className="rounded-full border border-red-500/22 bg-red-950/35 px-2.5 py-0.5 text-[10px] font-semibold text-red-200/85">
             Abgesagt {summary.no}
           </span>
-          <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white/85">
+          <span className="rounded-full border border-white/12 bg-black/50 px-2.5 py-0.5 text-[10px] font-semibold text-white/70">
             Ausgewählt {summary.selected}
           </span>
         </div>
@@ -337,19 +337,21 @@ export const MatchPreparationPage: React.FC = () => {
       </main>
 
       <div
-        className="fixed inset-x-0 z-[70] border-t border-white/10 bg-gradient-to-t from-black to-black/92 px-4 py-2.5 backdrop-blur"
+        className="fixed inset-x-0 z-[70] border-t border-white/[0.06] bg-gradient-to-t from-black via-black/95 to-black/80 px-4 py-2.5 shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-md"
         style={{
           bottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
           paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
         }}
       >
-        <div className="mx-auto flex max-w-xl items-center justify-between gap-2">
-          <span className="text-xs text-white/60">Ausgewählt: {selectedPlayersAvailableOnly.length}</span>
+        <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
+          <span className="text-[11px] font-medium text-white/50">
+            Ausgewählt: {selectedPlayersAvailableOnly.length}
+          </span>
           <button
             type="button"
             disabled={selectedPlayersAvailableOnly.length === 0 || persisting}
             onClick={() => void onContinueToLineup()}
-            className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-[18px] border border-red-500/25 bg-gradient-to-r from-red-700/90 via-red-600/95 to-red-800/90 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(127,29,29,0.28)] transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
           >
             {persisting ? 'Speichern…' : 'Weiter zur Aufstellung'}
           </button>

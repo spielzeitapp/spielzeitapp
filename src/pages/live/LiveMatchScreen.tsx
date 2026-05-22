@@ -53,6 +53,7 @@ import { countOccupiedFieldSlots } from '../../lib/liveLineupNormalize';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
+import { PremiumPlayerCard } from '../../components/player/PremiumPlayerCard';
 import {
   isU11FormationId,
   labelForSlotInFormation,
@@ -654,12 +655,6 @@ function resolveSectionForEnd(scores: PeriodScoresState): 1 | 2 | 3 {
   return 3;
 }
 
-function kickoffSquadRowInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-  return (parts[0] ?? '?').slice(0, 2).toUpperCase();
-}
-
 /** Kurzcode → volle Positionsbezeichnung (Matchday-Squad, lesbare Schreibweise). */
 const KICKOFF_POSITION_FULL_DE: Record<string, string> = {
   TW: 'Torwart',
@@ -754,8 +749,8 @@ function KickoffSquadJerseyBadge({
   const lastName =
     shortName && shortName !== '—' ? shortName : (name.trim().split(/\s+/).filter(Boolean).pop() ?? name);
   const jerseyPx = compact
-    ? { h: '3.38rem', w: '2.6rem' }
-    : { h: '3.64rem', w: '2.86rem' };
+    ? { h: '2.65rem', w: '2.05rem' }
+    : { h: '2.85rem', w: '2.2rem' };
 
   return (
     <div
@@ -771,7 +766,7 @@ function KickoffSquadJerseyBadge({
         size="compact"
         pitchStyleBack
         showBackPrint={false}
-        className={compact ? '!h-[3.38rem] !w-[2.6rem] shrink-0' : '!h-[3.64rem] !w-[2.86rem] shrink-0'}
+        className={compact ? '!h-[2.65rem] !w-[2.05rem] shrink-0' : '!h-[2.85rem] !w-[2.2rem] shrink-0'}
       />
     </div>
   );
@@ -796,93 +791,38 @@ function KickoffRosterPlayerCard({
   variant,
   onClick,
 }: KickoffRosterPlayerCardProps) {
-  const avatarSrc = String(avatarUrl ?? '').trim() || '/avatars/player-placeholder.png';
   const isStarter = variant === 'starter';
   const { short: posShort, full: posFull } = kickoffPositionParts(positionShort, rosterPosition);
-  const avatarSize = isStarter ? 'h-14 w-14 sm:h-[60px] sm:w-[60px]' : 'h-[52px] w-[52px]';
-  const shell = [
-    'relative w-full overflow-visible text-left',
-    'rounded-xl border border-red-500/20 ring-1 ring-red-500/20 backdrop-blur-sm',
-    'bg-gradient-to-r from-red-950/55 via-zinc-950/98 to-black',
-    'shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(220,38,38,0.18)]',
-    isStarter ? 'min-h-[78px] px-3 py-2.5 pb-3 sm:min-h-[80px]' : 'min-h-[70px] px-2.5 py-2 pb-2.5 opacity-[0.96]',
-    onClick
-      ? 'cursor-pointer transition-all duration-200 active:scale-[0.985] active:bg-red-950/30 hover:border-red-500/35 hover:shadow-[0_0_22px_rgba(220,38,38,0.22)] focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40'
-      : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-  const inner = (
-    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 sm:gap-3">
-      <div className={`relative shrink-0 ${avatarSize}`}>
-        <div
-          className="pointer-events-none absolute -inset-1 rounded-full bg-red-600/35 blur-[6px]"
-          aria-hidden
-        />
-        <img
-          src={avatarSrc}
-          alt=""
-          className={[
-            'relative z-[1] rounded-full border-2 border-white/20 object-cover',
-            'shadow-[0_0_16px_rgba(239,68,68,0.35)] ring-2 ring-red-500/35',
-            avatarSize,
-          ].join(' ')}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
-            const next = e.currentTarget.nextElementSibling as HTMLElement | null;
-            if (next) next.style.display = 'flex';
-          }}
-        />
-        <div
-          className={[
-            'relative z-[1] hidden items-center justify-center rounded-full border-2 border-white/20 bg-zinc-900/95 font-black text-white/90',
-            'shadow-[0_0_14px_rgba(239,68,68,0.25)] ring-2 ring-red-500/30',
-            avatarSize,
-            isStarter ? 'text-sm' : 'text-xs',
-          ].join(' ')}
-        >
-          {kickoffSquadRowInitials(name)}
-        </div>
-      </div>
-      <div className="min-w-0 py-0.5 pr-1">
-        <p
-          className={[
-            'leading-tight text-white whitespace-normal break-words',
-            isStarter ? 'text-[18px] font-bold tracking-tight sm:text-[19px]' : 'text-[15px] font-bold text-white/92',
-          ].join(' ')}
-        >
-          {name}
-        </p>
-        <p
-          className={[
-            'truncate font-medium leading-snug normal-case',
-            isStarter ? 'mt-1.5 text-[12px]' : 'mt-1 text-[11px]',
-          ].join(' ')}
-          title={`${posShort} · ${posFull}`}
-        >
-          <span className="font-semibold text-red-400/90">{posShort}</span>
-          <span className="text-white/40"> · </span>
-          <span className="text-white/72">{posFull}</span>
-        </p>
-      </div>
-      <div className="flex shrink-0 items-center justify-center self-center pr-1 sm:pr-1.5">
+  const subline = `${posShort} · ${posFull}`;
+  const num =
+    typeof jerseyNumber === 'number'
+      ? jerseyNumber
+      : typeof jerseyNumber === 'string' && jerseyNumber.trim()
+        ? Number(jerseyNumber)
+        : undefined;
+
+  return (
+    <PremiumPlayerCard
+      player={{
+        display_name: name,
+        position: positionShort,
+        jersey_number: Number.isFinite(num) ? num : undefined,
+        avatar_url: avatarUrl ?? undefined,
+      }}
+      subline={subline}
+      density="compact"
+      onClick={onClick}
+      className={isStarter ? '' : 'opacity-[0.96]'}
+      trailing={
         <KickoffSquadJerseyBadge
           name={name}
           positionLabel={posShort}
           jerseyNumber={jerseyNumber}
-          compact={!isStarter}
+          compact
         />
-      </div>
-    </div>
+      }
+    />
   );
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} className={shell}>
-        {inner}
-      </button>
-    );
-  }
-  return <div className={shell}>{inner}</div>;
 }
 
 export const LiveMatchScreen: React.FC = () => {

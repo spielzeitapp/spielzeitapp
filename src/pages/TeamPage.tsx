@@ -11,6 +11,7 @@ import { normalizeRole, canManageRoster, ROLE_LABELS_DE } from "../lib/roles";
 import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
+import { PlayerCard } from "../components/team/PlayerCard";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
 const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
@@ -83,21 +84,6 @@ function isJerseyDuplicateError(err: { code?: string; message?: string }): boole
 function readOptionalPhotoUrl(p: PlayerItem): string | null {
   const v = (p.avatar_url ?? "").trim();
   return v.length > 0 ? v : null;
-}
-
-/** Vollständiger Listenname (kein Abschneiden im Layout). */
-function squadRowDisplayName(p: PlayerItem): string {
-  const f = (p.first_name ?? "").trim();
-  const l = (p.last_name ?? "").trim();
-  const full = `${f} ${l}`.trim();
-  if (full) return full;
-  return p.display_name.trim() || "Spieler";
-}
-
-function squadRowInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-  return (parts[0] ?? "?").slice(0, 2).toUpperCase();
 }
 
 function staffRoleLabelDe(rawRole: string): string {
@@ -760,7 +746,7 @@ export const TeamPage: React.FC = () => {
       </div>
 
       {activeTab === "squad" ? (
-      <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
+      <Card className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] sm:p-5">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="mt-0">Kader</CardTitle>
           {teamSeasonId != null && canManagePlayers && !plLoading ? (
@@ -951,61 +937,23 @@ export const TeamPage: React.FC = () => {
             </p>
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
-            <ul className="mt-3 w-full space-y-3 pb-8">
-              {sortedPlayers.map((p) => {
-                const rowName = squadRowDisplayName(p);
-                const photo = readOptionalPhotoUrl(p);
-                const avatarSrc = (photo ?? "").trim() || "/avatars/player-placeholder.png";
-                const posLabel = getPositionLabel(p.position) || "—";
-                return (
-                  <li key={p.id} className="w-full">
-                    <button
-                      type="button"
-                      onClick={() => openPlayerProfile(p)}
-                      className={[
-                        "relative w-full text-left",
-                        "rounded-2xl border border-red-900/40 bg-gradient-to-br from-red-900/40 via-black/80 to-black p-4 backdrop-blur",
-                        "transition-all duration-150 active:scale-[0.98]",
-                        canManagePlayers ? "hover:border-red-500/45 hover:shadow-[0_0_22px_rgba(239,68,68,0.2)]" : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                    >
-                      <div className="flex flex-col gap-1 pr-10 pb-1">
-                        <div className="flex items-start gap-3">
-                          <div className="h-12 w-12 shrink-0">
-                            <img
-                              src={avatarSrc}
-                              alt=""
-                              className="h-12 w-12 rounded-full border border-white/12 object-cover"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).style.display = "none";
-                                const next = e.currentTarget.nextElementSibling as HTMLElement | null;
-                                if (next) next.style.display = "flex";
-                              }}
-                            />
-                            <div
-                              className="flex h-12 w-12 items-center justify-center rounded-full border border-white/12 bg-zinc-800 text-sm font-black text-white/90"
-                              style={{ display: "none" }}
-                            >
-                              {squadRowInitials(rowName)}
-                            </div>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[17px] font-semibold leading-tight text-white whitespace-normal break-words">
-                              {rowName}
-                            </div>
-                            <div className="mt-0.5 text-[13px] text-white/70">{posLabel}</div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="pointer-events-none absolute bottom-3 right-4 text-sm font-bold text-red-400">
-                        {p.jersey_number != null ? `#${p.jersey_number}` : "—"}
-                      </div>
-                    </button>
-                  </li>
-                );
-              })}
+            <ul className="mt-3 w-full space-y-1.5 pb-8">
+              {sortedPlayers.map((p) => (
+                <li key={p.id} className="w-full">
+                  <PlayerCard
+                    player={{
+                      id: p.id,
+                      first_name: p.first_name,
+                      last_name: p.last_name,
+                      display_name: p.display_name,
+                      position: getPositionLabel(p.position) || p.position,
+                      jersey_number: p.jersey_number,
+                      photo_url: readOptionalPhotoUrl(p),
+                    }}
+                    onClick={() => openPlayerProfile(p)}
+                  />
+                </li>
+              ))}
             </ul>
           )}
         </div>
@@ -1013,7 +961,7 @@ export const TeamPage: React.FC = () => {
       ) : null}
 
       {activeTab === "trainers" ? (
-        <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
+        <Card className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] sm:p-5">
           <CardTitle className="mt-0">Trainer</CardTitle>
           {teamSeasonId == null && !tsLoading ? (
             <p className="mt-3 text-[14px] text-white/70">Bitte Team wählen.</p>
@@ -1047,7 +995,7 @@ export const TeamPage: React.FC = () => {
       ) : null}
 
       {activeTab === "training" ? (
-        <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
+        <Card className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] sm:p-5">
           <CardTitle className="mt-0">Training</CardTitle>
           {teamSeasonId == null && !tsLoading ? (
             <p className="mt-3 text-[14px] text-white/70">Bitte Team wählen.</p>
@@ -1076,7 +1024,7 @@ export const TeamPage: React.FC = () => {
       ) : null}
 
       {activeTab === "matches" ? (
-        <Card className="rounded-2xl border border-red-500/20 bg-[#111] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] sm:p-5">
+        <Card className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] sm:p-5">
           <CardTitle className="mt-0">Spiele</CardTitle>
           {teamSeasonId == null && !tsLoading ? (
             <p className="mt-3 text-[14px] text-white/70">Bitte Team wählen.</p>
