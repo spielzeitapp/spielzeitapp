@@ -6,14 +6,8 @@ import {
   trainingAttendanceLabel,
   type TrainingAttendanceStatus,
 } from '../../lib/trainingAttendance';
-import {
-  dsActionButtonClass,
-  dsStatChipBoxClass,
-  DS_LIST_GAP,
-  DS_SECTION_GAP,
-  DS_STAT_GRID_GAP,
-  type DsChipTone,
-} from '../../lib/premiumDesignSystem';
+import { formatTrainingPlayerSubline } from '../../lib/positionLabels';
+import { DS_LIST_GAP, type DsChipTone } from '../../lib/premiumDesignSystem';
 import { PremiumPlayerCard } from '../player/PremiumPlayerCard';
 import { PremiumStatusBadge, type PremiumStatusBadgeTone } from '../player/PremiumStatusBadge';
 
@@ -49,14 +43,63 @@ function statusTone(status: TrainingAttendanceStatus): PremiumStatusBadgeTone {
   return 'open';
 }
 
-const STAT_CHIPS: { key: keyof ReturnType<typeof countTrainingAttendanceByStatus>; label: string; tone: DsChipTone }[] = [
+const STAT_GRID_MAIN: {
+  key: keyof ReturnType<typeof countTrainingAttendanceByStatus>;
+  label: string;
+  tone: DsChipTone;
+}[] = [
   { key: 'present', label: 'Dabei', tone: 'present' },
   { key: 'absent', label: 'Abwesend', tone: 'absent' },
   { key: 'injured', label: 'Verletzt', tone: 'injured' },
   { key: 'external', label: 'LAZ', tone: 'external' },
-  { key: 'open', label: 'Offen', tone: 'open' },
-  { key: 'legacyUnknown', label: 'N. erf.', tone: 'neutral' },
 ];
+
+const STAT_BOX_SURFACE =
+  'flex min-h-[4.5rem] flex-col items-center justify-center rounded-[20px] border border-transparent px-2.5 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_24px_rgba(255,40,40,0.06)]';
+
+const STAT_BOX_TONE: Record<DsChipTone, string> = {
+  present: 'bg-[rgba(20,110,70,0.28)] text-[#9DFFC5]',
+  absent: 'bg-[rgba(100,14,24,0.32)] text-[#FF8D98]',
+  injured: 'bg-[rgba(110,52,8,0.30)] text-[#FFB15A]',
+  external: 'bg-[rgba(14,58,40,0.26)] text-[#63D98D]',
+  open: 'bg-[rgba(16,16,20,0.92)] text-[#AEAEB2]',
+  neutral: 'bg-[rgba(16,16,20,0.88)] text-white/45',
+  selected: 'bg-[rgba(100,14,24,0.32)] text-[#FF8D98]',
+};
+
+function trainingStatBoxClass(tone: DsChipTone): string {
+  return [STAT_BOX_SURFACE, STAT_BOX_TONE[tone]].join(' ');
+}
+
+function trainingActionButtonClass(
+  tone: 'absent' | 'injured' | 'external' | 'present',
+  active?: boolean,
+): string {
+  const base =
+    'flex h-8 min-h-8 w-full items-center justify-center rounded-[12px] border border-transparent px-1 text-[10px] font-semibold leading-tight transition-[background,box-shadow] duration-150 disabled:cursor-default disabled:opacity-50 sm:text-[11px]';
+  const tones: Record<typeof tone, { idle: string; on: string }> = {
+    present: {
+      idle: 'bg-[rgba(20,110,70,0.24)] text-[#8DFFB7] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
+      on: 'bg-[rgba(22,120,76,0.36)] text-[#9DFFC5] shadow-[0_0_18px_rgba(40,255,120,0.14)]',
+    },
+    external: {
+      idle: 'bg-[rgba(14,58,40,0.22)] text-[#63D98D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]',
+      on: 'bg-[rgba(14,58,40,0.28)] text-[#63D98D]',
+    },
+    absent: {
+      idle: 'bg-[rgba(100,14,24,0.24)] text-[#FF8D98] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]',
+      on: 'bg-[rgba(100,14,24,0.34)] text-[#FF8D98] shadow-[0_0_14px_rgba(255,40,40,0.08)]',
+    },
+    injured: {
+      idle: 'bg-[rgba(110,52,8,0.24)] text-[#FFB15A] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]',
+      on: 'bg-[rgba(110,52,8,0.32)] text-[#FFB15A]',
+    },
+  };
+  return [base, active ? tones[tone].on : tones[tone].idle].join(' ');
+}
+
+const TRAINING_BADGE_CLASS =
+  '!inline-flex !h-[20px] !max-w-[4.75rem] shrink-0 !px-2 !text-[8px] !font-bold !uppercase !tracking-[0.08em] !leading-none';
 
 export const TrainingAttendancePanel: React.FC<Props> = ({
   players,
@@ -81,19 +124,35 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
     [players, getStatus],
   );
 
-  const visibleChips = STAT_CHIPS.filter(
-    (c) => c.key !== 'legacyUnknown' || counts.legacyUnknown > 0,
-  );
+  const showLegacy = counts.legacyUnknown > 0;
 
   return (
-    <div className={`flex flex-col ${DS_SECTION_GAP} ${className}`}>
-      <div className={`grid grid-cols-2 ${DS_STAT_GRID_GAP} sm:grid-cols-3`}>
-        {visibleChips.map(({ key, label, tone }) => (
-          <div key={key} className={dsStatChipBoxClass(tone)}>
-            <div className="text-[9px] font-bold uppercase tracking-[0.1em] opacity-80">{label}</div>
-            <div className="mt-0.5 text-[17px] font-bold tabular-nums leading-none">{counts[key]}</div>
+    <div className={`flex w-full flex-col gap-3.5 ${className}`}>
+      <div className="grid w-full grid-cols-2 gap-2">
+        {STAT_GRID_MAIN.map(({ key, label, tone }) => (
+          <div key={key} className={trainingStatBoxClass(tone)}>
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] leading-[1.35] opacity-90">
+              {label}
+            </span>
+            <span className="mt-1.5 text-[22px] font-bold tabular-nums leading-none">{counts[key]}</span>
           </div>
         ))}
+        <div className={`col-span-2 ${trainingStatBoxClass('open')}`}>
+          <span className="text-[9px] font-bold uppercase tracking-[0.12em] leading-[1.35] opacity-90">
+            Offen
+          </span>
+          <span className="mt-1.5 text-[22px] font-bold tabular-nums leading-none">{counts.open}</span>
+        </div>
+        {showLegacy ? (
+          <div className={`col-span-2 ${trainingStatBoxClass('neutral')}`}>
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] leading-[1.35] opacity-90">
+              N. erf.
+            </span>
+            <span className="mt-1.5 text-[22px] font-bold tabular-nums leading-none">
+              {counts.legacyUnknown}
+            </span>
+          </div>
+        ) : null}
       </div>
 
       {loading ? (
@@ -101,32 +160,34 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
       ) : players.length === 0 ? (
         <p className="text-[13px] text-white/50">Keine Spieler im Kader.</p>
       ) : (
-        <ul className={`flex flex-col ${DS_LIST_GAP} pb-1`}>
+        <ul className={`flex w-full flex-col ${DS_LIST_GAP} pb-1`}>
           {sorted.map((player) => {
             const status = getStatus(player.id);
-            const num = player.jersey_number != null ? `#${player.jersey_number}` : null;
-            const pos = (player.position ?? '').trim();
-            const sub = [pos || null, num].filter(Boolean).join(' · ') || '—';
+            const sub = formatTrainingPlayerSubline(player.position, player.jersey_number);
 
             return (
-              <li key={player.id}>
+              <li key={player.id} className="w-full min-w-0">
                 <PremiumPlayerCard
                   player={player}
                   subline={sub}
                   density="compact"
+                  className="w-full !px-2 sm:!px-2.5"
                   trailing={
-                    <PremiumStatusBadge
-                      label={trainingAttendanceLabel(status)}
-                      tone={statusTone(status)}
-                    />
+                    <div className="max-w-[4.5rem] shrink-0 pl-0.5">
+                      <PremiumStatusBadge
+                        label={trainingAttendanceLabel(status)}
+                        tone={statusTone(status)}
+                        className={TRAINING_BADGE_CLASS}
+                      />
+                    </div>
                   }
                   footer={
-                    <div className={`grid grid-cols-2 ${DS_STAT_GRID_GAP} sm:grid-cols-4`}>
+                    <div className="mt-0.5 grid grid-cols-4 gap-1.5 pt-1.5">
                       <button
                         type="button"
                         disabled={status === 'absent'}
                         onClick={() => onSetStatus(player.id, 'absent')}
-                        className={dsActionButtonClass('absent', status === 'absent')}
+                        className={trainingActionButtonClass('absent', status === 'absent')}
                       >
                         Abwesend
                       </button>
@@ -134,7 +195,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                         type="button"
                         disabled={status === 'injured'}
                         onClick={() => onSetStatus(player.id, 'injured')}
-                        className={dsActionButtonClass('injured', status === 'injured')}
+                        className={trainingActionButtonClass('injured', status === 'injured')}
                       >
                         Verletzt
                       </button>
@@ -142,7 +203,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                         type="button"
                         disabled={status === 'external'}
                         onClick={() => onSetStatus(player.id, 'external')}
-                        className={dsActionButtonClass('external', status === 'external')}
+                        className={trainingActionButtonClass('external', status === 'external')}
                       >
                         LAZ
                       </button>
@@ -150,7 +211,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                         type="button"
                         disabled={status === 'present'}
                         onClick={() => onSetStatus(player.id, 'present')}
-                        className={dsActionButtonClass('present', status === 'present')}
+                        className={trainingActionButtonClass('present', status === 'present')}
                       >
                         Dabei
                       </button>
