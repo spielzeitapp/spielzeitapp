@@ -922,7 +922,7 @@ export const SchedulePage: React.FC = () => {
             <div className="flex flex-col gap-2">
               <div className="flex items-stretch gap-2">
                 {normalizedUiRole !== 'fan' ? (
-                  <div className="flex min-h-[40px] min-w-0 flex-1 items-center gap-1 rounded-xl border border-white/12 bg-black/28 p-1 backdrop-blur-sm">
+                  <div className="flex min-h-[40px] min-w-0 flex-1 items-center gap-1 rounded-xl border border-white/[0.08] bg-[rgba(18,18,20,0.92)] p-1 backdrop-blur-sm">
                     {([
                       { id: 'all', label: 'Alle' },
                       { id: 'match', label: 'Spiele' },
@@ -955,7 +955,7 @@ export const SchedulePage: React.FC = () => {
               </div>
 
               <div className="flex justify-center">
-                <div className="inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-white/15 bg-black/25 p-1">
+                <div className="inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-white/[0.08] bg-[rgba(18,18,20,0.92)] p-1">
                   <button
                     type="button"
                     onClick={() => setTimeFilter('upcoming')}
@@ -1050,6 +1050,7 @@ export const SchedulePage: React.FC = () => {
                                   no={countsForCard.no}
                                   open={countsForCard.open}
                                   isTraining={et === 'training'}
+                                  listColumn={et === 'training'}
                                 />
                               ) : heroShowsParentPill ? (
                                 <AttendanceStatusPill

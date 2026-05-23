@@ -2783,7 +2783,7 @@ export const EventDetailPage: React.FC = () => {
           />
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-white/80">
+        <div className="rounded-[16px] border border-white/[0.08] bg-[rgba(18,18,20,0.92)] p-4 text-[#E8E4E6] shadow-[0_0_24px_rgba(122,29,42,0.06),inset_0_1px_0_rgba(255,255,255,0.03)]">
           <div className="grid gap-3">
             <div>
               <p className="text-[11px] uppercase tracking-[0.12em] text-white/60">Datum & Uhrzeit</p>
@@ -2825,13 +2825,13 @@ export const EventDetailPage: React.FC = () => {
           <Card
             className={
               isTraining
-                ? 'relative flex flex-col gap-4 overflow-hidden border border-[rgba(255,45,85,0.08)] bg-[rgba(10,10,14,0.94)] shadow-[0_0_36px_rgba(255,45,85,0.07),inset_0_1px_0_rgba(255,255,255,0.03)]'
+                ? 'relative flex flex-col gap-4 overflow-hidden border border-[rgba(122,29,42,0.12)] bg-[rgba(18,18,20,0.94)] shadow-[0_0_32px_rgba(122,29,42,0.08),inset_0_1px_0_rgba(255,255,255,0.03)]'
                 : 'flex flex-col gap-4'
             }
           >
             {isTraining ? (
               <div
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_0%,rgba(255,45,85,0.07)_0%,transparent_58%)]"
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_0%,rgba(122,29,42,0.08)_0%,transparent_58%)]"
                 aria-hidden
               />
             ) : null}

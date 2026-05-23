@@ -3,10 +3,18 @@
  * Master-Referenz: Welcome / Intro (Flutlicht, Abendspiel, Rot-Glow).
  */
 
-export const DS_APP_BG = '#070707';
+export const DS_APP_BG = '#0A0A0C';
+
+/** Deep Dark Red Matchday — Surfaces & Accents */
+export const DS_SURFACE_900 = '#0A0A0C';
+export const DS_SURFACE_800 = '#121214';
+export const DS_SURFACE_700 = '#1A1A1D';
+export const DS_RED_ACCENT = '#5A1622';
+export const DS_RED_GLOW = '#7A1D2A';
+export const DS_RED_DEEP = '#3A1218';
 
 const PAGE_ATMOSPHERE_LAYERS =
-  'bg-[radial-gradient(ellipse_120%_70%_at_50%_-6%,rgba(255,30,30,0.06),transparent_52%),radial-gradient(ellipse_90%_55%_at_50%_0%,rgba(120,0,0,0.14),transparent_58%),radial-gradient(ellipse_100%_75%_at_50%_110%,rgba(0,0,0,0.45),transparent_48%)]';
+  'bg-[radial-gradient(ellipse_120%_70%_at_50%_-6%,rgba(122,29,42,0.07),transparent_52%),radial-gradient(ellipse_90%_55%_at_50%_0%,rgba(58,18,24,0.12),transparent_58%),radial-gradient(ellipse_100%_75%_at_50%_110%,rgba(0,0,0,0.48),transparent_48%)]';
 
 /** Vollseiten-Shell — tiefer Schwarzton, kein Vollflächen-Rot. */
 export function dsPageShellClass(extra = ''): string {
@@ -58,9 +66,10 @@ export const DS_LIST_GAP = 'gap-2';
 export const DS_SECTION_GAP = 'gap-4';
 export const DS_STAT_GRID_GAP = 'gap-2.5';
 
-/** Soft Gray — Meta/Subtext (ruhiger als hartes Zinc). */
-export const DS_TEXT_MUTED = 'text-[#A8A8AE]';
-export const DS_TEXT_SOFT = 'text-white/50';
+/** Warm muted — bessere Lesbarkeit auf Deep Dark. */
+export const DS_TEXT_MUTED = 'text-[#B8B0B4]';
+export const DS_TEXT_SOFT = 'text-[#9A9398]';
+export const DS_TEXT_BODY = 'text-[#E8E4E6]';
 
 /** Kleine Brand-Zeile (SpielzeitApp) — weiterhin Caps. */
 export function dsBrandKickerClass(): string {
@@ -79,7 +88,7 @@ export function dsScreenHeadlineClass(): string {
 
 /** Section Labels (NÄCHSTES SPIEL, Matchday-Feed). */
 export function dsMatchdaySectionLabelClass(): string {
-  return 'text-[0.78rem] font-semibold uppercase tracking-[0.35em] text-[#ff909b]';
+  return 'text-[0.78rem] font-semibold uppercase tracking-[0.35em] text-[#B85C68]';
 }
 
 /** Sublines unter Headlines. */
@@ -92,10 +101,11 @@ export function dsButtonTextClass(): string {
   return 'text-[1rem] font-semibold tracking-[0.01em]';
 }
 
-const PRIMARY_GRADIENT = 'bg-gradient-to-br from-[#ff4b5c] to-[#ff2d55]';
+const PRIMARY_GRADIENT = 'bg-gradient-to-br from-[#7A1D2A] to-[#3A1218]';
 const PRIMARY_GLOW =
-  'shadow-[0_0_30px_rgba(255,45,85,0.28),inset_0_1px_0_rgba(255,255,255,0.16),0_4px_18px_rgba(0,0,0,0.32)]';
-const PRIMARY_GLOW_HOVER = 'hover:shadow-[0_0_36px_rgba(255,45,85,0.34),inset_0_1px_0_rgba(255,255,255,0.2),0_6px_22px_rgba(0,0,0,0.36)]';
+  'shadow-[0_0_28px_rgba(122,29,42,0.22),inset_0_1px_0_rgba(255,255,255,0.12),0_4px_18px_rgba(0,0,0,0.38)]';
+const PRIMARY_GLOW_HOVER =
+  'hover:shadow-[0_0_32px_rgba(122,29,42,0.28),inset_0_1px_0_rgba(255,255,255,0.14),0_6px_22px_rgba(0,0,0,0.42)]';
 
 export function dsCardTitleClass(): string {
   return 'text-lg font-bold leading-snug tracking-tight text-white';
@@ -111,7 +121,45 @@ export function dsMetaTextClass(): string {
 }
 
 export function dsBodyTextClass(): string {
-  return 'text-sm font-normal leading-relaxed text-white/72';
+  return `text-sm font-normal leading-relaxed ${DS_TEXT_BODY}`;
+}
+
+/** Termine: Datum-Box links (Fixture-Card). */
+export function dsScheduleDateBoxClass(): string {
+  return [
+    'flex w-[58px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-[14px]',
+    'border border-white/[0.08] bg-[rgba(18,18,20,0.96)] px-2 py-2 leading-none',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_20px_rgba(122,29,42,0.06)]',
+  ].join(' ');
+}
+
+export function dsScheduleDateBoxWeekdayClass(): string {
+  return 'text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B85C68]';
+}
+
+export function dsScheduleDateBoxDayClass(): string {
+  return 'text-[1.65rem] font-bold tabular-nums leading-none text-white';
+}
+
+export function dsScheduleDateBoxMonthClass(): string {
+  return 'text-[10px] font-medium leading-tight text-[#B8B0B4]';
+}
+
+/** Meta-Zeile unter Fixture-Cards (Beginn · Treffpunkt · Ende). */
+export function dsScheduleFixtureMetaRowClass(): string {
+  return 'mt-2 border-t border-white/[0.06] pt-2 text-[11px] font-medium leading-snug text-[#B8B0B4]';
+}
+
+export function dsTertiaryButtonClass(): string {
+  return [
+    'inline-flex items-center justify-center rounded-[16px] border border-white/[0.08]',
+    'bg-[rgba(10,10,12,0.96)] text-[#E8E4E6]',
+    'px-3 py-2 text-sm font-semibold',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]',
+    'transition-[background,box-shadow] duration-150',
+    'hover:bg-[rgba(16,14,16,0.98)]',
+    'active:scale-[0.98]',
+  ].join(' ');
 }
 
 /** Cinematic Stadium Surface — dunkler, dünner Rot-Ambient-Rand. */
@@ -197,7 +245,7 @@ export function dsTrainingAttendanceCardGlowClass(): string {
 
 /** Training-Detail: warmer Header-Nebel (nur Wrapper, Logos unberührt). */
 export function dsTrainingDetailHeaderAtmosphereClass(): string {
-  return 'pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit] bg-[radial-gradient(ellipse_110%_75%_at_50%_-8%,rgba(255,45,85,0.11)_0%,transparent_54%),linear-gradient(180deg,rgba(255,30,30,0.05)_0%,transparent_38%)]';
+  return 'pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit] bg-[radial-gradient(ellipse_110%_75%_at_50%_-8%,rgba(122,29,42,0.12)_0%,transparent_54%),linear-gradient(180deg,rgba(58,18,24,0.06)_0%,transparent_38%)]';
 }
 
 export function dsFeedAvatarRingClass(): string {
@@ -556,19 +604,23 @@ export function dsSecondaryCtaClass(): string {
 export function dsSchedulePageStyle(): { background: string; boxShadow: string } {
   return {
     background:
-      'radial-gradient(ellipse 100% 55% at 50% 0%, rgba(255,45,85,0.05), transparent 52%), radial-gradient(circle at 50% 0%, rgba(80,0,0,0.07), transparent 48%), linear-gradient(180deg, #090909 0%, #060606 100%)',
-    boxShadow: 'inset 0 0 100px rgba(0,0,0,0.42)',
+      'radial-gradient(ellipse 100% 55% at 50% 0%, rgba(122,29,42,0.06), transparent 52%), radial-gradient(circle at 50% 0%, rgba(58,18,24,0.08), transparent 48%), linear-gradient(180deg, #121214 0%, #0A0A0C 100%)',
+    boxShadow: 'inset 0 0 100px rgba(0,0,0,0.45)',
   };
 }
 
 /** Hero-/Listen-Karten auf Termine (Premium Match Panels). */
 export function dsScheduleEventPanelClass(): string {
   return [
-    'relative overflow-hidden rounded-[22px]',
-    'border border-[rgba(255,40,40,0.08)]',
-    'bg-[rgba(10,10,14,0.97)]',
-    'shadow-[0_10px_40px_rgba(0,0,0,0.52),0_0_28px_rgba(255,45,85,0.06),inset_0_1px_0_rgba(255,255,255,0.025)]',
+    'relative overflow-hidden rounded-[16px]',
+    'border border-[rgba(122,29,42,0.12)]',
+    'bg-[linear-gradient(165deg,rgba(18,18,20,0.98)_0%,rgba(12,12,14,0.99)_55%,rgba(20,12,14,0.99)_100%)]',
+    'shadow-[0_10px_36px_rgba(0,0,0,0.5),0_0_24px_rgba(122,29,42,0.07),inset_0_1px_0_rgba(255,255,255,0.025)]',
   ].join(' ');
+}
+
+export function dsScheduleEventPanelGlowClass(): string {
+  return 'pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_50%_at_100%_0%,rgba(122,29,42,0.08)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.02)_0%,transparent_20%)]';
 }
 
 /** Mehr-Hub: subtiler Page-Hintergrund (weniger Vollflächen-Rot). */

@@ -1,5 +1,9 @@
 import React from 'react';
-import { dsMatchdaySectionLabelClass, dsScheduleEventPanelClass } from '../../lib/premiumDesignSystem';
+import {
+  dsMatchdaySectionLabelClass,
+  dsScheduleEventPanelClass,
+  dsScheduleEventPanelGlowClass,
+} from '../../lib/premiumDesignSystem';
 
 type Props = {
   /** z. B. „Nächstes Spiel“, „Nächstes Training“ */
@@ -25,7 +29,8 @@ export function EventHeroCard({ label, children, footer, labelAside }: Props) {
       </div>
 
       <div className={dsScheduleEventPanelClass()}>
-        <div className="relative z-10 max-h-[46svh] min-h-0 w-full min-w-0 overflow-hidden sm:max-h-[min(48vh,23rem)]">
+        <div className={dsScheduleEventPanelGlowClass()} aria-hidden />
+        <div className="relative z-10 max-h-[38svh] min-h-0 w-full min-w-0 overflow-hidden sm:max-h-[min(40vh,20rem)]">
           {children}
         </div>
       </div>

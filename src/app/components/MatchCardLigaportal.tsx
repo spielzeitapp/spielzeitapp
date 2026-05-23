@@ -1,5 +1,7 @@
 import React from 'react';
-import { CalendarDays, CircleHelp, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { CalendarDays, CircleHelp, Clock, MapPin, ThumbsDown, ThumbsUp, Users } from 'lucide-react';
+import { TrainingMotifIcon } from '../../components/schedule/scheduleFootballMotifIcons';
+import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import type { EventKind, EventStatus } from '../../hooks/useEvents';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
@@ -388,7 +390,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     </div>
   );
 
-  const dateRow = scheduleNextMatchHero ? null : (
+  const dateRow =
+    scheduleNextMatchHero || (isTrainingCard && compactDetailGame) ? null : (
     <div className="mb-2">
       <div className={`${compactParentRow ? 'flex items-center justify-between gap-2' : ''}`}>
         <span className="block text-base font-semibold text-white min-w-0 truncate">
@@ -423,12 +426,14 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const cardContent = (
     <>
+      <div
+        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_95%_60%_at_100%_0%,rgba(122,29,42,0.09)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.02)_0%,transparent_24%)]"
+        aria-hidden
+      />
       {/* Spielart bei Spielen: oberhalb „ANPFIFF“ in der Mittelspalte (MatchCardGameCore). Training/Event: Titel hier. */}
-      {effectiveEventType !== 'game' && headerTitle ? (
+      {effectiveEventType !== 'game' && !isTrainingCard && headerTitle ? (
         <div className="flex justify-center">
-          <p className="text-[17px] font-semibold text-white">
-            {headerTitle}
-          </p>
+          <p className="text-[17px] font-semibold text-white">{headerTitle}</p>
         </div>
       ) : null}
 
@@ -458,44 +463,65 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             compactDetailGame={compactDetailGame}
           />
         </>
+      ) : isTrainingCard ? (
+        <div className="relative z-[1] flex flex-col gap-2">
+          <div className="flex items-start gap-2.5">
+            <TrainingMotifIcon className="mt-0.5 h-9 w-9 shrink-0 text-white" />
+            <div className="min-w-0 flex-1">
+              <p className={dsMatchdaySectionLabelClass()}>Training</p>
+              <p className="mt-1 text-[17px] font-bold leading-tight tracking-tight text-white">
+                {dateLabelLong ?? dateLabelShort ?? '—'}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5 border-t border-white/[0.06] pt-2">
+            <div className="flex items-center gap-2 text-[13px]">
+              <Clock className="h-3.5 w-3.5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+              <span className="text-[#B8B0B4]">Beginn</span>
+              <span className="ml-auto font-semibold tabular-nums text-white">{timeStr} Uhr</span>
+            </div>
+            {placeLine ? (
+              <div className="flex items-start gap-2 text-[13px]">
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                <span className="text-[#B8B0B4]">Ort</span>
+                <span className="ml-auto max-w-[58%] text-right font-medium leading-snug text-white">{placeLine}</span>
+              </div>
+            ) : null}
+            {canSeeSensitiveInfo && meetupTimeOnly ? (
+              <div className="flex items-center gap-2 text-[13px]">
+                <Users className="h-3.5 w-3.5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                <span className="text-[#B8B0B4]">Treffpunkt</span>
+                <span className="ml-auto font-semibold tabular-nums text-white">{meetupTimeOnly} Uhr</span>
+              </div>
+            ) : null}
+            {endTimeLabel ? (
+              <div className="flex items-center gap-2 text-[13px]">
+                <Clock className="h-3.5 w-3.5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                <span className="text-[#B8B0B4]">Ende</span>
+                <span className="ml-auto font-semibold tabular-nums text-white">{endTimeLabel} Uhr</span>
+              </div>
+            ) : null}
+          </div>
+          {descriptionText ? (
+            <p className="line-clamp-2 text-[12px] font-medium leading-snug text-[#B8B0B4]">{descriptionText}</p>
+          ) : null}
+        </div>
       ) : (
         <>
-          {/* TRAINING / EVENT: kein Team-/Opponent-Grid, dafür kompakte Pills/Badges */}
-          <div className="mt-4 flex flex-col items-center text-center gap-2">
+          <div className="mt-4 flex flex-col items-center gap-2 text-center">
             <MatchCardKickoffBlock
               timeDisplay={timeStr}
               showUhr
               location={null}
               headerLabel="BEGINN"
             />
-
             {placeLine ? (
-              <div className="mt-1 flex min-h-9 max-w-[320px] items-center justify-center rounded-full bg-white/10 border border-white/15 px-5 py-2 text-sm font-medium text-white/90">
-                <span className="break-words line-clamp-2">{placeLine}</span>
+              <div className="mt-1 flex min-h-9 max-w-[320px] items-center justify-center rounded-full border border-white/12 bg-white/[0.06] px-5 py-2 text-sm font-medium text-[#E8E4E6]">
+                <span className="line-clamp-2 break-words">{placeLine}</span>
               </div>
             ) : null}
-            {addressLine && addressLine.toLowerCase() !== placeLine.toLowerCase() ? (
-              <div className="mt-1 flex min-h-9 max-w-[320px] items-center justify-center rounded-full bg-white/5 border border-white/10 px-5 py-2 text-[14px] font-medium text-white/75">
-                <span className="break-words line-clamp-3 text-center">{addressLine}</span>
-              </div>
-            ) : null}
-
-            <div className="mt-1 flex flex-wrap justify-center gap-2">
-              {canSeeSensitiveInfo && meetupTimeOnly ? (
-                <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-red-800/80 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800/90">
-                  <span className="whitespace-nowrap">Treffpunkt: {meetupTimeOnly}</span>
-                </div>
-              ) : null}
-
-              {endTimeLabel ? (
-                <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-white/10 border border-white/15 px-5 py-2 text-sm font-medium text-white/90">
-                  <span className="whitespace-nowrap">Ende: {endTimeLabel}</span>
-                </div>
-              ) : null}
-            </div>
-
             {descriptionText ? (
-              <div className="mt-1 max-w-[320px] line-clamp-2 text-[14px] font-semibold leading-snug text-white/75">
+              <div className="mt-1 max-w-[320px] line-clamp-2 text-[14px] font-semibold leading-snug text-[#B8B0B4]">
                 {descriptionText}
               </div>
             ) : null}
@@ -506,10 +532,10 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   );
 
   const heroRing = heroHighlight
-    ? 'ring-2 ring-red-500/45 shadow-[0_0_48px_rgba(220,38,38,0.18)] sm:py-5'
+    ? 'ring-2 ring-[rgba(122,29,42,0.45)] shadow-[0_0_40px_rgba(122,29,42,0.16)] sm:py-5'
     : '';
   const baseCardClass =
-    `relative w-full max-w-none overflow-hidden rounded-2xl bg-gradient-to-b from-black to-red-900 px-[15px] py-4 ${heroRing} ${className}`;
+    `relative w-full max-w-none overflow-hidden rounded-[16px] bg-[linear-gradient(165deg,#121214_0%,#0A0A0C_52%,#1A0B0E_100%)] px-[15px] py-3.5 shadow-[0_0_32px_rgba(122,29,42,0.08),inset_0_1px_0_rgba(255,255,255,0.03)] ${heroRing} ${className}`;
   const cardClass =
     isPublicView ? baseCardClass : `${baseCardClass} ${isClickable ? 'cursor-pointer transition ' : ''}`.trim();
 

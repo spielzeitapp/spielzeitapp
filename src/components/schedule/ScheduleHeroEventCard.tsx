@@ -14,7 +14,14 @@ import {
   eventNotesTitle,
   eventTrainingEndDisplay,
 } from './scheduleEventViewUtils';
-import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
+import {
+  dsPrimaryCtaClass,
+  dsScheduleDateBoxClass,
+  dsScheduleDateBoxDayClass,
+  dsScheduleDateBoxMonthClass,
+  dsScheduleDateBoxWeekdayClass,
+  dsScheduleFixtureMetaRowClass,
+} from '../../lib/premiumDesignSystem';
 import { EventMotifIcon, TrainingMotifIcon } from './scheduleFootballMotifIcons';
 
 export type ScheduleHeroEventCardProps = {
@@ -105,7 +112,7 @@ function HeroMatchTeamLogo({ src }: { src: string }) {
 }
 
 const heroStadiumGradient =
-  'linear-gradient(to bottom, rgba(6,6,8,0.96) 0%, rgba(4,4,6,0.94) 48%, rgba(8,6,8,0.92) 100%)';
+  'linear-gradient(to bottom, rgba(10,10,12,0.97) 0%, rgba(12,12,14,0.96) 48%, rgba(18,10,12,0.98) 100%)';
 
 /** Dezentes Stadion — kaum sichtbar, Text immer lesbar (alle Hero-Typen). */
 function HeroHybridBackdrop() {
@@ -120,7 +127,7 @@ function HeroHybridBackdrop() {
       <div className="absolute inset-0 bg-black/74" aria-hidden />
       <div className="absolute inset-0 backdrop-blur-[2px] bg-black/22" aria-hidden />
       <div
-        className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(255,45,85,0.08),transparent_55%)]"
+        className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(122,29,42,0.09),transparent_55%)]"
         aria-hidden
       />
       <div className="absolute inset-0" style={{ background: heroStadiumGradient }} aria-hidden />
@@ -211,7 +218,7 @@ export function ScheduleHeroEventCard({
 
   const dateBlock = (
     <div className="pointer-events-none absolute left-2 top-2 z-[2] flex max-w-[48%] flex-col items-start gap-1 rounded-xl border border-white/18 bg-black/68 px-3 py-2.5 text-left shadow-md backdrop-blur-md sm:left-3 sm:top-3 sm:max-w-[42%]">
-      <span className="text-[11px] font-black uppercase leading-none tracking-[0.12em] text-red-200 sm:text-xs">
+      <span className="text-[11px] font-black uppercase leading-none tracking-[0.12em] text-[#B85C68] sm:text-xs">
         {wd}
       </span>
       <span className="text-3xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.65)] sm:text-4xl">
@@ -271,7 +278,7 @@ export function ScheduleHeroEventCard({
             <p className="px-0.5 text-center text-[9px] font-bold uppercase leading-snug tracking-[0.14em] text-white/88 sm:text-[10px] sm:tracking-[0.16em]">
               {matchKindCenterLabel}
             </p>
-            <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.22em] text-red-400 sm:text-[10px]">
+            <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.22em] text-[#B85C68] sm:text-[10px]">
               {kickoffHeaderLabel}
             </span>
             <span className="mt-1 text-center text-[2.2rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.55)] min-[375px]:text-[2.4rem] sm:text-[2.5rem]">
@@ -323,52 +330,46 @@ export function ScheduleHeroEventCard({
       ? trainingTitle.trim()
       : 'Training';
 
+  const trainingLocationLine =
+    locLine1 || locLine2 ? [locLine1, locLine2].filter(Boolean).join(' · ') : locSingle || '—';
+
+  const trainingMetaParts = [
+    `Beginn ${timeStr}`,
+    showMeetup && meetupTimeOnly ? `Treffpunkt ${meetupTimeOnly}` : null,
+    endDisplay ? `Ende ${endDisplay}` : null,
+  ].filter(Boolean);
+
   const trainingBody = (
     <>
       <HeroHybridBackdrop />
-      {dateBlock}
-      {statusCluster}
-      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-3 pt-3 sm:pb-3 sm:pt-3">
-        <p className="mb-2 line-clamp-2 max-w-[min(100%,21rem)] text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-white/85 sm:text-xs">
-          {trainingMainTitle}
-        </p>
-
-        <div className="grid w-full min-w-0 max-w-[min(100%,23.5rem)] grid-cols-[1fr_auto_1fr] items-stretch gap-x-1 sm:gap-x-2">
-          <div className="min-h-[6.5rem] border-r border-white/[0.12]" aria-hidden />
-          <div className="flex min-w-[7.25rem] max-w-[10rem] shrink-0 flex-col items-center px-2 pb-1 pt-0 sm:min-w-[7.75rem]">
-            <div className="relative flex h-[4rem] w-[4rem] shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-red-600/26 to-red-950/42 shadow-[0_0_26px_rgba(220,38,38,0.26)] ring-2 ring-red-500/42 sm:h-[4.35rem] sm:w-[4.35rem]">
-              <TrainingMotifIcon className="h-11 w-11 text-white/88 sm:h-12 sm:w-12" />
-            </div>
-            <span className="mt-2 text-[9px] font-bold uppercase tracking-[0.22em] text-red-400 sm:text-[10px]">Beginn</span>
-            <span className="mt-1 text-center text-[2.35rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.52)] min-[375px]:text-[2.55rem] sm:text-[2.65rem]">
-              {timeStr}
-            </span>
-            <span className="mt-1 text-[10px] font-medium text-white/42">Uhr</span>
+      <div className="relative z-[1] flex w-full min-w-0 flex-col px-3 py-2.5 pb-3">
+        <div className="flex items-start gap-2.5">
+          <div className={dsScheduleDateBoxClass()}>
+            <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
+            <span className={dsScheduleDateBoxDayClass()}>{day}</span>
+            <span className={dsScheduleDateBoxMonthClass()}>{mon}</span>
           </div>
-          <div className="min-h-[6.5rem] border-l border-white/[0.12]" aria-hidden />
-        </div>
 
-        <div className="mt-2 flex w-full min-w-0 flex-col items-center px-1">
-          {locLine1 || locLine2 ? (
-            <div className="max-w-[min(100%,21rem)] space-y-0.5 text-center">
-              {locLine1 ? (
-                <p className="text-[12px] font-semibold leading-snug text-white/82">{locLine1}</p>
-              ) : null}
-              {locLine2 ? (
-                <p className="text-[10px] font-normal leading-snug text-white/42">{locLine2}</p>
-              ) : null}
+          <div className="flex min-w-0 flex-1 items-start gap-2">
+            <TrainingMotifIcon className="mt-0.5 h-9 w-9 shrink-0 text-white sm:h-10 sm:w-10" />
+            <div className="min-w-0 flex-1">
+              <p className="line-clamp-2 text-[15px] font-bold leading-tight tracking-tight text-white sm:text-[16px]">
+                {trainingMainTitle}
+              </p>
+              <p className="mt-0.5 line-clamp-2 text-[12px] font-medium leading-snug text-[#B8B0B4]">
+                {trainingLocationLine}
+              </p>
             </div>
-          ) : locSingle ? (
-            <p className="max-w-[min(100%,21rem)] text-center text-[11px] font-medium leading-snug text-white/68">{locSingle}</p>
-          ) : null}
+          </div>
 
-          {showMeetup && meetupTimeOnly ? <HeroMeetupCTA timeLabel={meetupTimeOnly} /> : null}
-          {endDisplay ? (
-            <div className="mt-1.5 flex min-h-7 w-full max-w-xs items-center justify-center rounded-full border border-white/12 bg-white/[0.07] px-3 py-1 text-[10px] font-medium text-white/72">
-              <span className="whitespace-nowrap">Ende: {endDisplay}</span>
-            </div>
+          {topRight ? (
+            <div className="pointer-events-auto shrink-0 origin-top-right scale-[0.92]">{topRight}</div>
           ) : null}
         </div>
+
+        {trainingMetaParts.length > 0 ? (
+          <p className={dsScheduleFixtureMetaRowClass()}>{trainingMetaParts.join(' · ')}</p>
+        ) : null}
       </div>
     </>
   );

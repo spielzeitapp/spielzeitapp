@@ -13,7 +13,14 @@ import {
   scheduleEventTypeLabel,
   eventNotesTitle,
 } from './scheduleEventViewUtils';
-import { dsScheduleEventPanelClass } from '../../lib/premiumDesignSystem';
+import {
+  dsScheduleDateBoxClass,
+  dsScheduleDateBoxDayClass,
+  dsScheduleDateBoxMonthClass,
+  dsScheduleDateBoxWeekdayClass,
+  dsScheduleEventPanelClass,
+  dsScheduleEventPanelGlowClass,
+} from '../../lib/premiumDesignSystem';
 import { CompactFootballBallIcon } from './scheduleFootballMotifIcons';
 
 export type CompactEventCardProps = {
@@ -130,7 +137,7 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <CompactFootballBallIcon className="h-9 w-9 shrink-0 text-white/88 sm:h-10 sm:w-10" />
+      <CompactFootballBallIcon className="h-8 w-8 shrink-0 text-white sm:h-9 sm:w-9" />
     ) : (
       <CalendarDays className="h-5 w-5 shrink-0 text-red-200/85" />
     );
@@ -233,7 +240,7 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <CompactFootballBallIcon className="h-9 w-9 shrink-0 text-white/88 sm:h-10 sm:w-10" />
+      <CompactFootballBallIcon className="h-8 w-8 shrink-0 text-white sm:h-9 sm:w-9" />
     ) : (
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">
         <CalendarDays className="h-5 w-5 text-red-200/85" />
@@ -320,8 +327,8 @@ export function CompactEventCard({
   return (
     <div
       className={[
-        `relative mb-3 -mx-1 flex w-[calc(100%+0.5rem)] min-w-0 flex-row items-start justify-between gap-2 overflow-x-hidden px-2 py-3 sm:mx-0 sm:w-full ${dsScheduleEventPanelClass()}`,
-        clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
+        `relative mb-2.5 -mx-1 flex w-[calc(100%+0.5rem)] min-w-0 flex-row items-stretch gap-2 overflow-x-hidden px-2.5 py-2.5 sm:mx-0 sm:w-full ${dsScheduleEventPanelClass()}`,
+        clickable ? 'cursor-pointer active:bg-white/[0.03]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
       tabIndex={clickable ? 0 : undefined}
@@ -337,15 +344,16 @@ export function CompactEventCard({
           : undefined
       }
     >
-      <div className="flex w-[70px] shrink-0 flex-col gap-0.5 text-left leading-none">
-        <span className="text-[12px] font-semibold uppercase leading-tight tracking-wide text-rose-300/90">{wd}</span>
-        <span className="text-[34px] font-bold tabular-nums leading-none text-white">{day}</span>
-        <span className="text-[12px] font-medium leading-tight text-white/70">{monYear}</span>
-        <span className="text-[14px] font-semibold tabular-nums leading-tight text-red-400">{timeStr}</span>
+      <div className={dsScheduleEventPanelGlowClass()} aria-hidden />
+      <div className={`${dsScheduleDateBoxClass()} relative z-[1] !w-[54px]`}>
+        <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
+        <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
+        <span className={`${dsScheduleDateBoxMonthClass()} !text-[9px]`}>{monYear}</span>
+        <span className="text-[11px] font-semibold tabular-nums leading-tight text-[#B85C68]">{timeStr}</span>
       </div>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 pr-20">
-        <div className={`flex min-w-0 items-start ${et === 'training' ? 'gap-3' : 'gap-2'}`}>
+      <div className="relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col justify-center gap-0.5 py-0.5">
+        <div className={`flex min-w-0 items-start ${et === 'training' ? 'gap-2' : 'gap-1.5'}`}>
           <div className="shrink-0 pt-0.5">{iconSlot}</div>
           {titleText}
         </div>
@@ -353,16 +361,14 @@ export function CompactEventCard({
         {line3}
       </div>
 
-      {hasTrailing ? (
-        <div className="absolute right-4 top-4 min-w-0 shrink opacity-90 [&>*]:origin-top-right [&>*]:scale-90">
-          {trailing}
-        </div>
-      ) : null}
-      {clickable ? (
-        <span className="pointer-events-none absolute bottom-5 right-4 text-[26px] font-light leading-none text-white/55 transition-colors duration-200" aria-hidden>
-          ›
-        </span>
-      ) : null}
+      <div className="relative z-[1] flex shrink-0 flex-col items-end justify-between gap-1 py-0.5 pl-1">
+        {hasTrailing ? <div className="min-w-0 [&>*]:origin-top-right">{trailing}</div> : null}
+        {clickable ? (
+          <span className="text-[22px] font-light leading-none text-white/45" aria-hidden>
+            ›
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }
