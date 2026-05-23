@@ -1,7 +1,9 @@
 import React from 'react';
 import { CalendarDays, LayoutGrid } from 'lucide-react';
 
-/** Trainings-Motiv: Spielfeld-Lineicon + Kegel (BottomNav-Linienstärke). */
+const TRAINING_STROKE = 1.85;
+
+/** Trainings-Motiv: ruhiges Spielfeld + Kegel (Premium Line, BottomNav-Sprache). */
 export function TrainingMotifIcon({ className = '' }: { className?: string }) {
   return (
     <svg
@@ -12,25 +14,24 @@ export function TrainingMotifIcon({ className = '' }: { className?: string }) {
       aria-hidden
     >
       <rect
-        x="3"
-        y="5"
-        width="18"
-        height="12"
-        rx="1.5"
+        x="3.25"
+        y="5.25"
+        width="17.5"
+        height="11.5"
+        rx="1.25"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth={TRAINING_STROKE}
         strokeLinejoin="round"
       />
-      <path d="M12 5v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="12" cy="11" r="2.25" stroke="currentColor" strokeWidth="2" />
+      <path d="M12 5.25v11.5" stroke="currentColor" strokeWidth={TRAINING_STROKE} strokeLinecap="round" />
+      <circle cx="12" cy="11" r="2" stroke="currentColor" strokeWidth={TRAINING_STROKE} />
       <path
-        d="M16.5 18.5L17.5 16h1.4l1 2.5"
+        d="M16.75 18.25L17.65 16.15h1.25l.95 2.1"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth={TRAINING_STROKE}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M17.5 16v1.25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }

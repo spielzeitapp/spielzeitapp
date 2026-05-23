@@ -466,7 +466,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       ) : isTrainingCard ? (
         <div className="relative z-[1] flex flex-col gap-2">
           <div className="flex items-start gap-2.5">
-            <TrainingMotifIcon className="mt-0.5 h-9 w-9 shrink-0 text-white" />
+            <TrainingMotifIcon className="mt-0.5 h-9 w-9 shrink-0 text-white/90" />
             <div className="min-w-0 flex-1">
               <p className={dsMatchdaySectionLabelClass()}>Training</p>
               <p className="mt-1 text-[17px] font-bold leading-tight tracking-tight text-white">
@@ -535,7 +535,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     ? 'ring-2 ring-[rgba(122,29,42,0.45)] shadow-[0_0_40px_rgba(122,29,42,0.16)] sm:py-5'
     : '';
   const baseCardClass =
-    `relative w-full max-w-none overflow-hidden rounded-[16px] bg-[linear-gradient(165deg,#121214_0%,#0A0A0C_52%,#1A0B0E_100%)] px-[15px] py-3.5 shadow-[0_0_32px_rgba(122,29,42,0.08),inset_0_1px_0_rgba(255,255,255,0.03)] ${heroRing} ${className}`;
+    `relative w-full max-w-none overflow-hidden rounded-[16px] bg-[linear-gradient(168deg,#141416_0%,#0A0A0C_58%,#12080C_100%)] px-[15px] py-3 shadow-[0_8px_28px_rgba(0,0,0,0.48),0_0_20px_rgba(122,29,42,0.06),inset_0_1px_0_rgba(255,255,255,0.025)] ${heroRing} ${className}`;
   const cardClass =
     isPublicView ? baseCardClass : `${baseCardClass} ${isClickable ? 'cursor-pointer transition ' : ''}`.trim();
 

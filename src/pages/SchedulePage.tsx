@@ -29,10 +29,15 @@ import { buildTeamIcsFeedUrl, teamCalendarSlugFromTeamName } from '../lib/calend
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import type { SeriesEditScope } from '../lib/seriesEditScope';
 import {
+  dsMatchdaySectionLabelClass,
   dsPageTitleClass,
   dsScheduleFilterTabClass,
+  dsScheduleGlassButtonClass,
   dsSchedulePageStyle,
+  dsSchedulePlusButtonClass,
   dsSublineClass,
+  dsPrimaryCtaClass,
+  dsSecondaryCtaClass,
 } from '../lib/premiumDesignSystem';
 import {
   meetupUtcIsoOnViennaEventDay,
@@ -120,10 +125,10 @@ function ScheduleHeroToolbarAction({
 }) {
   const tone =
     emphasis === 'primary'
-      ? 'border-red-500/50 bg-red-600/95 text-white shadow-lg shadow-red-950/40 backdrop-blur-sm hover:border-red-400/70 hover:bg-red-500'
+      ? `${dsPrimaryCtaClass()} !h-auto !min-h-0 !w-full !rounded-[14px] !px-2 !py-0 !text-[10px] sm:!text-[11px]`
       : emphasis === 'danger'
-        ? 'border-red-500/35 bg-red-950/55 text-red-100 shadow-sm backdrop-blur-sm hover:border-red-400/45 hover:bg-red-900/65 hover:text-white'
-        : 'border-white/12 bg-black/45 text-white/75 shadow-sm backdrop-blur-sm hover:border-white/22 hover:bg-white/[0.08] hover:text-white/90';
+        ? 'border-[rgba(122,29,42,0.28)] bg-[rgba(58,18,24,0.55)] text-[#E8C4C8] shadow-[0_0_12px_rgba(122,29,42,0.12)] backdrop-blur-sm hover:border-[rgba(122,29,42,0.38)] hover:bg-[rgba(72,12,22,0.65)] hover:text-white'
+        : `${dsScheduleGlassButtonClass()} !h-auto !min-h-0 !w-full !rounded-[14px] !px-2 !py-0 !text-[10px] !font-semibold !text-white/78 sm:!text-[11px] hover:!text-white/92`;
   const sizeClass = compact
     ? 'h-9 min-h-9 gap-1 px-2 text-[11px] sm:text-[11px]'
     : 'h-10 min-h-[2.5rem] gap-1.5 px-2 text-[10px] sm:text-[11px]';
@@ -132,7 +137,7 @@ function ScheduleHeroToolbarAction({
       type="button"
       title={title}
       aria-label={title}
-      className={`inline-flex w-full min-w-0 shrink-0 items-center justify-center rounded-xl border font-semibold transition ${sizeClass} ${tone} ${className}`}
+      className={`inline-flex w-full min-w-0 shrink-0 items-center justify-center font-semibold transition ${sizeClass} ${tone} ${className}`}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
@@ -895,7 +900,7 @@ export const SchedulePage: React.FC = () => {
                 {canShowCalendarActions ? (
                   <button
                     type="button"
-                    className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-white/12 bg-black/30 px-3 text-[12px] font-semibold text-white/85 shadow-[0_0_10px_rgba(220,38,38,0.14)] transition-all hover:bg-white/[0.06] hover:text-white"
+                    className={`${dsScheduleGlassButtonClass()} h-10 shrink-0 gap-1.5 px-3 text-[12px]`}
                     title="Kalender abonnieren"
                     onClick={() => setCalendarSheetOpen(true)}
                   >
@@ -909,7 +914,7 @@ export const SchedulePage: React.FC = () => {
                     type="button"
                     onClick={() => setCreateModalOpen(true)}
                     disabled={!teamSeasonId}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-500/25 bg-red-500/10 text-[17px] leading-none text-white/95 shadow-[0_0_8px_rgba(220,38,38,0.16)] disabled:opacity-50 hover:bg-red-500/18"
+                    className={`${dsSchedulePlusButtonClass()} h-9 w-9 shrink-0 text-[17px] leading-none`}
                     aria-label="Termin anlegen"
                     title="Termin anlegen"
                   >
@@ -946,7 +951,7 @@ export const SchedulePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/app/termine/calendar')}
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-black/25 text-white/80 transition hover:bg-white/[0.06] hover:text-white"
+                    className={`${dsScheduleGlassButtonClass()} h-10 w-10 shrink-0`}
                   aria-label="Kalenderansicht"
                   title="Kalenderansicht"
                 >
@@ -1270,7 +1275,7 @@ export const SchedulePage: React.FC = () => {
                     }
                   >
                     {showHeroCard && furtherEvents.length > 0 ? (
-                      <h3 className="mb-1 border-t border-white/[0.06] pt-2 text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-300/70">
+                      <h3 className={`mb-2 mt-1 border-t border-white/[0.05] pt-3 ${dsMatchdaySectionLabelClass()} !text-[0.7rem]`}>
                         {normalizedUiRole === 'fan' ? 'Weitere Spiele' : 'Weitere Termine'}
                       </h3>
                     ) : null}
@@ -1308,6 +1313,7 @@ export const SchedulePage: React.FC = () => {
                           open={countsForCard.open}
                           isTraining={et === 'training'}
                           listColumn
+                          listCompact
                         />
                       ) : showCompactParentPill ? (
                         <CompactListParentAttendance

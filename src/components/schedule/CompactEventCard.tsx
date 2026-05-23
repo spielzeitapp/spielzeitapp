@@ -18,8 +18,8 @@ import {
   dsScheduleDateBoxDayClass,
   dsScheduleDateBoxMonthClass,
   dsScheduleDateBoxWeekdayClass,
-  dsScheduleEventPanelClass,
-  dsScheduleEventPanelGlowClass,
+  dsScheduleListPanelClass,
+  dsScheduleListPanelGlowClass,
 } from '../../lib/premiumDesignSystem';
 import { CompactFootballBallIcon } from './scheduleFootballMotifIcons';
 
@@ -137,7 +137,7 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <CompactFootballBallIcon className="h-8 w-8 shrink-0 text-white sm:h-9 sm:w-9" />
+      <CompactFootballBallIcon className="h-7 w-7 shrink-0 text-white/90 sm:h-8 sm:w-8" />
     ) : (
       <CalendarDays className="h-5 w-5 shrink-0 text-red-200/85" />
     );
@@ -149,7 +149,7 @@ export function CompactEventCard({
     return (
       <div
         className={[
-          `relative mb-3 -mx-1 flex min-h-[96px] w-[calc(100%+0.5rem)] min-w-0 flex-row items-stretch gap-3 overflow-hidden px-2 py-3 sm:mx-0 sm:w-full ${dsScheduleEventPanelClass()}`,
+          `relative mb-2 -mx-1 flex min-h-[88px] w-[calc(100%+0.5rem)] min-w-0 flex-row items-stretch gap-2.5 overflow-hidden px-2 py-2 sm:mx-0 sm:w-full ${dsScheduleListPanelClass()}`,
           clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
         ].join(' ')}
         role={clickable ? 'button' : undefined}
@@ -240,7 +240,7 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <CompactFootballBallIcon className="h-8 w-8 shrink-0 text-white sm:h-9 sm:w-9" />
+      <CompactFootballBallIcon className="h-7 w-7 shrink-0 text-white/90 sm:h-8 sm:w-8" />
     ) : (
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">
         <CalendarDays className="h-5 w-5 text-red-200/85" />
@@ -327,7 +327,7 @@ export function CompactEventCard({
   return (
     <div
       className={[
-        `relative mb-2.5 -mx-1 flex w-[calc(100%+0.5rem)] min-w-0 flex-row items-stretch gap-2 overflow-x-hidden px-2.5 py-2.5 sm:mx-0 sm:w-full ${dsScheduleEventPanelClass()}`,
+        `relative mb-2 -mx-1 flex w-[calc(100%+0.5rem)] min-w-0 flex-row items-stretch gap-2 overflow-x-hidden px-2 py-2 sm:mx-0 sm:w-full ${dsScheduleListPanelClass()}`,
         clickable ? 'cursor-pointer active:bg-white/[0.03]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
@@ -344,7 +344,7 @@ export function CompactEventCard({
           : undefined
       }
     >
-      <div className={dsScheduleEventPanelGlowClass()} aria-hidden />
+      <div className={dsScheduleListPanelGlowClass()} aria-hidden />
       <div className={`${dsScheduleDateBoxClass()} relative z-[1] !w-[54px]`}>
         <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
         <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
@@ -364,7 +364,7 @@ export function CompactEventCard({
       <div className="relative z-[1] flex shrink-0 flex-col items-end justify-between gap-1 py-0.5 pl-1">
         {hasTrailing ? <div className="min-w-0 [&>*]:origin-top-right">{trailing}</div> : null}
         {clickable ? (
-          <span className="text-[22px] font-light leading-none text-white/45" aria-hidden>
+          <span className="text-[20px] font-light leading-none text-white/32" aria-hidden>
             ›
           </span>
         ) : null}

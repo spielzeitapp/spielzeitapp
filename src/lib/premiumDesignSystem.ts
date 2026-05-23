@@ -93,7 +93,7 @@ export function dsMatchdaySectionLabelClass(): string {
 
 /** Sublines unter Headlines. */
 export function dsSublineClass(): string {
-  return 'font-medium leading-relaxed text-white/70';
+  return 'font-medium leading-relaxed text-white/82';
 }
 
 /** Primary-/Secondary-Button-Text. */
@@ -102,10 +102,11 @@ export function dsButtonTextClass(): string {
 }
 
 const PRIMARY_GRADIENT = 'bg-gradient-to-br from-[#7A1D2A] to-[#3A1218]';
+const PRIMARY_ACTIVE_GLOW = 'shadow-[0_0_22px_rgba(122,29,42,0.35),inset_0_1px_0_rgba(255,255,255,0.1)]';
 const PRIMARY_GLOW =
-  'shadow-[0_0_28px_rgba(122,29,42,0.22),inset_0_1px_0_rgba(255,255,255,0.12),0_4px_18px_rgba(0,0,0,0.38)]';
+  'shadow-[0_0_24px_rgba(122,29,42,0.2),inset_0_1px_0_rgba(255,255,255,0.1),0_4px_18px_rgba(0,0,0,0.4)]';
 const PRIMARY_GLOW_HOVER =
-  'hover:shadow-[0_0_32px_rgba(122,29,42,0.28),inset_0_1px_0_rgba(255,255,255,0.14),0_6px_22px_rgba(0,0,0,0.42)]';
+  'hover:shadow-[0_0_28px_rgba(122,29,42,0.32),inset_0_1px_0_rgba(255,255,255,0.12),0_6px_22px_rgba(0,0,0,0.44)]';
 
 export function dsCardTitleClass(): string {
   return 'text-lg font-bold leading-snug tracking-tight text-white';
@@ -147,7 +148,30 @@ export function dsScheduleDateBoxMonthClass(): string {
 
 /** Meta-Zeile unter Fixture-Cards (Beginn · Treffpunkt · Ende). */
 export function dsScheduleFixtureMetaRowClass(): string {
-  return 'mt-2 border-t border-white/[0.06] pt-2 text-[11px] font-medium leading-snug text-[#B8B0B4]';
+  return 'mt-2.5 border-t border-white/[0.05] pt-2 text-[11px] font-medium leading-snug text-white/65';
+}
+
+/** Termine: Dark-Glass-Controls (Abo, Kalender, Toolbar). */
+export function dsScheduleGlassButtonClass(): string {
+  return [
+    'inline-flex items-center justify-center rounded-[14px] border border-white/[0.1]',
+    'bg-[rgba(18,18,20,0.92)] text-white/85 backdrop-blur-sm',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_16px_rgba(122,29,42,0.08)]',
+    'transition-[background,box-shadow,border-color] duration-150',
+    'hover:border-white/[0.14] hover:bg-[rgba(22,18,20,0.96)] hover:text-white',
+  ].join(' ');
+}
+
+/** Termin anlegen (+). */
+export function dsSchedulePlusButtonClass(): string {
+  return [
+    'flex items-center justify-center rounded-full border border-[rgba(122,29,42,0.35)]',
+    'bg-gradient-to-br from-[#7A1D2A] to-[#3A1218] text-white',
+    'shadow-[0_0_20px_rgba(122,29,42,0.28),inset_0_1px_0_rgba(255,255,255,0.1)]',
+    'transition-[box-shadow,transform] duration-150',
+    'hover:shadow-[0_0_24px_rgba(122,29,42,0.35)] active:scale-[0.97]',
+    'disabled:opacity-45',
+  ].join(' ');
 }
 
 export function dsTertiaryButtonClass(): string {
@@ -482,7 +506,7 @@ export function dsFormationTabClass(active: boolean): string {
   return [
     'h-7 shrink-0 rounded-[12px] px-2 text-[10px] font-semibold leading-none transition-[background,box-shadow] duration-150 sm:px-2.5 sm:text-[11px]',
     active
-      ? `border border-transparent ${PRIMARY_GRADIENT} text-white shadow-[0_0_22px_rgba(255,45,85,0.26),inset_0_1px_0_rgba(255,255,255,0.14)]`
+      ? `border border-transparent ${PRIMARY_GRADIENT} text-white ${PRIMARY_ACTIVE_GLOW}`
       : TAB_INACTIVE,
   ].join(' ');
 }
@@ -491,7 +515,7 @@ export function dsSegmentTabClass(active: boolean): string {
   return [
     'flex-1 rounded-[10px] px-2 text-center text-sm font-semibold transition-[background,box-shadow,color] duration-150',
     active
-      ? `border border-transparent ${PRIMARY_GRADIENT} text-white shadow-[0_0_22px_rgba(255,45,85,0.26),inset_0_1px_0_rgba(255,255,255,0.12)]`
+      ? `border border-transparent ${PRIMARY_GRADIENT} text-white ${PRIMARY_ACTIVE_GLOW}`
       : 'bg-transparent text-white/40 hover:text-white/58',
   ].join(' ');
 }
@@ -501,7 +525,7 @@ export function dsScheduleFilterTabClass(active: boolean): string {
   return [
     'min-h-[36px] flex-1 rounded-[14px] px-2.5 text-[12px] font-semibold tracking-[0.01em] transition-all duration-150',
     active
-      ? `border border-[rgba(255,75,92,0.28)] ${PRIMARY_GRADIENT} text-white shadow-[0_0_20px_rgba(255,45,85,0.22),inset_0_1px_0_rgba(255,255,255,0.12)]`
+      ? `border border-[rgba(122,29,42,0.32)] ${PRIMARY_GRADIENT} text-white ${PRIMARY_ACTIVE_GLOW}`
       : 'border border-transparent text-white/45 hover:bg-[rgba(14,14,18,0.75)] hover:text-white/62',
   ].join(' ');
 }
@@ -529,7 +553,7 @@ export function dsLineupViewTabClass(view: 'live' | 'kickoff', active: boolean):
   if (view === 'live') {
     return `${base} bg-gradient-to-br from-emerald-800/75 to-emerald-950/85 text-emerald-50 shadow-[0_0_22px_rgba(40,255,120,0.14)]`;
   }
-  return `${base} ${PRIMARY_GRADIENT} text-white shadow-[0_0_22px_rgba(255,45,85,0.26),inset_0_1px_0_rgba(255,255,255,0.14)]`;
+  return `${base} ${PRIMARY_GRADIENT} text-white ${PRIMARY_ACTIVE_GLOW}`;
 }
 
 /** Wechsel: Spalten-Ambient (subtil). */
@@ -576,7 +600,7 @@ export function dsStickyCtaBarClass(): string {
 
 export function dsPrimaryCtaClass(): string {
   return [
-    'rounded-[22px] border border-white/10',
+    'rounded-[22px] border border-[rgba(122,29,42,0.25)]',
     PRIMARY_GRADIENT,
     'px-4 py-2.5 text-white tracking-[0.02em]',
     dsButtonTextClass(),
@@ -593,9 +617,9 @@ export function dsSecondaryCtaClass(): string {
     'bg-[rgba(14,14,18,0.92)] text-[#F2F2F2]',
     'px-4 py-2.5 tracking-[0.01em]',
     dsButtonTextClass(),
-    'shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_22px_rgba(255,45,85,0.08),0_4px_16px_rgba(0,0,0,0.28)]',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_18px_rgba(122,29,42,0.08),0_4px_16px_rgba(0,0,0,0.3)]',
     'transition-[background,box-shadow] duration-150',
-    'hover:bg-[rgba(18,14,16,0.94)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_26px_rgba(255,45,85,0.1)]',
+    'hover:bg-[rgba(18,14,16,0.94)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_22px_rgba(122,29,42,0.1)]',
     'active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45',
   ].join(' ');
 }
@@ -609,18 +633,44 @@ export function dsSchedulePageStyle(): { background: string; boxShadow: string }
   };
 }
 
-/** Hero-/Listen-Karten auf Termine (Premium Match Panels). */
-export function dsScheduleEventPanelClass(): string {
+/** Hero „Nächstes Training/Spiel“ — stärkere Hierarchie. */
+export function dsScheduleHeroPanelClass(): string {
   return [
-    'relative overflow-hidden rounded-[16px]',
-    'border border-[rgba(122,29,42,0.12)]',
-    'bg-[linear-gradient(165deg,rgba(18,18,20,0.98)_0%,rgba(12,12,14,0.99)_55%,rgba(20,12,14,0.99)_100%)]',
-    'shadow-[0_10px_36px_rgba(0,0,0,0.5),0_0_24px_rgba(122,29,42,0.07),inset_0_1px_0_rgba(255,255,255,0.025)]',
+    'relative overflow-hidden rounded-[18px]',
+    'border border-[rgba(122,29,42,0.22)]',
+    'bg-[linear-gradient(158deg,rgba(22,20,22,0.99)_0%,rgba(14,14,16,0.99)_48%,rgba(18,10,12,0.99)_100%)]',
+    'shadow-[0_14px_44px_rgba(0,0,0,0.55),0_0_36px_rgba(122,29,42,0.14),inset_0_1px_0_rgba(255,255,255,0.035)]',
   ].join(' ');
 }
 
+export function dsScheduleHeroPanelGlowClass(): string {
+  return [
+    'pointer-events-none absolute inset-0',
+    'bg-[radial-gradient(ellipse_85%_55%_at_100%_-5%,rgba(122,29,42,0.14)_0%,transparent_52%),radial-gradient(ellipse_70%_45%_at_0%_0%,rgba(122,29,42,0.06)_0%,transparent_50%),linear-gradient(180deg,rgba(255,255,255,0.03)_0%,transparent_22%)]',
+  ].join(' ');
+}
+
+/** Weitere Termine — sekundär, ruhiger. */
+export function dsScheduleListPanelClass(): string {
+  return [
+    'relative overflow-hidden rounded-[14px]',
+    'border border-[rgba(122,29,42,0.06)]',
+    'bg-[linear-gradient(180deg,rgba(12,12,14,0.99)_0%,rgba(10,10,12,0.99)_100%)]',
+    'shadow-[0_4px_20px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.02)]',
+  ].join(' ');
+}
+
+export function dsScheduleListPanelGlowClass(): string {
+  return 'pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.012)_0%,transparent_14%)]';
+}
+
+/** @deprecated Alias — Listenkarten */
+export function dsScheduleEventPanelClass(): string {
+  return dsScheduleListPanelClass();
+}
+
 export function dsScheduleEventPanelGlowClass(): string {
-  return 'pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_50%_at_100%_0%,rgba(122,29,42,0.08)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.02)_0%,transparent_20%)]';
+  return dsScheduleListPanelGlowClass();
 }
 
 /** Mehr-Hub: subtiler Page-Hintergrund (weniger Vollflächen-Rot). */

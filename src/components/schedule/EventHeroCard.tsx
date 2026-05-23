@@ -1,8 +1,8 @@
 import React from 'react';
 import {
   dsMatchdaySectionLabelClass,
-  dsScheduleEventPanelClass,
-  dsScheduleEventPanelGlowClass,
+  dsScheduleHeroPanelClass,
+  dsScheduleHeroPanelGlowClass,
 } from '../../lib/premiumDesignSystem';
 
 type Props = {
@@ -28,9 +28,9 @@ export function EventHeroCard({ label, children, footer, labelAside }: Props) {
         {labelAside ? <div className="shrink-0">{labelAside}</div> : null}
       </div>
 
-      <div className={dsScheduleEventPanelClass()}>
-        <div className={dsScheduleEventPanelGlowClass()} aria-hidden />
-        <div className="relative z-10 max-h-[38svh] min-h-0 w-full min-w-0 overflow-hidden sm:max-h-[min(40vh,20rem)]">
+      <div className={dsScheduleHeroPanelClass()}>
+        <div className={dsScheduleHeroPanelGlowClass()} aria-hidden />
+        <div className="relative z-10 min-h-[7.5rem] max-h-[42svh] w-full min-w-0 overflow-hidden py-0.5 sm:max-h-[min(44vh,22rem)]">
           {children}
         </div>
       </div>

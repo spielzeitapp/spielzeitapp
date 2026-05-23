@@ -30,6 +30,8 @@ import { PremiumStatusBadge } from '../components/player/PremiumStatusBadge';
 import {
   dsPrimaryCtaClass,
   dsRsvpChoiceClass,
+  dsScheduleGlassButtonClass,
+  dsSecondaryCtaClass,
   dsSchedulePageStyle,
   dsSectionLabelClass,
   dsStatusChipClass,
@@ -2723,7 +2725,7 @@ export const EventDetailPage: React.FC = () => {
             <AppButton
               variant="secondary"
               size="sm"
-              className="w-full px-3 py-2 text-[13px] sm:w-auto"
+              className={`w-full px-3 py-2 text-[13px] sm:w-auto ${isTraining ? '!rounded-[14px]' : ''}`}
               onClick={() => void handleAddSingleEventToCalendar()}
             >
               Diesen Termin hinzufügen

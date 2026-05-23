@@ -7,11 +7,13 @@ type Props = {
   isTraining?: boolean;
   /** Schmale rechte Spalte in der Terminliste (ca. 48px). */
   listColumn?: boolean;
+  /** Kompaktliste: kleinere Chips. */
+  listCompact?: boolean;
   className?: string;
 };
 
 const pillSm =
-  'inline-flex h-[22px] min-w-[28px] shrink-0 items-center justify-center rounded-full border px-1.5 text-[9px] font-bold leading-none tabular-nums';
+  'inline-flex shrink-0 items-center justify-center rounded-full border font-bold leading-none tabular-nums';
 
 /** Kompakte Teilnehmerzahlen für Trainer/Staff (nur Darstellung). */
 export function TrainerStatsMini({
@@ -20,30 +22,34 @@ export function TrainerStatsMini({
   open,
   isTraining = false,
   listColumn = false,
+  listCompact = false,
   className = '',
 }: Props) {
   const yesTitle = isTraining ? 'Dabei' : 'Zugesagt';
+  const pillSize = listCompact
+    ? 'h-[19px] min-w-[24px] px-1 text-[8px]'
+    : 'h-[22px] min-w-[28px] px-1.5 text-[9px]';
 
   if (listColumn) {
     return (
       <div
-        className={`flex w-full max-w-[88px] flex-col items-end justify-center gap-1 ${className}`}
+        className={`flex w-full max-w-[80px] flex-col items-end justify-center gap-0.5 ${className}`}
         aria-label="Zu- und Absagen"
       >
         <span
-          className={`${pillSm} border-emerald-500/35 bg-[rgba(14,58,40,0.55)] text-[#9DFFC5] shadow-[0_0_12px_rgba(40,255,120,0.12)]`}
+          className={`${pillSm} ${pillSize} border-emerald-500/30 bg-[rgba(14,58,40,0.45)] text-[#9DFFC5] shadow-[0_0_8px_rgba(40,255,120,0.08)]`}
           title={yesTitle}
         >
           ✓ {yes}
         </span>
         <span
-          className={`${pillSm} border-[rgba(122,29,42,0.4)] bg-[rgba(58,18,24,0.55)] text-[#E8A0A8] shadow-[0_0_12px_rgba(122,29,42,0.14)]`}
+          className={`${pillSm} ${pillSize} border-[rgba(122,29,42,0.32)] bg-[rgba(58,18,24,0.48)] text-[#D4A0A8] shadow-[0_0_8px_rgba(122,29,42,0.1)]`}
           title="Abgesagt"
         >
           ✕ {no}
         </span>
         <span
-          className={`${pillSm} border-white/[0.1] bg-[rgba(18,18,20,0.92)] text-[#B8B0B4] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}
+          className={`${pillSm} ${pillSize} border-white/[0.08] bg-[rgba(14,14,16,0.95)] text-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]`}
           title="Offen"
         >
           ? {open}
