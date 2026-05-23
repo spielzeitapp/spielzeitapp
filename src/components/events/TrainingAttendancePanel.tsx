@@ -6,8 +6,8 @@ import {
   trainingAttendanceLabel,
   type TrainingAttendanceStatus,
 } from '../../lib/trainingAttendance';
-import { formatTrainingPlayerSubline } from '../../lib/positionLabels';
-import { DS_LIST_GAP, type DsChipTone } from '../../lib/premiumDesignSystem';
+import { getTrainingPositionDisplay } from '../../lib/positionLabels';
+import { DS_LIST_GAP, DS_TEXT_MUTED, type DsChipTone } from '../../lib/premiumDesignSystem';
 import { PremiumPlayerCard } from '../player/PremiumPlayerCard';
 import { PremiumStatusBadge, type PremiumStatusBadgeTone } from '../player/PremiumStatusBadge';
 
@@ -54,21 +54,26 @@ const STAT_GRID_MAIN: {
   { key: 'external', label: 'LAZ', tone: 'external' },
 ];
 
-const STAT_BOX_SURFACE =
-  'flex min-h-[4.5rem] flex-col items-center justify-center rounded-[20px] border border-transparent px-2.5 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_24px_rgba(255,40,40,0.06)]';
+const STAT_BOX_BASE =
+  'flex min-h-[5.5rem] flex-col items-center justify-center rounded-[20px] border px-3.5 py-3.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_8px_24px_rgba(0,0,0,0.38)]';
 
 const STAT_BOX_TONE: Record<DsChipTone, string> = {
-  present: 'bg-[rgba(20,110,70,0.28)] text-[#9DFFC5]',
-  absent: 'bg-[rgba(100,14,24,0.32)] text-[#FF8D98]',
-  injured: 'bg-[rgba(110,52,8,0.30)] text-[#FFB15A]',
-  external: 'bg-[rgba(14,58,40,0.26)] text-[#63D98D]',
-  open: 'bg-[rgba(16,16,20,0.92)] text-[#AEAEB2]',
-  neutral: 'bg-[rgba(16,16,20,0.88)] text-white/45',
-  selected: 'bg-[rgba(100,14,24,0.32)] text-[#FF8D98]',
+  present: 'border-[rgba(40,255,120,0.1)] bg-[rgba(9,11,10,0.97)] text-[#8DFFB7]',
+  absent: 'border-[rgba(255,40,40,0.08)] bg-[rgba(11,9,10,0.97)] text-[#FF8D98]',
+  injured: 'border-[rgba(255,138,0,0.08)] bg-[rgba(11,10,9,0.97)] text-[#FFB15A]',
+  external: 'border-[rgba(40,255,120,0.06)] bg-[rgba(9,10,10,0.97)] text-[#63D98D]',
+  open: 'border-[rgba(255,255,255,0.05)] bg-[rgba(10,10,12,0.97)] text-[#AEAEB2]',
+  neutral: 'border-[rgba(255,255,255,0.05)] bg-[rgba(10,10,12,0.97)] text-white/45',
+  selected: 'border-[rgba(255,40,40,0.08)] bg-[rgba(11,9,10,0.97)] text-[#FF8D98]',
 };
 
+const STAT_LABEL_CLASS =
+  'text-[8px] font-medium uppercase tracking-[0.1em] text-[#8E8E93] leading-[1.45]';
+
+const STAT_VALUE_CLASS = 'mt-2.5 text-[28px] font-bold tabular-nums leading-none tracking-tight text-inherit';
+
 function trainingStatBoxClass(tone: DsChipTone): string {
-  return [STAT_BOX_SURFACE, STAT_BOX_TONE[tone]].join(' ');
+  return [STAT_BOX_BASE, STAT_BOX_TONE[tone]].join(' ');
 }
 
 function trainingActionButtonClass(
@@ -76,30 +81,37 @@ function trainingActionButtonClass(
   active?: boolean,
 ): string {
   const base =
-    'flex h-8 min-h-8 w-full items-center justify-center rounded-[12px] border border-transparent px-1 text-[10px] font-semibold leading-tight transition-[background,box-shadow] duration-150 disabled:cursor-default disabled:opacity-50 sm:text-[11px]';
+    'flex h-[34px] min-h-[34px] w-full min-w-0 items-center justify-center rounded-[12px] border border-transparent px-1.5 text-[10px] font-semibold leading-tight transition-[background,box-shadow] duration-150 disabled:cursor-default disabled:opacity-45 sm:text-[11px]';
+  const glassIdle =
+    'bg-[rgba(12,12,16,0.94)] text-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-[rgba(16,16,20,0.96)]';
   const tones: Record<typeof tone, { idle: string; on: string }> = {
     present: {
-      idle: 'bg-[rgba(20,110,70,0.24)] text-[#8DFFB7] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
-      on: 'bg-[rgba(22,120,76,0.36)] text-[#9DFFC5] shadow-[0_0_18px_rgba(40,255,120,0.14)]',
+      idle: glassIdle,
+      on: 'bg-[rgba(18,95,62,0.32)] text-[#8DFFB7] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
     },
     external: {
-      idle: 'bg-[rgba(14,58,40,0.22)] text-[#63D98D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]',
-      on: 'bg-[rgba(14,58,40,0.28)] text-[#63D98D]',
+      idle: glassIdle,
+      on: 'bg-[rgba(12,52,38,0.28)] text-[#63D98D] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
     },
     absent: {
-      idle: 'bg-[rgba(100,14,24,0.24)] text-[#FF8D98] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]',
-      on: 'bg-[rgba(100,14,24,0.34)] text-[#FF8D98] shadow-[0_0_14px_rgba(255,40,40,0.08)]',
+      idle: glassIdle,
+      on: 'bg-[rgba(72,12,20,0.3)] text-[#FF8D98] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
     },
     injured: {
-      idle: 'bg-[rgba(110,52,8,0.24)] text-[#FFB15A] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]',
-      on: 'bg-[rgba(110,52,8,0.32)] text-[#FFB15A]',
+      idle: glassIdle,
+      on: 'bg-[rgba(72,40,8,0.28)] text-[#FFB15A] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
     },
   };
   return [base, active ? tones[tone].on : tones[tone].idle].join(' ');
 }
 
+const TRAINING_NAME_CLASS =
+  'line-clamp-2 min-w-0 whitespace-normal break-words text-[13px] font-semibold leading-[1.36] text-white sm:text-[14px]';
+
+const TRAINING_SUBLINE_CLASS = `mt-1 line-clamp-1 text-[12px] font-normal leading-snug ${DS_TEXT_MUTED}`;
+
 const TRAINING_BADGE_CLASS =
-  '!inline-flex !h-[20px] !max-w-[4.75rem] shrink-0 !px-2 !text-[8px] !font-bold !uppercase !tracking-[0.08em] !leading-none';
+  '!inline-flex !h-[20px] !max-w-[4.25rem] shrink-0 !px-1.5 !text-[8px] !font-bold !uppercase !tracking-[0.07em] !leading-none';
 
 export const TrainingAttendancePanel: React.FC<Props> = ({
   players,
@@ -127,62 +139,54 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
   const showLegacy = counts.legacyUnknown > 0;
 
   return (
-    <div className={`flex w-full min-w-0 flex-col gap-4 ${className}`}>
-      <div className="grid w-full grid-cols-2 gap-2">
+    <div className={`flex w-full min-w-0 flex-col gap-5 ${className}`}>
+      <div className="grid w-full grid-cols-2 gap-2.5">
         {STAT_GRID_MAIN.map(({ key, label, tone }) => (
           <div key={key} className={trainingStatBoxClass(tone)}>
-            <span className="text-[9px] font-bold uppercase tracking-[0.12em] leading-[1.35] opacity-90">
-              {label}
-            </span>
-            <span className="mt-1.5 text-[22px] font-bold tabular-nums leading-none">{counts[key]}</span>
+            <span className={STAT_LABEL_CLASS}>{label}</span>
+            <span className={STAT_VALUE_CLASS}>{counts[key]}</span>
           </div>
         ))}
         <div className={`col-span-2 ${trainingStatBoxClass('open')}`}>
-          <span className="text-[9px] font-bold uppercase tracking-[0.12em] leading-[1.35] opacity-90">
-            Offen
-          </span>
-          <span className="mt-1.5 text-[22px] font-bold tabular-nums leading-none">{counts.open}</span>
+          <span className={STAT_LABEL_CLASS}>Offen</span>
+          <span className={STAT_VALUE_CLASS}>{counts.open}</span>
         </div>
         {showLegacy ? (
           <div className={`col-span-2 ${trainingStatBoxClass('neutral')}`}>
-            <span className="text-[9px] font-bold uppercase tracking-[0.12em] leading-[1.35] opacity-90">
-              N. erf.
-            </span>
-            <span className="mt-1.5 text-[22px] font-bold tabular-nums leading-none">
-              {counts.legacyUnknown}
-            </span>
+            <span className={STAT_LABEL_CLASS}>N. erf.</span>
+            <span className={STAT_VALUE_CLASS}>{counts.legacyUnknown}</span>
           </div>
         ) : null}
       </div>
 
       {loading ? (
-        <p className="text-[13px] text-white/50">Lade Teilnahme…</p>
+        <p className={`text-sm ${DS_TEXT_MUTED}`}>Lade Teilnahme…</p>
       ) : players.length === 0 ? (
-        <p className="text-[13px] text-white/50">Keine Spieler im Kader.</p>
+        <p className={`text-sm ${DS_TEXT_MUTED}`}>Keine Spieler im Kader.</p>
       ) : (
-        <ul className={`-mx-2 flex w-[calc(100%+1rem)] flex-col sm:-mx-2.5 sm:w-[calc(100%+1.25rem)] ${DS_LIST_GAP} pb-1`}>
+        <ul className={`-mx-2.5 flex w-[calc(100%+1.25rem)] flex-col sm:-mx-3 sm:w-[calc(100%+1.5rem)] ${DS_LIST_GAP} pb-1`}>
           {sorted.map((player) => {
             const status = getStatus(player.id);
-            const sub = formatTrainingPlayerSubline(player.position, player.jersey_number);
+            const sub = getTrainingPositionDisplay(player.position);
 
             return (
               <li key={player.id} className="w-full min-w-0">
                 <PremiumPlayerCard
                   player={player}
+                  tone="feed"
                   subline={sub}
                   density="compact"
-                  className="w-full"
+                  nameClassName={TRAINING_NAME_CLASS}
+                  sublineClassName={TRAINING_SUBLINE_CLASS}
                   trailing={
-                    <div className="max-w-[3.75rem] shrink-0 pl-1">
-                      <PremiumStatusBadge
-                        label={trainingAttendanceLabel(status)}
-                        tone={statusTone(status)}
-                        className={TRAINING_BADGE_CLASS}
-                      />
-                    </div>
+                    <PremiumStatusBadge
+                      label={trainingAttendanceLabel(status)}
+                      tone={statusTone(status)}
+                      className={TRAINING_BADGE_CLASS}
+                    />
                   }
                   footer={
-                    <div className="mt-0.5 grid grid-cols-4 gap-1.5 pt-1.5">
+                    <div className="grid grid-cols-4 gap-1.5">
                       <button
                         type="button"
                         disabled={status === 'absent'}

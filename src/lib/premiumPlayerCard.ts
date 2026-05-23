@@ -5,17 +5,22 @@ import {
   dsAvatarRingClass,
   dsCardAmbientGlowClass,
   dsCardShellClass,
+  dsFeedAvatarBloomClass,
+  dsFeedAvatarRingClass,
+  dsFeedCardGlowClass,
+  dsFeedCardShellClass,
   dsJerseyNumberClass,
   dsPlayerNameClass,
   dsPlayerSublineClass,
   DS_AVATAR_SIZE,
   DS_CARD_FOOTER_DIVIDER,
   DS_CARD_INNER_GAP,
+  DS_FEED_CARD_FOOTER_DIVIDER,
 } from './premiumDesignSystem';
 
 export type PremiumPlayerCardDensity = 'default' | 'compact';
-/** matchday = etwas stärkere active-Tiefe; Geometrie identisch. */
-export type PremiumPlayerCardTone = 'utility' | 'matchday';
+/** matchday = etwas stärkere active-Tiefe; feed = Home-Feed-Look (Training). */
+export type PremiumPlayerCardTone = 'utility' | 'matchday' | 'feed';
 
 export type PremiumPlayerCardPlayer = {
   id?: string;
@@ -64,17 +69,33 @@ export function premiumPlayerCardShellClass(opts?: {
   className?: string;
 }): string {
   const highlighted = Boolean(opts?.active || opts?.selected);
-  const isMatchday = (opts?.tone ?? 'utility') === 'matchday';
+  const tone = opts?.tone ?? 'utility';
+  if (tone === 'feed') {
+    return dsFeedCardShellClass(opts?.className);
+  }
   return dsCardShellClass({
     active: highlighted,
     interactive: opts?.interactive,
-    matchday: isMatchday,
+    matchday: tone === 'matchday',
     className: opts?.className,
   });
 }
 
 export function premiumPlayerCardGlowClass(tone?: PremiumPlayerCardTone): string {
+  if (tone === 'feed') return dsFeedCardGlowClass();
   return dsCardAmbientGlowClass(tone === 'matchday');
+}
+
+export function premiumPlayerCardFooterDividerClass(tone?: PremiumPlayerCardTone): string {
+  return tone === 'feed' ? DS_FEED_CARD_FOOTER_DIVIDER : DS_CARD_FOOTER_DIVIDER;
+}
+
+export function premiumPlayerCardAvatarRingClass(tone?: PremiumPlayerCardTone): string {
+  return tone === 'feed' ? dsFeedAvatarRingClass() : dsAvatarRingClass();
+}
+
+export function premiumPlayerCardAvatarBloomClass(tone?: PremiumPlayerCardTone): string {
+  return tone === 'feed' ? dsFeedAvatarBloomClass() : dsAvatarBloomClass();
 }
 
 export function premiumPlayerNameClass(): string {

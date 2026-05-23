@@ -3,10 +3,11 @@ import { getPositionLabel } from '../../lib/positionLabels';
 import {
   DS_CARD_FOOTER_DIVIDER,
   DS_CARD_INNER_GAP,
-  premiumPlayerAvatarBloomClass,
-  premiumPlayerAvatarRingClass,
   premiumPlayerAvatarSizeClass,
   premiumPlayerAvatarSrc,
+  premiumPlayerCardAvatarBloomClass,
+  premiumPlayerCardAvatarRingClass,
+  premiumPlayerCardFooterDividerClass,
   premiumPlayerCardGlowClass,
   premiumPlayerCardShellClass,
   premiumPlayerDisplayName,
@@ -29,6 +30,8 @@ type Props = {
   trailing?: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
+  nameClassName?: string;
+  sublineClassName?: string;
 };
 
 function buildSubline(player: PremiumPlayerCardPlayer, override?: string | null): string {
@@ -49,6 +52,8 @@ export const PremiumPlayerCard: React.FC<Props> = ({
   trailing,
   footer,
   className = '',
+  nameClassName,
+  sublineClassName,
 }) => {
   const name = premiumPlayerDisplayName(player);
   const avatarSrc = premiumPlayerAvatarSrc(player);
@@ -70,11 +75,11 @@ export const PremiumPlayerCard: React.FC<Props> = ({
       <div className={premiumPlayerCardGlowClass(tone)} aria-hidden />
       <div className={`relative flex items-center ${DS_CARD_INNER_GAP}`}>
         <div className={`relative shrink-0 ${avatarSize}`}>
-          <div className={premiumPlayerAvatarBloomClass()} aria-hidden />
+          <div className={premiumPlayerCardAvatarBloomClass(tone)} aria-hidden />
           <img
             src={avatarSrc}
             alt=""
-            className={`relative z-[1] ${avatarSize} ${premiumPlayerAvatarRingClass()}`}
+            className={`relative z-[1] ${avatarSize} ${premiumPlayerCardAvatarRingClass(tone)}`}
             onError={(e) => {
               (e.currentTarget as HTMLImageElement).style.display = 'none';
               const next = e.currentTarget.nextElementSibling as HTMLElement | null;
@@ -87,13 +92,15 @@ export const PremiumPlayerCard: React.FC<Props> = ({
             {initials}
           </div>
         </div>
-        <div className="min-w-0 flex-1 py-0.5">
-          <p className={premiumPlayerNameClass()}>{name}</p>
-          <p className={premiumPlayerSublineClass()}>{sub}</p>
+        <div className="min-w-0 flex-1 py-0.5 pr-1">
+          <p className={nameClassName ?? premiumPlayerNameClass()}>{name}</p>
+          <p className={sublineClassName ?? premiumPlayerSublineClass()}>{sub}</p>
         </div>
-        {trailing ? <div className="flex shrink-0 flex-col items-end justify-center gap-1">{trailing}</div> : null}
+        {trailing ? <div className="flex shrink-0 flex-col items-end justify-center pl-0.5">{trailing}</div> : null}
       </div>
-      {footer ? <div className={`relative mt-2 pt-2 ${DS_CARD_FOOTER_DIVIDER}`}>{footer}</div> : null}
+      {footer ? (
+        <div className={`relative mt-2.5 pt-2.5 ${premiumPlayerCardFooterDividerClass(tone)}`}>{footer}</div>
+      ) : null}
     </>
   );
 
