@@ -29,6 +29,12 @@ import { buildTeamIcsFeedUrl, teamCalendarSlugFromTeamName } from '../lib/calend
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import type { SeriesEditScope } from '../lib/seriesEditScope';
 import {
+  dsPageTitleClass,
+  dsScheduleFilterTabClass,
+  dsSchedulePageStyle,
+  dsSublineClass,
+} from '../lib/premiumDesignSystem';
+import {
   meetupUtcIsoOnViennaEventDay,
   parseViennaDateTimeLocalToUtcIso,
   utcIsoToViennaDateTimeLocal,
@@ -850,7 +856,10 @@ export const SchedulePage: React.FC = () => {
 
 
   return (
-    <div className="page schedule-page relative min-h-[60vh] scroll-mt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))] [background:linear-gradient(180deg,rgba(40,5,5,0.97)_0%,rgba(20,0,0,0.98)_50%,rgba(10,0,0,0.99)_100%)] [box-shadow:inset_0_0_120px_rgba(120,20,20,0.12)]">
+    <div
+      className="page schedule-page relative min-h-[60vh] scroll-mt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))]"
+      style={dsSchedulePageStyle()}
+    >
       <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
         <div className="mx-auto mt-1 max-w-3xl space-y-3 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] pt-3 sm:mt-2 sm:space-y-4 sm:pt-4">
           {toastMessage && (
@@ -872,11 +881,11 @@ export const SchedulePage: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <h1 className="text-2xl font-bold leading-tight tracking-tight text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.5)] sm:text-3xl md:text-4xl">
+                <h1 className={dsPageTitleClass()}>
                   {normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine'}
                 </h1>
                 <div
-                  className="mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-lg border border-white/12 bg-white/[0.06] px-2.5 py-1 text-xs text-white/80 sm:text-sm"
+                  className={`mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-lg border border-white/10 bg-[rgba(14,14,18,0.72)] px-2.5 py-1 text-xs sm:text-sm ${dsSublineClass()}`}
                   role="note"
                 >
                   <span className="truncate">{teamSeasonSubtitle}</span>
@@ -924,11 +933,7 @@ export const SchedulePage: React.FC = () => {
                         key={f.id}
                         type="button"
                         onClick={() => setKindFilter(f.id)}
-                        className={`min-h-[36px] flex-1 rounded-lg px-2.5 text-[12px] font-medium transition-all ${
-                          kindFilter === f.id
-                            ? 'border border-red-400/30 bg-white/[0.11] text-white font-semibold shadow-[0_0_12px_rgba(220,38,38,0.18)]'
-                            : 'border border-transparent text-white/75 hover:bg-white/[0.04] hover:text-white/90'
-                        }`}
+                        className={dsScheduleFilterTabClass(kindFilter === f.id)}
                       >
                         {f.label}
                       </button>
@@ -954,22 +959,14 @@ export const SchedulePage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setTimeFilter('upcoming')}
-                    className={`min-h-[32px] min-w-[88px] rounded-lg px-3 text-[12px] font-medium transition-all ${
-                      timeFilter === 'upcoming'
-                        ? 'border border-red-400/30 bg-white/[0.1] text-white font-semibold shadow-[0_0_10px_rgba(220,38,38,0.16)]'
-                        : 'border border-transparent text-white/75 hover:bg-white/[0.04] hover:text-white/90'
-                    }`}
+                    className={`min-h-[32px] min-w-[88px] ${dsScheduleFilterTabClass(timeFilter === 'upcoming')}`}
                   >
                     Kommende
                   </button>
                   <button
                     type="button"
                     onClick={() => setTimeFilter('past')}
-                    className={`min-h-[32px] min-w-[88px] rounded-lg px-3 text-[12px] font-medium transition-all ${
-                      timeFilter === 'past'
-                        ? 'border border-red-400/30 bg-white/[0.1] text-white font-semibold shadow-[0_0_10px_rgba(220,38,38,0.16)]'
-                        : 'border border-transparent text-white/75 hover:bg-white/[0.04] hover:text-white/90'
-                    }`}
+                    className={`min-h-[32px] min-w-[88px] ${dsScheduleFilterTabClass(timeFilter === 'past')}`}
                   >
                     Vergangene
                   </button>

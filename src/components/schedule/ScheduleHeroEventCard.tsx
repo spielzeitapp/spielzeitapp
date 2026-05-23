@@ -14,6 +14,7 @@ import {
   eventNotesTitle,
   eventTrainingEndDisplay,
 } from './scheduleEventViewUtils';
+import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
 import { EventMotifIcon, TrainingMotifIcon } from './scheduleFootballMotifIcons';
 
 export type ScheduleHeroEventCardProps = {
@@ -104,7 +105,7 @@ function HeroMatchTeamLogo({ src }: { src: string }) {
 }
 
 const heroStadiumGradient =
-  'linear-gradient(to bottom, rgba(5,2,2,0.94) 0%, rgba(0,0,0,0.91) 45%, rgba(55,8,12,0.88) 100%)';
+  'linear-gradient(to bottom, rgba(6,6,8,0.96) 0%, rgba(4,4,6,0.94) 48%, rgba(8,6,8,0.92) 100%)';
 
 /** Dezentes Stadion — kaum sichtbar, Text immer lesbar (alle Hero-Typen). */
 function HeroHybridBackdrop() {
@@ -119,7 +120,7 @@ function HeroHybridBackdrop() {
       <div className="absolute inset-0 bg-black/74" aria-hidden />
       <div className="absolute inset-0 backdrop-blur-[2px] bg-black/22" aria-hidden />
       <div
-        className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(120,25,25,0.22),transparent_55%)]"
+        className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(255,45,85,0.08),transparent_55%)]"
         aria-hidden
       />
       <div className="absolute inset-0" style={{ background: heroStadiumGradient }} aria-hidden />
@@ -131,7 +132,7 @@ function HeroMeetupCTA({ timeLabel }: { timeLabel: string }) {
   return (
     <div
       role="presentation"
-      className="mt-2 flex w-full min-w-0 max-w-full shrink-0 items-center justify-center gap-2 rounded-full border-0 bg-gradient-to-r from-red-600 via-red-500 to-red-600 py-3.5 px-5 text-[15px] font-bold text-white shadow-lg shadow-red-950/50 sm:mt-2 sm:px-6"
+      className={`mt-2 flex w-full min-w-0 max-w-full shrink-0 items-center justify-center gap-2 py-3.5 px-5 sm:mt-2 sm:px-6 ${dsPrimaryCtaClass()}`}
     >
       <Users className="h-4 w-4 shrink-0 opacity-95" strokeWidth={2} aria-hidden />
       <span>Treffpunkt: {timeLabel}</span>
@@ -336,7 +337,7 @@ export function ScheduleHeroEventCard({
           <div className="min-h-[6.5rem] border-r border-white/[0.12]" aria-hidden />
           <div className="flex min-w-[7.25rem] max-w-[10rem] shrink-0 flex-col items-center px-2 pb-1 pt-0 sm:min-w-[7.75rem]">
             <div className="relative flex h-[4rem] w-[4rem] shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-red-600/26 to-red-950/42 shadow-[0_0_26px_rgba(220,38,38,0.26)] ring-2 ring-red-500/42 sm:h-[4.35rem] sm:w-[4.35rem]">
-              <TrainingMotifIcon className="h-[2.95rem] w-[2.95rem] text-red-50 sm:h-[3.2rem] sm:w-[3.2rem]" />
+              <TrainingMotifIcon className="h-11 w-11 text-white/88 sm:h-12 sm:w-12" />
             </div>
             <span className="mt-2 text-[9px] font-bold uppercase tracking-[0.22em] text-red-400 sm:text-[10px]">Beginn</span>
             <span className="mt-1 text-center text-[2.35rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.52)] min-[375px]:text-[2.55rem] sm:text-[2.65rem]">

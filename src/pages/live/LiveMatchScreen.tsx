@@ -68,6 +68,7 @@ import {
   dsSegmentTrackClass,
   dsWechselColumnAmbientClass,
   dsWechselPickRowClass,
+  dsLiveHubNavBtnClass,
 } from '../../lib/premiumDesignSystem';
 import { matchdayBenchTileClass } from '../../lib/matchdayPlayerCard';
 import {
@@ -298,11 +299,11 @@ function MatchboardTeamNameLines({
 }) {
   const textAlign = align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center';
   const abbrevCls = tight
-    ? `min-h-[1em] text-[10px] font-semibold uppercase leading-tight tracking-[0.18em] text-white/95 sm:text-[11px] ${textAlign}`
-    : `min-h-[1em] text-xs font-medium uppercase leading-tight tracking-widest text-white ${textAlign}`;
+    ? `min-h-[1em] text-[9px] font-semibold uppercase leading-tight tracking-[0.14em] text-white/52 sm:text-[10px] ${textAlign}`
+    : `min-h-[1em] text-xs font-medium uppercase leading-tight tracking-widest text-white/75 ${textAlign}`;
   const clubCls = tight
-    ? `mt-0.5 text-sm font-semibold leading-snug text-white sm:text-base ${textAlign}`
-    : `mt-1 text-lg font-semibold leading-snug text-white sm:text-xl md:text-2xl ${textAlign}`;
+    ? `mt-0.5 text-[11px] font-medium leading-snug text-white/62 sm:text-xs ${textAlign}`
+    : `mt-1 text-lg font-semibold leading-snug text-white/80 sm:text-xl md:text-2xl ${textAlign}`;
   return (
     <div className="w-full min-w-0 hyphens-none">
       <div className={abbrevCls}>
@@ -359,13 +360,12 @@ const spectatorTabBtnCompactIdle = 'text-white/45 hover:bg-white/[0.05] hover:te
 /** Live Hub: große Touch-Ziele, kein Mini-Tab-Gefühl. */
 const hubNavSpectator = 'mt-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-2.5';
 const hubNavTrainer = 'mt-1.5 grid w-full grid-cols-2 gap-1.5 sm:gap-2';
-const hubNavBtn =
-  'flex min-h-[46px] w-full touch-manipulation items-center justify-center rounded-2xl border border-white/12 bg-white/[0.07] px-3 py-2.5 text-[14px] font-extrabold tracking-tight text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_22px_rgba(0,0,0,0.38)] backdrop-blur-md transition active:scale-[0.98] sm:min-h-[48px] sm:text-[15px]';
+const hubNavBtn = dsLiveHubNavBtnClass();
 const liveModuleBackBar =
   'sticky top-0 z-40 mt-0 flex min-h-[48px] shrink-0 flex-wrap items-center gap-2 border-b border-white/10 bg-black/85 px-2 py-2 backdrop-blur-md sm:px-3';
 
 const liveCardShell =
-  'rounded-2xl border border-white/[0.08] bg-gradient-to-br from-zinc-950/95 via-zinc-950/80 to-black shadow-[0_6px_28px_rgba(0,0,0,0.35)]';
+  'rounded-[22px] border border-[rgba(255,40,40,0.07)] bg-[rgba(10,10,14,0.97)] shadow-[0_8px_28px_rgba(0,0,0,0.42),0_0_20px_rgba(255,45,85,0.05)]';
 
 const mbBtnH = 'h-10 min-h-10';
 const mbRound = 'rounded-xl';
@@ -714,7 +714,7 @@ function kickoffPositionParts(
 }
 
 const LINEUP_HUB_TAB_BTN =
-  'inline-flex h-[34px] shrink-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-2xl border border-white/10 bg-black/35 px-3 text-[13px] font-medium text-white/88 transition-all duration-200 hover:bg-white/[0.05] active:scale-[0.985]';
+  'inline-flex h-[34px] shrink-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-[22px] border border-white/[0.08] bg-[rgba(12,12,16,0.88)] px-3 text-[13px] font-semibold text-white/82 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-md transition-all duration-200 hover:border-[rgba(255,75,92,0.2)] hover:bg-[rgba(16,12,14,0.92)] hover:text-white active:scale-[0.985]';
 
 const LINEUP_TRAINER_ACTION_BTN =
   'inline-flex h-[38px] shrink-0 items-center justify-center whitespace-nowrap rounded-2xl border px-3 text-[11px] font-semibold uppercase tracking-[0.03em] transition-all duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 sm:text-xs';
@@ -3721,13 +3721,13 @@ export const LiveMatchScreen: React.FC = () => {
                               })();
                             }}
                           >
-                            <span className="text-3xl font-bold tabular-nums leading-none sm:text-4xl">
+                            <span className="text-5xl font-black tabular-nums leading-none sm:text-6xl">
                               {displayScoreHome}
                             </span>
                           </button>
                         </div>
                         <span
-                          className="shrink-0 select-none pt-0.5 text-2xl font-bold leading-none text-white/90 tabular-nums sm:pt-1 sm:text-3xl"
+                          className="shrink-0 select-none pt-0.5 text-3xl font-bold leading-none text-white/70 tabular-nums sm:pt-1 sm:text-4xl"
                           aria-hidden
                         >
                           :
@@ -3773,7 +3773,7 @@ export const LiveMatchScreen: React.FC = () => {
                               setAwayGoalModalOpen(true);
                             }}
                           >
-                            <span className="text-3xl font-bold tabular-nums leading-none sm:text-4xl">
+                            <span className="text-5xl font-black tabular-nums leading-none sm:text-6xl">
                               {displayScoreAway}
                             </span>
                           </button>
@@ -3782,9 +3782,9 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : (
                       <div className={`flex flex-col items-center gap-1 ${SCOREBOARD_NO_SELECT}`}>
                         <div className="flex items-center justify-center motion-safe:transition-transform motion-safe:duration-300">
-                          <span className="text-center text-5xl font-bold leading-none text-white tabular-nums whitespace-nowrap sm:text-6xl">
+                          <span className="text-center text-6xl font-black leading-none text-white tabular-nums whitespace-nowrap drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)] sm:text-7xl">
                             {displayScoreHome}
-                            <span className="mx-1.5 text-white/85 sm:mx-2">:</span>
+                            <span className="mx-1.5 text-white/75 sm:mx-2">:</span>
                             {displayScoreAway}
                           </span>
                         </div>
@@ -3976,7 +3976,7 @@ export const LiveMatchScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setMainTab('hub')}
-                className="inline-flex min-h-[44px] min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm font-bold text-white shadow-sm backdrop-blur-sm transition active:scale-[0.98]"
+                className="inline-flex min-h-[44px] min-w-0 items-center gap-2 rounded-[22px] border border-white/[0.08] bg-[rgba(12,12,16,0.88)] px-3 py-2 text-sm font-semibold text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-md transition hover:border-[rgba(255,75,92,0.2)] hover:text-white active:scale-[0.98]"
               >
                 <span aria-hidden>←</span>
                 <span>Livespiel</span>

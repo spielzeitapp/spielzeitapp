@@ -67,10 +67,35 @@ export function dsBrandKickerClass(): string {
   return 'text-[10px] font-semibold uppercase tracking-[0.14em] text-red-400/85';
 }
 
-/** Screen-/Card-Titel — normale Schreibweise, kein Caps-Shouting. */
+/** Screen-Headlines (Termine, Feed, Livespiel). */
 export function dsPageTitleClass(): string {
-  return 'text-[1.35rem] font-bold leading-tight tracking-tight text-white sm:text-[1.5rem]';
+  return 'text-[2rem] font-bold tracking-[-0.03em] text-white';
 }
+
+/** Alias — gleiche Spec wie Screen-Headlines. */
+export function dsScreenHeadlineClass(): string {
+  return dsPageTitleClass();
+}
+
+/** Section Labels (NÄCHSTES SPIEL, Matchday-Feed). */
+export function dsMatchdaySectionLabelClass(): string {
+  return 'text-[0.78rem] font-semibold uppercase tracking-[0.35em] text-[#ff909b]';
+}
+
+/** Sublines unter Headlines. */
+export function dsSublineClass(): string {
+  return 'font-medium leading-relaxed text-white/70';
+}
+
+/** Primary-/Secondary-Button-Text. */
+export function dsButtonTextClass(): string {
+  return 'text-[1rem] font-semibold tracking-[0.01em]';
+}
+
+const PRIMARY_GRADIENT = 'bg-gradient-to-br from-[#ff4b5c] to-[#ff2d55]';
+const PRIMARY_GLOW =
+  'shadow-[0_0_30px_rgba(255,45,85,0.28),inset_0_1px_0_rgba(255,255,255,0.16),0_4px_18px_rgba(0,0,0,0.32)]';
+const PRIMARY_GLOW_HOVER = 'hover:shadow-[0_0_36px_rgba(255,45,85,0.34),inset_0_1px_0_rgba(255,255,255,0.2),0_6px_22px_rgba(0,0,0,0.36)]';
 
 export function dsCardTitleClass(): string {
   return 'text-lg font-bold leading-snug tracking-tight text-white';
@@ -369,7 +394,7 @@ export function dsBenchTileClass(selected?: boolean): string {
 }
 
 const TAB_INACTIVE =
-  'border border-transparent bg-[rgba(16,16,20,0.92)] text-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_16px_rgba(255,40,40,0.05)] hover:bg-[rgba(20,16,18,0.94)] hover:text-white/68';
+  'border border-white/[0.06] bg-[rgba(10,10,12,0.94)] text-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] hover:bg-[rgba(14,12,14,0.96)] hover:text-white/58';
 
 const SEGMENT_TRACK =
   'flex overflow-hidden rounded-[12px] border border-transparent bg-[rgba(16,16,20,0.92)] p-px shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_16px_rgba(255,40,40,0.05)]';
@@ -382,7 +407,7 @@ export function dsFormationTabClass(active: boolean): string {
   return [
     'h-7 shrink-0 rounded-[12px] px-2 text-[10px] font-semibold leading-none transition-[background,box-shadow] duration-150 sm:px-2.5 sm:text-[11px]',
     active
-      ? 'border border-transparent bg-[linear-gradient(135deg,#FF4747_0%,#E31D2F_100%)] text-white shadow-[0_0_24px_rgba(255,50,50,0.24)]'
+      ? `border border-transparent ${PRIMARY_GRADIENT} text-white shadow-[0_0_22px_rgba(255,45,85,0.26),inset_0_1px_0_rgba(255,255,255,0.14)]`
       : TAB_INACTIVE,
   ].join(' ');
 }
@@ -391,8 +416,33 @@ export function dsSegmentTabClass(active: boolean): string {
   return [
     'flex-1 rounded-[10px] px-2 text-center text-sm font-semibold transition-[background,box-shadow,color] duration-150',
     active
-      ? 'border border-transparent bg-[linear-gradient(135deg,#FF4747_0%,#E31D2F_100%)] text-white shadow-[0_0_24px_rgba(255,50,50,0.24)]'
-      : 'bg-transparent text-white/48 hover:text-white/62',
+      ? `border border-transparent ${PRIMARY_GRADIENT} text-white shadow-[0_0_22px_rgba(255,45,85,0.26),inset_0_1px_0_rgba(255,255,255,0.12)]`
+      : 'bg-transparent text-white/40 hover:text-white/58',
+  ].join(' ');
+}
+
+/** Termine-Filter (Alle / Spiele / Training / Kommende). */
+export function dsScheduleFilterTabClass(active: boolean): string {
+  return [
+    'min-h-[36px] flex-1 rounded-[14px] px-2.5 text-[12px] font-semibold tracking-[0.01em] transition-all duration-150',
+    active
+      ? `border border-[rgba(255,75,92,0.28)] ${PRIMARY_GRADIENT} text-white shadow-[0_0_20px_rgba(255,45,85,0.22),inset_0_1px_0_rgba(255,255,255,0.12)]`
+      : 'border border-transparent text-white/45 hover:bg-[rgba(14,14,18,0.75)] hover:text-white/62',
+  ].join(' ');
+}
+
+/** Live Hub: Übersicht / Aufstellung / Liveticker / Statistik. */
+export function dsLiveHubNavBtnClass(): string {
+  return [
+    'flex min-h-[46px] w-full touch-manipulation items-center justify-center rounded-[22px]',
+    'border border-white/[0.08] bg-[rgba(12,12,16,0.9)] px-3 py-2.5',
+    dsButtonTextClass(),
+    'text-white/88 backdrop-blur-xl',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_4px_22px_rgba(0,0,0,0.42)]',
+    'transition-[border-color,background,box-shadow,color] duration-150',
+    'hover:border-[rgba(255,75,92,0.22)] hover:bg-[rgba(16,12,14,0.94)] hover:text-white',
+    'hover:shadow-[0_0_24px_rgba(255,45,85,0.12),inset_0_1px_0_rgba(255,255,255,0.06)]',
+    'active:scale-[0.98] sm:min-h-[48px]',
   ].join(' ');
 }
 
@@ -404,7 +454,7 @@ export function dsLineupViewTabClass(view: 'live' | 'kickoff', active: boolean):
   if (view === 'live') {
     return `${base} bg-gradient-to-br from-emerald-800/75 to-emerald-950/85 text-emerald-50 shadow-[0_0_22px_rgba(40,255,120,0.14)]`;
   }
-  return `${base} bg-[linear-gradient(135deg,#FF4747_0%,#E31D2F_100%)] text-white shadow-[0_0_24px_rgba(255,50,50,0.24)]`;
+  return `${base} ${PRIMARY_GRADIENT} text-white shadow-[0_0_22px_rgba(255,45,85,0.26),inset_0_1px_0_rgba(255,255,255,0.14)]`;
 }
 
 /** Wechsel: Spalten-Ambient (subtil). */
@@ -451,25 +501,46 @@ export function dsStickyCtaBarClass(): string {
 
 export function dsPrimaryCtaClass(): string {
   return [
-    'rounded-[18px] border border-transparent',
-    'bg-[linear-gradient(135deg,#FF4747_0%,#E31D2F_100%)]',
-    'px-4 py-2.5 text-sm font-semibold text-white',
-    'shadow-[0_0_32px_rgba(255,50,50,0.28),0_4px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.12)]',
+    'rounded-[22px] border border-white/10',
+    PRIMARY_GRADIENT,
+    'px-4 py-2.5 text-white tracking-[0.02em]',
+    dsButtonTextClass(),
+    PRIMARY_GLOW,
     'transition-[box-shadow,transform] duration-150',
-    'hover:shadow-[0_0_38px_rgba(255,50,50,0.32),0_6px_24px_rgba(0,0,0,0.38)]',
+    PRIMARY_GLOW_HOVER,
     'active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45',
   ].join(' ');
 }
 
 export function dsSecondaryCtaClass(): string {
   return [
-    'inline-flex min-h-[44px] items-center justify-center rounded-[18px] border border-transparent',
-    'bg-[rgba(16,16,20,0.92)] text-[#F2F2F2]',
-    'px-4 py-2.5 text-sm font-semibold',
-    'shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_22px_rgba(255,30,30,0.07),0_4px_16px_rgba(0,0,0,0.28)]',
+    'inline-flex min-h-[44px] items-center justify-center rounded-[22px] border border-white/10',
+    'bg-[rgba(14,14,18,0.92)] text-[#F2F2F2]',
+    'px-4 py-2.5 tracking-[0.01em]',
+    dsButtonTextClass(),
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_22px_rgba(255,45,85,0.08),0_4px_16px_rgba(0,0,0,0.28)]',
     'transition-[background,box-shadow] duration-150',
-    'hover:bg-[rgba(20,16,18,0.94)]',
+    'hover:bg-[rgba(18,14,16,0.94)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_26px_rgba(255,45,85,0.1)]',
     'active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45',
+  ].join(' ');
+}
+
+/** Termine-Seite: schwarze Basis, Rot nur als Ambient. */
+export function dsSchedulePageStyle(): { background: string; boxShadow: string } {
+  return {
+    background:
+      'radial-gradient(ellipse 100% 55% at 50% 0%, rgba(255,45,85,0.05), transparent 52%), radial-gradient(circle at 50% 0%, rgba(80,0,0,0.07), transparent 48%), linear-gradient(180deg, #090909 0%, #060606 100%)',
+    boxShadow: 'inset 0 0 100px rgba(0,0,0,0.42)',
+  };
+}
+
+/** Hero-/Listen-Karten auf Termine (Premium Match Panels). */
+export function dsScheduleEventPanelClass(): string {
+  return [
+    'relative overflow-hidden rounded-[22px]',
+    'border border-[rgba(255,40,40,0.08)]',
+    'bg-[rgba(10,10,14,0.97)]',
+    'shadow-[0_10px_40px_rgba(0,0,0,0.52),0_0_28px_rgba(255,45,85,0.06),inset_0_1px_0_rgba(255,255,255,0.025)]',
   ].join(' ');
 }
 

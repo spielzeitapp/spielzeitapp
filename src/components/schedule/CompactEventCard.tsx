@@ -13,6 +13,8 @@ import {
   scheduleEventTypeLabel,
   eventNotesTitle,
 } from './scheduleEventViewUtils';
+import { dsScheduleEventPanelClass } from '../../lib/premiumDesignSystem';
+import { CompactFootballBallIcon } from './scheduleFootballMotifIcons';
 
 export type CompactEventCardProps = {
   ev: EventRow;
@@ -25,12 +27,6 @@ export type CompactEventCardProps = {
   trailing?: React.ReactNode;
   onNavigate: (id: string) => void;
 };
-
-function navIconUrl(file: string): string {
-  const b = import.meta.env.BASE_URL || '/';
-  const base = b.endsWith('/') ? b : `${b}/`;
-  return `${base}icons/${file}`;
-}
 
 function compactTrainingHeadline(ourTeamName: string, notesTitle: string | null): string | null {
   const team = (ourTeamName ?? '').trim();
@@ -134,13 +130,7 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <img
-        src={navIconUrl('home-ball.png')}
-        alt=""
-        className="h-10 w-10 shrink-0 object-contain opacity-95 drop-shadow-[0_0_10px_rgba(255,255,255,0.18)] sm:h-11 sm:w-11"
-        decoding="async"
-        draggable={false}
-      />
+      <CompactFootballBallIcon className="h-9 w-9 shrink-0 text-white/88 sm:h-10 sm:w-10" />
     ) : (
       <CalendarDays className="h-5 w-5 shrink-0 text-red-200/85" />
     );
@@ -152,7 +142,7 @@ export function CompactEventCard({
     return (
       <div
         className={[
-          'relative mb-3 -mx-1 flex min-h-[96px] w-[calc(100%+0.5rem)] min-w-0 flex-row items-stretch gap-3 overflow-hidden rounded-2xl border border-red-900/30 bg-gradient-to-br from-black via-[#0a0a0a] to-[#111] px-2 py-3 shadow-[0_0_20px_rgba(255,0,0,0.08)] sm:mx-0 sm:w-full',
+          `relative mb-3 -mx-1 flex min-h-[96px] w-[calc(100%+0.5rem)] min-w-0 flex-row items-stretch gap-3 overflow-hidden px-2 py-3 sm:mx-0 sm:w-full ${dsScheduleEventPanelClass()}`,
           clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
         ].join(' ')}
         role={clickable ? 'button' : undefined}
@@ -243,13 +233,7 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <img
-        src={navIconUrl('home-ball.png')}
-        alt=""
-        className="h-10 w-10 shrink-0 object-contain opacity-95 drop-shadow-[0_0_10px_rgba(255,255,255,0.18)] sm:h-11 sm:w-11"
-        decoding="async"
-        draggable={false}
-      />
+      <CompactFootballBallIcon className="h-9 w-9 shrink-0 text-white/88 sm:h-10 sm:w-10" />
     ) : (
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">
         <CalendarDays className="h-5 w-5 text-red-200/85" />
@@ -336,7 +320,7 @@ export function CompactEventCard({
   return (
     <div
       className={[
-        'relative mb-3 -mx-1 flex w-[calc(100%+0.5rem)] min-w-0 flex-row items-start justify-between gap-2 overflow-x-hidden rounded-2xl border border-red-950/45 bg-zinc-950 px-2 py-3 sm:mx-0 sm:w-full',
+        `relative mb-3 -mx-1 flex w-[calc(100%+0.5rem)] min-w-0 flex-row items-start justify-between gap-2 overflow-x-hidden px-2 py-3 sm:mx-0 sm:w-full ${dsScheduleEventPanelClass()}`,
         clickable ? 'cursor-pointer active:bg-white/[0.04]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}

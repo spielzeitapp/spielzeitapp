@@ -13,13 +13,13 @@ type AppButtonProps = {
 } & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'children'>;
 
 const baseClass =
-  'inline-flex items-center justify-center gap-2 font-semibold rounded-full transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none border border-transparent';
+  'inline-flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none';
 
 const variantClass: Record<AppButtonVariant, string> = {
-  primary: `${dsPrimaryCtaClass()} !rounded-full`,
+  primary: dsPrimaryCtaClass(),
   success:
-    'bg-[rgba(20,110,70,0.30)] text-[#8DFFB7] shadow-[0_0_18px_rgba(40,255,120,0.10)]',
-  secondary: `${dsSecondaryCtaClass()} !rounded-full`,
+    'rounded-[22px] border border-transparent bg-[rgba(20,110,70,0.30)] text-[#8DFFB7] font-semibold text-[1rem] tracking-[0.01em] shadow-[0_0_18px_rgba(40,255,120,0.10)]',
+  secondary: dsSecondaryCtaClass(),
   danger:
     'bg-[rgba(120,18,28,0.32)] text-[#FF8D98] shadow-[0_0_14px_rgba(255,40,40,0.1)]',
   pending: 'bg-[rgba(18,18,22,0.88)] text-[#8E8E93] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',

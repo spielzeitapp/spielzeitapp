@@ -1,4 +1,5 @@
 import React from 'react';
+import { dsMatchdaySectionLabelClass, dsScheduleEventPanelClass } from '../../lib/premiumDesignSystem';
 
 type Props = {
   /** z. B. „Nächstes Spiel“, „Nächstes Training“ */
@@ -17,16 +18,13 @@ export function EventHeroCard({ label, children, footer, labelAside }: Props) {
       aria-labelledby="schedule-hero-heading"
     >
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-0.5">
-        <h2
-          id="schedule-hero-heading"
-          className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-300/90"
-        >
+        <h2 id="schedule-hero-heading" className={dsMatchdaySectionLabelClass()}>
           {label}
         </h2>
         {labelAside ? <div className="shrink-0">{labelAside}</div> : null}
       </div>
 
-      <div className="relative w-full overflow-hidden rounded-3xl border border-red-900/40 bg-black/45 shadow-2xl shadow-black/60">
+      <div className={dsScheduleEventPanelClass()}>
         <div className="relative z-10 max-h-[46svh] min-h-0 w-full min-w-0 overflow-hidden sm:max-h-[min(48vh,23rem)]">
           {children}
         </div>

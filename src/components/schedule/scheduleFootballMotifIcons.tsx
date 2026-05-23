@@ -1,7 +1,7 @@
 import React from 'react';
 import { CalendarDays, LayoutGrid } from 'lucide-react';
 
-/** Trainings-Motiv: Kegel + Ball (kein Hantel-Icon). */
+/** Trainings-Motiv: monochromes Taktikboard + Kegel (Premium Football UI). */
 export function TrainingMotifIcon({ className = '' }: { className?: string }) {
   return (
     <svg
@@ -11,26 +11,42 @@ export function TrainingMotifIcon({ className = '' }: { className?: string }) {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden
     >
-      <path d="M6 19L4 21" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" className="text-amber-400" />
-      <path d="M9 17L7 20" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" className="text-amber-400" />
-      <path d="M4 17L6 14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" className="text-amber-400" />
-      <circle cx="16" cy="9" r="4.25" fill="currentColor" className="text-white/90" opacity="0.95" />
-      <path
-        d="M14.2 7.3c.9.35 1.55 1.15 1.75 2.1M17.8 10.6c-.2.95-.85 1.75-1.75 2.1"
-        stroke="currentColor"
-        strokeWidth="0.9"
-        className="text-zinc-900/55"
-        strokeLinecap="round"
-      />
       <rect
-        x="2"
-        y="18.5"
-        width="20"
-        height="1.2"
-        rx="0.4"
-        fill="currentColor"
-        className="text-emerald-500/35"
+        x="3.5"
+        y="5"
+        width="17"
+        height="11.5"
+        rx="1.25"
+        stroke="currentColor"
+        strokeWidth="1.35"
+        className="text-white/28"
       />
+      <path d="M12 5v11.5M3.5 10.75h17" stroke="currentColor" strokeWidth="0.9" className="text-white/14" />
+      <circle cx="12" cy="10.75" r="1.35" stroke="currentColor" strokeWidth="1" className="text-white/22" />
+      <path
+        d="M6.25 18.25L7.35 15.1h1.8L10.25 18.25"
+        stroke="currentColor"
+        strokeWidth="1.35"
+        strokeLinejoin="round"
+        className="text-white/78"
+      />
+      <path d="M7.35 15.1v1.35" stroke="currentColor" strokeWidth="1" className="text-[#ff909b]/75" />
+      <path
+        d="M13.75 18.25L14.85 15.1h1.8L17.75 18.25"
+        stroke="currentColor"
+        strokeWidth="1.35"
+        strokeLinejoin="round"
+        className="text-white/78"
+      />
+      <path d="M14.85 15.1v1.35" stroke="currentColor" strokeWidth="1" className="text-[#ff909b]/75" />
+      <path
+        d="M17.25 7.25c.55-.85 1.55-1.35 2.55-1.2"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+        className="text-white/42"
+      />
+      <circle cx="18.85" cy="6.35" r="0.85" fill="currentColor" className="text-[#ff909b]/88" />
     </svg>
   );
 }
@@ -51,23 +67,7 @@ export function EventMotifIcon({ className = '' }: { className?: string }) {
   return <CalendarDays className={className} strokeWidth={2} aria-hidden />;
 }
 
-/** Kompaktliste Training: einfacher Fußball (56px-tauglich). */
+/** Kompaktliste Training: monochromes Drill-Icon. */
 export function CompactFootballBallIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <circle cx="12" cy="12" r="10" fill="currentColor" className="text-white/[0.93]" />
-      <path
-        fill="currentColor"
-        className="text-zinc-900/50"
-        d="M12 4.5c1.2 0 2.3.3 3.3.8l-1 2.4 2.6 1.2 2.7-.9c.3.6.5 1.2.6 1.9l-2.3 1.8.1 2.9 2.2 1.9c-.4.7-.9 1.3-1.5 1.8l-2.7-.8-2.6 1.2 1 2.4c-1 .5-2.1.8-3.3.8s-2.3-.3-3.3-.8l1-2.4-2.6-1.2-2.7.9a7.86 7.86 0 01-1.5-1.8l2.2-1.9.1-2.9-2.3-1.8c.1-.7.3-1.3.6-1.9l2.7.9 2.6-1.2-1-2.4c1-.5 2.1-.8 3.3-.8z"
-      />
-      <path
-        stroke="currentColor"
-        strokeWidth="0.9"
-        strokeLinecap="round"
-        className="text-zinc-800/40"
-        d="M12 12v9M12 12l-7-4M12 12l7-4M12 12l7 4M12 12l-7 4"
-      />
-    </svg>
-  );
+  return <TrainingMotifIcon className={className} />;
 }
