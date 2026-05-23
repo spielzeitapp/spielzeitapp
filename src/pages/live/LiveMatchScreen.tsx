@@ -57,6 +57,13 @@ import {
   DS_JERSEY_COMPACT,
   DS_JERSEY_STARTER,
   DS_LIST_GAP,
+  dsLineupViewTabClass,
+  dsPageAtmosphereAbsoluteClass,
+  dsPrimaryCtaClass,
+  dsSecondaryCtaClass,
+  dsSegmentTabClass,
+  dsSegmentTrackClass,
+  dsWechselPickRowClass,
 } from '../../lib/premiumDesignSystem';
 import { matchdayBenchTileClass } from '../../lib/matchdayPlayerCard';
 import {
@@ -701,9 +708,6 @@ function kickoffPositionParts(
   if (!full || full === '–') full = short === '–' ? 'Position' : short;
   return { short, full };
 }
-
-const LINEUP_VIEW_TAB_BASE =
-  'inline-flex h-[38px] w-auto min-w-[4.75rem] shrink-0 items-center justify-center whitespace-nowrap overflow-hidden rounded-2xl border px-3 text-[11px] font-semibold uppercase tracking-[0.04em] transition-all duration-200 active:scale-[0.987] sm:min-w-[5rem] sm:text-sm';
 
 const LINEUP_HUB_TAB_BTN =
   'inline-flex h-[34px] shrink-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-2xl border border-white/10 bg-black/35 px-3 text-[13px] font-medium text-white/88 transition-all duration-200 hover:bg-white/[0.05] active:scale-[0.985]';
@@ -4094,12 +4098,7 @@ export const LiveMatchScreen: React.FC = () => {
                       setLineupPanelView('live');
                       setLineupPositionMode(false);
                     }}
-                    className={[
-                      LINEUP_VIEW_TAB_BASE,
-                      lineupPanelView === 'live'
-                        ? 'border-emerald-500/75 bg-emerald-950/55 text-emerald-50 shadow-[inset_0_0_26px_rgba(16,185,129,0.55),inset_0_1px_0_rgba(255,255,255,0.14)] ring-1 ring-emerald-500/45'
-                        : 'border-white/[0.08] bg-black/25 text-white/55 hover:border-white/15 hover:bg-white/[0.06] hover:text-white/75',
-                    ].join(' ')}
+                    className={dsLineupViewTabClass('live', lineupPanelView === 'live')}
                   >
                     LIVE
                   </button>
@@ -4112,12 +4111,7 @@ export const LiveMatchScreen: React.FC = () => {
                       setLineupPositionMode(false);
                       setFormationSheetOpen(false);
                     }}
-                    className={[
-                      LINEUP_VIEW_TAB_BASE,
-                      lineupPanelView === 'kickoff'
-                        ? 'border-red-500/30 bg-gradient-to-br from-red-900/50 via-zinc-900 to-black font-bold text-white shadow-[inset_0_0_14px_rgba(220,38,38,0.22),inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-red-500/28'
-                        : 'border-white/[0.08] bg-black/25 text-white/55 hover:border-white/15 hover:bg-white/[0.06] hover:text-white/75',
-                    ].join(' ')}
+                    className={dsLineupViewTabClass('kickoff', lineupPanelView === 'kickoff')}
                   >
                     START
                   </button>
@@ -4794,15 +4788,15 @@ export const LiveMatchScreen: React.FC = () => {
           aria-modal="true"
           aria-labelledby="wechsel-sheet-title"
         >
-          <div aria-hidden className="pointer-events-none absolute inset-0 z-0 bg-black" />
-          <div className="relative z-[1] flex min-h-0 flex-1 flex-col">
-            <div className="sticky top-0 z-20 shrink-0 bg-black">
-            <div className="flex items-center justify-between gap-1 border-b border-white/[0.07] px-2 py-0.5">
-              <h3 id="wechsel-sheet-title" className="shrink-0 text-[12px] font-black leading-none tracking-tight text-white">
+          <div aria-hidden className={dsPageAtmosphereAbsoluteClass()} />
+          <div className="relative z-[1] flex min-h-0 flex-1 flex-col bg-[#080808]">
+            <div className="sticky top-0 z-20 shrink-0 bg-[rgba(8,8,8,0.92)] backdrop-blur-md">
+            <div className="flex items-center justify-between gap-1 border-b border-transparent px-2 py-1 shadow-[0_6px_20px_rgba(0,0,0,0.35)]">
+              <h3 id="wechsel-sheet-title" className="shrink-0 text-[13px] font-bold leading-none tracking-tight text-white">
                 Wechsel
               </h3>
               <div
-                className="inline-flex h-7 min-h-7 max-w-[12.5rem] flex-1 items-stretch justify-end overflow-hidden rounded-md border border-white/12 bg-black/70 p-px sm:max-w-[14rem]"
+                className={`${dsSegmentTrackClass()} h-8 min-h-8 max-w-[14rem] flex-1 sm:max-w-[14rem]`}
                 role="tablist"
                 aria-label="Ansicht"
               >
@@ -4811,27 +4805,16 @@ export const LiveMatchScreen: React.FC = () => {
                   role="tab"
                   aria-selected={subSheetView === 'list'}
                   onClick={() => setSubSheetView('list')}
-                  className={[
-                    'min-h-7 flex-1 px-2 text-center text-[10px] font-bold leading-none transition-colors sm:text-[11px]',
-                    subSheetView === 'list'
-                      ? 'rounded-md bg-red-600 text-white shadow-[0_0_8px_rgba(220,38,38,0.25)]'
-                      : 'rounded-md text-white/45 hover:bg-white/[0.06] hover:text-white/80',
-                  ].join(' ')}
+                  className={`${dsSegmentTabClass(subSheetView === 'list')} min-h-7 text-[10px] font-bold sm:text-[11px]`}
                 >
                   Liste
                 </button>
-                <span className="w-px shrink-0 self-stretch bg-white/12" aria-hidden />
                 <button
                   type="button"
                   role="tab"
                   aria-selected={subSheetView === 'pitch'}
                   onClick={() => setSubSheetView('pitch')}
-                  className={[
-                    'min-h-7 flex-1 px-2 text-center text-[10px] font-bold leading-none transition-colors sm:text-[11px]',
-                    subSheetView === 'pitch'
-                      ? 'rounded-md bg-red-600 text-white shadow-[0_0_8px_rgba(220,38,38,0.25)]'
-                      : 'rounded-md text-white/45 hover:bg-white/[0.06] hover:text-white/80',
-                  ].join(' ')}
+                  className={`${dsSegmentTabClass(subSheetView === 'pitch')} min-h-7 text-[10px] font-bold sm:text-[11px]`}
                 >
                   Spielfeld
                 </button>
@@ -4955,15 +4938,11 @@ export const LiveMatchScreen: React.FC = () => {
                                 key={`sub-in-${pid}`}
                                 type="button"
                                 onClick={() => setSubInPlayerId(pid)}
-                                className={[
-                                  'flex h-[61px] min-h-[58px] max-h-[66px] shrink-0 items-center gap-1.5 rounded-lg border px-1.5 py-0.5 text-left transition-all active:scale-[0.99]',
-                                  'bg-gradient-to-br from-emerald-950/25 via-black/75 to-black/92',
-                                  selected
-                                    ? 'border-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.38)] ring-2 ring-emerald-400/55'
-                                    : recIn
-                                      ? 'border-emerald-400/45 shadow-[0_0_12px_rgba(16,185,129,0.22)] ring-1 ring-emerald-400/40'
-                                      : 'border-white/[0.1] hover:border-emerald-500/32',
-                                ].join(' ')}
+                                className={dsWechselPickRowClass({
+                                  selected,
+                                  recommended: recIn,
+                                  side: 'in',
+                                })}
                               >
                                 <div className="pointer-events-none shrink-0">
                                   <LeibchenJersey
@@ -5126,15 +5105,15 @@ export const LiveMatchScreen: React.FC = () => {
             </div>
 
             <footer
-              className="sticky bottom-0 z-30 shrink-0 border-t border-red-500/15 bg-black/95 px-2 pt-0.5 backdrop-blur-md"
+              className="sticky bottom-0 z-30 shrink-0 border-t border-transparent bg-[rgba(8,8,8,0.92)] px-2 pt-1 backdrop-blur-xl shadow-[0_-10px_36px_rgba(0,0,0,0.42)]"
               style={{ paddingBottom: WECHSEL_SCREEN_FOOTER_PB }}
             >
-              <div className="flex flex-row gap-1.5">
+              <div className="flex flex-row gap-2">
                 <button
                   type="button"
                   disabled={subSaving || posSwapSaving}
                   onClick={closeWechselSheet}
-                  className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-900/95 text-[11px] font-bold text-white/85 hover:bg-zinc-800 disabled:opacity-45"
+                  className={`flex min-h-[48px] flex-1 items-center justify-center px-2 text-[11px] font-bold ${dsSecondaryCtaClass()}`}
                 >
                   Zurück zum Livespiel
                 </button>
@@ -5148,7 +5127,7 @@ export const LiveMatchScreen: React.FC = () => {
                     String(subOutPlayerId ?? '').trim() === String(subInPlayerId ?? '').trim()
                   }
                   onClick={() => void confirmSubstitution()}
-                  className="flex min-h-[46px] flex-1 items-center justify-center rounded-xl bg-emerald-600 px-1 text-[11px] font-bold text-white shadow-[0_0_14px_rgba(16,185,129,0.32)] disabled:opacity-35"
+                  className={`flex min-h-[48px] flex-1 items-center justify-center px-1 text-[11px] font-bold ${dsPrimaryCtaClass()}`}
                 >
                   {subSaving
                     ? '…'

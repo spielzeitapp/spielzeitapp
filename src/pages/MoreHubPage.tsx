@@ -6,12 +6,15 @@ import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
 import { isHapticEnabled, setHapticEnabled, triggerHaptic } from '../lib/hapticFeedback';
+import {
+  dsGlassToggleTrack,
+  dsMoreHubPageStyle,
+  dsPageAtmosphereClass,
+  dsPageContentClass,
+  dsPanelRowClass,
+} from '../lib/premiumDesignSystem';
 
-const rowClass =
-  'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-[16px] font-semibold text-white transition-colors hover:bg-white/10';
-
-const subRowClass =
-  'flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 pl-10 text-left text-[16px] font-semibold text-white transition-colors hover:bg-white/10';
+const subRowClass = `${dsPanelRowClass()} pl-10`;
 
 function isTrainerToolsRole(role: string): boolean {
   const r = (role ?? '').trim().toLowerCase();
@@ -157,18 +160,15 @@ export const MoreHubPage: React.FC = () => {
 
   return (
     <div
-      className="page mehr-hub min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 py-6 sm:px-4 md:px-0"
-      style={{
-        background:
-          'linear-gradient(180deg, rgba(40,5,5,0.97) 0%, rgba(20,0,0,0.98) 50%, rgba(10,0,0,0.99) 100%)',
-        boxShadow: 'inset 0 0 120px rgba(120,20,20,0.12)',
-      }}
+      className="page mehr-hub relative min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 py-6 sm:px-4 md:px-0"
+      style={dsMoreHubPageStyle()}
     >
-      <div className="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl">
+      <div className={dsPageAtmosphereClass()} aria-hidden />
+      <div className={dsPageContentClass('mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl')}>
         <h1 className="text-2xl font-bold tracking-tight text-white">Mehr</h1>
         <p className="text-[14px] text-white/60">Einstellungen und weitere Bereiche</p>
 
-        <div className={rowClass}>
+        <div className={dsPanelRowClass()}>
           <span className="flex items-center gap-3">
             <span className="text-lg leading-none" aria-hidden>
               🔘
@@ -179,10 +179,7 @@ export const MoreHubPage: React.FC = () => {
             type="button"
             role="switch"
             aria-checked={hapticOn}
-            className={[
-              'relative h-7 w-12 shrink-0 rounded-full border transition-colors duration-200',
-              hapticOn ? 'border-emerald-500/50 bg-emerald-600/40' : 'border-white/20 bg-white/10',
-            ].join(' ')}
+            className={dsGlassToggleTrack(hapticOn)}
             onClick={() => {
               const next = !hapticOn;
               setHapticEnabled(next);
@@ -201,7 +198,7 @@ export const MoreHubPage: React.FC = () => {
         </div>
 
         <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
-          <Link to="/app/nachrichten" className={rowClass}>
+          <Link to="/app/nachrichten" className={dsPanelRowClass()}>
             <span className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-red-400" aria-hidden />
               <span>Nachrichten</span>
@@ -218,7 +215,7 @@ export const MoreHubPage: React.FC = () => {
             <div className="space-y-1.5 pt-1 md:col-span-2 lg:col-span-3">
               <button
                 type="button"
-                className={rowClass}
+                className={dsPanelRowClass()}
                 onClick={() => setTrainerToolsOpen((v) => !v)}
                 aria-expanded={trainerToolsOpen}
               >
@@ -266,7 +263,7 @@ export const MoreHubPage: React.FC = () => {
             </div>
           )}
 
-          <Link to="/app/profile" className={rowClass}>
+          <Link to="/app/profile" className={dsPanelRowClass()}>
             <span className="flex items-center gap-3">
               <Settings className="h-5 w-5 text-red-400" aria-hidden />
               <span>Einstellungen</span>
@@ -300,7 +297,7 @@ export const MoreHubPage: React.FC = () => {
           <button
             type="button"
             onClick={runReminderTest}
-            className={`${rowClass} mt-6 border-red-500/40 bg-red-950/30 hover:bg-red-900/40`}
+            className={`${dsPanelRowClass()} mt-6 shadow-[0_0_28px_rgba(255,40,40,0.12)] hover:shadow-[0_0_32px_rgba(255,40,40,0.16)]`}
           >
             <span>🔔 Reminder testen</span>
           </button>

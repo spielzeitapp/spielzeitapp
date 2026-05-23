@@ -6,6 +6,10 @@ import { saveMatchSquadOnly } from '../../lib/liveMatchService';
 import { supabase } from '../../lib/supabaseClient';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 import {
+  dsPageAtmosphereClass,
+  dsPageContentClass,
+  dsPageHeaderClass,
+  dsPageShellClass,
   dsPrimaryCtaClass,
   dsSectionLabelClass,
   dsStatusChipClass,
@@ -280,28 +284,27 @@ export const MatchPreparationPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#090909] text-white">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/90 px-4 py-3 backdrop-blur">
+    <div className={dsPageShellClass()}>
+      <div className={dsPageAtmosphereClass()} aria-hidden />
+      <header className={dsPageHeaderClass()}>
         <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
           <div>
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="mb-1 inline-flex min-h-[36px] items-center rounded-lg border border-white/15 bg-white/[0.05] px-2.5 text-xs font-semibold text-white/90 hover:bg-white/[0.09]"
+              className="mb-2 inline-flex min-h-[36px] items-center rounded-[14px] border border-transparent bg-[rgba(18,18,22,0.88)] px-2.5 text-xs font-semibold text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_14px_rgba(255,40,40,0.05)] hover:bg-[rgba(22,14,16,0.92)]"
             >
               ← Zurück
             </button>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-400">SpielzeitApp</p>
-            <h1 className="text-lg font-bold">MATCH VORBEREITUNG</h1>
-            <p className="text-sm text-white/60">{matchRow?.opponent ? `vs. ${matchRow.opponent}` : 'Spiel'}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-red-400/90">SpielzeitApp</p>
+            <h1 className="mt-0.5 text-xl font-bold tracking-tight">Match-Vorbereitung</h1>
+            <p className="mt-1 text-sm text-white/55">{matchRow?.opponent ? `vs. ${matchRow.opponent}` : 'Spiel'}</p>
           </div>
-          <span className="rounded-full border border-red-500/40 bg-red-500/15 px-3 py-1 text-xs font-semibold text-red-300">
-            Trainer
-          </span>
+          <span className={dsStatusChipClass('selected')}>Trainer</span>
         </div>
       </header>
 
-      <main className={`mx-auto max-w-xl flex flex-col ${DS_SECTION_GAP} px-4 py-3 pb-48`}>
+      <main className={dsPageContentClass(`mx-auto max-w-xl flex flex-col ${DS_SECTION_GAP} px-4 py-4 pb-48`)}>
         {(playersLoading || attendanceLoading) ? <p className="text-sm text-white/55">Lade Spieler und Status…</p> : null}
         {(playersError || attendanceError) ? <p className="text-sm text-red-400">{playersError ?? attendanceError}</p> : null}
         <div className="flex flex-wrap gap-1.5">

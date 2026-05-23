@@ -32,6 +32,9 @@ import {
 } from '../../lib/matchdayPlayerCard';
 import {
   dsFormationTabClass,
+  dsPageAtmosphereClass,
+  dsPageContentClass,
+  dsPageShellClass,
   dsPrimaryCtaClass,
   dsSecondaryCtaClass,
   dsSegmentTabClass,
@@ -361,8 +364,9 @@ export const MatchLineupPage: React.FC = () => {
 
   if (!hasSquad) {
     return (
-      <div className="min-h-[100dvh] bg-[#0a0a0a] px-4 py-6 text-white">
-        <div className="mx-auto flex max-w-xl flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <div className={dsPageShellClass('px-4 py-6')}>
+        <div className={dsPageAtmosphereClass()} aria-hidden />
+        <div className={dsPageContentClass('mx-auto flex max-w-xl flex-col gap-4 rounded-[22px] border border-transparent bg-[rgba(18,18,22,0.92)] p-4 shadow-[0_0_36px_rgba(255,40,40,0.10),inset_0_1px_0_rgba(255,255,255,0.03)]')}>
           <button
             type="button"
             onClick={() => navigate(-1)}
@@ -386,7 +390,8 @@ export const MatchLineupPage: React.FC = () => {
   }
 
   return (
-    <div className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-gradient-to-b from-[#050505] via-[#120808] to-[#0a0606] text-white">
+    <div className={dsPageShellClass('relative flex flex-col overflow-hidden')}>
+      <div className={dsPageAtmosphereClass()} aria-hidden />
       <style>{`@media (max-width: 639px){ nav[aria-label="Hauptnavigation"]{ display:none !important; } }`}</style>
 
       {saveMsg === 'Aufstellung gespeichert.' ? (
@@ -402,10 +407,10 @@ export const MatchLineupPage: React.FC = () => {
       ) : null}
 
       <main
-        className={[
+        className={dsPageContentClass([
           'mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-0 px-4 pb-[11.5rem] pt-0.5 sm:pb-[25rem] sm:pt-1',
           lineupViewMode === 'list' ? 'overflow-hidden' : 'overflow-y-auto',
-        ].join(' ')}
+        ].join(' '))}
       >
         <header className="relative flex min-h-[2.75rem] shrink-0 items-center justify-center px-0 py-2">
           <button
