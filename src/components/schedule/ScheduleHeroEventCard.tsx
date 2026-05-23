@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, MapPin, Users } from 'lucide-react';
+import { Clock, Users } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatFullLocation, formatLocationTwoLines, splitCombinedLocation } from '../../lib/eventLocation';
@@ -21,7 +21,8 @@ import {
   dsScheduleDateBoxMonthClass,
   dsScheduleDateBoxWeekdayClass,
 } from '../../lib/premiumDesignSystem';
-import { EventMotifIcon, TrainingMotifIcon } from './scheduleFootballMotifIcons';
+import { EventMotifIcon } from './scheduleFootballMotifIcons';
+import { TrainingPlayerIcon } from './TrainingPlayerIcon';
 import { ScheduleHeroCalendarCta } from './ScheduleHeroCalendarCta';
 import { ScheduleHeroMetaToolbar } from './ScheduleHeroMetaToolbar';
 
@@ -132,7 +133,11 @@ function HeroHybridBackdrop({ training = false }: { training?: boolean }) {
       <div className={`absolute inset-0 ${training ? 'bg-black/62' : 'bg-black/70'}`} aria-hidden />
       <div className="absolute inset-0 backdrop-blur-[3px] bg-black/12" aria-hidden />
       <div
-        className="absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_100%_0%,rgba(255,240,220,0.14)_0%,rgba(122,29,42,0.18)_32%,transparent_62%)]"
+        className={`absolute inset-0 ${
+          training
+            ? 'bg-[radial-gradient(ellipse_80%_60%_at_100%_-5%,rgba(255,245,230,0.18)_0%,rgba(122,29,42,0.24)_30%,transparent_65%)]'
+            : 'bg-[radial-gradient(ellipse_75%_55%_at_100%_0%,rgba(255,240,220,0.14)_0%,rgba(122,29,42,0.18)_32%,transparent_62%)]'
+        }`}
         aria-hidden
       />
       <div
@@ -351,7 +356,7 @@ export function ScheduleHeroEventCard({
       value: `${timeStr} Uhr`,
     },
     {
-      icon: <MapPin strokeWidth={2} aria-hidden />,
+      icon: <Users strokeWidth={2} aria-hidden />,
       label: 'Treffpunkt',
       value: showMeetup && meetupTimeOnly ? `${meetupTimeOnly} Uhr` : '—',
     },
@@ -378,7 +383,7 @@ export function ScheduleHeroEventCard({
           </div>
 
           <div className="flex min-w-0 flex-1 items-start gap-2.5">
-            <TrainingMotifIcon className="mt-0.5 h-12 w-12 shrink-0 text-white/90 drop-shadow-[0_0_14px_rgba(255,255,255,0.1)] sm:h-[3.25rem] sm:w-[3.25rem]" />
+            <TrainingPlayerIcon variant="hero" className="mt-0.5" />
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 text-[15px] font-bold leading-tight tracking-tight text-white sm:text-[16px]">
                 {trainingMainTitle}

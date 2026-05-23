@@ -654,9 +654,9 @@ export function dsScheduleHeroPanelGlowClass(): string {
 export function dsScheduleListPanelClass(): string {
   return [
     'relative overflow-hidden rounded-[14px]',
-    'border border-white/[0.03]',
-    'bg-[linear-gradient(180deg,rgba(9,9,11,0.99)_0%,rgba(6,6,8,0.99)_100%)]',
-    'shadow-[0_1px_10px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.01)]',
+    'border border-white/[0.025]',
+    'bg-[linear-gradient(180deg,rgba(7,7,9,0.99)_0%,rgba(5,5,7,0.99)_100%)]',
+    'shadow-[0_1px_8px_rgba(0,0,0,0.32)]',
   ].join(' ');
 }
 

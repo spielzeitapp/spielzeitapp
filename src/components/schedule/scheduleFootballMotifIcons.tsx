@@ -1,56 +1,14 @@
 import React from 'react';
 import { CalendarDays, LayoutGrid } from 'lucide-react';
+import { TrainingPlayerIcon } from './TrainingPlayerIcon';
 
-/** Gleiche Formsprache wie BottomNav `pitch.svg` (horizontal, Mittelkreis, Strafraum). */
+/** @deprecated — Nutze TrainingPlayerIcon */
 export function PitchNavIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-    >
-      <rect
-        x="2.25"
-        y="4.25"
-        width="19.5"
-        height="15.5"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <line x1="12" y1="4.25" x2="12" y2="19.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="12" cy="12" r="2.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <rect
-        x="2.25"
-        y="8.1"
-        width="4.25"
-        height="7.8"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <rect
-        x="17.5"
-        y="8.1"
-        width="4.25"
-        height="7.8"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <TrainingPlayerIcon variant="list" className={className} />;
 }
 
-/** Trainings-Motiv = BottomNav-Spielfeld (Premium Line). */
 export function TrainingMotifIcon({ className = '' }: { className?: string }) {
-  return <PitchNavIcon className={className} />;
+  return <TrainingPlayerIcon variant="list" className={className} />;
 }
 
 /** Spiel ohne Logos: Ball + Rasenlinien. */
@@ -69,7 +27,7 @@ export function EventMotifIcon({ className = '' }: { className?: string }) {
   return <CalendarDays className={className} strokeWidth={2} aria-hidden />;
 }
 
-/** Kompaktliste Training: gleiches Feld-Icon. */
+/** Kompaktliste Training. */
 export function CompactFootballBallIcon({ className = '' }: { className?: string }) {
-  return <TrainingMotifIcon className={className} />;
+  return <TrainingPlayerIcon variant="list" className={className} />;
 }

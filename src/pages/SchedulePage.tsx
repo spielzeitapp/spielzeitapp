@@ -1055,8 +1055,7 @@ export const SchedulePage: React.FC = () => {
                                   no={countsForCard.no}
                                   open={countsForCard.open}
                                   isTraining={et === 'training'}
-                                  listColumn={et === 'training'}
-                                  heroColumn
+                                  listColumn
                                 />
                               ) : null;
                         const heroClickable = !forcePublicView && Boolean(ev.id);
@@ -1067,25 +1066,6 @@ export const SchedulePage: React.FC = () => {
                                 isFinishedMatch && ev.match_id
                                   ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
                                   : navigate(`/app/events/${id}`);
-                        const heroTrainerFooter =
-                          canManage &&
-                          !forcePublicView &&
-                          et === 'game' &&
-                          ev.match_id &&
-                          ev.status !== 'finished' ? (
-                            <ScheduleEventActionsPanel
-                              aria-label="Livespiel"
-                              rows={[
-                                {
-                                  key: 'live',
-                                  label: 'Zum Livespiel',
-                                  icon: <Radio className="h-4 w-4" strokeWidth={2} aria-hidden />,
-                                  emphasis: 'primary' as const,
-                                  onClick: () => navigate(`/live?matchId=${ev.match_id}`),
-                                },
-                              ]}
-                            />
-                          ) : null;
                         const heroParentFooter =
                           heroShowsParentPill && !forcePublicView && et !== 'game' ? (
                             <div className="flex justify-end px-0.5" onClick={(e) => e.stopPropagation()}>
@@ -1110,13 +1090,16 @@ export const SchedulePage: React.FC = () => {
                                   appBaseUrl: window.location.origin,
                                 })
                             : undefined;
-                        const heroCardFooter =
-                          heroTrainerFooter || heroParentFooter ? (
-                            <div className={`flex flex-col ${et === 'game' ? 'gap-3 pb-1' : 'gap-1.5'}`}>
-                              {heroTrainerFooter}
-                              {heroParentFooter}
-                            </div>
-                          ) : undefined;
+                        const heroCardFooter = heroParentFooter ? (
+                          <div className="pb-1">{heroParentFooter}</div>
+                        ) : undefined;
+                        const heroGoLive =
+                          et === 'game' &&
+                          ev.match_id &&
+                          ev.status !== 'finished' &&
+                          !forcePublicView
+                            ? () => navigate(`/live?matchId=${ev.match_id}`)
+                            : undefined;
                         const opponentLogo =
                           (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url ?? null;
                         if (et === 'game') {
@@ -1171,7 +1154,7 @@ export const SchedulePage: React.FC = () => {
                                     heroShowsParentPill ? () => setAttendanceModalEvent(ev) : undefined
                                   }
                                   isPublicView={forcePublicView}
-                                  onScheduleHeroAddToCalendar={heroAddToCalendar}
+                                  onScheduleHeroGoLive={heroGoLive}
                                 />
                               </EventHeroCard>
                             </div>
@@ -1246,7 +1229,6 @@ export const SchedulePage: React.FC = () => {
                           open={countsForCard.open}
                           isTraining={et === 'training'}
                           listColumn
-                          listCompact
                         />
                       ) : showCompactParentPill ? (
                         <CompactListParentAttendance

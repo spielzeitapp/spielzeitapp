@@ -21,7 +21,7 @@ import {
   dsScheduleListPanelClass,
   dsScheduleListPanelGlowClass,
 } from '../../lib/premiumDesignSystem';
-import { CompactFootballBallIcon } from './scheduleFootballMotifIcons';
+import { TrainingPlayerIcon } from './TrainingPlayerIcon';
 
 export type CompactEventCardProps = {
   ev: EventRow;
@@ -137,7 +137,7 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <CompactFootballBallIcon className="h-8 w-8 shrink-0 text-white/90" />
+      <TrainingPlayerIcon variant="list" />
     ) : (
       <CalendarDays className="h-5 w-5 shrink-0 text-red-200/85" />
     );
@@ -240,7 +240,7 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <CompactFootballBallIcon className="h-8 w-8 shrink-0 text-white/90" />
+      <TrainingPlayerIcon variant="list" />
     ) : (
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">
         <CalendarDays className="h-5 w-5 text-red-200/85" />

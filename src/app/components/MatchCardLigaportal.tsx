@@ -11,6 +11,7 @@ import { MatchCardGameCore, MatchCardKickoffBlock } from '../../components/match
 import { formatHeroDateParts } from '../../components/schedule/scheduleEventViewUtils';
 import { TrainerStatsMini } from '../../components/schedule/TrainerStatsMini';
 import { ScheduleHeroCalendarCta } from '../../components/schedule/ScheduleHeroCalendarCta';
+import { ScheduleHeroLiveCta } from '../../components/schedule/ScheduleHeroLiveCta';
 import { ScheduleHeroMetaToolbar } from '../../components/schedule/ScheduleHeroMetaToolbar';
 
 /** Datum kurz in Europe/Vienna (z. B. Sa. 06.06.2026). */
@@ -69,8 +70,10 @@ type MatchCardLigaportalProps = {
   suppressInlineAttendanceCounts?: boolean;
   /** Termine-Liste: keine Kurz-Datumszeile über der Card; bei Spielen Datum-Badge in der Karte + optional keine „Uhr“ unter der Zeit. */
   scheduleNextMatchHero?: boolean;
-  /** Nur „Nächstes Spiel“-Hero: Kalender-Icon oben rechts in der Card (neben RSVP/Zähler). */
+  /** Nur „Nächstes Spiel“-Hero: Kalender-CTA in der Card. */
   onScheduleHeroAddToCalendar?: () => void;
+  /** Nur „Nächstes Spiel“-Hero: Livespiel-CTA in der Card. */
+  onScheduleHeroGoLive?: () => void;
   /** Event-Detail: Matchcard kompakter wie Schedule-Hero, ohne dessen Header/Actions. */
   compactDetailGame?: boolean;
 };
@@ -108,6 +111,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   suppressInlineAttendanceCounts = false,
   scheduleNextMatchHero = false,
   onScheduleHeroAddToCalendar,
+  onScheduleHeroGoLive,
   compactDetailGame = false,
 }) => {
   void ourTeamName;
@@ -258,6 +262,15 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         status !== 'finished' &&
         !isPublicView &&
         onScheduleHeroAddToCalendar,
+    );
+
+  const showScheduleHeroGoLive =
+    Boolean(
+      scheduleNextMatchHero &&
+        effectiveEventType === 'game' &&
+        status !== 'finished' &&
+        !isPublicView &&
+        onScheduleHeroGoLive,
     );
 
   const showScheduleHeroTrailing =
@@ -418,7 +431,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       <div
         className={
           scheduleNextMatchHero
-            ? 'pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_100%_72%_at_100%_-8%,rgba(255,235,210,0.1)_0%,rgba(122,29,42,0.18)_30%,transparent_62%),radial-gradient(ellipse_85%_50%_at_50%_100%,rgba(58,18,24,0.1)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_30%)]'
+            ? 'pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_85%_65%_at_100%_-5%,rgba(255,245,230,0.16)_0%,rgba(122,29,42,0.22)_32%,transparent_65%),radial-gradient(ellipse_90%_50%_at_50%_110%,rgba(58,18,24,0.12)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.06)_0%,transparent_32%)]'
             : 'pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_95%_60%_at_100%_0%,rgba(122,29,42,0.09)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.02)_0%,transparent_24%)]'
         }
         aria-hidden
@@ -457,7 +470,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             suppressCompactScheduleFooter={scheduleNextMatchHero}
           />
           {scheduleNextMatchHero ? (
-            <div className="relative z-[1] mt-0.5 px-0.5 pb-1">
+            <div className="relative z-[1] mt-0.5 px-0.5 pb-1.5">
               <ScheduleHeroMetaToolbar
                 items={[
                   {
@@ -466,10 +479,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                     value: `${timeStr} Uhr`,
                   },
                   {
-                    icon: <MapPin strokeWidth={2} aria-hidden />,
+                    icon: <Users strokeWidth={2} aria-hidden />,
                     label: 'Treffpunkt',
                     value:
                       canSeeSensitiveInfo && meetupTimeOnly ? `${meetupTimeOnly} Uhr` : '—',
+                    accent: Boolean(canSeeSensitiveInfo && meetupTimeOnly),
                   },
                   {
                     icon: <Clock strokeWidth={2} aria-hidden />,
@@ -480,8 +494,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 showChevron={isClickable}
                 onChevronClick={isClickable ? handleCardClick : undefined}
               />
-              {showScheduleHeroCalendar && onScheduleHeroAddToCalendar ? (
-                <ScheduleHeroCalendarCta onClick={onScheduleHeroAddToCalendar} />
+              {showScheduleHeroGoLive && onScheduleHeroGoLive ? (
+                <ScheduleHeroLiveCta onClick={onScheduleHeroGoLive} />
               ) : null}
             </div>
           ) : null}

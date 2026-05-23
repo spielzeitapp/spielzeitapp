@@ -5,11 +5,11 @@ type Props = {
   no: number;
   open: number;
   isTraining?: boolean;
-  /** Schmale rechte Spalte in der Terminliste (ca. 48px). */
+  /** Schmale rechte Spalte (Hero + Liste gleiche Größe). */
   listColumn?: boolean;
-  /** Kompaktliste: kleinere Chips. */
+  /** @deprecated — gleiche Größe wie Hero */
   listCompact?: boolean;
-  /** Hero: größere, lesbare Status-Pills. */
+  /** @deprecated — Alias für listColumn */
   heroColumn?: boolean;
   className?: string;
 };
@@ -17,55 +17,46 @@ type Props = {
 const pillSm =
   'inline-flex shrink-0 items-center justify-center rounded-full border font-bold leading-none tabular-nums';
 
-/** Kompakte Teilnehmerzahlen für Trainer/Staff (nur Darstellung). */
+/** Einheitliche Pill-Größe Hero + „Weitere Termine“. */
+const pillSizeColumn = 'h-[26px] min-w-[36px] px-1.5 text-[10px]';
+const pillSizeRow = 'h-9 min-w-[2.35rem] px-2.5 text-[12px]';
+
+/** Teilnehmerzahlen für Trainer/Staff (nur Darstellung). */
 export function TrainerStatsMini({
   yes,
   no,
   open,
   isTraining = false,
   listColumn = false,
-  listCompact = false,
-  heroColumn = false,
+  listCompact: _listCompact = false,
+  heroColumn: _heroColumn = false,
   className = '',
 }: Props) {
+  void _listCompact;
+  void _heroColumn;
   const yesTitle = isTraining ? 'Dabei' : 'Zugesagt';
-  const pillSize = heroColumn
-    ? listColumn
-      ? 'h-[26px] min-w-[34px] px-1.5 text-[10px]'
-      : 'h-9 min-w-[2.35rem] px-2.5 text-[12px]'
-    : listCompact
-      ? 'h-[17px] min-w-[22px] px-0.5 text-[7px]'
-      : 'h-[22px] min-w-[28px] px-1.5 text-[9px]';
-
-  const yesGlow = heroColumn
-    ? 'shadow-[0_0_14px_rgba(40,255,120,0.14)]'
-    : 'shadow-[0_0_8px_rgba(40,255,120,0.08)]';
-  const noGlow = heroColumn
-    ? 'shadow-[0_0_14px_rgba(122,29,42,0.16)]'
-    : 'shadow-[0_0_8px_rgba(122,29,42,0.1)]';
+  const pillSize = listColumn ? pillSizeColumn : pillSizeRow;
 
   if (listColumn) {
     return (
       <div
-        className={`flex w-full max-w-[92px] flex-col items-end justify-center ${
-          heroColumn ? 'gap-1' : 'gap-0.5'
-        } ${className}`}
+        className={`flex w-full max-w-[96px] flex-col items-end justify-center gap-1 ${className}`}
         aria-label="Zu- und Absagen"
       >
         <span
-          className={`${pillSm} ${pillSize} border-emerald-500/35 bg-[rgba(14,58,40,0.52)] text-[#9DFFC5] ${yesGlow}`}
+          className={`${pillSm} ${pillSize} border-emerald-500/40 bg-[rgba(14,58,40,0.55)] text-[#9DFFC5] shadow-[0_0_14px_rgba(40,255,120,0.12)]`}
           title={yesTitle}
         >
           ✓ {yes}
         </span>
         <span
-          className={`${pillSm} ${pillSize} border-[rgba(122,29,42,0.38)] bg-[rgba(58,18,24,0.55)] text-[#E8B0B8] ${noGlow}`}
+          className={`${pillSm} ${pillSize} border-[rgba(122,29,42,0.4)] bg-[rgba(58,18,24,0.58)] text-[#E8B0B8] shadow-[0_0_14px_rgba(122,29,42,0.14)]`}
           title="Abgesagt"
         >
           ✕ {no}
         </span>
         <span
-          className={`${pillSm} ${pillSize} border-white/[0.1] bg-[rgba(14,14,16,0.96)] text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}
+          className={`${pillSm} ${pillSize} border-white/[0.12] bg-[rgba(14,14,16,0.96)] text-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}
           title="Offen"
         >
           ? {open}
@@ -75,18 +66,15 @@ export function TrainerStatsMini({
   }
 
   return (
-    <div
-      className={`flex flex-row flex-wrap items-center justify-end ${heroColumn ? 'gap-2' : 'gap-1.5'} ${className}`}
-      aria-label="Zu- und Absagen"
-    >
+    <div className={`flex flex-row flex-wrap items-center justify-end gap-2 ${className}`} aria-label="Zu- und Absagen">
       <span
-        className={`flex items-center justify-center rounded-full border border-emerald-500/40 bg-[rgba(14,58,40,0.55)] font-bold tabular-nums text-[#9DFFC5] ${pillSize} ${yesGlow}`}
+        className={`flex items-center justify-center rounded-full border border-emerald-500/40 bg-[rgba(14,58,40,0.55)] font-bold tabular-nums text-[#9DFFC5] ${pillSize} shadow-[0_0_14px_rgba(40,255,120,0.12)]`}
         title={yesTitle}
       >
         {yes}
       </span>
       <span
-        className={`flex items-center justify-center rounded-full border border-[rgba(122,29,42,0.42)] bg-[rgba(58,18,24,0.55)] font-bold tabular-nums text-[#E8B0B8] ${pillSize} ${noGlow}`}
+        className={`flex items-center justify-center rounded-full border border-[rgba(122,29,42,0.42)] bg-[rgba(58,18,24,0.55)] font-bold tabular-nums text-[#E8B0B8] ${pillSize} shadow-[0_0_14px_rgba(122,29,42,0.14)]`}
         title="Abgesagt"
       >
         {no}
