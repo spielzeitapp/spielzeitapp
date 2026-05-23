@@ -30,8 +30,10 @@ import { PremiumStatusBadge } from '../components/player/PremiumStatusBadge';
 import {
   dsPrimaryCtaClass,
   dsRsvpChoiceClass,
+  dsSchedulePageStyle,
   dsSectionLabelClass,
   dsStatusChipClass,
+  dsTrainingDetailHeaderAtmosphereClass,
   DS_LIST_GAP,
   DS_STAT_GRID_GAP,
   type DsChipTone,
@@ -2708,7 +2710,10 @@ export const EventDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div
+      className="min-h-screen text-white"
+      style={isTraining ? dsSchedulePageStyle() : { background: '#000000' }}
+    >
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-28 sm:px-4">
         <div className="flex flex-col gap-3">
           <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
@@ -2751,9 +2756,10 @@ export const EventDetailPage: React.FC = () => {
           ) : null}
         </div>
 
-        <div className="-mx-3 flex w-[calc(100%+1.5rem)] min-w-0 max-w-none flex-col sm:mx-0 sm:w-full sm:max-w-full">
+        <div className="-mx-3 relative flex w-[calc(100%+1.5rem)] min-w-0 max-w-none flex-col sm:mx-0 sm:w-full sm:max-w-full">
+          {isTraining ? <div className={dsTrainingDetailHeaderAtmosphereClass()} aria-hidden /> : null}
           <MatchCardLigaportal
-            className="!overflow-visible w-full max-w-full rounded-2xl"
+            className="relative z-[1] !overflow-visible w-full max-w-full rounded-2xl"
             compactDetailGame
             ourTeamName={ourTeamName}
             opponent={event.opponent}
@@ -2816,11 +2822,25 @@ export const EventDetailPage: React.FC = () => {
         </div>
 
         {!isFan && (
-          <Card className="flex flex-col gap-4">
-            <CardTitle>{isTraining ? 'Training-Teilnahme' : 'Zu-/Absagen'}</CardTitle>
+          <Card
+            className={
+              isTraining
+                ? 'relative flex flex-col gap-4 overflow-hidden border border-[rgba(255,45,85,0.08)] bg-[rgba(10,10,14,0.94)] shadow-[0_0_36px_rgba(255,45,85,0.07),inset_0_1px_0_rgba(255,255,255,0.03)]'
+                : 'flex flex-col gap-4'
+            }
+          >
+            {isTraining ? (
+              <div
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_0%,rgba(255,45,85,0.07)_0%,transparent_58%)]"
+                aria-hidden
+              />
+            ) : null}
+            <CardTitle className={isTraining ? 'relative z-[1]' : undefined}>
+              {isTraining ? 'Training-Teilnahme' : 'Zu-/Absagen'}
+            </CardTitle>
 
             {canTrainerManageEvent ? (
-              <div className="flex flex-col gap-3">
+              <div className={`flex flex-col gap-3 ${isTraining ? 'relative z-[1]' : ''}`}>
                 {event.kind === 'match' && event.match_id ? (
                   <button
                     type="button"

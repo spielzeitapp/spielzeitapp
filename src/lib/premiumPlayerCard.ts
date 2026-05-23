@@ -9,6 +9,8 @@ import {
   dsFeedAvatarRingClass,
   dsFeedCardGlowClass,
   dsFeedCardShellClass,
+  dsTrainingAttendanceCardGlowClass,
+  dsTrainingAttendanceCardShellClass,
   dsJerseyNumberClass,
   dsPlayerNameClass,
   dsPlayerSublineClass,
@@ -19,8 +21,8 @@ import {
 } from './premiumDesignSystem';
 
 export type PremiumPlayerCardDensity = 'default' | 'compact';
-/** matchday = etwas stärkere active-Tiefe; feed = Home-Feed-Look (Training). */
-export type PremiumPlayerCardTone = 'utility' | 'matchday' | 'feed';
+/** matchday = etwas stärkere active-Tiefe; feed = Home-Feed; training = Teilnahme mit Stadium-Glow. */
+export type PremiumPlayerCardTone = 'utility' | 'matchday' | 'feed' | 'training';
 
 export type PremiumPlayerCardPlayer = {
   id?: string;
@@ -70,6 +72,9 @@ export function premiumPlayerCardShellClass(opts?: {
 }): string {
   const highlighted = Boolean(opts?.active || opts?.selected);
   const tone = opts?.tone ?? 'utility';
+  if (tone === 'training') {
+    return dsTrainingAttendanceCardShellClass(opts?.className);
+  }
   if (tone === 'feed') {
     return dsFeedCardShellClass(opts?.className);
   }
@@ -82,6 +87,7 @@ export function premiumPlayerCardShellClass(opts?: {
 }
 
 export function premiumPlayerCardGlowClass(tone?: PremiumPlayerCardTone): string {
+  if (tone === 'training') return dsTrainingAttendanceCardGlowClass();
   if (tone === 'feed') return dsFeedCardGlowClass();
   return dsCardAmbientGlowClass(tone === 'matchday');
 }
@@ -91,11 +97,15 @@ export function premiumPlayerCardFooterDividerClass(tone?: PremiumPlayerCardTone
 }
 
 export function premiumPlayerCardAvatarRingClass(tone?: PremiumPlayerCardTone): string {
-  return tone === 'feed' ? dsFeedAvatarRingClass() : dsAvatarRingClass();
+  if (tone === 'feed') return dsFeedAvatarRingClass();
+  if (tone === 'training') return dsAvatarRingClass();
+  return dsAvatarRingClass();
 }
 
 export function premiumPlayerCardAvatarBloomClass(tone?: PremiumPlayerCardTone): string {
-  return tone === 'feed' ? dsFeedAvatarBloomClass() : dsAvatarBloomClass();
+  if (tone === 'feed') return dsFeedAvatarBloomClass();
+  if (tone === 'training') return dsAvatarBloomClass();
+  return dsAvatarBloomClass();
 }
 
 export function premiumPlayerNameClass(): string {

@@ -173,6 +173,33 @@ export function dsFeedCardGlowClass(): string {
   return 'pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,transparent_18%)]';
 }
 
+/** Training-Teilnahme: Premium Matchday Panel mit Stadium-Tiefe (kein Vollrot). */
+export function dsTrainingAttendanceCardShellClass(className = ''): string {
+  return [
+    'relative w-full overflow-hidden text-left',
+    DS_CARD_RADIUS,
+    'border border-[rgba(255,45,85,0.1)]',
+    'bg-[linear-gradient(180deg,rgba(13,12,15,0.98)_0%,rgba(11,10,13,0.98)_42%,rgba(16,10,12,0.99)_100%)]',
+    'shadow-[0_12px_36px_rgba(0,0,0,0.52),0_0_32px_rgba(255,45,85,0.09),inset_0_1px_0_rgba(255,255,255,0.045),inset_0_-28px_52px_rgba(255,30,30,0.05)]',
+    'px-3 py-3',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+export function dsTrainingAttendanceCardGlowClass(): string {
+  return [
+    'pointer-events-none absolute inset-0',
+    'bg-[radial-gradient(ellipse_92%_58%_at_50%_0%,rgba(255,45,85,0.08)_0%,transparent_58%),radial-gradient(ellipse_85%_45%_at_50%_100%,rgba(70,8,18,0.1)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.028)_0%,transparent_22%)]',
+  ].join(' ');
+}
+
+/** Training-Detail: warmer Header-Nebel (nur Wrapper, Logos unberührt). */
+export function dsTrainingDetailHeaderAtmosphereClass(): string {
+  return 'pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit] bg-[radial-gradient(ellipse_110%_75%_at_50%_-8%,rgba(255,45,85,0.11)_0%,transparent_54%),linear-gradient(180deg,rgba(255,30,30,0.05)_0%,transparent_38%)]';
+}
+
 export function dsFeedAvatarRingClass(): string {
   return 'rounded-full border border-[rgba(255,255,255,0.08)] object-cover bg-[rgba(10,10,12,0.96)] shadow-[0_4px_16px_rgba(0,0,0,0.42)]';
 }

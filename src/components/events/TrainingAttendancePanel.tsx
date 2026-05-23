@@ -55,16 +55,23 @@ const STAT_GRID_MAIN: {
 ];
 
 const STAT_BOX_BASE =
-  'flex min-h-[5.5rem] flex-col items-center justify-center rounded-[20px] border px-3.5 py-3.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_8px_24px_rgba(0,0,0,0.38)]';
+  'flex min-h-[5.5rem] flex-col items-center justify-center rounded-[20px] border px-3.5 py-3.5 text-center';
 
 const STAT_BOX_TONE: Record<DsChipTone, string> = {
-  present: 'border-[rgba(40,255,120,0.1)] bg-[rgba(9,11,10,0.97)] text-[#8DFFB7]',
-  absent: 'border-[rgba(255,40,40,0.08)] bg-[rgba(11,9,10,0.97)] text-[#FF8D98]',
-  injured: 'border-[rgba(255,138,0,0.08)] bg-[rgba(11,10,9,0.97)] text-[#FFB15A]',
-  external: 'border-[rgba(40,255,120,0.06)] bg-[rgba(9,10,10,0.97)] text-[#63D98D]',
-  open: 'border-[rgba(255,255,255,0.05)] bg-[rgba(10,10,12,0.97)] text-[#AEAEB2]',
-  neutral: 'border-[rgba(255,255,255,0.05)] bg-[rgba(10,10,12,0.97)] text-white/45',
-  selected: 'border-[rgba(255,40,40,0.08)] bg-[rgba(11,9,10,0.97)] text-[#FF8D98]',
+  present:
+    'border-[rgba(40,255,120,0.14)] bg-[radial-gradient(ellipse_92%_82%_at_50%_0%,rgba(40,255,120,0.13)_0%,rgba(9,12,10,0.97)_54%,rgba(8,10,9,0.98)_100%)] text-[#9DFFC5] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_26px_rgba(40,255,120,0.11),0_8px_24px_rgba(0,0,0,0.38)]',
+  absent:
+    'border-[rgba(255,45,85,0.12)] bg-[radial-gradient(ellipse_96%_78%_at_50%_100%,rgba(110,16,28,0.2)_0%,rgba(11,8,10,0.97)_52%,rgba(10,8,9,0.98)_100%)] text-[#FF9AA6] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_24px_rgba(255,45,85,0.14),0_8px_24px_rgba(0,0,0,0.4)]',
+  injured:
+    'border-[rgba(255,160,60,0.13)] bg-[radial-gradient(ellipse_90%_72%_at_50%_0%,rgba(255,138,0,0.15)_0%,rgba(14,11,9,0.96)_48%,rgba(12,10,9,0.97)_100%)] text-[#FFC078] shadow-[inset_0_1px_0_rgba(255,200,120,0.06),0_0_22px_rgba(255,138,0,0.12),0_8px_24px_rgba(0,0,0,0.38)]',
+  external:
+    'border-[rgba(40,200,120,0.11)] bg-[radial-gradient(ellipse_88%_72%_at_50%_50%,rgba(18,82,52,0.2)_0%,rgba(8,11,10,0.97)_54%,rgba(9,10,10,0.98)_100%)] text-[#72E09A] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_20px_rgba(40,140,90,0.14),0_8px_24px_rgba(0,0,0,0.38)]',
+  open:
+    'border-[rgba(255,255,255,0.06)] bg-[rgba(10,10,12,0.97)] text-[#AEAEB2] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_8px_24px_rgba(0,0,0,0.38)]',
+  neutral:
+    'border-[rgba(255,255,255,0.05)] bg-[rgba(10,10,12,0.97)] text-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_8px_24px_rgba(0,0,0,0.38)]',
+  selected:
+    'border-[rgba(255,45,85,0.12)] bg-[radial-gradient(ellipse_96%_78%_at_50%_100%,rgba(110,16,28,0.18)_0%,rgba(11,8,10,0.97)_52%,rgba(10,8,9,0.98)_100%)] text-[#FF9AA6] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_22px_rgba(255,45,85,0.12)]',
 };
 
 const STAT_LABEL_CLASS =
@@ -83,23 +90,23 @@ function trainingActionButtonClass(
   const base =
     'flex h-[34px] min-h-[34px] w-full min-w-0 items-center justify-center rounded-[12px] border border-transparent px-1.5 text-[10px] font-semibold leading-tight transition-[background,box-shadow] duration-150 disabled:cursor-default disabled:opacity-45 sm:text-[11px]';
   const glassIdle =
-    'bg-[rgba(12,12,16,0.94)] text-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-[rgba(16,16,20,0.96)]';
+    'border border-white/[0.07] bg-[rgba(14,14,18,0.92)] text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_14px_rgba(255,45,85,0.05)] hover:border-white/10 hover:bg-[rgba(18,14,16,0.94)] hover:text-white/76';
   const tones: Record<typeof tone, { idle: string; on: string }> = {
     present: {
       idle: glassIdle,
-      on: 'bg-[rgba(18,95,62,0.32)] text-[#8DFFB7] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
+      on: 'border border-[rgba(40,255,120,0.18)] bg-[rgba(18,110,68,0.4)] text-[#9DFFC5] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_0_28px_rgba(40,255,120,0.24)]',
     },
     external: {
       idle: glassIdle,
-      on: 'bg-[rgba(12,52,38,0.28)] text-[#63D98D] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
+      on: 'border border-[rgba(40,160,100,0.14)] bg-[rgba(10,48,34,0.48)] text-[#72E09A] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_22px_rgba(40,140,90,0.16)] backdrop-blur-sm',
     },
     absent: {
       idle: glassIdle,
-      on: 'bg-[rgba(72,12,20,0.3)] text-[#FF8D98] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
+      on: 'border border-[rgba(255,45,85,0.16)] bg-[rgba(82,12,22,0.44)] text-[#FF9AA6] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_26px_rgba(255,45,85,0.22)]',
     },
     injured: {
       idle: glassIdle,
-      on: 'bg-[rgba(72,40,8,0.28)] text-[#FFB15A] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
+      on: 'border border-[rgba(255,160,60,0.14)] bg-[rgba(88,46,10,0.42)] text-[#FFC878] shadow-[inset_0_1px_0_rgba(255,220,140,0.07),0_0_24px_rgba(255,160,60,0.2)]',
     },
   };
   return [base, active ? tones[tone].on : tones[tone].idle].join(' ');
@@ -173,7 +180,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
               <li key={player.id} className="w-full min-w-0">
                 <PremiumPlayerCard
                   player={player}
-                  tone="feed"
+                  tone="training"
                   subline={sub}
                   density="compact"
                   nameClassName={TRAINING_NAME_CLASS}
