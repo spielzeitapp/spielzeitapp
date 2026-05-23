@@ -10,6 +10,8 @@ import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../../components/matc
 import { MatchCardGameCore, MatchCardKickoffBlock } from '../../components/match/MatchCardGameCore';
 import { formatHeroDateParts } from '../../components/schedule/scheduleEventViewUtils';
 import { TrainerStatsMini } from '../../components/schedule/TrainerStatsMini';
+import { ScheduleHeroCalendarCta } from '../../components/schedule/ScheduleHeroCalendarCta';
+import { ScheduleHeroMetaToolbar } from '../../components/schedule/ScheduleHeroMetaToolbar';
 
 /** Datum kurz in Europe/Vienna (z. B. Sa. 06.06.2026). */
 function formatDateShortDE(date: Date): string {
@@ -263,8 +265,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     effectiveEventType === 'game' &&
     ((showAttendanceCounts && attendanceCounts != null) ||
       showManageButtons ||
-      showAttendanceChip ||
-      showScheduleHeroCalendar);
+      showAttendanceChip);
 
   const compactParentRow = showAttendanceChip && !showAttendanceCounts && !showManageButtons;
   const heroDateParts = formatHeroDateParts(startsAt);
@@ -301,6 +302,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               no={attendanceCounts.no}
               open={attendanceCounts.open}
               isTraining={false}
+              listColumn
+              heroColumn
             />
           ) : (
             <div className="flex items-center gap-1.5" aria-label="Zu-/Absagen">
@@ -373,20 +376,6 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           )}
         </button>
       )}
-      {showScheduleHeroCalendar && onScheduleHeroAddToCalendar ? (
-        <button
-          type="button"
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/14 bg-black/40 text-white/80 shadow-sm backdrop-blur-sm transition hover:border-white/22 hover:bg-white/[0.08] hover:text-white"
-          aria-label="Zum Kalender hinzufügen"
-          title="Zum Kalender hinzufügen"
-          onClick={(e) => {
-            e.stopPropagation();
-            onScheduleHeroAddToCalendar();
-          }}
-        >
-          <CalendarDays className="h-4 w-4" strokeWidth={2} aria-hidden />
-        </button>
-      ) : null}
     </div>
   );
 
@@ -427,7 +416,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const cardContent = (
     <>
       <div
-        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_95%_60%_at_100%_0%,rgba(122,29,42,0.09)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.02)_0%,transparent_24%)]"
+        className={
+          scheduleNextMatchHero
+            ? 'pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_100%_72%_at_100%_-8%,rgba(255,235,210,0.1)_0%,rgba(122,29,42,0.18)_30%,transparent_62%),radial-gradient(ellipse_85%_50%_at_50%_100%,rgba(58,18,24,0.1)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_30%)]'
+            : 'pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_95%_60%_at_100%_0%,rgba(122,29,42,0.09)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.02)_0%,transparent_24%)]'
+        }
         aria-hidden
       />
       {/* Spielart bei Spielen: oberhalb „ANPFIFF“ in der Mittelspalte (MatchCardGameCore). Training/Event: Titel hier. */}
@@ -454,19 +447,49 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             awayScore={away}
             kickoffLocation={detailGameKickoffLocation}
             meetupTimeOnly={meetupTimeOnly}
-            showMeetupPill={Boolean(canSeeSensitiveInfo && meetupTimeOnly)}
-            endTimeLabel={endTimeLabel}
+            showMeetupPill={scheduleNextMatchHero ? false : Boolean(canSeeSensitiveInfo && meetupTimeOnly)}
+            endTimeLabel={scheduleNextMatchHero ? null : endTimeLabel}
             descriptionText={descriptionText}
             variant="schedule"
             kickoffShowUhr={scheduleNextMatchHero ? false : undefined}
             compactScheduleHero={scheduleNextMatchHero}
             compactDetailGame={compactDetailGame}
+            suppressCompactScheduleFooter={scheduleNextMatchHero}
           />
+          {scheduleNextMatchHero ? (
+            <div className="relative z-[1] mt-0.5 px-0.5 pb-1">
+              <ScheduleHeroMetaToolbar
+                items={[
+                  {
+                    icon: <Clock strokeWidth={2} aria-hidden />,
+                    label: 'Beginn',
+                    value: `${timeStr} Uhr`,
+                  },
+                  {
+                    icon: <MapPin strokeWidth={2} aria-hidden />,
+                    label: 'Treffpunkt',
+                    value:
+                      canSeeSensitiveInfo && meetupTimeOnly ? `${meetupTimeOnly} Uhr` : '—',
+                  },
+                  {
+                    icon: <Clock strokeWidth={2} aria-hidden />,
+                    label: 'Ende',
+                    value: endTimeLabel ? `${endTimeLabel} Uhr` : '—',
+                  },
+                ]}
+                showChevron={isClickable}
+                onChevronClick={isClickable ? handleCardClick : undefined}
+              />
+              {showScheduleHeroCalendar && onScheduleHeroAddToCalendar ? (
+                <ScheduleHeroCalendarCta onClick={onScheduleHeroAddToCalendar} />
+              ) : null}
+            </div>
+          ) : null}
         </>
       ) : isTrainingCard ? (
         <div className="relative z-[1] flex flex-col gap-2">
           <div className="flex items-start gap-2.5">
-            <TrainingMotifIcon className="mt-0.5 h-10 w-10 shrink-0 text-white/90" />
+            <TrainingMotifIcon className="mt-0.5 h-10 w-10 shrink-0 text-white/90 drop-shadow-[0_0_12px_rgba(255,255,255,0.08)]" />
             <div className="min-w-0 flex-1">
               <p className={dsMatchdaySectionLabelClass()}>Training</p>
               <p className="mt-1 text-[17px] font-bold leading-tight tracking-tight text-white">

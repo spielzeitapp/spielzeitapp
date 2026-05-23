@@ -633,20 +633,20 @@ export function dsSchedulePageStyle(): { background: string; boxShadow: string }
   };
 }
 
-/** Hero „Nächstes Training/Spiel“ — stärkere Hierarchie, Flutlicht oben. */
+/** Hero „Nächstes Training/Spiel“ — Premium-Flutlicht, Tiefe, Bloom. */
 export function dsScheduleHeroPanelClass(): string {
   return [
     'relative overflow-hidden rounded-[18px]',
-    'border border-[rgba(122,29,42,0.32)]',
-    'bg-[linear-gradient(152deg,rgba(30,26,28,0.99)_0%,rgba(18,16,18,0.99)_40%,rgba(14,14,16,0.99)_68%,rgba(20,10,12,0.99)_100%)]',
-    'shadow-[0_18px_52px_rgba(0,0,0,0.62),0_0_48px_rgba(122,29,42,0.2),inset_0_1px_0_rgba(255,255,255,0.05)]',
+    'border border-[rgba(122,29,42,0.38)]',
+    'bg-[linear-gradient(148deg,rgba(34,30,32,0.99)_0%,rgba(22,20,22,0.99)_38%,rgba(14,14,16,0.99)_62%,rgba(22,10,14,0.99)_100%)]',
+    'shadow-[0_22px_56px_rgba(0,0,0,0.68),0_0_56px_rgba(122,29,42,0.24),inset_0_1px_0_rgba(255,255,255,0.06)]',
   ].join(' ');
 }
 
 export function dsScheduleHeroPanelGlowClass(): string {
   return [
     'pointer-events-none absolute inset-0',
-    'bg-[radial-gradient(ellipse_95%_65%_at_100%_-10%,rgba(255,228,200,0.07)_0%,rgba(122,29,42,0.2)_22%,transparent_58%),radial-gradient(ellipse_80%_50%_at_0%_0%,rgba(122,29,42,0.1)_0%,transparent_52%),linear-gradient(180deg,rgba(255,255,255,0.06)_0%,transparent_32%)]',
+    'bg-[radial-gradient(ellipse_100%_72%_at_100%_-12%,rgba(255,235,210,0.11)_0%,rgba(122,29,42,0.22)_28%,transparent_62%),radial-gradient(ellipse_85%_55%_at_0%_0%,rgba(122,29,42,0.12)_0%,transparent_50%),radial-gradient(ellipse_90%_45%_at_50%_100%,rgba(58,18,24,0.1)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.07)_0%,transparent_36%)]',
   ].join(' ');
 }
 
@@ -654,14 +654,14 @@ export function dsScheduleHeroPanelGlowClass(): string {
 export function dsScheduleListPanelClass(): string {
   return [
     'relative overflow-hidden rounded-[14px]',
-    'border border-white/[0.04]',
-    'bg-[linear-gradient(180deg,rgba(10,10,12,0.99)_0%,rgba(7,7,9,0.99)_100%)]',
-    'shadow-[0_2px_14px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.015)]',
+    'border border-white/[0.03]',
+    'bg-[linear-gradient(180deg,rgba(9,9,11,0.99)_0%,rgba(6,6,8,0.99)_100%)]',
+    'shadow-[0_1px_10px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.01)]',
   ].join(' ');
 }
 
 export function dsScheduleListPanelGlowClass(): string {
-  return 'pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.006)_0%,transparent_8%)]';
+  return 'pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.004)_0%,transparent_6%)]';
 }
 
 /** Termin-Detail / Hero-Footer: ruhige Action-Zeilen (Dark Glass). */

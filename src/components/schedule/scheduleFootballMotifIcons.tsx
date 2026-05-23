@@ -1,38 +1,56 @@
 import React from 'react';
 import { CalendarDays, LayoutGrid } from 'lucide-react';
 
-const TRAINING_STROKE = 2;
-
-/** Trainings-Motiv: vertikales Spielfeld + Kegel (Premium Line, BottomNav-Sprache). */
-export function TrainingMotifIcon({ className = '' }: { className?: string }) {
+/** Gleiche Formsprache wie BottomNav `pitch.svg` (horizontal, Mittelkreis, Strafraum). */
+export function PitchNavIcon({ className = '' }: { className?: string }) {
   return (
     <svg
       className={className}
-      viewBox="0 0 32 32"
+      viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden
     >
       <rect
-        x="9"
-        y="5"
-        width="14"
-        height="22"
-        rx="1.5"
+        x="2.25"
+        y="4.25"
+        width="19.5"
+        height="15.5"
+        rx="2"
         stroke="currentColor"
-        strokeWidth={TRAINING_STROKE}
+        strokeWidth="2"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M16 5v22" stroke="currentColor" strokeWidth={TRAINING_STROKE} strokeLinecap="round" />
-      <path
-        d="M22.5 26.5 23.75 23h2.1l1.15 3.5"
+      <line x1="12" y1="4.25" x2="12" y2="19.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="2.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <rect
+        x="2.25"
+        y="8.1"
+        width="4.25"
+        height="7.8"
         stroke="currentColor"
-        strokeWidth={TRAINING_STROKE}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <rect
+        x="17.5"
+        y="8.1"
+        width="4.25"
+        height="7.8"
+        stroke="currentColor"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
     </svg>
   );
+}
+
+/** Trainings-Motiv = BottomNav-Spielfeld (Premium Line). */
+export function TrainingMotifIcon({ className = '' }: { className?: string }) {
+  return <PitchNavIcon className={className} />;
 }
 
 /** Spiel ohne Logos: Ball + Rasenlinien. */

@@ -289,6 +289,8 @@ export type MatchCardGameCoreProps = {
   compactScheduleHero?: boolean;
   /** Event-Detail: kompaktere Team-/Spaltengeometrie ohne Schedule-Hero-Extras. */
   compactDetailGame?: boolean;
+  /** Termine-Hero: Footer (Treffpunkt-Pill + Chevron) ausblenden — Meta-Toolbar extern. */
+  suppressCompactScheduleFooter?: boolean;
 };
 
 /**
@@ -319,6 +321,7 @@ export function MatchCardGameCore({
   kickoffShowUhr,
   compactScheduleHero = false,
   compactDetailGame = false,
+  suppressCompactScheduleFooter = false,
 }: MatchCardGameCoreProps) {
   const safeLeftName = (leftName || '').trim() || 'Team';
   const safeRightName = (rightName || '').trim() || 'Gegner';
@@ -412,34 +415,38 @@ export function MatchCardGameCore({
         </div>
       </div>
 
-      <div
-        className={`${meetupMt} flex min-h-[36px] ${
-          cs ? 'items-center justify-between gap-2 px-1' : 'justify-center'
-        }`}
-      >
-        {showMeetupPill && meetupTimeOnly ? (
-          <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-red-800/80 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800/90">
-            <span className="whitespace-nowrap">Treffpunkt: {meetupTimeOnly}</span>
-          </div>
-        ) : (
-          <span className="block h-9" aria-hidden />
-        )}
-        {cs ? (
-          <span
-            className="self-center pr-3 text-[28px] font-light leading-none text-white/70 transition-all duration-200 group-hover:translate-x-[1px] group-hover:text-white/90 group-focus-visible:translate-x-[1px] group-focus-visible:text-white/90"
-            aria-hidden
+      {!suppressCompactScheduleFooter ? (
+        <>
+          <div
+            className={`${meetupMt} flex min-h-[36px] ${
+              cs ? 'items-center justify-between gap-2 px-1' : 'justify-center'
+            }`}
           >
-            ›
-          </span>
-        ) : null}
-      </div>
-
-      {endTimeLabel ? (
-        <div className="mt-2 flex min-h-[36px] justify-center">
-          <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-white/10 border border-white/15 px-5 py-2 text-sm font-medium text-white/90">
-            <span className="whitespace-nowrap">Ende: {endTimeLabel}</span>
+            {showMeetupPill && meetupTimeOnly ? (
+              <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-red-800/80 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800/90">
+                <span className="whitespace-nowrap">Treffpunkt: {meetupTimeOnly}</span>
+              </div>
+            ) : (
+              <span className="block h-9" aria-hidden />
+            )}
+            {cs ? (
+              <span
+                className="self-center pr-3 text-[28px] font-light leading-none text-white/70 transition-all duration-200 group-hover:translate-x-[1px] group-hover:text-white/90 group-focus-visible:translate-x-[1px] group-focus-visible:text-white/90"
+                aria-hidden
+              >
+                ›
+              </span>
+            ) : null}
           </div>
-        </div>
+
+          {endTimeLabel ? (
+            <div className="mt-2 flex min-h-[36px] justify-center">
+              <div className="flex h-9 max-w-[320px] items-center justify-center rounded-full bg-white/10 border border-white/15 px-5 py-2 text-sm font-medium text-white/90">
+                <span className="whitespace-nowrap">Ende: {endTimeLabel}</span>
+              </div>
+            </div>
+          ) : null}
+        </>
       ) : null}
 
       {descriptionText ? (

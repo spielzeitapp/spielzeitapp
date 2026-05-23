@@ -1056,6 +1056,7 @@ export const SchedulePage: React.FC = () => {
                                   open={countsForCard.open}
                                   isTraining={et === 'training'}
                                   listColumn={et === 'training'}
+                                  heroColumn
                                 />
                               ) : null;
                         const heroClickable = !forcePublicView && Boolean(ev.id);
@@ -1067,85 +1068,48 @@ export const SchedulePage: React.FC = () => {
                                   ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
                                   : navigate(`/app/events/${id}`);
                         const heroTrainerFooter =
-                          canManage && !forcePublicView ? (
+                          canManage &&
+                          !forcePublicView &&
+                          et === 'game' &&
+                          ev.match_id &&
+                          ev.status !== 'finished' ? (
                             <ScheduleEventActionsPanel
-                              aria-label="Trainer-Aktionen"
+                              aria-label="Livespiel"
                               rows={[
-                                ...(et === 'game' && ev.match_id && ev.status !== 'finished'
-                                  ? [
-                                      {
-                                        key: 'live',
-                                        label: 'Zum Livespiel',
-                                        icon: <Radio className="h-4 w-4" strokeWidth={2} aria-hidden />,
-                                        emphasis: 'primary' as const,
-                                        onClick: () => navigate(`/live?matchId=${ev.match_id}`),
-                                      },
-                                    ]
-                                  : []),
                                 {
-                                  key: 'edit',
-                                  label: 'Bearbeiten',
-                                  icon: <Pencil className="h-4 w-4" strokeWidth={2} aria-hidden />,
-                                  onClick: () => openEditModal(ev),
+                                  key: 'live',
+                                  label: 'Zum Livespiel',
+                                  icon: <Radio className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                                  emphasis: 'primary' as const,
+                                  onClick: () => navigate(`/live?matchId=${ev.match_id}`),
                                 },
-                                {
-                                  key: 'delete',
-                                  label: 'Löschen',
-                                  icon: <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />,
-                                  danger: true,
-                                  onClick: () => void handleDelete(ev),
-                                },
-                                ...(ev.status !== 'finished'
-                                  ? [
-                                      {
-                                        key: 'calendar',
-                                        label: 'Zum Kalender hinzufügen',
-                                        icon: <CalendarDays className="h-4 w-4" strokeWidth={2} aria-hidden />,
-                                        onClick: () =>
-                                          downloadEventIcs(ev, {
-                                            appBaseUrl: window.location.origin,
-                                          }),
-                                      },
-                                    ]
-                                  : []),
                               ]}
                             />
                           ) : null;
                         const heroParentFooter =
                           heroShowsParentPill && !forcePublicView && et !== 'game' ? (
-                            <div className="flex w-full flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex justify-end px-0.5">
-                                <CompactListParentAttendance
-                                  status={attendanceMergedToPillStatus(attendanceStatusMerged)}
-                                  isTraining={et === 'training'}
-                                  onOpen={() => {
-                                    const pill = attendanceMergedToPillStatus(attendanceStatusMerged);
-                                    if (et === 'training' && pill === 'no') {
-                                      setTrainingRejoinModalEvent(ev);
-                                      return;
-                                    }
-                                    setAttendanceModalEvent(ev);
-                                  }}
-                                />
-                              </div>
-                              {ev.status !== 'finished' ? (
-                                <ScheduleEventActionsPanel
-                                  aria-label="Kalender"
-                                  rows={[
-                                    {
-                                      key: 'calendar',
-                                      label: 'Zum Kalender hinzufügen',
-                                      icon: <CalendarPlus className="h-4 w-4" strokeWidth={2} aria-hidden />,
-                                      onClick: () =>
-                                        downloadEventIcs(ev, {
-                                          appBaseUrl: window.location.origin,
-                                        }),
-                                    },
-                                  ]}
-                                />
-                              ) : null}
+                            <div className="flex justify-end px-0.5" onClick={(e) => e.stopPropagation()}>
+                              <CompactListParentAttendance
+                                status={attendanceMergedToPillStatus(attendanceStatusMerged)}
+                                isTraining={et === 'training'}
+                                onOpen={() => {
+                                  const pill = attendanceMergedToPillStatus(attendanceStatusMerged);
+                                  if (et === 'training' && pill === 'no') {
+                                    setTrainingRejoinModalEvent(ev);
+                                    return;
+                                  }
+                                  setAttendanceModalEvent(ev);
+                                }}
+                              />
                             </div>
                           ) : null;
+                        const heroAddToCalendar =
+                          !forcePublicView && ev.status !== 'finished'
+                            ? () =>
+                                downloadEventIcs(ev, {
+                                  appBaseUrl: window.location.origin,
+                                })
+                            : undefined;
                         const heroCardFooter =
                           heroTrainerFooter || heroParentFooter ? (
                             <div className={`flex flex-col ${et === 'game' ? 'gap-3 pb-1' : 'gap-1.5'}`}>
@@ -1207,6 +1171,7 @@ export const SchedulePage: React.FC = () => {
                                     heroShowsParentPill ? () => setAttendanceModalEvent(ev) : undefined
                                   }
                                   isPublicView={forcePublicView}
+                                  onScheduleHeroAddToCalendar={heroAddToCalendar}
                                 />
                               </EventHeroCard>
                             </div>
@@ -1227,6 +1192,7 @@ export const SchedulePage: React.FC = () => {
                                 isPublicView={forcePublicView}
                                 isClickable={heroClickable}
                                 onNavigate={heroOnNavigate}
+                                onAddToCalendar={heroAddToCalendar}
                               />
                             </EventHeroCard>
                           </div>

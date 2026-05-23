@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users } from 'lucide-react';
+import { Clock, MapPin, Users } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatFullLocation, formatLocationTwoLines, splitCombinedLocation } from '../../lib/eventLocation';
@@ -20,9 +20,10 @@ import {
   dsScheduleDateBoxDayClass,
   dsScheduleDateBoxMonthClass,
   dsScheduleDateBoxWeekdayClass,
-  dsScheduleFixtureMetaRowClass,
 } from '../../lib/premiumDesignSystem';
 import { EventMotifIcon, TrainingMotifIcon } from './scheduleFootballMotifIcons';
+import { ScheduleHeroCalendarCta } from './ScheduleHeroCalendarCta';
+import { ScheduleHeroMetaToolbar } from './ScheduleHeroMetaToolbar';
 
 export type ScheduleHeroEventCardProps = {
   ev: EventRow;
@@ -38,6 +39,8 @@ export type ScheduleHeroEventCardProps = {
   isPublicView: boolean;
   isClickable: boolean;
   onNavigate?: (eventId: string) => void;
+  /** Kalender-CTA innerhalb der Hero-Karte (kein Footer). */
+  onAddToCalendar?: () => void;
 };
 
 function parseNotesParts(ev: EventRow) {
@@ -112,26 +115,31 @@ function HeroMatchTeamLogo({ src }: { src: string }) {
 }
 
 const heroStadiumGradient =
-  'linear-gradient(to bottom, rgba(12,12,14,0.94) 0%, rgba(10,10,12,0.96) 42%, rgba(16,10,12,0.98) 100%)';
+  'linear-gradient(to bottom, rgba(16,14,16,0.88) 0%, rgba(10,10,12,0.94) 46%, rgba(18,10,12,0.97) 100%)';
 
-/** Dezentes Stadion — Flutlicht oben rechts, Text lesbar. */
+/** Stadion-Flutlicht, Fog, Bloom — cinematic Hero-Layer. */
 function HeroHybridBackdrop({ training = false }: { training?: boolean }) {
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
       <img
         src={stadiumBgUrl}
         alt=""
-        className={`absolute inset-0 h-full min-h-full w-full min-w-full scale-105 object-cover ${
-          training ? 'object-[88%_18%]' : 'object-[center_32%]'
-        } opacity-[0.1] brightness-[0.48] saturate-[0.75]`}
+        className={`absolute inset-0 h-full min-h-full w-full min-w-full scale-110 object-cover ${
+          training ? 'object-[92%_12%]' : 'object-[center_28%]'
+        } opacity-[0.14] brightness-[0.52] saturate-[0.8]`}
         aria-hidden
       />
-      <div className={`absolute inset-0 ${training ? 'bg-black/68' : 'bg-black/74'}`} aria-hidden />
-      <div className="absolute inset-0 backdrop-blur-[2px] bg-black/18" aria-hidden />
+      <div className={`absolute inset-0 ${training ? 'bg-black/62' : 'bg-black/70'}`} aria-hidden />
+      <div className="absolute inset-0 backdrop-blur-[3px] bg-black/12" aria-hidden />
       <div
-        className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_100%_0%,rgba(255,220,180,0.08),transparent_48%),radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(122,29,42,0.12),transparent_55%)]"
+        className="absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_100%_0%,rgba(255,240,220,0.14)_0%,rgba(122,29,42,0.18)_32%,transparent_62%)]"
         aria-hidden
       />
+      <div
+        className="absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_-8%,rgba(122,29,42,0.14),transparent_58%),radial-gradient(ellipse_80%_50%_at_50%_110%,rgba(58,18,24,0.12),transparent_52%)]"
+        aria-hidden
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_28%,rgba(0,0,0,0.2)_100%)]" aria-hidden />
       <div className="absolute inset-0" style={{ background: heroStadiumGradient }} aria-hidden />
     </div>
   );
@@ -162,6 +170,7 @@ export function ScheduleHeroEventCard({
   isPublicView,
   isClickable,
   onNavigate,
+  onAddToCalendar,
 }: ScheduleHeroEventCardProps) {
   void _ourTeamName;
   void trainerToolbar;
@@ -335,11 +344,27 @@ export function ScheduleHeroEventCard({
   const trainingLocationLine =
     locLine1 || locLine2 ? [locLine1, locLine2].filter(Boolean).join(' · ') : locSingle || '—';
 
-  const trainingMetaParts = [
-    `Beginn ${timeStr}`,
-    showMeetup && meetupTimeOnly ? `Treffpunkt ${meetupTimeOnly}` : null,
-    endDisplay ? `Ende ${endDisplay}` : null,
-  ].filter(Boolean);
+  const trainingMetaItems = [
+    {
+      icon: <Clock strokeWidth={2} aria-hidden />,
+      label: 'Beginn',
+      value: `${timeStr} Uhr`,
+    },
+    {
+      icon: <MapPin strokeWidth={2} aria-hidden />,
+      label: 'Treffpunkt',
+      value: showMeetup && meetupTimeOnly ? `${meetupTimeOnly} Uhr` : '—',
+    },
+    {
+      icon: <Clock strokeWidth={2} aria-hidden />,
+      label: 'Ende',
+      value: endDisplay ? `${endDisplay} Uhr` : '—',
+    },
+  ];
+
+  const openDetail = () => {
+    if (ev.id && onNavigate) onNavigate(ev.id);
+  };
 
   const trainingBody = (
     <>
@@ -352,8 +377,8 @@ export function ScheduleHeroEventCard({
             <span className={dsScheduleDateBoxMonthClass()}>{mon}</span>
           </div>
 
-          <div className="flex min-w-0 flex-1 items-start gap-2">
-            <TrainingMotifIcon className="mt-0.5 h-11 w-11 shrink-0 text-white/90 sm:h-12 sm:w-12" />
+          <div className="flex min-w-0 flex-1 items-start gap-2.5">
+            <TrainingMotifIcon className="mt-0.5 h-12 w-12 shrink-0 text-white/90 drop-shadow-[0_0_14px_rgba(255,255,255,0.1)] sm:h-[3.25rem] sm:w-[3.25rem]" />
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 text-[15px] font-bold leading-tight tracking-tight text-white sm:text-[16px]">
                 {trainingMainTitle}
@@ -365,13 +390,17 @@ export function ScheduleHeroEventCard({
           </div>
 
           {topRight ? (
-            <div className="pointer-events-auto shrink-0 origin-top-right scale-[0.92]">{topRight}</div>
+            <div className="pointer-events-auto shrink-0 pt-0.5">{topRight}</div>
           ) : null}
         </div>
 
-        {trainingMetaParts.length > 0 ? (
-          <p className={dsScheduleFixtureMetaRowClass()}>{trainingMetaParts.join(' · ')}</p>
-        ) : null}
+        <ScheduleHeroMetaToolbar
+          items={trainingMetaItems}
+          showChevron={Boolean(isClickable && onNavigate)}
+          onChevronClick={isClickable && onNavigate ? openDetail : undefined}
+        />
+
+        {onAddToCalendar ? <ScheduleHeroCalendarCta onClick={onAddToCalendar} /> : null}
       </div>
     </>
   );

@@ -40,7 +40,7 @@ export function ScheduleEventActionsPanel({ rows, className = '', 'aria-label': 
             onClick={row.onClick}
             className={
               isPrimary
-                ? `inline-flex w-full min-h-[48px] items-center justify-center gap-2 ${dsPrimaryCtaClass()}`
+                ? `inline-flex w-full min-h-[52px] items-center justify-center gap-2 ${dsPrimaryCtaClass()}`
                 : dsScheduleActionRowClass({ danger: row.danger })
             }
           >
