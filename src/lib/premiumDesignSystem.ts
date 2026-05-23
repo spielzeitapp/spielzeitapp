@@ -36,7 +36,7 @@ export function dsPageContentClass(extra = ''): string {
 export function dsPageHeaderClass(): string {
   return [
     'sticky top-0 z-20 border-b border-transparent',
-    'bg-[rgba(6,6,8,0.72)] px-4 py-3.5 backdrop-blur-md',
+    'bg-[rgba(6,6,8,0.72)] px-4 py-4 backdrop-blur-md',
     'shadow-[0_8px_28px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,30,30,0.04)]',
   ].join(' ');
 }
@@ -52,22 +52,53 @@ export function dsFormationZoneGlowClass(): string {
 }
 
 export const DS_CARD_RADIUS = 'rounded-[22px]';
-export const DS_CARD_PAD = 'px-2.5 py-2';
-export const DS_CARD_INNER_GAP = 'gap-2.5';
-export const DS_LIST_GAP = 'gap-1.5';
-export const DS_SECTION_GAP = 'gap-3.5';
-export const DS_STAT_GRID_GAP = 'gap-2';
+export const DS_CARD_PAD = 'px-3 py-2.5';
+export const DS_CARD_INNER_GAP = 'gap-3';
+export const DS_LIST_GAP = 'gap-2';
+export const DS_SECTION_GAP = 'gap-4';
+export const DS_STAT_GRID_GAP = 'gap-2.5';
 
-/** Cinematic Stadium Surface — leicht heller als Basis. */
-export const DS_CARD_BG = 'bg-[rgba(18,18,22,0.92)]';
+/** Soft Gray — Meta/Subtext (ruhiger als hartes Zinc). */
+export const DS_TEXT_MUTED = 'text-[#A8A8AE]';
+export const DS_TEXT_SOFT = 'text-white/50';
+
+/** Kleine Brand-Zeile (SpielzeitApp) — weiterhin Caps. */
+export function dsBrandKickerClass(): string {
+  return 'text-[10px] font-semibold uppercase tracking-[0.14em] text-red-400/85';
+}
+
+/** Screen-/Card-Titel — normale Schreibweise, kein Caps-Shouting. */
+export function dsPageTitleClass(): string {
+  return 'text-[1.35rem] font-bold leading-tight tracking-tight text-white sm:text-[1.5rem]';
+}
+
+export function dsCardTitleClass(): string {
+  return 'text-lg font-bold leading-snug tracking-tight text-white';
+}
+
+/** Untertitel unter Headlines — mehr Luft, soft gray. */
+export function dsPageSubtitleClass(): string {
+  return 'mt-2 text-sm font-normal leading-relaxed text-[#A8A8AE]';
+}
+
+export function dsMetaTextClass(): string {
+  return 'text-xs font-normal leading-relaxed text-[#A8A8AE]';
+}
+
+export function dsBodyTextClass(): string {
+  return 'text-sm font-normal leading-relaxed text-white/72';
+}
+
+/** Cinematic Stadium Surface — dunkler, dünner Rot-Ambient-Rand. */
+export const DS_CARD_BG = 'bg-[rgba(12,12,16,0.96)]';
 /** Mehr Schwarz, Rot nur oben/seitlich (Startaufstellung). */
-export const DS_CARD_BG_MATCHDAY = 'bg-[rgba(14,12,14,0.94)]';
-export const DS_CARD_BORDER = 'border border-transparent';
+export const DS_CARD_BG_MATCHDAY = 'bg-[rgba(10,10,14,0.97)]';
+export const DS_CARD_BORDER = 'border border-[rgba(255,40,40,0.07)]';
 
 const CARD_SHADOW =
-  'shadow-[0_0_36px_rgba(255,40,40,0.10),0_8px_28px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.03),inset_0_-12px_24px_rgba(0,0,0,0.12)]';
+  'shadow-[0_0_28px_rgba(255,40,40,0.06),0_8px_24px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.025)]';
 const CARD_SHADOW_ACTIVE =
-  'shadow-[0_0_42px_rgba(255,40,40,0.14),0_10px_32px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-14px_28px_rgba(0,0,0,0.14)]';
+  'shadow-[0_0_32px_rgba(255,40,40,0.09),0_10px_28px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.03)]';
 
 export function dsCardShellClass(opts?: {
   active?: boolean;
@@ -93,9 +124,9 @@ export function dsCardShellClass(opts?: {
 
 export function dsCardAmbientGlowClass(matchday?: boolean): string {
   if (matchday) {
-    return 'pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_60%_at_12%_0%,rgba(255,40,40,0.12),transparent_52%),radial-gradient(ellipse_40%_50%_at_100%_30%,rgba(120,0,0,0.07),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.035)_0%,transparent_26%)]';
+    return 'pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_60%_at_12%_0%,rgba(255,40,40,0.08),transparent_52%),radial-gradient(ellipse_40%_50%_at_100%_30%,rgba(120,0,0,0.05),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.025)_0%,transparent_26%)]';
   }
-  return 'pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_65%_at_10%_0%,rgba(255,40,40,0.09),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.035)_0%,transparent_24%)]';
+  return 'pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_65%_at_10%_0%,rgba(255,40,40,0.06),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.025)_0%,transparent_24%)]';
 }
 
 export const DS_AVATAR_SIZE = 'h-[3.75rem] w-[3.75rem]';
@@ -114,11 +145,12 @@ export function dsPlayerNameClass(): string {
 }
 
 export function dsPlayerSublineClass(): string {
-  return 'mt-0.5 line-clamp-1 text-[11px] font-normal text-[#b3b3b3]/90 sm:text-[12px]';
+  return 'mt-0.5 line-clamp-1 text-[11px] font-normal text-[#A8A8AE] sm:text-[12px]';
 }
 
+/** Kleine Section Labels — einzige erlaubte Caps-Stelle neben LIVE/ENDSTAND. */
 export function dsSectionLabelClass(): string {
-  return 'text-[10px] font-semibold uppercase tracking-[0.18em] text-white/42';
+  return 'text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8E8E93]';
 }
 
 export function dsJerseyNumberClass(): string {
@@ -227,9 +259,10 @@ export function dsRsvpChoiceClass(kind: 'yes' | 'no', active: boolean): string {
 /** Mehr-Menü / Welcome-Panel-Zeilen. */
 export function dsPanelRowClass(): string {
   return [
-    'flex items-center justify-between gap-3 rounded-xl border border-transparent',
-    'bg-[rgba(18,18,22,0.92)] px-4 py-3.5 text-left text-[16px] font-semibold text-white',
-    'shadow-[0_0_36px_rgba(255,40,40,0.10),inset_0_1px_0_rgba(255,255,255,0.03)]',
+    'flex items-center justify-between gap-3 rounded-xl',
+    DS_CARD_BORDER,
+    'bg-[rgba(12,12,16,0.96)] px-4 py-3.5 text-left text-[16px] font-semibold text-white',
+    'shadow-[0_0_28px_rgba(255,40,40,0.06),inset_0_1px_0_rgba(255,255,255,0.025)]',
     'transition-[box-shadow,background] duration-150',
     'hover:shadow-[0_0_40px_rgba(255,40,40,0.12)]',
   ].join(' ');
@@ -401,7 +434,7 @@ export function dsPrimaryCtaClass(): string {
 
 export function dsSecondaryCtaClass(): string {
   return [
-    'rounded-[18px] border border-transparent',
+    'inline-flex min-h-[44px] items-center justify-center rounded-[18px] border border-transparent',
     'bg-[rgba(16,16,20,0.92)] text-[#F2F2F2]',
     'px-4 py-2.5 text-sm font-semibold',
     'shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_22px_rgba(255,30,30,0.07),0_4px_16px_rgba(0,0,0,0.28)]',

@@ -2816,7 +2816,7 @@ export const EventDetailPage: React.FC = () => {
         </div>
 
         {!isFan && (
-          <Card className="flex flex-col gap-3">
+          <Card className="flex flex-col gap-4">
             <CardTitle>{isTraining ? 'Training-Teilnahme' : 'Zu-/Absagen'}</CardTitle>
 
             {canTrainerManageEvent ? (

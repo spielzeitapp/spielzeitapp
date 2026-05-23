@@ -127,7 +127,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
   const showLegacy = counts.legacyUnknown > 0;
 
   return (
-    <div className={`flex w-full min-w-0 flex-col gap-3.5 ${className}`}>
+    <div className={`flex w-full min-w-0 flex-col gap-4 ${className}`}>
       <div className="grid w-full grid-cols-2 gap-2">
         {STAT_GRID_MAIN.map(({ key, label, tone }) => (
           <div key={key} className={trainingStatBoxClass(tone)}>

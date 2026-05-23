@@ -7,11 +7,14 @@ import { supabase } from '../../lib/supabaseClient';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 import { premiumPlayerDisplayName } from '../../lib/premiumPlayerCard';
 import {
+  dsBrandKickerClass,
   dsPageAtmosphereClass,
   dsPageContentClass,
   dsPageHeaderClass,
   dsPageHeroGlowClass,
   dsPageShellClass,
+  dsPageSubtitleClass,
+  dsPageTitleClass,
   dsPrimaryCtaClass,
   dsSectionLabelClass,
   dsStatusChipClass,
@@ -307,7 +310,7 @@ export const MatchPreparationPage: React.FC = () => {
         </div>
       </header>
 
-      <main className={dsPageContentClass(`mx-auto max-w-xl flex flex-col ${DS_SECTION_GAP} px-4 py-4 pb-48`)}>
+      <main className={dsPageContentClass(`mx-auto max-w-xl flex flex-col ${DS_SECTION_GAP} px-4 py-5 pb-48`)}>
         {(playersLoading || attendanceLoading) ? <p className="text-sm text-white/55">Lade Spieler und Status…</p> : null}
         {(playersError || attendanceError) ? <p className="text-sm text-red-400">{playersError ?? attendanceError}</p> : null}
         <div className="flex flex-wrap gap-1.5">

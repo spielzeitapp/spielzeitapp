@@ -37,7 +37,9 @@ import {
   dsPageAtmosphereClass,
   dsPageContentClass,
   dsPageShellClass,
+  dsPageTitleClass,
   dsPlayerNameClass,
+  dsSectionLabelClass,
   dsPrimaryCtaClass,
   dsSecondaryCtaClass,
   dsSegmentTabClass,
@@ -526,7 +528,7 @@ export const MatchLineupPage: React.FC = () => {
 
             <section className="mt-2 shrink-0 border-t border-white/[0.05] pt-1.5">
               <div className="mb-1 flex items-center justify-between gap-2 px-0.5">
-                <h2 className="text-[9px] font-black uppercase tracking-[0.14em] text-zinc-500">Ersatzbank</h2>
+                <h2 className={dsSectionLabelClass()}>Ersatzbank</h2>
                 <span className="text-[10px] font-medium tabular-nums text-zinc-500">
                   {bankIds.length} {bankIds.length === 1 ? 'Spieler' : 'Spieler'}
                 </span>
@@ -582,7 +584,7 @@ export const MatchLineupPage: React.FC = () => {
             <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-[22px] border border-transparent bg-gradient-to-br from-[#121214] via-[#0a0a0c] to-black p-1.5 shadow-[0_6px_28px_rgba(0,0,0,0.5),0_0_24px_rgba(224,33,41,0.05)] sm:p-2">
               <div className="grid h-full min-h-0 flex-1 grid-cols-2 gap-2">
                 <div className="flex min-h-0 min-w-0 flex-col gap-1">
-                  <h2 className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">Startaufstellung</h2>
+                  <h2 className={`shrink-0 ${dsSectionLabelClass()}`}>Startaufstellung</h2>
                   <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch] flex flex-col ${DS_LIST_GAP}`}>
                     {LIVE_FIELD_SLOT_ORDER.map((slot) => {
                       const pid = slots[slot];
@@ -634,7 +636,7 @@ export const MatchLineupPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex min-h-0 min-w-0 flex-col gap-1 border-l border-white/[0.08] pl-2">
-                  <h2 className="shrink-0 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">Ersatzbank</h2>
+                  <h2 className={`shrink-0 ${dsSectionLabelClass()}`}>Ersatzbank</h2>
                   <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch] flex flex-col ${DS_LIST_GAP}`}>
                     {bankIds.length === 0 ? (
                       <p className="text-xs text-zinc-500">Keine Bankspieler.</p>

@@ -57,7 +57,9 @@ import {
   DS_JERSEY_COMPACT,
   DS_JERSEY_STARTER,
   DS_LIST_GAP,
+  dsCardTitleClass,
   dsLineupViewTabClass,
+  dsMetaTextClass,
   dsPageAtmosphereAbsoluteClass,
   dsPlayerNameClass,
   dsPrimaryCtaClass,
@@ -4154,12 +4156,10 @@ export const LiveMatchScreen: React.FC = () => {
                 <div className="flex items-start justify-between gap-1.5">
                   <div className="min-w-0 flex-1">
                     {lineupPanelView === 'kickoff' ? (
-                      <div className="flex flex-col gap-1">
-                        <p className="text-[13px] font-bold uppercase tracking-[0.22em] text-red-400">
-                          STARTAUFSTELLUNG
-                        </p>
-                        <p className="text-[13px] font-medium leading-snug text-white/72">
-                          Startaufstellung vor Anpfiff • Snapshot vom Spielbeginn
+                      <div className="flex flex-col gap-1.5">
+                        <p className={dsCardTitleClass()}>Startaufstellung</p>
+                        <p className={dsMetaTextClass()}>
+                          Vor Anpfiff · Snapshot vom Spielbeginn
                         </p>
                       </div>
                     ) : (
@@ -4794,7 +4794,7 @@ export const LiveMatchScreen: React.FC = () => {
           <div className="relative z-[1] flex min-h-0 flex-1 flex-col bg-[#080808]">
             <div className="sticky top-0 z-20 shrink-0 bg-[rgba(8,8,8,0.92)] backdrop-blur-md">
             <div className="flex items-center justify-between gap-1 border-b border-transparent px-2 py-1 shadow-[0_6px_20px_rgba(0,0,0,0.35)]">
-              <h3 id="wechsel-sheet-title" className="shrink-0 text-[13px] font-bold leading-none tracking-tight text-white">
+              <h3 id="wechsel-sheet-title" className={`shrink-0 ${dsCardTitleClass()} text-base`}>
                 Wechsel
               </h3>
               <div
