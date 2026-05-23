@@ -1,5 +1,6 @@
 import React from "react";
 import { ChevronRight } from "lucide-react";
+import { getTrainingPositionDisplay } from "../../lib/positionLabels";
 import { PremiumPlayerCard } from "../player/PremiumPlayerCard";
 import { premiumJerseyNumberClass } from "../../lib/premiumPlayerCard";
 
@@ -25,6 +26,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, selected = false
   return (
     <PremiumPlayerCard
       player={{ ...player, jersey_number: num ?? undefined }}
+      subline={getTrainingPositionDisplay(player.position)}
       density="compact"
       selected={selected}
       onClick={onClick}

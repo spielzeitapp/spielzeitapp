@@ -2836,7 +2836,7 @@ export const EventDetailPage: React.FC = () => {
                     getStatus={getTrainingAttendanceStatus}
                     onSetStatus={(playerId, status) => void handleTrainerTrainingStatus(playerId, status)}
                     loading={playersLoading || loadingEventAttendance}
-                    className="pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))]"
+                    className="-mx-1 min-w-0 pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] sm:-mx-1.5"
                   />
                 ) : (
                   <>

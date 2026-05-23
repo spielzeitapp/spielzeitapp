@@ -127,7 +127,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
   const showLegacy = counts.legacyUnknown > 0;
 
   return (
-    <div className={`flex w-full flex-col gap-3.5 ${className}`}>
+    <div className={`flex w-full min-w-0 flex-col gap-3.5 ${className}`}>
       <div className="grid w-full grid-cols-2 gap-2">
         {STAT_GRID_MAIN.map(({ key, label, tone }) => (
           <div key={key} className={trainingStatBoxClass(tone)}>
@@ -160,7 +160,7 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
       ) : players.length === 0 ? (
         <p className="text-[13px] text-white/50">Keine Spieler im Kader.</p>
       ) : (
-        <ul className={`flex w-full flex-col ${DS_LIST_GAP} pb-1`}>
+        <ul className={`-mx-2 flex w-[calc(100%+1rem)] flex-col sm:-mx-2.5 sm:w-[calc(100%+1.25rem)] ${DS_LIST_GAP} pb-1`}>
           {sorted.map((player) => {
             const status = getStatus(player.id);
             const sub = formatTrainingPlayerSubline(player.position, player.jersey_number);
@@ -171,9 +171,9 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                   player={player}
                   subline={sub}
                   density="compact"
-                  className="w-full !px-2 sm:!px-2.5"
+                  className="w-full"
                   trailing={
-                    <div className="max-w-[4.5rem] shrink-0 pl-0.5">
+                    <div className="max-w-[3.75rem] shrink-0 pl-1">
                       <PremiumStatusBadge
                         label={trainingAttendanceLabel(status)}
                         tone={statusTone(status)}
