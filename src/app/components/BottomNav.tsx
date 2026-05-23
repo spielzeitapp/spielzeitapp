@@ -117,7 +117,7 @@ function NavItem({
           <span
             className={[
               'mt-1 h-1 w-5 shrink-0 rounded-[2px] transition-opacity duration-200',
-              isActive ? 'opacity-100 shadow-[0_0_12px_rgba(255,45,45,0.35)]' : 'bg-transparent opacity-0',
+              isActive ? 'opacity-100 shadow-[0_0_14px_rgba(255,45,45,0.42)]' : 'bg-transparent opacity-0',
             ].join(' ')}
             style={isActive ? { backgroundColor: ACCENT, height: '4px', width: '20px' } : undefined}
             aria-hidden
@@ -169,12 +169,13 @@ export const BottomNav: React.FC = () => {
           'backdrop-blur-[20px] backdrop-saturate-150',
           isApp ? 'min-h-[76px]' : 'min-h-[68px]',
         ].join(' ')}
-        style={{ backgroundColor: 'rgba(10,10,10,0.85)' }}
+        style={{ backgroundColor: 'rgba(8,8,10,0.88)' }}
       >
         <div
           className="pointer-events-none absolute inset-0 rounded-[28px]"
           style={{
-            background: 'linear-gradient(180deg, rgba(255,45,45,0.14) 0%, transparent 42%)',
+            background:
+              'linear-gradient(180deg, rgba(255,45,45,0.12) 0%, rgba(255,30,30,0.04) 28%, transparent 48%)',
           }}
           aria-hidden
         />
@@ -183,7 +184,7 @@ export const BottomNav: React.FC = () => {
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-x-3 top-0 h-9 rounded-full bg-gradient-to-b from-[#FF2D2D]/16 to-transparent blur-2xl"
+          className="pointer-events-none absolute inset-x-3 top-0 h-10 rounded-full bg-gradient-to-b from-[#FF2D2D]/18 to-transparent blur-xl"
           aria-hidden
         />
         <div

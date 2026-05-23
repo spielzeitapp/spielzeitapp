@@ -5,10 +5,12 @@ import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { saveMatchSquadOnly } from '../../lib/liveMatchService';
 import { supabase } from '../../lib/supabaseClient';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
+import { premiumPlayerDisplayName } from '../../lib/premiumPlayerCard';
 import {
   dsPageAtmosphereClass,
   dsPageContentClass,
   dsPageHeaderClass,
+  dsPageHeroGlowClass,
   dsPageShellClass,
   dsPrimaryCtaClass,
   dsSectionLabelClass,
@@ -286,8 +288,9 @@ export const MatchPreparationPage: React.FC = () => {
   return (
     <div className={dsPageShellClass()}>
       <div className={dsPageAtmosphereClass()} aria-hidden />
-      <header className={dsPageHeaderClass()}>
-        <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
+      <header className={`${dsPageHeaderClass()} relative overflow-hidden`}>
+        <div className={dsPageHeroGlowClass()} aria-hidden />
+        <div className="relative mx-auto flex max-w-xl items-center justify-between gap-3">
           <div>
             <button
               type="button"
@@ -339,7 +342,7 @@ export const MatchPreparationPage: React.FC = () => {
                     key={id}
                     className="rounded-full border border-red-500/35 bg-red-950/35 px-2.5 py-0.5 text-[11px] font-semibold text-red-200"
                   >
-                    {p?.jersey_number ?? '–'} {p?.display_name ?? id}
+                    {premiumPlayerDisplayName(p ?? { display_name: id })}
                   </span>
                 );
               })}

@@ -5,11 +5,9 @@ import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabaseClient';
 import { getClubLogo } from '../../lib/teamLogos';
+import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
 
 const logo = import.meta.env.BASE_URL + 'logos/nsg-goelsental.png';
-
-const iconBtnClass =
-  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_12px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors hover:border-white/22 hover:bg-white/[0.09] focus:outline-none focus-visible:ring-1 focus-visible:ring-red-500/40 focus-visible:ring-offset-0 sm:h-10 sm:w-10';
 
 function AppWordmark({ compact }: { compact?: boolean }) {
   const sz = compact
@@ -136,8 +134,12 @@ export const Header: React.FC = () => {
   }, [isStaff]);
 
   return (
-    <header className="fixed left-0 top-0 z-50 w-full border-b border-white/[0.07] bg-gradient-to-b from-zinc-950/[0.97] via-black/[0.9] to-black/[0.82] pt-[env(safe-area-inset-top,0px)] shadow-[0_10px_36px_-10px_rgba(0,0,0,0.72),inset_0_-1px_0_rgba(220,38,38,0.06)] backdrop-blur-xl backdrop-saturate-150">
-      <div className="mx-auto flex min-h-[2.75rem] w-full max-w-screen-2xl items-center justify-between gap-2 px-3 py-0.5 md:px-8 md:py-1">
+    <header className="fixed left-0 top-0 z-50 w-full border-b border-transparent bg-[rgba(6,6,8,0.72)] pt-[env(safe-area-inset-top,0px)] shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65),inset_0_-1px_0_rgba(255,30,30,0.05)] backdrop-blur-xl backdrop-saturate-150">
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[radial-gradient(ellipse_70%_100%_at_18%_0%,rgba(255,30,30,0.07),transparent_68%)]"
+        aria-hidden
+      />
+      <div className="relative mx-auto flex min-h-[2.75rem] w-full max-w-screen-2xl items-center justify-between gap-2 px-3 py-0.5 md:px-8 md:py-1">
         {/* Links: Logo + Branding (im internen Bereich klickbar → /app/home) */}
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
           {pathname.startsWith('/app') ? (
@@ -145,7 +147,7 @@ export const Header: React.FC = () => {
               <img
                 src={headerTeamLogo}
                 alt=""
-                className="h-9 w-9 shrink-0 rounded-full border border-white/10 object-contain shadow-[0_0_20px_rgba(220,38,38,0.18)] sm:h-10 sm:w-10"
+                className="h-9 w-9 shrink-0 rounded-full border border-transparent object-contain shadow-[0_0_22px_rgba(255,30,30,0.14)] sm:h-10 sm:w-10"
                 width={40}
                 height={40}
               />
@@ -210,7 +212,7 @@ export const Header: React.FC = () => {
                 </button>
               )}
               {authLoading || !user ? null : pathname.startsWith('/app') ? (
-                <Link to="/app/nachrichten" className={iconBtnClass} aria-label="Nachrichten">
+                <Link to="/app/nachrichten" className={dsGlassIconButtonClass()} aria-label="Nachrichten">
                   <Bell className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" strokeWidth={2} aria-hidden />
                 </Link>
               ) : null}
@@ -218,7 +220,7 @@ export const Header: React.FC = () => {
                 <div className="flex flex-col items-end gap-0.5">
                   <Link
                     to={pathname.startsWith('/app') ? APP_PROFILE : '/profile'}
-                    className={iconBtnClass}
+                    className={dsGlassIconButtonClass()}
                     aria-label="Profil"
                   >
                     <svg viewBox="0 0 24 24" className="h-[1.1rem] w-[1.1rem] sm:h-[1.15rem] sm:w-[1.15rem]" stroke="currentColor" strokeWidth="1.85" fill="none" aria-hidden>
@@ -226,10 +228,7 @@ export const Header: React.FC = () => {
                     </svg>
                   </Link>
                   {isStaff && staffBackendBadge ? (
-                    <span
-                      className="max-w-[6.5rem] truncate rounded-full border border-white/10 bg-black/50 px-3 py-1 text-center text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-300"
-                      title={staffBackendBadge}
-                    >
+                    <span className={dsTrainerPillClass()} title={staffBackendBadge}>
                       {staffBackendBadge}
                     </span>
                   ) : null}
@@ -237,7 +236,7 @@ export const Header: React.FC = () => {
               )}
             </div>
             {!sessionLoading && !authLoading && !isStaff && roleLabel ? (
-              <span className="rounded-full border border-white/10 bg-black/50 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-300">
+              <span className={dsTrainerPillClass()}>
                 {roleLabel}
               </span>
             ) : null}

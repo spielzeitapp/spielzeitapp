@@ -30,14 +30,18 @@ import {
   matchdayLineupListRowClass,
   matchdayLineupPositionBadgeClass,
 } from '../../lib/matchdayPlayerCard';
+import { premiumPlayerDisplayName } from '../../lib/premiumPlayerCard';
 import {
   dsFormationTabClass,
+  dsFormationZoneGlowClass,
   dsPageAtmosphereClass,
   dsPageContentClass,
   dsPageShellClass,
+  dsPlayerNameClass,
   dsPrimaryCtaClass,
   dsSecondaryCtaClass,
   dsSegmentTabClass,
+  dsStickyCtaBarClass,
   DS_JERSEY_STARTER,
   DS_LIST_GAP,
 } from '../../lib/premiumDesignSystem';
@@ -480,7 +484,8 @@ export const MatchLineupPage: React.FC = () => {
 
         {lineupViewMode === 'pitch' ? (
           <>
-            <section className="relative -mx-1 shrink-0 rounded-xl border border-white/[0.06] bg-black/20 sm:mx-0">
+            <section className="relative -mx-1 shrink-0 overflow-hidden rounded-[22px] border border-transparent bg-[rgba(10,10,12,0.55)] shadow-[0_0_32px_rgba(255,40,40,0.06)] sm:mx-0">
+              <div className={dsFormationZoneGlowClass()} aria-hidden />
               <span
                 className="pointer-events-none absolute right-2 top-2 z-[3] rounded-xl bg-black/65 px-2 py-0.5 text-xs font-bold tabular-nums text-white/90 backdrop-blur-sm"
                 aria-label={`Belegte Startplätze ${starterCount} von 7`}
@@ -551,8 +556,8 @@ export const MatchLineupPage: React.FC = () => {
                           pitchStyleBack
                           selected={isSelected}
                         />
-                        <span className="mt-1.5 line-clamp-2 w-full max-w-full text-center text-xs font-semibold leading-tight text-zinc-100">
-                          {mobileLineupName(playerFamilyName(p))}
+                        <span className={`mt-1.5 w-full max-w-full px-0.5 text-center ${dsPlayerNameClass()}`}>
+                          {premiumPlayerDisplayName(p)}
                         </span>
                       </button>
                     );
@@ -585,7 +590,8 @@ export const MatchLineupPage: React.FC = () => {
                       const posLabel = getPositionLabel(labelForSlotInFormation(formationId, slot)) || '—';
                       const isGk = slot === 'GK';
                       if (p) {
-                        const shortName = mobileLineupName(playerFamilyName(p));
+                        const jerseyName = mobileLineupName(playerFamilyName(p));
+                        const fullName = premiumPlayerDisplayName(p);
                         return (
                           <button
                             key={`list-f-${slot}`}
@@ -595,7 +601,7 @@ export const MatchLineupPage: React.FC = () => {
                           >
                             <div className={matchdayJerseyWrapClass()}>
                               <LeibchenJersey
-                                lastName={shortName}
+                                lastName={jerseyName}
                                 number={p.jersey_number ?? '–'}
                                 position={posLabel}
                                 variant={isGk ? 'goalkeeper' : 'field'}
@@ -604,9 +610,9 @@ export const MatchLineupPage: React.FC = () => {
                                 className={`${DS_JERSEY_STARTER} opacity-90`}
                               />
                             </div>
-                            <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden py-0.5">
-                              <p className="line-clamp-2 text-sm font-semibold leading-snug text-white">{shortName}</p>
-                              <span className="inline-flex w-fit rounded-md border border-red-500/25 bg-red-950/35 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-red-100/90">
+                            <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-0.5 pr-1">
+                              <p className={dsPlayerNameClass()}>{fullName}</p>
+                              <span className="inline-flex w-fit rounded-md border border-transparent bg-[rgba(120,18,28,0.26)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#FF8D98]">
                                 {posLabel}
                               </span>
                             </div>
@@ -657,8 +663,8 @@ export const MatchLineupPage: React.FC = () => {
                                 className={`${DS_JERSEY_STARTER} opacity-90`}
                               />
                             </div>
-                            <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden py-0.5">
-                              <p className="line-clamp-2 text-sm font-semibold leading-snug text-white">{shortName}</p>
+                            <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-0.5 pr-1">
+                              <p className={dsPlayerNameClass()}>{fullName}</p>
                               <span className={matchdayLineupPositionBadgeClass('bench')}>
                                 Bank
                               </span>
@@ -676,7 +682,7 @@ export const MatchLineupPage: React.FC = () => {
       </main>
 
       <div
-        className="fixed inset-x-0 z-[70] border-t border-white/[0.06] bg-gradient-to-t from-black via-black/97 to-black/88 px-3 py-1 shadow-[0_-4px_14px_rgba(0,0,0,0.32)] backdrop-blur-md"
+        className={dsStickyCtaBarClass()}
         style={{
           bottom: isMobile ? 'calc(env(safe-area-inset-bottom, 0px) + 4px)' : 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
           paddingBottom: 'max(0.4rem, env(safe-area-inset-bottom, 0px))',

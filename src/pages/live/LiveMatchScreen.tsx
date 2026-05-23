@@ -59,10 +59,12 @@ import {
   DS_LIST_GAP,
   dsLineupViewTabClass,
   dsPageAtmosphereAbsoluteClass,
+  dsPlayerNameClass,
   dsPrimaryCtaClass,
   dsSecondaryCtaClass,
   dsSegmentTabClass,
   dsSegmentTrackClass,
+  dsWechselColumnAmbientClass,
   dsWechselPickRowClass,
 } from '../../lib/premiumDesignSystem';
 import { matchdayBenchTileClass } from '../../lib/matchdayPlayerCard';
@@ -4350,7 +4352,7 @@ export const LiveMatchScreen: React.FC = () => {
                               className="!h-[2.5rem] !w-[2rem] ring-1 ring-amber-400/45"
                             />
                             <div className="min-w-0 text-left">
-                              <p className="max-w-[5.5rem] truncate text-[11px] font-semibold text-white">{shortName}</p>
+                              <p className={`max-w-[5.5rem] ${dsPlayerNameClass()}`}>{rawName}</p>
                               <p className="font-mono text-[11px] font-bold tabular-nums text-amber-200/90">
                                 {formatClock(playtimes[pid] ?? 0)}
                               </p>
@@ -4839,9 +4841,9 @@ export const LiveMatchScreen: React.FC = () => {
               ].join(' ')}
             >
               {subSheetView === 'list' ? (
-                <div className="grid min-h-0 flex-1 grid-cols-2 gap-1 overflow-hidden sm:gap-1.5">
-                  <div className="flex min-h-0 flex-1 flex-col gap-0.5">
-                    <p className="shrink-0 text-[9px] font-black uppercase tracking-[0.14em] text-red-300/95">Raus · Feld · inkl. TW</p>
+                <div className="grid min-h-0 flex-1 grid-cols-2 gap-1.5 overflow-hidden sm:gap-2">
+                  <div className={`flex min-h-0 flex-1 flex-col gap-1 ${dsWechselColumnAmbientClass('out')}`}>
+                    <p className="shrink-0 px-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-red-300/90">Raus · Feld · inkl. TW</p>
                     {substitutionFieldRows.length === 0 ? (
                       <p className="shrink-0 rounded-md border border-red-500/15 bg-black/50 px-1.5 py-1 text-[10px] text-white/45">
                         Keine Feldspieler.
@@ -4861,7 +4863,7 @@ export const LiveMatchScreen: React.FC = () => {
                             if (!pid) return null;
                             const rosterP = rosterById.get(pid) ?? null;
                             const name = String(row?.display_name ?? rosterP?.name ?? 'Spieler').trim() || 'Spieler';
-                            const shortName = mobileLineupName(name);
+                            const jerseyName = mobileLineupName(name);
                             const slotBadge = String(row?.rightLabel ?? '–').trim() || '—';
                             const posLabel = getPositionLabel(row.position) || slotBadge;
                             const num = rosterP?.number ?? row?.jersey_number ?? null;
@@ -4873,19 +4875,15 @@ export const LiveMatchScreen: React.FC = () => {
                                 key={`sub-out-${slot}-${pid}`}
                                 type="button"
                                 onClick={() => setSubOutPlayerId(pid)}
-                                className={[
-                                  'flex h-[61px] min-h-[58px] max-h-[66px] shrink-0 items-center gap-1.5 rounded-lg border px-1.5 py-0.5 text-left transition-all active:scale-[0.99]',
-                                  'bg-gradient-to-br from-red-950/40 via-black/75 to-black/92',
-                                  selected
-                                    ? 'border-red-500 shadow-[0_0_18px_rgba(239,68,68,0.38)] ring-2 ring-red-500/50'
-                                    : recOut
-                                      ? 'border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.2)] ring-1 ring-emerald-500/35'
-                                      : 'border-white/[0.1] hover:border-red-500/35',
-                                ].join(' ')}
+                                className={dsWechselPickRowClass({
+                                  selected,
+                                  recommended: recOut,
+                                  side: 'out',
+                                })}
                               >
                                 <div className="pointer-events-none shrink-0">
                                   <LeibchenJersey
-                                    lastName={shortName}
+                                    lastName={jerseyName}
                                     number={num ?? '–'}
                                     position={posLabel}
                                     variant={isGk ? 'goalkeeper' : 'field'}
@@ -4894,11 +4892,9 @@ export const LiveMatchScreen: React.FC = () => {
                                     className="!h-[2.9rem] !w-[2.28rem] sm:!h-[3.1rem] sm:!w-[2.55rem]"
                                   />
                                 </div>
-                                <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
-                                  <p className="truncate text-[14px] font-bold leading-snug text-white">
-                                    {shortName}
-                                  </p>
-                                  <span className="inline-flex w-fit rounded-md border border-red-500/35 bg-red-950/50 px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-red-100/95">
+                                <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 pr-1">
+                                  <p className={dsPlayerNameClass()}>{name}</p>
+                                  <span className="inline-flex w-fit rounded-md border border-transparent bg-[rgba(120,18,28,0.26)] px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-[#FF8D98]">
                                     {slotBadge}
                                   </span>
                                 </div>
@@ -4910,8 +4906,8 @@ export const LiveMatchScreen: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="flex min-h-0 flex-1 flex-col gap-0.5">
-                    <p className="shrink-0 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-300/95">Rein · Bank</p>
+                  <div className={`flex min-h-0 flex-1 flex-col gap-1 ${dsWechselColumnAmbientClass('in')}`}>
+                    <p className="shrink-0 px-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-300/90">Rein · Bank</p>
                     {substitutionBenchRows.length === 0 ? (
                       <p className="shrink-0 rounded-md border border-emerald-500/15 bg-black/50 px-1.5 py-1 text-[10px] text-white/45">
                         Keine Bankspieler.
@@ -4927,7 +4923,7 @@ export const LiveMatchScreen: React.FC = () => {
                             if (!pid) return null;
                             const rosterP = rosterById.get(pid) ?? null;
                             const name = String(row?.display_name ?? rosterP?.name ?? 'Spieler').trim() || 'Spieler';
-                            const shortName = mobileLineupName(name);
+                            const jerseyName = mobileLineupName(name);
                             const posLabel = getPositionLabel(row.position) || '–';
                             const num = rosterP?.number ?? row?.jersey_number ?? null;
                             const selected = subInPlayerId === pid;
@@ -4946,7 +4942,7 @@ export const LiveMatchScreen: React.FC = () => {
                               >
                                 <div className="pointer-events-none shrink-0">
                                   <LeibchenJersey
-                                    lastName={shortName}
+                                    lastName={jerseyName}
                                     number={num ?? '–'}
                                     position={posLabel}
                                     variant={isGk ? 'goalkeeper' : 'field'}
@@ -4955,11 +4951,9 @@ export const LiveMatchScreen: React.FC = () => {
                                     className="!h-[2.9rem] !w-[2.28rem] sm:!h-[3.1rem] sm:!w-[2.55rem]"
                                   />
                                 </div>
-                                <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
-                                  <p className="truncate text-[14px] font-bold leading-snug text-white">
-                                    {shortName}
-                                  </p>
-                                  <span className="inline-flex w-fit rounded-md border border-amber-500/35 bg-amber-950/45 px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-amber-100/95">
+                                <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 pr-1">
+                                  <p className={dsPlayerNameClass()}>{name}</p>
+                                  <span className="inline-flex w-fit rounded-md border border-transparent bg-[rgba(16,16,20,0.88)] px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-[#9A9AA0]">
                                     Bank
                                   </span>
                                 </div>

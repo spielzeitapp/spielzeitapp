@@ -1,7 +1,12 @@
 import React from "react";
 import { PremiumPlayerCard } from "../player/PremiumPlayerCard";
 import { PremiumStatusBadge, type PremiumStatusBadgeTone } from "../player/PremiumStatusBadge";
+import { getPositionLabel } from "../../lib/positionLabels";
 import { premiumJerseyNumberClass, type PremiumPlayerCardTone } from "../../lib/premiumPlayerCard";
+
+function positionSubline(position?: string | null): string {
+  return getPositionLabel(position) || (position ?? "").trim() || "—";
+}
 
 type MatchRowPlayer = {
   id: string;
@@ -35,6 +40,7 @@ export const MatchPlayerRow: React.FC<{
   return (
     <PremiumPlayerCard
       player={player}
+      subline={positionSubline(player.position)}
       density="compact"
       tone={tone}
       active={isMatchday && selected}
