@@ -633,35 +633,59 @@ export function dsSchedulePageStyle(): { background: string; boxShadow: string }
   };
 }
 
-/** Hero „Nächstes Training/Spiel“ — stärkere Hierarchie. */
+/** Hero „Nächstes Training/Spiel“ — stärkere Hierarchie, Flutlicht oben. */
 export function dsScheduleHeroPanelClass(): string {
   return [
     'relative overflow-hidden rounded-[18px]',
-    'border border-[rgba(122,29,42,0.22)]',
-    'bg-[linear-gradient(158deg,rgba(22,20,22,0.99)_0%,rgba(14,14,16,0.99)_48%,rgba(18,10,12,0.99)_100%)]',
-    'shadow-[0_14px_44px_rgba(0,0,0,0.55),0_0_36px_rgba(122,29,42,0.14),inset_0_1px_0_rgba(255,255,255,0.035)]',
+    'border border-[rgba(122,29,42,0.32)]',
+    'bg-[linear-gradient(152deg,rgba(30,26,28,0.99)_0%,rgba(18,16,18,0.99)_40%,rgba(14,14,16,0.99)_68%,rgba(20,10,12,0.99)_100%)]',
+    'shadow-[0_18px_52px_rgba(0,0,0,0.62),0_0_48px_rgba(122,29,42,0.2),inset_0_1px_0_rgba(255,255,255,0.05)]',
   ].join(' ');
 }
 
 export function dsScheduleHeroPanelGlowClass(): string {
   return [
     'pointer-events-none absolute inset-0',
-    'bg-[radial-gradient(ellipse_85%_55%_at_100%_-5%,rgba(122,29,42,0.14)_0%,transparent_52%),radial-gradient(ellipse_70%_45%_at_0%_0%,rgba(122,29,42,0.06)_0%,transparent_50%),linear-gradient(180deg,rgba(255,255,255,0.03)_0%,transparent_22%)]',
+    'bg-[radial-gradient(ellipse_95%_65%_at_100%_-10%,rgba(255,228,200,0.07)_0%,rgba(122,29,42,0.2)_22%,transparent_58%),radial-gradient(ellipse_80%_50%_at_0%_0%,rgba(122,29,42,0.1)_0%,transparent_52%),linear-gradient(180deg,rgba(255,255,255,0.06)_0%,transparent_32%)]',
   ].join(' ');
 }
 
-/** Weitere Termine — sekundär, ruhiger. */
+/** Weitere Termine — sekundär, flach und dunkel. */
 export function dsScheduleListPanelClass(): string {
   return [
     'relative overflow-hidden rounded-[14px]',
-    'border border-[rgba(122,29,42,0.06)]',
-    'bg-[linear-gradient(180deg,rgba(12,12,14,0.99)_0%,rgba(10,10,12,0.99)_100%)]',
-    'shadow-[0_4px_20px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.02)]',
+    'border border-white/[0.04]',
+    'bg-[linear-gradient(180deg,rgba(10,10,12,0.99)_0%,rgba(7,7,9,0.99)_100%)]',
+    'shadow-[0_2px_14px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.015)]',
   ].join(' ');
 }
 
 export function dsScheduleListPanelGlowClass(): string {
-  return 'pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.012)_0%,transparent_14%)]';
+  return 'pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.006)_0%,transparent_8%)]';
+}
+
+/** Termin-Detail / Hero-Footer: ruhige Action-Zeilen (Dark Glass). */
+export function dsScheduleActionRowClass(opts?: { danger?: boolean }): string {
+  const base = [
+    'flex w-full items-center gap-3 rounded-[14px] border px-3.5 py-3',
+    'bg-[rgba(12,12,14,0.94)] backdrop-blur-sm',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]',
+    'transition-[background,border-color,transform] duration-150',
+    'hover:bg-[rgba(18,16,18,0.97)] active:scale-[0.99]',
+    'disabled:cursor-not-allowed disabled:opacity-45',
+  ];
+  if (opts?.danger) {
+    return [
+      ...base,
+      'border-[rgba(122,29,42,0.22)] text-[#D4A0A8]',
+      'hover:border-[rgba(122,29,42,0.34)]',
+    ].join(' ');
+  }
+  return [
+    ...base,
+    'border-white/[0.08] text-white/88',
+    'hover:border-white/[0.12]',
+  ].join(' ');
 }
 
 /** @deprecated Alias — Listenkarten */

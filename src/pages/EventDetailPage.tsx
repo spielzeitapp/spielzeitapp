@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Pencil, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-react';
+import { CalendarPlus, ChevronRight, Pencil, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
@@ -25,6 +25,7 @@ import {
   type TrainingAttendanceStatus,
 } from '../lib/trainingAttendance';
 import { TrainingAttendancePanel } from '../components/events/TrainingAttendancePanel';
+import { ScheduleEventActionsPanel } from '../components/schedule/ScheduleEventActionsPanel';
 import { PremiumPlayerCard } from '../components/player/PremiumPlayerCard';
 import { PremiumStatusBadge } from '../components/player/PremiumStatusBadge';
 import {
@@ -2721,41 +2722,34 @@ export const EventDetailPage: React.FC = () => {
           <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
             ← Zurück zum Spielplan
           </Link>
-          <div className="flex w-full flex-col gap-1 sm:w-auto sm:self-end">
-            <AppButton
-              variant="secondary"
-              size="sm"
-              className={`w-full px-3 py-2 text-[13px] sm:w-auto ${isTraining ? '!rounded-[14px]' : ''}`}
-              onClick={() => void handleAddSingleEventToCalendar()}
-            >
-              Diesen Termin hinzufügen
-            </AppButton>
-            <p className="text-[11px] leading-snug text-white/55 sm:text-right">
-              Fügt nur diesen Termin deinem Kalender hinzu.
-            </p>
-          </div>
-          {canTrainerManageEvent ? (
-            <div className="grid w-full grid-cols-2 gap-3">
-              <AppButton
-                variant="secondary"
-                size="sm"
-                className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px]"
-                onClick={() => openEditModal(event)}
-              >
-                <Pencil className="h-3.5 w-3.5" aria-hidden />
-                Bearbeiten
-              </AppButton>
-              <AppButton
-                variant="danger"
-                size="sm"
-                className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px]"
-                onClick={() => setDeleteConfirmOpen(true)}
-              >
-                <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                Löschen
-              </AppButton>
-            </div>
-          ) : null}
+          <ScheduleEventActionsPanel
+            className="w-full"
+            rows={[
+              {
+                key: 'calendar',
+                label: 'Diesen Termin hinzufügen',
+                icon: <CalendarPlus className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                onClick: () => void handleAddSingleEventToCalendar(),
+              },
+              ...(canTrainerManageEvent
+                ? [
+                    {
+                      key: 'edit',
+                      label: 'Bearbeiten',
+                      icon: <Pencil className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                      onClick: () => openEditModal(event),
+                    },
+                    {
+                      key: 'delete',
+                      label: 'Löschen',
+                      icon: <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                      danger: true,
+                      onClick: () => setDeleteConfirmOpen(true),
+                    },
+                  ]
+                : []),
+            ]}
+          />
         </div>
 
         <div className="-mx-3 relative flex w-[calc(100%+1.5rem)] min-w-0 max-w-none flex-col sm:mx-0 sm:w-full sm:max-w-full">
@@ -2954,7 +2948,6 @@ export const EventDetailPage: React.FC = () => {
               </div>
             ) : (effectiveRole === 'player' || effectiveRole === 'parent') ? (
               <div className="flex flex-col gap-2">
-                <p className="text-[14px] text-white/70">Dein Teilnahme-Status für diesen Termin.</p>
                 {!playerId ? (
                   <p className="text-[14px] text-white/90">Kein Spieler zugeordnet. Bitte beim Trainer melden.</p>
                 ) : loadingRsvp ? (
@@ -2963,20 +2956,7 @@ export const EventDetailPage: React.FC = () => {
                   <div className="flex flex-col gap-2">
                     {isTraining ? (
                       <>
-                        <p className="text-[14px] font-medium text-white/90">
-                          Status:{' '}
-                          {rsvpStatus === 'no'
-                            ? 'Abwesend'
-                            : rsvpStatus === 'injured'
-                              ? 'Verletzt'
-                              : rsvpStatus === 'yes'
-                                ? 'Dabei'
-                                : resolveTrainingAttendanceStatus(null, event?.starts_at ?? null) ===
-                                    'legacy_unknown'
-                                  ? 'Nicht erfasst'
-                                  : 'Offen'}
-                        </p>
-                        <p className="mt-1 text-[12px] text-white/70">
+                        <p className="text-[12px] text-white/70">
                           {event.training_absence_deadline_disabled
                             ? 'Absage jederzeit möglich.'
                             : 'Absage bis 12:00 Uhr am Trainingstag möglich (Europe/Vienna).'}
@@ -3009,10 +2989,7 @@ export const EventDetailPage: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <p className="text-[14px] text-white/90">
-                          Status: {rsvpStatus === 'yes' ? 'Zugesagt' : rsvpStatus === 'no' ? 'Abgesagt' : 'Offen'}
-                        </p>
-                        <div className={`mt-3 grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
+                        <div className={`mt-1 grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
                           <button
                             type="button"
                             className={dsRsvpChoiceClass('yes', rsvpStatus === 'yes')}
@@ -3041,15 +3018,16 @@ export const EventDetailPage: React.FC = () => {
 
         {event.kind === 'match' && event.status === 'live' && event.match_id ? (
           <Card className="flex flex-col gap-3">
-            <CardTitle>Liveticker</CardTitle>
+            <CardTitle>Livespiel</CardTitle>
             <p className="text-[14px] text-white/75">
-              Aufstellung, Spielstand und Ereignisse findest du im zentralen Liveticker unter „Live“.
+              Aufstellung, Spielstand und Ereignisse findest du im zentralen Livespiel unter „Live“.
             </p>
             <Link
               to={`/app/live?matchId=${encodeURIComponent(event.match_id)}`}
-              className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-red-600 px-4 text-center text-sm font-bold text-white hover:bg-red-500"
+              className={`flex w-full min-h-[48px] items-center justify-center gap-2 ${dsPrimaryCtaClass()}`}
             >
-              Zum Liveticker
+              Zum Livespiel
+              <ChevronRight className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
             </Link>
           </Card>
         ) : null}

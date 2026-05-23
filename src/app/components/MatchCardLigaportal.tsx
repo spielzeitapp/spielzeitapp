@@ -466,7 +466,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       ) : isTrainingCard ? (
         <div className="relative z-[1] flex flex-col gap-2">
           <div className="flex items-start gap-2.5">
-            <TrainingMotifIcon className="mt-0.5 h-9 w-9 shrink-0 text-white/90" />
+            <TrainingMotifIcon className="mt-0.5 h-10 w-10 shrink-0 text-white/90" />
             <div className="min-w-0 flex-1">
               <p className={dsMatchdaySectionLabelClass()}>Training</p>
               <p className="mt-1 text-[17px] font-bold leading-tight tracking-tight text-white">

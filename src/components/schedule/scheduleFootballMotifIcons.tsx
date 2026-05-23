@@ -1,32 +1,31 @@
 import React from 'react';
 import { CalendarDays, LayoutGrid } from 'lucide-react';
 
-const TRAINING_STROKE = 1.85;
+const TRAINING_STROKE = 2;
 
-/** Trainings-Motiv: ruhiges Spielfeld + Kegel (Premium Line, BottomNav-Sprache). */
+/** Trainings-Motiv: vertikales Spielfeld + Kegel (Premium Line, BottomNav-Sprache). */
 export function TrainingMotifIcon({ className = '' }: { className?: string }) {
   return (
     <svg
       className={className}
-      viewBox="0 0 24 24"
+      viewBox="0 0 32 32"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden
     >
       <rect
-        x="3.25"
-        y="5.25"
-        width="17.5"
-        height="11.5"
-        rx="1.25"
+        x="9"
+        y="5"
+        width="14"
+        height="22"
+        rx="1.5"
         stroke="currentColor"
         strokeWidth={TRAINING_STROKE}
         strokeLinejoin="round"
       />
-      <path d="M12 5.25v11.5" stroke="currentColor" strokeWidth={TRAINING_STROKE} strokeLinecap="round" />
-      <circle cx="12" cy="11" r="2" stroke="currentColor" strokeWidth={TRAINING_STROKE} />
+      <path d="M16 5v22" stroke="currentColor" strokeWidth={TRAINING_STROKE} strokeLinecap="round" />
       <path
-        d="M16.75 18.25L17.65 16.15h1.25l.95 2.1"
+        d="M22.5 26.5 23.75 23h2.1l1.15 3.5"
         stroke="currentColor"
         strokeWidth={TRAINING_STROKE}
         strokeLinecap="round"

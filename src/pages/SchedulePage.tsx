@@ -5,13 +5,13 @@ import { Button } from '../app/components/ui/Button';
 import { Modal } from '../app/ui/Modal';
 import { AppButton } from '../components/ui/AppButton';
 import { CreateEventModal } from '../app/components/CreateEventModal';
-import { AttendanceStatusPill, type AttendanceStatusKind } from '../components/schedule/AttendanceStatusPill';
+import type { AttendanceStatusKind } from '../components/schedule/AttendanceStatusPill';
 import { CompactListParentAttendance } from '../components/schedule/CompactListParentAttendance';
+import { ScheduleEventActionsPanel } from '../components/schedule/ScheduleEventActionsPanel';
 import { CompactEventCard } from '../components/schedule/CompactEventCard';
 import { PastMatchResultCard } from '../components/schedule/PastMatchResultCard';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { EventHeroCard } from '../components/schedule/EventHeroCard';
-import { AttendanceActionRow } from '../components/schedule/AttendanceActionRow';
 import { ScheduleHeroEventCard } from '../components/schedule/ScheduleHeroEventCard';
 import { TrainerStatsMini } from '../components/schedule/TrainerStatsMini';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
@@ -1057,11 +1057,6 @@ export const SchedulePage: React.FC = () => {
                                   isTraining={et === 'training'}
                                   listColumn={et === 'training'}
                                 />
-                              ) : heroShowsParentPill ? (
-                                <AttendanceStatusPill
-                                  status={attendanceMergedToPillStatus(attendanceStatusMerged)}
-                                  isTraining={et === 'training'}
-                                />
                               ) : null;
                         const heroClickable = !forcePublicView && Boolean(ev.id);
                         const heroOnNavigate =
@@ -1071,111 +1066,83 @@ export const SchedulePage: React.FC = () => {
                                 isFinishedMatch && ev.match_id
                                   ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
                                   : navigate(`/app/events/${id}`);
-                        const trainerToolbarCompact = et === 'game';
                         const heroTrainerFooter =
                           canManage && !forcePublicView ? (
-                            et === 'game' ? (
-                              ev.match_id && ev.status !== 'finished' ? (
-                                <div
-                                  className="w-full"
-                                  role="toolbar"
-                                  aria-label="Trainer-Aktionen"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <ScheduleHeroToolbarAction
-                                    label="Zum Liveticker"
-                                    title="Zum Liveticker"
-                                    emphasis="primary"
-                                    compact={trainerToolbarCompact}
-                                    onClick={() => navigate(`/live?matchId=${ev.match_id}`)}
-                                  >
-                                    <Radio className="h-3.5 w-3.5" strokeWidth={2} />
-                                  </ScheduleHeroToolbarAction>
-                                </div>
-                              ) : null
-                            ) : (
-                              <div
-                                className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4"
-                                role="toolbar"
-                                aria-label="Trainer-Aktionen"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {et === 'game' && ev.match_id && ev.status !== 'finished' ? (
-                                  <ScheduleHeroToolbarAction
-                                    label="Zum Liveticker"
-                                    title="Zum Liveticker"
-                                    emphasis="primary"
-                                    onClick={() => navigate(`/live?matchId=${ev.match_id}`)}
-                                  >
-                                    <Radio className="h-3.5 w-3.5" strokeWidth={2} />
-                                  </ScheduleHeroToolbarAction>
-                                ) : null}
-                                <ScheduleHeroToolbarAction
-                                  label="Bearbeiten"
-                                  title="Bearbeiten"
-                                  emphasis="secondary"
-                                  onClick={() => openEditModal(ev)}
-                                >
-                                  <Pencil className="h-3.5 w-3.5" strokeWidth={2} />
-                                </ScheduleHeroToolbarAction>
-                                <ScheduleHeroToolbarAction
-                                  label="Löschen"
-                                  title="Löschen"
-                                  emphasis="secondary"
-                                  onClick={() => void handleDelete(ev)}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-                                </ScheduleHeroToolbarAction>
-                                {ev.status !== 'finished' ? (
-                                  <ScheduleHeroToolbarAction
-                                    label="Kalender"
-                                    title="Zum Kalender hinzufügen"
-                                    emphasis="secondary"
-                                    onClick={() =>
-                                      downloadEventIcs(ev, {
-                                        appBaseUrl: window.location.origin,
-                                      })
-                                    }
-                                  >
-                                    <CalendarDays className="h-3.5 w-3.5" strokeWidth={2} />
-                                  </ScheduleHeroToolbarAction>
-                                ) : null}
-                              </div>
-                            )
+                            <ScheduleEventActionsPanel
+                              aria-label="Trainer-Aktionen"
+                              rows={[
+                                ...(et === 'game' && ev.match_id && ev.status !== 'finished'
+                                  ? [
+                                      {
+                                        key: 'live',
+                                        label: 'Zum Livespiel',
+                                        icon: <Radio className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                                        emphasis: 'primary' as const,
+                                        onClick: () => navigate(`/live?matchId=${ev.match_id}`),
+                                      },
+                                    ]
+                                  : []),
+                                {
+                                  key: 'edit',
+                                  label: 'Bearbeiten',
+                                  icon: <Pencil className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                                  onClick: () => openEditModal(ev),
+                                },
+                                {
+                                  key: 'delete',
+                                  label: 'Löschen',
+                                  icon: <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                                  danger: true,
+                                  onClick: () => void handleDelete(ev),
+                                },
+                                ...(ev.status !== 'finished'
+                                  ? [
+                                      {
+                                        key: 'calendar',
+                                        label: 'Zum Kalender hinzufügen',
+                                        icon: <CalendarDays className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                                        onClick: () =>
+                                          downloadEventIcs(ev, {
+                                            appBaseUrl: window.location.origin,
+                                          }),
+                                      },
+                                    ]
+                                  : []),
+                              ]}
+                            />
                           ) : null;
                         const heroParentFooter =
                           heroShowsParentPill && !forcePublicView && et !== 'game' ? (
-                            <div
-                              className={
-                                ev.status !== 'finished'
-                                  ? 'grid w-full max-w-md grid-cols-2 gap-2 sm:max-w-lg'
-                                  : 'w-full max-w-md'
-                              }
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="min-w-0 [&_button]:w-full">
-                                <AttendanceActionRow
+                            <div className="flex w-full flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex justify-end px-0.5">
+                                <CompactListParentAttendance
+                                  status={attendanceMergedToPillStatus(attendanceStatusMerged)}
                                   isTraining={et === 'training'}
-                                  variant="compact"
-                                  compactPrimary
-                                  scheduleMatchHero={false}
-                                  onOpenAttendance={() => setAttendanceModalEvent(ev)}
+                                  onOpen={() => {
+                                    const pill = attendanceMergedToPillStatus(attendanceStatusMerged);
+                                    if (et === 'training' && pill === 'no') {
+                                      setTrainingRejoinModalEvent(ev);
+                                      return;
+                                    }
+                                    setAttendanceModalEvent(ev);
+                                  }}
                                 />
                               </div>
                               {ev.status !== 'finished' ? (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="xs"
-                                  className="inline-flex h-10 w-full min-w-0 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-transparent px-3 text-[11px] font-medium text-white/55 hover:border-white/18 hover:bg-white/[0.04] hover:text-white/75"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    downloadEventIcs(ev, { appBaseUrl: window.location.origin });
-                                  }}
-                                >
-                                  <CalendarPlus className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
-                                  Zum Kalender
-                                </Button>
+                                <ScheduleEventActionsPanel
+                                  aria-label="Kalender"
+                                  rows={[
+                                    {
+                                      key: 'calendar',
+                                      label: 'Zum Kalender hinzufügen',
+                                      icon: <CalendarPlus className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                                      onClick: () =>
+                                        downloadEventIcs(ev, {
+                                          appBaseUrl: window.location.origin,
+                                        }),
+                                    },
+                                  ]}
+                                />
                               ) : null}
                             </div>
                           ) : null;

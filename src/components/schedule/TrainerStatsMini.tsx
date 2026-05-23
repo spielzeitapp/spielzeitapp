@@ -27,7 +27,7 @@ export function TrainerStatsMini({
 }: Props) {
   const yesTitle = isTraining ? 'Dabei' : 'Zugesagt';
   const pillSize = listCompact
-    ? 'h-[19px] min-w-[24px] px-1 text-[8px]'
+    ? 'h-[17px] min-w-[22px] px-0.5 text-[7px]'
     : 'h-[22px] min-w-[28px] px-1.5 text-[9px]';
 
   if (listColumn) {

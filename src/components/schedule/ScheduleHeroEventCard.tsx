@@ -112,22 +112,24 @@ function HeroMatchTeamLogo({ src }: { src: string }) {
 }
 
 const heroStadiumGradient =
-  'linear-gradient(to bottom, rgba(10,10,12,0.97) 0%, rgba(12,12,14,0.96) 48%, rgba(18,10,12,0.98) 100%)';
+  'linear-gradient(to bottom, rgba(12,12,14,0.94) 0%, rgba(10,10,12,0.96) 42%, rgba(16,10,12,0.98) 100%)';
 
-/** Dezentes Stadion — kaum sichtbar, Text immer lesbar (alle Hero-Typen). */
-function HeroHybridBackdrop() {
+/** Dezentes Stadion — Flutlicht oben rechts, Text lesbar. */
+function HeroHybridBackdrop({ training = false }: { training?: boolean }) {
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
       <img
         src={stadiumBgUrl}
         alt=""
-        className="absolute inset-0 h-full min-h-full w-full min-w-full scale-105 object-cover object-[center_32%] opacity-[0.06] brightness-[0.38] saturate-[0.8]"
+        className={`absolute inset-0 h-full min-h-full w-full min-w-full scale-105 object-cover ${
+          training ? 'object-[88%_18%]' : 'object-[center_32%]'
+        } opacity-[0.1] brightness-[0.48] saturate-[0.75]`}
         aria-hidden
       />
-      <div className="absolute inset-0 bg-black/74" aria-hidden />
-      <div className="absolute inset-0 backdrop-blur-[2px] bg-black/22" aria-hidden />
+      <div className={`absolute inset-0 ${training ? 'bg-black/68' : 'bg-black/74'}`} aria-hidden />
+      <div className="absolute inset-0 backdrop-blur-[2px] bg-black/18" aria-hidden />
       <div
-        className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(122,29,42,0.09),transparent_55%)]"
+        className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_100%_0%,rgba(255,220,180,0.08),transparent_48%),radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(122,29,42,0.12),transparent_55%)]"
         aria-hidden
       />
       <div className="absolute inset-0" style={{ background: heroStadiumGradient }} aria-hidden />
@@ -341,7 +343,7 @@ export function ScheduleHeroEventCard({
 
   const trainingBody = (
     <>
-      <HeroHybridBackdrop />
+      <HeroHybridBackdrop training />
       <div className="relative z-[1] flex w-full min-w-0 flex-col px-3.5 py-3 pb-3.5">
         <div className="flex items-start gap-2.5">
           <div className={dsScheduleDateBoxClass()}>
@@ -351,7 +353,7 @@ export function ScheduleHeroEventCard({
           </div>
 
           <div className="flex min-w-0 flex-1 items-start gap-2">
-            <TrainingMotifIcon className="mt-0.5 h-9 w-9 shrink-0 text-white/90 sm:h-10 sm:w-10" />
+            <TrainingMotifIcon className="mt-0.5 h-11 w-11 shrink-0 text-white/90 sm:h-12 sm:w-12" />
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 text-[15px] font-bold leading-tight tracking-tight text-white sm:text-[16px]">
                 {trainingMainTitle}

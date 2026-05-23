@@ -137,7 +137,7 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <CompactFootballBallIcon className="h-7 w-7 shrink-0 text-white/90 sm:h-8 sm:w-8" />
+      <CompactFootballBallIcon className="h-8 w-8 shrink-0 text-white/90" />
     ) : (
       <CalendarDays className="h-5 w-5 shrink-0 text-red-200/85" />
     );
@@ -220,7 +220,7 @@ export function CompactEventCard({
           </div>
         ) : null}
         {clickable ? (
-          <span className="pointer-events-none absolute bottom-5 right-4 text-[26px] font-light leading-none text-white/55 transition-colors duration-200" aria-hidden>
+          <span className="pointer-events-none absolute bottom-5 right-4 text-[18px] font-light leading-none text-white/22" aria-hidden>
             ›
           </span>
         ) : null}
@@ -240,7 +240,7 @@ export function CompactEventCard({
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
-      <CompactFootballBallIcon className="h-7 w-7 shrink-0 text-white/90 sm:h-8 sm:w-8" />
+      <CompactFootballBallIcon className="h-8 w-8 shrink-0 text-white/90" />
     ) : (
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">
         <CalendarDays className="h-5 w-5 text-red-200/85" />
@@ -364,7 +364,7 @@ export function CompactEventCard({
       <div className="relative z-[1] flex shrink-0 flex-col items-end justify-between gap-1 py-0.5 pl-1">
         {hasTrailing ? <div className="min-w-0 [&>*]:origin-top-right">{trailing}</div> : null}
         {clickable ? (
-          <span className="text-[20px] font-light leading-none text-white/32" aria-hidden>
+          <span className="text-[17px] font-light leading-none text-white/22" aria-hidden>
             ›
           </span>
         ) : null}
