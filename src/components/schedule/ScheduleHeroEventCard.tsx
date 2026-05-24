@@ -379,29 +379,31 @@ export function ScheduleHeroEventCard({
     <>
       <HeroHybridBackdrop training />
       <div className="relative z-[1] flex w-full min-w-0 flex-col px-3 py-2.5 pb-2.5">
-        <div className="flex w-full min-w-0 items-center">
+        <div className="grid w-full min-w-0 grid-cols-[82px_72px_minmax(0,1fr)_56px] items-center gap-x-2">
           <div className={`${dsScheduleHeroDateBoxClass()} shrink-0`}>
             <span className={dsScheduleHeroDateBoxWeekdayClass()}>{wd}</span>
             <span className={dsScheduleHeroDateBoxDayClass()}>{day}</span>
             <span className={dsScheduleHeroDateBoxMonthClass()}>{mon}</span>
           </div>
 
-          <TrainingPlayerIcon variant="hero" />
+          <div className="flex w-[72px] shrink-0 items-center justify-center self-center">
+            <TrainingPlayerIcon variant="hero" />
+          </div>
 
-          <div className="min-w-0 flex-1 text-left">
-            <p className="whitespace-nowrap text-[24px] font-bold leading-[1.05] text-white">
-              {trainingMainTitle}
-            </p>
-            <p className="mt-1 line-clamp-2 text-[17px] leading-[1.2] text-white/[0.78]">
+          <div className="min-w-0 overflow-hidden text-left">
+            <p className="truncate text-[26px] font-bold leading-[1.05] text-white">{trainingMainTitle}</p>
+            <p className="mt-1 line-clamp-2 text-[16px] leading-[1.25] text-white/[0.78]">
               {trainingLocationLine}
             </p>
           </div>
 
           {topRight ? (
-            <div className="pointer-events-auto flex w-[52px] shrink-0 flex-col items-center justify-center gap-2">
+            <div className="pointer-events-auto flex w-[56px] shrink-0 flex-col items-center justify-center gap-2 self-center">
               {topRight}
             </div>
-          ) : null}
+          ) : (
+            <div className="w-[56px] shrink-0" aria-hidden />
+          )}
         </div>
 
         <ScheduleHeroMetaToolbar

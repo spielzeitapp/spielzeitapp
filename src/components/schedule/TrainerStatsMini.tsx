@@ -47,9 +47,10 @@ export function TrainerStatsMini({
     : 'shadow-[0_0_6px_rgba(122,29,42,0.08)]';
 
   if (listColumn) {
+    const colWidth = isHero ? 'max-w-[56px]' : 'max-w-[54px]';
     return (
       <div
-        className={`flex w-full max-w-[52px] flex-col items-center justify-center gap-2 ${className}`}
+        className={`flex w-full ${colWidth} shrink-0 flex-col items-center justify-center gap-2 ${className}`}
         aria-label="Zu- und Absagen"
       >
         <span

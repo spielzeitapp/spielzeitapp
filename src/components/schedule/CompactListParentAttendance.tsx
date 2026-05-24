@@ -14,7 +14,7 @@ type Props = {
 };
 
 const btnList =
-  'ml-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border p-0 transition-all duration-200';
+  'inline-flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full border p-0 transition-all duration-200';
 
 const btnHero =
   'inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border p-0 transition-all duration-200';
