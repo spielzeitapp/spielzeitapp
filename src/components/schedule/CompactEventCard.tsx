@@ -332,15 +332,12 @@ export function CompactEventCard({
           : trainingTitleLines.top)
       : null;
 
-  const listGridCols =
-    et === 'training'
-      ? 'grid-cols-[86px_70px_minmax(0,1fr)_48px_22px]'
-      : 'grid-cols-[86px_70px_minmax(0,1fr)_48px_22px]';
+  const listGridCols = 'grid-cols-[86px_44px_minmax(0,1fr)_48px_22px]';
 
   return (
     <div
       className={[
-        `relative mb-2 -mx-1 grid w-[calc(100%+0.5rem)] min-w-0 ${listGridCols} items-center gap-x-1 overflow-x-hidden px-2.5 py-1.5 sm:mx-0 sm:w-full ${dsScheduleListPanelClass()}`,
+        `relative mb-2 -mx-1 grid w-[calc(100%+0.5rem)] min-w-0 ${listGridCols} items-center gap-x-0 overflow-x-hidden px-2.5 py-1.5 sm:mx-0 sm:w-full ${dsScheduleListPanelClass()}`,
         clickable ? 'cursor-pointer active:bg-white/[0.03]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
@@ -365,17 +362,17 @@ export function CompactEventCard({
         <span className="text-[11px] font-semibold tabular-nums leading-tight text-[#B85C68]">{timeStr}</span>
       </div>
 
-      <div className="relative z-[1] flex w-full max-w-[70px] items-center justify-center overflow-hidden self-center">
+      <div className="relative z-[1] flex w-full max-w-[44px] items-center justify-center overflow-hidden self-center">
         {et === 'training' ? <TrainingPlayerIcon variant="list" /> : <div className="shrink-0 pt-0.5">{iconSlot}</div>}
       </div>
 
-      <div className="relative z-[1] flex min-w-0 flex-col justify-center py-0.5">
+      <div className="relative z-[1] flex min-w-0 flex-col justify-center py-0.5 pl-2.5">
         {et === 'training' ? (
           <div className="min-w-0 text-left">
-            <p className="line-clamp-2 text-[17px] font-bold leading-tight text-white" lang="de">
+            <p className="line-clamp-1 text-[18px] font-bold leading-tight text-white" lang="de">
               {listTrainingHeadline ?? 'Training'}
             </p>
-            <p className="mt-0.5 line-clamp-2 text-[14px] font-medium leading-tight text-white/75">
+            <p className="mt-0.5 line-clamp-2 text-[15px] font-medium leading-tight text-white/75">
               {venueOnly ?? '—'}
             </p>
           </div>

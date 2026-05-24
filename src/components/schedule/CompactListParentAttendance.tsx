@@ -17,7 +17,7 @@ const btnList =
   'ml-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border p-0 transition-all duration-200';
 
 const btnHero =
-  'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border p-0 transition-all duration-200';
+  'inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border p-0 transition-all duration-200';
 
 const yesList =
   'border-emerald-400/45 bg-emerald-600/85 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)]';

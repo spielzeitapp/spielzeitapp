@@ -80,7 +80,7 @@ export function ScheduleHeroMetaToolbar({
         {showChevron && onChevronClick ? (
           <button
             type="button"
-            className="flex h-[56px] w-[42px] shrink-0 items-center justify-center border-l border-white/[0.05] text-white/70 opacity-70 transition-colors hover:bg-white/[0.03] hover:opacity-85 active:bg-white/[0.04]"
+            className="flex h-[56px] w-[42px] shrink-0 items-center justify-center border-l border-white/[0.05] text-white/80 opacity-[0.82] transition-colors hover:bg-white/[0.03] hover:opacity-95 active:bg-white/[0.04]"
             aria-label="Termin öffnen"
             onClick={(e) => {
               e.stopPropagation();
