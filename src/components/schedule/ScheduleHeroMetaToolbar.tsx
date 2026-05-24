@@ -16,22 +16,22 @@ type Props = {
   className?: string;
 };
 
-const labelClass = 'text-[8px] font-semibold uppercase tracking-[0.11em] text-white/40';
+const labelClass = 'text-[8px] font-semibold uppercase tracking-[0.1em] text-white/38 leading-none';
 const valueClass =
-  'mt-0.5 max-w-full truncate whitespace-nowrap text-[13px] font-bold tabular-nums leading-none text-white';
+  'mt-1 max-w-full truncate whitespace-nowrap text-[12.5px] font-bold tabular-nums leading-none text-white';
 
 function MetaBlock({ item, withBorder }: { item: ScheduleHeroMetaItem; withBorder: boolean }) {
   if (item.hidden) {
-    return <div className={withBorder ? 'border-l border-white/[0.08]' : ''} aria-hidden />;
+    return <div className={withBorder ? 'border-l border-white/[0.06]' : ''} aria-hidden />;
   }
   return (
     <div
-      className={`flex min-h-[50px] min-w-0 flex-col items-center justify-center px-0.5 py-1.5 text-center sm:px-1 ${
-        withBorder ? 'border-l border-white/[0.07]' : ''
-      } ${item.accent ? 'bg-[rgba(58,18,24,0.28)]' : ''}`}
+      className={`flex min-h-[46px] min-w-0 flex-col items-center justify-center px-0.5 py-1 text-center sm:px-1 ${
+        withBorder ? 'border-l border-white/[0.06]' : ''
+      } ${item.accent ? 'bg-[rgba(58,18,24,0.24)]' : ''}`}
     >
-      <span className="text-[#B85C68] [&_svg]:h-3 [&_svg]:w-3">{item.icon}</span>
-      <span className={`mt-1 w-full ${labelClass}`}>{item.label}</span>
+      <span className="flex h-3 shrink-0 items-center text-[#B85C68] [&_svg]:h-3 [&_svg]:w-3">{item.icon}</span>
+      <span className={`w-full ${labelClass}`}>{item.label}</span>
       <span className={`w-full ${valueClass}`} title={item.value}>
         {item.value}
       </span>
@@ -54,27 +54,27 @@ export function ScheduleHeroMetaToolbar({
 
   return (
     <div
-      className={`mt-2.5 border-t border-white/[0.07] bg-[rgba(0,0,0,0.24)] ${className}`}
+      className={`mt-2 border-t border-white/[0.06] bg-[rgba(0,0,0,0.26)] ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="grid grid-cols-[1fr_1fr_1fr_32px] items-stretch">
+      <div className="grid grid-cols-[1fr_1fr_1fr_28px] items-center">
         <MetaBlock item={blocks[0]!} withBorder={false} />
         <MetaBlock item={blocks[1]!} withBorder />
         <MetaBlock item={blocks[2]!} withBorder />
         {showChevron && onChevronClick ? (
           <button
             type="button"
-            className="flex min-h-[50px] items-center justify-center border-l border-white/[0.07] text-white/50 opacity-60 transition-colors hover:bg-white/[0.02] hover:opacity-75 active:bg-white/[0.04]"
+            className="flex h-[46px] items-center justify-center border-l border-white/[0.06] text-white/45 opacity-55 transition-colors hover:bg-white/[0.02] hover:opacity-70 active:bg-white/[0.03]"
             aria-label="Termin öffnen"
             onClick={(e) => {
               e.stopPropagation();
               onChevronClick();
             }}
           >
-            <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+            <ChevronRight className="h-3 w-3" strokeWidth={2} aria-hidden />
           </button>
         ) : (
-          <div className="min-h-[50px] border-l border-white/[0.07]" aria-hidden />
+          <div className="h-[46px] border-l border-white/[0.06]" aria-hidden />
         )}
       </div>
     </div>

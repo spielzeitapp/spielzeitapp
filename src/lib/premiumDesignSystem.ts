@@ -674,15 +674,15 @@ export function dsScheduleHeroDateBoxClass(): string {
 /** Weitere Termine — sekundär, flach und dunkel. */
 export function dsScheduleListPanelClass(): string {
   return [
-    'relative overflow-hidden rounded-[13px]',
-    'border border-white/[0.02]',
-    'bg-[linear-gradient(180deg,rgba(6,6,8,0.99)_0%,rgba(4,4,6,0.99)_100%)]',
-    'shadow-[0_1px_6px_rgba(0,0,0,0.28)]',
+    'relative overflow-hidden rounded-[12px]',
+    'border border-white/[0.015]',
+    'bg-[linear-gradient(180deg,rgba(4,4,6,0.99)_0%,rgba(2,2,4,0.99)_100%)]',
+    'shadow-[0_1px_4px_rgba(0,0,0,0.22)]',
   ].join(' ');
 }
 
 export function dsScheduleListPanelGlowClass(): string {
-  return 'pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.004)_0%,transparent_6%)]';
+  return 'pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.002)_0%,transparent_5%)]';
 }
 
 /** Termin-Detail / Hero-Footer: ruhige Action-Zeilen (Dark Glass). */

@@ -504,7 +504,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       ) : isTrainingCard ? (
         <div className="relative z-[1] flex flex-col gap-2.5 px-1 py-1">
           <div className="flex items-center gap-3">
-            <TrainingPlayerIcon variant="list" className="h-[3.25rem] w-[3.25rem]" />
+            <TrainingPlayerIcon variant="list" />
             <div className="min-w-0 flex-1">
               <p className={dsMatchdaySectionLabelClass()}>Training</p>
               <p className="mt-1 text-[17px] font-bold leading-tight tracking-tight text-white">
