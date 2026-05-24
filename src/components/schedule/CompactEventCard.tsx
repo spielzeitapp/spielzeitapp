@@ -327,7 +327,7 @@ export function CompactEventCard({
   return (
     <div
       className={[
-        `relative mb-2 -mx-1 flex w-[calc(100%+0.5rem)] min-w-0 flex-row items-stretch gap-2 overflow-x-hidden px-2 py-2 sm:mx-0 sm:w-full ${dsScheduleListPanelClass()}`,
+        `relative mb-2 -mx-1 flex w-[calc(100%+0.5rem)] min-w-0 flex-row items-stretch gap-2 overflow-x-hidden px-2 py-1.5 sm:mx-0 sm:w-full ${dsScheduleListPanelClass()}`,
         clickable ? 'cursor-pointer active:bg-white/[0.03]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
@@ -352,9 +352,9 @@ export function CompactEventCard({
         <span className="text-[11px] font-semibold tabular-nums leading-tight text-[#B85C68]">{timeStr}</span>
       </div>
 
-      <div className="relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col justify-center gap-0.5 py-0.5">
-        <div className={`flex min-w-0 items-start ${et === 'training' ? 'gap-2' : 'gap-1.5'}`}>
-          <div className="shrink-0 pt-0.5">{iconSlot}</div>
+      <div className="relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col justify-center gap-0 py-0.5">
+        <div className={`flex min-w-0 items-center ${et === 'training' ? 'gap-2.5' : 'gap-1.5'}`}>
+          <div className={`shrink-0 ${et === 'training' ? 'flex items-center' : 'pt-0.5'}`}>{iconSlot}</div>
           {titleText}
         </div>
         {line2}
@@ -364,7 +364,7 @@ export function CompactEventCard({
       <div className="relative z-[1] flex shrink-0 flex-col items-end justify-between gap-1 py-0.5 pl-1">
         {hasTrailing ? <div className="min-w-0 [&>*]:origin-top-right">{trailing}</div> : null}
         {clickable ? (
-          <span className="text-[15px] font-light leading-none text-white/18" aria-hidden>
+          <span className="text-[14px] font-light leading-none text-white/14" aria-hidden>
             ›
           </span>
         ) : null}

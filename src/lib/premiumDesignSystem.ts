@@ -269,7 +269,19 @@ export function dsTrainingAttendanceCardGlowClass(): string {
 
 /** Training-Detail: warmer Header-Nebel (nur Wrapper, Logos unberührt). */
 export function dsTrainingDetailHeaderAtmosphereClass(): string {
-  return 'pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit] bg-[radial-gradient(ellipse_110%_75%_at_50%_-8%,rgba(122,29,42,0.12)_0%,transparent_54%),linear-gradient(180deg,rgba(58,18,24,0.06)_0%,transparent_38%)]';
+  return 'pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit] bg-[radial-gradient(ellipse_115%_80%_at_50%_-10%,rgba(122,29,42,0.16)_0%,transparent_56%),radial-gradient(ellipse_70%_45%_at_100%_0%,rgba(255,240,220,0.06)_0%,transparent_50%),linear-gradient(180deg,rgba(58,18,24,0.08)_0%,transparent_42%)]';
+}
+
+/** Termin-Detail: Kalender-Zeile — Deep Red Premium. */
+export function dsScheduleDetailCalendarRowClass(): string {
+  return [
+    'flex w-full items-center gap-3 rounded-[14px] border border-[rgba(122,29,42,0.28)] px-3.5 py-3',
+    'bg-[linear-gradient(135deg,rgba(58,18,24,0.42)_0%,rgba(12,12,14,0.96)_100%)]',
+    'text-white/92 shadow-[0_0_20px_rgba(122,29,42,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]',
+    'transition-[background,border-color,transform] duration-150',
+    'hover:border-[rgba(122,29,42,0.38)] hover:bg-[linear-gradient(135deg,rgba(58,18,24,0.5)_0%,rgba(16,14,16,0.98)_100%)]',
+    'active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45',
+  ].join(' ');
 }
 
 export function dsFeedAvatarRingClass(): string {
@@ -646,7 +658,7 @@ export function dsScheduleHeroPanelClass(): string {
 export function dsScheduleHeroPanelGlowClass(): string {
   return [
     'pointer-events-none absolute inset-0',
-    'bg-[radial-gradient(ellipse_105%_75%_at_100%_-14%,rgba(255,240,220,0.14)_0%,rgba(122,29,42,0.26)_26%,transparent_64%),radial-gradient(ellipse_88%_58%_at_0%_0%,rgba(122,29,42,0.14)_0%,transparent_52%),radial-gradient(ellipse_95%_48%_at_50%_100%,rgba(58,18,24,0.12)_0%,transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_40%)]',
+    'bg-[radial-gradient(ellipse_110%_78%_at_100%_-16%,rgba(255,242,225,0.16)_0%,rgba(122,29,42,0.3)_24%,transparent_66%),radial-gradient(ellipse_90%_60%_at_0%_0%,rgba(122,29,42,0.16)_0%,transparent_52%),radial-gradient(ellipse_98%_50%_at_50%_100%,rgba(58,18,24,0.14)_0%,transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,transparent_42%)]',
   ].join(' ');
 }
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
-import { dsPrimaryCtaClass, dsScheduleActionRowClass } from '../../lib/premiumDesignSystem';
+import { dsPrimaryCtaClass, dsScheduleActionRowClass, dsScheduleDetailCalendarRowClass } from '../../lib/premiumDesignSystem';
 
 export type ScheduleEventActionRow = {
   key?: string;
@@ -32,6 +32,7 @@ export function ScheduleEventActionsPanel({ rows, className = '', 'aria-label': 
     >
       {rows.map((row, i) => {
         const isPrimary = row.emphasis === 'primary';
+        const isCalendar = row.key === 'calendar';
         return (
           <button
             key={row.key ?? `${row.label}-${i}`}
@@ -41,11 +42,13 @@ export function ScheduleEventActionsPanel({ rows, className = '', 'aria-label': 
             className={
               isPrimary
                 ? `inline-flex w-full min-h-[52px] items-center justify-center gap-2 ${dsPrimaryCtaClass()}`
-                : dsScheduleActionRowClass({ danger: row.danger })
+                : isCalendar
+                  ? dsScheduleDetailCalendarRowClass()
+                  : dsScheduleActionRowClass({ danger: row.danger })
             }
           >
             {row.icon && !isPrimary ? (
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center text-white/65">{row.icon}</span>
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center ${isCalendar ? 'text-[#B85C68]' : 'text-white/65'}`}>{row.icon}</span>
             ) : null}
             <span className={`min-w-0 flex-1 text-left text-[15px] font-medium ${isPrimary ? 'text-center' : ''}`}>
               {row.label}

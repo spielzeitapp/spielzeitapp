@@ -2717,8 +2717,8 @@ export const EventDetailPage: React.FC = () => {
       className="min-h-screen text-white"
       style={isTraining ? dsSchedulePageStyle() : { background: '#000000' }}
     >
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-2 py-4 pb-28 sm:px-4">
-        <div className="flex flex-col gap-3">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-2 py-5 pb-28 sm:px-4">
+        <div className="flex flex-col gap-3.5">
           <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
             ← Zurück zum Spielplan
           </Link>

@@ -125,24 +125,28 @@ function HeroHybridBackdrop({ training = false }: { training?: boolean }) {
         alt=""
         className={`absolute inset-0 h-full min-h-full w-full min-w-full scale-110 object-cover ${
           training ? 'object-[92%_12%]' : 'object-[center_28%]'
-        } opacity-[0.14] brightness-[0.52] saturate-[0.8]`}
+        } ${training ? 'opacity-[0.16]' : 'opacity-[0.14]'} brightness-[0.5] saturate-[0.78]`}
         aria-hidden
       />
-      <div className={`absolute inset-0 ${training ? 'bg-black/62' : 'bg-black/70'}`} aria-hidden />
-      <div className="absolute inset-0 backdrop-blur-[3px] bg-black/12" aria-hidden />
+      <div className={`absolute inset-0 ${training ? 'bg-black/64' : 'bg-black/70'}`} aria-hidden />
+      <div className={`absolute inset-0 ${training ? 'backdrop-blur-[4px] bg-black/14' : 'backdrop-blur-[3px] bg-black/12'}`} aria-hidden />
       <div
         className={`absolute inset-0 ${
           training
-            ? 'bg-[radial-gradient(ellipse_80%_60%_at_100%_-5%,rgba(255,245,230,0.18)_0%,rgba(122,29,42,0.24)_30%,transparent_65%)]'
+            ? 'bg-[radial-gradient(ellipse_88%_68%_at_100%_-8%,rgba(255,248,235,0.22)_0%,rgba(122,29,42,0.28)_28%,transparent_68%),radial-gradient(ellipse_55%_40%_at_88%_8%,rgba(255,255,255,0.06)_0%,transparent_55%)]'
             : 'bg-[radial-gradient(ellipse_75%_55%_at_100%_0%,rgba(255,240,220,0.14)_0%,rgba(122,29,42,0.18)_32%,transparent_62%)]'
         }`}
         aria-hidden
       />
       <div
-        className="absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_-8%,rgba(122,29,42,0.14),transparent_58%),radial-gradient(ellipse_80%_50%_at_50%_110%,rgba(58,18,24,0.12),transparent_52%)]"
+        className={`absolute inset-0 ${
+          training
+            ? 'bg-[radial-gradient(ellipse_100%_72%_at_50%_-8%,rgba(122,29,42,0.17),transparent_58%),radial-gradient(ellipse_82%_52%_at_50%_110%,rgba(58,18,24,0.14),transparent_52%)]'
+            : 'bg-[radial-gradient(ellipse_100%_70%_at_50%_-8%,rgba(122,29,42,0.14),transparent_58%),radial-gradient(ellipse_80%_50%_at_50%_110%,rgba(58,18,24,0.12),transparent_52%)]'
+        }`}
         aria-hidden
       />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_28%,rgba(0,0,0,0.2)_100%)]" aria-hidden />
+      <div className={`absolute inset-0 ${training ? 'bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,transparent_26%,rgba(0,0,0,0.22)_100%)]' : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_28%,rgba(0,0,0,0.2)_100%)]'}`} aria-hidden />
       <div className="absolute inset-0" style={{ background: heroStadiumGradient }} aria-hidden />
     </div>
   );
@@ -371,16 +375,16 @@ export function ScheduleHeroEventCard({
   const trainingBody = (
     <>
       <HeroHybridBackdrop training />
-      <div className="relative z-[1] flex w-full min-w-0 flex-col px-4 py-4 pb-3.5">
-        <div className="flex items-start gap-3">
+      <div className="relative z-[1] flex w-full min-w-0 flex-col px-3.5 py-3 pb-3">
+        <div className="flex items-center gap-2.5">
           <div className={dsScheduleHeroDateBoxClass()}>
             <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
             <span className={dsScheduleDateBoxDayClass()}>{day}</span>
             <span className={dsScheduleDateBoxMonthClass()}>{mon}</span>
           </div>
 
-
-          <TrainingPlayerIcon variant="hero" className="mt-0.5 shrink-0" />
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <TrainingPlayerIcon variant="hero" className="shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 text-[17px] font-bold leading-tight tracking-tight text-white">
                 {trainingMainTitle}
@@ -389,9 +393,10 @@ export function ScheduleHeroEventCard({
                 {trainingLocationLine}
               </p>
             </div>
+          </div>
 
           {topRight ? (
-            <div className="pointer-events-auto shrink-0 pt-0.5">{topRight}</div>
+            <div className="pointer-events-auto shrink-0 self-center -mr-0.5">{topRight}</div>
           ) : null}
         </div>
 

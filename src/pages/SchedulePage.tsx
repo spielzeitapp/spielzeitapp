@@ -1062,6 +1062,7 @@ export const SchedulePage: React.FC = () => {
                                 <CompactListParentAttendance
                                   status={attendanceMergedToPillStatus(attendanceStatusMerged)}
                                   isTraining={et === 'training'}
+                                  context="hero"
                                   onOpen={() => {
                                     const pill = attendanceMergedToPillStatus(attendanceStatusMerged);
                                     if (et === 'training' && pill === 'no') {

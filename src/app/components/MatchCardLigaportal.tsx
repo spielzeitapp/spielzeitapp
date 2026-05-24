@@ -1,6 +1,6 @@
 import React from 'react';
 import { CalendarDays, CircleHelp, Clock, MapPin, ThumbsDown, ThumbsUp, Users } from 'lucide-react';
-import { TrainingMotifIcon } from '../../components/schedule/scheduleFootballMotifIcons';
+import { TrainingPlayerIcon } from '../../components/schedule/TrainingPlayerIcon';
 import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import type { EventKind, EventStatus } from '../../hooks/useEvents';
@@ -502,9 +502,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           ) : null}
         </>
       ) : isTrainingCard ? (
-        <div className="relative z-[1] flex flex-col gap-2">
-          <div className="flex items-start gap-2.5">
-            <TrainingMotifIcon className="mt-0.5 h-10 w-10 shrink-0 text-white/90 drop-shadow-[0_0_12px_rgba(255,255,255,0.08)]" />
+        <div className="relative z-[1] flex flex-col gap-2.5 px-1 py-1">
+          <div className="flex items-center gap-3">
+            <TrainingPlayerIcon variant="list" className="h-[3.25rem] w-[3.25rem]" />
             <div className="min-w-0 flex-1">
               <p className={dsMatchdaySectionLabelClass()}>Training</p>
               <p className="mt-1 text-[17px] font-bold leading-tight tracking-tight text-white">
