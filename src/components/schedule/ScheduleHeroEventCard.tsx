@@ -13,17 +13,17 @@ import {
   scheduleLocationLine,
   eventNotesTitle,
   eventTrainingEndDisplay,
+  scheduleMetaTimeDisplay,
 } from './scheduleEventViewUtils';
 import {
   dsPrimaryCtaClass,
-  dsScheduleDateBoxClass,
   dsScheduleDateBoxDayClass,
   dsScheduleDateBoxMonthClass,
   dsScheduleDateBoxWeekdayClass,
+  dsScheduleHeroDateBoxClass,
 } from '../../lib/premiumDesignSystem';
 import { EventMotifIcon } from './scheduleFootballMotifIcons';
 import { TrainingPlayerIcon } from './TrainingPlayerIcon';
-import { ScheduleHeroCalendarCta } from './ScheduleHeroCalendarCta';
 import { ScheduleHeroMetaToolbar } from './ScheduleHeroMetaToolbar';
 
 export type ScheduleHeroEventCardProps = {
@@ -40,8 +40,6 @@ export type ScheduleHeroEventCardProps = {
   isPublicView: boolean;
   isClickable: boolean;
   onNavigate?: (eventId: string) => void;
-  /** Kalender-CTA innerhalb der Hero-Karte (kein Footer). */
-  onAddToCalendar?: () => void;
 };
 
 function parseNotesParts(ev: EventRow) {
@@ -175,7 +173,6 @@ export function ScheduleHeroEventCard({
   isPublicView,
   isClickable,
   onNavigate,
-  onAddToCalendar,
 }: ScheduleHeroEventCardProps) {
   void _ourTeamName;
   void trainerToolbar;
@@ -353,17 +350,17 @@ export function ScheduleHeroEventCard({
     {
       icon: <Clock strokeWidth={2} aria-hidden />,
       label: 'Beginn',
-      value: `${timeStr} Uhr`,
+      value: scheduleMetaTimeDisplay(timeStr),
     },
     {
       icon: <Users strokeWidth={2} aria-hidden />,
       label: 'Treffpunkt',
-      value: showMeetup && meetupTimeOnly ? `${meetupTimeOnly} Uhr` : '—',
+      value: showMeetup && meetupTimeOnly ? scheduleMetaTimeDisplay(meetupTimeOnly) : 'Offen',
     },
     {
       icon: <Clock strokeWidth={2} aria-hidden />,
       label: 'Ende',
-      value: endDisplay ? `${endDisplay} Uhr` : '—',
+      value: endDisplay ? scheduleMetaTimeDisplay(endDisplay) : 'Offen',
     },
   ];
 
@@ -374,25 +371,24 @@ export function ScheduleHeroEventCard({
   const trainingBody = (
     <>
       <HeroHybridBackdrop training />
-      <div className="relative z-[1] flex w-full min-w-0 flex-col px-3.5 py-3 pb-3.5">
-        <div className="flex items-start gap-2.5">
-          <div className={dsScheduleDateBoxClass()}>
+      <div className="relative z-[1] flex w-full min-w-0 flex-col px-4 py-4 pb-3.5">
+        <div className="flex items-start gap-3">
+          <div className={dsScheduleHeroDateBoxClass()}>
             <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
             <span className={dsScheduleDateBoxDayClass()}>{day}</span>
             <span className={dsScheduleDateBoxMonthClass()}>{mon}</span>
           </div>
 
-          <div className="flex min-w-0 flex-1 items-start gap-2.5">
-            <TrainingPlayerIcon variant="hero" className="mt-0.5" />
+
+          <TrainingPlayerIcon variant="hero" className="mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="line-clamp-2 text-[15px] font-bold leading-tight tracking-tight text-white sm:text-[16px]">
+              <p className="line-clamp-2 text-[17px] font-bold leading-tight tracking-tight text-white">
                 {trainingMainTitle}
               </p>
-              <p className="mt-0.5 line-clamp-2 text-[12px] font-medium leading-snug text-white/85">
+              <p className="mt-0.5 line-clamp-2 text-[12px] font-medium leading-snug text-white/78">
                 {trainingLocationLine}
               </p>
             </div>
-          </div>
 
           {topRight ? (
             <div className="pointer-events-auto shrink-0 pt-0.5">{topRight}</div>
@@ -405,7 +401,6 @@ export function ScheduleHeroEventCard({
           onChevronClick={isClickable && onNavigate ? openDetail : undefined}
         />
 
-        {onAddToCalendar ? <ScheduleHeroCalendarCta onClick={onAddToCalendar} /> : null}
       </div>
     </>
   );

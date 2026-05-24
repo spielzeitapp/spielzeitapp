@@ -126,6 +126,14 @@ export function eventTrainingEndDisplay(notes: string | null | undefined): strin
   return v || null;
 }
 
+/** Meta-Toolbar: Zeit mit „Uhr“ (kein doppeltes „Uhr Uhr“). */
+export function scheduleMetaTimeDisplay(raw: string | null | undefined, emptyLabel = 'Offen'): string {
+  if (!raw?.trim()) return emptyLabel;
+  const v = raw.trim();
+  if (/\buhr\s*$/i.test(v)) return v;
+  return `${v} Uhr`;
+}
+
 export function gameTeamNames(
   ev: EventRow,
   et: EffectiveEventType,

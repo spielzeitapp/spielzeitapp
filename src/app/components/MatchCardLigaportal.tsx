@@ -8,9 +8,8 @@ import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocati
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../../components/match/matchCardLabels';
 import { MatchCardGameCore, MatchCardKickoffBlock } from '../../components/match/MatchCardGameCore';
-import { formatHeroDateParts } from '../../components/schedule/scheduleEventViewUtils';
+import { formatHeroDateParts, scheduleMetaTimeDisplay } from '../../components/schedule/scheduleEventViewUtils';
 import { TrainerStatsMini } from '../../components/schedule/TrainerStatsMini';
-import { ScheduleHeroCalendarCta } from '../../components/schedule/ScheduleHeroCalendarCta';
 import { ScheduleHeroLiveCta } from '../../components/schedule/ScheduleHeroLiveCta';
 import { ScheduleHeroMetaToolbar } from '../../components/schedule/ScheduleHeroMetaToolbar';
 
@@ -476,19 +475,21 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   {
                     icon: <Clock strokeWidth={2} aria-hidden />,
                     label: 'Beginn',
-                    value: `${timeStr} Uhr`,
+                    value: scheduleMetaTimeDisplay(timeStr),
                   },
                   {
                     icon: <Users strokeWidth={2} aria-hidden />,
                     label: 'Treffpunkt',
                     value:
-                      canSeeSensitiveInfo && meetupTimeOnly ? `${meetupTimeOnly} Uhr` : '—',
+                      canSeeSensitiveInfo && meetupTimeOnly
+                        ? scheduleMetaTimeDisplay(meetupTimeOnly)
+                        : 'Offen',
                     accent: Boolean(canSeeSensitiveInfo && meetupTimeOnly),
                   },
                   {
                     icon: <Clock strokeWidth={2} aria-hidden />,
                     label: 'Ende',
-                    value: endTimeLabel ? `${endTimeLabel} Uhr` : '—',
+                    value: scheduleMetaTimeDisplay(endTimeLabel),
                   },
                 ]}
                 showChevron={isClickable}
@@ -515,7 +516,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             <div className="flex items-center gap-2 text-[13px]">
               <Clock className="h-3.5 w-3.5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
               <span className="text-[#B8B0B4]">Beginn</span>
-              <span className="ml-auto font-semibold tabular-nums text-white">{timeStr} Uhr</span>
+              <span className="ml-auto font-semibold tabular-nums text-white">{scheduleMetaTimeDisplay(timeStr)}</span>
             </div>
             {placeLine ? (
               <div className="flex items-start gap-2 text-[13px]">
@@ -528,14 +529,14 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               <div className="flex items-center gap-2 text-[13px]">
                 <Users className="h-3.5 w-3.5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
                 <span className="text-[#B8B0B4]">Treffpunkt</span>
-                <span className="ml-auto font-semibold tabular-nums text-white">{meetupTimeOnly} Uhr</span>
+                <span className="ml-auto font-semibold tabular-nums text-white">{scheduleMetaTimeDisplay(meetupTimeOnly)}</span>
               </div>
             ) : null}
             {endTimeLabel ? (
               <div className="flex items-center gap-2 text-[13px]">
                 <Clock className="h-3.5 w-3.5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
                 <span className="text-[#B8B0B4]">Ende</span>
-                <span className="ml-auto font-semibold tabular-nums text-white">{endTimeLabel} Uhr</span>
+                <span className="ml-auto font-semibold tabular-nums text-white">{scheduleMetaTimeDisplay(endTimeLabel)}</span>
               </div>
             ) : null}
           </div>

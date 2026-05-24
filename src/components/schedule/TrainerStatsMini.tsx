@@ -5,11 +5,10 @@ type Props = {
   no: number;
   open: number;
   isTraining?: boolean;
-  /** Schmale rechte Spalte (Hero + Liste gleiche Größe). */
   listColumn?: boolean;
-  /** @deprecated — gleiche Größe wie Hero */
+  /** Hero: größere Chips; Liste: kompakter. */
+  size?: 'hero' | 'list';
   listCompact?: boolean;
-  /** @deprecated — Alias für listColumn */
   heroColumn?: boolean;
   className?: string;
 };
@@ -17,17 +16,13 @@ type Props = {
 const pillSm =
   'inline-flex shrink-0 items-center justify-center rounded-full border font-bold leading-none tabular-nums';
 
-/** Einheitliche Pill-Größe Hero + „Weitere Termine“. */
-const pillSizeColumn = 'h-[26px] min-w-[36px] px-1.5 text-[10px]';
-const pillSizeRow = 'h-9 min-w-[2.35rem] px-2.5 text-[12px]';
-
-/** Teilnehmerzahlen für Trainer/Staff (nur Darstellung). */
 export function TrainerStatsMini({
   yes,
   no,
   open,
   isTraining = false,
   listColumn = false,
+  size = 'list',
   listCompact: _listCompact = false,
   heroColumn: _heroColumn = false,
   className = '',
@@ -35,28 +30,42 @@ export function TrainerStatsMini({
   void _listCompact;
   void _heroColumn;
   const yesTitle = isTraining ? 'Dabei' : 'Zugesagt';
-  const pillSize = listColumn ? pillSizeColumn : pillSizeRow;
+  const isHero = size === 'hero';
+  const pillSize = listColumn
+    ? isHero
+      ? 'h-[28px] min-w-[40px] px-2 text-[11px]'
+      : 'h-[22px] min-w-[32px] px-1 text-[9px]'
+    : isHero
+      ? 'h-9 min-w-[2.4rem] px-2.5 text-[12px]'
+      : 'h-8 min-w-[2rem] px-2 text-[11px]';
+
+  const yesGlow = isHero
+    ? 'shadow-[0_0_16px_rgba(40,255,120,0.16)]'
+    : 'shadow-[0_0_10px_rgba(40,255,120,0.1)]';
+  const noGlow = isHero
+    ? 'shadow-[0_0_16px_rgba(122,29,42,0.18)]'
+    : 'shadow-[0_0_10px_rgba(122,29,42,0.12)]';
 
   if (listColumn) {
     return (
       <div
-        className={`flex w-full max-w-[96px] flex-col items-end justify-center gap-1 ${className}`}
+        className={`flex w-full max-w-[100px] flex-col items-end justify-center ${isHero ? 'gap-1.5' : 'gap-1'} ${className}`}
         aria-label="Zu- und Absagen"
       >
         <span
-          className={`${pillSm} ${pillSize} border-emerald-500/40 bg-[rgba(14,58,40,0.55)] text-[#9DFFC5] shadow-[0_0_14px_rgba(40,255,120,0.12)]`}
+          className={`${pillSm} ${pillSize} border-emerald-500/42 bg-[rgba(14,58,40,0.58)] text-[#9DFFC5] ${yesGlow}`}
           title={yesTitle}
         >
           ✓ {yes}
         </span>
         <span
-          className={`${pillSm} ${pillSize} border-[rgba(122,29,42,0.4)] bg-[rgba(58,18,24,0.58)] text-[#E8B0B8] shadow-[0_0_14px_rgba(122,29,42,0.14)]`}
+          className={`${pillSm} ${pillSize} border-[rgba(122,29,42,0.42)] bg-[rgba(58,18,24,0.6)] text-[#E8B0B8] ${noGlow}`}
           title="Abgesagt"
         >
           ✕ {no}
         </span>
         <span
-          className={`${pillSm} ${pillSize} border-white/[0.12] bg-[rgba(14,14,16,0.96)] text-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}
+          className={`${pillSm} ${pillSize} border-white/[0.12] bg-[rgba(14,14,16,0.96)] text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}
           title="Offen"
         >
           ? {open}
@@ -68,13 +77,13 @@ export function TrainerStatsMini({
   return (
     <div className={`flex flex-row flex-wrap items-center justify-end gap-2 ${className}`} aria-label="Zu- und Absagen">
       <span
-        className={`flex items-center justify-center rounded-full border border-emerald-500/40 bg-[rgba(14,58,40,0.55)] font-bold tabular-nums text-[#9DFFC5] ${pillSize} shadow-[0_0_14px_rgba(40,255,120,0.12)]`}
+        className={`flex items-center justify-center rounded-full border border-emerald-500/42 bg-[rgba(14,58,40,0.58)] font-bold tabular-nums text-[#9DFFC5] ${pillSize} ${yesGlow}`}
         title={yesTitle}
       >
         {yes}
       </span>
       <span
-        className={`flex items-center justify-center rounded-full border border-[rgba(122,29,42,0.42)] bg-[rgba(58,18,24,0.55)] font-bold tabular-nums text-[#E8B0B8] ${pillSize} shadow-[0_0_14px_rgba(122,29,42,0.14)]`}
+        className={`flex items-center justify-center rounded-full border border-[rgba(122,29,42,0.44)] bg-[rgba(58,18,24,0.6)] font-bold tabular-nums text-[#E8B0B8] ${pillSize} ${noGlow}`}
         title="Abgesagt"
       >
         {no}

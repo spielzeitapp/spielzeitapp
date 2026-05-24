@@ -1056,6 +1056,20 @@ export const SchedulePage: React.FC = () => {
                                   open={countsForCard.open}
                                   isTraining={et === 'training'}
                                   listColumn
+                                  size="hero"
+                                />
+                              ) : heroShowsParentPill && et !== 'game' ? (
+                                <CompactListParentAttendance
+                                  status={attendanceMergedToPillStatus(attendanceStatusMerged)}
+                                  isTraining={et === 'training'}
+                                  onOpen={() => {
+                                    const pill = attendanceMergedToPillStatus(attendanceStatusMerged);
+                                    if (et === 'training' && pill === 'no') {
+                                      setTrainingRejoinModalEvent(ev);
+                                      return;
+                                    }
+                                    setAttendanceModalEvent(ev);
+                                  }}
                                 />
                               ) : null;
                         const heroClickable = !forcePublicView && Boolean(ev.id);
@@ -1066,33 +1080,7 @@ export const SchedulePage: React.FC = () => {
                                 isFinishedMatch && ev.match_id
                                   ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
                                   : navigate(`/app/events/${id}`);
-                        const heroParentFooter =
-                          heroShowsParentPill && !forcePublicView && et !== 'game' ? (
-                            <div className="flex justify-end px-0.5" onClick={(e) => e.stopPropagation()}>
-                              <CompactListParentAttendance
-                                status={attendanceMergedToPillStatus(attendanceStatusMerged)}
-                                isTraining={et === 'training'}
-                                onOpen={() => {
-                                  const pill = attendanceMergedToPillStatus(attendanceStatusMerged);
-                                  if (et === 'training' && pill === 'no') {
-                                    setTrainingRejoinModalEvent(ev);
-                                    return;
-                                  }
-                                  setAttendanceModalEvent(ev);
-                                }}
-                              />
-                            </div>
-                          ) : null;
-                        const heroAddToCalendar =
-                          !forcePublicView && ev.status !== 'finished'
-                            ? () =>
-                                downloadEventIcs(ev, {
-                                  appBaseUrl: window.location.origin,
-                                })
-                            : undefined;
-                        const heroCardFooter = heroParentFooter ? (
-                          <div className="pb-1">{heroParentFooter}</div>
-                        ) : undefined;
+                        const heroCardFooter = undefined;
                         const heroGoLive =
                           et === 'game' &&
                           ev.match_id &&
@@ -1175,7 +1163,6 @@ export const SchedulePage: React.FC = () => {
                                 isPublicView={forcePublicView}
                                 isClickable={heroClickable}
                                 onNavigate={heroOnNavigate}
-                                onAddToCalendar={heroAddToCalendar}
                               />
                             </EventHeroCard>
                           </div>
@@ -1229,6 +1216,7 @@ export const SchedulePage: React.FC = () => {
                           open={countsForCard.open}
                           isTraining={et === 'training'}
                           listColumn
+                          size="list"
                         />
                       ) : showCompactParentPill ? (
                         <CompactListParentAttendance

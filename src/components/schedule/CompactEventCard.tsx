@@ -364,7 +364,7 @@ export function CompactEventCard({
       <div className="relative z-[1] flex shrink-0 flex-col items-end justify-between gap-1 py-0.5 pl-1">
         {hasTrailing ? <div className="min-w-0 [&>*]:origin-top-right">{trailing}</div> : null}
         {clickable ? (
-          <span className="text-[17px] font-light leading-none text-white/22" aria-hidden>
+          <span className="text-[15px] font-light leading-none text-white/18" aria-hidden>
             ›
           </span>
         ) : null}

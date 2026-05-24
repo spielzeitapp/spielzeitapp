@@ -633,30 +633,39 @@ export function dsSchedulePageStyle(): { background: string; boxShadow: string }
   };
 }
 
-/** Hero „Nächstes Training/Spiel“ — Premium-Flutlicht, Tiefe, Bloom. */
+/** Hero „Nächstes Training/Spiel“ — Premium Matchday, Flutlicht, Fog. */
 export function dsScheduleHeroPanelClass(): string {
   return [
-    'relative overflow-hidden rounded-[18px]',
-    'border border-[rgba(122,29,42,0.38)]',
-    'bg-[linear-gradient(148deg,rgba(34,30,32,0.99)_0%,rgba(22,20,22,0.99)_38%,rgba(14,14,16,0.99)_62%,rgba(22,10,14,0.99)_100%)]',
-    'shadow-[0_22px_56px_rgba(0,0,0,0.68),0_0_56px_rgba(122,29,42,0.24),inset_0_1px_0_rgba(255,255,255,0.06)]',
+    'relative overflow-hidden rounded-[22px]',
+    'border border-[rgba(122,29,42,0.42)]',
+    'bg-[linear-gradient(152deg,rgba(36,32,34,0.99)_0%,rgba(24,22,24,0.99)_36%,rgba(12,12,14,0.99)_68%,rgba(20,10,14,0.99)_100%)]',
+    'shadow-[0_24px_60px_rgba(0,0,0,0.72),0_0_64px_rgba(122,29,42,0.28),inset_0_1px_0_rgba(255,255,255,0.07)]',
   ].join(' ');
 }
 
 export function dsScheduleHeroPanelGlowClass(): string {
   return [
     'pointer-events-none absolute inset-0',
-    'bg-[radial-gradient(ellipse_100%_72%_at_100%_-12%,rgba(255,235,210,0.11)_0%,rgba(122,29,42,0.22)_28%,transparent_62%),radial-gradient(ellipse_85%_55%_at_0%_0%,rgba(122,29,42,0.12)_0%,transparent_50%),radial-gradient(ellipse_90%_45%_at_50%_100%,rgba(58,18,24,0.1)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.07)_0%,transparent_36%)]',
+    'bg-[radial-gradient(ellipse_105%_75%_at_100%_-14%,rgba(255,240,220,0.14)_0%,rgba(122,29,42,0.26)_26%,transparent_64%),radial-gradient(ellipse_88%_58%_at_0%_0%,rgba(122,29,42,0.14)_0%,transparent_52%),radial-gradient(ellipse_95%_48%_at_50%_100%,rgba(58,18,24,0.12)_0%,transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_40%)]',
+  ].join(' ');
+}
+
+/** Datum-Box im Hero — etwas dunkler, mehr Kontrast. */
+export function dsScheduleHeroDateBoxClass(): string {
+  return [
+    'flex w-[60px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-[14px]',
+    'border border-white/[0.06] bg-[rgba(8,8,10,0.92)] px-2.5 py-2.5 leading-none',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_24px_rgba(122,29,42,0.08)]',
   ].join(' ');
 }
 
 /** Weitere Termine — sekundär, flach und dunkel. */
 export function dsScheduleListPanelClass(): string {
   return [
-    'relative overflow-hidden rounded-[14px]',
-    'border border-white/[0.025]',
-    'bg-[linear-gradient(180deg,rgba(7,7,9,0.99)_0%,rgba(5,5,7,0.99)_100%)]',
-    'shadow-[0_1px_8px_rgba(0,0,0,0.32)]',
+    'relative overflow-hidden rounded-[13px]',
+    'border border-white/[0.02]',
+    'bg-[linear-gradient(180deg,rgba(6,6,8,0.99)_0%,rgba(4,4,6,0.99)_100%)]',
+    'shadow-[0_1px_6px_rgba(0,0,0,0.28)]',
   ].join(' ');
 }
 
