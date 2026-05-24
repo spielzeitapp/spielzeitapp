@@ -387,11 +387,9 @@ export function ScheduleHeroEventCard({
           </div>
 
           <div className="flex min-w-0 flex-1 items-center">
-            <div className="ml-3 mr-4 shrink-0">
-              <TrainingPlayerIcon variant="hero" />
-            </div>
+            <TrainingPlayerIcon variant="hero" />
             <div className="min-w-0 flex-1 pr-[72px] text-left">
-              <p className="truncate whitespace-nowrap text-[24px] font-bold leading-tight text-white">
+              <p className="whitespace-nowrap text-[24px] font-bold leading-tight text-white">
                 {trainingMainTitle}
               </p>
               <p className="mt-0.5 line-clamp-2 text-[17px] font-medium leading-tight text-white/75">

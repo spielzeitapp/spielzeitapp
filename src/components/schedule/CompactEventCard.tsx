@@ -332,7 +332,7 @@ export function CompactEventCard({
           : trainingTitleLines.top)
       : null;
 
-  const listGridCols = 'grid-cols-[86px_44px_minmax(0,1fr)_48px_22px]';
+  const listGridCols = 'grid-cols-[86px_minmax(0,1fr)_48px_22px]';
 
   return (
     <div
@@ -362,23 +362,22 @@ export function CompactEventCard({
         <span className="text-[11px] font-semibold tabular-nums leading-tight text-[#B85C68]">{timeStr}</span>
       </div>
 
-      <div className="relative z-[1] flex w-full max-w-[44px] items-center justify-center overflow-hidden self-center">
-        {et === 'training' ? <TrainingPlayerIcon variant="list" /> : <div className="shrink-0 pt-0.5">{iconSlot}</div>}
-      </div>
-
-      <div className="relative z-[1] flex min-w-0 flex-col justify-center py-0.5 pl-2.5">
+      <div className="relative z-[1] flex min-w-0 flex-col justify-center py-0.5">
         {et === 'training' ? (
-          <div className="min-w-0 text-left">
-            <p className="line-clamp-1 text-[18px] font-bold leading-tight text-white" lang="de">
-              {listTrainingHeadline ?? 'Training'}
-            </p>
-            <p className="mt-0.5 line-clamp-2 text-[15px] font-medium leading-tight text-white/75">
-              {venueOnly ?? '—'}
-            </p>
+          <div className="flex min-w-0 items-center gap-2.5 text-left">
+            <TrainingPlayerIcon variant="list" />
+            <div className="min-w-0 flex-1">
+              <p className="whitespace-nowrap text-[18px] font-bold leading-tight text-white" lang="de">
+                {listTrainingHeadline ?? 'Training'}
+              </p>
+              <p className="mt-0.5 line-clamp-2 text-[15px] font-medium leading-tight text-white/75">
+                {venueOnly ?? '—'}
+              </p>
+            </div>
           </div>
         ) : (
           <>
-            <div className="flex min-w-0 items-center gap-1.5">{titleText}</div>
+            <div className="flex min-w-0 items-center gap-1.5">{iconSlot}{titleText}</div>
             {line2}
             {line3}
           </>

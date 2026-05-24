@@ -4,9 +4,9 @@ import { getTrainingPlayerIconSrc } from '../../config/trainingIconVariant';
 type Variant = 'hero' | 'list' | 'compact';
 
 const sizeClass: Record<Variant, string> = {
-  hero: 'h-[64px] w-[74px] max-h-[64px] max-w-[74px]',
-  list: 'h-[38px] w-[44px] max-h-[38px] max-w-[44px]',
-  compact: 'h-8 w-8 max-h-8 max-w-8',
+  hero: 'ml-2 mr-[14px] h-auto w-[96px] max-h-[78px] max-w-[96px] shrink-0',
+  list: 'h-auto w-[58px] max-h-[48px] max-w-[58px] shrink-0',
+  compact: 'h-8 w-8 max-h-8 max-w-8 shrink-0',
 };
 
 const glowClass: Record<Variant, string> = {
@@ -15,7 +15,7 @@ const glowClass: Record<Variant, string> = {
   compact: '[filter:drop-shadow(0_0_4px_rgba(122,29,42,0.06))]',
 };
 
-/** Training-Spieler als transparentes PNG (Variante a/b über trainingIconVariant.ts). */
+/** Training-Spieler — tight-crop PNG (`training-player-tight.png`). */
 export function TrainingPlayerIcon({
   variant = 'list',
   className = '',
@@ -27,7 +27,7 @@ export function TrainingPlayerIcon({
     <img
       src={getTrainingPlayerIconSrc()}
       alt=""
-      className={`shrink-0 bg-transparent object-contain ${glowClass[variant]} ${sizeClass[variant]} ${className}`}
+      className={`bg-transparent object-contain object-left ${glowClass[variant]} ${sizeClass[variant]} ${className}`}
       aria-hidden
       draggable={false}
     />
