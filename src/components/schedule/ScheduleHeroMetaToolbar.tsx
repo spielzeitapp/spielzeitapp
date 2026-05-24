@@ -16,7 +16,7 @@ type Props = {
   className?: string;
 };
 
-const labelClass = 'mt-1 text-[8px] font-semibold uppercase tracking-[0.06em] text-white/42 leading-none';
+const labelClass = 'mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none';
 
 function splitMetaValue(value: string): { primary: string; showUhr: boolean } {
   const v = value.trim();
@@ -39,12 +39,12 @@ function MetaBlock({ item, withBorder }: { item: ScheduleHeroMetaItem; withBorde
         withBorder ? 'border-l border-white/[0.05]' : ''
       } ${item.accent ? 'bg-[rgba(58,18,24,0.18)]' : ''}`}
     >
-      <span className="flex h-[17px] shrink-0 items-center text-[#B85C68] [&_svg]:h-[17px] [&_svg]:w-[17px]">
+      <span className="flex h-[18px] shrink-0 items-center text-[#B85C68] [&_svg]:h-[18px] [&_svg]:w-[18px]">
         {item.icon}
       </span>
       <span className={`w-full ${labelClass}`}>{item.label}</span>
       <div className="mt-0.5 flex w-full flex-col items-center leading-none">
-        <span className="max-w-full truncate whitespace-nowrap text-[15px] font-bold tabular-nums text-white">
+        <span className="max-w-full truncate whitespace-nowrap text-[17px] font-bold tabular-nums text-white">
           {primary}
         </span>
         {showUhr ? (

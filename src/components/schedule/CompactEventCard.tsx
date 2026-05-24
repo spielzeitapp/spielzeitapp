@@ -277,7 +277,7 @@ export function CompactEventCard({
 
   const line2 =
     et === 'game' ? (
-      <div className="flex min-w-0 items-center gap-1.5 pl-[calc(2rem+0.5rem)]">
+      <div className="flex min-w-0 items-center gap-1.5">
         {homeAwayShort ? (
           <span
             className={`inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none ${
@@ -307,7 +307,7 @@ export function CompactEventCard({
     venueOnly ? (
       et === 'game' ? (
         <p
-          className={`min-w-0 pl-[calc(2rem+0.5rem)] text-[14px] leading-tight text-white/72 line-clamp-2 ${
+          className={`min-w-0 text-[14px] leading-tight text-white/72 line-clamp-2 ${
             venueIsShort ? 'whitespace-nowrap' : 'whitespace-normal'
           }`}
           title={venueOnly}
@@ -315,7 +315,7 @@ export function CompactEventCard({
           {venueOnly}
         </p>
       ) : (
-        <p className="flex min-h-0 min-w-0 max-w-full items-center gap-1 pl-[calc(2rem+0.375rem)] text-[14px] font-medium leading-snug text-white/72 line-clamp-2">
+        <p className="flex min-h-0 min-w-0 max-w-full items-center gap-1 text-[14px] font-medium leading-snug text-white/72 line-clamp-2">
           <MapPin className="h-3 w-3 shrink-0 text-rose-300/70" aria-hidden />
           <span className="min-w-0 flex-1" title={venueOnly}>
             {venueOnly}
@@ -332,7 +332,31 @@ export function CompactEventCard({
           : trainingTitleLines.top)
       : null;
 
-  const listGridCols = 'grid-cols-[78px_minmax(0,1fr)_48px_22px]';
+  const listGridCols = 'grid-cols-[78px_46px_minmax(0,1fr)_48px_20px]';
+
+  const listIconColumn = (
+    <div className="flex w-[46px] shrink-0 items-center justify-center self-center">
+      {iconSlot}
+    </div>
+  );
+
+  const listTextColumn =
+    et === 'training' ? (
+      <div className="ml-3 min-w-0 text-left">
+        <p className="text-[18px] font-semibold leading-tight text-white" lang="de">
+          {listTrainingHeadline ?? 'Training'}
+        </p>
+        <p className="mt-0.5 line-clamp-2 text-[15px] leading-tight text-white/[0.72]">
+          {venueOnly ?? '—'}
+        </p>
+      </div>
+    ) : (
+      <div className="ml-3 min-w-0">
+        {titleText}
+        {line2}
+        {line3}
+      </div>
+    );
 
   return (
     <div
@@ -362,31 +386,15 @@ export function CompactEventCard({
         <span className="text-[11px] font-semibold tabular-nums leading-tight text-[#B85C68]">{timeStr}</span>
       </div>
 
-      <div className="relative z-[1] flex min-w-0 flex-col justify-center py-0.5">
-        {et === 'training' ? (
-          <div className="relative min-h-[52px] pl-[70px] text-left">
-            <TrainingPlayerIcon variant="list-watermark" />
-            <p className="relative z-[1] whitespace-nowrap text-[18px] font-bold leading-tight text-white" lang="de">
-              {listTrainingHeadline ?? 'Training'}
-            </p>
-            <p className="relative z-[1] mt-0.5 line-clamp-2 text-[15px] font-medium leading-tight text-white/75">
-              {venueOnly ?? '—'}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="flex min-w-0 items-center gap-1.5">{iconSlot}{titleText}</div>
-            {line2}
-            {line3}
-          </>
-        )}
-      </div>
+      {listIconColumn}
 
-      <div className="relative z-[1] flex w-full max-w-[48px] items-center justify-center self-center">
+      <div className="relative z-[1] flex min-w-0 flex-col justify-center py-0.5">{listTextColumn}</div>
+
+      <div className="relative z-[1] flex w-[48px] shrink-0 items-center justify-center self-center">
         {hasTrailing ? <div className="min-w-0 [&>*]:origin-center">{trailing}</div> : null}
       </div>
 
-      <div className="relative z-[1] flex w-full max-w-[22px] items-center justify-center self-center">
+      <div className="relative z-[1] flex w-5 shrink-0 items-center justify-center self-center">
         {clickable ? (
           <span className="text-[15px] font-light leading-none text-white/25" aria-hidden>
             ›

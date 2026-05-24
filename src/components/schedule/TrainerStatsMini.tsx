@@ -49,7 +49,7 @@ export function TrainerStatsMini({
   if (listColumn) {
     return (
       <div
-        className={`flex w-full max-w-[52px] flex-col items-end justify-center ${isHero ? 'gap-1' : 'gap-1'} ${className}`}
+        className={`flex w-full max-w-[52px] flex-col items-center justify-center gap-2 ${className}`}
         aria-label="Zu- und Absagen"
       >
         <span
