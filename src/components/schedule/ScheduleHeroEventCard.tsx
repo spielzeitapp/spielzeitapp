@@ -379,27 +379,28 @@ export function ScheduleHeroEventCard({
     <>
       <HeroHybridBackdrop training />
       <div className="relative z-[1] flex w-full min-w-0 flex-col px-3 py-2.5 pb-2.5">
-        <div className="flex items-center gap-2">
-          <div className={dsScheduleHeroDateBoxClass()}>
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className={`${dsScheduleHeroDateBoxClass()} shrink-0`}>
             <span className={dsScheduleHeroDateBoxWeekdayClass()}>{wd}</span>
             <span className={dsScheduleHeroDateBoxDayClass()}>{day}</span>
             <span className={dsScheduleHeroDateBoxMonthClass()}>{mon}</span>
           </div>
 
-          <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <TrainingPlayerIcon variant="hero" className="shrink-0 self-center" />
-            <div className="min-w-0 flex-1 pr-0.5">
-              <p className="line-clamp-2 text-[16px] font-bold leading-tight tracking-tight text-white">
-                {trainingMainTitle}
-              </p>
-              <p className="mt-0.5 line-clamp-2 text-[12px] font-medium leading-snug text-white/78">
-                {trainingLocationLine}
-              </p>
-            </div>
+          <div className="flex w-[116px] max-w-[116px] shrink-0 items-center justify-center self-center">
+            <TrainingPlayerIcon variant="hero" />
+          </div>
+
+          <div className="min-w-0 flex-1 pl-0.5">
+            <p className="line-clamp-2 text-[16px] font-bold leading-tight tracking-tight text-white">
+              {trainingMainTitle}
+            </p>
+            <p className="mt-0.5 line-clamp-2 text-[12px] font-medium leading-snug text-white/78">
+              {trainingLocationLine}
+            </p>
           </div>
 
           {topRight ? (
-            <div className="pointer-events-auto shrink-0 self-center pl-0.5">{topRight}</div>
+            <div className="pointer-events-auto shrink-0 self-center">{topRight}</div>
           ) : null}
         </div>
 

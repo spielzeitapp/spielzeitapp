@@ -4,9 +4,9 @@ import { getTrainingPlayerIconSrc } from '../../config/trainingIconVariant';
 type Variant = 'hero' | 'list' | 'compact';
 
 const sizeClass: Record<Variant, string> = {
-  hero: 'h-[78px] w-[78px] min-h-[74px] min-w-[74px] max-h-[82px] max-w-[82px]',
-  list: 'h-[46px] w-[46px] min-h-[42px] min-w-[42px] max-h-[48px] max-w-[48px]',
-  compact: 'h-8 w-8 max-h-8 max-w-8',
+  hero: 'w-[116px] max-h-[92px] h-auto shrink-0',
+  list: 'w-[66px] max-h-[52px] h-auto shrink-0',
+  compact: 'w-8 max-h-8 h-auto shrink-0',
 };
 
 /** Nur subtiler roter Outer-Glow — kein Container, kein Hintergrund. */

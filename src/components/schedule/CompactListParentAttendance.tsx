@@ -17,7 +17,7 @@ const btnList =
   'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border p-0 transition-all duration-200';
 
 const btnHero =
-  'inline-flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full border p-0 transition-all duration-200';
+  'inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border p-0 transition-all duration-200';
 
 const yesTone =
   'border-emerald-400/45 bg-emerald-600/85 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)]';
@@ -34,7 +34,7 @@ export function CompactListParentAttendance({
 }: Props) {
   const isHero = context === 'hero';
   const btnBase = isHero ? btnHero : `${btnList} ml-2`;
-  const iconClass = 'h-5 w-5';
+  const iconClass = isHero ? 'h-6 w-6' : 'h-5 w-5';
 
   const openModal = (e: React.MouseEvent) => {
     e.stopPropagation();
