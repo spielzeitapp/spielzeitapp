@@ -662,12 +662,12 @@ export function dsScheduleHeroPanelGlowClass(): string {
   ].join(' ');
 }
 
-/** Datum-Box im Hero — kompakt, Glass, weniger dominant. */
+/** Datum-Box im Hero — schmal wie Liste, etwas höher. */
 export function dsScheduleHeroDateBoxClass(): string {
   return [
-    'flex w-[88px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-[12px]',
-    'border border-white/[0.05] bg-[rgba(8,8,10,0.72)] px-2 py-2 leading-none backdrop-blur-sm',
-    'shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_16px_rgba(122,29,42,0.06)]',
+    'flex w-[78px] min-h-[92px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-[14px]',
+    'border border-white/[0.08] bg-[rgba(18,18,20,0.88)] px-2 py-2 leading-none',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_14px_rgba(122,29,42,0.05)]',
   ].join(' ');
 }
 

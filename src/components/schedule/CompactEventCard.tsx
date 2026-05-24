@@ -332,7 +332,7 @@ export function CompactEventCard({
           : trainingTitleLines.top)
       : null;
 
-  const listGridCols = 'grid-cols-[86px_minmax(0,1fr)_48px_22px]';
+  const listGridCols = 'grid-cols-[78px_minmax(0,1fr)_48px_22px]';
 
   return (
     <div
@@ -355,7 +355,7 @@ export function CompactEventCard({
       }
     >
       <div className={dsScheduleListPanelGlowClass()} aria-hidden />
-      <div className={`${dsScheduleDateBoxClass()} relative z-[1] !w-full max-w-[86px]`}>
+      <div className={`${dsScheduleDateBoxClass()} relative z-[1] shrink-0 !w-[78px]`}>
         <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
         <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
         <span className={`${dsScheduleDateBoxMonthClass()} !text-[9px]`}>{monYear}</span>
@@ -364,16 +364,14 @@ export function CompactEventCard({
 
       <div className="relative z-[1] flex min-w-0 flex-col justify-center py-0.5">
         {et === 'training' ? (
-          <div className="flex min-w-0 items-center gap-2.5 text-left">
-            <TrainingPlayerIcon variant="list" />
-            <div className="min-w-0 flex-1">
-              <p className="whitespace-nowrap text-[18px] font-bold leading-tight text-white" lang="de">
-                {listTrainingHeadline ?? 'Training'}
-              </p>
-              <p className="mt-0.5 line-clamp-2 text-[15px] font-medium leading-tight text-white/75">
-                {venueOnly ?? '—'}
-              </p>
-            </div>
+          <div className="relative min-h-[52px] pl-[70px] text-left">
+            <TrainingPlayerIcon variant="list-watermark" />
+            <p className="relative z-[1] whitespace-nowrap text-[18px] font-bold leading-tight text-white" lang="de">
+              {listTrainingHeadline ?? 'Training'}
+            </p>
+            <p className="relative z-[1] mt-0.5 line-clamp-2 text-[15px] font-medium leading-tight text-white/75">
+              {venueOnly ?? '—'}
+            </p>
           </div>
         ) : (
           <>

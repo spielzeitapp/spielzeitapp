@@ -70,7 +70,7 @@ export function ScheduleHeroMetaToolbar({
 
   return (
     <div
-      className={`mt-2.5 border-t border-white/[0.05] bg-[rgba(0,0,0,0.22)] ${className}`}
+      className={`mt-2.5 border-t border-white/[0.04] bg-[rgba(0,0,0,0.22)] ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="grid grid-cols-[1fr_1fr_1fr_42px] items-center">

@@ -379,27 +379,26 @@ export function ScheduleHeroEventCard({
     <>
       <HeroHybridBackdrop training />
       <div className="relative z-[1] flex w-full min-w-0 flex-col px-3 py-2.5 pb-2.5">
-        <div className="relative flex w-full min-w-0 items-start">
-          <div className={`${dsScheduleHeroDateBoxClass()} z-[1] shrink-0`}>
+        <div className="relative flex min-h-[92px] w-full min-w-0 items-start">
+          <TrainingPlayerIcon variant="hero-watermark" />
+
+          <div className={`${dsScheduleHeroDateBoxClass()} relative z-[2] shrink-0`}>
             <span className={dsScheduleHeroDateBoxWeekdayClass()}>{wd}</span>
             <span className={dsScheduleHeroDateBoxDayClass()}>{day}</span>
             <span className={dsScheduleHeroDateBoxMonthClass()}>{mon}</span>
           </div>
 
-          <div className="flex min-w-0 flex-1 items-center">
-            <TrainingPlayerIcon variant="hero" />
-            <div className="min-w-0 flex-1 pr-[72px] text-left">
-              <p className="whitespace-nowrap text-[24px] font-bold leading-tight text-white">
-                {trainingMainTitle}
-              </p>
-              <p className="mt-0.5 line-clamp-2 text-[17px] font-medium leading-tight text-white/75">
-                {trainingLocationLine}
-              </p>
-            </div>
+          <div className="relative z-[2] ml-[18px] min-w-0 flex-1 pr-[78px] text-left">
+            <p className="whitespace-nowrap text-[24px] font-bold leading-tight text-white">{trainingMainTitle}</p>
+            <p className="mt-0.5 line-clamp-2 text-[17px] font-medium leading-tight text-white/75">
+              {trainingLocationLine}
+            </p>
           </div>
 
           {topRight ? (
-            <div className="pointer-events-auto absolute right-[18px] top-[18px] z-10">{topRight}</div>
+            <div className="pointer-events-auto absolute right-[18px] top-[22px] z-10 max-w-[52px]">
+              {topRight}
+            </div>
           ) : null}
         </div>
 
