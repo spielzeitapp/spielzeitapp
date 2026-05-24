@@ -662,13 +662,25 @@ export function dsScheduleHeroPanelGlowClass(): string {
   ].join(' ');
 }
 
-/** Datum-Box im Hero — etwas dunkler, mehr Kontrast. */
+/** Datum-Box im Hero — kompakt, Glass, weniger dominant. */
 export function dsScheduleHeroDateBoxClass(): string {
   return [
-    'flex w-[60px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-[14px]',
-    'border border-white/[0.06] bg-[rgba(8,8,10,0.92)] px-2.5 py-2.5 leading-none',
-    'shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_24px_rgba(122,29,42,0.08)]',
+    'flex w-[52px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-[12px]',
+    'border border-white/[0.05] bg-[rgba(8,8,10,0.72)] px-2 py-2 leading-none backdrop-blur-sm',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_16px_rgba(122,29,42,0.06)]',
   ].join(' ');
+}
+
+export function dsScheduleHeroDateBoxWeekdayClass(): string {
+  return 'text-[9px] font-semibold uppercase tracking-[0.12em] text-[#B85C68]';
+}
+
+export function dsScheduleHeroDateBoxDayClass(): string {
+  return 'text-[1.35rem] font-bold tabular-nums leading-none text-white';
+}
+
+export function dsScheduleHeroDateBoxMonthClass(): string {
+  return 'text-[9px] font-medium leading-tight text-[#B8B0B4]';
 }
 
 /** Weitere Termine — sekundär, flach und dunkel. */

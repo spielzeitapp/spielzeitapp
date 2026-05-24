@@ -33,18 +33,18 @@ export function TrainerStatsMini({
   const isHero = size === 'hero';
   const pillSize = listColumn
     ? isHero
-      ? 'h-[28px] min-w-[40px] px-2 text-[11px]'
-      : 'h-[22px] min-w-[32px] px-1 text-[9px]'
+      ? 'h-[26px] min-w-[38px] px-1.5 text-[10px]'
+      : 'h-[20px] min-w-[30px] px-1 text-[8.5px]'
     : isHero
-      ? 'h-9 min-w-[2.4rem] px-2.5 text-[12px]'
-      : 'h-8 min-w-[2rem] px-2 text-[11px]';
+      ? 'h-8 min-w-[2.2rem] px-2 text-[11px]'
+      : 'h-7 min-w-[1.85rem] px-1.5 text-[10px]';
 
   const yesGlow = isHero
-    ? 'shadow-[0_0_16px_rgba(40,255,120,0.16)]'
-    : 'shadow-[0_0_10px_rgba(40,255,120,0.1)]';
+    ? 'shadow-[0_0_12px_rgba(40,255,120,0.12)]'
+    : 'shadow-[0_0_6px_rgba(40,255,120,0.08)]';
   const noGlow = isHero
-    ? 'shadow-[0_0_16px_rgba(122,29,42,0.18)]'
-    : 'shadow-[0_0_10px_rgba(122,29,42,0.12)]';
+    ? 'shadow-[0_0_12px_rgba(122,29,42,0.14)]'
+    : 'shadow-[0_0_6px_rgba(122,29,42,0.08)]';
 
   if (listColumn) {
     return (

@@ -1,4 +1,4 @@
-export const TRAINING_ICON_VARIANT = 'a';
+export const TRAINING_ICON_VARIANT = 'b';
 
 export type TrainingIconVariant = 'a' | 'b';
 
