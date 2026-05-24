@@ -4,8 +4,8 @@ import { getTrainingPlayerIconSrc } from '../../config/trainingIconVariant';
 type Variant = 'hero' | 'list' | 'compact';
 
 const sizeClass: Record<Variant, string> = {
-  hero: 'w-[128px] max-h-[96px] h-auto -translate-x-[10px]',
-  list: 'w-[78px] max-h-[58px] h-auto -translate-x-[6px]',
+  hero: 'w-[96px] max-h-[78px] max-w-full h-auto -translate-x-[4px]',
+  list: 'w-[60px] max-h-[52px] max-w-full h-auto -translate-x-[4px]',
   compact: 'w-8 max-h-8 h-auto shrink-0',
 };
 

@@ -324,10 +324,23 @@ export function CompactEventCard({
       )
     ) : null;
 
+  const listTrainingHeadline =
+    et === 'training'
+      ? compactTrainingHeadline(ourTeamName, trainingNotesTitle) ??
+        (trainingTitleLines.bottom
+          ? `${trainingTitleLines.top} ${trainingTitleLines.bottom}`
+          : trainingTitleLines.top)
+      : null;
+
+  const listGridCols =
+    et === 'training'
+      ? 'grid-cols-[86px_70px_minmax(0,1fr)_48px_22px]'
+      : 'grid-cols-[86px_70px_minmax(0,1fr)_48px_22px]';
+
   return (
     <div
       className={[
-        `relative mb-2 -mx-1 flex w-[calc(100%+0.5rem)] min-w-0 flex-row items-stretch gap-3 overflow-x-hidden px-2.5 py-1.5 sm:mx-0 sm:w-full ${dsScheduleListPanelClass()}`,
+        `relative mb-2 -mx-1 grid w-[calc(100%+0.5rem)] min-w-0 ${listGridCols} items-center gap-x-1 overflow-x-hidden px-2.5 py-1.5 sm:mx-0 sm:w-full ${dsScheduleListPanelClass()}`,
         clickable ? 'cursor-pointer active:bg-white/[0.03]' : 'cursor-default',
       ].join(' ')}
       role={clickable ? 'button' : undefined}
@@ -345,35 +358,43 @@ export function CompactEventCard({
       }
     >
       <div className={dsScheduleListPanelGlowClass()} aria-hidden />
-      <div className={`${dsScheduleDateBoxClass()} relative z-[1] !w-[54px]`}>
+      <div className={`${dsScheduleDateBoxClass()} relative z-[1] !w-full max-w-[86px]`}>
         <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
         <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
         <span className={`${dsScheduleDateBoxMonthClass()} !text-[9px]`}>{monYear}</span>
         <span className="text-[11px] font-semibold tabular-nums leading-tight text-[#B85C68]">{timeStr}</span>
       </div>
 
-      <div className="relative z-[1] flex min-h-0 min-w-0 flex-1 flex-row items-center gap-0 py-1">
-        {et === 'training' ? (
-          <div className="flex w-[84px] shrink-0 items-center justify-center overflow-visible self-center">
-            <TrainingPlayerIcon variant="list" />
-          </div>
-        ) : null}
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-0">
-          <div className={`flex min-w-0 items-center ${et === 'training' ? 'gap-0' : 'gap-1.5'}`}>
-            {et !== 'training' ? (
-              <div className="shrink-0 pt-0.5">{iconSlot}</div>
-            ) : null}
-            {titleText}
-          </div>
-          {line2}
-          {line3}
-        </div>
+      <div className="relative z-[1] flex w-full max-w-[70px] items-center justify-center overflow-hidden self-center">
+        {et === 'training' ? <TrainingPlayerIcon variant="list" /> : <div className="shrink-0 pt-0.5">{iconSlot}</div>}
       </div>
 
-      <div className="relative z-[1] flex shrink-0 flex-col items-end justify-center gap-1 py-1 pr-0.5">
-        {hasTrailing ? <div className="min-w-0 [&>*]:origin-top-right">{trailing}</div> : null}
+      <div className="relative z-[1] flex min-w-0 flex-col justify-center py-0.5">
+        {et === 'training' ? (
+          <div className="min-w-0 text-left">
+            <p className="line-clamp-2 text-[17px] font-bold leading-tight text-white" lang="de">
+              {listTrainingHeadline ?? 'Training'}
+            </p>
+            <p className="mt-0.5 line-clamp-2 text-[14px] font-medium leading-tight text-white/75">
+              {venueOnly ?? '—'}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex min-w-0 items-center gap-1.5">{titleText}</div>
+            {line2}
+            {line3}
+          </>
+        )}
+      </div>
+
+      <div className="relative z-[1] flex w-full max-w-[48px] items-center justify-center self-center">
+        {hasTrailing ? <div className="min-w-0 [&>*]:origin-center">{trailing}</div> : null}
+      </div>
+
+      <div className="relative z-[1] flex w-full max-w-[22px] items-center justify-center self-center">
         {clickable ? (
-          <span className="text-[13px] font-light leading-none text-white/12" aria-hidden>
+          <span className="text-[15px] font-light leading-none text-white/25" aria-hidden>
             ›
           </span>
         ) : null}

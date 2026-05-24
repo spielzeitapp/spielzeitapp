@@ -379,28 +379,26 @@ export function ScheduleHeroEventCard({
     <>
       <HeroHybridBackdrop training />
       <div className="relative z-[1] flex w-full min-w-0 flex-col px-3 py-2.5 pb-2.5">
-        <div className="grid w-full min-w-0 grid-cols-[88px_132px_minmax(0,1fr)_58px] items-center gap-x-0">
-          <div className={dsScheduleHeroDateBoxClass()}>
+        <div className="grid w-full min-w-0 grid-cols-[86px_100px_minmax(0,1fr)_54px] items-center gap-x-0">
+          <div className={`${dsScheduleHeroDateBoxClass()} z-[1]`}>
             <span className={dsScheduleHeroDateBoxWeekdayClass()}>{wd}</span>
             <span className={dsScheduleHeroDateBoxDayClass()}>{day}</span>
             <span className={dsScheduleHeroDateBoxMonthClass()}>{mon}</span>
           </div>
 
-          <div className="flex w-[132px] shrink-0 items-center justify-center overflow-visible self-center">
+          <div className="z-[1] flex w-[100px] max-w-[100px] shrink-0 items-center justify-center overflow-hidden self-center">
             <TrainingPlayerIcon variant="hero" />
           </div>
 
-          <div className="min-w-0 overflow-hidden px-1">
-            <p className="line-clamp-2 text-[16px] font-bold leading-tight tracking-tight text-white">
-              {trainingMainTitle}
-            </p>
-            <p className="mt-0.5 line-clamp-2 text-[12px] font-medium leading-snug text-white/78">
+          <div className="relative z-[2] min-w-0 text-left">
+            <p className="line-clamp-2 text-[22px] font-bold leading-tight text-white">{trainingMainTitle}</p>
+            <p className="mt-0.5 line-clamp-2 text-[16px] font-medium leading-tight text-white/75">
               {trainingLocationLine}
             </p>
           </div>
 
-          <div className="flex w-[58px] shrink-0 items-center justify-end self-center">
-            {topRight ? <div className="pointer-events-auto">{topRight}</div> : null}
+          <div className="relative z-[3] flex w-[54px] shrink-0 items-center justify-center self-center">
+            {topRight ? <div className="pointer-events-auto max-w-[54px]">{topRight}</div> : null}
           </div>
         </div>
 

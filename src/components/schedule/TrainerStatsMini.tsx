@@ -33,7 +33,7 @@ export function TrainerStatsMini({
   const isHero = size === 'hero';
   const pillSize = listColumn
     ? isHero
-      ? 'h-[26px] min-w-[38px] px-1.5 text-[10px]'
+      ? 'h-[22px] min-w-[32px] max-w-[52px] px-1 text-[9px]'
       : 'h-[20px] min-w-[30px] px-1 text-[8.5px]'
     : isHero
       ? 'h-8 min-w-[2.2rem] px-2 text-[11px]'
@@ -49,7 +49,7 @@ export function TrainerStatsMini({
   if (listColumn) {
     return (
       <div
-        className={`flex w-full max-w-[100px] flex-col items-end justify-center ${isHero ? 'gap-1.5' : 'gap-1'} ${className}`}
+        className={`flex w-full max-w-[54px] flex-col items-end justify-center ${isHero ? 'gap-1' : 'gap-1'} ${className}`}
         aria-label="Zu- und Absagen"
       >
         <span
