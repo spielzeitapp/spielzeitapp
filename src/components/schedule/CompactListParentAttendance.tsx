@@ -8,21 +8,26 @@ type Props = {
   status: AttendanceStatusKind;
   isTraining: boolean;
   onOpen: () => void;
-  /** Hero: wie Liste, max. +2px; kein FAB-Look. */
+  /** Hero: wie Liste, etwas kompakter; kein FAB-Look. */
   context?: 'hero' | 'list';
   className?: string;
 };
 
 const btnList =
-  'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border p-0 transition-all duration-200';
+  'ml-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border p-0 transition-all duration-200';
 
 const btnHero =
-  'inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border p-0 transition-all duration-200';
+  'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border p-0 transition-all duration-200';
 
-const yesTone =
+const yesList =
   'border-emerald-400/45 bg-emerald-600/85 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)]';
-const noTone = 'border-red-400/45 bg-red-600/85 text-white shadow-[0_0_16px_rgba(239,68,68,0.35)]';
-const pendingTone = 'border-white/20 bg-zinc-700/75 text-white/90';
+const noList = 'border-red-400/45 bg-red-600/85 text-white shadow-[0_0_16px_rgba(239,68,68,0.35)]';
+const pendingList = 'border-white/20 bg-zinc-700/75 text-white/90';
+
+const yesHero =
+  'border-emerald-400/38 bg-emerald-600/80 text-white shadow-[0_0_8px_rgba(16,185,129,0.18)]';
+const noHero = 'border-red-400/35 bg-red-600/75 text-white shadow-[0_0_8px_rgba(239,68,68,0.16)]';
+const pendingHero = 'border-white/16 bg-zinc-700/70 text-white/88 shadow-[0_0_6px_rgba(0,0,0,0.15)]';
 
 /** Eltern/Spieler: Daumen in Hero oder „Weitere Termine“. */
 export function CompactListParentAttendance({
@@ -33,8 +38,11 @@ export function CompactListParentAttendance({
   className = '',
 }: Props) {
   const isHero = context === 'hero';
-  const btnBase = isHero ? btnHero : `${btnList} ml-2`;
-  const iconClass = isHero ? 'h-6 w-6' : 'h-5 w-5';
+  const btnBase = isHero ? btnHero : btnList;
+  const iconClass = isHero ? 'h-5 w-5' : 'h-5 w-5';
+  const yesTone = isHero ? yesHero : yesList;
+  const noTone = isHero ? noHero : noList;
+  const pendingTone = isHero ? pendingHero : pendingList;
 
   const openModal = (e: React.MouseEvent) => {
     e.stopPropagation();

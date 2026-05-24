@@ -352,15 +352,22 @@ export function CompactEventCard({
         <span className="text-[11px] font-semibold tabular-nums leading-tight text-[#B85C68]">{timeStr}</span>
       </div>
 
-      <div className="relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col justify-center gap-0 py-1">
-        <div className={`flex min-w-0 items-center ${et === 'training' ? 'gap-2' : 'gap-1.5'}`}>
-          <div className={`shrink-0 ${et === 'training' ? '-mt-0.5 flex items-center self-center' : 'pt-0.5'}`}>
-            {iconSlot}
+      <div className="relative z-[1] flex min-h-0 min-w-0 flex-1 flex-row items-center gap-0 py-1">
+        {et === 'training' ? (
+          <div className="flex w-[84px] shrink-0 items-center justify-center overflow-visible self-center">
+            <TrainingPlayerIcon variant="list" />
           </div>
-          {titleText}
+        ) : null}
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-0">
+          <div className={`flex min-w-0 items-center ${et === 'training' ? 'gap-0' : 'gap-1.5'}`}>
+            {et !== 'training' ? (
+              <div className="shrink-0 pt-0.5">{iconSlot}</div>
+            ) : null}
+            {titleText}
+          </div>
+          {line2}
+          {line3}
         </div>
-        {line2}
-        {line3}
       </div>
 
       <div className="relative z-[1] flex shrink-0 flex-col items-end justify-center gap-1 py-1 pr-0.5">

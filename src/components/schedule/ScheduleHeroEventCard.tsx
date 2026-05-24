@@ -379,18 +379,18 @@ export function ScheduleHeroEventCard({
     <>
       <HeroHybridBackdrop training />
       <div className="relative z-[1] flex w-full min-w-0 flex-col px-3 py-2.5 pb-2.5">
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <div className={`${dsScheduleHeroDateBoxClass()} shrink-0`}>
+        <div className="grid w-full min-w-0 grid-cols-[88px_132px_minmax(0,1fr)_58px] items-center gap-x-0">
+          <div className={dsScheduleHeroDateBoxClass()}>
             <span className={dsScheduleHeroDateBoxWeekdayClass()}>{wd}</span>
             <span className={dsScheduleHeroDateBoxDayClass()}>{day}</span>
             <span className={dsScheduleHeroDateBoxMonthClass()}>{mon}</span>
           </div>
 
-          <div className="flex w-[116px] max-w-[116px] shrink-0 items-center justify-center self-center">
+          <div className="flex w-[132px] shrink-0 items-center justify-center overflow-visible self-center">
             <TrainingPlayerIcon variant="hero" />
           </div>
 
-          <div className="min-w-0 flex-1 pl-0.5">
+          <div className="min-w-0 overflow-hidden px-1">
             <p className="line-clamp-2 text-[16px] font-bold leading-tight tracking-tight text-white">
               {trainingMainTitle}
             </p>
@@ -399,9 +399,9 @@ export function ScheduleHeroEventCard({
             </p>
           </div>
 
-          {topRight ? (
-            <div className="pointer-events-auto shrink-0 self-center">{topRight}</div>
-          ) : null}
+          <div className="flex w-[58px] shrink-0 items-center justify-end self-center">
+            {topRight ? <div className="pointer-events-auto">{topRight}</div> : null}
+          </div>
         </div>
 
         <ScheduleHeroMetaToolbar
