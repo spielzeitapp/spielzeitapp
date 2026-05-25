@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, CircleHelp, Clock, MapPin, ThumbsDown, ThumbsUp, Users } from 'lucide-react';
+import { CalendarDays, ChevronRight, CircleHelp, Clock, MapPin, ThumbsDown, ThumbsUp, Users } from 'lucide-react';
 import { TrainingPlayerIcon } from '../../components/schedule/TrainingPlayerIcon';
 import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
@@ -403,19 +403,22 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     </div>
   );
 
+  const heroYear = startsAt ? new Date(startsAt).getFullYear().toString() : '';
+
   const scheduleGameHeader =
     scheduleNextMatchHero && effectiveEventType === 'game' ? (
       <div className="relative z-[1] mb-1.5 flex w-full min-w-0 items-start justify-between gap-1.5">
-        <div className="pointer-events-none flex shrink-0 flex-col items-start gap-0 rounded-lg border border-white/18 bg-black/68 px-1.5 py-1.5 text-left shadow-md backdrop-blur-md sm:px-2 sm:py-1.5">
-          <span className="text-[9px] font-black uppercase leading-none tracking-[0.12em] text-red-200 sm:text-[10px]">
+        <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
+          <span className="text-[13px] font-semibold uppercase leading-none tracking-[0.12em] text-[#B85C68]">
             {heroDateParts.wd}
           </span>
-          <span className="text-xl font-black tabular-nums leading-none tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.65)] sm:text-2xl">
+          <span className="text-[34px] font-bold tabular-nums leading-none text-white">
             {heroDateParts.day}
           </span>
-          <span className="text-[9px] font-bold uppercase leading-none tracking-[0.08em] text-white/88 sm:text-[10px]">
+          <span className="text-[13px] font-medium leading-tight text-white/70">
             {heroDateParts.mon}
           </span>
+          {heroYear ? <span className="text-[12px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
         </div>
         {showScheduleHeroTrailing ? (
           <div className="min-w-0 max-w-[min(52%,11.5rem)] shrink pt-0.5 sm:max-w-none">
@@ -495,8 +498,33 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 showChevron={isClickable}
                 onChevronClick={isClickable ? handleCardClick : undefined}
               />
-              {showScheduleHeroGoLive && onScheduleHeroGoLive ? (
+              {status === 'finished' && isClickable ? (
+                <button
+                  type="button"
+                  className="mt-2.5 flex w-full min-h-[52px] items-center gap-3 rounded-[14px] border border-white/[0.06] bg-[rgba(18,18,20,0.92)] px-4 py-3.5 shadow-[0_0_20px_rgba(0,0,0,0.3)]"
+                  onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
+                >
+                  <CalendarDays className="h-5 w-5 shrink-0 text-white/70" strokeWidth={2} aria-hidden />
+                  <div className="min-w-0 flex-1 text-left">
+                    <span className="block text-[15px] font-semibold text-white">Zum Spielbericht</span>
+                    <span className="block text-[11px] text-white/50">Highlights, Statistiken & mehr</span>
+                  </div>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-white/60" strokeWidth={2} aria-hidden />
+                </button>
+              ) : showScheduleHeroGoLive && onScheduleHeroGoLive ? (
                 <ScheduleHeroLiveCta onClick={onScheduleHeroGoLive} />
+              ) : canSeeSensitiveInfo && meetupTimeOnly && status !== 'live' ? (
+                <button
+                  type="button"
+                  className="mt-2.5 flex w-full min-h-[52px] items-center gap-3 rounded-[14px] border border-[rgba(122,29,42,0.25)] bg-[rgba(122,29,42,0.18)] px-4 py-3.5 shadow-[0_0_28px_rgba(122,29,42,0.12)]"
+                  onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
+                >
+                  <Users className="h-5 w-5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                  <span className="min-w-0 flex-1 text-left text-[15px] font-semibold text-white">
+                    Treffpunkt: {meetupTimeOnly} Uhr
+                  </span>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-white/60" strokeWidth={2} aria-hidden />
+                </button>
               ) : null}
             </div>
           ) : null}
