@@ -584,8 +584,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const heroRing = heroHighlight
     ? 'ring-2 ring-[rgba(122,29,42,0.45)] shadow-[0_0_40px_rgba(122,29,42,0.16)] sm:py-5'
     : '';
+  const overflowClass = scheduleNextMatchHero ? 'overflow-visible' : 'overflow-hidden';
   const baseCardClass =
-    `relative w-full max-w-none overflow-hidden rounded-[16px] bg-[linear-gradient(168deg,#141416_0%,#0A0A0C_58%,#12080C_100%)] px-[15px] py-3 shadow-[0_8px_28px_rgba(0,0,0,0.48),0_0_20px_rgba(122,29,42,0.06),inset_0_1px_0_rgba(255,255,255,0.025)] ${heroRing} ${className}`;
+    `relative w-full max-w-none ${overflowClass} rounded-[16px] bg-[linear-gradient(168deg,#141416_0%,#0A0A0C_58%,#12080C_100%)] px-[15px] py-3 shadow-[0_8px_28px_rgba(0,0,0,0.48),0_0_20px_rgba(122,29,42,0.06),inset_0_1px_0_rgba(255,255,255,0.025)] ${heroRing} ${className}`;
   const cardClass =
     isPublicView ? baseCardClass : `${baseCardClass} ${isClickable ? 'cursor-pointer transition ' : ''}`.trim();
 
