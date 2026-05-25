@@ -123,7 +123,7 @@ function TeamBlock({ logoUrl, prefix, name, hero, compact = false }: TeamBlockPr
 
   if (compact) {
     return (
-      <div className="flex min-w-0 max-w-full flex-col items-center justify-center gap-1 text-center">
+      <div className="flex min-w-0 max-w-full flex-col items-center justify-center gap-0.5 text-center">
         {imgNode}
         {prefixNode}
         {nameNode}
@@ -226,8 +226,8 @@ export function MatchCardKickoffBlock({
       ) : null}
       {hasLocation ? (
         compactScheduleHero ? (
-          <div className="mt-0.5 min-w-0 max-w-full px-0.5 text-center text-[11px] font-medium leading-tight text-white/55 break-normal hyphens-none [overflow-wrap:normal] line-clamp-2 sm:text-[12px]">
-            {locationScheduleHeroText}
+          <div className="mt-0.5 flex min-w-0 max-w-full items-center justify-center gap-0.5 px-0.5 text-center text-[10px] font-medium leading-tight text-white/45 sm:text-[11px]">
+            <span className="line-clamp-1 break-normal hyphens-none [overflow-wrap:normal]">{locationScheduleHeroText}</span>
           </div>
         ) : (
           <div

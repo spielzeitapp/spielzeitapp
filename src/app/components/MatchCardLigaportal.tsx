@@ -282,6 +282,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       showManageButtons ||
       showAttendanceChip);
 
+  const isHeroLayout = (scheduleNextMatchHero || compactDetailGame) && effectiveEventType === 'game';
+
   const compactParentRow = showAttendanceChip && !showAttendanceCounts && !showManageButtons;
   const heroDateParts = formatHeroDateParts(startsAt);
 
@@ -410,7 +412,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   );
 
   const dateRow =
-    scheduleNextMatchHero || (isTrainingCard && compactDetailGame) ? null : (
+    isHeroLayout || (isTrainingCard && compactDetailGame) ? null : (
     <div className="mb-2">
       <div className={`${compactParentRow ? 'flex items-center justify-between gap-2' : ''}`}>
         <span className="block text-base font-semibold text-white min-w-0 truncate">
@@ -424,7 +426,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const heroYear = startsAt ? new Date(startsAt).getFullYear().toString() : '';
 
   const scheduleGameHeader =
-    scheduleNextMatchHero && effectiveEventType === 'game' ? (
+    isHeroLayout ? (
       <div className="relative z-[1] mb-0 flex w-full min-w-0 items-start justify-between gap-1">
         <div className="flex w-[44px] shrink-0 flex-col items-center justify-center gap-0 text-center">
           <span className="text-[10px] font-bold uppercase leading-none tracking-[0.14em] text-[#B85C68]/80">
@@ -466,7 +468,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       {/* Stadium ambient glow — intensity varies by match phase */}
       <div
         className={
-          scheduleNextMatchHero
+          isHeroLayout
             ? matchPhase === 'live'
               ? 'pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,rgba(122,29,42,0.28)_0%,rgba(58,18,24,0.14)_35%,transparent_65%),radial-gradient(ellipse_70%_50%_at_80%_0%,rgba(16,185,129,0.07)_0%,transparent_50%),radial-gradient(ellipse_90%_50%_at_50%_110%,rgba(58,18,24,0.10)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_30%)]'
               : matchPhase === 'finished'
@@ -479,7 +481,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         aria-hidden
       />
       {/* Vignette + edge darkening for stadium depth */}
-      {scheduleNextMatchHero ? (
+      {isHeroLayout ? (
         <>
           <div className="pointer-events-none absolute inset-0 z-0 shadow-[inset_0_0_80px_rgba(0,0,0,0.45),inset_0_-30px_50px_rgba(0,0,0,0.25)]" aria-hidden />
           <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,transparent_0%,rgba(0,0,0,0.20)_100%)]" aria-hidden />
@@ -495,9 +497,16 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       {effectiveEventType === 'game' ? (
         <>
           {scheduleGameHeader}
+          {isHeroLayout && matchTypeLabel ? (
+            <div className="relative z-[1] mt-1 mb-0 flex justify-center">
+              <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(122,29,42,0.20)] bg-[rgba(122,29,42,0.12)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.10em] text-[#B85C68]/90 shadow-[0_0_12px_rgba(122,29,42,0.06)]">
+                {matchTypeLabel}
+              </span>
+            </div>
+          ) : null}
           <MatchCardGameCore
             headerTitle={null}
-            kickoffSubtitleAboveHeader={matchTypeLabel}
+            kickoffSubtitleAboveHeader={isHeroLayout ? null : matchTypeLabel}
             kickoffHeaderLabel={kickoffHeaderLabel}
             leftName={leftName}
             rightName={rightName}
@@ -510,14 +519,14 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             awayScore={away}
             kickoffLocation={detailGameKickoffLocation}
             meetupTimeOnly={meetupTimeOnly}
-            showMeetupPill={scheduleNextMatchHero ? false : Boolean(canSeeSensitiveInfo && meetupTimeOnly)}
-            endTimeLabel={scheduleNextMatchHero ? null : endTimeLabel}
+            showMeetupPill={isHeroLayout ? false : Boolean(canSeeSensitiveInfo && meetupTimeOnly)}
+            endTimeLabel={isHeroLayout ? null : endTimeLabel}
             descriptionText={descriptionText}
             variant="schedule"
-            kickoffShowUhr={scheduleNextMatchHero ? false : undefined}
-            compactScheduleHero={scheduleNextMatchHero}
-            compactDetailGame={compactDetailGame}
-            suppressCompactScheduleFooter={scheduleNextMatchHero}
+            kickoffShowUhr={isHeroLayout ? false : undefined}
+            compactScheduleHero={isHeroLayout}
+            compactDetailGame={false}
+            suppressCompactScheduleFooter={isHeroLayout}
           />
           {scheduleNextMatchHero ? (
             <div className="relative z-[1] mt-0.5 px-0.5 pb-0.5">
@@ -558,7 +567,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   {canSeeSensitiveInfo && meetupTimeOnly ? (
                     <div className="flex items-center gap-1.5 px-1.5 text-[10px] text-white/40">
                       <Users className="h-3 w-3 shrink-0 text-[#B85C68]/50" strokeWidth={2} aria-hidden />
-                      <span>Treffpunkt {meetupTimeOnly} Uhr</span>
+                      <span>Treffpunkt {meetupTimeOnly}</span>
                     </div>
                   ) : null}
                 </div>
@@ -571,7 +580,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   <Users className="h-4 w-4 shrink-0 text-[#B85C68]/80" strokeWidth={2} aria-hidden />
                   <div className="min-w-0 flex-1 text-left">
                     <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-white/40">Treffpunkt</span>
-                    <span className="block text-[15px] font-bold tabular-nums text-white">{meetupTimeOnly} Uhr</span>
+                    <span className="block text-[15px] font-bold tabular-nums text-white">{meetupTimeOnly}</span>
                   </div>
                   <ChevronRight className="h-4 w-4 shrink-0 text-white/40" strokeWidth={2} aria-hidden />
                 </button>
@@ -689,15 +698,15 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const heroRing = heroHighlight
     ? 'ring-2 ring-[rgba(122,29,42,0.45)] shadow-[0_0_40px_rgba(122,29,42,0.16)] sm:py-5'
     : '';
-  const overflowClass = scheduleNextMatchHero ? 'overflow-visible' : 'overflow-hidden';
-  const heroShadow = scheduleNextMatchHero
+  const overflowClass = isHeroLayout ? 'overflow-visible' : 'overflow-hidden';
+  const heroShadow = isHeroLayout
     ? matchPhase === 'live'
       ? 'shadow-[0_24px_60px_rgba(0,0,0,0.65),0_0_48px_rgba(122,29,42,0.18),0_0_24px_rgba(16,185,129,0.08),inset_0_1px_0_rgba(255,255,255,0.04)]'
       : matchPhase === 'finished'
         ? 'shadow-[0_16px_40px_rgba(0,0,0,0.55),0_0_32px_rgba(122,29,42,0.10),inset_0_1px_0_rgba(255,255,255,0.03)]'
         : 'shadow-[0_24px_60px_rgba(0,0,0,0.65),0_0_48px_rgba(122,29,42,0.22),inset_0_1px_0_rgba(255,255,255,0.05)]'
     : 'shadow-[0_8px_28px_rgba(0,0,0,0.48),0_0_20px_rgba(122,29,42,0.06),inset_0_1px_0_rgba(255,255,255,0.025)]';
-  const heroBorder = scheduleNextMatchHero
+  const heroBorder = isHeroLayout
     ? matchPhase === 'live'
       ? 'border border-emerald-400/10'
       : matchPhase === 'finished'
