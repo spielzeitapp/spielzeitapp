@@ -338,7 +338,7 @@ export function MatchCardGameCore({
 
   const gridMt = hero ? 'mt-8' : compactTeamLayout ? 'mt-0.5' : 'mt-4';
   const gridGap = hero ? 'gap-x-2 sm:gap-x-4' : compactTeamLayout ? 'gap-x-1 sm:gap-x-2' : 'gap-x-4';
-  const meetupMt = hero ? 'mt-6' : compactTeamLayout ? 'mt-3' : 'mt-5';
+  const meetupMt = hero ? 'mt-6' : compactTeamLayout ? 'mt-2' : 'mt-5';
 
   return (
     <>
