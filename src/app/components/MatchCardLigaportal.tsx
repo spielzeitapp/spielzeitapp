@@ -235,13 +235,13 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const attendanceChipClass = isTrainingCard
     ? attendanceStatus === 'no'
-      ? 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-red-400/45 bg-red-600/85 text-white shadow-[0_0_16px_rgba(239,68,68,0.35)] transition-all duration-200'
-      : 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-emerald-400/45 bg-emerald-600/85 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)] transition-all duration-200'
+      ? 'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-400/35 bg-red-600/80 text-white shadow-[0_0_12px_rgba(239,68,68,0.25)] transition-all duration-200'
+      : 'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-emerald-400/35 bg-emerald-600/80 text-white shadow-[0_0_12px_rgba(16,185,129,0.25)] transition-all duration-200'
     : attendanceStatus === 'yes'
-      ? 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-emerald-400/45 bg-emerald-600/85 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)] transition-all duration-200'
+      ? 'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-emerald-400/35 bg-emerald-600/80 text-white shadow-[0_0_12px_rgba(16,185,129,0.25)] transition-all duration-200'
       : attendanceStatus === 'no'
-        ? 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-red-400/45 bg-red-600/85 text-white shadow-[0_0_16px_rgba(239,68,68,0.35)] transition-all duration-200'
-        : 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-zinc-700/75 text-white/90 transition-all duration-200';
+        ? 'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-400/35 bg-red-600/80 text-white shadow-[0_0_12px_rgba(239,68,68,0.25)] transition-all duration-200'
+        : 'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-zinc-700/60 text-white/80 transition-all duration-200';
 
   const attendanceChipAria = isTrainingCard
     ? attendanceStatus === 'no'
@@ -398,11 +398,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           title={attendanceChipAria}
         >
           {attendanceStatus === 'yes' || (isTrainingCard && attendanceStatus !== 'no') ? (
-            <ThumbsUp className="h-5 w-5" strokeWidth={2} aria-hidden />
+            <ThumbsUp className="h-4 w-4" strokeWidth={2} aria-hidden />
           ) : attendanceStatus === 'no' ? (
-            <ThumbsDown className="h-5 w-5" strokeWidth={2} aria-hidden />
+            <ThumbsDown className="h-4 w-4" strokeWidth={2} aria-hidden />
           ) : (
-            <CircleHelp className="h-5 w-5" strokeWidth={2} aria-hidden />
+            <CircleHelp className="h-4 w-4" strokeWidth={2} aria-hidden />
           )}
         </button>
       )}
@@ -426,35 +426,35 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const scheduleGameHeader =
     scheduleNextMatchHero && effectiveEventType === 'game' ? (
       <div className="relative z-[1] mb-0 flex w-full min-w-0 items-start justify-between gap-1">
-        <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
-          <span className="text-[13px] font-semibold uppercase leading-none tracking-[0.12em] text-[#B85C68]">
+        <div className="flex w-[44px] shrink-0 flex-col items-center justify-center gap-0 text-center">
+          <span className="text-[10px] font-bold uppercase leading-none tracking-[0.14em] text-[#B85C68]/80">
             {heroDateParts.wd}
           </span>
-          <span className="text-[34px] font-bold tabular-nums leading-none text-white">
+          <span className="mt-px text-[30px] font-bold tabular-nums leading-none text-white">
             {heroDateParts.day}
           </span>
-          <span className="text-[13px] font-medium leading-tight text-white/70">
+          <span className="text-[10px] font-semibold uppercase leading-tight tracking-wide text-white/50">
             {heroDateParts.mon}
           </span>
-          {heroYear ? <span className="text-[12px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
+          {heroYear ? <span className="text-[9px] font-medium leading-tight text-white/30">{heroYear}</span> : null}
         </div>
         {matchPhase === 'live' ? (
-          <span className="mt-0.5 inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-600/20 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)] animate-pulse">
-            <Radio className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-900/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.20)] animate-pulse">
+            <Radio className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden />
             LIVE
           </span>
         ) : matchPhase === 'pre_kickoff' ? (
-          <span className="mt-0.5 inline-flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-600/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-emerald-400/80">
-            <Radio className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/15 bg-emerald-900/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-400/70">
+            <Radio className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden />
             BALD LIVE
           </span>
         ) : matchPhase === 'finished' ? (
-          <span className="mt-0.5 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-white/50">
+          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white/40">
             BEENDET
           </span>
         ) : null}
         {showScheduleHeroTrailing ? (
-          <div className="min-w-0 max-w-[min(52%,11.5rem)] shrink pt-0.5 sm:max-w-none">
+          <div className="min-w-0 max-w-[min(48%,10rem)] shrink sm:max-w-none">
             {attendanceTrailing}
           </div>
         ) : null}
@@ -478,9 +478,12 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         }
         aria-hidden
       />
-      {/* Vignette overlay for depth */}
+      {/* Vignette + edge darkening for stadium depth */}
       {scheduleNextMatchHero ? (
-        <div className="pointer-events-none absolute inset-0 z-0 shadow-[inset_0_0_60px_rgba(0,0,0,0.35)]" aria-hidden />
+        <>
+          <div className="pointer-events-none absolute inset-0 z-0 shadow-[inset_0_0_80px_rgba(0,0,0,0.45),inset_0_-30px_50px_rgba(0,0,0,0.25)]" aria-hidden />
+          <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,transparent_0%,rgba(0,0,0,0.20)_100%)]" aria-hidden />
+        </>
       ) : null}
       {/* Spielart bei Spielen: oberhalb „ANPFIFF“ in der Mittelspalte (MatchCardGameCore). Training/Event: Titel hier. */}
       {effectiveEventType !== 'game' && !isTrainingCard && headerTitle ? (
@@ -517,69 +520,100 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             suppressCompactScheduleFooter={scheduleNextMatchHero}
           />
           {scheduleNextMatchHero ? (
-            <div className="relative z-[1] mt-1 px-0.5 pb-1">
+            <div className="relative z-[1] mt-0.5 px-0.5 pb-0.5">
               {matchPhase === 'finished' && isClickable ? (
                 <button
                   type="button"
-                  className="flex w-full min-h-[50px] items-center gap-3 rounded-[14px] border border-white/[0.06] bg-[rgba(18,18,20,0.92)] px-4 py-3 shadow-[0_0_20px_rgba(0,0,0,0.3)]"
+                  className="flex w-full items-center gap-2.5 rounded-[12px] border border-white/[0.05] bg-[rgba(14,14,16,0.90)] px-3.5 py-2.5 shadow-[0_0_16px_rgba(0,0,0,0.25)]"
                   onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
                 >
-                  <CalendarDays className="h-5 w-5 shrink-0 text-white/70" strokeWidth={2} aria-hidden />
+                  <CalendarDays className="h-4 w-4 shrink-0 text-white/50" strokeWidth={2} aria-hidden />
                   <div className="min-w-0 flex-1 text-left">
-                    <span className="block text-[15px] font-semibold text-white">Zum Spielbericht</span>
-                    <span className="block text-[11px] text-white/50">Highlights, Statistiken & mehr</span>
+                    <span className="block text-[13px] font-semibold text-white">Zum Spielbericht</span>
+                    <span className="block text-[10px] text-white/40">Highlights, Statistiken & mehr</span>
                   </div>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-white/60" strokeWidth={2} aria-hidden />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-white/40" strokeWidth={2} aria-hidden />
                 </button>
               ) : matchPhase === 'live' ? (
                 <button
                   type="button"
-                  className="flex w-full min-h-[50px] items-center gap-3 rounded-[14px] border border-emerald-400/20 bg-[rgba(16,185,129,0.12)] px-4 py-3 shadow-[0_0_24px_rgba(16,185,129,0.10)]"
+                  className="flex w-full items-center gap-2.5 rounded-[12px] border border-emerald-400/15 bg-emerald-900/25 px-3.5 py-2.5 shadow-[0_0_18px_rgba(16,185,129,0.08)]"
                   onClick={(e) => { e.stopPropagation(); onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick(); }}
                 >
-                  <Radio className="h-5 w-5 shrink-0 text-emerald-400 animate-pulse" strokeWidth={2} aria-hidden />
-                  <span className="min-w-0 flex-1 text-left text-[15px] font-semibold text-white">Zum Livespiel</span>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-emerald-400/70" strokeWidth={2} aria-hidden />
+                  <Radio className="h-4 w-4 shrink-0 text-emerald-400 animate-pulse" strokeWidth={2} aria-hidden />
+                  <span className="min-w-0 flex-1 text-left text-[13px] font-semibold text-white">Zum Livespiel</span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-emerald-400/50" strokeWidth={2} aria-hidden />
                 </button>
               ) : matchPhase === 'pre_kickoff' ? (
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1">
                   <button
                     type="button"
-                    className="flex w-full min-h-[50px] items-center gap-3 rounded-[14px] border border-emerald-400/20 bg-[rgba(16,185,129,0.10)] px-4 py-3 shadow-[0_0_20px_rgba(16,185,129,0.08)]"
+                    className="flex w-full items-center gap-2.5 rounded-[12px] border border-emerald-400/15 bg-emerald-900/20 px-3.5 py-2.5 shadow-[0_0_14px_rgba(16,185,129,0.06)]"
                     onClick={(e) => { e.stopPropagation(); onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick(); }}
                   >
-                    <Radio className="h-5 w-5 shrink-0 text-emerald-400" strokeWidth={2} aria-hidden />
-                    <span className="min-w-0 flex-1 text-left text-[15px] font-semibold text-white">Zum Livespiel</span>
-                    <ChevronRight className="h-5 w-5 shrink-0 text-emerald-400/70" strokeWidth={2} aria-hidden />
+                    <Radio className="h-4 w-4 shrink-0 text-emerald-400" strokeWidth={2} aria-hidden />
+                    <span className="min-w-0 flex-1 text-left text-[13px] font-semibold text-white">Zum Livespiel</span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-emerald-400/50" strokeWidth={2} aria-hidden />
                   </button>
                   {canSeeSensitiveInfo && meetupTimeOnly ? (
-                    <div className="flex items-center gap-2 px-2 text-[12px] text-white/50">
-                      <Users className="h-3.5 w-3.5 shrink-0 text-[#B85C68]/60" strokeWidth={2} aria-hidden />
-                      <span>Treffpunkt: {meetupTimeOnly} Uhr</span>
+                    <div className="flex items-center gap-1.5 px-1.5 text-[10px] text-white/40">
+                      <Users className="h-3 w-3 shrink-0 text-[#B85C68]/50" strokeWidth={2} aria-hidden />
+                      <span>Treffpunkt {meetupTimeOnly} Uhr</span>
                     </div>
                   ) : null}
                 </div>
               ) : canSeeSensitiveInfo && meetupTimeOnly ? (
                 <button
                   type="button"
-                  className="flex w-full min-h-[50px] items-center gap-3 rounded-[14px] border border-[rgba(122,29,42,0.25)] bg-[rgba(122,29,42,0.18)] px-4 py-3 shadow-[0_0_28px_rgba(122,29,42,0.12)]"
+                  className="flex w-full items-center gap-2.5 rounded-[12px] border border-[rgba(122,29,42,0.18)] bg-[rgba(122,29,42,0.14)] px-3.5 py-2.5 shadow-[0_0_20px_rgba(122,29,42,0.08)]"
                   onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
                 >
-                  <Users className="h-5 w-5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
-                  <span className="min-w-0 flex-1 text-left text-[15px] font-semibold text-white">
-                    Treffpunkt: {meetupTimeOnly} Uhr
-                  </span>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-white/60" strokeWidth={2} aria-hidden />
+                  <Users className="h-4 w-4 shrink-0 text-[#B85C68]/80" strokeWidth={2} aria-hidden />
+                  <div className="min-w-0 flex-1 text-left">
+                    <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-white/40">Treffpunkt</span>
+                    <span className="block text-[15px] font-bold tabular-nums text-white">{meetupTimeOnly} Uhr</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-white/40" strokeWidth={2} aria-hidden />
                 </button>
               ) : isClickable ? (
                 <button
                   type="button"
-                  className="flex w-full min-h-[46px] items-center gap-3 rounded-[14px] border border-white/[0.08] bg-white/[0.04] px-4 py-2.5"
+                  className="flex w-full items-center gap-2.5 rounded-[12px] border border-white/[0.06] bg-white/[0.03] px-3.5 py-2"
                   onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
                 >
-                  <span className="min-w-0 flex-1 text-left text-[15px] font-semibold text-white">Details ansehen</span>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-white/60" strokeWidth={2} aria-hidden />
+                  <span className="min-w-0 flex-1 text-left text-[13px] font-semibold text-white/80">Details ansehen</span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-white/40" strokeWidth={2} aria-hidden />
                 </button>
+              ) : null}
+
+              {/* Meta info bar */}
+              {(canSeeSensitiveInfo && meetupTimeOnly && matchPhase === 'pre_meetup') || placeLine || (showAttendanceCounts && attendanceCounts) ? (
+                <div className="mt-1 flex items-center gap-0 rounded-[10px] border border-white/[0.04] bg-white/[0.02] px-1 py-1 text-[10px] text-white/40">
+                  {canSeeSensitiveInfo && meetupTimeOnly && matchPhase !== 'pre_meetup' ? (
+                    <div className="flex items-center gap-1 px-2">
+                      <Users className="h-2.5 w-2.5 shrink-0 text-[#B85C68]/50" strokeWidth={2} aria-hidden />
+                      <span>{meetupTimeOnly}</span>
+                    </div>
+                  ) : null}
+                  {placeLine ? (
+                    <>
+                      {canSeeSensitiveInfo && meetupTimeOnly && matchPhase !== 'pre_meetup' ? <span className="text-white/10">·</span> : null}
+                      <div className="flex items-center gap-1 px-2">
+                        <MapPin className="h-2.5 w-2.5 shrink-0 text-white/30" strokeWidth={2} aria-hidden />
+                        <span className="line-clamp-1">{(placeLine.split(',')[0]?.trim()) || placeLine}</span>
+                      </div>
+                    </>
+                  ) : null}
+                  {showAttendanceCounts && attendanceCounts ? (
+                    <>
+                      {(placeLine || (canSeeSensitiveInfo && meetupTimeOnly && matchPhase !== 'pre_meetup')) ? <span className="text-white/10">·</span> : null}
+                      <div className="flex items-center gap-1 px-2">
+                        <Users className="h-2.5 w-2.5 shrink-0 text-white/30" strokeWidth={2} aria-hidden />
+                        <span>{attendanceCounts.yes}/{attendanceCounts.yes + attendanceCounts.no + attendanceCounts.open}</span>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           ) : null}
@@ -671,7 +705,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         : 'border border-[rgba(122,29,42,0.20)]'
     : '';
   const baseCardClass =
-    `relative w-full max-w-none ${overflowClass} rounded-[16px] bg-[linear-gradient(168deg,#141416_0%,#0A0A0C_58%,#12080C_100%)] px-[15px] py-2.5 ${heroShadow} ${heroBorder} ${heroRing} ${className}`;
+    `relative w-full max-w-none ${overflowClass} rounded-[14px] bg-[linear-gradient(168deg,#141416_0%,#0A0A0C_58%,#12080C_100%)] px-3 py-2 ${heroShadow} ${heroBorder} ${heroRing} ${className}`;
   const cardClass =
     isPublicView ? baseCardClass : `${baseCardClass} ${isClickable ? 'cursor-pointer transition ' : ''}`.trim();
 

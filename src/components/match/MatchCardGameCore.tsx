@@ -74,12 +74,12 @@ function TeamBlock({ logoUrl, prefix, name, hero, compact = false }: TeamBlockPr
   const imgClass = hero
     ? 'h-[52px] w-[52px] sm:h-[60px] sm:w-[60px]'
     : compact
-      ? 'h-10 w-10 shrink-0 sm:h-10 sm:w-10'
+      ? 'h-11 w-11 shrink-0 sm:h-12 sm:w-12'
       : 'h-12 w-12 sm:h-14 sm:w-14';
   const nameClass = hero
     ? 'mt-1 w-full max-w-[min(200px,46vw)] text-[17px] font-bold leading-snug text-white min-[390px]:text-[17px] sm:max-w-[220px] sm:text-[17px]'
     : compact
-      ? 'w-full min-w-0 max-w-full px-0.5 text-center text-[15px] font-semibold leading-tight text-white'
+      ? 'w-full min-w-0 max-w-full px-0.5 text-center text-[13px] font-semibold leading-tight text-white/90'
       : 'mt-0.5 max-w-[184px] text-[17px] font-semibold leading-snug text-white sm:max-w-[200px]';
 
   const imgNode = logoUrl ? (
@@ -100,8 +100,8 @@ function TeamBlock({ logoUrl, prefix, name, hero, compact = false }: TeamBlockPr
   const prefixNode = prefix ? (
     <div
       className={`${
-        compact ? 'text-[10px] sm:text-[11px]' : hero ? 'mt-1.5 text-[12px]' : 'mt-1.5 text-[12px]'
-      } font-semibold uppercase tracking-[0.14em] text-white/90`}
+        compact ? 'text-[9px] sm:text-[10px]' : hero ? 'mt-1.5 text-[12px]' : 'mt-1.5 text-[12px]'
+      } font-semibold uppercase tracking-[0.14em] text-white/70`}
     >
       {prefix}
     </div>
@@ -185,7 +185,7 @@ export function MatchCardKickoffBlock({
   const timeClass = hero
     ? 'mt-3 text-[2.75rem] sm:text-[3.35rem] font-black leading-none tracking-tight text-white tabular-nums drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]'
     : compactScheduleHero
-      ? 'mt-1 text-[28px] sm:text-[32px] font-extrabold leading-none text-white tabular-nums'
+      ? 'mt-0.5 text-[30px] sm:text-[34px] font-extrabold leading-none text-white tabular-nums drop-shadow-[0_1px_8px_rgba(0,0,0,0.3)]'
       : 'mt-2 text-[34px] sm:text-[44px] font-extrabold leading-[1] text-white tabular-nums';
 
   return (
@@ -196,7 +196,7 @@ export function MatchCardKickoffBlock({
             hero
               ? 'mb-1 max-w-[min(220px,85vw)] text-base font-semibold leading-tight text-white sm:text-lg'
               : compactScheduleHero
-                ? 'mb-0.5 max-w-[min(220px,78vw)] text-[17px] font-semibold leading-tight text-white sm:text-[18px]'
+                ? 'mb-0 max-w-[min(220px,78vw)] text-[11px] font-bold uppercase tracking-[0.08em] leading-tight text-white/60 sm:text-[12px]'
                 : 'mb-0.5 max-w-[200px] text-[15px] font-semibold leading-tight text-white sm:text-base'
           }
         >
@@ -208,14 +208,14 @@ export function MatchCardKickoffBlock({
           hero
             ? 'text-[9px] sm:text-[10px] tracking-[0.4em]'
             : compactScheduleHero
-              ? 'mt-0 text-[11px] tracking-[0.32em] text-red-300'
+              ? 'mt-0.5 text-[9px] tracking-[0.28em] text-red-300/70'
               : 'text-[12px] tracking-[0.3em]'
         } font-bold uppercase`}
       >
         {headerLabel ?? 'ANPFIFF'}
       </div>
       <div className={timeClass}>{timeDisplay}</div>
-      {showUhr ? <div className="mt-1 text-white font-medium">Uhr</div> : null}
+      {showUhr ? <div className="mt-0.5 text-[13px] text-white/60 font-medium">Uhr</div> : null}
       {centerVs ? (
         <div
           className="mt-2 text-[10px] font-black uppercase tracking-[0.38em] text-red-400/45 sm:text-[11px]"
@@ -226,7 +226,7 @@ export function MatchCardKickoffBlock({
       ) : null}
       {hasLocation ? (
         compactScheduleHero ? (
-          <div className="mt-1 min-w-0 max-w-full px-0.5 text-center text-[12px] font-medium leading-tight text-white/80 break-normal hyphens-none [overflow-wrap:normal] line-clamp-2 sm:text-[13px]">
+          <div className="mt-0.5 min-w-0 max-w-full px-0.5 text-center text-[11px] font-medium leading-tight text-white/55 break-normal hyphens-none [overflow-wrap:normal] line-clamp-2 sm:text-[12px]">
             {locationScheduleHeroText}
           </div>
         ) : (
@@ -336,9 +336,9 @@ export function MatchCardGameCore({
   const leftLogoUrl = getLogoSrcForDisplayName(safeLeftName, leftLogoUrlProp ?? null);
   const rightLogoUrl = getLogoSrcForDisplayName(safeRightName, opponentLogoUrl ?? null);
 
-  const gridMt = hero ? 'mt-8' : compactTeamLayout ? 'mt-0.5' : 'mt-4';
-  const gridGap = hero ? 'gap-x-2 sm:gap-x-4' : compactTeamLayout ? 'gap-x-1 sm:gap-x-2' : 'gap-x-4';
-  const meetupMt = hero ? 'mt-6' : compactTeamLayout ? 'mt-2' : 'mt-5';
+  const gridMt = hero ? 'mt-8' : compactTeamLayout ? 'mt-0' : 'mt-4';
+  const gridGap = hero ? 'gap-x-2 sm:gap-x-4' : compactTeamLayout ? 'gap-x-0' : 'gap-x-4';
+  const meetupMt = hero ? 'mt-6' : compactTeamLayout ? 'mt-1.5' : 'mt-5';
 
   return (
     <>
@@ -362,8 +362,8 @@ export function MatchCardGameCore({
         } items-center ${gridGap} ${hero ? 'min-h-[140px] sm:min-h-[160px]' : ''}`}
       >
         <div
-          className={`flex min-h-0 min-w-0 flex-col items-center justify-center border-r border-white/[0.12] text-center ${
-            compactTeamLayout ? 'py-1 pr-1 sm:pr-2' : 'py-2 pr-3 sm:pr-5'
+          className={`flex min-h-0 min-w-0 flex-col items-center justify-center text-center ${
+            compactTeamLayout ? 'border-r border-white/[0.06] py-0.5 pr-0.5 sm:pr-1' : 'border-r border-white/[0.12] py-2 pr-3 sm:pr-5'
           }`}
         >
           {hero && leftColumnLabel ? (
@@ -400,8 +400,8 @@ export function MatchCardGameCore({
         </div>
 
         <div
-          className={`flex min-h-0 min-w-0 flex-col items-center justify-center border-l border-white/[0.12] text-center ${
-            compactTeamLayout ? 'py-1 pl-1 sm:pl-2' : 'py-2 pl-3 sm:pl-5'
+          className={`flex min-h-0 min-w-0 flex-col items-center justify-center text-center ${
+            compactTeamLayout ? 'border-l border-white/[0.06] py-0.5 pl-0.5 sm:pl-1' : 'border-l border-white/[0.12] py-2 pl-3 sm:pl-5'
           }`}
         >
           {hero && rightColumnLabel ? (
