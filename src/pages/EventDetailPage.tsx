@@ -2727,7 +2727,7 @@ export const EventDetailPage: React.FC = () => {
             rows={[
               {
                 key: 'calendar',
-                label: 'Diesen Termin hinzufügen',
+                label: 'Zum Kalender hinzufügen',
                 icon: <CalendarPlus className="h-4 w-4" strokeWidth={2} aria-hidden />,
                 onClick: () => void handleAddSingleEventToCalendar(),
               },
@@ -2777,44 +2777,6 @@ export const EventDetailPage: React.FC = () => {
             showMeetup={showMeetup}
             isPublicView={true}
           />
-        </div>
-
-        <div className="rounded-[16px] border border-white/[0.08] bg-[rgba(18,18,20,0.92)] p-4 text-[#E8E4E6] shadow-[0_0_24px_rgba(122,29,42,0.06),inset_0_1px_0_rgba(255,255,255,0.03)]">
-          <div className="grid gap-3">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.12em] text-white/60">Datum & Uhrzeit</p>
-              <p className="mt-0.5 text-[14px] font-medium text-white/90">{formatEventDateTimeLabel(event.starts_at)}</p>
-            </div>
-            {(() => {
-              const parsedLoc = splitCombinedLocation(event.location ?? '');
-              const place = (parsedLoc.place ?? '').trim();
-              const address = (parsedLoc.address ?? '').trim();
-              return (
-                <>
-                  {place ? (
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-white/60">Spielort / Platzname</p>
-                      <p className="mt-0.5 text-[14px] font-medium text-white/90 break-words">{place}</p>
-                    </div>
-                  ) : null}
-                  {address ? (
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-white/60">Adresse / PLZ / Ort</p>
-                      <p className="mt-0.5 text-[14px] font-medium text-white/90 break-words">{address}</p>
-                    </div>
-                  ) : null}
-                </>
-              );
-            })()}
-            {event.meeting_at ? (
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.12em] text-white/60">Treffpunkt</p>
-                <p className="mt-0.5 text-[14px] font-medium text-white/90">
-                  {utcIsoToViennaTimeHHmm(event.meeting_at)} Uhr
-                </p>
-              </div>
-            ) : null}
-          </div>
         </div>
 
         {!isFan && (
