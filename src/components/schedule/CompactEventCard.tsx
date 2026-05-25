@@ -328,7 +328,7 @@ export function CompactEventCard({
     return (
       <div
         className={[
-          'relative mb-2 -mx-1 grid w-[calc(100%+0.5rem)] min-w-0 grid-cols-[86px_58px_minmax(0,1fr)_54px_20px] items-center gap-x-0 overflow-x-hidden px-2.5 py-2 sm:mx-0 sm:w-full',
+          'relative mb-2 -mx-1 grid w-[calc(100%+0.5rem)] min-w-0 grid-cols-[76px_54px_minmax(0,1fr)_54px_18px] items-center gap-x-0 overflow-x-hidden px-2.5 py-2 sm:mx-0 sm:w-full',
           dsScheduleListPanelClass(),
           clickable ? 'cursor-pointer active:bg-white/[0.03]' : 'cursor-default',
         ].join(' ')}
@@ -347,27 +347,27 @@ export function CompactEventCard({
         }
       >
         <div className={dsScheduleListPanelGlowClass()} aria-hidden />
-        <div className={`${dsScheduleDateBoxClass()} relative z-[1] shrink-0 !w-[86px]`}>
+        <div className={`${dsScheduleDateBoxClass()} relative z-[1] shrink-0 !w-[76px]`}>
           <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
           <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
           <span className={`${dsScheduleDateBoxMonthClass()} !text-[9px]`}>{monYear}</span>
           <span className="text-[11px] font-semibold tabular-nums leading-tight text-[#B85C68]">{timeStr}</span>
         </div>
 
-        <div className="relative z-[1] flex w-[58px] shrink-0 items-center justify-center self-center">
+        <div className="relative z-[1] flex w-[54px] shrink-0 items-center justify-center self-center">
           <TrainingPlayerIcon variant="list" />
         </div>
 
         <div className="relative z-[1] min-w-0 overflow-hidden py-0.5">
-          <p className="text-[20px] font-semibold leading-[1.1] text-white" lang="de">
+          <p className="text-[18px] font-semibold leading-[1.05] text-white" lang="de">
             {trainingTitleLines.top}
           </p>
           {trainingTitleLines.bottom ? (
-            <p className="text-[20px] font-semibold leading-[1.1] text-white" lang="de">
+            <p className="text-[18px] font-semibold leading-[1.05] text-white" lang="de">
               {trainingTitleLines.bottom}
             </p>
           ) : null}
-          <p className="mt-0.5 line-clamp-2 text-[16px] leading-[1.25] text-white/[0.72]">
+          <p className="mt-0.5 line-clamp-2 text-[15px] leading-snug text-white/[0.72]">
             {venueOnly ?? '—'}
           </p>
         </div>
@@ -376,7 +376,7 @@ export function CompactEventCard({
           {hasTrailing ? <div className="min-w-0 [&>*]:origin-center">{trailing}</div> : null}
         </div>
 
-        <div className="relative z-[1] flex w-5 shrink-0 items-center justify-center self-center">
+        <div className="relative z-[1] flex w-[18px] shrink-0 items-center justify-center self-center">
           {clickable ? (
             <span className="text-[15px] font-light leading-none text-white/25" aria-hidden>
               ›

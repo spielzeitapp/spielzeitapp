@@ -4,8 +4,8 @@ import { getTrainingPlayerIconSrc } from '../../config/trainingIconVariant';
 type Variant = 'hero' | 'list' | 'compact';
 
 const sizeClass: Record<Variant, string> = {
-  hero: 'h-[72px] w-[72px] shrink-0 object-contain',
-  list: 'h-[58px] w-[58px] shrink-0 object-contain',
+  hero: 'h-[66px] w-[66px] shrink-0 object-contain',
+  list: 'h-[54px] w-[54px] shrink-0 object-contain',
   compact: 'h-8 w-8 max-h-8 max-w-8 shrink-0 object-contain',
 };
 
@@ -15,7 +15,7 @@ const glowClass: Record<Variant, string> = {
   compact: '[filter:drop-shadow(0_0_4px_rgba(122,29,42,0.06))]',
 };
 
-/** Training-Spieler — feste Grid-Spalten in Hero/Liste. */
+/** Training-Spieler — Hero/Liste als normale Grid-Spalte. */
 export function TrainingPlayerIcon({
   variant = 'list',
   className = '',
