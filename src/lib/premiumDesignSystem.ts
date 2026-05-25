@@ -665,22 +665,22 @@ export function dsScheduleHeroPanelGlowClass(): string {
 /** Datum-Box im Hero — schmal wie Liste, etwas höher. */
 export function dsScheduleHeroDateBoxClass(): string {
   return [
-    'flex w-[64px] min-h-[72px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-[10px]',
-    'border border-white/[0.06] bg-[rgba(18,18,20,0.82)] px-1.5 py-1.5 leading-none',
-    'shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_10px_rgba(122,29,42,0.04)]',
+    'flex w-[78px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-[14px]',
+    'border border-white/[0.08] bg-[rgba(18,18,20,0.96)] px-2 py-2 leading-none',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_20px_rgba(122,29,42,0.06)]',
   ].join(' ');
 }
 
 export function dsScheduleHeroDateBoxWeekdayClass(): string {
-  return 'text-[9px] font-semibold uppercase tracking-[0.12em] text-[#B85C68]';
+  return 'text-[10px] font-semibold uppercase tracking-[0.14em] text-[#B85C68]';
 }
 
 export function dsScheduleHeroDateBoxDayClass(): string {
-  return 'text-[1.35rem] font-bold tabular-nums leading-none text-white';
+  return 'text-[1.65rem] font-bold tabular-nums leading-none text-white';
 }
 
 export function dsScheduleHeroDateBoxMonthClass(): string {
-  return 'text-[9px] font-medium leading-tight text-[#B8B0B4]';
+  return 'text-[10px] font-medium leading-tight text-[#B8B0B4]';
 }
 
 /** Weitere Termine — sekundär, flach und dunkel. */
