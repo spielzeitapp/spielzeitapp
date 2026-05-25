@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, ChevronRight, CircleHelp, Clock, MapPin, ThumbsDown, ThumbsUp, Users } from 'lucide-react';
+import { CalendarDays, ChevronRight, CircleHelp, Clock, MapPin, Radio, ThumbsDown, ThumbsUp, Users } from 'lucide-react';
 import { TrainingPlayerIcon } from '../../components/schedule/TrainingPlayerIcon';
 import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
@@ -196,7 +196,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const home = scoreHome ?? 0;
   const away = scoreAway ?? 0;
   const isMatch = effectiveEventType === 'game';
-  const kickoffHeaderLabel = showScore && status === 'finished' ? 'ENDSTAND' : 'ANPFIFF';
+  const kickoffHeaderLabel = showScore && status === 'finished' ? 'ENDSTAND' : status === 'live' ? 'LIVE' : 'ANPFIFF';
 
   /** Nur Schedule „Nächstes Spiel“: Platzname (erstes Komma-Segment), volle Adresse auf EventDetail. */
   const scheduleHeroKickoffLocation =
@@ -422,6 +422,12 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           </span>
           {heroYear ? <span className="text-[12px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
         </div>
+        {status === 'live' ? (
+          <span className="mt-0.5 inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-600/20 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)] animate-pulse">
+            <Radio className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+            LIVE
+          </span>
+        ) : null}
         {showScheduleHeroTrailing ? (
           <div className="min-w-0 max-w-[min(52%,11.5rem)] shrink pt-0.5 sm:max-w-none">
             {attendanceTrailing}

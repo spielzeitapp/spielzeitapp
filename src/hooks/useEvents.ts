@@ -36,6 +36,7 @@ export type EventRow = {
   series_id?: string | null;
   /** Optional: Migration 20260315120000 */
   training_absence_deadline_disabled?: boolean | null;
+  opponent_logo_url?: string | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -59,6 +60,7 @@ type EventDbRow = {
   match_id: string | null;
   series_id?: string | null;
   training_absence_deadline_disabled?: boolean | null;
+  opponent_logo_url?: string | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -66,7 +68,7 @@ type EventDbRow = {
 
 /** Aktueller events-Select inkl. Serien + optionaler Spalten (Fallback bei alter DB). */
 const EVENTS_SELECT =
-  "id, team_season_id, kind, type, match_type, opponent, is_home, location, address, starts_at, meeting_at, status, attendance_mode, notes, match_id, series_id, training_absence_deadline_disabled, created_by, created_at, updated_at";
+  "id, team_season_id, kind, type, match_type, opponent, is_home, location, address, starts_at, meeting_at, status, attendance_mode, notes, match_id, series_id, training_absence_deadline_disabled, opponent_logo_url, created_by, created_at, updated_at";
 
 /** Ohne address / series_id / training_absence_deadline_disabled (match_type bleibt drin). */
 const EVENTS_SELECT_LEGACY =
@@ -137,6 +139,7 @@ export function useEvents(teamSeasonId: string | null) {
         match_id: r.match_id ?? null,
         series_id: r.series_id ?? null,
         training_absence_deadline_disabled: r.training_absence_deadline_disabled ?? null,
+        opponent_logo_url: r.opponent_logo_url ?? null,
         created_by: r.created_by ?? null,
         created_at: r.created_at ?? null,
         updated_at: r.updated_at ?? null,

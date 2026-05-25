@@ -156,7 +156,41 @@ export const SchedulePage: React.FC = () => {
   const { selectedMembership, user, selectedTeamSeason } = useSession();
   const userId = user?.id ?? null;
   const effectiveTeamSeasonId = teamSeasonId ?? publicTeamId;
-  const { events, loading: eLoading, error: eError, refetch } = useEvents(effectiveTeamSeasonId);
+  const { events: rawEvents, loading: eLoading, error: eError, refetch } = useEvents(effectiveTeamSeasonId);
+
+  const [matchStatusById, setMatchStatusById] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const matchIds = Array.from(
+      new Set(
+        rawEvents
+          .filter((e) => e.match_id)
+          .map((e) => e.match_id!)
+      ),
+    );
+    if (matchIds.length === 0) { setMatchStatusById({}); return; }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('id, status')
+        .in('id', matchIds);
+      if (cancelled || error) return;
+      const next: Record<string, string> = {};
+      for (const r of data ?? []) next[r.id] = r.status ?? 'upcoming';
+      setMatchStatusById(next);
+    })();
+    return () => { cancelled = true; };
+  }, [rawEvents]);
+
+  const events: EventRow[] = useMemo(() =>
+    rawEvents.map((e) => {
+      if (!e.match_id) return e;
+      const ms = matchStatusById[e.match_id];
+      if (ms === 'live' && e.status !== 'live') return { ...e, status: 'live' as const };
+      if (ms === 'finished' && e.status !== 'finished') return { ...e, status: 'finished' as const };
+      return e;
+    }),
+  [rawEvents, matchStatusById]);
 
   const loading = tsLoading || (!teamSeasonId && publicLoading);
 
@@ -1087,8 +1121,7 @@ export const SchedulePage: React.FC = () => {
                           !forcePublicView
                             ? () => navigate(`/live?matchId=${ev.match_id}`)
                             : undefined;
-                        const opponentLogo =
-                          (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url ?? null;
+                        const opponentLogo = ev.opponent_logo_url ?? null;
                         if (et === 'game') {
                           return (
                             <div
@@ -1231,7 +1264,7 @@ export const SchedulePage: React.FC = () => {
                           }}
                         />
                       ) : undefined;
-                      const opponentLogo = (ev as EventRow & { opponent_logo_url?: string | null }).opponent_logo_url;
+                      const opponentLogo = ev.opponent_logo_url ?? null;
                       const matchScoreRow = ev.match_id ? matchScoreById[ev.match_id] : undefined;
                       const showPastResultCard = et === 'game' && ev.status === 'finished';
                       if (showPastResultCard) {
