@@ -1133,12 +1133,12 @@ export const SchedulePage: React.FC = () => {
                           return (
                             <div
                               key={ev.id}
-                              className="mb-4 -mx-3.5 w-[calc(100%+1.75rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full"
+                              className="mb-3 -mx-1 w-[calc(100%+0.5rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-full"
                               {...publicWrap}
                             >
                               <EventHeroCard label={heroLabelForEffectiveType(et)} footer={heroCardFooter}>
                                 <MatchCardLigaportal
-                                  className="w-full max-w-full !px-2.5 !py-2.5 sm:!px-3 sm:!py-3"
+                                  className="w-full max-w-full !px-2.5 !py-2 sm:!px-3 sm:!py-2.5"
                                   scheduleNextMatchHero
                                   ourTeamName={ourTeamName}
                                   opponent={ev.opponent}

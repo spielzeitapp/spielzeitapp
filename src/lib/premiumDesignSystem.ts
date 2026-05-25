@@ -648,17 +648,17 @@ export function dsSchedulePageStyle(): { background: string; boxShadow: string }
 /** Hero „Nächstes Training/Spiel“ — Premium Matchday, Flutlicht, Fog. */
 export function dsScheduleHeroPanelClass(): string {
   return [
-    'relative overflow-hidden rounded-[22px]',
-    'border border-[rgba(122,29,42,0.42)]',
-    'bg-[linear-gradient(152deg,rgba(36,32,34,0.99)_0%,rgba(24,22,24,0.99)_36%,rgba(12,12,14,0.99)_68%,rgba(20,10,14,0.99)_100%)]',
-    'shadow-[0_24px_60px_rgba(0,0,0,0.72),0_0_64px_rgba(122,29,42,0.28),inset_0_1px_0_rgba(255,255,255,0.07)]',
+    'relative overflow-hidden rounded-[14px]',
+    'border border-[rgba(122,29,42,0.25)]',
+    'bg-[linear-gradient(168deg,rgba(20,20,22,0.99)_0%,rgba(10,10,12,0.99)_58%,rgba(18,8,12,0.99)_100%)]',
+    'shadow-[0_16px_48px_rgba(0,0,0,0.60),0_0_36px_rgba(122,29,42,0.16),inset_0_1px_0_rgba(255,255,255,0.04)]',
   ].join(' ');
 }
 
 export function dsScheduleHeroPanelGlowClass(): string {
   return [
     'pointer-events-none absolute inset-0',
-    'bg-[radial-gradient(ellipse_110%_78%_at_100%_-16%,rgba(255,242,225,0.16)_0%,rgba(122,29,42,0.3)_24%,transparent_66%),radial-gradient(ellipse_90%_60%_at_0%_0%,rgba(122,29,42,0.16)_0%,transparent_52%),radial-gradient(ellipse_98%_50%_at_50%_100%,rgba(58,18,24,0.14)_0%,transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,transparent_42%)]',
+    'bg-[radial-gradient(ellipse_100%_65%_at_50%_-10%,rgba(122,29,42,0.18)_0%,transparent_60%),radial-gradient(ellipse_80%_50%_at_50%_110%,rgba(58,18,24,0.08)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_30%)]',
   ].join(' ');
 }
 

@@ -74,12 +74,12 @@ function TeamBlock({ logoUrl, prefix, name, hero, compact = false }: TeamBlockPr
   const imgClass = hero
     ? 'h-[52px] w-[52px] sm:h-[60px] sm:w-[60px]'
     : compact
-      ? 'h-11 w-11 shrink-0 sm:h-12 sm:w-12'
+      ? 'h-12 w-12 shrink-0 sm:h-[52px] sm:w-[52px]'
       : 'h-12 w-12 sm:h-14 sm:w-14';
   const nameClass = hero
     ? 'mt-1 w-full max-w-[min(200px,46vw)] text-[17px] font-bold leading-snug text-white min-[390px]:text-[17px] sm:max-w-[220px] sm:text-[17px]'
     : compact
-      ? 'w-full min-w-0 max-w-full px-0.5 text-center text-[13px] font-semibold leading-tight text-white/90'
+      ? 'w-full min-w-0 max-w-full px-0.5 text-center text-[12px] font-semibold leading-tight text-white/75'
       : 'mt-0.5 max-w-[184px] text-[17px] font-semibold leading-snug text-white sm:max-w-[200px]';
 
   const imgNode = logoUrl ? (
@@ -363,7 +363,7 @@ export function MatchCardGameCore({
       >
         <div
           className={`flex min-h-0 min-w-0 flex-col items-center justify-center text-center ${
-            compactTeamLayout ? 'border-r border-white/[0.06] py-0.5 pr-0.5 sm:pr-1' : 'border-r border-white/[0.12] py-2 pr-3 sm:pr-5'
+            compactTeamLayout ? 'border-r border-white/[0.04] py-0.5 pr-1 sm:pr-1.5' : 'border-r border-white/[0.12] py-2 pr-3 sm:pr-5'
           }`}
         >
           {hero && leftColumnLabel ? (
@@ -401,7 +401,7 @@ export function MatchCardGameCore({
 
         <div
           className={`flex min-h-0 min-w-0 flex-col items-center justify-center text-center ${
-            compactTeamLayout ? 'border-l border-white/[0.06] py-0.5 pl-0.5 sm:pl-1' : 'border-l border-white/[0.12] py-2 pl-3 sm:pl-5'
+            compactTeamLayout ? 'border-l border-white/[0.04] py-0.5 pl-1 sm:pl-1.5' : 'border-l border-white/[0.12] py-2 pl-3 sm:pl-5'
           }`}
         >
           {hero && rightColumnLabel ? (

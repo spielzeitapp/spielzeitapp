@@ -30,7 +30,7 @@ export function EventHeroCard({ label, children, footer, labelAside }: Props) {
 
       <div className={dsScheduleHeroPanelClass()}>
         <div className={dsScheduleHeroPanelGlowClass()} aria-hidden />
-        <div className="relative z-10 min-h-[7.5rem] w-full min-w-0 py-0.5">
+        <div className="relative z-10 min-h-0 w-full min-w-0 py-0.5">
           {children}
         </div>
       </div>
