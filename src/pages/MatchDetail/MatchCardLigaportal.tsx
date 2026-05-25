@@ -108,18 +108,16 @@ function TeamBlock({ logoUrl, short, nameLine1 = '', nameLine2 }: TeamBlockProps
 
   return (
     <div className="flex min-w-0 flex-col items-center text-center">
-      {logoUrl ? (
-        <img
-          src={logoUrl}
-          alt={nameDisplay || short || ''}
-          className={logoCls}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
-        />
-      ) : (
-        <div className={`${logoCls} rounded-full bg-white/5`} />
-      )}
+      <img
+        src={logoUrl || '/logos/placeholder-shield-a.png'}
+        alt={nameDisplay || short || ''}
+        className={logoCls}
+        onError={(e) => {
+          const img = e.currentTarget as HTMLImageElement;
+          if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
+          img.src = '/logos/placeholder-shield-a.png';
+        }}
+      />
 
       {short ? (
         <div className="mt-2 text-[14px] font-medium tracking-widest text-white opacity-70">
@@ -272,16 +270,16 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       <div className={`grid grid-cols-[120px_1fr_120px] items-start gap-x-3 ${matchTypeLabel ? 'mt-6' : 'mt-4'}`}>
         {/* HOME */}
         <div className="min-w-0 flex flex-col items-center text-center">
-          {homeLogoUrl ? (
-            <img
-              src={homeLogoUrl}
-              alt=""
-              className="h-12 w-12 object-contain drop-shadow"
-              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-            />
-          ) : (
-            <div className="h-12 w-12 rounded-full bg-white/10" />
-          )}
+          <img
+            src={homeLogoUrl || '/logos/placeholder-shield-a.png'}
+            alt=""
+            className="h-12 w-12 object-contain drop-shadow"
+            onError={(e) => {
+              const img = e.currentTarget as HTMLImageElement;
+              if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
+              img.src = '/logos/placeholder-shield-a.png';
+            }}
+          />
 
           <div className="mt-2 text-[13px] font-medium tracking-widest uppercase opacity-70 text-white">
             {homePrefix}
@@ -323,16 +321,16 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
         {/* AWAY */}
         <div className="min-w-0 flex flex-col items-center text-center">
-          {awayLogoUrl ? (
-            <img
-              src={awayLogoUrl}
-              alt=""
-              className="h-12 w-12 object-contain drop-shadow"
-              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-            />
-          ) : (
-            <div className="h-12 w-12 rounded-full bg-white/10" />
-          )}
+          <img
+            src={awayLogoUrl || '/logos/placeholder-shield-a.png'}
+            alt=""
+            className="h-12 w-12 object-contain drop-shadow"
+            onError={(e) => {
+              const img = e.currentTarget as HTMLImageElement;
+              if (img.src.endsWith('/logos/placeholder-shield-a.png')) return;
+              img.src = '/logos/placeholder-shield-a.png';
+            }}
+          />
 
           <div className="mt-2 text-[13px] font-medium tracking-widest uppercase opacity-70 text-white">
             {awayPrefix}

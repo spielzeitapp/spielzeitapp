@@ -129,6 +129,7 @@ export function PastMatchResultCard({
     d && !Number.isNaN(d.getTime())
       ? new Intl.DateTimeFormat('de-AT', { month: 'short', timeZone: VIENNA_TZ }).format(d).replace(/\.$/, '')
       : '';
+  const yearSmall = d && !Number.isNaN(d.getTime()) ? d.getFullYear().toString() : '';
 
   const parsedLoc = splitCombinedLocation(ev.location ?? '');
   const venue = (parsedLoc.place ?? '').trim() || (ev.location ?? '').trim() || null;
@@ -173,6 +174,7 @@ export function PastMatchResultCard({
             <span className="text-[11px] font-medium leading-tight text-white/60">
               {monSmall || '—'}
             </span>
+            {yearSmall ? <span className="text-[10px] font-medium leading-tight text-white/40">{yearSmall}</span> : null}
           </div>
           <span className="shrink-0 rounded-md border border-red-950/80 bg-black/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.25em] text-red-200/95">
             Beendet
