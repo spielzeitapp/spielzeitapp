@@ -8,7 +8,7 @@ import {
 type Variant = 'hero' | 'list' | 'compact';
 
 const sizeClass: Record<Variant, string> = {
-  hero: 'w-[92px] h-auto shrink-0 object-contain',
+  hero: 'w-[86px] h-auto shrink-0 object-contain ml-0.5 mr-2',
   list: 'w-[54px] h-auto shrink-0 object-contain',
   compact: 'h-8 w-8 max-h-8 max-w-8 shrink-0 object-contain',
 };

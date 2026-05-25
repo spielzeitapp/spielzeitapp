@@ -379,7 +379,7 @@ export function ScheduleHeroEventCard({
     <>
       <HeroHybridBackdrop training />
       <div className="relative z-[1] flex w-full min-w-0 flex-col px-3 py-2.5 pb-2.5">
-        <div className="flex w-full min-w-0 items-center gap-x-1.5">
+        <div className="flex w-full min-w-0 items-center">
           <div className={`${dsScheduleHeroDateBoxClass()} shrink-0`}>
             <span className={dsScheduleHeroDateBoxWeekdayClass()}>{wd}</span>
             <span className={dsScheduleHeroDateBoxDayClass()}>{day}</span>
@@ -389,18 +389,18 @@ export function ScheduleHeroEventCard({
           <TrainingPlayerIcon variant="hero" />
 
           <div className="min-w-0 flex-1 overflow-hidden text-left">
-            <p className="text-[21px] font-bold leading-tight text-white min-[375px]:text-[22px]">{trainingMainTitle}</p>
+            <p className="text-[20px] font-bold leading-tight text-white min-[375px]:text-[22px]">{trainingMainTitle}</p>
             <p className="mt-1 line-clamp-2 text-[15px] leading-snug text-white/[0.78]">
               {trainingLocationLine}
             </p>
           </div>
 
           {topRight ? (
-            <div className="pointer-events-auto flex w-[56px] shrink-0 flex-col items-center justify-center gap-2 self-center">
+            <div className="pointer-events-auto flex w-[48px] shrink-0 flex-col items-center justify-center gap-2 self-center">
               {topRight}
             </div>
           ) : (
-            <div className="w-[56px] shrink-0" aria-hidden />
+            <div className="w-[48px] shrink-0" aria-hidden />
           )}
         </div>
 
