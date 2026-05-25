@@ -381,17 +381,17 @@ export function ScheduleHeroEventCard({
       <HeroHybridBackdrop training />
       <div className="relative z-[1] flex w-full min-w-0 flex-col px-3 py-2.5 pb-2.5">
         <div className="flex w-full min-w-0 items-center">
-          <div className={`${dsScheduleHeroDateBoxClass()} !w-[78px] shrink-0`}>
-            <span className={dsScheduleHeroDateBoxWeekdayClass()}>{wd}</span>
-            <span className={dsScheduleHeroDateBoxDayClass()}>{day}</span>
-            <span className={dsScheduleHeroDateBoxMonthClass()}>{mon}</span>
-            {heroYear ? <span className="text-[10px] font-medium leading-tight text-white/50">{heroYear}</span> : null}
+          <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
+            <span className="text-[13px] font-semibold uppercase leading-none tracking-[0.12em] text-[#B85C68]">{wd}</span>
+            <span className="text-[34px] font-bold tabular-nums leading-none text-white">{day}</span>
+            <span className="text-[13px] font-medium leading-tight text-white/70">{mon}</span>
+            {heroYear ? <span className="text-[12px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
           </div>
 
           <TrainingPlayerIcon variant="hero" />
 
           <div className="min-w-0 flex-1 overflow-hidden text-left">
-            <p className="text-[19px] font-bold leading-[1.05] text-white min-[375px]:text-[21px]">{trainingMainTitle}</p>
+            <p className="text-[20px] font-bold leading-[1.05] text-white min-[375px]:text-[21px]">{trainingMainTitle}</p>
             <p className="mt-1 line-clamp-2 text-[15px] leading-[1.15] text-white/[0.78]">
               {trainingLocationLine}
             </p>
