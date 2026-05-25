@@ -665,7 +665,7 @@ export function dsScheduleHeroPanelGlowClass(): string {
 /** Datum-Box im Hero — schmal wie Liste, etwas höher. */
 export function dsScheduleHeroDateBoxClass(): string {
   return [
-    'flex w-[72px] min-h-[78px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-[12px]',
+    'flex w-[64px] min-h-[72px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-[10px]',
     'border border-white/[0.06] bg-[rgba(18,18,20,0.82)] px-1.5 py-1.5 leading-none',
     'shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_10px_rgba(122,29,42,0.04)]',
   ].join(' ');

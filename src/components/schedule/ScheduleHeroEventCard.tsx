@@ -379,13 +379,14 @@ export function ScheduleHeroEventCard({
     <>
       <HeroHybridBackdrop training />
       <div className="relative z-[1] flex w-full min-w-0 flex-col px-3 py-2.5 pb-2.5">
-        <div className="grid w-full min-w-0 grid-cols-[88px_minmax(0,1fr)_56px] items-center gap-x-2">
-          <div className="flex w-[88px] shrink-0 flex-col items-center gap-1">
-            <div className={`${dsScheduleHeroDateBoxClass()} shrink-0`}>
-              <span className={dsScheduleHeroDateBoxWeekdayClass()}>{wd}</span>
-              <span className={dsScheduleHeroDateBoxDayClass()}>{day}</span>
-              <span className={dsScheduleHeroDateBoxMonthClass()}>{mon}</span>
-            </div>
+        <div className="grid w-full min-w-0 grid-cols-[64px_68px_minmax(0,1fr)_56px] items-center gap-x-1.5">
+          <div className={`${dsScheduleHeroDateBoxClass()} shrink-0`}>
+            <span className={dsScheduleHeroDateBoxWeekdayClass()}>{wd}</span>
+            <span className={dsScheduleHeroDateBoxDayClass()}>{day}</span>
+            <span className={dsScheduleHeroDateBoxMonthClass()}>{mon}</span>
+          </div>
+
+          <div className="flex w-[68px] shrink-0 items-center justify-center self-center">
             <TrainingPlayerIcon variant="hero" />
           </div>
 
