@@ -389,18 +389,18 @@ export function ScheduleHeroEventCard({
           <TrainingPlayerIcon variant="hero" />
 
           <div className="min-w-0 flex-1 overflow-hidden text-left">
-            <p className="text-[20px] font-bold leading-tight text-white min-[375px]:text-[22px]">{trainingMainTitle}</p>
-            <p className="mt-1 line-clamp-2 text-[15px] leading-snug text-white/[0.78]">
+            <p className="text-[19px] font-bold leading-[1.05] text-white min-[375px]:text-[21px]">{trainingMainTitle}</p>
+            <p className="mt-1 line-clamp-2 text-[15px] leading-[1.15] text-white/[0.78]">
               {trainingLocationLine}
             </p>
           </div>
 
           {topRight ? (
-            <div className="pointer-events-auto flex w-[48px] shrink-0 flex-col items-center justify-center gap-2 self-center">
+            <div className="pointer-events-auto flex w-[44px] shrink-0 flex-col items-center justify-center gap-2 self-center">
               {topRight}
             </div>
           ) : (
-            <div className="w-[48px] shrink-0" aria-hidden />
+            <div className="w-[44px] shrink-0" aria-hidden />
           )}
         </div>
 
