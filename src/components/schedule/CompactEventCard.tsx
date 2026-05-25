@@ -328,7 +328,7 @@ export function CompactEventCard({
     return (
       <div
         className={[
-          'relative mb-2 -mx-1 grid w-[calc(100%+0.5rem)] min-w-0 grid-cols-[78px_52px_minmax(0,1fr)_54px_20px] items-center gap-x-0 overflow-x-hidden px-2.5 py-2 sm:mx-0 sm:w-full',
+          'relative mb-2 -mx-1 grid w-[calc(100%+0.5rem)] min-w-0 grid-cols-[78px_58px_minmax(0,1fr)_54px_20px] items-center gap-x-0 overflow-x-hidden px-2.5 py-2 sm:mx-0 sm:w-full',
           dsScheduleListPanelClass(),
           clickable ? 'cursor-pointer active:bg-white/[0.03]' : 'cursor-default',
         ].join(' ')}
@@ -354,7 +354,7 @@ export function CompactEventCard({
           <span className="text-[11px] font-semibold tabular-nums leading-tight text-[#B85C68]">{timeStr}</span>
         </div>
 
-        <div className="relative z-[1] flex w-[54px] shrink-0 items-center justify-center self-center">
+        <div className="relative z-[1] flex w-[58px] shrink-0 items-center justify-center self-center">
           <TrainingPlayerIcon variant="list" />
         </div>
 

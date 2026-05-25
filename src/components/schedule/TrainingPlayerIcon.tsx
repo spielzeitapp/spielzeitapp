@@ -1,11 +1,15 @@
 import React from 'react';
-import { getTrainingPlayerIconSrc } from '../../config/trainingIconVariant';
+import {
+  getTrainingPlayerHeroSrc,
+  getTrainingPlayerListSrc,
+  getTrainingPlayerIconSrc,
+} from '../../config/trainingIconVariant';
 
 type Variant = 'hero' | 'list' | 'compact';
 
 const sizeClass: Record<Variant, string> = {
-  hero: 'h-[78px] w-[78px] shrink-0 object-contain',
-  list: 'h-[48px] w-[48px] shrink-0 object-contain',
+  hero: 'w-[92px] h-auto shrink-0 object-contain',
+  list: 'w-[54px] h-auto shrink-0 object-contain',
   compact: 'h-8 w-8 max-h-8 max-w-8 shrink-0 object-contain',
 };
 
@@ -15,7 +19,13 @@ const glowClass: Record<Variant, string> = {
   compact: '[filter:drop-shadow(0_0_4px_rgba(122,29,42,0.06))]',
 };
 
-/** Training-Spieler — Hero/Liste als normale Grid-Spalte. */
+function srcForVariant(variant: Variant): string {
+  if (variant === 'hero') return getTrainingPlayerHeroSrc();
+  if (variant === 'list') return getTrainingPlayerListSrc();
+  return getTrainingPlayerIconSrc();
+}
+
+/** Training-Spieler — fitted Assets für Hero/Liste. */
 export function TrainingPlayerIcon({
   variant = 'list',
   className = '',
@@ -25,7 +35,7 @@ export function TrainingPlayerIcon({
 }) {
   return (
     <img
-      src={getTrainingPlayerIconSrc()}
+      src={srcForVariant(variant)}
       alt=""
       className={`bg-transparent ${glowClass[variant]} ${sizeClass[variant]} ${className}`}
       aria-hidden
