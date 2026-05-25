@@ -50,11 +50,10 @@ function isSameCalendarDayVienna(a: Date, b: Date): boolean {
   return pa.year === pb.year && pa.month === pb.month && pa.day === pb.day;
 }
 
-export function isUpcomingRelevant(e: EventRow, now: Date): boolean {
+export function isUpcomingRelevant(e: EventRow, _now: Date): boolean {
   const st = e.status ?? 'upcoming';
   if (st === 'finished' || st === 'canceled') return false;
-  const t = e.starts_at ? new Date(e.starts_at).getTime() : 0;
-  return t >= now.getTime() - 60_000;
+  return true;
 }
 
 export function nextUpcoming(events: EventRow[], now: Date): EventRow | null {
@@ -208,8 +207,7 @@ export function pickHomeMatchCard(events: EventRow[], now: Date): HomeMatchCardP
       if (e.kind !== 'match') return false;
       const st = e.status ?? 'upcoming';
       if (st === 'finished' || st === 'canceled') return false;
-      const t = e.starts_at ? new Date(e.starts_at).getTime() : 0;
-      return t >= now.getTime() - 60_000;
+      return true;
     })
     .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
 

@@ -73,11 +73,9 @@ function getEffectiveEventType(e: EventRow): 'game' | 'training' | 'event' | 'ot
   return 'game';
 }
 
-function getTimeBucket(e: EventRow, now: Date): TimeFilterId {
+function getTimeBucket(e: EventRow, _now: Date): TimeFilterId {
   const status = e.status ?? 'upcoming';
   if (status === 'finished' || status === 'canceled') return 'past';
-  const starts = e.starts_at ? new Date(e.starts_at) : null;
-  if (starts && starts.getTime() < now.getTime()) return 'past';
   return 'upcoming';
 }
 
