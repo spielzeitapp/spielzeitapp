@@ -472,36 +472,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             suppressCompactScheduleFooter={scheduleNextMatchHero}
           />
           {scheduleNextMatchHero ? (
-            <div className="relative z-[1] mt-0.5 px-0.5 pb-1.5">
-              <ScheduleHeroMetaToolbar
-                items={[
-                  {
-                    icon: <Clock strokeWidth={2} aria-hidden />,
-                    label: 'Beginn',
-                    value: scheduleMetaTimeDisplay(timeStr),
-                  },
-                  {
-                    icon: <Users strokeWidth={2} aria-hidden />,
-                    label: 'Treffpunkt',
-                    value:
-                      canSeeSensitiveInfo && meetupTimeOnly
-                        ? scheduleMetaTimeDisplay(meetupTimeOnly)
-                        : 'Offen',
-                    accent: Boolean(canSeeSensitiveInfo && meetupTimeOnly),
-                  },
-                  {
-                    icon: <Clock strokeWidth={2} aria-hidden />,
-                    label: 'Ende',
-                    value: scheduleMetaTimeDisplay(endTimeLabel),
-                  },
-                ]}
-                showChevron={isClickable}
-                onChevronClick={isClickable ? handleCardClick : undefined}
-              />
+            <div className="relative z-[1] mt-1.5 px-0.5 pb-1.5">
               {status === 'finished' && isClickable ? (
                 <button
                   type="button"
-                  className="mt-2.5 flex w-full min-h-[52px] items-center gap-3 rounded-[14px] border border-white/[0.06] bg-[rgba(18,18,20,0.92)] px-4 py-3.5 shadow-[0_0_20px_rgba(0,0,0,0.3)]"
+                  className="flex w-full min-h-[52px] items-center gap-3 rounded-[14px] border border-white/[0.06] bg-[rgba(18,18,20,0.92)] px-4 py-3.5 shadow-[0_0_20px_rgba(0,0,0,0.3)]"
                   onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
                 >
                   <CalendarDays className="h-5 w-5 shrink-0 text-white/70" strokeWidth={2} aria-hidden />
@@ -516,13 +491,22 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               ) : canSeeSensitiveInfo && meetupTimeOnly && status !== 'live' ? (
                 <button
                   type="button"
-                  className="mt-2.5 flex w-full min-h-[52px] items-center gap-3 rounded-[14px] border border-[rgba(122,29,42,0.25)] bg-[rgba(122,29,42,0.18)] px-4 py-3.5 shadow-[0_0_28px_rgba(122,29,42,0.12)]"
+                  className="flex w-full min-h-[52px] items-center gap-3 rounded-[14px] border border-[rgba(122,29,42,0.25)] bg-[rgba(122,29,42,0.18)] px-4 py-3.5 shadow-[0_0_28px_rgba(122,29,42,0.12)]"
                   onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
                 >
                   <Users className="h-5 w-5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
                   <span className="min-w-0 flex-1 text-left text-[15px] font-semibold text-white">
                     Treffpunkt: {meetupTimeOnly} Uhr
                   </span>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-white/60" strokeWidth={2} aria-hidden />
+                </button>
+              ) : isClickable ? (
+                <button
+                  type="button"
+                  className="flex w-full min-h-[48px] items-center gap-3 rounded-[14px] border border-white/[0.08] bg-white/[0.04] px-4 py-3"
+                  onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
+                >
+                  <span className="min-w-0 flex-1 text-left text-[15px] font-semibold text-white">Details ansehen</span>
                   <ChevronRight className="h-5 w-5 shrink-0 text-white/60" strokeWidth={2} aria-hidden />
                 </button>
               ) : null}
