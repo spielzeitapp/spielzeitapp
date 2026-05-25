@@ -166,6 +166,7 @@ export function CompactEventCard({
             : undefined
         }
       >
+        {et === 'training' ? <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(122,29,42,0.07)_0%,transparent_60%)]" aria-hidden /> : null}
         <div className="flex w-[60px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-lg border border-white/10 bg-black/25 px-1.5 py-1.5 leading-none">
           <span className="text-[12px] font-semibold uppercase leading-none tracking-widest text-red-400">
             {wdAbbrev}
@@ -346,6 +347,7 @@ export function CompactEventCard({
             : undefined
         }
       >
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(122,29,42,0.07)_0%,transparent_60%)]" aria-hidden />
         <div className={dsScheduleListPanelGlowClass()} aria-hidden />
         <div className={`${dsScheduleDateBoxClass()} relative z-[1] shrink-0 !w-[78px]`}>
           <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>

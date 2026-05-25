@@ -471,6 +471,9 @@ export function ScheduleHeroEventCard({
           : 'relative h-full min-h-0 w-full min-w-0 overflow-hidden'
       }
     >
+      {et === 'training' ? (
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-5%,rgba(122,29,42,0.10)_0%,transparent_60%)]" aria-hidden />
+      ) : null}
       {body}
     </div>
   );
