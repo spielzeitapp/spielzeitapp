@@ -185,6 +185,7 @@ export function ScheduleHeroEventCard({
   void trainerToolbar;
   const ourClubName = getOurTeamDisplayName();
   const { wd, day, mon } = formatHeroDateParts(ev.starts_at);
+  const heroYear = ev.starts_at ? new Date(ev.starts_at).getFullYear().toString() : '';
   const timeStr = formatTimeHHmmDe(ev.starts_at);
   const meetupTimeOnly = formatMeetupTimeOnlyDe(ev.meeting_at);
   const trainingTitle = eventNotesTitle(ev.notes) ?? 'Training';
@@ -384,12 +385,13 @@ export function ScheduleHeroEventCard({
             <span className={dsScheduleHeroDateBoxWeekdayClass()}>{wd}</span>
             <span className={dsScheduleHeroDateBoxDayClass()}>{day}</span>
             <span className={dsScheduleHeroDateBoxMonthClass()}>{mon}</span>
+            {heroYear ? <span className="text-[10px] font-medium leading-tight text-white/50">{heroYear}</span> : null}
           </div>
 
           <TrainingPlayerIcon variant="hero" />
 
           <div className="min-w-0 flex-1 overflow-hidden text-left">
-            <p className="text-[19px] font-bold leading-[1.05] text-white min-[375px]:text-[21px]">{trainingMainTitle}</p>
+            <p className="text-[20px] font-bold leading-[1.05] text-white sm:text-[22px]">{trainingMainTitle}</p>
             <p className="mt-1 line-clamp-2 text-[15px] leading-[1.15] text-white/[0.78]">
               {trainingLocationLine}
             </p>
