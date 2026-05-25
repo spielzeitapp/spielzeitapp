@@ -285,6 +285,21 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const compactParentRow = showAttendanceChip && !showAttendanceCounts && !showManageButtons;
   const heroDateParts = formatHeroDateParts(startsAt);
 
+  const matchPhase: 'pre_meetup' | 'pre_kickoff' | 'live' | 'finished' = (() => {
+    if (status === 'finished' || status === 'completed' || status === 'ended') return 'finished';
+    if (status === 'live' || status === 'running') return 'live';
+    const now = Date.now();
+    if (meetupAt) {
+      const meetupMs = new Date(meetupAt).getTime();
+      if (now >= meetupMs) return 'pre_kickoff';
+    }
+    if (startsAt) {
+      const kickoffMs = new Date(startsAt).getTime();
+      if (now >= kickoffMs - 30 * 60 * 1000) return 'pre_kickoff';
+    }
+    return 'pre_meetup';
+  })();
+
   const attendanceTrailing = (
     <div
       className={[
@@ -410,7 +425,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const scheduleGameHeader =
     scheduleNextMatchHero && effectiveEventType === 'game' ? (
-      <div className="relative z-[1] mb-0 flex w-full min-w-0 items-start justify-between gap-1.5">
+      <div className="relative z-[1] mb-0 flex w-full min-w-0 items-start justify-between gap-1">
         <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
           <span className="text-[13px] font-semibold uppercase leading-none tracking-[0.12em] text-[#B85C68]">
             {heroDateParts.wd}
@@ -423,10 +438,19 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           </span>
           {heroYear ? <span className="text-[12px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
         </div>
-        {status === 'live' ? (
+        {matchPhase === 'live' ? (
           <span className="mt-0.5 inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-600/20 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.25)] animate-pulse">
             <Radio className="h-3 w-3" strokeWidth={2.5} aria-hidden />
             LIVE
+          </span>
+        ) : matchPhase === 'pre_kickoff' ? (
+          <span className="mt-0.5 inline-flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-600/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-emerald-400/80">
+            <Radio className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+            BALD LIVE
+          </span>
+        ) : matchPhase === 'finished' ? (
+          <span className="mt-0.5 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-white/50">
+            BEENDET
           </span>
         ) : null}
         {showScheduleHeroTrailing ? (
@@ -439,14 +463,25 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const cardContent = (
     <>
+      {/* Stadium ambient glow — intensity varies by match phase */}
       <div
         className={
           scheduleNextMatchHero
-            ? 'pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_85%_65%_at_100%_-5%,rgba(255,245,230,0.16)_0%,rgba(122,29,42,0.22)_32%,transparent_65%),radial-gradient(ellipse_90%_50%_at_50%_110%,rgba(58,18,24,0.12)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.06)_0%,transparent_32%)]'
+            ? matchPhase === 'live'
+              ? 'pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,rgba(122,29,42,0.28)_0%,rgba(58,18,24,0.14)_35%,transparent_65%),radial-gradient(ellipse_70%_50%_at_80%_0%,rgba(16,185,129,0.07)_0%,transparent_50%),radial-gradient(ellipse_90%_50%_at_50%_110%,rgba(58,18,24,0.10)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_30%)]'
+              : matchPhase === 'finished'
+                ? 'pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_90%_65%_at_50%_-10%,rgba(122,29,42,0.16)_0%,rgba(58,18,24,0.08)_40%,transparent_65%),radial-gradient(ellipse_90%_50%_at_50%_110%,rgba(20,10,14,0.10)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.03)_0%,transparent_25%)]'
+                : matchPhase === 'pre_kickoff'
+                  ? 'pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,rgba(122,29,42,0.26)_0%,rgba(58,18,24,0.14)_35%,transparent_65%),radial-gradient(ellipse_60%_40%_at_75%_0%,rgba(16,185,129,0.05)_0%,transparent_50%),radial-gradient(ellipse_90%_50%_at_50%_110%,rgba(58,18,24,0.10)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.06)_0%,transparent_30%)]'
+                  : 'pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,rgba(122,29,42,0.24)_0%,rgba(58,18,24,0.12)_35%,transparent_65%),radial-gradient(ellipse_85%_55%_at_100%_-5%,rgba(255,245,230,0.10)_0%,transparent_55%),radial-gradient(ellipse_90%_50%_at_50%_110%,rgba(58,18,24,0.10)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.06)_0%,transparent_30%)]'
             : 'pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_95%_60%_at_100%_0%,rgba(122,29,42,0.09)_0%,transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.02)_0%,transparent_24%)]'
         }
         aria-hidden
       />
+      {/* Vignette overlay for depth */}
+      {scheduleNextMatchHero ? (
+        <div className="pointer-events-none absolute inset-0 z-0 shadow-[inset_0_0_60px_rgba(0,0,0,0.35)]" aria-hidden />
+      ) : null}
       {/* Spielart bei Spielen: oberhalb „ANPFIFF“ in der Mittelspalte (MatchCardGameCore). Training/Event: Titel hier. */}
       {effectiveEventType !== 'game' && !isTrainingCard && headerTitle ? (
         <div className="flex justify-center">
@@ -483,10 +518,10 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           />
           {scheduleNextMatchHero ? (
             <div className="relative z-[1] mt-1 px-0.5 pb-1">
-              {status === 'finished' && isClickable ? (
+              {matchPhase === 'finished' && isClickable ? (
                 <button
                   type="button"
-                  className="flex w-full min-h-[52px] items-center gap-3 rounded-[14px] border border-white/[0.06] bg-[rgba(18,18,20,0.92)] px-4 py-3.5 shadow-[0_0_20px_rgba(0,0,0,0.3)]"
+                  className="flex w-full min-h-[50px] items-center gap-3 rounded-[14px] border border-white/[0.06] bg-[rgba(18,18,20,0.92)] px-4 py-3 shadow-[0_0_20px_rgba(0,0,0,0.3)]"
                   onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
                 >
                   <CalendarDays className="h-5 w-5 shrink-0 text-white/70" strokeWidth={2} aria-hidden />
@@ -496,12 +531,38 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   </div>
                   <ChevronRight className="h-5 w-5 shrink-0 text-white/60" strokeWidth={2} aria-hidden />
                 </button>
-              ) : showScheduleHeroGoLive && onScheduleHeroGoLive ? (
-                <ScheduleHeroLiveCta onClick={onScheduleHeroGoLive} />
-              ) : canSeeSensitiveInfo && meetupTimeOnly && status !== 'live' ? (
+              ) : matchPhase === 'live' ? (
                 <button
                   type="button"
-                  className="flex w-full min-h-[52px] items-center gap-3 rounded-[14px] border border-[rgba(122,29,42,0.25)] bg-[rgba(122,29,42,0.18)] px-4 py-3.5 shadow-[0_0_28px_rgba(122,29,42,0.12)]"
+                  className="flex w-full min-h-[50px] items-center gap-3 rounded-[14px] border border-emerald-400/20 bg-[rgba(16,185,129,0.12)] px-4 py-3 shadow-[0_0_24px_rgba(16,185,129,0.10)]"
+                  onClick={(e) => { e.stopPropagation(); onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick(); }}
+                >
+                  <Radio className="h-5 w-5 shrink-0 text-emerald-400 animate-pulse" strokeWidth={2} aria-hidden />
+                  <span className="min-w-0 flex-1 text-left text-[15px] font-semibold text-white">Zum Livespiel</span>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-emerald-400/70" strokeWidth={2} aria-hidden />
+                </button>
+              ) : matchPhase === 'pre_kickoff' ? (
+                <div className="flex flex-col gap-1.5">
+                  <button
+                    type="button"
+                    className="flex w-full min-h-[50px] items-center gap-3 rounded-[14px] border border-emerald-400/20 bg-[rgba(16,185,129,0.10)] px-4 py-3 shadow-[0_0_20px_rgba(16,185,129,0.08)]"
+                    onClick={(e) => { e.stopPropagation(); onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick(); }}
+                  >
+                    <Radio className="h-5 w-5 shrink-0 text-emerald-400" strokeWidth={2} aria-hidden />
+                    <span className="min-w-0 flex-1 text-left text-[15px] font-semibold text-white">Zum Livespiel</span>
+                    <ChevronRight className="h-5 w-5 shrink-0 text-emerald-400/70" strokeWidth={2} aria-hidden />
+                  </button>
+                  {canSeeSensitiveInfo && meetupTimeOnly ? (
+                    <div className="flex items-center gap-2 px-2 text-[12px] text-white/50">
+                      <Users className="h-3.5 w-3.5 shrink-0 text-[#B85C68]/60" strokeWidth={2} aria-hidden />
+                      <span>Treffpunkt: {meetupTimeOnly} Uhr</span>
+                    </div>
+                  ) : null}
+                </div>
+              ) : canSeeSensitiveInfo && meetupTimeOnly ? (
+                <button
+                  type="button"
+                  className="flex w-full min-h-[50px] items-center gap-3 rounded-[14px] border border-[rgba(122,29,42,0.25)] bg-[rgba(122,29,42,0.18)] px-4 py-3 shadow-[0_0_28px_rgba(122,29,42,0.12)]"
                   onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
                 >
                   <Users className="h-5 w-5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
@@ -513,7 +574,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               ) : isClickable ? (
                 <button
                   type="button"
-                  className="flex w-full min-h-[48px] items-center gap-3 rounded-[14px] border border-white/[0.08] bg-white/[0.04] px-4 py-3"
+                  className="flex w-full min-h-[46px] items-center gap-3 rounded-[14px] border border-white/[0.08] bg-white/[0.04] px-4 py-2.5"
                   onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
                 >
                   <span className="min-w-0 flex-1 text-left text-[15px] font-semibold text-white">Details ansehen</span>
@@ -595,8 +656,22 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     ? 'ring-2 ring-[rgba(122,29,42,0.45)] shadow-[0_0_40px_rgba(122,29,42,0.16)] sm:py-5'
     : '';
   const overflowClass = scheduleNextMatchHero ? 'overflow-visible' : 'overflow-hidden';
+  const heroShadow = scheduleNextMatchHero
+    ? matchPhase === 'live'
+      ? 'shadow-[0_24px_60px_rgba(0,0,0,0.65),0_0_48px_rgba(122,29,42,0.18),0_0_24px_rgba(16,185,129,0.08),inset_0_1px_0_rgba(255,255,255,0.04)]'
+      : matchPhase === 'finished'
+        ? 'shadow-[0_16px_40px_rgba(0,0,0,0.55),0_0_32px_rgba(122,29,42,0.10),inset_0_1px_0_rgba(255,255,255,0.03)]'
+        : 'shadow-[0_24px_60px_rgba(0,0,0,0.65),0_0_48px_rgba(122,29,42,0.22),inset_0_1px_0_rgba(255,255,255,0.05)]'
+    : 'shadow-[0_8px_28px_rgba(0,0,0,0.48),0_0_20px_rgba(122,29,42,0.06),inset_0_1px_0_rgba(255,255,255,0.025)]';
+  const heroBorder = scheduleNextMatchHero
+    ? matchPhase === 'live'
+      ? 'border border-emerald-400/10'
+      : matchPhase === 'finished'
+        ? 'border border-white/[0.04]'
+        : 'border border-[rgba(122,29,42,0.20)]'
+    : '';
   const baseCardClass =
-    `relative w-full max-w-none ${overflowClass} rounded-[16px] bg-[linear-gradient(168deg,#141416_0%,#0A0A0C_58%,#12080C_100%)] px-[15px] py-3 shadow-[0_8px_28px_rgba(0,0,0,0.48),0_0_20px_rgba(122,29,42,0.06),inset_0_1px_0_rgba(255,255,255,0.025)] ${heroRing} ${className}`;
+    `relative w-full max-w-none ${overflowClass} rounded-[16px] bg-[linear-gradient(168deg,#141416_0%,#0A0A0C_58%,#12080C_100%)] px-[15px] py-2.5 ${heroShadow} ${heroBorder} ${heroRing} ${className}`;
   const cardClass =
     isPublicView ? baseCardClass : `${baseCardClass} ${isClickable ? 'cursor-pointer transition ' : ''}`.trim();
 
