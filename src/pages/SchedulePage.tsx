@@ -73,9 +73,16 @@ function getEffectiveEventType(e: EventRow): 'game' | 'training' | 'event' | 'ot
   return 'game';
 }
 
-function getTimeBucket(e: EventRow, _now: Date): TimeFilterId {
+function getTimeBucket(e: EventRow, now: Date): TimeFilterId {
   const status = e.status ?? 'upcoming';
   if (status === 'finished' || status === 'canceled') return 'past';
+  if (status === 'live') return 'upcoming';
+  const et = getEffectiveEventType(e);
+  if (et === 'training' || et === 'event' || et === 'other') {
+    const starts = e.starts_at ? new Date(e.starts_at).getTime() : 0;
+    const TWO_HOURS = 2 * 60 * 60 * 1000;
+    if (starts && starts + TWO_HOURS < now.getTime()) return 'past';
+  }
   return 'upcoming';
 }
 

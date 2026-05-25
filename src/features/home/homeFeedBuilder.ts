@@ -50,9 +50,16 @@ function isSameCalendarDayVienna(a: Date, b: Date): boolean {
   return pa.year === pb.year && pa.month === pb.month && pa.day === pb.day;
 }
 
-export function isUpcomingRelevant(e: EventRow, _now: Date): boolean {
+export function isUpcomingRelevant(e: EventRow, now: Date): boolean {
   const st = e.status ?? 'upcoming';
   if (st === 'finished' || st === 'canceled') return false;
+  if (st === 'live') return true;
+  const kind = e.kind;
+  if (kind === 'training' || kind === 'event') {
+    const starts = e.starts_at ? new Date(e.starts_at).getTime() : 0;
+    const TWO_HOURS = 2 * 60 * 60 * 1000;
+    if (starts && starts + TWO_HOURS < now.getTime()) return false;
+  }
   return true;
 }
 

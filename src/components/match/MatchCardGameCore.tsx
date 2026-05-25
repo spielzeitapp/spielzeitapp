@@ -185,7 +185,7 @@ export function MatchCardKickoffBlock({
   const timeClass = hero
     ? 'mt-3 text-[2.75rem] sm:text-[3.35rem] font-black leading-none tracking-tight text-white tabular-nums drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]'
     : compactScheduleHero
-      ? 'mt-2 text-[28px] sm:text-[32px] font-extrabold leading-none text-white tabular-nums'
+      ? 'mt-1 text-[28px] sm:text-[32px] font-extrabold leading-none text-white tabular-nums'
       : 'mt-2 text-[34px] sm:text-[44px] font-extrabold leading-[1] text-white tabular-nums';
 
   return (
@@ -208,7 +208,7 @@ export function MatchCardKickoffBlock({
           hero
             ? 'text-[9px] sm:text-[10px] tracking-[0.4em]'
             : compactScheduleHero
-              ? 'mt-1 text-[11px] tracking-[0.32em] text-red-300'
+              ? 'mt-0 text-[11px] tracking-[0.32em] text-red-300'
               : 'text-[12px] tracking-[0.3em]'
         } font-bold uppercase`}
       >
@@ -336,7 +336,7 @@ export function MatchCardGameCore({
   const leftLogoUrl = getLogoSrcForDisplayName(safeLeftName, leftLogoUrlProp ?? null);
   const rightLogoUrl = getLogoSrcForDisplayName(safeRightName, opponentLogoUrl ?? null);
 
-  const gridMt = hero ? 'mt-8' : compactTeamLayout ? 'mt-2' : 'mt-4';
+  const gridMt = hero ? 'mt-8' : compactTeamLayout ? 'mt-0.5' : 'mt-4';
   const gridGap = hero ? 'gap-x-2 sm:gap-x-4' : compactTeamLayout ? 'gap-x-1 sm:gap-x-2' : 'gap-x-4';
   const meetupMt = hero ? 'mt-6' : compactTeamLayout ? 'mt-3' : 'mt-5';
 

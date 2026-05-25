@@ -277,6 +277,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const showScheduleHeroTrailing =
     scheduleNextMatchHero &&
     effectiveEventType === 'game' &&
+    status !== 'live' &&
     ((showAttendanceCounts && attendanceCounts != null) ||
       showManageButtons ||
       showAttendanceChip);
@@ -409,7 +410,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const scheduleGameHeader =
     scheduleNextMatchHero && effectiveEventType === 'game' ? (
-      <div className="relative z-[1] mb-1.5 flex w-full min-w-0 items-start justify-between gap-1.5">
+      <div className="relative z-[1] mb-0 flex w-full min-w-0 items-start justify-between gap-1.5">
         <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
           <span className="text-[13px] font-semibold uppercase leading-none tracking-[0.12em] text-[#B85C68]">
             {heroDateParts.wd}
@@ -481,7 +482,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             suppressCompactScheduleFooter={scheduleNextMatchHero}
           />
           {scheduleNextMatchHero ? (
-            <div className="relative z-[1] mt-1.5 px-0.5 pb-1.5">
+            <div className="relative z-[1] mt-1 px-0.5 pb-1">
               {status === 'finished' && isClickable ? (
                 <button
                   type="button"
