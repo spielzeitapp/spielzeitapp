@@ -225,7 +225,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   };
 
   const isClickable = !isPublicView && Boolean(eventId && onNavigate);
-  const rightLogoOverride = opponentLogoUrl ?? null;
+  const opponentIsRight = isHome !== false;
+  const rightLogoOverride = opponentIsRight ? (opponentLogoUrl ?? null) : null;
+  const leftLogoOverride = opponentIsRight ? null : (opponentLogoUrl ?? null);
 
   const showManageButtons = canManage && (onEdit || onDelete);
   const showAttendanceChip =
@@ -455,6 +457,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             leftName={leftName}
             rightName={rightName}
             opponentLogoUrl={rightLogoOverride}
+            leftLogoUrl={leftLogoOverride}
             timeDisplay={timeStr}
             isMatch={isMatch}
             showScore={showScore}

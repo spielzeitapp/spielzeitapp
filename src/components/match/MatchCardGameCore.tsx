@@ -262,6 +262,7 @@ export type MatchCardGameCoreProps = {
   leftName: string;
   rightName: string;
   opponentLogoUrl?: string | null;
+  leftLogoUrl?: string | null;
   timeDisplay: string;
   isMatch: boolean;
   showScore: boolean;
@@ -302,6 +303,7 @@ export function MatchCardGameCore({
   leftName,
   rightName,
   opponentLogoUrl,
+  leftLogoUrl: leftLogoUrlProp,
   timeDisplay,
   isMatch,
   showScore,
@@ -331,7 +333,7 @@ export function MatchCardGameCore({
   const compactTeamLayout = cs || cd;
   const leftSplit = splitPrefixAndName(safeLeftName);
   const rightSplit = splitPrefixAndName(safeRightName);
-  const leftLogoUrl = getLogoSrcForDisplayName(safeLeftName, null);
+  const leftLogoUrl = getLogoSrcForDisplayName(safeLeftName, leftLogoUrlProp ?? null);
   const rightLogoUrl = getLogoSrcForDisplayName(safeRightName, opponentLogoUrl ?? null);
 
   const gridMt = hero ? 'mt-8' : compactTeamLayout ? 'mt-2' : 'mt-4';

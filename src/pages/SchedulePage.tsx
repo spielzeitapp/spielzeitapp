@@ -639,8 +639,8 @@ export const SchedulePage: React.FC = () => {
   const displayEvents = useMemo(() => {
     const now = new Date();
     const statusWeight: Record<string, number> = {
+      live: -1,
       upcoming: 0,
-      live: 1,
       finished: 2,
       canceled: 3,
     };
