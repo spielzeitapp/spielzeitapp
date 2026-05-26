@@ -123,7 +123,7 @@ function TeamBlock({ logoUrl, prefix, name, hero, compact = false }: TeamBlockPr
 
   if (compact) {
     return (
-      <div className="flex min-w-0 max-w-full flex-col items-center justify-center gap-0.5 text-center">
+      <div className="flex min-w-0 max-w-full flex-col items-center justify-center text-center">
         {imgNode}
         {prefixNode}
         {nameNode}

@@ -541,21 +541,21 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
               {/* ── Info-Strip + CTA (Schedule Hero only) ── */}
               {scheduleNextMatchHero ? (
-                <div className="mt-1 space-y-1 pb-0.5">
+                <div className="mt-0.5 space-y-1 pb-0.5">
                   {(canSeeSensitiveInfo && meetupTimeOnly) || placeLine ? (
-                    <div className="flex items-stretch gap-px overflow-hidden rounded-[10px] border border-white/[0.04] bg-black/30">
+                    <div className="flex flex-col gap-1.5 border-t border-white/[0.06] pt-1.5">
                       {canSeeSensitiveInfo && meetupTimeOnly ? (
-                        <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0 bg-white/[0.02] px-2 py-1.5">
-                          <Clock className="h-3 w-3 text-red-400" strokeWidth={2} aria-hidden />
-                          <span className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.06em] text-red-300/70">Treffpunkt</span>
-                          <span className="text-[12px] font-bold tabular-nums leading-tight text-white/90">{meetupTimeOnly}</span>
+                        <div className="flex items-center gap-2 text-[13px]">
+                          <Clock className="h-3.5 w-3.5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                          <span className="text-[#B8B0B4]">Treffpunkt</span>
+                          <span className="ml-auto font-semibold tabular-nums text-white">{scheduleMetaTimeDisplay(meetupTimeOnly)}</span>
                         </div>
                       ) : null}
                       {placeLine ? (
-                        <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0 bg-white/[0.02] px-2 py-1.5">
-                          <MapPin className="h-3 w-3 text-red-400" strokeWidth={2} aria-hidden />
-                          <span className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.06em] text-red-300/70">Spielort</span>
-                          <span className="line-clamp-2 text-center text-[11px] font-medium leading-tight text-white/90">{placeLine}</span>
+                        <div className="flex items-start gap-2 text-[13px]">
+                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                          <span className="text-[#B8B0B4]">Spielort</span>
+                          <span className="ml-auto max-w-[58%] text-right font-medium leading-snug text-white">{placeLine}</span>
                         </div>
                       ) : null}
                     </div>
@@ -565,7 +565,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   {matchPhase === 'finished' && isClickable ? (
                     <button
                       type="button"
-                      className="flex h-10 w-full items-center gap-2.5 rounded-[10px] border border-white/[0.05] bg-[rgba(14,14,16,0.88)] px-3 shadow-[0_0_12px_rgba(0,0,0,0.20)]"
+                      className="flex h-9 w-full items-center gap-2.5 rounded-[10px] border border-white/[0.05] bg-[rgba(14,14,16,0.88)] px-3 shadow-[0_0_12px_rgba(0,0,0,0.20)]"
                       onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
                     >
                       <CalendarDays className="h-3.5 w-3.5 shrink-0 text-white/50" strokeWidth={2} aria-hidden />
@@ -575,7 +575,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   ) : matchPhase === 'live' ? (
                     <button
                       type="button"
-                      className="flex h-10 w-full items-center gap-2.5 rounded-[10px] border border-emerald-400/15 bg-emerald-900/25 px-3 shadow-[0_0_14px_rgba(16,185,129,0.08)]"
+                      className="flex h-9 w-full items-center gap-2.5 rounded-[10px] border border-emerald-400/15 bg-emerald-900/25 px-3 shadow-[0_0_14px_rgba(16,185,129,0.08)]"
                       onClick={(e) => { e.stopPropagation(); onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick(); }}
                     >
                       <Radio className="h-3.5 w-3.5 shrink-0 text-emerald-400 animate-pulse" strokeWidth={2} aria-hidden />
@@ -585,7 +585,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   ) : matchPhase === 'pre_kickoff' ? (
                     <button
                       type="button"
-                      className="flex h-10 w-full items-center gap-2.5 rounded-[10px] border border-emerald-400/12 bg-emerald-900/18 px-3 shadow-[0_0_12px_rgba(16,185,129,0.06)]"
+                      className="flex h-9 w-full items-center gap-2.5 rounded-[10px] border border-emerald-400/12 bg-emerald-900/18 px-3 shadow-[0_0_12px_rgba(16,185,129,0.06)]"
                       onClick={(e) => { e.stopPropagation(); onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick(); }}
                     >
                       <Radio className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2} aria-hidden />
@@ -595,7 +595,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   ) : isClickable ? (
                     <button
                       type="button"
-                      className="flex h-10 w-full items-center gap-2.5 rounded-[10px] border border-[rgba(122,29,42,0.15)] bg-[rgba(122,29,42,0.10)] px-3 shadow-[0_0_16px_rgba(122,29,42,0.06)]"
+                      className="flex h-9 w-full items-center gap-2.5 rounded-[10px] border border-[rgba(122,29,42,0.15)] bg-[rgba(122,29,42,0.10)] px-3 shadow-[0_0_16px_rgba(122,29,42,0.06)]"
                       onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
                     >
                       <Radio className="h-3.5 w-3.5 shrink-0 text-red-400/70" strokeWidth={2} aria-hidden />
