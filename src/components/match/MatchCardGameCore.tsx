@@ -79,7 +79,7 @@ function TeamBlock({ logoUrl, prefix, name, hero, compact = false }: TeamBlockPr
   const nameClass = hero
     ? 'mt-1 w-full max-w-[min(200px,46vw)] text-[17px] font-bold leading-snug text-white min-[390px]:text-[17px] sm:max-w-[220px] sm:text-[17px]'
     : compact
-      ? 'mt-0.5 w-full min-w-0 max-w-full px-0.5 text-center text-[11px] font-medium leading-tight text-white/70'
+      ? 'mt-0.5 w-full min-w-0 max-w-full px-0.5 text-center text-[11px] font-semibold leading-tight text-white'
       : 'mt-0.5 max-w-[184px] text-[17px] font-semibold leading-snug text-white sm:max-w-[200px]';
 
   const imgNode = logoUrl ? (

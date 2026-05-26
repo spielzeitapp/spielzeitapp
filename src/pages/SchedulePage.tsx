@@ -925,9 +925,23 @@ export const SchedulePage: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <h1 className={dsPageTitleClass()}>
-                  {normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine'}
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className={dsPageTitleClass()}>
+                    {normalizedUiRole === 'fan' ? 'Spielplan' : 'Termine'}
+                  </h1>
+                  {canManage ? (
+                    <button
+                      type="button"
+                      onClick={() => setCreateModalOpen(true)}
+                      disabled={!teamSeasonId}
+                      className={`${dsSchedulePlusButtonClass()} h-8 w-8 shrink-0 text-[16px] leading-none`}
+                      aria-label="Termin anlegen"
+                      title="Termin anlegen"
+                    >
+                      +
+                    </button>
+                  ) : null}
+                </div>
                 <div
                   className={`mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-lg border border-white/10 bg-[rgba(14,14,18,0.72)] px-2.5 py-1 text-xs sm:text-sm ${dsSublineClass()}`}
                   role="note"
@@ -946,18 +960,6 @@ export const SchedulePage: React.FC = () => {
                     <CalendarPlus className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
                     <span className="sm:hidden">Abo</span>
                     <span className="hidden sm:inline">Kalender abonnieren</span>
-                  </button>
-                ) : null}
-                {canManage ? (
-                  <button
-                    type="button"
-                    onClick={() => setCreateModalOpen(true)}
-                    disabled={!teamSeasonId}
-                    className={`${dsSchedulePlusButtonClass()} h-9 w-9 shrink-0 text-[17px] leading-none`}
-                    aria-label="Termin anlegen"
-                    title="Termin anlegen"
-                  >
-                    +
                   </button>
                 ) : null}
               </div>

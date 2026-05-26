@@ -468,18 +468,21 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               </span>
               {heroYear ? <span className="text-[10px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
               {showAttendanceCounts && attendanceCounts ? (
-                <div className="mt-3 flex flex-col items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex h-[26px] w-[38px] items-center justify-center gap-0.5 rounded-xl bg-emerald-500/15 shadow-[0_0_8px_rgba(16,185,129,0.12)]">
-                    <ThumbsUp className="h-2.5 w-2.5 text-emerald-400" strokeWidth={2.5} aria-hidden />
-                    <span className="text-[11px] font-bold tabular-nums text-emerald-400">{attendanceCounts.yes}</span>
+                <div className="mt-2.5 flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex flex-col items-center">
+                    <ThumbsUp className="h-3 w-3 text-emerald-400" strokeWidth={2.5} aria-hidden />
+                    <span className="text-[13px] font-bold tabular-nums leading-tight text-emerald-400">{attendanceCounts.yes}</span>
+                    <span className="text-[7px] font-bold uppercase tracking-wider text-emerald-400/70">Zusagen</span>
                   </div>
-                  <div className="flex h-[26px] w-[38px] items-center justify-center gap-0.5 rounded-xl bg-amber-500/12 shadow-[0_0_8px_rgba(245,158,11,0.10)]">
-                    <CircleHelp className="h-2.5 w-2.5 text-amber-400" strokeWidth={2.5} aria-hidden />
-                    <span className="text-[11px] font-bold tabular-nums text-amber-400">{attendanceCounts.open}</span>
+                  <div className="flex flex-col items-center">
+                    <CircleHelp className="h-3 w-3 text-amber-400" strokeWidth={2.5} aria-hidden />
+                    <span className="text-[13px] font-bold tabular-nums leading-tight text-amber-400">{attendanceCounts.open}</span>
+                    <span className="text-[7px] font-bold uppercase tracking-wider text-amber-400/70">Offen</span>
                   </div>
-                  <div className="flex h-[26px] w-[38px] items-center justify-center gap-0.5 rounded-xl bg-rose-500/15 shadow-[0_0_8px_rgba(244,63,94,0.12)]">
-                    <ThumbsDown className="h-2.5 w-2.5 text-rose-400" strokeWidth={2.5} aria-hidden />
-                    <span className="text-[11px] font-bold tabular-nums text-rose-400">{attendanceCounts.no}</span>
+                  <div className="flex flex-col items-center">
+                    <ThumbsDown className="h-3 w-3 text-rose-400" strokeWidth={2.5} aria-hidden />
+                    <span className="text-[13px] font-bold tabular-nums leading-tight text-rose-400">{attendanceCounts.no}</span>
+                    <span className="text-[7px] font-bold uppercase tracking-wider text-rose-400/70">Absagen</span>
                   </div>
                 </div>
               ) : null}
@@ -573,32 +576,40 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   )}
 
                   {matchPhase === 'finished' && isClickable ? (
-                    <button type="button" className="relative flex flex-col items-center px-1 py-2 pr-4 text-center" onClick={() => handleCardClick()}>
+                    <button type="button" className="relative flex flex-col items-center justify-center overflow-hidden py-2 pl-1 pr-6 text-center" onClick={() => handleCardClick()}>
                       <CalendarDays className="h-3.5 w-3.5 text-white/50" strokeWidth={2} aria-hidden />
                       <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-white/50">Spielbericht</span>
-                      <span className="mt-0.5 text-[11px] font-medium text-white/70">ansehen</span>
-                      <ChevronRight className="absolute right-0.5 top-1/2 h-3 w-3 -translate-y-1/2 text-white/25" strokeWidth={2} aria-hidden />
+                      <span className="mt-0.5 text-[10px] font-medium leading-tight text-white/70">ansehen</span>
+                      <div className="absolute inset-y-0 right-0 flex w-5 items-center justify-center bg-white/[0.08]">
+                        <ChevronRight className="h-4 w-4 text-white/40" strokeWidth={2.5} aria-hidden />
+                      </div>
                     </button>
                   ) : matchPhase === 'live' ? (
-                    <button type="button" className="relative flex flex-col items-center px-1 py-2 pr-4 text-center" onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
+                    <button type="button" className="relative flex flex-col items-center justify-center overflow-hidden py-2 pl-1 pr-6 text-center" onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
                       <Radio className="h-3.5 w-3.5 text-emerald-400 animate-pulse" strokeWidth={2} aria-hidden />
                       <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Live</span>
-                      <span className="mt-0.5 text-[11px] font-medium text-white/75">öffnen</span>
-                      <ChevronRight className="absolute right-0.5 top-1/2 h-3 w-3 -translate-y-1/2 text-emerald-400/35" strokeWidth={2} aria-hidden />
+                      <span className="mt-0.5 text-[10px] font-medium leading-tight text-white/75">öffnen</span>
+                      <div className="absolute inset-y-0 right-0 flex w-5 items-center justify-center bg-emerald-600/80">
+                        <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden />
+                      </div>
                     </button>
                   ) : matchPhase === 'pre_kickoff' ? (
-                    <button type="button" className="relative flex flex-col items-center px-1 py-2 pr-4 text-center" onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
+                    <button type="button" className="relative flex flex-col items-center justify-center overflow-hidden py-2 pl-1 pr-6 text-center" onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
                       <Radio className="h-3.5 w-3.5 text-emerald-400" strokeWidth={2} aria-hidden />
                       <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Livespiel</span>
-                      <span className="mt-0.5 text-[11px] font-medium text-white/75">starten</span>
-                      <ChevronRight className="absolute right-0.5 top-1/2 h-3 w-3 -translate-y-1/2 text-emerald-400/35" strokeWidth={2} aria-hidden />
+                      <span className="mt-0.5 text-[10px] font-medium leading-tight text-white/75">starten</span>
+                      <div className="absolute inset-y-0 right-0 flex w-5 items-center justify-center bg-emerald-700/60">
+                        <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden />
+                      </div>
                     </button>
                   ) : isClickable ? (
-                    <button type="button" className="relative flex flex-col items-center px-1 py-2 pr-4 text-center" onClick={() => handleCardClick()}>
-                      <Radio className="h-3.5 w-3.5 text-red-400/70" strokeWidth={2} aria-hidden />
+                    <button type="button" className="relative flex flex-col items-center justify-center overflow-hidden py-2 pl-1 pr-6 text-center" onClick={() => handleCardClick()}>
+                      <Radio className="h-3.5 w-3.5 text-red-400" strokeWidth={2} aria-hidden />
                       <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-red-400">Livespiel</span>
-                      <span className="mt-0.5 text-[11px] font-medium text-white/75">vorbereiten</span>
-                      <ChevronRight className="absolute right-0.5 top-1/2 h-3 w-3 -translate-y-1/2 text-white/25" strokeWidth={2} aria-hidden />
+                      <span className="mt-0.5 text-[10px] font-medium leading-tight text-white/70">zur Vorbereitung</span>
+                      <div className="absolute inset-y-0 right-0 flex w-5 items-center justify-center bg-red-700/80">
+                        <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden />
+                      </div>
                     </button>
                   ) : null}
                 </div>
