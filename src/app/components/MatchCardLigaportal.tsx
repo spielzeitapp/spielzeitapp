@@ -455,7 +455,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       {effectiveEventType === 'game' ? (
         isHeroLayout ? (
           <div className="relative z-[1] flex min-h-0 w-full">
-            {/* ── Date Column + Attendance ── */}
+            {/* ── Date Column ── */}
             <div className="flex w-[42px] shrink-0 flex-col items-center justify-center">
               <span className="text-[10px] font-bold uppercase leading-none tracking-[0.18em] text-red-300">
                 {heroDateParts.wd}
@@ -467,22 +467,6 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 {heroDateParts.mon}
               </span>
               {heroYear ? <span className="text-[10px] font-medium leading-tight text-white/40">{heroYear}</span> : null}
-              {showAttendanceCounts && attendanceCounts ? (
-                <div className="mt-2 flex flex-col items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex h-7 w-full items-center justify-center gap-0.5 rounded-xl bg-emerald-500/15 border border-emerald-500/25 px-1">
-                    <ThumbsUp className="h-2.5 w-2.5 text-emerald-400" strokeWidth={2.5} aria-hidden />
-                    <span className="text-[11px] font-semibold tabular-nums text-emerald-400">{attendanceCounts.yes}</span>
-                  </div>
-                  <div className="flex h-7 w-full items-center justify-center gap-0.5 rounded-xl bg-amber-500/12 border border-amber-500/25 px-1">
-                    <CircleHelp className="h-2.5 w-2.5 text-amber-400" strokeWidth={2.5} aria-hidden />
-                    <span className="text-[11px] font-semibold tabular-nums text-amber-400">{attendanceCounts.open}</span>
-                  </div>
-                  <div className="flex h-7 w-full items-center justify-center gap-0.5 rounded-xl bg-rose-500/15 border border-rose-500/25 px-1">
-                    <ThumbsDown className="h-2.5 w-2.5 text-rose-400" strokeWidth={2.5} aria-hidden />
-                    <span className="text-[11px] font-semibold tabular-nums text-rose-400">{attendanceCounts.no}</span>
-                  </div>
-                </div>
-              ) : null}
             </div>
 
             <div className="mx-1 w-px self-stretch bg-white/[0.06]" aria-hidden />
@@ -492,7 +476,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               {/* Match-Type Badge + Phase Badge */}
               <div className="flex flex-wrap items-center justify-center gap-1.5 pb-0.5">
                 {matchTypeLabel ? (
-                  <span className="inline-flex items-center rounded-full border border-red-500/40 bg-red-950/20 px-2 py-[2px] text-[9px] font-bold uppercase tracking-[0.10em] text-white/90">
+                  <span className="inline-flex items-center rounded-full border border-red-500/40 bg-black/25 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white/90">
                     {matchTypeLabel}
                   </span>
                 ) : null}
@@ -542,7 +526,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               {/* ── Info-Strip + CTA (Schedule Hero only) ── */}
               {scheduleNextMatchHero ? (
                 <div className="mt-0.5 space-y-1 pb-0.5">
-                  {(canSeeSensitiveInfo && meetupTimeOnly) || placeLine ? (
+                  {(canSeeSensitiveInfo && meetupTimeOnly) || placeLine || (showAttendanceCounts && attendanceCounts) ? (
                     <div className="flex flex-col gap-1.5 border-t border-white/[0.06] pt-1.5">
                       {canSeeSensitiveInfo && meetupTimeOnly ? (
                         <div className="flex items-center gap-2 text-[13px]">
@@ -558,6 +542,13 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                           <span className="ml-auto max-w-[58%] text-right font-medium leading-snug text-white">{placeLine}</span>
                         </div>
                       ) : null}
+                      {showAttendanceCounts && attendanceCounts ? (
+                        <div className="flex items-center gap-2 text-[13px]">
+                          <Users className="h-3.5 w-3.5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                          <span className="text-[#B8B0B4]">Zusagen</span>
+                          <span className="ml-auto font-semibold tabular-nums text-white">{attendanceCounts.yes}/{attendanceCounts.yes + attendanceCounts.no + attendanceCounts.open}</span>
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
 
@@ -565,7 +556,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   {matchPhase === 'finished' && isClickable ? (
                     <button
                       type="button"
-                      className="flex h-9 w-full items-center gap-2.5 rounded-[10px] border border-white/[0.05] bg-[rgba(14,14,16,0.88)] px-3 shadow-[0_0_12px_rgba(0,0,0,0.20)]"
+                      className="flex h-10 w-full items-center gap-2.5 rounded-[10px] border border-white/[0.05] bg-[rgba(14,14,16,0.88)] px-3 shadow-[0_0_12px_rgba(0,0,0,0.20)]"
                       onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
                     >
                       <CalendarDays className="h-3.5 w-3.5 shrink-0 text-white/50" strokeWidth={2} aria-hidden />
@@ -575,7 +566,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   ) : matchPhase === 'live' ? (
                     <button
                       type="button"
-                      className="flex h-9 w-full items-center gap-2.5 rounded-[10px] border border-emerald-400/15 bg-emerald-900/25 px-3 shadow-[0_0_14px_rgba(16,185,129,0.08)]"
+                      className="flex h-10 w-full items-center gap-2.5 rounded-[10px] border border-emerald-400/15 bg-emerald-900/25 px-3 shadow-[0_0_14px_rgba(16,185,129,0.08)]"
                       onClick={(e) => { e.stopPropagation(); onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick(); }}
                     >
                       <Radio className="h-3.5 w-3.5 shrink-0 text-emerald-400 animate-pulse" strokeWidth={2} aria-hidden />
@@ -585,7 +576,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   ) : matchPhase === 'pre_kickoff' ? (
                     <button
                       type="button"
-                      className="flex h-9 w-full items-center gap-2.5 rounded-[10px] border border-emerald-400/12 bg-emerald-900/18 px-3 shadow-[0_0_12px_rgba(16,185,129,0.06)]"
+                      className="flex h-10 w-full items-center gap-2.5 rounded-[10px] border border-emerald-400/12 bg-emerald-900/18 px-3 shadow-[0_0_12px_rgba(16,185,129,0.06)]"
                       onClick={(e) => { e.stopPropagation(); onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick(); }}
                     >
                       <Radio className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2} aria-hidden />
@@ -595,7 +586,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   ) : isClickable ? (
                     <button
                       type="button"
-                      className="flex h-9 w-full items-center gap-2.5 rounded-[10px] border border-[rgba(122,29,42,0.15)] bg-[rgba(122,29,42,0.10)] px-3 shadow-[0_0_16px_rgba(122,29,42,0.06)]"
+                      className="flex h-10 w-full items-center gap-2.5 rounded-[10px] border border-[rgba(122,29,42,0.15)] bg-[rgba(122,29,42,0.10)] px-3 shadow-[0_0_16px_rgba(122,29,42,0.06)]"
                       onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
                     >
                       <Radio className="h-3.5 w-3.5 shrink-0 text-red-400/70" strokeWidth={2} aria-hidden />
