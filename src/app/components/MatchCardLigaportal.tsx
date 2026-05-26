@@ -454,6 +454,92 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
       {effectiveEventType === 'game' ? (
         isHeroLayout ? (
+          matchPhase === 'live' && scheduleNextMatchHero ? (
+            /* ── Live Hero (simplified — score + CTA only) ── */
+            <div className="relative z-[1] flex flex-col items-center gap-1.5 px-1 py-1">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-900/35 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.10em] text-emerald-400 shadow-[0_0_14px_rgba(16,185,129,0.25)] animate-pulse">
+                <Radio className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+                LIVE
+              </span>
+              <MatchCardGameCore
+                headerTitle={null}
+                kickoffSubtitleAboveHeader={null}
+                kickoffHeaderLabel="LIVE"
+                leftName={leftName}
+                rightName={rightName}
+                opponentLogoUrl={rightLogoOverride}
+                leftLogoUrl={leftLogoOverride}
+                timeDisplay={timeStr}
+                isMatch={true}
+                showScore={showScore}
+                homeScore={home}
+                awayScore={away}
+                kickoffLocation={null}
+                meetupTimeOnly=""
+                showMeetupPill={false}
+                endTimeLabel={null}
+                descriptionText={null}
+                variant="schedule"
+                kickoffShowUhr={false}
+                compactScheduleHero
+                compactDetailGame={false}
+                suppressCompactScheduleFooter
+              />
+              <p className="text-[11px] font-medium text-emerald-400/60">Jetzt live</p>
+              <button
+                type="button"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-emerald-400/20 bg-emerald-600/20 px-4 shadow-[0_0_20px_rgba(16,185,129,0.12)]"
+                onClick={(e) => { e.stopPropagation(); onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick(); }}
+              >
+                <Radio className="h-4 w-4 text-emerald-400" strokeWidth={2} aria-hidden />
+                <span className="text-[13px] font-semibold text-emerald-400">Livespiel öffnen</span>
+                <ChevronRight className="h-4 w-4 text-emerald-400/50" strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+          ) : matchPhase === 'finished' && scheduleNextMatchHero ? (
+            /* ── Finished Hero (simplified — result + CTA) ── */
+            <div className="relative z-[1] flex flex-col items-center gap-1.5 px-1 py-1">
+              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.10em] text-white/40">
+                BEENDET
+              </span>
+              <MatchCardGameCore
+                headerTitle={null}
+                kickoffSubtitleAboveHeader={null}
+                kickoffHeaderLabel="ENDSTAND"
+                leftName={leftName}
+                rightName={rightName}
+                opponentLogoUrl={rightLogoOverride}
+                leftLogoUrl={leftLogoOverride}
+                timeDisplay={timeStr}
+                isMatch={true}
+                showScore={showScore}
+                homeScore={home}
+                awayScore={away}
+                kickoffLocation={null}
+                meetupTimeOnly=""
+                showMeetupPill={false}
+                endTimeLabel={null}
+                descriptionText={null}
+                variant="schedule"
+                kickoffShowUhr={false}
+                compactScheduleHero
+                compactDetailGame={false}
+                suppressCompactScheduleFooter
+              />
+              <p className="text-[11px] font-medium text-white/40">Spiel beendet</p>
+              {isClickable ? (
+                <button
+                  type="button"
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-[10px] border border-white/[0.06] bg-white/[0.04] px-4"
+                  onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
+                >
+                  <CalendarDays className="h-4 w-4 text-white/50" strokeWidth={2} aria-hidden />
+                  <span className="text-[13px] font-semibold text-white/70">Zum Spielbericht</span>
+                  <ChevronRight className="h-4 w-4 text-white/30" strokeWidth={2} aria-hidden />
+                </button>
+              ) : null}
+            </div>
+          ) : (
           <div className="relative z-[1] flex min-h-0 w-full">
             {/* ── Date Column + Attendance ── */}
             <div className="flex w-[42px] shrink-0 flex-col items-center pt-1">
@@ -616,6 +702,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               ) : null}
             </div>
           </div>
+          )
         ) : (
           <MatchCardGameCore
             headerTitle={null}
