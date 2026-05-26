@@ -274,13 +274,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         onScheduleHeroGoLive,
     );
 
-  const showScheduleHeroTrailing =
-    scheduleNextMatchHero &&
-    effectiveEventType === 'game' &&
-    status !== 'live' &&
-    ((showAttendanceCounts && attendanceCounts != null) ||
-      showManageButtons ||
-      showAttendanceChip);
+  const showScheduleHeroTrailing = false;
 
   const isHeroLayout = (scheduleNextMatchHero || compactDetailGame) && effectiveEventType === 'game';
 
@@ -427,7 +421,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const scheduleGameHeader =
     isHeroLayout ? (
-      <div className="relative z-[1] mb-0 flex w-full min-w-0 items-start justify-between gap-1">
+      <div className="relative z-[1] mb-0 flex w-full min-w-0 items-center gap-2">
         <div className="flex w-[48px] shrink-0 flex-col items-start justify-center gap-0.5 text-left">
           <span className="text-[10px] font-semibold uppercase leading-none tracking-[0.14em] text-[#B85C68]">
             {heroDateParts.wd}
@@ -435,14 +429,14 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           <span className="text-[1.65rem] font-bold tabular-nums leading-none text-white">
             {heroDateParts.day}
           </span>
-          <span className="text-[10px] font-medium leading-tight text-[#B8B0B4]">
+          <span className="text-[10px] font-medium uppercase leading-tight text-white/60">
             {heroDateParts.mon}
           </span>
           {heroYear ? <span className="text-[9px] font-medium leading-tight text-white/35">{heroYear}</span> : null}
         </div>
         <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5">
           {matchTypeLabel ? (
-            <span className="inline-flex items-center rounded-full border border-[rgba(122,29,42,0.18)] bg-[rgba(122,29,42,0.10)] px-2 py-px text-[8px] font-bold uppercase tracking-[0.10em] text-[#B85C68]/80">
+            <span className="inline-flex items-center rounded-full border border-[rgba(122,29,42,0.18)] bg-[rgba(122,29,42,0.10)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#B85C68]">
               {matchTypeLabel}
             </span>
           ) : null}
@@ -462,11 +456,6 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             </span>
           ) : null}
         </div>
-        {showScheduleHeroTrailing ? (
-          <div className="min-w-0 max-w-[min(48%,10rem)] shrink sm:max-w-none">
-            {attendanceTrailing}
-          </div>
-        ) : null}
       </div>
     ) : null;
 
@@ -517,7 +506,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             showScore={showScore}
             homeScore={home}
             awayScore={away}
-            kickoffLocation={detailGameKickoffLocation}
+            kickoffLocation={isHeroLayout ? null : detailGameKickoffLocation}
             meetupTimeOnly={meetupTimeOnly}
             showMeetupPill={isHeroLayout ? false : Boolean(canSeeSensitiveInfo && meetupTimeOnly)}
             endTimeLabel={isHeroLayout ? null : endTimeLabel}
@@ -535,23 +524,23 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 <div className="flex items-stretch gap-px overflow-hidden rounded-[10px] border border-white/[0.04] bg-black/30">
                   {canSeeSensitiveInfo && meetupTimeOnly ? (
                     <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0 bg-white/[0.02] px-2 py-1.5">
-                      <Users className="h-3 w-3 text-[#B85C68]/60" strokeWidth={2} aria-hidden />
-                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.06em] text-white/35">Treffpunkt</span>
-                      <span className="text-[12px] font-bold tabular-nums leading-tight text-white/90">{meetupTimeOnly}</span>
+                      <Users className="h-3 w-3 text-red-400" strokeWidth={2} aria-hidden />
+                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.06em] text-red-300/70">Treffpunkt</span>
+                      <span className="text-[12px] font-bold tabular-nums leading-tight text-white/85">{meetupTimeOnly}</span>
                     </div>
                   ) : null}
                   {placeLine ? (
                     <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0 bg-white/[0.02] px-2 py-1.5">
-                      <MapPin className="h-3 w-3 text-white/30" strokeWidth={2} aria-hidden />
-                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.06em] text-white/35">Spielort</span>
-                      <span className="line-clamp-1 text-center text-[11px] font-medium leading-tight text-white/70">{(placeLine.split(',')[0]?.trim()) || placeLine}</span>
+                      <MapPin className="h-3 w-3 text-red-400" strokeWidth={2} aria-hidden />
+                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.06em] text-red-300/70">Spielort</span>
+                      <span className="line-clamp-1 text-center text-[11px] font-medium leading-tight text-white/85">{(placeLine.split(',')[0]?.trim()) || placeLine}</span>
                     </div>
                   ) : null}
                   {showAttendanceCounts && attendanceCounts ? (
                     <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0 bg-white/[0.02] px-2 py-1.5">
-                      <Users className="h-3 w-3 text-white/30" strokeWidth={2} aria-hidden />
-                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.06em] text-white/35">Zusagen</span>
-                      <span className="text-[12px] font-bold tabular-nums leading-tight text-white/90">{attendanceCounts.yes}/{attendanceCounts.yes + attendanceCounts.no + attendanceCounts.open}</span>
+                      <Users className="h-3 w-3 text-red-400" strokeWidth={2} aria-hidden />
+                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.06em] text-red-300/70">Zusagen</span>
+                      <span className="text-[12px] font-bold tabular-nums leading-tight text-white/85">{attendanceCounts.yes}/{attendanceCounts.yes + attendanceCounts.no + attendanceCounts.open}</span>
                     </div>
                   ) : null}
                 </div>
@@ -561,7 +550,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               {matchPhase === 'finished' && isClickable ? (
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2.5 rounded-[10px] border border-white/[0.05] bg-[rgba(14,14,16,0.88)] px-3 py-2 shadow-[0_0_12px_rgba(0,0,0,0.20)]"
+                  className="flex h-9 w-full items-center gap-2.5 rounded-[10px] border border-white/[0.05] bg-[rgba(14,14,16,0.88)] px-3 shadow-[0_0_12px_rgba(0,0,0,0.20)]"
                   onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
                 >
                   <CalendarDays className="h-3.5 w-3.5 shrink-0 text-white/50" strokeWidth={2} aria-hidden />
@@ -571,17 +560,17 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               ) : matchPhase === 'live' ? (
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2.5 rounded-[10px] border border-emerald-400/15 bg-emerald-900/25 px-3 py-2 shadow-[0_0_14px_rgba(16,185,129,0.08)]"
+                  className="flex h-9 w-full items-center gap-2.5 rounded-[10px] border border-emerald-400/15 bg-emerald-900/25 px-3 shadow-[0_0_14px_rgba(16,185,129,0.08)]"
                   onClick={(e) => { e.stopPropagation(); onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick(); }}
                 >
                   <Radio className="h-3.5 w-3.5 shrink-0 text-emerald-400 animate-pulse" strokeWidth={2} aria-hidden />
-                  <span className="min-w-0 flex-1 text-left text-[12px] font-bold uppercase tracking-wide text-white">Live öffnen</span>
+                  <span className="min-w-0 flex-1 text-left text-[12px] font-semibold text-white">Live öffnen</span>
                   <ChevronRight className="h-3.5 w-3.5 shrink-0 text-emerald-400/50" strokeWidth={2} aria-hidden />
                 </button>
               ) : matchPhase === 'pre_kickoff' ? (
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2.5 rounded-[10px] border border-emerald-400/12 bg-emerald-900/18 px-3 py-2 shadow-[0_0_12px_rgba(16,185,129,0.06)]"
+                  className="flex h-9 w-full items-center gap-2.5 rounded-[10px] border border-emerald-400/12 bg-emerald-900/18 px-3 shadow-[0_0_12px_rgba(16,185,129,0.06)]"
                   onClick={(e) => { e.stopPropagation(); onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick(); }}
                 >
                   <Radio className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2} aria-hidden />
@@ -591,10 +580,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               ) : isClickable ? (
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2.5 rounded-[10px] border border-[rgba(122,29,42,0.15)] bg-[rgba(122,29,42,0.10)] px-3 py-2"
+                  className="flex h-9 w-full items-center gap-2.5 rounded-[10px] border border-[rgba(122,29,42,0.15)] bg-[rgba(122,29,42,0.10)] px-3 shadow-[0_0_16px_rgba(122,29,42,0.06)]"
                   onClick={(e) => { e.stopPropagation(); handleCardClick(); }}
                 >
-                  <span className="min-w-0 flex-1 text-left text-[12px] font-semibold text-white/80">{matchPhase === 'pre_meetup' ? 'Zum Livespiel vorbereiten' : 'Details ansehen'}</span>
+                  <Radio className="h-3.5 w-3.5 shrink-0 text-red-400/70" strokeWidth={2} aria-hidden />
+                  <span className="min-w-0 flex-1 text-left text-[12px] font-semibold text-white">Zum Livespiel vorbereiten</span>
                   <ChevronRight className="h-3.5 w-3.5 shrink-0 text-white/35" strokeWidth={2} aria-hidden />
                 </button>
               ) : null}
