@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, ChevronRight, CircleHelp, Clock, MapPin, Radio, ThumbsDown, ThumbsUp, Users } from 'lucide-react';
+import { CalendarDays, ChevronRight, CircleHelp, Clock, MapPin, Radio, ThumbsDown, ThumbsUp, Trophy, Users } from 'lucide-react';
 import { TrainingPlayerIcon } from '../../components/schedule/TrainingPlayerIcon';
 import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
@@ -492,7 +492,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               {/* Match-Type Badge + Phase Badge */}
               <div className="flex flex-wrap items-center justify-center gap-1.5 pb-0.5">
                 {matchTypeLabel ? (
-                  <span className="inline-flex items-center rounded-full border border-red-500/30 bg-black/20 px-2.5 py-[3px] text-[9px] font-bold uppercase tracking-wide text-white/80">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.05] px-2.5 py-[3px] text-[9px] font-bold uppercase tracking-wide text-white/80">
+                    <Trophy className="h-2.5 w-2.5 text-red-400/60" strokeWidth={2} aria-hidden />
                     {matchTypeLabel}
                   </span>
                 ) : null}
@@ -541,63 +542,63 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
               {/* ── Info Tiles (Schedule Hero only) ── */}
               {scheduleNextMatchHero ? (
-                <div className="mt-1 grid grid-cols-3 divide-x divide-white/[0.06] overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]" onClick={(e) => e.stopPropagation()}>
+                <div className="mt-1 grid grid-cols-3 items-stretch divide-x divide-white/[0.06] overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]" onClick={(e) => e.stopPropagation()}>
                   {canSeeSensitiveInfo && meetupTimeOnly ? (
-                    <div className="flex flex-col items-center justify-center px-1 py-2 text-center">
+                    <div className="flex flex-col items-center px-1 py-2 text-center">
                       <Clock className="h-3.5 w-3.5 text-[#B85C68]" strokeWidth={2} aria-hidden />
-                      <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-white/50">Treffpunkt</span>
+                      <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-red-400/80">Treffpunkt</span>
                       <span className="mt-0.5 text-[14px] font-semibold tabular-nums leading-tight text-white">{scheduleMetaTimeDisplay(meetupTimeOnly)}</span>
-                      <span className="text-[9px] font-medium text-white/45">Uhr</span>
+                      <span className="text-[9px] font-medium text-white/50">Uhr</span>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center px-1 py-2 text-center">
-                      <Clock className="h-3.5 w-3.5 text-white/25" strokeWidth={2} aria-hidden />
-                      <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-white/30">Treffpunkt</span>
-                      <span className="mt-0.5 text-[12px] font-medium text-white/25">–</span>
+                    <div className="flex flex-col items-center px-1 py-2 text-center">
+                      <Clock className="h-3.5 w-3.5 text-white/20" strokeWidth={2} aria-hidden />
+                      <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-white/25">Treffpunkt</span>
+                      <span className="mt-0.5 text-[12px] font-medium text-white/20">–</span>
                     </div>
                   )}
 
                   {placeLine ? (
-                    <div className="flex flex-col items-center justify-center px-1.5 py-2 text-center">
+                    <div className="flex flex-col items-center px-1.5 py-2 text-center">
                       <MapPin className="h-3.5 w-3.5 text-[#B85C68]" strokeWidth={2} aria-hidden />
-                      <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-white/50">Spielort</span>
+                      <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-red-400/80">Spielort</span>
                       <span className="mt-0.5 text-[11px] font-medium leading-snug text-white line-clamp-2">{placeLine}</span>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center px-1 py-2 text-center">
-                      <MapPin className="h-3.5 w-3.5 text-white/25" strokeWidth={2} aria-hidden />
-                      <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-white/30">Spielort</span>
-                      <span className="mt-0.5 text-[12px] font-medium text-white/25">–</span>
+                    <div className="flex flex-col items-center px-1 py-2 text-center">
+                      <MapPin className="h-3.5 w-3.5 text-white/20" strokeWidth={2} aria-hidden />
+                      <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-white/25">Spielort</span>
+                      <span className="mt-0.5 text-[12px] font-medium text-white/20">–</span>
                     </div>
                   )}
 
                   {matchPhase === 'finished' && isClickable ? (
-                    <button type="button" className="flex flex-col items-center justify-center px-1 py-2 text-center" onClick={() => handleCardClick()}>
+                    <button type="button" className="relative flex flex-col items-center px-1 py-2 pr-4 text-center" onClick={() => handleCardClick()}>
                       <CalendarDays className="h-3.5 w-3.5 text-white/50" strokeWidth={2} aria-hidden />
-                      <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-white/50">Spiel-</span>
-                      <span className="text-[11px] font-semibold uppercase text-white">bericht</span>
-                      <ChevronRight className="mt-0.5 h-3 w-3 text-white/30" strokeWidth={2} aria-hidden />
+                      <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-white/50">Spielbericht</span>
+                      <span className="mt-0.5 text-[11px] font-medium text-white/70">ansehen</span>
+                      <ChevronRight className="absolute right-0.5 top-1/2 h-3 w-3 -translate-y-1/2 text-white/25" strokeWidth={2} aria-hidden />
                     </button>
                   ) : matchPhase === 'live' ? (
-                    <button type="button" className="flex flex-col items-center justify-center px-1 py-2 text-center" onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
+                    <button type="button" className="relative flex flex-col items-center px-1 py-2 pr-4 text-center" onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
                       <Radio className="h-3.5 w-3.5 text-emerald-400 animate-pulse" strokeWidth={2} aria-hidden />
                       <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Live</span>
-                      <span className="text-[11px] font-semibold uppercase text-white">öffnen</span>
-                      <ChevronRight className="mt-0.5 h-3 w-3 text-emerald-400/40" strokeWidth={2} aria-hidden />
+                      <span className="mt-0.5 text-[11px] font-medium text-white/75">öffnen</span>
+                      <ChevronRight className="absolute right-0.5 top-1/2 h-3 w-3 -translate-y-1/2 text-emerald-400/35" strokeWidth={2} aria-hidden />
                     </button>
                   ) : matchPhase === 'pre_kickoff' ? (
-                    <button type="button" className="flex flex-col items-center justify-center px-1 py-2 text-center" onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
+                    <button type="button" className="relative flex flex-col items-center px-1 py-2 pr-4 text-center" onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
                       <Radio className="h-3.5 w-3.5 text-emerald-400" strokeWidth={2} aria-hidden />
-                      <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Zum</span>
-                      <span className="text-[11px] font-semibold uppercase text-white">Livespiel</span>
-                      <ChevronRight className="mt-0.5 h-3 w-3 text-emerald-400/40" strokeWidth={2} aria-hidden />
+                      <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Livespiel</span>
+                      <span className="mt-0.5 text-[11px] font-medium text-white/75">starten</span>
+                      <ChevronRight className="absolute right-0.5 top-1/2 h-3 w-3 -translate-y-1/2 text-emerald-400/35" strokeWidth={2} aria-hidden />
                     </button>
                   ) : isClickable ? (
-                    <button type="button" className="flex flex-col items-center justify-center px-1 py-2 text-center" onClick={() => handleCardClick()}>
+                    <button type="button" className="relative flex flex-col items-center px-1 py-2 pr-4 text-center" onClick={() => handleCardClick()}>
                       <Radio className="h-3.5 w-3.5 text-red-400/70" strokeWidth={2} aria-hidden />
                       <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-red-400">Livespiel</span>
-                      <span className="text-[11px] font-semibold uppercase text-white">vorbereiten</span>
-                      <ChevronRight className="mt-0.5 h-3 w-3 text-white/30" strokeWidth={2} aria-hidden />
+                      <span className="mt-0.5 text-[11px] font-medium text-white/75">vorbereiten</span>
+                      <ChevronRight className="absolute right-0.5 top-1/2 h-3 w-3 -translate-y-1/2 text-white/25" strokeWidth={2} aria-hidden />
                     </button>
                   ) : null}
                 </div>

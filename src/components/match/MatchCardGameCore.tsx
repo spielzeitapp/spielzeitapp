@@ -185,7 +185,7 @@ export function MatchCardKickoffBlock({
   const timeClass = hero
     ? 'mt-3 text-[2.75rem] sm:text-[3.35rem] font-black leading-none tracking-tight text-white tabular-nums drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]'
     : compactScheduleHero
-      ? 'mt-0.5 text-[38px] font-extrabold leading-none text-white tabular-nums drop-shadow-[0_1px_8px_rgba(0,0,0,0.3)]'
+      ? 'mt-0.5 text-[38px] font-extrabold leading-none text-white tabular-nums drop-shadow-[0_2px_12px_rgba(185,60,75,0.18)]'
       : 'mt-2 text-[34px] sm:text-[44px] font-extrabold leading-[1] text-white tabular-nums';
 
   return (
@@ -208,7 +208,7 @@ export function MatchCardKickoffBlock({
           hero
             ? 'text-[9px] sm:text-[10px] tracking-[0.4em]'
             : compactScheduleHero
-              ? 'mt-0.5 text-[9px] tracking-[0.28em] text-red-300/60'
+              ? 'mt-0.5 text-[10px] tracking-[0.28em] text-red-400'
               : 'text-[12px] tracking-[0.3em]'
         } font-bold uppercase`}
       >
