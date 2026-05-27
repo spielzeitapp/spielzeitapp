@@ -1,5 +1,18 @@
 import React from 'react';
-import { CalendarDays, Check, ChevronRight, CircleHelp, Clock, MapPin, Radio, ThumbsDown, ThumbsUp, Trophy, Users } from 'lucide-react';
+import {
+  CalendarDays,
+  Check,
+  ChevronRight,
+  CircleHelp,
+  Clock,
+  MapPin,
+  Navigation as NavigateIcon,
+  Radio,
+  ThumbsDown,
+  ThumbsUp,
+  Trophy,
+  Users,
+} from 'lucide-react';
 import { TrainingPlayerIcon } from '../../components/schedule/TrainingPlayerIcon';
 import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
@@ -55,6 +68,8 @@ type MatchCardLigaportalProps = {
   attendanceStatus?: 'yes' | 'no' | null;
   /** Wird aufgerufen wenn Nutzer auf "Zu-/Absage" klickt (öffnet Modal). */
   onOpenAttendance?: () => void;
+  /** Parent/Player Match-Hero: schnelle Zusage ohne Modal (nur wenn vom Parent gesetzt). */
+  onAudienceQuickRsvp?: (choice: 'yes' | 'no' | 'open') => void;
   /** Für Trainer/Admin: Counts für Zu-/Absagen-Übersicht (Zugesagt / Abgesagt / Offen). */
   attendanceCounts?: { yes: number; no: number; open: number } | null;
   /** true = öffentliche Ansicht: Karte nur Anzeige, keine Navigation, kein Link, kein onClick, Cursor default. */
@@ -101,6 +116,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   role,
   attendanceStatus,
   onOpenAttendance,
+  onAudienceQuickRsvp,
   attendanceCounts,
   isPublicView = false,
   heroHighlight = false,
@@ -258,6 +274,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const normalizedRole = (role ?? '').toLowerCase();
   const isAudienceHeroRole =
     scheduleNextMatchHero && effectiveEventType === 'game' && audienceHeroRoles.has(normalizedRole);
+  const isAudienceRsvpHero = isAudienceHeroRole && (normalizedRole === 'parent' || normalizedRole === 'player');
   const showScheduleHeroCalendar =
     Boolean(
       scheduleNextMatchHero &&
@@ -318,6 +335,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     'mt-1 grid h-[74px] grid-cols-[1.08fr_1fr_1.12fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
   const heroLivePrepareStripe =
     'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-5 shrink-0 items-center justify-center bg-red-700/85';
+  const audienceTileChevronStripe =
+    'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-5 shrink-0 items-center justify-center';
 
   const renderScheduleHeroLivePrepareTile = (onActivate: () => void) => (
     <div
@@ -379,21 +398,28 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     else handleCardClick();
   };
 
-  const audienceStatusChip =
-    attendanceStatus === 'yes'
-      ? { label: 'ZUGESAGT', cls: 'border-emerald-400/35 bg-emerald-500/15 text-emerald-300' }
-      : attendanceStatus === 'no'
-        ? { label: 'ABGESAGT', cls: 'border-rose-400/35 bg-rose-500/15 text-rose-300' }
-        : { label: 'BITTE ANTWORTEN', cls: 'border-amber-400/35 bg-amber-500/15 text-amber-300' };
-
   const navQuery = [addressLine, placeLine, location].find((v) => (v ?? '').trim().length > 0)?.trim() ?? '';
-  const mapsUrl = navQuery
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(navQuery)}`
-    : null;
+  const mapsUrl = Boolean(navQuery.trim());
 
   const openMaps = () => {
-    if (!mapsUrl || typeof window === 'undefined') return;
-    window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+    const q = navQuery.trim();
+    if (!q || typeof window === 'undefined' || typeof navigator === 'undefined') return;
+    const enc = encodeURIComponent(q);
+    const isIOS =
+      /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const url = isIOS
+      ? `https://maps.apple.com/?q=${enc}`
+      : `https://www.google.com/maps/search/?api=1&query=${enc}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const pillBase =
+    'flex w-full max-w-[76px] flex-col items-center rounded-full border px-0.5 py-0.5 text-center transition-colors';
+  const handleAudienceRsvp = (choice: 'yes' | 'no' | 'open') => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onAudienceQuickRsvp) onAudienceQuickRsvp(choice);
+    else onOpenAttendance?.();
   };
 
   const attendanceTrailing = (
@@ -653,12 +679,51 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 {heroDateParts.mon}
               </span>
               {heroYear ? <span className="text-[10px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
-              {isAudienceHeroRole ? (
-                <span
-                  className={`mt-2 inline-flex rounded-full border px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-[0.08em] ${audienceStatusChip.cls}`}
-                >
-                  {audienceStatusChip.label}
-                </span>
+              {isAudienceRsvpHero ? (
+                <div className="mt-2 flex w-full flex-col items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    className={`${pillBase} ${
+                      attendanceStatus === 'yes'
+                        ? 'border-emerald-400/55 bg-emerald-500/20 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                        : 'border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.06]'
+                    }`}
+                    onClick={handleAudienceRsvp('yes')}
+                  >
+                    <span className="text-[11px] leading-none" aria-hidden>
+                      👍
+                    </span>
+                    <span className="text-[6px] font-bold uppercase leading-none tracking-[0.04em]">ZUGESAGT</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`${pillBase} ${
+                      attendanceStatus !== 'yes' && attendanceStatus !== 'no'
+                        ? 'border-amber-400/45 bg-amber-500/12 text-amber-200 shadow-[0_0_10px_rgba(245,158,11,0.12)]'
+                        : 'border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.06]'
+                    }`}
+                    onClick={handleAudienceRsvp('open')}
+                  >
+                    <span className="text-[11px] leading-none" aria-hidden>
+                      ❓
+                    </span>
+                    <span className="text-[6px] font-bold uppercase leading-none tracking-[0.04em]">OFFEN</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`${pillBase} ${
+                      attendanceStatus === 'no'
+                        ? 'border-rose-400/55 bg-rose-500/15 text-rose-200 shadow-[0_0_12px_rgba(244,63,94,0.12)]'
+                        : 'border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.06]'
+                    }`}
+                    onClick={handleAudienceRsvp('no')}
+                  >
+                    <span className="text-[11px] leading-none" aria-hidden>
+                      👎
+                    </span>
+                    <span className="text-[6px] font-bold uppercase leading-none tracking-[0.04em]">ABGESAGT</span>
+                  </button>
+                </div>
               ) : showAttendanceCounts && attendanceCounts ? (
                 <div className="mt-2.5 flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <div className="flex flex-col items-center">
@@ -765,7 +830,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
                   {placeLine ? (
                     <div
-                      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} ${isAudienceHeroRole && isClickable ? 'cursor-pointer' : ''}`}
+                      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative overflow-hidden ${isAudienceHeroRole && isClickable ? 'cursor-pointer pr-5' : ''}`}
                       role={isAudienceHeroRole && isClickable ? 'button' : undefined}
                       tabIndex={isAudienceHeroRole && isClickable ? 0 : undefined}
                       onClick={
@@ -795,6 +860,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                       <div className={heroMatchMetaValueWrap}>
                         <span className={`${heroMatchMetaSub} line-clamp-2 break-words`}>{placeLine}</span>
                       </div>
+                      {isAudienceHeroRole && isClickable ? (
+                        <div className={`${audienceTileChevronStripe} bg-transparent`} aria-hidden>
+                          <ChevronRight className="h-3 w-3 text-white/70" strokeWidth={2.25} />
+                        </div>
+                      ) : null}
                     </div>
                   ) : (
                     <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
@@ -813,7 +883,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                       <div
                         role={showScheduleHeroGoLive || isClickable ? 'button' : undefined}
                         tabIndex={showScheduleHeroGoLive || isClickable ? 0 : undefined}
-                        className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} ${showScheduleHeroGoLive || isClickable ? 'cursor-pointer' : ''}`}
+                        className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer overflow-hidden pr-5 ${showScheduleHeroGoLive || isClickable ? '' : 'pointer-events-none opacity-50'}`}
                         onClick={
                           showScheduleHeroGoLive || isClickable
                             ? (e) => {
@@ -839,15 +909,18 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                         </span>
                         <span className={`${heroMatchMetaLabel} text-red-400`}>JETZT LIVE</span>
                         <div className={heroMatchMetaValueWrap}>
-                          <span className={heroMatchMetaSubPrimary}>Livespiel</span>
-                          <span className={heroMatchMetaSub}>oeffnen</span>
+                          <span className={`${heroMatchMetaSubPrimary} text-white/90`}>Livespiel</span>
+                          <span className={heroMatchMetaSub}>öffnen</span>
+                        </div>
+                        <div className={heroLivePrepareStripe} aria-hidden>
+                          <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.25} />
                         </div>
                       </div>
                     ) : matchPhase === 'finished' ? (
                       <div
                         role={isClickable ? 'button' : undefined}
                         tabIndex={isClickable ? 0 : undefined}
-                        className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} ${isClickable ? 'cursor-pointer' : ''}`}
+                        className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 overflow-hidden pr-5 ${isClickable ? 'cursor-pointer' : ''}`}
                         onClick={
                           isClickable
                             ? (e) => {
@@ -873,15 +946,18 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                         </span>
                         <span className={`${heroMatchMetaLabel} text-white/80`}>BERICHT</span>
                         <div className={heroMatchMetaValueWrap}>
-                          <span className={heroMatchMetaSubPrimary}>Ergebnis</span>
-                          <span className={heroMatchMetaSub}>ansehen</span>
+                          <span className={`${heroMatchMetaSubPrimary} text-white/90`}>Ergebnis</span>
+                          <span className={`${heroMatchMetaSub} text-white/65`}>ansehen</span>
+                        </div>
+                        <div className={`${audienceTileChevronStripe} bg-white/[0.06]`} aria-hidden>
+                          <ChevronRight className="h-3.5 w-3.5 text-white/75" strokeWidth={2.25} />
                         </div>
                       </div>
                     ) : (
                       <div
                         role={mapsUrl ? 'button' : undefined}
                         tabIndex={mapsUrl ? 0 : undefined}
-                        className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} ${mapsUrl ? 'cursor-pointer bg-emerald-900/20' : ''}`}
+                        className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative overflow-hidden ${mapsUrl ? 'cursor-pointer bg-emerald-950/35 pr-5' : ''}`}
                         onClick={
                           mapsUrl
                             ? (e) => {
@@ -902,20 +978,25 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                             : undefined
                         }
                       >
-                        <span className={`${heroMatchMetaIcon} ${mapsUrl ? 'text-emerald-300' : 'text-white/20'}`}>
-                          <MapPin strokeWidth={2} aria-hidden />
+                        <span className={`${heroMatchMetaIcon} ${mapsUrl ? 'text-teal-300' : 'text-white/20'}`}>
+                          <NavigateIcon strokeWidth={2} aria-hidden />
                         </span>
-                        <span className={`${heroMatchMetaLabel} ${mapsUrl ? 'text-emerald-300' : 'text-white/25'}`}>ANFAHRT</span>
+                        <span className={`${heroMatchMetaLabel} ${mapsUrl ? 'text-teal-300' : 'text-white/25'}`}>ANFAHRT</span>
                         <div className={heroMatchMetaValueWrap}>
                           {mapsUrl ? (
                             <>
-                              <span className={heroMatchMetaSubPrimary}>Navigation</span>
-                              <span className={heroMatchMetaSub}>oeffnen</span>
+                              <span className={`${heroMatchMetaSubPrimary} text-white/92`}>Navigation</span>
+                              <span className={heroMatchMetaSub}>öffnen</span>
                             </>
                           ) : (
                             <span className={`${heroMatchMetaSubPrimary} text-white/35`}>Ort fehlt</span>
                           )}
                         </div>
+                        {mapsUrl ? (
+                          <div className={`${audienceTileChevronStripe} bg-teal-600/25`} aria-hidden>
+                            <ChevronRight className="h-3.5 w-3.5 text-white/85" strokeWidth={2.25} />
+                          </div>
+                        ) : null}
                       </div>
                     )
                   ) : isLineupReady ? (

@@ -1168,9 +1168,11 @@ export const SchedulePage: React.FC = () => {
                                   canManage={Boolean(heroShowsTrainerStats)}
                                   attendanceCounts={countsForCard}
                                   role={
-                                    heroShowsParentPill && (uiRole === 'parent' || uiRole === 'player')
-                                      ? uiRole
-                                      : null
+                                    !forcePublicView && !isFinishedMatch && et === 'game' && normalizedUiRole === 'fan'
+                                      ? 'fan'
+                                      : heroShowsParentPill && (uiRole === 'parent' || uiRole === 'player')
+                                        ? uiRole
+                                        : null
                                   }
                                   attendanceStatus={
                                     attendanceStatusMerged === 'yes'
@@ -1181,6 +1183,29 @@ export const SchedulePage: React.FC = () => {
                                   }
                                   onOpenAttendance={
                                     heroShowsParentPill ? () => setAttendanceModalEvent(ev) : undefined
+                                  }
+                                  onAudienceQuickRsvp={
+                                    heroShowsParentPill && ev.id
+                                      ? (choice) => {
+                                          if (choice === 'yes') {
+                                            void setAttendance(ev.id, 'yes');
+                                            return;
+                                          }
+                                          if (choice === 'no') {
+                                            void setAttendance(ev.id, 'no');
+                                            return;
+                                          }
+                                          const rawDb = myStatusFromDb;
+                                          const cur: 'yes' | 'no' | null =
+                                            rawDb === 'yes' || rawDb === 'no'
+                                              ? rawDb
+                                              : attendanceStatusByEventId[ev.id] === 'yes' ||
+                                                  attendanceStatusByEventId[ev.id] === 'no'
+                                                ? attendanceStatusByEventId[ev.id]
+                                                : null;
+                                          if (cur === 'yes' || cur === 'no') void setAttendance(ev.id, cur);
+                                        }
+                                      : undefined
                                   }
                                   isPublicView={forcePublicView}
                                   onScheduleHeroGoLive={heroGoLive}
