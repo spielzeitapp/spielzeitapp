@@ -11,7 +11,6 @@ import { MatchCardGameCore, MatchCardKickoffBlock } from '../../components/match
 import { formatHeroDateParts, scheduleMetaTimeDisplay } from '../../components/schedule/scheduleEventViewUtils';
 import { TrainerStatsMini } from '../../components/schedule/TrainerStatsMini';
 import { ScheduleHeroLiveCta } from '../../components/schedule/ScheduleHeroLiveCta';
-import { ScheduleHeroMetaToolbar } from '../../components/schedule/ScheduleHeroMetaToolbar';
 
 /** Datum kurz in Europe/Vienna (z. B. Sa. 06.06.2026). */
 function formatDateShortDE(date: Date): string {
@@ -299,23 +298,26 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   // TODO: wire readiness to saved lineup completeness
   const isLineupReady = false;
 
-  const heroTileBody = 'flex h-full min-h-0 w-full flex-col items-center justify-center px-1 py-1.5 text-center';
-  const heroTileSub = 'text-[11px] font-medium leading-snug text-white';
-  const heroTileSubMuted = 'text-[11px] font-medium leading-snug text-white/80';
+  const heroMatchMetaTile =
+    'flex h-full min-h-[56px] min-w-0 flex-col items-center justify-center px-0.5 py-1.5 text-center sm:px-1';
+  const heroMatchMetaTileBorder = 'border-l border-white/[0.05]';
+  const heroMatchMetaIcon =
+    'flex h-[18px] shrink-0 items-center text-[#B85C68] [&_svg]:h-[18px] [&_svg]:w-[18px]';
+  const heroMatchMetaLabel =
+    'mt-1 w-full text-[10px] font-semibold uppercase tracking-[0.08em] leading-none text-red-400/80';
+  const heroMatchMetaValueWrap = 'mt-0.5 flex w-full max-w-full flex-col items-center leading-none';
+  const heroMatchMetaSub = 'max-w-full text-[11px] font-medium leading-snug text-white';
+  const heroMatchMetaSubMuted = 'max-w-full text-[11px] font-medium leading-snug text-white/80';
   const heroInfoTilesGrid =
-    'mt-1 grid h-[92px] grid-cols-[0.9fr_1fr_1.15fr] items-stretch divide-x divide-white/[0.06] overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
-  const heroActionTile =
-    'flex h-full min-h-0 w-full min-w-0 flex-col items-center justify-center pl-1 pr-4 py-1.5 text-center relative appearance-none border-0 bg-transparent m-0 font-inherit leading-normal';
-  const heroActionStripe =
-    'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-[15px] shrink-0 items-center justify-center';
+    'mt-1 grid min-h-[56px] grid-cols-[0.9fr_1fr_1.15fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
   const heroLivePrepareStripe =
-    'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-3 shrink-0 items-center justify-center bg-red-700/85';
+    'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-6 shrink-0 items-center justify-center bg-red-700/85';
 
   const renderScheduleHeroLivePrepareTile = (onActivate: () => void) => (
     <div
       role="button"
       tabIndex={0}
-      className={`${heroTileBody} relative min-w-0 cursor-pointer overflow-visible pr-3`}
+      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer pr-6`}
       style={{ WebkitAppearance: 'none' }}
       onClick={onActivate}
       onKeyDown={(e) => {
@@ -325,11 +327,15 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         }
       }}
     >
-      <Radio className="h-3.5 w-3.5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
-      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-red-400/80">Livespiel</span>
-      <span className="mt-0.5 max-w-full text-[10.5px] font-medium leading-snug text-white/80">vorbereiten</span>
+      <span className={`${heroMatchMetaIcon} text-red-400`}>
+        <Radio strokeWidth={2} aria-hidden />
+      </span>
+      <span className={`${heroMatchMetaLabel} text-red-400`}>Livespiel</span>
+      <div className={heroMatchMetaValueWrap}>
+        <span className={heroMatchMetaSubMuted}>vorbereiten</span>
+      </div>
       <div className={heroLivePrepareStripe} aria-hidden>
-        <ChevronRight className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />
+        <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.25} />
       </div>
     </div>
   );
@@ -671,62 +677,128 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               {scheduleNextMatchHero ? (
                 <div className={heroInfoTilesGrid} onClick={(e) => e.stopPropagation()}>
                   {canSeeSensitiveInfo && meetupTimeOnly ? (
-                    <div className={heroTileBody}>
-                      <Clock className="h-3.5 w-3.5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
-                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-red-400/80">Treffpunkt</span>
-                      <span className="mt-0.5 text-[14px] font-semibold tabular-nums leading-none text-white">{heroMeetupTimeDisplay}</span>
-                      <span className={heroTileSub}>Uhr</span>
+                    <div className={heroMatchMetaTile}>
+                      <span className={heroMatchMetaIcon}>
+                        <Clock strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={heroMatchMetaLabel}>Treffpunkt</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className="max-w-full text-[14px] font-semibold tabular-nums leading-none text-white">
+                          {heroMeetupTimeDisplay}
+                        </span>
+                        <span className="mt-0.5 text-[10px] font-medium text-white/65">Uhr</span>
+                      </div>
                     </div>
                   ) : (
-                    <div className={heroTileBody}>
-                      <Clock className="h-3.5 w-3.5 shrink-0 text-white/20" strokeWidth={2} aria-hidden />
-                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-white/25">Treffpunkt</span>
-                      <span className={`mt-0.5 ${heroTileSub} text-white/20`}>–</span>
+                    <div className={heroMatchMetaTile}>
+                      <span className={`${heroMatchMetaIcon} text-white/20`}>
+                        <Clock strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={`${heroMatchMetaLabel} text-white/25`}>Treffpunkt</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className={`${heroMatchMetaSub} text-white/20`}>–</span>
+                      </div>
                     </div>
                   )}
 
                   {placeLine ? (
-                    <div className={heroTileBody}>
-                      <MapPin className="h-3.5 w-3.5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
-                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-red-400/80">Spielort</span>
-                      <span className={`mt-0.5 ${heroTileSub} line-clamp-2`}>{placeLine}</span>
+                    <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
+                      <span className={heroMatchMetaIcon}>
+                        <MapPin strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={heroMatchMetaLabel}>Spielort</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className={`${heroMatchMetaSub} line-clamp-2`}>{placeLine}</span>
+                      </div>
                     </div>
                   ) : (
-                    <div className={heroTileBody}>
-                      <MapPin className="h-3.5 w-3.5 shrink-0 text-white/20" strokeWidth={2} aria-hidden />
-                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-white/25">Spielort</span>
-                      <span className={`mt-0.5 ${heroTileSub} text-white/20`}>–</span>
+                    <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
+                      <span className={`${heroMatchMetaIcon} text-white/20`}>
+                        <MapPin strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={`${heroMatchMetaLabel} text-white/25`}>Spielort</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className={`${heroMatchMetaSub} text-white/20`}>–</span>
+                      </div>
                     </div>
                   )}
 
                   {matchPhase === 'finished' && isClickable ? (
-                    <button type="button" className={heroActionTile} onClick={() => handleCardClick()}>
-                      <CalendarDays className="h-3.5 w-3.5 shrink-0 text-white/50" strokeWidth={2} aria-hidden />
-                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-white/50">Spiel</span>
-                      <span className={`mt-0.5 ${heroTileSubMuted}`}>abschließen</span>
-                      <div className={`${heroActionStripe} bg-white/[0.10]`} aria-hidden>
-                        <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} />
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer pr-6`}
+                      style={{ WebkitAppearance: 'none' }}
+                      onClick={() => handleCardClick()}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleCardClick();
+                        }
+                      }}
+                    >
+                      <span className={`${heroMatchMetaIcon} text-white/50`}>
+                        <CalendarDays strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={`${heroMatchMetaLabel} text-white/50`}>Spiel</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className={heroMatchMetaSubMuted}>abschließen</span>
                       </div>
-                    </button>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-6 items-center justify-center bg-white/[0.10]" aria-hidden>
+                        <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.25} />
+                      </div>
+                    </div>
                   ) : matchPhase === 'live' ? (
-                    <button type="button" className={heroActionTile} onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
-                      <Radio className="h-3.5 w-3.5 shrink-0 text-emerald-400 animate-pulse" strokeWidth={2} aria-hidden />
-                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Live</span>
-                      <span className={`mt-0.5 ${heroTileSubMuted}`}>öffnen</span>
-                      <div className={`${heroActionStripe} bg-emerald-600/80`} aria-hidden>
-                        <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} />
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer pr-6`}
+                      style={{ WebkitAppearance: 'none' }}
+                      onClick={() => (onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick())}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick();
+                        }
+                      }}
+                    >
+                      <span className={`${heroMatchMetaIcon} text-emerald-400`}>
+                        <Radio className="animate-pulse" strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={`${heroMatchMetaLabel} text-emerald-400`}>Live</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className={heroMatchMetaSubMuted}>öffnen</span>
                       </div>
-                    </button>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-6 items-center justify-center bg-emerald-600/80" aria-hidden>
+                        <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.25} />
+                      </div>
+                    </div>
                   ) : matchPhase === 'pre_kickoff' ? (
                     isLineupReady ? (
-                      <button type="button" className={heroActionTile} onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
-                        <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2.5} aria-hidden />
-                        <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Live starten</span>
-                        <span className={`mt-0.5 ${heroTileSubMuted}`}>bereit</span>
-                        <div className={`${heroActionStripe} bg-emerald-700/80`} aria-hidden>
-                          <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} />
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer pr-6`}
+                        style={{ WebkitAppearance: 'none' }}
+                        onClick={() => (onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick())}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick();
+                          }
+                        }}
+                      >
+                        <span className={`${heroMatchMetaIcon} text-emerald-400`}>
+                          <Check strokeWidth={2.5} aria-hidden />
+                        </span>
+                        <span className={`${heroMatchMetaLabel} text-emerald-400`}>Live starten</span>
+                        <div className={heroMatchMetaValueWrap}>
+                          <span className={heroMatchMetaSubMuted}>bereit</span>
                         </div>
-                      </button>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-6 items-center justify-center bg-emerald-700/80" aria-hidden>
+                          <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.25} />
+                        </div>
+                      </div>
                     ) : (
                       renderScheduleHeroLivePrepareTile(() =>
                         onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick(),
@@ -734,14 +806,30 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                     )
                   ) : isClickable ? (
                     isLineupReady ? (
-                      <button type="button" className={heroActionTile} onClick={() => handleCardClick()}>
-                        <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2.5} aria-hidden />
-                        <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Live starten</span>
-                        <span className={`mt-0.5 ${heroTileSubMuted}`}>bereit</span>
-                        <div className={`${heroActionStripe} bg-emerald-700/80`} aria-hidden>
-                          <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} />
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer pr-6`}
+                        style={{ WebkitAppearance: 'none' }}
+                        onClick={() => handleCardClick()}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleCardClick();
+                          }
+                        }}
+                      >
+                        <span className={`${heroMatchMetaIcon} text-emerald-400`}>
+                          <Check strokeWidth={2.5} aria-hidden />
+                        </span>
+                        <span className={`${heroMatchMetaLabel} text-emerald-400`}>Live starten</span>
+                        <div className={heroMatchMetaValueWrap}>
+                          <span className={heroMatchMetaSubMuted}>bereit</span>
                         </div>
-                      </button>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-6 items-center justify-center bg-emerald-700/80" aria-hidden>
+                          <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.25} />
+                        </div>
+                      </div>
                     ) : (
                       renderScheduleHeroLivePrepareTile(() => handleCardClick())
                     )
