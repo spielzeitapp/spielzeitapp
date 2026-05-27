@@ -298,24 +298,75 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const isLineupReady = false;
 
   const heroMatchMetaTile =
-    'flex h-full min-h-[56px] min-w-0 flex-col items-center justify-center px-1 py-1.5 text-center sm:px-1.5';
+    'flex h-full min-h-[56px] min-w-0 flex-col items-center justify-center px-0.5 py-1.5 text-center sm:px-1';
   const heroMatchMetaTileBorder = 'border-l border-white/[0.05]';
   const heroMatchMetaIcon =
     'flex h-[18px] shrink-0 items-center text-[#B85C68] [&_svg]:h-[18px] [&_svg]:w-[18px]';
   const heroMatchMetaLabel =
-    'mt-1 w-full truncate px-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] leading-none text-red-400/80';
-  const heroMatchMetaValueWrap = 'mt-0.5 flex w-full min-w-0 max-w-full flex-col items-center leading-none';
+    'mt-1 w-full px-0.5 text-[9.5px] font-semibold uppercase tracking-[0.08em] leading-none text-red-400/80';
+  const heroMatchMetaValueWrap = 'mt-0.5 flex w-full min-w-0 max-w-full flex-col items-center';
   const heroMatchMetaSub =
-    'w-full min-w-0 max-w-full truncate text-[11px] font-medium leading-snug text-white';
+    'w-full min-w-0 max-w-full break-words text-[10px] font-medium leading-tight text-white/80';
+  const heroMatchMetaSubPrimary = 'w-full min-w-0 max-w-full text-[10px] font-medium leading-tight text-white';
   const heroInfoTilesGrid =
-    'grid min-h-[56px] grid-cols-2 items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
-  const heroLiveActionBtnBase =
-    'flex h-9 w-full min-w-0 items-center gap-2 rounded-[10px] border px-2.5 text-left appearance-none m-0';
-  const heroLiveActionBtnPrepare =
-    `${heroLiveActionBtnBase} border-red-500/20 bg-gradient-to-r from-[#3a1218] to-[#5c1a24] text-white shadow-[0_0_16px_rgba(122,29,42,0.18)]`;
-  const heroLiveActionBtnReady =
-    `${heroLiveActionBtnBase} border-emerald-400/20 bg-gradient-to-r from-emerald-950/90 to-emerald-900/75 text-emerald-50 shadow-[0_0_16px_rgba(16,185,129,0.12)]`;
-  const showScheduleHeroLiveAction = showScheduleHeroGoLive || isClickable;
+    'mt-1 grid min-h-[56px] grid-cols-[0.92fr_1fr_1.28fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
+  const heroLivePrepareStripe =
+    'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-5 shrink-0 items-center justify-center bg-red-700/85';
+
+  const renderScheduleHeroLivePrepareTile = (onActivate: () => void) => (
+    <div
+      role="button"
+      tabIndex={0}
+      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer pr-5`}
+      style={{ WebkitAppearance: 'none' }}
+      onClick={onActivate}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onActivate();
+        }
+      }}
+    >
+      <span className={`${heroMatchMetaIcon} text-red-400`}>
+        <Radio strokeWidth={2} aria-hidden />
+      </span>
+      <span className={`${heroMatchMetaLabel} text-red-400`}>Livespiel</span>
+      <div className={heroMatchMetaValueWrap}>
+        <span className={heroMatchMetaSub}>vorbereiten</span>
+      </div>
+      <div className={heroLivePrepareStripe} aria-hidden>
+        <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.25} />
+      </div>
+    </div>
+  );
+
+  const renderScheduleHeroLiveReadyTile = (onActivate: () => void) => (
+    <div
+      role="button"
+      tabIndex={0}
+      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer pr-5`}
+      style={{ WebkitAppearance: 'none' }}
+      onClick={onActivate}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onActivate();
+        }
+      }}
+    >
+      <span className={`${heroMatchMetaIcon} text-emerald-400`}>
+        <Check strokeWidth={2.5} aria-hidden />
+      </span>
+      <span className={`${heroMatchMetaLabel} text-emerald-400`}>Live starten</span>
+      <div className={heroMatchMetaValueWrap}>
+        <span className={heroMatchMetaSub}>bereit</span>
+      </div>
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-5 shrink-0 items-center justify-center bg-emerald-700/80" aria-hidden>
+        <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.25} />
+      </div>
+    </div>
+  );
+
   const handleScheduleHeroLiveAction = () => {
     if (onScheduleHeroGoLive) onScheduleHeroGoLive();
     else handleCardClick();
@@ -656,83 +707,69 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
               {/* ── Info Tiles (Schedule Hero only) ── */}
               {scheduleNextMatchHero ? (
-                <div className="mt-1 flex min-w-0 flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
-                  <div className={heroInfoTilesGrid}>
-                    {canSeeSensitiveInfo && meetupTimeOnly ? (
-                      <div className={heroMatchMetaTile}>
-                        <span className={heroMatchMetaIcon}>
-                          <Clock strokeWidth={2} aria-hidden />
-                        </span>
-                        <span className={heroMatchMetaLabel}>Treffpunkt</span>
-                        <div className={heroMatchMetaValueWrap}>
-                          <span className="w-full min-w-0 max-w-full truncate text-[14px] font-semibold tabular-nums leading-none text-white">
-                            {heroMeetupTimeDisplay}
-                          </span>
-                          <span className="mt-0.5 text-[10px] font-medium text-white/65">Uhr</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className={heroMatchMetaTile}>
-                        <span className={`${heroMatchMetaIcon} text-white/20`}>
-                          <Clock strokeWidth={2} aria-hidden />
-                        </span>
-                        <span className={`${heroMatchMetaLabel} text-white/25`}>Treffpunkt</span>
-                        <div className={heroMatchMetaValueWrap}>
-                          <span className={`${heroMatchMetaSub} text-white/20`}>–</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {placeLine ? (
-                      <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
-                        <span className={heroMatchMetaIcon}>
-                          <MapPin strokeWidth={2} aria-hidden />
-                        </span>
-                        <span className={heroMatchMetaLabel}>Spielort</span>
-                        <div className={heroMatchMetaValueWrap}>
-                          <span className={`${heroMatchMetaSub} line-clamp-2 whitespace-normal break-words`}>
-                            {placeLine}
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
-                        <span className={`${heroMatchMetaIcon} text-white/20`}>
-                          <MapPin strokeWidth={2} aria-hidden />
-                        </span>
-                        <span className={`${heroMatchMetaLabel} text-white/25`}>Spielort</span>
-                        <div className={heroMatchMetaValueWrap}>
-                          <span className={`${heroMatchMetaSub} text-white/20`}>–</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {showScheduleHeroLiveAction ? (
-                    <button
-                      type="button"
-                      className={isLineupReady ? heroLiveActionBtnReady : heroLiveActionBtnPrepare}
-                      style={{ WebkitAppearance: 'none' }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleScheduleHeroLiveAction();
-                      }}
-                    >
-                      {isLineupReady ? (
-                        <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" strokeWidth={2.5} aria-hidden />
-                      ) : (
-                        <Radio className="h-3.5 w-3.5 shrink-0 text-red-300" strokeWidth={2} aria-hidden />
-                      )}
-                      <span className="min-w-0 flex-1 truncate text-center text-[12px] font-semibold tracking-[0.01em]">
-                        {isLineupReady ? 'Live starten' : 'Livespiel vorbereiten'}
+                <div className={heroInfoTilesGrid} onClick={(e) => e.stopPropagation()}>
+                  {canSeeSensitiveInfo && meetupTimeOnly ? (
+                    <div className={heroMatchMetaTile}>
+                      <span className={heroMatchMetaIcon}>
+                        <Clock strokeWidth={2} aria-hidden />
                       </span>
-                      <ChevronRight
-                        className={`h-3.5 w-3.5 shrink-0 ${isLineupReady ? 'text-emerald-200/80' : 'text-white/75'}`}
-                        strokeWidth={2.25}
-                        aria-hidden
-                      />
-                    </button>
-                  ) : null}
+                      <span className={heroMatchMetaLabel}>Treffpunkt</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className="w-full min-w-0 max-w-full text-[14px] font-semibold tabular-nums leading-none text-white">
+                          {heroMeetupTimeDisplay}
+                        </span>
+                        <span className={`mt-0.5 ${heroMatchMetaSub}`}>Uhr</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={heroMatchMetaTile}>
+                      <span className={`${heroMatchMetaIcon} text-white/20`}>
+                        <Clock strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={`${heroMatchMetaLabel} text-white/25`}>Treffpunkt</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className={`${heroMatchMetaSubPrimary} text-white/20`}>–</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {placeLine ? (
+                    <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
+                      <span className={heroMatchMetaIcon}>
+                        <MapPin strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={heroMatchMetaLabel}>Spielort</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className={`${heroMatchMetaSub} line-clamp-2 break-words`}>{placeLine}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
+                      <span className={`${heroMatchMetaIcon} text-white/20`}>
+                        <MapPin strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={`${heroMatchMetaLabel} text-white/25`}>Spielort</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className={`${heroMatchMetaSubPrimary} text-white/20`}>–</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {isLineupReady ? (
+                    renderScheduleHeroLiveReadyTile(handleScheduleHeroLiveAction)
+                  ) : showScheduleHeroGoLive || isClickable ? (
+                    renderScheduleHeroLivePrepareTile(handleScheduleHeroLiveAction)
+                  ) : (
+                    <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
+                      <span className={`${heroMatchMetaIcon} text-red-400/50`}>
+                        <Radio strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={`${heroMatchMetaLabel} text-red-400/50`}>Livespiel</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className={`${heroMatchMetaSub} text-white/40`}>vorbereiten</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </div>
