@@ -331,8 +331,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       <span className={`${heroMatchMetaIcon} text-red-400`}>
         <Radio strokeWidth={2} aria-hidden />
       </span>
-      <span className={`${heroMatchMetaLabel} text-red-400`}>Livespiel</span>
+      <span className={`${heroMatchMetaLabel} text-red-400`}>LIVE</span>
       <div className={heroMatchMetaValueWrap}>
+        <span className={`${heroMatchMetaSubPrimary} text-white/90`}>Spiel</span>
         <span className={heroMatchMetaSub}>vorbereiten</span>
       </div>
       <div className={heroLivePrepareStripe} aria-hidden>
