@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, ChevronRight, CircleHelp, Clock, MapPin, Radio, ThumbsDown, ThumbsUp, Trophy, Users } from 'lucide-react';
+import { CalendarDays, Check, ChevronRight, CircleHelp, Clock, MapPin, Radio, ThumbsDown, ThumbsUp, Trophy, Users } from 'lucide-react';
 import { TrainingPlayerIcon } from '../../components/schedule/TrainingPlayerIcon';
 import { dsMatchdaySectionLabelClass } from '../../lib/premiumDesignSystem';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
@@ -295,6 +295,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     }
     return 'pre_meetup';
   })();
+  const heroMeetupTimeDisplay = scheduleMetaTimeDisplay(meetupTimeOnly).replace(/\s*Uhr$/i, '').trim();
+  // TODO: wire readiness to saved lineup completeness
+  const isLineupReady = false;
 
   const attendanceTrailing = (
     <div
@@ -636,7 +639,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                     <div className="flex flex-col items-center px-1 py-2 text-center">
                       <Clock className="h-3.5 w-3.5 text-[#B85C68]" strokeWidth={2} aria-hidden />
                       <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-red-400/80">Treffpunkt</span>
-                      <span className="mt-0.5 text-[14px] font-semibold tabular-nums leading-tight text-white">{scheduleMetaTimeDisplay(meetupTimeOnly)}</span>
+                      <span className="mt-0.5 text-[14px] font-semibold tabular-nums leading-tight text-white">{heroMeetupTimeDisplay}</span>
                       <span className="text-[9px] font-medium text-white/50">Uhr</span>
                     </div>
                   ) : (
@@ -665,9 +668,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                     <button type="button" className="relative flex flex-col items-center justify-center overflow-hidden py-2 pl-1 pr-6 text-center" onClick={() => handleCardClick()}>
                       <CalendarDays className="h-3.5 w-3.5 text-white/50" strokeWidth={2} aria-hidden />
                       <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-white/50">Spielbericht</span>
-                      <span className="mt-0.5 text-[10px] font-medium leading-tight text-white/70">ansehen</span>
-                      <div className="absolute inset-y-0 right-0 flex w-5 items-center justify-center bg-white/[0.08]">
-                        <ChevronRight className="h-4 w-4 text-white/40" strokeWidth={2.5} aria-hidden />
+                      <span className="mt-0.5 text-[10px] font-medium leading-tight text-white/70">abschließen</span>
+                      <div className="absolute inset-y-0 right-0 flex w-6 items-center justify-center bg-white/[0.10]">
+                        <ChevronRight className="h-4 w-4 text-white/90" strokeWidth={2.5} aria-hidden />
                       </div>
                     </button>
                   ) : matchPhase === 'live' ? (
@@ -675,28 +678,50 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                       <Radio className="h-3.5 w-3.5 text-emerald-400 animate-pulse" strokeWidth={2} aria-hidden />
                       <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Live</span>
                       <span className="mt-0.5 text-[10px] font-medium leading-tight text-white/75">öffnen</span>
-                      <div className="absolute inset-y-0 right-0 flex w-5 items-center justify-center bg-emerald-600/80">
+                      <div className="absolute inset-y-0 right-0 flex w-6 items-center justify-center bg-emerald-600/80">
                         <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden />
                       </div>
                     </button>
                   ) : matchPhase === 'pre_kickoff' ? (
-                    <button type="button" className="relative flex flex-col items-center justify-center overflow-hidden py-2 pl-1 pr-6 text-center" onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
-                      <Radio className="h-3.5 w-3.5 text-emerald-400" strokeWidth={2} aria-hidden />
-                      <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Livespiel</span>
-                      <span className="mt-0.5 text-[10px] font-medium leading-tight text-white/75">starten</span>
-                      <div className="absolute inset-y-0 right-0 flex w-5 items-center justify-center bg-emerald-700/60">
-                        <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden />
-                      </div>
-                    </button>
+                    isLineupReady ? (
+                      <button type="button" className="relative flex flex-col items-center justify-center overflow-hidden py-2 pl-1 pr-6 text-center" onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
+                        <Check className="h-3.5 w-3.5 text-emerald-400" strokeWidth={2.5} aria-hidden />
+                        <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Live starten</span>
+                        <span className="mt-0.5 text-[10px] font-medium leading-tight text-white/75">bereit</span>
+                        <div className="absolute inset-y-0 right-0 flex w-6 items-center justify-center bg-emerald-700/80">
+                          <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden />
+                        </div>
+                      </button>
+                    ) : (
+                      <button type="button" className="relative flex flex-col items-center justify-center overflow-hidden py-2 pl-1 pr-6 text-center" onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
+                        <Radio className="h-3.5 w-3.5 text-red-400" strokeWidth={2} aria-hidden />
+                        <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-red-400">Livespiel</span>
+                        <span className="mt-0.5 text-[10px] font-medium leading-tight text-white/70">vorbereiten</span>
+                        <div className="absolute inset-y-0 right-0 flex w-6 items-center justify-center bg-red-700/85">
+                          <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden />
+                        </div>
+                      </button>
+                    )
                   ) : isClickable ? (
-                    <button type="button" className="relative flex flex-col items-center justify-center overflow-hidden py-2 pl-1 pr-6 text-center" onClick={() => handleCardClick()}>
-                      <Radio className="h-3.5 w-3.5 text-red-400" strokeWidth={2} aria-hidden />
-                      <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-red-400">Livespiel</span>
-                      <span className="mt-0.5 text-[10px] font-medium leading-tight text-white/70">zur Vorbereitung</span>
-                      <div className="absolute inset-y-0 right-0 flex w-5 items-center justify-center bg-red-700/80">
-                        <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden />
-                      </div>
-                    </button>
+                    isLineupReady ? (
+                      <button type="button" className="relative flex flex-col items-center justify-center overflow-hidden py-2 pl-1 pr-6 text-center" onClick={() => handleCardClick()}>
+                        <Check className="h-3.5 w-3.5 text-emerald-400" strokeWidth={2.5} aria-hidden />
+                        <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Live starten</span>
+                        <span className="mt-0.5 text-[10px] font-medium leading-tight text-white/75">bereit</span>
+                        <div className="absolute inset-y-0 right-0 flex w-6 items-center justify-center bg-emerald-700/80">
+                          <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden />
+                        </div>
+                      </button>
+                    ) : (
+                      <button type="button" className="relative flex flex-col items-center justify-center overflow-hidden py-2 pl-1 pr-6 text-center" onClick={() => handleCardClick()}>
+                        <Radio className="h-3.5 w-3.5 text-red-400" strokeWidth={2} aria-hidden />
+                        <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-red-400">Livespiel</span>
+                        <span className="mt-0.5 text-[10px] font-medium leading-tight text-white/70">vorbereiten</span>
+                        <div className="absolute inset-y-0 right-0 flex w-6 items-center justify-center bg-red-700/85">
+                          <ChevronRight className="h-4 w-4 text-white" strokeWidth={2.5} aria-hidden />
+                        </div>
+                      </button>
+                    )
                   ) : null}
                 </div>
               ) : null}
