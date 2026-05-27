@@ -104,44 +104,47 @@ export const AudienceMatchdayDetailCard: React.FC<Props> = ({
         </InfoRow>
 
         {isLive && matchId ? (
-          <div className="mt-3 border-t border-white/[0.06] pt-3">
-            {onOpenLive ? (
-              <button
-                type="button"
-                className={`flex w-full min-h-[48px] items-center justify-center gap-2 ${dsPrimaryCtaClass()}`}
-                onClick={onOpenLive}
-              >
-                <Radio className="h-4 w-4" strokeWidth={2} aria-hidden />
-                Zum Livespiel
-                <ChevronRight className="h-4 w-4 shrink-0 opacity-80" strokeWidth={2} aria-hidden />
-              </button>
-            ) : (
-              <Link
-                to={`/app/live?matchId=${encodeURIComponent(matchId)}`}
-                className={`flex w-full min-h-[48px] items-center justify-center gap-2 ${dsPrimaryCtaClass()}`}
-              >
-                <Radio className="h-4 w-4" strokeWidth={2} aria-hidden />
-                Zum Livespiel
-                <ChevronRight className="h-4 w-4 shrink-0 opacity-80" strokeWidth={2} aria-hidden />
-              </Link>
-            )}
-          </div>
+          <InfoRow icon={<Radio className="h-4 w-4 animate-pulse" strokeWidth={2} aria-hidden />} label="Live">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[13px] text-white/75">Spiel ist live — Livestream &amp; Spielverlauf</span>
+              {onOpenLive ? (
+                <button
+                  type="button"
+                  className="mt-1 inline-flex items-center gap-1 text-[13px] font-semibold text-red-400"
+                  onClick={onOpenLive}
+                >
+                  Zum Live-Zugang
+                  <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                </button>
+              ) : (
+                <Link
+                  to={`/app/live?matchId=${encodeURIComponent(matchId)}`}
+                  className="mt-1 inline-flex items-center gap-1 text-[13px] font-semibold text-red-400"
+                >
+                  Zum Live-Zugang
+                  <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                </Link>
+              )}
+            </div>
+          </InfoRow>
         ) : null}
 
         {isFinished && matchId ? (
-          <div className="mt-3 border-t border-white/[0.06] pt-3">
-            {onOpenReport ? (
-              <button
-                type="button"
-                className="flex w-full min-h-[46px] items-center justify-center gap-2 rounded-[14px] border border-white/10 bg-white/[0.05] px-4 text-[15px] font-semibold text-white/90 transition hover:bg-white/[0.08]"
-                onClick={onOpenReport}
-              >
-                <ScrollText className="h-4 w-4 text-white/70" strokeWidth={2} aria-hidden />
-                Spielbericht ansehen
-                <ChevronRight className="h-4 w-4 shrink-0 text-white/40" strokeWidth={2} aria-hidden />
-              </button>
-            ) : null}
-          </div>
+          <InfoRow icon={<ScrollText className="h-4 w-4" strokeWidth={2} aria-hidden />} label="Bericht">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[13px] font-normal text-white/55">Nach Spielende verfügbar</span>
+              {onOpenReport ? (
+                <button
+                  type="button"
+                  className="mt-1 inline-flex items-center gap-1 text-[13px] font-semibold text-white/80"
+                  onClick={onOpenReport}
+                >
+                  Bericht ansehen
+                  <ChevronRight className="h-3.5 w-3.5 text-white/40" strokeWidth={2} aria-hidden />
+                </button>
+              ) : null}
+            </div>
+          </InfoRow>
         ) : null}
       </div>
     </Card>

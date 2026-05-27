@@ -85,6 +85,8 @@ type MatchCardLigaportalProps = {
   onScheduleHeroAddToCalendar?: () => void;
   /** Nur „Nächstes Spiel“-Hero: Livespiel-CTA in der Card. */
   onScheduleHeroGoLive?: () => void;
+  /** Match läuft (DB live_is_running) – Audience-Live-State auch wenn Event-Status noch nachzieht. */
+  liveIsRunning?: boolean | null;
   /** Event-Detail: Matchcard kompakter wie Schedule-Hero, ohne dessen Header/Actions. */
   compactDetailGame?: boolean;
 };
@@ -123,6 +125,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   scheduleNextMatchHero = false,
   onScheduleHeroAddToCalendar,
   onScheduleHeroGoLive,
+  liveIsRunning = null,
   compactDetailGame = false,
 }) => {
   void ourTeamName;
@@ -301,7 +304,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const matchPhase: 'pre_meetup' | 'pre_kickoff' | 'live' | 'finished' = (() => {
     if (status === 'finished' || status === 'completed' || status === 'ended') return 'finished';
-    if (status === 'live' || status === 'running') return 'live';
+    if (status === 'live' || status === 'running' || liveIsRunning === true) return 'live';
     const now = Date.now();
     if (meetupAt) {
       const meetupMs = new Date(meetupAt).getTime();
@@ -469,6 +472,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     </div>
   );
 
+  const audienceCanOpenLive = Boolean(onScheduleHeroGoLive || isClickable);
+
   const renderAudienceInfoTilesRow = () => (
     <div className={audienceInfoTilesGrid} onClick={(e) => e.stopPropagation()}>
       {renderAudienceInfoTile(
@@ -491,11 +496,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       )}
       {matchPhase === 'live' ? (
         <div
-          role={showScheduleHeroGoLive || isClickable ? 'button' : undefined}
-          tabIndex={showScheduleHeroGoLive || isClickable ? 0 : undefined}
-          className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer overflow-hidden pr-5 ${showScheduleHeroGoLive || isClickable ? '' : 'pointer-events-none opacity-50'}`}
+          role={audienceCanOpenLive ? 'button' : undefined}
+          tabIndex={audienceCanOpenLive ? 0 : undefined}
+          className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 overflow-hidden bg-red-950/25 pr-5 ${audienceCanOpenLive ? 'cursor-pointer shadow-[inset_0_0_18px_rgba(220,38,38,0.08)]' : 'pointer-events-none opacity-50'}`}
           onClick={
-            showScheduleHeroGoLive || isClickable
+            audienceCanOpenLive
               ? (e) => {
                   e.stopPropagation();
                   handleScheduleHeroLiveAction();
@@ -503,7 +508,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               : undefined
           }
           onKeyDown={
-            showScheduleHeroGoLive || isClickable
+            audienceCanOpenLive
               ? (e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
@@ -517,10 +522,15 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
           <span className={`${heroMatchMetaIcon} text-red-400`}>
             <Radio className="animate-pulse" strokeWidth={2} aria-hidden />
           </span>
-          <span className={`${heroMatchMetaLabel} text-red-400`}>JETZT LIVE</span>
+          <span
+            className={`${heroMatchMetaLabel} inline-flex items-center justify-center gap-1 text-red-400`}
+          >
+            <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.9)]" aria-hidden />
+            JETZT LIVE
+          </span>
           <div className={heroMatchMetaValueWrap}>
             <span className={`${heroMatchMetaSubPrimary} text-white/90`}>Livespiel</span>
-            <span className={heroMatchMetaSub}>öffnen</span>
+            <span className={`${heroMatchMetaSub} text-white/75`}>öffnen</span>
           </div>
           <div className={heroLivePrepareStripe} aria-hidden>
             <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.25} />
@@ -777,8 +787,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
       {effectiveEventType === 'game' ? (
         isHeroLayout ? (
-          matchPhase === 'live' && scheduleNextMatchHero ? (
-            /* ── Live Hero (simplified — score + CTA only) ── */
+          matchPhase === 'live' && scheduleNextMatchHero && !isAudienceHeroRole ? (
+            /* ── Live Hero (simplified — score + CTA only, Trainer) ── */
             <div className="relative z-[1] flex flex-col items-center gap-1.5 px-1 py-1">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-900/35 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.10em] text-emerald-400 shadow-[0_0_14px_rgba(16,185,129,0.25)] animate-pulse">
                 <Radio className="h-3 w-3" strokeWidth={2.5} aria-hidden />
@@ -819,8 +829,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 <ChevronRight className="h-4 w-4 text-emerald-400/50" strokeWidth={2} aria-hidden />
               </button>
             </div>
-          ) : matchPhase === 'finished' && scheduleNextMatchHero ? (
-            /* ── Finished Hero (simplified — result + CTA) ── */
+          ) : matchPhase === 'finished' && scheduleNextMatchHero && !isAudienceHeroRole ? (
+            /* ── Finished Hero (simplified — result + CTA, Trainer) ── */
             <div className="relative z-[1] flex flex-col items-center gap-1.5 px-1 py-1">
               <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.10em] text-white/40">
                 BEENDET
@@ -888,8 +898,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   </span>
                 ) : null}
                 {matchPhase === 'live' ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-900/30 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.20)] animate-pulse">
-                    <Radio className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden />
+                  <span className="inline-flex items-center gap-1 rounded-full border border-red-400/30 bg-red-950/40 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-red-400 shadow-[0_0_10px_rgba(220,38,38,0.22)]">
+                    <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-red-400" aria-hidden />
                     LIVE
                   </span>
                 ) : matchPhase === 'pre_kickoff' ? (
@@ -913,7 +923,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 leftLogoUrl={leftLogoOverride}
                 timeDisplay={timeStr}
                 isMatch={isMatch}
-                showScore={showScore}
+                showScore={matchPhase === 'live' || matchPhase === 'finished' ? false : showScore}
                 homeScore={home}
                 awayScore={away}
                 kickoffLocation={null}
@@ -927,6 +937,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 compactDetailGame={false}
                 suppressCompactScheduleFooter
               />
+              {showScore && (matchPhase === 'live' || matchPhase === 'finished') ? (
+                <p className="mt-0.5 text-center text-[11px] font-bold tabular-nums leading-none text-white/85">
+                  {home}:{away}
+                </p>
+              ) : null}
             </div>
             </div>
             {renderAudienceInfoTilesRow()}

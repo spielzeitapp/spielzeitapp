@@ -1,6 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { CalendarPlus, ChevronRight, Navigation, Pencil, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-react';
+import {
+  CalendarPlus,
+  ChevronRight,
+  Navigation,
+  Pencil,
+  Radio,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+} from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
@@ -2865,6 +2874,25 @@ export const EventDetailPage: React.FC = () => {
               </div>
             )}
           </Card>
+        ) : null}
+
+        {isAudienceMatchDetail && event.status === 'live' && event.match_id ? (
+          <div className="flex flex-col gap-2.5 rounded-[14px] border border-red-500/28 bg-[linear-gradient(135deg,rgba(58,18,24,0.55)_0%,rgba(12,12,14,0.96)_100%)] px-3.5 py-3.5 shadow-[0_0_22px_rgba(220,38,38,0.14)]">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-2 w-2 shrink-0 animate-pulse rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" aria-hidden />
+              <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-red-400">Live</span>
+              <span className="text-[13px] text-white/65">Spiel läuft gerade</span>
+            </div>
+            <button
+              type="button"
+              className={`flex w-full min-h-[48px] items-center justify-center gap-2 ${dsPrimaryCtaClass()}`}
+              onClick={() => navigate(`/app/live?matchId=${encodeURIComponent(event.match_id!)}`)}
+            >
+              <Radio className="h-4 w-4" strokeWidth={2} aria-hidden />
+              Livespiel öffnen
+              <ChevronRight className="h-4 w-4 shrink-0 opacity-80" strokeWidth={2} aria-hidden />
+            </button>
+          </div>
         ) : null}
 
         {isAudienceMatchDetail ? (

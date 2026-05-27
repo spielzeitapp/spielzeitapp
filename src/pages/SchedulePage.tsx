@@ -267,7 +267,10 @@ export const SchedulePage: React.FC = () => {
   const [savingEdit, setSavingEdit] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [matchScoreById, setMatchScoreById] = useState<
-    Record<string, { scoreHome: number; scoreAway: number; periodBracket: string | null }>
+    Record<
+      string,
+      { scoreHome: number; scoreAway: number; periodBracket: string | null; liveIsRunning: boolean }
+    >
   >({});
 
   useEffect(() => {
@@ -744,16 +747,21 @@ export const SchedulePage: React.FC = () => {
     (async () => {
       const { data, error } = await supabase
         .from('matches')
-        .select('id, score_home, score_away, period_scores')
+        .select('id, score_home, score_away, period_scores, live_is_running')
         .in('id', matchIds);
       if (cancelled || error) return;
-      const next: Record<string, { scoreHome: number; scoreAway: number; periodBracket: string | null }> = {};
+      const next: Record<
+        string,
+        { scoreHome: number; scoreAway: number; periodBracket: string | null; liveIsRunning: boolean }
+      > = {};
       for (const row of (data ?? []) as Array<{
         id: string;
         score_home: number | null;
         score_away: number | null;
         period_scores: unknown;
+        live_is_running: boolean | null;
       }>) {
+        const liveIsRunning = Boolean(row.live_is_running);
         const triplet = parsePeriodScores(row.period_scores);
         if (triplet) {
           const s = sumPeriodScoresTriplet(triplet);
@@ -761,12 +769,14 @@ export const SchedulePage: React.FC = () => {
             scoreHome: s.home,
             scoreAway: s.away,
             periodBracket: formatPeriodScoresBracket(triplet),
+            liveIsRunning,
           };
         } else {
           next[row.id] = {
             scoreHome: Number(row.score_home ?? 0),
             scoreAway: Number(row.score_away ?? 0),
             periodBracket: null,
+            liveIsRunning,
           };
         }
       }
@@ -1186,6 +1196,7 @@ export const SchedulePage: React.FC = () => {
                                   }
                                   isPublicView={forcePublicView}
                                   onScheduleHeroGoLive={heroGoLive}
+                                  liveIsRunning={matchScore?.liveIsRunning ?? null}
                                 />
                               </EventHeroCard>
                             </div>
