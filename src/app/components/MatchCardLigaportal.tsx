@@ -329,10 +329,12 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const heroMatchMetaUhr = 'mt-0.5 text-[10px] font-medium leading-tight text-white/80';
   const heroInfoTilesGrid =
     'mt-1 grid h-[74px] grid-cols-[1.08fr_1fr_1.12fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
+  const audienceInfoTilesGrid =
+    'mt-1 grid h-[74px] grid-cols-[1fr_1fr_1.18fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
   const heroLivePrepareStripe =
     'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-5 shrink-0 items-center justify-center bg-red-700/85';
-  const audienceTileChevronStripe =
-    'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-5 shrink-0 items-center justify-center';
+  const audienceDetailsStripe =
+    'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-5 shrink-0 items-center justify-center bg-gradient-to-b from-teal-500/90 to-emerald-700/95 shadow-[0_0_16px_rgba(16,185,129,0.28)]';
 
   const renderScheduleHeroLivePrepareTile = (onActivate: () => void) => (
     <div
@@ -394,8 +396,32 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     else handleCardClick();
   };
 
-  const audienceDetailPreview =
-    (addressLine || placeLine?.split(',')[0]?.trim() || placeLine || 'Adresse').trim();
+  const audienceMeetupTimeLine =
+    canSeeSensitiveInfo && meetupTimeOnly ? `${heroMeetupTimeDisplay} Uhr` : '–';
+  const audienceMeetupSpotLine = (placeLine || '–').trim() || '–';
+  const audienceSpielortLine2 = (placeLine || '–').trim() || '–';
+  const audienceSpielortLine3 = (addressLine || '–').trim() || '–';
+
+  const renderAudienceInfoTile = (
+    icon: React.ReactNode,
+    label: string,
+    line2: string,
+    line3: string,
+    withBorder = false,
+    muted = false,
+  ) => (
+    <div className={`${heroMatchMetaTile} ${withBorder ? heroMatchMetaTileBorder : ''}`}>
+      <span className={`${heroMatchMetaIcon} ${muted ? 'text-white/20' : ''}`}>{icon}</span>
+      <span className={`${heroMatchMetaLabel} ${muted ? 'text-white/25' : ''}`}>{label}</span>
+      <div className={heroMatchMetaValueWrap}>
+        <span className={`${heroMatchMetaSubPrimary} line-clamp-1 ${muted ? 'text-white/20' : ''}`}>
+          {line2}
+        </span>
+        <span className={`${heroMatchMetaSub} line-clamp-1 ${muted ? 'text-white/20' : ''}`}>{line3}</span>
+      </div>
+    </div>
+  );
+
   const audienceRsvpStatus =
     attendanceStatus === 'yes'
       ? {
@@ -765,56 +791,25 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
               {/* ── Info Tiles (Schedule Hero only) ── */}
               {scheduleNextMatchHero ? (
-                <div className={heroInfoTilesGrid} onClick={(e) => e.stopPropagation()}>
-                  {canSeeSensitiveInfo && meetupTimeOnly ? (
-                    <div className={heroMatchMetaTile}>
-                      <span className={heroMatchMetaIcon}>
-                        <Clock strokeWidth={2} aria-hidden />
-                      </span>
-                      <span className={heroMatchMetaLabel}>Treffpunkt</span>
-                      <div className={heroMatchMetaValueWrap}>
-                        <span className="w-full min-w-0 max-w-full text-[14px] font-semibold tabular-nums leading-none text-white">
-                          {heroMeetupTimeDisplay}
-                        </span>
-                        <span className={heroMatchMetaUhr}>Uhr</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={heroMatchMetaTile}>
-                      <span className={`${heroMatchMetaIcon} text-white/20`}>
-                        <Clock strokeWidth={2} aria-hidden />
-                      </span>
-                      <span className={`${heroMatchMetaLabel} text-white/25`}>Treffpunkt</span>
-                      <div className={heroMatchMetaValueWrap}>
-                        <span className={`${heroMatchMetaSubPrimary} text-white/20`}>–</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {placeLine ? (
-                    <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
-                      <span className={heroMatchMetaIcon}>
-                        <MapPin strokeWidth={2} aria-hidden />
-                      </span>
-                      <span className={heroMatchMetaLabel}>Spielort</span>
-                      <div className={heroMatchMetaValueWrap}>
-                        <span className={`${heroMatchMetaSub} line-clamp-2 break-words`}>{placeLine}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
-                      <span className={`${heroMatchMetaIcon} text-white/20`}>
-                        <MapPin strokeWidth={2} aria-hidden />
-                      </span>
-                      <span className={`${heroMatchMetaLabel} text-white/25`}>Spielort</span>
-                      <div className={heroMatchMetaValueWrap}>
-                        <span className={`${heroMatchMetaSubPrimary} text-white/20`}>–</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {isAudienceHeroRole ? (
-                    matchPhase === 'live' ? (
+                isAudienceHeroRole ? (
+                  <div className={audienceInfoTilesGrid} onClick={(e) => e.stopPropagation()}>
+                    {renderAudienceInfoTile(
+                      <Clock strokeWidth={2} aria-hidden />,
+                      'TREFFPUNKT',
+                      audienceMeetupTimeLine,
+                      audienceMeetupSpotLine,
+                      false,
+                      !(canSeeSensitiveInfo && meetupTimeOnly),
+                    )}
+                    {renderAudienceInfoTile(
+                      <MapPin strokeWidth={2} aria-hidden />,
+                      'SPIELORT',
+                      audienceSpielortLine2,
+                      audienceSpielortLine3,
+                      true,
+                      !placeLine,
+                    )}
+                    {matchPhase === 'live' ? (
                       <div
                         role={showScheduleHeroGoLive || isClickable ? 'button' : undefined}
                         tabIndex={showScheduleHeroGoLive || isClickable ? 0 : undefined}
@@ -884,7 +879,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                           <span className={`${heroMatchMetaSubPrimary} text-white/90`}>Ergebnis</span>
                           <span className={`${heroMatchMetaSub} text-white/65`}>ansehen</span>
                         </div>
-                        <div className={`${audienceTileChevronStripe} bg-white/[0.06]`} aria-hidden>
+                        <div className={`${heroLivePrepareStripe} bg-white/10`} aria-hidden>
                           <ChevronRight className="h-3.5 w-3.5 text-white/75" strokeWidth={2.25} />
                         </div>
                       </div>
@@ -892,7 +887,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                       <div
                         role={isClickable ? 'button' : undefined}
                         tabIndex={isClickable ? 0 : undefined}
-                        className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 overflow-hidden pr-5 ${isClickable ? 'cursor-pointer' : ''}`}
+                        className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 overflow-hidden bg-emerald-950/20 pr-5 ${isClickable ? 'cursor-pointer shadow-[inset_0_0_20px_rgba(16,185,129,0.06)]' : ''}`}
                         onClick={
                           isClickable
                             ? (e) => {
@@ -913,22 +908,70 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                             : undefined
                         }
                       >
-                        <span className={`${heroMatchMetaIcon} text-white/65`}>
+                        <span className={heroMatchMetaIcon}>
                           <CalendarDays strokeWidth={2} aria-hidden />
                         </span>
-                        <span className={`${heroMatchMetaLabel} text-white/65`}>DETAILS</span>
+                        <span className={heroMatchMetaLabel}>DETAILS</span>
                         <div className={heroMatchMetaValueWrap}>
-                          <span className={`${heroMatchMetaSubPrimary} line-clamp-1 break-words text-white/85`}>
-                            {audienceDetailPreview}
-                          </span>
-                          <span className={`${heroMatchMetaSub} text-white/55`}>mehr</span>
+                          <span className={`${heroMatchMetaSubPrimary} line-clamp-1`}>Adresse &</span>
+                          <span className={`${heroMatchMetaSub} line-clamp-1`}>weitere Infos</span>
                         </div>
-                        <div className={`${audienceTileChevronStripe} bg-white/[0.05]`} aria-hidden>
-                          <ChevronRight className="h-3 w-3 text-white/70" strokeWidth={2.25} />
+                        <div className={audienceDetailsStripe} aria-hidden>
+                          <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.25} />
                         </div>
                       </div>
-                    )
-                  ) : isLineupReady ? (
+                    )}
+                  </div>
+                ) : (
+                <div className={heroInfoTilesGrid} onClick={(e) => e.stopPropagation()}>
+                  {canSeeSensitiveInfo && meetupTimeOnly ? (
+                    <div className={heroMatchMetaTile}>
+                      <span className={heroMatchMetaIcon}>
+                        <Clock strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={heroMatchMetaLabel}>Treffpunkt</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className="w-full min-w-0 max-w-full text-[14px] font-semibold tabular-nums leading-none text-white">
+                          {heroMeetupTimeDisplay}
+                        </span>
+                        <span className={heroMatchMetaUhr}>Uhr</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={heroMatchMetaTile}>
+                      <span className={`${heroMatchMetaIcon} text-white/20`}>
+                        <Clock strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={`${heroMatchMetaLabel} text-white/25`}>Treffpunkt</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className={`${heroMatchMetaSubPrimary} text-white/20`}>–</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {placeLine ? (
+                    <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
+                      <span className={heroMatchMetaIcon}>
+                        <MapPin strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={heroMatchMetaLabel}>Spielort</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className={`${heroMatchMetaSub} line-clamp-2 break-words`}>{placeLine}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
+                      <span className={`${heroMatchMetaIcon} text-white/20`}>
+                        <MapPin strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={`${heroMatchMetaLabel} text-white/25`}>Spielort</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className={`${heroMatchMetaSubPrimary} text-white/20`}>–</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {isLineupReady ? (
                     renderScheduleHeroLiveReadyTile(handleScheduleHeroLiveAction)
                   ) : showScheduleHeroGoLive || isClickable ? (
                     renderScheduleHeroLivePrepareTile(handleScheduleHeroLiveAction)
@@ -944,6 +987,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                     </div>
                   )}
                 </div>
+                )
               ) : null}
             </div>
           </div>
