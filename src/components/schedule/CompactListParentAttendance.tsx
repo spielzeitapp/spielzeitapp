@@ -27,7 +27,8 @@ const pendingList = 'border-white/20 bg-zinc-700/75 text-white/90';
 const yesHero =
   'border-emerald-400/38 bg-emerald-600/80 text-white shadow-[0_0_8px_rgba(16,185,129,0.18)]';
 const noHero = 'border-red-400/35 bg-red-600/75 text-white shadow-[0_0_8px_rgba(239,68,68,0.16)]';
-const pendingHero = 'border-white/16 bg-zinc-700/70 text-white/88 shadow-[0_0_6px_rgba(0,0,0,0.15)]';
+const pendingHero =
+  'border-amber-400/45 bg-amber-500/80 text-white shadow-[0_0_10px_rgba(245,158,11,0.22)]';
 
 /** Eltern/Spieler: Daumen in Hero oder „Weitere Termine“. */
 export function CompactListParentAttendance({

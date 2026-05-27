@@ -22,6 +22,8 @@ import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../../components/matc
 import { MatchCardGameCore, MatchCardKickoffBlock } from '../../components/match/MatchCardGameCore';
 import { formatHeroDateParts, scheduleMetaTimeDisplay } from '../../components/schedule/scheduleEventViewUtils';
 import { TrainerStatsMini } from '../../components/schedule/TrainerStatsMini';
+import { CompactListParentAttendance } from '../../components/schedule/CompactListParentAttendance';
+import type { AttendanceStatusKind } from '../../components/schedule/AttendanceStatusPill';
 
 /** Datum kurz in Europe/Vienna (z. B. Sa. 06.06.2026). */
 function formatDateShortDE(date: Date): string {
@@ -330,7 +332,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const heroInfoTilesGrid =
     'mt-1 grid h-[74px] grid-cols-[1.08fr_1fr_1.12fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
   const audienceInfoTilesGrid =
-    'grid h-auto min-h-[64px] w-full grid-cols-[1.05fr_1.05fr_1.2fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
+    'grid h-auto min-h-[64px] w-full grid-cols-[1fr_1fr_1.18fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
   const audienceMeetupTimeClass =
     'w-full min-w-0 whitespace-normal text-[11px] font-semibold tabular-nums leading-none text-white';
   const audienceMeetupUhrClass =
@@ -602,24 +604,20 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     </div>
   );
 
-  const audienceRsvpStatus =
-    attendanceStatus === 'yes'
-      ? {
-          dot: '🟢',
-          label: 'DABEI',
-          cls: 'border-emerald-400/45 bg-emerald-600/25 text-emerald-200 shadow-[0_0_10px_rgba(16,185,129,0.12)]',
-        }
-      : attendanceStatus === 'no'
-        ? {
-            dot: '🔴',
-            label: 'ABSAGE',
-            cls: 'border-rose-400/45 bg-rose-600/20 text-rose-200 shadow-[0_0_10px_rgba(244,63,94,0.10)]',
-          }
-        : {
-            dot: '🟡',
-            label: 'OFFEN',
-            cls: 'border-amber-400/40 bg-amber-500/12 text-amber-200 shadow-[0_0_8px_rgba(245,158,11,0.08)]',
-          };
+  const audienceAttendancePillStatus = (): AttendanceStatusKind =>
+    attendanceStatus === 'yes' ? 'yes' : attendanceStatus === 'no' ? 'no' : 'open';
+
+  const renderAudienceHeroAttendanceButton = () =>
+    isAudienceRsvpHero && onOpenAttendance ? (
+      <div className="mt-1.5 flex w-full justify-center">
+        <CompactListParentAttendance
+          status={audienceAttendancePillStatus()}
+          isTraining={false}
+          context="hero"
+          onOpen={onOpenAttendance}
+        />
+      </div>
+    ) : null;
 
   const attendanceTrailing = (
     <div
@@ -878,22 +876,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 {heroDateParts.mon}
               </span>
               {heroYear ? <span className="text-[9px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
-              {isAudienceRsvpHero && onOpenAttendance ? (
-                <button
-                  type="button"
-                  className={`mt-1.5 inline-flex w-full max-w-[88px] items-center justify-center gap-1 rounded-full border px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-[0.08em] transition-colors active:scale-[0.98] ${audienceRsvpStatus.cls}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenAttendance();
-                  }}
-                  aria-label={`Teilnahme: ${audienceRsvpStatus.label}`}
-                >
-                  <span className="text-[9px] leading-none" aria-hidden>
-                    {audienceRsvpStatus.dot}
-                  </span>
-                  <span className="leading-none">{audienceRsvpStatus.label}</span>
-                </button>
-              ) : null}
+              {renderAudienceHeroAttendanceButton()}
             </div>
             <div className="w-px self-stretch bg-white/[0.06]" aria-hidden />
             <div className="flex min-w-0 flex-col">
@@ -962,22 +945,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 {heroDateParts.mon}
               </span>
               {heroYear ? <span className="text-[10px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
-              {isAudienceRsvpHero && onOpenAttendance ? (
-                <button
-                  type="button"
-                  className={`mt-2 inline-flex max-w-[76px] items-center justify-center gap-0.5 rounded-full border px-1.5 py-1 text-[7px] font-bold uppercase tracking-[0.06em] transition-colors active:scale-[0.98] ${audienceRsvpStatus.cls}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenAttendance();
-                  }}
-                  aria-label={`Teilnahme: ${audienceRsvpStatus.label}`}
-                >
-                  <span className="text-[9px] leading-none" aria-hidden>
-                    {audienceRsvpStatus.dot}
-                  </span>
-                  <span className="leading-none">{audienceRsvpStatus.label}</span>
-                </button>
-              ) : showAttendanceCounts && attendanceCounts ? (
+              {renderAudienceHeroAttendanceButton()}
+              {!isAudienceHeroRole && showAttendanceCounts && attendanceCounts ? (
                 <div className="mt-2.5 flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <div className="flex flex-col items-center">
                     <ThumbsUp className="h-3 w-3 text-emerald-400" strokeWidth={2.5} aria-hidden />
