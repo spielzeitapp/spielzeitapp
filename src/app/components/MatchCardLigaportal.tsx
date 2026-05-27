@@ -302,10 +302,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const heroTileBody = 'flex h-full min-h-0 flex-col items-center justify-center px-1 py-1.5 text-center';
   const heroTileSub = 'text-[11px] font-medium leading-snug text-white';
   const heroTileSubMuted = 'text-[11px] font-medium leading-snug text-white/80';
-  const heroActionTile = 'relative flex h-full min-h-0 w-full';
+  const heroActionTile = 'relative flex h-full min-h-0 w-full min-w-0';
   const heroActionContent =
-    'relative z-[1] flex min-w-0 w-full flex-col items-center justify-center px-0.5 py-1.5 pr-[18px] text-center';
-  const heroActionStripe = 'absolute inset-y-0 right-0 z-[2] flex w-4 items-center justify-center';
+    'relative z-[1] flex min-w-0 w-[calc(100%-15px)] flex-col items-center justify-center py-1.5 pl-0 pr-0.5 text-center';
+  const heroActionStripe =
+    'absolute inset-y-0 right-0 z-[2] flex w-[15px] shrink-0 items-center justify-center';
 
   const attendanceTrailing = (
     <div
@@ -711,7 +712,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                         <div className={heroActionContent}>
                           <Radio className="h-3.5 w-3.5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
                           <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-red-400">Livespiel</span>
-                          <span className={heroTileSubMuted}>vorbereiten</span>
+                          <span className={`${heroTileSubMuted} max-w-full px-0.5`}>vorbereiten</span>
                         </div>
                         <div className={`${heroActionStripe} bg-red-700/85`}>
                           <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} aria-hidden />
@@ -735,7 +736,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                         <div className={heroActionContent}>
                           <Radio className="h-3.5 w-3.5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
                           <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-red-400">Livespiel</span>
-                          <span className={heroTileSubMuted}>vorbereiten</span>
+                          <span className={`${heroTileSubMuted} max-w-full px-0.5`}>vorbereiten</span>
                         </div>
                         <div className={`${heroActionStripe} bg-red-700/85`}>
                           <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} aria-hidden />
