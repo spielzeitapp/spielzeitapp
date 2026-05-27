@@ -298,18 +298,19 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const isLineupReady = false;
 
   const heroMatchMetaTile =
-    'flex h-full min-h-[56px] min-w-0 flex-col items-center justify-center px-0.5 py-1.5 text-center sm:px-1';
+    'flex h-full min-h-0 min-w-0 flex-col items-center justify-center px-0.5 py-1 text-center sm:px-1';
   const heroMatchMetaTileBorder = 'border-l border-white/[0.05]';
   const heroMatchMetaIcon =
     'flex h-[18px] shrink-0 items-center text-[#B85C68] [&_svg]:h-[18px] [&_svg]:w-[18px]';
   const heroMatchMetaLabel =
-    'mt-1 w-full px-0.5 text-[9.5px] font-semibold uppercase tracking-[0.08em] leading-none text-red-400/80';
+    'mt-1 w-full whitespace-nowrap px-0.5 text-[9px] font-semibold uppercase tracking-[0.03em] leading-none text-red-400/80';
   const heroMatchMetaValueWrap = 'mt-0.5 flex w-full min-w-0 max-w-full flex-col items-center';
   const heroMatchMetaSub =
-    'w-full min-w-0 max-w-full break-words text-[10px] font-medium leading-tight text-white/80';
-  const heroMatchMetaSubPrimary = 'w-full min-w-0 max-w-full text-[10px] font-medium leading-tight text-white';
+    'w-full min-w-0 max-w-full break-words text-[9.5px] font-medium leading-tight text-white/80';
+  const heroMatchMetaSubPrimary = 'w-full min-w-0 max-w-full text-[9.5px] font-medium leading-tight text-white';
+  const heroMatchMetaUhr = 'mt-0.5 text-[10px] font-medium leading-tight text-white/80';
   const heroInfoTilesGrid =
-    'mt-1 grid min-h-[56px] grid-cols-[0.92fr_1fr_1.28fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
+    'mt-1 grid h-[74px] grid-cols-[1.08fr_1fr_1.12fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
   const heroLivePrepareStripe =
     'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-5 shrink-0 items-center justify-center bg-red-700/85';
 
@@ -718,7 +719,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                         <span className="w-full min-w-0 max-w-full text-[14px] font-semibold tabular-nums leading-none text-white">
                           {heroMeetupTimeDisplay}
                         </span>
-                        <span className={`mt-0.5 ${heroMatchMetaSub}`}>Uhr</span>
+                        <span className={heroMatchMetaUhr}>Uhr</span>
                       </div>
                     </div>
                   ) : (
