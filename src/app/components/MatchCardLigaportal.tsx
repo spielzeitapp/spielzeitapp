@@ -306,6 +306,32 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     'flex h-full min-h-0 w-full min-w-0 flex-col items-center justify-center pl-1 pr-4 py-1.5 text-center relative appearance-none border-0 bg-transparent m-0 font-inherit leading-normal';
   const heroActionStripe =
     'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-[15px] shrink-0 items-center justify-center';
+  const heroLivePrepareStripe =
+    'pointer-events-none absolute top-0 bottom-0 right-0 z-[2] flex w-[15px] items-center justify-center bg-red-700/85';
+
+  const renderScheduleHeroLivePrepareTile = (onActivate: () => void) => (
+    <div
+      role="button"
+      tabIndex={0}
+      className="relative h-full min-h-0 w-full min-w-0 cursor-pointer overflow-visible"
+      onClick={onActivate}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onActivate();
+        }
+      }}
+    >
+      <div className={`${heroTileBody} min-w-0 w-[calc(100%-15px)] overflow-visible`}>
+        <Radio className="h-3.5 w-3.5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
+        <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-red-400/80">Livespiel</span>
+        <span className={`mt-0.5 ${heroTileSubMuted}`}>vorbereiten</span>
+      </div>
+      <div className={heroLivePrepareStripe} aria-hidden>
+        <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} />
+      </div>
+    </div>
+  );
 
   const attendanceTrailing = (
     <div
@@ -701,14 +727,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                         </div>
                       </button>
                     ) : (
-                      <button type="button" className={heroActionTile} onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
-                        <Radio className="h-3.5 w-3.5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
-                        <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-red-400/80">Livespiel</span>
-                        <span className={`mt-0.5 ${heroTileSubMuted}`}>vorbereiten</span>
-                        <div className={`${heroActionStripe} bg-red-700/85`} aria-hidden>
-                          <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} />
-                        </div>
-                      </button>
+                      renderScheduleHeroLivePrepareTile(() =>
+                        onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick(),
+                      )
                     )
                   ) : isClickable ? (
                     isLineupReady ? (
@@ -721,14 +742,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                         </div>
                       </button>
                     ) : (
-                      <button type="button" className={heroActionTile} onClick={() => handleCardClick()}>
-                        <Radio className="h-3.5 w-3.5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
-                        <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-red-400/80">Livespiel</span>
-                        <span className={`mt-0.5 ${heroTileSubMuted}`}>vorbereiten</span>
-                        <div className={`${heroActionStripe} bg-red-700/85`} aria-hidden>
-                          <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} />
-                        </div>
-                      </button>
+                      renderScheduleHeroLivePrepareTile(() => handleCardClick())
                     )
                   ) : null}
                 </div>
