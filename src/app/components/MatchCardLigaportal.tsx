@@ -330,7 +330,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const heroInfoTilesGrid =
     'mt-1 grid h-[74px] grid-cols-[1.08fr_1fr_1.12fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
   const audienceInfoTilesGrid =
-    'grid h-auto min-h-[72px] w-full grid-cols-[1.05fr_1.05fr_1.2fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
+    'grid h-auto min-h-[64px] w-full grid-cols-[1.05fr_1.05fr_1.2fr] items-stretch overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]';
+  const audienceMeetupTimeClass =
+    'w-full min-w-0 whitespace-normal text-[11px] font-semibold tabular-nums leading-none text-white';
+  const audienceMeetupUhrClass =
+    'w-full min-w-0 text-[9px] font-medium leading-tight text-white/80';
   const audienceTileTextClass = (text: string, primary = true) => {
     const len = text.trim().length;
     const size =
@@ -410,11 +414,22 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     else handleCardClick();
   };
 
+  const splitAudienceHeroPlaceLines = (place: string): { line2: string; line3: string } => {
+    const p = (place || '').trim();
+    if (!p) return { line2: '–', line3: '' };
+    if (p.toLowerCase().startsWith('sportplatz ')) {
+      const rest = p.slice('sportplatz '.length).trim();
+      return { line2: 'Sportplatz', line3: rest || '–' };
+    }
+    const idx = p.indexOf(' ');
+    if (idx > 0) return { line2: p.slice(0, idx), line3: p.slice(idx + 1).trim() };
+    return { line2: p, line3: '' };
+  };
+
   const audienceMeetupTimeLine =
-    canSeeSensitiveInfo && meetupTimeOnly ? `${heroMeetupTimeDisplay} Uhr` : '–';
-  const audienceMeetupSpotLine = (placeLine || '–').trim() || '–';
-  const audienceSpielortLine2 = (placeLine || '–').trim() || '–';
-  const audienceSpielortLine3 = (addressLine || '–').trim() || '–';
+    canSeeSensitiveInfo && meetupTimeOnly ? heroMeetupTimeDisplay : '–';
+  const audienceMeetupUhrLine = 'Uhr';
+  const audienceSpielortLines = splitAudienceHeroPlaceLines(placeLine);
 
   const renderAudienceInfoTile = (
     icon: React.ReactNode,
@@ -423,13 +438,31 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     line3: string,
     withBorder = false,
     muted = false,
+    line2Class?: string,
+    line3Class?: string,
   ) => (
     <div className={`${heroMatchMetaTile} ${withBorder ? heroMatchMetaTileBorder : ''}`}>
       <span className={`${heroMatchMetaIcon} ${muted ? 'text-white/20' : ''}`}>{icon}</span>
       <span className={`${heroMatchMetaLabel} ${muted ? 'text-white/25' : ''}`}>{label}</span>
       <div className={heroMatchMetaValueWrap}>
-        <span className={`${audienceTileTextClass(line2, true)} ${muted ? '!text-white/20' : ''}`}>{line2}</span>
-        <span className={`${audienceTileTextClass(line3, false)} ${muted ? '!text-white/20' : ''}`}>{line3}</span>
+        <span
+          className={
+            line2Class ??
+            `${audienceTileTextClass(line2, true)} ${muted ? '!text-white/20' : ''}`
+          }
+        >
+          {line2}
+        </span>
+        {line3 ? (
+          <span
+            className={
+              line3Class ??
+              `${audienceTileTextClass(line3, false)} ${muted ? '!text-white/20' : ''}`
+            }
+          >
+            {line3}
+          </span>
+        ) : null}
       </div>
     </div>
   );
@@ -440,15 +473,17 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         <Clock strokeWidth={2} aria-hidden />,
         'TREFFPUNKT',
         audienceMeetupTimeLine,
-        audienceMeetupSpotLine,
+        audienceMeetupUhrLine,
         false,
         !(canSeeSensitiveInfo && meetupTimeOnly),
+        audienceMeetupTimeClass,
+        audienceMeetupUhrClass,
       )}
       {renderAudienceInfoTile(
         <MapPin strokeWidth={2} aria-hidden />,
         'SPIELORT',
-        audienceSpielortLine2,
-        audienceSpielortLine3,
+        audienceSpielortLines.line2,
+        audienceSpielortLines.line3,
         true,
         !placeLine,
       )}
@@ -831,8 +866,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
             </div>
           ) : isAudienceHeroRole && scheduleNextMatchHero ? (
           <div className="relative z-[1] flex w-full min-h-0 flex-col gap-0.5">
-            <div className="grid w-full min-h-0 grid-cols-[32px_1px_minmax(0,1fr)] items-stretch gap-x-0.5">
-            <div className="flex flex-col items-center self-start pt-0.5">
+            <div className="grid w-full min-h-0 grid-cols-[36px_1px_minmax(0,1fr)] items-stretch gap-x-0.5">
+            <div className="flex w-full flex-col items-center self-start pt-0.5">
               <span className="text-[9px] font-bold uppercase leading-none tracking-[0.16em] text-red-300">
                 {heroDateParts.wd}
               </span>
@@ -846,14 +881,14 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               {isAudienceRsvpHero && onOpenAttendance ? (
                 <button
                   type="button"
-                  className={`mt-1 inline-flex w-[70px] max-w-full items-center justify-center gap-0.5 rounded-full border px-1 py-0.5 text-[7px] font-bold uppercase tracking-[0.05em] transition-colors active:scale-[0.98] ${audienceRsvpStatus.cls}`}
+                  className={`mt-1.5 inline-flex w-full max-w-[88px] items-center justify-center gap-1 rounded-full border px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-[0.08em] transition-colors active:scale-[0.98] ${audienceRsvpStatus.cls}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onOpenAttendance();
                   }}
                   aria-label={`Teilnahme: ${audienceRsvpStatus.label}`}
                 >
-                  <span className="text-[8px] leading-none" aria-hidden>
+                  <span className="text-[9px] leading-none" aria-hidden>
                     {audienceRsvpStatus.dot}
                   </span>
                   <span className="leading-none">{audienceRsvpStatus.label}</span>

@@ -2837,10 +2837,41 @@ export const EventDetailPage: React.FC = () => {
           />
         </div>
 
+        {isAudienceMatchDetail && (effectiveRole === 'player' || effectiveRole === 'parent') ? (
+          <Card className="flex flex-col gap-3 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
+            <CardTitle>Zu-/Absagen</CardTitle>
+            {!playerId ? (
+              <p className="text-[14px] text-white/90">Kein Spieler zugeordnet. Bitte beim Trainer melden.</p>
+            ) : loadingRsvp ? (
+              <p className="text-[14px] text-white/70">Lade Status…</p>
+            ) : (
+              <div className={`grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
+                <button
+                  type="button"
+                  className={dsRsvpChoiceClass('yes', rsvpStatus === 'yes')}
+                  onClick={() => void handleRsvp('yes')}
+                >
+                  <ThumbsUp className="h-4 w-4" aria-hidden />
+                  Zusage
+                </button>
+                <button
+                  type="button"
+                  className={dsRsvpChoiceClass('no', rsvpStatus === 'no')}
+                  onClick={() => void handleRsvp('no')}
+                >
+                  <ThumbsDown className="h-4 w-4" aria-hidden />
+                  Absage
+                </button>
+              </div>
+            )}
+          </Card>
+        ) : null}
+
         {isAudienceMatchDetail ? (
           <AudienceMatchdayDetailCard
             showMeetup={showMeetup}
             meetupAt={event.meeting_at}
+            meetupPlaceLine={audienceLocation.place}
             placeLine={audienceLocation.place}
             addressLine={audienceLocation.address}
             trainerNotes={audienceTrainerNotes}
@@ -2854,7 +2885,8 @@ export const EventDetailPage: React.FC = () => {
           />
         ) : null}
 
-        {!isFan && (
+        {!isFan &&
+        !(isAudienceMatchDetail && (effectiveRole === 'player' || effectiveRole === 'parent')) ? (
           <Card
             className={
               isTraining
@@ -2983,7 +3015,7 @@ export const EventDetailPage: React.FC = () => {
                   </>
                 )}
               </div>
-            ) : (effectiveRole === 'player' || effectiveRole === 'parent') ? (
+            ) : (effectiveRole === 'player' || effectiveRole === 'parent') && !isAudienceMatchDetail ? (
               <div className="flex flex-col gap-2">
                 {!playerId ? (
                   <p className="text-[14px] text-white/90">Kein Spieler zugeordnet. Bitte beim Trainer melden.</p>
@@ -3051,7 +3083,7 @@ export const EventDetailPage: React.FC = () => {
               </div>
             ) : null}
           </Card>
-        )}
+        ) : null}
 
         {event.kind === 'match' && event.status === 'live' && event.match_id && !isAudienceMatchDetail ? (
           <Card className="flex flex-col gap-3">

@@ -9,6 +9,8 @@ import type { EventStatus } from '../../hooks/useEvents';
 type Props = {
   showMeetup: boolean;
   meetupAt: string | null;
+  /** Treffpunkt-Ort (ausführlich auf der Detailseite). */
+  meetupPlaceLine?: string;
   placeLine: string;
   addressLine: string;
   trainerNotes: string | null;
@@ -41,6 +43,7 @@ function InfoRow({
 export const AudienceMatchdayDetailCard: React.FC<Props> = ({
   showMeetup,
   meetupAt,
+  meetupPlaceLine = '',
   placeLine,
   addressLine,
   trainerNotes,
@@ -66,7 +69,12 @@ export const AudienceMatchdayDetailCard: React.FC<Props> = ({
       <div className="relative z-[1]">
         <InfoRow icon={<Clock className="h-4 w-4" strokeWidth={2} aria-hidden />} label="Treffpunkt">
           {showMeetup && meetupTime ? (
-            <span className="tabular-nums">{meetupTime}</span>
+            <div className="flex flex-col gap-0.5">
+              <span className="tabular-nums">{meetupTime}</span>
+              {meetupPlaceLine.trim() ? (
+                <span className="text-[13px] font-normal text-white/75">{meetupPlaceLine.trim()}</span>
+              ) : null}
+            </div>
           ) : (
             <span className="text-white/45">–</span>
           )}
