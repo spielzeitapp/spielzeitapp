@@ -301,8 +301,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const heroTileBody = 'flex h-full min-h-0 flex-col items-center justify-center px-1 py-1.5 text-center';
   const heroTileSub = 'text-[11px] font-medium leading-snug text-white';
-  const heroTileSubMuted = 'text-[11px] font-medium leading-snug text-white/70';
-  const heroActionStripe = 'absolute inset-y-0 right-0 flex w-5 items-center justify-center';
+  const heroTileSubMuted = 'text-[11px] font-medium leading-snug text-white/80';
+  const heroActionTile = 'relative flex h-full min-h-0 w-full';
+  const heroActionContent =
+    'relative z-[1] flex min-w-0 w-full flex-col items-center justify-center px-0.5 py-1.5 pr-[18px] text-center';
+  const heroActionStripe = 'absolute inset-y-0 right-0 z-[2] flex w-4 items-center justify-center';
 
   const attendanceTrailing = (
     <div
@@ -670,60 +673,72 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   )}
 
                   {matchPhase === 'finished' && isClickable ? (
-                    <button type="button" className={`relative min-h-0 w-full overflow-hidden pr-5 ${heroTileBody}`} onClick={() => handleCardClick()}>
-                      <CalendarDays className="h-3.5 w-3.5 shrink-0 text-white/50" strokeWidth={2} aria-hidden />
-                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-white/50">Spiel</span>
-                      <span className={`${heroTileSubMuted} whitespace-nowrap`}>abschließen</span>
+                    <button type="button" className={heroActionTile} onClick={() => handleCardClick()}>
+                      <div className={heroActionContent}>
+                        <CalendarDays className="h-3.5 w-3.5 shrink-0 text-white/50" strokeWidth={2} aria-hidden />
+                        <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-white/50">Spiel</span>
+                        <span className={heroTileSubMuted}>abschließen</span>
+                      </div>
                       <div className={`${heroActionStripe} bg-white/[0.10]`}>
-                        <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.5} aria-hidden />
+                        <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} aria-hidden />
                       </div>
                     </button>
                   ) : matchPhase === 'live' ? (
-                    <button type="button" className={`relative min-h-0 w-full overflow-hidden pr-5 ${heroTileBody}`} onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
-                      <Radio className="h-3.5 w-3.5 shrink-0 text-emerald-400 animate-pulse" strokeWidth={2} aria-hidden />
-                      <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Live</span>
-                      <span className={`${heroTileSubMuted} whitespace-nowrap`}>öffnen</span>
+                    <button type="button" className={heroActionTile} onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
+                      <div className={heroActionContent}>
+                        <Radio className="h-3.5 w-3.5 shrink-0 text-emerald-400 animate-pulse" strokeWidth={2} aria-hidden />
+                        <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Live</span>
+                        <span className={heroTileSubMuted}>öffnen</span>
+                      </div>
                       <div className={`${heroActionStripe} bg-emerald-600/80`}>
-                        <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.5} aria-hidden />
+                        <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} aria-hidden />
                       </div>
                     </button>
                   ) : matchPhase === 'pre_kickoff' ? (
                     isLineupReady ? (
-                      <button type="button" className={`relative min-h-0 w-full overflow-hidden pr-5 ${heroTileBody}`} onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
-                        <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2.5} aria-hidden />
-                        <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Live starten</span>
-                        <span className={`${heroTileSubMuted} whitespace-nowrap`}>bereit</span>
+                      <button type="button" className={heroActionTile} onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
+                        <div className={heroActionContent}>
+                          <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2.5} aria-hidden />
+                          <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Live starten</span>
+                          <span className={heroTileSubMuted}>bereit</span>
+                        </div>
                         <div className={`${heroActionStripe} bg-emerald-700/80`}>
-                          <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.5} aria-hidden />
+                          <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} aria-hidden />
                         </div>
                       </button>
                     ) : (
-                      <button type="button" className={`relative min-h-0 w-full overflow-hidden pr-5 ${heroTileBody}`} onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
-                        <Radio className="h-3.5 w-3.5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
-                        <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-red-400">Livespiel</span>
-                        <span className={`${heroTileSubMuted} whitespace-nowrap`}>vorbereiten</span>
+                      <button type="button" className={heroActionTile} onClick={() => onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick()}>
+                        <div className={heroActionContent}>
+                          <Radio className="h-3.5 w-3.5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
+                          <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-red-400">Livespiel</span>
+                          <span className={heroTileSubMuted}>vorbereiten</span>
+                        </div>
                         <div className={`${heroActionStripe} bg-red-700/85`}>
-                          <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.5} aria-hidden />
+                          <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} aria-hidden />
                         </div>
                       </button>
                     )
                   ) : isClickable ? (
                     isLineupReady ? (
-                      <button type="button" className={`relative min-h-0 w-full overflow-hidden pr-5 ${heroTileBody}`} onClick={() => handleCardClick()}>
-                        <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2.5} aria-hidden />
-                        <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Live starten</span>
-                        <span className={`${heroTileSubMuted} whitespace-nowrap`}>bereit</span>
+                      <button type="button" className={heroActionTile} onClick={() => handleCardClick()}>
+                        <div className={heroActionContent}>
+                          <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2.5} aria-hidden />
+                          <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">Live starten</span>
+                          <span className={heroTileSubMuted}>bereit</span>
+                        </div>
                         <div className={`${heroActionStripe} bg-emerald-700/80`}>
-                          <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.5} aria-hidden />
+                          <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} aria-hidden />
                         </div>
                       </button>
                     ) : (
-                      <button type="button" className={`relative min-h-0 w-full overflow-hidden pr-5 ${heroTileBody}`} onClick={() => handleCardClick()}>
-                        <Radio className="h-3.5 w-3.5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
-                        <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-red-400">Livespiel</span>
-                        <span className={`${heroTileSubMuted} whitespace-nowrap`}>vorbereiten</span>
+                      <button type="button" className={heroActionTile} onClick={() => handleCardClick()}>
+                        <div className={heroActionContent}>
+                          <Radio className="h-3.5 w-3.5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
+                          <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-red-400">Livespiel</span>
+                          <span className={heroTileSubMuted}>vorbereiten</span>
+                        </div>
                         <div className={`${heroActionStripe} bg-red-700/85`}>
-                          <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.5} aria-hidden />
+                          <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} aria-hidden />
                         </div>
                       </button>
                     )
