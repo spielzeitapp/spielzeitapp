@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { CalendarPlus, ChevronRight, Pencil, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-react';
+import { CalendarPlus, ChevronRight, Navigation, Pencil, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
@@ -24,6 +24,7 @@ import {
   trainingAttendanceToDb,
   type TrainingAttendanceStatus,
 } from '../lib/trainingAttendance';
+import { AudienceMatchdayDetailCard } from '../components/events/AudienceMatchdayDetailCard';
 import { TrainingAttendancePanel } from '../components/events/TrainingAttendancePanel';
 import { ScheduleEventActionsPanel } from '../components/schedule/ScheduleEventActionsPanel';
 import { PremiumPlayerCard } from '../components/player/PremiumPlayerCard';
@@ -33,6 +34,7 @@ import {
   dsRsvpChoiceClass,
   dsScheduleGlassButtonClass,
   dsSecondaryCtaClass,
+  dsScheduleDetailCalendarRowClass,
   dsSchedulePageStyle,
   dsSectionLabelClass,
   dsStatusChipClass,
@@ -65,6 +67,7 @@ import {
   type MatchFeedTemplateKey,
 } from '../features/home/feedTemplates';
 import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
+import { openMapsNavigation, resolveEventMapsCoords } from '../lib/mapsNavigation';
 import {
   meetupUtcIsoOnViennaEventDay,
   parseViennaDateTimeLocalToUtcIso,
@@ -108,6 +111,17 @@ function getDomainEventLabel(event: EventRow): string {
   if (t === 'training' || event.kind === 'training') return 'Training';
   if (t === 'event' || event.kind === 'event') return 'Event';
   return 'Termin';
+}
+
+function extractAudienceTrainerNotes(notes: string | null | undefined): string | null {
+  const parts = (notes ?? '')
+    .split(' · ')
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .filter((p) => !p.toLowerCase().startsWith('ende:'));
+  if (parts.length === 0) return null;
+  const text = parts.length > 1 ? parts.slice(1).join(' · ') : parts[0];
+  return text.trim() || null;
 }
 
 function compactTeamNameForMatchHeader(name: string | null | undefined): string {
@@ -2712,44 +2726,87 @@ export const EventDetailPage: React.FC = () => {
     );
   }
 
+  const isAudienceMatchDetail = event.kind === 'match' && !canTrainerManageEvent;
+  const audienceLocation = splitCombinedLocation(event.location);
+  const audienceMapsCoords = resolveEventMapsCoords(event.location, event.notes);
+  const audienceTrainerNotes = extractAudienceTrainerNotes(event.notes);
+
+  const handleStartNavigation = () => {
+    const opened = openMapsNavigation({
+      lat: audienceMapsCoords?.lat,
+      lng: audienceMapsCoords?.lng,
+      place: audienceLocation.place,
+      address: audienceLocation.address,
+      locationRaw: event.location,
+    });
+    if (!opened) {
+      alert('Kein Spielort hinterlegt.');
+    }
+  };
+
   return (
     <div
       className="min-h-screen text-white"
       style={isTraining ? dsSchedulePageStyle() : { background: '#000000' }}
     >
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-2 py-5 pb-28 sm:px-4">
-        <div className="flex flex-col gap-3.5">
+      <div
+        className={`mx-auto flex w-full max-w-2xl flex-col px-2 py-4 pb-28 sm:px-4 ${isAudienceMatchDetail ? 'gap-3' : 'gap-5 py-5'}`}
+      >
+        <div className="flex flex-col gap-3">
           <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
             ← Zurück zum Spielplan
           </Link>
-          <ScheduleEventActionsPanel
-            className="w-full"
-            rows={[
-              {
-                key: 'calendar',
-                label: 'Zum Kalender hinzufügen',
-                icon: <CalendarPlus className="h-4 w-4" strokeWidth={2} aria-hidden />,
-                onClick: () => void handleAddSingleEventToCalendar(),
-              },
-              ...(canTrainerManageEvent
-                ? [
-                    {
-                      key: 'edit',
-                      label: 'Bearbeiten',
-                      icon: <Pencil className="h-4 w-4" strokeWidth={2} aria-hidden />,
-                      onClick: () => openEditModal(event),
-                    },
-                    {
-                      key: 'delete',
-                      label: 'Löschen',
-                      icon: <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />,
-                      danger: true,
-                      onClick: () => setDeleteConfirmOpen(true),
-                    },
-                  ]
-                : []),
-            ]}
-          />
+          {isAudienceMatchDetail ? (
+            <div className="flex flex-col gap-2" role="toolbar" aria-label="Spieltag-Aktionen">
+              <button
+                type="button"
+                className={`inline-flex min-h-[52px] w-full items-center gap-3 ${dsScheduleDetailCalendarRowClass()}`}
+                onClick={() => void handleAddSingleEventToCalendar()}
+              >
+                <CalendarPlus className="h-4 w-4 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                <span className="min-w-0 flex-1 text-left text-[15px] font-semibold">Zum Kalender hinzufügen</span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-white/35" strokeWidth={2} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={`inline-flex min-h-[52px] w-full items-center gap-3 ${dsScheduleDetailCalendarRowClass()}`}
+                onClick={handleStartNavigation}
+              >
+                <Navigation className="h-4 w-4 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                <span className="min-w-0 flex-1 text-left text-[15px] font-semibold">Navigation starten</span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-white/35" strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+          ) : (
+            <ScheduleEventActionsPanel
+              className="w-full"
+              rows={[
+                {
+                  key: 'calendar',
+                  label: 'Zum Kalender hinzufügen',
+                  icon: <CalendarPlus className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                  onClick: () => void handleAddSingleEventToCalendar(),
+                },
+                ...(canTrainerManageEvent
+                  ? [
+                      {
+                        key: 'edit',
+                        label: 'Bearbeiten',
+                        icon: <Pencil className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                        onClick: () => openEditModal(event),
+                      },
+                      {
+                        key: 'delete',
+                        label: 'Löschen',
+                        icon: <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                        danger: true,
+                        onClick: () => setDeleteConfirmOpen(true),
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          )}
         </div>
 
         <div className="-mx-3 relative flex w-[calc(100%+1.5rem)] min-w-0 max-w-none flex-col sm:mx-0 sm:w-full sm:max-w-full">
@@ -2775,9 +2832,27 @@ export const EventDetailPage: React.FC = () => {
             address={event.location}
             meetupAt={event.meeting_at}
             showMeetup={showMeetup}
+            role={effectiveRole}
             isPublicView={true}
           />
         </div>
+
+        {isAudienceMatchDetail ? (
+          <AudienceMatchdayDetailCard
+            showMeetup={showMeetup}
+            meetupAt={event.meeting_at}
+            placeLine={audienceLocation.place}
+            addressLine={audienceLocation.address}
+            trainerNotes={audienceTrainerNotes}
+            status={event.status}
+            matchId={event.match_id}
+            onOpenLive={
+              event.status === 'live' && event.match_id
+                ? () => navigate(`/app/live?matchId=${encodeURIComponent(event.match_id!)}`)
+                : undefined
+            }
+          />
+        ) : null}
 
         {!isFan && (
           <Card
@@ -2978,7 +3053,7 @@ export const EventDetailPage: React.FC = () => {
           </Card>
         )}
 
-        {event.kind === 'match' && event.status === 'live' && event.match_id ? (
+        {event.kind === 'match' && event.status === 'live' && event.match_id && !isAudienceMatchDetail ? (
           <Card className="flex flex-col gap-3">
             <CardTitle>Livespiel</CardTitle>
             <p className="text-[14px] text-white/75">

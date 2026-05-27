@@ -1,0 +1,141 @@
+import React from 'react';
+import { ChevronRight, Cloud, Clock, MapPin, Radio, ScrollText } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Card, CardTitle } from '../../app/components/ui/Card';
+import { dsMatchdaySectionLabelClass, dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
+import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
+import type { EventStatus } from '../../hooks/useEvents';
+
+type Props = {
+  showMeetup: boolean;
+  meetupAt: string | null;
+  placeLine: string;
+  addressLine: string;
+  trainerNotes: string | null;
+  status: EventStatus;
+  matchId: string | null;
+  onOpenLive?: () => void;
+  onOpenReport?: () => void;
+};
+
+function InfoRow({
+  icon,
+  label,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex gap-3 border-t border-white/[0.06] py-3 first:border-t-0 first:pt-0">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-[#B85C68]">{icon}</span>
+      <div className="min-w-0 flex-1">
+        <p className={dsMatchdaySectionLabelClass()}>{label}</p>
+        <div className="mt-1 text-[14px] font-medium leading-snug text-white break-words">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+export const AudienceMatchdayDetailCard: React.FC<Props> = ({
+  showMeetup,
+  meetupAt,
+  placeLine,
+  addressLine,
+  trainerNotes,
+  status,
+  matchId,
+  onOpenLive,
+  onOpenReport,
+}) => {
+  const meetupTime = formatMeetupTimeOnlyDe(meetupAt);
+  const isLive = status === 'live';
+  const isFinished = status === 'finished' || status === 'completed' || status === 'ended';
+
+  return (
+    <Card className="relative flex flex-col gap-0 overflow-hidden border border-white/[0.06] bg-[rgba(10,10,14,0.97)] px-3.5 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_0%,rgba(122,29,42,0.10)_0%,transparent_58%)]"
+        aria-hidden
+      />
+      <CardTitle className="relative z-[1] mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-red-400/85">
+        Matchday Infos
+      </CardTitle>
+
+      <div className="relative z-[1]">
+        <InfoRow icon={<Clock className="h-4 w-4" strokeWidth={2} aria-hidden />} label="Treffpunkt">
+          {showMeetup && meetupTime ? (
+            <span className="tabular-nums">{meetupTime}</span>
+          ) : (
+            <span className="text-white/45">–</span>
+          )}
+        </InfoRow>
+
+        <InfoRow icon={<MapPin className="h-4 w-4" strokeWidth={2} aria-hidden />} label="Spielort">
+          {placeLine || addressLine ? (
+            <div className="flex flex-col gap-0.5">
+              {placeLine ? <span>{placeLine}</span> : null}
+              {addressLine ? <span className="text-[13px] font-normal text-white/75">{addressLine}</span> : null}
+            </div>
+          ) : (
+            <span className="text-white/45">–</span>
+          )}
+        </InfoRow>
+
+        {trainerNotes ? (
+          <InfoRow icon={<ScrollText className="h-4 w-4" strokeWidth={2} aria-hidden />} label="Notizen Trainer">
+            <span className="whitespace-pre-wrap text-[13px] font-normal leading-relaxed text-white/85">
+              {trainerNotes}
+            </span>
+          </InfoRow>
+        ) : null}
+
+        <InfoRow icon={<Cloud className="h-4 w-4" strokeWidth={2} aria-hidden />} label="Wetter">
+          <span className="text-[13px] font-normal text-white/50">Wird bald angezeigt</span>
+        </InfoRow>
+
+        {isLive && matchId ? (
+          <div className="mt-3 border-t border-white/[0.06] pt-3">
+            {onOpenLive ? (
+              <button
+                type="button"
+                className={`flex w-full min-h-[48px] items-center justify-center gap-2 ${dsPrimaryCtaClass()}`}
+                onClick={onOpenLive}
+              >
+                <Radio className="h-4 w-4" strokeWidth={2} aria-hidden />
+                Zum Livespiel
+                <ChevronRight className="h-4 w-4 shrink-0 opacity-80" strokeWidth={2} aria-hidden />
+              </button>
+            ) : (
+              <Link
+                to={`/app/live?matchId=${encodeURIComponent(matchId)}`}
+                className={`flex w-full min-h-[48px] items-center justify-center gap-2 ${dsPrimaryCtaClass()}`}
+              >
+                <Radio className="h-4 w-4" strokeWidth={2} aria-hidden />
+                Zum Livespiel
+                <ChevronRight className="h-4 w-4 shrink-0 opacity-80" strokeWidth={2} aria-hidden />
+              </Link>
+            )}
+          </div>
+        ) : null}
+
+        {isFinished && matchId ? (
+          <div className="mt-3 border-t border-white/[0.06] pt-3">
+            {onOpenReport ? (
+              <button
+                type="button"
+                className="flex w-full min-h-[46px] items-center justify-center gap-2 rounded-[14px] border border-white/10 bg-white/[0.05] px-4 text-[15px] font-semibold text-white/90 transition hover:bg-white/[0.08]"
+                onClick={onOpenReport}
+              >
+                <ScrollText className="h-4 w-4 text-white/70" strokeWidth={2} aria-hidden />
+                Spielbericht ansehen
+                <ChevronRight className="h-4 w-4 shrink-0 text-white/40" strokeWidth={2} aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </Card>
+  );
+};
