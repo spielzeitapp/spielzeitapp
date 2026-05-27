@@ -322,10 +322,10 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         }
       }}
     >
-      <div className={`${heroTileBody} min-w-0 w-[calc(100%-15px)] overflow-visible`}>
+      <div className={`${heroTileBody} min-w-0 w-[calc(100%-15px)] max-w-[calc(100%-15px)] overflow-visible`}>
         <Radio className="h-3.5 w-3.5 shrink-0 text-red-400" strokeWidth={2} aria-hidden />
-        <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-red-400/80">Livespiel</span>
-        <span className={`mt-0.5 ${heroTileSubMuted}`}>vorbereiten</span>
+        <span className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-red-400/80">Livespiel</span>
+        <span className="mt-0.5 text-[10.5px] font-medium leading-snug tracking-tight text-white/80">vorbereiten</span>
       </div>
       <div className={heroLivePrepareStripe} aria-hidden>
         <ChevronRight className="h-3 w-3 text-white" strokeWidth={2.5} />
@@ -668,7 +668,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
               {/* ── Info Tiles (Schedule Hero only) ── */}
               {scheduleNextMatchHero ? (
-                <div className="mt-1 grid grid-cols-3 items-stretch divide-x divide-white/[0.06] overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]" onClick={(e) => e.stopPropagation()}>
+                <div className="mt-1 grid grid-cols-[0.9fr_1fr_1.15fr] items-stretch divide-x divide-white/[0.06] overflow-hidden rounded-[10px] border border-white/[0.06] bg-white/[0.03]" onClick={(e) => e.stopPropagation()}>
                   {canSeeSensitiveInfo && meetupTimeOnly ? (
                     <div className={heroTileBody}>
                       <Clock className="h-3.5 w-3.5 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
