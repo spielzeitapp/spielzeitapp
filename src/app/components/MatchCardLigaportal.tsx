@@ -254,10 +254,15 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const showAttendanceCounts =
     canManage && attendanceCounts != null && !suppressInlineAttendanceCounts;
 
+  const audienceHeroRoles = new Set(['parent', 'player', 'fan']);
+  const normalizedRole = (role ?? '').toLowerCase();
+  const isAudienceHeroRole =
+    scheduleNextMatchHero && effectiveEventType === 'game' && audienceHeroRoles.has(normalizedRole);
   const showScheduleHeroCalendar =
     Boolean(
       scheduleNextMatchHero &&
         effectiveEventType === 'game' &&
+        !isAudienceHeroRole &&
         status !== 'finished' &&
         !isPublicView &&
         onScheduleHeroAddToCalendar,
@@ -372,6 +377,23 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const handleScheduleHeroLiveAction = () => {
     if (onScheduleHeroGoLive) onScheduleHeroGoLive();
     else handleCardClick();
+  };
+
+  const audienceStatusChip =
+    attendanceStatus === 'yes'
+      ? { label: 'ZUGESAGT', cls: 'border-emerald-400/35 bg-emerald-500/15 text-emerald-300' }
+      : attendanceStatus === 'no'
+        ? { label: 'ABGESAGT', cls: 'border-rose-400/35 bg-rose-500/15 text-rose-300' }
+        : { label: 'BITTE ANTWORTEN', cls: 'border-amber-400/35 bg-amber-500/15 text-amber-300' };
+
+  const navQuery = [addressLine, placeLine, location].find((v) => (v ?? '').trim().length > 0)?.trim() ?? '';
+  const mapsUrl = navQuery
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(navQuery)}`
+    : null;
+
+  const openMaps = () => {
+    if (!mapsUrl || typeof window === 'undefined') return;
+    window.open(mapsUrl, '_blank', 'noopener,noreferrer');
   };
 
   const attendanceTrailing = (
@@ -631,7 +653,13 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                 {heroDateParts.mon}
               </span>
               {heroYear ? <span className="text-[10px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
-              {showAttendanceCounts && attendanceCounts ? (
+              {isAudienceHeroRole ? (
+                <span
+                  className={`mt-2 inline-flex rounded-full border px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-[0.08em] ${audienceStatusChip.cls}`}
+                >
+                  {audienceStatusChip.label}
+                </span>
+              ) : showAttendanceCounts && attendanceCounts ? (
                 <div className="mt-2.5 flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <div className="flex flex-col items-center">
                     <ThumbsUp className="h-3 w-3 text-emerald-400" strokeWidth={2.5} aria-hidden />
@@ -736,7 +764,30 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   )}
 
                   {placeLine ? (
-                    <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
+                    <div
+                      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} ${isAudienceHeroRole && isClickable ? 'cursor-pointer' : ''}`}
+                      role={isAudienceHeroRole && isClickable ? 'button' : undefined}
+                      tabIndex={isAudienceHeroRole && isClickable ? 0 : undefined}
+                      onClick={
+                        isAudienceHeroRole && isClickable
+                          ? (e) => {
+                              e.stopPropagation();
+                              handleCardClick();
+                            }
+                          : undefined
+                      }
+                      onKeyDown={
+                        isAudienceHeroRole && isClickable
+                          ? (e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleCardClick();
+                              }
+                            }
+                          : undefined
+                      }
+                    >
                       <span className={heroMatchMetaIcon}>
                         <MapPin strokeWidth={2} aria-hidden />
                       </span>
@@ -757,7 +808,117 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                     </div>
                   )}
 
-                  {isLineupReady ? (
+                  {isAudienceHeroRole ? (
+                    matchPhase === 'live' ? (
+                      <div
+                        role={showScheduleHeroGoLive || isClickable ? 'button' : undefined}
+                        tabIndex={showScheduleHeroGoLive || isClickable ? 0 : undefined}
+                        className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} ${showScheduleHeroGoLive || isClickable ? 'cursor-pointer' : ''}`}
+                        onClick={
+                          showScheduleHeroGoLive || isClickable
+                            ? (e) => {
+                                e.stopPropagation();
+                                handleScheduleHeroLiveAction();
+                              }
+                            : undefined
+                        }
+                        onKeyDown={
+                          showScheduleHeroGoLive || isClickable
+                            ? (e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleScheduleHeroLiveAction();
+                                }
+                              }
+                            : undefined
+                        }
+                      >
+                        <span className={`${heroMatchMetaIcon} text-red-400`}>
+                          <Radio className="animate-pulse" strokeWidth={2} aria-hidden />
+                        </span>
+                        <span className={`${heroMatchMetaLabel} text-red-400`}>JETZT LIVE</span>
+                        <div className={heroMatchMetaValueWrap}>
+                          <span className={heroMatchMetaSubPrimary}>Livespiel</span>
+                          <span className={heroMatchMetaSub}>oeffnen</span>
+                        </div>
+                      </div>
+                    ) : matchPhase === 'finished' ? (
+                      <div
+                        role={isClickable ? 'button' : undefined}
+                        tabIndex={isClickable ? 0 : undefined}
+                        className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} ${isClickable ? 'cursor-pointer' : ''}`}
+                        onClick={
+                          isClickable
+                            ? (e) => {
+                                e.stopPropagation();
+                                handleCardClick();
+                              }
+                            : undefined
+                        }
+                        onKeyDown={
+                          isClickable
+                            ? (e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleCardClick();
+                                }
+                              }
+                            : undefined
+                        }
+                      >
+                        <span className={`${heroMatchMetaIcon} text-white/80`}>
+                          <CalendarDays strokeWidth={2} aria-hidden />
+                        </span>
+                        <span className={`${heroMatchMetaLabel} text-white/80`}>BERICHT</span>
+                        <div className={heroMatchMetaValueWrap}>
+                          <span className={heroMatchMetaSubPrimary}>Ergebnis</span>
+                          <span className={heroMatchMetaSub}>ansehen</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        role={mapsUrl ? 'button' : undefined}
+                        tabIndex={mapsUrl ? 0 : undefined}
+                        className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} ${mapsUrl ? 'cursor-pointer bg-emerald-900/20' : ''}`}
+                        onClick={
+                          mapsUrl
+                            ? (e) => {
+                                e.stopPropagation();
+                                openMaps();
+                              }
+                            : undefined
+                        }
+                        onKeyDown={
+                          mapsUrl
+                            ? (e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  openMaps();
+                                }
+                              }
+                            : undefined
+                        }
+                      >
+                        <span className={`${heroMatchMetaIcon} ${mapsUrl ? 'text-emerald-300' : 'text-white/20'}`}>
+                          <MapPin strokeWidth={2} aria-hidden />
+                        </span>
+                        <span className={`${heroMatchMetaLabel} ${mapsUrl ? 'text-emerald-300' : 'text-white/25'}`}>ANFAHRT</span>
+                        <div className={heroMatchMetaValueWrap}>
+                          {mapsUrl ? (
+                            <>
+                              <span className={heroMatchMetaSubPrimary}>Navigation</span>
+                              <span className={heroMatchMetaSub}>oeffnen</span>
+                            </>
+                          ) : (
+                            <span className={`${heroMatchMetaSubPrimary} text-white/35`}>Ort fehlt</span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  ) : isLineupReady ? (
                     renderScheduleHeroLiveReadyTile(handleScheduleHeroLiveAction)
                   ) : showScheduleHeroGoLive || isClickable ? (
                     renderScheduleHeroLivePrepareTile(handleScheduleHeroLiveAction)
