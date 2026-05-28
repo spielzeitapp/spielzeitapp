@@ -2832,6 +2832,24 @@ export const EventDetailPage: React.FC = () => {
       }).format(new Date(event.meeting_at))
     : null;
   const eventDetailsText = extractAudienceTrainerNotes(event.notes);
+  const eventDetailInfoLong = (eventDetailsText ?? '').trim();
+  const showFurtherEventInfo = isEventOrOther && eventDetailInfoLong.length >= 80;
+  const eventCompactTitle = (event.opponent ?? '').trim() || getDomainEventLabel(event);
+  const eventTypeRaw = `${eventCompactTitle} ${(event.type ?? '')}`.toLowerCase();
+  const EventDetailIcon =
+    eventTypeRaw.includes('film') || eventTypeRaw.includes('kino')
+      ? Clapperboard
+      : eventTypeRaw.includes('eltern')
+        ? Users
+        : eventTypeRaw.includes('abschluss') || eventTypeRaw.includes('fest') || eventTypeRaw.includes('feier')
+          ? PartyPopper
+          : eventTypeRaw.includes('essen') || eventTypeRaw.includes('pizza')
+            ? Pizza
+            : eventTypeRaw.includes('ausflug') || eventTypeRaw.includes('fahrt') || eventTypeRaw.includes('bus')
+              ? Bus
+              : eventTypeRaw.includes('besprech') || eventTypeRaw.includes('meeting')
+                ? ClipboardList
+                : CalendarPlus;
 
   return (
     <div
@@ -2908,33 +2926,62 @@ export const EventDetailPage: React.FC = () => {
           )}
         </div>
 
-        <div className="-mx-3 relative flex w-[calc(100%+1.5rem)] min-w-0 max-w-none flex-col sm:mx-0 sm:w-full sm:max-w-full">
-          {isTraining ? <div className={dsTrainingDetailHeaderAtmosphereClass()} aria-hidden /> : null}
-          <MatchCardLigaportal
-            className="relative z-[1] !overflow-visible w-full max-w-full rounded-2xl"
-            compactDetailGame
-            ourTeamName={ourTeamName}
-            opponent={event.opponent}
-            isHome={event.is_home}
-            startsAt={event.starts_at}
-            status={event.status}
-            kind={event.kind}
-            eventType={(event as any).type ?? undefined}
-            matchType={
-              event.kind === 'match'
-                ? (event.match_type ??
-                    (!event.type || event.type === 'game' ? 'league' : event.type))
-                : null
-            }
-            notes={event.notes}
-            location={event.location}
-            address={event.location}
-            meetupAt={event.meeting_at}
-            showMeetup={showMeetup}
-            role={effectiveRole}
-            isPublicView={true}
-          />
-        </div>
+        {isEventOrOther ? (
+          <div className="-mx-1 mb-1 grid w-[calc(100%+0.5rem)] min-w-0 grid-cols-[78px_46px_minmax(0,1fr)_66px] items-center gap-x-0 overflow-hidden rounded-[14px] border border-white/[0.08] bg-[linear-gradient(168deg,#141416_0%,#0A0A0C_58%,#12080C_100%)] px-2.5 py-2 shadow-[0_8px_28px_rgba(0,0,0,0.48),0_0_20px_rgba(122,29,42,0.06)] sm:mx-0 sm:w-full">
+            <div className="flex w-[78px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-lg border border-white/10 bg-black/25 px-1.5 py-1.5 leading-none">
+              <span className="text-[12px] font-semibold uppercase leading-none tracking-widest text-red-400">{formatEventDateTimeLabel(event.starts_at).split(',')[0]?.slice(0, 2) ?? 'SA'}</span>
+              <span className="text-[30px] font-bold tabular-nums leading-none text-white">
+                {new Intl.DateTimeFormat('de-AT', { day: '2-digit', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at))}
+              </span>
+              <span className="text-[12px] leading-tight text-white/60">
+                {new Intl.DateTimeFormat('de-AT', { month: 'short', year: '2-digit', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at))}
+              </span>
+            </div>
+            <div className="relative z-[1] flex w-[46px] shrink-0 items-center justify-center self-center">
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-[rgba(255,95,122,0.24)] bg-[radial-gradient(ellipse_70%_65%_at_30%_10%,rgba(255,120,160,0.22)_0%,rgba(68,18,30,0.42)_55%,rgba(14,14,18,0.92)_100%)] shadow-[0_0_18px_rgba(255,84,124,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <EventDetailIcon className="h-5 w-5 text-[#FF9CB1]" strokeWidth={2.1} aria-hidden />
+              </div>
+            </div>
+            <div className="ml-3 min-w-0 overflow-hidden">
+              <p className="line-clamp-2 min-w-0 text-[17px] font-semibold leading-tight text-white">{eventCompactTitle}</p>
+              <p className="mt-0.5 line-clamp-1 text-[14px] leading-tight text-white/72">
+                {audienceLocation.place || audienceLocation.address || '—'}
+              </p>
+            </div>
+            <div className="flex w-[66px] shrink-0 flex-col items-end justify-center self-center pr-1">
+              <span className="text-[18px] font-bold tabular-nums leading-none text-white">{eventStartTimeLabel}</span>
+              <span className="mt-0.5 text-[11px] font-medium text-white/65">Uhr</span>
+            </div>
+          </div>
+        ) : (
+          <div className="-mx-3 relative flex w-[calc(100%+1.5rem)] min-w-0 max-w-none flex-col sm:mx-0 sm:w-full sm:max-w-full">
+            {isTraining ? <div className={dsTrainingDetailHeaderAtmosphereClass()} aria-hidden /> : null}
+            <MatchCardLigaportal
+              className="relative z-[1] !overflow-visible w-full max-w-full rounded-2xl"
+              compactDetailGame
+              ourTeamName={ourTeamName}
+              opponent={event.opponent}
+              isHome={event.is_home}
+              startsAt={event.starts_at}
+              status={event.status}
+              kind={event.kind}
+              eventType={(event as any).type ?? undefined}
+              matchType={
+                event.kind === 'match'
+                  ? (event.match_type ??
+                      (!event.type || event.type === 'game' ? 'league' : event.type))
+                  : null
+              }
+              notes={event.notes}
+              location={event.location}
+              address={event.location}
+              meetupAt={event.meeting_at}
+              showMeetup={showMeetup}
+              role={effectiveRole}
+              isPublicView={true}
+            />
+          </div>
+        )}
 
         {isEventOrOther ? (
           <Card className="flex flex-col gap-3 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
@@ -2965,23 +3012,14 @@ export const EventDetailPage: React.FC = () => {
                   </div>
                 </div>
               ) : null}
-              {eventDetailsText ? (
-                <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5">
-                  <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/55">Info</p>
-                    <p className="text-[14px] font-medium leading-snug text-white/88">{eventDetailsText}</p>
-                  </div>
-                </div>
-              ) : null}
             </div>
           </Card>
         ) : null}
 
-        {isEventOrOther && eventDetailsText ? (
+        {showFurtherEventInfo ? (
           <Card className="flex flex-col gap-2 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
             <CardTitle>Weitere Infos</CardTitle>
-            <p className="text-[14px] leading-snug text-white/80">{eventDetailsText}</p>
+            <p className="text-[14px] leading-snug text-white/80">{eventDetailInfoLong}</p>
           </Card>
         ) : null}
 

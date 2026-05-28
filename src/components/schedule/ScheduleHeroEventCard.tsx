@@ -366,7 +366,8 @@ export function ScheduleHeroEventCard({
 
   const eventTitle = (eventNotesTitle(ev.notes) ?? scheduleEventTypeLabel(ev, et) ?? 'Termin').trim();
   const eventLocationLine = locLine1 || locLine2 ? [locLine1, locLine2].filter(Boolean).join(' · ') : locSingle || '—';
-  const eventDetailValue = showMeetup && meetupTimeOnly ? scheduleMetaTimeDisplay(meetupTimeOnly) : 'Infos';
+  const eventTileOrtLine1 = locLine1 || (locSingle ? locSingle.split(' ')[0] : '—');
+  const eventTileOrtLine2 = locLine2 || (locSingle?.split(' ').slice(1).join(' ') ?? '');
   const EventTypeIcon = eventTypePremiumIcon(ev);
 
   const trainingMetaItems = [
@@ -448,9 +449,8 @@ export function ScheduleHeroEventCard({
           </div>
 
           <div className="min-w-0 flex-1 overflow-hidden text-left">
-            <p className="line-clamp-2 text-[20px] font-bold uppercase leading-[1.05] tracking-[0.01em] text-white min-[375px]:text-[21px]">{eventTitle}</p>
-            <p className="mt-1 line-clamp-1 text-[15px] leading-[1.15] text-white/[0.78]">{eventLocationLine}</p>
-            <p className="mt-0.5 text-[14px] font-semibold tabular-nums leading-tight text-white/88">{scheduleMetaTimeDisplay(timeStr)}</p>
+            <p className="line-clamp-2 text-[18px] font-bold uppercase leading-[1.08] tracking-[0.01em] text-white min-[375px]:text-[19px]">{eventTitle}</p>
+            <p className="mt-1 line-clamp-2 text-[14px] leading-[1.2] text-white/[0.72]">{eventLocationLine}</p>
           </div>
 
           {topRight ? (
@@ -470,8 +470,17 @@ export function ScheduleHeroEventCard({
               </span>
               <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none">{showMeetup && meetupTimeOnly ? 'Treffpunkt' : 'Ort'}</span>
               <div className="mt-0.5 flex w-full flex-col items-center leading-none">
-                <span className="max-w-full truncate whitespace-nowrap text-[16px] font-bold tabular-nums text-white">{showMeetup && meetupTimeOnly ? scheduleMetaTimeDisplay(meetupTimeOnly).replace(/\s*Uhr$/i, '') : 'Ort'}</span>
-                {showMeetup && meetupTimeOnly ? <span className="mt-0.5 text-[10px] font-medium text-white/65">Uhr</span> : null}
+                {showMeetup && meetupTimeOnly ? (
+                  <>
+                    <span className="max-w-full truncate whitespace-nowrap text-[16px] font-bold tabular-nums text-white">{scheduleMetaTimeDisplay(meetupTimeOnly).replace(/\s*Uhr$/i, '')}</span>
+                    <span className="mt-0.5 text-[10px] font-medium text-white/65">Uhr</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="max-w-full truncate whitespace-nowrap text-[12px] font-semibold text-white">{eventTileOrtLine1 || '—'}</span>
+                    {eventTileOrtLine2 ? <span className="mt-0.5 max-w-full truncate whitespace-nowrap text-[10px] font-medium text-white/65">{eventTileOrtLine2}</span> : null}
+                  </>
+                )}
               </div>
             </div>
             <div className="flex min-h-[56px] min-w-0 flex-col items-center justify-center border-l border-white/[0.05] px-0.5 py-1.5 text-center sm:px-1">
@@ -490,7 +499,7 @@ export function ScheduleHeroEventCard({
               </span>
               <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none">Details</span>
               <div className="mt-0.5 flex w-full flex-col items-center leading-none">
-                <span className="max-w-full truncate whitespace-nowrap text-[11px] font-semibold text-white/78">{eventDetailValue}</span>
+                <span className="max-w-full truncate whitespace-nowrap text-[11px] font-semibold text-white/78">Infos</span>
               </div>
             </div>
             {isClickable && onNavigate ? (
