@@ -25,6 +25,8 @@ type Props = {
   onFormChange: (patch: Partial<TrainerStaffFormState>) => void;
   onAvatarFile: (file: File) => void;
   onAvatarValidationError: (message: string) => void;
+  /** Nach Eingabe der Konto-E-Mail: Profilnamen vorschlagen (nur create). */
+  onAccountEmailBlur?: () => void;
 };
 
 function avatarInitials(form: TrainerStaffFormState): string {
@@ -80,7 +82,14 @@ export const TrainerStaffFormModal: React.FC<Props> = ({
           <AppButton type="button" variant="secondary" className="min-h-[46px] flex-1" disabled={busy} onClick={onClose}>
             Abbrechen
           </AppButton>
-          <AppButton type="submit" form="trainer-staff-form" variant="primary" className="min-h-[46px] flex-1" disabled={busy}>
+          <AppButton
+            type="submit"
+            form="trainer-staff-form"
+            variant="primary"
+            className="min-h-[46px] flex-1"
+            disabled={busy}
+            aria-busy={busy}
+          >
             {busy ? "Speichern…" : "Speichern"}
           </AppButton>
         </div>
@@ -190,18 +199,14 @@ export const TrainerStaffFormModal: React.FC<Props> = ({
           </label>
           <input
             id="trainer-contact-email"
-            type="email"
+            type="text"
+            inputMode="email"
+            autoComplete="off"
             value={form.contact_email}
             onChange={(e) => onFormChange({ contact_email: e.target.value })}
             className="w-full rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 text-[15px] text-white outline-none focus:border-red-400/45"
           />
         </div>
-
-        {formError ? (
-          <p className="text-sm text-red-400" role="alert">
-            {formError}
-          </p>
-        ) : null}
       </form>
     </Modal>
   );

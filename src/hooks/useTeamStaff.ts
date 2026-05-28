@@ -109,3 +109,100 @@ export function staffRoleLabelDe(rawRole: string): string {
   if (s === "trainer") return "Trainer";
   return "Trainer";
 }
+
+const ACCOUNT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isValidAccountEmail(value: string): boolean {
+  return ACCOUNT_EMAIL_RE.test(value.trim());
+}
+
+/** PostgREST kann uuid als string oder verpackt liefern. */
+export function parseRpcUuid(value: unknown): string | null {
+  if (value == null) return null;
+  if (typeof value === "string") {
+    const t = value.trim();
+    return t.length > 0 ? t : null;
+  }
+  if (typeof value === "object" && value !== null && "id" in value) {
+    return parseRpcUuid((value as { id: unknown }).id);
+  }
+  return null;
+}
+
+function rpcErrorMessage(err: { message?: string; details?: string; hint?: string } | null): string {
+  if (!err) return "Unbekannter Fehler.";
+  const parts = [err.message, err.details, err.hint].map((p) => (p ?? "").trim()).filter(Boolean);
+  return parts.join(" — ") || "Unbekannter Fehler.";
+}
+
+/** Konto-E-Mail → auth.users.id (= profiles.id). Keine Kontakt-E-Mail. */
+export async function findAccountUserIdByEmail(
+  accountEmail: string,
+): Promise<{ userId: string | null; error: string | null }> {
+  const email = accountEmail.trim();
+  if (!email) return { userId: null, error: "E-Mail ist erforderlich." };
+  if (!isValidAccountEmail(email)) {
+    return { userId: null, error: "Bitte eine gültige E-Mail (Konto) eingeben." };
+  }
+
+  const { data, error } = await supabase.rpc("find_user_id_by_email", { p_email: email });
+  if (error) return { userId: null, error: rpcErrorMessage(error) };
+  const userId = parseRpcUuid(data);
+  return { userId, error: null };
+}
+
+export async function fetchProfileNamesForUser(
+  userId: string,
+): Promise<{ first_name: string | null; last_name: string | null } | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("first_name, last_name")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return {
+    first_name: data.first_name ?? null,
+    last_name: data.last_name ?? null,
+  };
+}
+
+export type SaveTeamStaffInput = {
+  teamSeasonId: string;
+  userId: string;
+  role: "trainer" | "co_trainer" | "head_coach";
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  contactEmail: string | null;
+  avatarUrl: string | null;
+};
+
+export async function saveTeamStaffMember(
+  input: SaveTeamStaffInput,
+): Promise<{ ok: boolean; error: string | null }> {
+  const { error } = await supabase.rpc("upsert_team_staff_member", {
+    p_team_season_id: input.teamSeasonId,
+    p_user_id: input.userId,
+    p_role: input.role,
+    p_first_name: input.firstName,
+    p_last_name: input.lastName,
+    p_phone: input.phone,
+    p_email: input.contactEmail,
+    p_avatar_url: input.avatarUrl,
+  });
+
+  if (error) {
+    const msg = rpcErrorMessage(error);
+    if (msg.includes("not allowed")) {
+      return { ok: false, error: "Keine Berechtigung, Trainer für dieses Team zu verwalten." };
+    }
+    if (msg.includes("account not found")) {
+      return { ok: false, error: "Kein Konto mit dieser E-Mail. Die Person muss sich zuerst registrieren." };
+    }
+    if (msg.includes("invalid staff role")) {
+      return { ok: false, error: "Ungültige Trainer-Rolle." };
+    }
+    return { ok: false, error: msg };
+  }
+  return { ok: true, error: null };
+}

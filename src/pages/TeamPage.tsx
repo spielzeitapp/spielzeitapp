@@ -21,6 +21,10 @@ import { PlayerCard } from "../components/team/PlayerCard";
 import {
   staffDisplayName,
   staffRoleLabelDe,
+  findAccountUserIdByEmail,
+  fetchProfileNamesForUser,
+  isValidAccountEmail,
+  saveTeamStaffMember,
   useTeamStaff,
   type TeamStaffMember,
 } from "../hooks/useTeamStaff";
@@ -699,54 +703,84 @@ export const TeamPage: React.FC = () => {
     return data.publicUrl ?? null;
   };
 
+  const handleTrainerAccountEmailBlur = async () => {
+    if (trainerFormMode !== "create") return;
+    const email = trainerForm.email.trim();
+    if (!email || !isValidAccountEmail(email)) return;
+    const { userId, error } = await findAccountUserIdByEmail(email);
+    if (error || !userId) return;
+    const names = await fetchProfileNamesForUser(userId);
+    if (!names) return;
+    setTrainerForm((f) => ({
+      ...f,
+      first_name: f.first_name.trim() || (names.first_name ?? "").trim(),
+      last_name: f.last_name.trim() || (names.last_name ?? "").trim(),
+    }));
+  };
+
   const handleTrainerFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teamSeasonId) return;
+    if (!teamSeasonId) {
+      setTrainerFormError("Kein Team ausgewählt. Bitte Seite neu laden.");
+      return;
+    }
+    if (trainerSaving) return;
+
+    const contactEmail = trainerForm.contact_email.trim();
+    if (contactEmail && !isValidAccountEmail(contactEmail)) {
+      setTrainerFormError("Bitte eine gültige Kontakt-E-Mail eingeben oder das Feld leer lassen.");
+      return;
+    }
+
     setTrainerSaving(true);
     setTrainerFormError(null);
     try {
       let userId = editingTrainer?.user_id ?? null;
       if (trainerFormMode === "create") {
-        const email = trainerForm.email.trim();
-        if (!email) {
-          setTrainerFormError("E-Mail ist erforderlich.");
-          return;
-        }
-        const { data: foundId, error: findErr } = await supabase.rpc("find_user_id_by_email", {
-          p_email: email,
-        });
-        if (findErr) {
-          setTrainerFormError(findErr.message);
+        const { userId: foundId, error: findError } = await findAccountUserIdByEmail(trainerForm.email);
+        if (findError) {
+          setTrainerFormError(findError);
           return;
         }
         if (!foundId) {
           setTrainerFormError("Kein Konto mit dieser E-Mail. Die Person muss sich zuerst registrieren.");
           return;
         }
-        userId = String(foundId);
+        userId = foundId;
       }
       if (!userId) {
         setTrainerFormError("Trainer konnte nicht zugeordnet werden.");
         return;
       }
+
+      if (trainerAvatarFile) setTrainerAvatarUploading(true);
       const avatarUrl = await uploadTrainerAvatar(userId);
-      const { error: upsertErr } = await supabase.rpc("upsert_team_staff_member", {
-        p_team_season_id: teamSeasonId,
-        p_user_id: userId,
-        p_role: trainerForm.role,
-        p_first_name: trainerForm.first_name.trim() || null,
-        p_last_name: trainerForm.last_name.trim() || null,
-        p_phone: trainerForm.phone.trim() || null,
-        p_email: trainerForm.contact_email.trim() || null,
-        p_avatar_url: avatarUrl,
-      });
-      if (upsertErr) {
-        setTrainerFormError(upsertErr.message);
+      if (trainerAvatarFile && !avatarUrl) {
+        setTrainerFormError("Foto-Upload fehlgeschlagen. Trainer wurde nicht gespeichert.");
         return;
       }
+
+      const { ok, error: saveError } = await saveTeamStaffMember({
+        teamSeasonId,
+        userId,
+        role: trainerForm.role,
+        firstName: trainerForm.first_name.trim() || null,
+        lastName: trainerForm.last_name.trim() || null,
+        phone: trainerForm.phone.trim() || null,
+        contactEmail: contactEmail || null,
+        avatarUrl,
+      });
+      if (!ok || saveError) {
+        setTrainerFormError(saveError ?? "Speichern fehlgeschlagen.");
+        return;
+      }
+
       showSavedToast();
       closeTrainerForm();
       await refetchStaff();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Speichern fehlgeschlagen.";
+      setTrainerFormError(msg);
     } finally {
       setTrainerSaving(false);
       setTrainerAvatarUploading(false);
@@ -819,6 +853,7 @@ export const TeamPage: React.FC = () => {
         onFormChange={(patch) => setTrainerForm((f) => ({ ...f, ...patch }))}
         onAvatarFile={handleTrainerAvatarFilePick}
         onAvatarValidationError={setTrainerFormError}
+        onAccountEmailBlur={() => void handleTrainerAccountEmailBlur()}
       />
     ) : null}
     {canManagePlayers && teamSeasonId != null ? (
