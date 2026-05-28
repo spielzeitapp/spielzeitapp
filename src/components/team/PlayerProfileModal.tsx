@@ -148,6 +148,94 @@ const TAB_CONFIG: { id: ProfileTab; label: string }[] = [
   { id: "training", label: "Training" },
 ];
 
+function PlayerSpecialSettingsSection({ children }: { children: React.ReactNode }) {
+  return (
+    <section className="mb-3.5" aria-labelledby="player-special-settings-heading">
+      <h3
+        id="player-special-settings-heading"
+        className="mb-2 px-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/42"
+      >
+        Spezielle Einstellungen
+      </h3>
+      <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.035)_0%,rgba(0,0,0,0.32)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function SpecialSettingToggleRow({
+  label,
+  hint,
+  checked,
+  disabled,
+  error,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  disabled?: boolean;
+  error?: string | null;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 border-b border-white/[0.06] px-3 py-2.5 last:border-b-0 ${
+        disabled ? "opacity-60" : ""
+      }`}
+    >
+      <div className="min-w-0 flex-1 pr-1">
+        <p className="text-[13px] font-semibold leading-tight text-white/88">{label}</p>
+        <p className="mt-0.5 text-[11px] leading-snug text-white/48">{hint}</p>
+        {error ? (
+          <p className="mt-1 text-[11px] leading-snug text-red-300/90" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
+        className={[
+          "relative h-[26px] w-[44px] shrink-0 rounded-full border transition-colors duration-200",
+          checked
+            ? "border-emerald-400/35 bg-emerald-900/55"
+            : "border-white/14 bg-white/[0.08]",
+          disabled ? "cursor-not-allowed" : "cursor-pointer",
+        ].join(" ")}
+      >
+        <span
+          className={[
+            "absolute top-[2px] h-[20px] w-[20px] rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.45)] transition-[left] duration-200",
+            checked ? "left-[20px]" : "left-[2px]",
+          ].join(" ")}
+          aria-hidden
+        />
+      </button>
+    </div>
+  );
+}
+
+function ProfileSaveSnackbar({ visible }: { visible: boolean }) {
+  if (!visible) return null;
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-3 bottom-[max(0.85rem,env(safe-area-inset-bottom,0px))] z-30 flex justify-center sm:inset-x-4"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="rounded-full border border-white/12 bg-[rgba(8,8,12,0.94)] px-4 py-2 text-[13px] font-medium text-white/92 shadow-[0_10px_36px_rgba(0,0,0,0.55)] backdrop-blur-md">
+        Gespeichert
+      </div>
+    </div>
+  );
+}
+
 /**
  * Premium player profile overlay (dark stadium).
  */
@@ -165,6 +253,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const [isLazPlayer, setIsLazPlayer] = useState(player.is_laz_player);
   const [lazSaving, setLazSaving] = useState(false);
   const [lazError, setLazError] = useState<string | null>(null);
+  const [saveToastVisible, setSaveToastVisible] = useState(false);
   const { data: stats, lastMatches, isLoading: statsLoading, error: statsError } = usePlayerStats(
     player.id,
     player.team_season_id,
@@ -210,6 +299,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   }, [player.id, player.is_laz_player]);
 
   useEffect(() => {
+    if (!saveToastVisible) return;
+    const t = window.setTimeout(() => setSaveToastVisible(false), 2400);
+    return () => window.clearTimeout(t);
+  }, [saveToastVisible]);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -228,11 +323,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
       return;
     }
     setIsLazPlayer(next);
+    setSaveToastVisible(true);
     onPlayerUpdated?.();
   };
 
   const bottomPad = canManage
-    ? "max(5.5rem, env(safe-area-inset-bottom, 0px) + 1.5rem)"
+    ? "max(6.25rem, calc(env(safe-area-inset-bottom, 0px) + 5.75rem))"
     : "max(1.75rem, env(safe-area-inset-bottom, 0px) + 1.25rem)";
 
   return (
@@ -251,6 +347,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
       <div
         className="relative flex max-h-[min(94vh,920px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.75rem] border border-red-500/30 bg-[linear-gradient(180deg,rgba(28,8,8,0.98)_0%,rgba(0,0,0,0.97)_42%,rgba(6,6,10,0.99)_100%)] shadow-[0_0_0_1px_rgba(239,68,68,0.14),0_-24px_64px_rgba(0,0,0,0.7),0_0_90px_rgba(220,38,38,0.14)] sm:rounded-3xl sm:shadow-2xl"
       >
+        <ProfileSaveSnackbar visible={saveToastVisible} />
         <div className="z-20 flex shrink-0 items-center gap-2 border-b border-white/10 bg-black/50 px-2 py-2.5 backdrop-blur-md sm:px-3 sm:py-3">
           <button
             type="button"
@@ -320,32 +417,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             </div>
           </div>
 
-          {canManage ? (
-            <div className="mb-4 rounded-xl border border-white/10 bg-black/35 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4 shrink-0 rounded border-white/25 accent-red-500"
-                  checked={isLazPlayer}
-                  disabled={lazSaving}
-                  onChange={(e) => void handleLazPlayerToggle(e.target.checked)}
-                />
-                <span className="min-w-0 text-left">
-                  <span className="block text-[14px] font-semibold text-white">LAZ-Spieler</span>
-                  <span className="mt-1 block text-[12px] leading-snug text-white/60">
-                    Bei LAZ-Spielern können Eltern bei Trainings LAZ als Status auswählen.
-                  </span>
-                  {lazError ? (
-                    <span className="mt-1 block text-[12px] text-red-300" role="alert">
-                      {lazError}
-                    </span>
-                  ) : null}
-                </span>
-              </label>
-            </div>
-          ) : null}
-
-          <div className="mb-4 flex flex-wrap gap-1.5 sm:justify-center sm:gap-2">
+          <div className="mb-3.5 flex flex-wrap gap-1.5 sm:justify-center sm:gap-2">
             <Chip>Alter: {ageChipLabel(player.birthdate)}</Chip>
             {birthDisplayLines.map((line) => (
               <Chip key={line}>{line}</Chip>
@@ -355,6 +427,19 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             </Chip>
             <Chip>Rückennummer: {jerseyChip}</Chip>
           </div>
+
+          {canManage ? (
+            <PlayerSpecialSettingsSection>
+              <SpecialSettingToggleRow
+                label="LAZ-Spieler"
+                hint="Eltern können bei Trainings LAZ als Status wählen."
+                checked={isLazPlayer}
+                disabled={lazSaving}
+                error={lazError}
+                onChange={(next) => void handleLazPlayerToggle(next)}
+              />
+            </PlayerSpecialSettingsSection>
+          ) : null}
 
           {/* Sticky tabs */}
           <div className="sticky top-0 z-10 -mx-3 mb-4 border-b border-white/10 bg-[linear-gradient(180deg,rgba(0,0,0,0.92)_0%,rgba(0,0,0,0.82)_100%)] px-1 py-1.5 backdrop-blur-md sm:-mx-4">
@@ -581,7 +666,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           ) : null}
 
           {canManage ? (
-            <div className="mt-6">
+            <div className="mt-5 pb-1">
               <AppButton type="button" variant="primary" size="lg" fullWidth onClick={onEdit}>
                 Bearbeiten
               </AppButton>
