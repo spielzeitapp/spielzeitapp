@@ -162,9 +162,15 @@ export const TeamPage: React.FC = () => {
   const [avatarObjectUrl, setAvatarObjectUrl] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [saveToastVisible, setSaveToastVisible] = useState(false);
+  const [saveToastLabel, setSaveToastLabel] = useState("Gespeichert");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedProfilePlayer, setSelectedProfilePlayer] = useState<PlayerItem | null>(null);
-  const { staff: staffRows, loading: staffLoading, refetch: refetchStaff } = useTeamStaff(teamSeasonId);
+  const {
+    staff: staffRows,
+    loading: staffLoading,
+    error: staffFetchError,
+    refetch: refetchStaff,
+  } = useTeamStaff(teamSeasonId);
   const [showTrainerForm, setShowTrainerForm] = useState(false);
   const [trainerFormMode, setTrainerFormMode] = useState<"create" | "edit">("create");
   const [trainerForm, setTrainerForm] = useState<TrainerStaffFormState>(emptyTrainerForm);
@@ -418,7 +424,10 @@ export const TeamPage: React.FC = () => {
     return () => window.clearTimeout(t);
   }, [saveToastVisible]);
 
-  const showSavedToast = () => setSaveToastVisible(true);
+  const showSavedToast = (label = "Gespeichert") => {
+    setSaveToastLabel(label);
+    setSaveToastVisible(true);
+  };
 
   const handleAvatarFilePick = (file: File) => {
     setFormError(null);
@@ -760,10 +769,13 @@ export const TeamPage: React.FC = () => {
         return;
       }
 
+      const savedRole = trainerForm.role;
+      console.log("[TeamStaff] saving", { userId, teamSeasonId, role: savedRole });
+
       const { ok, error: saveError } = await saveTeamStaffMember({
         teamSeasonId,
         userId,
-        role: trainerForm.role,
+        role: savedRole,
         firstName: trainerForm.first_name.trim() || null,
         lastName: trainerForm.last_name.trim() || null,
         phone: trainerForm.phone.trim() || null,
@@ -775,9 +787,18 @@ export const TeamPage: React.FC = () => {
         return;
       }
 
-      showSavedToast();
+      const savedName =
+        [trainerForm.first_name, trainerForm.last_name].map((x) => x.trim()).filter(Boolean).join(" ").trim() ||
+        "Trainer";
       closeTrainerForm();
-      await refetchStaff();
+      const { count, error: fetchErr } = await refetchStaff();
+      console.log("[TeamStaff] refetch after save", { count, fetchErr, userId, teamSeasonId, role: savedRole });
+      if (fetchErr) {
+        setTrainerFormError(`Gespeichert, aber Liste konnte nicht geladen werden: ${fetchErr}`);
+        setShowTrainerForm(true);
+        return;
+      }
+      showSavedToast(`${savedName} gespeichert`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Speichern fehlgeschlagen.";
       setTrainerFormError(msg);
@@ -885,7 +906,7 @@ export const TeamPage: React.FC = () => {
         aria-live="polite"
       >
         <div className="rounded-full border border-white/12 bg-[rgba(8,8,12,0.94)] px-4 py-2 text-[13px] font-medium text-white/92 shadow-[0_10px_36px_rgba(0,0,0,0.55)] backdrop-blur-md">
-          Gespeichert
+          {saveToastLabel}
         </div>
       </div>
     ) : null}
@@ -1118,6 +1139,13 @@ export const TeamPage: React.FC = () => {
             <p className="mt-3 text-[14px] text-white/70">Bitte Team wählen.</p>
           ) : staffLoading ? (
             <p className="mt-4 text-[14px] text-white/70">Lade Trainer…</p>
+          ) : staffFetchError ? (
+            <p
+              className="mt-4 rounded-lg border border-red-500/35 bg-red-950/40 px-3 py-2 text-[14px] text-red-300"
+              role="alert"
+            >
+              Trainer konnten nicht geladen werden: {staffFetchError}
+            </p>
           ) : staffRows.length === 0 ? (
             <p className="mt-4 text-center text-[14px] font-medium text-white/80">Keine Trainer hinterlegt</p>
           ) : (

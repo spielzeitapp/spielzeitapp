@@ -12,11 +12,46 @@ export type TeamStaffMember = {
 };
 
 const STAFF_ROLES = new Set(["trainer", "co_trainer", "head_coach"]);
+const STAFF_ROLE_LIST = ["trainer", "co_trainer", "head_coach"] as const;
+
+export type TeamStaffRefetchResult = {
+  count: number;
+  error: string | null;
+};
+
+function normalizeStaffRole(raw: unknown): string {
+  const s = String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+  if (s === "head" || s === "headcoach") return "head_coach";
+  if (s === "co-trainer" || s === "cotrainer") return "co_trainer";
+  return s;
+}
+
+function isStaffRole(role: string): boolean {
+  return STAFF_ROLES.has(normalizeStaffRole(role));
+}
+
+function sortStaff(a: TeamStaffMember, b: TeamStaffMember): number {
+  const rank = (r: string) =>
+    r === "head_coach" ? 0 : r === "co_trainer" ? 1 : r === "trainer" ? 2 : 9;
+  const d = rank(a.role) - rank(b.role);
+  if (d !== 0) return d;
+  const an = `${a.last_name ?? ""} ${a.first_name ?? ""}`.trim().toLocaleLowerCase("de-AT");
+  const bn = `${b.last_name ?? ""} ${b.first_name ?? ""}`.trim().toLocaleLowerCase("de-AT");
+  return an.localeCompare(bn, "de-AT");
+}
 
 function mapStaffRow(row: {
   user_id: string;
   role: string;
-  profiles:
+  first_name?: string | null;
+  last_name?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  avatar_url?: string | null;
+  profiles?:
     | {
         first_name?: string | null;
         last_name?: string | null;
@@ -33,18 +68,100 @@ function mapStaffRow(row: {
       }[]
     | null;
 }): TeamStaffMember | null {
-  const role = (row.role ?? "").trim().toLowerCase();
+  const role = normalizeStaffRole(row.role);
   if (!STAFF_ROLES.has(role)) return null;
   const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
   return {
     user_id: row.user_id,
     role,
-    first_name: p?.first_name ?? null,
-    last_name: p?.last_name ?? null,
-    phone: p?.phone ?? null,
-    email: p?.email ?? null,
-    avatar_url: p?.avatar_url ?? null,
+    first_name: row.first_name ?? p?.first_name ?? null,
+    last_name: row.last_name ?? p?.last_name ?? null,
+    phone: row.phone ?? p?.phone ?? null,
+    email: row.email ?? p?.email ?? null,
+    avatar_url: row.avatar_url ?? p?.avatar_url ?? null,
   };
+}
+
+async function fetchStaffViaRpc(teamSeasonId: string): Promise<{
+  staff: TeamStaffMember[];
+  error: string | null;
+}> {
+  const { data, error } = await supabase.rpc("list_team_staff_for_season", {
+    p_team_season_id: teamSeasonId,
+  });
+  if (error) {
+    return { staff: [], error: error.message };
+  }
+  const staff = ((data ?? []) as TeamStaffMember[])
+    .map((row) => mapStaffRow({ ...row, role: normalizeStaffRole(row.role) }))
+    .filter((m): m is TeamStaffMember => m != null)
+    .sort(sortStaff);
+  return { staff, error: null };
+}
+
+async function fetchStaffViaTables(teamSeasonId: string): Promise<{
+  staff: TeamStaffMember[];
+  error: string | null;
+}> {
+  const { data: memberships, error: membErr } = await supabase
+    .from("memberships")
+    .select("user_id, role")
+    .eq("team_season_id", teamSeasonId)
+    .in("role", [...STAFF_ROLE_LIST]);
+
+  if (membErr) {
+    console.error("[useTeamStaff] memberships query failed", membErr);
+    return { staff: [], error: membErr.message };
+  }
+
+  const staffMemberships = (memberships ?? []).filter((row) => isStaffRole(row.role));
+  const userIds = staffMemberships.map((m) => m.user_id);
+
+  const profileById = new Map<
+    string,
+    {
+      first_name: string | null;
+      last_name: string | null;
+      phone: string | null;
+      email: string | null;
+      avatar_url: string | null;
+    }
+  >();
+
+  if (userIds.length > 0) {
+    const { data: profiles, error: profErr } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name, phone, email, avatar_url")
+      .in("id", userIds);
+    if (profErr) {
+      console.error("[useTeamStaff] profiles query failed", profErr);
+    } else {
+      for (const p of profiles ?? []) {
+        profileById.set(p.id, {
+          first_name: p.first_name ?? null,
+          last_name: p.last_name ?? null,
+          phone: p.phone ?? null,
+          email: p.email ?? null,
+          avatar_url: p.avatar_url ?? null,
+        });
+      }
+    }
+  }
+
+  const staff = staffMemberships
+    .map((row) => {
+      const role = normalizeStaffRole(row.role);
+      const p = profileById.get(row.user_id);
+      return mapStaffRow({
+        user_id: row.user_id,
+        role,
+        ...p,
+      });
+    })
+    .filter((m): m is TeamStaffMember => m != null)
+    .sort(sortStaff);
+
+  return { staff, error: null };
 }
 
 export function useTeamStaff(teamSeasonId: string | null) {
@@ -52,42 +169,45 @@ export function useTeamStaff(teamSeasonId: string | null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refetch = useCallback(async () => {
+  const refetch = useCallback(async (): Promise<TeamStaffRefetchResult> => {
     if (!teamSeasonId) {
       setStaff([]);
       setLoading(false);
       setError(null);
-      return;
+      return { count: 0, error: null };
     }
     setLoading(true);
     setError(null);
-    const { data, error: queryError } = await supabase
-      .from("memberships")
-      .select("user_id, role, profiles(first_name, last_name, phone, email, avatar_url)")
-      .eq("team_season_id", teamSeasonId);
 
-    if (queryError) {
-      setStaff([]);
-      setError(queryError.message);
-      setLoading(false);
-      return;
+    let result = await fetchStaffViaRpc(teamSeasonId);
+    const rpcMissing =
+      result.error != null &&
+      (/could not find the function/i.test(result.error) ||
+        /PGRST202/i.test(result.error) ||
+        /list_team_staff_for_season/i.test(result.error));
+    if (rpcMissing) {
+      console.warn("[useTeamStaff] RPC missing, fallback to table queries");
+      result = await fetchStaffViaTables(teamSeasonId);
     }
 
-    const mapped = ((data ?? []) as Parameters<typeof mapStaffRow>[0][])
-      .map(mapStaffRow)
-      .filter((m): m is TeamStaffMember => m != null)
-      .sort((a, b) => {
-        const rank = (r: string) =>
-          r === "head_coach" ? 0 : r === "co_trainer" ? 1 : r === "trainer" ? 2 : 9;
-        const d = rank(a.role) - rank(b.role);
-        if (d !== 0) return d;
-        const an = `${a.last_name ?? ""} ${a.first_name ?? ""}`.trim().toLocaleLowerCase("de-AT");
-        const bn = `${b.last_name ?? ""} ${b.first_name ?? ""}`.trim().toLocaleLowerCase("de-AT");
-        return an.localeCompare(bn, "de-AT");
-      });
+    if (result.error) {
+      setStaff([]);
+      setError(result.error);
+      setLoading(false);
+      console.error("[useTeamStaff] fetch failed", { teamSeasonId, error: result.error });
+      return { count: 0, error: result.error };
+    }
 
-    setStaff(mapped);
+    console.log("[useTeamStaff] fetched staff", {
+      teamSeasonId,
+      count: result.staff.length,
+      roles: result.staff.map((s) => s.role),
+      userIds: result.staff.map((s) => s.user_id),
+    });
+
+    setStaff(result.staff);
     setLoading(false);
+    return { count: result.staff.length, error: null };
   }, [teamSeasonId]);
 
   useEffect(() => {
@@ -103,7 +223,7 @@ export function staffDisplayName(m: Pick<TeamStaffMember, "first_name" | "last_n
 }
 
 export function staffRoleLabelDe(rawRole: string): string {
-  const s = rawRole.trim().toLowerCase();
+  const s = normalizeStaffRole(rawRole);
   if (s === "head_coach") return "Cheftrainer";
   if (s === "co_trainer") return "Co-Trainer";
   if (s === "trainer") return "Trainer";
@@ -180,10 +300,15 @@ export type SaveTeamStaffInput = {
 export async function saveTeamStaffMember(
   input: SaveTeamStaffInput,
 ): Promise<{ ok: boolean; error: string | null }> {
+  const role = normalizeStaffRole(input.role);
+  if (!STAFF_ROLES.has(role)) {
+    return { ok: false, error: "Ungültige Trainer-Rolle." };
+  }
+
   const { error } = await supabase.rpc("upsert_team_staff_member", {
     p_team_season_id: input.teamSeasonId,
     p_user_id: input.userId,
-    p_role: input.role,
+    p_role: role,
     p_first_name: input.firstName,
     p_last_name: input.lastName,
     p_phone: input.phone,
