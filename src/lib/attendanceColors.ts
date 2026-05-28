@@ -1,17 +1,22 @@
 /**
  * Teilnahme-Farbschema (Dark Stadium UI) – nur Styling.
  *
- * | Status   | Text (Hex) | Hintergrund (typ.)        | Rand / Glow (typ.)              |
- * |----------|------------|---------------------------|---------------------------------|
- * | Dabei    | #FFFFFF    | emerald-600/85            | emerald-400/45, Glow emerald    |
- * | LAZ      | #5DBF94    | rgba(10,38,30,0.78)       | rgba(32,96,74,0.30), dezenter Glow |
- * | Verletzt | #FFB15A    | rgba(110,52,8,0.34)       | orange / amber                  |
- * | Abwesend | #FFFFFF    | red-600/85                | red-400/45                      |
- * | Offen    | white/90   | zinc-700/75               | white/20                        |
+ * | Status   | Text (Hex) | Hintergrund (typ.)           | Rand / Glow (typ.)                    |
+ * |----------|------------|------------------------------|---------------------------------------|
+ * | Dabei    | #FFFFFF    | emerald-600/85               | emerald-400/45, kräftiger Glow        |
+ * | LAZ      | #7FE3B2    | rgba(12,50,38,0.82)          | rgba(73,190,139,0.38), dezenter Glow  |
+ * | Verletzt | #FFB15A    | orange / amber               | —                                     |
+ * | Abwesend | #FFFFFF    | red-600/85                   | red-400/45                            |
+ * | Offen    | white/90   | zinc-700/75                  | white/20                              |
  *
- * Chips / Premium (dsStatusChipClass): siehe premiumDesignSystem CHIP_TONE.
- * LAZ-Chip: text #5DBF94, bg rgba(12,44,34,0.30) – schwächer als Dabei-Chip (#9DFFC5).
+ * LAZ: zur grünen Familie, heller/sichtbarer als v1, schwächer als Dabei (#9DFFC5 / emerald-600).
  */
+
+/** LAZ-Primitive – alle abgeleiteten Klassen nutzen diese Werte. */
+export const LAZ_COLOR_TEXT = '#7FE3B2';
+export const LAZ_COLOR_BG = 'rgba(12, 50, 38, 0.82)';
+export const LAZ_COLOR_BORDER = 'rgba(73, 190, 139, 0.38)';
+export const LAZ_COLOR_GLOW = 'rgba(73, 190, 139, 0.16)';
 
 const PILL_BASE =
   'inline-flex shrink-0 items-center justify-center rounded-full border transition-all duration-200';
@@ -20,9 +25,9 @@ const PILL_BASE =
 export const ATTENDANCE_PRESENT_PILL =
   'border-emerald-400/45 bg-emerald-600/85 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)]';
 
-/** LAZ – dezentes Stadium-Grün (kein kräftiges emerald wie Dabei). */
+/** LAZ – dezentes helles Stadium-Grün (Liste/Hero-Pills). */
 export const ATTENDANCE_LAZ_PILL_COLORS =
-  'border-[rgba(32,96,74,0.30)] bg-[rgba(10,38,30,0.78)] text-[#5DBF94] shadow-[0_0_10px_rgba(28,88,68,0.12)]';
+  'border-[rgba(73,190,139,0.38)] bg-[rgba(12,50,38,0.82)] text-[#7FE3B2] shadow-[0_0_12px_rgba(73,190,139,0.16)]';
 
 export const ATTENDANCE_LAZ_PILL = ATTENDANCE_LAZ_PILL_COLORS;
 
@@ -57,21 +62,21 @@ export function attendanceLazRsvpChoiceClass(active: boolean): string {
   return [
     RSVP_BTN_BASE,
     active
-      ? 'border-[rgba(32,96,74,0.28)] bg-[rgba(12,44,34,0.55)] text-[#5DBF94] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_14px_rgba(28,88,68,0.12)]'
-      : 'border-white/[0.07] bg-[rgba(14,14,18,0.92)] text-[#5DBF94]/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:text-[#5DBF94]/88',
+      ? 'border-[rgba(73,190,139,0.38)] bg-[rgba(12,50,38,0.82)] text-[#7FE3B2] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_16px_rgba(73,190,139,0.16)]'
+      : 'border-white/[0.07] bg-[rgba(14,14,18,0.92)] text-[#7FE3B2]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-[rgba(73,190,139,0.22)] hover:text-[#7FE3B2]/92',
   ].join(' ');
 }
 
 /** LAZ-Button im Schedule-Modal (aktiv hervorgehoben). */
 export function attendanceLazModalButtonClass(active: boolean): string {
   return active
-    ? 'border-[rgba(32,96,74,0.28)] text-[#5DBF94] bg-[rgba(12,44,34,0.4)]'
+    ? 'border-[rgba(73,190,139,0.38)] text-[#7FE3B2] bg-[rgba(12,50,38,0.82)] shadow-[0_0_12px_rgba(73,190,139,0.16)]'
     : '';
 }
 
-/** Premium-Chip / Stat-Box LAZ (external). */
+/** Premium-Chip LAZ (external). */
 export const ATTENDANCE_CHIP_LAZ =
-  'h-[24px] px-2.5 text-[9px] font-bold uppercase tracking-[0.1em] leading-none bg-[rgba(12,44,34,0.30)] text-[#5DBF94] shadow-[0_0_12px_rgba(28,88,68,0.08)]';
+  'h-[24px] px-2.5 text-[9px] font-bold uppercase tracking-[0.1em] leading-none border border-[rgba(73,190,139,0.28)] bg-[rgba(12,50,38,0.55)] text-[#7FE3B2] shadow-[0_0_14px_rgba(73,190,139,0.16)]';
 
 /** Premium-Chip Dabei (present). */
 export const ATTENDANCE_CHIP_PRESENT =
@@ -79,12 +84,16 @@ export const ATTENDANCE_CHIP_PRESENT =
 
 /** Training-Stat-Box LAZ (Trainer-Panel). */
 export const ATTENDANCE_STAT_BOX_LAZ =
-  'border-[rgba(32,96,74,0.14)] bg-[radial-gradient(ellipse_88%_72%_at_50%_50%,rgba(14,52,40,0.18)_0%,rgba(8,11,10,0.97)_54%,rgba(9,10,10,0.98)_100%)] text-[#5DBF94] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_16px_rgba(28,88,68,0.10),0_8px_24px_rgba(0,0,0,0.38)]';
+  'border-[rgba(73,190,139,0.22)] bg-[radial-gradient(ellipse_88%_72%_at_50%_50%,rgba(20,62,48,0.24)_0%,rgba(8,11,10,0.97)_54%,rgba(9,10,10,0.98)_100%)] text-[#7FE3B2] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_18px_rgba(73,190,139,0.16),0_8px_24px_rgba(0,0,0,0.38)]';
 
 /** Training-Aktionsbutton LAZ – aktiv. */
 export const ATTENDANCE_ACTION_LAZ_ON =
-  'border border-[rgba(32,96,74,0.26)] bg-[rgba(12,44,34,0.52)] text-[#5DBF94] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_16px_rgba(28,88,68,0.12)] backdrop-blur-sm';
+  'border border-[rgba(73,190,139,0.38)] bg-[rgba(12,50,38,0.82)] text-[#7FE3B2] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_16px_rgba(73,190,139,0.16)] backdrop-blur-sm';
 
-/** Training-Aktionsbutton LAZ – inaktiv (Glass). */
+/** Training-Aktionsbutton LAZ – inaktiv (Glass, leichter Grün-Hint). */
+export const ATTENDANCE_ACTION_LAZ_IDLE =
+  'bg-[rgba(12,50,38,0.28)] text-[#7FE3B2]/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] hover:bg-[rgba(12,50,38,0.38)] hover:text-[#7FE3B2]';
+
+/** Training-Aktionsbutton – inaktiv (Glass, neutral). */
 export const ATTENDANCE_ACTION_GLASS_IDLE =
   'border border-white/[0.07] bg-[rgba(14,14,18,0.92)] text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_14px_rgba(255,45,85,0.05)] hover:border-white/10 hover:bg-[rgba(18,14,16,0.94)] hover:text-white/76';

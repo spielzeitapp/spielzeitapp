@@ -4,6 +4,8 @@
  */
 
 import {
+  ATTENDANCE_ACTION_LAZ_IDLE,
+  ATTENDANCE_ACTION_LAZ_ON,
   ATTENDANCE_CHIP_LAZ,
   ATTENDANCE_CHIP_PRESENT,
   attendanceLazRsvpChoiceClass,
@@ -391,8 +393,8 @@ export function dsActionButtonClass(
       on: 'bg-[rgba(22,120,76,0.38)] text-[#9DFFC5] shadow-[0_0_22px_rgba(40,255,120,0.16),inset_0_1px_0_rgba(255,255,255,0.05)]',
     },
     external: {
-      idle: 'bg-[rgba(12,44,34,0.22)] text-[#5DBF94]/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] hover:bg-[rgba(12,44,34,0.28)] hover:text-[#5DBF94]',
-      on: 'bg-[rgba(12,44,34,0.38)] text-[#5DBF94] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_14px_rgba(28,88,68,0.10)]',
+      idle: ATTENDANCE_ACTION_LAZ_IDLE,
+      on: ATTENDANCE_ACTION_LAZ_ON,
     },
     absent: {
       idle: 'bg-[rgba(100,14,24,0.26)] text-[#FF8D98] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_12px_rgba(255,40,40,0.05)] hover:bg-[rgba(100,14,24,0.34)]',
