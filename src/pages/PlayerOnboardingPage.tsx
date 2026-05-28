@@ -151,6 +151,7 @@ export const PlayerOnboardingPage: React.FC = () => {
         .from('players')
         .select('id, first_name, last_name, jersey_number, team_season_id')
         .eq('team_season_id', teamSeasonId)
+        .or('status.eq.active,and(status.is.null,is_active.eq.true)')
         .order('last_name', { ascending: true });
 
       if (!alive) return;

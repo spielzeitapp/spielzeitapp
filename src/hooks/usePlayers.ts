@@ -12,6 +12,7 @@ export type PlayerItem = {
   birthdate: string | null;
   avatar_url: string | null;
   is_active: boolean;
+  status: "active" | "paused" | "archived";
   /** first_name + ' ' + last_name, getrimmt – für Anzeige. */
   display_name: string;
 };
@@ -25,6 +26,7 @@ export type PlayerRow = {
   jersey_number?: number | null;
   position?: string | null;
   is_active?: boolean;
+  status?: string | null;
 };
 
 type PlayerAvatarRow = {
@@ -57,11 +59,24 @@ function toPlayer(row: PlayerRow): PlayerItem {
     birthdate: null,
     avatar_url: null,
     is_active: row.is_active !== false,
+    status:
+      row.status === "paused"
+        ? "paused"
+        : row.status === "archived"
+          ? "archived"
+          : "active",
     display_name,
   };
 }
 
-export function usePlayers(teamSeasonId: string | null) {
+type UsePlayersMode = "active" | "paused" | "all";
+
+type UsePlayersOptions = {
+  mode?: UsePlayersMode;
+};
+
+export function usePlayers(teamSeasonId: string | null, options?: UsePlayersOptions) {
+  const mode: UsePlayersMode = options?.mode ?? "active";
   const [players, setPlayers] = useState<PlayerItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,11 +90,18 @@ export function usePlayers(teamSeasonId: string | null) {
     }
     setLoading(true);
     setError(null);
-    const { data, error: queryError } = await supabase
+    let query = supabase
       .from("players")
-      .select("id, team_season_id, first_name, last_name, jersey_number, position, is_active")
-      .eq("team_season_id", teamSeasonId)
-      .eq("is_active", true)
+      .select("id, team_season_id, first_name, last_name, jersey_number, position, is_active, status")
+      .eq("team_season_id", teamSeasonId);
+
+    if (mode === "active") {
+      query = query.or("status.eq.active,and(status.is.null,is_active.eq.true)");
+    } else if (mode === "paused") {
+      query = query.eq("status", "paused");
+    }
+
+    const { data, error: queryError } = await query
       .order("jersey_number", { ascending: true, nullsFirst: false })
       .order("last_name", { ascending: true, nullsFirst: false })
       .order("first_name", { ascending: true, nullsFirst: false });
@@ -144,7 +166,7 @@ export function usePlayers(teamSeasonId: string | null) {
     );
     setError(null);
     setLoading(false);
-  }, [teamSeasonId]);
+  }, [mode, teamSeasonId]);
 
   useEffect(() => {
     refetch();

@@ -17,6 +17,7 @@ import { PlayerCard } from "../components/team/PlayerCard";
 const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
 
 type TeamTabId = "squad" | "trainers" | "training" | "matches";
+type SquadFilterId = "active" | "paused" | "all";
 
 type StaffMembershipRow = {
   user_id: string;
@@ -138,7 +139,9 @@ export const TeamPage: React.FC = () => {
     loading: plLoading,
     error: plError,
     refetch: refetchPlayers,
-  } = usePlayers(teamSeasonId);
+  } = usePlayers(teamSeasonId, {
+    mode: canManageRoster(normalizeRole(role)) ? "all" : "active",
+  });
 
   const roleNormalized = normalizeRole(role);
   const canManagePlayers = canManageRoster(roleNormalized);
@@ -460,6 +463,7 @@ export const TeamPage: React.FC = () => {
           jersey_number: form.jersey_number ? Number(form.jersey_number) : null,
           position: form.position?.trim() || null,
           is_active: true,
+          status: "active",
         })
         .select("id");
       if (insertError) {
@@ -609,10 +613,13 @@ export const TeamPage: React.FC = () => {
     }
   };
 
-  const handleRemove = async (playerId: string) => {
-    if (!window.confirm("Spieler wirklich entfernen?")) return;
+  const handleSetPlayerStatus = async (playerId: string, nextStatus: "active" | "paused") => {
+    if (!window.confirm(nextStatus === "paused" ? "Spieler pausieren?" : "Spieler wieder aktivieren?")) return;
     setDeletingId(playerId);
-    const { error } = await supabase.from("players").update({ is_active: false }).eq("id", playerId);
+    const { error } = await supabase
+      .from("players")
+      .update({ is_active: nextStatus === "active", status: nextStatus })
+      .eq("id", playerId);
     setDeletingId(null);
     if (error) {
       setFormError(error.message);
@@ -630,15 +637,31 @@ export const TeamPage: React.FC = () => {
   ];
 
   const [activeTab, setActiveTab] = useState<TeamTabId>("squad");
+  const [squadFilter, setSquadFilter] = useState<SquadFilterId>("active");
 
   const sortedPlayers = useMemo(() => {
-    return [...players].sort((a, b) => {
+    const list = players.filter((p) => {
+      const st = p.status ?? "active";
+      if (squadFilter === "all") return true;
+      if (squadFilter === "paused") return st === "paused";
+      return st === "active";
+    });
+    return [...list].sort((a, b) => {
       const ja = a.jersey_number ?? 9999;
       const jb = b.jersey_number ?? 9999;
       if (ja !== jb) return ja - jb;
       return a.display_name.localeCompare(b.display_name, "de");
     });
-  }, [players]);
+  }, [players, squadFilter]);
+
+  const activeCount = useMemo(
+    () => players.filter((p) => (p.status ?? "active") === "active").length,
+    [players]
+  );
+  const pausedCount = useMemo(
+    () => players.filter((p) => (p.status ?? "active") === "paused").length,
+    [players]
+  );
 
   return (
     <>
@@ -712,7 +735,7 @@ export const TeamPage: React.FC = () => {
           </div>
           <div className="mt-4 flex flex-wrap gap-2 text-[14px] text-white/70">
             <span className="inline-flex items-center rounded-full border border-white/15 bg-black/35 px-2.5 py-1">
-              {tsLoading ? "…" : `${players.length} Spieler`}
+              {tsLoading ? "…" : `${activeCount} aktiv`}
             </span>
             <span className="inline-flex items-center rounded-full border border-white/15 bg-black/35 px-2.5 py-1">
               {trainerCount} Trainer
@@ -920,10 +943,10 @@ export const TeamPage: React.FC = () => {
                     type="button"
                     variant="ghost"
                     size="xs"
-                    onClick={() => handleRemove(editingId)}
+                    onClick={() => handleSetPlayerStatus(editingId, "paused")}
                     disabled={deletingId !== null || saving}
                     className="text-red-400 hover:bg-red-950/40 hover:text-red-300"
-                    aria-label="Spieler entfernen"
+                    aria-label="Spieler pausieren"
                   >
                     <Trash2 className="h-4 w-4" aria-hidden />
                   </Button>
@@ -937,24 +960,96 @@ export const TeamPage: React.FC = () => {
             </p>
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
+            <>
+              {canManagePlayers ? (
+                <div className="mt-2 mb-2 space-y-2">
+                  <p className="text-xs text-white/60">
+                    Pausierte Spieler bleiben gespeichert, sind aber für Eltern/Fans und Spielkader nicht sichtbar.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                        squadFilter === "active"
+                          ? "border-emerald-400/45 bg-emerald-900/30 text-emerald-200"
+                          : "border-white/15 bg-white/[0.04] text-white/70"
+                      }`}
+                      onClick={() => setSquadFilter("active")}
+                    >
+                      Aktiv ({activeCount})
+                    </button>
+                    <button
+                      type="button"
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                        squadFilter === "paused"
+                          ? "border-amber-400/45 bg-amber-900/25 text-amber-200"
+                          : "border-white/15 bg-white/[0.04] text-white/70"
+                      }`}
+                      onClick={() => setSquadFilter("paused")}
+                    >
+                      Pausiert ({pausedCount})
+                    </button>
+                    <button
+                      type="button"
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                        squadFilter === "all"
+                          ? "border-red-400/45 bg-red-900/25 text-red-200"
+                          : "border-white/15 bg-white/[0.04] text-white/70"
+                      }`}
+                      onClick={() => setSquadFilter("all")}
+                    >
+                      Alle ({players.length})
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             <ul className="mt-3 w-full space-y-1.5 pb-8">
               {sortedPlayers.map((p) => (
                 <li key={p.id} className="w-full">
-                  <PlayerCard
-                    player={{
-                      id: p.id,
-                      first_name: p.first_name,
-                      last_name: p.last_name,
-                      display_name: p.display_name,
-                      position: getPositionLabel(p.position) || p.position,
-                      jersey_number: p.jersey_number,
-                      photo_url: readOptionalPhotoUrl(p),
-                    }}
-                    onClick={() => openPlayerProfile(p)}
-                  />
+                  <div className="space-y-1">
+                    <PlayerCard
+                      player={{
+                        id: p.id,
+                        first_name: p.first_name,
+                        last_name: p.last_name,
+                        display_name: p.display_name,
+                        position: getPositionLabel(p.position) || p.position,
+                        jersey_number: p.jersey_number,
+                        photo_url: readOptionalPhotoUrl(p),
+                      }}
+                      onClick={() => openPlayerProfile(p)}
+                    />
+                    <div className="flex items-center justify-between px-2">
+                      {(p.status ?? "active") === "paused" ? (
+                        <span className="rounded-full border border-amber-400/35 bg-amber-900/30 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
+                          Pausiert
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-emerald-400/30 bg-emerald-900/25 px-2 py-0.5 text-[11px] font-semibold text-emerald-200">
+                          Aktiv
+                        </span>
+                      )}
+                      {canManagePlayers ? (
+                        <button
+                          type="button"
+                          disabled={deletingId !== null || saving}
+                          onClick={() =>
+                            void handleSetPlayerStatus(
+                              p.id,
+                              (p.status ?? "active") === "paused" ? "active" : "paused"
+                            )
+                          }
+                          className="rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-white/80 hover:bg-white/[0.08] disabled:opacity-50"
+                        >
+                          {(p.status ?? "active") === "paused" ? "Wieder aktivieren" : "Pausieren"}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>
+            </>
           )}
         </div>
       </Card>

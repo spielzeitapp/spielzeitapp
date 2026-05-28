@@ -216,7 +216,8 @@ export const ProfilePage: React.FC = () => {
         const { data: playerRows, error: playerError } = await supabase
           .from('players')
           .select('id, first_name, last_name')
-          .in('id', playerIds);
+          .in('id', playerIds)
+          .or('status.eq.active,and(status.is.null,is_active.eq.true)');
 
         console.log('[PROFILE CHILDREN PLAYERS]', { data: playerRows, error: playerError });
 
