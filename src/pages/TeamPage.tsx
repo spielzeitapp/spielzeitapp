@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Mail, Phone } from "lucide-react";
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from "../auth/useSession";
 import { Card, CardTitle } from "../app/components/ui/Card";
 import { Tabs, TabOption } from "../app/components/ui/Tabs";
@@ -6,24 +8,28 @@ import { AppButton } from "../components/ui/AppButton";
 import { Camera } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
-import { normalizeRole, canManageRoster, ROLE_LABELS_DE } from "../lib/roles";
+import { normalizeRole, canManageRoster } from "../lib/roles";
 import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 import { PlayerSquadFormModal } from "../components/team/PlayerSquadFormModal";
+import {
+  TrainerStaffFormModal,
+  type TrainerStaffFormState,
+} from "../components/team/TrainerStaffFormModal";
 import { PlayerCard } from "../components/team/PlayerCard";
+import {
+  staffDisplayName,
+  staffRoleLabelDe,
+  useTeamStaff,
+  type TeamStaffMember,
+} from "../hooks/useTeamStaff";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
 const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
 
 type TeamTabId = "squad" | "trainers" | "training" | "matches";
 type SquadFilterId = "active" | "paused" | "all";
-
-type StaffMembershipRow = {
-  user_id: string;
-  role: string;
-  profiles: { first_name: string | null; last_name: string | null } | null;
-};
 
 type RecentMatchRow = {
   id: string;
@@ -87,21 +93,14 @@ function readOptionalPhotoUrl(p: PlayerItem): string | null {
   return v.length > 0 ? v : null;
 }
 
-function staffRoleLabelDe(rawRole: string): string {
-  const s = rawRole.trim().toLowerCase();
-  if (s === "head_coach") return ROLE_LABELS_DE.head_coach;
-  if (s === "co_trainer") return ROLE_LABELS_DE.co_trainer;
-  if (s === "trainer") return ROLE_LABELS_DE.trainer;
-  return ROLE_LABELS_DE.trainer;
-}
-
-function profileDisplayName(p: { first_name?: string | null; last_name?: string | null } | null): string {
-  if (!p) return "—";
-  const a = (p.first_name ?? "").trim();
-  const b = (p.last_name ?? "").trim();
-  const full = [a, b].filter(Boolean).join(" ").trim();
-  return full || "—";
-}
+const emptyTrainerForm: TrainerStaffFormState = {
+  email: "",
+  first_name: "",
+  last_name: "",
+  role: "trainer",
+  phone: "",
+  contact_email: "",
+};
 
 function formatMatchDateDe(iso: string | null): string {
   if (!iso) return "—";
@@ -126,6 +125,7 @@ function readTeamPhotoUrl(row: TeamPhotoRow | null): string | null {
 }
 
 export const TeamPage: React.FC = () => {
+  const navigate = useNavigate();
   const { selectedTeamSeason, selectedMembership } = useSession();
   const {
     teamLabel,
@@ -160,7 +160,17 @@ export const TeamPage: React.FC = () => {
   const [saveToastVisible, setSaveToastVisible] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedProfilePlayer, setSelectedProfilePlayer] = useState<PlayerItem | null>(null);
-  const [staffRows, setStaffRows] = useState<StaffMembershipRow[]>([]);
+  const { staff: staffRows, loading: staffLoading, refetch: refetchStaff } = useTeamStaff(teamSeasonId);
+  const [showTrainerForm, setShowTrainerForm] = useState(false);
+  const [trainerFormMode, setTrainerFormMode] = useState<"create" | "edit">("create");
+  const [trainerForm, setTrainerForm] = useState<TrainerStaffFormState>(emptyTrainerForm);
+  const [editingTrainer, setEditingTrainer] = useState<TeamStaffMember | null>(null);
+  const [trainerSaving, setTrainerSaving] = useState(false);
+  const [trainerAvatarUploading, setTrainerAvatarUploading] = useState(false);
+  const [trainerAvatarPreviewUrl, setTrainerAvatarPreviewUrl] = useState<string | null>(null);
+  const [trainerAvatarFile, setTrainerAvatarFile] = useState<File | null>(null);
+  const [trainerAvatarObjectUrl, setTrainerAvatarObjectUrl] = useState<string | null>(null);
+  const [trainerFormError, setTrainerFormError] = useState<string | null>(null);
   const [recentMatches, setRecentMatches] = useState<RecentMatchRow[]>([]);
   const [teamPhoto, setTeamPhoto] = useState<TeamPhotoRow | null>(null);
   const [teamPhotoUploading, setTeamPhotoUploading] = useState(false);
@@ -198,32 +208,8 @@ export const TeamPage: React.FC = () => {
   const heroShowsPlaceholder = !teamPhotoUrl || teamPhotoUrl.length === 0;
 
   useEffect(() => {
-    if (!teamSeasonId) {
-      setStaffRows([]);
-      return;
-    }
-    let cancelled = false;
-    void supabase
-      .from("memberships")
-      .select("user_id, role, profiles(first_name, last_name)")
-      .eq("team_season_id", teamSeasonId)
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) {
-          setStaffRows([]);
-          return;
-        }
-        const rows = (data ?? []) as StaffMembershipRow[];
-        const staff = rows.filter((r) => {
-          const s = (r.role ?? "").trim().toLowerCase();
-          return s === "trainer" || s === "co_trainer" || s === "head_coach";
-        });
-        setStaffRows(staff);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [teamSeasonId]);
+    if (trainerAvatarObjectUrl) URL.revokeObjectURL(trainerAvatarObjectUrl);
+  }, [trainerAvatarObjectUrl]);
 
   useEffect(() => {
     if (!teamSeasonId) {
@@ -654,6 +640,119 @@ export const TeamPage: React.FC = () => {
     await refetchPlayers();
   };
 
+  const closeTrainerForm = () => {
+    setShowTrainerForm(false);
+    setEditingTrainer(null);
+    setTrainerForm(emptyTrainerForm);
+    setTrainerFormError(null);
+    setTrainerAvatarPreviewUrl(null);
+    setTrainerAvatarFile(null);
+    if (trainerAvatarObjectUrl) URL.revokeObjectURL(trainerAvatarObjectUrl);
+    setTrainerAvatarObjectUrl(null);
+  };
+
+  const openCreateTrainerForm = () => {
+    setTrainerFormMode("create");
+    setEditingTrainer(null);
+    setTrainerForm(emptyTrainerForm);
+    setTrainerFormError(null);
+    setTrainerAvatarPreviewUrl(null);
+    setTrainerAvatarFile(null);
+    setShowTrainerForm(true);
+  };
+
+  const openEditTrainerForm = (member: TeamStaffMember) => {
+    setTrainerFormMode("edit");
+    setEditingTrainer(member);
+    setTrainerForm({
+      email: "",
+      first_name: member.first_name ?? "",
+      last_name: member.last_name ?? "",
+      role:
+        member.role === "head_coach" || member.role === "co_trainer" || member.role === "trainer"
+          ? member.role
+          : "trainer",
+      phone: member.phone ?? "",
+      contact_email: member.email ?? "",
+    });
+    setTrainerFormError(null);
+    setTrainerAvatarPreviewUrl(member.avatar_url);
+    setTrainerAvatarFile(null);
+    setShowTrainerForm(true);
+  };
+
+  const handleTrainerAvatarFilePick = (file: File) => {
+    if (trainerAvatarObjectUrl) URL.revokeObjectURL(trainerAvatarObjectUrl);
+    setTrainerAvatarFile(file);
+    setTrainerAvatarObjectUrl(URL.createObjectURL(file));
+  };
+
+  const uploadTrainerAvatar = async (userId: string): Promise<string | null> => {
+    if (!trainerAvatarFile) return trainerAvatarPreviewUrl;
+    const ext = trainerAvatarFile.type === "image/png" ? "png" : trainerAvatarFile.type === "image/webp" ? "webp" : "jpg";
+    const path = `staff/${userId}/avatar.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("player-avatars")
+      .upload(path, trainerAvatarFile, { upsert: true, contentType: trainerAvatarFile.type });
+    if (upErr) return null;
+    const { data } = supabase.storage.from("player-avatars").getPublicUrl(path);
+    return data.publicUrl ?? null;
+  };
+
+  const handleTrainerFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!teamSeasonId) return;
+    setTrainerSaving(true);
+    setTrainerFormError(null);
+    try {
+      let userId = editingTrainer?.user_id ?? null;
+      if (trainerFormMode === "create") {
+        const email = trainerForm.email.trim();
+        if (!email) {
+          setTrainerFormError("E-Mail ist erforderlich.");
+          return;
+        }
+        const { data: foundId, error: findErr } = await supabase.rpc("find_user_id_by_email", {
+          p_email: email,
+        });
+        if (findErr) {
+          setTrainerFormError(findErr.message);
+          return;
+        }
+        if (!foundId) {
+          setTrainerFormError("Kein Konto mit dieser E-Mail. Die Person muss sich zuerst registrieren.");
+          return;
+        }
+        userId = String(foundId);
+      }
+      if (!userId) {
+        setTrainerFormError("Trainer konnte nicht zugeordnet werden.");
+        return;
+      }
+      const avatarUrl = await uploadTrainerAvatar(userId);
+      const { error: upsertErr } = await supabase.rpc("upsert_team_staff_member", {
+        p_team_season_id: teamSeasonId,
+        p_user_id: userId,
+        p_role: trainerForm.role,
+        p_first_name: trainerForm.first_name.trim() || null,
+        p_last_name: trainerForm.last_name.trim() || null,
+        p_phone: trainerForm.phone.trim() || null,
+        p_email: trainerForm.contact_email.trim() || null,
+        p_avatar_url: avatarUrl,
+      });
+      if (upsertErr) {
+        setTrainerFormError(upsertErr.message);
+        return;
+      }
+      showSavedToast();
+      closeTrainerForm();
+      await refetchStaff();
+    } finally {
+      setTrainerSaving(false);
+      setTrainerAvatarUploading(false);
+    }
+  };
+
   const teamTabs: TabOption[] = [
     { id: "squad", label: "Kader" },
     { id: "trainers", label: "Trainer" },
@@ -703,6 +802,23 @@ export const TeamPage: React.FC = () => {
           setSelectedProfilePlayer((prev) => (prev ? { ...prev, ...patch } : prev));
           void refetchPlayers();
         }}
+      />
+    ) : null}
+    {canManagePlayers && teamSeasonId != null ? (
+      <TrainerStaffFormModal
+        isOpen={showTrainerForm}
+        mode={trainerFormMode}
+        form={trainerForm}
+        saving={trainerSaving}
+        avatarUploading={trainerAvatarUploading}
+        avatarPreviewUrl={trainerAvatarPreviewUrl}
+        avatarObjectUrl={trainerAvatarObjectUrl}
+        formError={trainerFormError}
+        onClose={closeTrainerForm}
+        onSubmit={handleTrainerFormSubmit}
+        onFormChange={(patch) => setTrainerForm((f) => ({ ...f, ...patch }))}
+        onAvatarFile={handleTrainerAvatarFilePick}
+        onAvatarValidationError={setTrainerFormError}
       />
     ) : null}
     {canManagePlayers && teamSeasonId != null ? (
@@ -797,10 +913,10 @@ export const TeamPage: React.FC = () => {
           </div>
           <div className="mt-4 flex flex-wrap gap-2 text-[14px] text-white/70">
             <span className="inline-flex items-center rounded-full border border-white/15 bg-black/35 px-2.5 py-1">
-              {tsLoading ? "…" : `${activeCount} aktiv`}
+              {tsLoading || plLoading ? "…" : `${activeCount} Spieler`}
             </span>
             <span className="inline-flex items-center rounded-full border border-white/15 bg-black/35 px-2.5 py-1">
-              {trainerCount} Trainer
+              {staffLoading ? "…" : `${trainerCount} Trainer`}
             </span>
             <span className="inline-flex items-center rounded-full border border-white/15 bg-black/35 px-2.5 py-1">
               Saison {heroSeason}
@@ -955,33 +1071,76 @@ export const TeamPage: React.FC = () => {
 
       {activeTab === "trainers" ? (
         <Card className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] sm:p-5">
-          <CardTitle className="mt-0">Trainer</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="mt-0">Trainer</CardTitle>
+            {teamSeasonId != null && canManagePlayers && !staffLoading ? (
+              <AppButton type="button" variant="secondary" size="md" onClick={openCreateTrainerForm}>
+                + Trainer hinzufügen
+              </AppButton>
+            ) : null}
+          </div>
           {teamSeasonId == null && !tsLoading ? (
             <p className="mt-3 text-[14px] text-white/70">Bitte Team wählen.</p>
+          ) : staffLoading ? (
+            <p className="mt-4 text-[14px] text-white/70">Lade Trainer…</p>
           ) : staffRows.length === 0 ? (
             <p className="mt-4 text-center text-[14px] font-medium text-white/80">Keine Trainer hinterlegt</p>
           ) : (
             <ul className="mt-4 space-y-2.5">
-              {staffRows.map((row) => (
-                <li
-                  key={`${row.user_id}-${row.role}`}
-                  className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] p-3"
-                >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 bg-zinc-800 text-sm font-black text-white/90">
-                    {profileDisplayName(row.profiles)
-                      .split(/\s+/)
-                      .filter(Boolean)
-                      .map((w) => w[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase() || "—"}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[17px] font-semibold text-white">{profileDisplayName(row.profiles)}</div>
-                    <div className="mt-0.5 text-[13px] text-white/70">{staffRoleLabelDe(row.role)}</div>
-                  </div>
-                </li>
-              ))}
+              {staffRows.map((row) => {
+                const name = staffDisplayName(row);
+                const avatar = (row.avatar_url ?? "").trim();
+                const initials =
+                  name
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .map((w) => w[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase() || "TR";
+                return (
+                  <li key={`${row.user_id}-${row.role}`}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] p-3 text-left transition-colors hover:bg-white/[0.07]"
+                      onClick={() => navigate(`/app/team/trainer/${encodeURIComponent(row.user_id)}`)}
+                    >
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/12 bg-zinc-800 text-sm font-black text-white/90">
+                        {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : initials}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[17px] font-semibold text-white">{name}</div>
+                        <div className="mt-0.5 text-[13px] text-white/70">{staffRoleLabelDe(row.role)}</div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-white/55">
+                          {row.phone?.trim() ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Phone className="h-3 w-3 shrink-0" aria-hidden />
+                              {row.phone.trim()}
+                            </span>
+                          ) : null}
+                          {row.email?.trim() ? (
+                            <span className="inline-flex items-center gap-1 truncate">
+                              <Mail className="h-3 w-3 shrink-0" aria-hidden />
+                              {row.email.trim()}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </button>
+                    {canManagePlayers ? (
+                      <div className="mt-1 flex justify-end px-1">
+                        <button
+                          type="button"
+                          className="text-[12px] font-semibold text-red-300/90 hover:text-red-200"
+                          onClick={() => openEditTrainerForm(row)}
+                        >
+                          Bearbeiten
+                        </button>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Card>

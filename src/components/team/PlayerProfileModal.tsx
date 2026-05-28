@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ChevronLeft,
   Clock,
+  Handshake,
   Percent,
   Target,
   Trophy,
@@ -492,14 +493,14 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                           value: String(stats.goals),
                         },
                         {
+                          icon: Handshake,
+                          label: "Assists",
+                          value: String(stats.assists),
+                        },
+                        {
                           icon: Clock,
                           label: "Spielmin.",
                           value: String(stats.minutes),
-                        },
-                        {
-                          icon: Percent,
-                          label: "Tore / 90",
-                          value: goalsPer90Display,
                         },
                       ] as const
                     ).map((s) => (
@@ -517,13 +518,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 <h4 className="mb-2.5 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
                   Saisonstatistik
                 </h4>
-                <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
-                  <SeasonMiniCell label="Spiele" value={String(stats.games)} />
-                  <SeasonMiniCell label="Tore" value={String(stats.goals)} />
-                  <SeasonMiniCell label="Spielminuten" value={String(stats.minutes)} />
-                  <SeasonMiniCell label="Tore / 90" value={goalsPer90Display} />
-                  <SeasonMiniCell label="Gelbe Karten" value={String(stats.yellowCards)} />
-                  <SeasonMiniCell label="Rote Karten" value={String(stats.redCards)} />
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5">
+                  <SeasonMiniCell label="Tore / Spiel" value={goalsPer90Display} />
+                  <SeasonMiniCell label="Einsätze" value={String(stats.games)} />
                 </div>
               </div>
             </>

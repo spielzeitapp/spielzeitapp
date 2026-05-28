@@ -10,11 +10,13 @@ import {
 export type PlayerSeasonStats = {
   games: number;
   goals: number;
+  assists: number;
   minutes: number;
   goalsPer90: number;
-  /** Aus match_events (type card / yellow / red); ohne Detailtyp zählt generisches `card` als gelb. */
+  /** Legacy – nicht mehr in der Jugend-UI; bleibt für Aggregation/API-Kompatibilität. */
   yellowCards: number;
   redCards: number;
+  /** TODO: U12+ Zeitstrafe / Blaue Karte später anbinden (player_stats.blue_cards). */
 };
 
 export type PlayerLastMatchRow = {
@@ -164,6 +166,29 @@ function goalsInMatchForPlayer(events: EventRow[], playerId: string): number {
     if (String(e.player_id ?? '').trim() !== playerId) continue;
     const t = String(e.type ?? '').toLowerCase();
     if (t === 'goal' || t === 'goal_away') n += 1;
+  }
+  return n;
+}
+
+function assistPlayerIdFromGoalEvent(e: EventRow): string | null {
+  const p = e.payload && typeof e.payload === 'object' ? (e.payload as Record<string, unknown>) : {};
+  const raw =
+    (typeof p.assist_player_id === 'string' && p.assist_player_id) ||
+    (typeof p.assist_id === 'string' && p.assist_id) ||
+    (typeof p.player_assist_id === 'string' && p.player_assist_id) ||
+    '';
+  const id = String(raw).trim();
+  return id || null;
+}
+
+function assistsInMatchForPlayer(events: EventRow[], playerId: string): number {
+  let n = 0;
+  const pid = playerId.trim();
+  if (!pid) return 0;
+  for (const e of events) {
+    const t = String(e.type ?? '').toLowerCase();
+    if (t !== 'goal' && t !== 'goal_away') continue;
+    if (assistPlayerIdFromGoalEvent(e) === pid) n += 1;
   }
   return n;
 }
@@ -329,7 +354,7 @@ function aggregateForPlayer(
   const pid = playerId?.trim();
   if (!pid || matches.length === 0) {
     return {
-      stats: { games: 0, goals: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
+      stats: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
       lastMatches: [],
     };
   }
@@ -341,6 +366,7 @@ function aggregateForPlayer(
 
   let games = 0;
   let goals = 0;
+  let assists = 0;
   let minutes = 0;
   let yellowCards = 0;
   let redCards = 0;
@@ -354,6 +380,7 @@ function aggregateForPlayer(
     games += 1;
     const evs = eventsByMatch.get(mid) ?? [];
     goals += goalsInMatchForPlayer(evs, pid);
+    assists += assistsInMatchForPlayer(evs, pid);
     const cards = cardCountsInMatchForPlayer(evs, pid);
     yellowCards += cards.yellow;
     redCards += cards.red;
@@ -410,7 +437,7 @@ function aggregateForPlayer(
   });
 
   return {
-    stats: { games, goals, minutes, goalsPer90, yellowCards, redCards },
+    stats: { games, goals, assists, minutes, goalsPer90, yellowCards, redCards },
     lastMatches: lastRows.slice(0, 5),
   };
 }
@@ -421,11 +448,11 @@ export async function getPlayerSeasonStats(
 ): Promise<{ data: PlayerSeasonStats; error: string | null }> {
   const { data: matches, error: mErr } = await fetchFinishedMatches(teamSeasonId);
   if (mErr)
-    return { data: { games: 0, goals: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 }, error: mErr };
+    return { data: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 }, error: mErr };
   const matchIds = matches.map((m) => m.id);
   if (matchIds.length === 0) {
     return {
-      data: { games: 0, goals: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
+      data: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
       error: null,
     };
   }
@@ -471,7 +498,7 @@ export async function getPlayerProfileStatsBundle(
   const { data: matches, error: mErr } = await fetchFinishedMatches(teamSeasonId);
   if (mErr) {
     return {
-      stats: { games: 0, goals: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
+      stats: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
       lastMatches: [],
       error: mErr,
     };
@@ -479,7 +506,7 @@ export async function getPlayerProfileStatsBundle(
   const matchIds = matches.map((m) => m.id);
   if (matchIds.length === 0) {
     return {
-      stats: { games: 0, goals: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
+      stats: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
       lastMatches: [],
       error: null,
     };

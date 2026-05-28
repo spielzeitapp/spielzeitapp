@@ -25,6 +25,7 @@ import { EventDetailPage } from '../pages/EventDetailPage';
 import { MatchSetupScreen } from '../pages/live/MatchSetupScreen';
 import { LivePage } from '../pages/LivePage';
 import { TeamPage } from '../pages/TeamPage';
+import { TrainerProfilePage } from '../pages/TrainerProfilePage';
 import { TablePage } from '../pages/TablePage';
 import { NotificationsPage } from '../pages/NotificationsPage';
 import { ProfilePage } from '../pages/ProfilePage';
@@ -196,6 +197,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="live" element={<LivePage />} />
         <Route path="live/:id" element={<LivePage />} />
         <Route path="team" element={<TeamPage />} />
+        <Route path="team/trainer/:userId" element={<TrainerProfilePage />} />
         <Route path="table" element={<TablePage />} />
         <Route path="mehr" element={<MoreLayout />}>
           <Route index element={<MorePage />} />
