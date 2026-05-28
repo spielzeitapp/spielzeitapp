@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
   Check,
@@ -89,6 +90,8 @@ type MatchCardLigaportalProps = {
   onScheduleHeroPrepare?: () => void;
   /** Trainer: Startelf vollständig gespeichert → „Live starten“. */
   lineupReady?: boolean;
+  /** Match-ID für Trainer-Hero-Navigation (Vorbereitung / Live). */
+  scheduleHeroMatchId?: string | null;
   /** Match läuft (DB live_is_running) – Audience-Live-State auch wenn Event-Status noch nachzieht. */
   liveIsRunning?: boolean | null;
   /** Event-Detail: Matchcard kompakter wie Schedule-Hero, ohne dessen Header/Actions. */
@@ -131,9 +134,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   onScheduleHeroGoLive,
   onScheduleHeroPrepare,
   lineupReady = false,
+  scheduleHeroMatchId = null,
   liveIsRunning = null,
   compactDetailGame = false,
 }) => {
+  const navigate = useNavigate();
   void ourTeamName;
   const ourClubName = getOurTeamDisplayName();
   const canSeeSensitiveInfo = showMeetup;
@@ -241,11 +246,6 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
         })()
       : scheduleHeroKickoffLocation;
 
-  const handleCardClick = () => {
-    if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
-  };
-
-  const isClickable = !isPublicView && Boolean(eventId && onNavigate);
   const opponentIsRight = isHome !== false;
   const rightLogoOverride = opponentIsRight ? (opponentLogoUrl ?? null) : null;
   const leftLogoOverride = opponentIsRight ? null : (opponentLogoUrl ?? null);
@@ -325,6 +325,62 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const heroMeetupTimeDisplay = scheduleMetaTimeDisplay(meetupTimeOnly).replace(/\s*Uhr$/i, '').trim();
   const isLineupReady = Boolean(lineupReady);
 
+  const navigateToMatchPreparation = () => {
+    const mid = (scheduleHeroMatchId ?? '').trim();
+    if (!mid) return;
+    navigate(`/app/match-preparation?matchId=${encodeURIComponent(mid)}`);
+  };
+
+  const navigateToLiveMatch = () => {
+    const mid = (scheduleHeroMatchId ?? '').trim();
+    if (!mid) return;
+    navigate(`/app/live?matchId=${encodeURIComponent(mid)}`);
+  };
+
+  const isTrainerScheduleHero =
+    scheduleNextMatchHero && effectiveEventType === 'game' && !isAudienceHeroRole && Boolean(canManage);
+
+  const handleScheduleHeroPrepareAction = () => {
+    if (isLineupReady || matchPhase === 'live') return;
+    if (onScheduleHeroPrepare) {
+      onScheduleHeroPrepare();
+      return;
+    }
+    if (isTrainerScheduleHero && (scheduleHeroMatchId ?? '').trim()) {
+      navigateToMatchPreparation();
+      return;
+    }
+    if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
+  };
+
+  const handleScheduleHeroLiveAction = () => {
+    const canOpenLive = matchPhase === 'live' || isLineupReady;
+    if (!canOpenLive) {
+      handleScheduleHeroPrepareAction();
+      return;
+    }
+    if (onScheduleHeroGoLive) onScheduleHeroGoLive();
+    else if (isTrainerScheduleHero && (scheduleHeroMatchId ?? '').trim()) navigateToLiveMatch();
+    else if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
+  };
+
+  const handleCardClick = () => {
+    if (!isPublicView && isTrainerScheduleHero && (scheduleHeroMatchId ?? '').trim()) {
+      if (matchPhase === 'live' || isLineupReady) {
+        handleScheduleHeroLiveAction();
+        return;
+      }
+      handleScheduleHeroPrepareAction();
+      return;
+    }
+    if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
+  };
+
+  const isClickable =
+    !isPublicView &&
+    (Boolean(eventId && onNavigate) ||
+      (isTrainerScheduleHero && Boolean((scheduleHeroMatchId ?? '').trim())));
+
   const heroMatchMetaTile =
     'flex h-full min-h-0 min-w-0 flex-col items-center justify-center px-0.5 py-1 text-center sm:px-1';
   const heroMatchMetaTileBorder = 'border-l border-white/[0.05]';
@@ -364,16 +420,22 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const audienceDetailsStripe =
     'pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-5 shrink-0 items-center justify-center bg-gradient-to-b from-teal-500/90 to-emerald-700/95 shadow-[0_0_16px_rgba(16,185,129,0.28)]';
 
+  const wrapHeroTileActivate = (onActivate: () => void) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onActivate();
+  };
+
   const renderScheduleHeroLivePrepareTile = (onActivate: () => void) => (
     <div
       role="button"
       tabIndex={0}
       className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer pr-5`}
       style={{ WebkitAppearance: 'none' }}
-      onClick={onActivate}
+      onClick={wrapHeroTileActivate(onActivate)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
+          e.stopPropagation();
           onActivate();
         }
       }}
@@ -398,10 +460,11 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       tabIndex={0}
       className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer pr-5`}
       style={{ WebkitAppearance: 'none' }}
-      onClick={onActivate}
+      onClick={wrapHeroTileActivate(onActivate)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
+          e.stopPropagation();
           onActivate();
         }
       }}
@@ -419,26 +482,17 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     </div>
   );
 
-  const handleScheduleHeroLiveAction = () => {
-    if (onScheduleHeroGoLive) onScheduleHeroGoLive();
-    else handleCardClick();
-  };
-
-  const handleScheduleHeroPrepareAction = () => {
-    if (onScheduleHeroPrepare) onScheduleHeroPrepare();
-    else handleCardClick();
-  };
-
   const renderScheduleHeroLiveOpenTile = (onActivate: () => void) => (
     <div
       role="button"
       tabIndex={0}
       className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer overflow-hidden pr-5`}
       style={{ WebkitAppearance: 'none' }}
-      onClick={onActivate}
+      onClick={wrapHeroTileActivate(onActivate)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
+          e.stopPropagation();
           onActivate();
         }
       }}

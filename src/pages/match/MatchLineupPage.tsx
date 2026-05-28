@@ -646,6 +646,7 @@ export const MatchLineupPage: React.FC = () => {
                         if (!p) return null;
                         const posLabel = benchPositionLabel(p);
                         const shortName = mobileLineupName(playerFamilyName(p));
+                        const fullName = premiumPlayerDisplayName(p);
                         const isSelected = selectedBankPlayerId === id;
                         return (
                           <button
