@@ -1087,11 +1087,12 @@ export const SchedulePage: React.FC = () => {
                         const evAttendance = attendanceByEventId[ev.id];
                         const yesRaw = evAttendance?.yes ?? 0;
                         const no = evAttendance?.no ?? 0;
+                        const unavailable = evAttendance?.unavailable ?? 0;
                         const open = Math.max(0, rosterSize - yesRaw - no);
                         const et = getEffectiveEventType(ev);
                         const countsForCard =
                           et === 'training'
-                            ? { yes: Math.max(0, rosterSize - no), no, open: 0 }
+                            ? { yes: Math.max(0, rosterSize - unavailable), no: unavailable, open: 0 }
                             : { yes: yesRaw, no, open };
                         const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
                         const myStatusFromDb =
@@ -1283,11 +1284,12 @@ export const SchedulePage: React.FC = () => {
                       const evAttendance = attendanceByEventId[ev.id];
                       const yesRaw = evAttendance?.yes ?? 0;
                       const no = evAttendance?.no ?? 0;
+                      const unavailable = evAttendance?.unavailable ?? 0;
                       const open = Math.max(0, rosterSize - yesRaw - no);
                       const et = getEffectiveEventType(ev);
                       const countsForCard =
                         et === 'training'
-                          ? { yes: Math.max(0, rosterSize - no), no, open: 0 }
+                          ? { yes: Math.max(0, rosterSize - unavailable), no: unavailable, open: 0 }
                           : { yes: yesRaw, no, open };
                       const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
                       const myStatusFromDb =

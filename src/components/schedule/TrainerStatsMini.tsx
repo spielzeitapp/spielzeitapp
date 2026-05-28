@@ -61,10 +61,12 @@ export function TrainerStatsMini({
           <ThumbsUp className={`${iconSize} shrink-0`} strokeWidth={2.25} aria-hidden />
           {yes}
         </span>
-        <span className={`${rowBase} border-t border-white/[0.08] text-amber-300`} title="Offen">
-          <CircleHelp className={`${iconSize} shrink-0`} strokeWidth={2.25} aria-hidden />
-          {open}
-        </span>
+        {!isTraining ? (
+          <span className={`${rowBase} border-t border-white/[0.08] text-amber-300`} title="Offen">
+            <CircleHelp className={`${iconSize} shrink-0`} strokeWidth={2.25} aria-hidden />
+            {open}
+          </span>
+        ) : null}
         <span className={`${rowBase} border-t border-white/[0.08] text-rose-300`} title="Abgesagt">
           <ThumbsDown className={`${iconSize} shrink-0`} strokeWidth={2.25} aria-hidden />
           {no}
@@ -87,12 +89,14 @@ export function TrainerStatsMini({
       >
         {no}
       </span>
-      <span
-        className={`flex items-center justify-center rounded-full border border-white/[0.12] bg-[rgba(18,18,20,0.94)] font-bold tabular-nums text-[#B8B0B4] ${pillSize}`}
-        title="Offen"
-      >
-        {open}
-      </span>
+      {!isTraining ? (
+        <span
+          className={`flex items-center justify-center rounded-full border border-white/[0.12] bg-[rgba(18,18,20,0.94)] font-bold tabular-nums text-[#B8B0B4] ${pillSize}`}
+          title="Offen"
+        >
+          {open}
+        </span>
+      ) : null}
     </div>
   );
 }

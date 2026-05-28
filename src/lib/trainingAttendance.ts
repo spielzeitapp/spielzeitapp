@@ -56,17 +56,13 @@ export function dbStatusToTrainingAttendance(
  */
 export function resolveTrainingAttendanceStatus(
   rawDbStatus: string | null | undefined,
-  eventStartsAtIso: string | null | undefined,
-  nowMs: number = Date.now(),
+  _eventStartsAtIso: string | null | undefined,
+  _nowMs: number = Date.now(),
 ): TrainingAttendanceStatus {
   const mapped = dbStatusToTrainingAttendance(rawDbStatus);
   if (mapped) return mapped;
-
-  const startsMs = eventStartsAtIso ? Date.parse(eventStartsAtIso) : Number.NaN;
-  if (Number.isFinite(startsMs) && startsMs < nowMs) {
-    return 'legacy_unknown';
-  }
-  return 'open';
+  // Fachregel Training: Ohne Ausnahme gilt ein aktiver Spieler als dabei.
+  return 'present';
 }
 
 export function trainingAttendanceToDb(status: TrainingAttendanceStatus): TrainingAttendanceDbStatus | null {

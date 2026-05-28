@@ -154,10 +154,6 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
             <span className={STAT_VALUE_CLASS}>{counts[key]}</span>
           </div>
         ))}
-        <div className={`col-span-2 ${trainingStatBoxClass('open')}`}>
-          <span className={STAT_LABEL_CLASS}>Offen</span>
-          <span className={STAT_VALUE_CLASS}>{counts.open}</span>
-        </div>
         {showLegacy ? (
           <div className={`col-span-2 ${trainingStatBoxClass('neutral')}`}>
             <span className={STAT_LABEL_CLASS}>N. erf.</span>
