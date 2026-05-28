@@ -83,7 +83,8 @@ import {
   normalizeMatchFeedTemplateKey,
   type MatchFeedTemplateKey,
 } from '../features/home/feedTemplates';
-import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
+import { combineLocationParts, formatFullLocation, splitCombinedLocation } from '../lib/eventLocation';
+import { eventNotesTitle, formatHeroDateParts } from '../components/schedule/scheduleEventViewUtils';
 import { openMapsNavigation, resolveEventMapsCoords } from '../lib/mapsNavigation';
 import {
   meetupUtcIsoOnViennaEventDay,
@@ -155,6 +156,26 @@ function parseEditableNotes(notes: string | null | undefined): { title: string; 
     .filter((p) => !/^ende:\s*/i.test(p))
     .join(' · ');
   return { title, endTime, details };
+}
+
+function normalizeInfoText(value: string | null | undefined): string {
+  return (value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function parseEventDisplayNotes(notes: string | null | undefined): {
+  detailsPrimary: string | null;
+  detailsFurther: string | null;
+} {
+  const { details } = parseEditableNotes(notes);
+  const segments = details
+    ? details
+        .split(' · ')
+        .map((p) => p.trim())
+        .filter(Boolean)
+    : [];
+  const detailsPrimary = segments[0] ?? null;
+  const detailsFurther = segments.length > 1 ? segments.slice(1).join(' · ') : null;
+  return { detailsPrimary, detailsFurther };
 }
 
 const EVENT_TYPE_CHIPS: Array<{
@@ -2831,10 +2852,25 @@ export const EventDetailPage: React.FC = () => {
         minute: '2-digit',
       }).format(new Date(event.meeting_at))
     : null;
-  const eventDetailsText = extractAudienceTrainerNotes(event.notes);
-  const eventDetailInfoLong = (eventDetailsText ?? '').trim();
-  const showFurtherEventInfo = isEventOrOther && eventDetailInfoLong.length >= 80;
-  const eventCompactTitle = (event.opponent ?? '').trim() || getDomainEventLabel(event);
+  const { detailsPrimary: eventDetailsPrimary, detailsFurther: eventDetailsFurther } = parseEventDisplayNotes(event.notes);
+  const eventFurtherInfoText = (eventDetailsFurther ?? '').trim();
+  const showFurtherEventInfo =
+    isEventOrOther &&
+    eventFurtherInfoText.length > 0 &&
+    normalizeInfoText(eventFurtherInfoText) !== normalizeInfoText(eventDetailsPrimary);
+  const eventCompactTitle = (
+    eventNotesTitle(event.notes) ?? ((event.opponent ?? '').trim() || getDomainEventLabel(event))
+  ).trim();
+  const eventCompactTitleLen = eventCompactTitle.length;
+  const eventCompactTitleSizeClass =
+    eventCompactTitleLen > 42
+      ? 'text-[15px]'
+      : eventCompactTitleLen > 30
+        ? 'text-[16px]'
+        : 'text-[17px]';
+  const eventHeroDate = formatHeroDateParts(event.starts_at);
+  const eventHeroYear = event.starts_at ? new Date(event.starts_at).getFullYear().toString() : '';
+  const eventFullLocation = formatFullLocation(audienceLocation.place, audienceLocation.address);
   const eventTypeRaw = `${eventCompactTitle} ${(event.type ?? '')}`.toLowerCase();
   const EventDetailIcon =
     eventTypeRaw.includes('film') || eventTypeRaw.includes('kino')
@@ -2927,30 +2963,27 @@ export const EventDetailPage: React.FC = () => {
         </div>
 
         {isEventOrOther ? (
-          <div className="-mx-1 mb-1 grid w-[calc(100%+0.5rem)] min-w-0 grid-cols-[78px_46px_minmax(0,1fr)_66px] items-center gap-x-0 overflow-hidden rounded-[14px] border border-white/[0.08] bg-[linear-gradient(168deg,#141416_0%,#0A0A0C_58%,#12080C_100%)] px-2.5 py-2 shadow-[0_8px_28px_rgba(0,0,0,0.48),0_0_20px_rgba(122,29,42,0.06)] sm:mx-0 sm:w-full">
-            <div className="flex w-[78px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-lg border border-white/10 bg-black/25 px-1.5 py-1.5 leading-none">
-              <span className="text-[12px] font-semibold uppercase leading-none tracking-widest text-red-400">{formatEventDateTimeLabel(event.starts_at).split(',')[0]?.slice(0, 2) ?? 'SA'}</span>
-              <span className="text-[30px] font-bold tabular-nums leading-none text-white">
-                {new Intl.DateTimeFormat('de-AT', { day: '2-digit', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at))}
-              </span>
-              <span className="text-[12px] leading-tight text-white/60">
-                {new Intl.DateTimeFormat('de-AT', { month: 'short', year: '2-digit', timeZone: 'Europe/Vienna' }).format(new Date(event.starts_at))}
-              </span>
+          <div className="-mx-1 mb-1 flex w-[calc(100%+0.5rem)] min-w-0 items-center overflow-hidden rounded-[14px] border border-white/[0.08] bg-[linear-gradient(168deg,#141416_0%,#0A0A0C_58%,#12080C_100%)] px-3 py-2.5 shadow-[0_8px_28px_rgba(0,0,0,0.48),0_0_20px_rgba(122,29,42,0.06)] sm:mx-0 sm:w-full">
+            <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
+              <span className="text-[13px] font-semibold uppercase leading-none tracking-[0.12em] text-[#B85C68]">{eventHeroDate.wd}</span>
+              <span className="text-[34px] font-bold tabular-nums leading-none text-white">{eventHeroDate.day}</span>
+              <span className="text-[13px] font-medium leading-tight text-white/70">{eventHeroDate.mon}</span>
+              {eventHeroYear ? <span className="text-[12px] font-medium leading-tight text-white/45">{eventHeroYear}</span> : null}
             </div>
-            <div className="relative z-[1] flex w-[46px] shrink-0 items-center justify-center self-center">
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-[rgba(255,95,122,0.24)] bg-[radial-gradient(ellipse_70%_65%_at_30%_10%,rgba(255,120,160,0.22)_0%,rgba(68,18,30,0.42)_55%,rgba(14,14,18,0.92)_100%)] shadow-[0_0_18px_rgba(255,84,124,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]">
-                <EventDetailIcon className="h-5 w-5 text-[#FF9CB1]" strokeWidth={2.1} aria-hidden />
-              </div>
+            <div className="relative mx-1.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[rgba(255,95,122,0.24)] bg-[radial-gradient(ellipse_70%_65%_at_30%_10%,rgba(255,120,160,0.22)_0%,rgba(68,18,30,0.42)_55%,rgba(14,14,18,0.92)_100%)] shadow-[0_0_18px_rgba(255,84,124,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <EventDetailIcon className="h-5 w-5 text-[#FF9CB1]" strokeWidth={2.1} aria-hidden />
             </div>
-            <div className="ml-3 min-w-0 overflow-hidden">
-              <p className="line-clamp-2 min-w-0 text-[17px] font-semibold leading-tight text-white">{eventCompactTitle}</p>
-              <p className="mt-0.5 line-clamp-1 text-[14px] leading-tight text-white/72">
-                {audienceLocation.place || audienceLocation.address || '—'}
+            <div className="min-w-0 flex-1 overflow-hidden text-left">
+              <p
+                className={`line-clamp-2 min-w-0 font-bold leading-[1.12] text-white break-words ${eventCompactTitleSizeClass}`}
+                title={eventCompactTitle}
+              >
+                {eventCompactTitle}
               </p>
             </div>
-            <div className="flex w-[66px] shrink-0 flex-col items-end justify-center self-center pr-1">
+            <div className="flex w-[52px] shrink-0 flex-col items-end justify-center self-center pr-0.5 text-right">
               <span className="text-[18px] font-bold tabular-nums leading-none text-white">{eventStartTimeLabel}</span>
-              <span className="mt-0.5 text-[11px] font-medium text-white/65">Uhr</span>
+              <span className="mt-0.5 text-[10px] font-medium text-white/65">Uhr</span>
             </div>
           </div>
         ) : (
@@ -2991,9 +3024,7 @@ export const EventDetailPage: React.FC = () => {
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/55">Ort</p>
-                  <p className="text-[14px] font-medium leading-snug text-white/88">
-                    {audienceLocation.place || audienceLocation.address || '—'}
-                  </p>
+                  <p className="text-[14px] font-medium leading-snug text-white/88">{eventFullLocation || '—'}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5">
@@ -3001,6 +3032,15 @@ export const EventDetailPage: React.FC = () => {
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/55">Beginn</p>
                   <p className="text-[14px] font-medium leading-snug text-white/88">{eventStartTimeLabel} Uhr</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5">
+                <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/55">Details</p>
+                  <p className="break-words text-[14px] font-medium leading-snug text-white/88">
+                    {eventDetailsPrimary?.trim() || '—'}
+                  </p>
                 </div>
               </div>
               {eventMeetupLabel ? (
@@ -3019,7 +3059,7 @@ export const EventDetailPage: React.FC = () => {
         {showFurtherEventInfo ? (
           <Card className="flex flex-col gap-2 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
             <CardTitle>Weitere Infos</CardTitle>
-            <p className="text-[14px] leading-snug text-white/80">{eventDetailInfoLong}</p>
+            <p className="break-words text-[14px] leading-snug text-white/80">{eventFurtherInfoText}</p>
           </Card>
         ) : null}
 

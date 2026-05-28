@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bus, CalendarDays, ChevronRight, Clapperboard, ClipboardList, Clock, PartyPopper, Pizza, Users } from 'lucide-react';
+import { Bus, CalendarDays, ChevronRight, Clapperboard, ClipboardList, Clock, MapPin, PartyPopper, Pizza, Users } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatFullLocation, formatLocationTwoLines, splitCombinedLocation } from '../../lib/eventLocation';
@@ -365,7 +365,13 @@ export function ScheduleHeroEventCard({
     locLine1 || locLine2 ? [locLine1, locLine2].filter(Boolean).join(' · ') : locSingle || '—';
 
   const eventTitle = (eventNotesTitle(ev.notes) ?? scheduleEventTypeLabel(ev, et) ?? 'Termin').trim();
-  const eventLocationLine = locLine1 || locLine2 ? [locLine1, locLine2].filter(Boolean).join(' · ') : locSingle || '—';
+  const eventTitleLen = eventTitle.length;
+  const eventTitleSizeClass =
+    eventTitleLen > 42
+      ? 'text-[15px] min-[375px]:text-[16px]'
+      : eventTitleLen > 30
+        ? 'text-[16px] min-[375px]:text-[17px]'
+        : 'text-[18px] min-[375px]:text-[19px]';
   const eventTileOrtLine1 = locLine1 || (locSingle ? locSingle.split(' ')[0] : '—');
   const eventTileOrtLine2 = locLine2 || (locSingle?.split(' ').slice(1).join(' ') ?? '');
   const EventTypeIcon = eventTypePremiumIcon(ev);
@@ -449,8 +455,12 @@ export function ScheduleHeroEventCard({
           </div>
 
           <div className="min-w-0 flex-1 overflow-hidden text-left">
-            <p className="line-clamp-2 text-[18px] font-bold uppercase leading-[1.08] tracking-[0.01em] text-white min-[375px]:text-[19px]">{eventTitle}</p>
-            <p className="mt-1 line-clamp-2 text-[14px] leading-[1.2] text-white/[0.72]">{eventLocationLine}</p>
+            <p
+              className={`line-clamp-2 font-bold leading-[1.12] tracking-[0.01em] text-white break-words ${eventTitleSizeClass}`}
+              title={eventTitle}
+            >
+              {eventTitle}
+            </p>
           </div>
 
           {topRight ? (
@@ -466,21 +476,14 @@ export function ScheduleHeroEventCard({
           <div className="grid grid-cols-[1fr_1fr_1fr_42px] items-center">
             <div className="flex min-h-[56px] min-w-0 flex-col items-center justify-center px-0.5 py-1.5 text-center sm:px-1">
               <span className="flex h-[18px] shrink-0 items-center text-[#B85C68] [&_svg]:h-[18px] [&_svg]:w-[18px]">
-                {showMeetup && meetupTimeOnly ? <Users strokeWidth={2} aria-hidden /> : <CalendarDays strokeWidth={2} aria-hidden />}
+                <MapPin strokeWidth={2} aria-hidden />
               </span>
-              <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none">{showMeetup && meetupTimeOnly ? 'Treffpunkt' : 'Ort'}</span>
-              <div className="mt-0.5 flex w-full flex-col items-center leading-none">
-                {showMeetup && meetupTimeOnly ? (
-                  <>
-                    <span className="max-w-full truncate whitespace-nowrap text-[16px] font-bold tabular-nums text-white">{scheduleMetaTimeDisplay(meetupTimeOnly).replace(/\s*Uhr$/i, '')}</span>
-                    <span className="mt-0.5 text-[10px] font-medium text-white/65">Uhr</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="max-w-full truncate whitespace-nowrap text-[12px] font-semibold text-white">{eventTileOrtLine1 || '—'}</span>
-                    {eventTileOrtLine2 ? <span className="mt-0.5 max-w-full truncate whitespace-nowrap text-[10px] font-medium text-white/65">{eventTileOrtLine2}</span> : null}
-                  </>
-                )}
+              <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none">Ort</span>
+              <div className="mt-0.5 flex w-full flex-col items-center leading-snug">
+                <span className="max-w-full break-words text-center text-[12px] font-semibold leading-tight text-white">{eventTileOrtLine1 || '—'}</span>
+                {eventTileOrtLine2 ? (
+                  <span className="mt-0.5 max-w-full break-words text-center text-[10px] font-medium leading-tight text-white/65">{eventTileOrtLine2}</span>
+                ) : null}
               </div>
             </div>
             <div className="flex min-h-[56px] min-w-0 flex-col items-center justify-center border-l border-white/[0.05] px-0.5 py-1.5 text-center sm:px-1">
@@ -489,7 +492,7 @@ export function ScheduleHeroEventCard({
               </span>
               <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none">Beginn</span>
               <div className="mt-0.5 flex w-full flex-col items-center leading-none">
-                <span className="max-w-full truncate whitespace-nowrap text-[16px] font-bold tabular-nums text-white">{scheduleMetaTimeDisplay(timeStr).replace(/\s*Uhr$/i, '')}</span>
+                <span className="max-w-full text-[16px] font-bold tabular-nums text-white">{scheduleMetaTimeDisplay(timeStr).replace(/\s*Uhr$/i, '')}</span>
                 <span className="mt-0.5 text-[10px] font-medium text-white/65">Uhr</span>
               </div>
             </div>
