@@ -340,40 +340,40 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const isTrainerScheduleHero =
     scheduleNextMatchHero && effectiveEventType === 'game' && !isAudienceHeroRole && Boolean(canManage);
 
-  const handleScheduleHeroPrepareAction = () => {
-    if (isLineupReady || matchPhase === 'live') return;
+  /** Trainer-Hero: ein Klickziel für Karte + Kacheln (Vorbereitung / Live). */
+  const handleTrainerScheduleHeroClick = () => {
+    if (!isTrainerScheduleHero) return;
+    if (matchPhase === 'live' || isLineupReady) {
+      if (onScheduleHeroGoLive) onScheduleHeroGoLive();
+      else if ((scheduleHeroMatchId ?? '').trim()) navigateToLiveMatch();
+      return;
+    }
     if (onScheduleHeroPrepare) {
       onScheduleHeroPrepare();
       return;
     }
-    if (isTrainerScheduleHero && (scheduleHeroMatchId ?? '').trim()) {
-      navigateToMatchPreparation();
+    if (!isPublicView && eventId && onNavigate) {
+      onNavigate(eventId);
+      return;
+    }
+    if ((scheduleHeroMatchId ?? '').trim()) navigateToMatchPreparation();
+  };
+
+  const handleCardClick = () => {
+    if (!isPublicView && isTrainerScheduleHero) {
+      handleTrainerScheduleHeroClick();
       return;
     }
     if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
   };
 
   const handleScheduleHeroLiveAction = () => {
-    const canOpenLive = matchPhase === 'live' || isLineupReady;
-    if (!canOpenLive) {
-      handleScheduleHeroPrepareAction();
+    if (isTrainerScheduleHero) {
+      handleTrainerScheduleHeroClick();
       return;
     }
     if (onScheduleHeroGoLive) onScheduleHeroGoLive();
-    else if (isTrainerScheduleHero && (scheduleHeroMatchId ?? '').trim()) navigateToLiveMatch();
-    else if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
-  };
-
-  const handleCardClick = () => {
-    if (!isPublicView && isTrainerScheduleHero && (scheduleHeroMatchId ?? '').trim()) {
-      if (matchPhase === 'live' || isLineupReady) {
-        handleScheduleHeroLiveAction();
-        return;
-      }
-      handleScheduleHeroPrepareAction();
-      return;
-    }
-    if (!isPublicView && eventId && onNavigate) onNavigate(eventId);
+    else handleCardClick();
   };
 
   const isClickable =
@@ -914,7 +914,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               <button
                 type="button"
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-emerald-400/20 bg-emerald-600/20 px-4 shadow-[0_0_20px_rgba(16,185,129,0.12)]"
-                onClick={(e) => { e.stopPropagation(); onScheduleHeroGoLive ? onScheduleHeroGoLive() : handleCardClick(); }}
+                onClick={(e) => { e.stopPropagation(); handleTrainerScheduleHeroClick(); }}
               >
                 <Radio className="h-4 w-4 text-emerald-400" strokeWidth={2} aria-hidden />
                 <span className="text-[13px] font-semibold text-emerald-400">Livespiel öffnen</span>
@@ -1180,8 +1180,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                   )}
 
                   {matchPhase === 'live' ? (
-                    onScheduleHeroGoLive
-                      ? renderScheduleHeroLiveOpenTile(handleScheduleHeroLiveAction)
+                    onScheduleHeroGoLive || isClickable
+                      ? renderScheduleHeroLiveOpenTile(handleTrainerScheduleHeroClick)
                       : (
                     <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} pointer-events-none opacity-50`}>
                       <span className={`${heroMatchMetaIcon} text-red-400/50`}>
@@ -1194,9 +1194,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                     </div>
                       )
                   ) : isLineupReady ? (
-                    renderScheduleHeroLiveReadyTile(handleScheduleHeroLiveAction)
-                  ) : onScheduleHeroPrepare || isClickable ? (
-                    renderScheduleHeroLivePrepareTile(handleScheduleHeroPrepareAction)
+                    renderScheduleHeroLiveReadyTile(handleTrainerScheduleHeroClick)
+                  ) : isClickable ? (
+                    renderScheduleHeroLivePrepareTile(handleTrainerScheduleHeroClick)
                   ) : (
                     <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
                       <span className={`${heroMatchMetaIcon} text-red-400/50`}>

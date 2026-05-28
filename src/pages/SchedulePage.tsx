@@ -1158,33 +1158,9 @@ export const SchedulePage: React.FC = () => {
                                   navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`);
                                   return;
                                 }
-                                if (
-                                  heroShowsTrainerStats &&
-                                  ev.match_id &&
-                                  !heroIsLive &&
-                                  !heroLineupReady
-                                ) {
-                                  navigate(
-                                    `/app/match-preparation?matchId=${encodeURIComponent(ev.match_id)}`,
-                                  );
-                                  return;
-                                }
                                 navigate(`/app/events/${id}`);
                               };
                         const heroCardFooter = undefined;
-                        const heroPrepare =
-                          et === 'game' &&
-                          ev.match_id &&
-                          !forcePublicView &&
-                          Boolean(heroShowsTrainerStats) &&
-                          !heroIsLive &&
-                          ev.status !== 'finished' &&
-                          !heroLineupReady
-                            ? () =>
-                                navigate(
-                                  `/app/match-preparation?matchId=${encodeURIComponent(ev.match_id!)}`,
-                                )
-                            : undefined;
                         const heroGoLive =
                           et === 'game' &&
                           ev.match_id &&
@@ -1247,7 +1223,6 @@ export const SchedulePage: React.FC = () => {
                                     heroShowsParentPill ? () => setAttendanceModalEvent(ev) : undefined
                                   }
                                   isPublicView={forcePublicView}
-                                  onScheduleHeroPrepare={heroPrepare}
                                   onScheduleHeroGoLive={heroGoLive}
                                   lineupReady={Boolean(heroShowsTrainerStats && heroLineupReady)}
                                   scheduleHeroMatchId={ev.match_id ?? null}
