@@ -2,15 +2,15 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from "../auth/useSession";
 import { Card, CardTitle } from "../app/components/ui/Card";
 import { Tabs, TabOption } from "../app/components/ui/Tabs";
-import { Button } from "../app/components/ui/Button";
 import { AppButton } from "../components/ui/AppButton";
-import { Camera, Trash2 } from "lucide-react";
+import { Camera } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster, ROLE_LABELS_DE } from "../lib/roles";
 import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
+import { PlayerSquadFormModal } from "../components/team/PlayerSquadFormModal";
 import { PlayerCard } from "../components/team/PlayerCard";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
@@ -157,6 +157,7 @@ export const TeamPage: React.FC = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarObjectUrl, setAvatarObjectUrl] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [saveToastVisible, setSaveToastVisible] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedProfilePlayer, setSelectedProfilePlayer] = useState<PlayerItem | null>(null);
   const [staffRows, setStaffRows] = useState<StaffMembershipRow[]>([]);
@@ -165,7 +166,6 @@ export const TeamPage: React.FC = () => {
   const [teamPhotoUploading, setTeamPhotoUploading] = useState(false);
   const [teamPhotoError, setTeamPhotoError] = useState<string | null>(null);
   const [trainingCount, setTrainingCount] = useState(0);
-  const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const teamPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const heroTeamName = useMemo(() => {
@@ -353,7 +353,6 @@ export const TeamPage: React.FC = () => {
     if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
     setAvatarObjectUrl(null);
     setAvatarFile(null);
-    if (avatarInputRef.current) avatarInputRef.current.value = "";
   };
 
   const closeForm = () => {
@@ -422,6 +421,27 @@ export const TeamPage: React.FC = () => {
       if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
     };
   }, [avatarObjectUrl]);
+
+  useEffect(() => {
+    if (!saveToastVisible) return;
+    const t = window.setTimeout(() => setSaveToastVisible(false), 2400);
+    return () => window.clearTimeout(t);
+  }, [saveToastVisible]);
+
+  const showSavedToast = () => setSaveToastVisible(true);
+
+  const handleAvatarFilePick = (file: File) => {
+    setFormError(null);
+    clearAvatarLocalPreview();
+    setAvatarFile(file);
+    setAvatarObjectUrl(URL.createObjectURL(file));
+  };
+
+  const handlePauseFromModal = () => {
+    if (!editingId || !editingPlayer) return;
+    const nextStatus = (editingPlayer.status ?? "active") === "paused" ? "active" : "paused";
+    void handleSetPlayerStatus(editingId, nextStatus);
+  };
 
   const parsedJerseyNumber = parseJersey(form.jersey_number);
   const isJerseyTaken = (jersey: number | null): boolean => {
@@ -499,6 +519,7 @@ export const TeamPage: React.FC = () => {
       }
       setSaving(false);
       await refetchPlayers();
+      showSavedToast();
       closeForm();
       return;
     } else {
@@ -609,6 +630,7 @@ export const TeamPage: React.FC = () => {
       if (nextAvatarUrl) setAvatarPreviewUrl(nextAvatarUrl);
       setSaving(false);
       await refetchPlayers();
+      showSavedToast();
       closeForm();
     }
   };
@@ -625,7 +647,10 @@ export const TeamPage: React.FC = () => {
       setFormError(error.message);
       return;
     }
-    if (editingId === playerId) closeForm();
+    if (editingId === playerId) {
+      showSavedToast();
+      closeForm();
+    }
     await refetchPlayers();
   };
 
@@ -676,6 +701,39 @@ export const TeamPage: React.FC = () => {
         onEdit={handleEditFromProfile}
         onPlayerUpdated={() => void refetchPlayers()}
       />
+    ) : null}
+    {canManagePlayers && teamSeasonId != null ? (
+      <PlayerSquadFormModal
+        isOpen={showForm}
+        mode={mode}
+        form={form}
+        editingPlayer={editingPlayer}
+        saving={saving}
+        avatarUploading={avatarUploading}
+        avatarPreviewUrl={avatarPreviewUrl}
+        avatarObjectUrl={avatarObjectUrl}
+        formError={formError}
+        jerseyErrorMsg={jerseyErrorMsg}
+        canManage={canManagePlayers}
+        onClose={closeForm}
+        onSubmit={handleFormSubmit}
+        onFormChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+        onAvatarFile={handleAvatarFilePick}
+        onAvatarValidationError={setFormError}
+        onPausePlayer={mode === "edit" ? handlePauseFromModal : undefined}
+        pauseBusy={deletingId !== null}
+      />
+    ) : null}
+    {saveToastVisible ? (
+      <div
+        className="pointer-events-none fixed left-1/2 top-[max(1rem,env(safe-area-inset-top,0px))] z-[1001] -translate-x-1/2"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="rounded-full border border-white/12 bg-[rgba(8,8,12,0.94)] px-4 py-2 text-[13px] font-medium text-white/92 shadow-[0_10px_36px_rgba(0,0,0,0.55)] backdrop-blur-md">
+          Gespeichert
+        </div>
+      </div>
     ) : null}
     <div className="w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-36 sm:px-4 md:px-0">
       <div className="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl">
@@ -774,8 +832,8 @@ export const TeamPage: React.FC = () => {
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="mt-0">Kader</CardTitle>
           {teamSeasonId != null && canManagePlayers && !plLoading ? (
-            <AppButton type="button" variant="secondary" size="md" onClick={() => (showForm ? closeForm() : openCreateForm())}>
-              {showForm ? "Schließen" : "+ Spieler hinzufügen"}
+            <AppButton type="button" variant="secondary" size="md" onClick={() => openCreateForm()}>
+              + Spieler hinzufügen
             </AppButton>
           ) : null}
         </div>
@@ -790,170 +848,6 @@ export const TeamPage: React.FC = () => {
             <p className="text-sm text-red-600" role="alert">
               {plError}
             </p>
-          )}
-          {formError && (
-            <p className="mb-2 text-sm text-red-600" role="alert">
-              {formError}
-            </p>
-          )}
-          {teamSeasonId != null && showForm && (
-            <form onSubmit={handleFormSubmit} className="mb-3 space-y-2 rounded border border-[var(--border)] bg-[var(--bg)]/50 p-3">
-              <div className="mb-1 flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-2.5">
-                <div className="h-24 w-24 shrink-0">
-                  {avatarObjectUrl || avatarPreviewUrl ? (
-                    <img
-                      src={avatarObjectUrl || avatarPreviewUrl || ""}
-                      alt="Avatar Vorschau"
-                      className="h-24 w-24 rounded-full border border-white/30 object-cover shadow-[0_0_16px_rgba(239,68,68,0.25)]"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.display = "none";
-                        const next = e.currentTarget.nextElementSibling as HTMLElement | null;
-                        if (next) next.style.display = "flex";
-                      }}
-                    />
-                  ) : null}
-                  <div
-                    className="flex h-24 w-24 items-center justify-center rounded-full border border-white/20 bg-zinc-800 text-xl font-black text-white/90 shadow-[0_0_16px_rgba(239,68,68,0.18)]"
-                    style={{ display: avatarObjectUrl || avatarPreviewUrl ? "none" : "flex" }}
-                  >
-                    {(form.first_name || form.last_name)
-                      ? `${(form.first_name || " ").trim().charAt(0)}${(form.last_name || " ").trim().charAt(0)}`.toUpperCase()
-                      : "SP"}
-                  </div>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-white">Spielerfoto</p>
-                  <p className="text-[12px] text-white/70">JPG, PNG oder WebP, max. 3 MB</p>
-                </div>
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const allowed = ["image/jpeg", "image/png", "image/webp"];
-                    if (!allowed.includes(file.type)) {
-                      setFormError("Bitte nur JPG, PNG oder WebP hochladen.");
-                      return;
-                    }
-                    if (file.size > 3 * 1024 * 1024) {
-                      setFormError("Datei ist zu groß (max. 3 MB).");
-                      return;
-                    }
-                    setFormError(null);
-                    clearAvatarLocalPreview();
-                    setAvatarFile(file);
-                    setAvatarObjectUrl(URL.createObjectURL(file));
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  disabled={mode !== "edit" || avatarUploading || saving || !editingId}
-                  onClick={() => avatarInputRef.current?.click()}
-                >
-                  {avatarUploading ? "Upload…" : "Foto hochladen"}
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
-                <label className="flex flex-col gap-0.5">
-                  <span className="text-xs text-[var(--muted)]">Vorname *</span>
-                  <input
-                    type="text"
-                    value={form.first_name}
-                    onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
-                    placeholder="Vorname"
-                    required
-                    className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                    disabled={saving || !canManagePlayers}
-                  />
-                </label>
-                <label className="flex flex-col gap-0.5">
-                  <span className="text-xs text-[var(--muted)]">Nachname *</span>
-                  <input
-                    type="text"
-                    value={form.last_name}
-                    onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
-                    placeholder="Nachname"
-                    required
-                    className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                    disabled={saving || !canManagePlayers}
-                  />
-                </label>
-                <label className="flex flex-col gap-0.5">
-                  <span className="text-xs text-[var(--muted)]">Nummer</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={form.jersey_number}
-                    onChange={(e) => setForm((f) => ({ ...f, jersey_number: e.target.value }))}
-                    placeholder="—"
-                    className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                    disabled={saving || !canManagePlayers}
-                  />
-                  {jerseyErrorMsg && (
-                    <span className="text-sm text-red-600" role="alert">
-                      {jerseyErrorMsg}
-                    </span>
-                  )}
-                </label>
-                <label className="flex flex-col gap-0.5">
-                  <span className="text-xs text-[var(--muted)]">Position</span>
-                  <input
-                    type="text"
-                    value={form.position}
-                    onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
-                    placeholder="z. B. ST"
-                    className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                    disabled={saving || !canManagePlayers}
-                  />
-                </label>
-                <label className="flex flex-col gap-0.5 sm:min-w-[11rem]">
-                  <span className="text-xs text-[var(--muted)]">Geburtsdatum</span>
-                  <input
-                    type="date"
-                    value={form.birthdate || ""}
-                    onChange={(e) => setForm({ ...form, birthdate: e.target.value })}
-                    className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-                    disabled={saving || !canManagePlayers}
-                  />
-                </label>
-                <span className="flex gap-2">
-                  {canManagePlayers && (
-                    <Button
-                      type="submit"
-                      className="bg-red-600 text-white hover:bg-red-500"
-                      disabled={saving || avatarUploading || !form.first_name.trim() || jerseyTaken}
-                    >
-                      {saving ? "Speichern…" : "Speichern"}
-                    </Button>
-                  )}
-                  <Button type="button" variant="ghost" onClick={closeForm} disabled={saving}>
-                    Abbrechen
-                  </Button>
-                </span>
-              </div>
-
-              {canManagePlayers && mode === "edit" && editingId && (
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="xs"
-                    onClick={() => handleSetPlayerStatus(editingId, "paused")}
-                    disabled={deletingId !== null || saving}
-                    className="text-red-400 hover:bg-red-950/40 hover:text-red-300"
-                    aria-label="Spieler pausieren"
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden />
-                  </Button>
-                </div>
-              )}
-            </form>
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length === 0 && !showForm && (
             <p className="text-sm text-[var(--muted)]">
