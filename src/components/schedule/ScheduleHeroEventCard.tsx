@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, Users } from 'lucide-react';
+import { Bus, CalendarDays, ChevronRight, Clapperboard, ClipboardList, Clock, PartyPopper, Pizza, Users } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatFullLocation, formatLocationTwoLines, splitCombinedLocation } from '../../lib/eventLocation';
@@ -25,7 +25,6 @@ import {
   dsScheduleHeroDateBoxMonthClass,
   dsScheduleHeroDateBoxWeekdayClass,
 } from '../../lib/premiumDesignSystem';
-import { EventMotifIcon } from './scheduleFootballMotifIcons';
 import { TrainingPlayerIcon } from './TrainingPlayerIcon';
 import { ScheduleHeroMetaToolbar } from './ScheduleHeroMetaToolbar';
 
@@ -165,6 +164,17 @@ function HeroMeetupCTA({ timeLabel }: { timeLabel: string }) {
       <span>Treffpunkt: {timeLabel}</span>
     </div>
   );
+}
+
+function eventTypePremiumIcon(ev: EventRow) {
+  const raw = `${eventNotesTitle(ev.notes) ?? ''} ${scheduleEventTypeLabel(ev, 'event') ?? ''}`.toLowerCase();
+  if (raw.includes('film') || raw.includes('kino')) return Clapperboard;
+  if (raw.includes('eltern')) return Users;
+  if (raw.includes('abschluss') || raw.includes('fest') || raw.includes('feier')) return PartyPopper;
+  if (raw.includes('essen') || raw.includes('pizza')) return Pizza;
+  if (raw.includes('ausflug') || raw.includes('bus') || raw.includes('fahrt')) return Bus;
+  if (raw.includes('besprech') || raw.includes('meeting')) return ClipboardList;
+  return CalendarDays;
 }
 
 export function ScheduleHeroEventCard({
@@ -354,6 +364,11 @@ export function ScheduleHeroEventCard({
   const trainingLocationLine =
     locLine1 || locLine2 ? [locLine1, locLine2].filter(Boolean).join(' · ') : locSingle || '—';
 
+  const eventTitle = (eventNotesTitle(ev.notes) ?? scheduleEventTypeLabel(ev, et) ?? 'Termin').trim();
+  const eventLocationLine = locLine1 || locLine2 ? [locLine1, locLine2].filter(Boolean).join(' · ') : locSingle || '—';
+  const eventDetailValue = showMeetup && meetupTimeOnly ? scheduleMetaTimeDisplay(meetupTimeOnly) : 'Infos';
+  const EventTypeIcon = eventTypePremiumIcon(ev);
+
   const trainingMetaItems = [
     {
       icon: <Users strokeWidth={2} aria-hidden />,
@@ -418,44 +433,82 @@ export function ScheduleHeroEventCard({
 
   const eventBody = (
     <>
-      <HeroHybridBackdrop />
-      {dateBlock}
-      {statusCluster}
-      <div className="relative z-[1] flex w-full min-w-0 flex-col items-center px-2 pb-3 pt-3 sm:pb-3 sm:pt-3">
-        <p className="mb-2 line-clamp-2 max-w-[min(100%,21rem)] text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-white/85 sm:text-xs">
-          {scheduleEventTypeLabel(ev, et)}
-        </p>
-
-        <div className="grid w-full min-w-0 max-w-[min(100%,23.5rem)] grid-cols-[1fr_auto_1fr] items-stretch gap-x-1 sm:gap-x-2">
-          <div className="min-h-[6.5rem] border-r border-white/[0.12]" aria-hidden />
-          <div className="flex min-w-[7.25rem] max-w-[10rem] shrink-0 flex-col items-center px-2 pb-1 pt-0 sm:min-w-[7.75rem]">
-            <div className="relative flex h-[4rem] w-[4rem] shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-white/14 to-black/45 shadow-[0_0_22px_rgba(255,255,255,0.05)] ring-2 ring-white/18 sm:h-[4.35rem] sm:w-[4.35rem]">
-              <EventMotifIcon className="h-[2.35rem] w-[2.35rem] text-red-100 sm:h-[2.55rem] sm:w-[2.55rem]" />
-            </div>
-            <span className="mt-2 text-[9px] font-bold uppercase tracking-[0.22em] text-red-400 sm:text-[10px]">Beginn</span>
-            <span className="mt-1 text-center text-[2.35rem] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.52)] min-[375px]:text-[2.55rem] sm:text-[2.65rem]">
-              {timeStr}
-            </span>
-            <span className="mt-1 text-[10px] font-medium text-white/42">Uhr</span>
+      <HeroHybridBackdrop training />
+      <div className="relative z-[1] flex w-full min-w-0 flex-col px-3 py-2.5 pb-2.5">
+        <div className="flex w-full min-w-0 items-center">
+          <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
+            <span className="text-[13px] font-semibold uppercase leading-none tracking-[0.12em] text-[#B85C68]">{wd}</span>
+            <span className="text-[34px] font-bold tabular-nums leading-none text-white">{day}</span>
+            <span className="text-[13px] font-medium leading-tight text-white/70">{mon}</span>
+            {heroYear ? <span className="text-[12px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
           </div>
-          <div className="min-h-[6.5rem] border-l border-white/[0.12]" aria-hidden />
+
+          <div className="relative mx-1.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[rgba(255,95,122,0.24)] bg-[radial-gradient(ellipse_70%_65%_at_30%_10%,rgba(255,120,160,0.22)_0%,rgba(68,18,30,0.42)_55%,rgba(14,14,18,0.92)_100%)] shadow-[0_0_18px_rgba(255,84,124,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <EventTypeIcon className="h-5 w-5 text-[#FF9CB1]" strokeWidth={2.1} aria-hidden />
+          </div>
+
+          <div className="min-w-0 flex-1 overflow-hidden text-left">
+            <p className="line-clamp-1 text-[20px] font-bold uppercase leading-[1.05] tracking-[0.01em] text-white min-[375px]:text-[21px]">{eventTitle}</p>
+            <p className="mt-1 line-clamp-1 text-[15px] leading-[1.15] text-white/[0.78]">{eventLocationLine}</p>
+            <p className="mt-0.5 text-[14px] font-semibold tabular-nums leading-tight text-white/88">{scheduleMetaTimeDisplay(timeStr)}</p>
+          </div>
+
+          {topRight ? (
+            <div className="pointer-events-auto flex w-[44px] shrink-0 flex-col items-center justify-center gap-2 self-center">
+              {topRight}
+            </div>
+          ) : (
+            <div className="w-[44px] shrink-0" aria-hidden />
+          )}
         </div>
 
-        <div className="mt-2 flex w-full min-w-0 flex-col items-center px-1">
-          {locLine1 || locLine2 ? (
-            <div className="max-w-[min(100%,21rem)] space-y-0.5 text-center">
-              {locLine1 ? (
-                <p className="text-[12px] font-semibold leading-snug text-white/82">{locLine1}</p>
-              ) : null}
-              {locLine2 ? (
-                <p className="text-[10px] font-normal leading-snug text-white/42">{locLine2}</p>
-              ) : null}
+        <div className="mt-2.5 border-t border-white/[0.04] bg-[rgba(0,0,0,0.22)]" onClick={(e) => e.stopPropagation()}>
+          <div className="grid grid-cols-[1fr_1fr_1fr_42px] items-center">
+            <div className="flex min-h-[56px] min-w-0 flex-col items-center justify-center px-0.5 py-1.5 text-center sm:px-1">
+              <span className="flex h-[18px] shrink-0 items-center text-[#B85C68] [&_svg]:h-[18px] [&_svg]:w-[18px]">
+                {showMeetup && meetupTimeOnly ? <Users strokeWidth={2} aria-hidden /> : <CalendarDays strokeWidth={2} aria-hidden />}
+              </span>
+              <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none">{showMeetup && meetupTimeOnly ? 'Treffpunkt' : 'Ort'}</span>
+              <div className="mt-0.5 flex w-full flex-col items-center leading-none">
+                <span className="max-w-full truncate whitespace-nowrap text-[16px] font-bold tabular-nums text-white">{showMeetup && meetupTimeOnly ? scheduleMetaTimeDisplay(meetupTimeOnly).replace(/\s*Uhr$/i, '') : 'Ort'}</span>
+                {showMeetup && meetupTimeOnly ? <span className="mt-0.5 text-[10px] font-medium text-white/65">Uhr</span> : null}
+              </div>
             </div>
-          ) : locSingle ? (
-            <p className="max-w-[min(100%,21rem)] text-center text-[11px] font-medium leading-snug text-white/68">{locSingle}</p>
-          ) : null}
-
-          {showMeetup && meetupTimeOnly ? <HeroMeetupCTA timeLabel={meetupTimeOnly} /> : null}
+            <div className="flex min-h-[56px] min-w-0 flex-col items-center justify-center border-l border-white/[0.05] px-0.5 py-1.5 text-center sm:px-1">
+              <span className="flex h-[18px] shrink-0 items-center text-[#B85C68] [&_svg]:h-[18px] [&_svg]:w-[18px]">
+                <Clock strokeWidth={2} aria-hidden />
+              </span>
+              <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none">Beginn</span>
+              <div className="mt-0.5 flex w-full flex-col items-center leading-none">
+                <span className="max-w-full truncate whitespace-nowrap text-[16px] font-bold tabular-nums text-white">{scheduleMetaTimeDisplay(timeStr).replace(/\s*Uhr$/i, '')}</span>
+                <span className="mt-0.5 text-[10px] font-medium text-white/65">Uhr</span>
+              </div>
+            </div>
+            <div className="flex min-h-[56px] min-w-0 flex-col items-center justify-center border-l border-white/[0.05] px-0.5 py-1.5 text-center sm:px-1">
+              <span className="flex h-[18px] shrink-0 items-center text-[#B85C68] [&_svg]:h-[18px] [&_svg]:w-[18px]">
+                <ClipboardList strokeWidth={2} aria-hidden />
+              </span>
+              <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none">Details</span>
+              <div className="mt-0.5 flex w-full flex-col items-center leading-none">
+                <span className="max-w-full truncate whitespace-nowrap text-[11px] font-semibold text-white/78">{eventDetailValue}</span>
+              </div>
+            </div>
+            {isClickable && onNavigate ? (
+              <button
+                type="button"
+                className="flex h-[56px] w-[42px] shrink-0 items-center justify-center border-l border-white/[0.05] bg-gradient-to-b from-teal-500/90 to-emerald-700/95 text-white shadow-[0_0_16px_rgba(16,185,129,0.28)] transition-colors hover:brightness-110"
+                aria-label="Termin öffnen"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openDetail();
+                }}
+              >
+                <ChevronRight className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+              </button>
+            ) : (
+              <div className="h-[56px] border-l border-white/[0.05]" aria-hidden />
+            )}
+          </div>
         </div>
       </div>
     </>
