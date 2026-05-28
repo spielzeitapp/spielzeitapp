@@ -1,7 +1,7 @@
 import React from 'react';
 import { CircleHelp, ThumbsDown, ThumbsUp } from 'lucide-react';
 
-export type AttendanceStatusKind = 'yes' | 'no' | 'open';
+export type AttendanceStatusKind = 'yes' | 'no' | 'open' | 'laz';
 
 type Props = {
   status: AttendanceStatusKind;
@@ -24,6 +24,16 @@ export function AttendanceStatusPill({
     `inline-flex ${size} shrink-0 items-center justify-center rounded-full border transition-all duration-200`;
 
   if (isTraining) {
+    if (status === 'laz') {
+      return (
+        <span
+          className={`${base} border-[rgba(40,160,100,0.35)] bg-[rgba(10,48,34,0.75)] text-[#72E09A] shadow-[0_0_14px_rgba(40,140,90,0.2)] ${className}`}
+          aria-label="LAZ"
+        >
+          <span className="text-[10px] font-extrabold uppercase tracking-wide">LAZ</span>
+        </span>
+      );
+    }
     if (status === 'no') {
       return (
         <span

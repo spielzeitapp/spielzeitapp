@@ -87,8 +87,21 @@ function pct(num: number, denom: number): number {
 }
 
 /**
+ * Training-Übersicht (Trainer): Dabei = aktiv − (Abwesend + Verletzt + LAZ).
+ * LAZ zählt zu „Nicht da“, ist aber kein Absage-Status.
+ */
+export function countTrainingOverviewFromStatuses(
+  statuses: TrainingAttendanceStatus[],
+  activePlayerCount: number,
+): { present: number; notPresent: number } {
+  const c = countTrainingAttendanceByStatus(statuses);
+  const notPresent = c.absent + c.injured + c.external;
+  return { present: Math.max(0, activePlayerCount - notPresent), notPresent };
+}
+
+/**
  * Nur für Profil-Auswertung (vergangene Einheiten, bereits aufgelöste Status).
- * injured, open, legacy_unknown nicht im Nenner.
+ * injured, open, legacy_unknown nicht im Nenner; LAZ nicht als Absage.
  */
 export function computeTrainingAttendanceStats(
   sessionStatuses: TrainingAttendanceStatus[],

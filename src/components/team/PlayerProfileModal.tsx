@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { supabase } from "../../lib/supabaseClient";
 import {
   Activity,
   CalendarDays,
@@ -24,6 +25,8 @@ export type PlayerProfileModalProps = {
   canManage: boolean;
   onClose: () => void;
   onEdit: () => void;
+  /** Nach LAZ-Flag-Änderung Kader neu laden. */
+  onPlayerUpdated?: () => void;
 };
 
 type ProfileTab = "overview" | "matches" | "achievements" | "training";
@@ -156,8 +159,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   canManage,
   onClose,
   onEdit,
+  onPlayerUpdated,
 }) => {
   const [profileTab, setProfileTab] = useState<ProfileTab>("overview");
+  const [isLazPlayer, setIsLazPlayer] = useState(player.is_laz_player);
+  const [lazSaving, setLazSaving] = useState(false);
+  const [lazError, setLazError] = useState<string | null>(null);
   const { data: stats, lastMatches, isLoading: statsLoading, error: statsError } = usePlayerStats(
     player.id,
     player.team_season_id,
@@ -198,12 +205,31 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const trainingsLegacyUnknown = trainingStats.legacyUnknown;
 
   useEffect(() => {
+    setIsLazPlayer(player.is_laz_player);
+    setLazError(null);
+  }, [player.id, player.is_laz_player]);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  const handleLazPlayerToggle = async (next: boolean) => {
+    if (!canManage || lazSaving) return;
+    setLazSaving(true);
+    setLazError(null);
+    const { error } = await supabase.from("players").update({ is_laz_player: next }).eq("id", player.id);
+    setLazSaving(false);
+    if (error) {
+      setLazError(error.message ?? "Speichern fehlgeschlagen.");
+      return;
+    }
+    setIsLazPlayer(next);
+    onPlayerUpdated?.();
+  };
 
   const bottomPad = canManage
     ? "max(5.5rem, env(safe-area-inset-bottom, 0px) + 1.5rem)"
@@ -293,6 +319,31 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
               </div>
             </div>
           </div>
+
+          {canManage ? (
+            <div className="mb-4 rounded-xl border border-white/10 bg-black/35 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 shrink-0 rounded border-white/25 accent-red-500"
+                  checked={isLazPlayer}
+                  disabled={lazSaving}
+                  onChange={(e) => void handleLazPlayerToggle(e.target.checked)}
+                />
+                <span className="min-w-0 text-left">
+                  <span className="block text-[14px] font-semibold text-white">LAZ-Spieler</span>
+                  <span className="mt-1 block text-[12px] leading-snug text-white/60">
+                    Bei LAZ-Spielern können Eltern bei Trainings LAZ als Status auswählen.
+                  </span>
+                  {lazError ? (
+                    <span className="mt-1 block text-[12px] text-red-300" role="alert">
+                      {lazError}
+                    </span>
+                  ) : null}
+                </span>
+              </label>
+            </div>
+          ) : null}
 
           <div className="mb-4 flex flex-wrap gap-1.5 sm:justify-center sm:gap-2">
             <Chip>Alter: {ageChipLabel(player.birthdate)}</Chip>

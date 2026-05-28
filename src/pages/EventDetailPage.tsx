@@ -405,7 +405,7 @@ export const EventDetailPage: React.FC = () => {
   const [editCardType, setEditCardType] = useState<'yellow_card' | 'red_card'>('yellow_card');
   const [editCardPlayerId, setEditCardPlayerId] = useState('');
 
-  const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | 'injured' | null>(null);
+  const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | 'injured' | 'external_training' | null>(null);
   const [loadingRsvp, setLoadingRsvp] = useState(true);
   const [cancelReason, setCancelReason] = useState('');
   /** Für Trainer: alle Zu-/Absagen dieses Events aus event_attendance. */
@@ -443,6 +443,10 @@ export const EventDetailPage: React.FC = () => {
     teamSeasonId,
   });
   const playerId = myAttendancePlayerIds[0] ?? null;
+  const linkedPlayerIsLaz = useMemo(() => {
+    if (!playerId) return false;
+    return players.find((p) => p.id === playerId)?.is_laz_player === true;
+  }, [playerId, players]);
 
   const isTraining = event?.kind === 'training';
   const trainingCancelCutoffPassed =
@@ -811,7 +815,7 @@ export const EventDetailPage: React.FC = () => {
       if (!err && data) {
         const st = String(data.status ?? '').toLowerCase();
         if (st === 'yes' || st === 'no' || st === 'injured' || st === 'external_training') {
-          setRsvpStatus(st as 'yes' | 'no' | 'injured');
+          setRsvpStatus(st as 'yes' | 'no' | 'injured' | 'external_training');
         } else {
           setRsvpStatus(null);
         }
@@ -886,7 +890,7 @@ export const EventDetailPage: React.FC = () => {
   }, [loadEventAttendance]);
 
   const handleRsvp = useCallback(
-    async (status: 'yes' | 'no', _reason?: string) => {
+    async (status: 'yes' | 'no' | 'external_training', _reason?: string) => {
       console.log('[ATTENDANCE FLOW] handleRsvp invoked', {
         caller: 'EventDetailPage.handleRsvp',
         table: 'event_attendance',
@@ -909,6 +913,34 @@ export const EventDetailPage: React.FC = () => {
         }
       }
       if (!resolvedPlayerId) return;
+
+      if (status === 'external_training' && event?.kind === 'training') {
+        const { data: lazRow, error: lazErr } = await supabase
+          .from('players')
+          .select('is_laz_player')
+          .eq('id', resolvedPlayerId)
+          .maybeSingle();
+        if (lazErr || !lazRow?.is_laz_player) return;
+      }
+
+      if (event?.kind === 'training' && status === 'yes') {
+        const del = await supabase
+          .from('event_attendance')
+          .delete()
+          .eq('event_id', eventId)
+          .eq('player_id', resolvedPlayerId);
+        if (del.error) return;
+        setRsvpStatus(null);
+        setEventAttendanceByPlayerId((prev) => {
+          const n = { ...prev };
+          delete n[(resolvedPlayerId ?? '').toLowerCase()];
+          return n;
+        });
+        setAttendanceModalOpen(false);
+        setCancelReason('');
+        await loadEventAttendance();
+        return;
+      }
 
       const payload = {
         event_id: eventId,
@@ -3277,13 +3309,20 @@ export const EventDetailPage: React.FC = () => {
                             ? 'Absage jederzeit möglich.'
                             : 'Absage bis 12:00 Uhr am Trainingstag möglich (Europe/Vienna).'}
                         </p>
-                        {!trainingCancellationAllowed && rsvpStatus !== 'no' ? (
+                        {!trainingCancellationAllowed &&
+                        rsvpStatus !== 'no' &&
+                        rsvpStatus !== 'external_training' ? (
                           <p className="mt-1 text-[12px] text-amber-200/90">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
                         ) : null}
-                        <div className={`mt-3 grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
+                        <div
+                          className={`mt-3 grid ${linkedPlayerIsLaz ? 'grid-cols-3' : 'grid-cols-2'} ${DS_STAT_GRID_GAP}`}
+                        >
                           <button
                             type="button"
-                            className={dsRsvpChoiceClass('yes', rsvpStatus !== 'no')}
+                            className={dsRsvpChoiceClass(
+                              'yes',
+                              rsvpStatus !== 'no' && rsvpStatus !== 'external_training',
+                            )}
                             onClick={() => void handleRsvp('yes')}
                           >
                             <ThumbsUp className="h-4 w-4" aria-hidden />
@@ -3301,6 +3340,20 @@ export const EventDetailPage: React.FC = () => {
                             <ThumbsDown className="h-4 w-4" aria-hidden />
                             Absagen
                           </button>
+                          {linkedPlayerIsLaz ? (
+                            <button
+                              type="button"
+                              disabled={rsvpStatus === 'external_training'}
+                              className={`inline-flex h-11 w-full items-center justify-center gap-2 rounded-[16px] border font-semibold text-sm transition-[background,box-shadow,transform] duration-150 active:scale-[0.98] disabled:opacity-50 ${
+                                rsvpStatus === 'external_training'
+                                  ? 'border-[rgba(40,160,100,0.35)] bg-[rgba(10,48,34,0.48)] text-[#72E09A] shadow-[0_0_20px_rgba(40,140,90,0.14)]'
+                                  : 'border border-white/[0.07] bg-[rgba(14,14,18,0.92)] text-white/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:text-white/88'
+                              }`}
+                              onClick={() => void handleRsvp('external_training')}
+                            >
+                              LAZ
+                            </button>
+                          ) : null}
                         </div>
                       </>
                     ) : (

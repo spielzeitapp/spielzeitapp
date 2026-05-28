@@ -674,6 +674,7 @@ export const TeamPage: React.FC = () => {
         canManage={canManagePlayers}
         onClose={closePlayerProfile}
         onEdit={handleEditFromProfile}
+        onPlayerUpdated={() => void refetchPlayers()}
       />
     ) : null}
     <div className="w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-36 sm:px-4 md:px-0">

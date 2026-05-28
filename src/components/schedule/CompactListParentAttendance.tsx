@@ -53,6 +53,20 @@ export function CompactListParentAttendance({
   };
 
   if (isTraining) {
+    if (status === 'laz') {
+      return (
+        <AppButton
+          type="button"
+          variant="secondary"
+          size="sm"
+          className={`${btnBase} border-[rgba(40,160,100,0.35)] bg-[rgba(10,48,34,0.75)] text-[#72E09A] shadow-[0_0_14px_rgba(40,140,90,0.2)] ${className}`}
+          onClick={openModal}
+          aria-label="LAZ"
+        >
+          <span className="text-[10px] font-extrabold uppercase tracking-wide">LAZ</span>
+        </AppButton>
+      );
+    }
     if (status === 'no') {
       return (
         <AppButton

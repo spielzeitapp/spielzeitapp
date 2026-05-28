@@ -17,7 +17,7 @@ import { TrainerStatsMini } from '../components/schedule/TrainerStatsMini';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePublicTeamSeason } from '../hooks/usePublicTeamSeason';
 import { useEvents, type EventRow } from '../hooks/useEvents';
-import { useEventsAttendance } from '../hooks/useEventsAttendance';
+import { useEventsAttendance, type AttendanceStatus } from '../hooks/useEventsAttendance';
 import { usePlayers } from '../hooks/usePlayers';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from '../auth/useSession';
@@ -94,7 +94,8 @@ function heroLabelForEffectiveType(et: 'game' | 'training' | 'event' | 'other'):
   return 'Nächster Termin';
 }
 
-function attendanceMergedToPillStatus(s: 'yes' | 'no' | null | undefined): AttendanceStatusKind {
+function attendanceMergedToPillStatus(s: AttendanceStatus | null | undefined): AttendanceStatusKind {
+  if (s === 'external_training') return 'laz';
   if (s === 'yes') return 'yes';
   if (s === 'no') return 'no';
   return 'open';
@@ -253,7 +254,7 @@ export const SchedulePage: React.FC = () => {
   /** Zu-/Absage: Modal + Status. Gespeichertes Event = genau das angeklickte Spiel (ID-Konsistenz). */
   const [attendanceModalEvent, setAttendanceModalEvent] = useState<EventRow | null>(null);
   const [trainingRejoinModalEvent, setTrainingRejoinModalEvent] = useState<EventRow | null>(null);
-  const [attendanceStatusByEventId, setAttendanceStatusByEventId] = useState<Record<string, 'yes' | 'no'>>({});
+  const [attendanceStatusByEventId, setAttendanceStatusByEventId] = useState<Record<string, AttendanceStatus>>({});
   const [trainingCancelReason, setTrainingCancelReason] = useState('');
 
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -319,7 +320,7 @@ export const SchedulePage: React.FC = () => {
    * Speichert Zusage/Absage in event_attendance (event_id, player_id, status, updated_by).
    * Parent: linked children (player_guardians). Player: self (player_users). Trainer: via EventDetailPage.
    */
-  const setAttendance = async (eventId: string, status: 'yes' | 'no', _reason?: string) => {
+  const setAttendance = async (eventId: string, status: AttendanceStatus, _reason?: string) => {
     console.log('[ATTENDANCE FLOW] setAttendance invoked', {
       caller: 'SchedulePage.setAttendance',
       table: 'event_attendance',
@@ -351,6 +352,18 @@ export const SchedulePage: React.FC = () => {
       return;
     }
 
+    if (isTrainingEv && status === 'external_training') {
+      const { data: lazRow, error: lazErr } = await supabase
+        .from('players')
+        .select('is_laz_player')
+        .eq('id', playerId)
+        .maybeSingle();
+      if (lazErr || !lazRow?.is_laz_player) {
+        setToastMessage('LAZ ist für diesen Spieler nicht freigeschaltet.');
+        return;
+      }
+    }
+
     // Toggle-Logik: Klick auf denselben Status → zurück auf neutral (Eintrag löschen).
     // Lokaler Override + DB-Status (sonst nach Reload kein erneutes „no“→Delete möglich).
     const myPidKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
@@ -358,8 +371,8 @@ export const SchedulePage: React.FC = () => {
       myAttendancePlayerIds[0] && attendanceByEventId[eventId]
         ? attendanceByEventId[eventId].availabilityByPlayerId[myPidKey]
         : undefined;
-    const fromDb: 'yes' | 'no' | null =
-      fromDbRaw === 'yes' || fromDbRaw === 'no' ? fromDbRaw : null;
+    const fromDb: AttendanceStatus | null =
+      fromDbRaw === 'yes' || fromDbRaw === 'no' || fromDbRaw === 'external_training' ? fromDbRaw : null;
     const currentLocal = attendanceStatusByEventId[eventId] ?? fromDb ?? null;
 
     let result;
@@ -865,12 +878,12 @@ export const SchedulePage: React.FC = () => {
         .delete()
         .eq('event_id', eventId)
         .in('player_id', playerIds)
-        .in('status', ['no', 'absent', 'declined']);
+        .in('status', ['no', 'absent', 'declined', 'external_training']);
       console.debug('[TRAINING REJOIN] delete filter', {
         table: 'event_attendance',
         event_id: eventId,
         player_id_in: playerIds,
-        status_in: ['no', 'absent', 'declined'],
+        status_in: ['no', 'absent', 'declined', 'external_training'],
       });
       const { error } = await deleteQuery;
       console.debug('[TRAINING REJOIN] delete result', { error });
@@ -907,6 +920,11 @@ export const SchedulePage: React.FC = () => {
   );
 
   const rosterSize = players.length;
+  const myLinkedPlayerIsLaz = useMemo(() => {
+    const pid = myAttendancePlayerIds[0];
+    if (!pid) return false;
+    return players.find((p) => p.id === pid)?.is_laz_player === true;
+  }, [myAttendancePlayerIds, players]);
 
   /** Eltern/Spieler: „Weitere Termine“ etwas breiter (näher an BottomNav-Padding), ohne Hero/Filter anzufassen. */
   const widenParentFurtherList = (uiRole === 'parent' || uiRole === 'player') && !forcePublicView;
@@ -1151,7 +1169,7 @@ export const SchedulePage: React.FC = () => {
                                   context="hero"
                                   onOpen={() => {
                                     const pill = attendanceMergedToPillStatus(attendanceStatusMerged);
-                                    if (et === 'training' && pill === 'no') {
+                                    if (et === 'training' && (pill === 'no' || pill === 'laz')) {
                                       setTrainingRejoinModalEvent(ev);
                                       return;
                                     }
@@ -1334,7 +1352,7 @@ export const SchedulePage: React.FC = () => {
                           isTraining={et === 'training'}
                           onOpen={() => {
                             const pill = attendanceMergedToPillStatus(attendanceStatusMerged);
-                            if (et === 'training' && pill === 'no') {
+                            if (et === 'training' && (pill === 'no' || pill === 'laz')) {
                               setTrainingRejoinModalEvent(ev);
                               return;
                             }
@@ -1701,6 +1719,7 @@ export const SchedulePage: React.FC = () => {
                         : null;
 
                     const current = attendanceStatusByEventId[attendanceModalEvent.id] ?? myStatusFromDb ?? null;
+                    const isLaz = current === 'external_training';
                     const canceled = current === 'no';
                     const cutoffPassed = isTrainingAbsenceDeadlinePassed(
                       attendanceModalEvent.starts_at,
@@ -1710,7 +1729,7 @@ export const SchedulePage: React.FC = () => {
                     return (
                       <>
                         <p className="text-sm text-[var(--text-main)] font-medium">
-                          Status: {canceled ? 'Abwesend' : 'Dabei'}
+                          Status: {isLaz ? 'LAZ' : canceled ? 'Abwesend' : 'Dabei'}
                         </p>
                         <p className="text-xs text-[var(--text-sub)] mt-1">
                           {attendanceModalEvent.training_absence_deadline_disabled
@@ -1749,6 +1768,24 @@ export const SchedulePage: React.FC = () => {
                           >
                             Absagen
                           </Button>
+                          {myLinkedPlayerIsLaz ? (
+                            <Button
+                              type="button"
+                              variant="soft"
+                              disabled={isLaz}
+                              onClick={() => {
+                                if (!attendanceModalEvent) return;
+                                setAttendance(attendanceModalEvent.id, 'external_training').catch((e) =>
+                                  console.error('[ATTENDANCE]', e),
+                                );
+                              }}
+                              className={`flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none py-3 px-5 text-sm font-semibold ${
+                                isLaz ? 'opacity-50 cursor-not-allowed' : 'border-[rgba(40,160,100,0.35)] text-[#72E09A]'
+                              }`}
+                            >
+                              LAZ
+                            </Button>
+                          ) : null}
                         </div>
                       </>
                     );

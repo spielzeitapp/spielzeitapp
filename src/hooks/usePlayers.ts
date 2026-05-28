@@ -13,6 +13,8 @@ export type PlayerItem = {
   avatar_url: string | null;
   is_active: boolean;
   status: "active" | "paused" | "archived";
+  /** Trainer markiert LAZ-Spieler – Eltern dürfen bei Trainings LAZ wählen. */
+  is_laz_player: boolean;
   /** first_name + ' ' + last_name, getrimmt – für Anzeige. */
   display_name: string;
 };
@@ -27,6 +29,7 @@ export type PlayerRow = {
   position?: string | null;
   is_active?: boolean;
   status?: string | null;
+  is_laz_player?: boolean | null;
 };
 
 type PlayerAvatarRow = {
@@ -92,7 +95,7 @@ export function usePlayers(teamSeasonId: string | null, options?: UsePlayersOpti
     setError(null);
     let query = supabase
       .from("players")
-      .select("id, team_season_id, first_name, last_name, jersey_number, position, is_active, status")
+      .select("id, team_season_id, first_name, last_name, jersey_number, position, is_active, status, is_laz_player")
       .eq("team_season_id", teamSeasonId);
 
     if (mode === "active") {
