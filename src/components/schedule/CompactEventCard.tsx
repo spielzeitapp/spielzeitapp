@@ -246,7 +246,11 @@ export function CompactEventCard({
                 >
                   {oppName}
                 </p>
-                {gameMetaLine ? <p className={`mt-0.5 ${GAME_META_LINE_CLASS}`}>{gameMetaLine}</p> : null}
+                <GameCompactMeta
+                  isHome={ev.is_home}
+                  matchType={ev.match_type}
+                  className="mt-0.5"
+                />
               </div>
             ) : (
               <p
