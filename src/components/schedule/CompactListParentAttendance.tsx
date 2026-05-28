@@ -1,6 +1,7 @@
 import React from 'react';
 import { CircleHelp, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { triggerHaptic } from '../../lib/hapticFeedback';
+import { ATTENDANCE_LAZ_PILL_COLORS } from '../../lib/attendanceColors';
 import type { AttendanceStatusKind } from './AttendanceStatusPill';
 import { AppButton } from '../ui/AppButton';
 
@@ -59,7 +60,7 @@ export function CompactListParentAttendance({
           type="button"
           variant="secondary"
           size="sm"
-          className={`${btnBase} border-[rgba(40,160,100,0.35)] bg-[rgba(10,48,34,0.75)] text-[#72E09A] shadow-[0_0_14px_rgba(40,140,90,0.2)] ${className}`}
+          className={`${btnBase} ${ATTENDANCE_LAZ_PILL_COLORS} ${className}`}
           onClick={openModal}
           aria-label="LAZ"
         >

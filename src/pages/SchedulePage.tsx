@@ -47,6 +47,7 @@ import {
   utcIsoToViennaTimeHHmm,
 } from '../lib/viennaTime';
 import { formatDateTimeDeVienna } from '../lib/notifications/format';
+import { attendanceLazModalButtonClass } from '../lib/attendanceColors';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
 import {
@@ -1810,9 +1811,7 @@ export const SchedulePage: React.FC = () => {
                                   console.error('[ATTENDANCE]', e),
                                 );
                               }}
-                              className={`w-full py-3 px-5 text-sm font-semibold ${
-                                isLaz ? 'border-[rgba(40,160,100,0.35)] text-[#72E09A]' : ''
-                              }`}
+                              className={`w-full py-3 px-5 text-sm font-semibold ${attendanceLazModalButtonClass(isLaz)}`}
                             >
                               LAZ
                             </Button>

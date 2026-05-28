@@ -3,6 +3,12 @@
  * Master-Referenz: Welcome / Intro (Flutlicht, Abendspiel, Rot-Glow).
  */
 
+import {
+  ATTENDANCE_CHIP_LAZ,
+  ATTENDANCE_CHIP_PRESENT,
+  attendanceLazRsvpChoiceClass,
+} from './attendanceColors';
+
 export const DS_APP_BG = '#0A0A0C';
 
 /** Deep Dark Red Matchday — Surfaces & Accents */
@@ -344,10 +350,8 @@ const CHIP_BASE =
   'inline-flex max-w-[9rem] shrink-0 items-center justify-center rounded-full border border-transparent';
 
 const CHIP_TONE: Record<DsChipTone, string> = {
-  present:
-    'h-[24px] px-2.5 text-[9px] font-bold uppercase tracking-[0.1em] leading-none bg-[rgba(20,110,70,0.34)] text-[#9DFFC5] shadow-[0_0_22px_rgba(40,255,120,0.14)]',
-  external:
-    'h-[24px] px-2.5 text-[9px] font-bold uppercase tracking-[0.1em] leading-none bg-[rgba(14,58,40,0.32)] text-[#63D98D]',
+  present: ATTENDANCE_CHIP_PRESENT,
+  external: ATTENDANCE_CHIP_LAZ,
   absent:
     'h-[24px] px-2.5 text-[9px] font-bold uppercase tracking-[0.1em] leading-none bg-[rgba(100,14,24,0.38)] text-[#FF8D98] shadow-[0_0_14px_rgba(255,40,40,0.07)]',
   injured:
@@ -387,8 +391,8 @@ export function dsActionButtonClass(
       on: 'bg-[rgba(22,120,76,0.38)] text-[#9DFFC5] shadow-[0_0_22px_rgba(40,255,120,0.16),inset_0_1px_0_rgba(255,255,255,0.05)]',
     },
     external: {
-      idle: 'bg-[rgba(14,58,40,0.22)] text-[#63D98D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] hover:bg-[rgba(14,58,40,0.28)]',
-      on: 'bg-[rgba(14,58,40,0.28)] text-[#63D98D] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
+      idle: 'bg-[rgba(12,44,34,0.22)] text-[#5DBF94]/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] hover:bg-[rgba(12,44,34,0.28)] hover:text-[#5DBF94]',
+      on: 'bg-[rgba(12,44,34,0.38)] text-[#5DBF94] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_14px_rgba(28,88,68,0.10)]',
     },
     absent: {
       idle: 'bg-[rgba(100,14,24,0.26)] text-[#FF8D98] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_12px_rgba(255,40,40,0.05)] hover:bg-[rgba(100,14,24,0.34)]',
@@ -400,6 +404,11 @@ export function dsActionButtonClass(
     },
   };
   return [ACTION_BASE, active ? tones[tone].on : tones[tone].idle].join(' ');
+}
+
+/** LAZ-Auswahl (Training, Eltern) – dezentes Grün. */
+export function dsRsvpLazChoiceClass(active: boolean): string {
+  return attendanceLazRsvpChoiceClass(active);
 }
 
 export function dsRsvpChoiceClass(kind: 'yes' | 'no', active: boolean): string {

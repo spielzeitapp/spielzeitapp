@@ -7,6 +7,11 @@ import {
   type TrainingAttendanceStatus,
 } from '../../lib/trainingAttendance';
 import { getTrainingPositionDisplay } from '../../lib/positionLabels';
+import {
+  ATTENDANCE_ACTION_GLASS_IDLE,
+  ATTENDANCE_ACTION_LAZ_ON,
+  ATTENDANCE_STAT_BOX_LAZ,
+} from '../../lib/attendanceColors';
 import { DS_LIST_GAP, DS_TEXT_MUTED, type DsChipTone } from '../../lib/premiumDesignSystem';
 import { PremiumPlayerCard } from '../player/PremiumPlayerCard';
 import { PremiumStatusBadge, type PremiumStatusBadgeTone } from '../player/PremiumStatusBadge';
@@ -64,8 +69,7 @@ const STAT_BOX_TONE: Record<DsChipTone, string> = {
     'border-[rgba(255,45,85,0.12)] bg-[radial-gradient(ellipse_96%_78%_at_50%_100%,rgba(110,16,28,0.2)_0%,rgba(11,8,10,0.97)_52%,rgba(10,8,9,0.98)_100%)] text-[#FF9AA6] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_24px_rgba(255,45,85,0.14),0_8px_24px_rgba(0,0,0,0.4)]',
   injured:
     'border-[rgba(255,160,60,0.13)] bg-[radial-gradient(ellipse_90%_72%_at_50%_0%,rgba(255,138,0,0.15)_0%,rgba(14,11,9,0.96)_48%,rgba(12,10,9,0.97)_100%)] text-[#FFC078] shadow-[inset_0_1px_0_rgba(255,200,120,0.06),0_0_22px_rgba(255,138,0,0.12),0_8px_24px_rgba(0,0,0,0.38)]',
-  external:
-    'border-[rgba(40,200,120,0.11)] bg-[radial-gradient(ellipse_88%_72%_at_50%_50%,rgba(18,82,52,0.2)_0%,rgba(8,11,10,0.97)_54%,rgba(9,10,10,0.98)_100%)] text-[#72E09A] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_20px_rgba(40,140,90,0.14),0_8px_24px_rgba(0,0,0,0.38)]',
+  external: ATTENDANCE_STAT_BOX_LAZ,
   open:
     'border-[rgba(255,255,255,0.06)] bg-[rgba(10,10,12,0.97)] text-[#AEAEB2] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_8px_24px_rgba(0,0,0,0.38)]',
   neutral:
@@ -89,23 +93,21 @@ function trainingActionButtonClass(
 ): string {
   const base =
     'flex h-[34px] min-h-[34px] w-full min-w-0 items-center justify-center rounded-[12px] border border-transparent px-1.5 text-[10px] font-semibold leading-tight transition-[background,box-shadow] duration-150 disabled:cursor-default disabled:opacity-45 sm:text-[11px]';
-  const glassIdle =
-    'border border-white/[0.07] bg-[rgba(14,14,18,0.92)] text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_14px_rgba(255,45,85,0.05)] hover:border-white/10 hover:bg-[rgba(18,14,16,0.94)] hover:text-white/76';
   const tones: Record<typeof tone, { idle: string; on: string }> = {
     present: {
-      idle: glassIdle,
+      idle: ATTENDANCE_ACTION_GLASS_IDLE,
       on: 'border border-[rgba(40,255,120,0.18)] bg-[rgba(18,110,68,0.4)] text-[#9DFFC5] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_0_28px_rgba(40,255,120,0.24)]',
     },
     external: {
-      idle: glassIdle,
-      on: 'border border-[rgba(40,160,100,0.14)] bg-[rgba(10,48,34,0.48)] text-[#72E09A] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_22px_rgba(40,140,90,0.16)] backdrop-blur-sm',
+      idle: ATTENDANCE_ACTION_GLASS_IDLE,
+      on: ATTENDANCE_ACTION_LAZ_ON,
     },
     absent: {
-      idle: glassIdle,
+      idle: ATTENDANCE_ACTION_GLASS_IDLE,
       on: 'border border-[rgba(255,45,85,0.16)] bg-[rgba(82,12,22,0.44)] text-[#FF9AA6] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_26px_rgba(255,45,85,0.22)]',
     },
     injured: {
-      idle: glassIdle,
+      idle: ATTENDANCE_ACTION_GLASS_IDLE,
       on: 'border border-[rgba(255,160,60,0.14)] bg-[rgba(88,46,10,0.42)] text-[#FFC878] shadow-[inset_0_1px_0_rgba(255,220,140,0.07),0_0_24px_rgba(255,160,60,0.2)]',
     },
   };
