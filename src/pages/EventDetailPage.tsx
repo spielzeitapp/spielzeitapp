@@ -21,6 +21,7 @@ import {
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
 import { usePlayers } from '../hooks/usePlayers';
+import { useLinkedPlayerIsLaz } from '../hooks/useLinkedPlayerIsLaz';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
 import { normalizeRole, canSeeMeetup, canManageMatches } from '../lib/roles';
 import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
@@ -443,10 +444,7 @@ export const EventDetailPage: React.FC = () => {
     teamSeasonId,
   });
   const playerId = myAttendancePlayerIds[0] ?? null;
-  const linkedPlayerIsLaz = useMemo(() => {
-    if (!playerId) return false;
-    return players.find((p) => p.id === playerId)?.is_laz_player === true;
-  }, [playerId, players]);
+  const { isLazPlayer: linkedPlayerIsLaz } = useLinkedPlayerIsLaz(playerId);
 
   const isTraining = event?.kind === 'training';
   const trainingCancelCutoffPassed =
@@ -3338,8 +3336,7 @@ export const EventDetailPage: React.FC = () => {
                           {linkedPlayerIsLaz ? (
                             <button
                               type="button"
-                              disabled={rsvpStatus === 'external_training'}
-                              className={`inline-flex h-11 w-full items-center justify-center gap-2 rounded-[16px] border font-semibold text-sm transition-[background,box-shadow,transform] duration-150 active:scale-[0.98] disabled:opacity-50 ${
+                              className={`inline-flex h-11 w-full items-center justify-center gap-2 rounded-[16px] border font-semibold text-sm transition-[background,box-shadow,transform] duration-150 active:scale-[0.98] ${
                                 rsvpStatus === 'external_training'
                                   ? 'border-[rgba(40,160,100,0.35)] bg-[rgba(10,48,34,0.48)] text-[#72E09A] shadow-[0_0_20px_rgba(40,140,90,0.14)]'
                                   : 'border border-white/[0.07] bg-[rgba(14,14,18,0.92)] text-white/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:text-white/88'

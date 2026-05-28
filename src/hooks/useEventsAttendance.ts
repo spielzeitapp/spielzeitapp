@@ -72,14 +72,15 @@ export function useEventsAttendance(eventIds: string[]) {
       const eidKey = eventIdToKey[eidRaw.toLowerCase()];
       if (!eidKey) continue;
       const pid = (r.player_id == null ? "" : String(r.player_id)).toLowerCase();
+      const st = String(r.status ?? "").toLowerCase();
       const status =
-        r.status === "yes"
+        st === "yes"
           ? "yes"
-          : r.status === "no"
+          : st === "no" || st === "absent" || st === "declined"
             ? "no"
-            : r.status === "injured"
+            : st === "injured"
               ? "injured"
-              : r.status === "external_training"
+              : st === "external_training"
                 ? "external_training"
                 : null;
       if (status) {

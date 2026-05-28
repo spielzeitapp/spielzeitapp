@@ -19,6 +19,7 @@ import { usePublicTeamSeason } from '../hooks/usePublicTeamSeason';
 import { useEvents, type EventRow } from '../hooks/useEvents';
 import { useEventsAttendance, type AttendanceStatus } from '../hooks/useEventsAttendance';
 import { usePlayers } from '../hooks/usePlayers';
+import { useLinkedPlayerIsLaz } from '../hooks/useLinkedPlayerIsLaz';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from '../auth/useSession';
 import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
@@ -348,7 +349,25 @@ export const SchedulePage: React.FC = () => {
     const evRow = events.find((x) => x.id === eventId);
     const isTrainingEv = evRow != null && getEffectiveEventType(evRow) === 'training';
     if (isTrainingEv && status === 'yes') {
-      setToastMessage('Beim Training ist nur eine Absage möglich (Standard: dabei).');
+      const del = await supabase
+        .from('event_attendance')
+        .delete()
+        .eq('event_id', eventId)
+        .eq('player_id', playerId);
+      if (del.error) {
+        setToastMessage(del.error.message ?? 'Speichern fehlgeschlagen.');
+        setAttendanceModalEvent(null);
+        setTrainingCancelReason('');
+        return;
+      }
+      setAttendanceStatusByEventId((prev) => {
+        const next = { ...prev };
+        delete next[eventId];
+        return next;
+      });
+      setAttendanceModalEvent(null);
+      setTrainingCancelReason('');
+      await refreshAttendance();
       return;
     }
 
@@ -920,11 +939,8 @@ export const SchedulePage: React.FC = () => {
   );
 
   const rosterSize = players.length;
-  const myLinkedPlayerIsLaz = useMemo(() => {
-    const pid = myAttendancePlayerIds[0];
-    if (!pid) return false;
-    return players.find((p) => p.id === pid)?.is_laz_player === true;
-  }, [myAttendancePlayerIds, players]);
+  const myLinkedPlayerId = myAttendancePlayerIds[0] ?? null;
+  const { isLazPlayer: myLinkedPlayerIsLaz } = useLinkedPlayerIsLaz(myLinkedPlayerId);
 
   /** Eltern/Spieler: „Weitere Termine“ etwas breiter (näher an BottomNav-Padding), ohne Hero/Filter anzufassen. */
   const widenParentFurtherList = (uiRole === 'parent' || uiRole === 'player') && !forcePublicView;
@@ -1752,7 +1768,23 @@ export const SchedulePage: React.FC = () => {
                           />
                         </div>
 
-                        <div className="flex flex-wrap gap-3 mt-6">
+                        <div
+                          className={`mt-6 grid gap-3 ${myLinkedPlayerIsLaz ? 'grid-cols-3' : 'grid-cols-2'}`}
+                        >
+                          <Button
+                            type="button"
+                            variant="positive"
+                            disabled={!canceled && !isLaz}
+                            onClick={() => {
+                              if (!attendanceModalEvent) return;
+                              setAttendance(attendanceModalEvent.id, 'yes').catch((e) => console.error('[ATTENDANCE]', e));
+                            }}
+                            className={`w-full py-3 px-5 text-sm ${
+                              !canceled && !isLaz ? '' : 'opacity-50 cursor-not-allowed'
+                            }`}
+                          >
+                            Dabei
+                          </Button>
                           <Button
                             type="button"
                             variant="negative"
@@ -1762,7 +1794,7 @@ export const SchedulePage: React.FC = () => {
                               if (!attendanceModalEvent) return;
                               setAttendance(attendanceModalEvent.id, 'no', trainingCancelReason).catch((e) => console.error('[ATTENDANCE]', e));
                             }}
-                            className={`flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none py-3 px-5 text-sm ${
+                            className={`w-full py-3 px-5 text-sm ${
                               canceled || !cancelAllowed ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                           >
@@ -1772,15 +1804,14 @@ export const SchedulePage: React.FC = () => {
                             <Button
                               type="button"
                               variant="soft"
-                              disabled={isLaz}
                               onClick={() => {
                                 if (!attendanceModalEvent) return;
                                 setAttendance(attendanceModalEvent.id, 'external_training').catch((e) =>
                                   console.error('[ATTENDANCE]', e),
                                 );
                               }}
-                              className={`flex-1 min-w-0 max-w-[240px] mx-auto sm:max-w-none py-3 px-5 text-sm font-semibold ${
-                                isLaz ? 'opacity-50 cursor-not-allowed' : 'border-[rgba(40,160,100,0.35)] text-[#72E09A]'
+                              className={`w-full py-3 px-5 text-sm font-semibold ${
+                                isLaz ? 'border-[rgba(40,160,100,0.35)] text-[#72E09A]' : ''
                               }`}
                             >
                               LAZ
