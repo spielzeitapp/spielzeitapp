@@ -83,7 +83,7 @@ import {
   normalizeMatchFeedTemplateKey,
   type MatchFeedTemplateKey,
 } from '../features/home/feedTemplates';
-import { combineLocationParts, formatFullLocation, splitCombinedLocation } from '../lib/eventLocation';
+import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
 import { eventNotesTitle, formatHeroDateParts } from '../components/schedule/scheduleEventViewUtils';
 import { openMapsNavigation, resolveEventMapsCoords } from '../lib/mapsNavigation';
 import {
@@ -2902,7 +2902,8 @@ export const EventDetailPage: React.FC = () => {
         : 'text-[17px]';
   const eventHeroDate = formatHeroDateParts(event.starts_at);
   const eventHeroYear = event.starts_at ? new Date(event.starts_at).getFullYear().toString() : '';
-  const eventFullLocation = formatFullLocation(audienceLocation.place, audienceLocation.address);
+  const eventPlaceLine = (audienceLocation.place || '').trim();
+  const eventAddressLine = (audienceLocation.address || '').trim();
   const eventTypeRaw = `${eventCompactTitle} ${(event.type ?? '')}`.toLowerCase();
   const EventDetailIcon =
     eventTypeRaw.includes('film') || eventTypeRaw.includes('kino')
@@ -2995,27 +2996,25 @@ export const EventDetailPage: React.FC = () => {
         </div>
 
         {isEventOrOther ? (
-          <div className="-mx-1 mb-1 flex w-[calc(100%+0.5rem)] min-w-0 items-center overflow-hidden rounded-[14px] border border-white/[0.08] bg-[linear-gradient(168deg,#141416_0%,#0A0A0C_58%,#12080C_100%)] px-3 py-2.5 shadow-[0_8px_28px_rgba(0,0,0,0.48),0_0_20px_rgba(122,29,42,0.06)] sm:mx-0 sm:w-full">
-            <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
-              <span className="text-[13px] font-semibold uppercase leading-none tracking-[0.12em] text-[#B85C68]">{eventHeroDate.wd}</span>
-              <span className="text-[34px] font-bold tabular-nums leading-none text-white">{eventHeroDate.day}</span>
-              <span className="text-[13px] font-medium leading-tight text-white/70">{eventHeroDate.mon}</span>
-              {eventHeroYear ? <span className="text-[12px] font-medium leading-tight text-white/45">{eventHeroYear}</span> : null}
-            </div>
-            <div className="relative mx-1.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[rgba(255,95,122,0.24)] bg-[radial-gradient(ellipse_70%_65%_at_30%_10%,rgba(255,120,160,0.22)_0%,rgba(68,18,30,0.42)_55%,rgba(14,14,18,0.92)_100%)] shadow-[0_0_18px_rgba(255,84,124,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]">
-              <EventDetailIcon className="h-5 w-5 text-[#FF9CB1]" strokeWidth={2.1} aria-hidden />
-            </div>
-            <div className="min-w-0 flex-1 overflow-hidden text-left">
-              <p
-                className={`line-clamp-2 min-w-0 font-bold leading-[1.12] text-white break-words ${eventCompactTitleSizeClass}`}
-                title={eventCompactTitle}
-              >
-                {eventCompactTitle}
-              </p>
-            </div>
-            <div className="flex w-[52px] shrink-0 flex-col items-end justify-center self-center pr-0.5 text-right">
-              <span className="text-[18px] font-bold tabular-nums leading-none text-white">{eventStartTimeLabel}</span>
-              <span className="mt-0.5 text-[10px] font-medium text-white/65">Uhr</span>
+          <div className="-mx-1 overflow-hidden rounded-[16px] border border-white/[0.1] bg-[linear-gradient(165deg,#16141a_0%,#0a0a0c_52%,#140a10_100%)] px-4 py-3.5 shadow-[0_12px_40px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.06)] sm:mx-0">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
+                <span className="text-[13px] font-semibold uppercase leading-none tracking-[0.12em] text-[#B85C68]">{eventHeroDate.wd}</span>
+                <span className="text-[34px] font-bold tabular-nums leading-none text-white">{eventHeroDate.day}</span>
+                <span className="text-[13px] font-medium leading-tight text-white/70">{eventHeroDate.mon}</span>
+                {eventHeroYear ? <span className="text-[12px] font-medium leading-tight text-white/45">{eventHeroYear}</span> : null}
+              </div>
+              <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[rgba(255,95,122,0.24)] bg-[radial-gradient(ellipse_70%_65%_at_30%_10%,rgba(255,120,160,0.22)_0%,rgba(68,18,30,0.42)_55%,rgba(14,14,18,0.92)_100%)] shadow-[0_0_18px_rgba(255,84,124,0.16),inset_0_1px_0_rgba(255,255,255,0.06)]">
+                  <EventDetailIcon className="h-5 w-5 text-[#FF9CB1]" strokeWidth={2.1} aria-hidden />
+                </div>
+                <p
+                  className={`min-w-0 flex-1 line-clamp-2 font-bold leading-[1.14] text-white break-words ${eventCompactTitleSizeClass}`}
+                  title={eventCompactTitle}
+                >
+                  {eventCompactTitle}
+                </p>
+              </div>
             </div>
           </div>
         ) : (
@@ -3056,7 +3055,10 @@ export const EventDetailPage: React.FC = () => {
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/55">Ort</p>
-                  <p className="text-[14px] font-medium leading-snug text-white/88">{eventFullLocation || '—'}</p>
+                  <p className="text-[14px] font-medium leading-snug text-white/88">{eventPlaceLine || '—'}</p>
+                  {eventAddressLine ? (
+                    <p className="mt-0.5 text-[14px] font-medium leading-snug text-white/62">{eventAddressLine}</p>
+                  ) : null}
                 </div>
               </div>
               <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5">
@@ -3085,13 +3087,6 @@ export const EventDetailPage: React.FC = () => {
                 </div>
               ) : null}
             </div>
-          </Card>
-        ) : null}
-
-        {showFurtherEventInfo ? (
-          <Card className="flex flex-col gap-2 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
-            <CardTitle>Weitere Infos</CardTitle>
-            <p className="break-words text-[14px] leading-snug text-white/80">{eventFurtherInfoText}</p>
           </Card>
         ) : null}
 
@@ -3382,6 +3377,13 @@ export const EventDetailPage: React.FC = () => {
                 )}
               </div>
             ) : null}
+          </Card>
+        ) : null}
+
+        {isEventOrOther && showFurtherEventInfo ? (
+          <Card className="flex flex-col gap-2 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
+            <CardTitle>Weitere Infos</CardTitle>
+            <p className="break-words text-[14px] leading-snug text-white/80">{eventFurtherInfoText}</p>
           </Card>
         ) : null}
 

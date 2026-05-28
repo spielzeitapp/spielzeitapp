@@ -372,8 +372,8 @@ export function ScheduleHeroEventCard({
       : eventTitleLen > 30
         ? 'text-[16px] min-[375px]:text-[17px]'
         : 'text-[18px] min-[375px]:text-[19px]';
-  const eventTileOrtLine1 = locLine1 || (locSingle ? locSingle.split(' ')[0] : '—');
-  const eventTileOrtLine2 = locLine2 || (locSingle?.split(' ').slice(1).join(' ') ?? '');
+  /** Terminübersicht: nur Platzname/Ort, keine Adresse. */
+  const eventTileOrtName = (parsedLoc.place || locLine1 || locSingle || '—').trim() || '—';
   const EventTypeIcon = eventTypePremiumIcon(ev);
 
   const trainingMetaItems = [
@@ -479,11 +479,10 @@ export function ScheduleHeroEventCard({
                 <MapPin strokeWidth={2} aria-hidden />
               </span>
               <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/42 leading-none">Ort</span>
-              <div className="mt-0.5 flex w-full flex-col items-center leading-snug">
-                <span className="max-w-full break-words text-center text-[12px] font-semibold leading-tight text-white">{eventTileOrtLine1 || '—'}</span>
-                {eventTileOrtLine2 ? (
-                  <span className="mt-0.5 max-w-full break-words text-center text-[10px] font-medium leading-tight text-white/65">{eventTileOrtLine2}</span>
-                ) : null}
+              <div className="mt-0.5 flex w-full items-center justify-center px-0.5">
+                <span className="max-w-full line-clamp-2 break-words text-center text-[11px] font-semibold leading-tight text-white">
+                  {eventTileOrtName}
+                </span>
               </div>
             </div>
             <div className="flex min-h-[56px] min-w-0 flex-col items-center justify-center border-l border-white/[0.05] px-0.5 py-1.5 text-center sm:px-1">
