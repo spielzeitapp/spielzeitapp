@@ -448,7 +448,7 @@ export function ScheduleHeroEventCard({
           </div>
 
           <div className="min-w-0 flex-1 overflow-hidden text-left">
-            <p className="line-clamp-1 text-[20px] font-bold uppercase leading-[1.05] tracking-[0.01em] text-white min-[375px]:text-[21px]">{eventTitle}</p>
+            <p className="line-clamp-2 text-[20px] font-bold uppercase leading-[1.05] tracking-[0.01em] text-white min-[375px]:text-[21px]">{eventTitle}</p>
             <p className="mt-1 line-clamp-1 text-[15px] leading-[1.15] text-white/[0.78]">{eventLocationLine}</p>
             <p className="mt-0.5 text-[14px] font-semibold tabular-nums leading-tight text-white/88">{scheduleMetaTimeDisplay(timeStr)}</p>
           </div>

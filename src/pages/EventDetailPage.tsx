@@ -1,14 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
+  Bus,
   CalendarPlus,
+  Clapperboard,
   ChevronRight,
+  ClipboardList,
+  Clock3,
+  MapPin,
   Navigation,
+  PartyPopper,
   Pencil,
+  Pizza,
   Radio,
   ThumbsDown,
   ThumbsUp,
   Trash2,
+  Users,
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useActiveTeamSeason } from '../hooks/useActiveTeamSeason';
@@ -132,6 +140,37 @@ function extractAudienceTrainerNotes(notes: string | null | undefined): string |
   const text = parts.length > 1 ? parts.slice(1).join(' · ') : parts[0];
   return text.trim() || null;
 }
+
+function parseEditableNotes(notes: string | null | undefined): { title: string; endTime: string; details: string } {
+  const parts = (notes ?? '')
+    .split(' · ')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return { title: '', endTime: '', details: '' };
+  const title = parts[0] ?? '';
+  const endRaw = parts.find((p) => /^ende:\s*/i.test(p)) ?? '';
+  const endTime = endRaw.replace(/^ende:\s*/i, '').replace(/\s*uhr\s*$/i, '').trim();
+  const details = parts
+    .slice(1)
+    .filter((p) => !/^ende:\s*/i.test(p))
+    .join(' · ');
+  return { title, endTime, details };
+}
+
+const EVENT_TYPE_CHIPS: Array<{
+  value: 'event' | 'other';
+  label: string;
+  keywords: string[];
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+}> = [
+  { value: 'event', label: 'Film/Kino', keywords: ['film', 'kino'], icon: Clapperboard },
+  { value: 'event', label: 'Elternabend', keywords: ['eltern'], icon: Users },
+  { value: 'event', label: 'Fest/Abschluss', keywords: ['abschluss', 'fest', 'feier'], icon: PartyPopper },
+  { value: 'event', label: 'Essen', keywords: ['essen', 'pizza'], icon: Pizza },
+  { value: 'event', label: 'Ausflug', keywords: ['ausflug', 'fahrt', 'bus'], icon: Bus },
+  { value: 'event', label: 'Besprechung', keywords: ['besprech', 'meeting'], icon: ClipboardList },
+  { value: 'other', label: 'Sonstiges', keywords: [], icon: CalendarPlus },
+];
 
 function compactTeamNameForMatchHeader(name: string | null | undefined): string {
   let s = (name ?? '').trim();
@@ -277,10 +316,14 @@ export const EventDetailPage: React.FC = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editEvent, setEditEvent] = useState<EventRow | null>(null);
   const [editOpponent, setEditOpponent] = useState('');
+  const [editSheetEventType, setEditSheetEventType] = useState<'event' | 'other'>('event');
+  const [editTitle, setEditTitle] = useState('');
   const [editDateTime, setEditDateTime] = useState('');
+  const [editEndTime, setEditEndTime] = useState('');
   const [editLocation, setEditLocation] = useState('');
   const [editLocationAddress, setEditLocationAddress] = useState('');
   const [editMeetupAt, setEditMeetupAt] = useState('');
+  const [editDetails, setEditDetails] = useState('');
   const [editTrainingDeadlineDisabled, setEditTrainingDeadlineDisabled] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -950,12 +993,17 @@ export const EventDetailPage: React.FC = () => {
 
   const openEditModal = useCallback((e: EventRow) => {
     const parsedLocation = splitCombinedLocation(e.location ?? '');
+    const noteFields = parseEditableNotes(e.notes);
     setEditEvent(e);
     setEditOpponent(e.opponent ?? '');
+    setEditSheetEventType((e.type === 'other' ? 'other' : 'event') as 'event' | 'other');
+    setEditTitle(noteFields.title);
     setEditDateTime(utcIsoToViennaDateTimeLocal(e.starts_at));
+    setEditEndTime(noteFields.endTime);
     setEditLocation(parsedLocation.place);
     setEditLocationAddress(parsedLocation.address);
     setEditMeetupAt(utcIsoToViennaTimeHHmm(e.meeting_at ?? ''));
+    setEditDetails(noteFields.details);
     setEditTrainingDeadlineDisabled(e.training_absence_deadline_disabled ?? false);
     setEditError(null);
     setEditModalOpen(true);
@@ -965,10 +1013,14 @@ export const EventDetailPage: React.FC = () => {
     setEditModalOpen(false);
     setEditEvent(null);
     setEditOpponent('');
+    setEditSheetEventType('event');
+    setEditTitle('');
     setEditDateTime('');
+    setEditEndTime('');
     setEditLocation('');
     setEditLocationAddress('');
     setEditMeetupAt('');
+    setEditDetails('');
     setEditError(null);
   }, []);
 
@@ -992,6 +1044,18 @@ export const EventDetailPage: React.FC = () => {
       location: locationVal,
       opponent: (editOpponent ?? '').trim() || null,
     };
+    if (editEvent.kind === 'event') {
+      payload.type = editSheetEventType;
+      const notesParts: string[] = [];
+      const title = (editTitle ?? '').trim();
+      const end = (editEndTime ?? '').trim();
+      const details = (editDetails ?? '').trim();
+      if (title) notesParts.push(title);
+      if (end) notesParts.push(`Ende: ${end} Uhr`);
+      if (details) notesParts.push(details);
+      payload.notes = notesParts.length > 0 ? notesParts.join(' · ') : null;
+      payload.opponent = title || null;
+    }
     if (editEvent.kind === 'training') {
       payload.training_absence_deadline_disabled = editTrainingDeadlineDisabled;
     }
@@ -1022,7 +1086,7 @@ export const EventDetailPage: React.FC = () => {
     setSavingEdit(false);
     closeEditModal();
     await loadEvent();
-  }, [editEvent, editDateTime, editLocation, editLocationAddress, editMeetupAt, editOpponent, editTrainingDeadlineDisabled, closeEditModal, loadEvent]);
+  }, [editDetails, editEndTime, editEvent, editSheetEventType, editDateTime, editLocation, editLocationAddress, editMeetupAt, editOpponent, editTitle, editTrainingDeadlineDisabled, closeEditModal, loadEvent]);
 
   const handleDeleteEvent = useCallback(async () => {
     if (!eventId || !canTrainerManageEvent || !event) return;
@@ -2736,6 +2800,7 @@ export const EventDetailPage: React.FC = () => {
   }
 
   const isAudienceMatchDetail = event.kind === 'match' && !canTrainerManageEvent;
+  const isEventOrOther = event.kind === 'event';
   const audienceLocation = splitCombinedLocation(event.location);
   const audienceMapsCoords = resolveEventMapsCoords(event.location, event.notes);
   const audienceTrainerNotes = extractAudienceTrainerNotes(event.notes);
@@ -2752,6 +2817,21 @@ export const EventDetailPage: React.FC = () => {
       alert('Kein Spielort hinterlegt.');
     }
   };
+  const eventStartTimeLabel = event.starts_at
+    ? new Intl.DateTimeFormat('de-AT', {
+        timeZone: 'Europe/Vienna',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date(event.starts_at))
+    : '—';
+  const eventMeetupLabel = event.meeting_at
+    ? new Intl.DateTimeFormat('de-AT', {
+        timeZone: 'Europe/Vienna',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date(event.meeting_at))
+    : null;
+  const eventDetailsText = extractAudienceTrainerNotes(event.notes);
 
   return (
     <div
@@ -2796,6 +2876,16 @@ export const EventDetailPage: React.FC = () => {
                   icon: <CalendarPlus className="h-4 w-4" strokeWidth={2} aria-hidden />,
                   onClick: () => void handleAddSingleEventToCalendar(),
                 },
+                ...(audienceLocation.place || audienceLocation.address
+                  ? [
+                      {
+                        key: 'navigate',
+                        label: 'Navigation starten',
+                        icon: <Navigation className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                        onClick: handleStartNavigation,
+                      },
+                    ]
+                  : []),
                 ...(canTrainerManageEvent
                   ? [
                       {
@@ -2845,6 +2935,55 @@ export const EventDetailPage: React.FC = () => {
             isPublicView={true}
           />
         </div>
+
+        {isEventOrOther ? (
+          <Card className="flex flex-col gap-3 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
+            <CardTitle>Event Infos</CardTitle>
+            <div className={`grid grid-cols-1 ${DS_STAT_GRID_GAP}`}>
+              <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/55">Ort</p>
+                  <p className="text-[14px] font-medium leading-snug text-white/88">
+                    {audienceLocation.place || audienceLocation.address || '—'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5">
+                <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/55">Beginn</p>
+                  <p className="text-[14px] font-medium leading-snug text-white/88">{eventStartTimeLabel} Uhr</p>
+                </div>
+              </div>
+              {eventMeetupLabel ? (
+                <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5">
+                  <Users className="mt-0.5 h-4 w-4 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/55">Treffpunkt</p>
+                    <p className="text-[14px] font-medium leading-snug text-white/88">{eventMeetupLabel} Uhr</p>
+                  </div>
+                </div>
+              ) : null}
+              {eventDetailsText ? (
+                <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5">
+                  <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-[#B85C68]" strokeWidth={2} aria-hidden />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/55">Info</p>
+                    <p className="text-[14px] font-medium leading-snug text-white/88">{eventDetailsText}</p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </Card>
+        ) : null}
+
+        {isEventOrOther && eventDetailsText ? (
+          <Card className="flex flex-col gap-2 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
+            <CardTitle>Weitere Infos</CardTitle>
+            <p className="text-[14px] leading-snug text-white/80">{eventDetailsText}</p>
+          </Card>
+        ) : null}
 
         {isAudienceMatchDetail && (effectiveRole === 'player' || effectiveRole === 'parent') ? (
           <Card className="flex flex-col gap-3 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
@@ -2919,7 +3058,9 @@ export const EventDetailPage: React.FC = () => {
             className={
               isTraining
                 ? 'relative flex flex-col gap-4 overflow-hidden border border-[rgba(122,29,42,0.12)] bg-[rgba(18,18,20,0.94)] shadow-[0_0_32px_rgba(122,29,42,0.08),inset_0_1px_0_rgba(255,255,255,0.03)]'
-                : 'flex flex-col gap-4'
+                : isEventOrOther
+                  ? 'flex flex-col gap-3 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]'
+                  : 'flex flex-col gap-4'
             }
           >
             {isTraining ? (
@@ -3343,79 +3484,147 @@ export const EventDetailPage: React.FC = () => {
           title="Termin bearbeiten"
           onClose={closeEditModal}
           footer={
-            <div className="flex justify-end gap-2">
-              <AppButton variant="secondary" onClick={closeEditModal}>
+            <div className="sticky bottom-0 -mx-1 flex justify-end gap-2 border-t border-white/[0.08] bg-[rgba(10,10,14,0.96)] px-1 pt-3">
+              <AppButton variant="secondary" onClick={closeEditModal} className="min-h-[46px]">
                 Abbrechen
               </AppButton>
-              <AppButton type="submit" form="event-detail-edit-form" variant="primary" disabled={savingEdit}>
+              <AppButton type="submit" form="event-detail-edit-form" variant="primary" disabled={savingEdit} className="min-h-[46px]">
                 {savingEdit ? 'Speichern…' : 'Speichern'}
               </AppButton>
             </div>
           }
         >
           <form id="event-detail-edit-form" onSubmit={handleEditSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="event-detail-edit-opponent" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
-                Gegner / Bezeichnung
-              </label>
-              <input
-                id="event-detail-edit-opponent"
-                type="text"
-                value={editOpponent}
-                onChange={(e) => setEditOpponent(e.target.value)}
+            <section className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">Basisdaten</p>
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="event-detail-edit-opponent" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
+                    {editEvent?.kind === 'match' ? 'Gegner / Bezeichnung' : 'Titel / Bezeichnung'}
+                  </label>
+                  <input
+                    id="event-detail-edit-opponent"
+                    type="text"
+                    value={editEvent?.kind === 'event' ? editTitle : editOpponent}
+                    onChange={(e) => (editEvent?.kind === 'event' ? setEditTitle(e.target.value) : setEditOpponent(e.target.value))}
+                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
+                  />
+                </div>
+                {editEvent?.kind === 'event' ? (
+                  <div>
+                    <p className="mb-1 block text-sm font-medium text-[var(--text-main)]">Eventtyp</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {EVENT_TYPE_CHIPS.map((chip) => {
+                        const Icon = chip.icon;
+                        const titleLc = (editTitle ?? '').toLowerCase();
+                        const keywordMatch = chip.keywords.some((k) => titleLc.includes(k));
+                        const selected = editSheetEventType === chip.value && (chip.keywords.length === 0 || keywordMatch || chip.label === 'Sonstiges');
+                        return (
+                          <button
+                            key={chip.label}
+                            type="button"
+                            onClick={() => setEditSheetEventType(chip.value)}
+                            className={`flex min-h-[42px] items-center gap-2 rounded-lg border px-2.5 text-[12px] font-semibold transition ${
+                              selected
+                                ? 'border-red-400/45 bg-red-900/25 text-red-100 shadow-[0_0_14px_rgba(220,38,38,0.22)]'
+                                : 'border-white/[0.12] bg-white/[0.03] text-white/80'
+                            }`}
+                          >
+                            <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
+                            <span className="text-left leading-tight">{chip.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">Zeiten</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label htmlFor="event-detail-edit-datetime" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
+                    Beginn *
+                  </label>
+                  <input
+                    id="event-detail-edit-datetime"
+                    type="datetime-local"
+                    required
+                    value={editDateTime}
+                    onChange={(e) => setEditDateTime(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="event-detail-edit-end-time" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
+                    Ende (optional)
+                  </label>
+                  <input
+                    id="event-detail-edit-end-time"
+                    type="time"
+                    value={editEndTime}
+                    onChange={(e) => setEditEndTime(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="event-detail-edit-meetup" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
+                    Treffpunkt (optional)
+                  </label>
+                  <input
+                    id="event-detail-edit-meetup"
+                    type="time"
+                    value={editMeetupAt}
+                    onChange={(e) => setEditMeetupAt(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">Ort</p>
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="event-detail-edit-location" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
+                    Platzname / Ort
+                  </label>
+                  <input
+                    id="event-detail-edit-location"
+                    type="text"
+                    value={editLocation}
+                    onChange={(e) => setEditLocation(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
+                    placeholder="z. B. Sportplatz Rohrbach"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="event-detail-edit-location-address" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
+                    Adresse / PLZ / Ort
+                  </label>
+                  <input
+                    id="event-detail-edit-location-address"
+                    type="text"
+                    value={editLocationAddress}
+                    onChange={(e) => setEditLocationAddress(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">Details</p>
+              <textarea
+                value={editDetails}
+                onChange={(e) => setEditDetails(e.target.value)}
+                rows={4}
+                placeholder="Beschreibung / Hinweise / Zusatzinfos"
                 className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
               />
-            </div>
-            <div>
-              <label htmlFor="event-detail-edit-datetime" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
-                Beginn *
-              </label>
-              <input
-                id="event-detail-edit-datetime"
-                type="datetime-local"
-                required
-                value={editDateTime}
-                onChange={(e) => setEditDateTime(e.target.value)}
-                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
-              />
-            </div>
-            <div>
-              <label htmlFor="event-detail-edit-location" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
-                Platzname / Ort (optional)
-              </label>
-              <input
-                id="event-detail-edit-location"
-                type="text"
-                value={editLocation}
-                onChange={(e) => setEditLocation(e.target.value)}
-                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
-                placeholder="z. B. Sportplatz Rohrbach"
-              />
-            </div>
-            <div>
-              <label htmlFor="event-detail-edit-location-address" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
-                Adresse / PLZ / Ort (optional)
-              </label>
-              <input
-                id="event-detail-edit-location-address"
-                type="text"
-                value={editLocationAddress}
-                onChange={(e) => setEditLocationAddress(e.target.value)}
-                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
-              />
-            </div>
-            <div>
-              <label htmlFor="event-detail-edit-meetup" className="mb-1 block text-sm font-medium text-[var(--text-main)]">
-                Treffpunkt (optional)
-              </label>
-              <input
-                id="event-detail-edit-meetup"
-                type="time"
-                value={editMeetupAt}
-                onChange={(e) => setEditMeetupAt(e.target.value)}
-                className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
-              />
-            </div>
+            </section>
             {editEvent?.kind === 'training' ? (
               <label className="flex cursor-pointer items-start gap-2 text-sm text-[var(--text-main)]">
                 <input
