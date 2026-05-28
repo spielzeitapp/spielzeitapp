@@ -68,20 +68,52 @@ function shortMatchTypeLabel(matchType: string | null | undefined): string | nul
   return f;
 }
 
-/** „Heim · Meisterschaft“ / nur Heim oder nur Turnier (Weitere Termine, nur Spiele). */
-function formatGameMatchMetaLine(
-  isHome: boolean | null | undefined,
-  matchType: string | null | undefined,
-): string | null {
-  const homeAway = isHome === true ? 'Heim' : isHome === false ? 'Auswärts' : '';
-  const typeShort = shortMatchTypeLabel(matchType);
-  if (homeAway && typeShort) return `${homeAway} · ${typeShort}`;
-  if (homeAway) return homeAway;
-  if (typeShort) return typeShort;
+function gameHomeAwayChipLabel(isHome: boolean | null | undefined): string | null {
+  if (isHome === true) return 'Heim';
+  if (isHome === false) return 'Auswärts';
   return null;
 }
 
-const GAME_META_LINE_CLASS = 'min-w-0 line-clamp-1 text-[14px] leading-tight text-white/72';
+function gameMatchTypeDisplayLine(
+  matchType: string | null | undefined,
+): { prefix: string; label: string } | null {
+  const label = shortMatchTypeLabel(matchType);
+  if (!label) return null;
+  const key = (matchType ?? '').trim().toLowerCase();
+  const isLeague = !key || key === 'game' || key === 'league' || /^Meisterschaft$/i.test(label);
+  return { prefix: isLeague ? '🏆 ' : '', label };
+}
+
+/** Weitere Termine — Spiele: Chip Heim/Auswärts + Spielart (keine kombinierte Meta-Zeile). */
+function GameCompactMeta({
+  isHome,
+  matchType,
+  className = '',
+}: {
+  isHome: boolean | null | undefined;
+  matchType: string | null | undefined;
+  className?: string;
+}) {
+  const homeAway = gameHomeAwayChipLabel(isHome);
+  const typeLine = gameMatchTypeDisplayLine(matchType);
+  if (!homeAway && !typeLine) return null;
+
+  return (
+    <div className={`flex min-w-0 flex-col gap-0.5 ${className}`}>
+      {homeAway ? (
+        <span className="inline-flex w-fit max-w-full shrink-0 rounded-full border border-red-500/35 px-2 py-px text-[11px] font-semibold leading-tight text-red-300/95">
+          {homeAway}
+        </span>
+      ) : null}
+      {typeLine ? (
+        <p className="min-w-0 whitespace-normal break-words text-[13px] leading-tight text-white/72">
+          {typeLine.prefix}
+          {typeLine.label}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 function CompactOpponentLogo({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
@@ -143,8 +175,6 @@ export function CompactEventCard({
   };
 
   const oppName = (ev.opponent ?? 'Gegner').trim() || 'Gegner';
-
-  const gameMetaLine = et === 'game' ? formatGameMatchMetaLine(ev.is_home, ev.match_type) : null;
 
   const trainingTitle =
     et === 'training' ? (compactTrainingHeadline(ourTeamName, trainingNotesTitle) ?? 'Training') : null;
@@ -244,7 +274,6 @@ export function CompactEventCard({
     );
   }
 
-  const matchShort = shortMatchTypeLabel(ev.match_type);
   const venueIsShort = Boolean(venueOnly && venueOnly.length <= 24);
 
   const typeBadgeLabelOther =
@@ -273,7 +302,7 @@ export function CompactEventCard({
           <p className={titleClamp} lang="de">
             {oppName}
           </p>
-          {gameMetaLine ? <p className={`mt-0.5 ${GAME_META_LINE_CLASS}`}>{gameMetaLine}</p> : null}
+          <GameCompactMeta isHome={ev.is_home} matchType={ev.match_type} className="mt-0.5" />
         </>
       ) : et === 'training' ? (
         <>
