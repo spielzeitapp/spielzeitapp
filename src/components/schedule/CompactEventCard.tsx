@@ -55,14 +55,33 @@ function splitTrainingTitleLines(trainingTitle: string | null): { top: string; b
   return { top: top || 'Training', bottom: 'Training' };
 }
 
-/** Kurzform für Zeile 2 (z. B. „Meisterschaft“ statt „Meisterschaftsspiel“). */
-function shortMatchTypeLabel(matchType: string | null | undefined): string {
-  const f = getMatchTypeLabel(matchType) ?? 'Spiel';
+/** Kurzform für Meta-Zeile (z. B. „Meisterschaft“ statt „Meisterschaftsspiel“). */
+function shortMatchTypeLabel(matchType: string | null | undefined): string | null {
+  const raw = (matchType ?? '').trim();
+  if (!raw) return null;
+  const f = getMatchTypeLabel(matchType);
+  if (!f) return null;
   if (/^Meisterschaftsspiel$/i.test(f)) return 'Meisterschaft';
   if (/^Freundschaftsspiel$/i.test(f)) return 'Freundschaft';
-  if (/^Testspiel$/i.test(f)) return 'Test';
+  if (/^Testspiel$/i.test(f)) return 'Testspiel';
+  if (/^Turnier$/i.test(f)) return 'Turnier';
   return f;
 }
+
+/** „Heim · Meisterschaft“ / nur Heim oder nur Turnier (Weitere Termine, nur Spiele). */
+function formatGameMatchMetaLine(
+  isHome: boolean | null | undefined,
+  matchType: string | null | undefined,
+): string | null {
+  const homeAway = isHome === true ? 'Heim' : isHome === false ? 'Auswärts' : '';
+  const typeShort = shortMatchTypeLabel(matchType);
+  if (homeAway && typeShort) return `${homeAway} · ${typeShort}`;
+  if (homeAway) return homeAway;
+  if (typeShort) return typeShort;
+  return null;
+}
+
+const GAME_META_LINE_CLASS = 'min-w-0 line-clamp-1 text-[14px] leading-tight text-white/72';
 
 function CompactOpponentLogo({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
@@ -125,8 +144,7 @@ export function CompactEventCard({
 
   const oppName = (ev.opponent ?? 'Gegner').trim() || 'Gegner';
 
-  const homeAwayShort =
-    et === 'game' && ev.is_home === true ? 'Heim' : et === 'game' && ev.is_home === false ? 'Auswärts' : '';
+  const gameMetaLine = et === 'game' ? formatGameMatchMetaLine(ev.is_home, ev.match_type) : null;
 
   const trainingTitle =
     et === 'training' ? (compactTrainingHeadline(ourTeamName, trainingNotesTitle) ?? 'Training') : null;
@@ -190,6 +208,16 @@ export function CompactEventCard({
                   </p>
                 ) : null}
               </div>
+            ) : et === 'game' ? (
+              <div className="min-w-0 flex-1">
+                <p
+                  className="min-w-0 line-clamp-2 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]"
+                  lang="de"
+                >
+                  {oppName}
+                </p>
+                {gameMetaLine ? <p className={`mt-0.5 ${GAME_META_LINE_CLASS}`}>{gameMetaLine}</p> : null}
+              </div>
             ) : (
               <p
                 className="min-w-0 flex-1 line-clamp-2 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]"
@@ -199,19 +227,6 @@ export function CompactEventCard({
               </p>
             )}
           </div>
-          {et === 'game' && homeAwayShort ? (
-            <span
-              className={`inline-flex w-fit shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none ${
-                ev.is_home === true
-                  ? 'border-emerald-400/25 bg-emerald-500/12 text-emerald-200'
-                  : ev.is_home === false
-                    ? 'border-red-400/25 bg-red-500/12 text-red-200'
-                    : 'border-white/20 bg-white/10 text-white/75'
-              }`}
-            >
-              {homeAwayShort}
-            </span>
-          ) : null}
           {venueOnly ? <p className="min-w-0 line-clamp-2 text-[14px] leading-tight text-white/72">{venueOnly}</p> : null}
         </div>
 
@@ -254,9 +269,12 @@ export function CompactEventCard({
   const titleText = (
     <div className="min-w-0 flex-1">
       {et === 'game' ? (
-        <p className={titleClamp} lang="de">
-          {oppName}
-        </p>
+        <>
+          <p className={titleClamp} lang="de">
+            {oppName}
+          </p>
+          {gameMetaLine ? <p className={`mt-0.5 ${GAME_META_LINE_CLASS}`}>{gameMetaLine}</p> : null}
+        </>
       ) : et === 'training' ? (
         <>
           <p className="min-w-0 line-clamp-1 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]" lang="de">
@@ -277,26 +295,7 @@ export function CompactEventCard({
   );
 
   const line2 =
-    et === 'game' ? (
-      <div className="flex min-w-0 items-center gap-1.5">
-        {homeAwayShort ? (
-          <span
-            className={`inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none ${
-              ev.is_home === true
-                ? 'border-emerald-400/20 bg-emerald-500/12 text-emerald-200'
-                : ev.is_home === false
-                  ? 'border-red-400/20 bg-red-500/12 text-red-200'
-                  : 'border-white/20 bg-white/10 text-white/75'
-            }`}
-          >
-            {homeAwayShort}
-          </span>
-        ) : null}
-        {venueOnly ? null : (
-          <span className="min-w-0 text-[14px] leading-tight text-white/70">{matchShort}</span>
-        )}
-      </div>
-    ) : et !== 'game' && et !== 'training' && typeBadgeLabelOther ? (
+    et !== 'game' && et !== 'training' && typeBadgeLabelOther ? (
       <span
         className={`inline-flex w-fit max-w-full shrink-0 rounded-full px-2 py-0.5 text-[12px] font-bold uppercase tracking-wide ${eventTypeBadgeClass(et)}`}
       >
