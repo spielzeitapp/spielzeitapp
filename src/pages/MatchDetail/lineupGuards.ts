@@ -1,3 +1,4 @@
+import { LIVE_FIELD_SLOT_ORDER } from '../../lib/liveMatchService';
 import type { Match } from '../../types/match';
 import type { FieldSlotId } from '../../types/match';
 
@@ -33,6 +34,17 @@ export function getOnFieldPlayers(
  * - GK muss belegt sein
  * - Mindestanzahl Feldspieler (MIN_FIELD_PLAYERS) muss erreicht sein
  */
+/** 7er-Startelf vollständig (wie MatchLineupPage: 7/7 Slots belegt). */
+export function isStartelfCompleteFromStartingIds(
+  startingPlayerIds: readonly (string | null | undefined)[],
+): boolean {
+  let filled = 0;
+  for (let i = 0; i < LIVE_FIELD_SLOT_ORDER.length; i++) {
+    if (String(startingPlayerIds[i] ?? '').trim().length > 0) filled++;
+  }
+  return filled >= LIVE_FIELD_SLOT_ORDER.length;
+}
+
 export function isStartelfCompleteForLive(match: Match): boolean {
   const home = match.field?.home ?? {};
   const gkFilled = typeof home.GK === 'string' && home.GK.trim().length > 0;

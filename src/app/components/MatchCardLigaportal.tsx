@@ -85,6 +85,10 @@ type MatchCardLigaportalProps = {
   onScheduleHeroAddToCalendar?: () => void;
   /** Nur „Nächstes Spiel“-Hero: Livespiel-CTA in der Card. */
   onScheduleHeroGoLive?: () => void;
+  /** Trainer: Match-Vorbereitung (Kader → Aufstellung), nicht Livescreen. */
+  onScheduleHeroPrepare?: () => void;
+  /** Trainer: Startelf vollständig gespeichert → „Live starten“. */
+  lineupReady?: boolean;
   /** Match läuft (DB live_is_running) – Audience-Live-State auch wenn Event-Status noch nachzieht. */
   liveIsRunning?: boolean | null;
   /** Event-Detail: Matchcard kompakter wie Schedule-Hero, ohne dessen Header/Actions. */
@@ -125,6 +129,8 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   scheduleNextMatchHero = false,
   onScheduleHeroAddToCalendar,
   onScheduleHeroGoLive,
+  onScheduleHeroPrepare,
+  lineupReady = false,
   liveIsRunning = null,
   compactDetailGame = false,
 }) => {
@@ -317,8 +323,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     return 'pre_meetup';
   })();
   const heroMeetupTimeDisplay = scheduleMetaTimeDisplay(meetupTimeOnly).replace(/\s*Uhr$/i, '').trim();
-  // TODO: wire readiness to saved lineup completeness
-  const isLineupReady = false;
+  const isLineupReady = Boolean(lineupReady);
 
   const heroMatchMetaTile =
     'flex h-full min-h-0 min-w-0 flex-col items-center justify-center px-0.5 py-1 text-center sm:px-1';
@@ -418,6 +423,39 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
     if (onScheduleHeroGoLive) onScheduleHeroGoLive();
     else handleCardClick();
   };
+
+  const handleScheduleHeroPrepareAction = () => {
+    if (onScheduleHeroPrepare) onScheduleHeroPrepare();
+    else handleCardClick();
+  };
+
+  const renderScheduleHeroLiveOpenTile = (onActivate: () => void) => (
+    <div
+      role="button"
+      tabIndex={0}
+      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer overflow-hidden pr-5`}
+      style={{ WebkitAppearance: 'none' }}
+      onClick={onActivate}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onActivate();
+        }
+      }}
+    >
+      <span className={`${heroMatchMetaIcon} text-red-400`}>
+        <Radio className="animate-pulse" strokeWidth={2} aria-hidden />
+      </span>
+      <span className={`${heroMatchMetaLabel} text-red-400`}>LIVE</span>
+      <div className={heroMatchMetaValueWrap}>
+        <span className={`${heroMatchMetaSubPrimary} text-white/90`}>Livespiel</span>
+        <span className={heroMatchMetaSub}>öffnen</span>
+      </div>
+      <div className={heroLivePrepareStripe} aria-hidden>
+        <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.25} />
+      </div>
+    </div>
+  );
 
   const splitAudienceHeroPlaceLines = (place: string): { line2: string; line3: string } => {
     const p = (place || '').trim();
@@ -1087,10 +1125,24 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                     </div>
                   )}
 
-                  {isLineupReady ? (
+                  {matchPhase === 'live' ? (
+                    onScheduleHeroGoLive
+                      ? renderScheduleHeroLiveOpenTile(handleScheduleHeroLiveAction)
+                      : (
+                    <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} pointer-events-none opacity-50`}>
+                      <span className={`${heroMatchMetaIcon} text-red-400/50`}>
+                        <Radio strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className={`${heroMatchMetaLabel} text-red-400/50`}>LIVE</span>
+                      <div className={heroMatchMetaValueWrap}>
+                        <span className={heroMatchMetaSub}>öffnen</span>
+                      </div>
+                    </div>
+                      )
+                  ) : isLineupReady ? (
                     renderScheduleHeroLiveReadyTile(handleScheduleHeroLiveAction)
-                  ) : showScheduleHeroGoLive || isClickable ? (
-                    renderScheduleHeroLivePrepareTile(handleScheduleHeroLiveAction)
+                  ) : onScheduleHeroPrepare || isClickable ? (
+                    renderScheduleHeroLivePrepareTile(handleScheduleHeroPrepareAction)
                   ) : (
                     <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
                       <span className={`${heroMatchMetaIcon} text-red-400/50`}>

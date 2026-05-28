@@ -53,6 +53,8 @@ import {
   parsePeriodScores,
   sumPeriodScoresTriplet,
 } from '../lib/matchEventScores';
+import { fetchLineupForLiveMatch } from '../lib/liveMatchService';
+import { isStartelfCompleteFromStartingIds } from '../pages/MatchDetail/lineupGuards';
 
 type KindFilterId = 'all' | 'match' | 'training' | 'event';
 type TimeFilterId = 'upcoming' | 'past';
@@ -725,6 +727,27 @@ export const SchedulePage: React.FC = () => {
   }, [displayEvents.length, normalizedUiRole, timeFilter]);
 
   const heroEvent = showHeroCard ? displayEvents[0] ?? null : null;
+  const [heroLineupReady, setHeroLineupReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const mid = heroEvent?.match_id?.trim() ?? '';
+    if (!mid || !heroEvent || getEffectiveEventType(heroEvent) !== 'game') {
+      setHeroLineupReady(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+    void (async () => {
+      const { data, error } = await fetchLineupForLiveMatch(mid);
+      if (cancelled) return;
+      setHeroLineupReady(!error && isStartelfCompleteFromStartingIds(data.startingPlayerIds));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [heroEvent?.id, heroEvent?.match_id]);
+
   const furtherEvents = useMemo(() => {
     if (!showHeroCard) return displayEvents;
     return displayEvents.slice(1);
@@ -1133,12 +1156,26 @@ export const SchedulePage: React.FC = () => {
                                   ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
                                   : navigate(`/app/events/${id}`);
                         const heroCardFooter = undefined;
+                        const heroIsLive =
+                          ev.status === 'live' || Boolean(matchScore?.liveIsRunning);
+                        const heroPrepare =
+                          et === 'game' &&
+                          ev.match_id &&
+                          !forcePublicView &&
+                          Boolean(heroShowsTrainerStats) &&
+                          !heroIsLive &&
+                          ev.status !== 'finished'
+                            ? () =>
+                                navigate(
+                                  `/app/match-preparation?matchId=${encodeURIComponent(ev.match_id!)}`,
+                                )
+                            : undefined;
                         const heroGoLive =
                           et === 'game' &&
                           ev.match_id &&
-                          ev.status !== 'finished' &&
-                          !forcePublicView
-                            ? () => navigate(`/live?matchId=${ev.match_id}`)
+                          !forcePublicView &&
+                          (heroIsLive || (Boolean(heroShowsTrainerStats) && heroLineupReady))
+                            ? () => navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id!)}`)
                             : undefined;
                         const opponentLogo = ev.opponent_logo_url ?? null;
                         if (et === 'game') {
@@ -1195,7 +1232,9 @@ export const SchedulePage: React.FC = () => {
                                     heroShowsParentPill ? () => setAttendanceModalEvent(ev) : undefined
                                   }
                                   isPublicView={forcePublicView}
+                                  onScheduleHeroPrepare={heroPrepare}
                                   onScheduleHeroGoLive={heroGoLive}
+                                  lineupReady={Boolean(heroShowsTrainerStats && heroLineupReady)}
                                   liveIsRunning={matchScore?.liveIsRunning ?? null}
                                 />
                               </EventHeroCard>
