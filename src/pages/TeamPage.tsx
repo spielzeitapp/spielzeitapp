@@ -699,7 +699,10 @@ export const TeamPage: React.FC = () => {
         canManage={canManagePlayers}
         onClose={closePlayerProfile}
         onEdit={handleEditFromProfile}
-        onPlayerUpdated={() => void refetchPlayers()}
+        onPlayerUpdated={(patch) => {
+          setSelectedProfilePlayer((prev) => (prev ? { ...prev, ...patch } : prev));
+          void refetchPlayers();
+        }}
       />
     ) : null}
     {canManagePlayers && teamSeasonId != null ? (

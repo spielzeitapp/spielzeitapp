@@ -25,8 +25,8 @@ export type PlayerProfileModalProps = {
   canManage: boolean;
   onClose: () => void;
   onEdit: () => void;
-  /** Nach LAZ-Flag-Änderung Kader neu laden. */
-  onPlayerUpdated?: () => void;
+  /** Nach LAZ-Flag-Änderung Kader + Profil-State aktualisieren. */
+  onPlayerUpdated?: (patch: Pick<PlayerItem, "is_laz_player">) => void;
 };
 
 type ProfileTab = "overview" | "matches" | "achievements" | "training";
@@ -314,18 +314,22 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
   const handleLazPlayerToggle = async (next: boolean) => {
     if (!canManage || lazSaving) return;
+    const previous = player.is_laz_player;
     setLazSaving(true);
     setLazError(null);
+    setIsLazPlayer(next);
     const { error } = await supabase.from("players").update({ is_laz_player: next }).eq("id", player.id);
     setLazSaving(false);
     if (error) {
+      setIsLazPlayer(previous);
       setLazError(error.message ?? "Speichern fehlgeschlagen.");
       return;
     }
-    setIsLazPlayer(next);
     setSaveToastVisible(true);
-    onPlayerUpdated?.();
+    onPlayerUpdated?.({ is_laz_player: next });
   };
+
+  const lazToggleChecked = lazSaving ? isLazPlayer : player.is_laz_player;
 
   const bottomPad = canManage
     ? "max(6.25rem, calc(env(safe-area-inset-bottom, 0px) + 5.75rem))"
@@ -433,7 +437,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
               <SpecialSettingToggleRow
                 label="LAZ-Spieler"
                 hint="Eltern können bei Trainings LAZ als Status wählen."
-                checked={isLazPlayer}
+                checked={lazToggleChecked}
                 disabled={lazSaving}
                 error={lazError}
                 onChange={(next) => void handleLazPlayerToggle(next)}

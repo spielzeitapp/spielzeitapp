@@ -47,6 +47,10 @@ function normalizeProfileBirthdate(raw: string | null | undefined): string | nul
   return String(raw).trim().slice(0, 10) || null;
 }
 
+function normalizeIsLazPlayer(raw: unknown): boolean {
+  return raw === true;
+}
+
 function toPlayer(row: PlayerRow): PlayerItem {
   const first = row.first_name != null ? String(row.first_name).trim() : "";
   const last = row.last_name != null ? String(row.last_name).trim() : "";
@@ -68,6 +72,7 @@ function toPlayer(row: PlayerRow): PlayerItem {
         : row.status === "archived"
           ? "archived"
           : "active",
+    is_laz_player: normalizeIsLazPlayer(row.is_laz_player),
     display_name,
   };
 }
