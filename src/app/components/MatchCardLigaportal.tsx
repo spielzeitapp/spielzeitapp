@@ -1054,23 +1054,24 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               {heroYear ? <span className="text-[10px] font-medium leading-tight text-white/45">{heroYear}</span> : null}
               {renderAudienceHeroAttendanceButton()}
               {!isAudienceHeroRole && showAttendanceCounts && attendanceCounts ? (
-                <div className="mt-2.5 flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex flex-col items-center">
-                    <ThumbsUp className="h-3 w-3 text-emerald-400" strokeWidth={2.5} aria-hidden />
-                    <span className="text-[13px] font-bold tabular-nums leading-tight text-emerald-400">{attendanceCounts.yes}</span>
-                    <span className="text-[7px] font-bold uppercase tracking-wider text-emerald-400/70">Zusagen</span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <CircleHelp className="h-3 w-3 text-amber-400" strokeWidth={2.5} aria-hidden />
-                    <span className="text-[13px] font-bold tabular-nums leading-tight text-amber-400">{attendanceCounts.open}</span>
-                    <span className="text-[7px] font-bold uppercase tracking-wider text-amber-400/70">Offen</span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <ThumbsDown className="h-3 w-3 text-rose-400" strokeWidth={2.5} aria-hidden />
-                    <span className="text-[13px] font-bold tabular-nums leading-tight text-rose-400">{attendanceCounts.no}</span>
-                    <span className="text-[7px] font-bold uppercase tracking-wider text-rose-400/70">Absagen</span>
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  className="mt-2.5 inline-flex items-center justify-center rounded-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-black/70"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenAttendance?.();
+                  }}
+                  aria-label="Zu-/Absagen öffnen"
+                >
+                  <TrainerStatsMini
+                    yes={attendanceCounts.yes}
+                    no={attendanceCounts.no}
+                    open={attendanceCounts.open}
+                    isTraining={false}
+                    listColumn
+                    size="hero"
+                  />
+                </button>
               ) : null}
             </div>
 

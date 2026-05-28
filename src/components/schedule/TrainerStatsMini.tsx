@@ -48,61 +48,26 @@ export function TrainerStatsMini({
     : 'shadow-[0_0_6px_rgba(122,29,42,0.08)]';
 
   if (listColumn) {
-    if (!isHero) {
-      const towerBase =
-        'flex w-full max-w-[54px] shrink-0 flex-col overflow-hidden rounded-[12px] border border-white/[0.12] bg-[linear-gradient(170deg,rgba(20,20,24,0.98)_0%,rgba(10,10,12,0.98)_58%,rgba(26,10,14,0.95)_100%)] shadow-[0_10px_20px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-[1px]';
-      const rowBase =
-        'flex min-h-[23px] items-center justify-center gap-1 px-1.5 text-[13px] font-extrabold tabular-nums leading-none';
-      return (
-        <div className={`${towerBase} ${className}`} aria-label="Zu- und Absagen">
-          <span
-            className={`${rowBase} text-emerald-300`}
-            title={yesTitle}
-          >
-            <ThumbsUp className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-            {yes}
-          </span>
-          <span
-            className={`${rowBase} border-t border-white/[0.08] text-amber-300`}
-            title="Offen"
-          >
-            <CircleHelp className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-            {open}
-          </span>
-          <span
-            className={`${rowBase} border-t border-white/[0.08] text-rose-300`}
-            title="Abgesagt"
-          >
-            <ThumbsDown className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-            {no}
-          </span>
-        </div>
-      );
-    }
-
-    const colWidth = isHero ? 'max-w-[56px]' : 'max-w-[54px]';
+    const towerBase = isHero
+      ? 'flex w-full max-w-[58px] shrink-0 flex-col overflow-hidden rounded-[13px] border border-white/[0.14] bg-[linear-gradient(170deg,rgba(20,20,24,0.98)_0%,rgba(10,10,12,0.98)_58%,rgba(26,10,14,0.95)_100%)] shadow-[0_12px_24px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-[1px]'
+      : 'flex w-full max-w-[54px] shrink-0 flex-col overflow-hidden rounded-[12px] border border-white/[0.12] bg-[linear-gradient(170deg,rgba(20,20,24,0.98)_0%,rgba(10,10,12,0.98)_58%,rgba(26,10,14,0.95)_100%)] shadow-[0_10px_20px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-[1px]';
+    const rowBase = isHero
+      ? 'flex min-h-[25px] items-center justify-center gap-1 px-1.5 text-[14px] font-extrabold tabular-nums leading-none'
+      : 'flex min-h-[23px] items-center justify-center gap-1 px-1.5 text-[13px] font-extrabold tabular-nums leading-none';
+    const iconSize = isHero ? 'h-4 w-4' : 'h-3.5 w-3.5';
     return (
-      <div
-        className={`flex w-full ${colWidth} shrink-0 flex-col items-center justify-center gap-2 ${className}`}
-        aria-label="Zu- und Absagen"
-      >
-        <span
-          className={`${pillSm} ${pillSize} border-emerald-500/42 bg-[rgba(14,58,40,0.58)] text-[#9DFFC5] ${yesGlow}`}
-          title={yesTitle}
-        >
-          ✓ {yes}
+      <div className={`${towerBase} ${className}`} aria-label="Zu- und Absagen">
+        <span className={`${rowBase} text-emerald-300`} title={yesTitle}>
+          <ThumbsUp className={`${iconSize} shrink-0`} strokeWidth={2.25} aria-hidden />
+          {yes}
         </span>
-        <span
-          className={`${pillSm} ${pillSize} border-[rgba(122,29,42,0.42)] bg-[rgba(58,18,24,0.6)] text-[#E8B0B8] ${noGlow}`}
-          title="Abgesagt"
-        >
-          ✕ {no}
+        <span className={`${rowBase} border-t border-white/[0.08] text-amber-300`} title="Offen">
+          <CircleHelp className={`${iconSize} shrink-0`} strokeWidth={2.25} aria-hidden />
+          {open}
         </span>
-        <span
-          className={`${pillSm} ${pillSize} border-white/[0.12] bg-[rgba(14,14,16,0.96)] text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}
-          title="Offen"
-        >
-          ? {open}
+        <span className={`${rowBase} border-t border-white/[0.08] text-rose-300`} title="Abgesagt">
+          <ThumbsDown className={`${iconSize} shrink-0`} strokeWidth={2.25} aria-hidden />
+          {no}
         </span>
       </div>
     );

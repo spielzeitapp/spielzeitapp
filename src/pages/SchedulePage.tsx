@@ -1124,14 +1124,25 @@ export const SchedulePage: React.FC = () => {
                           normalizedUiRole === 'fan'
                             ? null
                             : heroShowsTrainerStats ? (
-                                <TrainerStatsMini
-                                  yes={countsForCard.yes}
-                                  no={countsForCard.no}
-                                  open={countsForCard.open}
-                                  isTraining={et === 'training'}
-                                  listColumn
-                                  size="hero"
-                                />
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center justify-center rounded-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-black/70"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setAttendanceModalEvent(ev);
+                                  }}
+                                  aria-label="Zu-/Absagen öffnen"
+                                >
+                                  <TrainerStatsMini
+                                    yes={countsForCard.yes}
+                                    no={countsForCard.no}
+                                    open={countsForCard.open}
+                                    isTraining={et === 'training'}
+                                    listColumn
+                                    size="hero"
+                                  />
+                                </button>
                               ) : heroShowsParentPill && et !== 'game' ? (
                                 <CompactListParentAttendance
                                   status={attendanceMergedToPillStatus(attendanceStatusMerged)}
@@ -1220,7 +1231,9 @@ export const SchedulePage: React.FC = () => {
                                         : null
                                   }
                                   onOpenAttendance={
-                                    heroShowsParentPill ? () => setAttendanceModalEvent(ev) : undefined
+                                    heroShowsTrainerStats || heroShowsParentPill
+                                      ? () => setAttendanceModalEvent(ev)
+                                      : undefined
                                   }
                                   isPublicView={forcePublicView}
                                   onScheduleHeroGoLive={heroGoLive}
