@@ -74,6 +74,20 @@ function gameHomeAwayChipLabel(isHome: boolean | null | undefined): string | nul
   return null;
 }
 
+const GAME_CHIP_BASE_CLASS =
+  'inline-flex w-fit max-w-full shrink-0 rounded-full px-2 py-px text-[11px] font-semibold leading-tight';
+
+function gameHomeAwayChipClass(isHome: boolean | null | undefined): string {
+  if (isHome === true) {
+    return [
+      GAME_CHIP_BASE_CLASS,
+      'border border-[rgba(73,190,139,0.38)] bg-[rgba(12,50,38,0.82)] text-[#7FE3B2]',
+      'shadow-[0_0_10px_rgba(73,190,139,0.16)]',
+    ].join(' ');
+  }
+  return [GAME_CHIP_BASE_CLASS, 'border border-red-500/35 text-red-300/95'].join(' ');
+}
+
 function gameMatchTypeDisplayLine(
   matchType: string | null | undefined,
 ): { prefix: string; label: string } | null {
@@ -101,9 +115,7 @@ function GameCompactMeta({
   return (
     <div className={`flex min-w-0 flex-col gap-0.5 ${className}`}>
       {homeAway ? (
-        <span className="inline-flex w-fit max-w-full shrink-0 rounded-full border border-red-500/35 px-2 py-px text-[11px] font-semibold leading-tight text-red-300/95">
-          {homeAway}
-        </span>
+        <span className={gameHomeAwayChipClass(isHome)}>{homeAway}</span>
       ) : null}
       {typeLine ? (
         <p className="min-w-0 whitespace-normal break-words text-[13px] leading-tight text-white/72">
