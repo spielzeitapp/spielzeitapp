@@ -356,14 +356,14 @@ export function ScheduleHeroEventCard({
 
   const trainingMetaItems = [
     {
-      icon: <Clock strokeWidth={2} aria-hidden />,
-      label: 'Beginn',
-      value: scheduleMetaTimeDisplay(timeStr),
-    },
-    {
       icon: <Users strokeWidth={2} aria-hidden />,
       label: 'Treffpunkt',
       value: showMeetup && meetupTimeOnly ? scheduleMetaTimeDisplay(meetupTimeOnly) : 'Offen',
+    },
+    {
+      icon: <Clock strokeWidth={2} aria-hidden />,
+      label: 'Beginn',
+      value: scheduleMetaTimeDisplay(timeStr),
     },
     {
       icon: <Clock strokeWidth={2} aria-hidden />,

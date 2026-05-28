@@ -1294,14 +1294,25 @@ export const SchedulePage: React.FC = () => {
                         !isFinishedMatch &&
                         (uiRole === 'parent' || uiRole === 'player');
                       const compactTrailing = showCompactTrainerStats ? (
-                        <TrainerStatsMini
-                          yes={countsForCard.yes}
-                          no={countsForCard.no}
-                          open={countsForCard.open}
-                          isTraining={et === 'training'}
-                          listColumn
-                          size="list"
-                        />
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center rounded-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-black/70"
+                          aria-label="Zu-/Absagen öffnen"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setAttendanceModalEvent(ev);
+                          }}
+                        >
+                          <TrainerStatsMini
+                            yes={countsForCard.yes}
+                            no={countsForCard.no}
+                            open={countsForCard.open}
+                            isTraining={et === 'training'}
+                            listColumn
+                            size="list"
+                          />
+                        </button>
                       ) : showCompactParentPill ? (
                         <CompactListParentAttendance
                           status={attendanceMergedToPillStatus(attendanceStatusMerged)}

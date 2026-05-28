@@ -1,4 +1,5 @@
 import React from 'react';
+import { CircleHelp, ThumbsDown, ThumbsUp } from 'lucide-react';
 
 type Props = {
   yes: number;
@@ -47,6 +48,38 @@ export function TrainerStatsMini({
     : 'shadow-[0_0_6px_rgba(122,29,42,0.08)]';
 
   if (listColumn) {
+    if (!isHero) {
+      const towerBase =
+        'flex w-full max-w-[54px] shrink-0 flex-col overflow-hidden rounded-[12px] border border-white/[0.12] bg-[linear-gradient(170deg,rgba(20,20,24,0.98)_0%,rgba(10,10,12,0.98)_58%,rgba(26,10,14,0.95)_100%)] shadow-[0_10px_20px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-[1px]';
+      const rowBase =
+        'flex min-h-[23px] items-center justify-center gap-1 px-1.5 text-[13px] font-extrabold tabular-nums leading-none';
+      return (
+        <div className={`${towerBase} ${className}`} aria-label="Zu- und Absagen">
+          <span
+            className={`${rowBase} text-emerald-300`}
+            title={yesTitle}
+          >
+            <ThumbsUp className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+            {yes}
+          </span>
+          <span
+            className={`${rowBase} border-t border-white/[0.08] text-amber-300`}
+            title="Offen"
+          >
+            <CircleHelp className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+            {open}
+          </span>
+          <span
+            className={`${rowBase} border-t border-white/[0.08] text-rose-300`}
+            title="Abgesagt"
+          >
+            <ThumbsDown className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+            {no}
+          </span>
+        </div>
+      );
+    }
+
     const colWidth = isHero ? 'max-w-[56px]' : 'max-w-[54px]';
     return (
       <div
