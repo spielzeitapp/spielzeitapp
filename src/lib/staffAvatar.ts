@@ -5,7 +5,7 @@ import { supabase } from "./supabaseClient";
  * - Original in avatar_url behalten
  * - Nach Upload Hintergrund entfernen → PNG mit Transparenz
  * - cutout_url unter `{teamSeasonId}/staff/{userId}-cutout.png` speichern
- * - profiles.cutout_url setzen; Hero nutzt resolveProfileHeroImage()
+ * - profiles.cutout_url setzen; Hero nutzt profileHeroLayoutMode() / cutout-Modus
  */
 
 /** Öffentlicher Team-Bucket; RLS erlaubt Coach-Upload unter `{teamSeasonId}/…`. */

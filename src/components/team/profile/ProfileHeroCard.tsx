@@ -1,34 +1,38 @@
 import React from "react";
-import { resolveProfileHeroImage, type ProfileHeroImageMode } from "../../../lib/profileHeroImage";
+import {
+  hasCutoutUrl,
+  profileHeroLayoutMode,
+  resolveProfileCutoutSrc,
+  resolveProfilePhotoSrc,
+} from "../../../lib/profileHeroImage";
 
 /**
- * Premium-Profil-Banner (Spieler + Trainer).
- *
- * Layer 1: Full-Width Stadion-/Flutlicht-Hintergrund
- * Layer 2: Wasserzeichen (Nummer / TR|CT|CH) — hinter Text und Figur
- * Layer 3: Text links, Figur rechts (cutout_url bevorzugt, sonst photo_url)
+ * Premium-Profil-Banner — zwei Layout-Modi:
+ * - cutout: echte PNG-Freistellung (cutout_url)
+ * - avatar: normales Foto im Neon-Rahmen (photo_url)
  */
 
 const WATERMARK_STYLE: React.CSSProperties = {
-  fontSize: "clamp(6.25rem, 38vw, 11.5rem)",
-  color: "rgba(122, 29, 42, 0.3)",
-  WebkitTextStroke: "2px rgba(180, 28, 45, 0.5)",
+  fontSize: "clamp(5.5rem, 32vw, 10rem)",
+  color: "rgba(122, 29, 42, 0.28)",
+  WebkitTextStroke: "2px rgba(180, 28, 45, 0.45)",
   paintOrder: "stroke fill",
   textShadow:
-    "0 0 48px rgba(180, 28, 45, 0.42), 0 0 12px rgba(220, 38, 38, 0.25), 0 3px 0 rgba(0,0,0,0.5), 2px 2px 0 rgba(140, 20, 35, 0.35)",
+    "0 0 48px rgba(180, 28, 45, 0.35), 0 3px 0 rgba(0,0,0,0.45), 2px 2px 0 rgba(140, 20, 35, 0.3)",
 };
+
+const NAME_TEXT_CLASS =
+  "whitespace-normal break-normal font-black uppercase leading-tight tracking-tight text-white [overflow-wrap:normal] [word-break:normal] [text-shadow:0_2px_16px_rgba(0,0,0,0.75),0_0_1px_rgba(0,0,0,0.9)] text-[clamp(0.95rem,3.8vw,1.5rem)]";
+
+const TEAM_TEXT_CLASS =
+  "mt-1.5 line-clamp-2 whitespace-normal break-normal text-[13px] font-medium leading-snug text-white/78 [overflow-wrap:normal] [word-break:normal] sm:text-[14px]";
 
 type Props = {
   watermark: string;
   firstNameLine: string;
   lastNameLine: string;
   teamSeasonLabel: string;
-  /** avatar_url / photo_url — Fallback wenn kein cutout_url */
   photoUrl?: string | null;
-  /**
-   * PNG-Freistellung (optional, DB-Feld folgt in Phase 2).
-   * @see PlayerItem.cutout_url, TeamStaffMember.cutout_url
-   */
   cutoutUrl?: string | null;
   initials: string;
   showTacticalBoard?: boolean;
@@ -109,69 +113,75 @@ function TacticalBoardOverlay() {
   );
 }
 
-const FIGURE_SIZE_CUTOUT =
-  "max-h-[8.75rem] max-w-[52%] sm:max-h-[10.75rem] sm:max-w-[50%]";
-const FIGURE_SIZE_PHOTO =
-  "max-h-[8.25rem] max-w-[50%] sm:max-h-[10rem] sm:max-w-[48%]";
+function HeroTextBlock({
+  firstNameLine,
+  lastNameLine,
+  teamSeasonLabel,
+}: Pick<Props, "firstNameLine" | "lastNameLine" | "teamSeasonLabel">) {
+  const fullName = [firstNameLine, lastNameLine].filter(Boolean).join(" ");
 
-function figureImgClass(mode: ProfileHeroImageMode): string {
-  const base =
-    "pointer-events-none absolute bottom-0 right-0 z-[2] w-auto bg-transparent object-contain object-bottom";
-  const size = mode === "cutout" ? FIGURE_SIZE_CUTOUT : FIGURE_SIZE_PHOTO;
-  const shadow = "drop-shadow-[0_12px_32px_rgba(0,0,0,0.6),0_4px_14px_rgba(0,0,0,0.4)]";
-  if (mode === "cutout") {
-    return `${base} ${size} ${shadow}`;
-  }
-  return `${base} ${size} ${shadow} rounded-2xl ring-1 ring-red-500/20 [mask-image:linear-gradient(180deg,#000_88%,transparent_100%)]`;
+  return (
+    <div className="relative z-[3] min-w-[46%] max-w-[62%] flex-1 pb-0.5">
+      <p className={`line-clamp-2 ${NAME_TEXT_CLASS}`}>{fullName}</p>
+      <p className={TEAM_TEXT_CLASS}>{teamSeasonLabel}</p>
+    </div>
+  );
 }
 
-function HeroFigure({
-  cutoutUrl,
+/** Mode B: Premium-Avatar im Flex-Layout (normales Foto oder Initialen). */
+function HeroAvatarFrame({
   photoUrl,
   initials,
 }: {
-  cutoutUrl?: string | null;
   photoUrl?: string | null;
   initials: string;
 }) {
-  const resolved = resolveProfileHeroImage(cutoutUrl, photoUrl);
-  const [failedSrc, setFailedSrc] = React.useState<string | null>(null);
-
-  const active =
-    resolved && resolved.src !== failedSrc
-      ? resolved
-      : resolved?.mode === "cutout" && (photoUrl ?? "").trim()
-        ? resolveProfileHeroImage(null, photoUrl)
-        : null;
-
-  const showPhoto = active != null && active.src !== failedSrc;
-
-  if (!showPhoto) {
-    return (
-      <span
-        className="pointer-events-none absolute bottom-3 right-3 z-[2] font-black uppercase leading-none text-white/25 [text-shadow:0_0_40px_rgba(220,38,38,0.35)] text-[clamp(2.5rem,14vw,3.75rem)]"
-        aria-hidden
-      >
-        {initials}
-      </span>
-    );
-  }
-
-  const glowWide = active.mode === "cutout" ? "w-[52%] max-w-[12rem]" : "w-[48%] max-w-[11rem]";
+  const photoSrc = resolveProfilePhotoSrc(photoUrl);
+  const [photoFailed, setPhotoFailed] = React.useState(false);
+  const showPhoto = Boolean(photoSrc) && !photoFailed;
 
   return (
-    <>
+    <div className="relative z-[2] shrink-0 self-end">
+      <div className="absolute inset-0 scale-110 rounded-2xl bg-red-500/45 blur-2xl" aria-hidden />
+      <div className="relative h-[6.5rem] w-[6.5rem] rounded-2xl bg-gradient-to-br from-red-400 via-red-600 to-red-900 p-[2px] shadow-[0_0_28px_rgba(220,38,38,0.65),0_0_48px_rgba(239,68,68,0.32),0_8px_24px_rgba(0,0,0,0.5)] sm:h-[7.75rem] sm:w-[7.75rem]">
+        {showPhoto ? (
+          <img
+            src={photoSrc!}
+            alt=""
+            className="h-full w-full rounded-[14px] border border-red-400/40 object-cover object-top shadow-[inset_0_0_12px_rgba(0,0,0,0.3)]"
+            onError={() => setPhotoFailed(true)}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center rounded-[14px] bg-gradient-to-b from-zinc-800 to-zinc-950 text-xl font-black text-white sm:text-2xl">
+            {initials}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Mode A: Freigestellte PNG — nur bei cutout_url. */
+function HeroCutoutFigure({
+  cutoutSrc,
+  onLoadError,
+}: {
+  cutoutSrc: string;
+  onLoadError: () => void;
+}) {
+  return (
+    <div className="relative z-[2] h-[7.5rem] w-[7.5rem] shrink-0 self-end sm:h-[9.25rem] sm:w-[9.5rem]">
       <div
-        className={`pointer-events-none absolute bottom-[2%] right-[2%] z-[1] h-[88%] ${glowWide} bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.36)_0%,rgba(140,20,35,0.12)_48%,transparent_72%)] blur-2xl sm:max-w-[13rem]`}
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.38)_0%,rgba(140,20,35,0.12)_50%,transparent_72%)] blur-2xl"
         aria-hidden
       />
       <img
-        src={active.src}
+        src={cutoutSrc}
         alt=""
-        className={figureImgClass(active.mode)}
-        onError={() => setFailedSrc(active.src)}
+        className="relative z-[1] h-full w-full object-contain object-bottom drop-shadow-[0_12px_28px_rgba(0,0,0,0.55)]"
+        onError={onLoadError}
       />
-    </>
+    </div>
   );
 }
 
@@ -185,38 +195,40 @@ export const ProfileHeroCard: React.FC<Props> = ({
   initials,
   showTacticalBoard = false,
 }) => {
+  const cutoutSrc = hasCutoutUrl(cutoutUrl) ? resolveProfileCutoutSrc(cutoutUrl) : null;
+  const [cutoutLoadOk, setCutoutLoadOk] = React.useState(true);
+  const layoutMode = profileHeroLayoutMode(cutoutUrl, cutoutLoadOk && Boolean(cutoutSrc));
+
+  const watermarkPositionClass =
+    layoutMode === "cutout"
+      ? "left-0 max-w-[72%] bottom-[-0.06em]"
+      : "left-0 max-w-[58%] bottom-[-0.08em]";
+
   return (
     <div className="relative mb-4 min-h-[11.5rem] w-full overflow-hidden rounded-2xl border border-red-500/30 bg-[#0a0608] shadow-[0_12px_48px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] sm:min-h-[12.5rem]">
-      {/* Layer 1 */}
       <StadiumAtmosphere />
       {showTacticalBoard ? <TacticalBoardOverlay /> : null}
 
-      {/* Layer 2 */}
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-[-0.08em] z-[1] select-none overflow-hidden px-2 font-black leading-[0.76] tracking-tighter"
+        className={`pointer-events-none absolute z-[1] select-none overflow-hidden px-2 font-black leading-[0.76] tracking-tighter ${watermarkPositionClass}`}
         style={WATERMARK_STYLE}
         aria-hidden
       >
         {watermark}
       </div>
 
-      {/* Layer 3 — Figur (z-2), Text darüber (z-3) */}
-      <HeroFigure cutoutUrl={cutoutUrl} photoUrl={photoUrl} initials={initials} />
+      <div className="relative z-[2] flex min-h-[11.5rem] items-end justify-between gap-2 px-3 pb-3.5 pt-3 sm:min-h-[12.5rem] sm:gap-3 sm:px-4 sm:pb-4 sm:pt-3.5">
+        <HeroTextBlock
+          firstNameLine={firstNameLine}
+          lastNameLine={lastNameLine}
+          teamSeasonLabel={teamSeasonLabel}
+        />
 
-      <div className="relative z-[3] flex min-h-[11.5rem] flex-col justify-end px-3 pb-3.5 pt-3 sm:min-h-[12.5rem] sm:px-4 sm:pb-4 sm:pt-3.5">
-        <div className="max-w-[54%] pb-0.5 pr-[46%] text-left sm:max-w-[52%] sm:pr-[44%]">
-          <p className="break-words font-black uppercase leading-[1.02] tracking-tight text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.75),0_0_1px_rgba(0,0,0,0.9)] text-[clamp(0.95rem,3.8vw,1.55rem)]">
-            {firstNameLine}
-          </p>
-          {lastNameLine ? (
-            <p className="mt-0.5 break-words font-black uppercase leading-[1.02] tracking-tight text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.75),0_0_1px_rgba(0,0,0,0.9)] text-[clamp(0.95rem,3.8vw,1.55rem)]">
-              {lastNameLine}
-            </p>
-          ) : null}
-          <p className="mt-1.5 line-clamp-2 break-words text-[13px] font-medium leading-snug text-white/78 sm:text-[14px]">
-            {teamSeasonLabel}
-          </p>
-        </div>
+        {layoutMode === "cutout" && cutoutSrc ? (
+          <HeroCutoutFigure cutoutSrc={cutoutSrc} onLoadError={() => setCutoutLoadOk(false)} />
+        ) : (
+          <HeroAvatarFrame photoUrl={photoUrl} initials={initials} />
+        )}
       </div>
     </div>
   );

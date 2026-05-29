@@ -1,30 +1,33 @@
 /**
- * Profil-Hero: Bildquelle für Stadion-Banner (Cutout vs. Fallback-Foto).
+ * Profil-Hero: Cutout (PNG) vs. Premium-Avatar (normales Foto).
  *
- * TODO (Phase 2 — Upload-Pipeline, keine externe API in Phase 1):
- * - Beim Foto-Upload Originalfoto speichern (photo_url / avatar_url)
- * - Hintergrund serverseitig entfernen (eigener Worker/Job, noch offen)
- * - PNG mit Transparenz als cutout_url persistieren (player.cutout_url / profiles.cutout_url)
- * - Hero bevorzugt cutout_url; Fallback bleibt photo_url
+ * TODO (Phase 2 — Upload-Pipeline):
+ * - Original speichern, BG entfernen, cutout_url als PNG setzen
+ * - Hero nutzt dann hasCutoutLayout()
  */
 
-export type ProfileHeroImageMode = "cutout" | "photo";
+export type ProfileHeroLayoutMode = "cutout" | "avatar";
 
-export type ResolvedProfileHeroImage = {
-  src: string;
-  mode: ProfileHeroImageMode;
-};
+/** Nur wenn cutout_url gesetzt ist — normale Fotos bleiben im Avatar-Modus. */
+export function hasCutoutUrl(cutoutUrl?: string | null): boolean {
+  return (cutoutUrl ?? "").trim().length > 0;
+}
 
-/** Bevorzugt cutout_url, sonst photo_url/avatar_url. Leer → null (Initialen). */
-export function resolveProfileHeroImage(
-  cutoutUrl?: string | null,
-  photoUrl?: string | null,
-): ResolvedProfileHeroImage | null {
+export function resolveProfileCutoutSrc(cutoutUrl?: string | null): string | null {
   const cutout = (cutoutUrl ?? "").trim();
-  if (cutout) return { src: cutout, mode: "cutout" };
+  return cutout || null;
+}
 
+export function resolveProfilePhotoSrc(photoUrl?: string | null): string | null {
   const photo = (photoUrl ?? "").trim();
-  if (photo) return { src: photo, mode: "photo" };
+  return photo || null;
+}
 
-  return null;
+/** Layout: Cutout-Banner nur bei vorhandenem cutout_url (nach erfolgreichem Laden). */
+export function profileHeroLayoutMode(
+  cutoutUrl?: string | null,
+  cutoutLoadOk = true,
+): ProfileHeroLayoutMode {
+  if (hasCutoutUrl(cutoutUrl) && cutoutLoadOk) return "cutout";
+  return "avatar";
 }
