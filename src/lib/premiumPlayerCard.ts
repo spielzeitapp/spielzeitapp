@@ -2,8 +2,12 @@
 
 import {
   dsAvatarBloomClass,
+  dsAvatarBloomInsetClass,
+  dsAvatarFrameClass,
+  dsAvatarFrameMediaClass,
   dsAvatarRingClass,
   dsCardAmbientGlowClass,
+  dsFeedAvatarFrameClass,
   dsCardShellClass,
   dsFeedAvatarBloomClass,
   dsFeedAvatarRingClass,
@@ -102,10 +106,19 @@ export function premiumPlayerCardAvatarRingClass(tone?: PremiumPlayerCardTone): 
   return dsAvatarRingClass();
 }
 
+export function premiumPlayerCardAvatarFrameClass(tone?: PremiumPlayerCardTone): string {
+  if (tone === 'feed') return dsFeedAvatarFrameClass();
+  return dsAvatarFrameClass();
+}
+
+export function premiumPlayerCardAvatarMediaClass(): string {
+  return dsAvatarFrameMediaClass();
+}
+
 export function premiumPlayerCardAvatarBloomClass(tone?: PremiumPlayerCardTone): string {
   if (tone === 'feed') return dsFeedAvatarBloomClass();
-  if (tone === 'training') return dsAvatarBloomClass();
-  return dsAvatarBloomClass();
+  if (tone === 'training') return dsAvatarBloomInsetClass();
+  return dsAvatarBloomInsetClass();
 }
 
 export function premiumPlayerNameClass(): string {

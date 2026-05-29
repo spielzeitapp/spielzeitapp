@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { getPositionLabel } from '../../lib/positionLabels';
 import {
   DS_CARD_FOOTER_DIVIDER,
@@ -6,7 +6,8 @@ import {
   premiumPlayerAvatarSizeClass,
   premiumPlayerAvatarSrc,
   premiumPlayerCardAvatarBloomClass,
-  premiumPlayerCardAvatarRingClass,
+  premiumPlayerCardAvatarFrameClass,
+  premiumPlayerCardAvatarMediaClass,
   premiumPlayerCardFooterDividerClass,
   premiumPlayerCardGlowClass,
   premiumPlayerCardShellClass,
@@ -44,6 +45,44 @@ function buildSubline(player: PremiumPlayerCardPlayer, override?: string | null)
   return [pos !== '—' ? pos : null, numPart].filter(Boolean).join(' · ') || '—';
 }
 
+function PremiumCardAvatar({
+  src,
+  initials,
+  tone,
+  avatarSize,
+}: {
+  src: string | null;
+  initials: string;
+  tone: PremiumPlayerCardTone;
+  avatarSize: string;
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showPhoto = Boolean(src) && !imgFailed;
+  const frameClass = premiumPlayerCardAvatarFrameClass(tone);
+  const mediaClass = premiumPlayerCardAvatarMediaClass();
+  const bloomClass = premiumPlayerCardAvatarBloomClass(tone);
+
+  return (
+    <div className={`relative shrink-0 ${avatarSize}`}>
+      <div className={`${bloomClass} z-0`} aria-hidden />
+      <div className={`relative z-[1] h-full w-full ${frameClass}`}>
+        {showPhoto ? (
+          <img
+            src={src!}
+            alt=""
+            className={mediaClass}
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-[11px] font-semibold text-white/70">
+            {initials}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export const PremiumPlayerCard: React.FC<Props> = ({
   player,
   subline,
@@ -78,26 +117,13 @@ export const PremiumPlayerCard: React.FC<Props> = ({
     <>
       <div className={premiumPlayerCardGlowClass(tone)} aria-hidden />
       <div className={`relative flex items-center ${DS_CARD_INNER_GAP}`}>
-        <div className={`relative shrink-0 ${avatarSize}`}>
-          <div className={premiumPlayerCardAvatarBloomClass(tone)} aria-hidden />
-          {avatarSrc ? (
-            <img
-              src={avatarSrc}
-              alt=""
-              className={`relative z-[1] ${avatarSize} ${premiumPlayerCardAvatarRingClass(tone)}`}
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = 'none';
-                const next = e.currentTarget.nextElementSibling as HTMLElement | null;
-                if (next) next.style.display = 'flex';
-              }}
-            />
-          ) : null}
-          <div
-            className={`relative z-[1] flex ${avatarSize} items-center justify-center ${premiumPlayerCardAvatarRingClass(tone)} text-[11px] font-semibold text-white/70 ${avatarSrc ? 'hidden' : ''}`}
-          >
-            {initials}
-          </div>
-        </div>
+        <PremiumCardAvatar
+          key={avatarSrc ?? `initials-${initials}`}
+          src={avatarSrc}
+          initials={initials}
+          tone={tone}
+          avatarSize={avatarSize}
+        />
         <div className="min-w-0 flex-1 py-0.5 pr-1">
           <p className={nameClassName ?? premiumPlayerNameClass()}>{name}</p>
           <p className={sublineClassName ?? premiumPlayerSublineClass()}>{sub}</p>

@@ -308,8 +308,36 @@ export function dsAvatarRingClass(): string {
   return 'rounded-full border border-[rgba(90,28,32,0.45)] object-cover bg-[rgba(12,10,12,0.95)] shadow-[0_0_24px_rgba(255,40,40,0.16),0_4px_14px_rgba(0,0,0,0.35)]';
 }
 
+/** Listen/Kader-Avatar: Ring + Neon auf Wrapper (Foto innen), nicht nur auf img. */
+export function dsAvatarFrameClass(): string {
+  return [
+    'overflow-hidden rounded-full',
+    'border border-[rgba(255,40,40,0.55)]',
+    'bg-[rgba(12,10,12,0.95)]',
+    'shadow-[0_0_26px_rgba(255,40,40,0.24),0_0_10px_rgba(255,55,55,0.18),inset_0_0_0_1px_rgba(255,120,120,0.22),inset_0_0_16px_rgba(255,40,40,0.1),0_4px_14px_rgba(0,0,0,0.35)]',
+  ].join(' ');
+}
+
+export function dsAvatarFrameMediaClass(): string {
+  return 'block h-full w-full object-cover';
+}
+
+export function dsFeedAvatarFrameClass(): string {
+  return [
+    'overflow-hidden rounded-full',
+    'border border-[rgba(255,255,255,0.08)]',
+    'bg-[rgba(10,10,12,0.96)]',
+    'shadow-[0_4px_16px_rgba(0,0,0,0.42)]',
+  ].join(' ');
+}
+
 export function dsAvatarBloomClass(): string {
   return 'pointer-events-none absolute -inset-1.5 rounded-full bg-[radial-gradient(circle,rgba(255,40,40,0.24)_0%,rgba(120,0,0,0.1)_45%,transparent_72%)] blur-[9px]';
+}
+
+/** Innerer Bloom direkt im Avatar-Slot (wird weniger von Karten-Overflow abgeschnitten). */
+export function dsAvatarBloomInsetClass(): string {
+  return 'pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(255,40,40,0.32)_0%,rgba(120,0,0,0.12)_42%,transparent_68%)] blur-[6px]';
 }
 
 /** Voller Name in Listen/Cards — 2 Zeilen, kein Nachname-only. */
