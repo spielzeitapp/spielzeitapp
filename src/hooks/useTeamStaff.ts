@@ -65,6 +65,7 @@ function mapStaffRow(row: {
   phone?: string | null;
   email?: string | null;
   avatar_url?: string | null;
+  cutout_url?: string | null;
   profiles?:
     | {
         first_name?: string | null;
@@ -93,6 +94,7 @@ function mapStaffRow(row: {
     phone: row.phone ?? p?.phone ?? null,
     email: row.email ?? p?.email ?? null,
     avatar_url: row.avatar_url ?? p?.avatar_url ?? null,
+    cutout_url: row.cutout_url ?? p?.cutout_url ?? null,
   };
 }
 
@@ -157,6 +159,7 @@ async function fetchStaffViaTables(teamSeasonId: string): Promise<{
           phone: p.phone ?? null,
           email: p.email ?? null,
           avatar_url: p.avatar_url ?? null,
+          cutout_url: p.cutout_url ?? null,
         });
       }
     }
@@ -335,6 +338,7 @@ export type SaveTeamStaffInput = {
   phone: string | null;
   contactEmail: string | null;
   avatarUrl: string | null;
+  cutoutUrl?: string | null;
 };
 
 export async function saveTeamStaffMember(
@@ -354,6 +358,7 @@ export async function saveTeamStaffMember(
     p_phone: input.phone,
     p_email: input.contactEmail,
     p_avatar_url: input.avatarUrl,
+    p_cutout_url: input.cutoutUrl ?? null,
   });
 
   if (error) {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { TrainerStaffFormState } from "../components/team/TrainerStaffFormModal";
-import { uploadStaffAvatar } from "../lib/staffAvatar";
+import { uploadStaffProfilePhoto } from "../lib/staffAvatar";
 import {
   findAccountUserIdByEmail,
   fetchProfileNamesForUser,
@@ -145,15 +145,21 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
         }
 
         let avatarUrl: string | null = null;
+        let cutoutUrl: string | null = null;
         if (trainerAvatarFile) {
           setTrainerAvatarUploading(true);
-          const { publicUrl, error: uploadErr } = await uploadStaffAvatar(teamSeasonId, userId, trainerAvatarFile);
+          const {
+            avatarUrl: uploadedAvatar,
+            cutoutUrl: uploadedCutout,
+            error: uploadErr,
+          } = await uploadStaffProfilePhoto(teamSeasonId, userId, trainerAvatarFile);
           setTrainerAvatarUploading(false);
-          if (uploadErr || !publicUrl) {
+          if (uploadErr || !uploadedAvatar) {
             setTrainerFormError(`Foto-Upload fehlgeschlagen: ${uploadErr ?? "Unbekannter Fehler"}`);
             return;
           }
-          avatarUrl = publicUrl;
+          avatarUrl = uploadedAvatar;
+          cutoutUrl = uploadedCutout;
         }
 
         const { ok, error: saveError } = await saveTeamStaffMember({
@@ -165,6 +171,7 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
           phone: trainerForm.phone.trim() || null,
           contactEmail: contactEmail || null,
           avatarUrl,
+          cutoutUrl,
         });
         if (!ok || saveError) {
           setTrainerFormError(saveError ?? "Speichern fehlgeschlagen.");

@@ -32,6 +32,7 @@ export type PlayerRow = {
   is_active?: boolean;
   status?: string | null;
   is_laz_player?: boolean | null;
+  cutout_url?: string | null;
 };
 
 type PlayerAvatarRow = {
@@ -67,6 +68,7 @@ function toPlayer(row: PlayerRow): PlayerItem {
     position: row.position != null ? String(row.position).trim() || null : null,
     birthdate: null,
     avatar_url: null,
+    cutout_url: row.cutout_url != null ? String(row.cutout_url).trim() || null : null,
     is_active: row.is_active !== false,
     status:
       row.status === "paused"
@@ -102,7 +104,9 @@ export function usePlayers(teamSeasonId: string | null, options?: UsePlayersOpti
     setError(null);
     let query = supabase
       .from("players")
-      .select("id, team_season_id, first_name, last_name, jersey_number, position, is_active, status, is_laz_player")
+      .select(
+        "id, team_season_id, first_name, last_name, jersey_number, position, is_active, status, is_laz_player, cutout_url",
+      )
       .eq("team_season_id", teamSeasonId);
 
     if (mode === "active") {

@@ -10,6 +10,7 @@ import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster } from "../lib/roles";
 import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
+import { uploadPlayerProfilePhoto } from "../lib/profileCutoutUpload";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 import { PlayerSquadFormModal } from "../components/team/PlayerSquadFormModal";
 import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
@@ -507,67 +508,58 @@ export const TeamPage: React.FC = () => {
         return;
       }
       let nextAvatarUrl = avatarPreviewUrl;
+      let nextCutoutUrl: string | null | undefined;
       if (avatarFile) {
-        // TODO (Profil-Cutout Phase 2): Original speichern, BG entfernen, cutout_url als PNG setzen — siehe profileHeroImage.ts
         setAvatarUploading(true);
-        const ext = avatarFile.type === "image/png" ? "png" : avatarFile.type === "image/webp" ? "webp" : "jpg";
-        const uploadPath = `${teamSeasonId}/${editingPlayer.id}.${ext}`;
-        console.log("editingPlayer for avatar save", editingPlayer);
-        console.log("avatar update player id", editingPlayer.id);
-        console.log("[AvatarUpload] editingPlayer.id:", editingPlayer.id);
-        console.log("[AvatarUpload] teamSeasonId:", teamSeasonId);
-        console.log("[AvatarUpload] uploadPath:", uploadPath);
-        const { error: uploadError } = await supabase.storage
-          .from("player-avatars")
-          .upload(uploadPath, avatarFile, { upsert: true, contentType: avatarFile.type });
-        if (uploadError) {
+        const {
+          avatarUrl: uploadedAvatar,
+          cutoutUrl: uploadedCutout,
+          error: uploadError,
+        } = await uploadPlayerProfilePhoto(teamSeasonId, editingPlayer.id, avatarFile);
+        if (uploadError || !uploadedAvatar) {
           setAvatarUploading(false);
           setSaving(false);
           setFormError(
-            `Foto-Upload fehlgeschlagen: ${uploadError.message}. Bitte Storage-Policy/Bucket prüfen.`
+            `Foto-Upload fehlgeschlagen: ${uploadError ?? "Unbekannter Fehler"}. Bitte Storage-Policy/Bucket prüfen.`,
           );
           return;
         }
-        const { data: publicData } = supabase.storage
-          .from("player-avatars")
-          .getPublicUrl(uploadPath);
-
-        const publicUrl = publicData?.publicUrl ?? null;
-        console.log("[AvatarUpload] publicUrl:", publicUrl);
 
         const { data: updatedPlayer, error: avatarUpdateError } = await supabase
           .from("player_avatars")
           .upsert(
             {
               player_id: editingPlayer.id,
-              avatar_url: publicUrl,
+              avatar_url: uploadedAvatar,
               updated_at: new Date().toISOString(),
             },
-            { onConflict: "player_id" }
+            { onConflict: "player_id" },
           )
           .select("*")
           .maybeSingle();
-        console.log("editingPlayer.id", editingPlayer.id);
-        console.log("updatedPlayer", updatedPlayer);
-        console.log("[AvatarUpload] update result:", updatedPlayer ?? null);
-        console.log("[AvatarUpload] update error:", avatarUpdateError ?? null);
+
         if (avatarUpdateError) {
-          console.error("avatar_url update failed", avatarUpdateError);
           setAvatarUploading(false);
           setSaving(false);
           setFormError(`Avatar gespeichert, aber URL nicht gesetzt: ${avatarUpdateError.message}`);
           return;
         }
-        if (updatedPlayer == null) {
-          setAvatarUploading(false);
-          setSaving(false);
-          setFormError("Avatar URL konnte nicht gespeichert werden – Player nicht gefunden");
-          return;
+
+        nextAvatarUrl = (updatedPlayer?.avatar_url as string | null | undefined) ?? uploadedAvatar;
+        nextCutoutUrl = uploadedCutout;
+
+        if (uploadedCutout) {
+          const { error: cutoutColError } = await supabase
+            .from("players")
+            .update({ cutout_url: uploadedCutout })
+            .eq("id", editingPlayer.id);
+          if (cutoutColError && !/cutout_url/i.test(cutoutColError.message)) {
+            setAvatarUploading(false);
+            setSaving(false);
+            setFormError(`Cutout gespeichert, aber DB-Feld fehlt: ${cutoutColError.message}`);
+            return;
+          }
         }
-        console.log("[AvatarSave] saved to player_avatars.avatar_url", publicUrl);
-        nextAvatarUrl =
-          (updatedPlayer?.avatar_url as string | null | undefined) ??
-          publicUrl;
       }
       const { error: updateError } = await supabase
         .from("players")

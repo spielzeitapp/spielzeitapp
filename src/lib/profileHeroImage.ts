@@ -1,9 +1,6 @@
 /**
- * Profil-Hero: Cutout (PNG) vs. Premium-Avatar (normales Foto).
- *
- * TODO (Phase 2 — Upload-Pipeline):
- * - Original speichern, BG entfernen, cutout_url als PNG setzen
- * - Hero nutzt dann hasCutoutLayout()
+ * Profil-Hero: Cutout (PNG/WebP mit Alpha) vs. Premium-Avatar (normales Foto).
+ * Upload: profileCutoutUpload.ts speichert cutout_url bei transparenten PNG/WebP.
  */
 
 export type ProfileHeroLayoutMode = "cutout" | "avatar";
