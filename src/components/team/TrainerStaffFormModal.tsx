@@ -96,6 +96,11 @@ export const TrainerStaffFormModal: React.FC<Props> = ({
       }
     >
       <form id="trainer-staff-form" className="space-y-4 py-1" onSubmit={onSubmit}>
+        {formError ? (
+          <p className="rounded-lg border border-red-500/35 bg-red-950/40 px-3 py-2 text-[13px] text-red-300" role="alert">
+            {formError}
+          </p>
+        ) : null}
         {mode === "create" ? (
           <div>
             <label className="mb-1 block text-[13px] font-medium text-white/85" htmlFor="trainer-email">

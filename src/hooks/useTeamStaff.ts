@@ -14,6 +14,18 @@ export type TeamStaffMember = {
 const STAFF_ROLES = new Set(["trainer", "co_trainer", "head_coach"]);
 const STAFF_ROLE_LIST = ["trainer", "co_trainer", "head_coach"] as const;
 
+export const STAFF_RPC_MIGRATION_HINT =
+  "Staff-RPC fehlt. Migration 20260607120000 ausführen.";
+
+function isStaffRpcMissingError(message: string | null): boolean {
+  if (message == null) return false;
+  return (
+    /could not find the function/i.test(message) ||
+    /PGRST202/i.test(message) ||
+    /list_team_staff_for_season/i.test(message)
+  );
+}
+
 export type TeamStaffRefetchResult = {
   count: number;
   error: string | null;
@@ -164,31 +176,57 @@ async function fetchStaffViaTables(teamSeasonId: string): Promise<{
   return { staff, error: null };
 }
 
+export type FetchTeamStaffResult = {
+  staff: TeamStaffMember[];
+  error: string | null;
+  rpcMissing: boolean;
+};
+
+export async function fetchTeamStaffForSeason(teamSeasonId: string): Promise<FetchTeamStaffResult> {
+  let rpcMissing = false;
+  let result = await fetchStaffViaRpc(teamSeasonId);
+  if (isStaffRpcMissingError(result.error)) {
+    rpcMissing = true;
+    console.warn("[useTeamStaff] RPC missing, fallback to table queries");
+    result = await fetchStaffViaTables(teamSeasonId);
+  }
+  return { staff: result.staff, error: result.error, rpcMissing };
+}
+
+export async function fetchTeamStaffMember(
+  teamSeasonId: string,
+  userId: string,
+): Promise<{ member: TeamStaffMember | null; error: string | null; rpcMissing: boolean }> {
+  const { staff, error, rpcMissing } = await fetchTeamStaffForSeason(teamSeasonId);
+  if (error) {
+    return { member: null, error, rpcMissing };
+  }
+  const member = staff.find((s) => s.user_id === userId) ?? null;
+  if (!member) {
+    return { member: null, error: "Trainer nicht gefunden.", rpcMissing };
+  }
+  return { member, error: null, rpcMissing };
+}
+
 export function useTeamStaff(teamSeasonId: string | null) {
   const [staff, setStaff] = useState<TeamStaffMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [staffRpcMissing, setStaffRpcMissing] = useState(false);
 
   const refetch = useCallback(async (): Promise<TeamStaffRefetchResult> => {
     if (!teamSeasonId) {
       setStaff([]);
       setLoading(false);
       setError(null);
+      setStaffRpcMissing(false);
       return { count: 0, error: null };
     }
     setLoading(true);
     setError(null);
 
-    let result = await fetchStaffViaRpc(teamSeasonId);
-    const rpcMissing =
-      result.error != null &&
-      (/could not find the function/i.test(result.error) ||
-        /PGRST202/i.test(result.error) ||
-        /list_team_staff_for_season/i.test(result.error));
-    if (rpcMissing) {
-      console.warn("[useTeamStaff] RPC missing, fallback to table queries");
-      result = await fetchStaffViaTables(teamSeasonId);
-    }
+    const result = await fetchTeamStaffForSeason(teamSeasonId);
+    setStaffRpcMissing(result.rpcMissing);
 
     if (result.error) {
       setStaff([]);
@@ -214,7 +252,7 @@ export function useTeamStaff(teamSeasonId: string | null) {
     void refetch();
   }, [refetch]);
 
-  return { staff, loading, error, refetch };
+  return { staff, loading, error, staffRpcMissing, refetch };
 }
 
 export function staffDisplayName(m: Pick<TeamStaffMember, "first_name" | "last_name">): string {

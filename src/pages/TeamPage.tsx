@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Mail, Phone } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from "../auth/useSession";
 import { Card, CardTitle } from "../app/components/ui/Card";
 import { Tabs, TabOption } from "../app/components/ui/Tabs";
@@ -20,14 +19,16 @@ import {
 import { PlayerCard } from "../components/team/PlayerCard";
 import {
   staffDisplayName,
-  staffRoleLabelDe,
   findAccountUserIdByEmail,
   fetchProfileNamesForUser,
   isValidAccountEmail,
   saveTeamStaffMember,
+  STAFF_RPC_MIGRATION_HINT,
   useTeamStaff,
   type TeamStaffMember,
 } from "../hooks/useTeamStaff";
+import { uploadStaffAvatar } from "../lib/staffAvatar";
+import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
 const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
@@ -130,6 +131,7 @@ function readTeamPhotoUrl(row: TeamPhotoRow | null): string | null {
 
 export const TeamPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { selectedTeamSeason, selectedMembership } = useSession();
   const {
     teamLabel,
@@ -169,6 +171,7 @@ export const TeamPage: React.FC = () => {
     staff: staffRows,
     loading: staffLoading,
     error: staffFetchError,
+    staffRpcMissing,
     refetch: refetchStaff,
   } = useTeamStaff(teamSeasonId);
   const [showTrainerForm, setShowTrainerForm] = useState(false);
@@ -700,17 +703,6 @@ export const TeamPage: React.FC = () => {
     setTrainerAvatarObjectUrl(URL.createObjectURL(file));
   };
 
-  const uploadTrainerAvatar = async (userId: string): Promise<string | null> => {
-    if (!trainerAvatarFile) return trainerAvatarPreviewUrl;
-    const ext = trainerAvatarFile.type === "image/png" ? "png" : trainerAvatarFile.type === "image/webp" ? "webp" : "jpg";
-    const path = `staff/${userId}/avatar.${ext}`;
-    const { error: upErr } = await supabase.storage
-      .from("player-avatars")
-      .upload(path, trainerAvatarFile, { upsert: true, contentType: trainerAvatarFile.type });
-    if (upErr) return null;
-    const { data } = supabase.storage.from("player-avatars").getPublicUrl(path);
-    return data.publicUrl ?? null;
-  };
 
   const handleTrainerAccountEmailBlur = async () => {
     if (trainerFormMode !== "create") return;
@@ -762,11 +754,20 @@ export const TeamPage: React.FC = () => {
         return;
       }
 
-      if (trainerAvatarFile) setTrainerAvatarUploading(true);
-      const avatarUrl = await uploadTrainerAvatar(userId);
-      if (trainerAvatarFile && !avatarUrl) {
-        setTrainerFormError("Foto-Upload fehlgeschlagen. Trainer wurde nicht gespeichert.");
-        return;
+      let avatarUrl: string | null = null;
+      if (trainerAvatarFile) {
+        if (!teamSeasonId) {
+          setTrainerFormError("Kein Team ausgewählt – Foto konnte nicht hochgeladen werden.");
+          return;
+        }
+        setTrainerAvatarUploading(true);
+        const { publicUrl, error: uploadErr } = await uploadStaffAvatar(teamSeasonId, userId, trainerAvatarFile);
+        setTrainerAvatarUploading(false);
+        if (uploadErr || !publicUrl) {
+          setTrainerFormError(`Foto-Upload fehlgeschlagen: ${uploadErr ?? "Unbekannter Fehler"}`);
+          return;
+        }
+        avatarUrl = publicUrl;
       }
 
       const savedRole = trainerForm.role;
@@ -817,6 +818,13 @@ export const TeamPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<TeamTabId>("squad");
   const [squadFilter, setSquadFilter] = useState<SquadFilterId>("active");
+
+  useEffect(() => {
+    const tab = (location.state as { tab?: string } | null)?.tab;
+    if (tab === "trainers" || tab === "squad" || tab === "training" || tab === "matches") {
+      setActiveTab(tab);
+    }
+  }, [location.state]);
 
   const sortedPlayers = useMemo(() => {
     const list = players.filter((p) => {
@@ -1149,62 +1157,25 @@ export const TeamPage: React.FC = () => {
           ) : staffRows.length === 0 ? (
             <p className="mt-4 text-center text-[14px] font-medium text-white/80">Keine Trainer hinterlegt</p>
           ) : (
-            <ul className="mt-4 space-y-2.5">
-              {staffRows.map((row) => {
-                const name = staffDisplayName(row);
-                const avatar = (row.avatar_url ?? "").trim();
-                const initials =
-                  name
-                    .split(/\s+/)
-                    .filter(Boolean)
-                    .map((w) => w[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase() || "TR";
-                return (
+            <>
+              {staffRpcMissing ? (
+                <p className="mt-3 rounded-lg border border-amber-500/35 bg-amber-950/35 px-3 py-2 text-[13px] text-amber-100/95">
+                  {STAFF_RPC_MIGRATION_HINT}
+                </p>
+              ) : null}
+              <ul className="mt-4 space-y-3">
+                {staffRows.map((row) => (
                   <li key={`${row.user_id}-${row.role}`}>
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] p-3 text-left transition-colors hover:bg-white/[0.07]"
-                      onClick={() => navigate(`/app/team/trainer/${encodeURIComponent(row.user_id)}`)}
-                    >
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/12 bg-zinc-800 text-sm font-black text-white/90">
-                        {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : initials}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-[17px] font-semibold text-white">{name}</div>
-                        <div className="mt-0.5 text-[13px] text-white/70">{staffRoleLabelDe(row.role)}</div>
-                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-white/55">
-                          {row.phone?.trim() ? (
-                            <span className="inline-flex items-center gap-1">
-                              <Phone className="h-3 w-3 shrink-0" aria-hidden />
-                              {row.phone.trim()}
-                            </span>
-                          ) : null}
-                          {row.email?.trim() ? (
-                            <span className="inline-flex items-center gap-1 truncate">
-                              <Mail className="h-3 w-3 shrink-0" aria-hidden />
-                              {row.email.trim()}
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    </button>
-                    {canManagePlayers ? (
-                      <div className="mt-1 flex justify-end px-1">
-                        <button
-                          type="button"
-                          className="text-[12px] font-semibold text-red-300/90 hover:text-red-200"
-                          onClick={() => openEditTrainerForm(row)}
-                        >
-                          Bearbeiten
-                        </button>
-                      </div>
-                    ) : null}
+                    <TrainerStaffCard
+                      member={row}
+                      canManage={canManagePlayers}
+                      onOpen={() => navigate(`/app/team/trainer/${encodeURIComponent(row.user_id)}`)}
+                      onEdit={canManagePlayers ? () => openEditTrainerForm(row) : undefined}
+                    />
                   </li>
-                );
-              })}
-            </ul>
+                ))}
+              </ul>
+            </>
           )}
         </Card>
       ) : null}
