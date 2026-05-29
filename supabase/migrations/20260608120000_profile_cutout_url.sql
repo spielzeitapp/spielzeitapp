@@ -67,6 +67,8 @@ $$;
 REVOKE ALL ON FUNCTION public.upsert_team_staff_member(uuid, uuid, text, text, text, text, text, text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.upsert_team_staff_member(uuid, uuid, text, text, text, text, text, text, text) TO authenticated;
 
+DROP FUNCTION IF EXISTS public.list_team_staff_for_season(uuid);
+
 CREATE OR REPLACE FUNCTION public.list_team_staff_for_season(p_team_season_id uuid)
 RETURNS TABLE (
   user_id uuid,
@@ -110,6 +112,9 @@ AS $$
     coalesce(p.last_name, ''),
     coalesce(p.first_name, '');
 $$;
+
+REVOKE ALL ON FUNCTION public.list_team_staff_for_season(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.list_team_staff_for_season(uuid) TO authenticated;
 
 -- Storage: team-photos …/cutouts/{userId}.png
 CREATE OR REPLACE FUNCTION public.staff_photo_storage_may_access_path(p_bucket_id text, p_name text)
