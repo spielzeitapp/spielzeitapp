@@ -9,6 +9,8 @@ export type TeamStaffMember = {
   phone: string | null;
   email: string | null;
   avatar_url: string | null;
+  /** PNG-Freistellung für Profil-Hero (optional, Phase 2). */
+  cutout_url?: string | null;
 };
 
 const STAFF_ROLES = new Set(["trainer", "co_trainer", "head_coach"]);

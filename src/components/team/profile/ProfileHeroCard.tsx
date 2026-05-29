@@ -1,10 +1,18 @@
 import React from "react";
+import { resolveProfileHeroImage, type ProfileHeroImageMode } from "../../../lib/profileHeroImage";
 
-/** Wasserzeichen hinter Text und Figur */
+/**
+ * Premium-Profil-Banner (Spieler + Trainer).
+ *
+ * Layer 1: Full-Width Stadion-/Flutlicht-Hintergrund
+ * Layer 2: Wasserzeichen (Nummer / TR|CT|CH) — hinter Text und Figur
+ * Layer 3: Text links, Figur rechts (cutout_url bevorzugt, sonst photo_url)
+ */
+
 const WATERMARK_STYLE: React.CSSProperties = {
   fontSize: "clamp(6.25rem, 38vw, 11.5rem)",
-  color: "rgba(122, 29, 42, 0.29)",
-  WebkitTextStroke: "2px rgba(180, 28, 45, 0.48)",
+  color: "rgba(122, 29, 42, 0.3)",
+  WebkitTextStroke: "2px rgba(180, 28, 45, 0.5)",
   paintOrder: "stroke fill",
   textShadow:
     "0 0 48px rgba(180, 28, 45, 0.42), 0 0 12px rgba(220, 38, 38, 0.25), 0 3px 0 rgba(0,0,0,0.5), 2px 2px 0 rgba(140, 20, 35, 0.35)",
@@ -15,7 +23,13 @@ type Props = {
   firstNameLine: string;
   lastNameLine: string;
   teamSeasonLabel: string;
-  avatarUrl: string;
+  /** avatar_url / photo_url — Fallback wenn kein cutout_url */
+  photoUrl?: string | null;
+  /**
+   * PNG-Freistellung (optional, DB-Feld folgt in Phase 2).
+   * @see PlayerItem.cutout_url, TeamStaffMember.cutout_url
+   */
+  cutoutUrl?: string | null;
   initials: string;
   showTacticalBoard?: boolean;
 };
@@ -95,11 +109,42 @@ function TacticalBoardOverlay() {
   );
 }
 
-/** Freigestellte Figur — absolut auf dem Banner, nur Glow, keine Box */
-function HeroFigure({ avatarUrl, initials }: { avatarUrl: string; initials: string }) {
-  const hasPhoto = avatarUrl.length > 0;
-  const [photoFailed, setPhotoFailed] = React.useState(false);
-  const showPhoto = hasPhoto && !photoFailed;
+const FIGURE_SIZE_CUTOUT =
+  "max-h-[8.75rem] max-w-[52%] sm:max-h-[10.75rem] sm:max-w-[50%]";
+const FIGURE_SIZE_PHOTO =
+  "max-h-[8.25rem] max-w-[50%] sm:max-h-[10rem] sm:max-w-[48%]";
+
+function figureImgClass(mode: ProfileHeroImageMode): string {
+  const base =
+    "pointer-events-none absolute bottom-0 right-0 z-[2] w-auto bg-transparent object-contain object-bottom";
+  const size = mode === "cutout" ? FIGURE_SIZE_CUTOUT : FIGURE_SIZE_PHOTO;
+  const shadow = "drop-shadow-[0_12px_32px_rgba(0,0,0,0.6),0_4px_14px_rgba(0,0,0,0.4)]";
+  if (mode === "cutout") {
+    return `${base} ${size} ${shadow}`;
+  }
+  return `${base} ${size} ${shadow} rounded-2xl ring-1 ring-red-500/20 [mask-image:linear-gradient(180deg,#000_88%,transparent_100%)]`;
+}
+
+function HeroFigure({
+  cutoutUrl,
+  photoUrl,
+  initials,
+}: {
+  cutoutUrl?: string | null;
+  photoUrl?: string | null;
+  initials: string;
+}) {
+  const resolved = resolveProfileHeroImage(cutoutUrl, photoUrl);
+  const [failedSrc, setFailedSrc] = React.useState<string | null>(null);
+
+  const active =
+    resolved && resolved.src !== failedSrc
+      ? resolved
+      : resolved?.mode === "cutout" && (photoUrl ?? "").trim()
+        ? resolveProfileHeroImage(null, photoUrl)
+        : null;
+
+  const showPhoto = active != null && active.src !== failedSrc;
 
   if (!showPhoto) {
     return (
@@ -112,17 +157,19 @@ function HeroFigure({ avatarUrl, initials }: { avatarUrl: string; initials: stri
     );
   }
 
+  const glowWide = active.mode === "cutout" ? "w-[52%] max-w-[12rem]" : "w-[48%] max-w-[11rem]";
+
   return (
     <>
       <div
-        className="pointer-events-none absolute bottom-[4%] right-[4%] z-[1] h-[82%] w-[46%] max-w-[10.5rem] bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.38)_0%,rgba(140,20,35,0.14)_45%,transparent_70%)] blur-2xl sm:max-w-[12.5rem]"
+        className={`pointer-events-none absolute bottom-[2%] right-[2%] z-[1] h-[88%] ${glowWide} bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.36)_0%,rgba(140,20,35,0.12)_48%,transparent_72%)] blur-2xl sm:max-w-[13rem]`}
         aria-hidden
       />
       <img
-        src={avatarUrl}
+        src={active.src}
         alt=""
-        className="pointer-events-none absolute bottom-0 right-0 z-[2] max-h-[7.75rem] w-auto max-w-[48%] bg-transparent object-contain object-bottom drop-shadow-[0_12px_32px_rgba(0,0,0,0.6),0_4px_14px_rgba(0,0,0,0.4)] sm:max-h-[9.5rem] sm:max-w-[46%]"
-        onError={() => setPhotoFailed(true)}
+        className={figureImgClass(active.mode)}
+        onError={() => setFailedSrc(active.src)}
       />
     </>
   );
@@ -133,15 +180,18 @@ export const ProfileHeroCard: React.FC<Props> = ({
   firstNameLine,
   lastNameLine,
   teamSeasonLabel,
-  avatarUrl,
+  photoUrl,
+  cutoutUrl,
   initials,
   showTacticalBoard = false,
 }) => {
   return (
     <div className="relative mb-4 min-h-[11.5rem] w-full overflow-hidden rounded-2xl border border-red-500/30 bg-[#0a0608] shadow-[0_12px_48px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] sm:min-h-[12.5rem]">
+      {/* Layer 1 */}
       <StadiumAtmosphere />
       {showTacticalBoard ? <TacticalBoardOverlay /> : null}
 
+      {/* Layer 2 */}
       <div
         className="pointer-events-none absolute inset-x-0 bottom-[-0.08em] z-[1] select-none overflow-hidden px-2 font-black leading-[0.76] tracking-tighter"
         style={WATERMARK_STYLE}
@@ -150,15 +200,16 @@ export const ProfileHeroCard: React.FC<Props> = ({
         {watermark}
       </div>
 
-      <HeroFigure avatarUrl={avatarUrl} initials={initials} />
+      {/* Layer 3 — Figur (z-2), Text darüber (z-3) */}
+      <HeroFigure cutoutUrl={cutoutUrl} photoUrl={photoUrl} initials={initials} />
 
-      <div className="relative z-[2] flex min-h-[11.5rem] flex-col justify-end px-3 pb-3.5 pt-3 sm:min-h-[12.5rem] sm:px-4 sm:pb-4 sm:pt-3.5">
-        <div className="max-w-[58%] pb-0.5 pr-[42%] text-left sm:max-w-[56%]">
-          <p className="break-words font-black uppercase leading-[1.02] tracking-tight text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.7),0_0_1px_rgba(0,0,0,0.9)] text-[clamp(1rem,4vw,1.55rem)]">
+      <div className="relative z-[3] flex min-h-[11.5rem] flex-col justify-end px-3 pb-3.5 pt-3 sm:min-h-[12.5rem] sm:px-4 sm:pb-4 sm:pt-3.5">
+        <div className="max-w-[54%] pb-0.5 pr-[46%] text-left sm:max-w-[52%] sm:pr-[44%]">
+          <p className="break-words font-black uppercase leading-[1.02] tracking-tight text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.75),0_0_1px_rgba(0,0,0,0.9)] text-[clamp(0.95rem,3.8vw,1.55rem)]">
             {firstNameLine}
           </p>
           {lastNameLine ? (
-            <p className="mt-0.5 break-words font-black uppercase leading-[1.02] tracking-tight text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.7),0_0_1px_rgba(0,0,0,0.9)] text-[clamp(1rem,4vw,1.55rem)]">
+            <p className="mt-0.5 break-words font-black uppercase leading-[1.02] tracking-tight text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.75),0_0_1px_rgba(0,0,0,0.9)] text-[clamp(0.95rem,3.8vw,1.55rem)]">
               {lastNameLine}
             </p>
           ) : null}

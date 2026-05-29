@@ -11,6 +11,8 @@ export type PlayerItem = {
   /** ISO date `YYYY-MM-DD` from Postgres `date`, or null. */
   birthdate: string | null;
   avatar_url: string | null;
+  /** PNG-Freistellung für Profil-Hero (optional, Phase 2). */
+  cutout_url?: string | null;
   is_active: boolean;
   status: "active" | "paused" | "archived";
   /** Trainer markiert LAZ-Spieler – Eltern dürfen bei Trainings LAZ wählen. */

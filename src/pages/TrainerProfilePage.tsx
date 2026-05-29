@@ -185,7 +185,8 @@ export const TrainerProfilePage: React.FC = () => {
               firstNameLine={firstNameLine}
               lastNameLine={lastNameLine}
               teamSeasonLabel={teamSeasonLabel}
-              avatarUrl={avatarUrl}
+              photoUrl={avatarUrl}
+              cutoutUrl={member.cutout_url}
               initials={initials}
               showTacticalBoard
             />

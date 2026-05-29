@@ -508,6 +508,7 @@ export const TeamPage: React.FC = () => {
       }
       let nextAvatarUrl = avatarPreviewUrl;
       if (avatarFile) {
+        // TODO (Profil-Cutout Phase 2): Original speichern, BG entfernen, cutout_url als PNG setzen — siehe profileHeroImage.ts
         setAvatarUploading(true);
         const ext = avatarFile.type === "image/png" ? "png" : avatarFile.type === "image/webp" ? "webp" : "jpg";
         const uploadPath = `${teamSeasonId}/${editingPlayer.id}.${ext}`;
