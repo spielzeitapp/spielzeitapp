@@ -93,7 +93,7 @@ export const PremiumPlayerCard: React.FC<Props> = ({
             />
           ) : null}
           <div
-            className={`relative z-[1] ${avatarSize} items-center justify-center rounded-full border border-[#2a2a2e] bg-[#0a0a0b] text-[11px] font-semibold text-white/70 ${avatarSrc ? 'hidden' : 'flex'}`}
+            className={`relative z-[1] flex ${avatarSize} items-center justify-center ${premiumPlayerCardAvatarRingClass(tone)} text-[11px] font-semibold text-white/70 ${avatarSrc ? 'hidden' : ''}`}
           >
             {initials}
           </div>

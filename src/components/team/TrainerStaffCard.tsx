@@ -8,21 +8,21 @@ type Props = {
   onClick: () => void;
 };
 
-/** Gleiche Kartenlogik wie Kader → PlayerCard. */
+/** Visuell identisch zu Kader → PlayerCard (ohne Trikotnummer). */
 export const TrainerStaffCard: React.FC<Props> = ({ member, onClick }) => {
+  const photo = (member.avatar_url ?? "").trim() || null;
   return (
     <PremiumPlayerCard
       player={{
         first_name: member.first_name,
         last_name: member.last_name,
-        avatar_url: member.avatar_url,
+        avatar_url: photo,
+        photo_url: photo,
       }}
       avatarPlaceholder={false}
       subline={staffRoleLabelDe(member.role)}
       density="compact"
       onClick={onClick}
-      nameClassName="break-words text-[17px] leading-snug"
-      sublineClassName="text-[13px] text-white/65"
       trailing={<ChevronRight className="h-4 w-4 text-white/28" aria-hidden />}
     />
   );
