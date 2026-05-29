@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
 import { Modal } from "../../app/ui/Modal";
 import { AppButton } from "../ui/AppButton";
+import type { TeamStaffMember } from "../../hooks/useTeamStaff";
 
 export type TrainerStaffFormState = {
   email: string;
@@ -15,6 +16,7 @@ type Props = {
   isOpen: boolean;
   mode: "create" | "edit";
   form: TrainerStaffFormState;
+  editingTrainer: TeamStaffMember | null;
   saving: boolean;
   avatarUploading: boolean;
   avatarPreviewUrl: string | null;
@@ -25,9 +27,15 @@ type Props = {
   onFormChange: (patch: Partial<TrainerStaffFormState>) => void;
   onAvatarFile: (file: File) => void;
   onAvatarValidationError: (message: string) => void;
-  /** Nach Eingabe der Konto-E-Mail: Profilnamen vorschlagen (nur create). */
   onAccountEmailBlur?: () => void;
 };
+
+function formDisplayName(form: TrainerStaffFormState, member: TeamStaffMember | null): string {
+  const full = `${form.first_name} ${form.last_name}`.trim();
+  if (full) return full;
+  const a = [member?.first_name, member?.last_name].map((x) => (x ?? "").trim()).filter(Boolean).join(" ");
+  return a || "Trainer";
+}
 
 function avatarInitials(form: TrainerStaffFormState): string {
   const a = (form.first_name || " ").trim().charAt(0);
@@ -40,6 +48,7 @@ export const TrainerStaffFormModal: React.FC<Props> = ({
   isOpen,
   mode,
   form,
+  editingTrainer,
   saving,
   avatarUploading,
   avatarPreviewUrl,
@@ -50,10 +59,12 @@ export const TrainerStaffFormModal: React.FC<Props> = ({
   onFormChange,
   onAvatarFile,
   onAvatarValidationError,
+  onAccountEmailBlur,
 }) => {
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const busy = saving || avatarUploading;
   const previewSrc = avatarObjectUrl || avatarPreviewUrl;
+  const canUploadPhoto = mode === "edit" && editingTrainer != null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -95,42 +106,47 @@ export const TrainerStaffFormModal: React.FC<Props> = ({
         </div>
       }
     >
-      <form id="trainer-staff-form" className="space-y-4 py-1" onSubmit={onSubmit}>
-        {formError ? (
-          <p className="rounded-lg border border-red-500/35 bg-red-950/40 px-3 py-2 text-[13px] text-red-300" role="alert">
-            {formError}
-          </p>
-        ) : null}
-        {mode === "create" ? (
-          <div>
-            <label className="mb-1 block text-[13px] font-medium text-white/85" htmlFor="trainer-email">
-              E-Mail (Konto)
-            </label>
-            <input
-              id="trainer-email"
-              type="email"
-              required
-              autoComplete="email"
-              value={form.email}
-              onChange={(e) => onFormChange({ email: e.target.value })}
-              className="w-full rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 text-[15px] text-white outline-none focus:border-red-400/45"
-              placeholder="trainer@beispiel.at"
-            />
-            <p className="mt-1 text-[11px] text-white/55">Die Person muss bereits ein SpielzeitApp-Konto haben.</p>
-          </div>
+      <form id="trainer-staff-form" onSubmit={onSubmit} className="flex flex-col gap-4">
+        {mode === "edit" ? (
+          <p className="-mt-1 text-[13px] font-medium text-white/55">{formDisplayName(form, editingTrainer)}</p>
         ) : null}
 
-        <div className="flex items-center gap-4">
-          <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-full border border-white/15 bg-zinc-800">
+        <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+          <div className="h-16 w-16 shrink-0">
             {previewSrc ? (
-              <img src={previewSrc} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center text-lg font-black text-white/90">
-                {avatarInitials(form)}
-              </span>
-            )}
+              <img
+                src={previewSrc}
+                alt=""
+                className="h-16 w-16 rounded-full border border-white/20 object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                  const next = e.currentTarget.nextElementSibling as HTMLElement | null;
+                  if (next) next.style.display = "flex";
+                }}
+              />
+            ) : null}
+            <div
+              className="flex h-16 w-16 items-center justify-center rounded-full border border-white/15 bg-zinc-800 text-lg font-bold text-white/85"
+              style={{ display: previewSrc ? "none" : "flex" }}
+              aria-hidden
+            >
+              {avatarInitials(form)}
+            </div>
           </div>
-          <div>
+          <div className="min-w-0 flex-1 pt-0.5">
+            <AppButton
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={!canUploadPhoto || busy}
+              onClick={() => avatarInputRef.current?.click()}
+            >
+              {avatarUploading ? "Upload…" : "Foto hochladen"}
+            </AppButton>
+            <p className="mt-1.5 text-[11px] leading-snug text-white/45">JPG/PNG/WebP · max. 3 MB</p>
+            {mode === "create" ? (
+              <p className="mt-1 text-[11px] leading-snug text-white/38">Nach dem Anlegen im Profil bearbeiten.</p>
+            ) : null}
             <input
               ref={avatarInputRef}
               type="file"
@@ -138,80 +154,93 @@ export const TrainerStaffFormModal: React.FC<Props> = ({
               className="hidden"
               onChange={handleFileChange}
             />
-            <AppButton type="button" variant="secondary" size="sm" disabled={busy} onClick={() => avatarInputRef.current?.click()}>
-              Foto wählen
-            </AppButton>
           </div>
         </div>
+
+        {mode === "create" ? (
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-white/45">E-Mail (Konto) *</span>
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={form.email}
+              onChange={(e) => onFormChange({ email: e.target.value })}
+              onBlur={() => onAccountEmailBlur?.()}
+              disabled={busy}
+              className="min-h-[42px] rounded-lg border border-white/10 bg-black/40 px-3 text-[15px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
+              placeholder="trainer@beispiel.at"
+            />
+            <span className="text-[11px] text-white/45">Die Person muss bereits ein SpielzeitApp-Konto haben.</span>
+          </label>
+        ) : null}
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block text-[13px] font-medium text-white/85" htmlFor="trainer-first">
-              Vorname
-            </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-white/45">Vorname</span>
             <input
-              id="trainer-first"
+              type="text"
               value={form.first_name}
               onChange={(e) => onFormChange({ first_name: e.target.value })}
-              className="w-full rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 text-[15px] text-white outline-none focus:border-red-400/45"
+              disabled={busy}
+              className="min-h-[42px] rounded-lg border border-white/10 bg-black/40 px-3 text-[15px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
             />
-          </div>
-          <div>
-            <label className="mb-1 block text-[13px] font-medium text-white/85" htmlFor="trainer-last">
-              Nachname
-            </label>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-white/45">Nachname</span>
             <input
-              id="trainer-last"
+              type="text"
               value={form.last_name}
               onChange={(e) => onFormChange({ last_name: e.target.value })}
-              className="w-full rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 text-[15px] text-white outline-none focus:border-red-400/45"
+              disabled={busy}
+              className="min-h-[42px] rounded-lg border border-white/10 bg-black/40 px-3 text-[15px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
             />
-          </div>
+          </label>
         </div>
 
-        <div>
-          <label className="mb-1 block text-[13px] font-medium text-white/85" htmlFor="trainer-role">
-            Rolle
-          </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-white/45">Rolle</span>
           <select
-            id="trainer-role"
             value={form.role}
             onChange={(e) => onFormChange({ role: e.target.value as TrainerStaffFormState["role"] })}
-            className="w-full rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 text-[15px] text-white outline-none focus:border-red-400/45"
+            disabled={busy}
+            className="min-h-[42px] rounded-lg border border-white/10 bg-black/40 px-3 text-[15px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
           >
             <option value="head_coach">Cheftrainer</option>
             <option value="co_trainer">Co-Trainer</option>
             <option value="trainer">Trainer</option>
           </select>
-        </div>
+        </label>
 
-        <div>
-          <label className="mb-1 block text-[13px] font-medium text-white/85" htmlFor="trainer-phone">
-            Telefon (optional)
-          </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-white/45">Telefon</span>
           <input
-            id="trainer-phone"
             type="tel"
             value={form.phone}
             onChange={(e) => onFormChange({ phone: e.target.value })}
-            className="w-full rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 text-[15px] text-white outline-none focus:border-red-400/45"
+            disabled={busy}
+            className="min-h-[42px] rounded-lg border border-white/10 bg-black/40 px-3 text-[15px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
           />
-        </div>
+        </label>
 
-        <div>
-          <label className="mb-1 block text-[13px] font-medium text-white/85" htmlFor="trainer-contact-email">
-            E-Mail Kontakt (optional)
-          </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-white/45">E-Mail Kontakt</span>
           <input
-            id="trainer-contact-email"
             type="text"
             inputMode="email"
             autoComplete="off"
             value={form.contact_email}
             onChange={(e) => onFormChange({ contact_email: e.target.value })}
-            className="w-full rounded-xl border border-white/12 bg-black/40 px-3 py-2.5 text-[15px] text-white outline-none focus:border-red-400/45"
+            disabled={busy}
+            className="min-h-[42px] rounded-lg border border-white/10 bg-black/40 px-3 text-[15px] text-white focus:outline-none focus:ring-1 focus:ring-red-500/50"
           />
-        </div>
+        </label>
+
+        {formError ? (
+          <p className="text-[13px] text-red-300" role="alert">
+            {formError}
+          </p>
+        ) : null}
       </form>
     </Modal>
   );

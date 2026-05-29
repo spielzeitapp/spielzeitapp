@@ -12,22 +12,10 @@ import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 import { PlayerSquadFormModal } from "../components/team/PlayerSquadFormModal";
-import {
-  TrainerStaffFormModal,
-  type TrainerStaffFormState,
-} from "../components/team/TrainerStaffFormModal";
+import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
 import { PlayerCard } from "../components/team/PlayerCard";
-import {
-  staffDisplayName,
-  findAccountUserIdByEmail,
-  fetchProfileNamesForUser,
-  isValidAccountEmail,
-  saveTeamStaffMember,
-  STAFF_RPC_MIGRATION_HINT,
-  useTeamStaff,
-  type TeamStaffMember,
-} from "../hooks/useTeamStaff";
-import { uploadStaffAvatar } from "../lib/staffAvatar";
+import { STAFF_RPC_MIGRATION_HINT, useTeamStaff } from "../hooks/useTeamStaff";
+import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
@@ -98,15 +86,6 @@ function readOptionalPhotoUrl(p: PlayerItem): string | null {
   return v.length > 0 ? v : null;
 }
 
-const emptyTrainerForm: TrainerStaffFormState = {
-  email: "",
-  first_name: "",
-  last_name: "",
-  role: "trainer",
-  phone: "",
-  contact_email: "",
-};
-
 function formatMatchDateDe(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -174,16 +153,13 @@ export const TeamPage: React.FC = () => {
     staffRpcMissing,
     refetch: refetchStaff,
   } = useTeamStaff(teamSeasonId);
-  const [showTrainerForm, setShowTrainerForm] = useState(false);
-  const [trainerFormMode, setTrainerFormMode] = useState<"create" | "edit">("create");
-  const [trainerForm, setTrainerForm] = useState<TrainerStaffFormState>(emptyTrainerForm);
-  const [editingTrainer, setEditingTrainer] = useState<TeamStaffMember | null>(null);
-  const [trainerSaving, setTrainerSaving] = useState(false);
-  const [trainerAvatarUploading, setTrainerAvatarUploading] = useState(false);
-  const [trainerAvatarPreviewUrl, setTrainerAvatarPreviewUrl] = useState<string | null>(null);
-  const [trainerAvatarFile, setTrainerAvatarFile] = useState<File | null>(null);
-  const [trainerAvatarObjectUrl, setTrainerAvatarObjectUrl] = useState<string | null>(null);
-  const [trainerFormError, setTrainerFormError] = useState<string | null>(null);
+  const trainerEditor = useTrainerStaffEditor({
+    teamSeasonId,
+    onAfterSave: async () => {
+      const { error: fetchErr } = await refetchStaff();
+      if (!fetchErr) showSavedToast("Trainer gespeichert");
+    },
+  });
   const [recentMatches, setRecentMatches] = useState<RecentMatchRow[]>([]);
   const [teamPhoto, setTeamPhoto] = useState<TeamPhotoRow | null>(null);
   const [teamPhotoUploading, setTeamPhotoUploading] = useState(false);
@@ -219,10 +195,6 @@ export const TeamPage: React.FC = () => {
     [teamPhotoUrl],
   );
   const heroShowsPlaceholder = !teamPhotoUrl || teamPhotoUrl.length === 0;
-
-  useEffect(() => {
-    if (trainerAvatarObjectUrl) URL.revokeObjectURL(trainerAvatarObjectUrl);
-  }, [trainerAvatarObjectUrl]);
 
   useEffect(() => {
     if (!teamSeasonId) {
@@ -656,159 +628,6 @@ export const TeamPage: React.FC = () => {
     await refetchPlayers();
   };
 
-  const closeTrainerForm = () => {
-    setShowTrainerForm(false);
-    setEditingTrainer(null);
-    setTrainerForm(emptyTrainerForm);
-    setTrainerFormError(null);
-    setTrainerAvatarPreviewUrl(null);
-    setTrainerAvatarFile(null);
-    if (trainerAvatarObjectUrl) URL.revokeObjectURL(trainerAvatarObjectUrl);
-    setTrainerAvatarObjectUrl(null);
-  };
-
-  const openCreateTrainerForm = () => {
-    setTrainerFormMode("create");
-    setEditingTrainer(null);
-    setTrainerForm(emptyTrainerForm);
-    setTrainerFormError(null);
-    setTrainerAvatarPreviewUrl(null);
-    setTrainerAvatarFile(null);
-    setShowTrainerForm(true);
-  };
-
-  const openEditTrainerForm = (member: TeamStaffMember) => {
-    setTrainerFormMode("edit");
-    setEditingTrainer(member);
-    setTrainerForm({
-      email: "",
-      first_name: member.first_name ?? "",
-      last_name: member.last_name ?? "",
-      role:
-        member.role === "head_coach" || member.role === "co_trainer" || member.role === "trainer"
-          ? member.role
-          : "trainer",
-      phone: member.phone ?? "",
-      contact_email: member.email ?? "",
-    });
-    setTrainerFormError(null);
-    setTrainerAvatarPreviewUrl(member.avatar_url);
-    setTrainerAvatarFile(null);
-    setShowTrainerForm(true);
-  };
-
-  const handleTrainerAvatarFilePick = (file: File) => {
-    if (trainerAvatarObjectUrl) URL.revokeObjectURL(trainerAvatarObjectUrl);
-    setTrainerAvatarFile(file);
-    setTrainerAvatarObjectUrl(URL.createObjectURL(file));
-  };
-
-
-  const handleTrainerAccountEmailBlur = async () => {
-    if (trainerFormMode !== "create") return;
-    const email = trainerForm.email.trim();
-    if (!email || !isValidAccountEmail(email)) return;
-    const { userId, error } = await findAccountUserIdByEmail(email);
-    if (error || !userId) return;
-    const names = await fetchProfileNamesForUser(userId);
-    if (!names) return;
-    setTrainerForm((f) => ({
-      ...f,
-      first_name: f.first_name.trim() || (names.first_name ?? "").trim(),
-      last_name: f.last_name.trim() || (names.last_name ?? "").trim(),
-    }));
-  };
-
-  const handleTrainerFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!teamSeasonId) {
-      setTrainerFormError("Kein Team ausgewählt. Bitte Seite neu laden.");
-      return;
-    }
-    if (trainerSaving) return;
-
-    const contactEmail = trainerForm.contact_email.trim();
-    if (contactEmail && !isValidAccountEmail(contactEmail)) {
-      setTrainerFormError("Bitte eine gültige Kontakt-E-Mail eingeben oder das Feld leer lassen.");
-      return;
-    }
-
-    setTrainerSaving(true);
-    setTrainerFormError(null);
-    try {
-      let userId = editingTrainer?.user_id ?? null;
-      if (trainerFormMode === "create") {
-        const { userId: foundId, error: findError } = await findAccountUserIdByEmail(trainerForm.email);
-        if (findError) {
-          setTrainerFormError(findError);
-          return;
-        }
-        if (!foundId) {
-          setTrainerFormError("Kein Konto mit dieser E-Mail. Die Person muss sich zuerst registrieren.");
-          return;
-        }
-        userId = foundId;
-      }
-      if (!userId) {
-        setTrainerFormError("Trainer konnte nicht zugeordnet werden.");
-        return;
-      }
-
-      let avatarUrl: string | null = null;
-      if (trainerAvatarFile) {
-        if (!teamSeasonId) {
-          setTrainerFormError("Kein Team ausgewählt – Foto konnte nicht hochgeladen werden.");
-          return;
-        }
-        setTrainerAvatarUploading(true);
-        const { publicUrl, error: uploadErr } = await uploadStaffAvatar(teamSeasonId, userId, trainerAvatarFile);
-        setTrainerAvatarUploading(false);
-        if (uploadErr || !publicUrl) {
-          setTrainerFormError(`Foto-Upload fehlgeschlagen: ${uploadErr ?? "Unbekannter Fehler"}`);
-          return;
-        }
-        avatarUrl = publicUrl;
-      }
-
-      const savedRole = trainerForm.role;
-      console.log("[TeamStaff] saving", { userId, teamSeasonId, role: savedRole });
-
-      const { ok, error: saveError } = await saveTeamStaffMember({
-        teamSeasonId,
-        userId,
-        role: savedRole,
-        firstName: trainerForm.first_name.trim() || null,
-        lastName: trainerForm.last_name.trim() || null,
-        phone: trainerForm.phone.trim() || null,
-        contactEmail: contactEmail || null,
-        avatarUrl,
-      });
-      if (!ok || saveError) {
-        setTrainerFormError(saveError ?? "Speichern fehlgeschlagen.");
-        return;
-      }
-
-      const savedName =
-        [trainerForm.first_name, trainerForm.last_name].map((x) => x.trim()).filter(Boolean).join(" ").trim() ||
-        "Trainer";
-      closeTrainerForm();
-      const { count, error: fetchErr } = await refetchStaff();
-      console.log("[TeamStaff] refetch after save", { count, fetchErr, userId, teamSeasonId, role: savedRole });
-      if (fetchErr) {
-        setTrainerFormError(`Gespeichert, aber Liste konnte nicht geladen werden: ${fetchErr}`);
-        setShowTrainerForm(true);
-        return;
-      }
-      showSavedToast(`${savedName} gespeichert`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Speichern fehlgeschlagen.";
-      setTrainerFormError(msg);
-    } finally {
-      setTrainerSaving(false);
-      setTrainerAvatarUploading(false);
-    }
-  };
-
   const teamTabs: TabOption[] = [
     { id: "squad", label: "Kader" },
     { id: "trainers", label: "Trainer" },
@@ -869,20 +688,21 @@ export const TeamPage: React.FC = () => {
     ) : null}
     {canManagePlayers && teamSeasonId != null ? (
       <TrainerStaffFormModal
-        isOpen={showTrainerForm}
-        mode={trainerFormMode}
-        form={trainerForm}
-        saving={trainerSaving}
-        avatarUploading={trainerAvatarUploading}
-        avatarPreviewUrl={trainerAvatarPreviewUrl}
-        avatarObjectUrl={trainerAvatarObjectUrl}
-        formError={trainerFormError}
-        onClose={closeTrainerForm}
-        onSubmit={handleTrainerFormSubmit}
-        onFormChange={(patch) => setTrainerForm((f) => ({ ...f, ...patch }))}
-        onAvatarFile={handleTrainerAvatarFilePick}
-        onAvatarValidationError={setTrainerFormError}
-        onAccountEmailBlur={() => void handleTrainerAccountEmailBlur()}
+        isOpen={trainerEditor.showTrainerForm}
+        mode={trainerEditor.trainerFormMode}
+        form={trainerEditor.trainerForm}
+        editingTrainer={trainerEditor.editingTrainer}
+        saving={trainerEditor.trainerSaving}
+        avatarUploading={trainerEditor.trainerAvatarUploading}
+        avatarPreviewUrl={trainerEditor.trainerAvatarPreviewUrl}
+        avatarObjectUrl={trainerEditor.trainerAvatarObjectUrl}
+        formError={trainerEditor.trainerFormError}
+        onClose={trainerEditor.closeTrainerForm}
+        onSubmit={trainerEditor.handleTrainerFormSubmit}
+        onFormChange={(patch) => trainerEditor.setTrainerForm((f) => ({ ...f, ...patch }))}
+        onAvatarFile={trainerEditor.handleTrainerAvatarFilePick}
+        onAvatarValidationError={trainerEditor.setTrainerFormError}
+        onAccountEmailBlur={() => void trainerEditor.handleTrainerAccountEmailBlur()}
       />
     ) : null}
     {canManagePlayers && teamSeasonId != null ? (
@@ -1138,7 +958,7 @@ export const TeamPage: React.FC = () => {
           <div className="flex items-center justify-between gap-2">
             <CardTitle className="mt-0">Trainer</CardTitle>
             {teamSeasonId != null && canManagePlayers && !staffLoading ? (
-              <AppButton type="button" variant="secondary" size="md" onClick={openCreateTrainerForm}>
+              <AppButton type="button" variant="secondary" size="md" onClick={trainerEditor.openCreateTrainerForm}>
                 + Trainer hinzufügen
               </AppButton>
             ) : null}
@@ -1163,14 +983,12 @@ export const TeamPage: React.FC = () => {
                   {STAFF_RPC_MIGRATION_HINT}
                 </p>
               ) : null}
-              <ul className="mt-4 space-y-3">
+              <ul className="mt-3 w-full space-y-1.5 pb-8">
                 {staffRows.map((row) => (
-                  <li key={`${row.user_id}-${row.role}`}>
+                  <li key={`${row.user_id}-${row.role}`} className="w-full">
                     <TrainerStaffCard
                       member={row}
-                      canManage={canManagePlayers}
-                      onOpen={() => navigate(`/app/team/trainer/${encodeURIComponent(row.user_id)}`)}
-                      onEdit={canManagePlayers ? () => openEditTrainerForm(row) : undefined}
+                      onClick={() => navigate(`/app/team/trainer/${encodeURIComponent(row.user_id)}`)}
                     />
                   </li>
                 ))}

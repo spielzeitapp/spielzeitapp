@@ -32,6 +32,8 @@ type Props = {
   className?: string;
   nameClassName?: string;
   sublineClassName?: string;
+  /** false = nur echtes Foto oder Initialen (kein Platzhalter-Bild). */
+  avatarPlaceholder?: boolean;
 };
 
 function buildSubline(player: PremiumPlayerCardPlayer, override?: string | null): string {
@@ -54,9 +56,11 @@ export const PremiumPlayerCard: React.FC<Props> = ({
   className = '',
   nameClassName,
   sublineClassName,
+  avatarPlaceholder = true,
 }) => {
   const name = premiumPlayerDisplayName(player);
-  const avatarSrc = premiumPlayerAvatarSrc(player);
+  const rawAvatar = (player.avatar_url ?? player.avatarUrl ?? player.photo_url ?? '').trim();
+  const avatarSrc = avatarPlaceholder ? premiumPlayerAvatarSrc(player) : rawAvatar || null;
   const initials = premiumPlayerInitials(name);
   const sub = buildSubline(player, subline);
   const avatarSize = premiumPlayerAvatarSizeClass();
@@ -76,18 +80,20 @@ export const PremiumPlayerCard: React.FC<Props> = ({
       <div className={`relative flex items-center ${DS_CARD_INNER_GAP}`}>
         <div className={`relative shrink-0 ${avatarSize}`}>
           <div className={premiumPlayerCardAvatarBloomClass(tone)} aria-hidden />
-          <img
-            src={avatarSrc}
-            alt=""
-            className={`relative z-[1] ${avatarSize} ${premiumPlayerCardAvatarRingClass(tone)}`}
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = 'none';
-              const next = e.currentTarget.nextElementSibling as HTMLElement | null;
-              if (next) next.style.display = 'flex';
-            }}
-          />
+          {avatarSrc ? (
+            <img
+              src={avatarSrc}
+              alt=""
+              className={`relative z-[1] ${avatarSize} ${premiumPlayerCardAvatarRingClass(tone)}`}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+                const next = e.currentTarget.nextElementSibling as HTMLElement | null;
+                if (next) next.style.display = 'flex';
+              }}
+            />
+          ) : null}
           <div
-            className={`relative z-[1] hidden ${avatarSize} items-center justify-center rounded-full border border-[#2a2a2e] bg-[#0a0a0b] text-[11px] font-semibold text-white/70`}
+            className={`relative z-[1] ${avatarSize} items-center justify-center rounded-full border border-[#2a2a2e] bg-[#0a0a0b] text-[11px] font-semibold text-white/70 ${avatarSrc ? 'hidden' : 'flex'}`}
           >
             {initials}
           </div>
