@@ -1,6 +1,6 @@
 import React from "react";
 
-/** Wasserzeichen: ~35 % größer, Vereinsrot 0.28–0.30 Opacity, stärkerer Stroke */
+/** Wasserzeichen hinter Text und Figur */
 const WATERMARK_STYLE: React.CSSProperties = {
   fontSize: "clamp(6.25rem, 38vw, 11.5rem)",
   color: "rgba(122, 29, 42, 0.29)",
@@ -20,21 +20,17 @@ type Props = {
   showTacticalBoard?: boolean;
 };
 
-/** Dunkler Stadium-Base + seitliche Rot-Glows + Flutlicht + Vignette */
 function StadiumAtmosphere() {
   return (
     <>
-      {/* Nacht-Stadion-Basis */}
       <div
         className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#0c0608_0%,#12080c_42%,#080406_100%)]"
         aria-hidden
       />
-      {/* Dezente Spielfeld-Tiefe unten */}
       <div
         className="pointer-events-none absolute inset-x-0 bottom-0 h-[38%] bg-[linear-gradient(180deg,transparent_0%,rgba(12,28,16,0.22)_55%,rgba(6,12,8,0.35)_100%)]"
         aria-hidden
       />
-      {/* Roter Glow links/rechts — nicht flächig */}
       <div
         className="pointer-events-none absolute inset-y-0 left-0 w-[42%] bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(180,28,45,0.38)_0%,transparent_68%)]"
         aria-hidden
@@ -43,18 +39,15 @@ function StadiumAtmosphere() {
         className="pointer-events-none absolute inset-y-0 right-0 w-[42%] bg-[radial-gradient(ellipse_90%_80%_at_100%_50%,rgba(160,24,40,0.34)_0%,transparent_68%)]"
         aria-hidden
       />
-      {/* Zentrales Flutlicht von oben */}
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_50%_-5%,rgba(255,255,255,0.11)_0%,transparent_58%)]"
         aria-hidden
       />
       <FloodlightBeams />
-      {/* Vignette */}
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_105%_95%_at_50%_45%,transparent_35%,rgba(0,0,0,0.55)_88%,rgba(0,0,0,0.78)_100%)]"
         aria-hidden
       />
-      {/* Feine Raster-Linien (Tribünen-Andeutung) */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.22] bg-[repeating-linear-gradient(90deg,transparent,transparent_56px,rgba(255,255,255,0.025)_56px,rgba(255,255,255,0.025)_57px)]"
         aria-hidden
@@ -87,7 +80,7 @@ function FloodlightBeams() {
 function TacticalBoardOverlay() {
   return (
     <svg
-      className="pointer-events-none absolute right-0 top-0 z-[0] h-full w-[52%] text-white/[0.1]"
+      className="pointer-events-none absolute right-0 top-0 z-[1] h-full w-[52%] text-white/[0.1]"
       viewBox="0 0 200 180"
       preserveAspectRatio="xMaxYMid slice"
       aria-hidden
@@ -102,11 +95,38 @@ function TacticalBoardOverlay() {
   );
 }
 
-const AVATAR_FRAME_CLASS =
-  "relative z-[1] h-[6.5rem] w-[6.5rem] shrink-0 rounded-2xl p-[2px] shadow-[0_0_32px_rgba(220,38,38,0.75),0_0_64px_rgba(239,68,68,0.42),0_8px_28px_rgba(0,0,0,0.6)] bg-gradient-to-br from-red-400 via-red-600 to-red-900 sm:h-[8.25rem] sm:w-[8.25rem]";
+/** Freigestellte Figur — absolut auf dem Banner, nur Glow, keine Box */
+function HeroFigure({ avatarUrl, initials }: { avatarUrl: string; initials: string }) {
+  const hasPhoto = avatarUrl.length > 0;
+  const [photoFailed, setPhotoFailed] = React.useState(false);
+  const showPhoto = hasPhoto && !photoFailed;
 
-const AVATAR_INNER_CLASS =
-  "h-full w-full rounded-[14px] border border-red-400/45 object-cover object-top shadow-[inset_0_0_16px_rgba(0,0,0,0.4)]";
+  if (!showPhoto) {
+    return (
+      <span
+        className="pointer-events-none absolute bottom-3 right-3 z-[2] font-black uppercase leading-none text-white/25 [text-shadow:0_0_40px_rgba(220,38,38,0.35)] text-[clamp(2.5rem,14vw,3.75rem)]"
+        aria-hidden
+      >
+        {initials}
+      </span>
+    );
+  }
+
+  return (
+    <>
+      <div
+        className="pointer-events-none absolute bottom-[4%] right-[4%] z-[1] h-[82%] w-[46%] max-w-[10.5rem] bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.38)_0%,rgba(140,20,35,0.14)_45%,transparent_70%)] blur-2xl sm:max-w-[12.5rem]"
+        aria-hidden
+      />
+      <img
+        src={avatarUrl}
+        alt=""
+        className="pointer-events-none absolute bottom-0 right-0 z-[2] max-h-[7.75rem] w-auto max-w-[48%] bg-transparent object-contain object-bottom drop-shadow-[0_12px_32px_rgba(0,0,0,0.6),0_4px_14px_rgba(0,0,0,0.4)] sm:max-h-[9.5rem] sm:max-w-[46%]"
+        onError={() => setPhotoFailed(true)}
+      />
+    </>
+  );
+}
 
 export const ProfileHeroCard: React.FC<Props> = ({
   watermark,
@@ -117,24 +137,23 @@ export const ProfileHeroCard: React.FC<Props> = ({
   initials,
   showTacticalBoard = false,
 }) => {
-  const hasPhoto = avatarUrl.length > 0;
-
   return (
-    <div className="relative mb-4 min-h-[11.5rem] w-full overflow-hidden rounded-2xl border border-red-500/30 bg-[#0a0608] px-3 py-3.5 shadow-[0_12px_48px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] sm:min-h-[12.5rem] sm:py-4">
+    <div className="relative mb-4 min-h-[11.5rem] w-full overflow-hidden rounded-2xl border border-red-500/30 bg-[#0a0608] shadow-[0_12px_48px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)] sm:min-h-[12.5rem]">
       <StadiumAtmosphere />
       {showTacticalBoard ? <TacticalBoardOverlay /> : null}
 
-      {/* Wasserzeichen hinter Inhalt */}
       <div
-        className="pointer-events-none absolute -left-1 bottom-[-0.12em] z-[0] max-w-[88%] select-none overflow-hidden font-black leading-[0.76] tracking-tighter"
+        className="pointer-events-none absolute inset-x-0 bottom-[-0.08em] z-[1] select-none overflow-hidden px-2 font-black leading-[0.76] tracking-tighter"
         style={WATERMARK_STYLE}
         aria-hidden
       >
         {watermark}
       </div>
 
-      <div className="relative z-[1] flex items-end justify-between gap-2 sm:gap-3">
-        <div className="relative z-[2] min-w-0 max-w-[58%] flex-1 pb-0.5 pr-1 text-left sm:max-w-[62%]">
+      <HeroFigure avatarUrl={avatarUrl} initials={initials} />
+
+      <div className="relative z-[2] flex min-h-[11.5rem] flex-col justify-end px-3 pb-3.5 pt-3 sm:min-h-[12.5rem] sm:px-4 sm:pb-4 sm:pt-3.5">
+        <div className="max-w-[58%] pb-0.5 pr-[42%] text-left sm:max-w-[56%]">
           <p className="break-words font-black uppercase leading-[1.02] tracking-tight text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.7),0_0_1px_rgba(0,0,0,0.9)] text-[clamp(1rem,4vw,1.55rem)]">
             {firstNameLine}
           </p>
@@ -146,38 +165,6 @@ export const ProfileHeroCard: React.FC<Props> = ({
           <p className="mt-1.5 line-clamp-2 break-words text-[13px] font-medium leading-snug text-white/78 sm:text-[14px]">
             {teamSeasonLabel}
           </p>
-        </div>
-
-        {/* Foto-Bereich: Glow verschmilzt mit Stadium */}
-        <div className="relative shrink-0">
-          <div
-            className="pointer-events-none absolute -inset-4 rounded-3xl bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.55)_0%,rgba(140,20,35,0.28)_45%,transparent_72%)] blur-2xl"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute -inset-2 rounded-2xl bg-[radial-gradient(ellipse_at_center,rgba(239,68,68,0.35)_0%,transparent_65%)]"
-            aria-hidden
-          />
-          <div className={AVATAR_FRAME_CLASS}>
-            {hasPhoto ? (
-              <img
-                src={avatarUrl}
-                alt=""
-                className={`${AVATAR_INNER_CLASS} [mask-image:linear-gradient(180deg,#000_72%,rgba(0,0,0,0.88)_100%)]`}
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                  const next = e.currentTarget.nextElementSibling as HTMLElement | null;
-                  if (next) next.style.display = "flex";
-                }}
-              />
-            ) : null}
-            <div
-              className="flex h-full w-full items-center justify-center rounded-[14px] bg-gradient-to-b from-zinc-800 to-zinc-950 text-xl font-black text-white sm:text-2xl"
-              style={{ display: hasPhoto ? "none" : "flex" }}
-            >
-              {initials}
-            </div>
-          </div>
         </div>
       </div>
     </div>
