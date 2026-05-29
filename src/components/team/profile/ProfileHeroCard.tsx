@@ -8,9 +8,8 @@ import {
 import { probeProfileHeroStadiumBackground } from "../../../lib/profileHeroStadiumBg";
 
 /**
- * Premium-Profil-Banner
- * - cutout: PNG-Freistellung (cutout_url)
- * - avatar: normales Foto im Neon-Rahmen (photo_url)
+ * Premium-Profil-Banner — Stadion, Wasserzeichen, Person, Text.
+ * cutout: PNG-Freistellung (cutout_url) | avatar: Neon-Rahmen (photo_url)
  */
 
 const NAME_TEXT_CLASS =
@@ -27,6 +26,7 @@ type Props = {
   photoUrl?: string | null;
   cutoutUrl?: string | null;
   initials: string;
+  /** @deprecated Taktiktafel entfernt — Prop bleibt für API-Kompatibilität */
   showTacticalBoard?: boolean;
 };
 
@@ -36,112 +36,64 @@ function useStadiumBackgroundUrl(): string | null {
   return url;
 }
 
+/** z-0 — Stadion + dezente Overlays */
 function StadiumAtmosphere({ photoBgUrl }: { photoBgUrl: string | null }) {
   const hasPhoto = Boolean(photoBgUrl);
 
   return (
-    <>
+    <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
       {hasPhoto ? (
         <div
-          className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${photoBgUrl})` }}
-          aria-hidden
-        />
-      ) : null}
-      <div
-        className={`pointer-events-none absolute inset-0 ${
-          hasPhoto
-            ? "bg-[linear-gradient(180deg,rgba(6,4,8,0.42)_0%,rgba(8,6,10,0.58)_40%,rgba(4,4,6,0.72)_100%)]"
-            : "bg-[linear-gradient(180deg,#0c0608_0%,#12080c_42%,#080406_100%)]"
-        }`}
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[32%] bg-[linear-gradient(180deg,transparent_0%,rgba(6,14,10,0.18)_55%,rgba(4,8,6,0.28)_100%)]"
-        aria-hidden
-      />
-      <div
-        className={`pointer-events-none absolute inset-y-0 left-0 w-[32%] ${
-          hasPhoto
-            ? "bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(180,28,45,0.14)_0%,transparent_72%)]"
-            : "bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(180,28,45,0.32)_0%,transparent_68%)]"
-        }`}
-        aria-hidden
-      />
-      {hasPhoto ? (
-        <div
-          className="pointer-events-none absolute inset-y-0 right-0 w-[48%] bg-[radial-gradient(ellipse_85%_90%_at_100%_55%,rgba(0,0,0,0.35)_0%,transparent_72%)]"
-          aria-hidden
         />
       ) : (
-        <div
-          className="pointer-events-none absolute inset-y-0 right-0 w-[38%] bg-[radial-gradient(ellipse_90%_80%_at_100%_50%,rgba(160,24,40,0.28)_0%,transparent_68%)]"
-          aria-hidden
-        />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,#0c0608_0%,#12080c_42%,#080406_100%)]" />
       )}
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(255,255,255,0.1)_0%,transparent_55%)]"
-        aria-hidden
+        className={`absolute inset-0 ${
+          hasPhoto
+            ? "bg-[linear-gradient(180deg,rgba(4,4,6,0.22)_0%,rgba(6,6,8,0.38)_50%,rgba(2,2,4,0.52)_100%)]"
+            : "bg-[linear-gradient(180deg,rgba(6,4,8,0.55)_0%,rgba(8,6,10,0.72)_100%)]"
+        }`}
       />
-      <FloodlightBeams dimmed={hasPhoto} />
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_100%_90%_at_50%_50%,transparent_42%,rgba(0,0,0,0.45)_85%,rgba(0,0,0,0.7)_100%)]"
-        aria-hidden
-      />
-    </>
-  );
-}
-
-function FloodlightBeams({ dimmed }: { dimmed: boolean }) {
-  const opacity = dimmed ? "opacity-60" : "opacity-100";
-  return (
-    <div className={opacity}>
-      <div
-        className="pointer-events-none absolute -left-6 top-0 h-[65%] w-[34%] origin-top-left -skew-x-6 bg-[linear-gradient(165deg,rgba(255,248,240,0.12)_0%,transparent_70%)] blur-[1px]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-6 top-0 h-[65%] w-[34%] origin-top-right skew-x-6 bg-[linear-gradient(195deg,rgba(255,248,240,0.1)_0%,transparent_70%)] blur-[1px]"
-        aria-hidden
-      />
-      <div className="pointer-events-none absolute left-[12%] top-0 h-16 w-16 rounded-full bg-white/[0.08] blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute right-[10%] top-0 h-16 w-16 rounded-full bg-white/[0.06] blur-3xl" aria-hidden />
+      {hasPhoto ? (
+        <div className="absolute inset-y-0 left-0 w-[28%] bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(0,0,0,0.35)_0%,transparent_72%)]" />
+      ) : (
+        <div className="absolute inset-y-0 left-0 w-[32%] bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(180,28,45,0.22)_0%,transparent_68%)]" />
+      )}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_50%_0%,rgba(255,255,255,0.14)_0%,transparent_58%)]" />
+      <FloodlightBeams bright={hasPhoto} />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_105%_95%_at_50%_50%,transparent_50%,rgba(0,0,0,0.32)_88%,rgba(0,0,0,0.55)_100%)]" />
     </div>
   );
 }
 
-function TacticalBoardOverlay() {
+function FloodlightBeams({ bright }: { bright: boolean }) {
   return (
-    <svg
-      className="pointer-events-none absolute right-0 top-0 z-[1] h-full w-[50%] text-white/[0.09]"
-      viewBox="0 0 200 180"
-      preserveAspectRatio="xMaxYMid slice"
-      aria-hidden
-    >
-      <circle cx="130" cy="48" r="26" stroke="currentColor" strokeWidth="1.2" fill="none" />
-      <circle cx="165" cy="112" r="20" stroke="currentColor" strokeWidth="1.2" fill="none" />
-      <path d="M108 38 L155 78" stroke="currentColor" strokeWidth="1" strokeDasharray="4 3" />
-      <path d="M148 68 L178 125" stroke="currentColor" strokeWidth="1" strokeDasharray="4 3" />
-      <path d="M95 130 L125 95 L148 145" stroke="currentColor" strokeWidth="0.9" fill="none" />
-      <rect x="72" y="22" width="118" height="136" rx="8" stroke="currentColor" strokeWidth="0.8" fill="none" />
-    </svg>
+    <div className={bright ? "opacity-90" : "opacity-100"}>
+      <div className="absolute -left-4 top-0 h-[70%] w-[36%] origin-top-left -skew-x-6 bg-[linear-gradient(165deg,rgba(255,248,240,0.16)_0%,transparent_68%)] blur-[1px]" />
+      <div className="absolute -right-4 top-0 h-[70%] w-[36%] origin-top-right skew-x-6 bg-[linear-gradient(195deg,rgba(255,248,240,0.14)_0%,transparent_68%)] blur-[1px]" />
+      <div className="absolute left-[14%] top-0 h-20 w-20 rounded-full bg-white/[0.11] blur-3xl" />
+      <div className="absolute right-[12%] top-0 h-20 w-20 rounded-full bg-white/[0.09] blur-3xl" />
+    </div>
   );
 }
 
+/** z-[1] — TR / Nummer hinter Figur */
 function HeroWatermark({ watermark, cutoutMode }: { watermark: string; cutoutMode: boolean }) {
   const style: React.CSSProperties = {
-    fontSize: cutoutMode ? "clamp(6.5rem, 38vw, 11.5rem)" : "clamp(6rem, 34vw, 10.5rem)",
-    color: "rgba(122, 29, 42, 0.3)",
-    WebkitTextStroke: "2px rgba(180, 28, 45, 0.48)",
+    fontSize: cutoutMode ? "clamp(8.75rem, 51vw, 15.5rem)" : "clamp(8.1rem, 46vw, 14.2rem)",
+    color: "rgba(122, 29, 42, 0.22)",
+    WebkitTextStroke: "2px rgba(180, 28, 45, 0.4)",
     paintOrder: "stroke fill",
-    textShadow:
-      "0 0 40px rgba(180, 28, 45, 0.38), 0 2px 0 rgba(0,0,0,0.45), 2px 2px 0 rgba(140, 20, 35, 0.32)",
+    textShadow: "0 0 32px rgba(180, 28, 45, 0.28), 0 2px 0 rgba(0,0,0,0.4)",
     lineHeight: 0.82,
   };
 
   return (
     <div
-      className="pointer-events-none absolute left-1 top-1/2 z-[1] max-w-[min(92%,20rem)] -translate-y-[46%] select-none font-black tracking-tighter"
+      className="pointer-events-none absolute left-0 top-1/2 z-[1] max-w-[min(96%,22rem)] -translate-y-1/2 select-none pl-2 font-black tracking-tighter"
       style={style}
       aria-hidden
     >
@@ -158,7 +110,7 @@ function HeroTextBlock({
   const fullName = [firstNameLine, lastNameLine].filter(Boolean).join(" ");
 
   return (
-    <div className="relative z-[3] min-w-[46%] max-w-[62%] flex-1">
+    <div className="relative z-[4] min-w-[46%] max-w-[58%] flex-1 self-end pb-1">
       <p className={`line-clamp-2 ${NAME_TEXT_CLASS}`}>{fullName}</p>
       <p className={TEAM_TEXT_CLASS}>{teamSeasonLabel}</p>
     </div>
@@ -177,7 +129,7 @@ function HeroAvatarFrame({
   const showPhoto = Boolean(photoSrc) && !photoFailed;
 
   return (
-    <div className="relative z-[2] shrink-0 bg-transparent">
+    <div className="relative z-[2] shrink-0 self-end bg-transparent">
       <div className="relative h-[6.25rem] w-[6.25rem] rounded-2xl bg-gradient-to-br from-red-500/90 via-red-700/95 to-red-950 p-[2px] shadow-[0_0_16px_rgba(220,38,38,0.28),0_8px_24px_rgba(0,0,0,0.45)] sm:h-[7.5rem] sm:w-[7.5rem]">
         {showPhoto ? (
           <img
@@ -196,6 +148,7 @@ function HeroAvatarFrame({
   );
 }
 
+/** z-[2] — Freigestellte Figur, +35 %, Kopf oben, darf unten leicht überragen */
 function HeroCutoutFigure({
   cutoutSrc,
   onLoadError,
@@ -204,15 +157,15 @@ function HeroCutoutFigure({
   onLoadError: () => void;
 }) {
   return (
-    <div className="relative z-[2] -mr-1 h-[8.25rem] w-[8.5rem] shrink-0 bg-transparent sm:h-[10.25rem] sm:w-[10.5rem]">
+    <div className="pointer-events-none absolute right-0 top-0 z-[2] h-[112%] w-[54%] max-w-[12.5rem] bg-transparent sm:max-w-[15rem]">
       <div
-        className="pointer-events-none absolute left-1/2 top-[18%] z-0 h-[42%] w-[72%] -translate-x-1/2 bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.18)_0%,transparent_72%)] blur-xl"
+        className="absolute left-1/2 top-[12%] h-[38%] w-[68%] -translate-x-1/2 bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.16)_0%,transparent_72%)] blur-lg"
         aria-hidden
       />
       <img
         src={cutoutSrc}
         alt=""
-        className="relative z-[1] h-full w-full bg-transparent object-contain object-bottom drop-shadow-[0_12px_28px_rgba(0,0,0,0.48)]"
+        className="relative h-full w-full bg-transparent object-contain object-right object-top drop-shadow-[0_14px_32px_rgba(0,0,0,0.45)]"
         onError={onLoadError}
       />
     </div>
@@ -227,7 +180,6 @@ export const ProfileHeroCard: React.FC<Props> = ({
   photoUrl,
   cutoutUrl,
   initials,
-  showTacticalBoard = false,
 }) => {
   const stadiumBgUrl = useStadiumBackgroundUrl();
   const cutoutSrc = hasCutoutUrl(cutoutUrl) ? resolveProfileCutoutSrc(cutoutUrl) : null;
@@ -235,23 +187,32 @@ export const ProfileHeroCard: React.FC<Props> = ({
   const layoutMode = profileHeroLayoutMode(cutoutUrl, cutoutLoadOk && Boolean(cutoutSrc));
   const isCutout = layoutMode === "cutout";
 
+  const heroMinH = isCutout ? "min-h-[13.75rem] sm:min-h-[14.75rem]" : "min-h-[12rem] sm:min-h-[12.5rem]";
+
   return (
-    <div className="relative mb-4 min-h-[11.25rem] w-full overflow-hidden rounded-xl border border-red-500/15 bg-[#0a0608] shadow-[0_8px_32px_rgba(0,0,0,0.45)] sm:min-h-[12rem]">
+    <div
+      className={`relative mb-5 w-full overflow-x-hidden overflow-y-visible rounded-xl border border-red-500/12 bg-[#0a0608] shadow-[0_8px_32px_rgba(0,0,0,0.4)] ${heroMinH}`}
+    >
       <StadiumAtmosphere photoBgUrl={stadiumBgUrl} />
-      {showTacticalBoard ? <TacticalBoardOverlay /> : null}
       <HeroWatermark watermark={watermark} cutoutMode={isCutout} />
 
-      <div className="relative z-[2] flex min-h-[11.25rem] items-center justify-between gap-2 px-3 py-2.5 sm:min-h-[12rem] sm:gap-3 sm:px-4 sm:py-3">
+      {isCutout && cutoutSrc ? (
+        <HeroCutoutFigure cutoutSrc={cutoutSrc} onLoadError={() => setCutoutLoadOk(false)} />
+      ) : null}
+
+      <div
+        className={`relative flex items-end justify-between gap-2 px-3 pb-3 pt-2 sm:gap-3 sm:px-4 sm:pb-3.5 sm:pt-2.5 ${heroMinH}`}
+      >
         <HeroTextBlock
           firstNameLine={firstNameLine}
           lastNameLine={lastNameLine}
           teamSeasonLabel={teamSeasonLabel}
         />
 
-        {isCutout && cutoutSrc ? (
-          <HeroCutoutFigure cutoutSrc={cutoutSrc} onLoadError={() => setCutoutLoadOk(false)} />
-        ) : (
+        {!isCutout || !cutoutSrc ? (
           <HeroAvatarFrame photoUrl={photoUrl} initials={initials} />
+        ) : (
+          <div className="w-[46%] max-w-[12.5rem] shrink-0 sm:max-w-[15rem]" aria-hidden />
         )}
       </div>
     </div>

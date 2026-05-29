@@ -188,7 +188,6 @@ export const TrainerProfilePage: React.FC = () => {
               photoUrl={avatarUrl}
               cutoutUrl={member.cutout_url}
               initials={initials}
-              showTacticalBoard
             />
 
             <div className="mb-4 flex flex-wrap gap-1.5 sm:justify-center sm:gap-2">
