@@ -1,6 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, Mail, Phone, Users } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  Dumbbell,
+  Mail,
+  Percent,
+  Phone,
+  Shield,
+  Target,
+  Trophy,
+  Users,
+} from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { useSession, getSeasonLabelFromMembership, getTeamNameFromMembership } from "../auth/useSession";
 import { canManageRoster, normalizeRole } from "../lib/roles";
@@ -11,9 +22,11 @@ import {
   STAFF_RPC_MIGRATION_HINT,
   type TeamStaffMember,
 } from "../hooks/useTeamStaff";
+import { staffRoleWatermarkCode, useTeamSeasonCoachStats } from "../hooks/useTeamSeasonCoachStats";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
 import { ProfileChip } from "../components/team/ProfileChip";
+import { ProfileStatTile } from "../components/team/ProfileStatTile";
 import { AppButton } from "../components/ui/AppButton";
 import { premiumPlayerInitials } from "../lib/premiumPlayerCard";
 
@@ -40,6 +53,8 @@ export const TrainerProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [rpcMissing, setRpcMissing] = useState(false);
+
+  const { stats, loading: statsLoading, error: statsError } = useTeamSeasonCoachStats(teamSeasonId);
 
   const reloadMember = useCallback(async () => {
     const uid = userId?.trim();
@@ -110,7 +125,20 @@ export const TrainerProfilePage: React.FC = () => {
   const avatarUrl = (member?.avatar_url ?? "").trim();
   const { line1: firstNameLine, line2: lastNameLine } = member ? nameHeroLines(member) : { line1: "TRAINER", line2: "" };
   const initials = member ? premiumPlayerInitials(staffDisplayName(member)) : "TR";
-  const roleWatermark = member ? staffRoleLabelDe(member.role).slice(0, 2).toUpperCase() : "TR";
+  const roleWatermark = member ? staffRoleWatermarkCode(member.role) : "TR";
+
+  const statTiles = useMemo(
+    () =>
+      [
+        { icon: Dumbbell, label: "Trainings", value: String(stats.trainings) },
+        { icon: CalendarDays, label: "Spiele", value: String(stats.matches) },
+        { icon: Trophy, label: "Siege", value: String(stats.wins) },
+        { icon: Target, label: "Tore Team", value: String(stats.goalsFor) },
+        { icon: Shield, label: "Gegentore", value: String(stats.goalsAgainst) },
+        { icon: Percent, label: "Punkte / Spiel", value: stats.pointsPerGame },
+      ] as const,
+    [stats],
+  );
 
   const bottomPad = canManage
     ? "max(6.25rem, calc(env(safe-area-inset-bottom, 0px) + 5.75rem))"
@@ -120,7 +148,7 @@ export const TrainerProfilePage: React.FC = () => {
 
   return (
     <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col bg-black">
-      <div className="z-20 flex shrink-0 items-center gap-2 border-b border-white/10 bg-black/90 px-2 py-2.5 backdrop-blur-md">
+      <div className="z-20 flex shrink-0 items-center gap-2 border-b border-white/10 bg-black/90 px-2 py-2.5 pt-[max(0.5rem,env(safe-area-inset-top,0px))] backdrop-blur-md">
         <button
           type="button"
           onClick={goBack}
@@ -162,7 +190,7 @@ export const TrainerProfilePage: React.FC = () => {
             <div className="relative mb-4 min-h-[11.5rem] w-full overflow-hidden rounded-2xl border border-red-500/25 bg-gradient-to-br from-red-950/50 via-black/55 to-black px-3 py-3.5 sm:min-h-[13rem] sm:py-4">
               <div
                 className="pointer-events-none absolute -left-1 bottom-0 select-none font-black leading-[0.8] text-white/[0.07]"
-                style={{ fontSize: "clamp(3.5rem, 22vw, 6rem)" }}
+                style={{ fontSize: "clamp(4.5rem, 28vw, 7.5rem)" }}
                 aria-hidden
               >
                 {roleWatermark}
@@ -181,12 +209,12 @@ export const TrainerProfilePage: React.FC = () => {
                 </div>
                 <div className="relative shrink-0">
                   <div className="absolute inset-0 scale-110 rounded-2xl bg-red-500/40 blur-2xl" aria-hidden />
-                  <div className="relative h-[6.25rem] w-[6.25rem] sm:h-[8rem] sm:w-[8rem]">
+                  <div className="relative h-[6.25rem] w-[6.25rem] sm:h-[8.75rem] sm:w-[8.75rem]">
                     {avatarUrl ? (
                       <img
                         src={avatarUrl}
                         alt=""
-                        className="h-full w-full rounded-2xl border-2 border-red-500/45 object-cover shadow-[0_0_40px_rgba(239,68,68,0.42)]"
+                        className="h-full w-full rounded-2xl border-2 border-red-500/45 object-cover shadow-[0_0_40px_rgba(239,68,68,0.42),0_0_1px_rgba(255,255,255,0.2)_inset]"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).style.display = "none";
                           const next = e.currentTarget.nextElementSibling as HTMLElement | null;
@@ -205,44 +233,62 @@ export const TrainerProfilePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="mb-4 flex flex-wrap gap-1.5">
+            <div className="mb-4 flex flex-wrap gap-1.5 sm:justify-center sm:gap-2">
               <ProfileChip>Rolle: {staffRoleLabelDe(member.role)}</ProfileChip>
-              {member.phone?.trim() ? <ProfileChip>Tel.: {member.phone.trim()}</ProfileChip> : null}
               {member.email?.trim() ? (
                 <ProfileChip>
                   <span className="max-w-[12rem] truncate sm:max-w-none">E-Mail: {member.email.trim()}</span>
                 </ProfileChip>
               ) : null}
+              {member.phone?.trim() ? <ProfileChip>Tel.: {member.phone.trim()}</ProfileChip> : null}
             </div>
 
-            <h2 className="mb-2.5 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">Kontakt</h2>
-            <div className="space-y-2.5">
-              {member.phone?.trim() ? (
-                <a
-                  href={`tel:${member.phone.trim()}`}
-                  className="flex min-h-[48px] items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-[15px] text-white/90 hover:bg-white/[0.07]"
-                >
-                  <Phone className="h-4 w-4 shrink-0 text-white/60" aria-hidden />
-                  <span className="break-all font-medium">{member.phone.trim()}</span>
-                </a>
-              ) : (
-                <p className="rounded-xl border border-dashed border-white/12 px-4 py-3 text-[14px] text-white/55">
-                  Keine Telefonnummer hinterlegt
-                </p>
-              )}
-              {member.email?.trim() ? (
-                <a
-                  href={`mailto:${member.email.trim()}`}
-                  className="flex min-h-[48px] items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-[15px] text-white/90 hover:bg-white/[0.07]"
-                >
-                  <Mail className="h-4 w-4 shrink-0 text-white/60" aria-hidden />
-                  <span className="break-all font-medium">{member.email.trim()}</span>
-                </a>
-              ) : (
-                <p className="rounded-xl border border-dashed border-white/12 px-4 py-3 text-[14px] text-white/55">
-                  Keine E-Mail hinterlegt
-                </p>
-              )}
+            <h2 className="mb-2.5 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+              Trainerstatistik
+            </h2>
+            <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+              {statsLoading
+                ? [0, 1, 2, 3, 4, 5].map((i) => (
+                    <div
+                      key={`trainer-stat-skel-${i}`}
+                      className="h-[4.75rem] animate-pulse rounded-2xl border border-white/5 bg-white/[0.07]"
+                    />
+                  ))
+                : statTiles.map((s) => <ProfileStatTile key={s.label} icon={s.icon} label={s.label} value={s.value} />)}
+            </div>
+            {statsError ? (
+              <p className="mt-2 text-center text-[11px] text-amber-400/95">{statsError}</p>
+            ) : null}
+            {!statsLoading && !statsError && stats.matches === 0 && stats.trainings === 0 ? (
+              <p className="mt-2 text-center text-[12px] text-white/60">Noch keine Saisondaten</p>
+            ) : null}
+
+            <h2 className="mb-2.5 mt-6 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">Kontakt</h2>
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3.5">
+              <div className="space-y-2.5">
+                {member.phone?.trim() ? (
+                  <a
+                    href={`tel:${member.phone.trim()}`}
+                    className="flex items-center gap-3 text-[15px] text-white/90 hover:text-white"
+                  >
+                    <Phone className="h-4 w-4 shrink-0 text-white/55" aria-hidden />
+                    <span className="break-all font-medium">{member.phone.trim()}</span>
+                  </a>
+                ) : (
+                  <p className="text-[13px] text-white/50">Keine Telefonnummer hinterlegt</p>
+                )}
+                {member.email?.trim() ? (
+                  <a
+                    href={`mailto:${member.email.trim()}`}
+                    className="flex items-center gap-3 text-[15px] text-white/90 hover:text-white"
+                  >
+                    <Mail className="h-4 w-4 shrink-0 text-white/55" aria-hidden />
+                    <span className="break-all font-medium">{member.email.trim()}</span>
+                  </a>
+                ) : (
+                  <p className="text-[13px] text-white/50">Keine E-Mail hinterlegt</p>
+                )}
+              </div>
             </div>
 
             <h2 className="mb-2.5 mt-6 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
