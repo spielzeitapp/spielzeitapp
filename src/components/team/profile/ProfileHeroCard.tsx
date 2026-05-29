@@ -51,7 +51,7 @@ function StadiumAtmosphere({ photoBgUrl }: { photoBgUrl: string | null }) {
       <div
         className={`pointer-events-none absolute inset-0 ${
           hasPhoto
-            ? "bg-[linear-gradient(180deg,rgba(8,4,6,0.55)_0%,rgba(12,6,10,0.72)_45%,rgba(6,4,6,0.88)_100%)]"
+            ? "bg-[linear-gradient(180deg,rgba(6,4,8,0.42)_0%,rgba(8,6,10,0.58)_40%,rgba(4,4,6,0.72)_100%)]"
             : "bg-[linear-gradient(180deg,#0c0608_0%,#12080c_42%,#080406_100%)]"
         }`}
         aria-hidden
@@ -61,21 +61,24 @@ function StadiumAtmosphere({ photoBgUrl }: { photoBgUrl: string | null }) {
         aria-hidden
       />
       <div
-        className={`pointer-events-none absolute inset-y-0 left-0 w-[38%] ${
+        className={`pointer-events-none absolute inset-y-0 left-0 w-[32%] ${
           hasPhoto
-            ? "bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(180,28,45,0.28)_0%,transparent_70%)]"
-            : "bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(180,28,45,0.38)_0%,transparent_68%)]"
+            ? "bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(180,28,45,0.14)_0%,transparent_72%)]"
+            : "bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(180,28,45,0.32)_0%,transparent_68%)]"
         }`}
         aria-hidden
       />
-      <div
-        className={`pointer-events-none absolute inset-y-0 right-0 w-[38%] ${
-          hasPhoto
-            ? "bg-[radial-gradient(ellipse_90%_80%_at_100%_50%,rgba(160,24,40,0.24)_0%,transparent_70%)]"
-            : "bg-[radial-gradient(ellipse_90%_80%_at_100%_50%,rgba(160,24,40,0.34)_0%,transparent_68%)]"
-        }`}
-        aria-hidden
-      />
+      {hasPhoto ? (
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 w-[48%] bg-[radial-gradient(ellipse_85%_90%_at_100%_55%,rgba(0,0,0,0.35)_0%,transparent_72%)]"
+          aria-hidden
+        />
+      ) : (
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 w-[38%] bg-[radial-gradient(ellipse_90%_80%_at_100%_50%,rgba(160,24,40,0.28)_0%,transparent_68%)]"
+          aria-hidden
+        />
+      )}
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(255,255,255,0.1)_0%,transparent_55%)]"
         aria-hidden
@@ -174,9 +177,8 @@ function HeroAvatarFrame({
   const showPhoto = Boolean(photoSrc) && !photoFailed;
 
   return (
-    <div className="relative z-[2] shrink-0">
-      <div className="absolute inset-0 scale-110 rounded-2xl bg-red-500/40 blur-2xl" aria-hidden />
-      <div className="relative h-[6.25rem] w-[6.25rem] rounded-2xl bg-gradient-to-br from-red-400 via-red-600 to-red-900 p-[2px] shadow-[0_0_24px_rgba(220,38,38,0.55),0_0_40px_rgba(239,68,68,0.28)] sm:h-[7.5rem] sm:w-[7.5rem]">
+    <div className="relative z-[2] shrink-0 bg-transparent">
+      <div className="relative h-[6.25rem] w-[6.25rem] rounded-2xl bg-gradient-to-br from-red-500/90 via-red-700/95 to-red-950 p-[2px] shadow-[0_0_16px_rgba(220,38,38,0.28),0_8px_24px_rgba(0,0,0,0.45)] sm:h-[7.5rem] sm:w-[7.5rem]">
         {showPhoto ? (
           <img
             src={photoSrc!}
@@ -202,15 +204,15 @@ function HeroCutoutFigure({
   onLoadError: () => void;
 }) {
   return (
-    <div className="relative z-[2] -mr-1 h-[8.25rem] w-[8.5rem] shrink-0 sm:h-[10.25rem] sm:w-[10.5rem]">
+    <div className="relative z-[2] -mr-1 h-[8.25rem] w-[8.5rem] shrink-0 bg-transparent sm:h-[10.25rem] sm:w-[10.5rem]">
       <div
-        className="pointer-events-none absolute bottom-[8%] left-1/2 z-0 h-[75%] w-[90%] -translate-x-1/2 bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.32)_0%,transparent_68%)] blur-2xl"
+        className="pointer-events-none absolute left-1/2 top-[18%] z-0 h-[42%] w-[72%] -translate-x-1/2 bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.18)_0%,transparent_72%)] blur-xl"
         aria-hidden
       />
       <img
         src={cutoutSrc}
         alt=""
-        className="relative z-[1] h-full w-full object-contain object-bottom drop-shadow-[0_14px_32px_rgba(0,0,0,0.5)]"
+        className="relative z-[1] h-full w-full bg-transparent object-contain object-bottom drop-shadow-[0_12px_28px_rgba(0,0,0,0.48)]"
         onError={onLoadError}
       />
     </div>
