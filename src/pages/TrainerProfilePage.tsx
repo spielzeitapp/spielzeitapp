@@ -123,12 +123,12 @@ export const TrainerProfilePage: React.FC = () => {
   const statTiles = useMemo(
     () =>
       [
-        { icon: Dumbbell, label: "Trainings", value: String(stats.trainings) },
-        { icon: CalendarDays, label: "Spiele", value: String(stats.matches) },
-        { icon: Trophy, label: "Siege", value: String(stats.wins) },
-        { icon: Target, label: "Tore Team", value: String(stats.goalsFor) },
-        { icon: Shield, label: "Gegentore", value: String(stats.goalsAgainst) },
-        { icon: Percent, label: "Punkte / Spiel", value: stats.pointsPerGame },
+        { Icon: COACH_STAT_TILES.trainings, label: "Trainings", value: String(stats.trainings) },
+        { Icon: COACH_STAT_TILES.games, label: "Spiele", value: String(stats.matches) },
+        { Icon: COACH_STAT_TILES.wins, label: "Siege", value: String(stats.wins) },
+        { Icon: COACH_STAT_TILES.goalsFor, label: "Tore Team", value: String(stats.goalsFor) },
+        { Icon: COACH_STAT_TILES.goalsAgainst, label: "Gegentore", value: String(stats.goalsAgainst) },
+        { Icon: COACH_STAT_TILES.pointsPerGame, label: "Punkte / Spiel", value: stats.pointsPerGame },
       ] as const,
     [stats],
   );

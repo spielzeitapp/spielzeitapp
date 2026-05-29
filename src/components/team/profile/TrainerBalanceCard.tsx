@@ -13,7 +13,7 @@ export const TrainerBalanceCard: React.FC<Props> = ({ wins, draws, losses }) => 
   const lPct = total > 0 ? (losses / total) * 100 : 0;
 
   return (
-    <div className="mt-4 overflow-hidden rounded-2xl border border-red-500/25 bg-gradient-to-b from-white/[0.06] to-black/50 px-3 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_36px_rgba(0,0,0,0.38)]">
+    <div className="mt-4 overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(25,25,28,0.96)] to-[rgba(80,12,20,0.22)] px-3 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_24px_rgba(220,38,38,0.1),0_10px_36px_rgba(0,0,0,0.4)]">
       <h3 className="mb-3 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">Trainerbilanz</h3>
       <div className="grid grid-cols-3 gap-2 text-center">
         <div>

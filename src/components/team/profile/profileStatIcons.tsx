@@ -2,7 +2,10 @@ import React from "react";
 
 type IconProps = { className?: string };
 
-const deco = "h-16 w-16 text-red-500/[0.14]";
+/** Watermark-Größe in Stat-Kacheln — opacity ~0.18 via text-red-400/18 */
+export const STAT_ICON_WATERMARK_CLASS = "h-[4.75rem] w-[4.75rem] text-red-400/[0.18]";
+
+const deco = STAT_ICON_WATERMARK_CLASS;
 
 export function StatIconPitch({ className = deco }: IconProps) {
   return (
@@ -76,12 +79,12 @@ export function StatIconTrophy({ className = deco }: IconProps) {
   );
 }
 
-export function StatIconChart({ className = deco }: IconProps) {
+export function StatIconTarget({ className = deco }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="7.25" stroke="currentColor" strokeWidth="1.8" />
-      <circle cx="12" cy="12" r="3.25" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M12 4.8v3.2M12 16v3.2M4.8 12h3.2M16 12h3.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" />
     </svg>
   );
 }
@@ -89,39 +92,46 @@ export function StatIconChart({ className = deco }: IconProps) {
 export function StatIconTraining({ className = deco }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
-      <circle cx="12" cy="8.2" r="2.35" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M7.2 15.8c1.5-2.2 8.1-2.2 9.6 0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <circle cx="17.2" cy="14.5" r="2.1" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M15.5 12.8l-1.8 3.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path
+        d="M6.5 7.5v9M17.5 7.5v9M6.5 12h11"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <rect x="4" y="5.5" width="5" height="3" rx="1" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="15" y="5.5" width="5" height="3" rx="1" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M10 15.5h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
 
-export function StatIconGoalkeeper({ className = deco }: IconProps) {
+export function StatIconShield({ className = deco }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
-      <circle cx="12" cy="7.5" r="2.4" stroke="currentColor" strokeWidth="1.7" />
       <path
-        d="M6.5 11.5 4 20h16l-2.5-8.5M9 14.5h6"
+        d="M12 3.5 5.5 6v5.8c0 4.1 2.8 7.9 6.5 8.7 3.7-.8 6.5-4.6 6.5-8.7V6L12 3.5z"
         stroke="currentColor"
-        strokeWidth="1.7"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path d="M9.5 12.2 11.2 14l3.8-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function StatIconTrendingUp({ className = deco }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
+      <path d="M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path
+        d="M7 14.5 11 10.5l3 3 5-6"
+        stroke="currentColor"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M5 14.5h14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-export function StatIconStar({ className = deco }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
-      <path
-        d="m12 4.2 1.55 4.75h4.9l-3.95 2.9 1.5 4.75L12 13.7l-3 2.9 1.5-4.75-3.95-2.9h4.9L12 4.2z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
+      <path d="M15 7.5h3.5V11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -132,7 +142,7 @@ export const PLAYER_STAT_TILES = {
   assists: StatIconAssist,
   minutes: StatIconStopwatch,
   deployments: StatIconTrophy,
-  goalsPerGame: StatIconChart,
+  goalsPerGame: StatIconTarget,
 } as const;
 
 export const COACH_STAT_TILES = {
@@ -140,6 +150,6 @@ export const COACH_STAT_TILES = {
   games: StatIconPitch,
   wins: StatIconTrophy,
   goalsFor: StatIconFootball,
-  goalsAgainst: StatIconGoalkeeper,
-  pointsPerGame: StatIconStar,
+  goalsAgainst: StatIconShield,
+  pointsPerGame: StatIconTrendingUp,
 } as const;
