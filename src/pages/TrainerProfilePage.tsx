@@ -1,17 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  CalendarDays,
-  ChevronLeft,
-  Dumbbell,
-  Mail,
-  Percent,
-  Phone,
-  Shield,
-  Target,
-  Trophy,
-  Users,
-} from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { useSession, getSeasonLabelFromMembership, getTeamNameFromMembership } from "../auth/useSession";
 import { canManageRoster, normalizeRole } from "../lib/roles";
@@ -27,6 +16,10 @@ import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
 import { ProfileChip } from "../components/team/ProfileChip";
 import { ProfileStatTile } from "../components/team/ProfileStatTile";
+import { ProfileHeroCard } from "../components/team/profile/ProfileHeroCard";
+import { ProfileFooterCards } from "../components/team/profile/ProfileFooterCards";
+import { TrainerBalanceCard } from "../components/team/profile/TrainerBalanceCard";
+import { COACH_STAT_TILES } from "../components/team/profile/profileStatIcons";
 import { AppButton } from "../components/ui/AppButton";
 import { premiumPlayerInitials } from "../lib/premiumPlayerCard";
 
@@ -187,51 +180,15 @@ export const TrainerProfilePage: React.FC = () => {
             className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 pt-3 sm:px-4"
             style={{ paddingBottom: `calc(${bottomPad})` }}
           >
-            <div className="relative mb-4 min-h-[11.5rem] w-full overflow-hidden rounded-2xl border border-red-500/25 bg-gradient-to-br from-red-950/50 via-black/55 to-black px-3 py-3.5 sm:min-h-[13rem] sm:py-4">
-              <div
-                className="pointer-events-none absolute -left-1 bottom-0 select-none font-black leading-[0.8] text-white/[0.07]"
-                style={{ fontSize: "clamp(4.5rem, 28vw, 7.5rem)" }}
-                aria-hidden
-              >
-                {roleWatermark}
-              </div>
-              <div className="relative flex items-end justify-between gap-2 sm:gap-4">
-                <div className="min-w-0 flex-1 pb-0.5 text-left">
-                  <p className="break-words font-black uppercase leading-[1.02] tracking-tight text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] text-[clamp(1.05rem,4vw,1.55rem)]">
-                    {firstNameLine}
-                  </p>
-                  {lastNameLine ? (
-                    <p className="mt-0.5 break-words font-black uppercase leading-[1.02] tracking-tight text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] text-[clamp(1.05rem,4vw,1.55rem)]">
-                      {lastNameLine}
-                    </p>
-                  ) : null}
-                  <p className="mt-2 break-words text-[14px] font-medium leading-snug text-white/70">{teamSeasonLabel}</p>
-                </div>
-                <div className="relative shrink-0">
-                  <div className="absolute inset-0 scale-110 rounded-2xl bg-red-500/40 blur-2xl" aria-hidden />
-                  <div className="relative h-[6.25rem] w-[6.25rem] sm:h-[8.75rem] sm:w-[8.75rem]">
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt=""
-                        className="h-full w-full rounded-2xl border-2 border-red-500/45 object-cover shadow-[0_0_40px_rgba(239,68,68,0.42),0_0_1px_rgba(255,255,255,0.2)_inset]"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = "none";
-                          const next = e.currentTarget.nextElementSibling as HTMLElement | null;
-                          if (next) next.style.display = "flex";
-                        }}
-                      />
-                    ) : null}
-                    <div
-                      className="flex h-full w-full items-center justify-center rounded-2xl border-2 border-white/20 bg-zinc-800 text-2xl font-black text-white"
-                      style={{ display: avatarUrl ? "none" : "flex" }}
-                    >
-                      {initials}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ProfileHeroCard
+              watermark={roleWatermark}
+              firstNameLine={firstNameLine}
+              lastNameLine={lastNameLine}
+              teamSeasonLabel={teamSeasonLabel}
+              avatarUrl={avatarUrl}
+              initials={initials}
+              showTacticalBoard
+            />
 
             <div className="mb-4 flex flex-wrap gap-1.5 sm:justify-center sm:gap-2">
               <ProfileChip>Rolle: {staffRoleLabelDe(member.role)}</ProfileChip>
@@ -254,8 +211,13 @@ export const TrainerProfilePage: React.FC = () => {
                       className="h-[4.75rem] animate-pulse rounded-2xl border border-white/5 bg-white/[0.07]"
                     />
                   ))
-                : statTiles.map((s) => <ProfileStatTile key={s.label} icon={s.icon} label={s.label} value={s.value} />)}
+                : statTiles.map((s) => (
+                    <ProfileStatTile key={s.label} icon={<s.Icon />} label={s.label} value={s.value} />
+                  ))}
             </div>
+            {!statsLoading && !statsError ? (
+              <TrainerBalanceCard wins={stats.wins} draws={stats.draws} losses={stats.losses} />
+            ) : null}
             {statsError ? (
               <p className="mt-2 text-center text-[11px] text-amber-400/95">{statsError}</p>
             ) : null}
@@ -263,58 +225,13 @@ export const TrainerProfilePage: React.FC = () => {
               <p className="mt-2 text-center text-[12px] text-white/60">Noch keine Saisondaten</p>
             ) : null}
 
-            <h2 className="mb-2.5 mt-6 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">Kontakt</h2>
-            <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3.5">
-              <div className="space-y-2.5">
-                {member.phone?.trim() ? (
-                  <a
-                    href={`tel:${member.phone.trim()}`}
-                    className="flex items-center gap-3 text-[15px] text-white/90 hover:text-white"
-                  >
-                    <Phone className="h-4 w-4 shrink-0 text-white/55" aria-hidden />
-                    <span className="break-all font-medium">{member.phone.trim()}</span>
-                  </a>
-                ) : (
-                  <p className="text-[13px] text-white/50">Keine Telefonnummer hinterlegt</p>
-                )}
-                {member.email?.trim() ? (
-                  <a
-                    href={`mailto:${member.email.trim()}`}
-                    className="flex items-center gap-3 text-[15px] text-white/90 hover:text-white"
-                  >
-                    <Mail className="h-4 w-4 shrink-0 text-white/55" aria-hidden />
-                    <span className="break-all font-medium">{member.email.trim()}</span>
-                  </a>
-                ) : (
-                  <p className="text-[13px] text-white/50">Keine E-Mail hinterlegt</p>
-                )}
-              </div>
-            </div>
-
-            <h2 className="mb-2.5 mt-6 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
-              Teamzuordnung
-            </h2>
-            <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-4">
-              <div className="flex items-start gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-950/50 text-red-300/90">
-                  <Users className="h-4 w-4" aria-hidden />
-                </span>
-                <div className="min-w-0 space-y-2.5">
-                  <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-white/50">Mannschaft</div>
-                    <div className="break-words text-[16px] font-semibold text-white">{teamName}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-white/50">Saison</div>
-                    <div className="text-[16px] font-semibold text-white">{seasonName}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-white/50">Rolle</div>
-                    <div className="text-[16px] font-semibold text-white">{staffRoleLabelDe(member.role)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ProfileFooterCards
+              phone={member.phone}
+              email={member.email}
+              teamName={teamName}
+              seasonName={seasonName}
+              roleLabel={staffRoleLabelDe(member.role)}
+            />
 
             {canManage ? (
               <div className="mt-5 pb-1">

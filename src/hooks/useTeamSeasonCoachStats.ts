@@ -5,6 +5,8 @@ export type TeamSeasonCoachStats = {
   trainings: number;
   matches: number;
   wins: number;
+  draws: number;
+  losses: number;
   goalsFor: number;
   goalsAgainst: number;
   pointsPerGame: string;
@@ -14,6 +16,8 @@ const EMPTY_STATS: TeamSeasonCoachStats = {
   trainings: 0,
   matches: 0,
   wins: 0,
+  draws: 0,
+  losses: 0,
   goalsFor: 0,
   goalsAgainst: 0,
   pointsPerGame: "–",
@@ -36,6 +40,8 @@ function computeFromMatches(
   isHomeByMatchId: Map<string, boolean | null>,
 ): Omit<TeamSeasonCoachStats, "trainings"> {
   let wins = 0;
+  let draws = 0;
+  let losses = 0;
   let goalsFor = 0;
   let goalsAgainst = 0;
   let pointsTotal = 0;
@@ -61,7 +67,10 @@ function computeFromMatches(
       wins += 1;
       pointsTotal += 3;
     } else if (teamGoals === oppGoals) {
+      draws += 1;
       pointsTotal += 1;
+    } else {
+      losses += 1;
     }
   }
 
@@ -71,6 +80,8 @@ function computeFromMatches(
   return {
     matches: rows.length,
     wins,
+    draws,
+    losses,
     goalsFor,
     goalsAgainst,
     pointsPerGame,

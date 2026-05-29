@@ -1,15 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
-import {
-  Activity,
-  CalendarDays,
-  ChevronLeft,
-  Clock,
-  Handshake,
-  Percent,
-  Target,
-  Trophy,
-} from "lucide-react";
+import { Activity, ChevronLeft } from "lucide-react";
+import { ProfileHeroCard } from "./profile/ProfileHeroCard";
+import { ProfileStatTile } from "./ProfileStatTile";
+import { ProfileTeamCard } from "./profile/ProfileFooterCards";
+import { PLAYER_STAT_TILES } from "./profile/profileStatIcons";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { usePlayerStats } from "../../hooks/usePlayerStats";
 import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
@@ -82,32 +77,6 @@ function ageChipLabel(birthdate: string | null | undefined): string {
   const age = getAge(birthdate);
   if (age == null) return "-";
   return `${age} Jahre`;
-}
-
-function PremiumStatTile({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-red-500/25 bg-gradient-to-b from-white/[0.07] to-black/45 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_10px_40px_rgba(0,0,0,0.4)]">
-      <Icon
-        className="pointer-events-none absolute -right-0.5 -top-0.5 h-16 w-16 text-red-500/[0.12]"
-        strokeWidth={1.25}
-        aria-hidden
-      />
-      <div className="relative text-left">
-        <div className="text-[12px] font-semibold uppercase tracking-wide text-white/60">{label}</div>
-        <div className="mt-1 text-[22px] font-bold tabular-nums leading-none tracking-tight text-white">
-          {value}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function SeasonMiniCell({ label, value }: { label: string; value: string }) {
@@ -375,52 +344,14 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 pt-3 sm:px-4 sm:pt-4"
           style={{ paddingBottom: `calc(${bottomPad})` }}
         >
-          {/* Hero */}
-          <div className="relative mb-4 min-h-[11.5rem] w-full overflow-hidden rounded-2xl border border-red-500/25 bg-gradient-to-br from-red-950/50 via-black/55 to-black px-3 py-3.5 sm:min-h-[13rem] sm:py-4">
-            <div
-              className="pointer-events-none absolute -left-1 bottom-0 select-none font-black leading-[0.8] text-white/[0.07]"
-              style={{ fontSize: "clamp(4.5rem, 28vw, 7.5rem)" }}
-              aria-hidden
-            >
-              {jerseyWatermark}
-            </div>
-            <div className="relative flex items-end justify-between gap-2 sm:gap-4">
-              <div className="min-w-0 flex-1 pb-0.5 text-left">
-                <p className="font-black uppercase leading-[1.02] tracking-tight text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] text-[clamp(1.15rem,4.2vw,1.65rem)]">
-                  {firstNameLine}
-                </p>
-                {lastNameLine ? (
-                  <p className="mt-0.5 font-black uppercase leading-[1.02] tracking-tight text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.45)] text-[clamp(1.15rem,4.2vw,1.65rem)]">
-                    {lastNameLine}
-                  </p>
-                ) : null}
-                <p className="mt-2 max-w-[14rem] text-[14px] font-medium leading-snug text-white/70">
-                  {teamSeasonLabel ?? "Team"}
-                </p>
-              </div>
-              <div className="relative shrink-0">
-                <div className="absolute inset-0 scale-110 rounded-2xl bg-red-500/40 blur-2xl" aria-hidden />
-                <div className="relative h-[6.75rem] w-[6.75rem] sm:h-[8.75rem] sm:w-[8.75rem]">
-                  <img
-                    src={avatarSrc}
-                    alt=""
-                    className="h-full w-full rounded-2xl border-2 border-red-500/45 object-cover shadow-[0_0_40px_rgba(239,68,68,0.42),0_0_1px_rgba(255,255,255,0.2)_inset]"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = "none";
-                      const next = e.currentTarget.nextElementSibling as HTMLElement | null;
-                      if (next) next.style.display = "flex";
-                    }}
-                  />
-                  <div
-                    className="flex h-full w-full items-center justify-center rounded-2xl border-2 border-white/20 bg-zinc-800 text-2xl font-black text-white"
-                    style={{ display: "none" }}
-                  >
-                    {initials(player)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ProfileHeroCard
+            watermark={jerseyWatermark}
+            firstNameLine={firstNameLine}
+            lastNameLine={lastNameLine}
+            teamSeasonLabel={teamSeasonLabel ?? "Team"}
+            avatarUrl={(photoUrl ?? "").trim() || avatarSrc}
+            initials={initials(player)}
+          />
 
           <div className="mb-3.5 flex flex-wrap gap-1.5 sm:justify-center sm:gap-2">
             <Chip>Alter: {ageChipLabel(player.birthdate)}</Chip>
@@ -483,28 +414,33 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   : (
                       [
                         {
-                          icon: CalendarDays,
+                          Icon: PLAYER_STAT_TILES.games,
                           label: "Spiele",
                           value: String(stats.games),
                         },
                         {
-                          icon: Target,
+                          Icon: PLAYER_STAT_TILES.goals,
                           label: "Tore",
                           value: String(stats.goals),
                         },
                         {
-                          icon: Handshake,
+                          Icon: PLAYER_STAT_TILES.assists,
                           label: "Assists",
                           value: String(stats.assists),
                         },
                         {
-                          icon: Clock,
+                          Icon: PLAYER_STAT_TILES.minutes,
                           label: "Spielmin.",
                           value: String(stats.minutes),
                         },
                       ] as const
                     ).map((s) => (
-                      <PremiumStatTile key={s.label} icon={s.icon} label={s.label} value={s.value} />
+                      <ProfileStatTile
+                        key={s.label}
+                        icon={<s.Icon />}
+                        label={s.label}
+                        value={s.value}
+                      />
                     ))}
               </div>
               {statsError ? (
@@ -518,10 +454,30 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 <h4 className="mb-2.5 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
                   Saisonstatistik
                 </h4>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5">
-                  <SeasonMiniCell label="Tore / Spiel" value={goalsPer90Display} />
-                  <SeasonMiniCell label="Einsätze" value={String(stats.games)} />
+                <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                  <ProfileStatTile
+                    icon={<PLAYER_STAT_TILES.goalsPerGame />}
+                    label="Tore / Spiel"
+                    value={goalsPer90Display}
+                  />
+                  <ProfileStatTile
+                    icon={<PLAYER_STAT_TILES.deployments />}
+                    label="Einsätze"
+                    value={String(stats.games)}
+                  />
                 </div>
+              </div>
+
+              <div className="mt-6">
+                <ProfileTeamCard
+                  teamName={(teamSeasonLabel ?? "Team").split(" · ")[0] ?? "Team"}
+                  seasonName={
+                    (teamSeasonLabel ?? "").includes(" · ")
+                      ? (teamSeasonLabel ?? "").split(" · ").slice(1).join(" · ")
+                      : "—"
+                  }
+                  roleLabel={positionLabel}
+                />
               </div>
             </>
           ) : null}
