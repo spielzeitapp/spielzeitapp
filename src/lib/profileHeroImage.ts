@@ -1,11 +1,10 @@
 /**
- * Profil-Hero: Cutout (PNG/WebP mit Alpha) vs. Premium-Avatar (normales Foto).
- * Upload: profileCutoutUpload.ts speichert cutout_url bei transparenten PNG/WebP.
+ * Profil-Hero: Cutout vs. Avatar, Cache-Bust, Preload.
  */
 
 export type ProfileHeroLayoutMode = "cutout" | "avatar";
 
-/** Nur wenn cutout_url gesetzt ist — normale Fotos bleiben im Avatar-Modus. */
+/** Nur wenn cutout_url gesetzt ist. */
 export function hasCutoutUrl(cutoutUrl?: string | null): boolean {
   return (cutoutUrl ?? "").trim().length > 0;
 }
@@ -20,11 +19,25 @@ export function resolveProfilePhotoSrc(photoUrl?: string | null): string | null 
   return photo || null;
 }
 
-/** Layout: Cutout-Banner nur bei vorhandenem cutout_url (nach erfolgreichem Laden). */
-export function profileHeroLayoutMode(
-  cutoutUrl?: string | null,
-  cutoutLoadOk = true,
-): ProfileHeroLayoutMode {
-  if (hasCutoutUrl(cutoutUrl) && cutoutLoadOk) return "cutout";
+/** Layout stabil: bei cutout_url immer Cutout-Slot reservieren (unabhängig vom Bild-Laden). */
+export function profileHeroLayoutMode(cutoutUrl?: string | null): ProfileHeroLayoutMode {
+  if (hasCutoutUrl(cutoutUrl)) return "cutout";
   return "avatar";
+}
+
+/** Öffentliche Storage-URL mit Cache-Bust für zuverlässiges Überschreiben im Browser. */
+export function withProfileImageCacheBust(url: string, version = Date.now()): string {
+  const trimmed = url.trim();
+  if (!trimmed) return trimmed;
+  const base = trimmed.split("?")[0];
+  return `${base}?v=${version}`;
+}
+
+/** Bild im Hintergrund vorladen — reduziert sichtbares Nachladen. */
+export function preloadProfileHeroImage(url: string | null | undefined): void {
+  const src = (url ?? "").trim();
+  if (!src || typeof Image === "undefined") return;
+  const img = new Image();
+  img.decoding = "async";
+  img.src = src;
 }

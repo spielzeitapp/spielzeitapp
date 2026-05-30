@@ -1,10 +1,12 @@
 import React, { useRef } from "react";
 import { AppButton } from "../../ui/AppButton";
-
-const AVATAR_ACCEPT = "image/png,image/jpeg,image/webp";
-const CUTOUT_ACCEPT = "image/png,image/webp";
-const AVATAR_MAX_MB = 3;
-const CUTOUT_MAX_MB = 5;
+import {
+  PROFILE_AVATAR_ACCEPT,
+  PROFILE_CUTOUT_ACCEPT,
+  validateProfileAvatarFile,
+  validateProfileCutoutFile,
+} from "../../../lib/profileImageUploadConfig";
+import { logProfileHeroUpload } from "../../../lib/profileCutoutUpload";
 
 type Props = {
   mode: "create" | "edit";
@@ -19,22 +21,6 @@ type Props = {
   onCutoutFile: (file: File) => void;
   onValidationError: (message: string) => void;
 };
-
-function validateAvatar(file: File): string | null {
-  const allowed = ["image/jpeg", "image/png", "image/webp"];
-  if (!allowed.includes(file.type)) return "Bitte nur JPG, PNG oder WebP für das Listenbild.";
-  if (file.size > AVATAR_MAX_MB * 1024 * 1024) return `Listenbild zu groß (max. ${AVATAR_MAX_MB} MB).`;
-  return null;
-}
-
-function validateCutout(file: File): string | null {
-  const allowed = ["image/png", "image/webp"];
-  if (!allowed.includes(file.type) && !/\.(png|webp)$/i.test(file.name)) {
-    return "Profil-Hero: bitte PNG oder WebP mit transparentem Hintergrund.";
-  }
-  if (file.size > CUTOUT_MAX_MB * 1024 * 1024) return `Hero-Bild zu groß (max. ${CUTOUT_MAX_MB} MB).`;
-  return null;
-}
 
 function RoundPreview({
   src,
@@ -139,11 +125,16 @@ export const ProfileImageUploadFields: React.FC<Props> = ({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    const err = validateAvatar(file);
+    const err = validateProfileAvatarFile(file);
     if (err) {
       onValidationError(err);
       return;
     }
+    logProfileHeroUpload("selected avatar file", {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
     onAvatarFile(file);
   };
 
@@ -151,11 +142,16 @@ export const ProfileImageUploadFields: React.FC<Props> = ({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    const err = validateCutout(file);
+    const err = validateProfileCutoutFile(file);
     if (err) {
       onValidationError(err);
       return;
     }
+    logProfileHeroUpload("selected hero cutout file", {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
     onCutoutFile(file);
   };
 
@@ -169,7 +165,7 @@ export const ProfileImageUploadFields: React.FC<Props> = ({
 
       <UploadSection
         label="Rundes Listenbild"
-        hint="Wird in Teamliste, Trainerliste und Feed verwendet."
+        hint="JPG/PNG/WebP · max. 3 MB · Teamliste & Feed"
         buttonLabel="Avatar hochladen"
         uploading={avatarUploading}
         disabled={uploadDisabled}
@@ -181,14 +177,14 @@ export const ProfileImageUploadFields: React.FC<Props> = ({
       <input
         ref={avatarInputRef}
         type="file"
-        accept={AVATAR_ACCEPT}
+        accept={PROFILE_AVATAR_ACCEPT}
         className="hidden"
         onChange={handleAvatarChange}
       />
 
       <UploadSection
         label="Profil-Hero Bild"
-        hint="PNG/WebP mit transparentem Hintergrund für den Stadion-Hero."
+        hint="JPG/PNG/WebP · max. 3 MB · Freistellung für Stadion-Hero"
         buttonLabel="Freigestelltes Bild hochladen"
         uploading={cutoutUploading}
         disabled={uploadDisabled}
@@ -200,7 +196,7 @@ export const ProfileImageUploadFields: React.FC<Props> = ({
       <input
         ref={cutoutInputRef}
         type="file"
-        accept={CUTOUT_ACCEPT}
+        accept={PROFILE_CUTOUT_ACCEPT}
         className="hidden"
         onChange={handleCutoutChange}
       />

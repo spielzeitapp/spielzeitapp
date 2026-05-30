@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { TrainerStaffFormState } from "../components/team/TrainerStaffFormModal";
-import { uploadStaffProfileAvatar, uploadStaffProfileCutout } from "../lib/profileCutoutUpload";
+import { uploadStaffProfileAvatar, uploadStaffProfileCutout, logProfileHeroUpload } from "../lib/profileCutoutUpload";
 import { prepareCutoutGeneration } from "../lib/profileImagePipeline";
 import {
   findAccountUserIdByEmail,
@@ -199,18 +199,21 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
         }
 
         if (trainerCutoutFile) {
+          logProfileHeroUpload("trainer hero file pending upload", {
+            name: trainerCutoutFile.name,
+            type: trainerCutoutFile.type,
+            size: trainerCutoutFile.size,
+          });
           setTrainerCutoutUploading(true);
-          const { cutoutUrl: uploadedCutout, error: cutoutErr } = await uploadStaffProfileCutout(
-            teamSeasonId,
-            userId,
-            trainerCutoutFile,
-          );
+          const { cutoutUrl: uploadedCutout, error: cutoutErr, storagePath } =
+            await uploadStaffProfileCutout(teamSeasonId, userId, trainerCutoutFile);
           setTrainerCutoutUploading(false);
           if (cutoutErr || !uploadedCutout) {
             setTrainerFormError(`Hero-Bild fehlgeschlagen: ${cutoutErr ?? "Unbekannter Fehler"}`);
             return;
           }
           cutoutUrl = uploadedCutout;
+          logProfileHeroUpload("trainer hero upload complete", { storagePath, cutoutUrl: uploadedCutout });
         }
 
         const { ok, error: saveError } = await saveTeamStaffMember({
@@ -229,8 +232,12 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
           return;
         }
 
-        closeTrainerForm();
+        logProfileHeroUpload("trainer save rpc ok", { userId, cutoutUrl: cutoutUrl ?? "(unchanged)" });
+
         await onAfterSave?.();
+        logProfileHeroUpload("trainer refetch after save done");
+
+        closeTrainerForm();
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Speichern fehlgeschlagen.";
         setTrainerFormError(msg);

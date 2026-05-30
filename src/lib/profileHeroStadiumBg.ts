@@ -12,6 +12,33 @@ export const PROFILE_HERO_STADIUM_BG_CANDIDATES = [
   "/profile/profile-hero-stadium.PNG",
 ] as const;
 
+let stadiumPreloaded = false;
+
+/** Stadion-Asset früh preloaden — weniger Layout-Shift beim Hero-Mount. */
+export function preloadProfileHeroStadiumBackground(): void {
+  if (stadiumPreloaded || typeof document === "undefined") return;
+  stadiumPreloaded = true;
+  const link = document.createElement("link");
+  link.rel = "preload";
+  link.as = "image";
+  link.href = PROFILE_HERO_STADIUM_BG;
+  document.head.appendChild(link);
+  preloadProfileHeroStadiumImage();
+}
+
+export function preloadProfileHeroStadiumImage(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof Image === "undefined") {
+      resolve(false);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = PROFILE_HERO_STADIUM_BG;
+  });
+}
+
 export function probeProfileHeroStadiumBackground(
   onResolved: (url: string | null) => void,
 ): () => void {

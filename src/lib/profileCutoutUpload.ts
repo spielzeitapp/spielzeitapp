@@ -1,13 +1,24 @@
 import { supabase } from "./supabaseClient";
+import { withProfileImageCacheBust } from "./profileHeroImage";
 
 const PLAYER_AVATAR_BUCKET = "player-avatars";
 const STAFF_PHOTO_BUCKET = "team-photos";
+
+const LOG_PREFIX = "[profileHeroUpload]";
 
 export type ProfilePhotoUploadResult = {
   avatarUrl: string | null;
   cutoutUrl: string | null;
   error: string | null;
 };
+
+export function logProfileHeroUpload(step: string, detail?: unknown): void {
+  if (detail !== undefined) {
+    console.log(LOG_PREFIX, step, detail);
+  } else {
+    console.log(LOG_PREFIX, step);
+  }
+}
 
 function isPngOrWebpMime(mime: string): boolean {
   const m = mime.toLowerCase();
@@ -63,6 +74,7 @@ function avatarExtension(file: File): string {
 
 function cutoutExtension(file: File): string {
   if (file.type === "image/webp" || file.name.toLowerCase().endsWith(".webp")) return "webp";
+  if (file.type === "image/jpeg" || file.name.toLowerCase().match(/\.jpe?g$/)) return "jpg";
   return "png";
 }
 
@@ -70,17 +82,37 @@ async function uploadToBucket(
   bucket: string,
   path: string,
   file: File,
-): Promise<{ publicUrl: string | null; error: string | null }> {
+): Promise<{ publicUrl: string | null; error: string | null; storagePath: string }> {
+  logProfileHeroUpload("storage upload start", {
+    bucket,
+    path,
+    fileName: file.name,
+    fileType: file.type,
+    fileSize: file.size,
+  });
+
   const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, {
     upsert: true,
     contentType: file.type || "application/octet-stream",
+    cacheControl: "3600",
   });
+
   if (uploadError) {
-    return { publicUrl: null, error: uploadError.message };
+    logProfileHeroUpload("storage upload error", uploadError.message);
+    return { publicUrl: null, error: uploadError.message, storagePath: path };
   }
+
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-  const publicUrl = (data?.publicUrl ?? "").trim() || null;
-  return { publicUrl, error: publicUrl ? null : "Öffentliche URL konnte nicht erzeugt werden." };
+  const rawUrl = (data?.publicUrl ?? "").trim();
+  const publicUrl = rawUrl ? withProfileImageCacheBust(rawUrl) : null;
+
+  logProfileHeroUpload("storage upload success", { storagePath: path, publicUrl });
+
+  return {
+    publicUrl,
+    error: publicUrl ? null : "Öffentliche URL konnte nicht erzeugt werden.",
+    storagePath: path,
+  };
 }
 
 export async function uploadPlayerProfileAvatar(
@@ -98,10 +130,11 @@ export async function uploadPlayerProfileCutout(
   teamSeasonId: string,
   playerId: string,
   file: File,
-): Promise<{ cutoutUrl: string | null; error: string | null }> {
-  const cutoutPath = `${teamSeasonId}/cutouts/${playerId}.${cutoutExtension(file)}`;
+): Promise<{ cutoutUrl: string | null; error: string | null; storagePath?: string }> {
+  const ext = cutoutExtension(file);
+  const cutoutPath = `${teamSeasonId}/cutouts/${playerId}.${ext}`;
   const cutout = await uploadToBucket(PLAYER_AVATAR_BUCKET, cutoutPath, file);
-  return { cutoutUrl: cutout.publicUrl, error: cutout.error };
+  return { cutoutUrl: cutout.publicUrl, error: cutout.error, storagePath: cutout.storagePath };
 }
 
 /** Kombinierter Upload (Pipeline-Kompatibilität). */
@@ -141,10 +174,11 @@ export async function uploadStaffProfileCutout(
   teamSeasonId: string,
   userId: string,
   file: File,
-): Promise<{ cutoutUrl: string | null; error: string | null }> {
-  const cutoutPath = `${teamSeasonId}/cutouts/${userId}.${cutoutExtension(file)}`;
+): Promise<{ cutoutUrl: string | null; error: string | null; storagePath?: string }> {
+  const ext = cutoutExtension(file);
+  const cutoutPath = `${teamSeasonId}/cutouts/${userId}.${ext}`;
   const cutout = await uploadToBucket(STAFF_PHOTO_BUCKET, cutoutPath, file);
-  return { cutoutUrl: cutout.publicUrl, error: cutout.error };
+  return { cutoutUrl: cutout.publicUrl, error: cutout.error, storagePath: cutout.storagePath };
 }
 
 /** Kombinierter Upload (Pipeline-Kompatibilität). */

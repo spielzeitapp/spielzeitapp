@@ -10,7 +10,7 @@ import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster } from "../lib/roles";
 import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
-import { uploadPlayerProfileAvatar, uploadPlayerProfileCutout } from "../lib/profileCutoutUpload";
+import { uploadPlayerProfileAvatar, uploadPlayerProfileCutout, logProfileHeroUpload } from "../lib/profileCutoutUpload";
 import { prepareCutoutGeneration } from "../lib/profileImagePipeline";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 import { PlayerSquadFormModal } from "../components/team/PlayerSquadFormModal";
@@ -527,6 +527,7 @@ export const TeamPage: React.FC = () => {
         return;
       }
       let nextAvatarUrl = avatarPreviewUrl;
+      let savedHeroCutoutUrl: string | null = null;
       if (avatarFile) {
         setAvatarUploading(true);
         const { avatarUrl: uploadedAvatar, error: uploadError } = await uploadPlayerProfileAvatar(
@@ -586,27 +587,39 @@ export const TeamPage: React.FC = () => {
       }
 
       if (cutoutFile) {
+        logProfileHeroUpload("player hero file pending upload", {
+          name: cutoutFile.name,
+          type: cutoutFile.type,
+          size: cutoutFile.size,
+        });
         setCutoutUploading(true);
-        const { cutoutUrl: uploadedCutout, error: cutoutUploadError } = await uploadPlayerProfileCutout(
-          teamSeasonId,
-          editingPlayer.id,
-          cutoutFile,
-        );
+        const { cutoutUrl: uploadedCutout, error: cutoutUploadError, storagePath } =
+          await uploadPlayerProfileCutout(teamSeasonId, editingPlayer.id, cutoutFile);
         setCutoutUploading(false);
         if (cutoutUploadError || !uploadedCutout) {
           setSaving(false);
           setFormError(`Hero-Bild fehlgeschlagen: ${cutoutUploadError ?? "Unbekannter Fehler"}`);
           return;
         }
-        const { error: cutoutColError } = await supabase
+        logProfileHeroUpload("player hero upload complete", { storagePath, cutoutUrl: uploadedCutout });
+
+        const { data: savedCutoutRow, error: cutoutColError } = await supabase
           .from("players")
           .update({ cutout_url: uploadedCutout })
-          .eq("id", editingPlayer.id);
+          .eq("id", editingPlayer.id)
+          .select("cutout_url")
+          .maybeSingle();
+
         if (cutoutColError && !/cutout_url/i.test(cutoutColError.message)) {
           setSaving(false);
           setFormError(`Hero-Bild gespeichert, aber DB-Feld fehlt: ${cutoutColError.message}`);
           return;
         }
+
+        savedHeroCutoutUrl = (savedCutoutRow?.cutout_url as string | null | undefined) ?? uploadedCutout;
+        logProfileHeroUpload("player saved cutout_url", {
+          cutout_url: savedHeroCutoutUrl,
+        });
       }
       const { error: updateError } = await supabase
         .from("players")
@@ -643,6 +656,12 @@ export const TeamPage: React.FC = () => {
       if (nextAvatarUrl) setAvatarPreviewUrl(nextAvatarUrl);
       setSaving(false);
       await refetchPlayers();
+      logProfileHeroUpload("player refetch after save done");
+      if (selectedProfilePlayer?.id === editingPlayer.id && savedHeroCutoutUrl) {
+        setSelectedProfilePlayer((prev) =>
+          prev ? { ...prev, cutout_url: savedHeroCutoutUrl } : prev,
+        );
+      }
       showSavedToast();
       closeForm();
     }

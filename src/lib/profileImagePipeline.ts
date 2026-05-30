@@ -155,7 +155,7 @@ export function resolveProfileImages(
     avatarUrl: avatar,
     cutoutUrl: cutout,
     heroPhotoUrl: avatar,
-    heroLayoutMode: profileHeroLayoutMode(cutoutUrl, cutoutLoadOk && hasCutoutUrl(cutoutUrl)),
+    heroLayoutMode: profileHeroLayoutMode(cutoutUrl),
   };
 }
 
