@@ -11,7 +11,7 @@ import {
   STAFF_RPC_MIGRATION_HINT,
   type TeamStaffMember,
 } from "../hooks/useTeamStaff";
-import { staffRoleWatermarkCode, useTeamSeasonCoachStats } from "../hooks/useTeamSeasonCoachStats";
+import { useTeamSeasonCoachStats } from "../hooks/useTeamSeasonCoachStats";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
 import { ProfileChip } from "../components/team/ProfileChip";
@@ -118,7 +118,7 @@ export const TrainerProfilePage: React.FC = () => {
   const avatarUrl = (member?.avatar_url ?? "").trim();
   const { line1: firstNameLine, line2: lastNameLine } = member ? nameHeroLines(member) : { line1: "TRAINER", line2: "" };
   const initials = member ? premiumPlayerInitials(staffDisplayName(member)) : "TR";
-  const roleWatermark = member ? staffRoleWatermarkCode(member.role) : "TR";
+  const roleWatermark = "TR";
 
   const statTiles = useMemo(
     () =>
@@ -170,10 +170,13 @@ export const TrainerProfilePage: React.FC = () => {
             style={{ paddingBottom: `calc(${bottomPad})` }}
           >
             <ProfileHeroCard
+              variant="trainer"
               watermark={roleWatermark}
               firstNameLine={firstNameLine}
               lastNameLine={lastNameLine}
               teamSeasonLabel={teamSeasonLabel}
+              teamName={teamName}
+              roleLabel={member ? staffRoleLabelDe(member.role) : undefined}
               photoUrl={avatarUrl}
               cutoutUrl={member.cutout_url}
               initials={initials}

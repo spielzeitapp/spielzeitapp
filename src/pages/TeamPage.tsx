@@ -715,6 +715,7 @@ export const TeamPage: React.FC = () => {
         player={selectedProfilePlayer}
         role={role}
         teamSeasonLabel={teamLabel}
+        teamName={heroTeamName}
         photoUrl={readOptionalPhotoUrl(selectedProfilePlayer)}
         canManage={canManagePlayers}
         onClose={closePlayerProfile}

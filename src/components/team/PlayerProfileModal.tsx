@@ -18,6 +18,7 @@ export type PlayerProfileModalProps = {
   player: PlayerItem;
   role: string | null;
   teamSeasonLabel: string | null;
+  teamName?: string | null;
   photoUrl: string | null;
   canManage: boolean;
   onClose: () => void;
@@ -214,6 +215,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   player,
   role,
   teamSeasonLabel,
+  teamName,
   photoUrl,
   canManage,
   onClose,
@@ -335,10 +337,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           style={{ paddingBottom: `calc(${bottomPad})` }}
         >
           <ProfileHeroCard
+            variant="player"
             watermark={jerseyWatermark}
             firstNameLine={firstNameLine}
             lastNameLine={lastNameLine}
             teamSeasonLabel={teamSeasonLabel ?? "Team"}
+            teamName={teamName}
             photoUrl={(photoUrl ?? "").trim() || avatarSrc}
             cutoutUrl={player.cutout_url}
             initials={initials(player)}
