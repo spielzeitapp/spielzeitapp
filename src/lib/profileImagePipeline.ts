@@ -1,14 +1,11 @@
 /**
- * Gemeinsame Profilbild-Pipeline (Phase 1: Vorbereitung).
- *
- * Aktuell delegiert uploadProfileAvatar() an die bestehenden Upload-Helper.
- * Keine KI-Freistellung — prepareCutoutGeneration() ist ein Stub für Phase 2/3.
+ * Profilbild-Pipeline: Avatar-Upload + automatische Cutout-Erzeugung (Edge Function).
  *
  * @see docs/profile-cutout-roadmap.md
- * @see profileCutoutUpload.ts — konkrete Storage-Uploads
- * @see profileHeroImage.ts — Hero-Layout-Auflösung
+ * @see supabase/functions/remove-profile-background/
  */
 
+import { supabase } from "./supabaseClient";
 import {
   uploadPlayerProfilePhoto,
   uploadStaffProfilePhoto,
@@ -27,31 +24,31 @@ export type ProfileImageSubject = "player" | "staff";
 export type UploadProfileAvatarInput = {
   subject: ProfileImageSubject;
   teamSeasonId: string;
-  /** Spieler: players.id — Trainer: profiles.id / auth user id */
   entityId: string;
   file: File;
+};
+
+export type PrepareCutoutInput = {
+  subject: ProfileImageSubject;
+  teamSeasonId: string;
+  entityId: string;
+  avatarUrl: string;
+};
+
+export type CutoutGenerationResult = {
+  status: "success" | "skipped" | "failed";
+  cutoutUrl: string | null;
+  warning: string | null;
+  sourceAvatarUrl: string;
 };
 
 export type ResolvedProfileImages = {
   avatarUrl: string | null;
   cutoutUrl: string | null;
-  /** Für Hero-Fallback (identisch mit avatarUrl, wenn gesetzt) */
   heroPhotoUrl: string | null;
   heroLayoutMode: ProfileHeroLayoutMode;
 };
 
-export type CutoutGenerationPlan = {
-  /** Noch nicht ausgeführt — Platzhalter für Phase 2/3 */
-  status: "skipped" | "pending_implementation";
-  cutoutUrl: null;
-  /** Original-Avatar-URL als Eingabe für künftige Freistellung */
-  sourceAvatarUrl: string | null;
-};
-
-/**
- * Phase 1 — Ein Upload, zwei URLs (wenn transparentes PNG/WebP).
- * Delegiert unverändert an uploadPlayerProfilePhoto / uploadStaffProfilePhoto.
- */
 export async function uploadProfileAvatar(
   input: UploadProfileAvatarInput,
 ): Promise<ProfilePhotoUploadResult> {
@@ -65,33 +62,87 @@ export async function uploadProfileAvatar(
 }
 
 /**
- * Phase 2/3 — Automatische Cutout-Erzeugung (Stub).
- * Wird aufgerufen, sobald Background Removal serverseitig verfügbar ist.
+ * STEP 2: background removal — Edge Function `remove-profile-background`
+ * STEP 3: generate cutout_url — publicUrl zurück, Caller schreibt DB
  */
 export async function prepareCutoutGeneration(
-  input: UploadProfileAvatarInput & { avatarUrl: string },
-): Promise<CutoutGenerationPlan> {
-  // STEP 2: background removal
-  // - Original aus avatarUrl laden (Storage: player-avatars oder team-photos)
-  // - Hintergrund entfernen (Edge Function / Worker — noch nicht angebunden)
-  // - Ergebnis als PNG mit Alpha in {teamSeasonId}/cutouts/{entityId}.png speichern
+  input: PrepareCutoutInput,
+): Promise<CutoutGenerationResult> {
+  const entityType = input.subject === "player" ? "player" : "staff";
 
-  // STEP 3: generate cutout_url
-  // - publicUrl des Cutouts in DB schreiben:
-  //   Spieler → players.cutout_url (+ optional player_avatars)
-  //   Trainer → profiles.cutout_url via upsert_team_staff_member(p_cutout_url)
-  // - ProfileHeroCard bevorzugt cutout_url (profileHeroLayoutMode → "cutout")
+  try {
+    const { data, error } = await supabase.functions.invoke("remove-profile-background", {
+      body: {
+        entityType,
+        entityId: input.entityId,
+        teamSeasonId: input.teamSeasonId,
+        sourceImageUrl: input.avatarUrl,
+      },
+    });
 
-  void input;
+    if (error) {
+      console.warn("[profileImagePipeline] cutout Edge Function error:", error.message);
+      return {
+        status: "failed",
+        cutoutUrl: null,
+        warning: error.message,
+        sourceAvatarUrl: input.avatarUrl,
+      };
+    }
 
-  return {
-    status: "pending_implementation",
-    cutoutUrl: null,
-    sourceAvatarUrl: input.avatarUrl,
-  };
+    const payload = (data ?? {}) as { cutoutUrl?: string | null; warning?: string | null; error?: string };
+    const cutoutUrl = (payload.cutoutUrl ?? "").trim() || null;
+
+    if (payload.error) {
+      console.warn("[profileImagePipeline] cutout rejected:", payload.error);
+      return {
+        status: "failed",
+        cutoutUrl: null,
+        warning: payload.error,
+        sourceAvatarUrl: input.avatarUrl,
+      };
+    }
+
+    if (!cutoutUrl) {
+      const warning = (payload.warning ?? "").trim() || "Kein Cutout erzeugt";
+      console.warn("[profileImagePipeline] cutout skipped:", warning);
+      return {
+        status: "skipped",
+        cutoutUrl: null,
+        warning,
+        sourceAvatarUrl: input.avatarUrl,
+      };
+    }
+
+    return {
+      status: "success",
+      cutoutUrl,
+      warning: null,
+      sourceAvatarUrl: input.avatarUrl,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Cutout-Generierung fehlgeschlagen";
+    console.warn("[profileImagePipeline] cutout exception:", message);
+    return {
+      status: "failed",
+      cutoutUrl: null,
+      warning: message,
+      sourceAvatarUrl: input.avatarUrl,
+    };
+  }
 }
 
-/** Liest avatar_url + cutout_url für Listen, Karten und Hero. */
+/** Nach Avatar-Upload: transparentes PNG behalten oder API-Cutout anfordern. */
+export async function resolveCutoutAfterAvatarUpload(
+  input: PrepareCutoutInput & { existingCutoutUrl?: string | null },
+): Promise<string | null> {
+  const existing = (input.existingCutoutUrl ?? "").trim();
+  if (existing) return existing;
+
+  const generated = await prepareCutoutGeneration(input);
+  return generated.cutoutUrl;
+}
+
 export function resolveProfileImages(
   avatarUrl?: string | null,
   cutoutUrl?: string | null,

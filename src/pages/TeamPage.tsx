@@ -11,6 +11,7 @@ import { normalizeRole, canManageRoster } from "../lib/roles";
 import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
 import { uploadPlayerProfilePhoto } from "../lib/profileCutoutUpload";
+import { resolveCutoutAfterAvatarUpload } from "../lib/profileImagePipeline";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 import { PlayerSquadFormModal } from "../components/team/PlayerSquadFormModal";
 import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
@@ -546,12 +547,18 @@ export const TeamPage: React.FC = () => {
         }
 
         nextAvatarUrl = (updatedPlayer?.avatar_url as string | null | undefined) ?? uploadedAvatar;
-        nextCutoutUrl = uploadedCutout;
+        nextCutoutUrl = await resolveCutoutAfterAvatarUpload({
+          subject: "player",
+          teamSeasonId,
+          entityId: editingPlayer.id,
+          avatarUrl: uploadedAvatar,
+          existingCutoutUrl: uploadedCutout,
+        });
 
-        if (uploadedCutout) {
+        if (nextCutoutUrl) {
           const { error: cutoutColError } = await supabase
             .from("players")
-            .update({ cutout_url: uploadedCutout })
+            .update({ cutout_url: nextCutoutUrl })
             .eq("id", editingPlayer.id);
           if (cutoutColError && !/cutout_url/i.test(cutoutColError.message)) {
             setAvatarUploading(false);

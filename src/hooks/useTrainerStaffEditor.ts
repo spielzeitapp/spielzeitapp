@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { TrainerStaffFormState } from "../components/team/TrainerStaffFormModal";
 import { uploadStaffProfilePhoto } from "../lib/staffAvatar";
+import { resolveCutoutAfterAvatarUpload } from "../lib/profileImagePipeline";
 import {
   findAccountUserIdByEmail,
   fetchProfileNamesForUser,
@@ -159,7 +160,13 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
             return;
           }
           avatarUrl = uploadedAvatar;
-          cutoutUrl = uploadedCutout;
+          cutoutUrl = await resolveCutoutAfterAvatarUpload({
+            subject: "staff",
+            teamSeasonId,
+            entityId: userId,
+            avatarUrl: uploadedAvatar,
+            existingCutoutUrl: uploadedCutout,
+          });
         }
 
         const { ok, error: saveError } = await saveTeamStaffMember({
