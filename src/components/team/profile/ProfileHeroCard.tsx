@@ -53,7 +53,7 @@ function StadiumAtmosphere({ photoBgUrl }: { photoBgUrl: string | null }) {
       <div
         className={`absolute inset-0 ${
           hasPhoto
-            ? "bg-[linear-gradient(180deg,rgba(4,4,6,0.22)_0%,rgba(6,6,8,0.38)_50%,rgba(2,2,4,0.52)_100%)]"
+            ? "bg-[linear-gradient(180deg,rgba(2,2,4,0.42)_0%,rgba(4,4,6,0.58)_48%,rgba(0,0,0,0.72)_100%)]"
             : "bg-[linear-gradient(180deg,rgba(6,4,8,0.55)_0%,rgba(8,6,10,0.72)_100%)]"
         }`}
       />
@@ -62,7 +62,7 @@ function StadiumAtmosphere({ photoBgUrl }: { photoBgUrl: string | null }) {
       ) : (
         <div className="absolute inset-y-0 left-0 w-[32%] bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(180,28,45,0.22)_0%,transparent_68%)]" />
       )}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_50%_0%,rgba(255,255,255,0.14)_0%,transparent_58%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_50%_0%,rgba(120,24,36,0.12)_0%,transparent_58%)]" />
       <FloodlightBeams bright={hasPhoto} />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_105%_95%_at_50%_50%,transparent_50%,rgba(0,0,0,0.32)_88%,rgba(0,0,0,0.55)_100%)]" />
     </div>
@@ -130,12 +130,12 @@ function HeroAvatarFrame({
 
   return (
     <div className="relative z-[2] shrink-0 self-end bg-transparent">
-      <div className="relative h-[6.25rem] w-[6.25rem] rounded-2xl bg-gradient-to-br from-red-500/90 via-red-700/95 to-red-950 p-[2px] shadow-[0_0_16px_rgba(220,38,38,0.28),0_8px_24px_rgba(0,0,0,0.45)] sm:h-[7.5rem] sm:w-[7.5rem]">
+      <div className="relative h-[6.25rem] w-[6.25rem] rounded-2xl border border-red-950/55 bg-gradient-to-br from-red-950/90 via-red-900/95 to-black shadow-[0_0_12px_rgba(127,29,29,0.22),0_8px_24px_rgba(0,0,0,0.5)] sm:h-[7.5rem] sm:w-[7.5rem]">
         {showPhoto ? (
           <img
             src={photoSrc!}
             alt=""
-            className="h-full w-full rounded-[14px] border border-red-400/35 object-cover object-top"
+            className="h-full w-full rounded-[14px] object-cover object-top"
             onError={() => setPhotoFailed(true)}
           />
         ) : (
@@ -187,11 +187,11 @@ export const ProfileHeroCard: React.FC<Props> = ({
   const layoutMode = profileHeroLayoutMode(cutoutUrl, cutoutLoadOk && Boolean(cutoutSrc));
   const isCutout = layoutMode === "cutout";
 
-  const heroMinH = isCutout ? "min-h-[13.75rem] sm:min-h-[14.75rem]" : "min-h-[12rem] sm:min-h-[12.5rem]";
+  const heroMinH = isCutout ? "min-h-[12.5rem] sm:min-h-[13.25rem]" : "min-h-[11rem] sm:min-h-[11.5rem]";
 
   return (
     <div
-      className={`relative mb-5 w-full overflow-x-hidden overflow-y-visible rounded-xl border border-red-500/12 bg-[#0a0608] shadow-[0_8px_32px_rgba(0,0,0,0.4)] ${heroMinH}`}
+      className={`relative mb-3 w-full overflow-hidden rounded-xl border border-red-950/45 bg-[#080406] shadow-[0_6px_28px_rgba(0,0,0,0.45)] ${heroMinH}`}
     >
       <StadiumAtmosphere photoBgUrl={stadiumBgUrl} />
       <HeroWatermark watermark={watermark} cutoutMode={isCutout} />

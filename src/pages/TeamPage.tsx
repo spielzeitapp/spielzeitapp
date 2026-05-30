@@ -10,8 +10,8 @@ import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster } from "../lib/roles";
 import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
-import { uploadPlayerProfilePhoto } from "../lib/profileCutoutUpload";
-import { resolveCutoutAfterAvatarUpload } from "../lib/profileImagePipeline";
+import { uploadPlayerProfileAvatar, uploadPlayerProfileCutout } from "../lib/profileCutoutUpload";
+import { prepareCutoutGeneration } from "../lib/profileImagePipeline";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 import { PlayerSquadFormModal } from "../components/team/PlayerSquadFormModal";
 import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
@@ -140,9 +140,13 @@ export const TeamPage: React.FC = () => {
   const [editingPlayer, setEditingPlayer] = useState<PlayerItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [cutoutUploading, setCutoutUploading] = useState(false);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [cutoutPreviewUrl, setCutoutPreviewUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [cutoutFile, setCutoutFile] = useState<File | null>(null);
   const [avatarObjectUrl, setAvatarObjectUrl] = useState<string | null>(null);
+  const [cutoutObjectUrl, setCutoutObjectUrl] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [saveToastVisible, setSaveToastVisible] = useState(false);
   const [saveToastLabel, setSaveToastLabel] = useState("Gespeichert");
@@ -322,10 +326,13 @@ export const TeamPage: React.FC = () => {
     setTeamPhoto(upserted as TeamPhotoRow);
   };
 
-  const clearAvatarLocalPreview = () => {
+  const clearImageLocalPreviews = () => {
     if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
+    if (cutoutObjectUrl) URL.revokeObjectURL(cutoutObjectUrl);
     setAvatarObjectUrl(null);
+    setCutoutObjectUrl(null);
     setAvatarFile(null);
+    setCutoutFile(null);
   };
 
   const closeForm = () => {
@@ -335,7 +342,8 @@ export const TeamPage: React.FC = () => {
     setEditingId(null);
     setEditingPlayer(null);
     setAvatarPreviewUrl(null);
-    clearAvatarLocalPreview();
+    setCutoutPreviewUrl(null);
+    clearImageLocalPreviews();
     setFormError(null);
   };
 
@@ -345,7 +353,8 @@ export const TeamPage: React.FC = () => {
     setEditingId(null);
     setEditingPlayer(null);
     setAvatarPreviewUrl(null);
-    clearAvatarLocalPreview();
+    setCutoutPreviewUrl(null);
+    clearImageLocalPreviews();
     setFormError(null);
     setShowForm(true);
   };
@@ -362,7 +371,8 @@ export const TeamPage: React.FC = () => {
     setEditingId(p.id);
     setEditingPlayer(p);
     setAvatarPreviewUrl(readOptionalPhotoUrl(p));
-    clearAvatarLocalPreview();
+    setCutoutPreviewUrl((p.cutout_url ?? "").trim() || null);
+    clearImageLocalPreviews();
     setFormError(null);
     setShowForm(true);
   };
@@ -392,8 +402,9 @@ export const TeamPage: React.FC = () => {
   useEffect(() => {
     return () => {
       if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
+      if (cutoutObjectUrl) URL.revokeObjectURL(cutoutObjectUrl);
     };
-  }, [avatarObjectUrl]);
+  }, [avatarObjectUrl, cutoutObjectUrl]);
 
   useEffect(() => {
     if (!saveToastVisible) return;
@@ -408,9 +419,16 @@ export const TeamPage: React.FC = () => {
 
   const handleAvatarFilePick = (file: File) => {
     setFormError(null);
-    clearAvatarLocalPreview();
+    if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
     setAvatarFile(file);
     setAvatarObjectUrl(URL.createObjectURL(file));
+  };
+
+  const handleCutoutFilePick = (file: File) => {
+    setFormError(null);
+    if (cutoutObjectUrl) URL.revokeObjectURL(cutoutObjectUrl);
+    setCutoutFile(file);
+    setCutoutObjectUrl(URL.createObjectURL(file));
   };
 
   const handlePauseFromModal = () => {
@@ -509,19 +527,18 @@ export const TeamPage: React.FC = () => {
         return;
       }
       let nextAvatarUrl = avatarPreviewUrl;
-      let nextCutoutUrl: string | null | undefined;
       if (avatarFile) {
         setAvatarUploading(true);
-        const {
-          avatarUrl: uploadedAvatar,
-          cutoutUrl: uploadedCutout,
-          error: uploadError,
-        } = await uploadPlayerProfilePhoto(teamSeasonId, editingPlayer.id, avatarFile);
+        const { avatarUrl: uploadedAvatar, error: uploadError } = await uploadPlayerProfileAvatar(
+          teamSeasonId,
+          editingPlayer.id,
+          avatarFile,
+        );
         if (uploadError || !uploadedAvatar) {
           setAvatarUploading(false);
           setSaving(false);
           setFormError(
-            `Foto-Upload fehlgeschlagen: ${uploadError ?? "Unbekannter Fehler"}. Bitte Storage-Policy/Bucket prüfen.`,
+            `Avatar-Upload fehlgeschlagen: ${uploadError ?? "Unbekannter Fehler"}. Bitte Storage-Policy/Bucket prüfen.`,
           );
           return;
         }
@@ -547,25 +564,48 @@ export const TeamPage: React.FC = () => {
         }
 
         nextAvatarUrl = (updatedPlayer?.avatar_url as string | null | undefined) ?? uploadedAvatar;
-        nextCutoutUrl = await resolveCutoutAfterAvatarUpload({
+        setAvatarUploading(false);
+
+        const generated = await prepareCutoutGeneration({
           subject: "player",
           teamSeasonId,
           entityId: editingPlayer.id,
           avatarUrl: uploadedAvatar,
-          existingCutoutUrl: uploadedCutout,
         });
-
-        if (nextCutoutUrl) {
+        if (generated.cutoutUrl) {
           const { error: cutoutColError } = await supabase
             .from("players")
-            .update({ cutout_url: nextCutoutUrl })
+            .update({ cutout_url: generated.cutoutUrl })
             .eq("id", editingPlayer.id);
           if (cutoutColError && !/cutout_url/i.test(cutoutColError.message)) {
-            setAvatarUploading(false);
             setSaving(false);
             setFormError(`Cutout gespeichert, aber DB-Feld fehlt: ${cutoutColError.message}`);
             return;
           }
+        }
+      }
+
+      if (cutoutFile) {
+        setCutoutUploading(true);
+        const { cutoutUrl: uploadedCutout, error: cutoutUploadError } = await uploadPlayerProfileCutout(
+          teamSeasonId,
+          editingPlayer.id,
+          cutoutFile,
+        );
+        setCutoutUploading(false);
+        if (cutoutUploadError || !uploadedCutout) {
+          setSaving(false);
+          setFormError(`Hero-Bild fehlgeschlagen: ${cutoutUploadError ?? "Unbekannter Fehler"}`);
+          return;
+        }
+        const { error: cutoutColError } = await supabase
+          .from("players")
+          .update({ cutout_url: uploadedCutout })
+          .eq("id", editingPlayer.id);
+        if (cutoutColError && !/cutout_url/i.test(cutoutColError.message)) {
+          setSaving(false);
+          setFormError(`Hero-Bild gespeichert, aber DB-Feld fehlt: ${cutoutColError.message}`);
+          return;
         }
       }
       const { error: updateError } = await supabase
@@ -577,7 +617,6 @@ export const TeamPage: React.FC = () => {
           position: form.position?.trim() || null,
         })
         .eq("id", editingPlayer.id);
-      setAvatarUploading(false);
       if (updateError) {
         setFormError(
           isJerseyDuplicateError(updateError as { code?: string; message?: string })
@@ -694,14 +733,18 @@ export const TeamPage: React.FC = () => {
         editingTrainer={trainerEditor.editingTrainer}
         saving={trainerEditor.trainerSaving}
         avatarUploading={trainerEditor.trainerAvatarUploading}
+        cutoutUploading={trainerEditor.trainerCutoutUploading}
         avatarPreviewUrl={trainerEditor.trainerAvatarPreviewUrl}
+        cutoutPreviewUrl={trainerEditor.trainerCutoutPreviewUrl}
         avatarObjectUrl={trainerEditor.trainerAvatarObjectUrl}
+        cutoutObjectUrl={trainerEditor.trainerCutoutObjectUrl}
         formError={trainerEditor.trainerFormError}
         onClose={trainerEditor.closeTrainerForm}
         onSubmit={trainerEditor.handleTrainerFormSubmit}
         onFormChange={(patch) => trainerEditor.setTrainerForm((f) => ({ ...f, ...patch }))}
         onAvatarFile={trainerEditor.handleTrainerAvatarFilePick}
-        onAvatarValidationError={trainerEditor.setTrainerFormError}
+        onCutoutFile={trainerEditor.handleTrainerCutoutFilePick}
+        onImageValidationError={trainerEditor.setTrainerFormError}
         onAccountEmailBlur={() => void trainerEditor.handleTrainerAccountEmailBlur()}
       />
     ) : null}
@@ -713,8 +756,11 @@ export const TeamPage: React.FC = () => {
         editingPlayer={editingPlayer}
         saving={saving}
         avatarUploading={avatarUploading}
+        cutoutUploading={cutoutUploading}
         avatarPreviewUrl={avatarPreviewUrl}
+        cutoutPreviewUrl={cutoutPreviewUrl}
         avatarObjectUrl={avatarObjectUrl}
+        cutoutObjectUrl={cutoutObjectUrl}
         formError={formError}
         jerseyErrorMsg={jerseyErrorMsg}
         canManage={canManagePlayers}
@@ -722,7 +768,8 @@ export const TeamPage: React.FC = () => {
         onSubmit={handleFormSubmit}
         onFormChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
         onAvatarFile={handleAvatarFilePick}
-        onAvatarValidationError={setFormError}
+        onCutoutFile={handleCutoutFilePick}
+        onImageValidationError={setFormError}
         onPausePlayer={mode === "edit" ? handlePauseFromModal : undefined}
         pauseBusy={deletingId !== null}
       />

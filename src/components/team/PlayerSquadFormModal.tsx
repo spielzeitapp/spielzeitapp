@@ -1,6 +1,7 @@
-import React, { useRef } from "react";
+import React from "react";
 import { Modal } from "../../app/ui/Modal";
 import { AppButton } from "../ui/AppButton";
+import { ProfileImageUploadFields } from "./profile/ProfileImageUploadFields";
 import type { PlayerItem } from "../../hooks/usePlayers";
 
 export type PlayerSquadFormState = {
@@ -18,8 +19,11 @@ type Props = {
   editingPlayer: PlayerItem | null;
   saving: boolean;
   avatarUploading: boolean;
+  cutoutUploading: boolean;
   avatarPreviewUrl: string | null;
+  cutoutPreviewUrl: string | null;
   avatarObjectUrl: string | null;
+  cutoutObjectUrl: string | null;
   formError: string | null;
   jerseyErrorMsg: string | null;
   canManage: boolean;
@@ -27,7 +31,8 @@ type Props = {
   onSubmit: (e: React.FormEvent) => void;
   onFormChange: (patch: Partial<PlayerSquadFormState>) => void;
   onAvatarFile: (file: File) => void;
-  onAvatarValidationError: (message: string) => void;
+  onCutoutFile: (file: File) => void;
+  onImageValidationError: (message: string) => void;
   onPausePlayer?: () => void;
   pauseBusy?: boolean;
 };
@@ -51,8 +56,11 @@ export const PlayerSquadFormModal: React.FC<Props> = ({
   editingPlayer,
   saving,
   avatarUploading,
+  cutoutUploading,
   avatarPreviewUrl,
+  cutoutPreviewUrl,
   avatarObjectUrl,
+  cutoutObjectUrl,
   formError,
   jerseyErrorMsg,
   canManage,
@@ -60,29 +68,15 @@ export const PlayerSquadFormModal: React.FC<Props> = ({
   onSubmit,
   onFormChange,
   onAvatarFile,
-  onAvatarValidationError,
+  onCutoutFile,
+  onImageValidationError,
   onPausePlayer,
   pauseBusy = false,
 }) => {
-  const avatarInputRef = useRef<HTMLInputElement | null>(null);
-  const busy = saving || avatarUploading;
-  const previewSrc = avatarObjectUrl || avatarPreviewUrl;
+  const busy = saving || avatarUploading || cutoutUploading;
+  const avatarPreviewSrc = avatarObjectUrl || avatarPreviewUrl;
+  const cutoutPreviewSrc = cutoutObjectUrl || cutoutPreviewUrl;
   const isPaused = (editingPlayer?.status ?? "active") === "paused";
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const allowed = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowed.includes(file.type)) {
-      onAvatarValidationError("Bitte nur JPG, PNG oder WebP hochladen.");
-      return;
-    }
-    if (file.size > 3 * 1024 * 1024) {
-      onAvatarValidationError("Datei ist zu groß (max. 3 MB).");
-      return;
-    }
-    onAvatarFile(file);
-  };
 
   return (
     <Modal
@@ -113,51 +107,19 @@ export const PlayerSquadFormModal: React.FC<Props> = ({
           <p className="-mt-1 text-[13px] font-medium text-white/55">{formDisplayName(form, editingPlayer)}</p>
         ) : null}
 
-        <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
-          <div className="h-16 w-16 shrink-0">
-            {previewSrc ? (
-              <img
-                src={previewSrc}
-                alt=""
-                className="h-16 w-16 rounded-full border border-white/20 object-cover"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                  const next = e.currentTarget.nextElementSibling as HTMLElement | null;
-                  if (next) next.style.display = "flex";
-                }}
-              />
-            ) : null}
-            <div
-              className="flex h-16 w-16 items-center justify-center rounded-full border border-white/15 bg-zinc-800 text-lg font-bold text-white/85"
-              style={{ display: previewSrc ? "none" : "flex" }}
-              aria-hidden
-            >
-              {avatarInitials(form)}
-            </div>
-          </div>
-          <div className="min-w-0 flex-1 pt-0.5">
-            <AppButton
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={mode !== "edit" || busy || !editingPlayer}
-              onClick={() => avatarInputRef.current?.click()}
-            >
-              {avatarUploading ? "Upload…" : "Foto hochladen"}
-            </AppButton>
-            <p className="mt-1.5 text-[11px] leading-snug text-white/45">JPG/PNG/WebP · max. 3 MB</p>
-            {mode === "create" ? (
-              <p className="mt-1 text-[11px] leading-snug text-white/38">Nach dem Anlegen bearbeiten.</p>
-            ) : null}
-            <input
-              ref={avatarInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-          </div>
-        </div>
+        <ProfileImageUploadFields
+          mode={mode}
+          canUpload={Boolean(editingPlayer) && canManage}
+          busy={busy}
+          avatarUploading={avatarUploading}
+          cutoutUploading={cutoutUploading}
+          avatarPreviewSrc={avatarPreviewSrc}
+          cutoutPreviewSrc={cutoutPreviewSrc}
+          avatarInitials={avatarInitials(form)}
+          onAvatarFile={onAvatarFile}
+          onCutoutFile={onCutoutFile}
+          onValidationError={onImageValidationError}
+        />
 
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1">

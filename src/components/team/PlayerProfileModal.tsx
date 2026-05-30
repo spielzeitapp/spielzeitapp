@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
-import { Activity, ChevronLeft } from "lucide-react";
+import { Activity } from "lucide-react";
+import { ProfileCompactHeader } from "./profile/ProfileCompactHeader";
 import { ProfileHeroCard } from "./profile/ProfileHeroCard";
 import { ProfileStatTile } from "./ProfileStatTile";
 import { ProfileTeamCard } from "./profile/ProfileFooterCards";
@@ -322,26 +323,15 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
         className="relative flex max-h-[min(94vh,920px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.75rem] border border-red-500/30 bg-[linear-gradient(180deg,rgba(28,8,8,0.98)_0%,rgba(0,0,0,0.97)_42%,rgba(6,6,10,0.99)_100%)] shadow-[0_0_0_1px_rgba(239,68,68,0.14),0_-24px_64px_rgba(0,0,0,0.7),0_0_90px_rgba(220,38,38,0.14)] sm:rounded-3xl sm:shadow-2xl"
       >
         <ProfileSaveSnackbar visible={saveToastVisible} />
-        <div className="z-20 flex shrink-0 items-center gap-2 border-b border-white/10 bg-black/50 px-2 py-2.5 backdrop-blur-md sm:px-3 sm:py-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 text-white/90 transition-colors hover:bg-white/10"
-            aria-label="Zurück"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </button>
-          <h2
-            id="player-profile-title"
-            className="min-w-0 flex-1 truncate text-center text-sm font-semibold tracking-tight text-white/90"
-          >
-            Spielerprofil
-          </h2>
-          <div className="w-10 shrink-0" aria-hidden />
-        </div>
+        <ProfileCompactHeader
+          title="Spielerprofil"
+          titleId="player-profile-title"
+          onBack={onClose}
+          backLabel="Zurück"
+        />
 
         <div
-          className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 pt-3 sm:px-4 sm:pt-4"
+          className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 pt-2 sm:px-4"
           style={{ paddingBottom: `calc(${bottomPad})` }}
         >
           <ProfileHeroCard

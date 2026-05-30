@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { TrainerStaffFormState } from "../components/team/TrainerStaffFormModal";
-import { uploadStaffProfilePhoto } from "../lib/staffAvatar";
-import { resolveCutoutAfterAvatarUpload } from "../lib/profileImagePipeline";
+import { uploadStaffProfileAvatar, uploadStaffProfileCutout } from "../lib/profileCutoutUpload";
+import { prepareCutoutGeneration } from "../lib/profileImagePipeline";
 import {
   findAccountUserIdByEmail,
   fetchProfileNamesForUser,
@@ -31,16 +31,30 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
   const [editingTrainer, setEditingTrainer] = useState<TeamStaffMember | null>(null);
   const [trainerSaving, setTrainerSaving] = useState(false);
   const [trainerAvatarUploading, setTrainerAvatarUploading] = useState(false);
+  const [trainerCutoutUploading, setTrainerCutoutUploading] = useState(false);
   const [trainerAvatarPreviewUrl, setTrainerAvatarPreviewUrl] = useState<string | null>(null);
+  const [trainerCutoutPreviewUrl, setTrainerCutoutPreviewUrl] = useState<string | null>(null);
   const [trainerAvatarFile, setTrainerAvatarFile] = useState<File | null>(null);
+  const [trainerCutoutFile, setTrainerCutoutFile] = useState<File | null>(null);
   const [trainerAvatarObjectUrl, setTrainerAvatarObjectUrl] = useState<string | null>(null);
+  const [trainerCutoutObjectUrl, setTrainerCutoutObjectUrl] = useState<string | null>(null);
   const [trainerFormError, setTrainerFormError] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
       if (trainerAvatarObjectUrl) URL.revokeObjectURL(trainerAvatarObjectUrl);
+      if (trainerCutoutObjectUrl) URL.revokeObjectURL(trainerCutoutObjectUrl);
     };
-  }, [trainerAvatarObjectUrl]);
+  }, [trainerAvatarObjectUrl, trainerCutoutObjectUrl]);
+
+  const clearTrainerImagePreviews = useCallback(() => {
+    if (trainerAvatarObjectUrl) URL.revokeObjectURL(trainerAvatarObjectUrl);
+    if (trainerCutoutObjectUrl) URL.revokeObjectURL(trainerCutoutObjectUrl);
+    setTrainerAvatarObjectUrl(null);
+    setTrainerCutoutObjectUrl(null);
+    setTrainerAvatarFile(null);
+    setTrainerCutoutFile(null);
+  }, [trainerAvatarObjectUrl, trainerCutoutObjectUrl]);
 
   const closeTrainerForm = useCallback(() => {
     setShowTrainerForm(false);
@@ -48,10 +62,9 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
     setTrainerForm(emptyTrainerForm);
     setTrainerFormError(null);
     setTrainerAvatarPreviewUrl(null);
-    setTrainerAvatarFile(null);
-    if (trainerAvatarObjectUrl) URL.revokeObjectURL(trainerAvatarObjectUrl);
-    setTrainerAvatarObjectUrl(null);
-  }, [trainerAvatarObjectUrl]);
+    setTrainerCutoutPreviewUrl(null);
+    clearTrainerImagePreviews();
+  }, [clearTrainerImagePreviews]);
 
   const openCreateTrainerForm = useCallback(() => {
     setTrainerFormMode("create");
@@ -59,31 +72,34 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
     setTrainerForm(emptyTrainerForm);
     setTrainerFormError(null);
     setTrainerAvatarPreviewUrl(null);
-    setTrainerAvatarFile(null);
+    setTrainerCutoutPreviewUrl(null);
+    clearTrainerImagePreviews();
     setShowTrainerForm(true);
-  }, []);
+  }, [clearTrainerImagePreviews]);
 
-  const openEditTrainerForm = useCallback((member: TeamStaffMember) => {
-    setTrainerFormMode("edit");
-    setEditingTrainer(member);
-    setTrainerForm({
-      email: "",
-      first_name: member.first_name ?? "",
-      last_name: member.last_name ?? "",
-      role:
-        member.role === "head_coach" || member.role === "co_trainer" || member.role === "trainer"
-          ? member.role
-          : "trainer",
-      phone: member.phone ?? "",
-      contact_email: member.email ?? "",
-    });
-    setTrainerFormError(null);
-    setTrainerAvatarPreviewUrl(member.avatar_url);
-    setTrainerAvatarFile(null);
-    if (trainerAvatarObjectUrl) URL.revokeObjectURL(trainerAvatarObjectUrl);
-    setTrainerAvatarObjectUrl(null);
-    setShowTrainerForm(true);
-  }, [trainerAvatarObjectUrl]);
+  const openEditTrainerForm = useCallback(
+    (member: TeamStaffMember) => {
+      setTrainerFormMode("edit");
+      setEditingTrainer(member);
+      setTrainerForm({
+        email: "",
+        first_name: member.first_name ?? "",
+        last_name: member.last_name ?? "",
+        role:
+          member.role === "head_coach" || member.role === "co_trainer" || member.role === "trainer"
+            ? member.role
+            : "trainer",
+        phone: member.phone ?? "",
+        contact_email: member.email ?? "",
+      });
+      setTrainerFormError(null);
+      setTrainerAvatarPreviewUrl(member.avatar_url);
+      setTrainerCutoutPreviewUrl((member.cutout_url ?? "").trim() || null);
+      clearTrainerImagePreviews();
+      setShowTrainerForm(true);
+    },
+    [clearTrainerImagePreviews],
+  );
 
   const handleTrainerAvatarFilePick = useCallback(
     (file: File) => {
@@ -92,6 +108,15 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
       setTrainerAvatarObjectUrl(URL.createObjectURL(file));
     },
     [trainerAvatarObjectUrl],
+  );
+
+  const handleTrainerCutoutFilePick = useCallback(
+    (file: File) => {
+      if (trainerCutoutObjectUrl) URL.revokeObjectURL(trainerCutoutObjectUrl);
+      setTrainerCutoutFile(file);
+      setTrainerCutoutObjectUrl(URL.createObjectURL(file));
+    },
+    [trainerCutoutObjectUrl],
   );
 
   const handleTrainerAccountEmailBlur = useCallback(async () => {
@@ -145,28 +170,47 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
           return;
         }
 
-        let avatarUrl: string | null = null;
-        let cutoutUrl: string | null = null;
+        let avatarUrl: string | null | undefined;
+        let cutoutUrl: string | null | undefined;
+
         if (trainerAvatarFile) {
           setTrainerAvatarUploading(true);
-          const {
-            avatarUrl: uploadedAvatar,
-            cutoutUrl: uploadedCutout,
-            error: uploadErr,
-          } = await uploadStaffProfilePhoto(teamSeasonId, userId, trainerAvatarFile);
+          const { avatarUrl: uploadedAvatar, error: uploadErr } = await uploadStaffProfileAvatar(
+            teamSeasonId,
+            userId,
+            trainerAvatarFile,
+          );
           setTrainerAvatarUploading(false);
           if (uploadErr || !uploadedAvatar) {
-            setTrainerFormError(`Foto-Upload fehlgeschlagen: ${uploadErr ?? "Unbekannter Fehler"}`);
+            setTrainerFormError(`Avatar-Upload fehlgeschlagen: ${uploadErr ?? "Unbekannter Fehler"}`);
             return;
           }
           avatarUrl = uploadedAvatar;
-          cutoutUrl = await resolveCutoutAfterAvatarUpload({
+
+          const generated = await prepareCutoutGeneration({
             subject: "staff",
             teamSeasonId,
             entityId: userId,
             avatarUrl: uploadedAvatar,
-            existingCutoutUrl: uploadedCutout,
           });
+          if (generated.cutoutUrl) {
+            cutoutUrl = generated.cutoutUrl;
+          }
+        }
+
+        if (trainerCutoutFile) {
+          setTrainerCutoutUploading(true);
+          const { cutoutUrl: uploadedCutout, error: cutoutErr } = await uploadStaffProfileCutout(
+            teamSeasonId,
+            userId,
+            trainerCutoutFile,
+          );
+          setTrainerCutoutUploading(false);
+          if (cutoutErr || !uploadedCutout) {
+            setTrainerFormError(`Hero-Bild fehlgeschlagen: ${cutoutErr ?? "Unbekannter Fehler"}`);
+            return;
+          }
+          cutoutUrl = uploadedCutout;
         }
 
         const { ok, error: saveError } = await saveTeamStaffMember({
@@ -177,8 +221,8 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
           lastName: trainerForm.last_name.trim() || null,
           phone: trainerForm.phone.trim() || null,
           contactEmail: contactEmail || null,
-          avatarUrl,
-          cutoutUrl,
+          avatarUrl: avatarUrl ?? null,
+          cutoutUrl: cutoutUrl ?? null,
         });
         if (!ok || saveError) {
           setTrainerFormError(saveError ?? "Speichern fehlgeschlagen.");
@@ -193,6 +237,7 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
       } finally {
         setTrainerSaving(false);
         setTrainerAvatarUploading(false);
+        setTrainerCutoutUploading(false);
       }
     },
     [
@@ -202,6 +247,7 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
       trainerFormMode,
       editingTrainer,
       trainerAvatarFile,
+      trainerCutoutFile,
       closeTrainerForm,
       onAfterSave,
     ],
@@ -215,15 +261,19 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
     editingTrainer,
     trainerSaving,
     trainerAvatarUploading,
+    trainerCutoutUploading,
     trainerAvatarPreviewUrl,
+    trainerCutoutPreviewUrl,
     trainerAvatarObjectUrl,
+    trainerCutoutObjectUrl,
     trainerFormError,
     setTrainerFormError,
     closeTrainerForm,
     openCreateTrainerForm,
     openEditTrainerForm,
     handleTrainerAvatarFilePick,
+    handleTrainerCutoutFilePick,
     handleTrainerAccountEmailBlur,
     handleTrainerFormSubmit,
   };
-}
+};

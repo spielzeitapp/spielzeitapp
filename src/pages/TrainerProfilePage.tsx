@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
+import { ProfileCompactHeader } from "../components/team/profile/ProfileCompactHeader";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { useSession, getSeasonLabelFromMembership, getTeamNameFromMembership } from "../auth/useSession";
 import { canManageRoster, normalizeRole } from "../lib/roles";
@@ -141,18 +141,7 @@ export const TrainerProfilePage: React.FC = () => {
 
   return (
     <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col bg-black">
-      <div className="z-20 flex shrink-0 items-center gap-2 border-b border-white/10 bg-black/90 px-2 py-2.5 pt-[max(0.5rem,env(safe-area-inset-top,0px))] backdrop-blur-md">
-        <button
-          type="button"
-          onClick={goBack}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 text-white/90 hover:bg-white/10"
-          aria-label="Zurück zum Team"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </button>
-        <h1 className="min-w-0 flex-1 truncate text-center text-sm font-semibold text-white/90">Trainerprofil</h1>
-        <div className="w-10 shrink-0" aria-hidden />
-      </div>
+      <ProfileCompactHeader title="Trainerprofil" onBack={goBack} backLabel="Zurück zum Team" />
 
       {rpcMissing ? (
         <p className="mx-3 mt-3 rounded-lg border border-amber-500/35 bg-amber-950/35 px-3 py-2 text-[13px] text-amber-100/95">
@@ -177,7 +166,7 @@ export const TrainerProfilePage: React.FC = () => {
       ) : (
         <>
           <div
-            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 pt-3 sm:px-4"
+            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 pt-2 sm:px-4"
             style={{ paddingBottom: `calc(${bottomPad})` }}
           >
             <ProfileHeroCard
@@ -256,14 +245,18 @@ export const TrainerProfilePage: React.FC = () => {
               editingTrainer={trainerEditor.editingTrainer}
               saving={trainerEditor.trainerSaving}
               avatarUploading={trainerEditor.trainerAvatarUploading}
+              cutoutUploading={trainerEditor.trainerCutoutUploading}
               avatarPreviewUrl={trainerEditor.trainerAvatarPreviewUrl}
+              cutoutPreviewUrl={trainerEditor.trainerCutoutPreviewUrl}
               avatarObjectUrl={trainerEditor.trainerAvatarObjectUrl}
+              cutoutObjectUrl={trainerEditor.trainerCutoutObjectUrl}
               formError={trainerEditor.trainerFormError}
               onClose={trainerEditor.closeTrainerForm}
               onSubmit={trainerEditor.handleTrainerFormSubmit}
               onFormChange={(patch) => trainerEditor.setTrainerForm((f) => ({ ...f, ...patch }))}
               onAvatarFile={trainerEditor.handleTrainerAvatarFilePick}
-              onAvatarValidationError={trainerEditor.setTrainerFormError}
+              onCutoutFile={trainerEditor.handleTrainerCutoutFilePick}
+              onImageValidationError={trainerEditor.setTrainerFormError}
               onAccountEmailBlur={() => void trainerEditor.handleTrainerAccountEmailBlur()}
             />
           ) : null}

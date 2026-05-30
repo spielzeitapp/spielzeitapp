@@ -83,48 +83,86 @@ async function uploadToBucket(
   return { publicUrl, error: publicUrl ? null : "Öffentliche URL konnte nicht erzeugt werden." };
 }
 
+export async function uploadPlayerProfileAvatar(
+  teamSeasonId: string,
+  playerId: string,
+  file: File,
+): Promise<{ avatarUrl: string | null; error: string | null }> {
+  const ext = avatarExtension(file);
+  const avatarPath = `${teamSeasonId}/${playerId}.${ext}`;
+  const { publicUrl: avatarUrl, error } = await uploadToBucket(PLAYER_AVATAR_BUCKET, avatarPath, file);
+  return { avatarUrl, error };
+}
+
+export async function uploadPlayerProfileCutout(
+  teamSeasonId: string,
+  playerId: string,
+  file: File,
+): Promise<{ cutoutUrl: string | null; error: string | null }> {
+  const cutoutPath = `${teamSeasonId}/cutouts/${playerId}.${cutoutExtension(file)}`;
+  const cutout = await uploadToBucket(PLAYER_AVATAR_BUCKET, cutoutPath, file);
+  return { cutoutUrl: cutout.publicUrl, error: cutout.error };
+}
+
+/** Kombinierter Upload (Pipeline-Kompatibilität). */
 export async function uploadPlayerProfilePhoto(
   teamSeasonId: string,
   playerId: string,
   file: File,
 ): Promise<ProfilePhotoUploadResult> {
-  const ext = avatarExtension(file);
-  const avatarPath = `${teamSeasonId}/${playerId}.${ext}`;
-  const { publicUrl: avatarUrl, error } = await uploadToBucket(PLAYER_AVATAR_BUCKET, avatarPath, file);
+  const { avatarUrl, error } = await uploadPlayerProfileAvatar(teamSeasonId, playerId, file);
   if (error) {
     return { avatarUrl: null, cutoutUrl: null, error };
   }
 
   let cutoutUrl: string | null = null;
   if (await shouldStoreProfileCutout(file)) {
-    const cutoutPath = `${teamSeasonId}/cutouts/${playerId}.${cutoutExtension(file)}`;
-    const cutout = await uploadToBucket(PLAYER_AVATAR_BUCKET, cutoutPath, file);
+    const cutout = await uploadPlayerProfileCutout(teamSeasonId, playerId, file);
     if (!cutout.error) {
-      cutoutUrl = cutout.publicUrl;
+      cutoutUrl = cutout.cutoutUrl;
     }
   }
 
   return { avatarUrl, cutoutUrl, error: null };
 }
 
+export async function uploadStaffProfileAvatar(
+  teamSeasonId: string,
+  userId: string,
+  file: File,
+): Promise<{ avatarUrl: string | null; error: string | null }> {
+  const ext = avatarExtension(file);
+  const avatarPath = `${teamSeasonId}/staff/${userId}.${ext}`;
+  const { publicUrl: avatarUrl, error } = await uploadToBucket(STAFF_PHOTO_BUCKET, avatarPath, file);
+  return { avatarUrl, error };
+}
+
+export async function uploadStaffProfileCutout(
+  teamSeasonId: string,
+  userId: string,
+  file: File,
+): Promise<{ cutoutUrl: string | null; error: string | null }> {
+  const cutoutPath = `${teamSeasonId}/cutouts/${userId}.${cutoutExtension(file)}`;
+  const cutout = await uploadToBucket(STAFF_PHOTO_BUCKET, cutoutPath, file);
+  return { cutoutUrl: cutout.publicUrl, error: cutout.error };
+}
+
+/** Kombinierter Upload (Pipeline-Kompatibilität). */
 export async function uploadStaffProfilePhoto(
   teamSeasonId: string,
   userId: string,
   file: File,
 ): Promise<ProfilePhotoUploadResult> {
-  const ext = avatarExtension(file);
-  const avatarPath = `${teamSeasonId}/staff/${userId}.${ext}`;
-  const { publicUrl: avatarUrl, error } = await uploadToBucket(STAFF_PHOTO_BUCKET, avatarPath, file);
+  const { avatarUrl, error } = await uploadStaffProfileAvatar(teamSeasonId, userId, file);
   if (error) {
     return { avatarUrl: null, cutoutUrl: null, error };
   }
 
   let cutoutUrl: string | null = null;
   if (await shouldStoreProfileCutout(file)) {
-    const cutoutPath = `${teamSeasonId}/cutouts/${userId}.${cutoutExtension(file)}`;
-    const cutout = await uploadToBucket(STAFF_PHOTO_BUCKET, cutoutPath, file);
+    const cutout = await uploadStaffProfileCutout(teamSeasonId, userId, file);
     if (!cutout.error) {
-      cutoutUrl = cutout.publicUrl;
+      cutoutUrl = cutout.cutoutUrl;
     }
   }
 
