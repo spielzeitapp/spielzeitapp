@@ -57,7 +57,7 @@ function useClubLogoUrl(teamName?: string | null): string | null {
   return getClubLogo(name);
 }
 
-/** z-0 — Stadion bei Nacht: schwarz, Kontrast, Flutlicht, Vignette */
+/** z-0 — Premium-Stadionbild + dezente Overlays (Flutlicht im Asset sichtbar lassen) */
 function StadiumAtmosphere({ photoBgUrl }: { photoBgUrl: string | null }) {
   const hasPhoto = Boolean(photoBgUrl);
 
@@ -65,8 +65,12 @@ function StadiumAtmosphere({ photoBgUrl }: { photoBgUrl: string | null }) {
     <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
       {hasPhoto ? (
         <div
-          className="absolute inset-0 scale-[1.04] bg-cover bg-center bg-no-repeat saturate-[0.55] brightness-[0.48] contrast-[1.12]"
-          style={{ backgroundImage: `url(${photoBgUrl})` }}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat saturate-[0.84] brightness-[0.7] contrast-[1.06]"
+          style={{
+            backgroundImage: `url(${photoBgUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center center",
+          }}
         />
       ) : (
         <div className="absolute inset-0 bg-[linear-gradient(180deg,#0A0A0A_0%,#121010_40%,#060606_100%)]" />
@@ -74,29 +78,29 @@ function StadiumAtmosphere({ photoBgUrl }: { photoBgUrl: string | null }) {
       <div
         className={`absolute inset-0 ${
           hasPhoto
-            ? "bg-[linear-gradient(180deg,rgba(0,0,0,0.62)_0%,rgba(2,2,4,0.74)_42%,rgba(0,0,0,0.88)_100%)]"
+            ? "bg-[linear-gradient(180deg,rgba(0,0,0,0.34)_0%,rgba(2,2,4,0.48)_44%,rgba(0,0,0,0.68)_100%)]"
             : "bg-[linear-gradient(180deg,rgba(6,6,8,0.78)_0%,rgba(2,2,4,0.92)_100%)]"
         }`}
       />
-      <div className="absolute inset-y-0 left-0 w-[36%] bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(0,0,0,0.55)_0%,transparent_74%)]" />
-      <div className="absolute inset-y-0 right-0 w-[44%] bg-[radial-gradient(ellipse_85%_75%_at_100%_38%,rgba(0,0,0,0.45)_0%,transparent_72%)]" />
-      <FloodlightBeams />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_115%_105%_at_50%_50%,transparent_38%,rgba(0,0,0,0.42)_78%,rgba(0,0,0,0.78)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-[42%] bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.62)_100%)]" />
+      <div className="absolute inset-y-0 left-0 w-[38%] bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(0,0,0,0.42)_0%,transparent_76%)]" />
+      <div className="absolute inset-y-0 right-0 w-[36%] bg-[radial-gradient(ellipse_85%_75%_at_100%_38%,rgba(0,0,0,0.28)_0%,transparent_74%)]" />
+      <FloodlightBeams subtle={hasPhoto} />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_115%_105%_at_50%_50%,transparent_44%,rgba(0,0,0,0.32)_80%,rgba(0,0,0,0.68)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-[38%] bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.48)_100%)]" />
     </div>
   );
 }
 
-function FloodlightBeams() {
+function FloodlightBeams({ subtle = false }: { subtle?: boolean }) {
   return (
-    <>
+    <div className={subtle ? "opacity-[0.32]" : "opacity-100"}>
       <div className="absolute -left-8 top-0 h-[82%] w-[44%] origin-top-left -skew-x-[8deg] bg-[linear-gradient(168deg,rgba(255,252,245,0.28)_0%,rgba(255,250,240,0.12)_38%,transparent_74%)] blur-[0.5px]" />
       <div className="absolute -right-8 top-0 h-[82%] w-[44%] origin-top-right skew-x-[8deg] bg-[linear-gradient(192deg,rgba(255,252,245,0.26)_0%,rgba(255,250,240,0.11)_38%,transparent_74%)] blur-[0.5px]" />
       <div className="absolute left-[10%] top-0 h-28 w-28 rounded-full bg-white/[0.18] blur-3xl" />
       <div className="absolute right-[8%] top-0 h-28 w-28 rounded-full bg-white/[0.15] blur-3xl" />
       <div className="absolute left-[28%] top-0 h-20 w-24 rounded-full bg-white/[0.12] blur-2xl" />
       <div className="absolute left-1/2 top-0 h-20 w-40 -translate-x-1/2 rounded-full bg-white/[0.11] blur-2xl" />
-    </>
+    </div>
   );
 }
 

@@ -1,10 +1,11 @@
 # Profil-Hero Hintergrund
 
-Lege optional ein Stadion-Foto ab (wird automatisch erkannt):
+Standard-Asset (Trainer + Spieler):
 
-- `profile-hero-stadium.jpg` (empfohlen)
-- oder `profile-hero-stadium.png`
+- `profile-hero-stadium.png` — Premium-Stadion bei Nacht (Flutlicht, Tiefe)
 
-Pfad im Browser: `/profile/profile-hero-stadium.jpg`
+Browser-Pfad: `/profile/profile-hero-stadium.png`
+
+Fallback-Reihenfolge siehe `src/lib/profileHeroStadiumBg.ts`.
 
 Ohne Datei bleibt der CSS-Stadion-Fallback aktiv.

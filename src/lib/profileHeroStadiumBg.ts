@@ -1,8 +1,14 @@
-/** Optional: echtes Stadionbild unter public/profile/ — CSS-Fallback wenn keins lädt. */
+/**
+ * Premium-Stadion-Hintergrund für Profil-Hero (Trainer + Spieler).
+ * Asset: public/profile/profile-hero-stadium.png
+ */
+export const PROFILE_HERO_STADIUM_BG = "/profile/profile-hero-stadium.png";
+
+/** Fallback-Reihenfolge, falls Primärdatei fehlt. */
 export const PROFILE_HERO_STADIUM_BG_CANDIDATES = [
+  PROFILE_HERO_STADIUM_BG,
   "/profile/profile-hero-stadium.jpg",
   "/profile/profile-hero-stadium.jpeg",
-  "/profile/profile-hero-stadium.png",
   "/profile/profile-hero-stadium.PNG",
 ] as const;
 
