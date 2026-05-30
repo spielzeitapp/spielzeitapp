@@ -87,19 +87,19 @@ function StadiumAtmosphere({ photoBgUrl }: { photoBgUrl: string }) {
   return (
     <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat saturate-[0.68] brightness-[0.56] contrast-[1.14]"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat saturate-[0.76] brightness-[0.72] contrast-[1.08]"
         style={{
           backgroundImage: `url(${photoBgUrl})`,
           backgroundSize: "cover",
           backgroundPosition: "center center",
         }}
       />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.52)_0%,rgba(4,4,6,0.62)_42%,rgba(0,0,0,0.82)_100%)]" />
-      <div className="absolute inset-y-0 left-0 w-[40%] bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(0,0,0,0.55)_0%,transparent_78%)]" />
-      <div className="absolute inset-y-0 right-0 w-[38%] bg-[radial-gradient(ellipse_85%_75%_at_100%_35%,rgba(0,0,0,0.35)_0%,transparent_76%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.28)_0%,rgba(4,4,6,0.38)_44%,rgba(0,0,0,0.62)_100%)]" />
+      <div className="absolute inset-y-0 left-0 w-[32%] bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(0,0,0,0.28)_0%,transparent_80%)]" />
+      <div className="absolute inset-y-0 right-0 w-[34%] bg-[radial-gradient(ellipse_85%_75%_at_100%_35%,rgba(0,0,0,0.22)_0%,transparent_76%)]" />
       <FloodlightBeams />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_118%_108%_at_50%_42%,transparent_36%,rgba(0,0,0,0.38)_78%,rgba(0,0,0,0.82)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-[40%] bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.55)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_118%_108%_at_50%_42%,transparent_48%,rgba(0,0,0,0.22)_82%,rgba(0,0,0,0.58)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-[36%] bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.38)_100%)]" />
     </div>
   );
 }
@@ -117,16 +117,16 @@ function FloodlightBeams() {
   );
 }
 
-/** TR / Trikotnummer — 85 % Hero-Höhe, weiß 18 %, Grunge */
+/** TR / Trikotnummer — Outline-Wasserzeichen, Stadion scheint durch */
 function HeroPrimaryWatermark({ watermark }: { watermark: string }) {
   const isNumeric = /^\d+$/.test(watermark.trim());
 
   const textStyle: React.CSSProperties = {
     fontSize: isNumeric ? "clamp(9rem, 54vw, 17rem)" : "clamp(8.5rem, 50vw, 16rem)",
-    color: "rgba(255,255,255,0.18)",
-    WebkitTextStroke: "0.5px rgba(255,255,255,0.14)",
+    color: "rgba(255,255,255,0.07)",
+    WebkitTextStroke: "1.5px rgba(255,255,255,0.24)",
     paintOrder: "stroke fill",
-    textShadow: "0 2px 12px rgba(0,0,0,0.35)",
+    textShadow: "none",
     lineHeight: 0.74,
     letterSpacing: isNumeric ? "-0.05em" : "-0.03em",
     fontVariantNumeric: isNumeric ? "tabular-nums" : undefined,
@@ -134,17 +134,17 @@ function HeroPrimaryWatermark({ watermark }: { watermark: string }) {
 
   return (
     <div
-      className="pointer-events-none absolute left-0 top-1/2 z-[1] flex h-[85%] max-w-[min(96%,22rem)] -translate-y-1/2 select-none items-center overflow-visible pl-0.5 font-black tracking-tighter sm:pl-1"
+      className="pointer-events-none absolute -left-2 top-1/2 z-[1] flex h-[85%] max-w-[min(88%,20rem)] -translate-y-1/2 select-none items-center overflow-visible font-black tracking-tighter sm:-left-3"
       aria-hidden
     >
-      <span className="relative inline-block" style={textStyle}>
+      <span className="relative inline-block mix-blend-screen" style={textStyle}>
         {watermark}
         <span
-          className="pointer-events-none absolute inset-[-8%] mix-blend-overlay opacity-[0.5]"
+          className="pointer-events-none absolute inset-[-6%] mix-blend-overlay opacity-[0.22]"
           style={{ backgroundImage: GRUNGE_NOISE, backgroundSize: "140px 140px" }}
         />
         <span
-          className="pointer-events-none absolute inset-0 mix-blend-soft-light opacity-[0.35]"
+          className="pointer-events-none absolute inset-0 mix-blend-soft-light opacity-[0.14]"
           style={{ backgroundImage: CONCRETE_GRAIN, backgroundSize: "96px 96px" }}
         />
       </span>
