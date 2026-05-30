@@ -176,7 +176,7 @@ export const TrainerProfilePage: React.FC = () => {
               lastNameLine={lastNameLine}
               teamSeasonLabel={teamSeasonLabel}
               teamName={teamName}
-              roleLabel={member ? staffRoleLabelDe(member.role) : undefined}
+              roleLabel={staffRoleLabelDe(member.role).toUpperCase()}
               photoUrl={avatarUrl}
               cutoutUrl={member.cutout_url}
               initials={initials}

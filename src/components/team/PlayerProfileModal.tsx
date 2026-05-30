@@ -343,6 +343,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             lastNameLine={lastNameLine}
             teamSeasonLabel={teamSeasonLabel ?? "Team"}
             teamName={teamName}
+            roleLabel={(positionFull || positionLabel).toUpperCase()}
             photoUrl={(photoUrl ?? "").trim() || avatarSrc}
             cutoutUrl={player.cutout_url}
             initials={initials(player)}

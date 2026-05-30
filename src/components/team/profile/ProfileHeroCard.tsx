@@ -9,22 +9,26 @@ import { probeProfileHeroStadiumBackground } from "../../../lib/profileHeroStadi
 import { getClubLogo } from "../../../lib/teamLogos";
 
 /**
- * Premium-Profil-Banner — EA FC / Panini Card Look.
- * Trainer: weißes TR + Vereinslogo | Spieler: Trikotnummer + Vereinslogo
+ * Premium-Profil-Banner — gemeinsame Designfamilie Trainer / Spieler.
+ * Wasserzeichen: weiß, grunge, 16–20 % | Stadion: Nacht + Flutlicht | Logo: monochrom dezent
  */
 
 export type ProfileHeroVariant = "trainer" | "player";
 
 const HERO_HEIGHT = "min-h-[13rem] sm:min-h-[14rem]";
 
+/** SVG-Rauschen für Grunge-Textur auf TR / Nummer */
+const GRUNGE_NOISE =
+  "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E\")";
+
 const NAME_TEXT_CLASS =
-  "whitespace-normal break-normal font-black uppercase leading-[1.05] tracking-tight text-white [overflow-wrap:normal] [word-break:normal] [text-shadow:0_2px_20px_rgba(0,0,0,0.9),0_0_1px_rgba(0,0,0,0.95)] text-[clamp(0.95rem,3.6vw,1.45rem)]";
+  "whitespace-normal break-normal font-black uppercase leading-[1.05] tracking-tight text-[#E6E6E6] [overflow-wrap:normal] [word-break:normal] [text-shadow:0_2px_20px_rgba(0,0,0,0.92),0_0_1px_rgba(0,0,0,0.95)] text-[clamp(0.95rem,3.6vw,1.45rem)]";
 
 const ROLE_TEXT_CLASS =
-  "mt-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-400/95 [text-shadow:0_1px_8px_rgba(0,0,0,0.75)] sm:text-[12px]";
+  "mt-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#E50914] [text-shadow:0_1px_8px_rgba(0,0,0,0.8)] sm:text-[12px]";
 
 const TEAM_TEXT_CLASS =
-  "mt-1 line-clamp-2 whitespace-normal break-normal text-[12px] font-medium leading-snug text-white/45 [overflow-wrap:normal] [word-break:normal] sm:text-[13px]";
+  "mt-1 line-clamp-2 whitespace-normal break-normal text-[12px] font-medium leading-snug text-[#E6E6E6]/42 [overflow-wrap:normal] [word-break:normal] sm:text-[13px]";
 
 type Props = {
   variant: ProfileHeroVariant;
@@ -37,7 +41,7 @@ type Props = {
   photoUrl?: string | null;
   cutoutUrl?: string | null;
   initials: string;
-  /** @deprecated Taktiktafel entfernt */
+  /** @deprecated */
   showTacticalBoard?: boolean;
 };
 
@@ -53,7 +57,7 @@ function useClubLogoUrl(teamName?: string | null): string | null {
   return getClubLogo(name);
 }
 
-/** z-0 — dunkles Stadion, Flutlicht, Tiefe */
+/** z-0 — Stadion bei Nacht: schwarz, Kontrast, Flutlicht, Vignette */
 function StadiumAtmosphere({ photoBgUrl }: { photoBgUrl: string | null }) {
   const hasPhoto = Boolean(photoBgUrl);
 
@@ -61,25 +65,24 @@ function StadiumAtmosphere({ photoBgUrl }: { photoBgUrl: string | null }) {
     <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
       {hasPhoto ? (
         <div
-          className="absolute inset-0 scale-[1.03] bg-cover bg-center bg-no-repeat saturate-[0.72] brightness-[0.62]"
+          className="absolute inset-0 scale-[1.04] bg-cover bg-center bg-no-repeat saturate-[0.55] brightness-[0.48] contrast-[1.12]"
           style={{ backgroundImage: `url(${photoBgUrl})` }}
         />
       ) : (
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,#060406_0%,#0a080a_38%,#040304_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,#0A0A0A_0%,#121010_40%,#060606_100%)]" />
       )}
       <div
         className={`absolute inset-0 ${
           hasPhoto
-            ? "bg-[linear-gradient(180deg,rgba(0,0,0,0.55)_0%,rgba(2,2,4,0.68)_45%,rgba(0,0,0,0.82)_100%)]"
-            : "bg-[linear-gradient(180deg,rgba(4,4,6,0.72)_0%,rgba(2,2,4,0.88)_100%)]"
+            ? "bg-[linear-gradient(180deg,rgba(0,0,0,0.62)_0%,rgba(2,2,4,0.74)_42%,rgba(0,0,0,0.88)_100%)]"
+            : "bg-[linear-gradient(180deg,rgba(6,6,8,0.78)_0%,rgba(2,2,4,0.92)_100%)]"
         }`}
       />
-      <div className="absolute inset-y-0 left-0 w-[34%] bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(0,0,0,0.48)_0%,transparent_72%)]" />
-      <div className="absolute inset-y-0 right-0 w-[42%] bg-[radial-gradient(ellipse_85%_75%_at_100%_40%,rgba(0,0,0,0.38)_0%,transparent_70%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(255,255,255,0.06)_0%,transparent_62%)]" />
+      <div className="absolute inset-y-0 left-0 w-[36%] bg-[radial-gradient(ellipse_90%_80%_at_0%_50%,rgba(0,0,0,0.55)_0%,transparent_74%)]" />
+      <div className="absolute inset-y-0 right-0 w-[44%] bg-[radial-gradient(ellipse_85%_75%_at_100%_38%,rgba(0,0,0,0.45)_0%,transparent_72%)]" />
       <FloodlightBeams />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_110%_100%_at_50%_50%,transparent_42%,rgba(0,0,0,0.38)_82%,rgba(0,0,0,0.68)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-[38%] bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.55)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_115%_105%_at_50%_50%,transparent_38%,rgba(0,0,0,0.42)_78%,rgba(0,0,0,0.78)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-[42%] bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.62)_100%)]" />
     </div>
   );
 }
@@ -87,67 +90,65 @@ function StadiumAtmosphere({ photoBgUrl }: { photoBgUrl: string | null }) {
 function FloodlightBeams() {
   return (
     <>
-      <div className="absolute -left-6 top-0 h-[78%] w-[40%] origin-top-left -skew-x-[7deg] bg-[linear-gradient(168deg,rgba(255,250,240,0.22)_0%,rgba(255,248,235,0.08)_42%,transparent_72%)] blur-[0.5px]" />
-      <div className="absolute -right-6 top-0 h-[78%] w-[40%] origin-top-right skew-x-[7deg] bg-[linear-gradient(192deg,rgba(255,250,240,0.2)_0%,rgba(255,248,235,0.07)_42%,transparent_72%)] blur-[0.5px]" />
-      <div className="absolute left-[12%] top-0 h-24 w-24 rounded-full bg-white/[0.14] blur-3xl" />
-      <div className="absolute right-[10%] top-0 h-24 w-24 rounded-full bg-white/[0.12] blur-3xl" />
-      <div className="absolute left-1/2 top-0 h-16 w-32 -translate-x-1/2 rounded-full bg-white/[0.09] blur-2xl" />
+      <div className="absolute -left-8 top-0 h-[82%] w-[44%] origin-top-left -skew-x-[8deg] bg-[linear-gradient(168deg,rgba(255,252,245,0.28)_0%,rgba(255,250,240,0.12)_38%,transparent_74%)] blur-[0.5px]" />
+      <div className="absolute -right-8 top-0 h-[82%] w-[44%] origin-top-right skew-x-[8deg] bg-[linear-gradient(192deg,rgba(255,252,245,0.26)_0%,rgba(255,250,240,0.11)_38%,transparent_74%)] blur-[0.5px]" />
+      <div className="absolute left-[10%] top-0 h-28 w-28 rounded-full bg-white/[0.18] blur-3xl" />
+      <div className="absolute right-[8%] top-0 h-28 w-28 rounded-full bg-white/[0.15] blur-3xl" />
+      <div className="absolute left-[28%] top-0 h-20 w-24 rounded-full bg-white/[0.12] blur-2xl" />
+      <div className="absolute left-1/2 top-0 h-20 w-40 -translate-x-1/2 rounded-full bg-white/[0.11] blur-2xl" />
     </>
   );
 }
 
-/** z-[1] — TR (Trainer) oder Trikotnummer (Spieler), ~75 % Hero-Höhe */
-function HeroPrimaryWatermark({ variant, watermark }: { variant: ProfileHeroVariant; watermark: string }) {
-  const isTrainer = variant === "trainer";
+/** Einheitliches Kaderkarten-Wasserzeichen — TR & Trikotnummer identisch */
+function HeroPrimaryWatermark({ watermark }: { watermark: string }) {
   const isNumeric = /^\d+$/.test(watermark.trim());
 
-  const style: React.CSSProperties = isTrainer
-    ? {
-        fontSize: "clamp(7.5rem, 44vw, 13.5rem)",
-        color: "rgba(255,255,255,0.14)",
-        WebkitTextStroke: "1px rgba(255,255,255,0.24)",
-        paintOrder: "stroke fill",
-        textShadow: "0 2px 24px rgba(0,0,0,0.45)",
-        lineHeight: 0.78,
-      }
-    : {
-        fontSize: isNumeric
-          ? "clamp(8rem, 48vw, 14.5rem)"
-          : "clamp(7rem, 40vw, 12.5rem)",
-        color: "rgba(255,255,255,0.20)",
-        WebkitTextStroke: "1px rgba(255,255,255,0.18)",
-        paintOrder: "stroke fill",
-        textShadow: "0 4px 28px rgba(0,0,0,0.5)",
-        lineHeight: 0.76,
-        fontVariantNumeric: "tabular-nums",
-        letterSpacing: "-0.04em",
-      };
+  const textStyle: React.CSSProperties = {
+    fontSize: "clamp(8.25rem, 50vw, 15rem)",
+    color: "rgba(255,255,255,0.18)",
+    WebkitTextStroke: "0.5px rgba(255,255,255,0.1)",
+    paintOrder: "stroke fill",
+    textShadow: "0 3px 18px rgba(0,0,0,0.4), 1px 1px 0 rgba(0,0,0,0.06)",
+    lineHeight: 0.76,
+    letterSpacing: isNumeric ? "-0.045em" : "-0.025em",
+    fontVariantNumeric: isNumeric ? "tabular-nums" : undefined,
+  };
 
   return (
     <div
-      className="pointer-events-none absolute left-0 top-1/2 z-[1] flex h-[76%] max-w-[min(92%,20rem)] -translate-y-1/2 select-none items-center pl-1.5 font-black tracking-tighter sm:pl-2"
-      style={style}
+      className="pointer-events-none absolute left-0 top-1/2 z-[1] flex h-[83%] max-w-[min(94%,21rem)] -translate-y-1/2 select-none items-center pl-1 font-black tracking-tighter sm:pl-1.5"
       aria-hidden
     >
-      {watermark}
+      <span className="relative inline-block" style={textStyle}>
+        {watermark}
+        <span
+          className="pointer-events-none absolute inset-0 mix-blend-soft-light opacity-[0.42]"
+          style={{ backgroundImage: GRUNGE_NOISE, backgroundSize: "120px 120px" }}
+        />
+      </span>
     </div>
   );
 }
 
-/** z-[1] — Vereinslogo rechts oben, monochrom dezent */
+/** z-[1] — Vereinslogo rechts oben, monochrom, weich eingeblendet */
 function ClubLogoWatermark({ logoUrl }: { logoUrl: string | null }) {
   const [failed, setFailed] = React.useState(false);
   if (!logoUrl || failed) return null;
 
   return (
     <div
-      className="pointer-events-none absolute right-2 top-1.5 z-[1] h-[36%] w-[34%] max-w-[5.25rem] opacity-[0.12] sm:right-3 sm:top-2 sm:max-w-[5.75rem]"
+      className="pointer-events-none absolute right-1.5 top-1 z-[1] h-[42%] w-[38%] max-w-[6.5rem] opacity-[0.11] sm:right-2.5 sm:top-1.5 sm:max-w-[7rem]"
+      style={{
+        maskImage: "radial-gradient(ellipse 85% 80% at 100% 0%, black 35%, transparent 88%)",
+        WebkitMaskImage: "radial-gradient(ellipse 85% 80% at 100% 0%, black 35%, transparent 88%)",
+      }}
       aria-hidden
     >
       <img
         src={logoUrl}
         alt=""
-        className="h-full w-full object-contain object-right-top brightness-[1.4] contrast-[0.8] grayscale"
+        className="h-full w-full object-contain object-right-top brightness-[1.45] contrast-[0.75] grayscale"
         onError={() => setFailed(true)}
       />
     </div>
@@ -155,19 +156,18 @@ function ClubLogoWatermark({ logoUrl }: { logoUrl: string | null }) {
 }
 
 function HeroTextBlock({
-  variant,
   firstNameLine,
   lastNameLine,
   teamSeasonLabel,
   roleLabel,
-}: Pick<Props, "variant" | "firstNameLine" | "lastNameLine" | "teamSeasonLabel" | "roleLabel">) {
+}: Pick<Props, "firstNameLine" | "lastNameLine" | "teamSeasonLabel" | "roleLabel">) {
   const fullName = [firstNameLine, lastNameLine].filter(Boolean).join(" ");
-  const role = (roleLabel ?? "").trim();
+  const role = (roleLabel ?? "").trim().toUpperCase();
 
   return (
     <div className="relative z-[4] flex min-w-[44%] max-w-[56%] flex-1 flex-col justify-center self-stretch py-3 sm:min-w-[42%]">
       <p className={`line-clamp-2 ${NAME_TEXT_CLASS}`}>{fullName}</p>
-      {variant === "trainer" && role ? <p className={ROLE_TEXT_CLASS}>{role}</p> : null}
+      {role ? <p className={ROLE_TEXT_CLASS}>{role}</p> : null}
       <p className={TEAM_TEXT_CLASS}>{teamSeasonLabel}</p>
     </div>
   );
@@ -186,7 +186,7 @@ function HeroAvatarFrame({
 
   return (
     <div className="relative z-[2] shrink-0 self-center bg-transparent">
-      <div className="relative h-[6rem] w-[6rem] overflow-hidden rounded-2xl border border-red-950/50 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black shadow-[0_0_10px_rgba(0,0,0,0.55),0_8px_22px_rgba(0,0,0,0.5)] sm:h-[6.75rem] sm:w-[6.75rem]">
+      <div className="relative h-[6rem] w-[6rem] overflow-hidden rounded-2xl border border-[#8B0D12]/35 bg-gradient-to-br from-[#161616] via-[#0A0A0A] to-black shadow-[0_8px_24px_rgba(0,0,0,0.55)] sm:h-[6.75rem] sm:w-[6.75rem]">
         {showPhoto ? (
           <img
             src={photoSrc!}
@@ -204,7 +204,7 @@ function HeroAvatarFrame({
   );
 }
 
-/** z-[2] — Freigestellte Figur, groß, Kopf oben, dezenter Glow */
+/** z-[2] — Freisteller groß, Kopf oben, weicher Auslauf unten */
 function HeroCutoutFigure({
   cutoutSrc,
   onLoadError,
@@ -213,19 +213,23 @@ function HeroCutoutFigure({
   onLoadError: () => void;
 }) {
   return (
-    <div className="pointer-events-none absolute right-0 top-0 z-[2] h-[122%] w-[58%] max-w-[14rem] bg-transparent sm:max-w-[17.5rem]">
+    <div className="pointer-events-none absolute -right-1 top-[-2%] z-[2] h-[134%] w-[64%] max-w-[15.5rem] bg-transparent sm:max-w-[19.25rem]">
       <div
-        className="absolute left-1/2 top-[8%] h-[42%] w-[72%] -translate-x-1/2 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.1)_0%,rgba(255,248,240,0.04)_38%,transparent_72%)] blur-xl"
+        className="absolute left-1/2 top-[6%] h-[44%] w-[76%] -translate-x-1/2 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.09)_0%,rgba(255,248,240,0.03)_40%,transparent_74%)] blur-xl"
         aria-hidden
       />
       <div
-        className="absolute bottom-[8%] left-1/2 h-[28%] w-[64%] -translate-x-1/2 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.35)_0%,transparent_70%)] blur-md"
+        className="absolute bottom-[4%] left-1/2 h-[32%] w-[70%] -translate-x-1/2 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.42)_0%,transparent_72%)] blur-lg"
         aria-hidden
       />
       <img
         src={cutoutSrc}
         alt=""
-        className="relative h-full w-full bg-transparent object-contain object-right object-top drop-shadow-[0_16px_36px_rgba(0,0,0,0.55)]"
+        className="relative h-full w-full bg-transparent object-contain object-right object-top drop-shadow-[0_18px_40px_rgba(0,0,0,0.58)]"
+        style={{
+          maskImage: "linear-gradient(to bottom, black 0%, black 82%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 82%, transparent 100%)",
+        }}
         onError={onLoadError}
       />
     </div>
@@ -233,7 +237,6 @@ function HeroCutoutFigure({
 }
 
 export const ProfileHeroCard: React.FC<Props> = ({
-  variant,
   watermark,
   firstNameLine,
   lastNameLine,
@@ -251,14 +254,15 @@ export const ProfileHeroCard: React.FC<Props> = ({
   const layoutMode = profileHeroLayoutMode(cutoutUrl, cutoutLoadOk && Boolean(cutoutSrc));
   const isCutout = layoutMode === "cutout";
 
-  const figureSpacerClass = isCutout && cutoutSrc ? "w-[48%] max-w-[14rem] shrink-0 sm:max-w-[17.5rem]" : "";
+  const figureSpacerClass =
+    isCutout && cutoutSrc ? "w-[50%] max-w-[15.5rem] shrink-0 sm:max-w-[19.25rem]" : "";
 
   return (
     <div
-      className={`relative mb-3 w-full overflow-hidden rounded-xl border border-red-950/35 bg-[#050406] shadow-[0_8px_32px_rgba(0,0,0,0.52)] ${HERO_HEIGHT}`}
+      className={`relative mb-3 w-full overflow-hidden rounded-xl border border-[#161616] bg-[#0A0A0A] shadow-[0_10px_36px_rgba(0,0,0,0.58)] ${HERO_HEIGHT}`}
     >
       <StadiumAtmosphere photoBgUrl={stadiumBgUrl} />
-      <HeroPrimaryWatermark variant={variant} watermark={watermark} />
+      <HeroPrimaryWatermark watermark={watermark} />
       <ClubLogoWatermark logoUrl={clubLogoUrl} />
 
       {isCutout && cutoutSrc ? (
@@ -267,7 +271,6 @@ export const ProfileHeroCard: React.FC<Props> = ({
 
       <div className={`relative flex ${HERO_HEIGHT} items-center justify-between gap-2 px-3 sm:gap-3 sm:px-4`}>
         <HeroTextBlock
-          variant={variant}
           firstNameLine={firstNameLine}
           lastNameLine={lastNameLine}
           teamSeasonLabel={teamSeasonLabel}
