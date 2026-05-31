@@ -10,9 +10,8 @@ import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
 import { normalizeRole, canManageRoster } from "../lib/roles";
 import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
-import { uploadPlayerProfileAvatar, uploadPlayerProfileCutout, logProfileHeroUpload, type ProfileHeroUploadContext } from "../lib/profileCutoutUpload";
+import { uploadPlayerProfileAvatar, uploadPlayerProfileCutout, logProfileHeroUpload } from "../lib/profileCutoutUpload";
 import { uploadStorageObject } from "../lib/storageUpload";
-import { membershipRoleForStorageMetadata } from "../lib/storageUploadMetadata";
 import { prepareCutoutGeneration } from "../lib/profileImagePipeline";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 import { PlayerSquadFormModal } from "../components/team/PlayerSquadFormModal";
@@ -162,14 +161,8 @@ export const TeamPage: React.FC = () => {
     refetch: refetchStaff,
   } = useTeamStaff(teamSeasonId);
 
-  const profileHeroUploadContext = useMemo((): ProfileHeroUploadContext => {
-    const role = membershipRoleForStorageMetadata(selectedMembership?.role);
-    return role ? { membershipRole: role } : {};
-  }, [selectedMembership?.role]);
-
   const trainerEditor = useTrainerStaffEditor({
     teamSeasonId,
-    profileHeroUploadContext,
     onAfterSave: async () => {
       const { error: fetchErr } = await refetchStaff();
       if (!fetchErr) showSavedToast("Trainer gespeichert");
@@ -303,8 +296,6 @@ export const TeamPage: React.FC = () => {
     const { error: uploadError } = await uploadStorageObject("team-photos", uploadPath, file, {
       upsert: true,
       contentType: file.type,
-      membershipRole: membershipRoleForStorageMetadata(profileHeroUploadContext.membershipRole),
-      metadata: profileHeroUploadContext.metadata,
     });
     if (uploadError) {
       setTeamPhotoUploading(false);
@@ -546,7 +537,6 @@ export const TeamPage: React.FC = () => {
           teamSeasonId,
           editingPlayer.id,
           avatarFile,
-          profileHeroUploadContext,
         );
         if (uploadError || !uploadedAvatar) {
           setAvatarUploading(false);
@@ -607,7 +597,7 @@ export const TeamPage: React.FC = () => {
         });
         setCutoutUploading(true);
         const { cutoutUrl: uploadedCutout, error: cutoutUploadError, storagePath } =
-          await uploadPlayerProfileCutout(teamSeasonId, editingPlayer.id, cutoutFile, profileHeroUploadContext);
+          await uploadPlayerProfileCutout(teamSeasonId, editingPlayer.id, cutoutFile);
         setCutoutUploading(false);
         if (cutoutUploadError || !uploadedCutout) {
           setSaving(false);
