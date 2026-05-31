@@ -77,6 +77,55 @@ export function getEventTypeLabel(type: CalendarEvent['type']): string {
   return 'Termin';
 }
 
+export type MonthEventChipCategory =
+  | 'game'
+  | 'training'
+  | 'event'
+  | 'tournament'
+  | 'birthday'
+  | 'holiday'
+  | 'cancelled';
+
+/** Monats-Chip-Kategorie aus bestehenden Event-Feldern ableiten (ohne DB-Änderung). */
+export function inferMonthEventChipCategory(ev: CalendarEvent): MonthEventChipCategory {
+  const hay = [ev.title, ev.notes, ev.description, ev.opponent]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (/(abgesagt|absage|cancelled|canceled|annuliert)/.test(hay)) return 'cancelled';
+  if (/(geburtstag|birthday)/.test(hay)) return 'birthday';
+  if (/(ferien|feiertag|holiday|weihnacht|ostern|pfingst|brückentag)/.test(hay)) return 'holiday';
+  if (/(turnier|tournament|pokal)/.test(hay)) return 'tournament';
+  if (ev.type === 'game') return 'game';
+  if (ev.type === 'training') return 'training';
+  return 'event';
+}
+
+export function getMonthEventChipClasses(category: MonthEventChipCategory): string {
+  switch (category) {
+    case 'game':
+      return 'border border-red-500/35 bg-red-600/85 text-white';
+    case 'training':
+      return 'border border-emerald-500/35 bg-emerald-700/80 text-white';
+    case 'tournament':
+      return 'border border-purple-500/35 bg-purple-700/78 text-white';
+    case 'birthday':
+      return 'border border-orange-500/35 bg-orange-600/82 text-white';
+    case 'holiday':
+      return 'border border-teal-400/35 bg-teal-600/78 text-white';
+    case 'cancelled':
+      return 'border border-zinc-500/30 bg-zinc-600/72 text-white/75 line-through decoration-white/40';
+    case 'event':
+    default:
+      return 'border border-blue-500/35 bg-blue-700/78 text-white';
+  }
+}
+
+export function formatMonthChipTime(ev: CalendarEvent): string {
+  return formatTime(ev.starts_at);
+}
+
 export function formatTime(iso: string): string {
   const d = new Date(iso);
   if (!d || isNaN(d.getTime())) return '';

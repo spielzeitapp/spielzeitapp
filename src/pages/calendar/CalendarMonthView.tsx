@@ -1,7 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { CalendarEvent } from './calendarTypes';
-import { formatMeetingPoint, formatTimeRange, formatTrainingTimeRange, toLocalDayKey } from './calendarUtils';
+import {
+  formatMonthChipTime,
+  getMonthEventChipClasses,
+  inferMonthEventChipCategory,
+  toLocalDayKey,
+} from './calendarUtils';
 import { getDateTimePartsInTimeZone, VIENNA_TZ } from '../../lib/viennaTime';
 
 type Props = {
@@ -12,11 +17,18 @@ type Props = {
   todayKey: string;
 };
 
+const MAX_VISIBLE_EVENTS = 3;
+
+function sortEventsByStart(events: CalendarEvent[]): CalendarEvent[] {
+  return [...events].sort(
+    (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime(),
+  );
+}
+
 export const CalendarMonthView: React.FC<Props> = ({
   days,
   currentMonth,
   eventsByDay,
-  getEventColorClass,
   todayKey,
 }) => {
   const navigate = useNavigate();
@@ -24,69 +36,83 @@ export const CalendarMonthView: React.FC<Props> = ({
   const currentMonthParts = getDateTimePartsInTimeZone(currentMonth, VIENNA_TZ);
 
   return (
-    <div className="mt-2">
-      <div className="grid grid-cols-7 gap-2 text-xs text-white/60 mb-2">
+    <div className="mt-2 min-w-0 overflow-hidden">
+      <div className="mb-1.5 grid grid-cols-7 gap-1 text-[10px] text-white/55 sm:gap-2 sm:text-xs">
         {weekdayLabels.map((w) => (
-          <div key={w} className="text-center font-medium">
+          <div key={w} className="text-center font-semibold uppercase tracking-wide">
             {w}
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-2 text-xs">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2">
         {days.map((day) => {
           const key = toLocalDayKey(day);
-          const dayEvents = eventsByDay.get(key) ?? [];
+          const dayEvents = sortEventsByStart(eventsByDay.get(key) ?? []);
+          const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
+          const hiddenCount = Math.max(0, dayEvents.length - visibleEvents.length);
           const dayParts = getDateTimePartsInTimeZone(day, VIENNA_TZ);
           const isCurrentMonth =
-            currentMonthParts && dayParts ? dayParts.month === currentMonthParts.month : day.getMonth() === currentMonth.getMonth();
+            currentMonthParts && dayParts
+              ? dayParts.month === currentMonthParts.month
+              : day.getMonth() === currentMonth.getMonth();
           const isToday = key === todayKey;
+          const dayNumber = dayParts ? dayParts.day : day.getDate();
 
           return (
             <div
               key={key}
-              className={`min-h-[72px] rounded-xl border px-1.5 py-1.5 ${
+              className={[
+                'flex min-h-[5.75rem] min-w-0 flex-col overflow-hidden rounded-lg border px-1 py-1 sm:min-h-[6.25rem] sm:rounded-xl sm:px-1.5 sm:py-1.5',
                 isCurrentMonth
-                  ? 'border-white/15 bg-white/5'
-                  : 'border-white/5 bg-black/20 opacity-70'
-              } ${isToday ? 'ring-2 ring-yellow-400/30' : ''}`}
+                  ? 'border-white/12 bg-white/[0.04]'
+                  : 'border-white/[0.06] bg-black/25 opacity-65',
+                isToday
+                  ? 'border-red-500/35 shadow-[inset_0_0_18px_rgba(220,38,38,0.12)] ring-1 ring-red-500/25'
+                  : '',
+              ].join(' ')}
             >
-              <div className="mb-1 text-right text-[11px] font-semibold text-white/80">
-                {dayParts ? dayParts.day : day.getDate()}
+              <div className="mb-1 flex shrink-0 justify-end">
+                {isToday ? (
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-[11px] font-bold text-white shadow-[0_0_12px_rgba(220,38,38,0.55)]">
+                    {dayNumber}
+                  </span>
+                ) : (
+                  <span
+                    className={`pr-0.5 text-[11px] font-semibold tabular-nums ${
+                      isCurrentMonth ? 'text-white/82' : 'text-white/45'
+                    }`}
+                  >
+                    {dayNumber}
+                  </span>
+                )}
               </div>
-              <div className="space-y-0.5">
-                {dayEvents.map((ev) => {
+
+              <div className="min-h-0 flex-1 space-y-0.5 overflow-hidden">
+                {visibleEvents.map((ev) => {
+                  const category = inferMonthEventChipCategory(ev);
+                  const chipClass = getMonthEventChipClasses(category);
+                  const timeLabel = formatMonthChipTime(ev);
+
                   return (
                     <button
                       key={ev.id}
                       type="button"
                       onClick={() => navigate(`/app/events/${ev.id}`)}
-                      className={`flex flex-col rounded-md px-1 py-0.5 text-left ${getEventColorClass(
-                        ev.type,
-                      )}`}
+                      title={`${timeLabel} · ${ev.title}`}
+                      className={`flex w-full min-w-0 items-center gap-1 rounded px-1 py-0.5 text-left text-[9px] font-semibold leading-tight sm:text-[10px] ${chipClass}`}
                     >
-                      <div className="text-[10px] font-semibold truncate">{ev.title}</div>
-                      <div className="text-[10px] font-semibold tabular-nums truncate">
-                        {ev.type === 'training'
-                          ? formatTrainingTimeRange(ev.starts_at, ev.end_at)
-                          : formatTimeRange(ev.starts_at, ev.end_at)}
-                      </div>
-                      {ev.location ? (
-                        <div className="text-[9px] text-white/80 truncate">{ev.location}</div>
-                      ) : null}
-                      {formatMeetingPoint(ev.meeting_at) ? (
-                        <div className="text-[9px] text-yellow-200/90 truncate">
-                          {formatMeetingPoint(ev.meeting_at)}
-                        </div>
-                      ) : ev.description ? (
-                        <div className="text-[9px] text-white/70 truncate">{ev.description}</div>
-                      ) : null}
-                      {ev.team_name ? (
-                        <div className="text-[9px] text-white/70 truncate">{ev.team_name}</div>
-                      ) : null}
+                      <span className="shrink-0 tabular-nums opacity-90">{timeLabel}</span>
+                      <span className="min-w-0 truncate">{ev.title}</span>
                     </button>
                   );
                 })}
+
+                {hiddenCount > 0 ? (
+                  <div className="truncate px-0.5 text-[9px] font-medium text-white/50 sm:text-[10px]">
+                    +{hiddenCount} weitere
+                  </div>
+                ) : null}
               </div>
             </div>
           );
@@ -95,4 +121,3 @@ export const CalendarMonthView: React.FC<Props> = ({
     </div>
   );
 };
-
