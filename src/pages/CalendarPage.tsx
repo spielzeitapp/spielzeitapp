@@ -381,43 +381,45 @@ export const CalendarPage: React.FC = () => {
               </button>
             ))}
           </div>
-          <div className="flex items-center justify-center gap-1.5 sm:justify-start">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 min-w-[2rem] rounded-md px-2 text-xs"
-              onClick={() => {
-                if (view === 'week') {
-                  const next = new Date(weekAnchor);
-                  next.setDate(next.getDate() - 7);
-                  setWeekAnchor(next);
-                  setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
-                } else {
-                  setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-                }
-              }}
-            >
-              ←
-            </Button>
-            <span className="min-w-[10rem] text-center text-xs text-white/75">{headerLabel}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 min-w-[2rem] rounded-md px-2 text-xs"
-              onClick={() => {
-                if (view === 'week') {
-                  const next = new Date(weekAnchor);
-                  next.setDate(next.getDate() + 7);
-                  setWeekAnchor(next);
-                  setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
-                } else {
-                  setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-                }
-              }}
-            >
-              →
-            </Button>
-          </div>
+          {view !== 'month' ? (
+            <div className="flex items-center justify-center gap-1.5 sm:justify-start">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 min-w-[2rem] rounded-md px-2 text-xs"
+                onClick={() => {
+                  if (view === 'week') {
+                    const next = new Date(weekAnchor);
+                    next.setDate(next.getDate() - 7);
+                    setWeekAnchor(next);
+                    setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
+                  } else {
+                    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+                  }
+                }}
+              >
+                ←
+              </Button>
+              <span className="min-w-[10rem] text-center text-xs text-white/75">{headerLabel}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 min-w-[2rem] rounded-md px-2 text-xs"
+                onClick={() => {
+                  if (view === 'week') {
+                    const next = new Date(weekAnchor);
+                    next.setDate(next.getDate() + 7);
+                    setWeekAnchor(next);
+                    setCurrentMonth(new Date(next.getFullYear(), next.getMonth(), 1));
+                  } else {
+                    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+                  }
+                }}
+              >
+                →
+              </Button>
+            </div>
+          ) : null}
         </div>
 
         {!loading && !isFan && (accessibleTeamSeasons.length > 1 || loadingEvents) ? (
@@ -474,9 +476,16 @@ export const CalendarPage: React.FC = () => {
             <CalendarMonthView
               days={days}
               currentMonth={currentMonth}
+              events={events}
               eventsByDay={eventsByDay}
               getEventColorClass={getEventColorClass}
               todayKey={todayKey}
+              onPrevMonth={() =>
+                setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+              }
+              onNextMonth={() =>
+                setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
+              }
             />
           )}
         </div>

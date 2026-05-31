@@ -126,6 +126,56 @@ export function formatMonthChipTime(ev: CalendarEvent): string {
   return formatTime(ev.starts_at);
 }
 
+export const MONTH_LEGEND_ITEMS: { label: string; dotClass: string }[] = [
+  { label: 'Spiel', dotClass: 'bg-red-600' },
+  { label: 'Training', dotClass: 'bg-emerald-600' },
+  { label: 'Event', dotClass: 'bg-blue-600' },
+  { label: 'Turnier', dotClass: 'bg-purple-600' },
+  { label: 'Geburtstag', dotClass: 'bg-orange-500' },
+  { label: 'Ferien/Feiertag', dotClass: 'bg-teal-500' },
+  { label: 'Abgesagt', dotClass: 'bg-zinc-500' },
+];
+
+export function formatMonthNavLabel(date: Date): string {
+  const raw = date.toLocaleDateString('de-AT', { month: 'long', year: 'numeric' });
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+export function formatNextMatchWeekdayDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const formatted = new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+  }).format(d);
+  const commaIdx = formatted.indexOf(',');
+  if (commaIdx === -1) return formatted;
+  const weekday = formatted.slice(0, commaIdx).trim();
+  const rest = formatted.slice(commaIdx + 1).trim();
+  const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+  return `${capWeekday}, ${rest}`;
+}
+
+/** Nächstes zukünftiges Liga-/Meisterschaftsspiel im geladenen Zeitraum. */
+export function findNextUpcomingMatch(
+  events: CalendarEvent[],
+  now: Date = new Date(),
+): CalendarEvent | null {
+  const nowMs = now.getTime();
+  const candidates = events
+    .filter((ev) => {
+      if (ev.type !== 'game') return false;
+      if (inferMonthEventChipCategory(ev) === 'cancelled') return false;
+      if (inferMonthEventChipCategory(ev) === 'tournament') return false;
+      const startMs = new Date(ev.starts_at).getTime();
+      return Number.isFinite(startMs) && startMs >= nowMs;
+    })
+    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+  return candidates[0] ?? null;
+}
+
 export function formatTime(iso: string): string {
   const d = new Date(iso);
   if (!d || isNaN(d.getTime())) return '';
