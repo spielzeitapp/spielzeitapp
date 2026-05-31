@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
-import { Activity } from "lucide-react";
+import { Activity, CalendarDays, Hash, MapPin } from "lucide-react";
 import { ProfileCompactHeader } from "./profile/ProfileCompactHeader";
 import { ProfileHeroCard } from "./profile/ProfileHeroCard";
 import { ProfileStatTile } from "./ProfileStatTile";
@@ -11,7 +11,6 @@ import { usePlayerStats } from "../../hooks/usePlayerStats";
 import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
 import { Button } from "../../app/components/ui/Button";
 import { AppButton } from "../ui/AppButton";
-import { getPlayerBirthDisplayLines } from "../../lib/playerBirthDisplay";
 import { getPositionFull, getPositionLabel } from "../../lib/positionLabels";
 
 export type PlayerProfileModalProps = {
@@ -75,10 +74,13 @@ function getAge(dateString: string | null | undefined): number | null {
   return age;
 }
 
-function ageChipLabel(birthdate: string | null | undefined): string {
+function formatBirthdateWithAge(birthdate: string | null | undefined): string | null {
+  if (!birthdate) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(birthdate.trim());
+  if (!m) return null;
+  const formatted = `${m[3]}.${m[2]}.${m[1]}`;
   const age = getAge(birthdate);
-  if (age == null) return "-";
-  return `${age} Jahre`;
+  return age != null ? `${formatted} (${age})` : formatted;
 }
 
 function SeasonMiniCell({ label, value }: { label: string; value: string }) {
@@ -90,11 +92,33 @@ function SeasonMiniCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Chip({ children }: { children: React.ReactNode }) {
+function PlayerInfoChip({
+  icon,
+  label,
+  value,
+  subdued = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  subdued?: boolean;
+}) {
   return (
-    <span className="inline-flex items-center rounded-full border border-red-500/30 bg-red-500/[0.12] px-2.5 py-1 text-[12px] font-semibold text-white/90 shadow-[0_0_16px_rgba(220,38,38,0.12)] sm:px-3">
-      {children}
-    </span>
+    <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-white/[0.08] bg-[#161616]/90 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E50914]/40 bg-[#E50914]/10 text-[#E50914]">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-white/45">{label}</p>
+        <p
+          className={`truncate text-[13px] font-bold ${
+            subdued ? "text-white/55" : "text-white/90"
+          }`}
+        >
+          {value}
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -255,8 +279,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
       : "–";
   const positionLabel = getPositionLabel(player.position) || "—";
   const positionFull = getPositionFull(player.position);
-  const birthDisplayLines = getPlayerBirthDisplayLines(role, player.birthdate);
-
   const teamTrainingRatePct = trainingStats.teamRatePct;
   const activityTrainingRatePct = trainingStats.activityRatePct;
   const trainingsPresent = trainingStats.present;
@@ -349,15 +371,29 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             initials={initials(player)}
           />
 
-          <div className="mb-3.5 flex flex-wrap gap-1.5 sm:justify-center sm:gap-2">
-            <Chip>Alter: {ageChipLabel(player.birthdate)}</Chip>
-            {birthDisplayLines.map((line) => (
-              <Chip key={line}>{line}</Chip>
-            ))}
-            <Chip>
-              <span title={positionFull || undefined}>Position: {positionLabel}</span>
-            </Chip>
-            <Chip>Rückennummer: {jerseyChip}</Chip>
+          <div className="mb-3.5 grid grid-cols-2 gap-2">
+            {positionLabel !== "—" ? (
+              <PlayerInfoChip
+                icon={<MapPin className="h-4 w-4" strokeWidth={2.25} aria-hidden />}
+                label="Position"
+                value={positionFull || positionLabel}
+              />
+            ) : null}
+            {player.jersey_number != null && Number.isFinite(Number(player.jersey_number)) ? (
+              <PlayerInfoChip
+                icon={<Hash className="h-4 w-4" strokeWidth={2.25} aria-hidden />}
+                label="Rückennummer"
+                value={String(player.jersey_number)}
+                subdued
+              />
+            ) : null}
+            {birthdateLabel ? (
+              <PlayerInfoChip
+                icon={<CalendarDays className="h-4 w-4" strokeWidth={2.25} aria-hidden />}
+                label="Geburtsdatum"
+                value={birthdateLabel}
+              />
+            ) : null}
           </div>
 
           {canManage ? (
