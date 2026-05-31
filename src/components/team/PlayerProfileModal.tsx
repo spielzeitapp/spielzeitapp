@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
-import { Activity, CalendarDays, MapPin, Trophy } from "lucide-react";
+import { Activity, CalendarDays, Trophy } from "lucide-react";
 import { ProfileCompactHeader } from "./profile/ProfileCompactHeader";
 import { ProfileHeroCard } from "./profile/ProfileHeroCard";
 import { ProfileStatTile } from "./ProfileStatTile";
@@ -377,14 +377,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 icon={<CalendarDays className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />}
                 label="Geburtsdatum"
                 value={birthdateLabel}
-              />
-            ) : null}
-            {positionDisplay !== "—" ? (
-              <PlayerInfoChip
-                icon={<MapPin className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />}
-                label="Position"
-                value={positionDisplay}
-                subdued
               />
             ) : null}
           </div>

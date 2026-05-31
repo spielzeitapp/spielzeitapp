@@ -182,8 +182,7 @@ export const TrainerProfilePage: React.FC = () => {
               initials={initials}
             />
 
-            <div className="mb-4 flex flex-wrap gap-1.5 sm:justify-center sm:gap-2">
-              <ProfileChip>Rolle: {staffRoleLabelDe(member.role)}</ProfileChip>
+            <div className="mb-4 flex flex-wrap gap-1.5 sm:gap-2">
               {member.email?.trim() ? (
                 <ProfileChip>
                   <span className="max-w-[12rem] truncate sm:max-w-none">E-Mail: {member.email.trim()}</span>
