@@ -1,11 +1,12 @@
 import { supabase } from "./supabaseClient";
 import { withProfileImageCacheBust } from "./profileHeroImage";
-import { uploadStorageObject, type StorageUploadOptions } from "./storageUpload";
+import { uploadStorageObject } from "./storageUpload";
 import { membershipRoleForStorageMetadata, type StorageUploadMetadataInput } from "./storageUploadMetadata";
 
 export type ProfileHeroUploadContext = {
   membershipRole?: string | null;
   metadata?: StorageUploadMetadataInput;
+  userMetadata?: StorageUploadMetadataInput | Record<string, unknown> | null;
 };
 
 const PLAYER_AVATAR_BUCKET = "player-avatars";
@@ -85,12 +86,28 @@ function cutoutExtension(file: File): string {
   return "png";
 }
 
+function buildUploadOptions(
+  file: File,
+  uploadContext?: ProfileHeroUploadContext,
+  playerHero = false,
+) {
+  return {
+    upsert: true as const,
+    contentType: file.type || "application/octet-stream",
+    cacheControl: "3600",
+    metadata: uploadContext?.metadata,
+    userMetadata: uploadContext?.userMetadata,
+    membershipRole: membershipRoleForStorageMetadata(uploadContext?.membershipRole),
+    playerHero,
+  };
+}
+
 async function uploadToBucket(
   bucket: string,
   path: string,
   file: File,
   uploadContext?: ProfileHeroUploadContext,
-  extraOptions?: Pick<StorageUploadOptions, "includeAuthUserMetadata" | "debugLabel">,
+  playerHero = false,
 ): Promise<{ publicUrl: string | null; error: string | null; storagePath: string }> {
   logProfileHeroUpload("storage upload start", {
     bucket,
@@ -98,17 +115,15 @@ async function uploadToBucket(
     fileName: file.name,
     fileType: file.type,
     fileSize: file.size,
+    playerHero,
   });
 
-  const { error: uploadError } = await uploadStorageObject(bucket, path, file, {
-    upsert: true,
-    contentType: file.type || "application/octet-stream",
-    cacheControl: "3600",
-    metadata: uploadContext?.metadata,
-    membershipRole: membershipRoleForStorageMetadata(uploadContext?.membershipRole),
-    includeAuthUserMetadata: extraOptions?.includeAuthUserMetadata,
-    debugLabel: extraOptions?.debugLabel,
-  });
+  const { error: uploadError } = await uploadStorageObject(
+    bucket,
+    path,
+    file,
+    buildUploadOptions(file, uploadContext, playerHero),
+  );
 
   if (uploadError) {
     logProfileHeroUpload("storage upload error", uploadError.message);
@@ -141,10 +156,12 @@ export async function uploadPlayerProfileAvatar(
     avatarPath,
     file,
     uploadContext,
+    false,
   );
   return { avatarUrl, error };
 }
 
+/** Spieler-Hero — zentraler Sanitizer + explizites userMetadata FormData (wie Trainer-Flow). */
 export async function uploadPlayerProfileCutout(
   teamSeasonId: string,
   playerId: string,
@@ -153,10 +170,7 @@ export async function uploadPlayerProfileCutout(
 ): Promise<{ cutoutUrl: string | null; error: string | null; storagePath?: string }> {
   const ext = cutoutExtension(file);
   const cutoutPath = `${teamSeasonId}/cutouts/${playerId}.${ext}`;
-  const cutout = await uploadToBucket(PLAYER_AVATAR_BUCKET, cutoutPath, file, uploadContext, {
-    includeAuthUserMetadata: true,
-    debugLabel: "player-hero",
-  });
+  const cutout = await uploadToBucket(PLAYER_AVATAR_BUCKET, cutoutPath, file, uploadContext, true);
   return { cutoutUrl: cutout.publicUrl, error: cutout.error, storagePath: cutout.storagePath };
 }
 
@@ -201,6 +215,7 @@ export async function uploadStaffProfileAvatar(
     avatarPath,
     file,
     uploadContext,
+    false,
   );
   return { avatarUrl, error };
 }
@@ -213,7 +228,7 @@ export async function uploadStaffProfileCutout(
 ): Promise<{ cutoutUrl: string | null; error: string | null; storagePath?: string }> {
   const ext = cutoutExtension(file);
   const cutoutPath = `${teamSeasonId}/cutouts/${userId}.${ext}`;
-  const cutout = await uploadToBucket(STAFF_PHOTO_BUCKET, cutoutPath, file, uploadContext);
+  const cutout = await uploadToBucket(STAFF_PHOTO_BUCKET, cutoutPath, file, uploadContext, false);
   return { cutoutUrl: cutout.publicUrl, error: cutout.error, storagePath: cutout.storagePath };
 }
 

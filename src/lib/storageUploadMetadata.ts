@@ -1,4 +1,4 @@
-/** Gültige Werte für storage.objects.metadata.membership_role (Postgres enum). */
+/** Gültige Werte für storage.objects.user_metadata.membership_role (Postgres enum). */
 export const VALID_MEMBERSHIP_ROLES = [
   "trainer",
   "co_trainer",
@@ -26,6 +26,16 @@ export function toMetadataInput(value: unknown): StorageUploadMetadataInput {
   return out;
 }
 
+function stripInvalidMembershipRole(record: Record<string, string>): Record<string, string> {
+  const rawRole = record.membership_role?.trim().toLowerCase();
+  if (!rawRole || !VALID_MEMBERSHIP_ROLES.includes(rawRole as ValidMembershipRole)) {
+    delete record.membership_role;
+  } else {
+    record.membership_role = rawRole;
+  }
+  return record;
+}
+
 /** Entfernt leere Werte und ungültige membership_role — niemals "" an Storage senden. */
 export function cleanStorageMetadata(
   metadata?: StorageUploadMetadataInput | null,
@@ -34,19 +44,11 @@ export function cleanStorageMetadata(
     Object.entries(metadata ?? {}).filter(([, value]) => value !== "" && value != null),
   ) as Record<string, string>;
 
-  const rawRole = cleaned.membership_role?.trim().toLowerCase();
-  if (!rawRole || !VALID_MEMBERSHIP_ROLES.includes(rawRole as ValidMembershipRole)) {
-    delete cleaned.membership_role;
-  } else {
-    cleaned.membership_role = rawRole;
-  }
-
   delete cleaned.user_metadata;
-
-  return cleaned;
+  return stripInvalidMembershipRole(cleaned);
 }
 
-/** Auth user_metadata → flache, bereinigte Storage-Felder (ohne leere membership_role). */
+/** user_metadata-Spalte bereinigen — membership_role nie als leerer String. */
 export function cleanUserMetadataForStorage(
   userMetadata?: StorageUploadMetadataInput | Record<string, unknown> | null,
 ): Record<string, string> {
@@ -64,18 +66,23 @@ export function membershipRoleForStorageMetadata(
   return undefined;
 }
 
-export function buildStorageMetadata(
-  metadata?: StorageUploadMetadataInput | null,
-  membershipRole?: string | null,
-  userMetadata?: StorageUploadMetadataInput | Record<string, unknown> | null,
-): Record<string, string> {
+export type SanitizedStorageColumns = {
+  userMetadata: Record<string, string>;
+};
+
+/** metadata + user_metadata gemeinsam bereinigen (Supabase schreibt beides in user_metadata). */
+export function buildSanitizedStorageColumns(input: {
+  metadata?: StorageUploadMetadataInput | null;
+  userMetadata?: StorageUploadMetadataInput | Record<string, unknown> | null;
+  membershipRole?: string | null;
+}): SanitizedStorageColumns {
   const merged: StorageUploadMetadataInput = {
-    ...cleanUserMetadataForStorage(userMetadata),
-    ...(metadata ?? {}),
+    ...cleanUserMetadataForStorage(input.userMetadata),
+    ...cleanStorageMetadata(input.metadata),
   };
 
   const role = membershipRoleForStorageMetadata(
-    membershipRole ?? merged.membership_role ?? cleanUserMetadataForStorage(userMetadata).membership_role,
+    input.membershipRole ?? merged.membership_role,
   );
 
   if (role) {
@@ -84,5 +91,45 @@ export function buildStorageMetadata(
     delete merged.membership_role;
   }
 
-  return cleanStorageMetadata(merged);
+  return { userMetadata: cleanStorageMetadata(merged) };
+}
+
+/** @deprecated Alias — nutze buildSanitizedStorageColumns */
+export function buildStorageMetadata(
+  metadata?: StorageUploadMetadataInput | null,
+  membershipRole?: string | null,
+  userMetadata?: StorageUploadMetadataInput | Record<string, unknown> | null,
+): Record<string, string> {
+  return buildSanitizedStorageColumns({ metadata, membershipRole, userMetadata }).userMetadata;
+}
+
+export type SanitizedStorageUploadPayload = {
+  upsert?: boolean;
+  contentType?: string;
+  cacheControl?: string;
+  metadata?: Record<string, string>;
+  user_metadata?: Record<string, string>;
+};
+
+export function toSanitizedUploadPayload(
+  fileOptions: {
+    upsert?: boolean;
+    contentType?: string;
+    cacheControl?: string;
+    metadata?: Record<string, string>;
+  },
+  userMetadata: Record<string, string>,
+): SanitizedStorageUploadPayload {
+  const payload: SanitizedStorageUploadPayload = {
+    upsert: fileOptions.upsert,
+    contentType: fileOptions.contentType,
+    cacheControl: fileOptions.cacheControl,
+  };
+
+  if (Object.keys(userMetadata).length > 0) {
+    payload.metadata = userMetadata;
+    payload.user_metadata = userMetadata;
+  }
+
+  return payload;
 }
