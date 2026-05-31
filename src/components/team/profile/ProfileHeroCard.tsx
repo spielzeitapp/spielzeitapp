@@ -78,6 +78,7 @@ function PlayerProfileHeroCard(props: Props) {
         <HeroCutoutLayer
           cutoutSrc={cutoutSrc}
           visible={showCutoutImage}
+          variant="player"
           onLoad={() => setCutoutImageOk(true)}
           onError={() => setCutoutImageOk(false)}
         />
@@ -88,7 +89,7 @@ function PlayerProfileHeroCard(props: Props) {
           {teamLine ? <HeroTeamHeaderLine teamLine={teamLine} /> : null}
 
           <div className="mt-0.5">
-            <HeroPrimaryMark mark={watermark} emphasis="strong" />
+            <HeroPrimaryMark mark={watermark} variant="player" />
             {position ? (
               <p className="-mt-0.5 text-[11px] font-extrabold uppercase italic tracking-[0.12em] text-[#E50914] sm:text-[12px]">
                 {position}

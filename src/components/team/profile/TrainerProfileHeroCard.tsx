@@ -70,6 +70,7 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
         <HeroCutoutLayer
           cutoutSrc={cutoutSrc}
           visible={showCutoutImage}
+          variant="trainer"
           onLoad={() => setCutoutImageOk(true)}
           onError={() => setCutoutImageOk(false)}
         />
@@ -80,7 +81,7 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
           {teamLine ? <HeroTeamHeaderLine teamLine={teamLine} /> : null}
 
           <div className="mt-0.5">
-            <HeroPrimaryMark mark={watermark} />
+            <HeroPrimaryMark mark={watermark} variant="trainer" />
             {role ? (
               <p className="-mt-0.5 text-[11px] font-extrabold uppercase italic tracking-[0.12em] text-[#E50914] sm:text-[12px]">
                 {role}
