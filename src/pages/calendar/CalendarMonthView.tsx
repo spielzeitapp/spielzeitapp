@@ -1,5 +1,4 @@
-import React, { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
 import type { CalendarEvent } from './calendarTypes';
 import {
   findNextUpcomingMatch,
@@ -9,6 +8,7 @@ import {
   toLocalDayKey,
 } from './calendarUtils';
 import { getDateTimePartsInTimeZone, VIENNA_TZ } from '../../lib/viennaTime';
+import { CalendarDayDetailSheet } from './CalendarDayDetailSheet';
 import { CalendarMonthLegend } from './CalendarMonthLegend';
 import { CalendarMonthNav } from './CalendarMonthNav';
 import { CalendarNextMatchHero } from './CalendarNextMatchHero';
@@ -41,10 +41,14 @@ export const CalendarMonthView: React.FC<Props> = ({
   onPrevMonth,
   onNextMonth,
 }) => {
-  const navigate = useNavigate();
   const weekdayLabels = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
   const currentMonthParts = getDateTimePartsInTimeZone(currentMonth, VIENNA_TZ);
   const nextMatch = useMemo(() => findNextUpcomingMatch(events), [events]);
+  const [selectedDay, setSelectedDay] = useState<{ key: string; date: Date } | null>(null);
+
+  const selectedDayEvents = selectedDay
+    ? sortEventsByStart(eventsByDay.get(selectedDay.key) ?? [])
+    : [];
 
   return (
     <div className="min-w-0 space-y-3 overflow-hidden">
@@ -80,10 +84,13 @@ export const CalendarMonthView: React.FC<Props> = ({
             const dayNumber = dayParts ? dayParts.day : day.getDate();
 
             return (
-              <div
+              <button
                 key={key}
+                type="button"
+                onClick={() => setSelectedDay({ key, date: day })}
                 className={[
-                  'flex min-h-[5.75rem] min-w-0 flex-col overflow-hidden rounded-lg border px-1 py-1 sm:min-h-[6.25rem] sm:rounded-xl sm:px-1.5 sm:py-1.5',
+                  'flex min-h-[5.75rem] min-w-0 flex-col overflow-hidden rounded-lg border px-1 py-1 text-left transition sm:min-h-[6.25rem] sm:rounded-xl sm:px-1.5 sm:py-1.5',
+                  'hover:border-white/20 hover:bg-white/[0.06] active:scale-[0.99]',
                   isCurrentMonth
                     ? 'border-white/12 bg-white/[0.04]'
                     : 'border-white/[0.06] bg-black/25 opacity-65',
@@ -91,6 +98,7 @@ export const CalendarMonthView: React.FC<Props> = ({
                     ? 'border-red-500/35 shadow-[inset_0_0_18px_rgba(220,38,38,0.12)] ring-1 ring-red-500/25'
                     : '',
                 ].join(' ')}
+                aria-label={`Tag ${dayNumber}${dayEvents.length ? `, ${dayEvents.length} Termine` : ', keine Termine'}`}
               >
                 <div className="mb-1 flex shrink-0 justify-end">
                   {isToday ? (
@@ -108,23 +116,21 @@ export const CalendarMonthView: React.FC<Props> = ({
                   )}
                 </div>
 
-                <div className="min-h-0 flex-1 space-y-0.5 overflow-hidden">
+                <div className="min-h-0 flex-1 space-y-0.5 overflow-hidden pointer-events-none">
                   {visibleEvents.map((ev) => {
                     const category = inferMonthEventChipCategory(ev);
                     const chipClass = getMonthEventChipClasses(category);
                     const timeLabel = formatMonthChipTime(ev);
 
                     return (
-                      <button
+                      <div
                         key={ev.id}
-                        type="button"
-                        onClick={() => navigate(`/app/events/${ev.id}`)}
                         title={`${timeLabel} · ${ev.title}`}
-                        className={`flex w-full min-w-0 items-center gap-1 rounded px-1 py-0.5 text-left text-[9px] font-semibold leading-tight sm:text-[10px] ${chipClass}`}
+                        className={`flex w-full min-w-0 items-center gap-1 rounded px-1 py-0.5 text-[9px] font-semibold leading-tight sm:text-[10px] ${chipClass}`}
                       >
                         <span className="shrink-0 tabular-nums opacity-90">{timeLabel}</span>
                         <span className="min-w-0 truncate">{ev.title}</span>
-                      </button>
+                      </div>
                     );
                   })}
 
@@ -134,11 +140,18 @@ export const CalendarMonthView: React.FC<Props> = ({
                     </div>
                   ) : null}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
       </div>
+
+      <CalendarDayDetailSheet
+        isOpen={selectedDay !== null}
+        dayDate={selectedDay?.date ?? null}
+        events={selectedDayEvents}
+        onClose={() => setSelectedDay(null)}
+      />
     </div>
   );
 };

@@ -122,6 +122,26 @@ export function getMonthEventChipClasses(category: MonthEventChipCategory): stri
   }
 }
 
+export function getMonthEventDotClass(category: MonthEventChipCategory): string {
+  switch (category) {
+    case 'game':
+      return 'bg-red-600';
+    case 'training':
+      return 'bg-emerald-600';
+    case 'tournament':
+      return 'bg-purple-600';
+    case 'birthday':
+      return 'bg-orange-500';
+    case 'holiday':
+      return 'bg-teal-500';
+    case 'cancelled':
+      return 'bg-zinc-500';
+    case 'event':
+    default:
+      return 'bg-blue-600';
+  }
+}
+
 export function formatMonthChipTime(ev: CalendarEvent): string {
   return formatTime(ev.starts_at);
 }
@@ -156,6 +176,75 @@ export function formatNextMatchWeekdayDate(iso: string): string {
   const rest = formatted.slice(commaIdx + 1).trim();
   const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
   return `${capWeekday}, ${rest}`;
+}
+
+export function formatDaySheetHeader(date: Date): string {
+  if (Number.isNaN(date.getTime())) return '';
+  const formatted = new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+  }).format(date);
+  const commaIdx = formatted.indexOf(',');
+  if (commaIdx === -1) return formatted;
+  const weekday = formatted.slice(0, commaIdx).trim();
+  const rest = formatted.slice(commaIdx + 1).trim();
+  const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+  return `${capWeekday}, ${rest}`;
+}
+
+export function getDaySheetCategoryLabel(
+  category: MonthEventChipCategory,
+  ev: CalendarEvent,
+): string {
+  switch (category) {
+    case 'game':
+      return 'Meisterschaftsspiel';
+    case 'training':
+      return 'Training';
+    case 'tournament':
+      return 'Turnier';
+    case 'birthday':
+      return 'Geburtstag';
+    case 'holiday':
+      return 'Ferien/Feiertag';
+    case 'cancelled':
+      return 'Abgesagt';
+    case 'event':
+    default:
+      return ev.type === 'other' ? 'Termin' : 'Event';
+  }
+}
+
+export function getDaySheetEventTitle(ev: CalendarEvent): string {
+  if (ev.type === 'game') {
+    const home = (ev.team_name ?? '').trim() || 'Unser Team';
+    const away = (ev.opponent ?? ev.title ?? '').trim() || 'Gegner';
+    return `${home} vs ${away}`;
+  }
+  return ev.title;
+}
+
+export function getDaySheetEventLines(ev: CalendarEvent, category: MonthEventChipCategory): string[] {
+  const lines: string[] = [];
+  const kickoff = formatTime(ev.starts_at);
+  const meeting = formatMeetingPoint(ev.meeting_at);
+
+  if (ev.type === 'game' && category !== 'cancelled') {
+    if (kickoff) lines.push(`Anpfiff ${kickoff}`);
+  } else if (ev.type === 'training') {
+    if (kickoff) lines.push(kickoff);
+  } else if (kickoff) {
+    lines.push(kickoff);
+  }
+
+  if (meeting) lines.push(meeting);
+
+  const place = (ev.location ?? '').trim();
+  if (place) lines.push(place);
+
+  return lines;
 }
 
 /** Nächstes zukünftiges Liga-/Meisterschaftsspiel im geladenen Zeitraum. */
