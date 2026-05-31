@@ -1,7 +1,7 @@
 import { supabase } from "./supabaseClient";
 import { withProfileImageCacheBust } from "./profileHeroImage";
-import { uploadStorageObject } from "./storageUpload";
-import type { StorageUploadMetadataInput } from "./storageUploadMetadata";
+import { uploadStorageObject, type StorageUploadOptions } from "./storageUpload";
+import { membershipRoleForStorageMetadata, type StorageUploadMetadataInput } from "./storageUploadMetadata";
 
 export type ProfileHeroUploadContext = {
   membershipRole?: string | null;
@@ -90,6 +90,7 @@ async function uploadToBucket(
   path: string,
   file: File,
   uploadContext?: ProfileHeroUploadContext,
+  extraOptions?: Pick<StorageUploadOptions, "includeAuthUserMetadata" | "debugLabel">,
 ): Promise<{ publicUrl: string | null; error: string | null; storagePath: string }> {
   logProfileHeroUpload("storage upload start", {
     bucket,
@@ -104,7 +105,9 @@ async function uploadToBucket(
     contentType: file.type || "application/octet-stream",
     cacheControl: "3600",
     metadata: uploadContext?.metadata,
-    membershipRole: uploadContext?.membershipRole,
+    membershipRole: membershipRoleForStorageMetadata(uploadContext?.membershipRole),
+    includeAuthUserMetadata: extraOptions?.includeAuthUserMetadata,
+    debugLabel: extraOptions?.debugLabel,
   });
 
   if (uploadError) {
@@ -150,7 +153,10 @@ export async function uploadPlayerProfileCutout(
 ): Promise<{ cutoutUrl: string | null; error: string | null; storagePath?: string }> {
   const ext = cutoutExtension(file);
   const cutoutPath = `${teamSeasonId}/cutouts/${playerId}.${ext}`;
-  const cutout = await uploadToBucket(PLAYER_AVATAR_BUCKET, cutoutPath, file, uploadContext);
+  const cutout = await uploadToBucket(PLAYER_AVATAR_BUCKET, cutoutPath, file, uploadContext, {
+    includeAuthUserMetadata: true,
+    debugLabel: "player-hero",
+  });
   return { cutoutUrl: cutout.publicUrl, error: cutout.error, storagePath: cutout.storagePath };
 }
 

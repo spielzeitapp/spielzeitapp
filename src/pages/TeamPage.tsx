@@ -12,6 +12,7 @@ import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
 import { uploadPlayerProfileAvatar, uploadPlayerProfileCutout, logProfileHeroUpload, type ProfileHeroUploadContext } from "../lib/profileCutoutUpload";
 import { uploadStorageObject } from "../lib/storageUpload";
+import { membershipRoleForStorageMetadata } from "../lib/storageUploadMetadata";
 import { prepareCutoutGeneration } from "../lib/profileImagePipeline";
 import { PlayerProfileModal } from "../components/team/PlayerProfileModal";
 import { PlayerSquadFormModal } from "../components/team/PlayerSquadFormModal";
@@ -162,8 +163,8 @@ export const TeamPage: React.FC = () => {
   } = useTeamStaff(teamSeasonId);
 
   const profileHeroUploadContext = useMemo((): ProfileHeroUploadContext => {
-    const membershipRole = (selectedMembership?.role ?? "").trim();
-    return membershipRole ? { membershipRole } : {};
+    const role = membershipRoleForStorageMetadata(selectedMembership?.role);
+    return role ? { membershipRole: role } : {};
   }, [selectedMembership?.role]);
 
   const trainerEditor = useTrainerStaffEditor({
@@ -302,7 +303,7 @@ export const TeamPage: React.FC = () => {
     const { error: uploadError } = await uploadStorageObject("team-photos", uploadPath, file, {
       upsert: true,
       contentType: file.type,
-      membershipRole: profileHeroUploadContext.membershipRole,
+      membershipRole: membershipRoleForStorageMetadata(profileHeroUploadContext.membershipRole),
       metadata: profileHeroUploadContext.metadata,
     });
     if (uploadError) {

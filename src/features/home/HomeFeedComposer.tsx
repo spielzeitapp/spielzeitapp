@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Camera, Clapperboard, ImagePlus, Send, Trophy, Video, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { uploadStorageObject } from '../../lib/storageUpload';
+import { membershipRoleForStorageMetadata } from '../../lib/storageUploadMetadata';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -187,7 +188,7 @@ export const HomeFeedComposer: React.FC<Props> = ({
         cacheControl: '3600',
         upsert: false,
         contentType,
-        membershipRole,
+        membershipRole: membershipRoleForStorageMetadata(membershipRole),
       });
       if (upErr) {
         const se = upErr as {

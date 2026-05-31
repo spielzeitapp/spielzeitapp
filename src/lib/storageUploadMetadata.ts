@@ -13,6 +13,19 @@ export type ValidMembershipRole = (typeof VALID_MEMBERSHIP_ROLES)[number];
 
 export type StorageUploadMetadataInput = Record<string, string | null | undefined>;
 
+export function toMetadataInput(value: unknown): StorageUploadMetadataInput {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out: StorageUploadMetadataInput = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof raw === "string" || raw == null) {
+      out[key] = raw;
+    } else if (typeof raw === "number" || typeof raw === "boolean") {
+      out[key] = String(raw);
+    }
+  }
+  return out;
+}
+
 /** Entfernt leere Werte und ungültige membership_role — niemals "" an Storage senden. */
 export function cleanStorageMetadata(
   metadata?: StorageUploadMetadataInput | null,
@@ -28,7 +41,16 @@ export function cleanStorageMetadata(
     cleaned.membership_role = rawRole;
   }
 
+  delete cleaned.user_metadata;
+
   return cleaned;
+}
+
+/** Auth user_metadata → flache, bereinigte Storage-Felder (ohne leere membership_role). */
+export function cleanUserMetadataForStorage(
+  userMetadata?: StorageUploadMetadataInput | Record<string, unknown> | null,
+): Record<string, string> {
+  return cleanStorageMetadata(toMetadataInput(userMetadata));
 }
 
 export function membershipRoleForStorageMetadata(
@@ -45,13 +67,22 @@ export function membershipRoleForStorageMetadata(
 export function buildStorageMetadata(
   metadata?: StorageUploadMetadataInput | null,
   membershipRole?: string | null,
+  userMetadata?: StorageUploadMetadataInput | Record<string, unknown> | null,
 ): Record<string, string> {
-  const base: StorageUploadMetadataInput = { ...(metadata ?? {}) };
-  const role = membershipRoleForStorageMetadata(membershipRole ?? base.membership_role);
+  const merged: StorageUploadMetadataInput = {
+    ...cleanUserMetadataForStorage(userMetadata),
+    ...(metadata ?? {}),
+  };
+
+  const role = membershipRoleForStorageMetadata(
+    membershipRole ?? merged.membership_role ?? cleanUserMetadataForStorage(userMetadata).membership_role,
+  );
+
   if (role) {
-    base.membership_role = role;
+    merged.membership_role = role;
   } else {
-    delete base.membership_role;
+    delete merged.membership_role;
   }
-  return cleanStorageMetadata(base);
+
+  return cleanStorageMetadata(merged);
 }
