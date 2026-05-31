@@ -269,16 +269,13 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
   const { line1: firstNameLine, line2: lastNameLine } = nameHeroLines(player);
   const avatarSrc = (photoUrl ?? "").trim() || "/avatars/player-placeholder.png";
-  const jerseyChip =
-    player.jersey_number != null && Number.isFinite(Number(player.jersey_number))
-      ? `#${player.jersey_number}`
-      : "—";
   const jerseyWatermark =
     player.jersey_number != null && Number.isFinite(Number(player.jersey_number))
       ? String(player.jersey_number)
       : "–";
   const positionLabel = getPositionLabel(player.position) || "—";
   const positionFull = getPositionFull(player.position);
+  const birthdateLabel = formatBirthdateWithAge(player.birthdate);
   const teamTrainingRatePct = trainingStats.teamRatePct;
   const activityTrainingRatePct = trainingStats.activityRatePct;
   const trainingsPresent = trainingStats.present;
