@@ -1,5 +1,12 @@
 import { supabase } from "./supabaseClient";
 import { withProfileImageCacheBust } from "./profileHeroImage";
+import { uploadStorageObject } from "./storageUpload";
+import type { StorageUploadMetadataInput } from "./storageUploadMetadata";
+
+export type ProfileHeroUploadContext = {
+  membershipRole?: string | null;
+  metadata?: StorageUploadMetadataInput;
+};
 
 const PLAYER_AVATAR_BUCKET = "player-avatars";
 const STAFF_PHOTO_BUCKET = "team-photos";
@@ -82,6 +89,7 @@ async function uploadToBucket(
   bucket: string,
   path: string,
   file: File,
+  uploadContext?: ProfileHeroUploadContext,
 ): Promise<{ publicUrl: string | null; error: string | null; storagePath: string }> {
   logProfileHeroUpload("storage upload start", {
     bucket,
@@ -91,10 +99,12 @@ async function uploadToBucket(
     fileSize: file.size,
   });
 
-  const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, {
+  const { error: uploadError } = await uploadStorageObject(bucket, path, file, {
     upsert: true,
     contentType: file.type || "application/octet-stream",
     cacheControl: "3600",
+    metadata: uploadContext?.metadata,
+    membershipRole: uploadContext?.membershipRole,
   });
 
   if (uploadError) {
@@ -119,10 +129,16 @@ export async function uploadPlayerProfileAvatar(
   teamSeasonId: string,
   playerId: string,
   file: File,
+  uploadContext?: ProfileHeroUploadContext,
 ): Promise<{ avatarUrl: string | null; error: string | null }> {
   const ext = avatarExtension(file);
   const avatarPath = `${teamSeasonId}/${playerId}.${ext}`;
-  const { publicUrl: avatarUrl, error } = await uploadToBucket(PLAYER_AVATAR_BUCKET, avatarPath, file);
+  const { publicUrl: avatarUrl, error } = await uploadToBucket(
+    PLAYER_AVATAR_BUCKET,
+    avatarPath,
+    file,
+    uploadContext,
+  );
   return { avatarUrl, error };
 }
 
@@ -130,10 +146,11 @@ export async function uploadPlayerProfileCutout(
   teamSeasonId: string,
   playerId: string,
   file: File,
+  uploadContext?: ProfileHeroUploadContext,
 ): Promise<{ cutoutUrl: string | null; error: string | null; storagePath?: string }> {
   const ext = cutoutExtension(file);
   const cutoutPath = `${teamSeasonId}/cutouts/${playerId}.${ext}`;
-  const cutout = await uploadToBucket(PLAYER_AVATAR_BUCKET, cutoutPath, file);
+  const cutout = await uploadToBucket(PLAYER_AVATAR_BUCKET, cutoutPath, file, uploadContext);
   return { cutoutUrl: cutout.publicUrl, error: cutout.error, storagePath: cutout.storagePath };
 }
 
@@ -142,15 +159,21 @@ export async function uploadPlayerProfilePhoto(
   teamSeasonId: string,
   playerId: string,
   file: File,
+  uploadContext?: ProfileHeroUploadContext,
 ): Promise<ProfilePhotoUploadResult> {
-  const { avatarUrl, error } = await uploadPlayerProfileAvatar(teamSeasonId, playerId, file);
+  const { avatarUrl, error } = await uploadPlayerProfileAvatar(
+    teamSeasonId,
+    playerId,
+    file,
+    uploadContext,
+  );
   if (error) {
     return { avatarUrl: null, cutoutUrl: null, error };
   }
 
   let cutoutUrl: string | null = null;
   if (await shouldStoreProfileCutout(file)) {
-    const cutout = await uploadPlayerProfileCutout(teamSeasonId, playerId, file);
+    const cutout = await uploadPlayerProfileCutout(teamSeasonId, playerId, file, uploadContext);
     if (!cutout.error) {
       cutoutUrl = cutout.cutoutUrl;
     }
@@ -163,10 +186,16 @@ export async function uploadStaffProfileAvatar(
   teamSeasonId: string,
   userId: string,
   file: File,
+  uploadContext?: ProfileHeroUploadContext,
 ): Promise<{ avatarUrl: string | null; error: string | null }> {
   const ext = avatarExtension(file);
   const avatarPath = `${teamSeasonId}/staff/${userId}.${ext}`;
-  const { publicUrl: avatarUrl, error } = await uploadToBucket(STAFF_PHOTO_BUCKET, avatarPath, file);
+  const { publicUrl: avatarUrl, error } = await uploadToBucket(
+    STAFF_PHOTO_BUCKET,
+    avatarPath,
+    file,
+    uploadContext,
+  );
   return { avatarUrl, error };
 }
 
@@ -174,10 +203,11 @@ export async function uploadStaffProfileCutout(
   teamSeasonId: string,
   userId: string,
   file: File,
+  uploadContext?: ProfileHeroUploadContext,
 ): Promise<{ cutoutUrl: string | null; error: string | null; storagePath?: string }> {
   const ext = cutoutExtension(file);
   const cutoutPath = `${teamSeasonId}/cutouts/${userId}.${ext}`;
-  const cutout = await uploadToBucket(STAFF_PHOTO_BUCKET, cutoutPath, file);
+  const cutout = await uploadToBucket(STAFF_PHOTO_BUCKET, cutoutPath, file, uploadContext);
   return { cutoutUrl: cutout.publicUrl, error: cutout.error, storagePath: cutout.storagePath };
 }
 
@@ -186,15 +216,21 @@ export async function uploadStaffProfilePhoto(
   teamSeasonId: string,
   userId: string,
   file: File,
+  uploadContext?: ProfileHeroUploadContext,
 ): Promise<ProfilePhotoUploadResult> {
-  const { avatarUrl, error } = await uploadStaffProfileAvatar(teamSeasonId, userId, file);
+  const { avatarUrl, error } = await uploadStaffProfileAvatar(
+    teamSeasonId,
+    userId,
+    file,
+    uploadContext,
+  );
   if (error) {
     return { avatarUrl: null, cutoutUrl: null, error };
   }
 
   let cutoutUrl: string | null = null;
   if (await shouldStoreProfileCutout(file)) {
-    const cutout = await uploadStaffProfileCutout(teamSeasonId, userId, file);
+    const cutout = await uploadStaffProfileCutout(teamSeasonId, userId, file, uploadContext);
     if (!cutout.error) {
       cutoutUrl = cutout.cutoutUrl;
     }

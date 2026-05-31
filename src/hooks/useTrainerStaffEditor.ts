@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { TrainerStaffFormState } from "../components/team/TrainerStaffFormModal";
-import { uploadStaffProfileAvatar, uploadStaffProfileCutout, logProfileHeroUpload } from "../lib/profileCutoutUpload";
+import { uploadStaffProfileAvatar, uploadStaffProfileCutout, logProfileHeroUpload, type ProfileHeroUploadContext } from "../lib/profileCutoutUpload";
 import { prepareCutoutGeneration } from "../lib/profileImagePipeline";
 import {
   findAccountUserIdByEmail,
@@ -21,10 +21,11 @@ export const emptyTrainerForm: TrainerStaffFormState = {
 
 type Options = {
   teamSeasonId: string | null;
+  profileHeroUploadContext?: ProfileHeroUploadContext;
   onAfterSave?: () => void | Promise<void>;
 };
 
-export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
+export function useTrainerStaffEditor({ teamSeasonId, profileHeroUploadContext, onAfterSave }: Options) {
   const [showTrainerForm, setShowTrainerForm] = useState(false);
   const [trainerFormMode, setTrainerFormMode] = useState<"create" | "edit">("create");
   const [trainerForm, setTrainerForm] = useState<TrainerStaffFormState>(emptyTrainerForm);
@@ -179,6 +180,7 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
             teamSeasonId,
             userId,
             trainerAvatarFile,
+            profileHeroUploadContext,
           );
           setTrainerAvatarUploading(false);
           if (uploadErr || !uploadedAvatar) {
@@ -206,7 +208,7 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
           });
           setTrainerCutoutUploading(true);
           const { cutoutUrl: uploadedCutout, error: cutoutErr, storagePath } =
-            await uploadStaffProfileCutout(teamSeasonId, userId, trainerCutoutFile);
+            await uploadStaffProfileCutout(teamSeasonId, userId, trainerCutoutFile, profileHeroUploadContext);
           setTrainerCutoutUploading(false);
           if (cutoutErr || !uploadedCutout) {
             setTrainerFormError(`Hero-Bild fehlgeschlagen: ${cutoutErr ?? "Unbekannter Fehler"}`);
@@ -257,6 +259,7 @@ export function useTrainerStaffEditor({ teamSeasonId, onAfterSave }: Options) {
       trainerCutoutFile,
       closeTrainerForm,
       onAfterSave,
+      profileHeroUploadContext,
     ],
   );
 

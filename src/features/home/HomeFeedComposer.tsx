@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Camera, Clapperboard, ImagePlus, Send, Trophy, Video, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { uploadStorageObject } from '../../lib/storageUpload';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -182,10 +183,11 @@ export const HomeFeedComposer: React.FC<Props> = ({
         contentType,
       });
 
-      const { error: upErr } = await supabase.storage.from(TEAM_FEED_BUCKET).upload(objectPath, fileForUpload, {
+      const { error: upErr } = await uploadStorageObject(TEAM_FEED_BUCKET, objectPath, fileForUpload, {
         cacheControl: '3600',
         upsert: false,
         contentType,
+        membershipRole,
       });
       if (upErr) {
         const se = upErr as {

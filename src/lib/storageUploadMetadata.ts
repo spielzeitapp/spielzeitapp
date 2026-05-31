@@ -1,0 +1,57 @@
+/** Gültige Werte für storage.objects.metadata.membership_role (Postgres enum). */
+export const VALID_MEMBERSHIP_ROLES = [
+  "trainer",
+  "co_trainer",
+  "head_coach",
+  "parent",
+  "player",
+  "fan",
+  "admin",
+] as const;
+
+export type ValidMembershipRole = (typeof VALID_MEMBERSHIP_ROLES)[number];
+
+export type StorageUploadMetadataInput = Record<string, string | null | undefined>;
+
+/** Entfernt leere Werte und ungültige membership_role — niemals "" an Storage senden. */
+export function cleanStorageMetadata(
+  metadata?: StorageUploadMetadataInput | null,
+): Record<string, string> {
+  const cleaned = Object.fromEntries(
+    Object.entries(metadata ?? {}).filter(([, value]) => value !== "" && value != null),
+  ) as Record<string, string>;
+
+  const rawRole = cleaned.membership_role?.trim().toLowerCase();
+  if (!rawRole || !VALID_MEMBERSHIP_ROLES.includes(rawRole as ValidMembershipRole)) {
+    delete cleaned.membership_role;
+  } else {
+    cleaned.membership_role = rawRole;
+  }
+
+  return cleaned;
+}
+
+export function membershipRoleForStorageMetadata(
+  role: string | null | undefined,
+): ValidMembershipRole | undefined {
+  const normalized = (role ?? "").trim().toLowerCase();
+  if (!normalized) return undefined;
+  if (VALID_MEMBERSHIP_ROLES.includes(normalized as ValidMembershipRole)) {
+    return normalized as ValidMembershipRole;
+  }
+  return undefined;
+}
+
+export function buildStorageMetadata(
+  metadata?: StorageUploadMetadataInput | null,
+  membershipRole?: string | null,
+): Record<string, string> {
+  const base: StorageUploadMetadataInput = { ...(metadata ?? {}) };
+  const role = membershipRoleForStorageMetadata(membershipRole ?? base.membership_role);
+  if (role) {
+    base.membership_role = role;
+  } else {
+    delete base.membership_role;
+  }
+  return cleanStorageMetadata(base);
+}
