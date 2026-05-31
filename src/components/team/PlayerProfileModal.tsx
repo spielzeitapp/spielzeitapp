@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
-import { Activity, CalendarDays, Hash, MapPin } from "lucide-react";
+import { Activity, CalendarDays, MapPin, Trophy } from "lucide-react";
 import { ProfileCompactHeader } from "./profile/ProfileCompactHeader";
 import { ProfileHeroCard } from "./profile/ProfileHeroCard";
 import { ProfileStatTile } from "./ProfileStatTile";
@@ -11,7 +11,7 @@ import { usePlayerStats } from "../../hooks/usePlayerStats";
 import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
 import { Button } from "../../app/components/ui/Button";
 import { AppButton } from "../ui/AppButton";
-import { getPositionFull, getPositionLabel } from "../../lib/positionLabels";
+import { getPositionFull, getPositionLabel, getTrainingPositionDisplay } from "../../lib/positionLabels";
 
 export type PlayerProfileModalProps = {
   player: PlayerItem;
@@ -104,15 +104,15 @@ function PlayerInfoChip({
   subdued?: boolean;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-white/[0.08] bg-[#161616]/90 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E50914]/40 bg-[#E50914]/10 text-[#E50914]">
+    <div className="flex min-w-0 items-center gap-2 rounded-lg border border-white/[0.06] bg-[#141414]/88 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#E50914]/28 bg-[#E50914]/8 text-[#E50914]">
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-white/45">{label}</p>
+        <p className="text-[9px] font-semibold uppercase tracking-wide text-white/38">{label}</p>
         <p
-          className={`truncate text-[13px] font-bold ${
-            subdued ? "text-white/55" : "text-white/90"
+          className={`truncate text-[12px] font-semibold leading-tight ${
+            subdued ? "text-white/50" : "text-white/82"
           }`}
         >
           {value}
@@ -275,6 +275,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
       : "–";
   const positionLabel = getPositionLabel(player.position) || "—";
   const positionFull = getPositionFull(player.position);
+  const positionDisplay = getTrainingPositionDisplay(player.position);
+  const positionHeroLabel =
+    positionDisplay !== "—" ? positionDisplay.toUpperCase() : (positionFull || positionLabel).toUpperCase();
   const birthdateLabel = formatBirthdateWithAge(player.birthdate);
   const teamTrainingRatePct = trainingStats.teamRatePct;
   const activityTrainingRatePct = trainingStats.activityRatePct;
@@ -362,33 +365,26 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             lastNameLine={lastNameLine}
             teamSeasonLabel={teamSeasonLabel ?? "Team"}
             teamName={teamName}
-            roleLabel={(positionFull || positionLabel).toUpperCase()}
+            roleLabel={positionHeroLabel !== "—" ? positionHeroLabel : undefined}
             photoUrl={(photoUrl ?? "").trim() || avatarSrc}
             cutoutUrl={player.cutout_url}
             initials={initials(player)}
           />
 
-          <div className="mb-3.5 grid grid-cols-2 gap-2">
-            {positionLabel !== "—" ? (
-              <PlayerInfoChip
-                icon={<MapPin className="h-4 w-4" strokeWidth={2.25} aria-hidden />}
-                label="Position"
-                value={positionFull || positionLabel}
-              />
-            ) : null}
-            {player.jersey_number != null && Number.isFinite(Number(player.jersey_number)) ? (
-              <PlayerInfoChip
-                icon={<Hash className="h-4 w-4" strokeWidth={2.25} aria-hidden />}
-                label="Rückennummer"
-                value={String(player.jersey_number)}
-                subdued
-              />
-            ) : null}
+          <div className="mb-3 grid grid-cols-2 gap-1.5">
             {birthdateLabel ? (
               <PlayerInfoChip
-                icon={<CalendarDays className="h-4 w-4" strokeWidth={2.25} aria-hidden />}
+                icon={<CalendarDays className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />}
                 label="Geburtsdatum"
                 value={birthdateLabel}
+              />
+            ) : null}
+            {positionDisplay !== "—" ? (
+              <PlayerInfoChip
+                icon={<MapPin className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />}
+                label="Position"
+                value={positionDisplay}
+                subdued
               />
             ) : null}
           </div>

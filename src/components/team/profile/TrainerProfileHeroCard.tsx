@@ -104,22 +104,19 @@ function FloodlightBeams() {
 }
 
 function HeroPrimaryWatermark({ watermark }: { watermark: string }) {
-  const style: React.CSSProperties = {
-    fontSize: "clamp(8rem, 44vw, 14.5rem)",
-    color: "transparent",
-    WebkitTextStroke: "1px rgba(255,255,255,0.2)",
-    paintOrder: "stroke fill",
-    lineHeight: 0.76,
-    letterSpacing: "-0.02em",
-    opacity: 0.115,
-  };
-
   return (
     <div
-      className="pointer-events-none absolute right-[2%] top-1/2 z-[1] flex h-[80%] max-w-[min(74%,17rem)] -translate-y-1/2 select-none items-center justify-end font-black tracking-tighter sm:right-[3%]"
+      className="pointer-events-none absolute right-[3%] top-1/2 z-[1] flex h-[92%] max-w-[min(82%,19rem)] -translate-y-1/2 select-none items-center justify-end overflow-visible font-black tracking-tighter sm:right-[4%]"
       aria-hidden
     >
-      <span className="relative inline-block" style={style}>
+      <span
+        className="relative inline-block leading-[0.72] tracking-[-0.04em] text-[clamp(7.5rem,46vw,13.5rem)] text-[#E50914]/[0.11]"
+        style={{
+          textShadow: "0 0 48px rgba(229,9,20,0.16), 0 2px 24px rgba(0,0,0,0.45)",
+          WebkitTextStroke: "1px rgba(139,13,18,0.22)",
+          paintOrder: "stroke fill",
+        }}
+      >
         {watermark}
       </span>
     </div>

@@ -97,9 +97,10 @@ function PlayerStadiumAtmosphere({ photoBgUrl }: { photoBgUrl: string }) {
         }}
       />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.28)_0%,rgba(0,0,0,0.52)_55%,rgba(0,0,0,0.78)_100%)]" />
-      <div className="absolute inset-y-0 right-0 w-[58%] bg-[radial-gradient(ellipse_95%_85%_at_100%_42%,rgba(229,9,20,0.42)_0%,rgba(139,13,18,0.22)_38%,transparent_72%)]" />
-      <div className="absolute bottom-0 right-0 h-[88%] w-[48%] bg-[radial-gradient(ellipse_70%_60%_at_85%_90%,rgba(229,9,20,0.28)_0%,transparent_68%)] blur-sm" />
-      <div className="absolute -right-4 top-[8%] h-[55%] w-[42%] rotate-[-8deg] bg-[linear-gradient(135deg,rgba(229,9,20,0.18)_0%,transparent_62%)] blur-md" />
+      <div className="absolute inset-y-0 right-0 w-[58%] bg-[radial-gradient(ellipse_95%_85%_at_100%_42%,rgba(229,9,20,0.34)_0%,rgba(139,13,18,0.16)_38%,transparent_72%)]" />
+      <div className="absolute bottom-0 right-0 h-[88%] w-[48%] bg-[radial-gradient(ellipse_70%_60%_at_85%_90%,rgba(229,9,20,0.22)_0%,transparent_68%)] blur-sm" />
+      <div className="absolute -right-4 top-[8%] h-[55%] w-[42%] rotate-[-8deg] bg-[linear-gradient(135deg,rgba(229,9,20,0.14)_0%,transparent_62%)] blur-md" />
+      <div className="absolute right-[6%] top-[18%] h-[38%] w-[28%] rounded-full bg-[radial-gradient(circle,rgba(229,9,20,0.12)_0%,transparent_72%)] blur-xl" />
       <PlayerFloodlightBeams />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_105%_95%_at_48%_38%,transparent_38%,rgba(0,0,0,0.32)_82%,rgba(0,0,0,0.72)_100%)]" />
       <div className="absolute inset-x-0 bottom-0 h-[38%] bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.55)_100%)]" />
@@ -121,12 +122,12 @@ function PlayerFloodlightBeams() {
 function PlayerJerseyNumber({ number }: { number: string }) {
   return (
     <div
-      className="pointer-events-none relative z-[2] select-none font-black tabular-nums leading-none tracking-[-0.05em] text-white/[0.85]"
+      className="pointer-events-none relative z-[2] select-none font-black tabular-nums leading-none tracking-[-0.04em] text-white/[0.82]"
       style={{
-        fontSize: "clamp(7.5rem, 38vw, 10.625rem)",
-        textShadow: "0 2px 28px rgba(0,0,0,0.55), 0 0 40px rgba(255,255,255,0.06)",
-        WebkitMaskImage: "linear-gradient(180deg, black 0%, black 72%, rgba(0,0,0,0.55) 100%)",
-        maskImage: "linear-gradient(180deg, black 0%, black 72%, rgba(0,0,0,0.55) 100%)",
+        fontSize: "clamp(5.5rem, 28vw, 8.4375rem)",
+        textShadow: "0 2px 18px rgba(0,0,0,0.65), 0 0 24px rgba(255,255,255,0.08)",
+        WebkitMaskImage: "linear-gradient(180deg, black 0%, black 78%, rgba(0,0,0,0.45) 100%)",
+        maskImage: "linear-gradient(180deg, black 0%, black 78%, rgba(0,0,0,0.45) 100%)",
       }}
       aria-hidden
     >
@@ -141,14 +142,14 @@ function PlayerClubLogoBadge({ logoUrl }: { logoUrl: string | null }) {
 
   return (
     <div
-      className="pointer-events-none absolute right-2 top-2 z-[2] h-[38%] w-[34%] max-w-[6.5rem] opacity-[0.16] sm:right-3 sm:max-w-[7rem]"
+      className="pointer-events-none absolute right-3 top-2.5 z-[2] h-[3.625rem] w-[3.625rem] opacity-[0.85] sm:right-3.5 sm:h-[4.25rem] sm:w-[4.25rem]"
       aria-hidden
     >
-      <div className="absolute inset-0 rounded-full bg-white/[0.06] blur-xl" />
+      <div className="absolute inset-0 rounded-full bg-white/[0.08] blur-lg" />
       <img
         src={logoUrl}
         alt=""
-        className="relative h-full w-full object-contain object-right-top brightness-[2] contrast-[0.65] grayscale invert drop-shadow-[0_0_12px_rgba(255,255,255,0.12)]"
+        className="relative h-full w-full object-contain object-right-top drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]"
         onError={() => setFailed(true)}
       />
     </div>
@@ -171,7 +172,7 @@ function PlayerHeroTextStack({
   const position = (roleLabel ?? "").trim().toUpperCase();
 
   return (
-    <div className="relative z-[4] flex h-full min-w-0 max-w-[54%] flex-1 flex-col py-3 pl-1 pr-1 sm:max-w-[50%]">
+    <div className="relative z-[4] flex h-full min-w-0 max-w-[46%] flex-1 flex-col py-2.5 pl-1 pr-0.5 sm:max-w-[44%]">
       {teamLine ? (
         <p className="text-[10px] font-extrabold uppercase leading-tight tracking-[0.1em] sm:text-[11px]">
           {ageGroup ? (
@@ -185,23 +186,23 @@ function PlayerHeroTextStack({
         </p>
       ) : null}
 
-      <div className="mt-1 flex min-h-0 flex-1 flex-col justify-center">
+      <div className="mt-0.5">
         <PlayerJerseyNumber number={jerseyNumber} />
         {position ? (
-          <p className="-mt-1 text-[12px] font-extrabold uppercase italic tracking-[0.14em] text-[#E50914] sm:text-[13px]">
+          <p className="-mt-0.5 text-[11px] font-extrabold uppercase italic tracking-[0.12em] text-[#E50914] sm:text-[12px]">
             {position}
           </p>
         ) : null}
       </div>
 
-      <div className="mt-auto pb-0.5">
+      <div className="mt-auto pb-1 pt-3">
         {firstNameLine ? (
-          <p className="font-black uppercase leading-[0.92] tracking-tight text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.8)] text-[clamp(1.15rem,4.8vw,1.75rem)]">
+          <p className="font-black uppercase leading-[0.9] tracking-tight text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.8)] text-[clamp(1.05rem,4.4vw,1.65rem)]">
             {firstNameLine}
           </p>
         ) : null}
         {lastNameLine ? (
-          <p className="font-black uppercase leading-[0.92] tracking-tight text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.8)] text-[clamp(1.15rem,4.8vw,1.75rem)]">
+          <p className="font-black uppercase leading-[0.9] tracking-tight text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.8)] text-[clamp(1.05rem,4.4vw,1.65rem)]">
             {lastNameLine}
           </p>
         ) : null}
@@ -278,7 +279,7 @@ function PlayerCutoutLayer({
       <img
         src={cutoutSrc}
         alt=""
-        className="absolute bottom-0 right-0 h-[102%] max-h-none w-auto max-w-[58%] object-contain object-right-bottom sm:max-w-[56%]"
+        className="absolute bottom-0 right-[-3%] h-[114%] max-h-none w-auto max-w-[64%] object-contain object-right-bottom sm:max-w-[60%]"
         style={{
           filter: "drop-shadow(0 4px 28px rgba(0,0,0,0.55)) drop-shadow(0 0 24px rgba(255,255,255,0.12))",
           maskImage: "linear-gradient(to bottom, black 0%, black 88%, transparent 100%)",
@@ -322,7 +323,7 @@ function PlayerProfileHeroCard(props: Props) {
   const showAvatarFallback = !showCutoutImage;
 
   return (
-    <div className="relative mb-3 aspect-[16/9] max-h-[15.5rem] min-h-[11.25rem] w-full overflow-hidden rounded-[22px] border border-[#E50914]/35 bg-[#0A0A0A] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_36px_rgba(0,0,0,0.52),0_0_48px_rgba(229,9,20,0.08)] sm:max-h-[16.5rem] sm:min-h-[12rem]">
+    <div className="relative mb-3 aspect-[1.52/1] min-h-[15.3125rem] max-h-[16.875rem] w-full overflow-hidden rounded-[22px] border border-[#E50914]/35 bg-[#0A0A0A] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_36px_rgba(0,0,0,0.52),0_0_48px_rgba(229,9,20,0.08)] sm:min-h-[16.5rem] sm:max-h-[18rem]">
       <PlayerStadiumAtmosphere photoBgUrl={stadiumBgUrl} />
       <PlayerClubLogoBadge logoUrl={clubLogoUrl} />
 
@@ -345,7 +346,7 @@ function PlayerProfileHeroCard(props: Props) {
           jerseyNumber={watermark}
         />
 
-        <div className="relative z-[1] w-[42%] max-w-[11rem] shrink-0 sm:max-w-[12rem]" aria-hidden>
+        <div className="relative z-[1] w-[50%] max-w-[13.5rem] shrink-0 sm:max-w-[14rem]" aria-hidden>
           {!isCutoutLayout || showAvatarFallback ? (
             <HeroAvatarInSlot photoUrl={photoUrl} initials={initials} visible />
           ) : null}
