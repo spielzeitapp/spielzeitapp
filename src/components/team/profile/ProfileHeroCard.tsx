@@ -7,12 +7,13 @@ import {
   HeroCutoutLayer,
   HeroNameBlock,
   HeroPrimaryMark,
+  HeroRoleLabel,
+  HeroSeasonLine,
   HeroTeamHeaderLine,
   PremiumHeroStadiumAtmosphere,
   profileHeroLayoutMode,
   resolveProfileCutoutSrc,
   splitTeamSeasonLabel,
-  useClubLogoUrl,
   useProfileHeroImagePreload,
   useStadiumBackgroundUrl,
 } from "./profileHeroShared";
@@ -51,7 +52,6 @@ function PlayerProfileHeroCard(props: Props) {
     initials,
   } = props;
   const stadiumBgUrl = useStadiumBackgroundUrl();
-  const clubLogoUrl = useClubLogoUrl(teamName);
   const cutoutSrc = hasCutoutUrl(cutoutUrl) ? resolveProfileCutoutSrc(cutoutUrl) : null;
   const [cutoutImageOk, setCutoutImageOk] = React.useState(true);
 
@@ -67,12 +67,13 @@ function PlayerProfileHeroCard(props: Props) {
 
   const parsed = splitTeamSeasonLabel(teamSeasonLabel);
   const teamLine = (teamName ?? "").trim() || parsed.team;
+  const seasonLine = parsed.season;
   const position = (roleLabel ?? "").trim().toUpperCase();
 
   return (
     <div className={HERO_CARD_CLASS}>
       <PremiumHeroStadiumAtmosphere photoBgUrl={stadiumBgUrl} />
-      <HeroClubLogoWatermark logoUrl={clubLogoUrl} />
+      <HeroClubLogoWatermark />
 
       {isCutoutLayout && cutoutSrc ? (
         <HeroCutoutLayer
@@ -88,16 +89,17 @@ function PlayerProfileHeroCard(props: Props) {
         <div className="relative z-[4] flex h-full min-w-0 max-w-[48%] flex-1 flex-col py-1 pl-0.5 pr-0.5 sm:max-w-[46%]">
           {teamLine ? <HeroTeamHeaderLine teamLine={teamLine} /> : null}
 
-          <div className="mt-0.5">
+          <div className="mt-0.5 shrink-0">
             <HeroPrimaryMark mark={watermark} variant="player" />
             {position ? (
-              <p className="-mt-0.5 text-[11px] font-extrabold uppercase italic tracking-[0.12em] text-[#E50914] sm:text-[12px]">
-                {position}
+              <p className="-mt-1">
+                <HeroRoleLabel>{position}</HeroRoleLabel>
               </p>
             ) : null}
           </div>
 
           <HeroNameBlock firstNameLine={firstNameLine} lastNameLine={lastNameLine} />
+          <HeroSeasonLine seasonLine={seasonLine} />
         </div>
 
         <div className="relative z-[1] w-[52%] max-w-[14rem] shrink-0 sm:max-w-[15rem]" aria-hidden>

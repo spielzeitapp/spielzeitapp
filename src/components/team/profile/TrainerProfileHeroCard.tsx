@@ -7,12 +7,13 @@ import {
   HeroCutoutLayer,
   HeroNameBlock,
   HeroPrimaryMark,
+  HeroRoleLabel,
+  HeroSeasonLine,
   HeroTeamHeaderLine,
   PremiumHeroStadiumAtmosphere,
   profileHeroLayoutMode,
   resolveProfileCutoutSrc,
   splitTeamSeasonLabel,
-  useClubLogoUrl,
   useProfileHeroImagePreload,
   useStadiumBackgroundUrl,
 } from "./profileHeroShared";
@@ -42,7 +43,6 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
   initials,
 }) => {
   const stadiumBgUrl = useStadiumBackgroundUrl();
-  const clubLogoUrl = useClubLogoUrl(teamName);
   const cutoutSrc = hasCutoutUrl(cutoutUrl) ? resolveProfileCutoutSrc(cutoutUrl) : null;
   const [cutoutImageOk, setCutoutImageOk] = React.useState(true);
 
@@ -64,7 +64,7 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
   return (
     <div className={HERO_CARD_CLASS}>
       <PremiumHeroStadiumAtmosphere photoBgUrl={stadiumBgUrl} />
-      <HeroClubLogoWatermark logoUrl={clubLogoUrl} />
+      <HeroClubLogoWatermark />
 
       {isCutoutLayout && cutoutSrc ? (
         <HeroCutoutLayer
@@ -80,22 +80,19 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
         <div className="relative z-[4] flex h-full min-w-0 max-w-[48%] flex-1 flex-col py-1 pl-0.5 pr-0.5 sm:max-w-[46%]">
           {teamLine ? <HeroTeamHeaderLine teamLine={teamLine} /> : null}
 
-          <div className="mt-0.5">
+          <div className="mt-0.5 shrink-0">
             <HeroPrimaryMark mark={watermark} variant="trainer" />
-            {role ? (
-              <p className="-mt-0.5 text-[11px] font-extrabold uppercase italic tracking-[0.12em] text-[#E50914] sm:text-[12px]">
-                {role}
-              </p>
-            ) : null}
           </div>
 
           <HeroNameBlock firstNameLine={firstNameLine} lastNameLine={lastNameLine} />
 
-          {seasonLine ? (
-            <p className="pb-0.5 text-[10px] font-medium uppercase tracking-wide text-white/38">
-              Saison {seasonLine}
+          {role ? (
+            <p className="pt-0.5">
+              <HeroRoleLabel>{role}</HeroRoleLabel>
             </p>
           ) : null}
+
+          <HeroSeasonLine seasonLine={seasonLine} />
         </div>
 
         <div className="relative z-[1] w-[52%] max-w-[14rem] shrink-0 sm:max-w-[15rem]" aria-hidden>
