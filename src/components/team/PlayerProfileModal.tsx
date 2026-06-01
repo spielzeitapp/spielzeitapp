@@ -351,7 +351,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
         onClick={onClose}
       />
       <div
-        className="relative flex max-h-[min(94vh,920px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.75rem] border border-red-500/30 bg-[linear-gradient(180deg,rgba(28,8,8,0.98)_0%,rgba(0,0,0,0.97)_42%,rgba(6,6,10,0.99)_100%)] shadow-[0_0_0_1px_rgba(239,68,68,0.14),0_-24px_64px_rgba(0,0,0,0.7),0_0_90px_rgba(220,38,38,0.14)] sm:rounded-3xl sm:shadow-2xl"
+        className="relative flex max-h-[min(94vh,920px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.75rem] bg-[linear-gradient(180deg,rgba(28,8,8,0.98)_0%,rgba(0,0,0,0.97)_42%,rgba(6,6,10,0.99)_100%)] shadow-[0_-24px_64px_rgba(0,0,0,0.7)] sm:rounded-3xl sm:shadow-2xl"
       >
         <ProfileSaveSnackbar visible={saveToastVisible} />
         <ProfileCompactHeader
