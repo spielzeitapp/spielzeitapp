@@ -8,7 +8,9 @@ export const STAT_ICON_WATERMARK_CLASS = "h-[4.75rem] w-[4.75rem] text-red-400/[
 
 const deco = STAT_ICON_WATERMARK_CLASS;
 
-const statImgWatermarkClass = "object-contain object-right-top opacity-[0.18] [filter:none]";
+/** Nav-Asset als Maske — gleiche rote Watermark-Farbe wie SVG-Icons (text-red-400/18). */
+const statNavMaskWatermarkClass =
+  "bg-red-400/18 [mask-size:contain] [mask-repeat:no-repeat] [mask-position:right_top] [-webkit-mask-size:contain] [-webkit-mask-repeat:no-repeat] [-webkit-mask-position:right_top]";
 
 function profileNavIconSrc(file: string): string {
   const b = import.meta.env.BASE_URL || "/";
@@ -16,30 +18,27 @@ function profileNavIconSrc(file: string): string {
   return `${base}icons/${file}`;
 }
 
-/** Spiele — Termine-Navigation (pitch.svg). */
-export function StatIconPitch({ className = deco }: IconProps) {
+function StatNavMaskIcon({ src, className = deco }: { src: string; className?: string }) {
   return (
-    <img
-      src={profileNavIconSrc("pitch.svg")}
-      alt=""
+    <div
       aria-hidden
-      draggable={false}
-      className={`${statImgWatermarkClass} ${className}`}
+      className={`${statNavMaskWatermarkClass} ${className}`}
+      style={{
+        maskImage: `url("${src}")`,
+        WebkitMaskImage: `url("${src}")`,
+      }}
     />
   );
 }
 
+/** Spiele — Termine-Navigation (pitch.svg). */
+export function StatIconPitch({ className = deco }: IconProps) {
+  return <StatNavMaskIcon src={profileNavIconSrc("pitch.svg")} className={className} />;
+}
+
 /** Tore — Home-Navigation (home-ball.png). */
 export function StatIconFootball({ className = deco }: IconProps) {
-  return (
-    <img
-      src={profileNavIconSrc("home-ball.png")}
-      alt=""
-      aria-hidden
-      draggable={false}
-      className={`${statImgWatermarkClass} ${className}`}
-    />
-  );
+  return <StatNavMaskIcon src={profileNavIconSrc("home-ball.png")} className={className} />;
 }
 
 export function StatIconAssist({ className = deco }: IconProps) {
