@@ -12,7 +12,7 @@ import {
 import { getLogoUrl } from "../../../utils/logoResolver";
 
 export const HERO_CARD_CLASS =
-  "relative mb-3 aspect-[1.55/1] min-h-[15rem] max-h-[16.875rem] w-full overflow-hidden rounded-[22px] border border-[#E50914]/55 bg-[#050505] shadow-[0_0_28px_rgba(229,9,20,0.16),0_12px_40px_rgba(0,0,0,0.58)] ring-1 ring-[#E50914]/20 sm:min-h-[16rem] sm:max-h-[18rem]";
+  "relative mb-3 aspect-[1.55/1] min-h-[16.75rem] max-h-[18.375rem] w-full overflow-hidden rounded-[22px] border border-[#E50914]/55 bg-[#050505] shadow-[0_0_28px_rgba(229,9,20,0.16),0_12px_40px_rgba(0,0,0,0.58)] ring-1 ring-[#E50914]/20 sm:min-h-[17.5rem] sm:max-h-[19.5rem]";
 
 /** Originales NSG-Gölsental-Logo für Hero-Wasserzeichen (public/logos). */
 export const PROFILE_HERO_WATERMARK_LOGO = getLogoUrl("nsg-goelsental");
@@ -104,7 +104,7 @@ export function HeroClubLogoWatermark() {
 
   return (
     <div
-      className="pointer-events-none absolute right-1 top-1 z-[1] h-[7.5rem] w-[7.5rem] opacity-[0.15] sm:right-1.5 sm:top-1.5 sm:h-[8.75rem] sm:w-[8.75rem] sm:opacity-[0.17]"
+      className="pointer-events-none absolute right-1 top-1 z-[1] h-[7.5rem] w-[7.5rem] opacity-[0.1] sm:right-1.5 sm:top-1.5 sm:h-[8.75rem] sm:w-[8.75rem] sm:opacity-[0.12]"
       aria-hidden
     >
       <img
@@ -117,11 +117,8 @@ export function HeroClubLogoWatermark() {
   );
 }
 
-const MARK_TEXTURE_PLAYER =
-  "linear-gradient(168deg, rgba(255,255,255,0.98) 0%, rgba(235,235,235,0.72) 22%, rgba(255,255,255,0.95) 44%, rgba(200,200,200,0.58) 62%, rgba(255,255,255,0.9) 82%, rgba(220,220,220,0.65) 100%)";
-
-const MARK_TEXTURE_TRAINER =
-  "linear-gradient(168deg, rgba(255,255,255,0.96) 0%, rgba(225,225,225,0.68) 24%, rgba(255,255,255,0.92) 46%, rgba(195,195,195,0.52) 66%, rgba(255,255,255,0.88) 100%)";
+const MARK_TEXTURE =
+  "linear-gradient(165deg, rgba(255,255,255,1) 0%, rgba(240,240,240,0.85) 18%, rgba(255,255,255,0.98) 38%, rgba(210,210,210,0.75) 55%, rgba(255,255,255,0.95) 72%, rgba(230,230,230,0.8) 88%, rgba(255,255,255,0.92) 100%)";
 
 export function HeroPrimaryMark({
   mark,
@@ -130,16 +127,14 @@ export function HeroPrimaryMark({
   mark: string;
   variant?: "trainer" | "player";
 }) {
-  const isPlayer = variant === "player";
-  const opacity = isPlayer ? 0.36 : 0.34;
-  const texture = isPlayer ? MARK_TEXTURE_PLAYER : MARK_TEXTURE_TRAINER;
+  void variant;
 
   return (
     <div
       className="pointer-events-none relative z-[1] -ml-1 select-none font-black leading-[0.8] tracking-[-0.05em]"
       style={{
         fontSize: "clamp(7.25rem, 36vw, 10.5rem)",
-        opacity,
+        opacity: 0.45,
       }}
       aria-hidden
     >
@@ -147,14 +142,14 @@ export function HeroPrimaryMark({
         className="relative inline-block"
         style={{
           color: "transparent",
-          backgroundImage: texture,
+          backgroundImage: MARK_TEXTURE,
           WebkitBackgroundClip: "text",
           backgroundClip: "text",
-          WebkitTextStroke: "1.5px rgba(255,255,255,0.2)",
+          WebkitTextStroke: "2px rgba(255,255,255,0.28)",
           paintOrder: "stroke fill",
-          textShadow: "0 4px 32px rgba(0,0,0,0.5), 0 0 48px rgba(255,255,255,0.1)",
-          WebkitMaskImage: "linear-gradient(180deg, black 0%, black 72%, rgba(0,0,0,0.3) 100%)",
-          maskImage: "linear-gradient(180deg, black 0%, black 72%, rgba(0,0,0,0.3) 100%)",
+          textShadow: "0 4px 36px rgba(0,0,0,0.45), 0 0 56px rgba(255,255,255,0.14)",
+          WebkitMaskImage: "linear-gradient(180deg, black 0%, black 70%, rgba(0,0,0,0.28) 100%)",
+          maskImage: "linear-gradient(180deg, black 0%, black 70%, rgba(0,0,0,0.28) 100%)",
         }}
       >
         {mark}
@@ -165,15 +160,12 @@ export function HeroPrimaryMark({
 
 export function HeroTeamHeaderLine({ teamLine }: { teamLine: string }) {
   const { ageGroup, club } = splitPlayerTeamHeader(teamLine);
+  const clubText = (club || teamLine.toUpperCase()).trim();
+
   return (
-    <p className="text-[10px] font-extrabold uppercase leading-tight tracking-[0.1em] sm:text-[11px]">
-      {ageGroup ? (
-        <>
-          <span className="text-[#E50914]">{ageGroup}</span>
-          <span className="text-white/90"> </span>
-        </>
-      ) : null}
-      <span className="text-white/88">{club || teamLine.toUpperCase()}</span>
+    <p className="truncate whitespace-nowrap text-[9px] font-extrabold uppercase leading-none tracking-[0.08em] sm:text-[10px] sm:tracking-[0.1em]">
+      {ageGroup ? <span className="text-[#E50914]">{ageGroup} </span> : null}
+      <span className="text-white/88">{clubText}</span>
       <span className="text-[#E50914]/80"> ////</span>
     </p>
   );
@@ -195,7 +187,7 @@ export function HeroNameBlock({
   lastNameLine: string;
 }) {
   const nameClass =
-    "font-black uppercase leading-[0.9] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.9)] text-[clamp(1.05rem,4.2vw,1.55rem)]";
+    "font-black uppercase leading-[0.9] tracking-tight text-white [text-shadow:0_2px_20px_rgba(0,0,0,0.92)] text-[clamp(1.15rem,4.8vw,1.75rem)]";
   return (
     <div className="mt-auto pb-0.5 pt-1.5">
       {firstNameLine ? <p className={nameClass}>{firstNameLine}</p> : null}
@@ -211,6 +203,45 @@ export function HeroSeasonLine({ seasonLine }: { seasonLine: string }) {
     <p className="pb-0.5 text-[10px] font-medium uppercase tracking-wide text-white/40">
       Saison {line}
     </p>
+  );
+}
+
+/** Einheitliche linke Hero-Textspalte (Trainer + Spieler). */
+export function HeroTextStack({
+  teamLine,
+  mark,
+  markVariant,
+  roleLabel,
+  firstNameLine,
+  lastNameLine,
+  seasonLine,
+}: {
+  teamLine: string;
+  mark: string;
+  markVariant: "trainer" | "player";
+  roleLabel?: string;
+  firstNameLine: string;
+  lastNameLine: string;
+  seasonLine: string;
+}) {
+  const role = (roleLabel ?? "").trim().toUpperCase();
+
+  return (
+    <div className="relative z-[4] flex h-full min-w-0 max-w-[48%] flex-1 flex-col py-1 pl-0.5 pr-0.5 sm:max-w-[46%]">
+      {teamLine ? <HeroTeamHeaderLine teamLine={teamLine} /> : null}
+
+      <div className="mt-0.5 shrink-0">
+        <HeroPrimaryMark mark={mark} variant={markVariant} />
+        {role ? (
+          <p className="-mt-1">
+            <HeroRoleLabel>{role}</HeroRoleLabel>
+          </p>
+        ) : null}
+      </div>
+
+      <HeroNameBlock firstNameLine={firstNameLine} lastNameLine={lastNameLine} />
+      <HeroSeasonLine seasonLine={seasonLine} />
+    </div>
   );
 }
 
@@ -253,7 +284,7 @@ export function HeroAvatarInSlot({
 
 const CUTOUT_IMG_CLASS = {
   player:
-    "absolute bottom-0 right-[-10%] h-[152%] w-auto max-h-none max-w-[78%] object-contain object-right-bottom sm:max-w-[74%]",
+    "absolute bottom-0 right-[-12%] h-[168%] w-auto max-h-none max-w-[82%] object-contain object-right-bottom sm:max-w-[78%]",
   trainer:
     "absolute bottom-0 right-[-6%] h-[128%] w-auto max-h-none max-w-[68%] object-contain object-right-bottom sm:max-w-[64%]",
 } as const;
