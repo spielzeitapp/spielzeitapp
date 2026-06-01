@@ -263,8 +263,8 @@ export function HeroCutoutLayer({
       : "absolute bottom-[2%] right-[2%] h-[58%] w-[44%] bg-[radial-gradient(ellipse_at_center,rgba(229,9,20,0.2)_0%,transparent_72%)] blur-2xl";
   const rimClass =
     variant === "player"
-      ? "absolute bottom-[5%] right-[-2%] h-[62%] w-[52%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.18)_0%,transparent_70%)] blur-2xl"
-      : "absolute bottom-[6%] right-[2%] h-[54%] w-[44%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.14)_0%,transparent_70%)] blur-2xl";
+      ? "absolute bottom-[5%] right-[-2%] h-[62%] w-[52%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.13)_0%,transparent_70%)] blur-2xl"
+      : "absolute bottom-[6%] right-[2%] h-[54%] w-[44%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.10)_0%,transparent_70%)] blur-2xl";
 
   React.useEffect(() => {
     setLoaded(false);
@@ -285,7 +285,7 @@ export function HeroCutoutLayer({
         className={CUTOUT_IMG_CLASS[variant]}
         style={{
           filter:
-            "drop-shadow(0 8px 36px rgba(0,0,0,0.65)) drop-shadow(0 0 32px rgba(255,255,255,0.16)) drop-shadow(-10px 0 28px rgba(229,9,20,0.14))",
+            "drop-shadow(0 8px 36px rgba(0,0,0,0.65)) drop-shadow(0 0 32px rgba(255,255,255,0.12)) drop-shadow(-10px 0 28px rgba(229,9,20,0.14))",
           maskImage: "linear-gradient(to bottom, black 0%, black 91%, transparent 100%)",
           WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 91%, transparent 100%)",
         }}
