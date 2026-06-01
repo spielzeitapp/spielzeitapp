@@ -16,7 +16,7 @@ import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
 import { ProfileStatTile } from "../components/team/ProfileStatTile";
 import { ProfileHeroCard } from "../components/team/profile/ProfileHeroCard";
-import { ProfileFooterCards } from "../components/team/profile/ProfileFooterCards";
+import { ProfileContactCard } from "../components/team/profile/ProfileFooterCards";
 import { TrainerBalanceCard } from "../components/team/profile/TrainerBalanceCard";
 import { COACH_STAT_TILES } from "../components/team/profile/profileStatIcons";
 import { AppButton } from "../components/ui/AppButton";
@@ -206,13 +206,9 @@ export const TrainerProfilePage: React.FC = () => {
               <p className="mt-2 text-center text-[12px] text-white/60">Noch keine Saisondaten</p>
             ) : null}
 
-            <ProfileFooterCards
-              phone={member.phone}
-              email={member.email}
-              teamName={teamName}
-              seasonName={seasonName}
-              roleLabel=""
-            />
+            <div className="mt-6">
+              <ProfileContactCard phone={member.phone} email={member.email} />
+            </div>
 
             {canManage ? (
               <div className="mt-5 pb-1">
