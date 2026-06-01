@@ -26,11 +26,21 @@ export function profileHeroLayoutMode(cutoutUrl?: string | null): ProfileHeroLay
 }
 
 /** Öffentliche Storage-URL mit Cache-Bust für zuverlässiges Überschreiben im Browser. */
-export function withProfileImageCacheBust(url: string, version = Date.now()): string {
+export function withProfileImageCacheBust(url: string, version: string | number = Date.now()): string {
   const trimmed = url.trim();
   if (!trimmed) return trimmed;
   const base = trimmed.split("?")[0];
-  return `${base}?v=${version}`;
+  return `${base}?v=${encodeURIComponent(String(version))}`;
+}
+
+export function resolveProfileHeroImageSrc(
+  url: string | null | undefined,
+  cacheKey?: string | null
+): string | null {
+  const src = (url ?? "").trim();
+  if (!src) return null;
+  if (cacheKey?.trim()) return withProfileImageCacheBust(src, cacheKey.trim());
+  return src;
 }
 
 /** Bild im Hintergrund vorladen — reduziert sichtbares Nachladen. */

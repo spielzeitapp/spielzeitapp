@@ -106,8 +106,8 @@ function PlayerInfoChip({
   subdued?: boolean;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-2 rounded-lg border border-white/[0.06] bg-[#141414]/88 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#E50914]/28 bg-[#E50914]/8 text-[#E50914]">
+    <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-[#E50914]/22 bg-gradient-to-b from-[#1a0808]/95 to-[#0c0c0c]/95 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(229,9,20,0.08),0_4px_16px_rgba(0,0,0,0.35)]">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#E50914]/38 bg-[#E50914]/12 text-[#E50914] shadow-[inset_0_1px_0_rgba(229,9,20,0.15)]">
         {icon}
       </div>
       <div className="min-w-0">
@@ -372,6 +372,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             photoUrl={(photoUrl ?? "").trim() || avatarSrc}
             cutoutUrl={player.cutout_url}
             initials={initials(player)}
+            imageCacheKey={player.id}
           />
 
           {ageLabel || birthYearLabel ? (

@@ -14,7 +14,6 @@ import {
 import { useTeamSeasonCoachStats } from "../hooks/useTeamSeasonCoachStats";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
-import { ProfileChip } from "../components/team/ProfileChip";
 import { ProfileStatTile } from "../components/team/ProfileStatTile";
 import { ProfileHeroCard } from "../components/team/profile/ProfileHeroCard";
 import { ProfileFooterCards } from "../components/team/profile/ProfileFooterCards";
@@ -177,21 +176,13 @@ export const TrainerProfilePage: React.FC = () => {
               teamSeasonLabel={teamSeasonLabel}
               teamName={teamName}
               roleLabel={staffRoleLabelDe(member.role).toUpperCase()}
-              photoUrl={avatarUrl}
-              cutoutUrl={member.cutout_url}
+              photoUrl={avatarUrl || null}
+              cutoutUrl={member.cutout_url ?? null}
               initials={initials}
+              imageCacheKey={member.user_id}
             />
 
-            <div className="mb-4 flex flex-wrap gap-1.5 sm:gap-2">
-              {member.email?.trim() ? (
-                <ProfileChip>
-                  <span className="max-w-[12rem] truncate sm:max-w-none">E-Mail: {member.email.trim()}</span>
-                </ProfileChip>
-              ) : null}
-              {member.phone?.trim() ? <ProfileChip>Tel.: {member.phone.trim()}</ProfileChip> : null}
-            </div>
-
-            <h2 className="mb-2.5 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+            <h2 className="mb-2.5 mt-4 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
               Trainerstatistik
             </h2>
             <div className="grid grid-cols-2 gap-2 sm:gap-2.5">

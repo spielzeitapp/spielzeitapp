@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  hasCutoutUrl,
   HERO_CARD_CLASS,
   HeroAvatarInSlot,
   HeroClubLogoWatermark,
@@ -11,9 +10,8 @@ import {
   HeroSeasonLine,
   HeroTeamHeaderLine,
   PremiumHeroStadiumAtmosphere,
-  profileHeroLayoutMode,
-  resolveProfileCutoutSrc,
   splitTeamSeasonLabel,
+  useProfileHeroCutoutState,
   useProfileHeroImagePreload,
   useStadiumBackgroundUrl,
 } from "./profileHeroShared";
@@ -36,6 +34,7 @@ type Props = {
   photoUrl?: string | null;
   cutoutUrl?: string | null;
   initials: string;
+  imageCacheKey?: string | null;
   showTacticalBoard?: boolean;
 };
 
@@ -50,20 +49,18 @@ function PlayerProfileHeroCard(props: Props) {
     photoUrl,
     cutoutUrl,
     initials,
+    imageCacheKey,
   } = props;
   const stadiumBgUrl = useStadiumBackgroundUrl();
-  const cutoutSrc = hasCutoutUrl(cutoutUrl) ? resolveProfileCutoutSrc(cutoutUrl) : null;
-  const [cutoutImageOk, setCutoutImageOk] = React.useState(true);
+  const {
+    isCutoutLayout,
+    cutoutSrc,
+    showAvatarFallback,
+    onCutoutLoad,
+    onCutoutError,
+  } = useProfileHeroCutoutState(cutoutUrl, imageCacheKey);
 
-  React.useEffect(() => {
-    setCutoutImageOk(true);
-  }, [cutoutUrl]);
-
-  useProfileHeroImagePreload(cutoutUrl, photoUrl);
-
-  const isCutoutLayout = profileHeroLayoutMode(cutoutUrl) === "cutout";
-  const showCutoutImage = isCutoutLayout && cutoutImageOk && Boolean(cutoutSrc);
-  const showAvatarFallback = !showCutoutImage;
+  useProfileHeroImagePreload(cutoutUrl, photoUrl, imageCacheKey);
 
   const parsed = splitTeamSeasonLabel(teamSeasonLabel);
   const teamLine = (teamName ?? "").trim() || parsed.team;
@@ -78,10 +75,10 @@ function PlayerProfileHeroCard(props: Props) {
       {isCutoutLayout && cutoutSrc ? (
         <HeroCutoutLayer
           cutoutSrc={cutoutSrc}
-          visible={showCutoutImage}
+          visible
           variant="player"
-          onLoad={() => setCutoutImageOk(true)}
-          onError={() => setCutoutImageOk(false)}
+          onLoad={onCutoutLoad}
+          onError={onCutoutError}
         />
       ) : null}
 
@@ -103,9 +100,12 @@ function PlayerProfileHeroCard(props: Props) {
         </div>
 
         <div className="relative z-[1] w-[52%] max-w-[14rem] shrink-0 sm:max-w-[15rem]" aria-hidden>
-          {!isCutoutLayout || showAvatarFallback ? (
-            <HeroAvatarInSlot photoUrl={photoUrl} initials={initials} visible />
-          ) : null}
+          <HeroAvatarInSlot
+            photoUrl={photoUrl}
+            initials={initials}
+            visible={showAvatarFallback}
+            imageCacheKey={imageCacheKey}
+          />
         </div>
       </div>
     </div>
