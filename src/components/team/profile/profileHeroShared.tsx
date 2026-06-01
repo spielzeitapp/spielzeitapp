@@ -238,7 +238,7 @@ export function HeroAvatarInSlot({
 
 const CUTOUT_IMG_CLASS = {
   player:
-    "absolute bottom-0 right-[-10%] h-[152%] w-auto max-h-none max-w-[78%] object-contain object-right-bottom sm:max-w-[74%]",
+    "absolute bottom-0 right-[-10%] h-[165%] w-auto max-h-none max-w-[80%] object-contain object-right-bottom sm:max-w-[76%]",
   trainer:
     "absolute bottom-0 right-[-6%] h-[128%] w-auto max-h-none max-w-[68%] object-contain object-right-bottom sm:max-w-[64%]",
 } as const;
