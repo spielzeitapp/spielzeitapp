@@ -8,29 +8,37 @@ export const STAT_ICON_WATERMARK_CLASS = "h-[4.75rem] w-[4.75rem] text-red-400/[
 
 const deco = STAT_ICON_WATERMARK_CLASS;
 
+const statImgWatermarkClass = "object-contain object-right-top opacity-[0.18] [filter:none]";
+
+function profileNavIconSrc(file: string): string {
+  const b = import.meta.env.BASE_URL || "/";
+  const base = b.endsWith("/") ? b : `${b}/`;
+  return `${base}icons/${file}`;
+}
+
+/** Spiele — Termine-Navigation (pitch.svg). */
 export function StatIconPitch({ className = deco }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
-      <rect x="2.25" y="4.25" width="19.5" height="15.5" rx="2" stroke="currentColor" strokeWidth="1.8" />
-      <line x1="12" y1="4.25" x2="12" y2="19.75" stroke="currentColor" strokeWidth="1.8" />
-      <circle cx="12" cy="12" r="2.9" stroke="currentColor" strokeWidth="1.8" />
-      <rect x="2.25" y="8.1" width="4.25" height="7.8" stroke="currentColor" strokeWidth="1.8" />
-      <rect x="17.5" y="8.1" width="4.25" height="7.8" stroke="currentColor" strokeWidth="1.8" />
-    </svg>
+    <img
+      src={profileNavIconSrc("pitch.svg")}
+      alt=""
+      aria-hidden
+      draggable={false}
+      className={`${statImgWatermarkClass} ${className}`}
+    />
   );
 }
 
+/** Tore — Home-Navigation (home-ball.png). */
 export function StatIconFootball({ className = deco }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="8.25" stroke="currentColor" strokeWidth="1.8" />
-      <path
-        d="M12 4.2l2.1 3.2 3.7.5-2.7 2.6.6 3.7-3.3-1.7-3.3 1.7.6-3.7-2.7-2.6 3.7-.5L12 4.2z"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <img
+      src={profileNavIconSrc("home-ball.png")}
+      alt=""
+      aria-hidden
+      draggable={false}
+      className={`${statImgWatermarkClass} ${className}`}
+    />
   );
 }
 
