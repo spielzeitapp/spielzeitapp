@@ -16,11 +16,11 @@ function profileNavIconSrc(file: string): string {
   return `${base}icons/${file}`;
 }
 
-/** Spiele — Termine-Navigation (pitch.svg), img für stabiles Laden auf Safari/PWA. */
+/** Spiele — rotes Spielfeld (pitch-red.svg), img für stabiles Laden auf Safari/PWA. */
 export function StatIconPitch({ className = deco }: IconProps) {
   return (
     <img
-      src={profileNavIconSrc("pitch.svg")}
+      src={profileNavIconSrc("pitch-red.svg")}
       alt=""
       aria-hidden
       draggable={false}
@@ -29,11 +29,11 @@ export function StatIconPitch({ className = deco }: IconProps) {
   );
 }
 
-/** Tore — Home-Navigation (home-ball.png), img für stabiles Laden auf Safari/PWA. */
+/** Tore — roter Ball (home-ball-red.png), img für stabiles Laden auf Safari/PWA. */
 export function StatIconFootball({ className = deco }: IconProps) {
   return (
     <img
-      src={profileNavIconSrc("home-ball.png")}
+      src={profileNavIconSrc("home-ball-red.png")}
       alt=""
       aria-hidden
       draggable={false}
