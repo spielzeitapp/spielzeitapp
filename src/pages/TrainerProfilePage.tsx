@@ -221,7 +221,7 @@ export const TrainerProfilePage: React.FC = () => {
               email={member.email}
               teamName={teamName}
               seasonName={seasonName}
-              roleLabel={staffRoleLabelDe(member.role)}
+              roleLabel=""
             />
 
             {canManage ? (

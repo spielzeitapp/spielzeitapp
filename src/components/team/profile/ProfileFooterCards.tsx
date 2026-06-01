@@ -58,10 +58,12 @@ export const ProfileTeamCard: React.FC<TeamProps> = ({ teamName, seasonName, rol
             <div className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Saison</div>
             <div className="text-[14px] font-semibold text-white">{seasonName}</div>
           </div>
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Rolle</div>
-            <div className="text-[14px] font-semibold text-white">{roleLabel}</div>
-          </div>
+          {(roleLabel ?? "").trim() ? (
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Rolle</div>
+              <div className="text-[14px] font-semibold text-white">{roleLabel}</div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

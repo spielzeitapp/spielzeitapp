@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
-import { Activity, CalendarDays, Trophy } from "lucide-react";
+import { Activity, CalendarDays, Trophy, User } from "lucide-react";
 import { ProfileCompactHeader } from "./profile/ProfileCompactHeader";
 import { ProfileHeroCard } from "./profile/ProfileHeroCard";
 import { ProfileStatTile } from "./ProfileStatTile";
-import { ProfileTeamCard } from "./profile/ProfileFooterCards";
 import { PLAYER_STAT_TILES } from "./profile/profileStatIcons";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { usePlayerStats } from "../../hooks/usePlayerStats";
@@ -74,13 +73,16 @@ function getAge(dateString: string | null | undefined): number | null {
   return age;
 }
 
-function formatBirthdateWithAge(birthdate: string | null | undefined): string | null {
+function getBirthYear(birthdate: string | null | undefined): string | null {
   if (!birthdate) return null;
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(birthdate.trim());
-  if (!m) return null;
-  const formatted = `${m[3]}.${m[2]}.${m[1]}`;
+  const m = /^(\d{4})/.exec(birthdate.trim());
+  return m ? m[1] : null;
+}
+
+function formatAgeLabel(birthdate: string | null | undefined): string | null {
   const age = getAge(birthdate);
-  return age != null ? `${formatted} (${age})` : formatted;
+  if (age == null) return null;
+  return `${age} Jahre`;
 }
 
 function SeasonMiniCell({ label, value }: { label: string; value: string }) {
@@ -278,7 +280,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const positionDisplay = getTrainingPositionDisplay(player.position);
   const positionHeroLabel =
     positionDisplay !== "—" ? positionDisplay.toUpperCase() : (positionFull || positionLabel).toUpperCase();
-  const birthdateLabel = formatBirthdateWithAge(player.birthdate);
+  const ageLabel = formatAgeLabel(player.birthdate);
+  const birthYearLabel = getBirthYear(player.birthdate);
   const teamTrainingRatePct = trainingStats.teamRatePct;
   const activityTrainingRatePct = trainingStats.activityRatePct;
   const trainingsPresent = trainingStats.present;
@@ -485,17 +488,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 </div>
               </div>
 
-              <div className="mt-6">
-                <ProfileTeamCard
-                  teamName={(teamSeasonLabel ?? "Team").split(" · ")[0] ?? "Team"}
-                  seasonName={
-                    (teamSeasonLabel ?? "").includes(" · ")
-                      ? (teamSeasonLabel ?? "").split(" · ").slice(1).join(" · ")
-                      : "—"
-                  }
-                  roleLabel={positionLabel}
-                />
-              </div>
             </>
           ) : null}
 
