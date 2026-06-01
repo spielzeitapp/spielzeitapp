@@ -157,11 +157,9 @@ export function HeroTeamHeaderLine({ teamLine }: { teamLine: string }) {
   const clubText = (club || teamLine.toUpperCase()).trim();
 
   return (
-    <p className="flex min-w-0 max-w-full items-center overflow-hidden whitespace-nowrap text-[10px] font-semibold uppercase leading-none tracking-[0.08em] sm:text-[10.5px] sm:tracking-[0.09em]">
-      {ageGroup ? <span className="shrink-0 text-[#E50914]/85">{ageGroup}</span> : null}
-      {ageGroup ? <span className="shrink-0 text-white/72">&nbsp;</span> : null}
-      <span className="min-w-0 truncate text-white/72">{clubText}</span>
-      <span className="shrink-0 pl-1.5 text-[#E50914]/58"> ////</span>
+    <p className="whitespace-nowrap text-[9px] font-semibold uppercase leading-none tracking-[0.06em] text-white/72 sm:text-[10px] sm:tracking-[0.07em]">
+      {ageGroup ? <span className="text-[#E50914]/85">{ageGroup} </span> : null}
+      <span>{clubText}</span>
     </p>
   );
 }
