@@ -116,8 +116,12 @@ export function HeroPrimaryMark({
   variant?: "trainer" | "player";
 }) {
   const isPlayer = variant === "player";
-  const opacity = isPlayer ? 0.3 : 0.28;
+  const opacity = isPlayer ? 0.33 : 0.28;
   const texture = isPlayer ? MARK_TEXTURE_PLAYER : MARK_TEXTURE_TRAINER;
+  const textStroke = isPlayer ? "1.5px rgba(255,255,255,0.24)" : "1.5px rgba(255,255,255,0.2)";
+  const textShadow = isPlayer
+    ? "0 2px 22px rgba(0,0,0,0.58), 0 0 32px rgba(255,255,255,0.06)"
+    : "0 4px 32px rgba(0,0,0,0.5), 0 0 48px rgba(255,255,255,0.1)";
 
   return (
     <div
@@ -135,9 +139,9 @@ export function HeroPrimaryMark({
           backgroundImage: texture,
           WebkitBackgroundClip: "text",
           backgroundClip: "text",
-          WebkitTextStroke: "1.5px rgba(255,255,255,0.2)",
+          WebkitTextStroke: textStroke,
           paintOrder: "stroke fill",
-          textShadow: "0 4px 32px rgba(0,0,0,0.5), 0 0 48px rgba(255,255,255,0.1)",
+          textShadow,
           WebkitMaskImage: "linear-gradient(180deg, black 0%, black 72%, rgba(0,0,0,0.3) 100%)",
           maskImage: "linear-gradient(180deg, black 0%, black 72%, rgba(0,0,0,0.3) 100%)",
         }}
