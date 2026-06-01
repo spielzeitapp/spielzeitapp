@@ -27,6 +27,21 @@ export type PlayerProfileModalProps = {
 
 type ProfileTab = "overview" | "matches" | "achievements" | "training";
 
+const APPEARANCE_MATCH_CARD_CLASS =
+  "relative overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(25,25,28,0.96)] to-[rgba(80,12,20,0.22)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_28px_rgba(220,38,38,0.12),0_10px_32px_rgba(0,0,0,0.45)]";
+
+const APPEARANCE_MATCH_SCORE_CLASS =
+  "relative shrink-0 overflow-hidden rounded-xl border border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(25,25,28,0.96)] to-[rgba(80,12,20,0.22)] px-2.5 py-1.5 text-[22px] font-bold tabular-nums leading-none text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_16px_rgba(220,38,38,0.1)]";
+
+const EINSATZ_MINUTES_CHIP_CLASS =
+  "inline-flex shrink-0 items-center rounded-full border border-red-500/30 bg-red-500/[0.12] px-2.5 py-0.5 text-[12px] font-extrabold uppercase tracking-wide text-white/90 shadow-[0_0_16px_rgba(220,38,38,0.12)]";
+
+function appearancePitchWatermarkSrc(): string {
+  const b = import.meta.env.BASE_URL || "/";
+  const base = b.endsWith("/") ? b : `${b}/`;
+  return `${base}icons/pitch-red.svg`;
+}
+
 function displayFullName(p: PlayerItem): string {
   const first = (p.first_name ?? "").trim();
   const last = (p.last_name ?? "").trim();
@@ -130,17 +145,23 @@ function PlayerInfoChip({
 
 function EinsatzBadge({ kind, label }: { kind: "full" | "sub_in" | "bank" | "partial"; label: string }) {
   const base =
-    "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[12px] font-extrabold uppercase tracking-wide";
+    "inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[12px] font-extrabold uppercase tracking-wide";
+  if (kind === "full" || kind === "partial") {
+    return <span className={EINSATZ_MINUTES_CHIP_CLASS}>{label}</span>;
+  }
   if (kind === "bank") {
-    return <span className={`${base} border-white/20 bg-white/10 text-white/55`}>{label}</span>;
+    return (
+      <span
+        className={`${base} border-[rgba(220,38,38,0.22)] bg-[rgba(25,25,28,0.88)] text-white/55 shadow-[0_0_12px_rgba(220,38,38,0.08)]`}
+      >
+        {label}
+      </span>
+    );
   }
   if (kind === "sub_in") {
     return <span className={`${base} border-emerald-500/45 bg-emerald-950/50 text-emerald-100`}>{label}</span>;
   }
-  if (kind === "full") {
-    return <span className={`${base} border-red-500/40 bg-red-950/45 text-red-100`}>{label}</span>;
-  }
-  return <span className={`${base} border-amber-500/35 bg-amber-950/40 text-amber-100`}>{label}</span>;
+  return <span className={EINSATZ_MINUTES_CHIP_CLASS}>{label}</span>;
 }
 
 const TAB_CONFIG: { id: ProfileTab; label: string }[] = [
@@ -510,9 +531,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 Letzte Spiele
               </h4>
               {statsLoading ? (
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {[0, 1, 2].map((i) => (
-                    <div key={`em-skel-${i}`} className="h-[5.5rem] animate-pulse rounded-2xl bg-white/[0.06]" />
+                    <div
+                      key={`em-skel-${i}`}
+                      className="h-[5.5rem] animate-pulse rounded-2xl border border-[rgba(220,38,38,0.18)] bg-[rgba(25,25,28,0.55)]"
+                    />
                   ))}
                 </div>
               ) : lastMatches.length === 0 ? (
@@ -522,22 +546,28 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
               ) : (
                 <ul className="space-y-2.5">
                   {lastMatches.map((m) => (
-                    <li
-                      key={m.match_id}
-                      className="rounded-2xl border border-white/12 bg-gradient-to-br from-white/[0.07] to-black/50 p-3 shadow-[0_0_28px_rgba(220,38,38,0.07)]"
-                    >
-                      <div className="flex items-start justify-between gap-2">
+                    <li key={m.match_id} className={APPEARANCE_MATCH_CARD_CLASS}>
+                      <div
+                        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_100%_0%,rgba(220,38,38,0.14)_0%,transparent_55%)]"
+                        aria-hidden
+                      />
+                      <img
+                        src={appearancePitchWatermarkSrc()}
+                        alt=""
+                        aria-hidden
+                        draggable={false}
+                        className="pointer-events-none absolute -right-1 -top-1 h-[4.75rem] w-[4.75rem] object-contain object-right-top opacity-[0.07]"
+                      />
+                      <div className="relative flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="text-[12px] font-semibold uppercase tracking-wide text-white/60">
+                          <div className="text-[12px] font-semibold uppercase tracking-wide text-white/65">
                             {m.dateLabel}
                           </div>
-                          <div className="mt-1 truncate text-[17px] font-bold text-white">{m.opponent}</div>
+                          <div className="mt-1 truncate text-[17px] font-bold leading-tight text-white">{m.opponent}</div>
                         </div>
-                        <div className="shrink-0 rounded-lg border border-white/15 bg-black/45 px-2 py-1 text-[22px] font-bold tabular-nums text-white">
-                          {m.result}
-                        </div>
+                        <div className={APPEARANCE_MATCH_SCORE_CLASS}>{m.result}</div>
                       </div>
-                      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+                      <div className="relative mt-2.5 flex flex-wrap items-center justify-between gap-2">
                         <EinsatzBadge kind={m.badgeKind} label={m.badgeLabel} />
                         <span className="text-sm font-bold tabular-nums text-amber-200/95">
                           ⚽ {m.goals}
