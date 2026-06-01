@@ -38,6 +38,13 @@ type Props = {
   showTacticalBoard?: boolean;
 };
 
+function resolvePlayerHeroSeasonLine(teamSeasonLabel: string): string {
+  const parsed = splitTeamSeasonLabel(teamSeasonLabel);
+  if (parsed.season) return parsed.season;
+  const paren = /\(([^)]+)\)/.exec((teamSeasonLabel ?? "").trim());
+  return paren?.[1]?.trim() ?? "";
+}
+
 function PlayerProfileHeroCard(props: Props) {
   const {
     watermark,
@@ -65,7 +72,7 @@ function PlayerProfileHeroCard(props: Props) {
 
   const parsed = splitTeamSeasonLabel(teamSeasonLabel);
   const teamLine = (teamName ?? "").trim() || parsed.team;
-  const seasonLine = parsed.season;
+  const seasonLine = resolvePlayerHeroSeasonLine(teamSeasonLabel);
   const position = (roleLabel ?? "").trim().toUpperCase();
 
   return (
