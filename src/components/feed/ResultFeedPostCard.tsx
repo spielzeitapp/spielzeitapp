@@ -7,8 +7,16 @@ import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
-import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
+import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../match/matchCardLabels';
 import { isValidLogoUrl } from '../../utils/logoResolver';
+import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNaming';
+import { FeedClubName } from './FeedClubName';
+import {
+  FEED_CAPTION_FOOTER_CLASS,
+  FEED_TIMESTAMP_CLASS,
+  FeedCaption,
+  FeedMatchMetaLine,
+} from './feedTypography';
 
 type Props = {
   post: ResultFeedPostRow;
@@ -16,8 +24,6 @@ type Props = {
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
 };
-
-const HASHTAG = '#GEMEINSAMEINTEAM';
 
 function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
@@ -65,37 +71,6 @@ function LogoImg({ src }: { src: string }) {
         if (imgSrc !== '/logos/placeholder-shield-a.png') setImgSrc('/logos/placeholder-shield-a.png');
       }}
     />
-  );
-}
-
-function CaptionBody({ text }: { text: string }) {
-  const nodes = useMemo(() => {
-    if (!text.includes(HASHTAG)) {
-      return { before: text, tag: null as string | null };
-    }
-    const i = text.lastIndexOf(HASHTAG);
-    return {
-      before: text.slice(0, i).replace(/\s+$/, ''),
-      tag: HASHTAG,
-    };
-  }, [text]);
-
-  if (!nodes.tag) {
-    return <>{text}</>;
-  }
-
-  return (
-    <>
-      {nodes.before ? (
-        <>
-          {nodes.before}
-          {'\n'}
-        </>
-      ) : null}
-      <span className="bg-gradient-to-r from-red-500 via-red-400 to-white bg-clip-text font-extrabold tracking-wide text-transparent drop-shadow-[0_0_18px_rgba(248,113,113,0.45)]">
-        {nodes.tag}
-      </span>
-    </>
   );
 }
 
@@ -167,8 +142,11 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
   const toGame = p.deep_link.startsWith('/') ? p.deep_link : `/${p.deep_link}`;
 
+  const matchMetaLine = buildFeedMatchMetaLine(
+    pickFeedAgeGroup(teamLabel, p.home_team_name, p.away_team_name),
+    getMatchTypeLabel(p.match_type ?? undefined) || null,
+  );
   const metaBits = [
-    p.match_type?.trim() || null,
     kickoffLabel !== '—' ? `Anpfiff ${kickoffLabel}` : null,
     meetingLabel ? `Treff ${meetingLabel}` : null,
   ].filter(Boolean);
@@ -205,7 +183,9 @@ export const ResultFeedPostCard: React.FC<Props> = ({
           ) : null}
         </div>
 
-        <div className="relative flex justify-center pb-1 pt-1">
+        <FeedMatchMetaLine line={matchMetaLine} className="relative text-center" />
+
+        <div className="relative flex justify-center pb-1 pt-0.5">
           <span
             className="inline-flex items-center justify-center rounded-full border border-amber-300/55 bg-gradient-to-b from-amber-400/35 via-amber-600/20 to-amber-950/70 px-[0.65rem] py-1 text-[10px] font-black uppercase tracking-[0.24em] text-amber-50 shadow-[0_0_28px_rgba(251,191,36,0.45),0_0_12px_rgba(245,158,11,0.25),inset_0_1px_0_rgba(255,255,255,0.2)] sm:px-4 sm:text-[11px] sm:tracking-[0.26em]"
             aria-label="Endstand"
@@ -218,9 +198,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
           <div className="flex min-w-0 flex-col items-center gap-0.5 text-center">
             <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-white/28">Heim</span>
             <LogoImg src={p.home_logo_url} />
-            <p className="line-clamp-2 max-w-full break-words px-0.5 text-center text-[10px] font-bold leading-tight text-white/88 [text-wrap:balance] sm:text-[11px]">
-              {p.home_team_name}
-            </p>
+            <FeedClubName fullName={p.home_team_name} variant="result" className="w-full px-0.5" />
           </div>
 
           <div className="flex min-w-0 flex-col items-center justify-center px-0.5 sm:px-1">
@@ -266,20 +244,20 @@ export const ResultFeedPostCard: React.FC<Props> = ({
         </div>
 
         {filteredScorers.length > 0 ? (
-          <div className="relative mt-1.5 rounded-lg bg-black/28 px-2 py-1 sm:px-2.5 sm:py-1.5">
-            <p className="text-[8px] font-semibold uppercase tracking-wider text-white/35">Torschützen</p>
-            <ul className="mt-0.5 space-y-0">
+          <div className="relative mt-2.5 overflow-hidden rounded-xl border border-[rgba(220,38,38,0.22)] bg-gradient-to-br from-[rgba(25,25,28,0.72)] to-[rgba(80,12,20,0.14)] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_20px_rgba(220,38,38,0.08)] sm:px-3.5 sm:py-3">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/42">Torschützen</p>
+            <ul className="mt-1.5 space-y-1.5">
               {filteredScorers.map((s, i) => {
                 const minOk = isSensibleScorerMinute(s.minute_label);
                 const minShown = showScorerMinutes && minOk ? s.minute_label.trim() : null;
                 return (
                   <li
                     key={`${s.player_name}-${i}`}
-                    className={`grid gap-x-2 text-[12px] leading-tight text-white/90 sm:text-[13px] ${showScorerMinutes ? 'grid-cols-[1fr_auto]' : 'grid-cols-1'}`}
+                    className={`grid gap-x-3 text-[12px] leading-snug text-white/92 sm:text-[13px] ${showScorerMinutes ? 'grid-cols-[1fr_auto]' : 'grid-cols-1'}`}
                   >
                     <span className="min-w-0 break-words [text-wrap:balance]">{s.player_name.trim()}</span>
                     {showScorerMinutes ? (
-                      <span className="w-9 shrink-0 text-right tabular-nums text-[11px] text-white/40 sm:w-10 sm:text-xs">
+                      <span className="w-9 shrink-0 text-right tabular-nums text-[11px] text-white/45 sm:w-10 sm:text-xs">
                         {minShown ?? ''}
                       </span>
                     ) : null}
@@ -291,10 +269,8 @@ export const ResultFeedPostCard: React.FC<Props> = ({
         ) : null}
       </div>
 
-      <div className="min-w-0 border-t border-white/[0.04] bg-[#060606]/95 px-2.5 pb-[max(0.5rem,calc(0.25rem+env(safe-area-inset-bottom,0px)))] pt-3 sm:px-3 sm:pt-3.5">
-        <p className="whitespace-pre-line px-0.5 text-[16px] font-medium leading-snug text-white/94 sm:text-[17px]">
-          <CaptionBody text={post.caption} />
-        </p>
+      <div className={FEED_CAPTION_FOOTER_CLASS}>
+        <FeedCaption text={post.caption} />
 
         {shareHint ? <p className="mt-2 text-center text-[12px] text-white/55">{shareHint}</p> : null}
 

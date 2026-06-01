@@ -1,5 +1,8 @@
 import React from 'react';
+import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
+import { FeedClubName } from './FeedClubName';
+import { FeedMatchMetaLine } from './feedTypography';
 
 const PLACEHOLDER =
   (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '') + '/logos/placeholder-shield-a.png';
@@ -59,6 +62,10 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
     ref,
   ) {
   const typeLabel = getMatchTypeLabel(matchType ?? undefined);
+  const matchMetaLine = buildFeedMatchMetaLine(
+    pickFeedAgeGroup(homeTeamName, awayTeamName),
+    typeLabel,
+  );
 
   let badgeText = 'HEUTE';
   if (status === 'live') badgeText = 'LIVE';
@@ -105,19 +112,16 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/88 sm:text-xs">
             SpielzeitApp
           </p>
-          {typeLabel ? (
-            <p className="pt-0.5 text-xs font-medium text-white/55 sm:text-sm">{typeLabel}</p>
-          ) : null}
           <p className="text-xs text-white/55 sm:text-sm">{venueLabel}</p>
         </div>
 
+        <FeedMatchMetaLine line={matchMetaLine} className="w-full text-center" />
+
         {/* Duell — großzügig für Share / Thumbnail */}
         <div className="flex w-full max-w-none items-center justify-between gap-2 sm:gap-5">
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-3">
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 sm:gap-3">
             <LogoImg src={homeLogoUrl} alt={homeTeamName} />
-            <p className="w-full px-0.5 text-center text-[13px] font-semibold leading-snug text-white/92 sm:text-base">
-              {homeTeamName}
-            </p>
+            <FeedClubName fullName={homeTeamName} variant="poster" className="w-full px-0.5" />
           </div>
 
           <div className="flex shrink-0 flex-col items-center justify-center px-1 sm:px-2">
@@ -138,11 +142,9 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
             />
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-3">
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 sm:gap-3">
             <LogoImg src={awayLogoUrl} alt={awayTeamName} />
-            <p className="w-full px-0.5 text-center text-[13px] font-semibold leading-snug text-white/92 sm:text-base">
-              {awayTeamName}
-            </p>
+            <FeedClubName fullName={awayTeamName} variant="poster" className="w-full px-0.5" />
           </div>
         </div>
 

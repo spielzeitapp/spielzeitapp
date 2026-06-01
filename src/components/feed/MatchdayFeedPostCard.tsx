@@ -14,6 +14,12 @@ import { matchdayPosterDomToPngBlob } from '../../lib/matchdayPosterExport';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
+import {
+  FEED_POST_BODY_CLASS,
+  FEED_POST_HEADER_CLASS,
+  FEED_TIMESTAMP_CLASS,
+  FeedCaption,
+} from './feedTypography';
 
 type Props = {
   post: TeamFeedPostRow;
@@ -249,10 +255,10 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           'inset 0 0 80px rgba(80,10,10,0.08), 0 20px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(220,38,38,0.07)',
       }}
     >
-      <header className="flex items-start justify-between gap-3 border-b border-white/[0.05] bg-black/25 px-4 py-3.5 sm:px-5">
+      <header className={`${FEED_POST_HEADER_CLASS} bg-black/25`}>
         <div className="min-w-0 flex-1">
           <FeedCardHeaderBrand teamLabel={teamLabel} />
-          <p className="mt-1 text-xs text-white/65">{whenLabel}</p>
+          <p className={FEED_TIMESTAMP_CLASS}>{whenLabel}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {staffCanDelete && onFeedPostDeleted ? (
@@ -264,8 +270,8 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
         </div>
       </header>
 
-      <div className="min-w-0 space-y-4 px-3 pb-4 pt-4 sm:px-5">
-        <p className="text-[15px] font-medium leading-relaxed text-white/95 sm:text-base">{post.caption}</p>
+      <div className={`${FEED_POST_BODY_CLASS} space-y-4 pb-4 sm:pb-5`}>
+        {post.caption?.trim() ? <FeedCaption text={post.caption} /> : null}
         <MatchdayPosterCard
           ref={posterCaptureRef}
           homeTeamName={p.display_home_name}

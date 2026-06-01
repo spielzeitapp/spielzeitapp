@@ -8,6 +8,13 @@ import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
+import {
+  FEED_ACTIONS_ROW_CLASS,
+  FEED_POST_BODY_CLASS,
+  FEED_POST_HEADER_CLASS,
+  FEED_TIMESTAMP_CLASS,
+  FeedCaption,
+} from './feedTypography';
 
 type Props = {
   post: TeamFeedPostDbRow;
@@ -92,7 +99,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
         </div>
       </header>
 
-      <div className="min-w-0 space-y-3 px-3 pb-3 pt-3 sm:px-4">
+      <div className={FEED_POST_BODY_CLASS}>
         {resolvedSrc ? (
           <div className="overflow-hidden rounded-2xl border border-red-900/25 bg-black">
             <img
@@ -109,14 +116,11 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
           </div>
         )}
 
-        <p className="px-0.5 text-[15px] font-medium leading-relaxed text-white/95 sm:text-base">{post.caption}</p>
+        {post.caption?.trim() ? <FeedCaption text={post.caption} /> : null}
 
         {shareHint ? <p className="text-center text-[13px] text-white/65">{shareHint}</p> : null}
 
-        <div
-          className="flex items-center justify-between gap-0.5 border-t border-white/[0.06] px-0.5 pt-3"
-          style={{ boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.06)' }}
-        >
+        <div className={FEED_ACTIONS_ROW_CLASS} style={{ boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.06)' }}>
           <button
             type="button"
             onClick={onToggleLike}

@@ -8,6 +8,13 @@ import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
+import {
+  FEED_ACTIONS_ROW_CLASS,
+  FEED_POST_BODY_CLASS,
+  FEED_POST_HEADER_CLASS,
+  FEED_TIMESTAMP_CLASS,
+  FeedCaption,
+} from './feedTypography';
 
 type Props = {
   post: TeamFeedPostDbRow;
@@ -211,10 +218,10 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
           'inset 0 0 70px rgba(120,20,20,0.12), 0 20px 44px rgba(0,0,0,0.58), 0 0 0 1px rgba(220,38,38,0.12), 0 0 36px -8px rgba(220,38,38,0.18)',
       }}
     >
-      <header className="flex items-start justify-between gap-3 border-b border-white/[0.05] bg-black/35 px-3 py-3 sm:px-4">
+      <header className={FEED_POST_HEADER_CLASS}>
         <div className="min-w-0 flex-1">
           <FeedCardHeaderBrand teamLabel={teamLabel} />
-          <p className="mt-1 text-xs text-white/65">{whenLabel}</p>
+          <p className={FEED_TIMESTAMP_CLASS}>{whenLabel}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {staffCanDelete && onFeedPostDeleted ? (
@@ -226,7 +233,7 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
         </div>
       </header>
 
-      <div className="min-w-0 space-y-3 px-3 pb-3 pt-3 sm:px-4">
+      <div className={FEED_POST_BODY_CLASS}>
         <div
           ref={videoShellRef}
           className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-red-900/30 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black"
@@ -301,14 +308,11 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
           ) : null}
         </div>
 
-        <p className="px-0.5 text-[15px] font-medium leading-relaxed text-white/95 sm:text-base">{post.caption}</p>
+        {post.caption?.trim() ? <FeedCaption text={post.caption} /> : null}
 
         {shareHint ? <p className="text-center text-[13px] text-white/65">{shareHint}</p> : null}
 
-        <div
-          className="flex items-center justify-between gap-0.5 border-t border-white/[0.06] px-0.5 pt-3"
-          style={{ boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.06)' }}
-        >
+        <div className={FEED_ACTIONS_ROW_CLASS} style={{ boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.06)' }}>
           <button
             type="button"
             onClick={onToggleLike}
