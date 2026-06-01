@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { saveMatchSquadOnly } from '../../lib/liveMatchService';
+import { MinimumPlaytimeMatchSettings } from '../../components/live/MinimumPlaytimeMatchSettings';
+import { DEFAULT_MINIMUM_PLAYTIME_MINUTES } from '../../lib/minimumPlaytime';
 import { supabase } from '../../lib/supabaseClient';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 import { premiumPlayerDisplayName } from '../../lib/premiumPlayerCard';
@@ -28,6 +30,8 @@ type MatchRowLite = {
   id: string;
   team_season_id: string;
   opponent: string | null;
+  minimum_playtime_enabled: boolean | null;
+  minimum_playtime_minutes: number | null;
 };
 
 type PrepStatus = 'available' | 'open' | 'absent';
@@ -72,7 +76,11 @@ export const MatchPreparationPage: React.FC = () => {
       setMatchLoading(true);
       setMatchError(null);
       const [{ data, error }, lineupRes, benchRes] = await Promise.all([
-        supabase.from('matches').select('id, team_season_id, opponent').eq('id', matchId).maybeSingle(),
+        supabase
+          .from('matches')
+          .select('id, team_season_id, opponent, minimum_playtime_enabled, minimum_playtime_minutes')
+          .eq('id', matchId)
+          .maybeSingle(),
         supabase.from('match_lineup').select('player_id').eq('match_id', matchId),
         supabase.from('match_bench').select('player_id').eq('match_id', matchId),
       ]);
@@ -331,6 +339,25 @@ export const MatchPreparationPage: React.FC = () => {
         {renderSection('Verfügbar', grouped.available, 'available')}
         {renderSection('Offen', grouped.open, 'open')}
         {renderSection('Abgesagt', grouped.absent, 'absent')}
+
+        {matchId && matchRow ? (
+          <MinimumPlaytimeMatchSettings
+            matchId={matchId}
+            enabled={Boolean(matchRow.minimum_playtime_enabled)}
+            minutes={matchRow.minimum_playtime_minutes ?? DEFAULT_MINIMUM_PLAYTIME_MINUTES}
+            onSaved={(patch) =>
+              setMatchRow((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      minimum_playtime_enabled: patch.enabled,
+                      minimum_playtime_minutes: patch.minutes,
+                    }
+                  : prev,
+              )
+            }
+          />
+        ) : null}
 
         <section className={`flex flex-col ${DS_SECTION_GAP}`}>
           <h2 className={dsSectionLabelClass()}>Matchkader: {selectedPlayersAvailableOnly.length} Spieler</h2>

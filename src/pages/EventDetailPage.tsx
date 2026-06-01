@@ -64,6 +64,8 @@ import {
 } from '../lib/premiumDesignSystem';
 import { upsertMatchForSetup } from '../lib/liveMatchService';
 import { fetchMatchById, updateMatchRow } from '../lib/liveMatchService';
+import { MinimumPlaytimeMatchSettings } from '../components/live/MinimumPlaytimeMatchSettings';
+import { DEFAULT_MINIMUM_PLAYTIME_MINUTES } from '../lib/minimumPlaytime';
 import { buildPauseDelimitedPeriodScoreLine, type MatchEngineEvent } from '../lib/matchEngine';
 import {
   countStadiumGoalsFromMatchEventRows,
@@ -419,6 +421,10 @@ export const EventDetailPage: React.FC = () => {
   /** Spiel-Termine ohne events.match_id: einmalig Match-Zeile anlegen und verknüpfen (RLS: matches_insert). */
   const [matchLinkBusy, setMatchLinkBusy] = useState(false);
   const [matchLinkError, setMatchLinkError] = useState<string | null>(null);
+  const [matchMinPlaytime, setMatchMinPlaytime] = useState<{
+    enabled: boolean;
+    minutes: number;
+  } | null>(null);
 
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedSaving, setFeedSaving] = useState(false);
@@ -549,6 +555,29 @@ export const EventDetailPage: React.FC = () => {
       cancelled = true;
     };
   }, [event?.match_id, isFinishedMatchEvent]);
+
+  useEffect(() => {
+    if (!event?.match_id || event.kind !== 'match' || !canTrainerManageEvent) {
+      setMatchMinPlaytime(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const res = await fetchMatchById(event.match_id!);
+      if (cancelled) return;
+      if (res.data) {
+        setMatchMinPlaytime({
+          enabled: Boolean(res.data.minimum_playtime_enabled),
+          minutes: res.data.minimum_playtime_minutes ?? DEFAULT_MINIMUM_PLAYTIME_MINUTES,
+        });
+      } else {
+        setMatchMinPlaytime(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [event?.match_id, event?.kind, canTrainerManageEvent]);
 
   useEffect(() => {
     if (!isFinishedMatchEvent || !event?.match_id) return;
@@ -3180,13 +3209,23 @@ export const EventDetailPage: React.FC = () => {
             {canTrainerManageEvent ? (
               <div className={`flex flex-col gap-3 ${isTraining ? 'relative z-[1]' : ''}`}>
                 {event.kind === 'match' && event.match_id ? (
-                  <button
-                    type="button"
-                    className={`mb-1 w-full ${dsPrimaryCtaClass()}`}
-                    onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(event.match_id)}`)}
-                  >
-                    Match vorbereiten
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className={`mb-1 w-full ${dsPrimaryCtaClass()}`}
+                      onClick={() => navigate(`/app/match-preparation?matchId=${encodeURIComponent(event.match_id)}`)}
+                    >
+                      Match vorbereiten
+                    </button>
+                    {matchMinPlaytime ? (
+                      <MinimumPlaytimeMatchSettings
+                        matchId={event.match_id}
+                        enabled={matchMinPlaytime.enabled}
+                        minutes={matchMinPlaytime.minutes}
+                        onSaved={(patch) => setMatchMinPlaytime(patch)}
+                      />
+                    ) : null}
+                  </>
                 ) : null}
                 {isTraining ? (
                   <TrainingAttendancePanel

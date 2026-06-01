@@ -49,6 +49,15 @@ import {
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
 import { getMatchSides } from '../../lib/matchSides';
+import {
+  DEFAULT_MINIMUM_PLAYTIME_MINUTES,
+  formatMinimumPlaytimeProgress,
+  formatMissingMinutesLabel,
+  getMinimumPlaytimePlayerStatus,
+  isBelowMinimumPlaytime,
+  minimumPlaytimeSecondsFromMinutes,
+  normalizeMinimumPlaytimeMinutes,
+} from '../../lib/minimumPlaytime';
 import { countOccupiedFieldSlots } from '../../lib/liveLineupNormalize';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
@@ -1363,6 +1372,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [pauseConfirmOpen, setPauseConfirmOpen] = useState(false);
   const [pauseConfirmSaving, setPauseConfirmSaving] = useState(false);
   const [endeConfirmOpen, setEndeConfirmOpen] = useState(false);
+  const [minPlaytimeEndWarnOpen, setMinPlaytimeEndWarnOpen] = useState(false);
   const [spielAbschlussOpen, setSpielAbschlussOpen] = useState(false);
   const [calendarFinalized, setCalendarFinalized] = useState(false);
   const [goalUndoOffer, setGoalUndoOffer] = useState<{
@@ -1598,6 +1608,33 @@ export const LiveMatchScreen: React.FC = () => {
   const activePlayerIds = liveReplayState.activePlayerIds;
   const fairPlayExtraPlayerId = liveReplayState.fairPlayExtraPlayerId;
   const playtimes = liveReplayState.playtimeSecondsByPlayerId;
+
+  const minimumPlaytimeEnabled = Boolean(matchRow?.minimum_playtime_enabled);
+  const minimumPlaytimeMinutes = normalizeMinimumPlaytimeMinutes(
+    matchRow?.minimum_playtime_minutes ?? DEFAULT_MINIMUM_PLAYTIME_MINUTES,
+  );
+  const minimumPlaytimeRequiredSec = minimumPlaytimeSecondsFromMinutes(minimumPlaytimeMinutes);
+
+  const belowMinimumPlaytimePlayers = useMemo(() => {
+    if (!minimumPlaytimeEnabled) return [];
+    const squadSet = new Set(squadPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean));
+    const rows: { id: string; name: string; missingSeconds: number; playedMinutes: number }[] = [];
+    for (const id of squadSet) {
+      const sec = playtimes[id] ?? 0;
+      if (!isBelowMinimumPlaytime(sec, minimumPlaytimeMinutes)) continue;
+      const st = getMinimumPlaytimePlayerStatus(sec, minimumPlaytimeMinutes);
+      rows.push({
+        id,
+        name: (rosterById.get(id)?.name ?? '?').trim() || '?',
+        missingSeconds: st.missingSeconds,
+        playedMinutes: st.playedMinutes,
+      });
+    }
+    rows.sort((a, b) => b.missingSeconds - a.missingSeconds || a.name.localeCompare(b.name, 'de'));
+    return rows;
+  }, [minimumPlaytimeEnabled, squadPlayerIds, playtimes, minimumPlaytimeMinutes, rosterById]);
+
+  const belowMinimumPlaytimeCount = belowMinimumPlaytimePlayers.length;
   const fairPlayGoalDiffOwnMinusOpp = useMemo(() => {
     const own = sides.isOwnTeamHome ? displayScoreHome : displayScoreAway;
     const opp = sides.isOwnTeamHome ? displayScoreAway : displayScoreHome;
@@ -1960,7 +1997,12 @@ export const LiveMatchScreen: React.FC = () => {
 
     const pt = (id: string) => Math.max(0, playtimes[id] ?? 0);
     const fieldSorted = [...new Set(fieldIds)].sort((a, b) => pt(b) - pt(a));
-    const benchSorted = [...new Set(benchIds)].sort((a, b) => pt(a) - pt(b));
+    const benchUnique = [...new Set(benchIds)];
+    const benchBelowMin = benchUnique.filter((id) => pt(id) < minimumPlaytimeRequiredSec);
+    const benchAboveMin = benchUnique.filter((id) => pt(id) >= minimumPlaytimeRequiredSec);
+    const benchPriority = minimumPlaytimeEnabled
+      ? [...benchBelowMin.sort((a, b) => pt(a) - pt(b)), ...benchAboveMin.sort((a, b) => pt(a) - pt(b))]
+      : [...benchUnique].sort((a, b) => pt(a) - pt(b));
 
     const used = new Set<string>();
     const pairs: {
@@ -1970,14 +2012,16 @@ export const LiveMatchScreen: React.FC = () => {
       inName: string;
       outSec: number;
       inSec: number;
+      reason: 'minimum_playtime' | 'balance';
     }[] = [];
 
     const tryPair = (oid: string, matcher: (bid: string) => boolean): boolean => {
       if (used.has(oid)) return false;
-      const inId = benchSorted.find((bid) => !used.has(bid) && matcher(bid));
+      const inId = benchPriority.find((bid) => !used.has(bid) && matcher(bid));
       if (!inId) return false;
       used.add(oid);
       used.add(inId);
+      const inBelowMin = minimumPlaytimeEnabled && pt(inId) < minimumPlaytimeRequiredSec;
       pairs.push({
         outId: oid,
         inId,
@@ -1985,6 +2029,7 @@ export const LiveMatchScreen: React.FC = () => {
         inName: (rosterById.get(inId)?.name ?? '?').trim() || '?',
         outSec: pt(oid),
         inSec: pt(inId),
+        reason: inBelowMin ? 'minimum_playtime' : 'balance',
       });
       return true;
     };
@@ -2003,6 +2048,10 @@ export const LiveMatchScreen: React.FC = () => {
       if (!slot || slot === 'GK') continue;
       tryPair(oid, () => true);
     }
+    pairs.sort((a, b) => {
+      const rank = (r: typeof a.reason) => (r === 'minimum_playtime' ? 0 : 1);
+      return rank(a.reason) - rank(b.reason);
+    });
     return pairs;
   }, [
     matchIsFinished,
@@ -2013,6 +2062,8 @@ export const LiveMatchScreen: React.FC = () => {
     playtimes,
     rosterById,
     liveReplayState.benchPlayerIds,
+    minimumPlaytimeEnabled,
+    minimumPlaytimeRequiredSec,
   ]);
 
   const subSuggestionSig = substitutionSuggestions.map((s) => `${s.outId}:${s.inId}`).join('|');
@@ -4510,6 +4561,24 @@ export const LiveMatchScreen: React.FC = () => {
               <h2 className="mb-0.5 px-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-gray-400">
                 Wechsel-Vorschläge
               </h2>
+              {minimumPlaytimeEnabled && belowMinimumPlaytimeCount > 0 ? (
+                <div className="mb-1 flex flex-wrap items-center justify-between gap-1 rounded-md border border-amber-500/30 bg-amber-950/25 px-2 py-1">
+                  <p className="text-[10px] font-semibold leading-snug text-amber-100/95">
+                    <span aria-hidden className="mr-0.5">
+                      ⚠
+                    </span>
+                    {belowMinimumPlaytimeCount}{' '}
+                    {belowMinimumPlaytimeCount === 1 ? 'Spieler' : 'Spieler'} unter Mindestspielzeit
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setMainTab('time')}
+                    className="shrink-0 text-[10px] font-bold text-amber-200/95 underline decoration-amber-500/40 underline-offset-2"
+                  >
+                    Statistik ansehen
+                  </button>
+                </div>
+              ) : null}
               <div className="space-y-1">
                 {matchRow?.status !== 'live' && !matchIsFinished ? (
                   <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center text-[12px] text-white/55">
@@ -4539,7 +4608,34 @@ export const LiveMatchScreen: React.FC = () => {
                               </span>
                             </p>
                           </div>
-                          <p className="mt-0.5 text-[10px] leading-snug text-white/40">Mehr Spielzeit für Bankspieler</p>
+                          {sug.reason === 'minimum_playtime' ? (
+                            <>
+                              <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-amber-200/90">
+                                Grund: Mindestspielzeit
+                              </p>
+                              <p className="text-[10px] leading-snug text-white/55">
+                                {sug.inName}:{' '}
+                                {formatMinimumPlaytimeProgress(
+                                  getMinimumPlaytimePlayerStatus(sug.inSec, minimumPlaytimeMinutes).playedMinutes,
+                                  minimumPlaytimeMinutes,
+                                )}
+                                {(() => {
+                                  const miss = getMinimumPlaytimePlayerStatus(sug.inSec, minimumPlaytimeMinutes)
+                                    .missingSeconds;
+                                  const lbl = formatMissingMinutesLabel(miss);
+                                  return lbl ? (
+                                    <>
+                                      <br />
+                                      <span className="text-amber-200/85">{lbl}</span>
+                                      <span className="text-white/45"> · Priorität hoch</span>
+                                    </>
+                                  ) : null;
+                                })()}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="mt-0.5 text-[10px] leading-snug text-white/40">Mehr Spielzeit für Bankspieler</p>
+                          )}
                           <button
                             type="button"
                             disabled={matchIsFinished}
@@ -4628,6 +4724,55 @@ export const LiveMatchScreen: React.FC = () => {
                             ? 'Am Feld'
                             : 'Auf der Bank'}
                       </p>
+                      {minimumPlaytimeEnabled ? (
+                        (() => {
+                          const minSt = getMinimumPlaytimePlayerStatus(sec, minimumPlaytimeMinutes);
+                          const missLbl = formatMissingMinutesLabel(minSt.missingSeconds);
+                          const icon =
+                            minSt.status === 'ok' ? '✅' : minSt.status === 'warning' ? '⚠' : '🔴';
+                          const pct = Math.min(
+                            100,
+                            Math.round((minSt.playedSeconds / minimumPlaytimeRequiredSec) * 100),
+                          );
+                          return (
+                            <div className="mt-1 space-y-0.5">
+                              <p
+                                className={`text-[10px] font-semibold leading-snug ${
+                                  minSt.status === 'ok'
+                                    ? 'text-emerald-300/95'
+                                    : minSt.status === 'warning'
+                                      ? 'text-amber-200/90'
+                                      : 'text-red-300/90'
+                                }`}
+                              >
+                                {formatMinimumPlaytimeProgress(
+                                  minSt.playedMinutes,
+                                  minimumPlaytimeMinutes,
+                                )}{' '}
+                                {icon}
+                              </p>
+                              {missLbl ? (
+                                <p className="text-[10px] text-white/50">{missLbl}</p>
+                              ) : null}
+                              <div
+                                className="h-1 w-full max-w-[120px] overflow-hidden rounded-full bg-white/10"
+                                aria-hidden
+                              >
+                                <div
+                                  className={`h-full rounded-full ${
+                                    minSt.status === 'ok'
+                                      ? 'bg-emerald-500/80'
+                                      : minSt.status === 'warning'
+                                        ? 'bg-amber-500/75'
+                                        : 'bg-red-500/70'
+                                  }`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })()
+                      ) : null}
                     </div>
                     <span
                       className={`shrink-0 font-mono text-base font-semibold tabular-nums tracking-tight ${
@@ -5655,12 +5800,82 @@ export const LiveMatchScreen: React.FC = () => {
                 <button
                   type="button"
                   className="flex h-14 min-h-14 min-w-0 flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-red-600 to-red-950 px-3 text-sm font-black uppercase tracking-wide text-white shadow-[0_0_22px_rgba(220,38,38,0.38)] active:scale-[0.99]"
-                  onClick={async () => {
+                  onClick={() => {
+                    if (minimumPlaytimeEnabled && belowMinimumPlaytimeCount > 0) {
+                      setEndeConfirmOpen(false);
+                      setMinPlaytimeEndWarnOpen(true);
+                      return;
+                    }
                     setEndeConfirmOpen(false);
-                    await persistMatchEndWithoutCalendar();
+                    void persistMatchEndWithoutCalendar();
                   }}
                 >
                   Ende
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {minPlaytimeEndWarnOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex min-h-dvh items-center justify-center overflow-y-auto overscroll-y-contain bg-black/85 px-4 pt-[max(3rem,env(safe-area-inset-top,0px))] pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] backdrop-blur-sm sm:py-6"
+          role="presentation"
+          onClick={() => setMinPlaytimeEndWarnOpen(false)}
+        >
+          <div
+            className="my-auto flex w-full max-w-md max-h-[82dvh] flex-col overflow-hidden rounded-2xl border-2 border-amber-500/50 bg-zinc-950 shadow-[0_0_40px_rgba(0,0,0,0.85)]"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="min-playtime-end-title"
+          >
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3 pt-4 sm:px-5 sm:pt-5">
+              <h3 id="min-playtime-end-title" className="text-xl font-black leading-tight tracking-tight text-white">
+                <span aria-hidden className="mr-1">
+                  ⚠
+                </span>
+                Mindestspielzeit nicht erreicht
+              </h3>
+              <p className="mt-2 text-[15px] font-medium leading-snug text-zinc-300">
+                {belowMinimumPlaytimeCount}{' '}
+                {belowMinimumPlaytimeCount === 1
+                  ? 'Spieler hat die Mindestspielzeit noch nicht erreicht.'
+                  : 'Spieler haben die Mindestspielzeit noch nicht erreicht.'}
+              </p>
+              <ul className="mt-3 space-y-1.5">
+                {belowMinimumPlaytimePlayers.map((p) => (
+                  <li key={p.id} className="text-[14px] leading-snug text-white/88">
+                    <span className="font-semibold text-white">{p.name}</span>
+                    <span className="text-white/55">: {formatMissingMinutesLabel(p.missingSeconds)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div
+              className="sticky bottom-0 z-10 shrink-0 border-t border-white/[0.06] bg-zinc-950 px-4 pt-2.5 sm:px-5"
+              style={{
+                paddingBottom: 'max(12px, calc(env(safe-area-inset-bottom, 0px) + 5.25rem))',
+              }}
+            >
+              <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-stretch">
+                <button
+                  type="button"
+                  className="flex h-14 min-h-14 min-w-0 flex-1 items-center justify-center rounded-xl border border-white/12 bg-zinc-950 px-3 text-sm font-semibold text-zinc-300 shadow-none active:scale-[0.99]"
+                  onClick={() => setMinPlaytimeEndWarnOpen(false)}
+                >
+                  Zurück
+                </button>
+                <button
+                  type="button"
+                  className="flex h-14 min-h-14 min-w-0 flex-1 items-center justify-center rounded-xl bg-gradient-to-b from-red-600 to-red-950 px-3 text-sm font-black uppercase tracking-wide text-white shadow-[0_0_22px_rgba(220,38,38,0.38)] active:scale-[0.99]"
+                  onClick={() => {
+                    setMinPlaytimeEndWarnOpen(false);
+                    void persistMatchEndWithoutCalendar();
+                  }}
+                >
+                  Spiel trotzdem beenden
                 </button>
               </div>
             </div>
