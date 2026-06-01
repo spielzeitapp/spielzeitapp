@@ -154,16 +154,14 @@ export function HeroPrimaryMark({
 
 export function HeroTeamHeaderLine({ teamLine }: { teamLine: string }) {
   const { ageGroup, club } = splitPlayerTeamHeader(teamLine);
+  const clubText = (club || teamLine.toUpperCase()).trim();
+
   return (
-    <p className="text-[10px] font-extrabold uppercase leading-tight tracking-[0.1em] sm:text-[11px]">
-      {ageGroup ? (
-        <>
-          <span className="text-[#E50914]">{ageGroup}</span>
-          <span className="text-white/90"> </span>
-        </>
-      ) : null}
-      <span className="text-white/88">{club || teamLine.toUpperCase()}</span>
-      <span className="text-[#E50914]/80"> ////</span>
+    <p className="flex min-w-0 max-w-full items-center overflow-hidden whitespace-nowrap text-[10px] font-semibold uppercase leading-none tracking-[0.08em] sm:text-[10.5px] sm:tracking-[0.09em]">
+      {ageGroup ? <span className="shrink-0 text-[#E50914]/85">{ageGroup}</span> : null}
+      {ageGroup ? <span className="shrink-0 text-white/72">&nbsp;</span> : null}
+      <span className="min-w-0 truncate text-white/72">{clubText}</span>
+      <span className="shrink-0 pl-1.5 text-[#E50914]/58"> ////</span>
     </p>
   );
 }
