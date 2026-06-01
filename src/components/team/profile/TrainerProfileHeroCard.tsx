@@ -57,7 +57,11 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
   const showAvatarFallback = !showCutoutImage;
 
   const parsed = splitTeamSeasonLabel(teamSeasonLabel);
-  const teamLine = (teamName ?? "").trim() || parsed.team;
+  const teamLine =
+    (teamName ?? "").trim() ||
+    parsed.team ||
+    (teamSeasonLabel ?? "").split("·")[0]?.trim() ||
+    "";
   const seasonLine = parsed.season;
   const role = (roleLabel ?? "TRAINER").trim().toUpperCase();
 
@@ -78,7 +82,11 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
 
       <div className="relative flex h-full min-h-0 items-stretch justify-between gap-0 px-3 pb-2 pt-2.5 sm:px-4 sm:pb-2.5">
         <div className="relative z-[4] flex h-full min-w-0 max-w-[48%] flex-1 flex-col py-1 pl-0.5 pr-0.5 sm:max-w-[46%]">
-          {teamLine ? <HeroTeamHeaderLine teamLine={teamLine} /> : null}
+          {teamLine ? (
+            <div className="relative z-[6] mb-0.5 shrink-0 [text-shadow:0_1px_10px_rgba(0,0,0,0.85)]">
+              <HeroTeamHeaderLine teamLine={teamLine} />
+            </div>
+          ) : null}
 
           <div className="mt-0.5 shrink-0">
             <HeroPrimaryMark mark={watermark} variant="trainer" />
