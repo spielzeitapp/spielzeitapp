@@ -146,7 +146,7 @@ export const COACH_STAT_TILES = {
   trainings: StatIconTraining,
   games: StatIconPitch,
   wins: StatIconTrophy,
-  goalsFor: StatIconFootball,
+  goalsFor: PLAYER_STAT_TILES.goals,
   goalsAgainst: StatIconShield,
   pointsPerGame: StatIconTrendingUp,
 } as const;
