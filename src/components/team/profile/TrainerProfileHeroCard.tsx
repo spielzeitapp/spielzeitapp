@@ -5,7 +5,11 @@ import {
   HeroAvatarInSlot,
   HeroClubLogoWatermark,
   HeroCutoutLayer,
-  HeroTextStack,
+  HeroNameBlock,
+  HeroPrimaryMark,
+  HeroRoleLabel,
+  HeroSeasonLine,
+  HeroTeamHeaderLine,
   PremiumHeroStadiumAtmosphere,
   profileHeroLayoutMode,
   resolveProfileCutoutSrc,
@@ -73,15 +77,23 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
       ) : null}
 
       <div className="relative flex h-full min-h-0 items-stretch justify-between gap-0 px-3 pb-2 pt-2.5 sm:px-4 sm:pb-2.5">
-        <HeroTextStack
-          teamLine={teamLine}
-          mark={watermark}
-          markVariant="trainer"
-          roleLabel={role}
-          firstNameLine={firstNameLine}
-          lastNameLine={lastNameLine}
-          seasonLine={seasonLine}
-        />
+        <div className="relative z-[4] flex h-full min-w-0 max-w-[48%] flex-1 flex-col py-1 pl-0.5 pr-0.5 sm:max-w-[46%]">
+          {teamLine ? <HeroTeamHeaderLine teamLine={teamLine} /> : null}
+
+          <div className="mt-0.5 shrink-0">
+            <HeroPrimaryMark mark={watermark} variant="trainer" />
+          </div>
+
+          <HeroNameBlock firstNameLine={firstNameLine} lastNameLine={lastNameLine} />
+
+          {role ? (
+            <p className="pt-0.5">
+              <HeroRoleLabel>{role}</HeroRoleLabel>
+            </p>
+          ) : null}
+
+          <HeroSeasonLine seasonLine={seasonLine} />
+        </div>
 
         <div className="relative z-[1] w-[52%] max-w-[14rem] shrink-0 sm:max-w-[15rem]" aria-hidden>
           {!isCutoutLayout || showAvatarFallback ? (

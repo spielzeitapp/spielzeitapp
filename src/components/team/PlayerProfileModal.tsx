@@ -374,15 +374,24 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             initials={initials(player)}
           />
 
-          <div className="mb-3 grid grid-cols-2 gap-1.5">
-            {birthdateLabel ? (
-              <PlayerInfoChip
-                icon={<CalendarDays className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />}
-                label="Geburtsdatum"
-                value={birthdateLabel}
-              />
-            ) : null}
-          </div>
+          {ageLabel || birthYearLabel ? (
+            <div className="mb-3 grid grid-cols-2 gap-1.5">
+              {ageLabel ? (
+                <PlayerInfoChip
+                  icon={<User className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />}
+                  label="Alter"
+                  value={ageLabel}
+                />
+              ) : null}
+              {birthYearLabel ? (
+                <PlayerInfoChip
+                  icon={<CalendarDays className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />}
+                  label="Jahrgang"
+                  value={birthYearLabel}
+                />
+              ) : null}
+            </div>
+          ) : null}
 
           {canManage ? (
             <PlayerSpecialSettingsSection>
