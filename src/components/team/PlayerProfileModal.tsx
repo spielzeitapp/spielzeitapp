@@ -372,7 +372,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             photoUrl={(photoUrl ?? "").trim() || avatarSrc}
             cutoutUrl={player.cutout_url}
             initials={initials(player)}
-            imageCacheKey={player.id}
           />
 
           {ageLabel || birthYearLabel ? (

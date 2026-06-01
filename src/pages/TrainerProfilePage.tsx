@@ -179,7 +179,6 @@ export const TrainerProfilePage: React.FC = () => {
               photoUrl={avatarUrl || null}
               cutoutUrl={member.cutout_url ?? null}
               initials={initials}
-              imageCacheKey={member.user_id}
             />
 
             <h2 className="mb-2.5 mt-4 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">

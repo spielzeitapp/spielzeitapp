@@ -33,16 +33,6 @@ export function withProfileImageCacheBust(url: string, version: string | number 
   return `${base}?v=${encodeURIComponent(String(version))}`;
 }
 
-export function resolveProfileHeroImageSrc(
-  url: string | null | undefined,
-  cacheKey?: string | null
-): string | null {
-  const src = (url ?? "").trim();
-  if (!src) return null;
-  if (cacheKey?.trim()) return withProfileImageCacheBust(src, cacheKey.trim());
-  return src;
-}
-
 /** Bild im Hintergrund vorladen — reduziert sichtbares Nachladen. */
 export function preloadProfileHeroImage(url: string | null | undefined): void {
   const src = (url ?? "").trim();

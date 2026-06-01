@@ -1,5 +1,6 @@
 ﻿import React from "react";
 import {
+  hasCutoutUrl,
   HERO_CARD_CLASS,
   HeroAvatarInSlot,
   HeroClubLogoWatermark,
@@ -10,8 +11,9 @@ import {
   HeroSeasonLine,
   HeroTeamHeaderLine,
   PremiumHeroStadiumAtmosphere,
+  profileHeroLayoutMode,
+  resolveProfileCutoutSrc,
   splitTeamSeasonLabel,
-  useProfileHeroCutoutState,
   useProfileHeroImagePreload,
   useStadiumBackgroundUrl,
 } from "./profileHeroShared";
@@ -26,7 +28,6 @@ export type TrainerProfileHeroCardProps = {
   photoUrl?: string | null;
   cutoutUrl?: string | null;
   initials: string;
-  imageCacheKey?: string | null;
   showTacticalBoard?: boolean;
 };
 
@@ -40,18 +41,20 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
   photoUrl,
   cutoutUrl,
   initials,
-  imageCacheKey,
 }) => {
   const stadiumBgUrl = useStadiumBackgroundUrl();
-  const {
-    isCutoutLayout,
-    cutoutSrc,
-    showAvatarFallback,
-    onCutoutLoad,
-    onCutoutError,
-  } = useProfileHeroCutoutState(cutoutUrl, imageCacheKey);
+  const cutoutSrc = hasCutoutUrl(cutoutUrl) ? resolveProfileCutoutSrc(cutoutUrl) : null;
+  const [cutoutImageOk, setCutoutImageOk] = React.useState(true);
 
-  useProfileHeroImagePreload(cutoutUrl, photoUrl, imageCacheKey);
+  React.useEffect(() => {
+    setCutoutImageOk(true);
+  }, [cutoutUrl]);
+
+  useProfileHeroImagePreload(cutoutUrl, photoUrl);
+
+  const isCutoutLayout = profileHeroLayoutMode(cutoutUrl) === "cutout";
+  const showCutoutImage = isCutoutLayout && cutoutImageOk && Boolean(cutoutSrc);
+  const showAvatarFallback = !showCutoutImage;
 
   const parsed = splitTeamSeasonLabel(teamSeasonLabel);
   const teamLine = (teamName ?? "").trim() || parsed.team;
@@ -66,10 +69,10 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
       {isCutoutLayout && cutoutSrc ? (
         <HeroCutoutLayer
           cutoutSrc={cutoutSrc}
-          visible
+          visible={showCutoutImage}
           variant="trainer"
-          onLoad={onCutoutLoad}
-          onError={onCutoutError}
+          onLoad={() => setCutoutImageOk(true)}
+          onError={() => setCutoutImageOk(false)}
         />
       ) : null}
 
@@ -93,12 +96,9 @@ export const TrainerProfileHeroCard: React.FC<TrainerProfileHeroCardProps> = ({
         </div>
 
         <div className="relative z-[1] w-[52%] max-w-[14rem] shrink-0 sm:max-w-[15rem]" aria-hidden>
-          <HeroAvatarInSlot
-            photoUrl={photoUrl}
-            initials={initials}
-            visible={showAvatarFallback}
-            imageCacheKey={imageCacheKey}
-          />
+          {!isCutoutLayout || showAvatarFallback ? (
+            <HeroAvatarInSlot photoUrl={photoUrl} initials={initials} visible />
+          ) : null}
         </div>
       </div>
     </div>
