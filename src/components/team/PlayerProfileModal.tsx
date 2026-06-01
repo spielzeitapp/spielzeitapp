@@ -106,12 +106,12 @@ function PlayerInfoChip({
   subdued?: boolean;
 }) {
   return (
-    <div className="relative flex min-w-0 items-center gap-2.5 overflow-hidden rounded-2xl border border-red-500/22 bg-gradient-to-br from-[rgba(25,25,28,0.96)] to-[rgba(80,12,20,0.22)] px-2.5 py-2 shadow-[0_0_24px_rgba(239,68,68,0.1),0_8px_24px_rgba(0,0,0,0.42)]">
+    <div className="relative flex min-w-0 items-center gap-2.5 overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(25,25,28,0.96)] to-[rgba(80,12,20,0.22)] px-2.5 py-2 shadow-[0_0_28px_rgba(220,38,38,0.12),0_8px_24px_rgba(0,0,0,0.42)]">
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_100%_0%,rgba(220,38,38,0.12)_0%,transparent_55%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_100%_0%,rgba(220,38,38,0.14)_0%,transparent_55%)]"
         aria-hidden
       />
-      <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-red-500/25 bg-red-950/45 text-[#E50914]">
+      <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[rgba(220,38,38,0.28)] bg-red-950/45 text-[#E50914]">
         {icon}
       </div>
       <div className="relative min-w-0">
