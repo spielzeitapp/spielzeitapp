@@ -1,4 +1,5 @@
 import React from "react";
+import { getTrainingPlayerListSrc } from "../../../config/trainingIconVariant";
 
 type IconProps = { className?: string };
 
@@ -89,23 +90,20 @@ export function StatIconTarget({ className = deco }: IconProps) {
   );
 }
 
+/** Trainings — gleiches Motiv wie Termine/Training (TrainingPlayerIcon list). */
 export function StatIconTraining({ className = deco }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
-      <path
-        d="M6.5 7.5v9M17.5 7.5v9M6.5 12h11"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <rect x="4" y="5.5" width="5" height="3" rx="1" stroke="currentColor" strokeWidth="1.6" />
-      <rect x="15" y="5.5" width="5" height="3" rx="1" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="12" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M10 15.5h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
+    <img
+      src={getTrainingPlayerListSrc()}
+      alt=""
+      aria-hidden
+      draggable={false}
+      className={`object-contain object-right-top opacity-[0.18] [filter:none] ${className}`}
+    />
   );
 }
 
+/** Gegentore — Defensive/Schild (nur Trainerstatistik). */
 export function StatIconShield({ className = deco }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
@@ -115,7 +113,6 @@ export function StatIconShield({ className = deco }: IconProps) {
         strokeWidth="1.8"
         strokeLinejoin="round"
       />
-      <path d="M9.5 12.2 11.2 14l3.8-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
