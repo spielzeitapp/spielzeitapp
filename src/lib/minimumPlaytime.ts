@@ -4,21 +4,41 @@ export const DEFAULT_MINIMUM_PLAYTIME_MINUTES = 20;
 /** Fallback geplante Spielzeit (Minuten), wenn keine Match-Dauer hinterlegt ist. */
 export const DEFAULT_PLANNED_MATCH_MINUTES = 60;
 
+export const PLANNED_MATCH_MINUTE_PRESETS = [30, 40, 50, 60, 75, 90] as const;
+export const MINIMUM_PLAYTIME_MINUTE_PRESETS = [10, 15, 20, 25, 30] as const;
+
 export type MinimumPlaytimeStatus = 'ok' | 'warning' | 'critical';
 
 /** Dringlichkeit relativ zur verbleibenden effektiven Spielzeit. */
 export type MinimumPlaytimeUrgency = 'ok' | 'warning' | 'urgent' | 'critical';
 
-export function normalizeMinimumPlaytimeMinutes(value: unknown): number {
-  const n = Math.round(Number(value));
-  if (!Number.isFinite(n)) return DEFAULT_MINIMUM_PLAYTIME_MINUTES;
-  return Math.min(90, Math.max(1, n));
-}
-
 export function normalizePlannedMatchMinutes(value: unknown): number {
   const n = Math.round(Number(value));
   if (!Number.isFinite(n)) return DEFAULT_PLANNED_MATCH_MINUTES;
-  return Math.min(120, Math.max(30, n));
+  return Math.min(120, Math.max(15, n));
+}
+
+export function normalizeMinimumPlaytimeMinutes(
+  value: unknown,
+  plannedMinutes?: number | null,
+): number {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return DEFAULT_MINIMUM_PLAYTIME_MINUTES;
+  let v = Math.min(90, Math.max(1, n));
+  if (plannedMinutes != null && Number.isFinite(Number(plannedMinutes))) {
+    v = Math.min(v, normalizePlannedMatchMinutes(plannedMinutes));
+  }
+  return v;
+}
+
+export function minimumPlaytimeExceedsPlanned(
+  minimumMinutes: number,
+  plannedMinutes: number,
+): boolean {
+  const min = Math.round(Number(minimumMinutes));
+  const planned = normalizePlannedMatchMinutes(plannedMinutes);
+  if (!Number.isFinite(min)) return false;
+  return min > planned;
 }
 
 export function minimumPlaytimeSecondsFromMinutes(minutes: number): number {

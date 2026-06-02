@@ -4,7 +4,10 @@ import { usePlayers } from '../../hooks/usePlayers';
 import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { saveMatchSquadOnly } from '../../lib/liveMatchService';
 import { MinimumPlaytimeMatchSettings } from '../../components/live/MinimumPlaytimeMatchSettings';
-import { DEFAULT_MINIMUM_PLAYTIME_MINUTES } from '../../lib/minimumPlaytime';
+import {
+  DEFAULT_MINIMUM_PLAYTIME_MINUTES,
+  DEFAULT_PLANNED_MATCH_MINUTES,
+} from '../../lib/minimumPlaytime';
 import { supabase } from '../../lib/supabaseClient';
 import { MatchPlayerRow } from '../../components/match/MatchPlayerRow';
 import { premiumPlayerDisplayName } from '../../lib/premiumPlayerCard';
@@ -32,6 +35,7 @@ type MatchRowLite = {
   opponent: string | null;
   minimum_playtime_enabled: boolean | null;
   minimum_playtime_minutes: number | null;
+  planned_match_minutes: number | null;
 };
 
 type PrepStatus = 'available' | 'open' | 'absent';
@@ -78,7 +82,7 @@ export const MatchPreparationPage: React.FC = () => {
       const [{ data, error }, lineupRes, benchRes] = await Promise.all([
         supabase
           .from('matches')
-          .select('id, team_season_id, opponent, minimum_playtime_enabled, minimum_playtime_minutes')
+          .select('id, team_season_id, opponent, minimum_playtime_enabled, minimum_playtime_minutes, planned_match_minutes')
           .eq('id', matchId)
           .maybeSingle(),
         supabase.from('match_lineup').select('player_id').eq('match_id', matchId),
@@ -343,6 +347,7 @@ export const MatchPreparationPage: React.FC = () => {
         {matchId && matchRow ? (
           <MinimumPlaytimeMatchSettings
             matchId={matchId}
+            plannedMinutes={matchRow.planned_match_minutes ?? DEFAULT_PLANNED_MATCH_MINUTES}
             enabled={Boolean(matchRow.minimum_playtime_enabled)}
             minutes={matchRow.minimum_playtime_minutes ?? DEFAULT_MINIMUM_PLAYTIME_MINUTES}
             onSaved={(patch) =>
@@ -350,6 +355,7 @@ export const MatchPreparationPage: React.FC = () => {
                 prev
                   ? {
                       ...prev,
+                      planned_match_minutes: patch.plannedMinutes,
                       minimum_playtime_enabled: patch.enabled,
                       minimum_playtime_minutes: patch.minutes,
                     }

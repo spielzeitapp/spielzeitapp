@@ -65,7 +65,10 @@ import {
 import { upsertMatchForSetup } from '../lib/liveMatchService';
 import { fetchMatchById, updateMatchRow } from '../lib/liveMatchService';
 import { MinimumPlaytimeMatchSettings } from '../components/live/MinimumPlaytimeMatchSettings';
-import { DEFAULT_MINIMUM_PLAYTIME_MINUTES } from '../lib/minimumPlaytime';
+import {
+  DEFAULT_MINIMUM_PLAYTIME_MINUTES,
+  DEFAULT_PLANNED_MATCH_MINUTES,
+} from '../lib/minimumPlaytime';
 import { buildPauseDelimitedPeriodScoreLine, type MatchEngineEvent } from '../lib/matchEngine';
 import {
   countStadiumGoalsFromMatchEventRows,
@@ -422,6 +425,7 @@ export const EventDetailPage: React.FC = () => {
   const [matchLinkBusy, setMatchLinkBusy] = useState(false);
   const [matchLinkError, setMatchLinkError] = useState<string | null>(null);
   const [matchMinPlaytime, setMatchMinPlaytime] = useState<{
+    plannedMinutes: number;
     enabled: boolean;
     minutes: number;
   } | null>(null);
@@ -567,6 +571,7 @@ export const EventDetailPage: React.FC = () => {
       if (cancelled) return;
       if (res.data) {
         setMatchMinPlaytime({
+          plannedMinutes: res.data.planned_match_minutes ?? DEFAULT_PLANNED_MATCH_MINUTES,
           enabled: Boolean(res.data.minimum_playtime_enabled),
           minutes: res.data.minimum_playtime_minutes ?? DEFAULT_MINIMUM_PLAYTIME_MINUTES,
         });
@@ -3220,6 +3225,7 @@ export const EventDetailPage: React.FC = () => {
                     {matchMinPlaytime ? (
                       <MinimumPlaytimeMatchSettings
                         matchId={event.match_id}
+                        plannedMinutes={matchMinPlaytime.plannedMinutes}
                         enabled={matchMinPlaytime.enabled}
                         minutes={matchMinPlaytime.minutes}
                         onSaved={(patch) => setMatchMinPlaytime(patch)}

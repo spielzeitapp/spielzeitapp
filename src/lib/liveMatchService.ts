@@ -36,6 +36,7 @@ export type LiveMatchRow = {
   u11_formation_id: string | null;
   minimum_playtime_enabled: boolean | null;
   minimum_playtime_minutes: number | null;
+  planned_match_minutes: number | null;
 };
 
 /** UI-/Button-Logik: aus DB-Status + Uhr, ohne neue Spalten. */
@@ -315,7 +316,7 @@ export async function fetchMatchById(matchId: string): Promise<{ data: LiveMatch
   const { data, error } = await supabase
     .from('matches')
     .select(
-      'id, team_season_id, opponent, match_date, location, status, score_home, score_away, live_started_at, live_elapsed_seconds, live_is_running, live_period, period_scores, u11_formation_id, minimum_playtime_enabled, minimum_playtime_minutes',
+      'id, team_season_id, opponent, match_date, location, status, score_home, score_away, live_started_at, live_elapsed_seconds, live_is_running, live_period, period_scores, u11_formation_id, minimum_playtime_enabled, minimum_playtime_minutes, planned_match_minutes',
     )
     .eq('id', matchId)
     .maybeSingle();
@@ -329,7 +330,7 @@ export async function fetchFirstLiveMatch(): Promise<{ data: LiveMatchRow | null
   const { data, error } = await supabase
     .from('matches')
     .select(
-      'id, team_season_id, opponent, match_date, location, status, score_home, score_away, live_started_at, live_elapsed_seconds, live_is_running, live_period, period_scores, u11_formation_id, minimum_playtime_enabled, minimum_playtime_minutes',
+      'id, team_season_id, opponent, match_date, location, status, score_home, score_away, live_started_at, live_elapsed_seconds, live_is_running, live_period, period_scores, u11_formation_id, minimum_playtime_enabled, minimum_playtime_minutes, planned_match_minutes',
     )
     .eq('status', 'live')
     .order('match_date', { ascending: false })

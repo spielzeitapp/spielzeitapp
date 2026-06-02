@@ -61,7 +61,9 @@ import {
   isMinimumPlaytimeUrgent,
   minimumPlaytimeSecondsFromMinutes,
   minimumPlaytimeUrgencyRank,
+  DEFAULT_PLANNED_MATCH_MINUTES,
   normalizeMinimumPlaytimeMinutes,
+  normalizePlannedMatchMinutes,
   type MinimumPlaytimeUrgency,
 } from '../../lib/minimumPlaytime';
 import { countOccupiedFieldSlots } from '../../lib/liveLineupNormalize';
@@ -1615,19 +1617,19 @@ export const LiveMatchScreen: React.FC = () => {
   const fairPlayExtraPlayerId = liveReplayState.fairPlayExtraPlayerId;
   const playtimes = liveReplayState.playtimeSecondsByPlayerId;
 
+  const plannedMatchMinutes = normalizePlannedMatchMinutes(
+    matchRow?.planned_match_minutes ?? DEFAULT_PLANNED_MATCH_MINUTES,
+  );
   const minimumPlaytimeEnabled = Boolean(matchRow?.minimum_playtime_enabled);
   const minimumPlaytimeMinutes = normalizeMinimumPlaytimeMinutes(
     matchRow?.minimum_playtime_minutes ?? DEFAULT_MINIMUM_PLAYTIME_MINUTES,
+    plannedMatchMinutes,
   );
   const minimumPlaytimeRequiredSec = minimumPlaytimeSecondsFromMinutes(minimumPlaytimeMinutes);
 
   const plannedMatchDurationSec = useMemo(
-    () =>
-      getPlannedMatchDurationSeconds({
-        plannedMinutes:
-          (matchRow as { planned_match_minutes?: number | null } | null)?.planned_match_minutes ?? null,
-      }),
-    [matchRow],
+    () => getPlannedMatchDurationSeconds({ plannedMinutes: plannedMatchMinutes }),
+    [plannedMatchMinutes],
   );
 
   const remainingEffectiveMatchSec = useMemo(
@@ -4624,9 +4626,18 @@ export const LiveMatchScreen: React.FC = () => {
                 isPaused ? 'ring-2 ring-amber-300/35 ring-offset-1 ring-offset-black shadow-[0_0_24px_rgba(251,191,36,0.12)]' : '',
               ].join(' ')}
             >
-              <h2 className="mb-0.5 px-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-gray-400">
-                Wechsel-Vorschläge
-              </h2>
+              <div className="mb-0.5 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 px-0.5">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-400">
+                  Wechsel-Vorschläge
+                </h2>
+                {minimumPlaytimeEnabled ? (
+                  <p className="text-[10px] font-medium text-white/45">
+                    Spielzeit: {plannedMatchMinutes} min · Mindestspielzeit: {minimumPlaytimeMinutes} min
+                  </p>
+                ) : (
+                  <p className="text-[10px] font-medium text-white/40">Spielzeit: {plannedMatchMinutes} min</p>
+                )}
+              </div>
               {minimumPlaytimeEnabled && urgentMinimumPlaytimeAlerts.length > 0
                 ? urgentMinimumPlaytimeAlerts.slice(0, 2).map((alert) => (
                     <div
