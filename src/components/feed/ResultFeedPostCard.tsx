@@ -57,6 +57,60 @@ function isRealScorerName(name: string): boolean {
   return n.length > 0 && n !== '—' && n !== '–';
 }
 
+type ResultVisualState = 'win' | 'draw' | 'loss';
+
+function resultPresentation(state: ResultVisualState) {
+  if (state === 'win') {
+    return {
+      badge: 'SIEG',
+      headline: '🏆 SIEG!',
+      shellTint: 'from-emerald-950/[0.58] via-zinc-950/92 to-[#050508]',
+      radial:
+        'radial-gradient(ellipse 95% 55% at 50% 12%, rgba(251,191,36,0.38) 0%, transparent 54%), radial-gradient(ellipse 80% 45% at 50% 100%, rgba(0,0,0,0.55) 0%, transparent 55%)',
+      articleShadow:
+        'inset 0 0 60px rgba(120,80,10,0.14), 0 16px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(251,191,36,0.18), 0 0 32px -4px rgba(251,191,36,0.22)',
+      badgeClass:
+        'border-amber-300/60 bg-gradient-to-b from-amber-400/45 via-amber-600/25 to-amber-950/75 text-amber-50 shadow-[0_0_32px_rgba(251,191,36,0.5),0_0_14px_rgba(245,158,11,0.28),inset_0_1px_0_rgba(255,255,255,0.22)]',
+      headlineClass: 'text-[1.35rem] font-black uppercase tracking-[0.06em] text-amber-50 sm:text-2xl [text-shadow:0_0_28px_rgba(251,191,36,0.35)]',
+      scorersBorder: 'border-amber-500/28',
+      scorersGlow: 'shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_22px_rgba(251,191,36,0.12)]',
+      scorersTitle: 'text-amber-200/90',
+    };
+  }
+  if (state === 'loss') {
+    return {
+      badge: 'KOPF HOCH',
+      headline: '⚽ KOPF HOCH!',
+      shellTint: 'from-zinc-900/85 via-[#0c0606] to-black',
+      radial:
+        'radial-gradient(ellipse 95% 55% at 50% 12%, rgba(220,38,38,0.2) 0%, transparent 54%), radial-gradient(ellipse 80% 45% at 50% 100%, rgba(0,0,0,0.58) 0%, transparent 55%)',
+      articleShadow:
+        'inset 0 0 60px rgba(80,10,10,0.14), 0 16px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(220,38,38,0.14), 0 0 24px -6px rgba(185,28,28,0.18)',
+      badgeClass:
+        'border-red-500/35 bg-gradient-to-b from-red-950/55 via-zinc-950/80 to-black/90 text-red-100/95 shadow-[0_0_18px_rgba(185,28,28,0.22),inset_0_1px_0_rgba(255,255,255,0.06)]',
+      headlineClass: 'text-[1.2rem] font-black uppercase tracking-[0.05em] text-red-100/95 sm:text-[1.35rem] [text-shadow:0_0_18px_rgba(220,38,38,0.2)]',
+      scorersBorder: 'border-red-500/22',
+      scorersGlow: 'shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_16px_rgba(185,28,28,0.08)]',
+      scorersTitle: 'text-red-200/85',
+    };
+  }
+  return {
+    badge: 'UNENTSCHIEDEN',
+    headline: '🤝 UNENTSCHIEDEN!',
+    shellTint: 'from-slate-900/78 via-zinc-950/92 to-[#050508]',
+    radial:
+      'radial-gradient(ellipse 95% 55% at 50% 12%, rgba(255,255,255,0.12) 0%, transparent 54%), radial-gradient(ellipse 80% 45% at 50% 100%, rgba(0,0,0,0.55) 0%, transparent 55%)',
+    articleShadow:
+      'inset 0 0 60px rgba(40,40,48,0.12), 0 16px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08), 0 0 22px -8px rgba(255,255,255,0.06)',
+    badgeClass:
+      'border-white/22 bg-gradient-to-b from-zinc-700/45 via-zinc-900/75 to-zinc-950/90 text-white/92 shadow-[0_0_20px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.1)]',
+    headlineClass: 'text-[1.15rem] font-black uppercase tracking-[0.04em] text-white/95 sm:text-xl [text-shadow:0_0_16px_rgba(255,255,255,0.12)]',
+    scorersBorder: 'border-white/14',
+    scorersGlow: 'shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_14px_rgba(255,255,255,0.04)]',
+    scorersTitle: 'text-white/72',
+  };
+}
+
 function LogoImg({ src }: { src: string }) {
   const [imgSrc, setImgSrc] = useState(isValidLogoUrl(src) ? src : '/logos/placeholder-shield-a.png');
   useEffect(() => {
@@ -106,12 +160,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     [filteredScorers],
   );
 
-  const winTint =
-    p.result_state === 'win'
-      ? 'from-emerald-950/[0.55] via-zinc-950/90 to-[#050508]'
-      : p.result_state === 'loss'
-        ? 'from-zinc-900/80 via-[#0a0808] to-black'
-        : 'from-slate-900/75 via-zinc-950/92 to-[#050508]';
+  const presentation = resultPresentation(p.result_state);
 
   const onToggleLike = useCallback(() => {
     const next = !liked;
@@ -156,18 +205,15 @@ export const ResultFeedPostCard: React.FC<Props> = ({
   return (
     <article
       className="w-full min-w-0 overflow-hidden rounded-3xl border border-red-600/30 bg-[#050508] shadow-xl"
-      style={{
-        boxShadow:
-          'inset 0 0 60px rgba(80,10,10,0.12), 0 16px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(220,38,38,0.1), 0 0 28px -6px rgba(220,38,38,0.12)',
-      }}
+      style={{ boxShadow: presentation.articleShadow }}
+      data-feed-result-card="v2"
     >
-      <div className={`relative bg-gradient-to-b ${winTint} px-2.5 pb-2 pt-2 sm:px-3`}>
+      {/* feed-result-comments-v1: reserved slot for threaded comments MVP (no UI yet) */}
+      <div data-feed-comment-slot="reserved" hidden aria-hidden />
+      <div className={`relative bg-gradient-to-b ${presentation.shellTint} px-2.5 pb-2 pt-2 sm:px-3`}>
         <div
           className="pointer-events-none absolute inset-0 opacity-90"
-          style={{
-            background:
-              'radial-gradient(ellipse 95% 55% at 50% 18%, rgba(220,38,38,0.22) 0%, transparent 52%), radial-gradient(ellipse 80% 45% at 50% 100%, rgba(0,0,0,0.55) 0%, transparent 55%)',
-          }}
+          style={{ background: presentation.radial }}
         />
         <div className="pointer-events-none absolute inset-x-0 top-[28%] h-[42%] bg-[radial-gradient(ellipse_70%_80%_at_50%_50%,rgba(255,255,255,0.06),transparent_70%)]" />
 
@@ -185,13 +231,14 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
         <FeedMatchMetaLine line={matchMetaLine} className="relative text-center" />
 
-        <div className="relative flex justify-center pb-1 pt-0.5">
+        <div className="relative flex flex-col items-center gap-1 pb-0.5 pt-0.5">
           <span
-            className="inline-flex items-center justify-center rounded-full border border-amber-300/55 bg-gradient-to-b from-amber-400/35 via-amber-600/20 to-amber-950/70 px-[0.65rem] py-1 text-[10px] font-black uppercase tracking-[0.24em] text-amber-50 shadow-[0_0_28px_rgba(251,191,36,0.45),0_0_12px_rgba(245,158,11,0.25),inset_0_1px_0_rgba(255,255,255,0.2)] sm:px-4 sm:text-[11px] sm:tracking-[0.26em]"
-            aria-label="Endstand"
+            className={`inline-flex max-w-full items-center justify-center rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] sm:px-3 sm:text-[9px] sm:tracking-[0.18em] ${presentation.badgeClass}`}
+            aria-label={presentation.badge}
           >
-            Endstand
+            <span className="truncate">{presentation.badge}</span>
           </span>
+          <p className={`text-center leading-none ${presentation.headlineClass}`}>{presentation.headline}</p>
         </div>
 
         <div className="relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-0.5 gap-y-0 px-0 sm:gap-x-1">
@@ -203,7 +250,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
           <div className="flex min-w-0 flex-col items-center justify-center px-0.5 sm:px-1">
             <p
-              className="text-[3.35rem] font-black tabular-nums leading-none tracking-tighter text-white sm:text-[4rem] sm:tracking-tight"
+              className="text-[2.85rem] font-black tabular-nums leading-none tracking-tighter text-white min-[390px]:text-[3.15rem] sm:text-[4rem] sm:tracking-tight"
               style={{
                 textShadow:
                   '0 0 40px rgba(0,0,0,0.75), 0 6px 28px rgba(0,0,0,0.55), 0 0 2px rgba(255,255,255,0.12)',
@@ -244,20 +291,26 @@ export const ResultFeedPostCard: React.FC<Props> = ({
         </div>
 
         {filteredScorers.length > 0 ? (
-          <div className="relative mt-2.5 overflow-hidden rounded-xl border border-[rgba(220,38,38,0.22)] bg-gradient-to-br from-[rgba(25,25,28,0.72)] to-[rgba(80,12,20,0.14)] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_20px_rgba(220,38,38,0.08)] sm:px-3.5 sm:py-3">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/42">Torschützen</p>
-            <ul className="mt-1.5 space-y-1.5">
+          <div
+            className={`relative mt-2.5 overflow-hidden rounded-xl border bg-gradient-to-br from-[rgba(22,22,26,0.88)] to-[rgba(48,10,16,0.18)] px-3.5 py-3 sm:px-4 sm:py-3.5 ${presentation.scorersBorder} ${presentation.scorersGlow}`}
+          >
+            <p
+              className={`text-[10px] font-bold uppercase tracking-[0.14em] sm:text-[11px] sm:tracking-[0.16em] ${presentation.scorersTitle}`}
+            >
+              Torschützen
+            </p>
+            <ul className="mt-2 space-y-2">
               {filteredScorers.map((s, i) => {
                 const minOk = isSensibleScorerMinute(s.minute_label);
                 const minShown = showScorerMinutes && minOk ? s.minute_label.trim() : null;
                 return (
                   <li
                     key={`${s.player_name}-${i}`}
-                    className={`grid gap-x-3 text-[12px] leading-snug text-white/92 sm:text-[13px] ${showScorerMinutes ? 'grid-cols-[1fr_auto]' : 'grid-cols-1'}`}
+                    className={`grid gap-x-2.5 border-b border-white/[0.06] pb-2 text-[13px] font-medium leading-snug text-white/94 last:border-0 last:pb-0 sm:text-[14px] ${showScorerMinutes ? 'grid-cols-[minmax(0,1fr)_2.25rem]' : 'grid-cols-1'}`}
                   >
-                    <span className="min-w-0 break-words [text-wrap:balance]">{s.player_name.trim()}</span>
+                    <span className="min-w-0 break-words">{s.player_name.trim()}</span>
                     {showScorerMinutes ? (
-                      <span className="w-9 shrink-0 text-right tabular-nums text-[11px] text-white/45 sm:w-10 sm:text-xs">
+                      <span className="shrink-0 text-right tabular-nums text-[12px] font-semibold text-white/55 sm:text-[13px]">
                         {minShown ?? ''}
                       </span>
                     ) : null}
