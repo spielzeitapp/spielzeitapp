@@ -8,7 +8,7 @@ import {
   type ClassifiedFeedPost,
   type TeamFeedPostDbRow,
 } from '../lib/matchdayFeedTypes';
-import { buildEventStatusMap, sortClassifiedFeedPosts } from '../lib/feedPostPriority';
+import { buildEventStatusMap, sortTeamFeedPosts } from '../lib/feedPostPriority';
 import { supabase } from '../lib/supabaseClient';
 
 const FEED_SELECT =
@@ -53,7 +53,7 @@ async function fetchPosts(teamSeasonId: string): Promise<{
     if (c) mapped.push(c);
   }
 
-  const sorted = sortClassifiedFeedPosts(mapped, eventStatusById, now);
+  const sorted = sortTeamFeedPosts(mapped, eventStatusById, now);
 
   return {
     posts: sorted,

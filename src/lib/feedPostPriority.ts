@@ -101,20 +101,39 @@ function classifiedPostRow(item: ClassifiedFeedPost): TeamFeedPostDbRow {
   return item.post as TeamFeedPostDbRow;
 }
 
+/** Sortierzeit: created_at, sonst updated_at, sonst 0. */
+function feedPostSortTimestamp(row: TeamFeedPostDbRow): number {
+  const created = row.created_at ? new Date(row.created_at).getTime() : Number.NaN;
+  if (Number.isFinite(created)) return created;
+  const updated = row.updated_at ? new Date(row.updated_at).getTime() : Number.NaN;
+  if (Number.isFinite(updated)) return updated;
+  return 0;
+}
+
+function feedPostUpdatedTimestamp(row: TeamFeedPostDbRow): number {
+  const updated = row.updated_at ? new Date(row.updated_at).getTime() : Number.NaN;
+  return Number.isFinite(updated) ? updated : 0;
+}
+
+/** Home-Feed: neueste Nachricht zuerst; priority nur bei gleichem Zeitstempel. */
 export function sortClassifiedFeedPosts(
   items: ClassifiedFeedPost[],
   eventStatusById: Map<string, string>,
   now: Date = new Date(),
 ): ClassifiedFeedPost[] {
   return [...items].sort((a, b) => {
+    const ta = feedPostSortTimestamp(classifiedPostRow(a));
+    const tb = feedPostSortTimestamp(classifiedPostRow(b));
+    if (tb !== ta) return tb - ta;
     const pa = getFeedPostPriority(classifiedPostRow(a), eventStatusById, now);
     const pb = getFeedPostPriority(classifiedPostRow(b), eventStatusById, now);
     if (pb !== pa) return pb - pa;
-    const ta = new Date(a.post.created_at).getTime();
-    const tb = new Date(b.post.created_at).getTime();
-    return tb - ta;
+    return feedPostUpdatedTimestamp(classifiedPostRow(b)) - feedPostUpdatedTimestamp(classifiedPostRow(a));
   });
 }
+
+/** @alias sortClassifiedFeedPosts */
+export const sortTeamFeedPosts = sortClassifiedFeedPosts;
 
 /** Kalendertage zwischen now und eventStart in Europe/Vienna (0 = heute). */
 export function viennaCalendarDaysUntil(eventStart: Date, now: Date): number | null {
