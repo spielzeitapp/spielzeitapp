@@ -1,15 +1,17 @@
 import React, { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Share2 } from 'lucide-react';
+import { CalendarDays, Clock3, MapPin, Share2 } from 'lucide-react';
 import type { HomeMatchCardPick } from './homeFeedBuilder';
 import { HOME_FEED_HERO_STATUS_LABEL } from './homeFeedBuilder';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
-import { getOurTeamDisplayName } from '../../lib/teamLogos';
+import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatMeetupTimeOnlyDe } from '../../components/match/matchCardLabels';
+import { FeedClubName } from '../../components/feed/FeedClubName';
 
 const WELCOME_GRADIENT =
   'linear-gradient(180deg, rgba(40,5,5,0.97) 0%, rgba(20,0,0,0.98) 50%, rgba(10,0,0,0.99) 100%)';
 const WELCOME_INSET = 'inset 0 0 120px rgba(120,20,20,0.12)';
+const PLACEHOLDER = '/logos/placeholder-shield-a.png';
 
 type Props = {
   pick: HomeMatchCardPick;
@@ -20,20 +22,33 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick }) => {
   const [shareHint, setShareHint] = useState<string | null>(null);
   const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
   const ourClub = getOurTeamDisplayName();
+  const isHome = event.is_home !== false;
+  const homeName = isHome ? ourClub : opponent;
+  const awayName = isHome ? opponent : ourClub;
+  const homeLogo = isHome
+    ? getClubLogo(ourClub)
+    : getClubLogo(homeName, { logoUrl: event.opponent_logo_url ?? undefined });
+  const awayLogo = isHome
+    ? getClubLogo(awayName, { logoUrl: event.opponent_logo_url ?? undefined })
+    : getClubLogo(ourClub);
 
-  const badge =
-    status === 'today'
-      ? HOME_FEED_HERO_STATUS_LABEL.today
-      : HOME_FEED_HERO_STATUS_LABEL.tomorrow;
+  const badge = status === 'today' ? HOME_FEED_HERO_STATUS_LABEL.today : HOME_FEED_HERO_STATUS_LABEL.tomorrow;
 
   const kickoff =
     event.starts_at && !Number.isNaN(new Date(event.starts_at).getTime())
       ? formatMeetupTimeOnlyDe(event.starts_at)
       : '—';
-  const meeting = event.meeting_at ? formatMeetupTimeOnlyDe(event.meeting_at) : null;
   const parsed = splitCombinedLocation(event.location);
   const ort =
     (formatFullLocation(parsed.place, parsed.address || (event.address ?? '').trim()) || '').trim() || '—';
+  const dateLabel =
+    event.starts_at && !Number.isNaN(new Date(event.starts_at).getTime())
+      ? new Intl.DateTimeFormat('de-AT', {
+          weekday: 'short',
+          day: '2-digit',
+          month: '2-digit',
+        }).format(new Date(event.starts_at))
+      : '—';
 
   const eventUrl =
     typeof window !== 'undefined'
@@ -61,6 +76,31 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick }) => {
     window.setTimeout(() => setShareHint(null), 2200);
   }, [eventUrl, kickoff, opponent, ourClub]);
 
+  function LogoWithFallback({ src, alt }: { src: string; alt: string }) {
+    const [failed, setFailed] = useState(false);
+    const url = failed ? PLACEHOLDER : src || PLACEHOLDER;
+    const showFallbackCircle = !url || url === PLACEHOLDER;
+    if (showFallbackCircle) {
+      return (
+        <div
+          className="flex h-16 w-16 items-center justify-center rounded-full border border-red-500/35 bg-black/45 shadow-[0_0_0_1px_rgba(220,38,38,0.18),0_8px_18px_rgba(0,0,0,0.45)]"
+          aria-label={alt}
+        >
+          <span className="text-[10px] font-black uppercase tracking-[0.14em] text-red-200/85">Club</span>
+        </div>
+      );
+    }
+    return (
+      <img
+        src={url}
+        alt={alt}
+        loading="lazy"
+        onError={() => setFailed(true)}
+        className="h-16 w-16 object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.45)]"
+      />
+    );
+  }
+
   return (
     <section
       className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-red-600/35 px-3 py-3 shadow-lg sm:px-4 sm:py-3.5"
@@ -77,33 +117,61 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick }) => {
             'radial-gradient(ellipse 90% 50% at 50% 0%, rgba(248,113,113,0.45), transparent 70%)',
         }}
       />
-      <div className="relative z-[1] min-w-0 space-y-2">
-        <span className="inline-block rounded-md border border-red-500/40 bg-red-950/55 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-red-100">
-          {badge}
-        </span>
-        <p className="truncate text-[15px] font-bold text-white sm:text-base">
-          vs. {opponent}
-        </p>
-        <dl className="grid gap-1.5 text-[13px] leading-snug text-white/75 sm:text-sm">
-          <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-            <dt className="font-semibold text-red-200/90">Anpfiff</dt>
-            <dd className="text-white/88">{kickoff}</dd>
-          </div>
-          {meeting ? (
-            <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-              <dt className="font-semibold text-red-200/90">Treffpunkt</dt>
-              <dd className="text-white/88">{meeting}</dd>
+      <div className="relative z-[1] min-w-0 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="inline-block rounded-full border border-red-500/45 bg-red-950/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-red-100">
+            {badge}
+          </span>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/45">SpielzeitApp</p>
+        </div>
+        <h2 className="text-center text-[36px] font-black uppercase leading-[0.88] tracking-[0.12em] text-white [text-shadow:0_0_20px_rgba(220,38,38,0.3)]">
+          SPIELTAG
+        </h2>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <div className="min-w-0 space-y-2">
+            <div className="flex justify-center">
+              <LogoWithFallback src={homeLogo} alt={`${homeName} Logo`} />
             </div>
-          ) : null}
-          <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5">
-            <dt className="shrink-0 font-semibold text-red-200/90">Ort</dt>
-            <dd className="flex min-w-0 items-start gap-1 text-white/88">
-              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-400/85" aria-hidden />
-              <span className="min-w-0 break-words">{ort}</span>
-            </dd>
+            <FeedClubName fullName={homeName} variant="poster" className="w-full px-0.5" />
           </div>
-        </dl>
-        <div className="flex flex-wrap gap-2 pt-1">
+          <div className="px-1 text-center">
+            <span className="text-[26px] font-black uppercase tracking-[0.1em] text-white/88">VS</span>
+          </div>
+          <div className="min-w-0 space-y-2">
+            <div className="flex justify-center">
+              <LogoWithFallback src={awayLogo} alt={`${awayName} Logo`} />
+            </div>
+            <FeedClubName fullName={awayName} variant="poster" className="w-full px-0.5" />
+          </div>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-black/35 px-2.5 py-2">
+          <dl className="grid grid-cols-3 gap-2 text-center">
+            <div className="min-w-0">
+              <dt className="flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-[0.12em] text-red-200/90">
+                <Clock3 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Anpfiff
+              </dt>
+              <dd className="mt-0.5 text-[12px] font-semibold text-white/92">{kickoff}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-[0.12em] text-red-200/90">
+                <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Datum
+              </dt>
+              <dd className="mt-0.5 truncate text-[12px] font-semibold text-white/92">{dateLabel}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-[0.12em] text-red-200/90">
+                <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Ort
+              </dt>
+              <dd className="mt-0.5 line-clamp-2 break-words text-[12px] font-semibold leading-snug text-white/88">
+                {ort}
+              </dd>
+            </div>
+          </dl>
+        </div>
+        <div className="flex flex-wrap gap-2">
           <Link
             to={`/app/events/${event.id}`}
             className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center rounded-xl border border-red-500/45 bg-red-600/90 px-4 text-sm font-bold text-white shadow-md transition hover:bg-red-500 sm:flex-initial sm:min-w-[8.5rem]"
