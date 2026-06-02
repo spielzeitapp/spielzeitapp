@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, Clock3, MapPin, Share2 } from 'lucide-react';
 import type { HomeMatchCardPick } from './homeFeedBuilder';
@@ -12,6 +12,29 @@ const WELCOME_GRADIENT =
   'linear-gradient(180deg, rgba(40,5,5,0.97) 0%, rgba(20,0,0,0.98) 50%, rgba(10,0,0,0.99) 100%)';
 const WELCOME_INSET = 'inset 0 0 120px rgba(120,20,20,0.12)';
 const PLACEHOLDER = '/logos/placeholder-shield-a.png';
+
+function LogoWithFallback({ src, alt }: { src: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  const url = failed ? PLACEHOLDER : src || PLACEHOLDER;
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  return (
+    <div className="flex h-16 w-16 items-center justify-center rounded-full border border-red-500/35 bg-black/45 shadow-[0_0_0_1px_rgba(220,38,38,0.18),0_8px_18px_rgba(0,0,0,0.45)]">
+      <img
+        src={url}
+        alt={alt}
+        loading="lazy"
+        onError={() => {
+          if (!url.endsWith('/logos/placeholder-shield-a.png')) setFailed(true);
+        }}
+        className="h-14 w-14 object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.45)]"
+      />
+    </div>
+  );
+}
 
 type Props = {
   pick: HomeMatchCardPick;
@@ -75,31 +98,6 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick }) => {
     }
     window.setTimeout(() => setShareHint(null), 2200);
   }, [eventUrl, kickoff, opponent, ourClub]);
-
-  function LogoWithFallback({ src, alt }: { src: string; alt: string }) {
-    const [failed, setFailed] = useState(false);
-    const url = failed ? PLACEHOLDER : src || PLACEHOLDER;
-    const showFallbackCircle = !url || url === PLACEHOLDER;
-    if (showFallbackCircle) {
-      return (
-        <div
-          className="flex h-16 w-16 items-center justify-center rounded-full border border-red-500/35 bg-black/45 shadow-[0_0_0_1px_rgba(220,38,38,0.18),0_8px_18px_rgba(0,0,0,0.45)]"
-          aria-label={alt}
-        >
-          <span className="text-[10px] font-black uppercase tracking-[0.14em] text-red-200/85">Club</span>
-        </div>
-      );
-    }
-    return (
-      <img
-        src={url}
-        alt={alt}
-        loading="lazy"
-        onError={() => setFailed(true)}
-        className="h-16 w-16 object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.45)]"
-      />
-    );
-  }
 
   return (
     <section
