@@ -5,6 +5,7 @@ import { MatchdayFeedPostCard } from './MatchdayFeedPostCard';
 import { VideoFeedPostCard } from './VideoFeedPostCard';
 import { ImageFeedPostCard } from './ImageFeedPostCard';
 import { ResultFeedPostCard } from './ResultFeedPostCard';
+import { NextMatchFeedPostCard } from './NextMatchFeedPostCard';
 
 type Props = {
   item: ClassifiedFeedPost;
@@ -21,6 +22,16 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
   staffCanDelete,
   onFeedPostDeleted,
 }) => {
+  if (item.kind === 'next_match') {
+    return (
+      <NextMatchFeedPostCard
+        post={item.post}
+        teamLabel={teamLabel}
+        staffCanDelete={staffCanDelete}
+        onFeedPostDeleted={onFeedPostDeleted}
+      />
+    );
+  }
   if (item.kind === 'matchday') {
     return (
       <MatchdayFeedPostCard

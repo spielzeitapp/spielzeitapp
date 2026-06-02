@@ -1,4 +1,5 @@
 import { parseResultFeedPayload, type ResultFeedPayload } from './resultFeedTypes';
+import type { NextMatchFeedPayload } from './nextMatchFeedTypes';
 
 export type MatchdayFeedPayload = {
   display_home_name: string;
@@ -51,8 +52,13 @@ export type TeamFeedPostRow = {
 
 export type ResultFeedPostRow = Omit<TeamFeedPostDbRow, 'payload'> & { payload: ResultFeedPayload };
 
+export type NextMatchFeedPostRow = Omit<TeamFeedPostDbRow, 'payload'> & {
+  payload: NextMatchFeedPayload & { home_logo_url?: string; away_logo_url?: string };
+};
+
 export type ClassifiedFeedPost =
   | { kind: 'matchday'; post: TeamFeedPostRow }
+  | { kind: 'next_match'; post: NextMatchFeedPostRow }
   | { kind: 'image'; post: TeamFeedPostDbRow }
   | { kind: 'video'; post: TeamFeedPostDbRow }
   | { kind: 'result'; post: ResultFeedPostRow };
@@ -70,6 +76,22 @@ export function classifyTeamFeedPost(row: TeamFeedPostDbRow): ClassifiedFeedPost
     const rpl = parseResultFeedPayload(row.payload);
     if (!rpl) return null;
     return { kind: 'result', post: { ...row, payload: rpl } };
+  }
+  if (mt === 'next_match' || pk === 'next_match_auto') {
+    const npl = parseMatchdayPayload(row.payload);
+    if (!npl) return null;
+    const raw = row.payload as Record<string, unknown>;
+    return {
+      kind: 'next_match',
+      post: {
+        ...row,
+        payload: {
+          ...npl,
+          home_logo_url: typeof raw.home_logo_url === 'string' ? raw.home_logo_url : undefined,
+          away_logo_url: typeof raw.away_logo_url === 'string' ? raw.away_logo_url : undefined,
+        },
+      },
+    };
   }
   const pl = parseMatchdayPayload(row.payload);
   if (!pl) return null;

@@ -1,16 +1,30 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ensureMatchdayFeedPostForSeason } from '../lib/matchdayAutomation';
 import { ensureRecentResultFeedPostsForSeason } from '../lib/ensureResultFeedPost';
+import { ensureUpcomingMatchFeedPosts } from '../lib/ensureUpcomingMatchFeedPosts';
 import { logMatchdayFeedSeasonContext } from '../lib/matchdayFeedDebug';
 import {
   classifyTeamFeedPost,
   type ClassifiedFeedPost,
   type TeamFeedPostDbRow,
 } from '../lib/matchdayFeedTypes';
+import { buildEventStatusMap, sortClassifiedFeedPosts } from '../lib/feedPostPriority';
 import { supabase } from '../lib/supabaseClient';
 
 const FEED_SELECT =
   'id, team_season_id, team_id, event_id, post_kind, caption, payload, created_at, updated_at, created_by, media_type, media_url, thumbnail_url, duration_seconds';
+
+async function fetchEventStatusMap(teamSeasonId: string): Promise<Map<string, string>> {
+  const { data, error } = await supabase
+    .from('events')
+    .select('id, status')
+    .eq('team_season_id', teamSeasonId);
+  if (error) {
+    console.warn('[useTeamFeedPosts] event status', error.message);
+    return new Map();
+  }
+  return buildEventStatusMap((data ?? []) as { id: string; status: string | null }[]);
+}
 
 async function fetchPosts(teamSeasonId: string): Promise<{
   posts: ClassifiedFeedPost[];
@@ -22,7 +36,7 @@ async function fetchPosts(teamSeasonId: string): Promise<{
     .select(FEED_SELECT)
     .eq('team_season_id', teamSeasonId)
     .order('created_at', { ascending: false })
-    .limit(24);
+    .limit(48);
 
   if (err) {
     console.warn('[useTeamFeedPosts]', err.message ?? err);
@@ -30,13 +44,19 @@ async function fetchPosts(teamSeasonId: string): Promise<{
   }
 
   const rows = (data ?? []) as TeamFeedPostDbRow[];
+  const eventStatusById = await fetchEventStatusMap(teamSeasonId);
+  const now = new Date();
+
   const mapped: ClassifiedFeedPost[] = [];
   for (const r of rows) {
     const c = classifyTeamFeedPost(r);
     if (c) mapped.push(c);
   }
+
+  const sorted = sortClassifiedFeedPosts(mapped, eventStatusById, now);
+
   return {
-    posts: mapped,
+    posts: sorted,
     dbRowCount: rows.length,
     parseDropped: rows.length - mapped.length,
   };
@@ -59,6 +79,7 @@ export function useTeamFeedPosts(teamSeasonId: string | null) {
       await logMatchdayFeedSeasonContext(teamSeasonId);
       const ensureRes = await ensureMatchdayFeedPostForSeason(teamSeasonId);
       await ensureRecentResultFeedPostsForSeason(teamSeasonId);
+      await ensureUpcomingMatchFeedPosts(teamSeasonId);
       console.info('[matchday] (4b) ensureMatchdayFeedPostForSeason Rückgabe =', {
         rpcOk: ensureRes.rpcOk,
         rpcError: ensureRes.rpcError,
@@ -96,6 +117,8 @@ export function useTeamFeedPosts(teamSeasonId: string | null) {
         const ensureRes = await ensureMatchdayFeedPostForSeason(teamSeasonId);
         if (cancelled) return;
         await ensureRecentResultFeedPostsForSeason(teamSeasonId);
+        if (cancelled) return;
+        await ensureUpcomingMatchFeedPosts(teamSeasonId);
         if (cancelled) return;
         console.info('[matchday] (4b) ensureMatchdayFeedPostForSeason Rückgabe =', {
           rpcOk: ensureRes.rpcOk,
