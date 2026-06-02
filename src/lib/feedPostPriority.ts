@@ -54,6 +54,14 @@ export function getFeedPostPriority(
     return FEED_POST_PRIORITY.live_match;
   }
 
+  if (pk === 'matchday_today_auto') {
+    return FEED_POST_PRIORITY.matchday_today;
+  }
+
+  if (pk === 'matchday_tomorrow_auto') {
+    return FEED_POST_PRIORITY.matchday_tomorrow;
+  }
+
   if (mt === 'next_match' || pk === 'next_match_auto') {
     return FEED_POST_PRIORITY.next_match;
   }
@@ -74,7 +82,10 @@ export function getFeedPostPriority(
     return FEED_POST_PRIORITY.trainer_post;
   }
 
-  if (pk === 'matchday_auto' || parseMatchdayPayload(row.payload)) {
+  if (pk === 'matchday_auto' || (mt === 'matchday' && parseMatchdayPayload(row.payload))) {
+    const raw = row.payload as Record<string, unknown> | null;
+    if (raw?.matchday_timing === 'today') return FEED_POST_PRIORITY.matchday_today;
+    if (raw?.matchday_timing === 'tomorrow') return FEED_POST_PRIORITY.matchday_tomorrow;
     const kick = kickoffIsoFromRow(row);
     if (kick) return matchdayPriorityFromKickoff(kick, now);
     const cap = (row.caption ?? '').toLowerCase();

@@ -8,7 +8,11 @@ import { VIENNA_TZ } from '../../lib/viennaTime';
 import { getClubLogo } from '../../lib/teamLogos';
 import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
 import { supabase } from '../../lib/supabaseClient';
-import { MatchdayPosterCard, type MatchdayPosterVisualStatus } from './MatchdayPosterCard';
+import {
+  MatchdayPosterCard,
+  type MatchdayAnnouncementTiming,
+  type MatchdayPosterVisualStatus,
+} from './MatchdayPosterCard';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { matchdayPosterDomToPngBlob } from '../../lib/matchdayPosterExport';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
@@ -265,7 +269,11 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
             <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
           ) : null}
           <span className="shrink-0 rounded-full border border-red-500/25 bg-red-950/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/95">
-            Matchday
+            {announcementTiming === 'today'
+              ? 'Heute'
+              : announcementTiming === 'tomorrow'
+                ? 'Morgen'
+                : 'Matchday'}
           </span>
         </div>
       </header>
@@ -286,6 +294,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           homeScore={scores?.home ?? null}
           awayScore={scores?.away ?? null}
           matchType={p.match_type}
+          announcementTiming={announcementTiming}
         />
         {shareHint ? (
           <p className="text-center text-[13px] text-white/65">{shareHint}</p>

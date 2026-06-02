@@ -14,6 +14,8 @@ const WELCOME_INSET = 'inset 0 0 120px rgba(120,20,20,0.12)';
 
 export type MatchdayPosterVisualStatus = 'today' | 'live' | 'finished';
 
+export type MatchdayAnnouncementTiming = 'today' | 'tomorrow';
+
 export type MatchdayPosterCardProps = {
   homeTeamName: string;
   awayTeamName: string;
@@ -27,19 +29,27 @@ export type MatchdayPosterCardProps = {
   homeScore?: number | null;
   awayScore?: number | null;
   matchType?: string | null;
+  /** Auto-Feed Heute/Morgen — Badge + Headline (nicht bei LIVE/Endstand). */
+  announcementTiming?: MatchdayAnnouncementTiming | null;
 };
 
 function LogoImg({ src, alt }: { src: string; alt: string }) {
-  const [failed, setFailed] = React.useState(false);
-  const url = failed ? PLACEHOLDER : src || PLACEHOLDER;
+  const [imgSrc, setImgSrc] = React.useState(src || PLACEHOLDER);
+  React.useEffect(() => {
+    setImgSrc(src || PLACEHOLDER);
+  }, [src]);
   return (
-    <img
-      src={url}
-      alt={alt}
-      className="h-[4.75rem] w-[4.75rem] shrink-0 object-contain sm:h-[5.75rem] sm:w-[5.75rem]"
-      loading="lazy"
-      onError={() => setFailed(true)}
-    />
+    <div className="flex h-[4.75rem] w-[4.75rem] shrink-0 items-center justify-center rounded-full border border-red-500/30 bg-black/40 shadow-[0_0_0_1px_rgba(220,38,38,0.14),0_6px_16px_rgba(0,0,0,0.4)] sm:h-[5.75rem] sm:w-[5.75rem]">
+      <img
+        src={imgSrc}
+        alt={alt}
+        className="h-[4rem] w-[4rem] object-contain sm:h-[4.85rem] sm:w-[4.85rem]"
+        loading="lazy"
+        onError={() => {
+          if (!imgSrc.endsWith('/logos/placeholder-shield-a.png')) setImgSrc(PLACEHOLDER);
+        }}
+      />
+    </div>
   );
 }
 
@@ -58,22 +68,33 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
       homeScore,
       awayScore,
       matchType,
+      announcementTiming = null,
     },
     ref,
   ) {
   const typeLabel = getMatchTypeLabel(matchType ?? undefined);
+  const showAnnouncement = announcementTiming && status === 'today';
   const matchMetaLine = buildFeedMatchMetaLine(
-    pickFeedAgeGroup(homeTeamName, awayTeamName),
+    showAnnouncement ? null : pickFeedAgeGroup(homeTeamName, awayTeamName),
     typeLabel,
   );
 
   let badgeText = 'HEUTE';
-  if (status === 'live') badgeText = 'LIVE';
-  if (status === 'finished') {
+  if (showAnnouncement && announcementTiming === 'today') badgeText = 'HEUTE IST SPIELTAG';
+  else if (showAnnouncement && announcementTiming === 'tomorrow') badgeText = 'MORGEN IST SPIELTAG';
+  else if (status === 'live') badgeText = 'LIVE';
+  else if (status === 'finished') {
     const hs = homeScore != null ? homeScore : null;
     const aws = awayScore != null ? awayScore : null;
     badgeText = hs != null && aws != null ? `ENDSTAND ${hs}:${aws}` : 'ENDSTAND';
   }
+
+  const headlineMain =
+    showAnnouncement && announcementTiming === 'tomorrow'
+      ? 'SPIELTAG MORGEN'
+      : showAnnouncement && announcementTiming === 'today'
+        ? 'SPIELTAG'
+        : null;
 
   return (
     <div
@@ -102,17 +123,31 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
       <div className="relative z-[1] flex flex-col items-center space-y-6 sm:space-y-7">
         {/* Branding + emotionale Bühnenzeile — nah an Welcome (Kicker rot, Headline weiß) */}
         <div className="w-full max-w-none space-y-2 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-[0.26em] text-red-400 sm:text-[11px]">
-            Matchday
-          </p>
-          <h2 className="text-xl font-bold leading-tight text-white sm:text-2xl">
-            Heute ist{' '}
-            <span className="text-white [text-shadow:0_0_32px_rgba(220,38,38,0.22)]">Matchday</span>
-          </h2>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/88 sm:text-xs">
-            SpielzeitApp
-          </p>
-          <p className="text-xs text-white/55 sm:text-sm">{venueLabel}</p>
+          {headlineMain ? (
+            <>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-red-400/95 sm:text-[11px]">
+                SpielzeitApp
+              </p>
+              <h2 className="text-[1.65rem] font-black uppercase leading-[0.92] tracking-[0.1em] text-white [text-shadow:0_0_24px_rgba(220,38,38,0.28)] sm:text-3xl">
+                {headlineMain}
+              </h2>
+              <p className="text-xs text-white/55 sm:text-sm">{venueLabel}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-[10px] font-bold uppercase tracking-[0.26em] text-red-400 sm:text-[11px]">
+                Matchday
+              </p>
+              <h2 className="text-xl font-bold leading-tight text-white sm:text-2xl">
+                Heute ist{' '}
+                <span className="text-white [text-shadow:0_0_32px_rgba(220,38,38,0.22)]">Matchday</span>
+              </h2>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/88 sm:text-xs">
+                SpielzeitApp
+              </p>
+              <p className="text-xs text-white/55 sm:text-sm">{venueLabel}</p>
+            </>
+          )}
         </div>
 
         <FeedMatchMetaLine line={matchMetaLine} className="w-full text-center" />
@@ -176,14 +211,18 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
           <div
             className={
               status === 'live'
-                ? 'inline-flex min-h-[2.25rem] items-center justify-center rounded-full border border-red-500/35 bg-red-600/85 px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white sm:text-xs [animation-duration:1.5s] motion-safe:animate-pulse'
-                : 'inline-flex min-h-[2.25rem] items-center justify-center rounded-full border border-red-500/30 bg-red-950/65 px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-red-100 sm:text-xs'
+                ? 'inline-flex min-h-[2.25rem] max-w-full items-center justify-center rounded-full border border-red-500/35 bg-red-600/85 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white sm:px-5 sm:text-[11px] sm:tracking-[0.18em] [animation-duration:1.5s] motion-safe:animate-pulse'
+                : showAnnouncement
+                  ? 'inline-flex min-h-[2.25rem] max-w-full items-center justify-center rounded-full border border-red-500/40 bg-red-950/70 px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.1em] text-red-100 sm:px-4 sm:text-[10px] sm:tracking-[0.14em]'
+                  : 'inline-flex min-h-[2.25rem] items-center justify-center rounded-full border border-red-500/30 bg-red-950/65 px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-red-100 sm:text-xs'
             }
             style={{
-              boxShadow: '0 0 28px rgba(185,28,28,0.25), inset 0 1px 0 rgba(255,255,255,0.08)',
+              boxShadow: showAnnouncement
+                ? '0 0 28px rgba(185,28,28,0.3), inset 0 1px 0 rgba(255,255,255,0.08)'
+                : '0 0 28px rgba(185,28,28,0.25), inset 0 1px 0 rgba(255,255,255,0.08)',
             }}
           >
-            {badgeText}
+            <span className="truncate">{badgeText}</span>
           </div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/38">
             #GEMEINSAMEINTEAM

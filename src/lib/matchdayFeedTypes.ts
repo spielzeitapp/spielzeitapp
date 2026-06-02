@@ -15,6 +15,8 @@ export type MatchdayFeedPayload = {
   match_id: string | null;
   event_id: string;
   deep_link: string;
+  /** Feed-Ankündigung: heute / morgen (optional, Legacy ohne Feld). */
+  matchday_timing?: 'today' | 'tomorrow';
 };
 
 /** Rohzeile aus Supabase (inkl. optionaler Medien-Felder). */
@@ -137,5 +139,7 @@ export function parseMatchdayPayload(raw: unknown): MatchdayFeedPayload | null {
     match_id: typeof p.match_id === 'string' ? p.match_id : null,
     event_id: eventId,
     deep_link: typeof p.deep_link === 'string' ? p.deep_link : `/app/events/${eventId}`,
+    matchday_timing:
+      p.matchday_timing === 'today' || p.matchday_timing === 'tomorrow' ? p.matchday_timing : undefined,
   };
 }

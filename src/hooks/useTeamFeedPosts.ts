@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ensureMatchdayFeedPostForSeason } from '../lib/matchdayAutomation';
+import { ensureMatchdayFeedPostsForSeason } from '../lib/ensureMatchdayFeedPosts';
 import { ensureRecentResultFeedPostsForSeason } from '../lib/ensureResultFeedPost';
 import { ensureUpcomingMatchFeedPosts } from '../lib/ensureUpcomingMatchFeedPosts';
 import { logMatchdayFeedSeasonContext } from '../lib/matchdayFeedDebug';
@@ -62,6 +62,13 @@ async function fetchPosts(teamSeasonId: string): Promise<{
   };
 }
 
+async function runFeedEnsures(teamSeasonId: string): Promise<void> {
+  const matchdayRes = await ensureMatchdayFeedPostsForSeason(teamSeasonId);
+  console.info('[matchdayFeed] ensureMatchdayFeedPostsForSeason', matchdayRes);
+  await ensureUpcomingMatchFeedPosts(teamSeasonId);
+  await ensureRecentResultFeedPostsForSeason(teamSeasonId);
+}
+
 export function useTeamFeedPosts(teamSeasonId: string | null) {
   const [posts, setPosts] = useState<ClassifiedFeedPost[]>([]);
   const [loading, setLoading] = useState(false);
@@ -77,14 +84,7 @@ export function useTeamFeedPosts(teamSeasonId: string | null) {
     setError(null);
     try {
       await logMatchdayFeedSeasonContext(teamSeasonId);
-      const ensureRes = await ensureMatchdayFeedPostForSeason(teamSeasonId);
-      await ensureRecentResultFeedPostsForSeason(teamSeasonId);
-      await ensureUpcomingMatchFeedPosts(teamSeasonId);
-      console.info('[matchday] (4b) ensureMatchdayFeedPostForSeason Rückgabe =', {
-        rpcOk: ensureRes.rpcOk,
-        rpcError: ensureRes.rpcError,
-        rpcPayload: ensureRes.rpcPayload,
-      });
+      await runFeedEnsures(teamSeasonId);
       const { posts: mapped, dbRowCount, parseDropped } = await fetchPosts(teamSeasonId);
       console.info('[matchday] (5) team_feed_posts nach SELECT:', {
         dbZeilen_roh: dbRowCount,
@@ -114,17 +114,8 @@ export function useTeamFeedPosts(teamSeasonId: string | null) {
       try {
         await logMatchdayFeedSeasonContext(teamSeasonId);
         if (cancelled) return;
-        const ensureRes = await ensureMatchdayFeedPostForSeason(teamSeasonId);
+        await runFeedEnsures(teamSeasonId);
         if (cancelled) return;
-        await ensureRecentResultFeedPostsForSeason(teamSeasonId);
-        if (cancelled) return;
-        await ensureUpcomingMatchFeedPosts(teamSeasonId);
-        if (cancelled) return;
-        console.info('[matchday] (4b) ensureMatchdayFeedPostForSeason Rückgabe =', {
-          rpcOk: ensureRes.rpcOk,
-          rpcError: ensureRes.rpcError,
-          rpcPayload: ensureRes.rpcPayload,
-        });
         const { posts: mapped, dbRowCount, parseDropped } = await fetchPosts(teamSeasonId);
         if (cancelled) return;
         console.info('[matchday] (5) team_feed_posts nach SELECT:', {
