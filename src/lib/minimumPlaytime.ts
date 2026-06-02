@@ -1,7 +1,13 @@
 /** Standard-Mindestspielzeit pro Spiel (Minuten). */
 export const DEFAULT_MINIMUM_PLAYTIME_MINUTES = 20;
 
+/** Fallback geplante Spielzeit (Minuten), wenn keine Match-Dauer hinterlegt ist. */
+export const DEFAULT_PLANNED_MATCH_MINUTES = 60;
+
 export type MinimumPlaytimeStatus = 'ok' | 'warning' | 'critical';
+
+/** Dringlichkeit relativ zur verbleibenden effektiven Spielzeit. */
+export type MinimumPlaytimeUrgency = 'ok' | 'warning' | 'urgent' | 'critical';
 
 export function normalizeMinimumPlaytimeMinutes(value: unknown): number {
   const n = Math.round(Number(value));
@@ -9,8 +15,30 @@ export function normalizeMinimumPlaytimeMinutes(value: unknown): number {
   return Math.min(90, Math.max(1, n));
 }
 
+export function normalizePlannedMatchMinutes(value: unknown): number {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return DEFAULT_PLANNED_MATCH_MINUTES;
+  return Math.min(120, Math.max(30, n));
+}
+
 export function minimumPlaytimeSecondsFromMinutes(minutes: number): number {
   return normalizeMinimumPlaytimeMinutes(minutes) * 60;
+}
+
+export function getPlannedMatchDurationSeconds(options?: {
+  plannedMinutes?: number | null | undefined;
+}): number {
+  return normalizePlannedMatchMinutes(options?.plannedMinutes) * 60;
+}
+
+/** Verbleibende effektive Spielzeit (ohne Pausen) bis geplantes Spielende. */
+export function getRemainingEffectiveMatchSeconds(
+  plannedDurationSeconds: number,
+  currentEffectiveSeconds: number,
+): number {
+  const planned = Math.max(0, Math.floor(plannedDurationSeconds));
+  const elapsed = Math.max(0, Math.floor(currentEffectiveSeconds));
+  return Math.max(0, planned - elapsed);
 }
 
 export type MinimumPlaytimePlayerStatus = {
@@ -40,6 +68,40 @@ export function getMinimumPlaytimePlayerStatus(
     requiredMinutes: normalizeMinimumPlaytimeMinutes(requiredMinutes),
     missingSeconds,
   };
+}
+
+/**
+ * Restspielzeit vs. fehlende Mindestspielzeit:
+ * - missing_minutes > remaining_minutes → kritisch
+ * - missing_minutes >= remaining_minutes - 3 → dringend
+ */
+export function getMinimumPlaytimeUrgency(
+  playedSeconds: number,
+  requiredMinutes: number,
+  /** Verbleibende effektive Spielzeit bis Spielende (ohne Pausen). */
+  remainingMatchSeconds: number,
+): MinimumPlaytimeUrgency {
+  const base = getMinimumPlaytimePlayerStatus(playedSeconds, requiredMinutes);
+  if (base.missingSeconds <= 0) return 'ok';
+
+  const missingMinutes = Math.ceil(base.missingSeconds / 60);
+  const remainingMinutes = Math.floor(Math.max(0, remainingMatchSeconds) / 60);
+
+  if (missingMinutes > remainingMinutes) return 'critical';
+  if (missingMinutes >= remainingMinutes - 3) return 'urgent';
+  if (base.playedSeconds <= 0) return 'warning';
+  return 'warning';
+}
+
+export function isMinimumPlaytimeUrgent(urgency: MinimumPlaytimeUrgency): boolean {
+  return urgency === 'urgent' || urgency === 'critical';
+}
+
+export function minimumPlaytimeUrgencyRank(urgency: MinimumPlaytimeUrgency): number {
+  if (urgency === 'critical') return 0;
+  if (urgency === 'urgent') return 1;
+  if (urgency === 'warning') return 2;
+  return 3;
 }
 
 export function formatMinimumPlaytimeProgress(playedMinutes: number, requiredMinutes: number): string {

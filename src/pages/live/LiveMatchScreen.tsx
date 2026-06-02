@@ -54,9 +54,15 @@ import {
   formatMinimumPlaytimeProgress,
   formatMissingMinutesLabel,
   getMinimumPlaytimePlayerStatus,
+  getMinimumPlaytimeUrgency,
+  getPlannedMatchDurationSeconds,
+  getRemainingEffectiveMatchSeconds,
   isBelowMinimumPlaytime,
+  isMinimumPlaytimeUrgent,
   minimumPlaytimeSecondsFromMinutes,
+  minimumPlaytimeUrgencyRank,
   normalizeMinimumPlaytimeMinutes,
+  type MinimumPlaytimeUrgency,
 } from '../../lib/minimumPlaytime';
 import { countOccupiedFieldSlots } from '../../lib/liveLineupNormalize';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
@@ -1615,26 +1621,70 @@ export const LiveMatchScreen: React.FC = () => {
   );
   const minimumPlaytimeRequiredSec = minimumPlaytimeSecondsFromMinutes(minimumPlaytimeMinutes);
 
+  const plannedMatchDurationSec = useMemo(
+    () =>
+      getPlannedMatchDurationSeconds({
+        plannedMinutes:
+          (matchRow as { planned_match_minutes?: number | null } | null)?.planned_match_minutes ?? null,
+      }),
+    [matchRow],
+  );
+
+  const remainingEffectiveMatchSec = useMemo(
+    () => getRemainingEffectiveMatchSeconds(plannedMatchDurationSec, currentMatchSeconds),
+    [plannedMatchDurationSec, currentMatchSeconds],
+  );
+
   const belowMinimumPlaytimePlayers = useMemo(() => {
     if (!minimumPlaytimeEnabled) return [];
     const squadSet = new Set(squadPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean));
-    const rows: { id: string; name: string; missingSeconds: number; playedMinutes: number }[] = [];
+    const rows: {
+      id: string;
+      name: string;
+      missingSeconds: number;
+      playedMinutes: number;
+      urgency: MinimumPlaytimeUrgency;
+      onBench: boolean;
+    }[] = [];
     for (const id of squadSet) {
       const sec = playtimes[id] ?? 0;
       if (!isBelowMinimumPlaytime(sec, minimumPlaytimeMinutes)) continue;
       const st = getMinimumPlaytimePlayerStatus(sec, minimumPlaytimeMinutes);
+      const urgency = getMinimumPlaytimeUrgency(sec, minimumPlaytimeMinutes, remainingEffectiveMatchSec);
       rows.push({
         id,
         name: (rosterById.get(id)?.name ?? '?').trim() || '?',
         missingSeconds: st.missingSeconds,
         playedMinutes: st.playedMinutes,
+        urgency,
+        onBench: !activePlayerIds.includes(id),
       });
     }
-    rows.sort((a, b) => b.missingSeconds - a.missingSeconds || a.name.localeCompare(b.name, 'de'));
+    rows.sort(
+      (a, b) =>
+        minimumPlaytimeUrgencyRank(a.urgency) - minimumPlaytimeUrgencyRank(b.urgency) ||
+        b.missingSeconds - a.missingSeconds ||
+        a.name.localeCompare(b.name, 'de'),
+    );
     return rows;
-  }, [minimumPlaytimeEnabled, squadPlayerIds, playtimes, minimumPlaytimeMinutes, rosterById]);
+  }, [
+    minimumPlaytimeEnabled,
+    squadPlayerIds,
+    playtimes,
+    minimumPlaytimeMinutes,
+    rosterById,
+    remainingEffectiveMatchSec,
+    plannedMatchDurationSec,
+    activePlayerIds,
+  ]);
 
   const belowMinimumPlaytimeCount = belowMinimumPlaytimePlayers.length;
+
+  const urgentMinimumPlaytimeAlerts = useMemo(
+    () =>
+      belowMinimumPlaytimePlayers.filter((p) => p.onBench && isMinimumPlaytimeUrgent(p.urgency)),
+    [belowMinimumPlaytimePlayers],
+  );
   const fairPlayGoalDiffOwnMinusOpp = useMemo(() => {
     const own = sides.isOwnTeamHome ? displayScoreHome : displayScoreAway;
     const opp = sides.isOwnTeamHome ? displayScoreAway : displayScoreHome;
@@ -2001,7 +2051,16 @@ export const LiveMatchScreen: React.FC = () => {
     const benchBelowMin = benchUnique.filter((id) => pt(id) < minimumPlaytimeRequiredSec);
     const benchAboveMin = benchUnique.filter((id) => pt(id) >= minimumPlaytimeRequiredSec);
     const benchPriority = minimumPlaytimeEnabled
-      ? [...benchBelowMin.sort((a, b) => pt(a) - pt(b)), ...benchAboveMin.sort((a, b) => pt(a) - pt(b))]
+      ? [
+          ...benchBelowMin.sort((a, b) => {
+            const ua = getMinimumPlaytimeUrgency(pt(a), minimumPlaytimeMinutes, remainingEffectiveMatchSec);
+            const ub = getMinimumPlaytimeUrgency(pt(b), minimumPlaytimeMinutes, remainingEffectiveMatchSec);
+            return (
+              minimumPlaytimeUrgencyRank(ua) - minimumPlaytimeUrgencyRank(ub) || pt(a) - pt(b)
+            );
+          }),
+          ...benchAboveMin.sort((a, b) => pt(a) - pt(b)),
+        ]
       : [...benchUnique].sort((a, b) => pt(a) - pt(b));
 
     const used = new Set<string>();
@@ -2013,6 +2072,7 @@ export const LiveMatchScreen: React.FC = () => {
       outSec: number;
       inSec: number;
       reason: 'minimum_playtime' | 'balance';
+      inUrgency: MinimumPlaytimeUrgency;
     }[] = [];
 
     const tryPair = (oid: string, matcher: (bid: string) => boolean): boolean => {
@@ -2030,6 +2090,7 @@ export const LiveMatchScreen: React.FC = () => {
         outSec: pt(oid),
         inSec: pt(inId),
         reason: inBelowMin ? 'minimum_playtime' : 'balance',
+        inUrgency: getMinimumPlaytimeUrgency(pt(inId), minimumPlaytimeMinutes, remainingEffectiveMatchSec),
       });
       return true;
     };
@@ -2050,7 +2111,9 @@ export const LiveMatchScreen: React.FC = () => {
     }
     pairs.sort((a, b) => {
       const rank = (r: typeof a.reason) => (r === 'minimum_playtime' ? 0 : 1);
-      return rank(a.reason) - rank(b.reason);
+      const byReason = rank(a.reason) - rank(b.reason);
+      if (byReason !== 0) return byReason;
+      return minimumPlaytimeUrgencyRank(a.inUrgency) - minimumPlaytimeUrgencyRank(b.inUrgency);
     });
     return pairs;
   }, [
@@ -2064,6 +2127,9 @@ export const LiveMatchScreen: React.FC = () => {
     liveReplayState.benchPlayerIds,
     minimumPlaytimeEnabled,
     minimumPlaytimeRequiredSec,
+    minimumPlaytimeMinutes,
+    remainingEffectiveMatchSec,
+    plannedMatchDurationSec,
   ]);
 
   const subSuggestionSig = substitutionSuggestions.map((s) => `${s.outId}:${s.inId}`).join('|');
@@ -4561,24 +4627,58 @@ export const LiveMatchScreen: React.FC = () => {
               <h2 className="mb-0.5 px-0.5 text-[11px] font-bold uppercase tracking-[0.16em] text-gray-400">
                 Wechsel-Vorschläge
               </h2>
-              {minimumPlaytimeEnabled && belowMinimumPlaytimeCount > 0 ? (
-                <div className="mb-1 flex flex-wrap items-center justify-between gap-1 rounded-md border border-amber-500/30 bg-amber-950/25 px-2 py-1">
-                  <p className="text-[10px] font-semibold leading-snug text-amber-100/95">
-                    <span aria-hidden className="mr-0.5">
-                      ⚠
-                    </span>
-                    {belowMinimumPlaytimeCount}{' '}
-                    {belowMinimumPlaytimeCount === 1 ? 'Spieler' : 'Spieler'} unter Mindestspielzeit
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setMainTab('time')}
-                    className="shrink-0 text-[10px] font-bold text-amber-200/95 underline decoration-amber-500/40 underline-offset-2"
-                  >
-                    Statistik ansehen
-                  </button>
-                </div>
-              ) : null}
+              {minimumPlaytimeEnabled && urgentMinimumPlaytimeAlerts.length > 0
+                ? urgentMinimumPlaytimeAlerts.slice(0, 2).map((alert) => (
+                    <div
+                      key={`min-urgent-${alert.id}`}
+                      className={[
+                        'mb-1 rounded-md border px-2.5 py-2',
+                        alert.urgency === 'critical'
+                          ? 'border-red-500/45 bg-red-950/35 shadow-[0_0_18px_rgba(220,38,38,0.15)]'
+                          : 'border-amber-500/40 bg-amber-950/30 shadow-[0_0_14px_rgba(251,191,36,0.12)]',
+                      ].join(' ')}
+                    >
+                      <p className="text-[11px] font-black uppercase tracking-wide text-red-200/95">
+                        <span aria-hidden className="mr-0.5">
+                          ⚠
+                        </span>
+                        Mindestspielzeit dringend
+                      </p>
+                      <p className="mt-1 text-[12px] font-bold leading-snug text-white">
+                        {alert.name} jetzt einwechseln
+                      </p>
+                      <p className="mt-0.5 text-[10px] leading-snug text-white/70">
+                        {formatMinimumPlaytimeProgress(alert.playedMinutes, minimumPlaytimeMinutes)}
+                        {' · '}
+                        {formatMissingMinutesLabel(alert.missingSeconds)}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setMainTab('time')}
+                        className="mt-1.5 text-[10px] font-bold text-amber-200/95 underline decoration-amber-500/40 underline-offset-2"
+                      >
+                        Statistik ansehen
+                      </button>
+                    </div>
+                  ))
+                : minimumPlaytimeEnabled && belowMinimumPlaytimeCount > 0 ? (
+                    <div className="mb-1 flex flex-wrap items-center justify-between gap-1 rounded-md border border-amber-500/30 bg-amber-950/25 px-2 py-1">
+                      <p className="text-[10px] font-semibold leading-snug text-amber-100/95">
+                        <span aria-hidden className="mr-0.5">
+                          ⚠
+                        </span>
+                        {belowMinimumPlaytimeCount}{' '}
+                        {belowMinimumPlaytimeCount === 1 ? 'Spieler' : 'Spieler'} unter Mindestspielzeit
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setMainTab('time')}
+                        className="shrink-0 text-[10px] font-bold text-amber-200/95 underline decoration-amber-500/40 underline-offset-2"
+                      >
+                        Statistik ansehen
+                      </button>
+                    </div>
+                  ) : null}
               <div className="space-y-1">
                 {matchRow?.status !== 'live' && !matchIsFinished ? (
                   <p className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center text-[12px] text-white/55">
@@ -4610,6 +4710,15 @@ export const LiveMatchScreen: React.FC = () => {
                           </div>
                           {sug.reason === 'minimum_playtime' ? (
                             <>
+                              {isMinimumPlaytimeUrgent(sug.inUrgency) ? (
+                                <p
+                                  className={`mt-1 text-[10px] font-black uppercase tracking-wide ${
+                                    sug.inUrgency === 'critical' ? 'text-red-300/95' : 'text-amber-200/95'
+                                  }`}
+                                >
+                                  {sug.inUrgency === 'critical' ? 'Kritisch' : 'Dringend'}
+                                </p>
+                              ) : null}
                               <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-amber-200/90">
                                 Grund: Mindestspielzeit
                               </p>
@@ -4627,11 +4736,20 @@ export const LiveMatchScreen: React.FC = () => {
                                     <>
                                       <br />
                                       <span className="text-amber-200/85">{lbl}</span>
-                                      <span className="text-white/45"> · Priorität hoch</span>
+                                      <span className="text-white/45">
+                                        {' '}
+                                        · Priorität{' '}
+                                        {isMinimumPlaytimeUrgent(sug.inUrgency) ? 'dringend' : 'hoch'}
+                                      </span>
                                     </>
                                   ) : null;
                                 })()}
                               </p>
+                              {isMinimumPlaytimeUrgent(sug.inUrgency) ? (
+                                <p className="mt-0.5 text-[10px] font-semibold text-red-200/90">
+                                  Jetzt einwechseln, sonst Mindestspielzeit gefährdet.
+                                </p>
+                              ) : null}
                             </>
                           ) : (
                             <p className="mt-0.5 text-[10px] leading-snug text-white/40">Mehr Spielzeit für Bankspieler</p>
@@ -4727,22 +4845,37 @@ export const LiveMatchScreen: React.FC = () => {
                       {minimumPlaytimeEnabled ? (
                         (() => {
                           const minSt = getMinimumPlaytimePlayerStatus(sec, minimumPlaytimeMinutes);
+                          const urgency = getMinimumPlaytimeUrgency(
+                            sec,
+                            minimumPlaytimeMinutes,
+                            remainingEffectiveMatchSec,
+                          );
                           const missLbl = formatMissingMinutesLabel(minSt.missingSeconds);
                           const icon =
-                            minSt.status === 'ok' ? '✅' : minSt.status === 'warning' ? '⚠' : '🔴';
+                            urgency === 'ok'
+                              ? '✅'
+                              : urgency === 'warning'
+                                ? '⚠'
+                                : urgency === 'urgent'
+                                  ? '⚠'
+                                  : '🔴';
                           const pct = Math.min(
                             100,
                             Math.round((minSt.playedSeconds / minimumPlaytimeRequiredSec) * 100),
                           );
+                          const showSubstituteNow =
+                            !isActive && isMinimumPlaytimeUrgent(urgency);
                           return (
                             <div className="mt-1 space-y-0.5">
                               <p
                                 className={`text-[10px] font-semibold leading-snug ${
-                                  minSt.status === 'ok'
+                                  urgency === 'ok'
                                     ? 'text-emerald-300/95'
-                                    : minSt.status === 'warning'
+                                    : urgency === 'warning'
                                       ? 'text-amber-200/90'
-                                      : 'text-red-300/90'
+                                      : urgency === 'urgent'
+                                        ? 'text-amber-300/95'
+                                        : 'text-red-300/90'
                                 }`}
                               >
                                 {formatMinimumPlaytimeProgress(
@@ -4753,6 +4886,9 @@ export const LiveMatchScreen: React.FC = () => {
                               </p>
                               {missLbl ? (
                                 <p className="text-[10px] text-white/50">{missLbl}</p>
+                              ) : null}
+                              {showSubstituteNow ? (
+                                <p className="text-[10px] font-bold text-red-300/90">Jetzt einwechseln</p>
                               ) : null}
                               <div
                                 className="h-1 w-full max-w-[120px] overflow-hidden rounded-full bg-white/10"
