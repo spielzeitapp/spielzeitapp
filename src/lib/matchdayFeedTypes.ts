@@ -1,3 +1,4 @@
+import { parseLiveFeedPayload, type LiveFeedPayload } from './liveFeedTypes';
 import { parseResultFeedPayload, type ResultFeedPayload } from './resultFeedTypes';
 import type { NextMatchFeedPayload } from './nextMatchFeedTypes';
 
@@ -58,9 +59,12 @@ export type NextMatchFeedPostRow = Omit<TeamFeedPostDbRow, 'payload'> & {
   payload: NextMatchFeedPayload & { home_logo_url?: string; away_logo_url?: string };
 };
 
+export type LiveFeedPostRow = Omit<TeamFeedPostDbRow, 'payload'> & { payload: LiveFeedPayload };
+
 export type ClassifiedFeedPost =
   | { kind: 'matchday'; post: TeamFeedPostRow }
   | { kind: 'next_match'; post: NextMatchFeedPostRow }
+  | { kind: 'live'; post: LiveFeedPostRow }
   | { kind: 'image'; post: TeamFeedPostDbRow }
   | { kind: 'video'; post: TeamFeedPostDbRow }
   | { kind: 'result'; post: ResultFeedPostRow };
@@ -73,6 +77,11 @@ export function classifyTeamFeedPost(row: TeamFeedPostDbRow): ClassifiedFeedPost
   }
   if (mt === 'image' && row.media_url) {
     return { kind: 'image', post: row };
+  }
+  if (mt === 'live' || pk === 'live_auto') {
+    const lpl = parseLiveFeedPayload(row.payload);
+    if (!lpl) return null;
+    return { kind: 'live', post: { ...row, payload: lpl } };
   }
   if (mt === 'result' || pk === 'result_auto') {
     const rpl = parseResultFeedPayload(row.payload);

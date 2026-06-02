@@ -48,6 +48,7 @@ import {
   updateMatchRow,
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
+import { ensureLiveFeedPostForMatch } from '../../lib/ensureLiveFeedPost';
 import { getMatchSides } from '../../lib/matchSides';
 import {
   DEFAULT_MINIMUM_PLAYTIME_MINUTES,
@@ -2447,10 +2448,12 @@ export const LiveMatchScreen: React.FC = () => {
         live_elapsed_seconds: 0,
       });
       if (error) setSaveError(error);
-      else
+      else {
         setMatchRow((prev) =>
           prev ? { ...prev, status: 'live', live_started_at: ts, live_is_running: true, live_elapsed_seconds: 0 } : null,
         );
+        void ensureLiveFeedPostForMatch(effectiveMatchId);
+      }
     } else {
       const { ok } = await persistSingle({ type: 'resume', timestamp: currentMatchSeconds });
       if (!ok) return;

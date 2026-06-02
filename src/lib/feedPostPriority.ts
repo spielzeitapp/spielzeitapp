@@ -50,6 +50,10 @@ export function getFeedPostPriority(
   const mt = (row.media_type ?? '').toLowerCase().trim();
   const eventId = row.event_id?.trim() ?? '';
 
+  if (mt === 'live' || pk === 'live_auto') {
+    return FEED_POST_PRIORITY.live_match;
+  }
+
   if (eventId && eventStatusById.get(eventId) === 'live') {
     return FEED_POST_PRIORITY.live_match;
   }
