@@ -56,6 +56,15 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
   onFeedPostDeleted,
 }) => {
   const p = post.payload as MatchdayFeedPayload;
+  const announcementTiming = useMemo((): MatchdayAnnouncementTiming | null => {
+    if (p.matchday_timing === 'today' || p.matchday_timing === 'tomorrow') {
+      return p.matchday_timing;
+    }
+    const postKind = (post.post_kind ?? '').toLowerCase().trim();
+    if (postKind === 'matchday_today_auto') return 'today';
+    if (postKind === 'matchday_tomorrow_auto') return 'tomorrow';
+    return null;
+  }, [p.matchday_timing, post.post_kind]);
   const posterCaptureRef = useRef<HTMLDivElement>(null);
   const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
