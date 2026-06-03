@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ClipboardList, ExternalLink, Link2, Pencil, ScanLine } from 'lucide-react';
+import { ClipboardList, ExternalLink, FileDown, Link2, Pencil, ScanLine } from 'lucide-react';
 import { Card, CardTitle } from '../../app/components/ui/Card';
 import { AppButton } from '../ui/AppButton';
 import { Modal } from '../../app/ui/Modal';
@@ -10,19 +10,33 @@ import {
   dsStatusChipClass,
 } from '../../lib/premiumDesignSystem';
 import { INVALID_QR_TOURNAMENT_LINK_MESSAGE } from '../../lib/tournamentPlanQrScanner';
+import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
+import {
+  analyzeTournamentUrl,
+  fetchOwnTeamNameHint,
+  importTournamentPlanFromAnalysis,
+  type TournamentPlanAnalysis,
+} from '../../lib/tournamentPlanImport';
 import {
   displayDomainFromOfficialPlanUrl,
   openOfficialTournamentPlanUrl,
   saveOfficialTournamentPlanUrl,
   validateOfficialTournamentUrl,
 } from '../../lib/tournamentOfficialPlanUrl';
+import { TournamentPlanImportSheet } from './TournamentPlanImportSheet';
 import { TournamentPlanQrScannerSheet } from './TournamentPlanQrScannerSheet';
 
 type Props = {
   tournamentEventId: string;
+  teamSeasonId: string;
+  tournamentDayIso: string;
+  location: string | null;
   officialTournamentUrl: string | null;
+  existingTeamNames: string[];
+  existingSlots: TournamentMatchSlotView[];
   canManage: boolean;
   onUrlUpdated: (url: string | null) => void;
+  onImportComplete: () => void;
 };
 
 const inputClass =
@@ -30,9 +44,15 @@ const inputClass =
 
 export const TournamentOfficialPlanCard: React.FC<Props> = ({
   tournamentEventId,
+  teamSeasonId,
+  tournamentDayIso,
+  location,
   officialTournamentUrl,
+  existingTeamNames,
+  existingSlots,
   canManage,
   onUrlUpdated,
+  onImportComplete,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [draftUrl, setDraftUrl] = useState('');
@@ -45,6 +65,13 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   const [qrSaving, setQrSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const qrSaveInFlightRef = useRef(false);
+
+  const [importSheetOpen, setImportSheetOpen] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importAnalysis, setImportAnalysis] = useState<TournamentPlanAnalysis | null>(null);
+  const [ownTeamNameHint, setOwnTeamNameHint] = useState<string | null>(null);
 
   const hasUrl = Boolean(officialTournamentUrl?.trim());
   const domain = displayDomainFromOfficialPlanUrl(officialTournamentUrl);
@@ -128,6 +155,76 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     [onUrlUpdated, tournamentEventId],
   );
 
+  const startImport = useCallback(async () => {
+    const url = officialTournamentUrl?.trim();
+    if (!url) return;
+
+    setImportSheetOpen(true);
+    setImportLoading(true);
+    setImportBusy(false);
+    setImportError(null);
+    setImportAnalysis(null);
+
+    const hint = await fetchOwnTeamNameHint(teamSeasonId);
+    setOwnTeamNameHint(hint);
+
+    const result = await analyzeTournamentUrl(url, hint);
+    setImportLoading(false);
+
+    if (!result.ok) {
+      setImportError(result.error);
+      return;
+    }
+
+    setImportAnalysis(result.analysis);
+  }, [officialTournamentUrl, teamSeasonId]);
+
+  const handleImportConfirm = useCallback(async () => {
+    if (!importAnalysis) return;
+
+    setImportBusy(true);
+    setImportError(null);
+
+    const { importedTeams, importedMatches, error } = await importTournamentPlanFromAnalysis({
+      tournamentEventId,
+      teamSeasonId,
+      tournamentDayIso,
+      location,
+      analysis: importAnalysis,
+      existingTeamNames,
+      existingSlots,
+      ownTeamNameHint,
+    });
+
+    setImportBusy(false);
+
+    if (error) {
+      setImportError(error);
+      return;
+    }
+
+    setImportSheetOpen(false);
+    onImportComplete();
+
+    if (importedTeams === 0 && importedMatches === 0) {
+      setToastMessage('Keine neuen Einträge – alles bereits importiert');
+    } else {
+      setToastMessage(
+        `${importedTeams} Teams · ${importedMatches} Spiele importiert`,
+      );
+    }
+  }, [
+    existingSlots,
+    existingTeamNames,
+    importAnalysis,
+    location,
+    onImportComplete,
+    ownTeamNameHint,
+    teamSeasonId,
+    tournamentDayIso,
+    tournamentEventId,
+  ]);
+
   return (
     <>
       <Card className="relative border border-purple-500/20 bg-purple-950/15">
@@ -164,24 +261,34 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
                   Turnierplan öffnen
                 </button>
                 {canManage ? (
-                  <div className="grid grid-cols-2 gap-2">
+                  <>
                     <button
                       type="button"
-                      className={`inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 touch-manipulation ${dsScheduleGlassButtonClass()}`}
-                      onClick={openQrScanner}
+                      className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 touch-manipulation ${dsSecondaryCtaClass()}`}
+                      onClick={() => void startImport()}
                     >
-                      <ScanLine className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-                      QR-Code erneut scannen
+                      <FileDown className="h-4 w-4" strokeWidth={2} aria-hidden />
+                      Turnierplan importieren
                     </button>
-                    <button
-                      type="button"
-                      className={`inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 touch-manipulation ${dsScheduleGlassButtonClass()}`}
-                      onClick={openEditor}
-                    >
-                      <Pencil className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-                      Bearbeiten
-                    </button>
-                  </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        className={`inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 touch-manipulation ${dsScheduleGlassButtonClass()}`}
+                        onClick={openQrScanner}
+                      >
+                        <ScanLine className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                        QR-Code erneut scannen
+                      </button>
+                      <button
+                        type="button"
+                        className={`inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 touch-manipulation ${dsScheduleGlassButtonClass()}`}
+                        onClick={openEditor}
+                      >
+                        <Pencil className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                        Bearbeiten
+                      </button>
+                    </div>
+                  </>
                 ) : null}
               </div>
             </>
@@ -237,6 +344,20 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
             scanError={qrScanError}
             onScanError={setQrScanError}
             saving={qrSaving}
+          />
+
+          <TournamentPlanImportSheet
+            isOpen={importSheetOpen}
+            loading={importLoading}
+            importing={importBusy}
+            error={importError}
+            analysis={importAnalysis}
+            ownTeamNameHint={ownTeamNameHint}
+            onClose={() => {
+              if (importBusy) return;
+              setImportSheetOpen(false);
+            }}
+            onImport={() => void handleImportConfirm()}
           />
 
           <Modal

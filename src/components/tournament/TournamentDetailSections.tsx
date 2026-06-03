@@ -269,9 +269,15 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
       <TournamentOfficialPlanCard
         tournamentEventId={tournamentEventId}
+        teamSeasonId={teamSeasonId}
+        tournamentDayIso={tournamentDayIso}
+        location={location}
         officialTournamentUrl={officialTournamentUrl}
+        existingTeamNames={participants.map((p) => p.team_name)}
+        existingSlots={slots}
         canManage={canManage}
         onUrlUpdated={onOfficialTournamentUrlUpdated}
+        onImportComplete={() => void reload()}
       />
 
       <Card className="relative border border-purple-500/20 bg-purple-950/15">
