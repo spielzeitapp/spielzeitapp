@@ -168,37 +168,6 @@ export const MoreHubPage: React.FC = () => {
     >
       <SectionTitle subtitle="Einstellungen und weitere Bereiche">Mehr</SectionTitle>
 
-      <PremiumCard variant="subtle" showAmbientGlow={false}>
-        <div className="flex items-center justify-between gap-3 text-[16px] font-semibold text-white">
-          <span className="flex items-center gap-3">
-            <span className="text-lg leading-none" aria-hidden>
-              🔘
-            </span>
-            <span>Vibration bei Aktionen</span>
-          </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={hapticOn}
-            className={dsGlassToggleTrack(hapticOn)}
-            onClick={() => {
-              const next = !hapticOn;
-              setHapticEnabled(next);
-              setHapticOn(next);
-              if (next) triggerHaptic();
-            }}
-          >
-            <span
-              className={[
-                'absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ease-out',
-                hapticOn ? 'left-5' : 'left-0.5',
-              ].join(' ')}
-              aria-hidden
-            />
-          </button>
-        </div>
-      </PremiumCard>
-
       <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
         <Link to="/app/nachrichten" className={dsPanelRowClass()}>
           <span className="flex items-center gap-3">
@@ -309,6 +278,37 @@ export const MoreHubPage: React.FC = () => {
           <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
         </Link>
       </nav>
+
+      <PremiumCard variant="subtle" showAmbientGlow={false}>
+        <div className="flex items-center justify-between gap-3 text-[16px] font-semibold text-white">
+          <span className="flex items-center gap-3">
+            <span className="text-lg leading-none" aria-hidden>
+              🔘
+            </span>
+            <span>Vibration bei Aktionen</span>
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={hapticOn}
+            className={dsGlassToggleTrack(hapticOn)}
+            onClick={() => {
+              const next = !hapticOn;
+              setHapticEnabled(next);
+              setHapticOn(next);
+              if (next) triggerHaptic();
+            }}
+          >
+            <span
+              className={[
+                'absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ease-out',
+                hapticOn ? 'left-5' : 'left-0.5',
+              ].join(' ')}
+              aria-hidden
+            />
+          </button>
+        </div>
+      </PremiumCard>
 
       {canSwitchTeam && (
         <PremiumCard variant="subtle" showAmbientGlow={false} className="mt-6 text-white">
