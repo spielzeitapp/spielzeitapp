@@ -1026,7 +1026,7 @@ export const SchedulePage: React.FC = () => {
                   <span className="truncate">{teamSeasonSubtitle}</span>
                 </div>
               </div>
-              <div className="flex shrink-0 flex-row items-start justify-end gap-1.5">
+              <div className="flex shrink-0 flex-row items-center justify-end gap-1.5">
                 {canShowCalendarActions ? (
                   <button
                     type="button"
@@ -1039,46 +1039,41 @@ export const SchedulePage: React.FC = () => {
                     <span className="hidden sm:inline">Kalender abonnieren</span>
                   </button>
                 ) : null}
+                <button
+                  type="button"
+                  onClick={() => navigate('/app/termine/calendar')}
+                  className={`${dsScheduleGlassButtonClass()} h-10 w-10 shrink-0`}
+                  aria-label="Kalenderansicht"
+                  title="Kalenderansicht"
+                >
+                  <CalendarDays className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+                </button>
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
-              <div className="flex min-w-0 items-stretch gap-2">
-                {normalizedUiRole !== 'fan' ? (
-                  <div className={DS_SCHEDULE_KIND_FILTER_SCROLL_CLASS}>
-                    <div className={DS_SCHEDULE_KIND_FILTER_TRACK_CLASS}>
-                      {([
-                        { id: 'all', label: 'Alle' },
-                        { id: 'match', label: 'Spiele' },
-                        { id: 'training', label: 'Training' },
-                        { id: 'event', label: 'Events' },
-                        { id: 'tournament', label: 'Turniere' },
-                      ] as const).map((f) => (
-                        <button
-                          key={f.id}
-                          type="button"
-                          onClick={() => setKindFilter(f.id)}
-                          className={dsScheduleKindFilterTabClass(kindFilter === f.id)}
-                        >
-                          {f.label}
-                        </button>
-                      ))}
-                    </div>
+              {normalizedUiRole !== 'fan' ? (
+                <div className={DS_SCHEDULE_KIND_FILTER_SCROLL_CLASS}>
+                  <div className={DS_SCHEDULE_KIND_FILTER_TRACK_CLASS}>
+                    {([
+                      { id: 'all', label: 'Alle' },
+                      { id: 'match', label: 'Spiele' },
+                      { id: 'training', label: 'Training' },
+                      { id: 'event', label: 'Events' },
+                      { id: 'tournament', label: 'Turniere' },
+                    ] as const).map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setKindFilter(f.id)}
+                        className={dsScheduleKindFilterTabClass(kindFilter === f.id)}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
                   </div>
-                ) : (
-                  <div className="min-w-0 flex-1" />
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => navigate('/app/termine/calendar')}
-                  className={`${dsScheduleGlassButtonClass()} h-10 w-10 shrink-0 flex-none`}
-                  aria-label="Kalenderansicht"
-                  title="Kalenderansicht"
-                >
-                  <CalendarDays className="h-4.5 w-4.5" aria-hidden />
-                </button>
-              </div>
+                </div>
+              ) : null}
 
               <div className="flex justify-center">
                 <div className="inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-white/[0.08] bg-[rgba(18,18,20,0.92)] p-1">
