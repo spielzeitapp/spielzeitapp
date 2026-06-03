@@ -3,6 +3,12 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
+import {
+  LivePageHeader,
+  LivePremiumShell,
+  LiveScheduleCtaLink,
+} from '../../components/live/LivePremiumShell';
+import { PremiumEmptyState } from '../../ui';
 import { canManageRoster, normalizeRole } from '../../lib/roles';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
 import {
@@ -3346,66 +3352,74 @@ export const LiveMatchScreen: React.FC = () => {
 
   if (pageLoading) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0a] text-white">
+      <LivePremiumShell centerContent>
         <p className="text-sm text-white/60">Lade Live-Daten…</p>
-      </div>
+      </LivePremiumShell>
     );
   }
 
   if (!effectiveMatchId) {
     return (
-      <div className="min-h-[100dvh] bg-[#0a0a0a] p-4 text-white">
-        {pageError ? (
-          <p className="text-sm text-red-400">{pageError}</p>
-        ) : (
-          <p>Kein Live-Spiel aktiv</p>
-        )}
-        <Link to="/app/termine" className="mt-4 inline-block text-sm font-semibold text-emerald-400 underline">
-          Zum Spielplan
-        </Link>
-      </div>
+      <LivePremiumShell>
+        <LivePageHeader />
+        <PremiumEmptyState
+          variant="subtle"
+          title={pageError ?? 'Kein Live-Spiel aktiv'}
+          className="py-6"
+        >
+          <LiveScheduleCtaLink />
+        </PremiumEmptyState>
+      </LivePremiumShell>
     );
   }
 
   if (playersLoading && roster.length === 0) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0a] text-white">
+      <LivePremiumShell centerContent>
         <p className="text-sm text-white/60">Kader wird geladen…</p>
-      </div>
+      </LivePremiumShell>
     );
   }
 
   if (playersError) {
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-2 bg-[#0a0a0a] px-4 text-center text-white">
-        <p className="text-sm text-red-400">{playersError}</p>
-        <p className="text-xs text-white/50">Spieler kommen aus der Tabelle „players“ (aktuelle Mannschaftssaison).</p>
-      </div>
+      <LivePremiumShell centerContent>
+        <PremiumEmptyState
+          variant="subtle"
+          title={playersError}
+          description='Spieler kommen aus der Tabelle „players“ (aktuelle Mannschaftssaison).'
+          className="max-w-md py-6"
+        />
+      </LivePremiumShell>
     );
   }
 
   if (!teamSeasonForRoster) {
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-2 bg-[#0a0a0a] px-4 text-center text-white">
-        <p className="text-sm text-white/70">Spiel hat keine Mannschaftssaison.</p>
-        <Link to="/app/termine" className="text-sm font-semibold text-emerald-400 underline">
-          Zum Spielplan
-        </Link>
-      </div>
+      <LivePremiumShell centerContent>
+        <PremiumEmptyState
+          variant="subtle"
+          title="Spiel hat keine Mannschaftssaison."
+          className="max-w-md py-6"
+        >
+          <LiveScheduleCtaLink />
+        </PremiumEmptyState>
+      </LivePremiumShell>
     );
   }
 
   if (roster.length === 0) {
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-2 bg-[#0a0a0a] px-4 text-center text-white">
-        <p className="text-sm text-white/70">Kein Team / keine Spieler für dieses Spiel.</p>
-        <p className="text-xs text-white/45">
-          Wähle die passende Mannschaftssaison oder lege Spieler im Team an.
-        </p>
-        <Link to="/app/termine" className="mt-2 text-sm font-semibold text-emerald-400 underline">
-          Zum Spielplan
-        </Link>
-      </div>
+      <LivePremiumShell centerContent>
+        <PremiumEmptyState
+          variant="subtle"
+          title="Kein Team / keine Spieler für dieses Spiel."
+          description="Wähle die passende Mannschaftssaison oder lege Spieler im Team an."
+          className="max-w-md py-6"
+        >
+          <LiveScheduleCtaLink />
+        </PremiumEmptyState>
+      </LivePremiumShell>
     );
   }
 

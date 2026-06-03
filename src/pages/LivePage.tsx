@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { LivePageHeader, LivePremiumShell, LiveScheduleCtaLink } from '../components/live/LivePremiumShell';
 import { LiveMatchScreen } from './live/LiveMatchScreen';
+import { PremiumCard, PremiumEmptyState } from '../ui';
+import { cn } from '../ui/lib/cn';
+import { dsPrimaryCtaClass } from '../lib/premiumDesignSystem';
 
 type LiveMatchRow = {
   id: string;
@@ -67,37 +71,37 @@ export const LivePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-[#0a0a0a] text-white">
+      <LivePremiumShell centerContent>
         <p className="text-sm text-white/60">Lade Live-Status…</p>
-      </div>
+      </LivePremiumShell>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-[100dvh] bg-[#0a0a0a] p-4 text-white">
-        <p className="text-sm text-red-400">{error}</p>
-        <Link to="/app/termine" className="mt-4 inline-block text-sm font-semibold text-red-400 underline">
-          Zum Spielplan
-        </Link>
-      </div>
+      <LivePremiumShell>
+        <LivePageHeader />
+        <PremiumEmptyState variant="subtle" title={error} className="py-6">
+          <LiveScheduleCtaLink />
+        </PremiumEmptyState>
+      </LivePremiumShell>
     );
   }
 
   const rows = liveMatches ?? [];
   if (rows.length === 0) {
     return (
-      <div className="min-h-[100dvh] bg-[#0a0a0a] p-4 text-white">
-        <h1 className="text-lg font-bold text-white">Live</h1>
-        <p className="mt-3 text-sm text-white/65">Aktuell kein Livespiel.</p>
-        <p className="mt-1 text-sm text-white/45">Sobald ein Spiel auf LIVE steht, erscheint der Liveticker hier.</p>
-        <Link
-          to="/app/termine"
-          className="mt-5 inline-block rounded-xl border border-red-500/40 bg-red-950/35 px-4 py-2.5 text-sm font-semibold text-red-200"
+      <LivePremiumShell>
+        <LivePageHeader subtitle="Sobald ein Spiel auf LIVE steht, erscheint der Liveticker hier." />
+        <PremiumEmptyState
+          variant="subtle"
+          title="Aktuell kein Livespiel."
+          description="Starte ein Spiel im Spielplan oder warte, bis ein Match auf LIVE gesetzt wird."
+          className="py-8"
         >
-          Zum Spielplan
-        </Link>
-      </div>
+          <LiveScheduleCtaLink />
+        </PremiumEmptyState>
+      </LivePremiumShell>
     );
   }
 
@@ -106,29 +110,29 @@ export const LivePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#0a0a0a] p-4 text-white">
-      <h1 className="text-lg font-bold text-white">Live</h1>
-      <p className="mt-2 text-sm text-white/60">Mehrere Livespiele aktiv – wähle ein Spiel aus.</p>
-      <div className="mt-4 space-y-3">
+    <LivePremiumShell>
+      <LivePageHeader subtitle="Mehrere Livespiele aktiv – wähle ein Spiel aus." />
+      <div className="space-y-3">
         {rows.map((m) => (
-          <div
-            key={m.id}
-            className="rounded-2xl border border-red-500/25 bg-zinc-950/90 p-4 shadow-[0_6px_28px_rgba(0,0,0,0.35)]"
-          >
-            <p className="text-sm font-semibold text-white">{m.opponent?.trim() || 'Gegner'}</p>
-            <p className="text-xs text-white/45">
+          <PremiumCard key={m.id} matchday showAmbientGlow className="p-4">
+            <p className="line-clamp-2 text-sm font-semibold leading-snug text-white">
+              {m.opponent?.trim() || 'Gegner'}
+            </p>
+            <p className="mt-1 text-xs text-white/55">
               {m.match_date ? new Date(m.match_date).toLocaleString('de-AT') : '—'}
             </p>
             <Link
               to={`/app/live?matchId=${encodeURIComponent(m.id)}`}
-              className="mt-3 inline-block rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-500"
+              className={cn(
+                dsPrimaryCtaClass(),
+                'mt-3 inline-flex min-h-[48px] touch-manipulation items-center justify-center px-5 py-3',
+              )}
             >
               Zum Liveticker
             </Link>
-          </div>
+          </PremiumCard>
         ))}
       </div>
-    </div>
+    </LivePremiumShell>
   );
 };
-
