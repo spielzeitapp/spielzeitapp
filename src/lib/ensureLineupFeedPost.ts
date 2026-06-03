@@ -15,7 +15,12 @@ export type EnsureLineupFeedPostResult =
   | { ok: false; error: string };
 
 const MIN_FIELD_PLAYERS = 5;
-const MAX_MINUTES_BEFORE_KICKOFF = 90;
+/** Auto-Post nur im 60-Minuten-Fenster vor Anpfiff (Anpfiff muss in der Zukunft liegen). */
+const MAX_MINUTES_BEFORE_KICKOFF = 60;
+
+function isWithinLineupFeedKickoffWindow(minutesLeft: number | null): minutesLeft is number {
+  return minutesLeft != null && minutesLeft > 0 && minutesLeft <= MAX_MINUTES_BEFORE_KICKOFF;
+}
 
 function luLog(phase: string, data: Record<string, unknown>): void {
   console.info(`[lineupFeed] ${phase}`, data);
@@ -391,8 +396,9 @@ export async function ensureLineupFeedPostForMatch(
     });
     return { ok: true, created: false, reason: 'invalid_kickoff' };
   }
-  if (minutesLeft < 0 || minutesLeft > MAX_MINUTES_BEFORE_KICKOFF) {
-    lineupFeedExit('kickoff too far away', {
+  if (!isWithinLineupFeedKickoffWindow(minutesLeft)) {
+    const reason = minutesLeft <= 0 ? 'kickoff already started' : 'kickoff too far away';
+    lineupFeedExit(reason, {
       matchFound: true,
       matchId: mid,
       eventId,
@@ -405,8 +411,12 @@ export async function ensureLineupFeedPostForMatch(
       dedupeKey: dedupe_key,
       windowMinutes: MAX_MINUTES_BEFORE_KICKOFF,
     });
-    luLog('skip: outside_window', { matchId: mid, minutesLeft });
-    return { ok: true, created: false, reason: 'outside_window' };
+    luLog('skip: outside_window', { matchId: mid, minutesLeft, reason });
+    return {
+      ok: true,
+      created: false,
+      reason: minutesLeft <= 0 ? 'kickoff_started' : 'outside_window',
+    };
   }
 
   const teamInfo = await resolveTeamForSeason(teamSeasonId);
@@ -514,7 +524,7 @@ export type EnsureLineupFeedPostsForSeasonResult = {
   errors: string[];
 };
 
-/** Beim Feed-Laden: Aufstellungs-Posts für Spiele in den nächsten 90 Minuten sicherstellen. */
+/** Beim Feed-Laden: Aufstellungs-Posts für Spiele im 60-Minuten-Fenster vor Anpfiff sicherstellen. */
 export async function ensureLineupFeedPostsForSeason(
   teamSeasonId: string,
   now: Date = new Date(),
