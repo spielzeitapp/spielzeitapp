@@ -25,7 +25,12 @@ function DayEventCard({ ev }: { ev: CalendarEvent }) {
   const title = getDaySheetEventTitle(ev);
   const lines = getDaySheetEventLines(ev, category);
   const dotClass = getMonthEventDotClass(category);
-  const actionLabel = ev.type === 'game' && !cancelled ? 'Zum Spiel' : 'Details';
+  const actionLabel =
+    ev.type === 'game' && !cancelled
+      ? 'Zum Spiel'
+      : ev.type === 'tournament'
+        ? 'Turnier öffnen'
+        : 'Details';
 
   return (
     <div

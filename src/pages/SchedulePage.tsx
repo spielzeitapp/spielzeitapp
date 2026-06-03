@@ -57,8 +57,10 @@ import {
 } from '../lib/matchEventScores';
 import { fetchLineupForLiveMatch } from '../lib/liveMatchService';
 import { isStartelfCompleteFromStartingIds } from '../pages/MatchDetail/lineupGuards';
+import { getEffectiveEventType } from '../lib/eventTypeUtils';
+import { eventNotesTitle } from '../components/schedule/scheduleEventViewUtils';
 
-type KindFilterId = 'all' | 'match' | 'training' | 'event';
+type KindFilterId = 'all' | 'match' | 'training' | 'event' | 'tournament';
 type TimeFilterId = 'upcoming' | 'past';
 
 function getEventTab(e: EventRow): 'upcoming' | 'live' | 'finished' {
@@ -68,21 +70,12 @@ function getEventTab(e: EventRow): 'upcoming' | 'live' | 'finished' {
   return 'upcoming';
 }
 
-function getEffectiveEventType(e: EventRow): 'game' | 'training' | 'event' | 'other' {
-  const raw = ((e as any).type as string | undefined) ?? '';
-  const t = raw.trim().toLowerCase();
-  if (t === 'game' || t === 'training' || t === 'event' || t === 'other') return t;
-  if (e.kind === 'training') return 'training';
-  if (e.kind === 'event') return 'event';
-  return 'game';
-}
-
 function getTimeBucket(e: EventRow, now: Date): TimeFilterId {
   const status = e.status ?? 'upcoming';
   if (status === 'finished' || status === 'canceled') return 'past';
   if (status === 'live') return 'upcoming';
   const et = getEffectiveEventType(e);
-  if (et === 'training' || et === 'event' || et === 'other') {
+  if (et === 'training' || et === 'event' || et === 'other' || et === 'tournament') {
     const starts = e.starts_at ? new Date(e.starts_at).getTime() : 0;
     const TWO_HOURS = 2 * 60 * 60 * 1000;
     if (starts && starts + TWO_HOURS < now.getTime()) return 'past';
@@ -90,9 +83,12 @@ function getTimeBucket(e: EventRow, now: Date): TimeFilterId {
   return 'upcoming';
 }
 
-function heroLabelForEffectiveType(et: 'game' | 'training' | 'event' | 'other'): string {
+function heroLabelForEffectiveType(
+  et: ReturnType<typeof getEffectiveEventType>,
+): string {
   if (et === 'game') return 'Nächstes Spiel';
   if (et === 'training') return 'Nächstes Training';
+  if (et === 'tournament') return 'Nächstes Turnier';
   return 'Nächster Termin';
 }
 
@@ -306,7 +302,10 @@ export const SchedulePage: React.FC = () => {
       return;
     }
     setEditEvent(e);
-    setEditOpponent(e.opponent ?? '');
+    const editEff = getEffectiveEventType(e);
+    setEditOpponent(
+      editEff === 'game' ? (e.opponent ?? '') : (eventNotesTitle(e.notes) ?? e.opponent ?? ''),
+    );
     setEditDateTime(utcIsoToViennaDateTimeLocal(e.starts_at));
     const parsedLocation = splitCombinedLocation(e.location ?? '');
     setEditLocation(parsedLocation.place);
@@ -731,6 +730,7 @@ export const SchedulePage: React.FC = () => {
       if (kindFilter === 'match') return et === 'game';
       if (kindFilter === 'training') return et === 'training';
       if (kindFilter === 'event') return et === 'event' || et === 'other';
+      if (kindFilter === 'tournament') return et === 'tournament';
       return true; // all
     });
 
@@ -1042,6 +1042,7 @@ export const SchedulePage: React.FC = () => {
                       { id: 'match', label: 'Spiele' },
                       { id: 'training', label: 'Training' },
                       { id: 'event', label: 'Events' },
+                      { id: 'tournament', label: 'Turniere' },
                     ] as const).map((f) => (
                       <button
                         key={f.id}

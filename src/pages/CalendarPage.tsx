@@ -177,12 +177,20 @@ export const CalendarPage: React.FC = () => {
             const rawType = (r.type ?? '').trim().toLowerCase();
             const kind = (r.kind ?? '').trim().toLowerCase();
             let t: CalendarEvent['type'];
-            if (rawType === 'game' || rawType === 'training' || rawType === 'event' || rawType === 'other') {
+            if (
+              rawType === 'game' ||
+              rawType === 'training' ||
+              rawType === 'event' ||
+              rawType === 'other' ||
+              rawType === 'tournament'
+            ) {
               t = rawType;
             } else if (kind === 'match') {
               t = 'game';
             } else if (kind === 'training') {
               t = 'training';
+            } else if (kind === 'tournament') {
+              t = 'tournament';
             } else if (kind === 'event') {
               t = 'event';
             } else {
@@ -198,6 +206,8 @@ export const CalendarPage: React.FC = () => {
               title = r.opponent || 'Spiel';
             } else if (t === 'training') {
               title = 'Training';
+            } else if (t === 'tournament') {
+              title = (r.notes as string | null)?.split(' · ')[0] || 'Turnier';
             } else {
               title = (r.notes as string | null)?.split(' · ')[0] || 'Termin';
             }
@@ -272,6 +282,7 @@ export const CalendarPage: React.FC = () => {
   const getEventColorClass = (type: CalendarEvent['type']) => {
     if (type === 'game') return 'bg-red-600/80 text-white';
     if (type === 'training') return 'bg-green-600/80 text-white';
+    if (type === 'tournament') return 'bg-purple-700/85 text-white';
     if (type === 'event') return 'bg-white/10 text-white/90';
     return 'bg-white/10 text-white/80';
   };

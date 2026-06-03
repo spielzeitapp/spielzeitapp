@@ -177,6 +177,7 @@ export function formatRelativeTimeDe(iso: string, now: Date): string {
 
 export function eventKindLabel(kind: EventRow['kind']): string {
   if (kind === 'training') return 'Training';
+  if (kind === 'tournament') return 'Turnier';
   if (kind === 'event') return 'Termin';
   return 'Spiel';
 }

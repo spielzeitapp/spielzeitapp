@@ -9,6 +9,7 @@ import {
   viennaDateOnlyEndOfDayUtcIso,
 } from '../../lib/viennaTime';
 import { combineLocationParts, formatFullLocation } from '../../lib/eventLocation';
+import { eventKindFromFormType } from '../../lib/eventTypeUtils';
 
 /** Leerstring / Whitespace → null (Supabase/Postgres). */
 function nullIfEmpty(s: string | null | undefined): string | null {
@@ -94,7 +95,7 @@ type CreateEventModalProps = {
   onClose: () => void;
   teamSeasonId: string | null;
   onSuccess: () => void | Promise<void>;
-  eventType?: 'match' | 'training' | 'event';
+  eventType?: 'match' | 'training' | 'event' | 'tournament';
 };
 
 export const CreateEventModal: React.FC<CreateEventModalProps> = ({
@@ -107,8 +108,16 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [form, setForm] = useState<CreateEventFormValues>(defaultForm);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [eventTypeLocal, setEventTypeLocal] = useState<'game' | 'training' | 'event' | 'other'>(
-    eventType === 'training' ? 'training' : 'game',
+  const [eventTypeLocal, setEventTypeLocal] = useState<
+    'game' | 'training' | 'event' | 'other' | 'tournament'
+  >(
+    eventType === 'training'
+      ? 'training'
+      : eventType === 'tournament'
+        ? 'tournament'
+        : eventType === 'event'
+          ? 'event'
+          : 'game',
   );
 
   const resetForm = () => {
@@ -139,7 +148,12 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       setError('Gegner ist Pflicht.');
       return;
     }
-    if ((eventTypeLocal === 'training' || eventTypeLocal === 'event') && !titleVal) {
+    if (
+      (eventTypeLocal === 'training' ||
+        eventTypeLocal === 'event' ||
+        eventTypeLocal === 'tournament') &&
+      !titleVal
+    ) {
       setError('Titel ist Pflicht.');
       return;
     }
@@ -182,7 +196,10 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       };
 
       const canRecur =
-        eventTypeLocal === 'training' || eventTypeLocal === 'event' || eventTypeLocal === 'other';
+        eventTypeLocal === 'training' ||
+        eventTypeLocal === 'event' ||
+        eventTypeLocal === 'other' ||
+        eventTypeLocal === 'tournament';
       const recurrence: RecurrenceKind =
         eventTypeLocal === 'game' ? 'once' : form.recurrence;
 
@@ -319,12 +336,15 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             id="create-event-type"
             value={eventTypeLocal}
             onChange={(e) =>
-              setEventTypeLocal(e.target.value as 'game' | 'training' | 'event' | 'other')
+              setEventTypeLocal(
+                e.target.value as 'game' | 'training' | 'event' | 'other' | 'tournament',
+              )
             }
             className={inputClass}
           >
             <option value="game">Spiel</option>
             <option value="training">Training</option>
+            <option value="tournament">Turnier</option>
             <option value="event">Event</option>
             <option value="other">Sonstiges</option>
           </select>
@@ -388,11 +408,11 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               </div>
             </div>
           </>
-        ) : eventTypeLocal === 'training' ? (
+        ) : eventTypeLocal === 'training' || eventTypeLocal === 'tournament' ? (
           <>
             <div>
               <label htmlFor="create-event-title" className={labelClass}>
-                Titel *
+                {eventTypeLocal === 'tournament' ? 'Turniername / Titel *' : 'Titel *'}
               </label>
               <input
                 id="create-event-title"
@@ -400,7 +420,11 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                 className={inputClass}
-                placeholder="z. B. Training, Hallentraining"
+                placeholder={
+                  eventTypeLocal === 'tournament'
+                    ? 'z. B. Frühjahrsturnier U12'
+                    : 'z. B. Training, Hallentraining'
+                }
               />
             </div>
             <div>
@@ -427,22 +451,24 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
                 rows={3}
               />
             </div>
-            <label className="flex items-start gap-2 text-sm text-[var(--text-main)] cursor-pointer">
-              <input
-                type="checkbox"
-                className="mt-1 rounded border-[var(--glass-border)]"
-                checked={form.training_absence_deadline_disabled}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, training_absence_deadline_disabled: e.target.checked }))
-                }
-              />
-              <span>
-                Keine Absagefrist (Absage jederzeit möglich).{' '}
-                <span className="text-[var(--text-sub)]">
-                  Standard: Absage bis 12:00 Uhr am Trainingstag (Europe/Vienna).
+            {eventTypeLocal === 'training' ? (
+              <label className="flex items-start gap-2 text-sm text-[var(--text-main)] cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-1 rounded border-[var(--glass-border)]"
+                  checked={form.training_absence_deadline_disabled}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, training_absence_deadline_disabled: e.target.checked }))
+                  }
+                />
+                <span>
+                  Keine Absagefrist (Absage jederzeit möglich).{' '}
+                  <span className="text-[var(--text-sub)]">
+                    Standard: Absage bis 12:00 Uhr am Trainingstag (Europe/Vienna).
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+            ) : null}
           </>
         ) : (
           <>
@@ -524,7 +550,10 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             className={inputClass}
           />
         </div>
-        {(eventTypeLocal === 'training' || eventTypeLocal === 'event' || eventTypeLocal === 'other') && (
+        {(eventTypeLocal === 'training' ||
+          eventTypeLocal === 'tournament' ||
+          eventTypeLocal === 'event' ||
+          eventTypeLocal === 'other') && (
           <>
             <div>
               <label htmlFor="create-event-recurrence" className={labelClass}>

@@ -1,4 +1,4 @@
-export type CalendarEventType = 'game' | 'training' | 'event' | 'other';
+export type CalendarEventType = 'game' | 'training' | 'event' | 'other' | 'tournament';
 
 export type CalendarEvent = {
   id: string;

@@ -73,6 +73,7 @@ export function resolveEndAtFromNotes(args: {
 export function getEventTypeLabel(type: CalendarEvent['type']): string {
   if (type === 'game') return 'Spiel';
   if (type === 'training') return 'Training';
+  if (type === 'tournament') return 'Turnier';
   if (type === 'event') return 'Event';
   return 'Termin';
 }
@@ -96,6 +97,7 @@ export function inferMonthEventChipCategory(ev: CalendarEvent): MonthEventChipCa
   if (/(abgesagt|absage|cancelled|canceled|annuliert)/.test(hay)) return 'cancelled';
   if (/(geburtstag|birthday)/.test(hay)) return 'birthday';
   if (/(ferien|feiertag|holiday|weihnacht|ostern|pfingst|brückentag)/.test(hay)) return 'holiday';
+  if (ev.type === 'tournament') return 'tournament';
   if (/(turnier|tournament|pokal)/.test(hay)) return 'tournament';
   if (ev.type === 'game') return 'game';
   if (ev.type === 'training') return 'training';
@@ -233,7 +235,7 @@ export function getDaySheetEventLines(ev: CalendarEvent, category: MonthEventChi
 
   if (ev.type === 'game' && category !== 'cancelled') {
     if (kickoff) lines.push(`Anpfiff ${kickoff}`);
-  } else if (ev.type === 'training') {
+  } else if (ev.type === 'training' || ev.type === 'tournament') {
     if (kickoff) lines.push(kickoff);
   } else if (kickoff) {
     lines.push(kickoff);

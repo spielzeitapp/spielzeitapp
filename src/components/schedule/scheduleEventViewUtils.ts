@@ -2,8 +2,12 @@ import type { EventRow } from '../../hooks/useEvents';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
+import {
+  effectiveEventTypeLabelDe,
+  type EffectiveEventType,
+} from '../../lib/eventTypeUtils';
 
-export type EffectiveEventType = 'game' | 'training' | 'event' | 'other';
+export type { EffectiveEventType } from '../../lib/eventTypeUtils';
 
 export function formatHeroDateParts(iso: string | null | undefined): { wd: string; day: string; mon: string } {
   if (!iso?.trim()) return { wd: '—', day: '–', mon: '' };
@@ -84,7 +88,8 @@ export function eventNotesTitle(notes: string | null | undefined): string | null
 export function scheduleEventTypeLabel(ev: EventRow, et: EffectiveEventType): string {
   if (et === 'game') return getMatchTypeLabel(ev.match_type) ?? 'Spiel';
   if (et === 'training') return 'Training';
-  return eventNotesTitle(ev.notes) ?? 'Event';
+  if (et === 'tournament') return 'Turnier';
+  return eventNotesTitle(ev.notes) ?? effectiveEventTypeLabelDe(et);
 }
 
 export function scheduleLocationLine(ev: EventRow): string {
@@ -100,6 +105,7 @@ export function scheduleCompactPrimaryTitle(ev: EventRow, et: EffectiveEventType
     return opp;
   }
   if (et === 'training') return eventNotesTitle(ev.notes) ?? 'Training';
+  if (et === 'tournament') return eventNotesTitle(ev.notes) ?? 'Turnier';
   return eventNotesTitle(ev.notes) ?? 'Termin';
 }
 
@@ -110,6 +116,7 @@ export function scheduleCompactSecondaryLine(ev: EventRow, et: EffectiveEventTyp
     return type ?? '';
   }
   if (et === 'training') return 'Training';
+  if (et === 'tournament') return 'Turnier';
   return scheduleEventTypeLabel(ev, et);
 }
 

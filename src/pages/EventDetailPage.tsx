@@ -16,6 +16,7 @@ import {
   ThumbsDown,
   ThumbsUp,
   Trash2,
+  Trophy,
   Users,
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
@@ -91,7 +92,15 @@ import {
   type MatchFeedTemplateKey,
 } from '../features/home/feedTemplates';
 import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
-import { eventNotesTitle, formatHeroDateParts } from '../components/schedule/scheduleEventViewUtils';
+import {
+  eventNotesTitle,
+  eventTrainingEndDisplay,
+  formatHeroDateParts,
+  formatTimeHHmmDe,
+  scheduleMetaTimeDisplay,
+} from '../components/schedule/scheduleEventViewUtils';
+import { normalizeEventKind, normalizeEventTypeField } from '../lib/eventTypeUtils';
+import { formatMeetupTimeOnlyDe } from '../components/match/matchCardLabels';
 import { openMapsNavigation, resolveEventMapsCoords } from '../lib/mapsNavigation';
 import {
   meetupUtcIsoOnViennaEventDay,
@@ -134,6 +143,7 @@ function getDomainEventLabel(event: EventRow): string {
     return 'Spiel';
   }
   if (t === 'training' || event.kind === 'training') return 'Training';
+  if (event.kind === 'tournament') return 'Turnier';
   if (t === 'event' || event.kind === 'event') return 'Event';
   return 'Termin';
 }
@@ -255,20 +265,11 @@ function normalizeEventStatus(s: string | null): EventStatus {
 }
 
 function mapRowToEventRow(r: EventDbRow): EventRow {
-  const etRaw = (r.type ?? '').trim().toLowerCase();
-  const type: EventRow['type'] =
-    etRaw === 'game' || etRaw === 'training' || etRaw === 'event' || etRaw === 'other'
-      ? etRaw
-      : r.kind === 'match'
-        ? 'game'
-        : r.kind === 'training'
-          ? 'training'
-          : 'event';
   return {
     id: r.id,
     team_season_id: r.team_season_id,
-    kind: (r.kind === 'match' || r.kind === 'training' || r.kind === 'event' ? r.kind : 'event') as EventKind,
-    type,
+    kind: normalizeEventKind(r.kind),
+    type: normalizeEventTypeField(r.kind, r.type),
     match_type: (() => {
       const s = String(r.match_type ?? '').trim();
       return s === '' ? null : s;
@@ -1141,6 +1142,20 @@ export const EventDetailPage: React.FC = () => {
       if (details) notesParts.push(details);
       payload.notes = notesParts.length > 0 ? notesParts.join(' · ') : null;
       payload.opponent = title || null;
+    }
+    if (editEvent.kind === 'tournament') {
+      payload.type = 'tournament';
+      payload.opponent = null;
+      payload.is_home = null;
+      payload.match_type = null;
+      const notesParts: string[] = [];
+      const title = (editTitle ?? '').trim();
+      const end = (editEndTime ?? '').trim();
+      const details = (editDetails ?? '').trim();
+      if (title) notesParts.push(title);
+      if (end) notesParts.push(`Ende: ${end} Uhr`);
+      if (details) notesParts.push(details);
+      payload.notes = notesParts.length > 0 ? notesParts.join(' · ') : null;
     }
     if (editEvent.kind === 'training') {
       payload.training_absence_deadline_disabled = editTrainingDeadlineDisabled;
@@ -2886,7 +2901,12 @@ export const EventDetailPage: React.FC = () => {
   }
 
   const isAudienceMatchDetail = event.kind === 'match' && !canTrainerManageEvent;
+  const isTournament = event.kind === 'tournament';
   const isEventOrOther = event.kind === 'event';
+  const tournamentTitle = (eventNotesTitle(event.notes) ?? 'Turnier').trim();
+  const tournamentEndLabel = eventTrainingEndDisplay(event.notes);
+  const tournamentMeetupLabel = event.meeting_at ? formatMeetupTimeOnlyDe(event.meeting_at) : null;
+  const tournamentNotesText = extractAudienceTrainerNotes(event.notes);
   const audienceLocation = splitCombinedLocation(event.location);
   const audienceMapsCoords = resolveEventMapsCoords(event.location, event.notes);
   const audienceTrainerNotes = extractAudienceTrainerNotes(event.notes);
@@ -3028,7 +3048,61 @@ export const EventDetailPage: React.FC = () => {
           )}
         </div>
 
-        {isEventOrOther ? (
+        {isTournament ? (
+          <>
+            <div className="-mx-1 overflow-hidden rounded-[16px] border border-purple-500/25 bg-[linear-gradient(165deg,#1a1424_0%,#0a0a0c_52%,#180a22_100%)] px-4 py-3.5 shadow-[0_12px_40px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.06)] sm:mx-0">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/35 bg-purple-950/55 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-purple-100">
+                  <Trophy className="h-3.5 w-3.5 text-amber-300/95" strokeWidth={2} aria-hidden />
+                  Turnier
+                </span>
+              </div>
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
+                  <span className="text-[13px] font-semibold uppercase leading-none tracking-[0.12em] text-purple-300/90">{eventHeroDate.wd}</span>
+                  <span className="text-[34px] font-bold tabular-nums leading-none text-white">{eventHeroDate.day}</span>
+                  <span className="text-[13px] font-medium leading-tight text-white/70">{eventHeroDate.mon}</span>
+                  {eventHeroYear ? <span className="text-[12px] font-medium leading-tight text-white/45">{eventHeroYear}</span> : null}
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <p className="text-[20px] font-bold leading-tight text-white">{tournamentTitle}</p>
+                  <p className="text-[14px] text-white/75">{formatEventDateTimeLabel(event.starts_at)}</p>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-1 gap-2 text-[14px] text-white/80 sm:grid-cols-2">
+                <p>
+                  <span className="text-white/50">Treffpunkt: </span>
+                  {tournamentMeetupLabel ?? '—'}
+                </p>
+                <p>
+                  <span className="text-white/50">Beginn: </span>
+                  {scheduleMetaTimeDisplay(formatTimeHHmmDe(event.starts_at))}
+                </p>
+                <p>
+                  <span className="text-white/50">Ende: </span>
+                  {tournamentEndLabel ? scheduleMetaTimeDisplay(tournamentEndLabel) : '—'}
+                </p>
+                <p>
+                  <span className="text-white/50">Ort: </span>
+                  {eventPlaceLine || eventAddressLine || '—'}
+                </p>
+              </div>
+              {tournamentNotesText ? (
+                <p className="mt-3 text-[14px] leading-snug text-white/72">
+                  <span className="text-white/50">Notizen: </span>
+                  {tournamentNotesText}
+                </p>
+              ) : null}
+            </div>
+            <Card className="border border-purple-500/20 bg-purple-950/20">
+              <CardTitle>Turnierplan</CardTitle>
+              <p className="mt-2 text-[14px] font-semibold text-white/90">Turnierplan folgt</p>
+              <p className="mt-1 text-[13px] leading-snug text-white/65">
+                Hier können später einzelne Turnierspiele mit Aufstellung, Ergebnis und Liveticker ergänzt werden.
+              </p>
+            </Card>
+          </>
+        ) : isEventOrOther ? (
           <div className="-mx-1 overflow-hidden rounded-[16px] border border-white/[0.1] bg-[linear-gradient(165deg,#16141a_0%,#0a0a0c_52%,#140a10_100%)] px-4 py-3.5 shadow-[0_12px_40px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.06)] sm:mx-0">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
@@ -3677,8 +3751,16 @@ export const EventDetailPage: React.FC = () => {
                   <input
                     id="event-detail-edit-opponent"
                     type="text"
-                    value={editEvent?.kind === 'event' ? editTitle : editOpponent}
-                    onChange={(e) => (editEvent?.kind === 'event' ? setEditTitle(e.target.value) : setEditOpponent(e.target.value))}
+                    value={
+                      editEvent?.kind === 'event' || editEvent?.kind === 'tournament'
+                        ? editTitle
+                        : editOpponent
+                    }
+                    onChange={(e) =>
+                      editEvent?.kind === 'event' || editEvent?.kind === 'tournament'
+                        ? setEditTitle(e.target.value)
+                        : setEditOpponent(e.target.value)
+                    }
                     className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
                   />
                 </div>

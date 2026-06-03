@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bus, CalendarDays, ChevronRight, Clapperboard, ClipboardList, Clock, MapPin, PartyPopper, Pizza, Users } from 'lucide-react';
+import { Bus, CalendarDays, ChevronRight, Clapperboard, ClipboardList, Clock, MapPin, PartyPopper, Pizza, Trophy, Users } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatFullLocation, formatLocationTwoLines, splitCombinedLocation } from '../../lib/eventLocation';
@@ -166,8 +166,9 @@ function HeroMeetupCTA({ timeLabel }: { timeLabel: string }) {
   );
 }
 
-function eventTypePremiumIcon(ev: EventRow) {
-  const raw = `${eventNotesTitle(ev.notes) ?? ''} ${scheduleEventTypeLabel(ev, 'event') ?? ''}`.toLowerCase();
+function eventTypePremiumIcon(ev: EventRow, et: EffectiveEventType) {
+  if (et === 'tournament' || ev.kind === 'tournament') return Trophy;
+  const raw = `${eventNotesTitle(ev.notes) ?? ''} ${scheduleEventTypeLabel(ev, et) ?? ''}`.toLowerCase();
   if (raw.includes('film') || raw.includes('kino')) return Clapperboard;
   if (raw.includes('eltern')) return Users;
   if (raw.includes('abschluss') || raw.includes('fest') || raw.includes('feier')) return PartyPopper;
@@ -364,7 +365,11 @@ export function ScheduleHeroEventCard({
   const trainingLocationLine =
     locLine1 || locLine2 ? [locLine1, locLine2].filter(Boolean).join(' · ') : locSingle || '—';
 
-  const eventTitle = (eventNotesTitle(ev.notes) ?? scheduleEventTypeLabel(ev, et) ?? 'Termin').trim();
+  const eventTitle = (
+    et === 'tournament'
+      ? (eventNotesTitle(ev.notes) ?? 'Turnier')
+      : (eventNotesTitle(ev.notes) ?? scheduleEventTypeLabel(ev, et) ?? 'Termin')
+  ).trim();
   const eventTitleLen = eventTitle.length;
   const eventTitleSizeClass =
     eventTitleLen > 42
@@ -374,7 +379,7 @@ export function ScheduleHeroEventCard({
         : 'text-[18px] min-[375px]:text-[19px]';
   /** Terminübersicht: nur Platzname/Ort, keine Adresse. */
   const eventTileOrtName = (parsedLoc.place || locLine1 || locSingle || '—').trim() || '—';
-  const EventTypeIcon = eventTypePremiumIcon(ev);
+  const EventTypeIcon = eventTypePremiumIcon(ev, et);
 
   const trainingMetaItems = [
     {
@@ -508,7 +513,7 @@ export function ScheduleHeroEventCard({
               <button
                 type="button"
                 className="flex h-[56px] w-[42px] shrink-0 items-center justify-center border-l border-white/[0.05] bg-gradient-to-b from-teal-500/90 to-emerald-700/95 text-white shadow-[0_0_16px_rgba(16,185,129,0.28)] transition-colors hover:brightness-110"
-                aria-label="Termin öffnen"
+                aria-label={et === 'tournament' ? 'Turnier öffnen' : 'Termin öffnen'}
                 onClick={(e) => {
                   e.stopPropagation();
                   openDetail();
@@ -537,6 +542,9 @@ export function ScheduleHeroEventCard({
     >
       {et === 'training' ? (
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-5%,rgba(122,29,42,0.10)_0%,transparent_60%)]" aria-hidden />
+      ) : null}
+      {et === 'tournament' ? (
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-5%,rgba(88,28,135,0.14)_0%,transparent_60%)]" aria-hidden />
       ) : null}
       {body}
     </div>

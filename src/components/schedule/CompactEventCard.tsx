@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CalendarDays, MapPin } from 'lucide-react';
+import { CalendarDays, MapPin, Trophy } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import { getClubLogo } from '../../lib/teamLogos';
 import { splitCombinedLocation } from '../../lib/eventLocation';
@@ -12,7 +12,10 @@ import {
   scheduleCompactPrimaryTitle,
   scheduleEventTypeLabel,
   eventNotesTitle,
+  eventTrainingEndDisplay,
+  scheduleMetaTimeDisplay,
 } from './scheduleEventViewUtils';
+import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
 import {
   dsScheduleDateBoxClass,
   dsScheduleDateBoxDayClass,
@@ -153,6 +156,9 @@ function eventTypeBadgeClass(et: EffectiveEventType): string {
   if (et === 'training') {
     return 'bg-emerald-950/75 text-emerald-100/95';
   }
+  if (et === 'tournament') {
+    return 'border border-purple-500/35 bg-purple-900/55 text-purple-100/95';
+  }
   if (et === 'game') {
     return 'bg-zinc-800/90 text-white/82';
   }
@@ -191,6 +197,10 @@ export function CompactEventCard({
   const trainingTitle =
     et === 'training' ? (compactTrainingHeadline(ourTeamName, trainingNotesTitle) ?? 'Training') : null;
   const trainingTitleLines = splitTrainingTitleLines(trainingTitle);
+  const tournamentTitle = et === 'tournament' ? (trainingNotesTitle ?? 'Turnier') : null;
+  const tournamentEndLabel = et === 'tournament' ? eventTrainingEndDisplay(ev.notes) : null;
+  const meetupLabel =
+    et === 'tournament' && ev.meeting_at ? formatMeetupTimeOnlyDe(ev.meeting_at) : null;
   const hasTrailing = Boolean(trailing);
   const oppSrc = getClubLogo(oppName, { logoUrl: opponentLogoUrl ?? undefined });
   const inlineTypeIcon =
@@ -198,13 +208,16 @@ export function CompactEventCard({
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
       <TrainingPlayerIcon variant="list" />
+    ) : et === 'tournament' ? (
+      <Trophy className="h-5 w-5 shrink-0 text-amber-300/90" strokeWidth={2} aria-hidden />
     ) : (
       <CalendarDays className="h-5 w-5 shrink-0 text-red-200/85" />
     );
 
   if (parentCompactLayout) {
     const wdAbbrev = formatCompactListWeekdayAbbrev(ev.starts_at);
-    const parentTitle = et === 'game' ? oppName : et === 'training' ? trainingTitle : title;
+    const parentTitle =
+      et === 'game' ? oppName : et === 'training' ? trainingTitle : et === 'tournament' ? tournamentTitle : title;
 
     return (
       <div
@@ -293,15 +306,21 @@ export function CompactEventCard({
   const venueIsShort = Boolean(venueOnly && venueOnly.length <= 24);
 
   const typeBadgeLabelOther =
-    et !== 'game' && et !== 'training'
+    et !== 'game' && et !== 'training' && et !== 'tournament'
       ? (scheduleEventTypeLabel(ev, et) ?? 'Termin').toUpperCase()
-      : null;
+      : et === 'tournament'
+        ? 'TURNIER'
+        : null;
 
   const iconSlot =
     et === 'game' ? (
       <CompactOpponentLogo src={oppSrc} />
     ) : et === 'training' ? (
       <TrainingPlayerIcon variant="list" />
+    ) : et === 'tournament' ? (
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-purple-500/30 bg-purple-950/45">
+        <Trophy className="h-5 w-5 text-amber-300/90" strokeWidth={2} aria-hidden />
+      </span>
     ) : (
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">
         <CalendarDays className="h-5 w-5 text-red-200/85" />
@@ -331,6 +350,10 @@ export function CompactEventCard({
             </p>
           ) : null}
         </>
+      ) : et === 'tournament' ? (
+        <p className={titleClamp} lang="de">
+          {tournamentTitle}
+        </p>
       ) : (
         <p className={titleClamp} lang="de">
           {title}
@@ -368,6 +391,81 @@ export function CompactEventCard({
         </p>
       )
     ) : null;
+
+  if (et === 'tournament' && !parentCompactLayout) {
+    return (
+      <div
+        className={[
+          'relative mb-2 -mx-1 grid w-[calc(100%+0.5rem)] min-w-0 grid-cols-[78px_58px_minmax(0,1fr)_54px_20px] items-center gap-x-0 overflow-x-hidden px-2.5 py-2 sm:mx-0 sm:w-full',
+          dsScheduleListPanelClass(),
+          clickable ? 'cursor-pointer active:bg-white/[0.03]' : 'cursor-default',
+        ].join(' ')}
+        role={clickable ? 'button' : undefined}
+        tabIndex={clickable ? 0 : undefined}
+        onClick={clickable ? handleRowClick : undefined}
+        onKeyDown={
+          clickable
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleRowClick();
+                }
+              }
+            : undefined
+        }
+      >
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(88,28,135,0.12)_0%,transparent_60%)]" aria-hidden />
+        <div className={dsScheduleListPanelGlowClass()} aria-hidden />
+        <div className={`${dsScheduleDateBoxClass()} relative z-[1] shrink-0 !w-[78px]`}>
+          <span className={dsScheduleDateBoxWeekdayClass()}>{wd}</span>
+          <span className={`${dsScheduleDateBoxDayClass()} !text-[1.45rem]`}>{day}</span>
+          <span className={`${dsScheduleDateBoxMonthClass()} !text-[9px]`}>{monYear}</span>
+          <span className="text-[11px] font-semibold tabular-nums leading-tight text-purple-300/90">{timeStr}</span>
+        </div>
+
+        <div className="relative z-[1] flex w-[58px] shrink-0 items-center justify-center self-center">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-purple-500/35 bg-purple-950/50 text-lg shadow-[0_0_12px_rgba(168,85,247,0.2)]">
+            <Trophy className="h-5 w-5 text-amber-300/95" strokeWidth={2} aria-hidden />
+          </span>
+        </div>
+
+        <div className="relative z-[1] min-w-0 overflow-hidden py-0.5">
+          <p className="line-clamp-2 text-[18px] font-semibold leading-[1.05] text-white" lang="de">
+            {tournamentTitle}
+          </p>
+          <span
+            className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${eventTypeBadgeClass(et)}`}
+          >
+            Turnier
+          </span>
+          <p className="mt-1 text-[13px] leading-snug text-white/72">
+            {meetupLabel ? `Treffpunkt ${meetupLabel}` : 'Treffpunkt —'}
+            {tournamentEndLabel
+              ? ` · Ende ${scheduleMetaTimeDisplay(tournamentEndLabel)}`
+              : ` · Beginn ${scheduleMetaTimeDisplay(timeStr)}`}
+          </p>
+          <p className="mt-0.5 line-clamp-2 text-[14px] leading-snug text-white/65">
+            {venueOnly ?? 'Ort —'}
+          </p>
+          {clickable ? (
+            <p className="mt-1 text-[12px] font-semibold text-purple-200/85">Turnier öffnen ›</p>
+          ) : null}
+        </div>
+
+        <div className="relative z-[1] flex w-[54px] shrink-0 items-center justify-center self-center">
+          {hasTrailing ? <div className="min-w-0 [&>*]:origin-center">{trailing}</div> : null}
+        </div>
+
+        <div className="relative z-[1] flex w-5 shrink-0 items-center justify-center self-center">
+          {clickable ? (
+            <span className="text-[15px] font-light leading-none text-white/25" aria-hidden>
+              ›
+            </span>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   if (et === 'training' && !parentCompactLayout) {
     return (

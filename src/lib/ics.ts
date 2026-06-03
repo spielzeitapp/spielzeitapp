@@ -1,6 +1,6 @@
 import { formatFullLocation } from './eventLocation';
 
-type IcsEventType = 'game' | 'training' | 'event' | 'other';
+type IcsEventType = 'game' | 'training' | 'event' | 'other' | 'tournament';
 
 export type IcsEventLike = {
   id: string;
@@ -52,7 +52,10 @@ function parseEndTimeFromNotes(notes: string | null | undefined): string | null 
 
 function getEffectiveEventType(e: IcsEventLike): IcsEventType {
   const raw = ((e.type ?? '') as string).trim().toLowerCase();
-  if (raw === 'game' || raw === 'training' || raw === 'event' || raw === 'other') return raw;
+  if (raw === 'game' || raw === 'training' || raw === 'event' || raw === 'other' || raw === 'tournament') {
+    return raw;
+  }
+  if (e.kind === 'tournament') return 'tournament';
   if (e.kind === 'training') return 'training';
   if (e.kind === 'event') return 'event';
   return 'game';
@@ -118,9 +121,11 @@ export function generateEventIcs(
       ? `Spiel: ${e.opponent ?? 'Termin'}`
       : type === 'training'
         ? `Training: ${notesTitle ?? e.title ?? 'Training'}`
-        : type === 'event'
-          ? `${notesTitle ?? e.title ?? 'Event'}`
-          : `${notesTitle ?? e.title ?? 'Termin'}`;
+        : type === 'tournament'
+          ? `Turnier: ${notesTitle ?? e.title ?? 'Turnier'}`
+          : type === 'event'
+            ? `${notesTitle ?? e.title ?? 'Event'}`
+            : `${notesTitle ?? e.title ?? 'Termin'}`;
 
   const meetupTimeOnly = e.meeting_at
     ? new Intl.DateTimeFormat('de-AT', {

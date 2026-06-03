@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import {
+  normalizeEventKind,
+  normalizeEventTypeField,
+  type EventKind,
+  type EventTypeField,
+} from "../lib/eventTypeUtils";
 
-/** kind in DB: nur 'match' | 'training' | 'event' (events_kind_check). */
-export type EventKind = "match" | "training" | "event";
+export type { EventKind } from "../lib/eventTypeUtils";
 export type EventStatus = "upcoming" | "live" | "finished" | "canceled";
 export type ParticipationMode = "opt_in" | "opt_out";
 
@@ -114,15 +119,8 @@ export function useEvents(teamSeasonId: string | null) {
       const mapped: EventRow[] = (data ?? []).map((r: EventDbRow) => ({
         id: r.id,
         team_season_id: r.team_season_id,
-        kind: (r.kind === "match" || r.kind === "training" || r.kind === "event" ? r.kind : "event") as EventKind,
-        type: (() => {
-          const t = (r.type ?? "").trim().toLowerCase();
-          if (t === "game" || t === "training" || t === "event" || t === "other") return t;
-          if (r.kind === "match") return "game";
-          if (r.kind === "training") return "training";
-          if (r.kind === "event") return "event";
-          return "other";
-        })(),
+        kind: normalizeEventKind(r.kind),
+        type: normalizeEventTypeField(r.kind, r.type),
         match_type: (() => {
           const s = String(r.match_type ?? "").trim();
           return s === "" ? null : s;
