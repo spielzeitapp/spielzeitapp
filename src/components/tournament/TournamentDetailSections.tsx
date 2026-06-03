@@ -38,6 +38,8 @@ type Props = {
 const inputClass =
   'w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[15px] text-white placeholder:text-white/40 focus:border-purple-500/45 focus:outline-none';
 
+const textareaClass = `${inputClass} min-h-[180px] resize-y leading-snug`;
+
 const addButtonClass = `relative z-[2] inline-flex shrink-0 min-h-[44px] items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`;
 
 export const TournamentDetailSections: React.FC<Props> = ({
