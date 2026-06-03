@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ClipboardList, ExternalLink, Link2, Pencil } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ClipboardList, ExternalLink, Link2, Pencil, ScanLine } from 'lucide-react';
 import { Card, CardTitle } from '../../app/components/ui/Card';
 import { AppButton } from '../ui/AppButton';
 import { Modal } from '../../app/ui/Modal';
@@ -9,12 +9,14 @@ import {
   dsSecondaryCtaClass,
   dsStatusChipClass,
 } from '../../lib/premiumDesignSystem';
+import { INVALID_QR_TOURNAMENT_LINK_MESSAGE } from '../../lib/tournamentPlanQrScanner';
 import {
   displayDomainFromOfficialPlanUrl,
   openOfficialTournamentPlanUrl,
   saveOfficialTournamentPlanUrl,
   validateOfficialTournamentUrl,
 } from '../../lib/tournamentOfficialPlanUrl';
+import { TournamentPlanQrScannerSheet } from './TournamentPlanQrScannerSheet';
 
 type Props = {
   tournamentEventId: string;
@@ -38,6 +40,12 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
+  const [qrScanError, setQrScanError] = useState<string | null>(null);
+  const [qrSaving, setQrSaving] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const qrSaveInFlightRef = useRef(false);
+
   const hasUrl = Boolean(officialTournamentUrl?.trim());
   const domain = displayDomainFromOfficialPlanUrl(officialTournamentUrl);
 
@@ -48,9 +56,21 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     }
   }, [modalOpen, officialTournamentUrl]);
 
+  useEffect(() => {
+    if (!toastMessage) return;
+    const t = window.setTimeout(() => setToastMessage(null), 3000);
+    return () => window.clearTimeout(t);
+  }, [toastMessage]);
+
   const openEditor = () => {
     setSaveError(null);
     setModalOpen(true);
+  };
+
+  const openQrScanner = () => {
+    setSaveError(null);
+    setQrScanError(null);
+    setQrScannerOpen(true);
   };
 
   const handleOpen = () => {
@@ -75,7 +95,38 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     }
     onUrlUpdated(validated.url);
     setModalOpen(false);
+    setToastMessage('Turnierplan gespeichert');
   };
+
+  const handleQrScan = useCallback(
+    async (rawValue: string) => {
+      if (qrSaveInFlightRef.current) return;
+
+      const validated = validateOfficialTournamentUrl(rawValue);
+      if (!validated.ok) {
+        setQrScanError(INVALID_QR_TOURNAMENT_LINK_MESSAGE);
+        return;
+      }
+
+      qrSaveInFlightRef.current = true;
+      setQrScanError(null);
+      setQrSaving(true);
+
+      const { error } = await saveOfficialTournamentPlanUrl(tournamentEventId, validated.url);
+      setQrSaving(false);
+      qrSaveInFlightRef.current = false;
+
+      if (error) {
+        setQrScanError(error);
+        return;
+      }
+
+      onUrlUpdated(validated.url);
+      setQrScannerOpen(false);
+      setToastMessage('Turnierplan gespeichert');
+    },
+    [onUrlUpdated, tournamentEventId],
+  );
 
   return (
     <>
@@ -103,23 +154,24 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
                 <Link2 className="h-4 w-4 shrink-0 text-emerald-300/85" strokeWidth={2} aria-hidden />
                 <p className="min-w-0 truncate text-[15px] font-semibold text-white">{domain}</p>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <div className="flex flex-col gap-2">
                 <button
                   type="button"
-                  className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 touch-manipulation sm:w-auto ${dsPrimaryCtaClass()}`}
+                  className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 touch-manipulation ${dsPrimaryCtaClass()}`}
                   onClick={handleOpen}
                 >
                   <ExternalLink className="h-4 w-4" strokeWidth={2} aria-hidden />
                   Turnierplan öffnen
                 </button>
                 {canManage ? (
-                  <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row">
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       className={`inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 touch-manipulation ${dsScheduleGlassButtonClass()}`}
-                      onClick={handleOpen}
+                      onClick={openQrScanner}
                     >
-                      Öffnen
+                      <ScanLine className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                      QR-Code erneut scannen
                     </button>
                     <button
                       type="button"
@@ -137,57 +189,93 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
             <>
               <p className="text-[14px] text-white/65">Noch kein Turnierplan hinterlegt</p>
               {canManage ? (
-                <button
-                  type="button"
-                  className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 touch-manipulation sm:w-auto ${dsSecondaryCtaClass()}`}
-                  onClick={openEditor}
-                >
-                  <Link2 className="h-4 w-4" strokeWidth={2} aria-hidden />
-                  Link hinzufügen
-                </button>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 touch-manipulation ${dsSecondaryCtaClass()}`}
+                    onClick={openQrScanner}
+                  >
+                    <ScanLine className="h-4 w-4" strokeWidth={2} aria-hidden />
+                    QR-Code scannen
+                  </button>
+                  <button
+                    type="button"
+                    className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 touch-manipulation ${dsSecondaryCtaClass()}`}
+                    onClick={openEditor}
+                  >
+                    <Link2 className="h-4 w-4" strokeWidth={2} aria-hidden />
+                    Link hinzufügen
+                  </button>
+                </div>
               ) : null}
             </>
           )}
         </div>
       </Card>
 
-      {canManage ? (
-        <Modal
-          isOpen={modalOpen}
-          onClose={() => !saving && setModalOpen(false)}
-          title="Offizieller Turnierplan"
-          footer={
-            <div className="flex justify-end gap-2">
-              <AppButton variant="secondary" onClick={() => setModalOpen(false)} disabled={saving}>
-                Abbrechen
-              </AppButton>
-              <AppButton variant="primary" onClick={() => void handleSave()} disabled={saving}>
-                {saving ? 'Speichern…' : 'Speichern'}
-              </AppButton>
-            </div>
-          }
+      {toastMessage ? (
+        <div
+          className="pointer-events-none fixed left-1/2 z-[1003] max-w-[min(92vw,24rem)] -translate-x-1/2 rounded-2xl border border-emerald-500/35 bg-[rgba(10,8,18,0.96)] px-4 py-2.5 text-center text-[14px] font-medium text-white shadow-[0_8px_32px_rgba(0,0,0,0.55)] backdrop-blur-sm bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:top-4 sm:bottom-auto"
+          role="status"
+          aria-live="polite"
         >
-          <div className="flex flex-col gap-3">
-            {modalError ? (
-              <p className="text-[13px] text-red-300/90" role="alert">
-                {modalError}
-              </p>
-            ) : null}
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] text-white/65">Turnierplan URL</span>
-              <input
-                className={inputClass}
-                value={draftUrl}
-                onChange={(e) => setDraftUrl(e.target.value)}
-                placeholder="https://..."
-                inputMode="url"
-                autoComplete="url"
-                autoCapitalize="off"
-                spellCheck={false}
-              />
-            </label>
-          </div>
-        </Modal>
+          {toastMessage}
+        </div>
+      ) : null}
+
+      {canManage ? (
+        <>
+          <TournamentPlanQrScannerSheet
+            isOpen={qrScannerOpen}
+            onClose={() => {
+              if (qrSaving) return;
+              setQrScannerOpen(false);
+              setQrScanError(null);
+              qrSaveInFlightRef.current = false;
+            }}
+            onScanSuccess={(rawValue) => void handleQrScan(rawValue)}
+            scanError={qrScanError}
+            onScanError={setQrScanError}
+            saving={qrSaving}
+          />
+
+          <Modal
+            isOpen={modalOpen}
+            onClose={() => !saving && setModalOpen(false)}
+            title="Offizieller Turnierplan"
+            footer={
+              <div className="flex justify-end gap-2">
+                <AppButton variant="secondary" onClick={() => setModalOpen(false)} disabled={saving}>
+                  Abbrechen
+                </AppButton>
+                <AppButton variant="primary" onClick={() => void handleSave()} disabled={saving}>
+                  {saving ? 'Speichern…' : 'Speichern'}
+                </AppButton>
+              </div>
+            }
+          >
+            <div className="flex flex-col gap-3">
+              {modalError ? (
+                <p className="text-[13px] text-red-300/90" role="alert">
+                  {modalError}
+                </p>
+              ) : null}
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[13px] text-white/65">Turnierplan URL</span>
+                <input
+                  className={inputClass}
+                  value={draftUrl}
+                  onChange={(e) => setDraftUrl(e.target.value)}
+                  placeholder="https://..."
+                  inputMode="url"
+                  autoComplete="url"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                />
+              </label>
+            </div>
+          </Modal>
+        </>
       ) : null}
     </>
   );
