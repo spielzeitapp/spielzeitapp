@@ -593,19 +593,24 @@ function TournamentMatchRow({
   const scoreLine =
     status.kind === 'result' ? `${status.ourGoals}:${status.oppGoals}` : null;
 
+  const subline = [scoreLine ? `Ergebnis ${scoreLine}` : null, meta].filter(Boolean).join(' · ');
+
+  const cardShellClass = isNextUpcoming
+    ? 'border-purple-400/50 bg-[linear-gradient(135deg,rgba(88,28,135,0.26)_0%,rgba(251,191,36,0.06)_48%,rgba(255,255,255,0.04)_100%)] shadow-[0_0_28px_rgba(168,85,247,0.14),inset_0_1px_0_rgba(251,191,36,0.12)]'
+    : 'border-white/10 bg-white/[0.04]';
+
   return (
     <li>
-      <div
-        className={`relative rounded-xl border bg-white/[0.04] transition ${
-          isNextUpcoming
-            ? 'border-purple-400/45 bg-[linear-gradient(135deg,rgba(88,28,135,0.22)_0%,rgba(255,255,255,0.04)_100%)] shadow-[0_0_24px_rgba(168,85,247,0.12)]'
-            : 'border-white/10'
-        }`}
-      >
+      <div className={`relative overflow-hidden rounded-xl border transition ${cardShellClass}`}>
+        {isNextUpcoming ? (
+          <span className="absolute left-3 top-2.5 z-[1] text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200/90">
+            Nächstes Spiel
+          </span>
+        ) : null}
         {canManage ? (
           <button
             type="button"
-            className="absolute right-2 top-2 z-[2] rounded-full p-1.5 text-white/40 hover:bg-red-500/15 hover:text-red-400 touch-manipulation"
+            className="absolute bottom-2.5 right-2 z-[3] rounded-full p-1.5 text-white/40 hover:bg-red-500/15 hover:text-red-400 touch-manipulation sm:bottom-auto sm:right-2 sm:top-2"
             aria-label={`${slot.opponent_name} entfernen`}
             onClick={(e) => {
               e.stopPropagation();
@@ -618,19 +623,45 @@ function TournamentMatchRow({
         <button
           type="button"
           onClick={onOpen}
-          className="flex w-full min-h-[56px] items-center gap-3 px-3 py-2.5 pr-10 text-left touch-manipulation"
+          className="relative flex w-full text-left touch-manipulation"
         >
-          <span className="w-[52px] shrink-0 text-[17px] font-bold tabular-nums text-white">{timeLabel}</span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[16px] font-semibold text-white">{slot.opponent_name}</span>
-            {meta || scoreLine ? (
-              <span className="mt-0.5 block text-[12px] text-white/55">
-                {[scoreLine ? `Ergebnis ${scoreLine}` : null, meta].filter(Boolean).join(' · ')}
+          {/* Mobile: gestapelt, Gegner voll lesbar */}
+          <div
+            className={`flex w-full flex-col gap-2 px-3 pb-3 sm:hidden ${
+              isNextUpcoming ? 'pt-8' : 'pt-3'
+            } ${canManage ? 'pr-11' : 'pr-10'}`}
+          >
+            <p className="text-[14px] font-semibold tabular-nums text-purple-200/90">{timeLabel} Uhr</p>
+            <p className="text-[20px] font-bold leading-[1.2] text-white break-words line-clamp-2">
+              {slot.opponent_name}
+            </p>
+            {subline ? <p className="text-[12px] leading-snug text-white/55 break-words">{subline}</p> : null}
+            <span className={`self-start ${dsStatusChipClass(chipTone)}`}>{status.label}</span>
+          </div>
+
+          {/* Desktop: kompakte Zeile */}
+          <div
+            className={`hidden min-h-[56px] w-full items-center gap-3 px-3 py-2.5 sm:flex ${
+              canManage ? 'pr-16' : 'pr-10'
+            } ${isNextUpcoming ? 'pt-7' : ''}`}
+          >
+            <span className="w-[52px] shrink-0 text-[17px] font-bold tabular-nums text-white">{timeLabel}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[16px] font-semibold leading-snug text-white break-words line-clamp-2">
+                {slot.opponent_name}
               </span>
-            ) : null}
-          </span>
-          <span className={dsStatusChipClass(chipTone)}>{status.label}</span>
-          <ChevronRight className="h-4 w-4 shrink-0 text-white/35" strokeWidth={2} aria-hidden />
+              {subline ? (
+                <span className="mt-0.5 block text-[12px] leading-snug text-white/55 break-words">{subline}</span>
+              ) : null}
+            </span>
+            <span className={`shrink-0 ${dsStatusChipClass(chipTone)}`}>{status.label}</span>
+          </div>
+
+          <ChevronRight
+            className="pointer-events-none absolute right-3 top-1/2 z-[2] h-5 w-5 -translate-y-1/2 text-white/35 sm:right-9"
+            strokeWidth={2}
+            aria-hidden
+          />
         </button>
       </div>
     </li>

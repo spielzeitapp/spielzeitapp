@@ -68,14 +68,16 @@ export const TournamentHeroCard: React.FC<Props> = ({
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-purple-300/80">
                     Nächstes Spiel
                   </p>
-                  <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    <span className="text-[22px] font-bold tabular-nums text-white">{nextTime}</span>
-                    <span className="text-[15px] font-medium text-white/55">vs</span>
-                    <span className="min-w-0 text-[17px] font-semibold text-white">{nextOpponent}</span>
+                  <div className="mt-1.5 flex flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2">
+                    <span className="text-[22px] font-bold tabular-nums text-white">{nextTime} Uhr</span>
+                    <span className="hidden text-[15px] font-medium text-white/55 sm:inline">vs</span>
+                    <span className="text-[17px] font-semibold leading-snug text-white break-words line-clamp-2 sm:text-[17px]">
+                      {nextOpponent}
+                    </span>
                   </div>
                 </>
               ) : (
-                <p className="text-[13px] text-white/55">Noch keine Turnierspiele geplant.</p>
+                <p className="text-[13px] text-white/55">Keine Turnierspiele geplant</p>
               )}
             </div>
           </>
