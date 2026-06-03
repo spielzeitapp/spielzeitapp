@@ -581,6 +581,24 @@ export function dsScheduleFilterTabClass(active: boolean): string {
   ].join(' ');
 }
 
+/** Termine Kind-Filter: Mobile horizontal scrollbar, ab sm wie dsScheduleFilterTabClass. */
+export function dsScheduleKindFilterTabClass(active: boolean): string {
+  return [
+    'min-h-[36px] shrink-0 flex-none whitespace-nowrap rounded-[14px] px-3 text-[12px] font-semibold tracking-[0.01em] transition-all duration-150',
+    'sm:flex-1 sm:shrink sm:px-2.5',
+    active
+      ? `border border-[rgba(122,29,42,0.32)] ${PRIMARY_GRADIENT} text-white ${PRIMARY_ACTIVE_GLOW}`
+      : 'border border-transparent text-white/45 hover:bg-[rgba(14,14,18,0.75)] hover:text-white/62',
+  ].join(' ');
+}
+
+/** Scroll-Container für Kind-Filter (nur Mobile). */
+export const DS_SCHEDULE_KIND_FILTER_SCROLL_CLASS =
+  'min-w-0 flex-1 overflow-x-auto [-webkit-overflow-scrolling:touch] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:overflow-x-visible';
+
+export const DS_SCHEDULE_KIND_FILTER_TRACK_CLASS =
+  'flex min-h-[40px] min-w-max flex-nowrap items-center gap-1 rounded-xl border border-white/[0.08] bg-[rgba(18,18,20,0.92)] p-1 backdrop-blur-sm sm:min-w-0 sm:w-full';
+
 /** Live Hub: Übersicht / Aufstellung / Liveticker / Statistik. */
 export function dsLiveHubNavBtnClass(): string {
   return [
