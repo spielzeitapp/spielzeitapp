@@ -18,14 +18,15 @@ export function normalizeEventTypeField(
   kind: string,
   typeRaw?: string | null,
 ): EventTypeField {
+  const k = normalizeEventKind(kind);
+  // kind hat Vorrang (verhindert Anzeige „Termin“ bei fehlerhaftem type-Fallback)
+  if (k === 'tournament') return 'tournament';
+  if (k === 'match') return 'game';
+  if (k === 'training') return 'training';
   const t = (typeRaw ?? '').trim().toLowerCase();
   if (t === 'game' || t === 'training' || t === 'event' || t === 'other' || t === 'tournament') {
     return t;
   }
-  const k = normalizeEventKind(kind);
-  if (k === 'tournament') return 'tournament';
-  if (k === 'match') return 'game';
-  if (k === 'training') return 'training';
   if (k === 'event') return 'event';
   return 'other';
 }

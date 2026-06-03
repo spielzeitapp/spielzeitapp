@@ -511,6 +511,9 @@ export const SchedulePage: React.FC = () => {
     } else {
       fullPayload.opponent = null;
       fullPayload.notes = mergeTitleIntoNotes(editEvent.notes, opponent);
+      if (editEvent.kind === 'tournament') {
+        fullPayload.type = 'tournament';
+      }
     }
     if (editEvent.kind === 'training') {
       fullPayload.training_absence_deadline_disabled = editTrainingDeadlineDisabled;
@@ -524,6 +527,9 @@ export const SchedulePage: React.FC = () => {
     } else {
       sharedPayload.opponent = null;
       sharedPayload.notes = mergeTitleIntoNotes(editEvent.notes, opponent);
+      if (editEvent.kind === 'tournament') {
+        sharedPayload.type = 'tournament';
+      }
     }
     if (editEvent.kind === 'training') {
       sharedPayload.training_absence_deadline_disabled = editTrainingDeadlineDisabled;
@@ -536,6 +542,7 @@ export const SchedulePage: React.FC = () => {
     if (!bulkScope) {
       console.debug('[EditModal] save result: updating single event');
       console.log('event update payload', fullPayload);
+      console.log('saved event kind', editEvent.kind);
       console.log('event update id', editEvent.id);
       const r = await supabase
         .from('events')
@@ -726,11 +733,10 @@ export const SchedulePage: React.FC = () => {
       // Fans sehen nur Spiele (kind === 'match')
       if (normalizedUiRole === 'fan') return e.kind === 'match';
       // Termine: Typ-Filter (Alle/Spiele/Trainings/Events)
-      const et = getEffectiveEventType(e);
-      if (kindFilter === 'match') return et === 'game';
-      if (kindFilter === 'training') return et === 'training';
-      if (kindFilter === 'event') return et === 'event' || et === 'other';
-      if (kindFilter === 'tournament') return et === 'tournament';
+      if (kindFilter === 'match') return e.kind === 'match';
+      if (kindFilter === 'training') return e.kind === 'training';
+      if (kindFilter === 'tournament') return e.kind === 'tournament';
+      if (kindFilter === 'event') return e.kind === 'event';
       return true; // all
     });
 

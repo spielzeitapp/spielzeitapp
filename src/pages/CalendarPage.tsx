@@ -206,8 +206,8 @@ export const CalendarPage: React.FC = () => {
               title = r.opponent || 'Spiel';
             } else if (t === 'training') {
               title = 'Training';
-            } else if (t === 'tournament') {
-              title = (r.notes as string | null)?.split(' · ')[0] || 'Turnier';
+            } else if (t === 'tournament' || kind === 'tournament') {
+              title = (r.notes as string | null)?.split(' · ')[0]?.trim() || 'Turnier';
             } else {
               title = (r.notes as string | null)?.split(' · ')[0] || 'Termin';
             }

@@ -9,7 +9,7 @@ import {
   viennaDateOnlyEndOfDayUtcIso,
 } from '../../lib/viennaTime';
 import { combineLocationParts, formatFullLocation } from '../../lib/eventLocation';
-import { eventKindFromFormType } from '../../lib/eventTypeUtils';
+import { eventKindFromFormType, normalizeEventTypeField } from '../../lib/eventTypeUtils';
 
 /** Leerstring / Whitespace → null (Supabase/Postgres). */
 function nullIfEmpty(s: string | null | undefined): string | null {
@@ -172,15 +172,11 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
       const locationVal = combineLocationParts(form.location, form.location_address);
 
-      const matchKind: 'match' | 'training' | 'event' =
-        eventTypeLocal === 'game'
-          ? 'match'
-          : eventTypeLocal === 'training'
-            ? 'training'
-            : 'event';
+      const eventKind = eventKindFromFormType(eventTypeLocal);
+      const eventType = normalizeEventTypeField(eventKind, eventKind);
 
       const buildNotes = (): string | null => {
-        if (eventTypeLocal !== 'training' && eventTypeLocal !== 'event' && eventTypeLocal !== 'other') return null;
+        if (eventTypeLocal === 'game') return null;
         const noteParts: string[] = [];
         if (titleVal) noteParts.push(titleVal);
         if ((form.end_time ?? '').trim()) noteParts.push(`Ende: ${(form.end_time ?? '').trim()} Uhr`);
@@ -245,8 +241,8 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             : null;
         const payload: Record<string, unknown> = {
           team_season_id: teamSeasonId,
-          kind: matchKind,
-          type: matchKind,
+          kind: eventKind,
+          type: eventType,
           match_type,
           opponent: eventTypeLocal === 'game' ? nullIfEmpty(opponentVal) : null,
           is_home: eventTypeLocal === 'game' ? form.is_home : null,
@@ -262,6 +258,9 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
       };
 
       const rows = occurrenceStarts.map((d) => buildPayloadForStart(d));
+      for (const row of rows) {
+        console.log('saved event kind', row.kind);
+      }
 
       console.log('[CreateEventModal] events.insert payload (exact)', JSON.parse(JSON.stringify(rows)));
       console.log('[CreateEventModal] form recurrence meta', {

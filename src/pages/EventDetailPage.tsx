@@ -1160,6 +1160,7 @@ export const EventDetailPage: React.FC = () => {
     if (editEvent.kind === 'training') {
       payload.training_absence_deadline_disabled = editTrainingDeadlineDisabled;
     }
+    console.log('saved event kind', editEvent.kind);
     let error: { message?: string } | null = null;
     const firstTry = await supabase.from('events').update(payload).eq('id', editEvent.id);
     error = firstTry.error;

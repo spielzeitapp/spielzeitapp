@@ -217,7 +217,13 @@ export function CompactEventCard({
   if (parentCompactLayout) {
     const wdAbbrev = formatCompactListWeekdayAbbrev(ev.starts_at);
     const parentTitle =
-      et === 'game' ? oppName : et === 'training' ? trainingTitle : et === 'tournament' ? tournamentTitle : title;
+      et === 'game'
+        ? oppName
+        : et === 'training'
+          ? trainingTitle
+          : et === 'tournament'
+            ? (tournamentTitle ?? 'Turnier')
+            : title;
 
     return (
       <div
@@ -276,6 +282,20 @@ export function CompactEventCard({
                   matchType={ev.match_type}
                   className="mt-0.5"
                 />
+              </div>
+            ) : et === 'tournament' ? (
+              <div className="min-w-0 flex-1">
+                <p
+                  className="min-w-0 line-clamp-2 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]"
+                  lang="de"
+                >
+                  {tournamentTitle}
+                </p>
+                <span
+                  className={`mt-0.5 inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${eventTypeBadgeClass(et)}`}
+                >
+                  Turnier
+                </span>
               </div>
             ) : (
               <p
