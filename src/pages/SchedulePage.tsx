@@ -53,6 +53,7 @@ import { formatDateTimeDeVienna } from '../lib/notifications/format';
 import { attendanceLazModalButtonClass } from '../lib/attendanceColors';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
+import { trainingScheduleCardCounts } from '../lib/trainingAttendance';
 import {
   formatPeriodScoresBracket,
   parsePeriodScores,
@@ -948,7 +949,7 @@ export const SchedulePage: React.FC = () => {
     [attendanceByEventId, attendanceStatusByEventId, myAttendancePlayerIds, userId, refreshAttendance],
   );
 
-  const rosterSize = players.length;
+  const rosterPlayerIds = useMemo(() => players.map((p) => p.id), [players]);
   const myLinkedPlayerId = myAttendancePlayerIds[0] ?? null;
   const { isLazPlayer: myLinkedPlayerIsLaz } = useLinkedPlayerIsLaz(myLinkedPlayerId);
 
@@ -1129,12 +1130,15 @@ export const SchedulePage: React.FC = () => {
                         const evAttendance = attendanceByEventId[ev.id];
                         const yesRaw = evAttendance?.yes ?? 0;
                         const no = evAttendance?.no ?? 0;
-                        const unavailable = evAttendance?.unavailable ?? 0;
-                        const open = Math.max(0, rosterSize - yesRaw - no);
+                        const open = Math.max(0, rosterPlayerIds.length - yesRaw - no);
                         const et = getEffectiveEventType(ev);
                         const countsForCard =
                           et === 'training'
-                            ? { yes: Math.max(0, rosterSize - unavailable), no: unavailable, open: 0 }
+                            ? trainingScheduleCardCounts({
+                                rosterPlayerIds,
+                                availabilityByPlayerId: evAttendance?.availabilityByPlayerId,
+                                startsAtIso: ev.starts_at,
+                              })
                             : { yes: yesRaw, no, open };
                         const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
                         const myStatusFromDb =
@@ -1326,12 +1330,15 @@ export const SchedulePage: React.FC = () => {
                       const evAttendance = attendanceByEventId[ev.id];
                       const yesRaw = evAttendance?.yes ?? 0;
                       const no = evAttendance?.no ?? 0;
-                      const unavailable = evAttendance?.unavailable ?? 0;
-                      const open = Math.max(0, rosterSize - yesRaw - no);
+                      const open = Math.max(0, rosterPlayerIds.length - yesRaw - no);
                       const et = getEffectiveEventType(ev);
                       const countsForCard =
                         et === 'training'
-                          ? { yes: Math.max(0, rosterSize - unavailable), no: unavailable, open: 0 }
+                          ? trainingScheduleCardCounts({
+                              rosterPlayerIds,
+                              availabilityByPlayerId: evAttendance?.availabilityByPlayerId,
+                              startsAtIso: ev.starts_at,
+                            })
                           : { yes: yesRaw, no, open };
                       const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
                       const myStatusFromDb =

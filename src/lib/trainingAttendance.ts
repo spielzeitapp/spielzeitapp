@@ -154,3 +154,27 @@ export function countTrainingAttendanceByStatus(statuses: TrainingAttendanceStat
     legacyUnknown: s.legacyUnknown,
   };
 }
+
+/**
+ * Termine-Karten (Training): gleiche Zählregel wie TrainingAttendancePanel —
+ * nur aktive Kader-Spieler, fehlende event_attendance-Zeile = Dabei.
+ */
+export function trainingScheduleCardCounts(params: {
+  rosterPlayerIds: string[];
+  availabilityByPlayerId?: Record<string, string | null | undefined>;
+  startsAtIso?: string | null;
+}): { yes: number; no: number; open: number } {
+  const byPlayer = params.availabilityByPlayerId ?? {};
+  const statuses = params.rosterPlayerIds.map((playerId) =>
+    resolveTrainingAttendanceStatus(
+      byPlayer[(playerId ?? '').toLowerCase()] ?? null,
+      params.startsAtIso ?? null,
+    ),
+  );
+  const c = countTrainingAttendanceByStatus(statuses);
+  return {
+    yes: c.present,
+    no: c.absent + c.injured + c.external,
+    open: 0,
+  };
+}
