@@ -42,6 +42,8 @@ export type EventRow = {
   /** Optional: Migration 20260315120000 */
   training_absence_deadline_disabled?: boolean | null;
   opponent_logo_url?: string | null;
+  /** Optional: Migration 20260615120000 */
+  official_tournament_url?: string | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -66,6 +68,7 @@ type EventDbRow = {
   series_id?: string | null;
   training_absence_deadline_disabled?: boolean | null;
   opponent_logo_url?: string | null;
+  official_tournament_url?: string | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -73,7 +76,7 @@ type EventDbRow = {
 
 /** Aktueller events-Select inkl. Serien + optionaler Spalten (Fallback bei alter DB). */
 const EVENTS_SELECT =
-  "id, team_season_id, kind, type, match_type, opponent, is_home, location, address, starts_at, meeting_at, status, attendance_mode, notes, match_id, series_id, training_absence_deadline_disabled, opponent_logo_url, created_by, created_at, updated_at";
+  "id, team_season_id, kind, type, match_type, opponent, is_home, location, address, starts_at, meeting_at, status, attendance_mode, notes, match_id, series_id, training_absence_deadline_disabled, opponent_logo_url, official_tournament_url, created_by, created_at, updated_at";
 
 /** Ohne address / series_id / training_absence_deadline_disabled (match_type bleibt drin). */
 const EVENTS_SELECT_LEGACY =
@@ -101,7 +104,7 @@ export function useEvents(teamSeasonId: string | null) {
 
     if (
       res.error &&
-      /training_absence_deadline_disabled|series_id|address|match_type|column/i.test(String(res.error.message ?? ""))
+      /training_absence_deadline_disabled|series_id|address|match_type|official_tournament_url|column/i.test(String(res.error.message ?? ""))
     ) {
       res = await supabase
         .from("events")
@@ -138,6 +141,7 @@ export function useEvents(teamSeasonId: string | null) {
         series_id: r.series_id ?? null,
         training_absence_deadline_disabled: r.training_absence_deadline_disabled ?? null,
         opponent_logo_url: r.opponent_logo_url ?? null,
+        official_tournament_url: r.official_tournament_url ?? null,
         created_by: r.created_by ?? null,
         created_at: r.created_at ?? null,
         updated_at: r.updated_at ?? null,

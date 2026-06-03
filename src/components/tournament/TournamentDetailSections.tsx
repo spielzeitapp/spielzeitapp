@@ -27,6 +27,7 @@ import {
   type TournamentParticipant,
 } from '../../lib/tournamentPlan';
 import { TournamentHeroCard } from './TournamentHeroCard';
+import { TournamentOfficialPlanCard } from './TournamentOfficialPlanCard';
 
 type Props = {
   tournamentEventId: string;
@@ -34,8 +35,10 @@ type Props = {
   tournamentDayIso: string;
   tournamentTitle: string;
   location: string | null;
+  officialTournamentUrl: string | null;
   canManage: boolean;
   onOpenMatchPreparation: (matchId: string) => void;
+  onOfficialTournamentUrlUpdated: (url: string | null) => void;
 };
 
 const inputClass =
@@ -51,8 +54,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
   tournamentDayIso,
   tournamentTitle,
   location,
+  officialTournamentUrl,
   canManage,
   onOpenMatchPreparation,
+  onOfficialTournamentUrlUpdated,
 }) => {
   const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
   const [slots, setSlots] = useState<TournamentMatchSlotView[]>([]);
@@ -260,6 +265,13 @@ export const TournamentDetailSections: React.FC<Props> = ({
         participants={participants}
         slots={slots}
         loading={loading}
+      />
+
+      <TournamentOfficialPlanCard
+        tournamentEventId={tournamentEventId}
+        officialTournamentUrl={officialTournamentUrl}
+        canManage={canManage}
+        onUrlUpdated={onOfficialTournamentUrlUpdated}
       />
 
       <Card className="relative border border-purple-500/20 bg-purple-950/15">

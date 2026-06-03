@@ -125,13 +125,15 @@ type EventDbRow = {
   attendance_mode: string | null;
   notes: string | null;
   match_id: string | null;
+  /** Optional: offizieller externer Turnierplan (Migration 20260615120000) */
+  official_tournament_url?: string | null;
   created_by: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
 
 const EVENTS_SELECT =
-  'id, team_season_id, kind, type, match_type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, created_by, created_at, updated_at';
+  'id, team_season_id, kind, type, match_type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, official_tournament_url, created_by, created_at, updated_at';
 
 function getDomainEventLabel(event: EventRow): string {
   const t = (event.type ?? '').trim().toLowerCase();
@@ -284,6 +286,7 @@ function mapRowToEventRow(r: EventDbRow): EventRow {
     attendance_mode: (r.attendance_mode === 'opt_out' ? 'opt_out' : 'opt_in') as 'opt_in' | 'opt_out',
     notes: r.notes ?? null,
     match_id: r.match_id ?? null,
+    official_tournament_url: r.official_tournament_url ?? null,
     training_absence_deadline_disabled: null,
     created_by: r.created_by ?? null,
     created_at: r.created_at ?? null,
@@ -3103,9 +3106,13 @@ export const EventDetailPage: React.FC = () => {
                 tournamentDayIso={event.starts_at}
                 tournamentTitle={tournamentTitle}
                 location={event.location}
+                officialTournamentUrl={event.official_tournament_url ?? null}
                 canManage={canTrainerManageEvent}
                 onOpenMatchPreparation={(matchId) =>
                   navigate(`/app/match-preparation?matchId=${encodeURIComponent(matchId)}`)
+                }
+                onOfficialTournamentUrlUpdated={(url) =>
+                  setEvent((prev) => (prev ? { ...prev, official_tournament_url: url } : prev))
                 }
               />
             ) : null}
