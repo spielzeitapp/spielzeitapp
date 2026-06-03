@@ -104,6 +104,61 @@ export async function fetchTournamentParticipants(
   return { data: (data ?? []) as TournamentParticipant[], error: null };
 }
 
+/** Text-Import: Zeilen parsen, Leerzeilen weg, trimmen, keine Duplikate (Batch + bestehende Liste). */
+export function parseTournamentParticipantImportLines(
+  raw: string,
+  existingTeamNames: string[] = [],
+): string[] {
+  const existing = new Set(existingTeamNames.map((n) => n.trim().toLowerCase()).filter(Boolean));
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const line of raw.split(/\r?\n/)) {
+    const name = line.trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key) || existing.has(key)) continue;
+    seen.add(key);
+    result.push(name);
+  }
+  return result;
+}
+
+export function tournamentImportSuccessMessage(importedCount: number): string {
+  if (importedCount === 1) return '1 Mannschaft importiert';
+  return `${importedCount} Mannschaften importiert`;
+}
+
+export async function importTournamentParticipantsBulk(params: {
+  tournamentEventId: string;
+  groupLabel?: string | null;
+  teamNames: string[];
+}): Promise<{ imported: number; error: string | null }> {
+  const names = params.teamNames.map((n) => n.trim()).filter(Boolean);
+  if (names.length === 0) {
+    return { imported: 0, error: 'Keine gültigen Mannschaften zum Importieren.' };
+  }
+
+  const { count, error: countErr } = await supabase
+    .from('tournament_participants')
+    .select('id', { count: 'exact', head: true })
+    .eq('tournament_event_id', params.tournamentEventId);
+
+  if (countErr) return { imported: 0, error: normalizeTournamentDbError(countErr.message, countErr.code) };
+
+  const groupLabel = params.groupLabel?.trim() || null;
+  const baseOrder = count ?? 0;
+  const rows = names.map((team_name, index) => ({
+    tournament_event_id: params.tournamentEventId,
+    team_name,
+    group_label: groupLabel,
+    sort_order: baseOrder + index + 1,
+  }));
+
+  const { error } = await supabase.from('tournament_participants').insert(rows);
+  if (error) return { imported: 0, error: normalizeTournamentDbError(error.message, error.code) };
+  return { imported: names.length, error: null };
+}
+
 export async function addTournamentParticipant(params: {
   tournamentEventId: string;
   teamName: string;

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Plus, Trash2, Users } from 'lucide-react';
+import { ChevronRight, FileInput, Plus, Trash2, Users } from 'lucide-react';
 import { Card, CardTitle } from '../../app/components/ui/Card';
 import { AppButton } from '../ui/AppButton';
 import { Modal } from '../../app/ui/Modal';
@@ -15,9 +15,12 @@ import {
   fetchTournamentParticipants,
   formatTournamentKickoffTime,
   groupParticipantsByLabel,
+  importTournamentParticipantsBulk,
+  parseTournamentParticipantImportLines,
   removeTournamentMatchSlot,
   removeTournamentParticipant,
   TOURNAMENT_DEFAULT_PLANNED_MINUTES,
+  tournamentImportSuccessMessage,
   tournamentMatchDisplayStatus,
   type TournamentMatchSlotView,
   type TournamentParticipant,
@@ -56,6 +59,13 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [participantBusy, setParticipantBusy] = useState(false);
   const [participantModalError, setParticipantModalError] = useState<string | null>(null);
 
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importGroup, setImportGroup] = useState('');
+  const [importText, setImportText] = useState('');
+  const [importBusy, setImportBusy] = useState(false);
+  const [importModalError, setImportModalError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   const [matchModalOpen, setMatchModalOpen] = useState(false);
   const [matchOpponent, setMatchOpponent] = useState('');
   const [matchKickoff, setMatchKickoff] = useState('10:00');
@@ -82,7 +92,20 @@ export const TournamentDetailSections: React.FC<Props> = ({
     void reload();
   }, [reload]);
 
+  useEffect(() => {
+    if (!toastMessage) return;
+    const t = window.setTimeout(() => setToastMessage(null), 3000);
+    return () => window.clearTimeout(t);
+  }, [toastMessage]);
+
   const participantGroups = useMemo(() => groupParticipantsByLabel(participants), [participants]);
+
+  const existingTeamNames = useMemo(() => participants.map((p) => p.team_name), [participants]);
+
+  const importPreviewCount = useMemo(
+    () => parseTournamentParticipantImportLines(importText, existingTeamNames).length,
+    [importText, existingTeamNames],
+  );
 
   const opponentSuggestions = useMemo(
     () => participants.map((p) => p.team_name).filter((n, i, arr) => arr.indexOf(n) === i),
@@ -92,6 +115,37 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const openParticipantModal = () => {
     setParticipantModalError(null);
     setParticipantModalOpen(true);
+  };
+
+  const openImportModal = () => {
+    setImportModalError(null);
+    setImportModalOpen(true);
+  };
+
+  const handleImportParticipants = async () => {
+    const names = parseTournamentParticipantImportLines(importText, existingTeamNames);
+    if (names.length === 0) {
+      setImportModalError('Keine neuen Mannschaften gefunden. Eine Mannschaft pro Zeile eingeben.');
+      return;
+    }
+    setImportBusy(true);
+    setImportModalError(null);
+    const { imported, error: err } = await importTournamentParticipantsBulk({
+      tournamentEventId,
+      groupLabel: importGroup || null,
+      teamNames: names,
+    });
+    setImportBusy(false);
+    if (err) {
+      setImportModalError(err);
+      setListError(err);
+      return;
+    }
+    setImportText('');
+    setImportGroup('');
+    setImportModalOpen(false);
+    setToastMessage(tournamentImportSuccessMessage(imported));
+    void reload();
   };
 
   const openMatchModal = () => {
@@ -178,6 +232,16 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   return (
     <>
+      {toastMessage ? (
+        <div
+          className="pointer-events-none fixed left-1/2 z-[1001] max-w-[min(92vw,24rem)] -translate-x-1/2 rounded-2xl border border-purple-500/35 bg-[rgba(10,8,18,0.96)] px-4 py-2.5 text-center text-[14px] font-medium text-white shadow-[0_8px_32px_rgba(0,0,0,0.55)] backdrop-blur-sm bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:top-4 sm:bottom-auto"
+          role="status"
+          aria-live="polite"
+        >
+          {toastMessage}
+        </div>
+      ) : null}
+
       <Card className="relative border border-purple-500/20 bg-purple-950/15">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="!mb-0 flex items-center gap-2">
@@ -185,14 +249,16 @@ export const TournamentDetailSections: React.FC<Props> = ({
             Teilnehmer
           </CardTitle>
           {canManage ? (
-            <button
-              type="button"
-              className={addButtonClass}
-              onClick={openParticipantModal}
-            >
-              <Plus className="h-3.5 w-3.5" aria-hidden />
-              Mannschaft
-            </button>
+            <div className="relative z-[2] flex shrink-0 flex-wrap items-center justify-end gap-2">
+              <button type="button" className={addButtonClass} onClick={openParticipantModal}>
+                <Plus className="h-3.5 w-3.5" aria-hidden />
+                Mannschaft
+              </button>
+              <button type="button" className={addButtonClass} onClick={openImportModal}>
+                <FileInput className="h-3.5 w-3.5" aria-hidden />
+                Importieren
+              </button>
+            </div>
           ) : null}
         </div>
 
@@ -320,6 +386,65 @@ export const TournamentDetailSections: React.FC<Props> = ({
               autoComplete="off"
             />
           </label>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={importModalOpen}
+        onClose={() => !importBusy && setImportModalOpen(false)}
+        title="Mannschaften importieren"
+        footer={
+          <div className="flex justify-end gap-2">
+            <AppButton variant="secondary" onClick={() => setImportModalOpen(false)} disabled={importBusy}>
+              Abbrechen
+            </AppButton>
+            <AppButton
+              variant="primary"
+              onClick={() => void handleImportParticipants()}
+              disabled={importBusy || importPreviewCount === 0}
+            >
+              {importBusy ? 'Importieren…' : `Importieren${importPreviewCount > 0 ? ` (${importPreviewCount})` : ''}`}
+            </AppButton>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          {importModalError ? (
+            <p className="text-[13px] text-red-300/90" role="alert">
+              {importModalError}
+            </p>
+          ) : null}
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] text-white/65">Gruppe (optional)</span>
+            <input
+              className={inputClass}
+              value={importGroup}
+              onChange={(e) => setImportGroup(e.target.value)}
+              placeholder="z. B. A"
+              autoComplete="off"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] text-white/65">Eine Mannschaft pro Zeile</span>
+            <textarea
+              className={textareaClass}
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              placeholder={'Austria\nHartberg\nVienna\nWilhelmsburg\nRohrbach'}
+              rows={8}
+              spellCheck={false}
+            />
+          </label>
+          {importPreviewCount > 0 ? (
+            <p className="text-[12px] text-purple-200/75">
+              {importPreviewCount === 1
+                ? '1 Mannschaft wird importiert'
+                : `${importPreviewCount} Mannschaften werden importiert`}
+              {importGroup.trim() ? ` · Gruppe ${importGroup.trim()}` : ''}
+            </p>
+          ) : importText.trim() ? (
+            <p className="text-[12px] text-white/50">Keine neuen Mannschaften (bereits vorhanden oder leer).</p>
+          ) : null}
         </div>
       </Modal>
 
