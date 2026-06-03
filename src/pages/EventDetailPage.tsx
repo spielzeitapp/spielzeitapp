@@ -44,6 +44,7 @@ import {
   type TrainingAttendanceStatus,
 } from '../lib/trainingAttendance';
 import { AudienceMatchdayDetailCard } from '../components/events/AudienceMatchdayDetailCard';
+import { TournamentDetailSections } from '../components/tournament/TournamentDetailSections';
 import { TrainingAttendancePanel } from '../components/events/TrainingAttendancePanel';
 import { ScheduleEventActionsPanel } from '../components/schedule/ScheduleEventActionsPanel';
 import { PremiumPlayerCard } from '../components/player/PremiumPlayerCard';
@@ -3095,13 +3096,18 @@ export const EventDetailPage: React.FC = () => {
                 </p>
               ) : null}
             </div>
-            <Card className="border border-purple-500/20 bg-purple-950/20">
-              <CardTitle>Turnierplan</CardTitle>
-              <p className="mt-2 text-[14px] font-semibold text-white/90">Turnierplan folgt</p>
-              <p className="mt-1 text-[13px] leading-snug text-white/65">
-                Hier können später einzelne Turnierspiele mit Aufstellung, Ergebnis und Liveticker ergänzt werden.
-              </p>
-            </Card>
+            {event.team_season_id ? (
+              <TournamentDetailSections
+                tournamentEventId={event.id}
+                teamSeasonId={event.team_season_id}
+                tournamentDayIso={event.starts_at}
+                location={event.location}
+                canManage={canTrainerManageEvent}
+                onOpenMatchPreparation={(matchId) =>
+                  navigate(`/app/match-preparation?matchId=${encodeURIComponent(matchId)}`)
+                }
+              />
+            ) : null}
           </>
         ) : isEventOrOther ? (
           <div className="-mx-1 overflow-hidden rounded-[16px] border border-white/[0.1] bg-[linear-gradient(165deg,#16141a_0%,#0a0a0c_52%,#140a10_100%)] px-4 py-3.5 shadow-[0_12px_40px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.06)] sm:mx-0">
