@@ -1,0 +1,361 @@
+import { supabase } from './supabaseClient';
+import {
+  buildDraftSeasonDisplayName,
+  computeNextAgeGroup,
+  computeNextAgeGroupFromSource,
+  computeNextSeasonName,
+  resolveCurrentAgeGroup,
+  type CurrentSeasonLabelSource,
+} from './seasonLifecycle';
+
+/**
+ * STEP 2 — Saison-Entwurf (nur team_seasons-Zeile, keine Kopie von Kader/Terminen/Feed).
+ *
+ * ## team_seasons (Supabase)
+ * - Kern: id, team_id, season_id (+ Lifecycle aus STEP 1)
+ * - Optional: display_name, age_group, prepared_from_team_season_id, status, archived_at
+ * - Join: teams (name, age_group?), seasons (name)
+ *
+ * ## age_group — Analyse (keine erzwungene Migration)
+ * 1. `team_seasons.age_group` (STEP 1, Saison-Snapshot) — bevorzugt für Entwurf
+ * 2. `teams.age_group` — Fallback, wenn Spalte auf team_seasons leer (heute in useSession/TeamSwitcher)
+ * 3. Parsing aus team.name / display_name (U11 im Vereinsnamen)
+ * Für spätere Saisonkopie: `prepared_from_team_season_id` + `age_group` auf dem Draft.
+ *
+ * TODO(season-transition): Spieler übernehmen (players.team_season_id)
+ * TODO(season-transition): Mitgliedschaften übernehmen (memberships.team_season_id)
+ * TODO(season-transition): Meisterschaftskalender übernehmen (events.team_season_id)
+ * TODO(season-transition): Gegner übernehmen (events.opponent / Stammdaten)
+ */
+
+export type TeamSeasonRowForPrep = {
+  id: string;
+  team_id: string;
+  season_id: string;
+  status?: string | null;
+  display_name?: string | null;
+  age_group?: string | null;
+  teamName?: string | null;
+  teamAgeGroup?: string | null;
+  seasonName?: string | null;
+};
+
+export type PrepareNextSeasonDraftResult =
+  | {
+      ok: true;
+      draftTeamSeasonId: string;
+      seasonId: string;
+      displayName: string;
+      nextAgeGroup: string | null;
+      nextSeasonName: string;
+      createdSeason: boolean;
+    }
+  | {
+      ok: false;
+      code:
+        | 'invalid_input'
+        | 'not_found'
+        | 'draft_exists'
+        | 'duplicate_team_season'
+        | 'load_failed'
+        | 'season_resolve_failed'
+        | 'insert_failed';
+      message: string;
+    };
+
+type TeamSeasonDbRow = {
+  id: string;
+  team_id: string;
+  season_id: string;
+  status?: string | null;
+  display_name?: string | null;
+  age_group?: string | null;
+  teams?: { name?: string | null; age_group?: string | null } | { name?: string | null; age_group?: string | null }[] | null;
+  seasons?: { id?: string; name?: string | null } | { id?: string; name?: string | null }[] | null;
+};
+
+function pickJoin<T extends Record<string, unknown>>(raw: T | T[] | null | undefined): T | null {
+  if (!raw) return null;
+  return Array.isArray(raw) ? raw[0] ?? null : raw;
+}
+
+export function teamSeasonRowToLabelSource(row: TeamSeasonRowForPrep): CurrentSeasonLabelSource {
+  return {
+    teamName: row.teamName,
+    seasonName: row.seasonName,
+    ageGroup: row.age_group?.trim() || row.teamAgeGroup?.trim() || null,
+    displayName: row.display_name,
+  };
+}
+
+export function normalizeTeamSeasonForPrep(raw: TeamSeasonDbRow): TeamSeasonRowForPrep {
+  const team = pickJoin(raw.teams);
+  const season = pickJoin(raw.seasons);
+  return {
+    id: raw.id,
+    team_id: raw.team_id,
+    season_id: raw.season_id,
+    status: raw.status,
+    display_name: raw.display_name,
+    age_group: raw.age_group,
+    teamName: team?.name ?? null,
+    teamAgeGroup: team?.age_group ?? null,
+    seasonName: season?.name ?? null,
+  };
+}
+
+/**
+ * Ermittelt Altersklasse für den Entwurf (team_seasons → teams → Name-Parsing).
+ */
+export function resolveAgeGroupForDraft(row: TeamSeasonRowForPrep): {
+  current: string | null;
+  next: string | null;
+  source: 'team_seasons' | 'teams' | 'parsed' | 'none';
+} {
+  const tsAg = row.age_group?.trim();
+  if (tsAg) {
+    return {
+      current: tsAg,
+      next: computeNextAgeGroup(tsAg),
+      source: 'team_seasons',
+    };
+  }
+
+  const teamAg = row.teamAgeGroup?.trim();
+  if (teamAg) {
+    return {
+      current: teamAg,
+      next: computeNextAgeGroup(teamAg),
+      source: 'teams',
+    };
+  }
+
+  const parsed = resolveCurrentAgeGroup(teamSeasonRowToLabelSource(row));
+  if (parsed) {
+    return {
+      current: parsed,
+      next: computeNextAgeGroup(parsed),
+      source: 'parsed',
+    };
+  }
+
+  return { current: null, next: null, source: 'none' };
+}
+
+/**
+ * Prüft, ob für diese Quell-Saison bereits ein Draft existiert.
+ */
+export async function hasDraftSeasonForSource(teamSeasonId: string): Promise<boolean> {
+  const id = teamSeasonId?.trim();
+  if (!id) return false;
+
+  const { data, error } = await supabase
+    .from('team_seasons')
+    .select('id')
+    .eq('prepared_from_team_season_id', id)
+    .eq('status', 'draft')
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[seasonPreparation] hasDraftSeasonForSource', error.message);
+    return false;
+  }
+
+  return Boolean((data as { id?: string } | null)?.id);
+}
+
+async function loadTeamSeasonForPrep(
+  teamSeasonId: string,
+): Promise<{ row: TeamSeasonRowForPrep } | { error: string }> {
+  const { data, error } = await supabase
+    .from('team_seasons')
+    .select(
+      `
+      id,
+      team_id,
+      season_id,
+      status,
+      display_name,
+      age_group,
+      teams ( name, age_group ),
+      seasons ( id, name )
+    `,
+    )
+    .eq('id', teamSeasonId)
+    .maybeSingle();
+
+  if (error) {
+    return { error: error.message };
+  }
+  if (!data) {
+    return { error: 'team_season nicht gefunden' };
+  }
+
+  return { row: normalizeTeamSeasonForPrep(data as TeamSeasonDbRow) };
+}
+
+async function resolveOrCreateSeasonId(
+  nextSeasonName: string,
+): Promise<{ seasonId: string; created: boolean } | { error: string }> {
+  const name = nextSeasonName.trim();
+  if (!name) {
+    return { error: 'Saisonname fehlt' };
+  }
+
+  const { data: existing, error: findErr } = await supabase
+    .from('seasons')
+    .select('id')
+    .eq('name', name)
+    .limit(1)
+    .maybeSingle();
+
+  if (findErr) {
+    return { error: findErr.message };
+  }
+  if (existing?.id) {
+    return { seasonId: String(existing.id), created: false };
+  }
+
+  const { data: inserted, error: insErr } = await supabase
+    .from('seasons')
+    .insert({ name })
+    .select('id')
+    .single();
+
+  if (insErr) {
+    const { data: retry } = await supabase.from('seasons').select('id').eq('name', name).maybeSingle();
+    if (retry?.id) {
+      return { seasonId: String(retry.id), created: false };
+    }
+    return { error: insErr.message };
+  }
+
+  if (!inserted?.id) {
+    return { error: 'season konnte nicht angelegt werden' };
+  }
+
+  return { seasonId: String(inserted.id), created: true };
+}
+
+/**
+ * Legt eine neue team_season als Entwurf an (keine Spieler/Events/Matches/Memberships/Feed).
+ */
+export async function prepareNextSeasonDraft(
+  currentTeamSeason: string | TeamSeasonRowForPrep,
+): Promise<PrepareNextSeasonDraftResult> {
+  let current: TeamSeasonRowForPrep;
+
+  if (typeof currentTeamSeason === 'string') {
+    const id = currentTeamSeason.trim();
+    if (!id) {
+      return { ok: false, code: 'invalid_input', message: 'team_season_id fehlt' };
+    }
+    const loaded = await loadTeamSeasonForPrep(id);
+    if ('error' in loaded) {
+      return {
+        ok: false,
+        code: loaded.error.includes('nicht gefunden') ? 'not_found' : 'load_failed',
+        message: loaded.error,
+      };
+    }
+    current = loaded.row;
+  } else {
+    current = currentTeamSeason;
+    if (!current.id?.trim() || !current.team_id?.trim() || !current.season_id?.trim()) {
+      return { ok: false, code: 'invalid_input', message: 'team_season-Daten unvollständig' };
+    }
+  }
+
+  if (await hasDraftSeasonForSource(current.id)) {
+    return {
+      ok: false,
+      code: 'draft_exists',
+      message: 'Für diese Saison existiert bereits ein Entwurf.',
+    };
+  }
+
+  const labelSource = teamSeasonRowToLabelSource(current);
+  const ageInfo = resolveAgeGroupForDraft(current);
+  const nextAgeGroup =
+    ageInfo.next ?? computeNextAgeGroupFromSource(labelSource);
+  const seasonRaw = current.seasonName?.trim() ?? '';
+  const nextSeasonName = seasonRaw ? computeNextSeasonName(seasonRaw) : '';
+  const displayName = buildDraftSeasonDisplayName({
+    ...labelSource,
+    ageGroup: ageInfo.current ?? labelSource.ageGroup,
+    seasonName: seasonRaw || labelSource.seasonName,
+  });
+
+  if (!nextSeasonName) {
+    return {
+      ok: false,
+      code: 'season_resolve_failed',
+      message: 'Saisonname der aktuellen Saison konnte nicht fortgeschrieben werden.',
+    };
+  }
+
+  const seasonResolved = await resolveOrCreateSeasonId(nextSeasonName);
+  if ('error' in seasonResolved) {
+    return {
+      ok: false,
+      code: 'season_resolve_failed',
+      message: seasonResolved.error,
+    };
+  }
+
+  const { data: existingTs } = await supabase
+    .from('team_seasons')
+    .select('id, status')
+    .eq('team_id', current.team_id)
+    .eq('season_id', seasonResolved.seasonId)
+    .maybeSingle();
+
+  if (existingTs?.id) {
+    const status = (existingTs as { status?: string }).status;
+    return {
+      ok: false,
+      code: 'duplicate_team_season',
+      message:
+        status === 'draft'
+          ? 'Team-Saison für diese Saison existiert bereits als Entwurf.'
+          : 'Team-Saison für diese Saison existiert bereits.',
+    };
+  }
+
+  const insertPayload: Record<string, unknown> = {
+    team_id: current.team_id,
+    season_id: seasonResolved.seasonId,
+    status: 'draft',
+    prepared_from_team_season_id: current.id,
+    display_name: displayName,
+  };
+
+  if (nextAgeGroup) {
+    insertPayload.age_group = nextAgeGroup;
+  }
+
+  const { data: draftRow, error: insertErr } = await supabase
+    .from('team_seasons')
+    .insert(insertPayload)
+    .select('id')
+    .single();
+
+  if (insertErr || !draftRow?.id) {
+    return {
+      ok: false,
+      code: 'insert_failed',
+      message: insertErr?.message ?? 'team_season Entwurf konnte nicht angelegt werden',
+    };
+  }
+
+  return {
+    ok: true,
+    draftTeamSeasonId: String(draftRow.id),
+    seasonId: seasonResolved.seasonId,
+    displayName,
+    nextAgeGroup,
+    nextSeasonName,
+    createdSeason: seasonResolved.created,
+  };
+}

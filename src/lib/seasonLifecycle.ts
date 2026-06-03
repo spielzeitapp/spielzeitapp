@@ -64,7 +64,8 @@ export function canPrepareNextSeason(role: string | null | undefined): boolean {
   return key != null && PREPARE_NEXT_SEASON_ROLES.includes(key);
 }
 
-function bumpAgeGroupToken(ageGroup: string): string {
+/** U7→U8 … U17→U18; unbekanntes Format wird unverändert zurückgegeben. */
+export function computeNextAgeGroup(ageGroup: string): string {
   const trimmed = ageGroup.trim();
   const m = trimmed.match(/^U(\d{1,2})([a-z]?)$/i);
   if (!m) return trimmed;
@@ -73,7 +74,20 @@ function bumpAgeGroupToken(ageGroup: string): string {
   return `U${next}${suffix}`;
 }
 
-function resolveCurrentAgeGroup(source: CurrentSeasonLabelSource): string | null {
+/** 2025/26 → 2026/27; anderes Format bleibt unverändert. */
+export function computeNextSeasonName(seasonName: string): string {
+  const trimmed = seasonName.trim();
+  const m = trimmed.match(/^(\d{4})\/(\d{2})$/);
+  if (!m) return trimmed;
+  const startYear = parseInt(m[1], 10);
+  const endShort = parseInt(m[2], 10);
+  const endYear = endShort < 100 ? Math.floor(startYear / 100) * 100 + endShort : endShort;
+  const nextStart = endYear;
+  const nextEndShort = (nextStart + 1) % 100;
+  return `${nextStart}/${String(nextEndShort).padStart(2, '0')}`;
+}
+
+export function resolveCurrentAgeGroup(source: CurrentSeasonLabelSource): string | null {
   const fromField = source.ageGroup?.trim();
   if (fromField && tokenLooksLikeAgeGroup(fromField)) {
     return fromField.toUpperCase();
@@ -89,16 +103,18 @@ function resolveCurrentAgeGroup(source: CurrentSeasonLabelSource): string | null
   return null;
 }
 
-function bumpSeasonName(seasonName: string): string {
-  const trimmed = seasonName.trim();
-  const m = trimmed.match(/^(\d{4})\/(\d{2})$/);
-  if (!m) return trimmed;
-  const startYear = parseInt(m[1], 10);
-  const endShort = parseInt(m[2], 10);
-  const endYear = endShort < 100 ? Math.floor(startYear / 100) * 100 + endShort : endShort;
-  const nextStart = endYear;
-  const nextEndShort = (nextStart + 1) % 100;
-  return `${nextStart}/${String(nextEndShort).padStart(2, '0')}`;
+export function computeNextAgeGroupFromSource(source: CurrentSeasonLabelSource): string | null {
+  const current = resolveCurrentAgeGroup(source);
+  return current ? computeNextAgeGroup(current) : null;
+}
+
+/** Anzeige für draft.display_name, z. B. „U12 Saison 2026/27“. */
+export function buildDraftSeasonDisplayName(source: CurrentSeasonLabelSource): string {
+  const nextAge = computeNextAgeGroupFromSource(source);
+  const seasonRaw = source.seasonName?.trim() ?? '';
+  const nextSeason = seasonRaw ? computeNextSeasonName(seasonRaw) : '—';
+  const ageLabel = nextAge ?? 'Team';
+  return `${ageLabel} Saison ${nextSeason}`;
 }
 
 function bumpTeamLabel(teamName: string, nextAge: string | null): string {
@@ -119,11 +135,10 @@ function bumpTeamLabel(teamName: string, nextAge: string | null): string {
  * Vorschlagsname für draft-team_season (z. B. U11 → U12, 2025/26 → 2026/27).
  */
 export function buildNextSeasonDraftName(source: CurrentSeasonLabelSource): string {
-  const currentAge = resolveCurrentAgeGroup(source);
-  const nextAge = currentAge ? bumpAgeGroupToken(currentAge) : null;
+  const nextAge = computeNextAgeGroupFromSource(source);
 
   const seasonRaw = source.seasonName?.trim() ?? '';
-  const nextSeason = seasonRaw ? bumpSeasonName(seasonRaw) : '';
+  const nextSeason = seasonRaw ? computeNextSeasonName(seasonRaw) : '';
 
   const baseTeam =
     source.teamName?.trim() ||
