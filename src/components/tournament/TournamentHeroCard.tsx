@@ -16,9 +16,11 @@ type Props = {
 
 function StatPill({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/25 px-2.5 py-2 text-center">
-      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/45">{label}</p>
-      <p className="mt-0.5 text-[18px] font-bold tabular-nums leading-none text-white">{value}</p>
+    <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/25 px-1.5 py-2 text-center sm:px-2.5">
+      <p className="text-[9px] font-bold uppercase leading-tight tracking-[0.06em] text-white/45 sm:text-[10px] sm:tracking-[0.1em]">
+        {label}
+      </p>
+      <p className="mt-0.5 text-[17px] font-bold tabular-nums leading-none text-white sm:text-[18px]">{value}</p>
     </div>
   );
 }
@@ -32,9 +34,10 @@ export const TournamentHeroCard: React.FC<Props> = ({
   const summary = computeTournamentHeroSummary(participants, slots);
   const nextTime = summary.nextMatch ? formatTournamentKickoffTime(summary.nextMatch.kickoff_at) : null;
   const nextOpponent = summary.nextMatch?.opponent_name?.trim() ?? '';
+  const nextGroup = summary.nextMatch?.group_label?.trim() ?? '';
 
   return (
-    <div className="relative -mx-1 overflow-hidden rounded-[18px] border border-purple-500/30 bg-[linear-gradient(165deg,#221830_0%,#0c0a12_46%,#1a1024_100%)] px-4 py-4 shadow-[0_16px_48px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.07),0_0_40px_rgba(168,85,247,0.08)] sm:mx-0">
+    <div className="relative -mx-1 min-w-0 overflow-hidden rounded-[18px] border border-purple-500/30 bg-[linear-gradient(165deg,#221830_0%,#0c0a12_46%,#1a1024_100%)] px-4 py-4 shadow-[0_16px_48px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.07),0_0_40px_rgba(168,85,247,0.08)] sm:mx-0">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(251,191,36,0.12)_0%,transparent_55%)]" aria-hidden />
       <div className="relative">
         <div className="mb-3 flex items-center gap-2">
@@ -52,8 +55,8 @@ export const TournamentHeroCard: React.FC<Props> = ({
           <p className="mt-3 text-[14px] text-white/55">Lade Turnier…</p>
         ) : (
           <>
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              <StatPill label="Mannschaften" value={summary.teamCount} />
+            <div className="mt-4 grid min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
+              <StatPill label="Teams" value={summary.teamCount} />
               <StatPill label="Gruppen" value={summary.groupCount} />
               <StatPill label="Spiele" value={summary.matchCount} />
             </div>
@@ -75,6 +78,9 @@ export const TournamentHeroCard: React.FC<Props> = ({
                       {nextOpponent}
                     </span>
                   </div>
+                  {nextGroup ? (
+                    <p className="mt-1 text-[13px] font-medium text-purple-300/75">Gruppe {nextGroup}</p>
+                  ) : null}
                 </>
               ) : (
                 <p className="text-[13px] text-white/55">Keine Turnierspiele geplant</p>

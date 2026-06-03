@@ -2981,7 +2981,7 @@ export const EventDetailPage: React.FC = () => {
       style={isTraining ? dsSchedulePageStyle() : { background: '#000000' }}
     >
       <div
-        className={`mx-auto flex w-full max-w-2xl flex-col px-2 py-4 pb-28 sm:px-4 ${isAudienceMatchDetail ? 'gap-3' : 'gap-5 py-5'}`}
+        className={`mx-auto flex w-full max-w-2xl flex-col overflow-x-hidden px-2 py-4 sm:px-4 ${isAudienceMatchDetail ? 'gap-3' : 'gap-5 py-5'} ${isTournament ? 'pb-[calc(7rem+env(safe-area-inset-bottom,0px))]' : 'pb-28'}`}
       >
         <div className="flex flex-col gap-3">
           <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">

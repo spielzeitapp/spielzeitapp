@@ -244,7 +244,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   };
 
   return (
-    <>
+    <div className="flex min-w-0 flex-col gap-5 overflow-x-hidden">
       {toastMessage ? (
         <div
           className="pointer-events-none fixed left-1/2 z-[1001] max-w-[min(92vw,24rem)] -translate-x-1/2 rounded-2xl border border-purple-500/35 bg-[rgba(10,8,18,0.96)] px-4 py-2.5 text-center text-[14px] font-medium text-white shadow-[0_8px_32px_rgba(0,0,0,0.55)] backdrop-blur-sm bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:top-4 sm:bottom-auto"
@@ -272,7 +272,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
             <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
               <button type="button" className={addButtonClass} onClick={openParticipantModal}>
                 <Plus className="h-3.5 w-3.5" aria-hidden />
-                Mannschaft
+                Team
               </button>
               <button type="button" className={addButtonClass} onClick={openImportModal}>
                 <FileInput className="h-3.5 w-3.5" aria-hidden />
@@ -285,25 +285,21 @@ export const TournamentDetailSections: React.FC<Props> = ({
         {loading ? (
           <p className="mt-3 text-[14px] text-white/65">Lade Teilnehmer…</p>
         ) : participants.length === 0 ? (
-          <p className="mt-3 text-[14px] text-white/65">Keine Mannschaften hinzugefügt</p>
+          <p className="mt-3 text-[14px] text-white/65">Keine Teams hinzugefügt</p>
         ) : (
           <div className={`mt-3 flex flex-col ${DS_LIST_GAP}`}>
             {participantGroups.map(({ label, items }) => (
               <div key={label ?? '_none'} className="flex flex-col gap-1.5">
                 {label ? (
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-purple-200/90">
-                      Gruppe {label}
-                    </p>
-                    <span className="inline-flex items-center rounded-full border border-purple-500/35 bg-purple-950/55 px-2 py-0.5 text-[10px] font-bold tabular-nums text-amber-200/90">
+                    <p className="text-[12px] font-semibold text-purple-200/90">Gruppe {label}</p>
+                    <span className="inline-flex items-center rounded-full border border-purple-500/35 bg-purple-950/55 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-amber-200/90">
                       {label} ({items.length})
                     </span>
                   </div>
                 ) : (
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
-                      Ohne Gruppe
-                    </p>
+                    <p className="text-[12px] font-semibold text-white/55">Ohne Gruppe</p>
                     <span className="inline-flex items-center rounded-full border border-white/12 bg-white/[0.05] px-2 py-0.5 text-[10px] font-bold tabular-nums text-white/55">
                       ({items.length})
                     </span>
@@ -313,13 +309,15 @@ export const TournamentDetailSections: React.FC<Props> = ({
                   {items.map((p) => (
                     <span
                       key={p.id}
-                      className="inline-flex max-w-full items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[13px] font-medium text-white/90"
+                      className="inline-flex max-w-full items-start gap-1 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1"
                     >
-                      <span className="truncate">{p.team_name}</span>
+                      <span className="min-w-0 max-w-[min(100%,14rem)] break-words text-[13px] font-medium leading-snug text-white/90 line-clamp-2">
+                        {p.team_name}
+                      </span>
                       {canManage ? (
                         <button
                           type="button"
-                          className="shrink-0 rounded-full p-0.5 text-white/45 hover:text-red-400 touch-manipulation"
+                          className="mt-0.5 shrink-0 rounded-full p-0.5 text-white/45 hover:text-red-400 touch-manipulation"
                           aria-label={`${p.team_name} entfernen`}
                           onClick={() => void handleRemoveParticipant(p.id)}
                         >
@@ -379,7 +377,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       <Modal
         isOpen={participantModalOpen}
         onClose={() => !participantBusy && setParticipantModalOpen(false)}
-        title="Mannschaft hinzufügen"
+        title="Team hinzufügen"
         footer={
           <div className="flex justify-end gap-2">
             <AppButton variant="secondary" onClick={() => setParticipantModalOpen(false)} disabled={participantBusy}>
@@ -558,9 +556,20 @@ export const TournamentDetailSections: React.FC<Props> = ({
           </label>
         </div>
       </Modal>
-    </>
+    </div>
   );
 };
+
+function tournamentMatchBadgeLabel(
+  slot: TournamentMatchSlotView,
+  status: ReturnType<typeof tournamentMatchDisplayStatus>,
+): string {
+  const group = slot.group_label?.trim();
+  if (status.kind === 'planned' && group) {
+    return `GRUPPE ${group.toUpperCase()}`;
+  }
+  return status.label;
+}
 
 function TournamentMatchRow({
   slot,
@@ -576,10 +585,9 @@ function TournamentMatchRow({
   onDelete: () => void;
 }) {
   const status = tournamentMatchDisplayStatus(slot);
+  const badgeLabel = tournamentMatchBadgeLabel(slot, status);
   const timeLabel = formatTournamentKickoffTime(slot.kickoff_at);
-  const meta = [slot.pitch?.trim(), slot.group_label?.trim() ? `Gr. ${slot.group_label.trim()}` : null]
-    .filter(Boolean)
-    .join(' · ');
+  const meta = slot.pitch?.trim() ?? '';
 
   const chipTone =
     status.kind === 'live'
@@ -636,7 +644,7 @@ function TournamentMatchRow({
               {slot.opponent_name}
             </p>
             {subline ? <p className="text-[12px] leading-snug text-white/55 break-words">{subline}</p> : null}
-            <span className={`self-start ${dsStatusChipClass(chipTone)}`}>{status.label}</span>
+            <span className={`self-start ${dsStatusChipClass(chipTone)}`}>{badgeLabel}</span>
           </div>
 
           {/* Desktop: kompakte Zeile */}
@@ -654,7 +662,7 @@ function TournamentMatchRow({
                 <span className="mt-0.5 block text-[12px] leading-snug text-white/55 break-words">{subline}</span>
               ) : null}
             </span>
-            <span className={`shrink-0 ${dsStatusChipClass(chipTone)}`}>{status.label}</span>
+            <span className={`shrink-0 ${dsStatusChipClass(chipTone)}`}>{badgeLabel}</span>
           </div>
 
           <ChevronRight
