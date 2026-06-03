@@ -21,6 +21,27 @@ function luLog(phase: string, data: Record<string, unknown>): void {
   console.info(`[lineupFeed] ${phase}`, data);
 }
 
+/** Debug-only: strukturierte Exit-/Diagnose-Ausgabe (keine Logikänderung). */
+function lineupFeedExit(reason: string, details: Record<string, unknown> = {}): void {
+  console.log('[LINEUP FEED]', reason, {
+    matchFound: details.matchFound,
+    matchId: details.matchId,
+    eventId: details.eventId,
+    teamSeasonId: details.teamSeasonId,
+    matchStatus: details.matchStatus,
+    kickoff: details.kickoff,
+    minutesUntilKickoff: details.minutesUntilKickoff,
+    lineupPlayerCount: details.lineupPlayerCount,
+    fieldPlayerCount: details.fieldPlayerCount,
+    formationFound: details.formationFound,
+    dedupeKey: details.dedupeKey,
+    dedupeKeyExists: details.dedupeKeyExists,
+    suppressionExists: details.suppressionExists,
+    ensureCalled: details.ensureCalled ?? true,
+    ...details,
+  });
+}
+
 type TeamSeasonJoinRow = {
   team_id: string | null;
   teams: { name: string | null } | { name: string | null }[] | null;
@@ -92,12 +113,19 @@ async function fetchLineupPlayers(matchId: string): Promise<{
     .eq('match_id', matchId);
 
   if (lineupErr) {
+    lineupFeedExit('lineup load error', { matchId, matchFound: true });
     luLog('lineup load error', { matchId, error: lineupErr.message });
     return null;
   }
 
   const rows = (lineupRows ?? []) as Array<{ slot: FieldSlotId; player_id: string | null }>;
+  const lineupPlayerCount = rows.filter((r) => Boolean(r.player_id?.trim())).length;
   const fieldCount = countFieldPlayers(rows);
+  console.log('[LINEUP FEED]', 'lineup rows loaded', {
+    matchId,
+    lineupPlayerCount,
+    fieldPlayerCount: fieldCount,
+  });
   if (fieldCount < MIN_FIELD_PLAYERS) {
     return { fieldCount, players: [], formation: null };
   }
@@ -124,6 +152,7 @@ async function fetchLineupPlayers(matchId: string): Promise<{
     .in('id', orderedIds);
 
   if (playersErr) {
+    lineupFeedExit('players load error', { matchId, matchFound: true });
     luLog('players load error', { matchId, error: playersErr.message });
     return null;
   }
@@ -171,11 +200,30 @@ export async function ensureLineupFeedPostForMatch(
   now: Date = new Date(),
 ): Promise<EnsureLineupFeedPostResult> {
   const mid = matchId?.trim();
-  if (!mid) return { ok: false, error: 'Keine Match-ID.' };
+  lineupFeedExit('ensureLineupFeedPostForMatch called', {
+    matchId: mid || null,
+    ensureCalled: true,
+  });
+  if (!mid) {
+    lineupFeedExit('missing match id', { matchId: null, matchFound: false, ensureCalled: true });
+    return { ok: false, error: 'Keine Match-ID.' };
+  }
 
   const dedupe_key = dedupeKeyForLineupMatch(mid);
 
-  if (await isDedupeSuppressed(dedupe_key)) {
+  const suppressionExists = await isDedupeSuppressed(dedupe_key);
+  console.log('[LINEUP FEED]', 'suppression check', {
+    matchId: mid,
+    dedupeKey: dedupe_key,
+    suppressionExists,
+  });
+  if (suppressionExists) {
+    lineupFeedExit('suppression exists', {
+      matchId: mid,
+      dedupeKey: dedupe_key,
+      suppressionExists: true,
+      dedupeKeyExists: false,
+    });
     luLog('skip: suppressed', { matchId: mid, dedupe_key });
     return { ok: true, created: false, reason: 'suppressed' };
   }
@@ -185,28 +233,103 @@ export async function ensureLineupFeedPostForMatch(
     .select('id')
     .eq('dedupe_key', dedupe_key)
     .maybeSingle();
-  if (exErr) return { ok: false, error: exErr.message };
-  if (existing?.id) return { ok: true, created: false, reason: 'already_exists' };
+  const dedupeKeyExists = Boolean(existing?.id);
+  console.log('[LINEUP FEED]', 'dedupe check', {
+    matchId: mid,
+    dedupeKey: dedupe_key,
+    dedupeKeyExists,
+    suppressionExists: false,
+  });
+  if (exErr) {
+    lineupFeedExit('dedupe lookup error', {
+      matchId: mid,
+      dedupeKey: dedupe_key,
+      dedupeKeyExists: false,
+      error: exErr.message,
+    });
+    return { ok: false, error: exErr.message };
+  }
+  if (existing?.id) {
+    lineupFeedExit('dedupe exists', {
+      matchId: mid,
+      dedupeKey: dedupe_key,
+      dedupeKeyExists: true,
+      suppressionExists: false,
+    });
+    return { ok: true, created: false, reason: 'already_exists' };
+  }
 
   const { data: match, error: matchErr } = await fetchMatchById(mid);
-  if (matchErr) return { ok: false, error: matchErr };
-  if (!match) return { ok: false, error: 'Spiel nicht gefunden.' };
+  if (matchErr) {
+    lineupFeedExit('match load error', {
+      matchId: mid,
+      matchFound: false,
+      dedupeKey: dedupe_key,
+      error: matchErr,
+    });
+    return { ok: false, error: matchErr };
+  }
+  if (!match) {
+    lineupFeedExit('missing match', {
+      matchId: mid,
+      matchFound: false,
+      dedupeKey: dedupe_key,
+    });
+    return { ok: false, error: 'Spiel nicht gefunden.' };
+  }
 
   const status = (match.status ?? '').toLowerCase();
+  const teamSeasonIdEarly = match.team_season_id?.trim() ?? '';
   if (status !== 'upcoming') {
+    lineupFeedExit('not upcoming', {
+      matchFound: true,
+      matchId: mid,
+      teamSeasonId: teamSeasonIdEarly || null,
+      matchStatus: status,
+      dedupeKey: dedupe_key,
+      kickoff: match.match_date ?? null,
+    });
     luLog('skip: not_upcoming', { matchId: mid, status });
     return { ok: true, created: false, reason: 'not_upcoming' };
   }
 
   const lineupData = await fetchLineupPlayers(mid);
-  if (!lineupData) return { ok: false, error: 'Aufstellung konnte nicht geladen werden.' };
+  if (!lineupData) {
+    lineupFeedExit('lineup could not be loaded', {
+      matchFound: true,
+      matchId: mid,
+      teamSeasonId: teamSeasonIdEarly || null,
+      matchStatus: status,
+      dedupeKey: dedupe_key,
+    });
+    return { ok: false, error: 'Aufstellung konnte nicht geladen werden.' };
+  }
   if (lineupData.fieldCount < MIN_FIELD_PLAYERS || lineupData.players.length === 0) {
+    lineupFeedExit('not enough field players', {
+      matchFound: true,
+      matchId: mid,
+      teamSeasonId: teamSeasonIdEarly || null,
+      matchStatus: status,
+      fieldPlayerCount: lineupData.fieldCount,
+      formationFound: Boolean(lineupData.formation),
+      dedupeKey: dedupe_key,
+    });
     luLog('skip: insufficient_lineup', { matchId: mid, fieldCount: lineupData.fieldCount });
     return { ok: true, created: false, reason: 'insufficient_lineup' };
   }
 
   const teamSeasonId = match.team_season_id?.trim();
-  if (!teamSeasonId) return { ok: false, error: 'Keine team_season_id am Spiel.' };
+  if (!teamSeasonId) {
+    lineupFeedExit('missing team season', {
+      matchFound: true,
+      matchId: mid,
+      matchStatus: status,
+      fieldPlayerCount: lineupData.fieldCount,
+      formationFound: Boolean(lineupData.formation),
+      dedupeKey: dedupe_key,
+    });
+    return { ok: false, error: 'Keine team_season_id am Spiel.' };
+  }
 
   const { data: evRaw, error: evErr } = await supabase
     .from('events')
@@ -218,28 +341,90 @@ export async function ensureLineupFeedPostForMatch(
 
   if (evErr) luLog('events lookup warning', { matchId: mid, error: evErr.message });
   const eventId = (evRaw as { id?: string } | null)?.id?.trim() ?? '';
-  if (!eventId) return { ok: false, error: 'Kein Event zum Spiel verknüpft.' };
+  if (!eventId) {
+    lineupFeedExit('missing event', {
+      matchFound: true,
+      matchId: mid,
+      eventId: null,
+      teamSeasonId,
+      matchStatus: status,
+      fieldPlayerCount: lineupData.fieldCount,
+      formationFound: Boolean(lineupData.formation),
+      dedupeKey: dedupe_key,
+    });
+    return { ok: false, error: 'Kein Event zum Spiel verknüpft.' };
+  }
 
   const starts_at =
     (evRaw as { starts_at?: string | null } | null)?.starts_at?.trim() ||
     match.match_date?.trim() ||
     '';
   if (!starts_at) {
+    lineupFeedExit('no kickoff', {
+      matchFound: true,
+      matchId: mid,
+      eventId,
+      teamSeasonId,
+      matchStatus: status,
+      kickoff: null,
+      fieldPlayerCount: lineupData.fieldCount,
+      formationFound: Boolean(lineupData.formation),
+      dedupeKey: dedupe_key,
+    });
     luLog('skip: no_kickoff', { matchId: mid });
     return { ok: true, created: false, reason: 'no_kickoff' };
   }
 
   const minutesLeft = minutesUntilKickoff(starts_at, now);
   if (minutesLeft == null) {
+    lineupFeedExit('invalid kickoff', {
+      matchFound: true,
+      matchId: mid,
+      eventId,
+      teamSeasonId,
+      matchStatus: status,
+      kickoff: starts_at,
+      minutesUntilKickoff: null,
+      fieldPlayerCount: lineupData.fieldCount,
+      formationFound: Boolean(lineupData.formation),
+      dedupeKey: dedupe_key,
+    });
     return { ok: true, created: false, reason: 'invalid_kickoff' };
   }
   if (minutesLeft < 0 || minutesLeft > MAX_MINUTES_BEFORE_KICKOFF) {
+    lineupFeedExit('kickoff too far away', {
+      matchFound: true,
+      matchId: mid,
+      eventId,
+      teamSeasonId,
+      matchStatus: status,
+      kickoff: starts_at,
+      minutesUntilKickoff: minutesLeft,
+      fieldPlayerCount: lineupData.fieldCount,
+      formationFound: Boolean(lineupData.formation),
+      dedupeKey: dedupe_key,
+      windowMinutes: MAX_MINUTES_BEFORE_KICKOFF,
+    });
     luLog('skip: outside_window', { matchId: mid, minutesLeft });
     return { ok: true, created: false, reason: 'outside_window' };
   }
 
   const teamInfo = await resolveTeamForSeason(teamSeasonId);
-  if (!teamInfo) return { ok: false, error: 'Team zur Saison nicht gefunden.' };
+  if (!teamInfo) {
+    lineupFeedExit('missing team season resolve', {
+      matchFound: true,
+      matchId: mid,
+      eventId,
+      teamSeasonId,
+      matchStatus: status,
+      kickoff: starts_at,
+      minutesUntilKickoff: minutesLeft,
+      fieldPlayerCount: lineupData.fieldCount,
+      formationFound: Boolean(lineupData.formation),
+      dedupeKey: dedupe_key,
+    });
+    return { ok: false, error: 'Team zur Saison nicht gefunden.' };
+  }
 
   const deep_link = `/app/match/${encodeURIComponent(mid)}`;
 
@@ -278,11 +463,46 @@ export async function ensureLineupFeedPostForMatch(
 
   if (insErr) {
     if (insErr.code === '23505') {
+      lineupFeedExit('dedupe exists race', {
+        matchFound: true,
+        matchId: mid,
+        eventId,
+        teamSeasonId,
+        matchStatus: status,
+        kickoff: starts_at,
+        minutesUntilKickoff: minutesLeft,
+        fieldPlayerCount: lineupData.fieldCount,
+        formationFound: Boolean(lineupData.formation),
+        dedupeKey: dedupe_key,
+        dedupeKeyExists: true,
+      });
       return { ok: true, created: false, reason: 'duplicate_race' };
     }
+    lineupFeedExit('insert error', {
+      matchFound: true,
+      matchId: mid,
+      eventId,
+      teamSeasonId,
+      error: insErr.message,
+      dedupeKey: dedupe_key,
+    });
     return { ok: false, error: insErr.message };
   }
 
+  lineupFeedExit('post created', {
+    matchFound: true,
+    matchId: mid,
+    eventId,
+    teamSeasonId,
+    matchStatus: status,
+    kickoff: starts_at,
+    minutesUntilKickoff: minutesLeft,
+    fieldPlayerCount: lineupData.fieldCount,
+    formationFound: Boolean(lineupData.formation),
+    dedupeKey: dedupe_key,
+    dedupeKeyExists: false,
+    suppressionExists: false,
+  });
   luLog('created', { matchId: mid, dedupe_key, eventId });
   return { ok: true, created: true };
 }
@@ -306,7 +526,18 @@ export async function ensureLineupFeedPostsForSeason(
     skipped: 0,
     errors: [],
   };
-  if (!sid) return result;
+  if (!sid) {
+    lineupFeedExit('ensureLineupFeedPostsForSeason skipped: missing team season', {
+      teamSeasonId: sid,
+      ensureCalled: true,
+    });
+    return result;
+  }
+
+  lineupFeedExit('ensureLineupFeedPostsForSeason called', {
+    teamSeasonId: sid,
+    ensureCalled: true,
+  });
 
   const { data, error } = await supabase
     .from('matches')
@@ -315,9 +546,18 @@ export async function ensureLineupFeedPostsForSeason(
     .eq('status', 'upcoming');
 
   if (error) {
+    lineupFeedExit('ensureLineupFeedPostsForSeason matches query error', {
+      teamSeasonId: sid,
+      error: error.message,
+    });
     result.errors.push(error.message);
     return result;
   }
+
+  console.log('[LINEUP FEED]', 'upcoming matches for season', {
+    teamSeasonId: sid,
+    matchCount: (data ?? []).length,
+  });
 
   for (const row of data ?? []) {
     const id = String((row as { id?: string }).id ?? '').trim();
@@ -325,13 +565,28 @@ export async function ensureLineupFeedPostsForSeason(
     result.scanned += 1;
     const res = await ensureLineupFeedPostForMatch(id, now);
     if (!res.ok) {
+      lineupFeedExit('ensureLineupFeedPostForMatch failed in batch', {
+        matchId: id,
+        teamSeasonId: sid,
+        error: res.error,
+      });
       result.errors.push(`${id}: ${res.error}`);
       continue;
     }
     if (res.created) result.created += 1;
-    else result.skipped += 1;
+    else {
+      lineupFeedExit('ensureLineupFeedPostForMatch skipped in batch', {
+        matchId: id,
+        teamSeasonId: sid,
+        reason: res.reason ?? 'unknown',
+      });
+      result.skipped += 1;
+    }
   }
 
-  luLog('batch done', result);
+  lineupFeedExit('ensureLineupFeedPostsForSeason finished', {
+    teamSeasonId: sid,
+    ...result,
+  });
   return result;
 }

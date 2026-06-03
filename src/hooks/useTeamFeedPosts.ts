@@ -68,7 +68,12 @@ async function runFeedEnsures(teamSeasonId: string): Promise<void> {
   const matchdayRes = await ensureMatchdayFeedPostsForSeason(teamSeasonId);
   console.info('[matchdayFeed] ensureMatchdayFeedPostsForSeason', matchdayRes);
   await ensureUpcomingMatchFeedPosts(teamSeasonId);
-  await ensureLineupFeedPostsForSeason(teamSeasonId);
+  console.log('[LINEUP FEED]', 'ensureLineupFeedPostsForSeason invoked from useTeamFeedPosts', {
+    teamSeasonId,
+    ensureCalled: true,
+  });
+  const lineupRes = await ensureLineupFeedPostsForSeason(teamSeasonId);
+  console.log('[LINEUP FEED]', 'ensureLineupFeedPostsForSeason result from useTeamFeedPosts', lineupRes);
   await ensureRecentResultFeedPostsForSeason(teamSeasonId);
   await ensureRecentLiveFeedPostsForSeason(teamSeasonId);
 }
