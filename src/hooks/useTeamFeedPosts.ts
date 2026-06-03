@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ensureMatchdayFeedPostsForSeason } from '../lib/ensureMatchdayFeedPosts';
 import { ensureRecentLiveFeedPostsForSeason } from '../lib/ensureLiveFeedPost';
 import { ensureRecentResultFeedPostsForSeason } from '../lib/ensureResultFeedPost';
+import { ensureLineupFeedPostsForSeason } from '../lib/ensureLineupFeedPost';
 import { ensureUpcomingMatchFeedPosts } from '../lib/ensureUpcomingMatchFeedPosts';
 import { logMatchdayFeedSeasonContext } from '../lib/matchdayFeedDebug';
 import {
@@ -67,6 +68,7 @@ async function runFeedEnsures(teamSeasonId: string): Promise<void> {
   const matchdayRes = await ensureMatchdayFeedPostsForSeason(teamSeasonId);
   console.info('[matchdayFeed] ensureMatchdayFeedPostsForSeason', matchdayRes);
   await ensureUpcomingMatchFeedPosts(teamSeasonId);
+  await ensureLineupFeedPostsForSeason(teamSeasonId);
   await ensureRecentResultFeedPostsForSeason(teamSeasonId);
   await ensureRecentLiveFeedPostsForSeason(teamSeasonId);
 }

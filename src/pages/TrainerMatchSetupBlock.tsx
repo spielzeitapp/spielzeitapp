@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { Button } from '../app/components/ui/Button';
 import type { PlayerItem } from '../hooks/usePlayers';
+import { ensureLineupFeedPostForMatch } from '../lib/ensureLineupFeedPost';
 import { LIVE_FIELD_SLOT_ORDER, replaceMatchLineupAndBench, saveMatchSquadOnly } from '../lib/liveMatchService';
 import { comparePlayerItems } from '../lib/rosterPlayer';
 import { MatchPlayerRow } from '../components/match/MatchPlayerRow';
@@ -322,6 +323,7 @@ export function TrainerMatchSetupBlock({
     }
     setSetupError(null);
     setLineupSaveMsg('Aufstellung gespeichert.');
+    void ensureLineupFeedPostForMatch(matchId);
     window.setTimeout(() => setLineupSaveMsg(null), 3500);
   };
 

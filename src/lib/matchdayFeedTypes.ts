@@ -1,4 +1,5 @@
 import { parseLiveFeedPayload, type LiveFeedPayload } from './liveFeedTypes';
+import { parseLineupFeedPayload, type LineupFeedPayload } from './lineupFeedTypes';
 import { parseResultFeedPayload, type ResultFeedPayload } from './resultFeedTypes';
 import type { NextMatchFeedPayload } from './nextMatchFeedTypes';
 
@@ -87,6 +88,11 @@ export function classifyTeamFeedPost(row: TeamFeedPostDbRow): ClassifiedFeedPost
     const rpl = parseResultFeedPayload(row.payload);
     if (!rpl) return null;
     return { kind: 'result', post: { ...row, payload: rpl } };
+  }
+  if (mt === 'lineup' || pk === 'lineup_auto') {
+    const lpl = parseLineupFeedPayload(row.payload);
+    if (!lpl) return null;
+    return { kind: 'lineup', post: { ...row, payload: lpl } };
   }
   if (mt === 'next_match' || pk === 'next_match_auto') {
     const npl = parseMatchdayPayload(row.payload);

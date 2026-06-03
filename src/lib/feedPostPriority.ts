@@ -11,6 +11,7 @@ import {
 export const FEED_POST_PRIORITY = {
   live_match: 100,
   matchday_today: 90,
+  lineup_auto: 85,
   matchday_tomorrow: 80,
   next_match: 70,
   trainer_post: 50,
@@ -60,6 +61,10 @@ export function getFeedPostPriority(
 
   if (pk === 'matchday_today_auto') {
     return FEED_POST_PRIORITY.matchday_today;
+  }
+
+  if (pk === 'lineup_auto' || mt === 'lineup') {
+    return FEED_POST_PRIORITY.lineup_auto;
   }
 
   if (pk === 'matchday_tomorrow_auto') {
