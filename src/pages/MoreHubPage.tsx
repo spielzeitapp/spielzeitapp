@@ -1,18 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, ChevronRight, Settings, Wrench } from 'lucide-react';
-import { Card } from '../app/components/ui/Card';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
 import { isHapticEnabled, setHapticEnabled, triggerHaptic } from '../lib/hapticFeedback';
-import {
-  dsGlassToggleTrack,
-  dsMoreHubPageStyle,
-  dsPageAtmosphereClass,
-  dsPageContentClass,
-  dsPanelRowClass,
-} from '../lib/premiumDesignSystem';
+import { dsGlassToggleTrack, dsPanelRowClass } from '../lib/premiumDesignSystem';
+import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
+import { cn } from '../ui/lib/cn';
 
 const subRowClass = `${dsPanelRowClass()} pl-10`;
 
@@ -159,16 +154,15 @@ export const MoreHubPage: React.FC = () => {
   };
 
   return (
-    <div
-      className="page mehr-hub relative min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 py-6 sm:px-4 md:px-0"
-      style={dsMoreHubPageStyle()}
+    <PageShell
+      background="more"
+      className="page mehr-hub min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 py-6 sm:px-4 md:px-0"
+      contentClassName="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl"
     >
-      <div className={dsPageAtmosphereClass()} aria-hidden />
-      <div className={dsPageContentClass('mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl')}>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Mehr</h1>
-        <p className="text-[14px] text-white/60">Einstellungen und weitere Bereiche</p>
+      <SectionTitle subtitle="Einstellungen und weitere Bereiche">Mehr</SectionTitle>
 
-        <div className={dsPanelRowClass()}>
+      <PremiumCard variant="subtle" showAmbientGlow={false}>
+        <div className="flex items-center justify-between gap-3 text-[16px] font-semibold text-white">
           <span className="flex items-center gap-3">
             <span className="text-lg leading-none" aria-hidden>
               🔘
@@ -196,44 +190,46 @@ export const MoreHubPage: React.FC = () => {
             />
           </button>
         </div>
+      </PremiumCard>
 
-        <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
-          <Link to="/app/nachrichten" className={dsPanelRowClass()}>
-            <span className="flex items-center gap-3">
-              <Bell className="h-5 w-5 text-red-400" aria-hidden />
-              <span>Nachrichten</span>
-              {unreadCount > 0 && (
-                <span className="ml-2 inline-flex min-h-[17px] min-w-[17px] translate-y-[-1px] items-center justify-center rounded-full bg-red-500 px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-neutral-900">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </span>
-            <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-          </Link>
+      <nav className="grid gap-2 md:grid-cols-2 lg:grid-cols-3" aria-label="Mehr-Menü">
+        <Link to="/app/nachrichten" className={dsPanelRowClass()}>
+          <span className="flex items-center gap-3">
+            <Bell className="h-5 w-5 text-red-400" aria-hidden />
+            <span>Nachrichten</span>
+            {unreadCount > 0 && (
+              <span className="ml-2 inline-flex min-h-[17px] min-w-[17px] translate-y-[-1px] items-center justify-center rounded-full bg-red-500 px-[5px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-neutral-900">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </span>
+          <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
+        </Link>
 
-          {showTrainerTools && (
-            <div className="space-y-1.5 pt-1 md:col-span-2 lg:col-span-3">
-              <button
-                type="button"
-                className={dsPanelRowClass()}
-                onClick={() => setTrainerToolsOpen((v) => !v)}
-                aria-expanded={trainerToolsOpen}
-              >
-                <span className="flex items-center gap-2">
-                  <Wrench className="h-5 w-5 text-red-400" aria-hidden />
-                  <span>Trainer-Tools</span>
-                </span>
-                <ChevronRight
-                  className={[
-                    'h-5 w-5 text-white/40 transition-transform',
-                    trainerToolsOpen ? 'rotate-90' : '',
-                  ].join(' ')}
-                  aria-hidden
-                />
-              </button>
+        {showTrainerTools && (
+          <div className="space-y-1.5 pt-1 md:col-span-2 lg:col-span-3">
+            <button
+              type="button"
+              className={dsPanelRowClass()}
+              onClick={() => setTrainerToolsOpen((v) => !v)}
+              aria-expanded={trainerToolsOpen}
+            >
+              <span className="flex items-center gap-2">
+                <Wrench className="h-5 w-5 text-red-400" aria-hidden />
+                <span>Trainer-Tools</span>
+              </span>
+              <ChevronRight
+                className={[
+                  'h-5 w-5 text-white/40 transition-transform',
+                  trainerToolsOpen ? 'rotate-90' : '',
+                ].join(' ')}
+                aria-hidden
+              />
+            </button>
 
-              {trainerToolsOpen && (
-                <>
+            {trainerToolsOpen && (
+              <PremiumCard variant="subtle" showAmbientGlow={false} className="!p-1.5">
+                <div className="flex flex-col gap-1.5">
                   <Link to="/app/mehr/trainer/team-push" className={subRowClass}>
                     <span>Team-Push</span>
                     <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
@@ -258,51 +254,58 @@ export const MoreHubPage: React.FC = () => {
                       <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
                     </Link>
                   )}
-                </>
-              )}
-            </div>
-          )}
-
-          <Link to="/app/profile" className={dsPanelRowClass()}>
-            <span className="flex items-center gap-3">
-              <Settings className="h-5 w-5 text-red-400" aria-hidden />
-              <span>Einstellungen</span>
-            </span>
-            <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
-          </Link>
-        </nav>
-
-        {canSwitchTeam && (
-          <Card className="mt-6 border-white/10 bg-white/5 p-4 text-white">
-            <h2 className="text-[16px] font-semibold text-white">Team / Saison</h2>
-            <label className="mt-2 block text-[12px] text-white/60" htmlFor="mehr-team-switch">
-              Aktive Auswahl
-            </label>
-            <select
-              id="mehr-team-switch"
-              className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white"
-              value={selectedTeamSeason?.id ?? ''}
-              onChange={(e) => setSelectedTeamSeasonId(e.target.value)}
-            >
-              {(teamSeasons ?? []).map((ts) => (
-                <option key={ts.id} value={ts.id}>
-                  {ts.team?.name ?? 'Team'} · {ts.season?.name ?? 'Saison'}
-                </option>
-              ))}
-            </select>
-          </Card>
+                </div>
+              </PremiumCard>
+            )}
+          </div>
         )}
 
-        {showDebugHubButtons && (
-          <button
-            type="button"
-            onClick={runReminderTest}
-            className={`${dsPanelRowClass()} mt-6 shadow-[0_0_28px_rgba(255,40,40,0.12)] hover:shadow-[0_0_32px_rgba(255,40,40,0.16)]`}
+        <Link to="/app/profile" className={dsPanelRowClass()}>
+          <span className="flex items-center gap-3">
+            <Settings className="h-5 w-5 text-red-400" aria-hidden />
+            <span>Einstellungen</span>
+          </span>
+          <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
+        </Link>
+      </nav>
+
+      {canSwitchTeam && (
+        <PremiumCard variant="subtle" showAmbientGlow={false} className="mt-6 text-white">
+          <SectionTitle as="h2" variant="subtle" className="!text-[16px] !font-semibold !text-white">
+            Team / Saison
+          </SectionTitle>
+          <label className="mt-2 block text-[12px] text-white/60" htmlFor="mehr-team-switch">
+            Aktive Auswahl
+          </label>
+          <select
+            id="mehr-team-switch"
+            className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white"
+            value={selectedTeamSeason?.id ?? ''}
+            onChange={(e) => setSelectedTeamSeasonId(e.target.value)}
           >
-            <span>🔔 Reminder testen</span>
-          </button>
-        )}
-      </div>
-    </div>
+            {(teamSeasons ?? []).map((ts) => (
+              <option key={ts.id} value={ts.id}>
+                {ts.team?.name ?? 'Team'} · {ts.season?.name ?? 'Saison'}
+              </option>
+            ))}
+          </select>
+        </PremiumCard>
+      )}
+
+      {showDebugHubButtons && (
+        <PremiumButton
+          type="button"
+          variant="subtle"
+          fullWidth
+          onClick={runReminderTest}
+          className={cn(
+            'mt-6 text-[16px] font-semibold',
+            'shadow-[0_0_28px_rgba(255,40,40,0.12)] hover:shadow-[0_0_32px_rgba(255,40,40,0.16)]',
+          )}
+        >
+          <span>🔔 Reminder testen</span>
+        </PremiumButton>
+      )}
+    </PageShell>
   );
 };
