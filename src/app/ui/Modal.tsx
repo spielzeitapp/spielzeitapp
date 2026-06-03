@@ -23,7 +23,8 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   footer,
 }) => {
-  const visible = Boolean(isOpen ?? open);
+  const effectiveOpen = isOpen ?? open ?? false;
+
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -34,23 +35,24 @@ export const Modal: React.FC<ModalProps> = ({
   );
 
   useEffect(() => {
-    if (!visible) return;
+    if (!effectiveOpen) return;
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [visible, handleKeyDown]);
+  }, [effectiveOpen, handleKeyDown]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!effectiveOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [visible]);
+  }, [effectiveOpen]);
 
-  if (!visible) return null;
+  if (!effectiveOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const handleOverlayClick: React.MouseEventHandler<HTMLDivElement> = (event) => {
     if (event.target === event.currentTarget) {
@@ -58,7 +60,7 @@ export const Modal: React.FC<ModalProps> = ({
     }
   };
 
-  return (
+  const modal = (
     <div
       className="modalOverlay"
       onClick={handleOverlayClick}
@@ -72,11 +74,11 @@ export const Modal: React.FC<ModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modalHeader">
-          {title && (
+          {title ? (
             <div id="modal-title" className={['modalTitle', titleClassName ?? ''].filter(Boolean).join(' ')}>
               {title}
             </div>
-          )}
+          ) : null}
           <button
             type="button"
             className="modalClose"
@@ -87,17 +89,12 @@ export const Modal: React.FC<ModalProps> = ({
           </button>
         </div>
 
-        <div className="modalBody">
-          {children}
-        </div>
+        <div className="modalBody">{children}</div>
 
-        {footer != null && (
-          <div className="modalFooter">
-            {footer}
-          </div>
-        )}
+        {footer != null ? <div className="modalFooter">{footer}</div> : null}
       </div>
-    </div>,
-    document.body,
+    </div>
   );
+
+  return createPortal(modal, document.body);
 };
