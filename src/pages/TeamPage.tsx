@@ -1,9 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from "../auth/useSession";
-import { Card, CardTitle } from "../app/components/ui/Card";
-import { Tabs, TabOption } from "../app/components/ui/Tabs";
 import { AppButton } from "../components/ui/AppButton";
+import {
+  GlassCard,
+  PageShell,
+  PremiumButton,
+  PremiumCard,
+  PremiumEmptyState,
+  PremiumTab,
+  PremiumTabTrack,
+  SectionTitle,
+} from "../ui";
 import { Camera } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
@@ -689,11 +697,11 @@ export const TeamPage: React.FC = () => {
     await refetchPlayers();
   };
 
-  const teamTabs: TabOption[] = [
-    { id: "squad", label: "Kader" },
-    { id: "trainers", label: "Trainer" },
-    { id: "training", label: "Training" },
-    { id: "matches", label: "Spiele" },
+  const teamTabs = [
+    { id: "squad" as const, label: "Kader" },
+    { id: "trainers" as const, label: "Trainer" },
+    { id: "training" as const, label: "Training" },
+    { id: "matches" as const, label: "Spiele" },
   ];
 
   const [activeTab, setActiveTab] = useState<TeamTabId>("squad");
@@ -808,10 +816,15 @@ export const TeamPage: React.FC = () => {
         </div>
       </div>
     ) : null}
-    <div className="w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-36 sm:px-4 md:px-0">
-      <div className="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl">
+    <PageShell
+      variant="subtle"
+      showAtmosphere={false}
+      className="page team-page min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-36 sm:px-4 md:px-0"
+      contentClassName="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl"
+    >
       {/* Team Hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-red-500/25 bg-[#111] shadow-[0_12px_48px_rgba(0,0,0,0.5)]">
+      <PremiumCard matchday showAmbientGlow className="!p-0 overflow-hidden shadow-[0_12px_48px_rgba(0,0,0,0.5)]">
+      <div className="relative min-h-[160px] sm:min-h-[178px]">
         <img
           src={heroPhotoSrc}
           alt=""
@@ -878,6 +891,7 @@ export const TeamPage: React.FC = () => {
           </div>
         </div>
       </div>
+      </PremiumCard>
       {teamPhotoError ? (
         <p className="text-sm text-red-600" role="alert">
           {teamPhotoError}
@@ -890,85 +904,86 @@ export const TeamPage: React.FC = () => {
         </p>
       ) : null}
 
-      <div className="sticky top-0 z-20 rounded-xl border border-red-500/15 bg-[#111]/90 px-1 shadow-[0_4px_24px_rgba(0,0,0,0.35)] backdrop-blur-md">
-        <Tabs
-          variant="stadium"
-          compact
-          tabs={teamTabs}
-          activeId={activeTab}
-          onChange={(id) => setActiveTab(id as TeamTabId)}
-        />
-      </div>
+      <GlassCard
+        variant="subtle"
+        showAmbientGlow={false}
+        className="sticky top-0 z-20 !p-1 backdrop-blur-md"
+      >
+        <PremiumTabTrack className="min-w-0">
+          {teamTabs.map((tab) => (
+            <PremiumTab
+              key={tab.id}
+              kind="filter"
+              active={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="min-w-0 px-1.5 text-[10px] sm:px-2.5 sm:text-[12px]"
+            >
+              {tab.label}
+            </PremiumTab>
+          ))}
+        </PremiumTabTrack>
+      </GlassCard>
 
       {activeTab === "squad" ? (
-      <Card className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] sm:p-5">
+      <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
         <div className="flex items-center justify-between gap-2">
-          <CardTitle className="mt-0">Kader</CardTitle>
+          <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
+            Kader
+          </SectionTitle>
           {teamSeasonId != null && canManagePlayers && !plLoading ? (
-            <AppButton type="button" variant="secondary" size="md" onClick={() => openCreateForm()}>
+            <PremiumButton type="button" variant="interactive" onClick={() => openCreateForm()} className="!min-h-[40px] shrink-0 !px-3 !py-2 !text-sm">
               + Spieler hinzufügen
-            </AppButton>
+            </PremiumButton>
           ) : null}
         </div>
         <div className="mt-2">
           {teamSeasonId == null && !tsLoading && (
-            <p className="text-sm text-[var(--muted)]">Bitte Team wählen.</p>
+            <PremiumEmptyState variant="subtle" title="Bitte Team wählen." className="mt-3 py-6" />
           )}
           {teamSeasonId != null && plLoading && (
-            <p className="text-sm text-[var(--muted)]">Lade Kader…</p>
+            <p className="mt-3 text-sm text-white/55">Lade Kader…</p>
           )}
           {teamSeasonId != null && !plLoading && plError && (
-            <p className="text-sm text-red-600" role="alert">
+            <p className="mt-3 text-sm text-red-400" role="alert">
               {plError}
             </p>
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length === 0 && !showForm && (
-            <p className="text-sm text-[var(--muted)]">
-              Noch keine Spieler angelegt.
-            </p>
+            <PremiumEmptyState variant="subtle" title="Noch keine Spieler angelegt." className="mt-3 py-6" />
           )}
           {teamSeasonId != null && !plLoading && !plError && players.length > 0 && (
             <>
               {canManagePlayers ? (
-                <div className="mt-2 mb-2 space-y-2">
+                <div className="mb-2 mt-2 space-y-2">
                   <p className="text-xs text-white/60">
                     Pausierte Spieler bleiben gespeichert, sind aber für Eltern/Fans und Spielkader nicht sichtbar.
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                        squadFilter === "active"
-                          ? "border-emerald-400/45 bg-emerald-900/30 text-emerald-200"
-                          : "border-white/15 bg-white/[0.04] text-white/70"
-                      }`}
+                  <PremiumTabTrack className="min-w-0">
+                    <PremiumTab
+                      kind="filter"
+                      active={squadFilter === "active"}
                       onClick={() => setSquadFilter("active")}
+                      className="min-w-0 px-1.5 text-[10px] sm:text-[12px]"
                     >
                       Aktiv ({activeCount})
-                    </button>
-                    <button
-                      type="button"
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                        squadFilter === "paused"
-                          ? "border-amber-400/45 bg-amber-900/25 text-amber-200"
-                          : "border-white/15 bg-white/[0.04] text-white/70"
-                      }`}
+                    </PremiumTab>
+                    <PremiumTab
+                      kind="filter"
+                      active={squadFilter === "paused"}
                       onClick={() => setSquadFilter("paused")}
+                      className="min-w-0 px-1.5 text-[10px] sm:text-[12px]"
                     >
                       Pausiert ({pausedCount})
-                    </button>
-                    <button
-                      type="button"
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                        squadFilter === "all"
-                          ? "border-red-400/45 bg-red-900/25 text-red-200"
-                          : "border-white/15 bg-white/[0.04] text-white/70"
-                      }`}
+                    </PremiumTab>
+                    <PremiumTab
+                      kind="filter"
+                      active={squadFilter === "all"}
                       onClick={() => setSquadFilter("all")}
+                      className="min-w-0 px-1.5 text-[10px] sm:text-[12px]"
                     >
                       Alle ({players.length})
-                    </button>
-                  </div>
+                    </PremiumTab>
+                  </PremiumTabTrack>
                 </div>
               ) : null}
             <ul className="mt-3 w-full space-y-1.5 pb-8">
@@ -1020,21 +1035,28 @@ export const TeamPage: React.FC = () => {
             </>
           )}
         </div>
-      </Card>
+      </PremiumCard>
       ) : null}
 
       {activeTab === "trainers" ? (
-        <Card className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] sm:p-5">
+        <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
           <div className="flex items-center justify-between gap-2">
-            <CardTitle className="mt-0">Trainer</CardTitle>
+            <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
+              Trainer
+            </SectionTitle>
             {teamSeasonId != null && canManagePlayers && !staffLoading ? (
-              <AppButton type="button" variant="secondary" size="md" onClick={trainerEditor.openCreateTrainerForm}>
+              <PremiumButton
+                type="button"
+                variant="interactive"
+                onClick={trainerEditor.openCreateTrainerForm}
+                className="!min-h-[40px] shrink-0 !px-3 !py-2 !text-sm"
+              >
                 + Trainer hinzufügen
-              </AppButton>
+              </PremiumButton>
             ) : null}
           </div>
           {teamSeasonId == null && !tsLoading ? (
-            <p className="mt-3 text-[14px] text-white/70">Bitte Team wählen.</p>
+            <PremiumEmptyState variant="subtle" title="Bitte Team wählen." className="mt-3 py-6" />
           ) : staffLoading ? (
             <p className="mt-4 text-[14px] text-white/70">Lade Trainer…</p>
           ) : staffFetchError ? (
@@ -1045,7 +1067,7 @@ export const TeamPage: React.FC = () => {
               Trainer konnten nicht geladen werden: {staffFetchError}
             </p>
           ) : staffRows.length === 0 ? (
-            <p className="mt-4 text-center text-[14px] font-medium text-white/80">Keine Trainer hinterlegt</p>
+            <PremiumEmptyState variant="subtle" title="Keine Trainer hinterlegt" className="mt-4 py-6" />
           ) : (
             <>
               {staffRpcMissing ? (
@@ -1065,70 +1087,74 @@ export const TeamPage: React.FC = () => {
               </ul>
             </>
           )}
-        </Card>
+        </PremiumCard>
       ) : null}
 
       {activeTab === "training" ? (
-        <Card className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] sm:p-5">
-          <CardTitle className="mt-0">Training</CardTitle>
+        <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
+          <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
+            Training
+          </SectionTitle>
           {teamSeasonId == null && !tsLoading ? (
-            <p className="mt-3 text-[14px] text-white/70">Bitte Team wählen.</p>
+            <PremiumEmptyState variant="subtle" title="Bitte Team wählen." className="mt-3 py-6" />
           ) : (
             <div className="mt-4 space-y-3">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
+                <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3">
                   <div className="text-[12px] text-white/60">Teilnahmequote Team</div>
                   <div className="mt-1 text-[14px] font-medium text-white/80">Noch keine Trainingsdaten</div>
-                </div>
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
+                </GlassCard>
+                <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3">
                   <div className="text-[12px] text-white/60">Anzahl Trainings</div>
                   <div className="mt-1 text-[22px] font-bold text-white">{trainingCount}</div>
-                </div>
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3">
+                </GlassCard>
+                <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3">
                   <div className="text-[12px] text-white/60">Durchschnittliche Beteiligung</div>
                   <div className="mt-1 text-[14px] font-medium text-white/80">Noch keine Trainingsdaten</div>
-                </div>
+                </GlassCard>
               </div>
               {trainingCount === 0 ? (
-                <p className="text-center text-[14px] font-medium text-white/80">Noch keine Trainingsdaten</p>
+                <PremiumEmptyState variant="subtle" title="Noch keine Trainingsdaten" className="py-6" />
               ) : null}
             </div>
           )}
-        </Card>
+        </PremiumCard>
       ) : null}
 
       {activeTab === "matches" ? (
-        <Card className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.4)] sm:p-5">
-          <CardTitle className="mt-0">Spiele</CardTitle>
+        <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
+          <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
+            Spiele
+          </SectionTitle>
           {teamSeasonId == null && !tsLoading ? (
-            <p className="mt-3 text-[14px] text-white/70">Bitte Team wählen.</p>
+            <PremiumEmptyState variant="subtle" title="Bitte Team wählen." className="mt-3 py-6" />
           ) : recentMatches.length === 0 ? (
-            <p className="mt-4 text-center text-[14px] font-medium text-white/80">Keine Spiele vorhanden</p>
+            <PremiumEmptyState variant="subtle" title="Keine Spiele vorhanden" className="mt-4 py-6" />
           ) : (
             <div className="mt-4 space-y-4">
               <div>
                 <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-white/60">Nächste / letzte Spiele</p>
                 <ul className="space-y-2.5">
                   {recentMatches.map((m) => (
-                    <li
-                      key={m.id}
-                      className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-3 text-sm"
-                    >
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="text-[17px] font-semibold text-white">{(m.opponent ?? "").trim() || "—"}</span>
-                        <span className="tabular-nums text-white/80">{formatMatchResult(m)}</span>
-                      </div>
-                      <div className="mt-1 text-[12px] text-white/60">{formatMatchDateDe(m.match_date)}</div>
+                    <li key={m.id}>
+                      <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3 text-sm">
+                        <div className="flex flex-wrap items-baseline justify-between gap-2">
+                          <span className="line-clamp-2 min-w-0 text-[17px] font-semibold leading-snug text-white">
+                            {(m.opponent ?? "").trim() || "—"}
+                          </span>
+                          <span className="shrink-0 tabular-nums text-white/80">{formatMatchResult(m)}</span>
+                        </div>
+                        <div className="mt-1 text-[12px] text-white/60">{formatMatchDateDe(m.match_date)}</div>
+                      </GlassCard>
                     </li>
                   ))}
                 </ul>
               </div>
             </div>
           )}
-        </Card>
+        </PremiumCard>
       ) : null}
-      </div>
-    </div>
+    </PageShell>
     </>
   );
 };
