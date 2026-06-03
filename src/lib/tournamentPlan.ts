@@ -60,23 +60,68 @@ export type TournamentMatchSlotView = TournamentMatchSlot & {
 };
 
 export type TournamentMatchDisplayStatus =
-  | { kind: 'planned'; label: 'Geplant' }
-  | { kind: 'preparation'; label: 'Vorbereitung' }
-  | { kind: 'live'; label: 'Live' }
-  | { kind: 'result'; label: string; ourGoals: number; oppGoals: number };
+  | { kind: 'planned'; label: 'GEPLANT' }
+  | { kind: 'preparation'; label: 'VORBEREITUNG' }
+  | { kind: 'live'; label: 'LIVE' }
+  | { kind: 'result'; label: 'BEENDET'; ourGoals: number; oppGoals: number };
 
 export function tournamentMatchDisplayStatus(slot: TournamentMatchSlotView): TournamentMatchDisplayStatus {
   const st = (slot.match_status ?? 'upcoming').toLowerCase();
-  if (st === 'live') return { kind: 'live', label: 'Live' };
+  if (st === 'live') return { kind: 'live', label: 'LIVE' };
   if (st === 'finished') {
-    const our = slot.score_home;
-    const opp = slot.score_away;
-    return { kind: 'result', label: `Ergebnis ${our}:${opp}`, ourGoals: our, oppGoals: opp };
+    return {
+      kind: 'result',
+      label: 'BEENDET',
+      ourGoals: slot.score_home,
+      oppGoals: slot.score_away,
+    };
   }
   if (slot.has_lineup || slot.has_squad) {
-    return { kind: 'preparation', label: 'Vorbereitung' };
+    return { kind: 'preparation', label: 'VORBEREITUNG' };
   }
-  return { kind: 'planned', label: 'Geplant' };
+  return { kind: 'planned', label: 'GEPLANT' };
+}
+
+export type TournamentHeroSummary = {
+  teamCount: number;
+  groupCount: number;
+  matchCount: number;
+  nextMatch: TournamentMatchSlotView | null;
+  allFinished: boolean;
+};
+
+export function computeTournamentHeroSummary(
+  participants: TournamentParticipant[],
+  slots: TournamentMatchSlotView[],
+): TournamentHeroSummary {
+  const teamCount = participants.length;
+  const distinctGroups = new Set(
+    participants
+      .map((p) => p.group_label?.trim())
+      .filter((label): label is string => Boolean(label))
+      .map((label) => label.toLowerCase()),
+  );
+  const groupCount = distinctGroups.size;
+  const matchCount = slots.length;
+
+  if (matchCount === 0) {
+    return { teamCount, groupCount, matchCount, nextMatch: null, allFinished: false };
+  }
+
+  const allFinished = slots.every((s) => (s.match_status ?? '').toLowerCase() === 'finished');
+  if (allFinished) {
+    return { teamCount, groupCount, matchCount, nextMatch: null, allFinished: true };
+  }
+
+  const live = slots.find((s) => (s.match_status ?? '').toLowerCase() === 'live');
+  if (live) {
+    return { teamCount, groupCount, matchCount, nextMatch: live, allFinished: false };
+  }
+
+  const nextMatch =
+    slots.find((s) => (s.match_status ?? '').toLowerCase() !== 'finished') ?? null;
+
+  return { teamCount, groupCount, matchCount, nextMatch, allFinished: false };
 }
 
 export function formatTournamentKickoffTime(kickoffAtIso: string): string {

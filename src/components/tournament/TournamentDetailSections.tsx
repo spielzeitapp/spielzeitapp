@@ -10,6 +10,7 @@ import {
 } from '../../lib/premiumDesignSystem';
 import {
   addTournamentParticipant,
+  computeTournamentHeroSummary,
   createTournamentMatchSlot,
   fetchTournamentMatchSlots,
   fetchTournamentParticipants,
@@ -25,11 +26,13 @@ import {
   type TournamentMatchSlotView,
   type TournamentParticipant,
 } from '../../lib/tournamentPlan';
+import { TournamentHeroCard } from './TournamentHeroCard';
 
 type Props = {
   tournamentEventId: string;
   teamSeasonId: string;
   tournamentDayIso: string;
+  tournamentTitle: string;
   location: string | null;
   canManage: boolean;
   onOpenMatchPreparation: (matchId: string) => void;
@@ -40,12 +43,13 @@ const inputClass =
 
 const textareaClass = `${inputClass} min-h-[180px] resize-y leading-snug`;
 
-const addButtonClass = `relative z-[2] inline-flex shrink-0 min-h-[44px] items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`;
+const addButtonClass = `relative z-[2] inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold touch-manipulation sm:w-auto sm:shrink-0 ${dsScheduleGlassButtonClass()}`;
 
 export const TournamentDetailSections: React.FC<Props> = ({
   tournamentEventId,
   teamSeasonId,
   tournamentDayIso,
+  tournamentTitle,
   location,
   canManage,
   onOpenMatchPreparation,
@@ -113,6 +117,13 @@ export const TournamentDetailSections: React.FC<Props> = ({
     () => participants.map((p) => p.team_name).filter((n, i, arr) => arr.indexOf(n) === i),
     [participants],
   );
+
+  const heroSummary = useMemo(
+    () => computeTournamentHeroSummary(participants, slots),
+    [participants, slots],
+  );
+
+  const nextMatchId = heroSummary.nextMatch?.id ?? null;
 
   const openParticipantModal = () => {
     setParticipantModalError(null);
@@ -244,14 +255,21 @@ export const TournamentDetailSections: React.FC<Props> = ({
         </div>
       ) : null}
 
+      <TournamentHeroCard
+        tournamentTitle={tournamentTitle}
+        participants={participants}
+        slots={slots}
+        loading={loading}
+      />
+
       <Card className="relative border border-purple-500/20 bg-purple-950/15">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
           <CardTitle className="!mb-0 flex items-center gap-2">
             <Users className="h-4 w-4 text-purple-300/90" strokeWidth={2} aria-hidden />
             Teilnehmer
           </CardTitle>
           {canManage ? (
-            <div className="relative z-[2] flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
               <button type="button" className={addButtonClass} onClick={openParticipantModal}>
                 <Plus className="h-3.5 w-3.5" aria-hidden />
                 Mannschaft
@@ -267,23 +285,35 @@ export const TournamentDetailSections: React.FC<Props> = ({
         {loading ? (
           <p className="mt-3 text-[14px] text-white/65">Lade Teilnehmer…</p>
         ) : participants.length === 0 ? (
-          <p className="mt-3 text-[14px] text-white/65">
-            {canManage ? 'Noch keine Mannschaften — oben hinzufügen.' : 'Keine Teilnehmer eingetragen.'}
-          </p>
+          <p className="mt-3 text-[14px] text-white/65">Keine Mannschaften hinzugefügt</p>
         ) : (
           <div className={`mt-3 flex flex-col ${DS_LIST_GAP}`}>
             {participantGroups.map(({ label, items }) => (
-              <div key={label ?? '_none'} className="flex flex-col gap-2">
+              <div key={label ?? '_none'} className="flex flex-col gap-1.5">
                 {label ? (
-                  <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-purple-300/85">
-                    Gruppe {label}
-                  </p>
-                ) : null}
-                <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-purple-200/90">
+                      Gruppe {label}
+                    </p>
+                    <span className="inline-flex items-center rounded-full border border-purple-500/35 bg-purple-950/55 px-2 py-0.5 text-[10px] font-bold tabular-nums text-amber-200/90">
+                      {label} ({items.length})
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
+                      Ohne Gruppe
+                    </p>
+                    <span className="inline-flex items-center rounded-full border border-white/12 bg-white/[0.05] px-2 py-0.5 text-[10px] font-bold tabular-nums text-white/55">
+                      ({items.length})
+                    </span>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-1.5">
                   {items.map((p) => (
                     <span
                       key={p.id}
-                      className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.06] px-3 py-1.5 text-[14px] font-medium text-white/92"
+                      className="inline-flex max-w-full items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[13px] font-medium text-white/90"
                     >
                       <span className="truncate">{p.team_name}</span>
                       {canManage ? (
@@ -329,9 +359,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
         {loading ? (
           <p className="mt-3 text-[14px] text-white/65">Lade Turnierplan…</p>
         ) : slots.length === 0 ? (
-          <p className="mt-3 text-[14px] text-white/65">
-            {canManage ? 'Noch keine Turnierspiele — „Turnierspiel“ hinzufügen.' : 'Noch kein Turnierplan.'}
-          </p>
+          <p className="mt-3 text-[14px] text-white/65">Keine Turnierspiele geplant</p>
         ) : (
           <ul className={`mt-3 flex flex-col ${DS_LIST_GAP}`}>
             {slots.map((slot) => (
@@ -339,6 +367,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
                 key={slot.id}
                 slot={slot}
                 canManage={canManage}
+                isNextUpcoming={slot.id === nextMatchId}
                 onOpen={() => onOpenMatchPreparation(slot.match_id)}
                 onDelete={() => void handleRemoveSlot(slot.match_id)}
               />
@@ -536,11 +565,13 @@ export const TournamentDetailSections: React.FC<Props> = ({
 function TournamentMatchRow({
   slot,
   canManage,
+  isNextUpcoming,
   onOpen,
   onDelete,
 }: {
   slot: TournamentMatchSlotView;
   canManage: boolean;
+  isNextUpcoming: boolean;
   onOpen: () => void;
   onDelete: () => void;
 }) {
@@ -559,32 +590,49 @@ function TournamentMatchRow({
           ? 'open'
           : 'neutral';
 
+  const scoreLine =
+    status.kind === 'result' ? `${status.ourGoals}:${status.oppGoals}` : null;
+
   return (
     <li>
-      <button
-        type="button"
-        onClick={onOpen}
-        className="flex w-full min-h-[56px] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition hover:border-purple-500/35 hover:bg-white/[0.07] touch-manipulation"
+      <div
+        className={`relative rounded-xl border bg-white/[0.04] transition ${
+          isNextUpcoming
+            ? 'border-purple-400/45 bg-[linear-gradient(135deg,rgba(88,28,135,0.22)_0%,rgba(255,255,255,0.04)_100%)] shadow-[0_0_24px_rgba(168,85,247,0.12)]'
+            : 'border-white/10'
+        }`}
       >
-        <span className="w-[52px] shrink-0 text-[17px] font-bold tabular-nums text-white">{timeLabel}</span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[16px] font-semibold text-white">{slot.opponent_name}</span>
-          {meta ? <span className="mt-0.5 block text-[12px] text-white/55">{meta}</span> : null}
-          <span className="mt-1 inline-flex">
-            <span className={dsStatusChipClass(chipTone)}>{status.label}</span>
-          </span>
-        </span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-white/35" strokeWidth={2} aria-hidden />
-      </button>
-      {canManage ? (
+        {canManage ? (
+          <button
+            type="button"
+            className="absolute right-2 top-2 z-[2] rounded-full p-1.5 text-white/40 hover:bg-red-500/15 hover:text-red-400 touch-manipulation"
+            aria-label={`${slot.opponent_name} entfernen`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+          </button>
+        ) : null}
         <button
           type="button"
-          className="mt-1 text-[12px] text-white/45 hover:text-red-400 touch-manipulation"
-          onClick={onDelete}
+          onClick={onOpen}
+          className="flex w-full min-h-[56px] items-center gap-3 px-3 py-2.5 pr-10 text-left touch-manipulation"
         >
-          Turnierspiel entfernen
+          <span className="w-[52px] shrink-0 text-[17px] font-bold tabular-nums text-white">{timeLabel}</span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[16px] font-semibold text-white">{slot.opponent_name}</span>
+            {meta || scoreLine ? (
+              <span className="mt-0.5 block text-[12px] text-white/55">
+                {[scoreLine ? `Ergebnis ${scoreLine}` : null, meta].filter(Boolean).join(' · ')}
+              </span>
+            ) : null}
+          </span>
+          <span className={dsStatusChipClass(chipTone)}>{status.label}</span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-white/35" strokeWidth={2} aria-hidden />
         </button>
-      ) : null}
+      </div>
     </li>
   );
 }
