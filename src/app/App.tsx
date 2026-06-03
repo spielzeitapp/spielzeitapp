@@ -33,6 +33,7 @@ import { TrainerTeamPushPage } from '../pages/TrainerTeamPushPage';
 import { TrainerTemplatesPage } from '../pages/TrainerTemplatesPage';
 import { TrainerRemindersPage } from '../pages/TrainerRemindersPage';
 import { TrainerPreviewPage } from '../pages/TrainerPreviewPage';
+import { SeasonManagementPage } from '../pages/SeasonManagementPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
@@ -205,6 +206,7 @@ function InternalRoutes(): React.ReactElement {
           <Route path="trainer/vorlagen" element={<TrainerTemplatesPage />} />
           <Route path="trainer/erinnerungen" element={<TrainerRemindersPage />} />
           <Route path="trainer/preview" element={<TrainerPreviewPage />} />
+          <Route path="seasons" element={<SeasonManagementPage />} />
           {/* Legacy: /app/mehr/notifications -> /app/nachrichten */}
           <Route path="notifications" element={<Navigate to="/app/nachrichten" replace />} />
           <Route path="profile" element={<Navigate to="/app/profile" replace />} />

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, ChevronRight, Settings, Wrench } from 'lucide-react';
+import { Bell, CalendarRange, ChevronRight, Settings, Users, Wrench } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
 import { isHapticEnabled, setHapticEnabled, triggerHaptic } from '../lib/hapticFeedback';
+import { canPrepareNextSeason } from '../lib/seasonLifecycle';
 import { dsGlassToggleTrack, dsPanelRowClass } from '../lib/premiumDesignSystem';
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
@@ -41,10 +42,16 @@ export const MoreHubPage: React.FC = () => {
     (effectiveRole === 'trainer' || effectiveRole === 'head_coach' || effectiveRole === 'co_trainer');
 
   const showTrainerTools = isTrainerToolsRole(effectiveRole);
+  const showSeasonManagement =
+    backendRole === 'admin' ||
+    canPrepareNextSeason(effectiveRole) ||
+    canPrepareNextSeason(backendRole) ||
+    isTrainerToolsRole(effectiveRole);
   const showPreviewLink = backendRole === 'admin' || backendRole === 'head_coach';
   const showDebugHubButtons = showMehrHubDebugButtons(backendRole, effectiveRole);
   const unreadCount = useUnreadCount(user?.id);
 
+  const [teamAdminOpen, setTeamAdminOpen] = useState(false);
   const [trainerToolsOpen, setTrainerToolsOpen] = useState(false);
   const [hapticOn, setHapticOn] = useState(true);
 
@@ -205,6 +212,40 @@ export const MoreHubPage: React.FC = () => {
           </span>
           <ChevronRight className="h-5 w-5 text-white/40" aria-hidden />
         </Link>
+
+        {showSeasonManagement && (
+          <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
+            <button
+              type="button"
+              className={dsPanelRowClass()}
+              onClick={() => setTeamAdminOpen((v) => !v)}
+              aria-expanded={teamAdminOpen}
+            >
+              <span className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-red-400" aria-hidden />
+                <span>Teamverwaltung</span>
+              </span>
+              <ChevronRight
+                className={[
+                  'h-5 w-5 text-white/40 transition-transform',
+                  teamAdminOpen ? 'rotate-90' : '',
+                ].join(' ')}
+                aria-hidden
+              />
+            </button>
+            {teamAdminOpen && (
+              <PremiumCard variant="subtle" showAmbientGlow={false} className="!p-1.5">
+                <Link to="/app/mehr/seasons" className={subRowClass}>
+                  <span className="flex items-center gap-2">
+                    <CalendarRange className="h-4 w-4 text-red-400/90" aria-hidden />
+                    Saisonverwaltung
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
+                </Link>
+              </PremiumCard>
+            )}
+          </div>
+        )}
 
         {showTrainerTools && (
           <div className="space-y-1.5 pt-1 md:col-span-2 lg:col-span-3">
