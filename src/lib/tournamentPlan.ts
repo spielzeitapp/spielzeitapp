@@ -6,7 +6,30 @@ import {
   utcIsoToViennaTimeHHmm,
   VIENNA_TZ,
 } from './viennaTime';
-import { DEFAULT_PLANNED_MATCH_MINUTES } from './minimumPlaytime';
+/** Standard-Spieldauer für Turnierspiele (Kurzturnier). */
+export const TOURNAMENT_DEFAULT_PLANNED_MINUTES = 12;
+
+const MIGRATION_MISSING_MSG = 'Turnierplan-Migration fehlt oder Tabellen nicht vorhanden.';
+
+export function normalizeTournamentDbError(
+  message: string,
+  code?: string | null,
+): string {
+  const m = message.toLowerCase();
+  const c = (code ?? '').toLowerCase();
+  if (
+    c === '42p01' ||
+    c === 'pgrst205' ||
+    m.includes('does not exist') ||
+    m.includes('schema cache') ||
+    m.includes('tournament_participants') ||
+    m.includes('tournament_matches') ||
+    m.includes('could not find the table')
+  ) {
+    return MIGRATION_MISSING_MSG;
+  }
+  return message;
+}
 
 export type TournamentParticipant = {
   id: string;
@@ -77,7 +100,7 @@ export async function fetchTournamentParticipants(
     .order('sort_order', { ascending: true })
     .order('team_name', { ascending: true });
 
-  if (error) return { data: [], error: error.message };
+  if (error) return { data: [], error: normalizeTournamentDbError(error.message, error.code) };
   return { data: (data ?? []) as TournamentParticipant[], error: null };
 }
 
@@ -94,7 +117,7 @@ export async function addTournamentParticipant(params: {
     .select('id', { count: 'exact', head: true })
     .eq('tournament_event_id', params.tournamentEventId);
 
-  if (countErr) return { error: countErr.message };
+  if (countErr) return { error: normalizeTournamentDbError(countErr.message, countErr.code) };
 
   const { error } = await supabase.from('tournament_participants').insert({
     tournament_event_id: params.tournamentEventId,
@@ -103,12 +126,12 @@ export async function addTournamentParticipant(params: {
     sort_order: (count ?? 0) + 1,
   });
 
-  return { error: error?.message ?? null };
+  return { error: error ? normalizeTournamentDbError(error.message, error.code) : null };
 }
 
 export async function removeTournamentParticipant(participantId: string): Promise<{ error: string | null }> {
   const { error } = await supabase.from('tournament_participants').delete().eq('id', participantId);
-  return { error: error?.message ?? null };
+  return { error: error ? normalizeTournamentDbError(error.message, error.code) : null };
 }
 
 async function enrichTournamentMatchSlots(
@@ -179,7 +202,7 @@ export async function fetchTournamentMatchSlots(
     .order('kickoff_at', { ascending: true })
     .order('sort_order', { ascending: true });
 
-  if (error) return { data: [], error: error.message };
+  if (error) return { data: [], error: normalizeTournamentDbError(error.message, error.code) };
   const rows = (data ?? []) as TournamentMatchSlot[];
   const enriched = await enrichTournamentMatchSlots(rows);
   return { data: enriched, error: null };
@@ -222,14 +245,21 @@ export async function createTournamentMatchSlot(params: {
   });
 
   if (matchErr || !matchId) {
-    return { slotId: null, matchId: null, error: matchErr ?? 'Spiel konnte nicht angelegt werden.' };
+    return {
+      slotId: null,
+      matchId: null,
+      error: matchErr ? normalizeTournamentDbError(matchErr, null) : 'Spiel konnte nicht angelegt werden.',
+    };
   }
 
-  const planned = Math.max(1, Math.min(120, Math.trunc(params.plannedMinutes || DEFAULT_PLANNED_MATCH_MINUTES)));
+  const planned = Math.max(
+    1,
+    Math.min(120, Math.trunc(params.plannedMinutes || TOURNAMENT_DEFAULT_PLANNED_MINUTES)),
+  );
   const { error: minErr } = await updateMatchRow(matchId, { planned_match_minutes: planned });
   if (minErr) {
     await supabase.from('matches').delete().eq('id', matchId);
-    return { slotId: null, matchId: null, error: minErr };
+    return { slotId: null, matchId: null, error: normalizeTournamentDbError(minErr, null) };
   }
 
   const { count } = await supabase
@@ -254,7 +284,7 @@ export async function createTournamentMatchSlot(params: {
 
   if (slotErr) {
     await supabase.from('matches').delete().eq('id', matchId);
-    return { slotId: null, matchId: null, error: slotErr.message };
+    return { slotId: null, matchId: null, error: normalizeTournamentDbError(slotErr.message, slotErr.code) };
   }
 
   return {
@@ -266,7 +296,7 @@ export async function createTournamentMatchSlot(params: {
 
 export async function removeTournamentMatchSlot(matchId: string): Promise<{ error: string | null }> {
   const { error } = await supabase.from('matches').delete().eq('id', matchId);
-  return { error: error?.message ?? null };
+  return { error: error ? normalizeTournamentDbError(error.message, error.code) : null };
 }
 
 export function groupParticipantsByLabel(

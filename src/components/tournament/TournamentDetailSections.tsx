@@ -4,13 +4,10 @@ import { Card, CardTitle } from '../../app/components/ui/Card';
 import { AppButton } from '../ui/AppButton';
 import { Modal } from '../../app/ui/Modal';
 import {
-  dsPrimaryCtaClass,
   dsScheduleGlassButtonClass,
-  dsSecondaryCtaClass,
   dsStatusChipClass,
   DS_LIST_GAP,
 } from '../../lib/premiumDesignSystem';
-import { DEFAULT_PLANNED_MATCH_MINUTES } from '../../lib/minimumPlaytime';
 import {
   addTournamentParticipant,
   createTournamentMatchSlot,
@@ -20,6 +17,7 @@ import {
   groupParticipantsByLabel,
   removeTournamentMatchSlot,
   removeTournamentParticipant,
+  TOURNAMENT_DEFAULT_PLANNED_MINUTES,
   tournamentMatchDisplayStatus,
   type TournamentMatchSlotView,
   type TournamentParticipant,
@@ -37,6 +35,8 @@ type Props = {
 const inputClass =
   'w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-[15px] text-white placeholder:text-white/40 focus:border-purple-500/45 focus:outline-none';
 
+const addButtonClass = `relative z-[2] inline-flex shrink-0 min-h-[44px] items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold touch-manipulation ${dsScheduleGlassButtonClass()}`;
+
 export const TournamentDetailSections: React.FC<Props> = ({
   tournamentEventId,
   teamSeasonId,
@@ -48,31 +48,31 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
   const [slots, setSlots] = useState<TournamentMatchSlotView[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   const [participantModalOpen, setParticipantModalOpen] = useState(false);
   const [participantName, setParticipantName] = useState('');
   const [participantGroup, setParticipantGroup] = useState('');
   const [participantBusy, setParticipantBusy] = useState(false);
+  const [participantModalError, setParticipantModalError] = useState<string | null>(null);
 
   const [matchModalOpen, setMatchModalOpen] = useState(false);
   const [matchOpponent, setMatchOpponent] = useState('');
   const [matchKickoff, setMatchKickoff] = useState('10:00');
-  const [matchMinutes, setMatchMinutes] = useState(String(DEFAULT_PLANNED_MATCH_MINUTES));
+  const [matchMinutes, setMatchMinutes] = useState(String(TOURNAMENT_DEFAULT_PLANNED_MINUTES));
   const [matchPitch, setMatchPitch] = useState('');
   const [matchGroup, setMatchGroup] = useState('');
   const [matchBusy, setMatchBusy] = useState(false);
+  const [matchModalError, setMatchModalError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
-    setError(null);
     const [pRes, mRes] = await Promise.all([
       fetchTournamentParticipants(tournamentEventId),
       fetchTournamentMatchSlots(tournamentEventId),
     ]);
-    if (pRes.error || mRes.error) {
-      setError(pRes.error ?? mRes.error);
-    }
+    const err = pRes.error ?? mRes.error;
+    setListError(err);
     setParticipants(pRes.data);
     setSlots(mRes.data);
     setLoading(false);
@@ -89,16 +89,33 @@ export const TournamentDetailSections: React.FC<Props> = ({
     [participants],
   );
 
+  const openParticipantModal = () => {
+    setParticipantModalError(null);
+    setParticipantModalOpen(true);
+  };
+
+  const openMatchModal = () => {
+    setMatchModalError(null);
+    setMatchModalOpen(true);
+  };
+
   const handleAddParticipant = async () => {
+    const name = participantName.trim();
+    if (!name) {
+      setParticipantModalError('Bitte Mannschaftsname eingeben.');
+      return;
+    }
     setParticipantBusy(true);
+    setParticipantModalError(null);
     const { error: err } = await addTournamentParticipant({
       tournamentEventId,
-      teamName: participantName,
+      teamName: name,
       groupLabel: participantGroup || null,
     });
     setParticipantBusy(false);
     if (err) {
-      setError(err);
+      setParticipantModalError(err);
+      setListError(err);
       return;
     }
     setParticipantName('');
@@ -108,27 +125,38 @@ export const TournamentDetailSections: React.FC<Props> = ({
   };
 
   const handleAddMatch = async () => {
+    const opponent = matchOpponent.trim();
+    if (!opponent) {
+      setMatchModalError('Bitte Gegner eingeben.');
+      return;
+    }
+    if (!matchKickoff.trim()) {
+      setMatchModalError('Bitte Anstoßzeit eingeben.');
+      return;
+    }
     setMatchBusy(true);
+    setMatchModalError(null);
     const minutes = Number.parseInt(matchMinutes, 10);
     const { error: err } = await createTournamentMatchSlot({
       tournamentEventId,
       teamSeasonId,
       tournamentDayIso,
       location,
-      opponentName: matchOpponent,
+      opponentName: opponent,
       kickoffTimeHHmm: matchKickoff,
-      plannedMinutes: Number.isFinite(minutes) ? minutes : DEFAULT_PLANNED_MATCH_MINUTES,
+      plannedMinutes: Number.isFinite(minutes) ? minutes : TOURNAMENT_DEFAULT_PLANNED_MINUTES,
       pitch: matchPitch || null,
       groupLabel: matchGroup || null,
     });
     setMatchBusy(false);
     if (err) {
-      setError(err);
+      setMatchModalError(err);
+      setListError(err);
       return;
     }
     setMatchOpponent('');
     setMatchKickoff('10:00');
-    setMatchMinutes(String(DEFAULT_PLANNED_MATCH_MINUTES));
+    setMatchMinutes(String(TOURNAMENT_DEFAULT_PLANNED_MINUTES));
     setMatchPitch('');
     setMatchGroup('');
     setMatchModalOpen(false);
@@ -137,20 +165,20 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const handleRemoveParticipant = async (id: string) => {
     const { error: err } = await removeTournamentParticipant(id);
-    if (err) setError(err);
+    if (err) setListError(err);
     else void reload();
   };
 
   const handleRemoveSlot = async (matchId: string) => {
     if (!window.confirm('Turnierspiel und alle zugehörigen Match-Daten wirklich löschen?')) return;
     const { error: err } = await removeTournamentMatchSlot(matchId);
-    if (err) setError(err);
+    if (err) setListError(err);
     else void reload();
   };
 
   return (
     <>
-      <Card className="border border-purple-500/20 bg-purple-950/15">
+      <Card className="relative border border-purple-500/20 bg-purple-950/15">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="!mb-0 flex items-center gap-2">
             <Users className="h-4 w-4 text-purple-300/90" strokeWidth={2} aria-hidden />
@@ -159,8 +187,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
           {canManage ? (
             <button
               type="button"
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold ${dsScheduleGlassButtonClass()}`}
-              onClick={() => setParticipantModalOpen(true)}
+              className={addButtonClass}
+              onClick={openParticipantModal}
             >
               <Plus className="h-3.5 w-3.5" aria-hidden />
               Mannschaft
@@ -193,7 +221,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
                       {canManage ? (
                         <button
                           type="button"
-                          className="shrink-0 rounded-full p-0.5 text-white/45 hover:text-red-400"
+                          className="shrink-0 rounded-full p-0.5 text-white/45 hover:text-red-400 touch-manipulation"
                           aria-label={`${p.team_name} entfernen`}
                           onClick={() => void handleRemoveParticipant(p.id)}
                         >
@@ -209,14 +237,14 @@ export const TournamentDetailSections: React.FC<Props> = ({
         )}
       </Card>
 
-      <Card className="border border-purple-500/20 bg-purple-950/20">
+      <Card className="relative border border-purple-500/20 bg-purple-950/20">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="!mb-0">Turnierplan</CardTitle>
           {canManage ? (
             <button
               type="button"
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold ${dsScheduleGlassButtonClass()}`}
-              onClick={() => setMatchModalOpen(true)}
+              className={addButtonClass}
+              onClick={openMatchModal}
             >
               <Plus className="h-3.5 w-3.5" aria-hidden />
               Turnierspiel
@@ -224,9 +252,9 @@ export const TournamentDetailSections: React.FC<Props> = ({
           ) : null}
         </div>
 
-        {error ? (
+        {listError ? (
           <p className="mt-2 text-[13px] text-red-300/90" role="alert">
-            {error}
+            {listError}
           </p>
         ) : null}
 
@@ -252,7 +280,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       </Card>
 
       <Modal
-        open={participantModalOpen}
+        isOpen={participantModalOpen}
         onClose={() => !participantBusy && setParticipantModalOpen(false)}
         title="Mannschaft hinzufügen"
         footer={
@@ -267,6 +295,11 @@ export const TournamentDetailSections: React.FC<Props> = ({
         }
       >
         <div className="flex flex-col gap-3">
+          {participantModalError ? (
+            <p className="text-[13px] text-red-300/90" role="alert">
+              {participantModalError}
+            </p>
+          ) : null}
           <label className="flex flex-col gap-1.5">
             <span className="text-[13px] text-white/65">Mannschaftsname *</span>
             <input
@@ -274,6 +307,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
               value={participantName}
               onChange={(e) => setParticipantName(e.target.value)}
               placeholder="z. B. Austria"
+              autoComplete="off"
             />
           </label>
           <label className="flex flex-col gap-1.5">
@@ -283,13 +317,14 @@ export const TournamentDetailSections: React.FC<Props> = ({
               value={participantGroup}
               onChange={(e) => setParticipantGroup(e.target.value)}
               placeholder="A oder B"
+              autoComplete="off"
             />
           </label>
         </div>
       </Modal>
 
       <Modal
-        open={matchModalOpen}
+        isOpen={matchModalOpen}
         onClose={() => !matchBusy && setMatchModalOpen(false)}
         title="Turnierspiel hinzufügen"
         footer={
@@ -304,6 +339,11 @@ export const TournamentDetailSections: React.FC<Props> = ({
         }
       >
         <div className="flex flex-col gap-3">
+          {matchModalError ? (
+            <p className="text-[13px] text-red-300/90" role="alert">
+              {matchModalError}
+            </p>
+          ) : null}
           <label className="flex flex-col gap-1.5">
             <span className="text-[13px] text-white/65">Gegner *</span>
             <input
@@ -312,6 +352,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
               value={matchOpponent}
               onChange={(e) => setMatchOpponent(e.target.value)}
               placeholder="z. B. TSV Hartberg"
+              autoComplete="off"
             />
             <datalist id="tournament-opponent-suggestions">
               {opponentSuggestions.map((name) => (
@@ -329,7 +370,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] text-white/65">Spieldauer (Min.)</span>
+            <span className="text-[13px] text-white/65">Spieldauer (Min., Standard {TOURNAMENT_DEFAULT_PLANNED_MINUTES})</span>
             <input
               type="number"
               min={1}
@@ -346,6 +387,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
               value={matchPitch}
               onChange={(e) => setMatchPitch(e.target.value)}
               placeholder="Platz 2"
+              autoComplete="off"
             />
           </label>
           <label className="flex flex-col gap-1.5">
@@ -355,6 +397,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
               value={matchGroup}
               onChange={(e) => setMatchGroup(e.target.value)}
               placeholder="A"
+              autoComplete="off"
             />
           </label>
         </div>
@@ -394,7 +437,7 @@ function TournamentMatchRow({
       <button
         type="button"
         onClick={onOpen}
-        className="flex w-full min-h-[56px] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition hover:border-purple-500/35 hover:bg-white/[0.07]"
+        className="flex w-full min-h-[56px] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition hover:border-purple-500/35 hover:bg-white/[0.07] touch-manipulation"
       >
         <span className="w-[52px] shrink-0 text-[17px] font-bold tabular-nums text-white">{timeLabel}</span>
         <span className="min-w-0 flex-1">
@@ -409,7 +452,7 @@ function TournamentMatchRow({
       {canManage ? (
         <button
           type="button"
-          className="mt-1 text-[12px] text-white/45 hover:text-red-400"
+          className="mt-1 text-[12px] text-white/45 hover:text-red-400 touch-manipulation"
           onClick={onDelete}
         >
           Turnierspiel entfernen

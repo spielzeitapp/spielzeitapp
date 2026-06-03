@@ -1,7 +1,10 @@
 import React, { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalProps {
-  isOpen: boolean;
+  /** Bevorzugter Prop-Name (Alias: `open`). */
+  isOpen?: boolean;
+  open?: boolean;
   title?: string;
   /** Zusätzliche Klassen für den Titel (z. B. größere Typo im Match-Editor). */
   titleClassName?: string;
@@ -13,12 +16,14 @@ interface ModalProps {
 
 export const Modal: React.FC<ModalProps> = ({
   isOpen,
+  open,
   title,
   titleClassName,
   onClose,
   children,
   footer,
 }) => {
+  const visible = Boolean(isOpen ?? open);
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -29,23 +34,23 @@ export const Modal: React.FC<ModalProps> = ({
   );
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!visible) return;
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, handleKeyDown]);
+  }, [visible, handleKeyDown]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!visible) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [isOpen]);
+  }, [visible]);
 
-  if (!isOpen) return null;
+  if (!visible) return null;
 
   const handleOverlayClick: React.MouseEventHandler<HTMLDivElement> = (event) => {
     if (event.target === event.currentTarget) {
@@ -92,6 +97,7 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
