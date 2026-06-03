@@ -17,6 +17,7 @@ import {
   FeedCaption,
   FeedMatchMetaLine,
 } from './feedTypography';
+import { FeedPostArticleShell } from './FeedPostArticleShell';
 
 type Props = {
   post: ResultFeedPostRow;
@@ -203,8 +204,8 @@ export const ResultFeedPostCard: React.FC<Props> = ({
   const metaLine = [...metaBits, locTrim || null].filter(Boolean).join(' · ');
 
   return (
-    <article
-      className="w-full min-w-0 overflow-hidden rounded-3xl border border-red-600/30 bg-[#050508] shadow-xl"
+    <FeedPostArticleShell
+      className="border-red-600/30"
       style={{ boxShadow: presentation.articleShadow }}
       data-feed-result-card="v2"
     >
@@ -356,6 +357,6 @@ export const ResultFeedPostCard: React.FC<Props> = ({
           </button>
         </div>
       </div>
-    </article>
+    </FeedPostArticleShell>
   );
 };

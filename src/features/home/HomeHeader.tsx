@@ -1,4 +1,5 @@
 import React from 'react';
+import { dsSublineClass } from '../../lib/premiumDesignSystem';
 
 const BACKEND_STAFF_LABEL_DE: Record<string, string> = {
   admin: 'Admin',
@@ -44,7 +45,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({ teamName, backendRole })
             App
           </span>
         </h1>
-        <p className="mt-1 truncate text-[13px] font-medium text-white/72 sm:text-sm">{teamName}</p>
+        <p className={`mt-1 truncate text-[13px] sm:text-sm ${dsSublineClass()}`}>{teamName}</p>
       </div>
       {staffShort ? (
         <span className="shrink-0 rounded-full border border-red-500/35 bg-red-950/45 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-red-200/95">

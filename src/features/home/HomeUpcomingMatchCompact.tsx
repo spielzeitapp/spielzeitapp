@@ -10,6 +10,7 @@ import { getMatchTypeLabel } from '../../components/match/matchCardLabels';
 import { buildFeedMatchMetaLine, parseClubDisplayName } from '../../lib/feedClubNaming';
 import { FeedClubName } from '../../components/feed/FeedClubName';
 import { FeedMatchMetaLine } from '../../components/feed/feedTypography';
+import { PremiumCard } from '../../ui';
 
 type Props = {
   pick: HomeMatchCardPick;
@@ -48,8 +49,10 @@ export const HomeUpcomingMatchCompact: React.FC<Props> = ({ pick, teamName }) =>
     .trim();
 
   return (
-    <section
-      className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(22,22,24,0.98)] to-[rgba(12,8,10,0.98)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_28px_rgba(0,0,0,0.45)]"
+    <PremiumCard
+      as="section"
+      matchday
+      className="border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(22,22,24,0.98)] to-[rgba(12,8,10,0.98)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_28px_rgba(0,0,0,0.45)]"
       aria-label="Nächstes Spiel"
     >
       <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-red-600/12 blur-2xl" />
@@ -88,6 +91,6 @@ export const HomeUpcomingMatchCompact: React.FC<Props> = ({ pick, teamName }) =>
           <ChevronRight className="h-5 w-5" strokeWidth={2.2} aria-hidden />
         </div>
       </Link>
-    </section>
+    </PremiumCard>
   );
 };

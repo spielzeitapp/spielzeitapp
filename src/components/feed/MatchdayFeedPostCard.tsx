@@ -24,6 +24,7 @@ import {
   FEED_TIMESTAMP_CLASS,
   FeedCaption,
 } from './feedTypography';
+import { FeedPostArticleShell } from './FeedPostArticleShell';
 
 type Props = {
   post: TeamFeedPostRow;
@@ -252,8 +253,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
 
   return (
-    <article
-      className="w-full min-w-0 overflow-hidden rounded-3xl border border-red-950/40 bg-[#0a0a0a] shadow-xl"
+    <FeedPostArticleShell
       style={{
         boxShadow:
           'inset 0 0 80px rgba(80,10,10,0.08), 0 20px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(220,38,38,0.07)',
@@ -334,6 +334,6 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           </button>
         </div>
       </div>
-    </article>
+    </FeedPostArticleShell>
   );
 };

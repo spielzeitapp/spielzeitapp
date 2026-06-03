@@ -17,6 +17,7 @@ import {
   FEED_TIMESTAMP_CLASS,
   FeedCaption,
 } from './feedTypography';
+import { FeedPostArticleShell } from './FeedPostArticleShell';
 
 type Props = {
   post: NextMatchFeedPostRow;
@@ -144,8 +145,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
   }, [deepLink, post.caption]);
 
   return (
-    <article
-      className="w-full min-w-0 overflow-hidden rounded-2xl border border-red-950/40 bg-[#0a0a0a] shadow-lg"
+    <FeedPostArticleShell
       style={{
         boxShadow:
           'inset 0 0 48px rgba(80,10,10,0.08), 0 12px 28px rgba(0,0,0,0.45), 0 0 0 1px rgba(220,38,38,0.08)',
@@ -264,6 +264,6 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
           </button>
         </div>
       </div>
-    </article>
+    </FeedPostArticleShell>
   );
 };

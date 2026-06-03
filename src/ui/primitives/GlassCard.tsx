@@ -20,19 +20,15 @@ export type GlassCardProps = {
 /**
  * Glas-/Feed-Card — Wrapper um dsFeedCardShell oder flache Schedule-Liste (subtle).
  */
-export const GlassCard: React.FC<GlassCardProps> = ({
-  children,
-  variant = 'default',
-  showAmbientGlow = true,
-  className,
-  as: Tag = 'div',
-  ...rest
-}) => {
+export const GlassCard = React.forwardRef<HTMLElement, GlassCardProps>(function GlassCard(
+  { children, variant = 'default', showAmbientGlow = true, className, as: Tag = 'div', ...rest },
+  ref,
+) {
   const subtle = variant === 'subtle';
 
   if (subtle) {
     return (
-      <Tag {...rest} className={cn(dsScheduleListPanelClass(), 'relative', className)}>
+      <Tag {...rest} ref={ref} className={cn(dsScheduleListPanelClass(), 'relative', className)}>
         {showAmbientGlow ? (
           <div className={cn(dsScheduleListPanelGlowClass(), 'z-0')} aria-hidden />
         ) : null}
@@ -42,13 +38,11 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   }
 
   return (
-    <Tag {...rest} className={cn(dsFeedCardShellClass(className), 'relative')}>
+    <Tag {...rest} ref={ref} className={cn(dsFeedCardShellClass(className), 'relative')}>
       {showAmbientGlow ? (
         <div className={cn(dsFeedCardGlowClass(), 'z-0')} aria-hidden />
       ) : null}
-      <div className={cn('relative z-[1]', variant === 'interactive' && 'cursor-pointer')}>
-        {children}
-      </div>
+      <div className={cn('relative z-[1]', variant === 'interactive' && 'cursor-pointer')}>{children}</div>
     </Tag>
   );
-};
+});

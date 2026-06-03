@@ -15,6 +15,7 @@ import {
   FEED_TIMESTAMP_CLASS,
   FeedCaption,
 } from './feedTypography';
+import { FeedPostArticleShell } from './FeedPostArticleShell';
 
 type Props = {
   post: TeamFeedPostDbRow;
@@ -210,9 +211,9 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
   }, [hasServerPoster]);
 
   return (
-    <article
+    <FeedPostArticleShell
       ref={wrapRef}
-      className="w-full min-w-0 overflow-hidden rounded-3xl border border-red-600/35 bg-[#060606] shadow-xl"
+      className="border-red-600/35"
       style={{
         boxShadow:
           'inset 0 0 70px rgba(120,20,20,0.12), 0 20px 44px rgba(0,0,0,0.58), 0 0 0 1px rgba(220,38,38,0.12), 0 0 36px -8px rgba(220,38,38,0.18)',
@@ -341,6 +342,6 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
           </button>
         </div>
       </div>
-    </article>
+    </FeedPostArticleShell>
   );
 };

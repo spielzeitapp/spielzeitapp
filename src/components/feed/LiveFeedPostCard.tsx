@@ -16,6 +16,7 @@ import {
   FEED_TIMESTAMP_CLASS,
   FeedCaption,
 } from './feedTypography';
+import { FeedPostArticleShell } from './FeedPostArticleShell';
 
 type Props = {
   post: LiveFeedPostRow;
@@ -118,8 +119,8 @@ export const LiveFeedPostCard: React.FC<Props> = ({
   }, [deepLink, post.caption]);
 
   return (
-    <article
-      className="w-full min-w-0 overflow-hidden rounded-2xl border border-red-600/45 bg-[#080808] shadow-lg"
+    <FeedPostArticleShell
+      className="border-red-600/45"
       style={{
         boxShadow:
           'inset 0 0 56px rgba(120,20,20,0.12), 0 14px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(220,38,38,0.14)',
@@ -238,6 +239,6 @@ export const LiveFeedPostCard: React.FC<Props> = ({
           </button>
         </div>
       </div>
-    </article>
+    </FeedPostArticleShell>
   );
 };

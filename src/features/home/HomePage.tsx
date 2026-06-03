@@ -14,6 +14,14 @@ import { HomeFeedComposer } from './HomeFeedComposer';
 import { HomeUpcomingMatchCompact } from './HomeUpcomingMatchCompact';
 import { HomeSpieltagHintCard } from './HomeSpieltagHintCard';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
+import { dsPrimaryCtaClass, dsSublineClass } from '../../lib/premiumDesignSystem';
+import {
+  GlassCard,
+  PageShell,
+  PremiumEmptyState,
+  SectionTitle,
+} from '../../ui';
+import { cn } from '../../ui/lib/cn';
 
 const FEED_DEMO = import.meta.env.VITE_HOME_FEED_DEMO === '1';
 
@@ -61,103 +69,103 @@ export const HomePage: React.FC = () => {
   const showNextMatchCompact = Boolean(matchPick && matchPick.status === 'next');
 
   return (
-    <div
+    <PageShell
+      variant="subtle"
+      showAtmosphere={false}
       className="page app-home min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-28 pt-2 sm:px-4 md:px-0"
-      style={{ backgroundColor: '#0b0b0b' }}
+      contentClassName="mx-auto w-full min-w-0 max-w-none space-y-3 md:max-w-3xl lg:max-w-4xl"
     >
-      <div className="mx-auto w-full min-w-0 max-w-none space-y-3 md:max-w-3xl lg:max-w-4xl">
-        {loading && <p className="text-sm text-white/50">Laden…</p>}
+      {loading && <p className="text-sm text-white/50">Laden…</p>}
 
-        {!loading && !teamSeasonId && !FEED_DEMO && (
-          <div className="rounded-2xl border border-white/10 bg-[#141414] px-5 py-8 text-center shadow-lg">
-            <p className="text-base leading-relaxed text-white/70">
-              Bitte Team / Saison wählen (z. B. unter „Mehr“).
-            </p>
-          </div>
-        )}
+      {!loading && !teamSeasonId && !FEED_DEMO && (
+        <PremiumEmptyState
+          title="Team / Saison wählen"
+          description='Bitte Team / Saison wählen (z. B. unter „Mehr“).'
+        />
+      )}
 
-        {!loading && showContent && (
-          <div className="min-w-0 space-y-2">
-            <div className="min-w-0 space-y-0.5">
-              <h2 className="text-lg font-bold tracking-tight text-white sm:text-xl">Matchday Feed</h2>
-              <p className="text-[12px] font-medium leading-snug text-white/65 sm:text-[13px]">{teamSeasonLine}</p>
-            </div>
+      {!loading && showContent && (
+        <div className="min-w-0 space-y-2">
+          <SectionTitle variant="interactive" as="h2" className="!text-lg sm:!text-xl">
+            Matchday Feed
+          </SectionTitle>
+          <p className={cn(dsSublineClass(), 'text-[12px] sm:text-[13px]')}>{teamSeasonLine}</p>
 
-            <div className="min-w-0 space-y-3">
-              {teamSeasonId && teamId ? (
-                <HomeFeedComposer
-                  backendRole={backendRole}
-                  membershipRole={membershipRole}
-                  teamSeasonId={teamSeasonId}
-                  teamId={teamId}
-                  userId={session?.user?.id ?? null}
-                  onPosted={() => void refetchFeed()}
+          <div className="min-w-0 space-y-3">
+            {teamSeasonId && teamId ? (
+              <HomeFeedComposer
+                backendRole={backendRole}
+                membershipRole={membershipRole}
+                teamSeasonId={teamSeasonId}
+                teamId={teamId}
+                userId={session?.user?.id ?? null}
+                onPosted={() => void refetchFeed()}
+              />
+            ) : null}
+
+            {spieltagHintPick ? <HomeSpieltagHintCard pick={spieltagHintPick} /> : null}
+
+            <section className="min-w-0 space-y-3" aria-label="Team-Feed">
+              <SectionTitle variant="interactive" as="p" className="!text-[11px] sm:!text-xs">
+                Im Feed
+              </SectionTitle>
+              {teamFeedLoading ? (
+                <p className="text-sm text-white/50">Feed wird geladen…</p>
+              ) : teamFeedPosts.length === 0 ? (
+                <PremiumEmptyState
+                  variant="subtle"
+                  title="Noch keine Beiträge"
+                  description="Am Spieltag erscheint der Matchday-Post. Trainer posten Fotos/Videos oben."
                 />
-              ) : null}
-
-              {spieltagHintPick ? <HomeSpieltagHintCard pick={spieltagHintPick} /> : null}
-
-              <section className="min-w-0 space-y-3" aria-label="Team-Feed">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-red-300/95 sm:text-xs">
-                  Im Feed
-                </p>
-                {teamFeedLoading ? (
-                  <p className="text-sm text-white/50">Feed wird geladen…</p>
-                ) : teamFeedPosts.length === 0 ? (
-                  <div className="rounded-xl border border-white/[0.07] bg-[#141414]/90 px-3 py-3">
-                    <p className="text-xs leading-relaxed text-white/55">
-                      Noch keine Beiträge. Am Spieltag erscheint der Matchday-Post. Trainer posten Fotos/Videos oben.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="min-w-0 space-y-4">
-                    {teamFeedPosts.map((item) => (
-                      <HomeFeedPostRenderer
-                        key={item.post.id}
-                        item={item}
-                        eventById={eventById}
-                        teamLabel={teamName}
-                        staffCanDelete={staffCanDeleteFeed}
-                        onFeedPostDeleted={() => void refetchFeed()}
-                      />
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {showNextMatchCompact && matchPick ? (
-                <section className="space-y-2" aria-label="Nächstes Spiel">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50 sm:text-xs">
-                    Nächstes Spiel
-                  </p>
-                  <HomeUpcomingMatchCompact pick={matchPick} teamName={teamName} />
-                </section>
-              ) : !matchPick ? (
-                <div
-                  className="rounded-2xl border border-white/[0.08] bg-[#141414] px-4 py-8 text-center shadow-lg"
-                  style={{ boxShadow: '0 12px 28px rgba(0,0,0,0.3)' }}
-                >
-                  <p className="text-base font-semibold text-white/90">Kein Spiel in Sicht</p>
-                  <p className="mt-2 text-sm leading-relaxed text-white/55">
-                    Für dein Team ist aktuell kein kommendes Spiel eingetragen.
-                  </p>
-                  <Link
-                    to="/app/termine"
-                    className="mt-5 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-red-500 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-red-600"
-                  >
-                    Zu den Terminen
-                  </Link>
+              ) : (
+                <div className="min-w-0 space-y-4">
+                  {teamFeedPosts.map((item) => (
+                    <HomeFeedPostRenderer
+                      key={item.post.id}
+                      item={item}
+                      eventById={eventById}
+                      teamLabel={teamName}
+                      staffCanDelete={staffCanDeleteFeed}
+                      onFeedPostDeleted={() => void refetchFeed()}
+                    />
+                  ))}
                 </div>
-              ) : null}
+              )}
+            </section>
 
-              <div className="rounded-2xl border border-white/10 bg-[#141414] p-4 shadow-lg">
-                <p className="text-xs font-semibold uppercase tracking-wide text-red-300/90">Offene Aufgaben</p>
-                <p className="mt-2 text-sm text-white/70">Keine offenen Aufgaben. Alles erledigt.</p>
-              </div>
-            </div>
+            {showNextMatchCompact && matchPick ? (
+              <section className="space-y-2" aria-label="Nächstes Spiel">
+                <SectionTitle variant="subtle" as="p" className="!text-[11px] uppercase sm:!text-xs">
+                  Nächstes Spiel
+                </SectionTitle>
+                <HomeUpcomingMatchCompact pick={matchPick} teamName={teamName} />
+              </section>
+            ) : !matchPick ? (
+              <PremiumEmptyState
+                title="Kein Spiel in Sicht"
+                description="Für dein Team ist aktuell kein kommendes Spiel eingetragen."
+              >
+                <Link
+                  to="/app/termine"
+                  className={cn(
+                    dsPrimaryCtaClass(),
+                    'mt-2 inline-flex min-h-[48px] items-center justify-center px-6 py-3',
+                  )}
+                >
+                  Zu den Terminen
+                </Link>
+              </PremiumEmptyState>
+            ) : null}
+
+            <GlassCard variant="subtle" showAmbientGlow={false} className="px-4 py-3">
+              <SectionTitle variant="interactive" as="p" className="!text-xs">
+                Offene Aufgaben
+              </SectionTitle>
+              <p className="mt-2 text-sm text-white/70">Keine offenen Aufgaben. Alles erledigt.</p>
+            </GlassCard>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </PageShell>
   );
 };

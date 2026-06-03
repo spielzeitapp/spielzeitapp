@@ -4,6 +4,7 @@ import { Camera, Clapperboard, ImagePlus, Send, Trophy, Video, X } from 'lucide-
 import { supabase } from '../../lib/supabaseClient';
 import { uploadStorageObject } from '../../lib/storageUpload';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
+import { PremiumCard } from '../../ui';
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
@@ -286,8 +287,10 @@ export const HomeFeedComposer: React.FC<Props> = ({
     phase === 'uploading' ? 'Datei wird hochgeladen…' : phase === 'saving' ? 'Beitrag wird gespeichert…' : null;
 
   return (
-    <section
-      className="relative w-full min-w-0 overflow-hidden rounded-3xl border border-red-500/35 p-[1px] shadow-2xl"
+    <PremiumCard
+      as="section"
+      matchday
+      className="border-red-500/35 p-[1px] shadow-2xl"
       style={{
         boxShadow:
           '0 0 0 1px rgba(220,38,38,0.12), 0 16px 40px rgba(0,0,0,0.55), 0 0 48px -12px rgba(220,38,38,0.25)',
@@ -454,6 +457,6 @@ export const HomeFeedComposer: React.FC<Props> = ({
         </div>
         )}
       </div>
-    </section>
+    </PremiumCard>
   );
 };

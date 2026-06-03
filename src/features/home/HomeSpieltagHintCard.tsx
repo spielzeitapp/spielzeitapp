@@ -7,6 +7,7 @@ import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocati
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatMeetupTimeOnlyDe } from '../../components/match/matchCardLabels';
 import { FeedClubName } from '../../components/feed/FeedClubName';
+import { PremiumCard } from '../../ui';
 
 const WELCOME_GRADIENT =
   'linear-gradient(180deg, rgba(40,5,5,0.97) 0%, rgba(20,0,0,0.98) 50%, rgba(10,0,0,0.99) 100%)';
@@ -100,8 +101,10 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick }) => {
   }, [eventUrl, kickoff, opponent, ourClub]);
 
   return (
-    <section
-      className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-red-600/35 px-3 py-3 shadow-lg sm:px-4 sm:py-3.5"
+    <PremiumCard
+      as="section"
+      matchday
+      className="border-red-600/35 px-3 py-3 sm:px-4 sm:py-3.5"
       style={{
         background: WELCOME_GRADIENT,
         boxShadow: `${WELCOME_INSET}, 0 0 0 1px rgba(220,38,38,0.12), 0 12px 32px rgba(0,0,0,0.5)`,
@@ -187,6 +190,6 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick }) => {
         </div>
         {shareHint ? <p className="text-center text-[12px] text-white/60">{shareHint}</p> : null}
       </div>
-    </section>
+    </PremiumCard>
   );
 };
