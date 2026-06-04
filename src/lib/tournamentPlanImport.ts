@@ -1,3 +1,5 @@
+export type TournamentMatchPhase = 'group' | 'placement' | 'semifinal' | 'final' | 'unknown';
+
 export type TournamentPlanImportTeam = {
   teamName: string;
   groupLabel: string | null;
@@ -7,6 +9,7 @@ export type TournamentPlanImportRawMatch = {
   homeTeam: string;
   awayTeam: string;
   groupLabel: string | null;
+  phase: TournamentMatchPhase;
   kickoffTimeHHmm: string;
   plannedMinutes: number;
   pitch: string | null;
@@ -23,6 +26,7 @@ export type TournamentPlanAnalysis = {
   groupCount: number;
   matchCount: number;
   preliminaryMatchCount: number;
+  knockoutMatchCount: number;
   groupSummaries: TournamentPlanGroupSummary[];
   teams: TournamentPlanImportTeam[];
   rawMatches: TournamentPlanImportRawMatch[];
@@ -31,10 +35,17 @@ export type TournamentPlanAnalysis = {
 export type TournamentPlanImportMatch = {
   opponentName: string;
   groupLabel: string | null;
+  phase: TournamentMatchPhase;
   kickoffTimeHHmm: string;
   plannedMinutes: number;
   pitch: string | null;
   dedupeKey: string;
+};
+
+export type TournamentPlanRefreshPreview = {
+  newTeams: number;
+  newMatches: number;
+  existingMatches: number;
 };
 
 export const TOURNAMENT_IMPORT_UNSUPPORTED_MESSAGE = 'Turnierplan wird aktuell nicht unterstützt.';
@@ -58,12 +69,33 @@ type MeinTurnierplanGroupMatch = {
   awayParticipant?: number;
   courtId?: number;
 };
+type MeinTurnierplanSourceTeam = {
+  type?: string;
+  group?: number;
+  rank?: number;
+};
+type MeinTurnierplanModeMapping = {
+  type?: string;
+  round?: number;
+  match?: number;
+};
+type MeinTurnierplanFinalMatch = {
+  dateAndTime?: string;
+  homeParticipant?: number;
+  awayParticipant?: number;
+  courtId?: number;
+  modeMapping?: MeinTurnierplanModeMapping;
+  sourceTeam1?: MeinTurnierplanSourceTeam;
+  sourceTeam2?: MeinTurnierplanSourceTeam;
+};
 type MeinTurnierplanJson = {
   participants?: Record<string, MeinTurnierplanParticipant>;
   groups?: MeinTurnierplanGroup[];
   groupParticipants?: number[][];
   groupMatches?: MeinTurnierplanGroupMatch[];
+  finalMatches?: MeinTurnierplanFinalMatch[];
   groupMatchDuration?: number;
+  finalMatchDuration?: number;
   courts?: { displayId?: string }[];
 };
 
@@ -102,6 +134,63 @@ function kickoffHHmmFromDateTime(dateAndTime: string | undefined): string {
   return `${match[1].padStart(2, '0')}:${match[2]}`;
 }
 
+/** KO-Phase aus MeinTurnierplan modeMapping + Gruppen-Rängen (Heuristik). */
+export function inferKnockoutPhaseFromMeinTurnierplan(
+  modeMapping: MeinTurnierplanModeMapping | undefined,
+  sourceTeam1?: MeinTurnierplanSourceTeam,
+  sourceTeam2?: MeinTurnierplanSourceTeam,
+): TournamentMatchPhase {
+  const round = modeMapping?.round ?? 1;
+  const matchNo = modeMapping?.match ?? 0;
+  const rank1 = sourceTeam1?.rank ?? 0;
+  const rank2 = sourceTeam2?.rank ?? 0;
+  const maxRank = Math.max(rank1, rank2);
+  const minRank = Math.min(rank1, rank2);
+
+  if (round === 1 && matchNo === 1 && minRank === 1 && maxRank === 1) {
+    return 'final';
+  }
+  if (maxRank >= 5 || matchNo >= 5) {
+    return 'placement';
+  }
+  if (round >= 2) {
+    return 'semifinal';
+  }
+  if (maxRank <= 2 && matchNo <= 2) {
+    return 'semifinal';
+  }
+  if (maxRank === 3 || maxRank === 4) {
+    return 'placement';
+  }
+  return 'unknown';
+}
+
+export function normalizeTeamMatchKey(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+export function normalizePhaseForDedupe(phase: string | null | undefined): string {
+  const p = (phase ?? '').trim().toLowerCase();
+  if (p === 'group' || p === 'placement' || p === 'semifinal' || p === 'final' || p === 'unknown') {
+    return p;
+  }
+  return '';
+}
+
+export function buildTournamentMatchDedupeKey(params: {
+  kickoffTimeHHmm: string;
+  opponentName: string;
+  groupLabel: string | null;
+  phase: TournamentMatchPhase | string | null | undefined;
+}): string {
+  const phaseKey =
+    normalizePhaseForDedupe(params.phase) ||
+    (params.groupLabel?.trim() ? 'group' : 'unknown');
+  const groupKey =
+    phaseKey === 'group' ? normalizeTeamMatchKey(params.groupLabel ?? '') : phaseKey;
+  return `${params.kickoffTimeHHmm}|${normalizeTeamMatchKey(params.opponentName)}|${groupKey}`;
+}
+
 export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis | null {
   const json = data as MeinTurnierplanJson;
   if (!json?.participants || !Array.isArray(json.groups) || json.groups.length === 0) {
@@ -132,9 +221,13 @@ export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis 
 
   if (teams.length === 0) return null;
 
-  const defaultMinutes = Math.max(
+  const groupMinutes = Math.max(
     1,
     Math.min(120, Math.trunc(json.groupMatchDuration ?? 10) || 10),
+  );
+  const knockoutMinutes = Math.max(
+    1,
+    Math.min(120, Math.trunc(json.finalMatchDuration ?? json.groupMatchDuration ?? 10) || 10),
   );
   const courts = json.courts ?? [];
   const rawMatches: TournamentPlanImportRawMatch[] = [];
@@ -153,26 +246,52 @@ export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis 
       homeTeam,
       awayTeam,
       groupLabel,
+      phase: 'group',
       kickoffTimeHHmm: kickoffHHmmFromDateTime(match.dateAndTime),
-      plannedMinutes: defaultMinutes,
+      plannedMinutes: groupMinutes,
       pitch,
     });
   }
+
+  const preliminaryMatchCount = rawMatches.length;
+
+  for (const match of json.finalMatches ?? []) {
+    const homeTeam = participantName(participants, match.homeParticipant);
+    const awayTeam = participantName(participants, match.awayParticipant);
+    if (!homeTeam || !awayTeam) continue;
+
+    const phase = inferKnockoutPhaseFromMeinTurnierplan(
+      match.modeMapping,
+      match.sourceTeam1,
+      match.sourceTeam2,
+    );
+    const court = courts[match.courtId ?? -1];
+    const pitch = court?.displayId?.trim() ? `Platz ${court.displayId.trim()}` : null;
+
+    rawMatches.push({
+      homeTeam,
+      awayTeam,
+      groupLabel: null,
+      phase,
+      kickoffTimeHHmm: kickoffHHmmFromDateTime(match.dateAndTime),
+      plannedMinutes: knockoutMinutes,
+      pitch,
+    });
+  }
+
+  const knockoutMatchCount = rawMatches.length - preliminaryMatchCount;
 
   return {
     provider: 'meinturnierplan',
     teamCount: teams.length,
     groupCount: groupSummaries.length,
     matchCount: rawMatches.length,
-    preliminaryMatchCount: rawMatches.length,
+    preliminaryMatchCount,
+    knockoutMatchCount,
     groupSummaries,
     teams,
     rawMatches,
   };
-}
-
-export function normalizeTeamMatchKey(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
 export function findOwnTeamInImport(
@@ -214,19 +333,73 @@ export function buildImportMatchesForOwnTeam(
     result.push({
       opponentName,
       groupLabel: match.groupLabel,
+      phase: match.phase,
       kickoffTimeHHmm: match.kickoffTimeHHmm,
       plannedMinutes: match.plannedMinutes,
       pitch: match.pitch,
-      dedupeKey: `${match.kickoffTimeHHmm}|${normalizeTeamMatchKey(opponentName)}|${normalizeTeamMatchKey(match.groupLabel ?? '')}`,
+      dedupeKey: buildTournamentMatchDedupeKey({
+        kickoffTimeHHmm: match.kickoffTimeHHmm,
+        opponentName,
+        groupLabel: match.groupLabel,
+        phase: match.phase,
+      }),
     });
   }
 
   return result;
 }
 
+export async function computeTournamentPlanRefreshPreview(params: {
+  analysis: TournamentPlanAnalysis;
+  existingTeamNames: string[];
+  existingSlots: Array<{
+    opponent_name: string;
+    kickoff_at: string;
+    group_label: string | null;
+    phase?: string | null;
+  }>;
+  ownTeamNameHint?: string | null;
+}): Promise<TournamentPlanRefreshPreview> {
+  const { formatTournamentKickoffTime } = await import('./tournamentPlan');
+
+  const existingTeamKeys = new Set(params.existingTeamNames.map(normalizeTeamMatchKey));
+  let newTeams = 0;
+  for (const team of params.analysis.teams) {
+    if (!existingTeamKeys.has(normalizeTeamMatchKey(team.teamName))) {
+      newTeams += 1;
+    }
+  }
+
+  const existingMatchKeys = new Set(
+    params.existingSlots.map((slot) =>
+      buildTournamentMatchDedupeKey({
+        kickoffTimeHHmm: formatTournamentKickoffTime(slot.kickoff_at),
+        opponentName: slot.opponent_name,
+        groupLabel: slot.group_label,
+        phase: slot.phase ?? (slot.group_label?.trim() ? 'group' : null),
+      }),
+    ),
+  );
+
+  const ownTeamName = findOwnTeamInImport(params.analysis.teams, params.ownTeamNameHint);
+  const importMatches = buildImportMatchesForOwnTeam(params.analysis.rawMatches, ownTeamName);
+
+  let newMatches = 0;
+  let existingMatches = 0;
+  for (const match of importMatches) {
+    if (existingMatchKeys.has(match.dedupeKey)) {
+      existingMatches += 1;
+    } else {
+      newMatches += 1;
+    }
+  }
+
+  return { newTeams, newMatches, existingMatches };
+}
+
 export async function analyzeTournamentUrl(
   url: string,
-  ownTeamNameHint?: string | null,
+  _ownTeamNameHint?: string | null,
 ): Promise<{ ok: true; analysis: TournamentPlanAnalysis } | { ok: false; error: string }> {
   const trimmed = url.trim();
   if (!trimmed) {
@@ -234,9 +407,6 @@ export async function analyzeTournamentUrl(
   }
 
   const params = new URLSearchParams({ url: trimmed });
-  if (ownTeamNameHint?.trim()) {
-    params.set('ownTeamNameHint', ownTeamNameHint.trim());
-  }
 
   try {
     const res = await fetch(`/api/tournament-plan/analyze?${params.toString()}`);
@@ -254,7 +424,7 @@ export async function analyzeTournamentUrl(
       return { ok: false, error: body.error };
     }
   } catch {
-    /* API nicht erreichbar (z. B. lokaler Dev) – direkter Fallback */
+    /* API nicht erreichbar */
   }
 
   return analyzeTournamentUrlDirect(trimmed);
@@ -316,11 +486,13 @@ export async function importTournamentPlanFromAnalysis(params: {
     opponent_name: string;
     kickoff_at: string;
     group_label: string | null;
+    phase?: string | null;
   }>;
   ownTeamNameHint?: string | null;
 }): Promise<{
   importedTeams: number;
   importedMatches: number;
+  skippedMatches: number;
   error: string | null;
 }> {
   const {
@@ -343,7 +515,12 @@ export async function importTournamentPlanFromAnalysis(params: {
       groupLabel: team.groupLabel,
     });
     if (error) {
-      return { importedTeams, importedMatches: 0, error: normalizeTournamentDbError(error, null) };
+      return {
+        importedTeams,
+        importedMatches: 0,
+        skippedMatches: 0,
+        error: normalizeTournamentDbError(error, null),
+      };
     }
     existingTeamKeys.add(key);
     importedTeams += 1;
@@ -352,15 +529,24 @@ export async function importTournamentPlanFromAnalysis(params: {
   const ownTeamName = findOwnTeamInImport(params.analysis.teams, params.ownTeamNameHint);
   const importMatches = buildImportMatchesForOwnTeam(params.analysis.rawMatches, ownTeamName);
   const existingMatchKeys = new Set(
-    params.existingSlots.map(
-      (slot) =>
-        `${formatTournamentKickoffTime(slot.kickoff_at)}|${normalizeTeamMatchKey(slot.opponent_name)}|${normalizeTeamMatchKey(slot.group_label ?? '')}`,
+    params.existingSlots.map((slot) =>
+      buildTournamentMatchDedupeKey({
+        kickoffTimeHHmm: formatTournamentKickoffTime(slot.kickoff_at),
+        opponentName: slot.opponent_name,
+        groupLabel: slot.group_label,
+        phase: slot.phase ?? (slot.group_label?.trim() ? 'group' : null),
+      }),
     ),
   );
 
   let importedMatches = 0;
+  let skippedMatches = 0;
+
   for (const match of importMatches) {
-    if (existingMatchKeys.has(match.dedupeKey)) continue;
+    if (existingMatchKeys.has(match.dedupeKey)) {
+      skippedMatches += 1;
+      continue;
+    }
 
     const { error } = await createTournamentMatchSlot({
       tournamentEventId: params.tournamentEventId,
@@ -372,12 +558,14 @@ export async function importTournamentPlanFromAnalysis(params: {
       plannedMinutes: match.plannedMinutes,
       pitch: match.pitch,
       groupLabel: match.groupLabel,
+      phase: match.phase === 'unknown' ? null : match.phase,
     });
 
     if (error) {
       return {
         importedTeams,
         importedMatches,
+        skippedMatches,
         error: normalizeTournamentDbError(error, null),
       };
     }
@@ -386,5 +574,5 @@ export async function importTournamentPlanFromAnalysis(params: {
     importedMatches += 1;
   }
 
-  return { importedTeams, importedMatches, error: null };
+  return { importedTeams, importedMatches, skippedMatches, error: null };
 }

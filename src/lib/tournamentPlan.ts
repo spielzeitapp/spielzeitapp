@@ -48,6 +48,8 @@ export type TournamentMatchSlot = {
   planned_minutes: number;
   pitch: string | null;
   group_label: string | null;
+  /** Optional: Migration 20260616120000 — group | placement | semifinal | final | unknown */
+  phase?: string | null;
   sort_order: number;
 };
 
@@ -295,12 +297,23 @@ async function enrichTournamentMatchSlots(
 export async function fetchTournamentMatchSlots(
   tournamentEventId: string,
 ): Promise<{ data: TournamentMatchSlotView[]; error: string | null }> {
-  const { data, error } = await supabase
+  let res = await supabase
     .from('tournament_matches')
-    .select('id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, sort_order')
+    .select('id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, phase, sort_order')
     .eq('tournament_event_id', tournamentEventId)
     .order('kickoff_at', { ascending: true })
     .order('sort_order', { ascending: true });
+
+  if (res.error && /phase|column/i.test(String(res.error.message ?? ''))) {
+    res = await supabase
+      .from('tournament_matches')
+      .select('id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, sort_order')
+      .eq('tournament_event_id', tournamentEventId)
+      .order('kickoff_at', { ascending: true })
+      .order('sort_order', { ascending: true });
+  }
+
+  const { data, error } = res;
 
   if (error) return { data: [], error: normalizeTournamentDbError(error.message, error.code) };
   const rows = (data ?? []) as TournamentMatchSlot[];
@@ -318,6 +331,7 @@ export async function createTournamentMatchSlot(params: {
   plannedMinutes: number;
   pitch?: string | null;
   groupLabel?: string | null;
+  phase?: string | null;
 }): Promise<{ slotId: string | null; matchId: string | null; error: string | null }> {
   const opponent = params.opponentName.trim();
   if (!opponent) return { slotId: null, matchId: null, error: 'Gegner fehlt.' };
@@ -367,20 +381,27 @@ export async function createTournamentMatchSlot(params: {
     .select('id', { count: 'exact', head: true })
     .eq('tournament_event_id', params.tournamentEventId);
 
-  const { data: inserted, error: slotErr } = await supabase
-    .from('tournament_matches')
-    .insert({
-      tournament_event_id: params.tournamentEventId,
-      match_id: matchId,
-      opponent_name: opponent,
-      kickoff_at: kickoffIso,
-      planned_minutes: planned,
-      pitch: params.pitch?.trim() || null,
-      group_label: params.groupLabel?.trim() || null,
-      sort_order: (count ?? 0) + 1,
-    })
-    .select('id')
-    .single();
+  const slotRow: Record<string, unknown> = {
+    tournament_event_id: params.tournamentEventId,
+    match_id: matchId,
+    opponent_name: opponent,
+    kickoff_at: kickoffIso,
+    planned_minutes: planned,
+    pitch: params.pitch?.trim() || null,
+    group_label: params.groupLabel?.trim() || null,
+    sort_order: (count ?? 0) + 1,
+  };
+  const phaseValue = params.phase?.trim();
+  if (phaseValue) slotRow.phase = phaseValue;
+
+  let insertRes = await supabase.from('tournament_matches').insert(slotRow).select('id').single();
+
+  if (insertRes.error && /phase|column/i.test(String(insertRes.error.message ?? '')) && 'phase' in slotRow) {
+    delete slotRow.phase;
+    insertRes = await supabase.from('tournament_matches').insert(slotRow).select('id').single();
+  }
+
+  const { data: inserted, error: slotErr } = insertRes;
 
   if (slotErr) {
     await supabase.from('matches').delete().eq('id', matchId);

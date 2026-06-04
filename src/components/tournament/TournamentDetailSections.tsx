@@ -578,11 +578,23 @@ export const TournamentDetailSections: React.FC<Props> = ({
   );
 };
 
+function tournamentMatchPhaseBadge(phase: string | null | undefined): string | null {
+  const p = (phase ?? '').trim().toLowerCase();
+  if (p === 'final') return 'FINALE';
+  if (p === 'semifinal') return 'HALBFINALE';
+  if (p === 'placement') return 'PLATZIERUNG';
+  return null;
+}
+
 function tournamentMatchBadgeLabel(
   slot: TournamentMatchSlotView,
   status: ReturnType<typeof tournamentMatchDisplayStatus>,
 ): string {
   const group = slot.group_label?.trim();
+  const phaseBadge = tournamentMatchPhaseBadge(slot.phase);
+  if (status.kind === 'planned' && phaseBadge) {
+    return phaseBadge;
+  }
   if (status.kind === 'planned' && group) {
     return `GRUPPE ${group.toUpperCase()}`;
   }

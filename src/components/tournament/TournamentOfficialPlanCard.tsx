@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ClipboardList, ExternalLink, FileDown, Link2, Pencil, ScanLine } from 'lucide-react';
+import { ClipboardList, ExternalLink, FileDown, Link2, Pencil, RefreshCw, ScanLine } from 'lucide-react';
 import { Card, CardTitle } from '../../app/components/ui/Card';
 import { AppButton } from '../ui/AppButton';
 import { Modal } from '../../app/ui/Modal';
@@ -13,9 +13,11 @@ import { INVALID_QR_TOURNAMENT_LINK_MESSAGE } from '../../lib/tournamentPlanQrSc
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import {
   analyzeTournamentUrl,
+  computeTournamentPlanRefreshPreview,
   fetchOwnTeamNameHint,
   importTournamentPlanFromAnalysis,
   type TournamentPlanAnalysis,
+  type TournamentPlanRefreshPreview,
 } from '../../lib/tournamentPlanImport';
 import {
   displayDomainFromOfficialPlanUrl,
@@ -24,6 +26,7 @@ import {
   validateOfficialTournamentUrl,
 } from '../../lib/tournamentOfficialPlanUrl';
 import { TournamentPlanImportSheet } from './TournamentPlanImportSheet';
+import { TournamentPlanRefreshSheet } from './TournamentPlanRefreshSheet';
 import { TournamentPlanQrScannerSheet } from './TournamentPlanQrScannerSheet';
 
 type Props = {
@@ -206,11 +209,17 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     setImportSheetOpen(false);
     onImportComplete();
 
-    if (importedTeams === 0 && importedMatches === 0) {
+    if (importedMatches === 0 && importedTeams === 0) {
       setToastMessage('Keine neuen Einträge – alles bereits importiert');
+    } else if (importedMatches > 0) {
+      setToastMessage(
+        importedMatches === 1
+          ? '1 neues Spiel importiert'
+          : `${importedMatches} neue Spiele importiert`,
+      );
     } else {
       setToastMessage(
-        `${importedTeams} Teams · ${importedMatches} Spiele importiert`,
+        importedTeams === 1 ? '1 neues Team importiert' : `${importedTeams} neue Teams importiert`,
       );
     }
   }, [
@@ -220,6 +229,90 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     location,
     onImportComplete,
     ownTeamNameHint,
+    teamSeasonId,
+    tournamentDayIso,
+    tournamentEventId,
+  ]);
+
+  const startRefresh = useCallback(async () => {
+    const url = officialTournamentUrl?.trim();
+    if (!url) return;
+
+    setRefreshSheetOpen(true);
+    setRefreshLoading(true);
+    setRefreshBusy(false);
+    setRefreshError(null);
+    setRefreshAnalysis(null);
+    setRefreshPreview(null);
+
+    const hint = await fetchOwnTeamNameHint(teamSeasonId);
+    setOwnTeamNameHint(hint);
+
+    const result = await analyzeTournamentUrl(url, hint);
+    if (!result.ok) {
+      setRefreshLoading(false);
+      setRefreshError(result.error);
+      return;
+    }
+
+    setRefreshAnalysis(result.analysis);
+    const preview = await computeTournamentPlanRefreshPreview({
+      analysis: result.analysis,
+      existingTeamNames,
+      existingSlots,
+      ownTeamNameHint: hint,
+    });
+    setRefreshPreview(preview);
+    setRefreshLoading(false);
+  }, [existingSlots, existingTeamNames, officialTournamentUrl, teamSeasonId]);
+
+  const handleRefreshConfirm = useCallback(async () => {
+    if (!refreshAnalysis) return;
+
+    setRefreshBusy(true);
+    setRefreshError(null);
+
+    const { importedTeams, importedMatches, error } = await importTournamentPlanFromAnalysis({
+      tournamentEventId,
+      teamSeasonId,
+      tournamentDayIso,
+      location,
+      analysis: refreshAnalysis,
+      existingTeamNames,
+      existingSlots,
+      ownTeamNameHint,
+    });
+
+    setRefreshBusy(false);
+
+    if (error) {
+      setRefreshError(error);
+      return;
+    }
+
+    setRefreshSheetOpen(false);
+    onImportComplete();
+
+    if (importedMatches === 0 && importedTeams === 0) {
+      setToastMessage('Keine neuen Spiele gefunden.');
+    } else if (importedMatches > 0) {
+      setToastMessage(
+        importedMatches === 1
+          ? '1 neues Spiel importiert'
+          : `${importedMatches} neue Spiele importiert`,
+      );
+    } else {
+      setToastMessage(
+        importedTeams === 1 ? '1 neues Team importiert' : `${importedTeams} neue Teams importiert`,
+      );
+    }
+  }, [
+    existingSlots,
+    existingTeamNames,
+    location,
+    onImportComplete,
+    ownTeamNameHint,
+    refreshAnalysis,
     teamSeasonId,
     tournamentDayIso,
     tournamentEventId,
@@ -269,6 +362,14 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
                     >
                       <FileDown className="h-4 w-4" strokeWidth={2} aria-hidden />
                       Turnierplan importieren
+                    </button>
+                    <button
+                      type="button"
+                      className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 touch-manipulation ${dsSecondaryCtaClass()}`}
+                      onClick={() => void startRefresh()}
+                    >
+                      <RefreshCw className="h-4 w-4" strokeWidth={2} aria-hidden />
+                      Turnierplan aktualisieren
                     </button>
                     <div className="grid grid-cols-2 gap-2">
                       <button
@@ -344,6 +445,19 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
             scanError={qrScanError}
             onScanError={setQrScanError}
             saving={qrSaving}
+          />
+
+          <TournamentPlanRefreshSheet
+            isOpen={refreshSheetOpen}
+            loading={refreshLoading}
+            importing={refreshBusy}
+            error={refreshError}
+            preview={refreshPreview}
+            onClose={() => {
+              if (refreshBusy) return;
+              setRefreshSheetOpen(false);
+            }}
+            onImport={() => void handleRefreshConfirm()}
           />
 
           <TournamentPlanImportSheet
