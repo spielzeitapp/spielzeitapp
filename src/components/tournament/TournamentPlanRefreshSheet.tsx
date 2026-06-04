@@ -34,6 +34,8 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
   loading,
   importing,
   error,
+  analyzeFailure,
+  analyzeDiagnostics,
   preview,
   analysis,
   recognition,
