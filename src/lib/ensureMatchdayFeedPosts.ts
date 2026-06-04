@@ -7,7 +7,11 @@ import {
   dedupeKeyMatchdayTomorrow,
 } from './matchdayFeedCaptions';
 import type { MatchdayFeedPayload } from './matchdayFeedTypes';
-import { isNextViennaCalendarDay, isSameViennaCalendarDay } from './viennaTime';
+import {
+  getViennaTodayTomorrowDayKeys,
+  toViennaDayKeyFromUtcIso,
+  viennaCalendarDaysUntil,
+} from './viennaTime';
 
 export type EnsureMatchdayFeedPostsResult = {
   scanned: number;
@@ -41,6 +45,28 @@ type TeamSeasonJoinRow = {
 
 function mdLog(phase: string, data: Record<string, unknown>): void {
   console.info(`[matchdayFeed] ${phase}`, data);
+}
+
+function matchdayFeedDebugLog(params: {
+  eventId: string;
+  startsAt: string;
+  viennaDay: string;
+  todayVienna: string;
+  tomorrowVienna: string;
+  timing: 'today' | 'tomorrow' | 'skip';
+  reason: string;
+  daysUntil?: number | null;
+}): void {
+  console.log('[MATCHDAY FEED]', {
+    eventId: params.eventId,
+    startsAt: params.startsAt,
+    viennaDay: params.viennaDay,
+    todayVienna: params.todayVienna,
+    tomorrowVienna: params.tomorrowVienna,
+    timing: params.timing,
+    reason: params.reason,
+    daysUntil: params.daysUntil,
+  });
 }
 
 async function resolveTeamForSeason(teamSeasonId: string): Promise<{ teamId: string; name: string } | null> {
@@ -192,8 +218,67 @@ async function insertMatchdayPost(params: {
   return { created: true };
 }
 
+function matchdayTimingForEvent(
+  ev: EventRowLite,
+  now: Date,
+  dayKeys: { todayVienna: string; tomorrowVienna: string },
+): 'today' | 'tomorrow' | null {
+  const kick = new Date(ev.starts_at);
+  if (Number.isNaN(kick.getTime())) return null;
+  const days = viennaCalendarDaysUntil(kick, now);
+  const viennaDay = toViennaDayKeyFromUtcIso(ev.starts_at);
+
+  if (days === 0) {
+    matchdayFeedDebugLog({
+      eventId: ev.id,
+      startsAt: ev.starts_at,
+      viennaDay,
+      todayVienna: dayKeys.todayVienna,
+      tomorrowVienna: dayKeys.tomorrowVienna,
+      timing: 'today',
+      reason: 'kickoff_on_today_vienna_calendar_day',
+      daysUntil: days,
+    });
+    return 'today';
+  }
+
+  if (days === 1) {
+    matchdayFeedDebugLog({
+      eventId: ev.id,
+      startsAt: ev.starts_at,
+      viennaDay,
+      todayVienna: dayKeys.todayVienna,
+      tomorrowVienna: dayKeys.tomorrowVienna,
+      timing: 'tomorrow',
+      reason: 'kickoff_on_tomorrow_vienna_calendar_day',
+      daysUntil: days,
+    });
+    return 'tomorrow';
+  }
+
+  matchdayFeedDebugLog({
+    eventId: ev.id,
+    startsAt: ev.starts_at,
+    viennaDay,
+    todayVienna: dayKeys.todayVienna,
+    tomorrowVienna: dayKeys.tomorrowVienna,
+    timing: 'skip',
+    reason: days == null ? 'invalid_vienna_day' : `outside_today_tomorrow_days=${days}`,
+    daysUntil: days,
+  });
+  return null;
+}
+
+function pickEarliestEvent(events: EventRowLite[]): EventRowLite | null {
+  if (events.length === 0) return null;
+  return [...events].sort(
+    (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime(),
+  )[0]!;
+}
+
 /**
  * Idempotent: Heute-/Morgen-Spieltag-Posts pro Event (Dedupe matchday_today:/matchday_tomorrow:).
+ * Pro Vienna-Kalendertag nur das zeitlich früheste Spiel.
  */
 export async function ensureMatchdayFeedPostsForSeason(
   teamSeasonId: string,
@@ -208,6 +293,15 @@ export async function ensureMatchdayFeedPostsForSeason(
     errors: [],
   };
   if (!sid) return result;
+
+  const dayKeys = getViennaTodayTomorrowDayKeys(now);
+  console.log('[MATCHDAY FEED]', {
+    teamSeasonId: sid,
+    todayVienna: dayKeys.todayVienna,
+    tomorrowVienna: dayKeys.tomorrowVienna,
+    timing: 'batch_start',
+    reason: 'ensure_matchday_feed_posts_for_season',
+  });
 
   const teamInfo = await resolveTeamForSeason(sid);
   if (!teamInfo) {
@@ -229,20 +323,56 @@ export async function ensureMatchdayFeedPostsForSeason(
     return result;
   }
 
+  const todayCandidates: EventRowLite[] = [];
+  const tomorrowCandidates: EventRowLite[] = [];
+
   for (const ev of (data ?? []) as EventRowLite[]) {
     if (!isMatchEvent(ev)) continue;
     if ((ev.status ?? 'upcoming').toLowerCase() !== 'upcoming') continue;
     if (!ev.starts_at) continue;
 
-    const kick = new Date(ev.starts_at);
-    if (Number.isNaN(kick.getTime())) continue;
+    const timing = matchdayTimingForEvent(ev, now, dayKeys);
+    if (timing === 'today') todayCandidates.push(ev);
+    else if (timing === 'tomorrow') tomorrowCandidates.push(ev);
+  }
 
-    const isToday = isSameViennaCalendarDay(kick, now);
-    const isTomorrow = isNextViennaCalendarDay(kick, now);
-    if (!isToday && !isTomorrow) continue;
+  const toProcess: Array<{ event: EventRowLite; timing: 'today' | 'tomorrow' }> = [];
+  const earliestToday = pickEarliestEvent(todayCandidates);
+  const earliestTomorrow = pickEarliestEvent(tomorrowCandidates);
+  if (earliestToday) toProcess.push({ event: earliestToday, timing: 'today' });
+  if (earliestTomorrow) toProcess.push({ event: earliestTomorrow, timing: 'tomorrow' });
 
+  for (const skipped of todayCandidates) {
+    if (earliestToday && skipped.id !== earliestToday.id) {
+      matchdayFeedDebugLog({
+        eventId: skipped.id,
+        startsAt: skipped.starts_at,
+        viennaDay: toViennaDayKeyFromUtcIso(skipped.starts_at),
+        todayVienna: dayKeys.todayVienna,
+        tomorrowVienna: dayKeys.tomorrowVienna,
+        timing: 'skip',
+        reason: 'later_match_on_same_today_vienna_day',
+        daysUntil: 0,
+      });
+    }
+  }
+  for (const skipped of tomorrowCandidates) {
+    if (earliestTomorrow && skipped.id !== earliestTomorrow.id) {
+      matchdayFeedDebugLog({
+        eventId: skipped.id,
+        startsAt: skipped.starts_at,
+        viennaDay: toViennaDayKeyFromUtcIso(skipped.starts_at),
+        todayVienna: dayKeys.todayVienna,
+        tomorrowVienna: dayKeys.tomorrowVienna,
+        timing: 'skip',
+        reason: 'later_match_on_same_tomorrow_vienna_day',
+        daysUntil: 1,
+      });
+    }
+  }
+
+  for (const { event: ev, timing } of toProcess) {
     result.scanned += 1;
-    const timing = isToday ? 'today' : 'tomorrow';
     const res = await insertMatchdayPost({ event: ev, teamInfo, timing });
     if (res.error) {
       result.errors.push(`${ev.id}: ${res.error}`);
@@ -256,6 +386,6 @@ export async function ensureMatchdayFeedPostsForSeason(
     }
   }
 
-  mdLog('batch done', result);
+  mdLog('batch done', { ...result, ...dayKeys });
   return result;
 }

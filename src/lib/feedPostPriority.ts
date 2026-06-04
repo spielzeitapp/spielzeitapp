@@ -1,11 +1,9 @@
 import type { EventRow } from '../hooks/useEvents';
 import { parseMatchdayPayload, type ClassifiedFeedPost, type TeamFeedPostDbRow } from './matchdayFeedTypes';
 import {
-  getDateTimePartsInTimeZone,
   isNextViennaCalendarDay,
   isSameViennaCalendarDay,
-  VIENNA_TZ,
-  zonedWallTimeToUtcMillis,
+  viennaCalendarDaysUntil,
 } from './viennaTime';
 
 export const FEED_POST_PRIORITY = {
@@ -33,10 +31,38 @@ function kickoffIsoFromRow(row: TeamFeedPostDbRow): string | null {
 
 function matchdayPriorityFromKickoff(kickoffIso: string, now: Date): number {
   const kick = new Date(kickoffIso);
-  if (Number.isNaN(kick.getTime())) return FEED_POST_PRIORITY.matchday_tomorrow;
-  if (isSameViennaCalendarDay(kick, now)) return FEED_POST_PRIORITY.matchday_today;
-  if (isNextViennaCalendarDay(kick, now)) return FEED_POST_PRIORITY.matchday_tomorrow;
-  return FEED_POST_PRIORITY.matchday_tomorrow;
+  if (Number.isNaN(kick.getTime())) return FEED_POST_PRIORITY.default;
+  const days = viennaCalendarDaysUntil(kick, now);
+  if (days === 0) return FEED_POST_PRIORITY.matchday_today;
+  if (days === 1) return FEED_POST_PRIORITY.matchday_tomorrow;
+  return FEED_POST_PRIORITY.default;
+}
+
+/** Veraltete matchday_*_auto-Posts (Kickoff nicht heute/morgen in Vienna) ausblenden. */
+export function isMatchdayAutoPostActiveForViennaDay(row: TeamFeedPostDbRow, now: Date = new Date()): boolean {
+  const pk = (row.post_kind ?? '').toLowerCase().trim();
+  const kick = kickoffIsoFromRow(row);
+  if (!kick) {
+    if (pk === 'matchday_today_auto' || pk === 'matchday_tomorrow_auto') return false;
+    return true;
+  }
+  const kickDate = new Date(kick);
+  if (Number.isNaN(kickDate.getTime())) return false;
+
+  const days = viennaCalendarDaysUntil(kickDate, now);
+  if (pk === 'matchday_today_auto') return days === 0;
+  if (pk === 'matchday_tomorrow_auto') return days === 1;
+
+  if (pk === 'matchday_auto' || (row.media_type ?? '').toLowerCase() === 'matchday') {
+    const raw = row.payload as Record<string, unknown> | null;
+    const timing = raw?.matchday_timing;
+    if (timing === 'today') return days === 0;
+    if (timing === 'tomorrow') return days === 1;
+    if (days === 0 || days === 1) return true;
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -60,6 +86,8 @@ export function getFeedPostPriority(
   }
 
   if (pk === 'matchday_today_auto') {
+    const kick = kickoffIsoFromRow(row);
+    if (kick && !isSameViennaCalendarDay(new Date(kick), now)) return FEED_POST_PRIORITY.default;
     return FEED_POST_PRIORITY.matchday_today;
   }
 
@@ -68,6 +96,8 @@ export function getFeedPostPriority(
   }
 
   if (pk === 'matchday_tomorrow_auto') {
+    const kick = kickoffIsoFromRow(row);
+    if (kick && !isNextViennaCalendarDay(new Date(kick), now)) return FEED_POST_PRIORITY.default;
     return FEED_POST_PRIORITY.matchday_tomorrow;
   }
 
@@ -143,22 +173,6 @@ export function sortClassifiedFeedPosts(
 
 /** @alias sortClassifiedFeedPosts */
 export const sortTeamFeedPosts = sortClassifiedFeedPosts;
-
-/** Kalendertage zwischen now und eventStart in Europe/Vienna (0 = heute). */
-export function viennaCalendarDaysUntil(eventStart: Date, now: Date): number | null {
-  const pNow = getDateTimePartsInTimeZone(now, VIENNA_TZ);
-  const pEv = getDateTimePartsInTimeZone(eventStart, VIENNA_TZ);
-  if (!pNow || !pEv) return null;
-  const noonNow = zonedWallTimeToUtcMillis(
-    { year: pNow.year, month: pNow.month, day: pNow.day, hour: 12, minute: 0 },
-    VIENNA_TZ,
-  );
-  const noonEv = zonedWallTimeToUtcMillis(
-    { year: pEv.year, month: pEv.month, day: pEv.day, hour: 12, minute: 0 },
-    VIENNA_TZ,
-  );
-  return Math.round((noonEv - noonNow) / 86_400_000);
-}
 
 export function buildEventStatusMap(events: Pick<EventRow, 'id' | 'status'>[]): Map<string, string> {
   const m = new Map<string, string>();

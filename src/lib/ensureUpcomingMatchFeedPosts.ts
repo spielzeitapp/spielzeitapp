@@ -6,7 +6,7 @@ import {
   dedupeKeyForNextMatchEvent,
   type NextMatchFeedPayload,
 } from './nextMatchFeedTypes';
-import { viennaCalendarDaysUntil } from './feedPostPriority';
+import { viennaCalendarDaysUntil } from './viennaTime';
 
 export type EnsureUpcomingMatchFeedPostsResult = {
   scanned: number;

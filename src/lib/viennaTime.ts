@@ -93,26 +93,44 @@ export function isViennaCutoffSoon(startsAtIso: string, now: Date = new Date(), 
 
 /** Gleicher Kalendertag in Europe/Vienna. */
 export function isSameViennaCalendarDay(a: Date, b: Date): boolean {
-  const pa = getDateTimePartsInTimeZone(a, VIENNA_TZ);
-  const pb = getDateTimePartsInTimeZone(b, VIENNA_TZ);
-  if (!pa || !pb) return false;
-  return pa.year === pb.year && pa.month === pb.month && pa.day === pb.day;
+  return viennaCalendarDaysUntil(a, b) === 0;
+}
+
+/**
+ * Kalendertage zwischen `now` und `eventStart` in Europe/Vienna (0 = heute, 1 = morgen).
+ * Vergleich über Vienna-Mittag je Tag (DST-sicher), nicht über Stunden-Differenz.
+ */
+export function viennaCalendarDaysUntil(eventStart: Date, now: Date): number | null {
+  const pNow = getDateTimePartsInTimeZone(now, VIENNA_TZ);
+  const pEv = getDateTimePartsInTimeZone(eventStart, VIENNA_TZ);
+  if (!pNow || !pEv) return null;
+  const noonNow = zonedWallTimeToUtcMillis(
+    { year: pNow.year, month: pNow.month, day: pNow.day, hour: 12, minute: 0 },
+    VIENNA_TZ,
+  );
+  const noonEv = zonedWallTimeToUtcMillis(
+    { year: pEv.year, month: pEv.month, day: pEv.day, hour: 12, minute: 0 },
+    VIENNA_TZ,
+  );
+  return Math.round((noonEv - noonNow) / 86_400_000);
 }
 
 /** Kalendertag von `eventStart` = direkter Folgetag von `now` (Europe/Vienna), nicht heute. */
 export function isNextViennaCalendarDay(eventStart: Date, now: Date): boolean {
-  if (isSameViennaCalendarDay(eventStart, now)) return false;
-  const pNow = getDateTimePartsInTimeZone(now, VIENNA_TZ);
-  const pEv = getDateTimePartsInTimeZone(eventStart, VIENNA_TZ);
-  if (!pNow || !pEv) return false;
-  const noonTodayUtc = zonedWallTimeToUtcMillis(
-    { year: pNow.year, month: pNow.month, day: pNow.day, hour: 12, minute: 0 },
-    VIENNA_TZ,
-  );
-  const probe = new Date(noonTodayUtc + 36 * 60 * 60 * 1000);
-  const pTmr = getDateTimePartsInTimeZone(probe, VIENNA_TZ);
-  if (!pTmr) return false;
-  return pEv.year === pTmr.year && pEv.month === pTmr.month && pEv.day === pTmr.day;
+  return viennaCalendarDaysUntil(eventStart, now) === 1;
+}
+
+/** YYYY-MM-DD für heute und morgen (Europe/Vienna) — Debug / Feed. */
+export function getViennaTodayTomorrowDayKeys(now: Date = new Date()): {
+  todayVienna: string;
+  tomorrowVienna: string;
+} {
+  const todayVienna = toViennaDayKeyFromDate(now);
+  const parts = getDateTimePartsInTimeZone(now, VIENNA_TZ);
+  if (!parts) return { todayVienna, tomorrowVienna: '' };
+  const rolled = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + 1, 12, 0, 0));
+  const tomorrowVienna = toViennaDayKeyFromDate(rolled);
+  return { todayVienna, tomorrowVienna };
 }
 
 /**

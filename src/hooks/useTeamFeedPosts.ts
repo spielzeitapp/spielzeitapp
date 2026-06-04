@@ -10,7 +10,7 @@ import {
   type ClassifiedFeedPost,
   type TeamFeedPostDbRow,
 } from '../lib/matchdayFeedTypes';
-import { buildEventStatusMap, sortTeamFeedPosts } from '../lib/feedPostPriority';
+import { buildEventStatusMap, isMatchdayAutoPostActiveForViennaDay, sortTeamFeedPosts } from '../lib/feedPostPriority';
 import { supabase } from '../lib/supabaseClient';
 
 const FEED_SELECT =
@@ -51,6 +51,7 @@ async function fetchPosts(teamSeasonId: string): Promise<{
 
   const mapped: ClassifiedFeedPost[] = [];
   for (const r of rows) {
+    if (!isMatchdayAutoPostActiveForViennaDay(r, now)) continue;
     const c = classifyTeamFeedPost(r);
     if (c) mapped.push(c);
   }
