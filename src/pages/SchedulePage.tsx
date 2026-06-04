@@ -979,11 +979,61 @@ export const SchedulePage: React.FC = () => {
 
   return (
     <div
-      className="page schedule-page relative flex min-h-0 flex-col overflow-hidden scroll-mt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))] h-[calc(100dvh-max(5.35rem,calc(3.45rem+env(safe-area-inset-top,0px)))-max(10rem,calc(7.5rem+env(safe-area-inset-bottom,0px))))] min-h-[60vh] lg:h-[calc(100dvh-max(5.35rem,calc(3.45rem+env(safe-area-inset-top,0px)))-6rem)]"
+      className="page schedule-page relative flex min-h-0 flex-col overflow-hidden scroll-mt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))] min-h-[60vh] h-[calc(100dvh-max(5.35rem,calc(3.45rem+env(safe-area-inset-top,0px)))-max(5.25rem,calc(4.75rem+env(safe-area-inset-bottom,0px))))] lg:h-[calc(100dvh-max(5.35rem,calc(3.45rem+env(safe-area-inset-top,0px)))-1.5rem)]"
       style={dsSchedulePageStyle()}
     >
-      <div className="schedule-page__fixed-controls w-full min-w-0 shrink-0 overflow-x-hidden px-[6px] sm:px-4 md:px-6 lg:px-2">
-        <div className="mx-auto mt-1 max-w-3xl space-y-3 pt-3 sm:mt-2 sm:space-y-4 sm:pt-4">
+      <div
+        className="schedule-page__sticky-filters w-full min-w-0 shrink-0 overflow-x-hidden px-[6px] sm:px-4 md:px-6 lg:px-2"
+        aria-label="Termine Filter"
+      >
+        <div className="mx-auto max-w-3xl flex flex-col gap-2 pt-2 sm:pt-2.5">
+          {normalizedUiRole !== 'fan' ? (
+            <div className={DS_SCHEDULE_KIND_FILTER_SCROLL_CLASS}>
+              <div className={DS_SCHEDULE_KIND_FILTER_TRACK_CLASS}>
+                {([
+                  { id: 'all', label: 'Alle' },
+                  { id: 'match', label: 'Spiele' },
+                  { id: 'training', label: 'Training' },
+                  { id: 'event', label: 'Events' },
+                  { id: 'tournament', label: 'Turniere' },
+                ] as const).map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setKindFilter(f.id)}
+                    className={dsScheduleKindFilterTabClass(kindFilter === f.id)}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="flex justify-center pb-1">
+            <div className="inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-white/[0.08] bg-[rgba(18,18,20,0.92)] p-1">
+              <button
+                type="button"
+                onClick={() => setTimeFilter('upcoming')}
+                className={`min-h-[32px] min-w-[88px] ${dsScheduleFilterTabClass(timeFilter === 'upcoming')}`}
+              >
+                Kommende
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimeFilter('past')}
+                className={`min-h-[32px] min-w-[88px] ${dsScheduleFilterTabClass(timeFilter === 'past')}`}
+              >
+                Vergangene
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="schedule-page__scroll min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]">
+        <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
+          <div className="mx-auto mt-1 max-w-3xl space-y-3 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] pt-1 sm:mt-2 sm:space-y-4 sm:pt-2">
           {toastMessage && (
             <div
               className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl bg-black/90 border border-red-900/80 text-white text-sm font-medium shadow-lg backdrop-blur-sm"
@@ -1051,57 +1101,8 @@ export const SchedulePage: React.FC = () => {
                 </button>
               </div>
             </div>
-
-            <div className="flex flex-col gap-2">
-              {normalizedUiRole !== 'fan' ? (
-                <div className={DS_SCHEDULE_KIND_FILTER_SCROLL_CLASS}>
-                  <div className={DS_SCHEDULE_KIND_FILTER_TRACK_CLASS}>
-                    {([
-                      { id: 'all', label: 'Alle' },
-                      { id: 'match', label: 'Spiele' },
-                      { id: 'training', label: 'Training' },
-                      { id: 'event', label: 'Events' },
-                      { id: 'tournament', label: 'Turniere' },
-                    ] as const).map((f) => (
-                      <button
-                        key={f.id}
-                        type="button"
-                        onClick={() => setKindFilter(f.id)}
-                        className={dsScheduleKindFilterTabClass(kindFilter === f.id)}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="flex justify-center">
-                <div className="inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-white/[0.08] bg-[rgba(18,18,20,0.92)] p-1">
-                  <button
-                    type="button"
-                    onClick={() => setTimeFilter('upcoming')}
-                    className={`min-h-[32px] min-w-[88px] ${dsScheduleFilterTabClass(timeFilter === 'upcoming')}`}
-                  >
-                    Kommende
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTimeFilter('past')}
-                    className={`min-h-[32px] min-w-[88px] ${dsScheduleFilterTabClass(timeFilter === 'past')}`}
-                  >
-                    Vergangene
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="schedule-page__scroll min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]">
-        <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
-          <div className="mx-auto max-w-3xl space-y-3 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
           {pageLoading && (
             <p className="text-sm text-[var(--muted)]">
               {normalizedUiRole === 'fan' ? 'Lade Spielplan…' : 'Lade Termine…'}
