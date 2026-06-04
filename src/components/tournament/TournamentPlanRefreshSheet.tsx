@@ -4,6 +4,7 @@ import { RefreshCw } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
 import {
   countOwnTeamMatchesInAnalysis,
+  labelForTournamentPlanAnalyzeSource,
   type TournamentImportRecognition,
   type TournamentPlanAnalysis,
   type TournamentPlanAnalyzeDiagnostics,
@@ -87,6 +88,11 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
           ) : preview ? (
             <>
               <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[14px] text-white/85">
+                {analyzeDiagnostics?.source ? (
+                  <p className="mb-2 text-[13px] text-emerald-300/85">
+                    Quelle: {labelForTournamentPlanAnalyzeSource(analyzeDiagnostics.source)}
+                  </p>
+                ) : null}
                 <p>Neue Teams: {preview.newTeams}</p>
                 <p>Neue Spiele: {preview.newMatches}</p>
                 <p>Bereits vorhanden: {preview.existingMatches}</p>

@@ -72,6 +72,8 @@ export type TournamentPlanAnalyzeErrorCode =
   | 'plan_no_longer_provided'
   | 'parse_failed';
 
+export type TournamentPlanAnalyzeDataSource = 'server_api' | 'browser_fallback';
+
 export type TournamentPlanAnalyzeDiagnostics = {
   linkRecognized: boolean;
   idExtracted: boolean;
@@ -79,7 +81,17 @@ export type TournamentPlanAnalyzeDiagnostics = {
   apiReachable: boolean;
   provider: 'meinturnierplan';
   attemptedEndpoints: string[];
+  /** Wo die Analyse-Daten herkamen (Serverless vs. Browser-Fetch). */
+  source?: TournamentPlanAnalyzeDataSource;
 };
+
+export function labelForTournamentPlanAnalyzeSource(
+  source: TournamentPlanAnalyzeDataSource | undefined,
+): string {
+  if (source === 'browser_fallback') return 'Browser-Fallback';
+  if (source === 'server_api') return 'Server API';
+  return '—';
+}
 
 export type TournamentPlanAnalyzeFailure = {
   code: TournamentPlanAnalyzeErrorCode;
@@ -740,11 +752,49 @@ export type AnalyzeTournamentUrlResult =
 
 function analyzeResultFromMeinTurnierplan(
   result: AnalyzeMeinTurnierplanUrlResult,
+  source: TournamentPlanAnalyzeDataSource = 'browser_fallback',
 ): AnalyzeTournamentUrlResult {
   if (result.ok) {
-    return { ok: true, analysis: result.analysis, diagnostics: result.diagnostics };
+    return {
+      ok: true,
+      analysis: result.analysis,
+      diagnostics: { ...result.diagnostics, source },
+    };
   }
   return { ok: false, error: result.failure.message, failure: result.failure };
+}
+
+function serverDiagnosticsFromAnalyzeBody(
+  trimmed: string,
+  body: {
+    extractedId?: string | null;
+    attemptedEndpoints?: string[];
+    diagnostics?: TournamentPlanAnalyzeDiagnostics;
+  },
+): TournamentPlanAnalyzeDiagnostics {
+  const extractedId = body.extractedId ?? extractMeinTurnierplanId(trimmed);
+  return {
+    linkRecognized: body.diagnostics?.linkRecognized ?? isSupportedTournamentPlanHost(trimmed),
+    idExtracted: body.diagnostics?.idExtracted ?? Boolean(extractedId),
+    extractedId,
+    apiReachable: body.diagnostics?.apiReachable ?? true,
+    provider: 'meinturnierplan',
+    attemptedEndpoints: body.diagnostics?.attemptedEndpoints ?? body.attemptedEndpoints ?? [],
+    source: 'server_api',
+  };
+}
+
+async function tryBrowserTournamentPlanFallback(
+  trimmed: string,
+  serverFailure: TournamentPlanAnalyzeFailure | null,
+): Promise<AnalyzeTournamentUrlResult> {
+  const browserResult = await analyzeMeinTurnierplanUrl(trimmed);
+  const converted = analyzeResultFromMeinTurnierplan(browserResult, 'browser_fallback');
+  if (converted.ok) return converted;
+  if (serverFailure) {
+    return { ok: false, error: serverFailure.message, failure: serverFailure };
+  }
+  return converted;
 }
 
 export async function analyzeTournamentUrl(
@@ -765,6 +815,7 @@ export async function analyzeTournamentUrl(
   }
 
   const params = new URLSearchParams({ url: trimmed });
+  let serverFailure: TournamentPlanAnalyzeFailure | null = null;
 
   try {
     const res = await fetch(`/api/tournament-plan/analyze?${params.toString()}`);
@@ -784,12 +835,12 @@ export async function analyzeTournamentUrl(
       return {
         ok: true,
         analysis: body.analysis,
-        diagnostics: body.diagnostics,
+        diagnostics: serverDiagnosticsFromAnalyzeBody(trimmed, body),
       };
     }
 
     if (body.code && body.message) {
-      const failure: TournamentPlanAnalyzeFailure = {
+      serverFailure = {
         code: body.code,
         message: body.message,
         provider: body.provider ?? 'meinturnierplan',
@@ -804,17 +855,20 @@ export async function analyzeTournamentUrl(
           attemptedEndpoints: body.attemptedEndpoints ?? [],
         },
       };
-      return { ok: false, error: failure.message, failure };
+      if (body.code === 'api_unreachable') {
+        return tryBrowserTournamentPlanFallback(trimmed, serverFailure);
+      }
+      return { ok: false, error: serverFailure.message, failure: serverFailure };
     }
 
     if (body.error && res.status !== 404) {
       return { ok: false, error: body.error };
     }
   } catch {
-    /* API nicht erreichbar — Client-Fallback */
+    /* /api nicht erreichbar — Browser-Fallback */
   }
 
-  return analyzeResultFromMeinTurnierplan(await analyzeMeinTurnierplanUrl(trimmed));
+  return tryBrowserTournamentPlanFallback(trimmed, serverFailure);
 }
 
 export async function fetchTournamentImportRecognition(
