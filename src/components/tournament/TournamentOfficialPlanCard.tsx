@@ -18,6 +18,8 @@ import {
   importTournamentPlanFromAnalysis,
   type TournamentImportRecognition,
   type TournamentPlanAnalysis,
+  type TournamentPlanAnalyzeDiagnostics,
+  type TournamentPlanAnalyzeFailure,
   type TournamentPlanRefreshPreview,
 } from '../../lib/tournamentPlanImport';
 import {
@@ -41,6 +43,7 @@ type Props = {
   canManage: boolean;
   onUrlUpdated: (url: string | null) => void;
   onImportComplete: () => void;
+  onScrollToAliases?: () => void;
 };
 
 const inputClass =
@@ -75,6 +78,9 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   const [importLoading, setImportLoading] = useState(false);
   const [importBusy, setImportBusy] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [importAnalyzeFailure, setImportAnalyzeFailure] = useState<TournamentPlanAnalyzeFailure | null>(null);
+  const [importAnalyzeDiagnostics, setImportAnalyzeDiagnostics] =
+    useState<TournamentPlanAnalyzeDiagnostics | null>(null);
   const [importAnalysis, setImportAnalysis] = useState<TournamentPlanAnalysis | null>(null);
   const [recognition, setRecognition] = useState<TournamentImportRecognition | null>(null);
 
@@ -175,6 +181,8 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     setImportLoading(true);
     setImportBusy(false);
     setImportError(null);
+    setImportAnalyzeFailure(null);
+    setImportAnalyzeDiagnostics(null);
     setImportAnalysis(null);
 
     const rec = await fetchTournamentImportRecognition(teamSeasonId);
@@ -185,9 +193,12 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
 
     if (!result.ok) {
       setImportError(result.error);
+      setImportAnalyzeFailure(result.failure ?? null);
+      setImportAnalyzeDiagnostics(result.failure?.diagnostics ?? null);
       return;
     }
 
+    setImportAnalyzeDiagnostics(result.diagnostics ?? null);
     setImportAnalysis(result.analysis);
   }, [officialTournamentUrl, teamSeasonId]);
 
@@ -205,7 +216,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
       analysis: importAnalysis,
       existingTeamNames,
       existingSlots,
-      ownTeamNameHint,
+      knownNames: recognition?.knownNames ?? [],
     });
 
     setImportBusy(false);
@@ -257,6 +268,8 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     setRefreshLoading(true);
     setRefreshBusy(false);
     setRefreshError(null);
+    setRefreshAnalyzeFailure(null);
+    setRefreshAnalyzeDiagnostics(null);
     setRefreshAnalysis(null);
     setRefreshPreview(null);
 
@@ -267,8 +280,12 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     if (!result.ok) {
       setRefreshLoading(false);
       setRefreshError(result.error);
+      setRefreshAnalyzeFailure(result.failure ?? null);
+      setRefreshAnalyzeDiagnostics(result.failure?.diagnostics ?? null);
       return;
     }
+
+    setRefreshAnalyzeDiagnostics(result.diagnostics ?? null);
 
     setRefreshAnalysis(result.analysis);
     const preview = await computeTournamentPlanRefreshPreview({
@@ -467,6 +484,8 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
             loading={refreshLoading}
             importing={refreshBusy}
             error={refreshError}
+            analyzeFailure={refreshAnalyzeFailure}
+            analyzeDiagnostics={refreshAnalyzeDiagnostics}
             preview={refreshPreview}
             analysis={refreshAnalysis}
             recognition={recognition}
@@ -483,6 +502,8 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
             loading={importLoading}
             importing={importBusy}
             error={importError}
+            analyzeFailure={importAnalyzeFailure}
+            analyzeDiagnostics={importAnalyzeDiagnostics}
             analysis={importAnalysis}
             recognition={recognition}
             onClose={() => {

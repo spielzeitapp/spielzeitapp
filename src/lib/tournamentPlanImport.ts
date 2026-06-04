@@ -59,6 +59,46 @@ export type TournamentPlanRefreshPreview = {
 export const TOURNAMENT_IMPORT_UNSUPPORTED_MESSAGE = 'Turnierplan wird aktuell nicht unterstützt.';
 export const TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE = 'Turnierplan konnte nicht analysiert werden.';
 
+export const TOURNAMENT_IMPORT_MANUAL_HINT =
+  'Dieser Turnierplan kann nicht automatisch importiert werden. Teams und Spiele können manuell oder per Schnellimport ergänzt werden.';
+
+export type TournamentPlanAnalyzeErrorCode =
+  | 'unsupported_host'
+  | 'id_not_found'
+  | 'api_unreachable'
+  | 'no_groups'
+  | 'no_teams'
+  | 'no_matches'
+  | 'plan_no_longer_provided'
+  | 'parse_failed';
+
+export type TournamentPlanAnalyzeDiagnostics = {
+  linkRecognized: boolean;
+  idExtracted: boolean;
+  extractedId: string | null;
+  apiReachable: boolean;
+  provider: 'meinturnierplan';
+  attemptedEndpoints: string[];
+};
+
+export type TournamentPlanAnalyzeFailure = {
+  code: TournamentPlanAnalyzeErrorCode;
+  message: string;
+  provider: 'meinturnierplan';
+  extractedId: string | null;
+  attemptedEndpoints: string[];
+  diagnostics: TournamentPlanAnalyzeDiagnostics;
+};
+
+/** Bekannte JSON-Endpoints (Reihenfolge = Fallback-Kette, dokumentiert in Code-Kommentar). */
+export const MEIN_TURNIERPLAN_JSON_ENDPOINT_HOSTS = [
+  'https://www.meinturnierplan.de/json/json.php',
+  'https://meinturnierplan.de/json/json.php',
+  'https://www.meinturnierplan.com/json/json.php',
+  'https://meinturnierplan.com/json/json.php',
+  'http://www.meinturnierplan.de/json/json.php',
+] as const;
+
 const MEIN_TURNIERPLAN_HOSTS = new Set([
   'meinturnierplan.de',
   'www.meinturnierplan.de',
@@ -107,23 +147,299 @@ type MeinTurnierplanJson = {
   courts?: { displayId?: string }[];
 };
 
+/** URL mit fehlendem Schema ergänzen (z. B. meinturnierplan.de/showit.php?id=…). */
+export function normalizeTournamentPlanUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 export function extractMeinTurnierplanId(url: string): string | null {
-  let parsed: URL;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
   try {
-    parsed = new URL(url.trim());
+    const parsed = new URL(normalizeTournamentPlanUrl(trimmed));
+    const fromQuery = parsed.searchParams.get('id')?.trim();
+    if (fromQuery) return fromQuery;
   } catch {
-    return null;
+    /* Regex-Fallback */
   }
-  const id = parsed.searchParams.get('id')?.trim();
-  return id || null;
+
+  const match = trimmed.match(/[?&]id=([^&#]+)/i);
+  const fromRegex = match?.[1]?.trim();
+  return fromRegex || null;
 }
 
 export function isSupportedTournamentPlanHost(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+
   try {
-    return MEIN_TURNIERPLAN_HOSTS.has(new URL(url.trim()).hostname.toLowerCase());
+    const host = new URL(normalizeTournamentPlanUrl(trimmed)).hostname.toLowerCase();
+    if (MEIN_TURNIERPLAN_HOSTS.has(host)) return true;
+    return /(^|\.)meinturnierplan\.(de|com)$/.test(host) || /(^|\.)tournamentbase\.com$/.test(host);
   } catch {
-    return false;
+    return /meinturnierplan\.(de|com)/i.test(trimmed) && /showit\.php/i.test(trimmed);
   }
+}
+
+export function buildMeinTurnierplanJsonEndpoints(tournamentId: string): string[] {
+  const id = tournamentId.trim();
+  return MEIN_TURNIERPLAN_JSON_ENDPOINT_HOSTS.map(
+    (base) => `${base}?id=${encodeURIComponent(id)}`,
+  );
+}
+
+export function messageForTournamentPlanAnalyzeCode(code: TournamentPlanAnalyzeErrorCode): string {
+  switch (code) {
+    case 'unsupported_host':
+      return TOURNAMENT_IMPORT_UNSUPPORTED_MESSAGE;
+    case 'id_not_found':
+      return 'Turnier-ID konnte aus dem Link nicht gelesen werden.';
+    case 'api_unreachable':
+      return 'Die Turnierplan-API von MeinTurnierplan ist nicht erreichbar.';
+    case 'no_groups':
+      return 'Keine Gruppen gefunden.';
+    case 'no_teams':
+      return 'Keine Teams im Turnierplan gefunden.';
+    case 'no_matches':
+      return 'Keine Spiele gefunden.';
+    case 'plan_no_longer_provided':
+      return 'Turnierplan wird von diesem Link nicht mehr bereitgestellt.';
+    case 'parse_failed':
+    default:
+      return TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE;
+  }
+}
+
+/** Rohdaten vor parseMeinTurnierplanJson prüfen (genauere Fehlercodes). */
+export function diagnoseMeinTurnierplanPayload(data: unknown): TournamentPlanAnalyzeErrorCode | 'ok' {
+  if (data == null || typeof data !== 'object') {
+    return 'plan_no_longer_provided';
+  }
+  const json = data as MeinTurnierplanJson;
+  if (!json.participants || typeof json.participants !== 'object') {
+    return 'plan_no_longer_provided';
+  }
+  if (!Array.isArray(json.groups) || json.groups.length === 0) {
+    return 'no_groups';
+  }
+
+  let teamCount = 0;
+  for (let groupIndex = 0; groupIndex < json.groups.length; groupIndex += 1) {
+    const participantIds = json.groupParticipants?.[groupIndex] ?? [];
+    for (const participantId of participantIds) {
+      const teamName = participantName(json.participants, participantId);
+      if (teamName) teamCount += 1;
+    }
+  }
+  if (teamCount === 0) return 'no_teams';
+
+  const groupMatchCount = (json.groupMatches ?? []).filter((m) => {
+    const home = participantName(json.participants, m.homeParticipant);
+    const away = participantName(json.participants, m.awayParticipant);
+    return Boolean(home && away);
+  }).length;
+  const finalMatchCount = (json.finalMatches ?? []).filter((m) => {
+    const home = participantName(json.participants, m.homeParticipant);
+    const away = participantName(json.participants, m.awayParticipant);
+    return Boolean(home && away);
+  }).length;
+  if (groupMatchCount + finalMatchCount === 0) return 'no_matches';
+
+  return 'ok';
+}
+
+type FetchMeinTurnierplanAttempt = {
+  endpoint: string;
+  httpStatus: number | null;
+  networkError: boolean;
+  parseCode: TournamentPlanAnalyzeErrorCode | 'ok' | null;
+};
+
+export async function fetchMeinTurnierplanJsonWithFallbacks(
+  tournamentId: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<
+  | { ok: true; json: unknown; endpoint: string; attemptedEndpoints: string[]; attempts: FetchMeinTurnierplanAttempt[] }
+  | {
+      ok: false;
+      attemptedEndpoints: string[];
+      attempts: FetchMeinTurnierplanAttempt[];
+      apiReachable: boolean;
+      code: TournamentPlanAnalyzeErrorCode;
+    }
+> {
+  const attemptedEndpoints = buildMeinTurnierplanJsonEndpoints(tournamentId);
+  const attempts: FetchMeinTurnierplanAttempt[] = [];
+  let apiReachable = false;
+  let bestFailureCode: TournamentPlanAnalyzeErrorCode = 'plan_no_longer_provided';
+
+  for (const endpoint of attemptedEndpoints) {
+    const attempt: FetchMeinTurnierplanAttempt = {
+      endpoint,
+      httpStatus: null,
+      networkError: false,
+      parseCode: null,
+    };
+    attempts.push(attempt);
+
+    try {
+      const res = await fetchImpl(endpoint, {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'Spielzeitapp/1.0 (+tournament-import)',
+        },
+      });
+      attempt.httpStatus = res.status;
+      apiReachable = true;
+
+      if (!res.ok) {
+        if (res.status >= 500) bestFailureCode = 'api_unreachable';
+        continue;
+      }
+
+      let json: unknown;
+      try {
+        json = await res.json();
+      } catch {
+        attempt.parseCode = 'parse_failed';
+        bestFailureCode = 'parse_failed';
+        continue;
+      }
+
+      const diagnose = diagnoseMeinTurnierplanPayload(json);
+      attempt.parseCode = diagnose;
+      if (diagnose !== 'ok') {
+        if (diagnose === 'no_groups' || diagnose === 'no_teams' || diagnose === 'no_matches') {
+          bestFailureCode = diagnose;
+        } else if (diagnose === 'plan_no_longer_provided') {
+          bestFailureCode = diagnose;
+        }
+        continue;
+      }
+
+      const analysis = parseMeinTurnierplanJson(json);
+      if (analysis) {
+        return { ok: true, json, endpoint, attemptedEndpoints, attempts };
+      }
+      attempt.parseCode = 'parse_failed';
+      bestFailureCode = 'parse_failed';
+    } catch {
+      attempt.networkError = true;
+    }
+  }
+
+  const code: TournamentPlanAnalyzeErrorCode = apiReachable ? bestFailureCode : 'api_unreachable';
+  return { ok: false, attemptedEndpoints, attempts, apiReachable, code };
+}
+
+export function buildTournamentPlanAnalyzeFailure(params: {
+  code: TournamentPlanAnalyzeErrorCode;
+  extractedId: string | null;
+  attemptedEndpoints: string[];
+  apiReachable: boolean;
+  linkRecognized: boolean;
+  idExtracted: boolean;
+}): TournamentPlanAnalyzeFailure {
+  return {
+    code: params.code,
+    message: messageForTournamentPlanAnalyzeCode(params.code),
+    provider: 'meinturnierplan',
+    extractedId: params.extractedId,
+    attemptedEndpoints: params.attemptedEndpoints,
+    diagnostics: {
+      linkRecognized: params.linkRecognized,
+      idExtracted: params.idExtracted,
+      extractedId: params.extractedId,
+      apiReachable: params.apiReachable,
+      provider: 'meinturnierplan',
+      attemptedEndpoints: params.attemptedEndpoints,
+    },
+  };
+}
+
+export type AnalyzeMeinTurnierplanUrlResult =
+  | { ok: true; analysis: TournamentPlanAnalysis; diagnostics: TournamentPlanAnalyzeDiagnostics }
+  | { ok: false; failure: TournamentPlanAnalyzeFailure; httpStatus: number };
+
+export async function analyzeMeinTurnierplanUrl(
+  url: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<AnalyzeMeinTurnierplanUrlResult> {
+  const trimmed = url.trim();
+  const linkRecognized = Boolean(trimmed) && isSupportedTournamentPlanHost(trimmed);
+
+  if (!linkRecognized) {
+    const failure = buildTournamentPlanAnalyzeFailure({
+      code: 'unsupported_host',
+      extractedId: null,
+      attemptedEndpoints: [],
+      apiReachable: false,
+      linkRecognized: false,
+      idExtracted: false,
+    });
+    return { ok: false, failure, httpStatus: 422 };
+  }
+
+  const extractedId = extractMeinTurnierplanId(trimmed);
+  const idExtracted = Boolean(extractedId);
+
+  if (!extractedId) {
+    const failure = buildTournamentPlanAnalyzeFailure({
+      code: 'id_not_found',
+      extractedId: null,
+      attemptedEndpoints: [],
+      apiReachable: false,
+      linkRecognized: true,
+      idExtracted: false,
+    });
+    return { ok: false, failure, httpStatus: 422 };
+  }
+
+  const fetchResult = await fetchMeinTurnierplanJsonWithFallbacks(extractedId, fetchImpl);
+
+  if (fetchResult.ok) {
+    const analysis = parseMeinTurnierplanJson(fetchResult.json);
+    if (analysis) {
+      return {
+        ok: true,
+        analysis,
+        diagnostics: {
+          linkRecognized: true,
+          idExtracted: true,
+          extractedId,
+          apiReachable: true,
+          provider: 'meinturnierplan',
+          attemptedEndpoints: fetchResult.attemptedEndpoints,
+        },
+      };
+    }
+
+    const parseFailure = buildTournamentPlanAnalyzeFailure({
+      code: 'parse_failed',
+      extractedId,
+      attemptedEndpoints: fetchResult.attemptedEndpoints,
+      apiReachable: true,
+      linkRecognized: true,
+      idExtracted: true,
+    });
+    return { ok: false, failure: parseFailure, httpStatus: 422 };
+  }
+
+  const failure = buildTournamentPlanAnalyzeFailure({
+    code: fetchResult.code,
+    extractedId,
+    attemptedEndpoints: fetchResult.attemptedEndpoints,
+    apiReachable: fetchResult.apiReachable,
+    linkRecognized: true,
+    idExtracted: true,
+  });
+
+  const httpStatus = failure.code === 'api_unreachable' ? 502 : 422;
+  return { ok: false, failure, httpStatus };
 }
 
 function participantName(
@@ -418,13 +734,34 @@ export async function computeTournamentPlanRefreshPreview(params: {
   return { newTeams, newMatches, existingMatches };
 }
 
+export type AnalyzeTournamentUrlResult =
+  | { ok: true; analysis: TournamentPlanAnalysis; diagnostics?: TournamentPlanAnalyzeDiagnostics }
+  | { ok: false; error: string; failure?: TournamentPlanAnalyzeFailure };
+
+function analyzeResultFromMeinTurnierplan(
+  result: AnalyzeMeinTurnierplanUrlResult,
+): AnalyzeTournamentUrlResult {
+  if (result.ok) {
+    return { ok: true, analysis: result.analysis, diagnostics: result.diagnostics };
+  }
+  return { ok: false, error: result.failure.message, failure: result.failure };
+}
+
 export async function analyzeTournamentUrl(
   url: string,
   _ownTeamNameHint?: string | null,
-): Promise<{ ok: true; analysis: TournamentPlanAnalysis } | { ok: false; error: string }> {
+): Promise<AnalyzeTournamentUrlResult> {
   const trimmed = url.trim();
   if (!trimmed) {
-    return { ok: false, error: TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE };
+    const failure = buildTournamentPlanAnalyzeFailure({
+      code: 'id_not_found',
+      extractedId: null,
+      attemptedEndpoints: [],
+      apiReachable: false,
+      linkRecognized: false,
+      idExtracted: false,
+    });
+    return { ok: false, error: failure.message, failure };
   }
 
   const params = new URLSearchParams({ url: trimmed });
@@ -434,50 +771,50 @@ export async function analyzeTournamentUrl(
     const body = (await res.json()) as {
       ok?: boolean;
       analysis?: TournamentPlanAnalysis;
+      diagnostics?: TournamentPlanAnalyzeDiagnostics;
       error?: string;
+      code?: TournamentPlanAnalyzeErrorCode;
+      message?: string;
+      provider?: 'meinturnierplan';
+      extractedId?: string | null;
+      attemptedEndpoints?: string[];
     };
 
     if (res.ok && body.ok && body.analysis) {
-      return { ok: true, analysis: body.analysis };
+      return {
+        ok: true,
+        analysis: body.analysis,
+        diagnostics: body.diagnostics,
+      };
+    }
+
+    if (body.code && body.message) {
+      const failure: TournamentPlanAnalyzeFailure = {
+        code: body.code,
+        message: body.message,
+        provider: body.provider ?? 'meinturnierplan',
+        extractedId: body.extractedId ?? null,
+        attemptedEndpoints: body.attemptedEndpoints ?? [],
+        diagnostics: {
+          linkRecognized: isSupportedTournamentPlanHost(trimmed),
+          idExtracted: Boolean(body.extractedId),
+          extractedId: body.extractedId ?? null,
+          apiReachable: body.code !== 'api_unreachable',
+          provider: 'meinturnierplan',
+          attemptedEndpoints: body.attemptedEndpoints ?? [],
+        },
+      };
+      return { ok: false, error: failure.message, failure };
     }
 
     if (body.error && res.status !== 404) {
       return { ok: false, error: body.error };
     }
   } catch {
-    /* API nicht erreichbar */
+    /* API nicht erreichbar — Client-Fallback */
   }
 
-  return analyzeTournamentUrlDirect(trimmed);
-}
-
-async function analyzeTournamentUrlDirect(
-  url: string,
-): Promise<{ ok: true; analysis: TournamentPlanAnalysis } | { ok: false; error: string }> {
-  if (!isSupportedTournamentPlanHost(url)) {
-    return { ok: false, error: TOURNAMENT_IMPORT_UNSUPPORTED_MESSAGE };
-  }
-
-  const tournamentId = extractMeinTurnierplanId(url);
-  if (!tournamentId) {
-    return { ok: false, error: TOURNAMENT_IMPORT_UNSUPPORTED_MESSAGE };
-  }
-
-  try {
-    const res = await fetch(
-      `https://www.meinturnierplan.de/json/json.php?id=${encodeURIComponent(tournamentId)}`,
-    );
-    if (!res.ok) {
-      return { ok: false, error: TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE };
-    }
-    const analysis = parseMeinTurnierplanJson(await res.json());
-    if (!analysis) {
-      return { ok: false, error: TOURNAMENT_IMPORT_UNSUPPORTED_MESSAGE };
-    }
-    return { ok: true, analysis };
-  } catch {
-    return { ok: false, error: TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE };
-  }
+  return analyzeResultFromMeinTurnierplan(await analyzeMeinTurnierplanUrl(trimmed));
 }
 
 export async function fetchTournamentImportRecognition(

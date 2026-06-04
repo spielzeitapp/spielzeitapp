@@ -1,10 +1,10 @@
 import {
+  analyzeMeinTurnierplanUrl,
   extractMeinTurnierplanId,
-  isSupportedTournamentPlanHost,
-  parseMeinTurnierplanJson,
   TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE,
-  TOURNAMENT_IMPORT_UNSUPPORTED_MESSAGE,
   type TournamentPlanAnalysis,
+  type TournamentPlanAnalyzeDiagnostics,
+  type TournamentPlanAnalyzeFailure,
 } from '../../src/lib/tournamentPlanImport';
 
 type VercelLikeReq = {
@@ -25,53 +25,61 @@ function queryParam(
   return raw ?? '';
 }
 
-async function fetchMeinTurnierplanJson(tournamentId: string): Promise<unknown> {
-  const endpoint = `https://www.meinturnierplan.de/json/json.php?id=${encodeURIComponent(tournamentId)}`;
-  const res = await fetch(endpoint, {
-    headers: {
-      Accept: 'application/json',
-      'User-Agent': 'Spielzeitapp/1.0 (+tournament-import)',
-    },
-  });
-  if (!res.ok) {
-    throw new Error(TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE);
-  }
-  return res.json();
+function failureJson(failure: TournamentPlanAnalyzeFailure): Record<string, unknown> {
+  return {
+    ok: false,
+    error: failure.message,
+    code: failure.code,
+    message: failure.message,
+    provider: failure.provider,
+    extractedId: failure.extractedId,
+    attemptedEndpoints: failure.attemptedEndpoints,
+    diagnostics: failure.diagnostics,
+  };
 }
 
 export default async function handler(req: VercelLikeReq, res: VercelLikeRes): Promise<void> {
   if (req.method !== 'GET') {
-    res.status(405).json({ ok: false, error: 'Method not allowed' });
+    res.status(405).json({ ok: false, error: 'Method not allowed', code: 'parse_failed' });
     return;
   }
 
   const url = queryParam(req.query, 'url').trim();
   if (!url) {
-    res.status(400).json({ ok: false, error: TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE });
-    return;
-  }
-
-  if (!isSupportedTournamentPlanHost(url)) {
-    res.status(422).json({ ok: false, error: TOURNAMENT_IMPORT_UNSUPPORTED_MESSAGE });
-    return;
-  }
-
-  const tournamentId = extractMeinTurnierplanId(url);
-  if (!tournamentId) {
-    res.status(422).json({ ok: false, error: TOURNAMENT_IMPORT_UNSUPPORTED_MESSAGE });
+    res.status(400).json({
+      ok: false,
+      error: TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE,
+      code: 'id_not_found',
+      message: 'URL fehlt.',
+      provider: 'meinturnierplan',
+      extractedId: null,
+      attemptedEndpoints: [],
+    });
     return;
   }
 
   try {
-    const json = await fetchMeinTurnierplanJson(tournamentId);
-    const analysis = parseMeinTurnierplanJson(json);
-    if (!analysis) {
-      res.status(422).json({ ok: false, error: TOURNAMENT_IMPORT_UNSUPPORTED_MESSAGE });
+    const result = await analyzeMeinTurnierplanUrl(url);
+
+    if (result.ok) {
+      res.status(200).json({
+        ok: true,
+        analysis: result.analysis satisfies TournamentPlanAnalysis,
+        diagnostics: result.diagnostics satisfies TournamentPlanAnalyzeDiagnostics,
+      });
       return;
     }
 
-    res.status(200).json({ ok: true, analysis } satisfies { ok: true; analysis: TournamentPlanAnalysis });
+    res.status(result.httpStatus).json(failureJson(result.failure));
   } catch {
-    res.status(502).json({ ok: false, error: TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE });
+    res.status(502).json({
+      ok: false,
+      error: TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE,
+      code: 'api_unreachable',
+      message: TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE,
+      provider: 'meinturnierplan',
+      extractedId: extractMeinTurnierplanId(url),
+      attemptedEndpoints: [],
+    });
   }
 }

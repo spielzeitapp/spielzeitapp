@@ -2,15 +2,23 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { FileDown } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
-import { countOwnTeamMatchesInAnalysis, type TournamentImportRecognition } from '../../lib/tournamentPlanImport';
-import type { TournamentPlanAnalysis } from '../../lib/tournamentPlanImport';
+import {
+  countOwnTeamMatchesInAnalysis,
+  type TournamentImportRecognition,
+  type TournamentPlanAnalysis,
+  type TournamentPlanAnalyzeDiagnostics,
+  type TournamentPlanAnalyzeFailure,
+} from '../../lib/tournamentPlanImport';
 import { TournamentImportRecognitionPanel } from './TournamentImportRecognitionPanel';
+import { TournamentPlanAnalyzeDebugPanel } from './TournamentPlanAnalyzeDebugPanel';
 
 type Props = {
   isOpen: boolean;
   loading: boolean;
   importing: boolean;
   error: string | null;
+  analyzeFailure: TournamentPlanAnalyzeFailure | null;
+  analyzeDiagnostics: TournamentPlanAnalyzeDiagnostics | null;
   analysis: TournamentPlanAnalysis | null;
   recognition: TournamentImportRecognition | null;
   onClose: () => void;
@@ -29,6 +37,8 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
   loading,
   importing,
   error,
+  analyzeFailure,
+  analyzeDiagnostics,
   analysis,
   recognition,
   onClose,
@@ -69,9 +79,14 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
           {loading ? (
             <p className="text-[14px] text-white/70">Turnierplan wird analysiert…</p>
           ) : error ? (
-            <p className="text-[13px] text-red-300/90" role="alert">
-              {error}
-            </p>
+            <>
+              {!analyzeFailure ? (
+                <p className="text-[13px] text-red-300/90" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              <TournamentPlanAnalyzeDebugPanel failure={analyzeFailure} diagnostics={analyzeDiagnostics} />
+            </>
           ) : analysis ? (
             <>
               <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[14px] text-white/85">

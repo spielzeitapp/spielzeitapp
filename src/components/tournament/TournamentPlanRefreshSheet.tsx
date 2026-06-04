@@ -5,16 +5,21 @@ import { AppButton } from '../ui/AppButton';
 import {
   countOwnTeamMatchesInAnalysis,
   type TournamentImportRecognition,
+  type TournamentPlanAnalysis,
+  type TournamentPlanAnalyzeDiagnostics,
+  type TournamentPlanAnalyzeFailure,
   type TournamentPlanRefreshPreview,
 } from '../../lib/tournamentPlanImport';
-import type { TournamentPlanAnalysis } from '../../lib/tournamentPlanImport';
 import { TournamentImportRecognitionPanel } from './TournamentImportRecognitionPanel';
+import { TournamentPlanAnalyzeDebugPanel } from './TournamentPlanAnalyzeDebugPanel';
 
 type Props = {
   isOpen: boolean;
   loading: boolean;
   importing: boolean;
   error: string | null;
+  analyzeFailure: TournamentPlanAnalyzeFailure | null;
+  analyzeDiagnostics: TournamentPlanAnalyzeDiagnostics | null;
   preview: TournamentPlanRefreshPreview | null;
   analysis: TournamentPlanAnalysis | null;
   recognition: TournamentImportRecognition | null;
@@ -71,9 +76,14 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
           {loading ? (
             <p className="text-[14px] text-white/70">Turnierplan wird geladen…</p>
           ) : error ? (
-            <p className="text-[13px] text-red-300/90" role="alert">
-              {error}
-            </p>
+            <>
+              {!analyzeFailure ? (
+                <p className="text-[13px] text-red-300/90" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              <TournamentPlanAnalyzeDebugPanel failure={analyzeFailure} diagnostics={analyzeDiagnostics} />
+            </>
           ) : preview ? (
             <>
               <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-[14px] text-white/85">
