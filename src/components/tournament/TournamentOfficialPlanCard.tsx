@@ -14,8 +14,9 @@ import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import {
   analyzeTournamentUrl,
   computeTournamentPlanRefreshPreview,
-  fetchOwnTeamNameHint,
+  fetchTournamentImportRecognition,
   importTournamentPlanFromAnalysis,
+  type TournamentImportRecognition,
   type TournamentPlanAnalysis,
   type TournamentPlanRefreshPreview,
 } from '../../lib/tournamentPlanImport';
@@ -56,6 +57,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   canManage,
   onUrlUpdated,
   onImportComplete,
+  onScrollToAliases,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [draftUrl, setDraftUrl] = useState('');
@@ -74,7 +76,14 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   const [importBusy, setImportBusy] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importAnalysis, setImportAnalysis] = useState<TournamentPlanAnalysis | null>(null);
-  const [ownTeamNameHint, setOwnTeamNameHint] = useState<string | null>(null);
+  const [recognition, setRecognition] = useState<TournamentImportRecognition | null>(null);
+
+  const [refreshSheetOpen, setRefreshSheetOpen] = useState(false);
+  const [refreshLoading, setRefreshLoading] = useState(false);
+  const [refreshBusy, setRefreshBusy] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [refreshAnalysis, setRefreshAnalysis] = useState<TournamentPlanAnalysis | null>(null);
+  const [refreshPreview, setRefreshPreview] = useState<TournamentPlanRefreshPreview | null>(null);
 
   const hasUrl = Boolean(officialTournamentUrl?.trim());
   const domain = displayDomainFromOfficialPlanUrl(officialTournamentUrl);
@@ -168,10 +177,10 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     setImportError(null);
     setImportAnalysis(null);
 
-    const hint = await fetchOwnTeamNameHint(teamSeasonId);
-    setOwnTeamNameHint(hint);
+    const rec = await fetchTournamentImportRecognition(teamSeasonId);
+    setRecognition(rec);
 
-    const result = await analyzeTournamentUrl(url, hint);
+    const result = await analyzeTournamentUrl(url);
     setImportLoading(false);
 
     if (!result.ok) {
@@ -228,11 +237,17 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     importAnalysis,
     location,
     onImportComplete,
-    ownTeamNameHint,
+    recognition,
     teamSeasonId,
     tournamentDayIso,
     tournamentEventId,
   ]);
+
+  const scrollToAliases = useCallback(() => {
+    setImportSheetOpen(false);
+    setRefreshSheetOpen(false);
+    onScrollToAliases?.();
+  }, [onScrollToAliases]);
 
   const startRefresh = useCallback(async () => {
     const url = officialTournamentUrl?.trim();
@@ -245,10 +260,10 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     setRefreshAnalysis(null);
     setRefreshPreview(null);
 
-    const hint = await fetchOwnTeamNameHint(teamSeasonId);
-    setOwnTeamNameHint(hint);
+    const rec = await fetchTournamentImportRecognition(teamSeasonId);
+    setRecognition(rec);
 
-    const result = await analyzeTournamentUrl(url, hint);
+    const result = await analyzeTournamentUrl(url);
     if (!result.ok) {
       setRefreshLoading(false);
       setRefreshError(result.error);
@@ -260,7 +275,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
       analysis: result.analysis,
       existingTeamNames,
       existingSlots,
-      ownTeamNameHint: hint,
+      knownNames: rec.knownNames,
     });
     setRefreshPreview(preview);
     setRefreshLoading(false);
@@ -280,7 +295,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
       analysis: refreshAnalysis,
       existingTeamNames,
       existingSlots,
-      ownTeamNameHint,
+      knownNames: recognition?.knownNames ?? [],
     });
 
     setRefreshBusy(false);
@@ -311,7 +326,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     existingTeamNames,
     location,
     onImportComplete,
-    ownTeamNameHint,
+    recognition,
     refreshAnalysis,
     teamSeasonId,
     tournamentDayIso,
@@ -453,11 +468,14 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
             importing={refreshBusy}
             error={refreshError}
             preview={refreshPreview}
+            analysis={refreshAnalysis}
+            recognition={recognition}
             onClose={() => {
               if (refreshBusy) return;
               setRefreshSheetOpen(false);
             }}
             onImport={() => void handleRefreshConfirm()}
+            onAddAlias={scrollToAliases}
           />
 
           <TournamentPlanImportSheet
@@ -466,12 +484,13 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
             importing={importBusy}
             error={importError}
             analysis={importAnalysis}
-            ownTeamNameHint={ownTeamNameHint}
+            recognition={recognition}
             onClose={() => {
               if (importBusy) return;
               setImportSheetOpen(false);
             }}
             onImport={() => void handleImportConfirm()}
+            onAddAlias={scrollToAliases}
           />
 
           <Modal

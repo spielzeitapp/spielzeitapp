@@ -2,7 +2,13 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { RefreshCw } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
-import type { TournamentPlanRefreshPreview } from '../../lib/tournamentPlanImport';
+import {
+  countOwnTeamMatchesInAnalysis,
+  type TournamentImportRecognition,
+  type TournamentPlanRefreshPreview,
+} from '../../lib/tournamentPlanImport';
+import type { TournamentPlanAnalysis } from '../../lib/tournamentPlanImport';
+import { TournamentImportRecognitionPanel } from './TournamentImportRecognitionPanel';
 
 type Props = {
   isOpen: boolean;
@@ -10,8 +16,11 @@ type Props = {
   importing: boolean;
   error: string | null;
   preview: TournamentPlanRefreshPreview | null;
+  analysis: TournamentPlanAnalysis | null;
+  recognition: TournamentImportRecognition | null;
   onClose: () => void;
   onImport: () => void;
+  onAddAlias: () => void;
 };
 
 export const TournamentPlanRefreshSheet: React.FC<Props> = ({
@@ -20,13 +29,18 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
   importing,
   error,
   preview,
+  analysis,
+  recognition,
   onClose,
   onImport,
+  onAddAlias,
 }) => {
   if (!isOpen || typeof document === 'undefined') return null;
 
   const noNewMatches = preview && preview.newMatches === 0;
   const canImport = Boolean(preview && (preview.newMatches > 0 || preview.newTeams > 0));
+  const ownTeamMatchCount =
+    analysis && recognition ? countOwnTeamMatchesInAnalysis(analysis, recognition.knownNames) : 0;
 
   return createPortal(
     <div
@@ -70,6 +84,11 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
               {noNewMatches ? (
                 <p className="text-[14px] text-white/70">Keine neuen Spiele gefunden.</p>
               ) : null}
+              <TournamentImportRecognitionPanel
+                recognition={recognition}
+                ownMatchCount={ownTeamMatchCount}
+                onAddAlias={onAddAlias}
+              />
             </>
           ) : null}
 

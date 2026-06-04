@@ -2,7 +2,9 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { FileDown } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
+import { countOwnTeamMatchesInAnalysis, type TournamentImportRecognition } from '../../lib/tournamentPlanImport';
 import type { TournamentPlanAnalysis } from '../../lib/tournamentPlanImport';
+import { TournamentImportRecognitionPanel } from './TournamentImportRecognitionPanel';
 
 type Props = {
   isOpen: boolean;
@@ -10,9 +12,10 @@ type Props = {
   importing: boolean;
   error: string | null;
   analysis: TournamentPlanAnalysis | null;
-  ownTeamNameHint: string | null;
+  recognition: TournamentImportRecognition | null;
   onClose: () => void;
   onImport: () => void;
+  onAddAlias: () => void;
 };
 
 function formatGroupLine(summary: { label: string; teamCount: number }): string {
@@ -27,24 +30,15 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
   importing,
   error,
   analysis,
-  ownTeamNameHint,
+  recognition,
   onClose,
   onImport,
+  onAddAlias,
 }) => {
   if (!isOpen || typeof document === 'undefined') return null;
 
   const ownTeamMatchCount =
-    analysis && ownTeamNameHint
-      ? analysis.rawMatches.filter((match) => {
-          const hint = ownTeamNameHint.trim().toLowerCase();
-          return (
-            match.homeTeam.toLowerCase().includes(hint) ||
-            match.awayTeam.toLowerCase().includes(hint) ||
-            hint.includes(match.homeTeam.toLowerCase()) ||
-            hint.includes(match.awayTeam.toLowerCase())
-          );
-        }).length
-      : null;
+    analysis && recognition ? countOwnTeamMatchesInAnalysis(analysis, recognition.knownNames) : 0;
 
   return createPortal(
     <div
@@ -100,11 +94,11 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
                   : `${analysis.preliminaryMatchCount} Vorrundenspiele`}
               </p>
 
-              {ownTeamMatchCount != null ? (
-                <p className="text-[12px] text-white/55">
-                  Davon {ownTeamMatchCount} Spiele für dein Team werden importiert.
-                </p>
-              ) : null}
+              <TournamentImportRecognitionPanel
+                recognition={recognition}
+                ownMatchCount={ownTeamMatchCount}
+                onAddAlias={onAddAlias}
+              />
             </>
           ) : null}
 

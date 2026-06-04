@@ -1,3 +1,9 @@
+import {
+  buildTournamentImportRecognition,
+  isTeamAliasMatch,
+  type TournamentImportRecognition,
+} from './teamSeasonAliases';
+
 export type TournamentMatchPhase = 'group' | 'placement' | 'semifinal' | 'final' | 'unknown';
 
 export type TournamentPlanImportTeam = {
@@ -41,6 +47,8 @@ export type TournamentPlanImportMatch = {
   pitch: string | null;
   dedupeKey: string;
 };
+
+export type { TournamentImportRecognition };
 
 export type TournamentPlanRefreshPreview = {
   newTeams: number;
@@ -296,37 +304,50 @@ export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis 
 
 export function findOwnTeamInImport(
   teams: TournamentPlanImportTeam[],
-  ownTeamNameHint: string | null | undefined,
+  knownNames: string[],
 ): string | null {
-  const hint = normalizeTeamMatchKey(ownTeamNameHint ?? '');
-  if (!hint) return null;
+  if (knownNames.length === 0) return null;
 
-  const exact = teams.find((t) => normalizeTeamMatchKey(t.teamName) === hint);
-  if (exact) return exact.teamName;
+  for (const team of teams) {
+    if (isTeamAliasMatch(team.teamName, knownNames)) {
+      return team.teamName;
+    }
+  }
+  return null;
+}
 
-  const contains = teams.find((t) => {
-    const key = normalizeTeamMatchKey(t.teamName);
-    return key.includes(hint) || hint.includes(key);
-  });
-  return contains?.teamName ?? null;
+export function countOwnTeamMatchesInAnalysis(
+  analysis: TournamentPlanAnalysis,
+  knownNames: string[],
+): number {
+  if (knownNames.length === 0) return 0;
+
+  const { isTeamAliasMatch } = require('./teamSeasonAliases') as typeof import('./teamSeasonAliases');
+
+  let count = 0;
+  for (const match of analysis.rawMatches) {
+    const homeOurs = isTeamAliasMatch(match.homeTeam, knownNames);
+    const awayOurs = isTeamAliasMatch(match.awayTeam, knownNames);
+    if (homeOurs !== awayOurs) count += 1;
+  }
+  return count;
 }
 
 export function buildImportMatchesForOwnTeam(
   rawMatches: TournamentPlanImportRawMatch[],
-  ownTeamName: string | null,
+  knownNames: string[],
 ): TournamentPlanImportMatch[] {
-  if (!ownTeamName) return [];
+  if (knownNames.length === 0) return [];
 
-  const ownKey = normalizeTeamMatchKey(ownTeamName);
   const result: TournamentPlanImportMatch[] = [];
 
   for (const match of rawMatches) {
-    const homeKey = normalizeTeamMatchKey(match.homeTeam);
-    const awayKey = normalizeTeamMatchKey(match.awayTeam);
+    const homeOurs = isTeamAliasMatch(match.homeTeam, knownNames);
+    const awayOurs = isTeamAliasMatch(match.awayTeam, knownNames);
     let opponentName: string | null = null;
 
-    if (homeKey === ownKey) opponentName = match.awayTeam;
-    else if (awayKey === ownKey) opponentName = match.homeTeam;
+    if (homeOurs && !awayOurs) opponentName = match.awayTeam;
+    else if (awayOurs && !homeOurs) opponentName = match.homeTeam;
 
     if (!opponentName) continue;
 
@@ -358,7 +379,7 @@ export async function computeTournamentPlanRefreshPreview(params: {
     group_label: string | null;
     phase?: string | null;
   }>;
-  ownTeamNameHint?: string | null;
+  knownNames?: string[];
 }): Promise<TournamentPlanRefreshPreview> {
   const { formatTournamentKickoffTime } = await import('./tournamentPlan');
 
@@ -381,8 +402,8 @@ export async function computeTournamentPlanRefreshPreview(params: {
     ),
   );
 
-  const ownTeamName = findOwnTeamInImport(params.analysis.teams, params.ownTeamNameHint);
-  const importMatches = buildImportMatchesForOwnTeam(params.analysis.rawMatches, ownTeamName);
+  const knownNames = params.knownNames ?? [];
+  const importMatches = buildImportMatchesForOwnTeam(params.analysis.rawMatches, knownNames);
 
   let newMatches = 0;
   let existingMatches = 0;
@@ -459,20 +480,16 @@ async function analyzeTournamentUrlDirect(
   }
 }
 
+export async function fetchTournamentImportRecognition(
+  teamSeasonId: string,
+): Promise<TournamentImportRecognition> {
+  return buildTournamentImportRecognition(teamSeasonId);
+}
+
+/** @deprecated Nutze fetchTournamentImportRecognition — erster bekannter Name. */
 export async function fetchOwnTeamNameHint(teamSeasonId: string): Promise<string | null> {
-  const { supabase } = await import('./supabaseClient');
-  const { data, error } = await supabase
-    .from('team_seasons')
-    .select('name, teams(name)')
-    .eq('id', teamSeasonId)
-    .maybeSingle();
-
-  if (error || !data) return null;
-
-  const row = data as { name?: string | null; teams?: { name?: string } | { name?: string }[] | null };
-  const teams = row.teams;
-  const teamObj = Array.isArray(teams) ? teams[0] : teams;
-  return (teamObj?.name ?? row.name ?? '').trim() || null;
+  const recognition = await fetchTournamentImportRecognition(teamSeasonId);
+  return recognition.knownNames[0] ?? null;
 }
 
 export async function importTournamentPlanFromAnalysis(params: {
@@ -488,7 +505,7 @@ export async function importTournamentPlanFromAnalysis(params: {
     group_label: string | null;
     phase?: string | null;
   }>;
-  ownTeamNameHint?: string | null;
+  knownNames?: string[];
 }): Promise<{
   importedTeams: number;
   importedMatches: number;
@@ -526,8 +543,8 @@ export async function importTournamentPlanFromAnalysis(params: {
     importedTeams += 1;
   }
 
-  const ownTeamName = findOwnTeamInImport(params.analysis.teams, params.ownTeamNameHint);
-  const importMatches = buildImportMatchesForOwnTeam(params.analysis.rawMatches, ownTeamName);
+  const knownNames = params.knownNames ?? [];
+  const importMatches = buildImportMatchesForOwnTeam(params.analysis.rawMatches, knownNames);
   const existingMatchKeys = new Set(
     params.existingSlots.map((slot) =>
       buildTournamentMatchDedupeKey({

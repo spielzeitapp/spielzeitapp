@@ -28,6 +28,7 @@ import {
 } from '../../lib/tournamentPlan';
 import { TournamentHeroCard } from './TournamentHeroCard';
 import { TournamentOfficialPlanCard } from './TournamentOfficialPlanCard';
+import { TournamentTeamAliasesCard } from './TournamentTeamAliasesCard';
 
 type Props = {
   tournamentEventId: string;
@@ -76,6 +77,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [importBusy, setImportBusy] = useState(false);
   const [importModalError, setImportModalError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [aliasesReloadToken, setAliasesReloadToken] = useState(0);
 
   const [matchModalOpen, setMatchModalOpen] = useState(false);
   const [matchOpponent, setMatchOpponent] = useState('');
@@ -112,6 +114,13 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const participantGroups = useMemo(() => groupParticipantsByLabel(participants), [participants]);
 
   const existingTeamNames = useMemo(() => participants.map((p) => p.team_name), [participants]);
+
+  const scrollToTeamAliases = useCallback(() => {
+    setAliasesReloadToken((t) => t + 1);
+    requestAnimationFrame(() => {
+      document.getElementById('tournament-team-aliases')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
 
   const importPreviewCount = useMemo(
     () => parseTournamentParticipantImportLines(importText, existingTeamNames).length,
@@ -278,6 +287,13 @@ export const TournamentDetailSections: React.FC<Props> = ({
         canManage={canManage}
         onUrlUpdated={onOfficialTournamentUrlUpdated}
         onImportComplete={() => void reload()}
+        onScrollToAliases={scrollToTeamAliases}
+      />
+
+      <TournamentTeamAliasesCard
+        teamSeasonId={teamSeasonId}
+        canManage={canManage}
+        reloadToken={aliasesReloadToken}
       />
 
       <Card className="relative border border-purple-500/20 bg-purple-950/15">
