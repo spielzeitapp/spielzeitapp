@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
-import { fetchMatchById, LIVE_FIELD_SLOT_ORDER } from './liveMatchService';
-import { isU11FormationId, type U11FormationId } from './matchFormations';
+import { fetchLineupForLiveMatch, fetchMatchById, LIVE_FIELD_SLOT_ORDER } from './liveMatchService';
+import { isU11FormationId, labelForSlotInFormation, type U11FormationId } from './matchFormations';
+import type { FieldSlotId } from '../types/match';
 import { premiumPlayerDisplayName } from './premiumPlayerCard';
 import {
   buildAutoLineupFeedCaption,
@@ -90,13 +91,36 @@ async function isDedupeSuppressed(dedupe_key: string): Promise<boolean> {
   return Boolean(data?.dedupe_key);
 }
 
-function countFieldPlayers(
-  rows: Array<{ slot: FieldSlotId; player_id: string | null }>,
-): number {
+export type SavedLineupFeedSource = 'match_lineup' | 'match_lineup_slots';
+
+/** Gleiche Slot-Zuordnung wie MatchLineupPage / fetchLineupForLiveMatch. */
+function slotMapFromLineupRows(
+  lineupRows: Array<{ player_id: string | null; slot?: string | null }>,
+): Map<FieldSlotId, string> {
+  const bySlot: Partial<Record<FieldSlotId, string>> = {};
+  for (const row of lineupRows) {
+    const slotRaw = String(row.slot ?? '').trim().toUpperCase();
+    const slot = slotRaw as FieldSlotId;
+    const pid = typeof row.player_id === 'string' && row.player_id.length > 0 ? row.player_id.trim() : '';
+    if (!pid || LIVE_FIELD_SLOT_ORDER.indexOf(slot) === -1) continue;
+    bySlot[slot] = pid;
+  }
+  const seenOnField = new Set<string>();
+  const out = new Map<FieldSlotId, string>();
+  for (const s of LIVE_FIELD_SLOT_ORDER) {
+    const pid = bySlot[s]?.trim() ?? '';
+    if (!pid || seenOnField.has(pid)) continue;
+    seenOnField.add(pid);
+    out.set(s, pid);
+  }
+  return out;
+}
+
+function countFieldPlayersFromSlotMap(slotToPlayer: Map<FieldSlotId, string>): number {
   let n = 0;
-  for (const row of rows) {
-    if (row.slot === 'GK') continue;
-    if (row.player_id?.trim()) n += 1;
+  for (const slot of LIVE_FIELD_SLOT_ORDER) {
+    if (slot === 'GK') continue;
+    if (slotToPlayer.get(slot)) n += 1;
   }
   return n;
 }
@@ -107,49 +131,24 @@ function minutesUntilKickoff(startsAtIso: string, now: Date): number | null {
   return (kick.getTime() - now.getTime()) / 60_000;
 }
 
-async function fetchLineupPlayers(matchId: string): Promise<{
-  fieldCount: number;
-  players: LineupFeedPlayer[];
-  formation: string | null;
-} | null> {
-  const { data: lineupRows, error: lineupErr } = await supabase
-    .from('match_lineup')
-    .select('slot, player_id')
-    .eq('match_id', matchId);
+async function fetchFormationForMatch(matchId: string): Promise<U11FormationId | null> {
+  const { data: matchRow } = await supabase
+    .from('matches')
+    .select('u11_formation_id')
+    .eq('id', matchId)
+    .maybeSingle();
+  const rawFormation = (matchRow as { u11_formation_id?: string | null } | null)?.u11_formation_id;
+  return isU11FormationId(rawFormation) ? rawFormation : null;
+}
 
-  if (lineupErr) {
-    lineupFeedExit('lineup load error', { matchId, matchFound: true });
-    luLog('lineup load error', { matchId, error: lineupErr.message });
-    return null;
-  }
-
-  const rows = (lineupRows ?? []) as Array<{ slot: FieldSlotId; player_id: string | null }>;
-  const lineupPlayerCount = rows.filter((r) => Boolean(r.player_id?.trim())).length;
-  const fieldCount = countFieldPlayers(rows);
-  console.log('[LINEUP FEED]', 'lineup rows loaded', {
-    matchId,
-    lineupPlayerCount,
-    fieldPlayerCount: fieldCount,
-  });
-  if (fieldCount < MIN_FIELD_PLAYERS) {
-    return { fieldCount, players: [], formation: null };
-  }
-
-  const slotToPlayer = new Map<FieldSlotId, string>();
-  for (const r of rows) {
-    const pid = r.player_id?.trim();
-    if (pid && LIVE_FIELD_SLOT_ORDER.includes(r.slot)) {
-      slotToPlayer.set(r.slot, pid);
-    }
-  }
-
+async function buildLineupFeedPlayersFromSlotMap(
+  slotToPlayer: Map<FieldSlotId, string>,
+  formation: U11FormationId | null,
+): Promise<LineupFeedPlayer[]> {
   const orderedIds = LIVE_FIELD_SLOT_ORDER.map((slot) => slotToPlayer.get(slot) ?? null).filter(
     (id): id is string => Boolean(id),
   );
-
-  if (orderedIds.length === 0) {
-    return { fieldCount, players: [], formation: null };
-  }
+  if (orderedIds.length === 0) return [];
 
   const { data: playerRows, error: playersErr } = await supabase
     .from('players')
@@ -157,9 +156,8 @@ async function fetchLineupPlayers(matchId: string): Promise<{
     .in('id', orderedIds);
 
   if (playersErr) {
-    lineupFeedExit('players load error', { matchId, matchFound: true });
-    luLog('players load error', { matchId, error: playersErr.message });
-    return null;
+    luLog('players load error', { error: playersErr.message });
+    return [];
   }
 
   const nameById = new Map<string, string>();
@@ -178,23 +176,92 @@ async function fetchLineupPlayers(matchId: string): Promise<{
   for (const slot of LIVE_FIELD_SLOT_ORDER) {
     const pid = slotToPlayer.get(slot);
     if (!pid) continue;
+    const positionLabel = formation ? labelForSlotInFormation(formation, slot) : slot;
     players.push({
       player_id: pid,
       name: nameById.get(pid) ?? 'Spieler',
-      slot,
+      slot: positionLabel,
     });
   }
+  return players;
+}
 
-  const { data: matchRow } = await supabase
-    .from('matches')
-    .select('u11_formation_id')
-    .eq('id', matchId)
-    .maybeSingle();
+/**
+ * Liest die gespeicherte Aufstellung wie MatchLineupPage (fetchLineupForLiveMatch → match_lineup),
+ * optional Fallback match_lineup_slots falls die Tabelle Daten hat.
+ */
+async function fetchSavedLineupForFeedPost(matchId: string): Promise<{
+  source: SavedLineupFeedSource;
+  rawLineupCount: number;
+  fieldCount: number;
+  playerNames: string[];
+  players: LineupFeedPlayer[];
+  formation: U11FormationId | null;
+} | null> {
+  let source: SavedLineupFeedSource = 'match_lineup';
+  let slotToPlayer = new Map<FieldSlotId, string>();
 
-  const rawFormation = (matchRow as { u11_formation_id?: string | null } | null)?.u11_formation_id;
-  const formation = isU11FormationId(rawFormation) ? (rawFormation as U11FormationId) : null;
+  const { data: lineupLoad, error: lineupLoadErr } = await fetchLineupForLiveMatch(matchId);
+  if (lineupLoadErr) {
+    lineupFeedExit('lineup load error', { matchId, matchFound: true, source, error: lineupLoadErr });
+    luLog('lineup load error', { matchId, error: lineupLoadErr });
+  } else {
+    for (let i = 0; i < LIVE_FIELD_SLOT_ORDER.length; i += 1) {
+      const pid = lineupLoad.startingPlayerIds[i]?.trim() ?? '';
+      if (pid) slotToPlayer.set(LIVE_FIELD_SLOT_ORDER[i], pid);
+    }
+  }
 
-  return { fieldCount, players, formation };
+  let rawLineupCount = slotToPlayer.size;
+  let fieldCount = countFieldPlayersFromSlotMap(slotToPlayer);
+
+  if (fieldCount < MIN_FIELD_PLAYERS) {
+    const { data: slotRows, error: slotsErr } = await supabase
+      .from('match_lineup_slots')
+      .select('player_id, slot')
+      .eq('match_id', matchId);
+
+    if (!slotsErr && (slotRows ?? []).length > 0) {
+      const altMap = slotMapFromLineupRows(
+        (slotRows ?? []) as Array<{ player_id: string | null; slot?: string | null }>,
+      );
+      const altField = countFieldPlayersFromSlotMap(altMap);
+      if (altField > fieldCount) {
+        source = 'match_lineup_slots';
+        slotToPlayer = altMap;
+        rawLineupCount = altMap.size;
+        fieldCount = altField;
+      }
+    }
+  }
+
+  const playerNames: string[] = [];
+  const formation = await fetchFormationForMatch(matchId);
+  const players = await buildLineupFeedPlayersFromSlotMap(slotToPlayer, formation);
+  for (const p of players) {
+    if (p.name) playerNames.push(p.name);
+  }
+
+  console.log('[LINEUP FEED]', 'saved lineup loaded', {
+    matchId,
+    source,
+    rawLineupCount,
+    fieldPlayerCount: fieldCount,
+    playerNames,
+  });
+
+  if (lineupLoadErr && fieldCount < MIN_FIELD_PLAYERS) {
+    return null;
+  }
+
+  return {
+    source,
+    rawLineupCount,
+    fieldCount,
+    playerNames,
+    players,
+    formation,
+  };
 }
 
 /**
@@ -298,7 +365,7 @@ export async function ensureLineupFeedPostForMatch(
     return { ok: true, created: false, reason: 'not_upcoming' };
   }
 
-  const lineupData = await fetchLineupPlayers(mid);
+  const lineupData = await fetchSavedLineupForFeedPost(mid);
   if (!lineupData) {
     lineupFeedExit('lineup could not be loaded', {
       matchFound: true,
@@ -306,6 +373,7 @@ export async function ensureLineupFeedPostForMatch(
       teamSeasonId: teamSeasonIdEarly || null,
       matchStatus: status,
       dedupeKey: dedupe_key,
+      reason: 'lineup_load_failed',
     });
     return { ok: false, error: 'Aufstellung konnte nicht geladen werden.' };
   }
@@ -315,11 +383,19 @@ export async function ensureLineupFeedPostForMatch(
       matchId: mid,
       teamSeasonId: teamSeasonIdEarly || null,
       matchStatus: status,
+      source: lineupData.source,
+      rawLineupCount: lineupData.rawLineupCount,
       fieldPlayerCount: lineupData.fieldCount,
+      playerNames: lineupData.playerNames,
       formationFound: Boolean(lineupData.formation),
       dedupeKey: dedupe_key,
+      reason: 'insufficient_lineup',
     });
-    luLog('skip: insufficient_lineup', { matchId: mid, fieldCount: lineupData.fieldCount });
+    luLog('skip: insufficient_lineup', {
+      matchId: mid,
+      fieldCount: lineupData.fieldCount,
+      source: lineupData.source,
+    });
     return { ok: true, created: false, reason: 'insufficient_lineup' };
   }
 
@@ -347,17 +423,17 @@ export async function ensureLineupFeedPostForMatch(
   if (evErr) luLog('events lookup warning', { matchId: mid, error: evErr.message });
   const eventId = (evRaw as { id?: string } | null)?.id?.trim() ?? '';
   if (!eventId) {
-    lineupFeedExit('missing event', {
+    lineupFeedExit('missing event — using match fallback', {
       matchFound: true,
       matchId: mid,
       eventId: null,
       teamSeasonId,
       matchStatus: status,
+      source: lineupData.source,
       fieldPlayerCount: lineupData.fieldCount,
-      formationFound: Boolean(lineupData.formation),
       dedupeKey: dedupe_key,
+      reason: 'event_fallback',
     });
-    return { ok: false, error: 'Kein Event zum Spiel verknüpft.' };
   }
 
   const starts_at =
@@ -420,18 +496,32 @@ export async function ensureLineupFeedPostForMatch(
   }
 
   const teamInfo = await resolveTeamForSeason(teamSeasonId);
-  if (!teamInfo) {
-    lineupFeedExit('missing team season resolve', {
+  let teamId = teamInfo?.teamId ?? '';
+  let teamName = teamInfo?.name ?? 'Unser Team';
+  if (!teamId) {
+    const { data: tsMin } = await supabase
+      .from('team_seasons')
+      .select('team_id')
+      .eq('id', teamSeasonId)
+      .maybeSingle();
+    teamId = (tsMin as { team_id?: string | null } | null)?.team_id?.trim() ?? '';
+    if (!teamInfo && teamId) {
+      const { data: teamRow } = await supabase.from('teams').select('name').eq('id', teamId).maybeSingle();
+      const n = (teamRow as { name?: string | null } | null)?.name;
+      if (n != null && String(n).trim()) teamName = String(n).trim();
+    }
+  }
+  if (!teamId) {
+    lineupFeedExit('missing team id — cannot insert feed post', {
       matchFound: true,
       matchId: mid,
-      eventId,
+      eventId: eventId || null,
       teamSeasonId,
       matchStatus: status,
-      kickoff: starts_at,
-      minutesUntilKickoff: minutesLeft,
+      source: lineupData.source,
       fieldPlayerCount: lineupData.fieldCount,
-      formationFound: Boolean(lineupData.formation),
       dedupeKey: dedupe_key,
+      reason: 'missing_team_id',
     });
     return { ok: false, error: 'Team zur Saison nicht gefunden.' };
   }
@@ -458,8 +548,8 @@ export async function ensureLineupFeedPostForMatch(
 
   const { error: insErr } = await supabase.from('team_feed_posts').insert({
     team_season_id: teamSeasonId,
-    team_id: teamInfo.teamId,
-    event_id: eventId,
+    team_id: teamId,
+    event_id: eventId || null,
     post_kind: 'lineup_auto',
     caption,
     payload,
@@ -502,16 +592,21 @@ export async function ensureLineupFeedPostForMatch(
   lineupFeedExit('post created', {
     matchFound: true,
     matchId: mid,
-    eventId,
+    eventId: eventId || null,
     teamSeasonId,
+    teamName,
     matchStatus: status,
     kickoff: starts_at,
     minutesUntilKickoff: minutesLeft,
+    source: lineupData.source,
+    rawLineupCount: lineupData.rawLineupCount,
     fieldPlayerCount: lineupData.fieldCount,
+    playerNames: lineupData.playerNames,
     formationFound: Boolean(lineupData.formation),
     dedupeKey: dedupe_key,
     dedupeKeyExists: false,
     suppressionExists: false,
+    reason: 'created',
   });
   luLog('created', { matchId: mid, dedupe_key, eventId });
   return { ok: true, created: true };
