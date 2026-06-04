@@ -88,6 +88,9 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   const [refreshLoading, setRefreshLoading] = useState(false);
   const [refreshBusy, setRefreshBusy] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [refreshAnalyzeFailure, setRefreshAnalyzeFailure] = useState<TournamentPlanAnalyzeFailure | null>(null);
+  const [refreshAnalyzeDiagnostics, setRefreshAnalyzeDiagnostics] =
+    useState<TournamentPlanAnalyzeDiagnostics | null>(null);
   const [refreshAnalysis, setRefreshAnalysis] = useState<TournamentPlanAnalysis | null>(null);
   const [refreshPreview, setRefreshPreview] = useState<TournamentPlanRefreshPreview | null>(null);
 
