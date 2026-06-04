@@ -1055,10 +1055,10 @@ export const SchedulePage: React.FC = () => {
           </div>
 
           <div
-            className="schedule-page__sticky-filters sticky top-0 z-10 w-full min-w-0 overflow-x-hidden"
+            className="schedule-page__filters flex w-full min-w-0 flex-col gap-2 overflow-x-hidden"
             aria-label="Termine Filter"
           >
-            <div className="mx-auto flex max-w-3xl flex-col gap-2 pb-1 pt-0.5">
+            <div className="flex flex-col gap-2">
               {normalizedUiRole !== 'fan' ? (
                 <div className={DS_SCHEDULE_KIND_FILTER_SCROLL_CLASS}>
                   <div className={DS_SCHEDULE_KIND_FILTER_TRACK_CLASS}>
