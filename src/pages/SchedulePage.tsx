@@ -979,11 +979,11 @@ export const SchedulePage: React.FC = () => {
 
   return (
     <div
-      className="page schedule-page relative min-h-[60vh] scroll-mt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))]"
+      className="page schedule-page relative flex min-h-0 flex-col overflow-hidden scroll-mt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))] h-[calc(100dvh-max(5.35rem,calc(3.45rem+env(safe-area-inset-top,0px)))-max(10rem,calc(7.5rem+env(safe-area-inset-bottom,0px))))] min-h-[60vh] lg:h-[calc(100dvh-max(5.35rem,calc(3.45rem+env(safe-area-inset-top,0px)))-6rem)]"
       style={dsSchedulePageStyle()}
     >
-      <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
-        <div className="mx-auto mt-1 max-w-3xl space-y-3 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] pt-3 sm:mt-2 sm:space-y-4 sm:pt-4">
+      <div className="schedule-page__fixed-controls w-full min-w-0 shrink-0 overflow-x-hidden px-[6px] sm:px-4 md:px-6 lg:px-2">
+        <div className="mx-auto mt-1 max-w-3xl space-y-3 pt-3 sm:mt-2 sm:space-y-4 sm:pt-4">
           {toastMessage && (
             <div
               className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl bg-black/90 border border-red-900/80 text-white text-sm font-medium shadow-lg backdrop-blur-sm"
@@ -1096,7 +1096,12 @@ export const SchedulePage: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
+      <div className="schedule-page__scroll min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]">
+        <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
+          <div className="mx-auto max-w-3xl space-y-3 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
           {pageLoading && (
             <p className="text-sm text-[var(--muted)]">
               {normalizedUiRole === 'fan' ? 'Lade Spielplan…' : 'Lade Termine…'}
@@ -1432,8 +1437,11 @@ export const SchedulePage: React.FC = () => {
               )}
             </div>
           )}
+          </div>
+        </div>
+      </div>
 
-          <CreateEventModal
+      <CreateEventModal
             isOpen={createModalOpen}
             onClose={() => setCreateModalOpen(false)}
             teamSeasonId={teamSeasonId}
@@ -1899,8 +1907,6 @@ export const SchedulePage: React.FC = () => {
               Deine Teilnahme am Training wird wieder auf „Dabei“ gesetzt.
             </p>
           </Modal>
-        </div>
-      </div>
     </div>
   );
 };
