@@ -304,16 +304,18 @@ export async function fetchTournamentMatchSlots(
     .order('kickoff_at', { ascending: true })
     .order('sort_order', { ascending: true });
 
-  if (res.error && /phase|column/i.test(String(res.error.message ?? ''))) {
-    res = await supabase
+  let data = res.data;
+  let error = res.error;
+  if (error && /phase|column/i.test(String(error.message ?? ''))) {
+    const fallback = await supabase
       .from('tournament_matches')
       .select('id, tournament_event_id, match_id, opponent_name, kickoff_at, planned_minutes, pitch, group_label, sort_order')
       .eq('tournament_event_id', tournamentEventId)
       .order('kickoff_at', { ascending: true })
       .order('sort_order', { ascending: true });
+    data = (fallback.data ?? []).map((row) => ({ ...row, phase: null }));
+    error = fallback.error;
   }
-
-  const { data, error } = res;
 
   if (error) return { data: [], error: normalizeTournamentDbError(error.message, error.code) };
   const rows = (data ?? []) as TournamentMatchSlot[];

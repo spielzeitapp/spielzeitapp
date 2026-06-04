@@ -10,6 +10,7 @@ import {
   pickKickoffLineupBaseForReplay,
   replaySubstitutionEventsOnSlots,
   resolveReplayAtMatchSecond,
+  dedupeFieldSlotMap,
   startingLineupToSlotMap,
   swapTwoOccupiedFieldSlots,
   type MatchEngineEvent,
@@ -1084,7 +1085,7 @@ export async function repairLiveMatchLineupBenchIfNeeded(matchId: string): Promi
   if (hasKickoff && events.length > 0 && (matchStatus === 'finished' || matchStatus === 'live')) {
     const atSec = resolveReplayAtMatchSecond(events, elapsed);
     const squadUnion = computeRepairedLiveLineupFromRaw(lineupRows, benchRows).squadPlayerIds;
-    const replayTarget = syncFinalLineupBenchFromEventReplay({
+    const replayTarget = await syncFinalLineupBenchFromEventReplay({
       matchId: mid,
       kickoffStartingPlayerIds: kickoff!,
       squadPlayerIds: squadUnion,
