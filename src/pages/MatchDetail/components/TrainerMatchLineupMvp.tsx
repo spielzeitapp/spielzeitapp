@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { PlayerItem } from '../../../hooks/usePlayers';
 import type { FieldSlotId } from '../../../types/match';
 import { supabase } from '../../../lib/supabaseClient';
-import { ensureLineupFeedPostForMatch } from '../../../lib/ensureLineupFeedPost';
+import { triggerLineupFeedPostAfterSave } from '../../../lib/ensureLineupFeedPost';
 import { LIVE_FIELD_SLOT_ORDER, replaceMatchLineupAndBench } from '../../../lib/liveMatchService';
 import { Card, CardTitle } from '../../../app/components/ui/Card';
 import { Button } from '../../../app/components/ui/Button';
@@ -198,7 +198,7 @@ export const TrainerMatchLineupMvp: React.FC<TrainerMatchLineupMvpProps> = ({
       if (error) return error;
       onFieldSynced(startersBySlot);
       onLineupPersisted();
-      void ensureLineupFeedPostForMatch(matchId);
+      void triggerLineupFeedPostAfterSave(matchId);
       return null;
     } finally {
       setSaving(false);

@@ -6,7 +6,7 @@ import type { PlayerItem } from '../../hooks/usePlayers';
 import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
-import { ensureLineupFeedPostForMatch } from '../../lib/ensureLineupFeedPost';
+import { triggerLineupFeedPostAfterSave } from '../../lib/ensureLineupFeedPost';
 import {
   fetchLineupForLiveMatch,
   LIVE_FIELD_SLOT_ORDER,
@@ -331,6 +331,7 @@ export const MatchLineupPage: React.FC = () => {
       setSaveError(error);
       return false;
     }
+    void triggerLineupFeedPostAfterSave(matchId);
     const { error: formationErr } = await updateMatchRow(matchId, { u11_formation_id: formationId });
     setSavingLineup(false);
     if (formationErr) {
@@ -338,7 +339,6 @@ export const MatchLineupPage: React.FC = () => {
       return false;
     }
     setSaveMsg('Aufstellung gespeichert.');
-    void ensureLineupFeedPostForMatch(matchId);
     return true;
   };
 
