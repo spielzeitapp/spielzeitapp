@@ -4020,6 +4020,15 @@ export const LiveMatchScreen: React.FC = () => {
                       : 'border-red-500/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-12px_32px_rgba(220,38,38,0.12)]',
                   ].join(' ')}
                 >
+                  {!matchIsFinished && effectiveMatchId ? (
+                    <Link
+                      to={`/app/match-preparation?matchId=${encodeURIComponent(effectiveMatchId)}`}
+                      className={`flex min-h-[44px] w-full items-center justify-center px-3 text-[11px] font-bold ${dsSecondaryCtaClass()}`}
+                    >
+                      Vorbereitung bearbeiten
+                    </Link>
+                  ) : null}
+
                   {renderTrainerClockActionRow('gap-1.5')}
 
                   {goalUndoOffer ? (

@@ -22,6 +22,7 @@ import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../../components/match/matchCardLabels';
 import { MatchCardGameCore, MatchCardKickoffBlock } from '../../components/match/MatchCardGameCore';
 import { formatHeroDateParts, scheduleMetaTimeDisplay } from '../../components/schedule/scheduleEventViewUtils';
+import { isMatchPreparationAccessible } from '../../lib/matchPreparationAccess';
 import { TrainerStatsMini } from '../../components/schedule/TrainerStatsMini';
 import { CompactListParentAttendance } from '../../components/schedule/CompactListParentAttendance';
 import type { AttendanceStatusKind } from '../../components/schedule/AttendanceStatusPill';
@@ -1210,6 +1211,20 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                     </div>
                   )}
                 </div>
+              ) : null}
+              {isTrainerScheduleHero &&
+              isMatchPreparationAccessible(status) &&
+              (scheduleHeroMatchId ?? '').trim() ? (
+                <button
+                  type="button"
+                  className="mt-1.5 w-full rounded-lg border border-white/12 bg-black/25 py-1.5 text-[11px] font-semibold text-white/72 transition hover:bg-white/[0.06] hover:text-white/90"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigateToMatchPreparation();
+                  }}
+                >
+                  Vorbereiten
+                </button>
               ) : null}
             </div>
           </div>

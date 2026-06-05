@@ -524,7 +524,7 @@ export const MatchDetailPage: React.FC = () => {
           </div>
         )}
 
-        {matchId && canManageStatus && !(operatorMode && localMatch.status === 'live') ? (
+        {matchId && canManageStatus && localMatch.status !== 'finished' ? (
           <div className="flex justify-end">
             <Button
               type="button"
@@ -536,7 +536,7 @@ export const MatchDetailPage: React.FC = () => {
           </div>
         ) : null}
 
-        {matchId && canManageStatus && !(operatorMode && localMatch.status === 'live') && (
+        {matchId && canManageStatus && localMatch.status !== 'finished' && (
           <TrainerMatchLineupMvp
             matchId={matchId}
             players={lineupPlayers}

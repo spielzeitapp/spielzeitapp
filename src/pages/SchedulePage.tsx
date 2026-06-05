@@ -23,6 +23,7 @@ import { useLinkedPlayerIsLaz } from '../hooks/useLinkedPlayerIsLaz';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from '../auth/useSession';
 import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
+import { isMatchPreparationAccessible, matchPreparationPath } from '../lib/matchPreparationAccess';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
 import { downloadEventIcs } from '../lib/ics';
@@ -1364,25 +1365,38 @@ export const SchedulePage: React.FC = () => {
                         !isFinishedMatch &&
                         (uiRole === 'parent' || uiRole === 'player');
                       const compactTrailing = showCompactTrainerStats ? (
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center rounded-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-black/70"
-                          aria-label="Zu-/Absagen öffnen"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setAttendanceModalEvent(ev);
-                          }}
-                        >
-                          <TrainerStatsMini
-                            yes={countsForCard.yes}
-                            no={countsForCard.no}
-                            open={countsForCard.open}
-                            isTraining={et === 'training'}
-                            listColumn
-                            size="list"
-                          />
-                        </button>
+                        <div className="flex flex-col items-end gap-1">
+                          {et === 'game' &&
+                          ev.match_id &&
+                          isMatchPreparationAccessible(ev.status) ? (
+                            <Link
+                              to={matchPreparationPath(ev.match_id)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="rounded-md border border-white/15 bg-black/35 px-2 py-0.5 text-[10px] font-semibold text-white/75 hover:text-white"
+                            >
+                              Vorbereiten
+                            </Link>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center rounded-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-black/70"
+                            aria-label="Zu-/Absagen öffnen"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setAttendanceModalEvent(ev);
+                            }}
+                          >
+                            <TrainerStatsMini
+                              yes={countsForCard.yes}
+                              no={countsForCard.no}
+                              open={countsForCard.open}
+                              isTraining={et === 'training'}
+                              listColumn
+                              size="list"
+                            />
+                          </button>
+                        </div>
                       ) : showCompactParentPill ? (
                         <CompactListParentAttendance
                           status={attendanceMergedToPillStatus(attendanceStatusMerged)}

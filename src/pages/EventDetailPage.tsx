@@ -3528,6 +3528,14 @@ export const EventDetailPage: React.FC = () => {
               Zum Livespiel
               <ChevronRight className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
             </Link>
+            {canTrainerManageEvent ? (
+              <Link
+                to={`/app/match-preparation?matchId=${encodeURIComponent(event.match_id)}`}
+                className={`flex w-full min-h-[44px] items-center justify-center ${dsSecondaryCtaClass()}`}
+              >
+                Vorbereitung bearbeiten
+              </Link>
+            ) : null}
           </Card>
         ) : null}
 
