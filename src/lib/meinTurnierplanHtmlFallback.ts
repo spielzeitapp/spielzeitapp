@@ -9,9 +9,66 @@ const ALLOWED_SHOWIT_HOSTS = new Set([
   'www.meinturnierplan.com',
 ]);
 
+export type MeinTurnierplanHtmlFallbackException = {
+  name: string;
+  message: string;
+  cause: string | null;
+  code: string | null;
+};
+
 export type MeinTurnierplanHtmlExtractResult =
   | { ok: true; tournamentJson: unknown; tournamentName: string | null }
-  | { ok: false; error: string };
+  | { ok: false; error: string; exception?: MeinTurnierplanHtmlFallbackException };
+
+function nodeErrorCode(err: unknown): string | null {
+  if (!err || typeof err !== 'object') return null;
+  const direct = (err as { code?: unknown }).code;
+  if (typeof direct === 'string' && direct.trim()) return direct.trim();
+  const cause = (err as { cause?: unknown }).cause;
+  if (cause && typeof cause === 'object') {
+    const causeCode = (cause as { code?: unknown }).code;
+    if (typeof causeCode === 'string' && causeCode.trim()) return causeCode.trim();
+  }
+  return null;
+}
+
+/** Volle Fetch-Exception für HTML-Fallback-Diagnostics (DNS/TLS/Timeout/…). */
+export function captureMeinTurnierplanHtmlFallbackException(
+  err: unknown,
+): MeinTurnierplanHtmlFallbackException {
+  if (err instanceof Error) {
+    const code = nodeErrorCode(err) ?? nodeErrorCode(err.cause);
+    let cause: string | null = null;
+    if (err.cause !== undefined && err.cause !== null) {
+      if (err.cause instanceof Error) {
+        const causeCode = nodeErrorCode(err.cause);
+        cause = causeCode
+          ? `${err.cause.name}: ${err.cause.message} (${causeCode})`
+          : `${err.cause.name}: ${err.cause.message}`;
+      } else if (typeof err.cause === 'object') {
+        try {
+          cause = JSON.stringify(err.cause);
+        } catch {
+          cause = String(err.cause);
+        }
+      } else {
+        cause = String(err.cause);
+      }
+    }
+    return {
+      name: err.name || 'Error',
+      message: err.message.trim() || 'Unknown error',
+      cause,
+      code,
+    };
+  }
+  return {
+    name: 'UnknownError',
+    message: String(err),
+    cause: null,
+    code: null,
+  };
+}
 
 export function isAllowedMeinTurnierplanShowitUrl(url: string): boolean {
   try {
@@ -168,20 +225,23 @@ export async function fetchMeinTurnierplanJsonFromShowitHtml(
     const html = await fetchShowitHtml(showitUrl, fetchImpl);
     return extractMeinTurnierplanJsonFromShowitHtml(html, tournamentSlug);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Network';
-    return { ok: false, error: message };
+    const exception = captureMeinTurnierplanHtmlFallbackException(err);
+    return { ok: false, error: exception.message || exception.name, exception };
   }
 }
 
 export async function fetchMeinTurnierplanShowitPageHtml(
   showitUrl: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<{ ok: true; html: string } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; html: string }
+  | { ok: false; error: string; exception: MeinTurnierplanHtmlFallbackException }
+> {
   try {
     const html = await fetchShowitHtml(showitUrl, fetchImpl);
     return { ok: true, html };
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Network';
-    return { ok: false, error: message };
+    const exception = captureMeinTurnierplanHtmlFallbackException(err);
+    return { ok: false, error: exception.message || exception.name, exception };
   }
 }

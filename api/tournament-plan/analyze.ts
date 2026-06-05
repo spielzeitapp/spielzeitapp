@@ -39,6 +39,7 @@ function readFetchRuntimeDiagnostics(): TournamentPlanFetchRuntimeDiagnostics {
   return {
     vercel: process.env.VERCEL === '1',
     region: process.env.VERCEL_REGION?.trim() || null,
+    nodeVersion: process.version,
   };
 }
 
@@ -116,6 +117,7 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
       : '';
 
     let htmlFallbackError: string | null = null;
+    let htmlFallbackException: TournamentPlanAnalyzeDiagnostics['htmlFallbackException'] = null;
     if (extractedId && refererUrl) {
       const htmlAfterException = await tryMeinTurnierplanHtmlFallbackAnalyze({
         showitUrl: refererUrl,
@@ -136,6 +138,7 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
         return;
       }
       htmlFallbackError = htmlAfterException.error;
+      htmlFallbackException = htmlAfterException.htmlFallbackException ?? null;
     }
 
     const failure = buildTournamentPlanAnalyzeFailure({
@@ -154,6 +157,7 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
       htmlFallbackAttempted: Boolean(extractedId),
       htmlFallbackSuccessful: false,
       htmlFallbackError: htmlFallbackError ?? (extractedId ? MEIN_TURNIERPLAN_HTML_FALLBACK_EMPTY_MESSAGE : null),
+      htmlFallbackException,
       fallbackStage: extractedId ? 'html' : 'json',
     });
     res.status(502).json(failureJson(failure));

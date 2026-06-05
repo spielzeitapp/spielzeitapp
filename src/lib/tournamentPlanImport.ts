@@ -6,7 +6,10 @@ import {
 import {
   extractMeinTurnierplanJsonFromShowitHtml,
   fetchMeinTurnierplanShowitPageHtml,
+  type MeinTurnierplanHtmlFallbackException,
 } from './meinTurnierplanHtmlFallback';
+
+export type { MeinTurnierplanHtmlFallbackException as TournamentPlanHtmlFallbackException };
 
 export type TournamentMatchPhase = 'group' | 'placement' | 'semifinal' | 'final' | 'unknown';
 
@@ -106,6 +109,7 @@ export type TournamentPlanEndpointAttempt = {
 export type TournamentPlanFetchRuntimeDiagnostics = {
   vercel: boolean;
   region: string | null;
+  nodeVersion: string | null;
 };
 
 export type TournamentPlanAnalyzeDiagnostics = {
@@ -124,6 +128,7 @@ export type TournamentPlanAnalyzeDiagnostics = {
   htmlFallbackTeamsFound?: number;
   htmlFallbackMatchesFound?: number;
   htmlFallbackError?: string | null;
+  htmlFallbackException?: MeinTurnierplanHtmlFallbackException | null;
   tournamentName?: string | null;
   serverException?: { name: string; message: string } | null;
   fetchRuntime?: TournamentPlanFetchRuntimeDiagnostics;
@@ -606,6 +611,7 @@ export function buildTournamentPlanAnalyzeFailure(params: {
   htmlFallbackTeamsFound?: number;
   htmlFallbackMatchesFound?: number;
   htmlFallbackError?: string | null;
+  htmlFallbackException?: MeinTurnierplanHtmlFallbackException | null;
   tournamentName?: string | null;
   serverException?: { name: string; message: string } | null;
   fetchRuntime?: TournamentPlanFetchRuntimeDiagnostics;
@@ -640,6 +646,7 @@ export function buildTournamentPlanAnalyzeFailure(params: {
       htmlFallbackTeamsFound: params.htmlFallbackTeamsFound,
       htmlFallbackMatchesFound: params.htmlFallbackMatchesFound,
       htmlFallbackError: params.htmlFallbackError ?? null,
+      htmlFallbackException: params.htmlFallbackException ?? null,
       tournamentName: params.tournamentName ?? null,
       serverException: params.serverException ?? null,
       fetchRuntime: params.fetchRuntime,
@@ -677,6 +684,7 @@ function mergeHtmlFallbackDiagnostics(
   | 'htmlFallbackTeamsFound'
   | 'htmlFallbackMatchesFound'
   | 'htmlFallbackError'
+  | 'htmlFallbackException'
   | 'tournamentName'
   | 'fallbackStage'
 > {
@@ -689,6 +697,7 @@ function mergeHtmlFallbackDiagnostics(
       htmlFallbackTeamsFound: successful.htmlFallbackTeamsFound,
       htmlFallbackMatchesFound: successful.htmlFallbackMatchesFound,
       htmlFallbackError: null,
+      htmlFallbackException: null,
       tournamentName: successful.tournamentName ?? null,
       fallbackStage: 'html',
     };
@@ -703,6 +712,7 @@ function mergeHtmlFallbackDiagnostics(
       htmlFallbackTeamsFound: last.htmlFallbackTeamsFound,
       htmlFallbackMatchesFound: last.htmlFallbackMatchesFound,
       htmlFallbackError: last.htmlFallbackError ?? MEIN_TURNIERPLAN_HTML_FALLBACK_EMPTY_MESSAGE,
+      htmlFallbackException: last.htmlFallbackException ?? null,
       tournamentName: last.tournamentName ?? null,
       fallbackStage: 'html',
     };
@@ -712,6 +722,7 @@ function mergeHtmlFallbackDiagnostics(
     htmlFallbackAttempted: false,
     htmlFallbackSuccessful: false,
     htmlFallbackError: null,
+    htmlFallbackException: null,
     tournamentName: null,
     fallbackStage: 'browser',
   };
@@ -727,7 +738,7 @@ export async function tryMeinTurnierplanHtmlFallbackAnalyze(params: {
   showitPageReachable: boolean | null;
 }): Promise<
   | { ok: true; analysis: TournamentPlanAnalysis; diagnostics: TournamentPlanAnalyzeDiagnostics }
-  | { ok: false; error: string }
+  | { ok: false; error: string; htmlFallbackException?: MeinTurnierplanHtmlFallbackException | null }
 > {
   analyzeTrace('[ANALYZE] START HTML FALLBACK', {
     showitUrl: params.showitUrl,
@@ -736,8 +747,15 @@ export async function tryMeinTurnierplanHtmlFallbackAnalyze(params: {
 
   const htmlFetch = await fetchMeinTurnierplanShowitPageHtml(params.showitUrl, params.fetchImpl);
   if (!htmlFetch.ok) {
-    analyzeTrace('[ANALYZE] HTML FETCH FAILED', { error: htmlFetch.error });
-    return { ok: false, error: htmlFetch.error };
+    analyzeTrace('[ANALYZE] HTML FETCH FAILED', {
+      error: htmlFetch.error,
+      exception: htmlFetch.exception,
+    });
+    return {
+      ok: false,
+      error: htmlFetch.error,
+      htmlFallbackException: htmlFetch.exception,
+    };
   }
   analyzeTrace('[ANALYZE] HTML FETCH SUCCESS');
 
@@ -861,6 +879,7 @@ export async function analyzeMeinTurnierplanUrlForceHtmlFallback(
     htmlFallbackAttempted: true,
     htmlFallbackSuccessful: false,
     htmlFallbackError: htmlResult.error,
+    htmlFallbackException: htmlResult.htmlFallbackException ?? null,
     source: 'html_fallback',
     fallbackStage: 'html',
   });
@@ -960,6 +979,7 @@ export async function analyzeMeinTurnierplanUrl(
         htmlFallbackAttempted: true,
         htmlFallbackSuccessful: false,
         htmlFallbackError: htmlAfterParse.error,
+        htmlFallbackException: htmlAfterParse.htmlFallbackException ?? null,
         source: 'server_api',
         fallbackStage: 'html',
       });
@@ -1016,6 +1036,7 @@ export async function analyzeMeinTurnierplanUrl(
         htmlFallbackAttempted: true,
         htmlFallbackSuccessful: false,
         htmlFallbackError: htmlAfterJsonFail.error,
+        htmlFallbackException: htmlAfterJsonFail.htmlFallbackException ?? null,
         source: 'server_api',
         fallbackStage: 'html',
       });
@@ -1620,7 +1641,10 @@ function serverDiagnosticsFromAnalyzeBody(
     htmlFallbackTeamsFound: body.diagnostics?.htmlFallbackTeamsFound,
     htmlFallbackMatchesFound: body.diagnostics?.htmlFallbackMatchesFound,
     htmlFallbackError: body.diagnostics?.htmlFallbackError ?? null,
+    htmlFallbackException: body.diagnostics?.htmlFallbackException ?? null,
     tournamentName: body.diagnostics?.tournamentName ?? null,
+    serverException: body.diagnostics?.serverException ?? null,
+    fetchRuntime: body.diagnostics?.fetchRuntime,
     source: body.diagnostics?.source ?? 'server_api',
     fallbackStage: body.diagnostics?.fallbackStage ?? 'json',
   };
@@ -1679,7 +1703,10 @@ function mergeTournamentImportFailures(
       htmlFallbackTeamsFound: htmlDiagnostics.htmlFallbackTeamsFound,
       htmlFallbackMatchesFound: htmlDiagnostics.htmlFallbackMatchesFound,
       htmlFallbackError: htmlDiagnostics.htmlFallbackError ?? null,
+      htmlFallbackException: htmlDiagnostics.htmlFallbackException ?? null,
       tournamentName: htmlDiagnostics.tournamentName ?? null,
+      serverException: serverFailure?.diagnostics.serverException ?? null,
+      fetchRuntime: serverFailure?.diagnostics.fetchRuntime ?? browserFailure.diagnostics.fetchRuntime,
       source: htmlDiagnostics.htmlFallbackSuccessful ? 'html_fallback' : 'browser_fallback',
       fallbackStage: htmlDiagnostics.fallbackStage ?? 'browser',
     },

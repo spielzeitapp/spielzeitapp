@@ -46,33 +46,29 @@ const KICKOFF_SHADOW =
 const VS_LIGHTNING =
   'linear-gradient(180deg, transparent 0%, rgba(248,113,113,0.22) 12%, rgba(220,38,38,0.95) 50%, rgba(248,113,113,0.22) 88%, transparent 100%)';
 
+const LOGO_GLOW = 'drop-shadow(0 0 18px rgba(220,38,38,0.22))';
+
 function PosterLogo({ src, alt, compact }: { src: string; alt: string; compact?: boolean }) {
   const [imgSrc, setImgSrc] = React.useState(src || PLACEHOLDER);
   React.useEffect(() => {
     setImgSrc(src || PLACEHOLDER);
   }, [src]);
 
-  const ring = compact
-    ? 'h-[5.85rem] w-[5.85rem] sm:h-[6.75rem] sm:w-[6.75rem]'
-    : 'h-[6.5rem] w-[6.5rem] sm:h-[7.75rem] sm:w-[7.75rem]';
   const img = compact
     ? 'h-[4.75rem] w-[4.75rem] sm:h-[5.5rem] sm:w-[5.5rem]'
     : 'h-[5.3rem] w-[5.3rem] sm:h-[6.35rem] sm:w-[6.35rem]';
 
   return (
-    <div
-      className={`flex shrink-0 items-center justify-center rounded-full border border-red-600/55 bg-[#0a0404]/72 shadow-[inset_0_0_22px_rgba(0,0,0,0.72),inset_0_2px_8px_rgba(0,0,0,0.45),0_0_0_1px_rgba(220,38,38,0.38),0_0_36px_rgba(185,28,28,0.36),0_12px_30px_rgba(0,0,0,0.55)] ${ring}`}
-    >
-      <img
-        src={imgSrc}
-        alt={alt}
-        className={`object-contain drop-shadow-[0_10px_22px_rgba(0,0,0,0.62)] ${img}`}
-        loading="lazy"
-        onError={() => {
-          if (!imgSrc.endsWith('/logos/placeholder-shield-a.png')) setImgSrc(PLACEHOLDER);
-        }}
-      />
-    </div>
+    <img
+      src={imgSrc}
+      alt={alt}
+      className={`shrink-0 object-contain ${img}`}
+      style={{ filter: LOGO_GLOW }}
+      loading="lazy"
+      onError={() => {
+        if (!imgSrc.endsWith('/logos/placeholder-shield-a.png')) setImgSrc(PLACEHOLDER);
+      }}
+    />
   );
 }
 
@@ -126,16 +122,16 @@ function PosterMetaColumn({
   return (
     <div className={`min-w-0 ${align === 'right' ? 'text-right' : 'text-left'}`}>
       <div
-        className={`mb-0.5 flex items-center gap-0.5 text-[6px] font-bold uppercase tracking-[0.14em] text-red-400/92 sm:text-[7px] ${
+        className={`mb-0.5 flex items-center gap-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-red-400/92 sm:text-[9px] ${
           align === 'right' ? 'justify-end' : 'justify-start'
         }`}
       >
-        <Icon className="h-2.5 w-2.5 shrink-0 sm:h-[11px] sm:w-[11px]" strokeWidth={2.5} aria-hidden />
+        <Icon className="h-3 w-3 shrink-0 sm:h-[13px] sm:w-[13px]" strokeWidth={2.5} aria-hidden />
         <span>{label}</span>
       </div>
       <p
-        className={`text-[7px] font-semibold leading-snug text-white/68 sm:text-[8px] ${
-          align === 'right' ? 'line-clamp-2 break-words' : 'truncate'
+        className={`text-[9px] font-semibold leading-snug text-white/72 sm:text-[10px] ${
+          align === 'right' ? 'line-clamp-2 break-words' : 'line-clamp-2 break-words'
         }`}
       >
         {value}
@@ -178,8 +174,8 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
     const showMetaRow = Boolean(meetingTime) || Boolean(location && location !== '—');
 
     const titleClass = compact
-      ? 'w-full max-w-full px-0.5 text-[clamp(2.45rem,15.5vw,3.55rem)] font-black uppercase leading-[0.8] tracking-[0.06em]'
-      : 'w-full max-w-full px-0.5 text-[clamp(2.65rem,16.5vw,4.05rem)] font-black uppercase leading-[0.78] tracking-[0.08em]';
+      ? 'mx-auto w-full max-w-[92%] px-0.5 text-[clamp(2.1rem,13.2vw,3.05rem)] font-black uppercase leading-[0.84] tracking-[0.045em]'
+      : 'mx-auto w-full max-w-[92%] px-0.5 text-[clamp(2.3rem,14vw,3.45rem)] font-black uppercase leading-[0.82] tracking-[0.055em]';
 
     const kickoffClass = compact
       ? 'text-[clamp(2.35rem,13.5vw,3.15rem)]'
@@ -234,7 +230,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
           <div className="flex w-full shrink-0 items-center justify-between gap-0">
             <div className="flex min-w-0 flex-1 flex-col items-center gap-1 sm:gap-1.5">
               <PosterLogo src={homeLogoUrl} alt={homeTeamName} compact={compact} />
-              <FeedClubName fullName={homeTeamName} variant="poster" className="w-full px-0.5" />
+              <FeedClubName fullName={homeTeamName} variant="posterArtwork" className="w-full px-0.5" />
             </div>
 
             <div className="relative flex shrink-0 flex-col items-center justify-center self-stretch px-1 sm:px-1.5">
@@ -246,10 +242,10 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
               <div className="relative z-[1] flex flex-col items-center">
                 <VsLightningDivider />
                 <span
-                  className="my-1 text-lg font-black uppercase tracking-[0.08em] text-white sm:my-1.5 sm:text-xl"
+                  className="my-1 text-xl font-extrabold uppercase tracking-[0.06em] text-white sm:my-1.5 sm:text-2xl"
                   style={{
                     textShadow:
-                      '0 0 28px rgba(220,38,38,0.62), 0 0 12px rgba(255,255,255,0.35), 0 3px 16px rgba(0,0,0,0.75)',
+                      '0 0 18px rgba(255,255,255,0.18), 0 0 28px rgba(220,38,38,0.55), 0 3px 16px rgba(0,0,0,0.75)',
                   }}
                 >
                   VS
@@ -260,16 +256,16 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
 
             <div className="flex min-w-0 flex-1 flex-col items-center gap-1 sm:gap-1.5">
               <PosterLogo src={awayLogoUrl} alt={awayTeamName} compact={compact} />
-              <FeedClubName fullName={awayTeamName} variant="poster" className="w-full px-0.5" />
+              <FeedClubName fullName={awayTeamName} variant="posterArtwork" className="w-full px-0.5" />
             </div>
           </div>
 
           {/* Anpfiff */}
           <div className="w-full shrink-0 px-0.5">
             {showAnpfiffLabel && !heroOverride ? (
-              <div className="mb-0.5 flex items-center justify-center gap-1">
-                <Clock className="h-2.5 w-2.5 text-red-400/95 sm:h-3 sm:w-3" strokeWidth={2.5} aria-hidden />
-                <p className="text-[7px] font-bold uppercase tracking-[0.28em] text-red-100/92 sm:text-[8px]">
+              <div className="mb-1 flex items-center justify-center gap-1.5">
+                <Clock className="h-3 w-3 text-red-400/95 sm:h-[14px] sm:w-[14px]" strokeWidth={2.5} aria-hidden />
+                <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-red-100/95 sm:text-[10px]">
                   Anpfiff
                 </p>
               </div>
@@ -341,12 +337,12 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
               </div>
             ) : null}
 
-            <div className="mt-3.5 pb-0.5 sm:mt-4">
+            <div className="mt-3.5 max-w-full px-1 pb-1 sm:mt-4">
               <span
-                className="relative inline-block text-[12px] font-black uppercase tracking-[0.22em] text-red-400 sm:text-[14px] sm:tracking-[0.26em]"
+                className="relative inline-block max-w-full break-words text-[15px] font-black uppercase tracking-[0.2em] text-red-400 sm:text-[17px] sm:tracking-[0.24em]"
                 style={{
                   textShadow:
-                    '0 0 28px rgba(220,38,38,0.55), 0 0 12px rgba(248,113,113,0.35), 0 2px 14px rgba(0,0,0,0.55)',
+                    '0 0 34px rgba(220,38,38,0.62), 0 0 16px rgba(248,113,113,0.42), 0 2px 14px rgba(0,0,0,0.55)',
                 }}
               >
                 {hashtag}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { parseClubDisplayName } from '../../lib/feedClubNaming';
 
-type Variant = 'poster' | 'result' | 'compact';
+type Variant = 'poster' | 'posterArtwork' | 'result' | 'compact';
 
 const variantClass: Record<
   Variant,
@@ -13,6 +13,13 @@ const variantClass: Record<
       'block w-full min-w-0 break-words text-[12px] font-bold uppercase leading-[1.15] tracking-[0.02em] text-white/95 sm:text-[13px]',
     line2:
       'block w-full min-w-0 break-words text-[11px] font-semibold leading-[1.2] text-white/88 sm:text-[12px]',
+  },
+  posterArtwork: {
+    wrap: 'gap-0',
+    line1:
+      'block w-full min-w-0 break-words text-[14px] font-extrabold uppercase leading-[1.12] tracking-[0.015em] text-white sm:text-[16px]',
+    line2:
+      'block w-full min-w-0 break-words text-[13px] font-bold leading-[1.18] text-white/92 sm:text-[14px]',
   },
   result: {
     wrap: 'gap-0',

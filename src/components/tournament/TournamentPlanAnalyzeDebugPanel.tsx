@@ -82,6 +82,23 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
               HTML-Fallback Fehler: {d.htmlFallbackError}
             </li>
           ) : null}
+          {d.htmlFallbackException ? (
+            <li className="break-words text-amber-50/95">
+              HTML-Fallback Exception:{' '}
+              <span className="font-mono text-[11px]">
+                {d.htmlFallbackException.name}
+                {d.htmlFallbackException.code ? ` · ${d.htmlFallbackException.code}` : ''}
+              </span>
+              <div className="mt-0.5 font-mono text-[10px] leading-snug text-white/75">
+                {d.htmlFallbackException.message}
+              </div>
+              {d.htmlFallbackException.cause ? (
+                <div className="mt-0.5 font-mono text-[10px] leading-snug text-white/60">
+                  cause: {d.htmlFallbackException.cause}
+                </div>
+              ) : null}
+            </li>
+          ) : null}
           {d.tournamentName ? <li>Turniername (HTML): {d.tournamentName}</li> : null}
           {d.serverException ? (
             <li className="break-words text-amber-100/85">
@@ -89,10 +106,17 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
             </li>
           ) : null}
           {d.fetchRuntime ? (
-            <li>
-              Runtime: {d.fetchRuntime.vercel ? 'Vercel' : 'lokal'}
-              {d.fetchRuntime.region ? ` (${d.fetchRuntime.region})` : ''}
-            </li>
+            <>
+              <li>
+                Runtime: {d.fetchRuntime.vercel ? 'Vercel' : 'lokal'}
+                {d.fetchRuntime.region ? ` · Region: ${d.fetchRuntime.region}` : ''}
+              </li>
+              {d.fetchRuntime.nodeVersion ? (
+                <li className="font-mono text-[11px] text-white/65">
+                  Node: {d.fetchRuntime.nodeVersion}
+                </li>
+              ) : null}
+            </>
           ) : null}
         </ul>
       ) : null}
