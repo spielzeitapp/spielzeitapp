@@ -123,6 +123,37 @@ async function postExists(dedupe_key: string): Promise<boolean> {
   return Boolean(data?.id);
 }
 
+async function loadMatchdayFeedEnabledByMatchId(matchIds: string[]): Promise<Map<string, boolean>> {
+  const map = new Map<string, boolean>();
+  const ids = [...new Set(matchIds.map((id) => id.trim()).filter(Boolean))];
+  if (ids.length === 0) return map;
+
+  const { data, error } = await supabase
+    .from('matches')
+    .select('id, auto_matchday_feed_enabled')
+    .in('id', ids);
+
+  if (error) {
+    console.warn('[matchdayFeed] auto_matchday_feed_enabled lookup failed', error.message);
+    return map;
+  }
+
+  for (const row of (data ?? []) as Array<{ id: string; auto_matchday_feed_enabled: boolean | null }>) {
+    map.set(row.id, row.auto_matchday_feed_enabled !== false);
+  }
+  return map;
+}
+
+function isMatchdayFeedEnabledForEvent(
+  event: EventRowLite,
+  enabledByMatchId: Map<string, boolean>,
+): boolean {
+  const matchId = event.match_id?.trim();
+  if (!matchId) return true;
+  const enabled = enabledByMatchId.get(matchId);
+  return enabled !== false;
+}
+
 function buildMatchdayPayload(
   event: EventRowLite,
   teamInfo: { teamId: string; name: string },
@@ -162,8 +193,22 @@ async function insertMatchdayPost(params: {
   event: EventRowLite;
   teamInfo: { teamId: string; name: string };
   timing: 'today' | 'tomorrow';
+  enabledByMatchId: Map<string, boolean>;
 }): Promise<{ created: boolean; skipped?: boolean; error?: string }> {
-  const { event, teamInfo, timing } = params;
+  const { event, teamInfo, timing, enabledByMatchId } = params;
+  if (!isMatchdayFeedEnabledForEvent(event, enabledByMatchId)) {
+    matchdayFeedDebugLog({
+      eventId: event.id,
+      startsAt: event.starts_at,
+      viennaDay: toViennaDayKeyFromUtcIso(event.starts_at),
+      todayVienna: '',
+      tomorrowVienna: '',
+      timing: 'skip',
+      reason: 'auto_matchday_feed_disabled',
+    });
+    return { created: false, skipped: true };
+  }
+
   const dedupe_key = timing === 'today' ? dedupeKeyMatchdayToday(event.id) : dedupeKeyMatchdayTomorrow(event.id);
 
   if (await isDedupeSuppressed(dedupe_key)) {
@@ -335,9 +380,18 @@ export async function ensureMatchdayFeedPostsForSeason(
     else if (timing === 'tomorrow') tomorrowCandidates.push(ev);
   }
 
+  const candidateMatchIds = [...todayCandidates, ...tomorrowCandidates]
+    .map((ev) => ev.match_id)
+    .filter((id): id is string => Boolean(id?.trim()));
+  const enabledByMatchId = await loadMatchdayFeedEnabledByMatchId(candidateMatchIds);
+
   const toProcess: Array<{ event: EventRowLite; timing: 'today' | 'tomorrow' }> = [];
-  const earliestToday = pickEarliestEvent(todayCandidates);
-  const earliestTomorrow = pickEarliestEvent(tomorrowCandidates);
+  const earliestToday = pickEarliestEvent(
+    todayCandidates.filter((ev) => isMatchdayFeedEnabledForEvent(ev, enabledByMatchId)),
+  );
+  const earliestTomorrow = pickEarliestEvent(
+    tomorrowCandidates.filter((ev) => isMatchdayFeedEnabledForEvent(ev, enabledByMatchId)),
+  );
   if (earliestToday) toProcess.push({ event: earliestToday, timing: 'today' });
   if (earliestTomorrow) toProcess.push({ event: earliestTomorrow, timing: 'tomorrow' });
 
@@ -372,7 +426,7 @@ export async function ensureMatchdayFeedPostsForSeason(
 
   for (const { event: ev, timing } of toProcess) {
     result.scanned += 1;
-    const res = await insertMatchdayPost({ event: ev, teamInfo, timing });
+    const res = await insertMatchdayPost({ event: ev, teamInfo, timing, enabledByMatchId });
     if (res.error) {
       result.errors.push(`${ev.id}: ${res.error}`);
       continue;

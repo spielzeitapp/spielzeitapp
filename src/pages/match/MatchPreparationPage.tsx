@@ -4,6 +4,7 @@ import { usePlayers } from '../../hooks/usePlayers';
 import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { saveMatchSquadOnly } from '../../lib/liveMatchService';
 import { MinimumPlaytimeMatchSettings } from '../../components/live/MinimumPlaytimeMatchSettings';
+import { MatchdayFeedAutomationSettings } from '../../components/match/MatchdayFeedAutomationSettings';
 import {
   DEFAULT_MINIMUM_PLAYTIME_MINUTES,
   DEFAULT_PLANNED_MATCH_MINUTES,
@@ -36,6 +37,7 @@ type MatchRowLite = {
   minimum_playtime_enabled: boolean | null;
   minimum_playtime_minutes: number | null;
   planned_match_minutes: number | null;
+  auto_matchday_feed_enabled: boolean | null;
 };
 
 type PrepStatus = 'available' | 'open' | 'absent';
@@ -82,7 +84,9 @@ export const MatchPreparationPage: React.FC = () => {
       const [{ data, error }, lineupRes, benchRes] = await Promise.all([
         supabase
           .from('matches')
-          .select('id, team_season_id, opponent, minimum_playtime_enabled, minimum_playtime_minutes, planned_match_minutes')
+          .select(
+            'id, team_season_id, opponent, minimum_playtime_enabled, minimum_playtime_minutes, planned_match_minutes, auto_matchday_feed_enabled',
+          )
           .eq('id', matchId)
           .maybeSingle(),
         supabase.from('match_lineup').select('player_id').eq('match_id', matchId),
@@ -360,6 +364,18 @@ export const MatchPreparationPage: React.FC = () => {
                       minimum_playtime_minutes: patch.minutes,
                     }
                   : prev,
+              )
+            }
+          />
+        ) : null}
+
+        {matchId && matchRow ? (
+          <MatchdayFeedAutomationSettings
+            matchId={matchId}
+            enabled={matchRow.auto_matchday_feed_enabled !== false}
+            onSaved={(nextEnabled) =>
+              setMatchRow((prev) =>
+                prev ? { ...prev, auto_matchday_feed_enabled: nextEnabled } : prev,
               )
             }
           />
