@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MessageCircle, Share2 } from 'lucide-react';
+import { Share2 } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import type { MatchdayFeedPayload, TeamFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
@@ -35,10 +35,6 @@ type Props = {
   onFeedPostDeleted?: () => void;
 };
 
-function likeStorageKey(postId: string): string {
-  return `spz_feed_like_${postId}`;
-}
-
 function formatKickoff(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
@@ -66,17 +62,8 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
     return null;
   }, [p.matchday_timing, post.post_kind]);
   const posterCaptureRef = useRef<HTMLDivElement>(null);
-  const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
   const [scores, setScores] = useState<{ home: number; away: number } | null>(null);
-
-  useEffect(() => {
-    try {
-      setLiked(sessionStorage.getItem(likeStorageKey(post.id)) === '1');
-    } catch {
-      setLiked(false);
-    }
-  }, [post.id]);
 
   const eventStatus = liveEvent?.status ?? 'upcoming';
   const matchId = liveEvent?.match_id ?? p.match_id;
@@ -134,16 +121,6 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
   const venueLabel = (liveEvent?.is_home ?? p.is_home) === false ? 'Auswärtsspiel' : 'Heimspiel';
 
   const deepLink = p.deep_link?.startsWith('/') ? p.deep_link : `/app/events/${p.event_id}`;
-
-  const onToggleLike = useCallback(() => {
-    const next = !liked;
-    setLiked(next);
-    try {
-      sessionStorage.setItem(likeStorageKey(post.id), next ? '1' : '0');
-    } catch {
-      /* ignore */
-    }
-  }, [liked, post.id]);
 
   const onShare = useCallback(async () => {
     const base = (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '');
@@ -309,33 +286,19 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           <p className="text-center text-[13px] text-white/65">{shareHint}</p>
         ) : null}
         <div
-          className="flex items-center justify-between gap-1 border-t border-white/[0.06] pt-3.5"
-          style={{
-            boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.04)',
-          }}
+          className="flex gap-2 border-t border-white/[0.06] pt-3.5"
+          style={{ boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.04)' }}
         >
-          <button
-            type="button"
-            onClick={onToggleLike}
-            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition-colors ${
-              liked ? 'text-red-400' : 'text-white/55 hover:bg-white/[0.04] hover:text-white/88'
-            }`}
-            aria-pressed={liked}
-          >
-            <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} strokeWidth={2} />
-            Gefällt mir
-          </button>
           <Link
-            to={`/app/events/${p.event_id}`}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold text-white/68 transition-colors hover:bg-white/[0.06] hover:text-white/92"
+            to={deepLink}
+            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center rounded-xl border border-red-500/45 bg-red-600/90 px-4 text-sm font-bold text-white shadow-[0_4px_16px_rgba(185,28,28,0.3)] transition hover:bg-red-500"
           >
-            <MessageCircle className="h-4 w-4" strokeWidth={2} />
-            Kommentar
+            Zum Spiel
           </Link>
           <button
             type="button"
             onClick={() => void onShare()}
-            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold text-white/68 transition-colors hover:bg-white/[0.06] hover:text-white/92 active:bg-white/[0.08]"
+            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-2 rounded-xl border border-white/18 bg-black/40 px-4 text-sm font-semibold text-white/92 backdrop-blur-sm transition hover:bg-white/10 active:bg-white/[0.08]"
             aria-label="Matchday teilen"
           >
             <Share2 className="h-4 w-4 shrink-0" strokeWidth={2} />
