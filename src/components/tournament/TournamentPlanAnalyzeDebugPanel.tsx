@@ -1,6 +1,8 @@
 import React from 'react';
 import {
   TOURNAMENT_IMPORT_MANUAL_HINT,
+  formatEndpointAttemptSummary,
+  labelForTournamentPlanAnalyzeSource,
   type TournamentPlanAnalyzeDiagnostics,
   type TournamentPlanAnalyzeFailure,
 } from '../../lib/tournamentPlanImport';
@@ -14,9 +16,25 @@ function yesNo(value: boolean): string {
   return value ? 'ja' : 'nein';
 }
 
+function yesNoUnknown(value: boolean | null | undefined): string {
+  if (value === true) return 'ja';
+  if (value === false) return 'nein';
+  return '—';
+}
+
 export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diagnostics }) => {
   const d = failure?.diagnostics ?? diagnostics;
   if (!d && !failure) return null;
+
+  const endpointAttempts =
+    d?.endpointAttempts ??
+    (d?.attemptedEndpoints ?? []).map((endpoint) => ({
+      endpoint,
+      httpStatus: null,
+      networkError: false,
+      errorDetail: null,
+      parseCode: null,
+    }));
 
   return (
     <div
@@ -36,17 +54,28 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
               'nicht erkannt'
             )}
           </li>
-          <li>API erreichbar: {yesNo(d.apiReachable)}</li>
+          <li>showit.php erreichbar: {yesNoUnknown(d.showitPageReachable)}</li>
+          <li>JSON-API erreichbar: {yesNo(d.apiReachable)}</li>
+          <li>Datenquelle: {labelForTournamentPlanAnalyzeSource(d.source)}</li>
+          <li>Browser-Fallback versucht: {yesNo(Boolean(d.browserFallbackAttempted))}</li>
+          {d.browserFallbackAttempted && d.browserFallbackError ? (
+            <li className="break-words text-amber-100/85">
+              Browser-Fallback Fehler: {d.browserFallbackError}
+            </li>
+          ) : null}
         </ul>
       ) : null}
 
-      {d && d.attemptedEndpoints.length > 0 ? (
+      {endpointAttempts.length > 0 ? (
         <details className="mt-2 text-[11px] text-white/55">
-          <summary className="cursor-pointer touch-manipulation">Versuchte Datenquellen ({d.attemptedEndpoints.length})</summary>
-          <ul className="mt-1 max-h-24 list-inside list-disc overflow-y-auto">
-            {d.attemptedEndpoints.map((endpoint) => (
-              <li key={endpoint} className="break-all font-mono">
-                {endpoint}
+          <summary className="cursor-pointer touch-manipulation">
+            Versuchte JSON-Endpoints ({endpointAttempts.length})
+          </summary>
+          <ul className="mt-1 max-h-32 space-y-1 overflow-y-auto">
+            {endpointAttempts.map((attempt) => (
+              <li key={attempt.endpoint} className="break-all font-mono text-[10px] leading-snug">
+                <span className="text-white/75">{attempt.endpoint}</span>
+                <span className="text-white/45"> → {formatEndpointAttemptSummary(attempt)}</span>
               </li>
             ))}
           </ul>
