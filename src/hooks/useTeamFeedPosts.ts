@@ -66,6 +66,9 @@ async function fetchPosts(teamSeasonId: string): Promise<{
 }
 
 async function runFeedEnsures(teamSeasonId: string): Promise<void> {
+  console.log('[LINEUP FEED] RUN FEED ENSURES START', { teamSeasonId });
+
+  console.log('[LINEUP FEED] BEFORE MATCHDAY');
   try {
     const matchdayRes = await ensureMatchdayFeedPostsForSeason(teamSeasonId);
     console.info('[matchdayFeed] ensureMatchdayFeedPostsForSeason', matchdayRes);
@@ -73,12 +76,14 @@ async function runFeedEnsures(teamSeasonId: string): Promise<void> {
     console.warn('[useTeamFeedPosts] ensureMatchdayFeedPostsForSeason failed', e);
   }
 
+  console.log('[LINEUP FEED] BEFORE UPCOMING');
   try {
     await ensureUpcomingMatchFeedPosts(teamSeasonId);
   } catch (e) {
     console.warn('[useTeamFeedPosts] ensureUpcomingMatchFeedPosts failed', e);
   }
 
+  console.log('[LINEUP FEED] BEFORE LINEUP');
   console.log('[LINEUP FEED] ensureLineupFeedPostsForSeason invoked from useTeamFeedPosts', {
     teamSeasonId,
   });
@@ -89,12 +94,14 @@ async function runFeedEnsures(teamSeasonId: string): Promise<void> {
     console.warn('[useTeamFeedPosts] ensureLineupFeedPostsForSeason failed', e);
   }
 
+  console.log('[LINEUP FEED] BEFORE LIVE');
   try {
     await ensureRecentLiveFeedPostsForSeason(teamSeasonId);
   } catch (e) {
     console.warn('[useTeamFeedPosts] ensureRecentLiveFeedPostsForSeason failed', e);
   }
 
+  console.log('[LINEUP FEED] BEFORE RESULT');
   try {
     await ensureRecentResultFeedPostsForSeason(teamSeasonId);
   } catch (e) {
@@ -135,6 +142,7 @@ export function useTeamFeedPosts(teamSeasonId: string | null) {
   }, [teamSeasonId]);
 
   useEffect(() => {
+    console.log('[LINEUP FEED] USE EFFECT FIRED', { teamSeasonId });
     if (!teamSeasonId) {
       setPosts([]);
       setError(null);
