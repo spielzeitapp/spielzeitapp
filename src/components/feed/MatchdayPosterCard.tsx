@@ -1,16 +1,8 @@
 import React from 'react';
 import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
-import { FeedClubName } from './FeedClubName';
-import { FeedMatchMetaLine } from './feedTypography';
-
-const PLACEHOLDER =
-  (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '') + '/logos/placeholder-shield-a.png';
-
-const STADIUM_BG_URL = `${import.meta.env.BASE_URL || '/'}intro/welcome-hero.png`;
-
-const HERO_STADIUM_GRADIENT =
-  'linear-gradient(to bottom, rgba(16,14,16,0.72) 0%, rgba(10,10,12,0.8) 46%, rgba(18,10,12,0.86) 100%)';
+import { FEED_HASHTAG } from './feedTypography';
+import { MatchdayPosterArtwork } from './MatchdayPosterArtwork';
 
 const SHELL_SHADOW =
   '0 0 0 1px rgba(220, 38, 38, 0.12), 0 28px 56px -16px rgba(0, 0, 0, 0.85), 0 0 80px -28px rgba(220, 38, 38, 0.22)';
@@ -38,61 +30,21 @@ export type MatchdayPosterCardProps = {
   compact?: boolean;
 };
 
-function PosterStadiumBackdrop() {
-  return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]" aria-hidden>
-      <img
-        src={STADIUM_BG_URL}
-        alt=""
-        className="absolute inset-0 h-full min-h-full w-full min-w-full scale-110 object-cover object-[center_28%] opacity-[0.2] brightness-[0.55] saturate-[0.82]"
-      />
-      <div className="absolute inset-0 bg-black/52" />
-      <div className="absolute inset-0 backdrop-blur-[2px] bg-black/8" />
-      <div
-        className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_0%_40%,rgba(255,240,220,0.14)_0%,rgba(122,29,42,0.18)_30%,transparent_65%),radial-gradient(ellipse_60%_50%_at_100%_40%,rgba(255,240,220,0.14)_0%,rgba(122,29,42,0.18)_30%,transparent_65%)]"
-      />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_110%_75%_at_50%_-10%,rgba(248,113,113,0.16),transparent_55%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,transparent_32%,rgba(0,0,0,0.18)_100%)]" />
-      <div className="absolute inset-0" style={{ background: HERO_STADIUM_GRADIENT }} />
-    </div>
-  );
-}
-
-function LogoImg({ src, alt }: { src: string; alt: string }) {
-  const [imgSrc, setImgSrc] = React.useState(src || PLACEHOLDER);
-  React.useEffect(() => {
-    setImgSrc(src || PLACEHOLDER);
-  }, [src]);
-  return (
-    <div className="flex h-[6rem] w-[6rem] shrink-0 items-center justify-center rounded-full border border-red-500/42 bg-black/45 shadow-[0_0_0_1px_rgba(220,38,38,0.26),0_12px_32px_rgba(0,0,0,0.55),0_0_40px_rgba(185,28,28,0.12)] sm:h-[7.5rem] sm:w-[7.5rem]">
-      <img
-        src={imgSrc}
-        alt={alt}
-        className="h-[5rem] w-[5rem] object-contain drop-shadow-[0_10px_22px_rgba(0,0,0,0.55)] sm:h-[6.35rem] sm:w-[6.35rem]"
-        loading="lazy"
-        onError={() => {
-          if (!imgSrc.endsWith('/logos/placeholder-shield-a.png')) setImgSrc(PLACEHOLDER);
-        }}
-      />
-    </div>
-  );
-}
-
 function heroKickoffDisplay(
   kickoffTime: string,
   status: MatchdayPosterVisualStatus,
   homeScore?: number | null,
   awayScore?: number | null,
-): { main: string; suffix: string | null } {
-  if (status === 'live') return { main: 'LIVE', suffix: null };
+): { main: string; suffix: string | null; livePulse: boolean } {
+  if (status === 'live') return { main: 'LIVE', suffix: null, livePulse: true };
   if (status === 'finished') {
     const hs = homeScore != null ? homeScore : null;
     const aws = awayScore != null ? awayScore : null;
-    if (hs != null && aws != null) return { main: `${hs} : ${aws}`, suffix: 'ENDSTAND' };
-    return { main: 'ENDSTAND', suffix: null };
+    if (hs != null && aws != null) return { main: `${hs} : ${aws}`, suffix: 'ENDSTAND', livePulse: false };
+    return { main: 'ENDSTAND', suffix: null, livePulse: false };
   }
   const time = kickoffTime.replace(/\s*uhr\s*$/i, '').trim() || '—';
-  return { main: time, suffix: 'UHR' };
+  return { main: time, suffix: 'UHR', livePulse: false };
 }
 
 export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPosterCardProps>(
@@ -117,13 +69,14 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
   ) {
     const typeLabel = getMatchTypeLabel(matchType ?? undefined);
     const showAnnouncement = announcementTiming && status === 'today';
-    const matchMetaLine = buildFeedMatchMetaLine(
+    const competitionLabel = buildFeedMatchMetaLine(
       pickFeedAgeGroup(homeTeamName, awayTeamName),
       typeLabel,
     );
     const heroKickoff = heroKickoffDisplay(kickoffTime, status, homeScore, awayScore);
+    const isHomeGame = venueLabel.toLowerCase().includes('heim');
 
-    const kickerText =
+    const statusLabel =
       showAnnouncement && announcementTiming === 'tomorrow'
         ? 'MORGEN IST SPIELTAG'
         : showAnnouncement && announcementTiming === 'today'
@@ -135,135 +88,40 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
               : 'MATCHDAY';
 
     const showStatusBadge = status === 'live' || status === 'finished';
-    let badgeText = 'LIVE';
-    if (status === 'finished') {
+    let statusBadge: string | null = null;
+    if (status === 'live') statusBadge = 'LIVE';
+    else if (status === 'finished') {
       const hs = homeScore != null ? homeScore : null;
       const aws = awayScore != null ? awayScore : null;
-      badgeText = hs != null && aws != null ? `ENDSTAND ${hs}:${aws}` : 'ENDSTAND';
+      statusBadge = hs != null && aws != null ? `ENDSTAND ${hs}:${aws}` : 'ENDSTAND';
     }
 
-    const pad = compact ? 'px-3 py-5 sm:px-5 sm:py-6' : 'px-3.5 py-6 sm:px-6 sm:py-7';
+    const useHeroOverride = status === 'live' || status === 'finished';
 
     return (
       <div
         ref={ref}
-        className="relative w-full rounded-2xl border border-red-500/40 p-[1px] sm:rounded-3xl"
+        className="relative w-full overflow-hidden rounded-2xl border border-red-500/40 p-[1px] sm:rounded-3xl"
         style={{ boxShadow: SHELL_SHADOW }}
       >
-        <div className={`relative overflow-hidden rounded-[inherit] ${pad}`}>
-          <PosterStadiumBackdrop />
-
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-px bg-gradient-to-r from-transparent via-red-500/35 to-transparent"
-            aria-hidden
-          />
-
-          <div className="relative z-[2] flex flex-col items-center">
-            {/* Poster-Headline */}
-            <div className="w-full space-y-1 text-center">
-              <p className="text-[8px] font-bold uppercase tracking-[0.3em] text-red-400/88 sm:text-[9px] sm:tracking-[0.34em]">
-                {kickerText}
-              </p>
-              <h2 className="text-[clamp(2.85rem,15vw,4.15rem)] font-black uppercase leading-[0.82] tracking-[0.1em] text-white [text-shadow:0_0_48px_rgba(220,38,38,0.48),0_4px_28px_rgba(0,0,0,0.45)]">
-                SPIELTAG
-              </h2>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/42 sm:text-[10px]">
-                {venueLabel}
-              </p>
-              <FeedMatchMetaLine line={matchMetaLine} className="!text-[9px] !text-white/36 sm:!text-[10px]" />
-            </div>
-
-            {/* Duell — Logos + VS zentral */}
-            <div className="mt-5 flex w-full max-w-none items-center justify-between gap-0.5 sm:mt-6 sm:gap-1">
-              <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
-                <LogoImg src={homeLogoUrl} alt={homeTeamName} />
-                <FeedClubName fullName={homeTeamName} variant="poster" className="w-full px-0.5" />
-              </div>
-
-              <div className="flex shrink-0 flex-col items-center justify-center self-stretch px-1 sm:px-1.5">
-                <div
-                  className="mb-2 h-10 w-px sm:mb-2.5 sm:h-12"
-                  style={{
-                    background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.22), transparent)',
-                  }}
-                  aria-hidden
-                />
-                <span
-                  className="text-lg font-black uppercase tracking-[0.12em] text-white/58 sm:text-xl"
-                  style={{ textShadow: '0 0 20px rgba(220,38,38,0.28)' }}
-                >
-                  VS
-                </span>
-                <div
-                  className="mt-2 h-10 w-px sm:mt-2.5 sm:h-12"
-                  style={{
-                    background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.22), transparent)',
-                  }}
-                  aria-hidden
-                />
-              </div>
-
-              <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
-                <LogoImg src={awayLogoUrl} alt={awayTeamName} />
-                <FeedClubName fullName={awayTeamName} variant="poster" className="w-full px-0.5" />
-              </div>
-            </div>
-
-            {/* Anpfiff — großer Poster-Mittelpunkt */}
-            <div className="mt-5 w-full space-y-0.5 text-center sm:mt-6">
-              {status === 'today' && !showStatusBadge ? (
-                <p className="text-[8px] font-bold uppercase tracking-[0.24em] text-red-300/75 sm:text-[9px]">
-                  Anpfiff
-                </p>
-              ) : null}
-              <p
-                className={
-                  status === 'live'
-                    ? 'text-[clamp(2.65rem,12vw,3.65rem)] font-black uppercase leading-none tracking-[0.05em] text-red-400 [text-shadow:0_0_48px_rgba(220,38,38,0.5)] motion-safe:animate-pulse'
-                    : 'text-[clamp(2.65rem,12vw,3.65rem)] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_4px_28px_rgba(0,0,0,0.6)]'
-                }
-              >
-                {heroKickoff.main}
-              </p>
-              {heroKickoff.suffix ? (
-                <p className="text-[9px] font-bold uppercase tracking-[0.32em] text-white/38 sm:text-[10px]">
-                  {heroKickoff.suffix}
-                </p>
-              ) : null}
-            </div>
-
-            {/* Footer — Ort/Treffpunkt dezent unten */}
-            <div className="mt-4 w-full space-y-1 text-center sm:mt-5">
-              {meetingTime ? (
-                <p className="text-[10px] leading-snug text-white/48 sm:text-[11px]">
-                  Treffpunkt {meetingTime}
-                </p>
-              ) : null}
-              {locationLine && locationLine !== '—' ? (
-                <p className="text-[10px] font-medium leading-snug text-white/52 sm:text-[11px]">{locationLine}</p>
-              ) : null}
-            </div>
-
-            {showStatusBadge ? (
-              <div
-                className={`${
-                  status === 'live'
-                    ? 'mt-3 inline-flex min-h-[2rem] max-w-full items-center justify-center rounded-full border border-red-500/40 bg-red-600/88 px-3 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white sm:min-h-[2.25rem] sm:px-4 sm:text-[10px] sm:tracking-[0.16em] [animation-duration:1.5s] motion-safe:animate-pulse'
-                    : 'mt-3 inline-flex min-h-[2rem] max-w-full items-center justify-center rounded-full border border-red-500/35 bg-red-950/65 px-4 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-100 sm:text-[11px]'
-                }`}
-                style={{
-                  boxShadow: '0 0 28px rgba(185,28,28,0.32), inset 0 1px 0 rgba(255,255,255,0.1)',
-                }}
-              >
-                <span className="truncate">{badgeText}</span>
-              </div>
-            ) : null}
-
-            <p className="mt-3 text-[8px] font-semibold uppercase tracking-[0.24em] text-white/26 sm:mt-4 sm:text-[9px]">
-              #GEMEINSAMEINTEAM
-            </p>
-          </div>
-        </div>
+        <MatchdayPosterArtwork
+          statusLabel={statusLabel}
+          title="SPIELTAG"
+          homeTeamName={homeTeamName}
+          awayTeamName={awayTeamName}
+          homeLogoUrl={homeLogoUrl}
+          awayLogoUrl={awayLogoUrl}
+          kickoffTime={kickoffTime}
+          meetingTime={meetingTime}
+          location={locationLine}
+          competitionLabel={competitionLabel}
+          isHomeGame={isHomeGame}
+          hashtag={FEED_HASHTAG}
+          heroOverride={useHeroOverride ? heroKickoff : undefined}
+          showAnpfiffLabel={status === 'today' && !showStatusBadge}
+          statusBadge={showStatusBadge ? statusBadge : null}
+          compact={compact}
+        />
       </div>
     );
   },
