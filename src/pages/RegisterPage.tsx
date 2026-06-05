@@ -90,7 +90,7 @@ export const RegisterPage: React.FC = () => {
 
       if (data.session) {
         setLoading(false);
-        navigate('/app', { replace: true });
+        navigate('/app/role-choice', { replace: true });
         return;
       }
 

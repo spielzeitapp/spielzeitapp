@@ -12,13 +12,33 @@ import { useSyncPendingProfile } from '../../auth/useSyncPendingProfile';
 import { useSyncProfileFromUserMetadata } from '../../auth/useSyncProfileFromUserMetadata';
 import { supabase } from '../../lib/supabaseClient';
 import { TabletSidebar } from '../components/TabletSidebar';
+import { canManageMatches, normalizeRole as normalizeRoleKey } from '../../lib/roles';
+
+const ONBOARDING_EXEMPT_PATHS = [
+  '/app/parent-onboarding',
+  '/app/role-choice',
+  '/app/set-password',
+  '/app/player-onboarding',
+] as const;
+
+function isOnboardingExemptPath(pathname: string): boolean {
+  return ONBOARDING_EXEMPT_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
+}
+
+function hasStaffAccess(backendRole: string, memberships: { role?: string | null }[]): boolean {
+  const backendKey = normalizeRoleKey(backendRole);
+  if (backendKey === 'admin' || backendKey === 'trainer') return true;
+  return memberships.some((m) => canManageMatches(normalizeRoleKey(m.role)));
+}
 
 /**
  * Layout für den internen Bereich /app/*.
  * Immer mit Header, TopNav/BottomNav (keine öffentliche Reduktion).
  *
  * E2E Parent flow:
- * - First time: register → /app → role-choice → parent-onboarding (team + child) → set-password → schedule.
+ * - First time: register → /app → role-choice → parent-onboarding (team + child) → App.
  * - Second login: email + password → /app/home (onboarding skipped if memberships + player_guardians exist).
  */
 export const InternalLayout: React.FC = () => {
@@ -26,7 +46,7 @@ export const InternalLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { memberships, loading: sessionLoading, backendRole } = useSession();
+  const { memberships, loading: sessionLoading, backendRole, previewRole } = useSession();
   const isLiveRoute = location.pathname.startsWith('/app/live');
   const pathClean = location.pathname.replace(/\/+$/, '') || '/';
   /** Wie Home/Termine: kein doppeltes Horizontal-Padding zur Shell — Seite steuert px-3/sm:px-4, ab md wie üblich Shell-Padding. */
@@ -40,35 +60,28 @@ export const InternalLayout: React.FC = () => {
   useSyncPendingProfile(user ?? null);
   useSyncProfileFromUserMetadata(user ?? null);
 
-  /** Parent-Onboarding-Gate: nur navigieren, Shell nie blockieren (kein globaler „Laden…“-Deadlock). */
+  /** Onboarding-Gate: neue Nutzer zur Rollenwahl / Eltern-Onboarding; Staff nicht blockieren. */
   useEffect(() => {
     let alive = true;
 
     async function gate() {
-      if (
-        location.pathname === '/app/parent-onboarding' ||
-        location.pathname === '/app/role-choice' ||
-        location.pathname === '/app/set-password'
-      ) {
+      if (isOnboardingExemptPath(location.pathname)) {
         return;
       }
 
       if (!user || sessionLoading) return;
 
-      const backend = normalizeSessionRole(backendRole);
-      const isStaff = backend === 'trainer' || backend === 'admin';
-      const isParentGlobal = backend === 'parent';
-      if (isStaff || !isParentGlobal) {
-        return;
-      }
+      const membershipList = memberships ?? [];
+      if (hasStaffAccess(backendRole, membershipList)) return;
 
-      if ((memberships ?? []).length === 0) {
-        navigate('/app/role-choice', { replace: true });
-        return;
-      }
+      const preview = normalizeSessionRole(previewRole ?? '') ?? '';
+      const hasParentMembership = membershipList.some(
+        (m) => normalizeSessionRole(m.role) === 'parent',
+      );
+      const hasPlayerMembership = membershipList.some(
+        (m) => normalizeSessionRole(m.role) === 'player',
+      );
 
-      const hasParentMembership =
-        (memberships ?? []).some((m) => normalizeSessionRole(m.role) === 'parent');
       const pgRes = await supabase
         .from('player_guardians')
         .select('player_id')
@@ -78,20 +91,48 @@ export const InternalLayout: React.FC = () => {
 
       if (!alive) return;
 
-      if (!hasParentMembership || !hasGuardian) {
+      if (hasParentMembership && hasGuardian) return;
+
+      if (preview === 'fan' && !hasParentMembership && !hasGuardian) return;
+
+      if (preview === 'player' && !hasPlayerMembership) {
+        navigate('/app/player-onboarding', { replace: true });
+        return;
+      }
+      if (hasPlayerMembership) return;
+
+      const needsParentOnboarding =
+        preview === 'parent' ||
+        normalizeSessionRole(backendRole) === 'parent' ||
+        hasParentMembership ||
+        hasGuardian;
+
+      if (needsParentOnboarding) {
         navigate('/app/parent-onboarding', { replace: true });
         return;
+      }
+
+      if (membershipList.length === 0 && !hasGuardian) {
+        navigate('/app/role-choice', { replace: true });
       }
     }
 
     gate().catch((e) => {
-      console.error('[ParentOnboardingGate]', e);
+      console.error('[OnboardingGate]', e);
     });
 
     return () => {
       alive = false;
     };
-  }, [location.pathname, user, sessionLoading, backendRole, memberships, navigate]);
+  }, [
+    location.pathname,
+    user,
+    sessionLoading,
+    backendRole,
+    previewRole,
+    memberships,
+    navigate,
+  ]);
 
   return (
     <AppBackground>

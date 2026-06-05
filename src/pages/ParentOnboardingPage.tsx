@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { Button } from '../app/components/ui/Button';
 import { Card, CardTitle } from '../app/components/ui/Card';
+import { canManageMatches, normalizeRole as normalizeRoleKey } from '../lib/roles';
 
 type TeamSeasonOption = {
   id: string;
@@ -224,29 +225,56 @@ export const ParentOnboardingPage: React.FC = () => {
     setSaving(true);
     setError(null);
 
-    const membershipRes = await supabase
+    const { data: existingMembership, error: existingMembershipError } = await supabase
       .from('memberships')
-      .upsert(
-        {
-          user_id: userId,
-          team_season_id: selectedTeamSeasonId,
-          role: 'parent',
-        },
-        { onConflict: 'user_id,team_season_id' }
-      )
-      .select('user_id, team_season_id, role');
+      .select('role')
+      .eq('user_id', userId)
+      .eq('team_season_id', selectedTeamSeasonId)
+      .maybeSingle();
 
-    console.log('[PARENT MEMBERSHIP UPSERT RESULT]', {
-      data: membershipRes.data,
-      error: membershipRes.error,
-    });
-
-    if (membershipRes.error) {
-      const msg = membershipRes.error.message ?? 'Speichern der Membership fehlgeschlagen.';
+    if (existingMembershipError && existingMembershipError.code !== 'PGRST116') {
+      const msg =
+        existingMembershipError.message ?? 'Bestehende Mitgliedschaft konnte nicht geprüft werden.';
       console.log('[PARENT ONBOARDING SAVE ERROR]', msg);
       setError(msg);
       setSaving(false);
       return;
+    }
+
+    const existingMembershipRole = normalizeRoleKey(existingMembership?.role ?? null);
+    const preserveStaffMembership =
+      existingMembershipRole != null && canManageMatches(existingMembershipRole);
+
+    if (!preserveStaffMembership) {
+      const membershipRes = await supabase
+        .from('memberships')
+        .upsert(
+          {
+            user_id: userId,
+            team_season_id: selectedTeamSeasonId,
+            role: 'parent',
+          },
+          { onConflict: 'user_id,team_season_id' },
+        )
+        .select('user_id, team_season_id, role');
+
+      console.log('[PARENT MEMBERSHIP UPSERT RESULT]', {
+        data: membershipRes.data,
+        error: membershipRes.error,
+      });
+
+      if (membershipRes.error) {
+        const msg = membershipRes.error.message ?? 'Speichern der Membership fehlgeschlagen.';
+        console.log('[PARENT ONBOARDING SAVE ERROR]', msg);
+        setError(msg);
+        setSaving(false);
+        return;
+      }
+    } else {
+      console.log('[PARENT ONBOARDING] Staff-Membership bleibt unverändert', {
+        role: existingMembershipRole,
+        teamSeasonId: selectedTeamSeasonId,
+      });
     }
 
     // player_guardians: nicht doppelt anlegen (ohne Annahme über Unique-Constraint).
