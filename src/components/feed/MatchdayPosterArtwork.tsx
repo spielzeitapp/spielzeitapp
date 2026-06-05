@@ -32,6 +32,12 @@ export type MatchdayPosterArtworkProps = {
   competitionLabel?: string | null;
   isHomeGame?: boolean;
   hashtag?: string;
+  /**
+   * Future:
+   * playerImageUrl will later use player profile cutouts
+   * for matchday, lineup, goal and MVP posters
+   */
+  playerImageUrl?: string | null;
   /** LIVE/Endstand: ersetzt die Anpfiff-Zeile */
   heroOverride?: { main: string; suffix?: string | null; livePulse?: boolean };
   showAnpfiffLabel?: boolean;
@@ -69,6 +75,35 @@ function PosterLogo({ src, alt, compact }: { src: string; alt: string; compact?:
         if (!imgSrc.endsWith('/logos/placeholder-shield-a.png')) setImgSrc(PLACEHOLDER);
       }}
     />
+  );
+}
+
+const PLAYER_GLOW = 'drop-shadow(0 0 28px rgba(220,38,38,0.38))';
+
+/** Player Layer — optional, zwischen Background und Content. */
+function PosterPlayerLayer({ playerImageUrl }: { playerImageUrl: string }) {
+  const [failed, setFailed] = React.useState(false);
+
+  React.useEffect(() => {
+    setFailed(false);
+  }, [playerImageUrl]);
+
+  if (failed) return null;
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 z-[1] overflow-hidden rounded-[inherit]"
+      aria-hidden
+    >
+      <img
+        src={playerImageUrl}
+        alt=""
+        className="absolute bottom-0 right-0 max-h-[60%] w-auto max-w-[50%] object-contain object-bottom object-right"
+        style={{ filter: PLAYER_GLOW }}
+        loading="lazy"
+        onError={() => setFailed(true)}
+      />
+    </div>
   );
 }
 
@@ -159,9 +194,11 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
       showAnpfiffLabel = true,
       statusBadge = null,
       compact = false,
+      playerImageUrl = null,
     },
     ref,
   ) {
+    const playerUrl = playerImageUrl?.trim() || null;
     const parsedKickoff = formatKickoffHero(kickoffTime);
     const kickoff = heroOverride ?? {
       main: parsedKickoff.main,
@@ -184,11 +221,20 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
     return (
       <div
         ref={ref}
-        className={`relative aspect-[4/5] w-full overflow-hidden rounded-[inherit] ${padX} ${padY}`}
+        className="relative aspect-[4/5] w-full overflow-hidden rounded-[inherit]"
       >
-        <PosterAssetBackground />
+        {/* Background Layer */}
+        <div className="absolute inset-0 z-0">
+          <PosterAssetBackground />
+        </div>
 
-        <div className="relative z-[1] flex h-full min-h-0 flex-col items-center justify-between text-center">
+        {/* Player Layer */}
+        {playerUrl ? <PosterPlayerLayer playerImageUrl={playerUrl} /> : null}
+
+        {/* Content Layer */}
+        <div
+          className={`relative z-[2] flex h-full min-h-0 flex-col items-center justify-between text-center ${padX} ${padY}`}
+        >
           {/* Kopf */}
           <div className="w-full shrink-0 space-y-0.5 sm:space-y-1">
             <p className="text-[6px] font-semibold uppercase tracking-[0.34em] text-red-200/82 sm:text-[7px] sm:tracking-[0.38em]">
