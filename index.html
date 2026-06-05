@@ -5,7 +5,10 @@
     <script>
       (function() {
         var host = window.location.hostname;
-        var isInternal = (host === 'app.spielzeitapp.at');
+        var isInternal =
+          host === 'app.spielzeitapp.at' ||
+          host === 'spielzeitapp.at' ||
+          host === 'www.spielzeitapp.at';
         window.__HOST_IS_INTERNAL__ = isInternal;
         if (isInternal) {
           var path = (window.location.pathname || '/').replace(/\/$/, '') || '/';

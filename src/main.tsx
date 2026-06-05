@@ -10,7 +10,7 @@ import { registerServiceWorkerInboxBridge } from './lib/pushInboxBridge';
 
 registerServiceWorkerInboxBridge();
 
-/** Wird in index.html vor dem React-Load gesetzt: app.spielzeitapp.at = true, sonst false. */
+/** Wird in index.html vor dem React-Load gesetzt: Produktions-Domains = true, sonst false. */
 const isInternalDomain =
   typeof window !== 'undefined' &&
   (window as Window & { __HOST_IS_INTERNAL__?: boolean }).__HOST_IS_INTERNAL__ === true;

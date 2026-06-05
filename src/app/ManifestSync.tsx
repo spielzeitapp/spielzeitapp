@@ -3,10 +3,10 @@ import { useLocation } from 'react-router-dom';
 
 const MANIFEST_ID = 'app-manifest';
 
-/** Interne Domain: Trainer-PWA mit start_url /app. */
+/** Interne Domain: volle App mit start_url /app (siehe index.html __HOST_IS_INTERNAL__). */
 function isInternalDomain(): boolean {
   if (typeof window === 'undefined') return false;
-  return window.location.hostname === 'app.spielzeitapp.at';
+  return (window as Window & { __HOST_IS_INTERNAL__?: boolean }).__HOST_IS_INTERNAL__ === true;
 }
 
 function ensureManifestLink(href: string): void {
@@ -26,8 +26,9 @@ function ensureManifestLink(href: string): void {
 
 /**
  * Setzt das PWA-Manifest nach Domain und Route:
- * - app.spielzeitapp.at → immer /manifest-trainer.json (start_url /app)
- * - spielzeitapp.at / www → /manifest.json (start_url /)
+ * - spielzeitapp.at / app.spielzeitapp.at → /manifest-trainer.json (start_url /app)
+ * - localhost / andere Hosts auf /app → /manifest-trainer.json
+ * - sonst → /manifest.json (nur lokale Public-Dev-Variante)
  */
 export function ManifestSync(): null {
   const { pathname } = useLocation();
