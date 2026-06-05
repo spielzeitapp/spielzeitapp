@@ -458,6 +458,7 @@ export function diagnoseMeinTurnierplanPayload(data: unknown): TournamentPlanAna
   if (!json.participants || typeof json.participants !== 'object') {
     return 'plan_no_longer_provided';
   }
+  const participants = json.participants;
   if (!Array.isArray(json.groups) || json.groups.length === 0) {
     return 'no_groups';
   }
@@ -466,20 +467,20 @@ export function diagnoseMeinTurnierplanPayload(data: unknown): TournamentPlanAna
   for (let groupIndex = 0; groupIndex < json.groups.length; groupIndex += 1) {
     const participantIds = json.groupParticipants?.[groupIndex] ?? [];
     for (const participantId of participantIds) {
-      const teamName = participantName(json.participants, participantId);
+      const teamName = participantName(participants, participantId);
       if (teamName) teamCount += 1;
     }
   }
   if (teamCount === 0) return 'no_teams';
 
   const groupMatchCount = (json.groupMatches ?? []).filter((m) => {
-    const home = participantName(json.participants, m.homeParticipant);
-    const away = participantName(json.participants, m.awayParticipant);
+    const home = participantName(participants, m.homeParticipant);
+    const away = participantName(participants, m.awayParticipant);
     return Boolean(home && away);
   }).length;
   const finalMatchCount = (json.finalMatches ?? []).filter((m) => {
-    const home = participantName(json.participants, m.homeParticipant);
-    const away = participantName(json.participants, m.awayParticipant);
+    const home = participantName(participants, m.homeParticipant);
+    const away = participantName(participants, m.awayParticipant);
     return Boolean(home && away);
   }).length;
   if (groupMatchCount + finalMatchCount === 0) return 'no_matches';
@@ -1134,7 +1135,7 @@ export function parseMeinTurnierplanHtml(html: string, tournamentId: string): To
 
 export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis | null {
   const json = data as MeinTurnierplanJson;
-  if (!json?.participants || !Array.isArray(json.groups) || json.groups.length === 0) {
+  if (!json?.participants || typeof json.participants !== 'object' || !Array.isArray(json.groups) || json.groups.length === 0) {
     return null;
   }
 
