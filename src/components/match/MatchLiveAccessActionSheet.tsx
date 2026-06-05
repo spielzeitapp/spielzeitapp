@@ -40,7 +40,7 @@ export function MatchLiveAccessActionSheet({
 
   const sheet = (
     <div
-      className="fixed inset-0 z-[1100] flex items-end justify-center max-sm:pb-[max(6.25rem,calc(5.75rem+env(safe-area-inset-bottom,0px)))] sm:items-center sm:p-4"
+      className="fixed inset-0 z-[1100] flex items-end justify-center max-sm:pb-[max(7.5rem,calc(7rem+env(safe-area-inset-bottom,0px)))] sm:items-center sm:p-4"
       role="presentation"
     >
       <button
@@ -50,7 +50,7 @@ export function MatchLiveAccessActionSheet({
         onClick={onClose}
       />
       <div
-        className="relative w-full max-w-lg overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[linear-gradient(180deg,rgba(28,8,8,0.98)_0%,rgba(0,0,0,0.97)_42%,rgba(6,6,10,0.99)_100%)] shadow-[0_-24px_64px_rgba(0,0,0,0.72),0_0_48px_rgba(220,38,38,0.08)] max-sm:min-h-[22rem] sm:min-h-0 sm:rounded-3xl"
+        className="relative w-full max-w-lg overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[linear-gradient(180deg,rgba(28,8,8,0.98)_0%,rgba(0,0,0,0.97)_42%,rgba(6,6,10,0.99)_100%)] shadow-[0_-24px_64px_rgba(0,0,0,0.72),0_0_48px_rgba(220,38,38,0.08)] max-sm:min-h-[23rem] sm:min-h-0 sm:rounded-3xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="match-live-access-sheet-title"
@@ -60,7 +60,7 @@ export function MatchLiveAccessActionSheet({
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_0%,rgba(220,38,38,0.12)_0%,transparent_58%)]"
           aria-hidden
         />
-        <div className="relative flex min-h-[inherit] flex-col justify-end px-4 pb-5 pt-3 sm:px-5 sm:pb-5 sm:pt-4">
+        <div className="relative px-4 pb-5 pt-3 sm:px-5 sm:pb-5 sm:pt-4">
           <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20 sm:hidden" aria-hidden />
           <h2
             id="match-live-access-sheet-title"
