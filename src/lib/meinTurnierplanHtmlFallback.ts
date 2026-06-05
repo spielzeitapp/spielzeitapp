@@ -2,24 +2,44 @@ const SHOWIT_FETCH_TIMEOUT_MS = 15_000;
 const SHOWIT_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
+const ALLOWED_SHOWIT_HOSTS = new Set([
+  'meinturnierplan.de',
+  'www.meinturnierplan.de',
+  'meinturnierplan.com',
+  'www.meinturnierplan.com',
+]);
+
 export type MeinTurnierplanHtmlExtractResult =
   | { ok: true; tournamentJson: unknown; tournamentName: string | null }
   | { ok: false; error: string };
 
-function buildShowitFetchHeaders(refererUrl: string): HeadersInit {
+export function isAllowedMeinTurnierplanShowitUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return ALLOWED_SHOWIT_HOSTS.has(host);
+  } catch {
+    return false;
+  }
+}
+
+function buildShowitFetchHeaders(): HeadersInit {
   return {
     Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'User-Agent': SHOWIT_USER_AGENT,
-    Referer: refererUrl,
+    Referer: 'https://www.meinturnierplan.de/',
   };
 }
 
-async function fetchShowitHtml(showitUrl: string, fetchImpl: typeof fetch): Promise<string> {
+/** Öffentliche showit.php-Seite laden (nur erlaubte MeinTurnierplan-Hosts). */
+export async function fetchShowitHtml(showitUrl: string, fetchImpl: typeof fetch = fetch): Promise<string> {
+  if (!isAllowedMeinTurnierplanShowitUrl(showitUrl)) {
+    throw new Error('showit URL host not allowed');
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SHOWIT_FETCH_TIMEOUT_MS);
   try {
     const res = await fetchImpl(showitUrl, {
-      headers: buildShowitFetchHeaders(showitUrl),
+      headers: buildShowitFetchHeaders(),
       redirect: 'follow',
       signal: controller.signal,
     });
@@ -147,6 +167,19 @@ export async function fetchMeinTurnierplanJsonFromShowitHtml(
   try {
     const html = await fetchShowitHtml(showitUrl, fetchImpl);
     return extractMeinTurnierplanJsonFromShowitHtml(html, tournamentSlug);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Network';
+    return { ok: false, error: message };
+  }
+}
+
+export async function fetchMeinTurnierplanShowitPageHtml(
+  showitUrl: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ ok: true; html: string } | { ok: false; error: string }> {
+  try {
+    const html = await fetchShowitHtml(showitUrl, fetchImpl);
+    return { ok: true, html };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Network';
     return { ok: false, error: message };

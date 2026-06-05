@@ -67,6 +67,15 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
             </li>
           ) : null}
           <li>HTML-Fallback versucht: {yesNo(Boolean(d.htmlFallbackAttempted))}</li>
+          {d.htmlFallbackAttempted ? (
+            <li>HTML-Fallback erfolgreich: {yesNo(Boolean(d.htmlFallbackSuccessful))}</li>
+          ) : null}
+          {d.htmlFallbackSuccessful && d.htmlFallbackTeamsFound != null ? (
+            <li>Teams gefunden: {d.htmlFallbackTeamsFound}</li>
+          ) : null}
+          {d.htmlFallbackSuccessful && d.htmlFallbackMatchesFound != null ? (
+            <li>Spiele gefunden: {d.htmlFallbackMatchesFound}</li>
+          ) : null}
           {d.htmlFallbackAttempted && d.htmlFallbackError ? (
             <li className="break-words text-amber-100/85">
               HTML-Fallback Fehler: {d.htmlFallbackError}

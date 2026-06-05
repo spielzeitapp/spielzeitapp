@@ -80,6 +80,7 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
   }
 
   try {
+    // JSON-Endpoints zuerst; bei Fehler showit.php + parseMeinTurnierplanHtml (preloadedState / sichtbares HTML).
     const result = await analyzeMeinTurnierplanUrl(url);
 
     if (result.ok) {

@@ -3,7 +3,10 @@ import {
   isTeamAliasMatch,
   type TournamentImportRecognition,
 } from './teamSeasonAliases';
-import { fetchMeinTurnierplanJsonFromShowitHtml } from './meinTurnierplanHtmlFallback';
+import {
+  extractMeinTurnierplanJsonFromShowitHtml,
+  fetchMeinTurnierplanShowitPageHtml,
+} from './meinTurnierplanHtmlFallback';
 
 export type TournamentMatchPhase = 'group' | 'placement' | 'semifinal' | 'final' | 'unknown';
 
@@ -66,6 +69,9 @@ export const TOURNAMENT_IMPORT_MANUAL_HINT =
 export const TOURNAMENT_IMPORT_DATA_UNAVAILABLE_MESSAGE =
   'Webseite ist erreichbar, aber die Import-Daten sind für SpielzeitApp nicht abrufbar.';
 
+export const MEIN_TURNIERPLAN_HTML_FALLBACK_EMPTY_MESSAGE =
+  'HTML-Fallback konnte keine Teams oder Spiele erkennen.';
+
 const MEIN_TURNIERPLAN_FETCH_TIMEOUT_MS = 15_000;
 
 const MEIN_TURNIERPLAN_BROWSER_USER_AGENT =
@@ -112,6 +118,9 @@ export type TournamentPlanAnalyzeDiagnostics = {
   browserFallbackAttempted?: boolean;
   browserFallbackError?: string | null;
   htmlFallbackAttempted?: boolean;
+  htmlFallbackSuccessful?: boolean;
+  htmlFallbackTeamsFound?: number;
+  htmlFallbackMatchesFound?: number;
   htmlFallbackError?: string | null;
   tournamentName?: string | null;
   serverException?: { name: string; message: string } | null;
@@ -588,6 +597,9 @@ export function buildTournamentPlanAnalyzeFailure(params: {
   browserFallbackAttempted?: boolean;
   browserFallbackError?: string | null;
   htmlFallbackAttempted?: boolean;
+  htmlFallbackSuccessful?: boolean;
+  htmlFallbackTeamsFound?: number;
+  htmlFallbackMatchesFound?: number;
   htmlFallbackError?: string | null;
   tournamentName?: string | null;
   serverException?: { name: string; message: string } | null;
@@ -618,6 +630,9 @@ export function buildTournamentPlanAnalyzeFailure(params: {
       browserFallbackAttempted: params.browserFallbackAttempted,
       browserFallbackError: params.browserFallbackError ?? null,
       htmlFallbackAttempted: params.htmlFallbackAttempted,
+      htmlFallbackSuccessful: params.htmlFallbackSuccessful,
+      htmlFallbackTeamsFound: params.htmlFallbackTeamsFound,
+      htmlFallbackMatchesFound: params.htmlFallbackMatchesFound,
       htmlFallbackError: params.htmlFallbackError ?? null,
       tournamentName: params.tournamentName ?? null,
       serverException: params.serverException ?? null,
@@ -649,16 +664,14 @@ async function tryMeinTurnierplanHtmlFallbackAnalyze(params: {
   | { ok: true; analysis: TournamentPlanAnalysis; diagnostics: TournamentPlanAnalyzeDiagnostics }
   | { ok: false; error: string }
 > {
-  const htmlResult = await fetchMeinTurnierplanJsonFromShowitHtml(
-    params.showitUrl,
-    params.extractedId,
-    params.fetchImpl,
-  );
-  if (htmlResult.ok) {
-    const analysis = parseMeinTurnierplanJson(htmlResult.tournamentJson);
-    if (!analysis) {
-      return { ok: false, error: 'Turnierdaten aus HTML nicht parsebar' };
-    }
+  const htmlFetch = await fetchMeinTurnierplanShowitPageHtml(params.showitUrl, params.fetchImpl);
+  if (!htmlFetch.ok) {
+    return { ok: false, error: htmlFetch.error };
+  }
+
+  const embedded = extractMeinTurnierplanJsonFromShowitHtml(htmlFetch.html, params.extractedId);
+  const analysis = parseMeinTurnierplanHtml(htmlFetch.html, params.extractedId);
+  if (analysis) {
     return {
       ok: true,
       analysis,
@@ -672,13 +685,17 @@ async function tryMeinTurnierplanHtmlFallbackAnalyze(params: {
         endpointAttempts: params.endpointAttempts,
         showitPageReachable: params.showitPageReachable ?? true,
         htmlFallbackAttempted: true,
+        htmlFallbackSuccessful: true,
+        htmlFallbackTeamsFound: analysis.teamCount,
+        htmlFallbackMatchesFound: analysis.preliminaryMatchCount,
         htmlFallbackError: null,
-        tournamentName: htmlResult.tournamentName,
+        tournamentName: embedded.ok ? embedded.tournamentName : null,
         source: 'html_fallback',
       },
     };
   }
-  return { ok: false, error: htmlResult.error };
+
+  return { ok: false, error: MEIN_TURNIERPLAN_HTML_FALLBACK_EMPTY_MESSAGE };
 }
 
 export type AnalyzeMeinTurnierplanUrlResult =
@@ -770,6 +787,7 @@ export async function analyzeMeinTurnierplanUrl(
       idExtracted: true,
       showitPageReachable,
       htmlFallbackAttempted: true,
+      htmlFallbackSuccessful: false,
       htmlFallbackError: htmlAfterParse.error,
       source: 'server_api',
     });
@@ -801,6 +819,7 @@ export async function analyzeMeinTurnierplanUrl(
       idExtracted: true,
       showitPageReachable,
       htmlFallbackAttempted: true,
+      htmlFallbackSuccessful: false,
       htmlFallbackError: htmlAfterJsonFail.error,
       source: 'server_api',
     });
@@ -897,6 +916,220 @@ export function buildTournamentMatchDedupeKey(params: {
   const groupKey =
     phaseKey === 'group' ? normalizeTeamMatchKey(params.groupLabel ?? '') : phaseKey;
   return `${params.kickoffTimeHHmm}|${normalizeTeamMatchKey(params.opponentName)}|${groupKey}`;
+}
+
+const VISIBLE_HTML_TIME_RE = /\b([01]?\d|2[0-3]):[0-5]\d\b/;
+const VISIBLE_HTML_GROUP_RE = /\bGruppe\s+([A-Z0-9]+)\b/gi;
+const VISIBLE_HTML_SKIP_LINE_RE =
+  /^(spielplan|vorrunde|endrunde|halbfinale|finale|platzierung|ergebnis|tabelle|uhrzeit|zeit|team\s*1|team\s*2|nr\.?|#)$/i;
+
+function decodeBasicHtmlEntities(text: string): string {
+  return text
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+}
+
+function stripHtmlForVisibleParse(html: string): string {
+  return decodeBasicHtmlEntities(
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/tr>/gi, '\n')
+      .replace(/<\/t[dh]>/gi, '\t')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\r/g, '\n'),
+  )
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+function normalizeVisibleTeamName(raw: string): string | null {
+  const name = raw.replace(/\s+/g, ' ').trim();
+  if (name.length < 2 || name.length > 80) return null;
+  if (VISIBLE_HTML_TIME_RE.test(name) && name.length <= 5) return null;
+  if (VISIBLE_HTML_SKIP_LINE_RE.test(name)) return null;
+  if (/^\d+$/.test(name)) return null;
+  return name;
+}
+
+function parseVisibleHtmlTableMatches(html: string): TournamentPlanImportRawMatch[] {
+  const matches: TournamentPlanImportRawMatch[] = [];
+  const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  let rowMatch: RegExpExecArray | null;
+  while ((rowMatch = rowRe.exec(html)) !== null) {
+    const rowHtml = rowMatch[1];
+    const cells = [...rowHtml.matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map((cell) =>
+      stripHtmlForVisibleParse(cell[1]),
+    );
+    if (cells.length < 3) continue;
+
+    const timeCell = cells.find((c) => VISIBLE_HTML_TIME_RE.test(c));
+    if (!timeCell) continue;
+    const kickoffTimeHHmm = timeCell.match(VISIBLE_HTML_TIME_RE)?.[0] ?? '';
+    if (!kickoffTimeHHmm) continue;
+
+    const teamCells = cells
+      .map((c) => normalizeVisibleTeamName(c))
+      .filter((c): c is string => Boolean(c))
+      .filter((c) => !VISIBLE_HTML_TIME_RE.test(c));
+
+    if (teamCells.length < 2) continue;
+    const homeTeam = teamCells[0];
+    const awayTeam = teamCells[1];
+    matches.push({
+      homeTeam,
+      awayTeam,
+      groupLabel: null,
+      phase: 'group',
+      kickoffTimeHHmm,
+      plannedMinutes: 10,
+      pitch: null,
+    });
+  }
+  return matches;
+}
+
+function parseVisibleHtmlTextBlocks(text: string): {
+  teams: TournamentPlanImportTeam[];
+  groupSummaries: TournamentPlanGroupSummary[];
+  rawMatches: TournamentPlanImportRawMatch[];
+} {
+  const teams: TournamentPlanImportTeam[] = [];
+  const groupSummaries: TournamentPlanGroupSummary[] = [];
+  const rawMatches: TournamentPlanImportRawMatch[] = [];
+  const teamNames = new Set<string>();
+
+  const groupSections: Array<{ label: string; body: string }> = [];
+  let lastIndex = 0;
+  let groupMatch: RegExpExecArray | null;
+  VISIBLE_HTML_GROUP_RE.lastIndex = 0;
+  while ((groupMatch = VISIBLE_HTML_GROUP_RE.exec(text)) !== null) {
+    if (groupSections.length > 0) {
+      groupSections[groupSections.length - 1].body = text.slice(lastIndex, groupMatch.index);
+    }
+    groupSections.push({ label: groupMatch[1].trim(), body: '' });
+    lastIndex = groupMatch.index + groupMatch[0].length;
+  }
+  if (groupSections.length > 0) {
+    groupSections[groupSections.length - 1].body = text.slice(lastIndex);
+  }
+
+  const sections =
+    groupSections.length > 0 ? groupSections : [{ label: '', body: text }];
+
+  for (const section of sections) {
+    const groupLabel = section.label || null;
+    let teamCountInGroup = 0;
+    const lines = section.body
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    for (const line of lines) {
+      const timeMatch = line.match(VISIBLE_HTML_TIME_RE);
+      if (timeMatch) {
+        const kickoffTimeHHmm = timeMatch[0];
+        const rest = line.slice(timeMatch.index! + kickoffTimeHHmm.length).trim();
+        const parts = rest
+          .split(/\s+[-–—vs.]+\s+|\s{2,}/i)
+          .map((p) => normalizeVisibleTeamName(p))
+          .filter((p): p is string => Boolean(p));
+        if (parts.length >= 2) {
+          rawMatches.push({
+            homeTeam: parts[0],
+            awayTeam: parts[1],
+            groupLabel,
+            phase: 'group',
+            kickoffTimeHHmm,
+            plannedMinutes: 10,
+            pitch: null,
+          });
+          for (const name of parts) teamNames.add(name);
+        }
+        continue;
+      }
+
+      if (/vorrunde|spielplan|endrunde|ergebnis|tabelle/i.test(line)) continue;
+      const teamName = normalizeVisibleTeamName(line);
+      if (!teamName || teamNames.has(teamName)) continue;
+      teamNames.add(teamName);
+      teams.push({ teamName, groupLabel });
+      teamCountInGroup += 1;
+    }
+
+    if (groupLabel && teamCountInGroup > 0) {
+      groupSummaries.push({ label: groupLabel, teamCount: teamCountInGroup });
+    }
+  }
+
+  return { teams, groupSummaries, rawMatches };
+}
+
+function parseMeinTurnierplanVisibleHtml(html: string): TournamentPlanAnalysis | null {
+  const tableMatches = parseVisibleHtmlTableMatches(html);
+  const plainText = stripHtmlForVisibleParse(html);
+  const textParsed = parseVisibleHtmlTextBlocks(plainText);
+
+  const teams = textParsed.teams;
+  const groupSummaries = textParsed.groupSummaries;
+  const rawMatches = [...textParsed.rawMatches];
+
+  for (const match of tableMatches) {
+    const key = `${match.kickoffTimeHHmm}|${match.homeTeam}|${match.awayTeam}`;
+    if (rawMatches.some((m) => `${m.kickoffTimeHHmm}|${m.homeTeam}|${m.awayTeam}` === key)) {
+      continue;
+    }
+    rawMatches.push(match);
+    if (!teams.some((t) => t.teamName === match.homeTeam)) {
+      teams.push({ teamName: match.homeTeam, groupLabel: match.groupLabel });
+    }
+    if (!teams.some((t) => t.teamName === match.awayTeam)) {
+      teams.push({ teamName: match.awayTeam, groupLabel: match.groupLabel });
+    }
+  }
+
+  if (teams.length === 0 || rawMatches.length === 0) return null;
+
+  const summaries =
+    groupSummaries.length > 0
+      ? groupSummaries
+      : [{ label: '1', teamCount: teams.length }];
+
+  return {
+    provider: 'meinturnierplan',
+    teamCount: teams.length,
+    groupCount: summaries.length,
+    matchCount: rawMatches.length,
+    preliminaryMatchCount: rawMatches.length,
+    knockoutMatchCount: 0,
+    groupSummaries: summaries,
+    teams,
+    rawMatches,
+  };
+}
+
+/**
+ * HTML-Fallback: zuerst eingebettetes preloadedState (wie json.php), sonst sichtbare Tabellen/Texte.
+ */
+export function parseMeinTurnierplanHtml(html: string, tournamentId: string): TournamentPlanAnalysis | null {
+  const slug = tournamentId?.trim();
+  if (!slug || !html?.trim()) return null;
+
+  const embedded = extractMeinTurnierplanJsonFromShowitHtml(html, slug);
+  if (embedded.ok) {
+    const fromJson = parseMeinTurnierplanJson(embedded.tournamentJson);
+    if (fromJson) return fromJson;
+  }
+
+  return parseMeinTurnierplanVisibleHtml(html);
 }
 
 export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis | null {
@@ -1160,6 +1393,9 @@ function serverDiagnosticsFromAnalyzeBody(
     browserFallbackAttempted: body.diagnostics?.browserFallbackAttempted,
     browserFallbackError: body.diagnostics?.browserFallbackError ?? null,
     htmlFallbackAttempted: body.diagnostics?.htmlFallbackAttempted,
+    htmlFallbackSuccessful: body.diagnostics?.htmlFallbackSuccessful,
+    htmlFallbackTeamsFound: body.diagnostics?.htmlFallbackTeamsFound,
+    htmlFallbackMatchesFound: body.diagnostics?.htmlFallbackMatchesFound,
     htmlFallbackError: body.diagnostics?.htmlFallbackError ?? null,
     tournamentName: body.diagnostics?.tournamentName ?? null,
     source: body.diagnostics?.source ?? 'server_api',
