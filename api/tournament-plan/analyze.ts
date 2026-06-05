@@ -1,5 +1,6 @@
 import {
   analyzeMeinTurnierplanUrl,
+  analyzeMeinTurnierplanUrlForceHtmlFallback,
   buildMeinTurnierplanJsonEndpoints,
   buildMeinTurnierplanShowitUrl,
   buildTournamentPlanAnalyzeFailure,
@@ -83,9 +84,14 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
     return;
   }
 
+  const forceHtmlRaw = queryParam(req.query, 'forceHtmlFallback');
+  const forceHtmlFallback = forceHtmlRaw === '1' || forceHtmlRaw.toLowerCase() === 'true';
+
   try {
-    // JSON-Endpoints zuerst; bei Fehler showit.php + parseMeinTurnierplanHtml (preloadedState / sichtbares HTML).
-    const result = await analyzeMeinTurnierplanUrl(url);
+    // forceHtmlFallback=1: JSON überspringen, showit.php serverseitig + parseMeinTurnierplanHtml.
+    const result = forceHtmlFallback
+      ? await analyzeMeinTurnierplanUrlForceHtmlFallback(url)
+      : await analyzeMeinTurnierplanUrl(url);
 
     if (result.ok) {
       res.status(200).json({
