@@ -30,9 +30,12 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
     d?.endpointAttempts ??
     (d?.attemptedEndpoints ?? []).map((endpoint) => ({
       endpoint,
+      finalUrl: null,
       httpStatus: null,
       networkError: false,
       errorDetail: null,
+      exceptionName: null,
+      exceptionMessage: null,
       parseCode: null,
     }));
 
@@ -70,6 +73,17 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
             </li>
           ) : null}
           {d.tournamentName ? <li>Turniername (HTML): {d.tournamentName}</li> : null}
+          {d.serverException ? (
+            <li className="break-words text-amber-100/85">
+              Server-Exception: {d.serverException.name} — {d.serverException.message}
+            </li>
+          ) : null}
+          {d.fetchRuntime ? (
+            <li>
+              Runtime: {d.fetchRuntime.vercel ? 'Vercel' : 'lokal'}
+              {d.fetchRuntime.region ? ` (${d.fetchRuntime.region})` : ''}
+            </li>
+          ) : null}
         </ul>
       ) : null}
 
@@ -83,6 +97,18 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
               <li key={attempt.endpoint} className="break-all font-mono text-[10px] leading-snug">
                 <span className="text-white/75">{attempt.endpoint}</span>
                 <span className="text-white/45"> → {formatEndpointAttemptSummary(attempt)}</span>
+                {attempt.finalUrl && attempt.finalUrl !== attempt.endpoint ? (
+                  <div className="text-white/40">final URL: {attempt.finalUrl}</div>
+                ) : null}
+                {attempt.httpStatus != null ? (
+                  <div className="text-white/40">status: {attempt.httpStatus}</div>
+                ) : null}
+                {attempt.exceptionName ? (
+                  <div className="text-white/40">
+                    exception: {attempt.exceptionName}
+                    {attempt.exceptionMessage ? ` — ${attempt.exceptionMessage}` : ''}
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>

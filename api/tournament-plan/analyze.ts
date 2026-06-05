@@ -2,12 +2,14 @@ import {
   analyzeMeinTurnierplanUrl,
   buildMeinTurnierplanJsonEndpoints,
   buildTournamentPlanAnalyzeFailure,
+  captureMeinTurnierplanFetchException,
   extractMeinTurnierplanId,
   isSupportedTournamentPlanHost,
   TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE,
   type TournamentPlanAnalysis,
   type TournamentPlanAnalyzeDiagnostics,
   type TournamentPlanAnalyzeFailure,
+  type TournamentPlanFetchRuntimeDiagnostics,
 } from '../../src/lib/tournamentPlanImport';
 
 type VercelLikeReq = {
@@ -28,6 +30,22 @@ function queryParam(
   return raw ?? '';
 }
 
+function readFetchRuntimeDiagnostics(): TournamentPlanFetchRuntimeDiagnostics {
+  return {
+    vercel: process.env.VERCEL === '1',
+    region: process.env.VERCEL_REGION?.trim() || null,
+  };
+}
+
+function enrichServerDiagnostics(
+  diagnostics: TournamentPlanAnalyzeDiagnostics,
+): TournamentPlanAnalyzeDiagnostics {
+  return {
+    ...diagnostics,
+    fetchRuntime: readFetchRuntimeDiagnostics(),
+  };
+}
+
 function failureJson(failure: TournamentPlanAnalyzeFailure): Record<string, unknown> {
   return {
     ok: false,
@@ -37,7 +55,7 @@ function failureJson(failure: TournamentPlanAnalyzeFailure): Record<string, unkn
     provider: failure.provider,
     extractedId: failure.extractedId,
     attemptedEndpoints: failure.attemptedEndpoints,
-    diagnostics: failure.diagnostics,
+    diagnostics: enrichServerDiagnostics(failure.diagnostics),
   };
 }
 
@@ -68,13 +86,16 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
       res.status(200).json({
         ok: true,
         analysis: result.analysis satisfies TournamentPlanAnalysis,
-        diagnostics: result.diagnostics satisfies TournamentPlanAnalyzeDiagnostics,
+        diagnostics: enrichServerDiagnostics(
+          result.diagnostics satisfies TournamentPlanAnalyzeDiagnostics,
+        ),
       });
       return;
     }
 
     res.status(result.httpStatus).json(failureJson(result.failure));
-  } catch {
+  } catch (err) {
+    const captured = captureMeinTurnierplanFetchException(err);
     const extractedId = extractMeinTurnierplanId(url);
     const failure = buildTournamentPlanAnalyzeFailure({
       code: 'api_unreachable',
@@ -85,6 +106,10 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
       idExtracted: Boolean(extractedId),
       showitPageReachable: null,
       source: 'server_api',
+      serverException: {
+        name: captured.exceptionName,
+        message: captured.exceptionMessage,
+      },
     });
     res.status(502).json(failureJson(failure));
   }

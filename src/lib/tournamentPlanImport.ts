@@ -86,10 +86,18 @@ export type TournamentPlanAnalyzeDataSource = 'server_api' | 'browser_fallback' 
 
 export type TournamentPlanEndpointAttempt = {
   endpoint: string;
+  finalUrl: string | null;
   httpStatus: number | null;
   networkError: boolean;
   errorDetail: string | null;
+  exceptionName: string | null;
+  exceptionMessage: string | null;
   parseCode: TournamentPlanAnalyzeErrorCode | 'ok' | null;
+};
+
+export type TournamentPlanFetchRuntimeDiagnostics = {
+  vercel: boolean;
+  region: string | null;
 };
 
 export type TournamentPlanAnalyzeDiagnostics = {
@@ -106,6 +114,8 @@ export type TournamentPlanAnalyzeDiagnostics = {
   htmlFallbackAttempted?: boolean;
   htmlFallbackError?: string | null;
   tournamentName?: string | null;
+  serverException?: { name: string; message: string } | null;
+  fetchRuntime?: TournamentPlanFetchRuntimeDiagnostics;
   /** Wo die Analyse-Daten herkamen (Serverless vs. Browser-Fetch). */
   source?: TournamentPlanAnalyzeDataSource;
 };
@@ -242,24 +252,104 @@ function buildMeinTurnierplanFetchHeaders(refererUrl: string): HeadersInit {
   };
 }
 
-function describeFetchFailure(err: unknown): string {
-  if (err instanceof Error) {
-    if (err.name === 'AbortError' || /timeout/i.test(err.message)) return 'Timeout';
-    if (/failed to fetch|networkerror|load failed|cors/i.test(err.message)) {
-      return 'Network / CORS';
-    }
-    return err.message.trim() || 'Network';
+function nodeErrorCode(err: unknown): string | null {
+  if (!err || typeof err !== 'object') return null;
+  const direct = (err as { code?: unknown }).code;
+  if (typeof direct === 'string' && direct.trim()) return direct.trim();
+  const cause = (err as { cause?: unknown }).cause;
+  if (cause && typeof cause === 'object') {
+    const causeCode = (cause as { code?: unknown }).code;
+    if (typeof causeCode === 'string' && causeCode.trim()) return causeCode.trim();
   }
-  return 'Network';
+  return null;
+}
+
+function classifyFetchException(name: string, message: string, err: unknown): string {
+  const code = nodeErrorCode(err);
+  const combined = `${name} ${message} ${code ?? ''}`.toLowerCase();
+
+  if (name === 'AbortError' || code === 'ETIMEDOUT' || /timeout|timed out|aborted/i.test(combined)) {
+    return 'Timeout';
+  }
+  if (
+    code === 'ENOTFOUND' ||
+    code === 'EAI_AGAIN' ||
+    /enotfound|getaddrinfo|dns|nxdomain|eai_again/i.test(combined)
+  ) {
+    return 'DNS';
+  }
+  if (
+    code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' ||
+    code === 'CERT_HAS_EXPIRED' ||
+    /cert|tls|ssl|unable to verify|self signed|handshake|depth zero/i.test(combined)
+  ) {
+    return 'TLS';
+  }
+  if (code === 'ERR_TOO_MANY_REDIRECTS' || /too many redirects|redirect loop|err_too_many_redirects/i.test(combined)) {
+    return 'Redirect';
+  }
+  if (
+    code === 'ECONNREFUSED' ||
+    code === 'ECONNRESET' ||
+    code === 'EPIPE' ||
+    /econnrefused|econnreset|epipe|fetch failed|network/i.test(combined)
+  ) {
+    return 'Network';
+  }
+  return message.trim() || name || 'Network';
+}
+
+/** Für Server-Diagnostics: exakte Fetch-Exception (DNS/TLS/Timeout/…). */
+export function captureMeinTurnierplanFetchException(err: unknown): {
+  exceptionName: string;
+  exceptionMessage: string;
+  errorDetail: string;
+} {
+  if (err instanceof Error) {
+    const exceptionName = err.name || 'Error';
+    const exceptionMessage = err.message.trim() || 'Unknown error';
+    return {
+      exceptionName,
+      exceptionMessage,
+      errorDetail: classifyFetchException(exceptionName, exceptionMessage, err),
+    };
+  }
+  const exceptionMessage = String(err);
+  return {
+    exceptionName: 'UnknownError',
+    exceptionMessage,
+    errorDetail: 'Network',
+  };
+}
+
+function describeFetchFailure(err: unknown): string {
+  return captureMeinTurnierplanFetchException(err).errorDetail;
 }
 
 export function formatEndpointAttemptSummary(attempt: TournamentPlanEndpointAttempt): string {
-  if (attempt.networkError) return attempt.errorDetail ?? 'Network';
+  if (attempt.networkError) {
+    const parts = [attempt.errorDetail ?? 'Network'];
+    if (attempt.exceptionName) parts.push(attempt.exceptionName);
+    if (attempt.exceptionMessage && attempt.exceptionMessage !== attempt.exceptionName) {
+      parts.push(attempt.exceptionMessage);
+    }
+    return parts.join(' · ');
+  }
   if (attempt.httpStatus != null && (attempt.httpStatus < 200 || attempt.httpStatus >= 300)) {
-    return `HTTP ${attempt.httpStatus}`;
+    const redirect =
+      attempt.finalUrl && attempt.finalUrl !== attempt.endpoint
+        ? ` → ${attempt.finalUrl}`
+        : '';
+    return `HTTP ${attempt.httpStatus}${redirect}`;
   }
   if (attempt.parseCode && attempt.parseCode !== 'ok') return attempt.parseCode;
-  if (attempt.httpStatus != null) return `HTTP ${attempt.httpStatus}`;
+  if (attempt.httpStatus != null) {
+    const redirect =
+      attempt.finalUrl && attempt.finalUrl !== attempt.endpoint
+        ? ` → ${attempt.finalUrl}`
+        : '';
+    return `HTTP ${attempt.httpStatus}${redirect}`;
+  }
   return '—';
 }
 
@@ -413,9 +503,12 @@ export async function fetchMeinTurnierplanJsonWithFallbacks(
   for (const endpoint of attemptedEndpoints) {
     const attempt: FetchMeinTurnierplanAttempt = {
       endpoint,
+      finalUrl: null,
       httpStatus: null,
       networkError: false,
       errorDetail: null,
+      exceptionName: null,
+      exceptionMessage: null,
       parseCode: null,
     };
     attempts.push(attempt);
@@ -428,6 +521,7 @@ export async function fetchMeinTurnierplanJsonWithFallbacks(
         },
         fetchImpl,
       );
+      attempt.finalUrl = res.url?.trim() || endpoint;
       attempt.httpStatus = res.status;
       apiReachable = true;
 
@@ -440,9 +534,12 @@ export async function fetchMeinTurnierplanJsonWithFallbacks(
       let json: unknown;
       try {
         json = await res.json();
-      } catch {
+      } catch (jsonErr) {
+        const captured = captureMeinTurnierplanFetchException(jsonErr);
         attempt.parseCode = 'parse_failed';
         attempt.errorDetail = 'JSON parse failed';
+        attempt.exceptionName = captured.exceptionName;
+        attempt.exceptionMessage = captured.exceptionMessage;
         bestFailureCode = 'parse_failed';
         continue;
       }
@@ -467,8 +564,11 @@ export async function fetchMeinTurnierplanJsonWithFallbacks(
       attempt.errorDetail = 'parse_failed';
       bestFailureCode = 'parse_failed';
     } catch (err) {
+      const captured = captureMeinTurnierplanFetchException(err);
       attempt.networkError = true;
-      attempt.errorDetail = describeFetchFailure(err);
+      attempt.errorDetail = captured.errorDetail;
+      attempt.exceptionName = captured.exceptionName;
+      attempt.exceptionMessage = captured.exceptionMessage;
     }
   }
 
@@ -490,6 +590,8 @@ export function buildTournamentPlanAnalyzeFailure(params: {
   htmlFallbackAttempted?: boolean;
   htmlFallbackError?: string | null;
   tournamentName?: string | null;
+  serverException?: { name: string; message: string } | null;
+  fetchRuntime?: TournamentPlanFetchRuntimeDiagnostics;
   source?: TournamentPlanAnalyzeDataSource;
 }): TournamentPlanAnalyzeFailure {
   const resolvedCode = resolveFinalImportFailureCode({
@@ -518,6 +620,8 @@ export function buildTournamentPlanAnalyzeFailure(params: {
       htmlFallbackAttempted: params.htmlFallbackAttempted,
       htmlFallbackError: params.htmlFallbackError ?? null,
       tournamentName: params.tournamentName ?? null,
+      serverException: params.serverException ?? null,
+      fetchRuntime: params.fetchRuntime,
       source: params.source,
     },
   };
