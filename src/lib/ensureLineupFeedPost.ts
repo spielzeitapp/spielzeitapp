@@ -18,12 +18,10 @@ export type EnsureLineupFeedPostResult =
 const MIN_FIELD_PLAYERS = 5;
 /** Auto-Post im 60-Minuten-Fenster vor Anpfiff (Anpfiff muss in der Zukunft liegen). */
 const MAX_MINUTES_BEFORE_KICKOFF = 60;
-/** Auto-Post maximal 5 Minuten nach Live-Start. */
-const MAX_MINUTES_AFTER_LIVE_START = 5;
 
 const FINISHED_MATCH_STATUSES = new Set(['ended', 'finished', 'completed']);
 
-export type LineupFeedAllowedWindow = 'pre_kickoff_60' | 'live_first_5' | 'blocked';
+export type LineupFeedAllowedWindow = 'pre_kickoff_60' | 'live' | 'blocked';
 
 function minutesUntilKickoff(startsAtIso: string, now: Date): number | null {
   const kick = new Date(startsAtIso);
@@ -60,18 +58,7 @@ function evaluateLineupFeedWindow(params: {
   }
 
   if (status === 'live') {
-    const minutesSince = params.minutesSinceKickoff;
-    if (
-      minutesSince != null &&
-      minutesSince >= 0 &&
-      minutesSince <= MAX_MINUTES_AFTER_LIVE_START
-    ) {
-      return { allowed: true, allowedWindow: 'live_first_5', reason: 'live_first_5_window' };
-    }
-    if (minutesSince != null && minutesSince > MAX_MINUTES_AFTER_LIVE_START) {
-      return { allowed: false, allowedWindow: 'blocked', reason: 'live_too_long' };
-    }
-    return { allowed: false, allowedWindow: 'blocked', reason: 'live_outside_window' };
+    return { allowed: true, allowedWindow: 'live', reason: 'live_status_allowed' };
   }
 
   return { allowed: false, allowedWindow: 'blocked', reason: `status_${status || 'unknown'}` };
@@ -716,7 +703,7 @@ export type EnsureLineupFeedPostsForSeasonResult = {
   errors: string[];
 };
 
-/** Beim Feed-Laden: Aufstellungs-Posts für Spiele im Pre-Kickoff- oder Live-Start-Fenster sicherstellen. */
+/** Beim Feed-Laden: Aufstellungs-Posts für upcoming (60-Min-Fenster) oder live Spiele sicherstellen. */
 export async function ensureLineupFeedPostsForSeason(
   teamSeasonId: string,
   now: Date = new Date(),
