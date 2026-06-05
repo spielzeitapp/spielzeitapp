@@ -15,6 +15,10 @@ import { HomeUpcomingMatchCompact } from './HomeUpcomingMatchCompact';
 import { HomeSpieltagHintCard } from './HomeSpieltagHintCard';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 import { isHomeHeroDuplicateFeedPost } from '../../lib/feedPostPriority';
+import {
+  isMatchdayFeedPostHiddenByAutomation,
+  loadAutoMatchdayFeedDisabledMatchIds,
+} from '../../lib/autoMatchdayFeedEnabled';
 import { dsPrimaryCtaClass, dsSublineClass } from '../../lib/premiumDesignSystem';
 import {
   GlassCard,
@@ -42,15 +46,34 @@ export const HomePage: React.FC = () => {
   const teamId = String(selectedTeamSeason?.team?.id ?? selectedTeamSeason?.team_id ?? '');
 
   const [now, setNow] = useState(() => new Date());
+  const [disabledMatchdayMatchIds, setDisabledMatchdayMatchIds] = useState<Set<string>>(() => new Set());
+
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    if (FEED_DEMO) {
+      setDisabledMatchdayMatchIds(new Set());
+      return;
+    }
+    const matchIds = (events ?? [])
+      .filter((e) => e.kind === 'match')
+      .map((e) => e.match_id);
+    let cancelled = false;
+    void loadAutoMatchdayFeedDisabledMatchIds(matchIds).then((ids) => {
+      if (!cancelled) setDisabledMatchdayMatchIds(ids);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [events]);
+
   const matchPick = useMemo(() => {
     const source = FEED_DEMO ? buildDemoHomeMatchEvents(now) : (events ?? []);
-    return pickHomeMatchCard(source, now);
-  }, [events, now]);
+    return pickHomeMatchCard(source, now, disabledMatchdayMatchIds);
+  }, [events, now, disabledMatchdayMatchIds]);
 
   const { posts: teamFeedPosts, loading: teamFeedLoading, refetch: refetchFeed } = useTeamFeedPosts(teamSeasonId);
   const staffCanDeleteFeed = canStaffManageTeamFeed(backendRole, membershipRole);
@@ -70,8 +93,11 @@ export const HomePage: React.FC = () => {
   const showNextMatchCompact = Boolean(matchPick && matchPick.status === 'next');
 
   const visibleFeedPosts = useMemo(() => {
-    if (!spieltagHintPick) return teamFeedPosts;
-    return teamFeedPosts.filter(
+    const withoutDisabledMatchday = teamFeedPosts.filter(
+      (item) => !isMatchdayFeedPostHiddenByAutomation(item, disabledMatchdayMatchIds),
+    );
+    if (!spieltagHintPick) return withoutDisabledMatchday;
+    return withoutDisabledMatchday.filter(
       (item) =>
         !isHomeHeroDuplicateFeedPost(
           item,
@@ -79,7 +105,7 @@ export const HomePage: React.FC = () => {
           spieltagHintPick.event.match_id,
         ),
     );
-  }, [teamFeedPosts, spieltagHintPick]);
+  }, [teamFeedPosts, spieltagHintPick, disabledMatchdayMatchIds]);
 
   return (
     <PageShell

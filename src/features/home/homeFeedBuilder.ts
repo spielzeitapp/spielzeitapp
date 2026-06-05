@@ -1,4 +1,5 @@
 import type { EventRow } from '../../hooks/useEvents';
+import { isAutoMatchdayFeedEnabledForEvent } from '../../lib/autoMatchdayFeedEnabled';
 import {
   getDateTimePartsInTimeZone,
   isNextViennaCalendarDay,
@@ -209,12 +210,17 @@ export function splitStatusForHero(statusLabel: string): { lead: string; emphasi
   return { lead: parts.slice(0, -1).join(' '), emphasis: parts[parts.length - 1] ?? '' };
 }
 
-export function pickHomeMatchCard(events: EventRow[], now: Date): HomeMatchCardPick | null {
+export function pickHomeMatchCard(
+  events: EventRow[],
+  now: Date,
+  disabledMatchIds: ReadonlySet<string> = new Set(),
+): HomeMatchCardPick | null {
   const matches = events
     .filter((e) => {
       if (e.kind !== 'match') return false;
       const st = e.status ?? 'upcoming';
       if (st === 'finished' || st === 'canceled') return false;
+      if (!isAutoMatchdayFeedEnabledForEvent(e, disabledMatchIds)) return false;
       return true;
     })
     .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());

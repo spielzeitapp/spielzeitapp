@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { loadAutoMatchdayFeedEnabledByMatchId } from './autoMatchdayFeedEnabled';
 import { formatFullLocation, splitCombinedLocation } from './eventLocation';
 import {
   buildMatchdayTodayCaption,
@@ -123,35 +124,13 @@ async function postExists(dedupe_key: string): Promise<boolean> {
   return Boolean(data?.id);
 }
 
-async function loadMatchdayFeedEnabledByMatchId(matchIds: string[]): Promise<Map<string, boolean>> {
-  const map = new Map<string, boolean>();
-  const ids = [...new Set(matchIds.map((id) => id.trim()).filter(Boolean))];
-  if (ids.length === 0) return map;
-
-  const { data, error } = await supabase
-    .from('matches')
-    .select('id, auto_matchday_feed_enabled')
-    .in('id', ids);
-
-  if (error) {
-    console.warn('[matchdayFeed] auto_matchday_feed_enabled lookup failed', error.message);
-    return map;
-  }
-
-  for (const row of (data ?? []) as Array<{ id: string; auto_matchday_feed_enabled: boolean | null }>) {
-    map.set(row.id, row.auto_matchday_feed_enabled !== false);
-  }
-  return map;
-}
-
 function isMatchdayFeedEnabledForEvent(
   event: EventRowLite,
   enabledByMatchId: Map<string, boolean>,
 ): boolean {
   const matchId = event.match_id?.trim();
   if (!matchId) return true;
-  const enabled = enabledByMatchId.get(matchId);
-  return enabled !== false;
+  return enabledByMatchId.get(matchId) !== false;
 }
 
 function buildMatchdayPayload(
@@ -383,7 +362,7 @@ export async function ensureMatchdayFeedPostsForSeason(
   const candidateMatchIds = [...todayCandidates, ...tomorrowCandidates]
     .map((ev) => ev.match_id)
     .filter((id): id is string => Boolean(id?.trim()));
-  const enabledByMatchId = await loadMatchdayFeedEnabledByMatchId(candidateMatchIds);
+  const enabledByMatchId = await loadAutoMatchdayFeedEnabledByMatchId(candidateMatchIds);
 
   const toProcess: Array<{ event: EventRowLite; timing: 'today' | 'tomorrow' }> = [];
   const earliestToday = pickEarliestEvent(

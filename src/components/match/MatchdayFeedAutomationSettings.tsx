@@ -72,8 +72,9 @@ export function MatchdayFeedAutomationSettings({
             Automatischen Matchday-Post erstellen
           </span>
           <span className="mt-1 block text-[12px] leading-snug text-white/55">
-            Wenn deaktiviert, wird kein automatischer Matchday-Post im Feed erstellt. Aufstellung,
-            Live-Updates und Ergebnis bleiben aktiv.
+            Wenn deaktiviert, wird kein automatischer Matchday-Post im Feed erstellt und die
+            Spieltag-Hero-Karte auf Home ausgeblendet. Aufstellung, Live-Updates und Ergebnis
+            bleiben aktiv.
           </span>
         </span>
       </label>
