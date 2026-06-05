@@ -62,10 +62,13 @@ export type NextMatchFeedPostRow = Omit<TeamFeedPostDbRow, 'payload'> & {
 
 export type LiveFeedPostRow = Omit<TeamFeedPostDbRow, 'payload'> & { payload: LiveFeedPayload };
 
+export type LineupFeedPostRow = Omit<TeamFeedPostDbRow, 'payload'> & { payload: LineupFeedPayload };
+
 export type ClassifiedFeedPost =
   | { kind: 'matchday'; post: TeamFeedPostRow }
   | { kind: 'next_match'; post: NextMatchFeedPostRow }
   | { kind: 'live'; post: LiveFeedPostRow }
+  | { kind: 'lineup'; post: LineupFeedPostRow }
   | { kind: 'image'; post: TeamFeedPostDbRow }
   | { kind: 'video'; post: TeamFeedPostDbRow }
   | { kind: 'result'; post: ResultFeedPostRow };

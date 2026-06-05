@@ -7,6 +7,7 @@ import {
 } from './viennaTime';
 
 export const FEED_POST_PRIORITY = {
+  result_post: 110,
   live_match: 100,
   lineup_auto: 95,
   matchday_today: 90,
@@ -16,8 +17,9 @@ export const FEED_POST_PRIORITY = {
   video_post: 50,
   image_post: 50,
   default: 45,
-  result_post: 40,
 } as const;
+
+const FINISHED_EVENT_STATUSES = new Set(['finished', 'ended', 'completed', 'canceled']);
 
 export type FeedPostPriorityKey = keyof typeof FEED_POST_PRIORITY;
 
@@ -65,6 +67,41 @@ export function isMatchdayAutoPostActiveForViennaDay(row: TeamFeedPostDbRow, now
   return true;
 }
 
+function isSchedulingFeedPostKind(postKind: string, mediaType: string): boolean {
+  return (
+    postKind === 'matchday_today_auto' ||
+    postKind === 'matchday_tomorrow_auto' ||
+    postKind === 'next_match_auto' ||
+    postKind === 'matchday_auto' ||
+    mediaType === 'matchday' ||
+    mediaType === 'next_match'
+  );
+}
+
+/**
+ * Spieltag-/Next-Match-Posts ausblenden, wenn das verknüpfte Event beendet ist.
+ * lineup_auto und result_auto bleiben sichtbar.
+ */
+export function isFeedPostVisibleInHomeFeed(
+  row: TeamFeedPostDbRow,
+  eventStatusById: Map<string, string>,
+  now: Date = new Date(),
+): boolean {
+  const pk = (row.post_kind ?? '').toLowerCase().trim();
+  const mt = (row.media_type ?? '').toLowerCase().trim();
+
+  if (isSchedulingFeedPostKind(pk, mt)) {
+    const eventId = row.event_id?.trim();
+    if (eventId) {
+      const status = (eventStatusById.get(eventId) ?? '').toLowerCase();
+      if (FINISHED_EVENT_STATUSES.has(status)) return false;
+    }
+    return isMatchdayAutoPostActiveForViennaDay(row, now);
+  }
+
+  return true;
+}
+
 /**
  * Priorität für Feed-Sortierung (clientseitig, ohne DB-Migration).
  */
@@ -76,6 +113,10 @@ export function getFeedPostPriority(
   const pk = (row.post_kind ?? '').toLowerCase().trim();
   const mt = (row.media_type ?? '').toLowerCase().trim();
   const eventId = row.event_id?.trim() ?? '';
+
+  if (mt === 'result' || pk === 'result_auto') {
+    return FEED_POST_PRIORITY.result_post;
+  }
 
   if (mt === 'live' || pk === 'live_auto') {
     return FEED_POST_PRIORITY.live_match;
@@ -103,10 +144,6 @@ export function getFeedPostPriority(
 
   if (mt === 'next_match' || pk === 'next_match_auto') {
     return FEED_POST_PRIORITY.next_match;
-  }
-
-  if (mt === 'result' || pk === 'result_auto') {
-    return FEED_POST_PRIORITY.result_post;
   }
 
   if (mt === 'video' && row.media_url) {
@@ -155,7 +192,7 @@ function feedPostUpdatedTimestamp(row: TeamFeedPostDbRow): number {
 }
 
 /**
- * Home-Feed: zuerst Post-Typ-Priorität (live → lineup → matchday → …),
+ * Home-Feed: Matchday-Story — zuerst Priorität (result → live → lineup → matchday → …),
  * innerhalb gleicher Priorität neueste zuerst (created_at DESC).
  */
 export function sortClassifiedFeedPosts(

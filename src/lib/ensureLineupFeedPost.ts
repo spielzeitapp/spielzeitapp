@@ -235,15 +235,8 @@ async function fetchFormationForMatch(matchId: string): Promise<U11FormationId |
   return isU11FormationId(rawFormation) ? rawFormation : null;
 }
 
-function lineupFeedPlayerName(
-  playerId: string,
-  positionLabel: string,
-  nameById: Map<string, string>,
-): string {
-  const fromDb = nameById.get(playerId)?.trim();
-  if (fromDb) return fromDb;
-  if (positionLabel.trim()) return positionLabel.trim();
-  return 'Spieler';
+function lineupFeedPlayerName(playerId: string, nameById: Map<string, string>): string {
+  return nameById.get(playerId)?.trim() ?? '';
 }
 
 function buildLineupFeedPlayersFromSlotMapSync(
@@ -258,7 +251,7 @@ function buildLineupFeedPlayersFromSlotMapSync(
     const positionLabel = formation ? labelForSlotInFormation(formation, slot) : slot;
     players.push({
       player_id: pid,
-      name: lineupFeedPlayerName(pid, positionLabel, nameById),
+      name: lineupFeedPlayerName(pid, nameById),
       slot: positionLabel,
     });
   }

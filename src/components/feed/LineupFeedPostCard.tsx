@@ -58,16 +58,22 @@ function lineupFeedPositionLabel(slot?: string | null): string {
   return trimmed || 'Position';
 }
 
-function lineupFeedPlayerName(name?: string | null): string | null {
+const POSITION_ABBREV_KEYS = new Set(Object.keys(LINEUP_FEED_POSITION_LABELS));
+
+function lineupFeedPlayerName(name?: string | null, slot?: string | null): string | null {
   const trimmed = (name ?? '').trim();
   if (!trimmed || trimmed === 'Spieler') return null;
+  const upper = trimmed.toUpperCase();
+  if (POSITION_ABBREV_KEYS.has(upper)) return null;
+  const slotKey = (slot ?? '').trim().toUpperCase();
+  if (slotKey && upper === slotKey) return null;
   return trimmed;
 }
 
 function lineupFeedPlayerLine(pl: LineupFeedPlayer): { position: string; name: string | null } {
   return {
     position: lineupFeedPositionLabel(pl.slot),
-    name: lineupFeedPlayerName(pl.name),
+    name: lineupFeedPlayerName(pl.name, pl.slot),
   };
 }
 
@@ -187,30 +193,30 @@ export const LineupFeedPostCard: React.FC<Props> = ({
               </div>
             ) : null}
 
-            <div className="rounded-lg border border-white/[0.07] bg-black/40 px-2 py-2 sm:px-3 sm:py-2.5">
-              <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-red-200/80 sm:mb-2 sm:text-[10px]">
+            <div className="rounded-lg border border-white/[0.07] bg-black/40 px-2 py-1.5 sm:px-3 sm:py-2">
+              <p className="mb-1 text-[9px] font-black uppercase tracking-[0.16em] text-red-200/75">
                 Startelf
               </p>
-              <ul className="space-y-1">
+              <ul className="space-y-0.5">
                 {displayPlayers.map((line, index) => (
                   <li
                     key={`${p.lineup_players[index]?.player_id ?? index}-${line.position}`}
-                    className="flex min-h-[30px] items-center rounded-md border border-white/[0.07] bg-white/[0.035] px-2 py-1 sm:min-h-[32px] sm:px-2.5 sm:py-1.5"
+                    className="flex min-h-[26px] items-center gap-1 rounded-md border border-white/[0.06] bg-white/[0.03] px-2 py-0.5 sm:min-h-[28px] sm:px-2.5 sm:py-1"
                   >
-                    <span className="shrink-0 text-[10px] font-semibold leading-tight text-red-200/88 sm:text-[11px]">
+                    <span className="shrink-0 text-[9px] font-semibold leading-tight text-red-300/80 sm:text-[10px]">
                       {line.position}
                     </span>
+                    <span className="shrink-0 text-[9px] text-white/25" aria-hidden>
+                      ·
+                    </span>
                     {line.name ? (
-                      <>
-                        <span className="mx-1.5 shrink-0 text-[10px] text-white/30" aria-hidden>
-                          ·
-                        </span>
-                        <span className="min-w-0 truncate text-[11px] font-bold leading-tight text-white/95 sm:text-[12px]">
-                          {line.name}
-                        </span>
-                      </>
+                      <span className="min-w-0 truncate text-[12px] font-bold leading-tight text-white sm:text-[13px]">
+                        {line.name}
+                      </span>
                     ) : (
-                      <span className="ml-1.5 text-[10px] italic text-white/45 sm:text-[11px]">nicht benannt</span>
+                      <span className="min-w-0 truncate text-[11px] italic text-white/45 sm:text-[12px]">
+                        nicht benannt
+                      </span>
                     )}
                   </li>
                 ))}

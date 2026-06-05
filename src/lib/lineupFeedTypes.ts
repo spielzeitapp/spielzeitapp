@@ -37,7 +37,7 @@ export function parseLineupFeedPayload(raw: unknown): LineupFeedPayload | null {
       const row = item as Record<string, unknown>;
       const player_id = typeof row.player_id === 'string' ? row.player_id.trim() : '';
       const name = typeof row.name === 'string' ? row.name.trim() : '';
-      if (!player_id || !name) continue;
+      if (!player_id) continue;
       lineup_players.push({
         player_id,
         name,
