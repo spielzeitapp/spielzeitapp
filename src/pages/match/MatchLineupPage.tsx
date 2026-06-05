@@ -7,7 +7,6 @@ import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import { triggerLineupFeedPostAfterSave } from '../../lib/ensureLineupFeedPost';
-import { lineupFeedDevWarn } from '../../lib/lineupFeedDebug';
 import {
   fetchLineupForLiveMatch,
   LIVE_FIELD_SLOT_ORDER,
@@ -343,12 +342,21 @@ export const MatchLineupPage: React.FC = () => {
   };
 
   const onSaveLineupClick = async (): Promise<void> => {
-    lineupFeedDevWarn('[LINEUP FEED] SAVE BUTTON CLICKED', { matchId });
+    console.warn('[LINEUP FEED] SAVE BUTTON CLICKED', { matchId });
     if (!matchId) return;
     const saved = await saveLineup();
     if (!saved) return;
-    lineupFeedDevWarn('[LINEUP FEED] LINEUP SAVE SUCCESS', { matchId });
-    void triggerLineupFeedPostAfterSave(matchId);
+    console.warn('[LINEUP FEED] LINEUP SAVE SUCCESS', { matchId });
+    if (typeof triggerLineupFeedPostAfterSave !== 'function') {
+      console.warn('[LINEUP FEED] save-trigger missing export');
+      return;
+    }
+    void triggerLineupFeedPostAfterSave(matchId).catch((error) => {
+      console.warn('[LINEUP FEED] save-trigger error', {
+        matchId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
   };
 
   const onStartLive = async () => {

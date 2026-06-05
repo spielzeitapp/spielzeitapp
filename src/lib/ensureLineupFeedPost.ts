@@ -818,7 +818,7 @@ export async function ensureLineupFeedPostForMatch(
     teamSeasonId,
   );
 
-  lineupFeedDevWarn('[LINEUP FEED] final lineup payload', feedPlayers);
+  console.warn('[LINEUP FEED] final lineup payload', feedPlayers);
 
   const payload: LineupFeedPayload = {
     match_id: mid,

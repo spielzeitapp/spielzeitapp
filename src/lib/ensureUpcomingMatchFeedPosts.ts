@@ -204,11 +204,10 @@ export async function ensureUpcomingMatchFeedPosts(
   const { data, error } = await supabase
     .from('events')
     .select(
-      'id, team_season_id, kind, type, status, opponent, is_home, location, address, starts_at, meeting_at, match_type, match_id, opponent_logo_url',
+      'id, team_season_id, kind, type, status, opponent, is_home, location, starts_at, meeting_at, match_type, match_id',
     )
     .eq('team_season_id', sid)
-    .neq('status', 'canceled')
-    .neq('status', 'finished')
+    .not('status', 'in', '(canceled,finished)')
     .order('starts_at', { ascending: true });
 
   if (error) {
