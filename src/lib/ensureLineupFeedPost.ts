@@ -236,9 +236,13 @@ async function fetchFormationForMatch(matchId: string): Promise<U11FormationId |
   return isU11FormationId(rawFormation) ? rawFormation : null;
 }
 
-function lineupFeedPlayerNameFromDb(playerId: string, nameById: Map<string, string>): string {
+function lineupFeedPlayerNameFromDb(
+  playerId: string,
+  nameById: Map<string, string>,
+  fieldSlot?: FieldSlotId,
+): string {
   const raw = nameById.get(playerId)?.trim() ?? '';
-  return sanitizeLineupFeedPlayerName(raw, null);
+  return sanitizeLineupFeedPlayerName(raw, fieldSlot ?? null);
 }
 
 function buildLineupFeedPlayersFromSlotMapSync(
@@ -251,7 +255,7 @@ function buildLineupFeedPlayersFromSlotMapSync(
     const pid = slotToPlayer.get(fieldSlot)?.trim();
     if (!pid) continue;
     const positionLabel = lineupFeedFriendlyPositionLabel(fieldSlot);
-    const playerName = lineupFeedPlayerNameFromDb(pid, nameById);
+    const playerName = lineupFeedPlayerNameFromDb(pid, nameById, fieldSlot);
     players.push({
       player_id: pid,
       slot: fieldSlot,
@@ -266,6 +270,7 @@ function buildLineupFeedPlayersFromSlotMapSync(
 async function buildLineupFeedPlayersFromSlotMap(
   slotToPlayer: Map<FieldSlotId, string>,
   formation: U11FormationId | null,
+  teamSeasonId?: string | null,
 ): Promise<LineupFeedPlayer[]> {
   const orderedIds = LIVE_FIELD_SLOT_ORDER.map((slot) => slotToPlayer.get(slot) ?? null).filter(
     (id): id is string => Boolean(id),
@@ -273,24 +278,43 @@ async function buildLineupFeedPlayersFromSlotMap(
   if (orderedIds.length === 0) return [];
 
   const nameById = new Map<string, string>();
-  const { data: playerRows, error: playersErr } = await supabase
-    .from('players')
-    .select('id, first_name, last_name, display_name, name')
-    .in('id', orderedIds);
+  const scopedTeamSeasonId = teamSeasonId?.trim() ?? '';
+  let query = supabase.from('players').select('id, first_name, last_name').in('id', orderedIds);
+  if (scopedTeamSeasonId) {
+    query = query.eq('team_season_id', scopedTeamSeasonId);
+  }
+
+  const { data: playerRows, error: playersErr } = await query;
 
   if (playersErr) {
-    luLog('players load error', { error: playersErr.message });
+    luLog('players load error', { error: playersErr.message, teamSeasonId: scopedTeamSeasonId || null });
+    lineupFeedDevWarn('[LINEUP FEED] player lookup failed', {
+      source: 'players',
+      teamSeasonId: scopedTeamSeasonId || null,
+      playerIds: orderedIds,
+      error: playersErr.message,
+    });
   } else {
     for (const pr of playerRows ?? []) {
       const row = pr as {
         id: string;
         first_name?: string | null;
         last_name?: string | null;
-        display_name?: string | null;
-        name?: string | null;
       };
       nameById.set(row.id, premiumPlayerDisplayName(row));
     }
+    const missingIds = orderedIds.filter((id) => !nameById.has(id));
+    lineupFeedDevWarn('[LINEUP FEED] player lookup', {
+      source: 'players',
+      teamSeasonId: scopedTeamSeasonId || null,
+      requestedIds: orderedIds.length,
+      resolvedIds: nameById.size,
+      missingIds,
+      resolved: orderedIds.map((id) => ({
+        player_id: id,
+        resolvedName: nameById.get(id) ?? null,
+      })),
+    });
   }
 
   return buildLineupFeedPlayersFromSlotMapSync(slotToPlayer, formation, nameById);
@@ -300,7 +324,10 @@ async function buildLineupFeedPlayersFromSlotMap(
  * Liest die gespeicherte Aufstellung wie MatchLineupPage (fetchLineupForLiveMatch → match_lineup),
  * optional Fallback match_lineup_slots falls die Tabelle Daten hat.
  */
-async function fetchSavedLineupForFeedPost(matchId: string): Promise<{
+async function fetchSavedLineupForFeedPost(
+  matchId: string,
+  teamSeasonId?: string | null,
+): Promise<{
   source: SavedLineupFeedSource;
   rawLineupCount: number;
   fieldCount: number;
@@ -350,7 +377,7 @@ async function fetchSavedLineupForFeedPost(matchId: string): Promise<{
 
   const playerNames: string[] = [];
   const formation = await fetchFormationForMatch(matchId);
-  let players = await buildLineupFeedPlayersFromSlotMap(slotToPlayer, formation);
+  let players = await buildLineupFeedPlayersFromSlotMap(slotToPlayer, formation, teamSeasonId);
   if (players.length === 0 && fieldCount >= MIN_FIELD_PLAYERS) {
     players = buildLineupFeedPlayersFromSlotMapSync(slotToPlayer, formation);
     luLog('feed players fallback from slot map', { matchId, count: players.length });
@@ -575,7 +602,7 @@ export async function ensureLineupFeedPostForMatch(
     return { ok: true, created: false, reason: windowEval.reason };
   }
 
-  const lineupData = await fetchSavedLineupForFeedPost(mid);
+  const lineupData = await fetchSavedLineupForFeedPost(mid, teamSeasonIdEarly);
   if (!lineupData) {
     lineupFeedExit('lineup could not be loaded', {
       matchFound: true,
@@ -670,14 +697,18 @@ export async function ensureLineupFeedPostForMatch(
   for (const pos of lineupData.lineupCounts.detectedPositions) {
     slotToPlayer.set(pos.slot, pos.playerId);
   }
-  const feedPlayers = await buildLineupFeedPlayersFromSlotMap(slotToPlayer, lineupData.formation);
+  const feedPlayers = await buildLineupFeedPlayersFromSlotMap(
+    slotToPlayer,
+    lineupData.formation,
+    teamSeasonId,
+  );
 
   for (const pl of feedPlayers) {
-    lineupFeedDevWarn('[LINEUP FEED] player payload', {
+    lineupFeedDevWarn('[LINEUP FEED] final-player', {
+      playerId: pl.player_id,
       slot: pl.slot,
       positionLabel: pl.positionLabel,
       playerName: pl.playerName,
-      player_id: pl.player_id,
     });
   }
 
