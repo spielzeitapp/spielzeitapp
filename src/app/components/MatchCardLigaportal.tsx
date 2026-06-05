@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
@@ -21,6 +21,7 @@ import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocati
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../../components/match/matchCardLabels';
 import { MatchCardGameCore, MatchCardKickoffBlock } from '../../components/match/MatchCardGameCore';
+import { MatchLiveAccessActionSheet } from '../../components/match/MatchLiveAccessActionSheet';
 import { formatHeroDateParts, scheduleMetaTimeDisplay } from '../../components/schedule/scheduleEventViewUtils';
 import { isMatchPreparationAccessible } from '../../lib/matchPreparationAccess';
 import { TrainerStatsMini } from '../../components/schedule/TrainerStatsMini';
@@ -140,6 +141,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   compactDetailGame = false,
 }) => {
   const navigate = useNavigate();
+  const [liveAccessSheetOpen, setLiveAccessSheetOpen] = useState(false);
   void ourTeamName;
   const ourClubName = getOurTeamDisplayName();
   const canSeeSensitiveInfo = showMeetup;
@@ -341,7 +343,35 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const isTrainerScheduleHero =
     scheduleNextMatchHero && effectiveEventType === 'game' && !isAudienceHeroRole && Boolean(canManage);
 
-  /** Trainer-Hero: ein Klickziel für Karte + Kacheln (Vorbereitung / Live). */
+  const openTrainerLiveAccessSheet = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!isTrainerScheduleHero || !isMatchPreparationAccessible(status)) return;
+    if (!(scheduleHeroMatchId ?? '').trim()) return;
+    setLiveAccessSheetOpen(true);
+  };
+
+  const goToMatchPreparationFromSheet = () => {
+    setLiveAccessSheetOpen(false);
+    if (onScheduleHeroPrepare) {
+      onScheduleHeroPrepare();
+      return;
+    }
+    navigateToMatchPreparation();
+  };
+
+  const goToLiveFromSheet = () => {
+    setLiveAccessSheetOpen(false);
+    if (onScheduleHeroGoLive) {
+      onScheduleHeroGoLive();
+      return;
+    }
+    navigateToLiveMatch();
+  };
+
+  const liveAccessSheetLiveLabel =
+    matchPhase === 'live' ? 'Zum Livemodus' : 'Live starten';
+
+  /** Trainer-Hero: Kartenklick (nicht Live-Kachel) → Event oder Vorbereitung. */
   const handleTrainerScheduleHeroClick = () => {
     if (!isTrainerScheduleHero) return;
     if (matchPhase === 'live' || isLineupReady) {
@@ -370,7 +400,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const handleScheduleHeroLiveAction = () => {
     if (isTrainerScheduleHero) {
-      handleTrainerScheduleHeroClick();
+      openTrainerLiveAccessSheet();
       return;
     }
     if (onScheduleHeroGoLive) onScheduleHeroGoLive();
@@ -915,7 +945,10 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
               <button
                 type="button"
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-emerald-400/20 bg-emerald-600/20 px-4 shadow-[0_0_20px_rgba(16,185,129,0.12)]"
-                onClick={(e) => { e.stopPropagation(); handleTrainerScheduleHeroClick(); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openTrainerLiveAccessSheet(e);
+                }}
               >
                 <Radio className="h-4 w-4 text-emerald-400" strokeWidth={2} aria-hidden />
                 <span className="text-[13px] font-semibold text-emerald-400">Livespiel öffnen</span>
@@ -1183,7 +1216,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
                   {matchPhase === 'live' ? (
                     onScheduleHeroGoLive || isClickable
-                      ? renderScheduleHeroLiveOpenTile(handleTrainerScheduleHeroClick)
+                      ? renderScheduleHeroLiveOpenTile(openTrainerLiveAccessSheet)
                       : (
                     <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} pointer-events-none opacity-50`}>
                       <span className={`${heroMatchMetaIcon} text-red-400/50`}>
@@ -1196,9 +1229,9 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                     </div>
                       )
                   ) : isLineupReady ? (
-                    renderScheduleHeroLiveReadyTile(handleTrainerScheduleHeroClick)
+                    renderScheduleHeroLiveReadyTile(openTrainerLiveAccessSheet)
                   ) : isClickable ? (
-                    renderScheduleHeroLivePrepareTile(handleTrainerScheduleHeroClick)
+                    renderScheduleHeroLivePrepareTile(openTrainerLiveAccessSheet)
                   ) : (
                     <div className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder}`}>
                       <span className={`${heroMatchMetaIcon} text-red-400/50`}>
@@ -1211,20 +1244,6 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
                     </div>
                   )}
                 </div>
-              ) : null}
-              {isTrainerScheduleHero &&
-              isMatchPreparationAccessible(status) &&
-              (scheduleHeroMatchId ?? '').trim() ? (
-                <button
-                  type="button"
-                  className="mt-1.5 w-full rounded-lg border border-white/12 bg-black/25 py-1.5 text-[11px] font-semibold text-white/72 transition hover:bg-white/[0.06] hover:text-white/90"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigateToMatchPreparation();
-                  }}
-                >
-                  Vorbereiten
-                </button>
               ) : null}
             </div>
           </div>
@@ -1390,9 +1409,20 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   );
 
   return (
-    <div className="flex w-full max-w-none flex-col gap-0">
-      {dateRow}
-      {cardEl}
-    </div>
+    <>
+      <div className="flex w-full max-w-none flex-col gap-0">
+        {dateRow}
+        {cardEl}
+      </div>
+      {isTrainerScheduleHero ? (
+        <MatchLiveAccessActionSheet
+          open={liveAccessSheetOpen}
+          onClose={() => setLiveAccessSheetOpen(false)}
+          onPrepare={goToMatchPreparationFromSheet}
+          onLive={goToLiveFromSheet}
+          liveActionLabel={liveAccessSheetLiveLabel}
+        />
+      ) : null}
+    </>
   );
 }
