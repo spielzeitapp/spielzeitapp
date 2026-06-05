@@ -52,7 +52,7 @@ const KICKOFF_SHADOW =
 const VS_LIGHTNING =
   'linear-gradient(180deg, transparent 0%, rgba(248,113,113,0.22) 12%, rgba(220,38,38,0.95) 50%, rgba(248,113,113,0.22) 88%, transparent 100%)';
 
-const LOGO_GLOW = 'drop-shadow(0 0 18px rgba(220,38,38,0.22))';
+const LOGO_GLOW = 'drop-shadow(0 0 20px rgba(220,38,38,0.28))';
 
 function PosterLogo({ src, alt, compact }: { src: string; alt: string; compact?: boolean }) {
   const [imgSrc, setImgSrc] = React.useState(src || PLACEHOLDER);
@@ -61,8 +61,8 @@ function PosterLogo({ src, alt, compact }: { src: string; alt: string; compact?:
   }, [src]);
 
   const img = compact
-    ? 'h-[4.75rem] w-[4.75rem] sm:h-[5.5rem] sm:w-[5.5rem]'
-    : 'h-[5.3rem] w-[5.3rem] sm:h-[6.35rem] sm:w-[6.35rem]';
+    ? 'h-[5.75rem] w-[5.75rem] sm:h-[6.75rem] sm:w-[6.75rem]'
+    : 'h-[6.5rem] w-[6.5rem] sm:h-[7.75rem] sm:w-[7.75rem]';
 
   return (
     <img
@@ -136,10 +136,55 @@ function formatKickoffHero(kickoffTime: string): { main: string; suffix: string 
 function VsLightningDivider({ tall }: { tall?: boolean }) {
   return (
     <div
-      className={tall ? 'h-12 w-[3px] sm:h-[4.5rem]' : 'h-10 w-[3px] sm:h-12'}
-      style={{ background: VS_LIGHTNING, boxShadow: '0 0 20px rgba(220,38,38,0.62)' }}
+      className={tall ? 'h-12 w-[3px] sm:h-[4.5rem]' : 'h-11 w-[3px] sm:h-14'}
+      style={{ background: VS_LIGHTNING, boxShadow: '0 0 22px rgba(220,38,38,0.68)' }}
       aria-hidden
     />
+  );
+}
+
+/** Dezente Lightning-/Brush-Textur hinter VS für Duell-Fokus. */
+function VsDuellMark() {
+  return (
+    <div className="relative flex shrink-0 flex-col items-center justify-center self-stretch px-1 sm:px-1.5">
+      <div
+        className="pointer-events-none absolute inset-y-0 left-1/2 z-0 w-[3px] -translate-x-1/2"
+        style={{ background: VS_LIGHTNING, boxShadow: '0 0 28px rgba(220,38,38,0.72)' }}
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[3.25rem] w-[3.25rem] -translate-x-1/2 -translate-y-1/2 sm:h-[3.75rem] sm:w-[3.75rem]"
+        style={{
+          background:
+            'radial-gradient(ellipse 72% 88% at 50% 50%, rgba(220,38,38,0.38) 0%, rgba(127,29,29,0.18) 42%, transparent 72%)',
+          filter: 'blur(1px)',
+        }}
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[2.5rem] w-[4.5rem] -translate-x-1/2 -translate-y-1/2 rotate-[-8deg] opacity-75 sm:w-[5rem]"
+        style={{
+          background:
+            'linear-gradient(98deg, transparent 4%, rgba(248,113,113,0.12) 18%, rgba(255,255,255,0.14) 48%, rgba(248,113,113,0.12) 78%, transparent 96%)',
+          maskImage: 'radial-gradient(ellipse 88% 68% at 50% 50%, black 28%, transparent 100%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 88% 68% at 50% 50%, black 28%, transparent 100%)',
+        }}
+        aria-hidden
+      />
+      <div className="relative z-[1] flex flex-col items-center">
+        <VsLightningDivider />
+        <span
+          className="my-1 text-[clamp(1.65rem,9.5vw,2.15rem)] font-black uppercase leading-none tracking-[0.04em] text-white sm:my-1.5"
+          style={{
+            textShadow:
+              '0 0 22px rgba(255,255,255,0.28), 0 0 36px rgba(220,38,38,0.62), 0 4px 18px rgba(0,0,0,0.82)',
+          }}
+        >
+          VS
+        </span>
+        <VsLightningDivider />
+      </div>
+    </div>
   );
 }
 
@@ -157,17 +202,15 @@ function PosterMetaColumn({
   return (
     <div className={`min-w-0 ${align === 'right' ? 'text-right' : 'text-left'}`}>
       <div
-        className={`mb-0.5 flex items-center gap-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-red-400/92 sm:text-[9px] ${
+        className={`mb-0.5 flex items-center gap-0.5 text-[9.5px] font-bold uppercase tracking-[0.13em] text-red-400/95 sm:text-[10.5px] ${
           align === 'right' ? 'justify-end' : 'justify-start'
         }`}
       >
-        <Icon className="h-3 w-3 shrink-0 sm:h-[13px] sm:w-[13px]" strokeWidth={2.5} aria-hidden />
+        <Icon className="h-3.5 w-3.5 shrink-0 sm:h-[14px] sm:w-[14px]" strokeWidth={2.5} aria-hidden />
         <span>{label}</span>
       </div>
       <p
-        className={`text-[9px] font-semibold leading-snug text-white/72 sm:text-[10px] ${
-          align === 'right' ? 'line-clamp-2 break-words' : 'line-clamp-2 break-words'
-        }`}
+        className="line-clamp-3 break-words text-[10.5px] font-semibold leading-[1.35] text-white/84 sm:text-[11.5px]"
       >
         {value}
       </p>
@@ -207,12 +250,12 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
     };
     const venueLine = isHomeGame === true ? 'Heimspiel' : isHomeGame === false ? 'Auswärtsspiel' : null;
     const padX = compact ? 'px-2' : 'px-3 sm:px-3.5';
-    const padY = compact ? 'py-3 pb-3.5' : 'py-3.5 pb-4 sm:py-4 sm:pb-5';
+    const padY = compact ? 'py-3 pb-4' : 'py-3.5 pb-4.5 sm:py-4 sm:pb-5.5';
     const showMetaRow = Boolean(meetingTime) || Boolean(location && location !== '—');
 
     const titleClass = compact
-      ? 'mx-auto w-full max-w-[92%] px-0.5 text-[clamp(2.1rem,13.2vw,3.05rem)] font-black uppercase leading-[0.84] tracking-[0.045em]'
-      : 'mx-auto w-full max-w-[92%] px-0.5 text-[clamp(2.3rem,14vw,3.45rem)] font-black uppercase leading-[0.82] tracking-[0.055em]';
+      ? 'mx-auto w-full max-w-[92%] px-0.5 text-[clamp(1.95rem,12.2vw,2.8rem)] font-black uppercase leading-[0.84] tracking-[0.045em]'
+      : 'mx-auto w-full max-w-[92%] px-0.5 text-[clamp(2.1rem,12.9vw,3.15rem)] font-black uppercase leading-[0.82] tracking-[0.055em]';
 
     const kickoffClass = compact
       ? 'text-[clamp(2.35rem,13.5vw,3.15rem)]'
@@ -279,26 +322,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
               <FeedClubName fullName={homeTeamName} variant="posterArtwork" className="w-full px-0.5" />
             </div>
 
-            <div className="relative flex shrink-0 flex-col items-center justify-center self-stretch px-1 sm:px-1.5">
-              <div
-                className="pointer-events-none absolute inset-y-1 left-1/2 z-0 w-[3px] -translate-x-1/2 sm:inset-y-0.5"
-                style={{ background: VS_LIGHTNING, boxShadow: '0 0 24px rgba(220,38,38,0.65)' }}
-                aria-hidden
-              />
-              <div className="relative z-[1] flex flex-col items-center">
-                <VsLightningDivider />
-                <span
-                  className="my-1 text-xl font-extrabold uppercase tracking-[0.06em] text-white sm:my-1.5 sm:text-2xl"
-                  style={{
-                    textShadow:
-                      '0 0 18px rgba(255,255,255,0.18), 0 0 28px rgba(220,38,38,0.55), 0 3px 16px rgba(0,0,0,0.75)',
-                  }}
-                >
-                  VS
-                </span>
-                <VsLightningDivider />
-              </div>
-            </div>
+            <VsDuellMark />
 
             <div className="flex min-w-0 flex-1 flex-col items-center gap-1 sm:gap-1.5">
               <PosterLogo src={awayLogoUrl} alt={awayTeamName} compact={compact} />
@@ -383,12 +407,12 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
               </div>
             ) : null}
 
-            <div className="mt-3.5 max-w-full px-1 pb-1 sm:mt-4">
+            <div className="mt-3 max-w-full px-1 pb-2 sm:mt-3.5 sm:pb-2.5">
               <span
-                className="relative inline-block max-w-full break-words text-[15px] font-black uppercase tracking-[0.2em] text-red-400 sm:text-[17px] sm:tracking-[0.24em]"
+                className="relative inline-block max-w-full break-words text-[16px] font-black uppercase tracking-[0.2em] text-red-400 sm:text-[19px] sm:tracking-[0.24em]"
                 style={{
                   textShadow:
-                    '0 0 34px rgba(220,38,38,0.62), 0 0 16px rgba(248,113,113,0.42), 0 2px 14px rgba(0,0,0,0.55)',
+                    '0 0 42px rgba(220,38,38,0.72), 0 0 22px rgba(248,113,113,0.52), 0 2px 16px rgba(0,0,0,0.58)',
                 }}
               >
                 {hashtag}
