@@ -144,13 +144,66 @@ async function resolveTeamForSeason(teamSeasonId: string): Promise<{ teamId: str
   return { teamId, name };
 }
 
-async function isDedupeSuppressed(dedupe_key: string): Promise<boolean> {
-  const { data } = await supabase
+type LineupFeedSuppressionCheckResult = {
+  suppressed: boolean;
+  skipped: boolean;
+  skipReason: 'lineup_feed' | 'rls' | 'read_error' | null;
+};
+
+function isSuppressionReadAccessDenied(error: {
+  message?: string;
+  code?: string;
+  status?: number;
+}): boolean {
+  const code = String(error.code ?? '');
+  const msg = String(error.message ?? '').toLowerCase();
+  if (error.status === 403) return true;
+  if (code === '42501' || code === 'PGRST301') return true;
+  return msg.includes('403') || msg.includes('permission denied') || msg.includes('row-level security');
+}
+
+/**
+ * lineup_feed: delete RPC schreibt keine Suppression; Tabelle ist clientseitig ohne SELECT (RLS/REVOKE).
+ * Nur bei erfolgreichem Lesen und vorhandenem dedupe_key blockieren.
+ */
+async function checkLineupFeedDedupeSuppressed(
+  dedupe_key: string,
+): Promise<LineupFeedSuppressionCheckResult> {
+  if (dedupe_key.startsWith('lineup_feed:')) {
+    lineupFeedDevLog('[LINEUP FEED]', 'suppression check skipped for lineup_feed', {
+      dedupeKey: dedupe_key,
+    });
+    return { suppressed: false, skipped: true, skipReason: 'lineup_feed' };
+  }
+
+  const { data, error } = await supabase
     .from('team_feed_dedupe_suppressions')
     .select('dedupe_key')
     .eq('dedupe_key', dedupe_key)
     .maybeSingle();
-  return Boolean(data?.dedupe_key);
+
+  if (error) {
+    if (isSuppressionReadAccessDenied(error)) {
+      lineupFeedDevWarn('[LINEUP FEED] suppression check skipped due to RLS', {
+        dedupeKey: dedupe_key,
+        error: error.message,
+        code: error.code,
+      });
+      return { suppressed: false, skipped: true, skipReason: 'rls' };
+    }
+    lineupFeedDevWarn('[LINEUP FEED] suppression check skipped due to read error', {
+      dedupeKey: dedupe_key,
+      error: error.message,
+      code: error.code,
+    });
+    return { suppressed: false, skipped: true, skipReason: 'read_error' };
+  }
+
+  return {
+    suppressed: Boolean(data?.dedupe_key),
+    skipped: false,
+    skipReason: null,
+  };
 }
 
 export type SavedLineupFeedSource = 'match_lineup' | 'match_lineup_slots';
@@ -489,13 +542,15 @@ export async function ensureLineupFeedPostForMatch(
 
   const dedupe_key = dedupeKeyForLineupMatch(mid);
 
-  const suppressionExists = await isDedupeSuppressed(dedupe_key);
+  const suppressionCheck = await checkLineupFeedDedupeSuppressed(dedupe_key);
   lineupFeedDevLog('[LINEUP FEED]', 'suppression check', {
     matchId: mid,
     dedupeKey: dedupe_key,
-    suppressionExists,
+    suppressionExists: suppressionCheck.suppressed,
+    suppressionSkipped: suppressionCheck.skipped,
+    suppressionSkipReason: suppressionCheck.skipReason,
   });
-  if (suppressionExists) {
+  if (suppressionCheck.suppressed) {
     lineupFeedExit('suppression exists', {
       matchId: mid,
       dedupeKey: dedupe_key,
