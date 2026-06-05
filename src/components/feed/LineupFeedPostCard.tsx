@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom';
 import { ClipboardList, Heart, Share2 } from 'lucide-react';
 import type { LineupFeedPostRow } from '../../lib/matchdayFeedTypes';
 import type { LineupFeedPlayer } from '../../lib/lineupFeedTypes';
+import {
+  lineupFeedDisplayPlayerName,
+  lineupFeedDisplayPositionLabel,
+} from '../../lib/lineupFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
@@ -25,55 +29,10 @@ type Props = {
 
 const MAX_DISPLAY_PLAYERS = 7;
 
-const LINEUP_FEED_POSITION_LABELS: Record<string, string> = {
-  GK: 'Torwart',
-  TW: 'Torwart',
-  LB: 'Linksverteidiger',
-  LV: 'Linksverteidiger',
-  RB: 'Rechtsverteidiger',
-  RV: 'Rechtsverteidiger',
-  CM: 'Zentrum',
-  ZM: 'Zentrum',
-  IV: 'Zentrum',
-  LW: 'Links außen',
-  LA: 'Links außen',
-  LM: 'Links außen',
-  LZ: 'Links außen',
-  LZM: 'Links außen',
-  LF: 'Links außen',
-  RW: 'Rechts außen',
-  RA: 'Rechts außen',
-  RM: 'Rechts außen',
-  RZM: 'Rechts außen',
-  RF: 'Rechts außen',
-  ST: 'Sturm',
-  LS: 'Sturm',
-  RS: 'Sturm',
-};
-
-function lineupFeedPositionLabel(slot?: string | null): string {
-  const key = (slot ?? '').trim().toUpperCase();
-  if (key && LINEUP_FEED_POSITION_LABELS[key]) return LINEUP_FEED_POSITION_LABELS[key];
-  const trimmed = (slot ?? '').trim();
-  return trimmed || 'Position';
-}
-
-const POSITION_ABBREV_KEYS = new Set(Object.keys(LINEUP_FEED_POSITION_LABELS));
-
-function lineupFeedPlayerName(name?: string | null, slot?: string | null): string | null {
-  const trimmed = (name ?? '').trim();
-  if (!trimmed || trimmed === 'Spieler') return null;
-  const upper = trimmed.toUpperCase();
-  if (POSITION_ABBREV_KEYS.has(upper)) return null;
-  const slotKey = (slot ?? '').trim().toUpperCase();
-  if (slotKey && upper === slotKey) return null;
-  return trimmed;
-}
-
 function lineupFeedPlayerLine(pl: LineupFeedPlayer): { position: string; name: string | null } {
   return {
-    position: lineupFeedPositionLabel(pl.slot),
-    name: lineupFeedPlayerName(pl.name, pl.slot),
+    position: lineupFeedDisplayPositionLabel(pl),
+    name: lineupFeedDisplayPlayerName(pl),
   };
 }
 

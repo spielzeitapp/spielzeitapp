@@ -1,16 +1,17 @@
 import { supabase } from './supabaseClient';
 import { fetchLineupForLiveMatch, fetchMatchById, LIVE_FIELD_SLOT_ORDER } from './liveMatchService';
-import { isU11FormationId, labelForSlotInFormation, type U11FormationId } from './matchFormations';
+import { isU11FormationId, type U11FormationId } from './matchFormations';
 import type { FieldSlotId } from '../types/match';
 import { premiumPlayerDisplayName } from './premiumPlayerCard';
 import {
   buildAutoLineupFeedCaption,
   dedupeKeyForLineupMatch,
+  lineupFeedFriendlyPositionLabel,
+  sanitizeLineupFeedPlayerName,
   type LineupFeedPayload,
   type LineupFeedPlayer,
 } from './lineupFeedTypes';
 import { lineupFeedDevLog, lineupFeedDevWarn } from './lineupFeedDebug';
-import type { FieldSlotId } from '../types/match';
 
 export type EnsureLineupFeedPostResult =
   | { ok: true; created: boolean; reason?: string }
@@ -235,24 +236,28 @@ async function fetchFormationForMatch(matchId: string): Promise<U11FormationId |
   return isU11FormationId(rawFormation) ? rawFormation : null;
 }
 
-function lineupFeedPlayerName(playerId: string, nameById: Map<string, string>): string {
-  return nameById.get(playerId)?.trim() ?? '';
+function lineupFeedPlayerNameFromDb(playerId: string, nameById: Map<string, string>): string {
+  const raw = nameById.get(playerId)?.trim() ?? '';
+  return sanitizeLineupFeedPlayerName(raw, null);
 }
 
 function buildLineupFeedPlayersFromSlotMapSync(
   slotToPlayer: Map<FieldSlotId, string>,
-  formation: U11FormationId | null,
+  _formation: U11FormationId | null,
   nameById: Map<string, string> = new Map(),
 ): LineupFeedPlayer[] {
   const players: LineupFeedPlayer[] = [];
-  for (const slot of LIVE_FIELD_SLOT_ORDER) {
-    const pid = slotToPlayer.get(slot)?.trim();
+  for (const fieldSlot of LIVE_FIELD_SLOT_ORDER) {
+    const pid = slotToPlayer.get(fieldSlot)?.trim();
     if (!pid) continue;
-    const positionLabel = formation ? labelForSlotInFormation(formation, slot) : slot;
+    const positionLabel = lineupFeedFriendlyPositionLabel(fieldSlot);
+    const playerName = lineupFeedPlayerNameFromDb(pid, nameById);
     players.push({
       player_id: pid,
-      name: lineupFeedPlayerName(pid, nameById),
-      slot: positionLabel,
+      slot: fieldSlot,
+      positionLabel,
+      playerName,
+      name: playerName,
     });
   }
   return players;
@@ -661,19 +666,18 @@ export async function ensureLineupFeedPostForMatch(
 
   const deep_link = `/app/match/${encodeURIComponent(mid)}`;
 
-  let feedPlayers = lineupData.players;
-  if (feedPlayers.length === 0 && lineupData.fieldCount >= MIN_FIELD_PLAYERS) {
-    const slotToPlayer = new Map<FieldSlotId, string>();
-    for (const pos of lineupData.lineupCounts.detectedPositions) {
-      slotToPlayer.set(pos.slot, pos.playerId);
-    }
-    feedPlayers = buildLineupFeedPlayersFromSlotMapSync(slotToPlayer, lineupData.formation);
-    lineupFeedDevWarn('[LINEUP FEED] lineup-count', {
-      matchId: mid,
-      feedPlayersFallback: true,
-      feedPlayersLength: feedPlayers.length,
-      fieldPlayers: lineupData.fieldCount,
-      detectedPositions: lineupData.lineupCounts.detectedPositions,
+  const slotToPlayer = new Map<FieldSlotId, string>();
+  for (const pos of lineupData.lineupCounts.detectedPositions) {
+    slotToPlayer.set(pos.slot, pos.playerId);
+  }
+  const feedPlayers = await buildLineupFeedPlayersFromSlotMap(slotToPlayer, lineupData.formation);
+
+  for (const pl of feedPlayers) {
+    lineupFeedDevWarn('[LINEUP FEED] player payload', {
+      slot: pl.slot,
+      positionLabel: pl.positionLabel,
+      playerName: pl.playerName,
+      player_id: pl.player_id,
     });
   }
 
