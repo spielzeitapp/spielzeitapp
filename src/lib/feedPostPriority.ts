@@ -214,6 +214,52 @@ export function sortClassifiedFeedPosts(
 /** @alias sortClassifiedFeedPosts */
 export const sortTeamFeedPosts = sortClassifiedFeedPosts;
 
+function matchIdFromFeedPayload(payload: unknown): string {
+  if (!payload || typeof payload !== 'object') return '';
+  const mid = (payload as Record<string, unknown>).match_id;
+  return typeof mid === 'string' ? mid.trim() : '';
+}
+
+function isSchedulingAnnouncementPost(item: ClassifiedFeedPost): boolean {
+  if (item.kind === 'matchday' || item.kind === 'next_match') return true;
+  const post = classifiedPostRow(item);
+  const pk = (post.post_kind ?? '').toLowerCase().trim();
+  const mt = (post.media_type ?? '').toLowerCase().trim();
+  return (
+    pk === 'matchday_today_auto' ||
+    pk === 'matchday_tomorrow_auto' ||
+    pk === 'next_match_auto' ||
+    pk === 'matchday_auto' ||
+    mt === 'matchday' ||
+    mt === 'next_match'
+  );
+}
+
+/**
+ * Home-Hero zeigt dasselbe Spiel bereits — zugehörigen Matchday-/Next-Match-Auto-Post ausblenden.
+ * Nur UI-Filter; Posts bleiben in der DB und in anderen Kontexten sichtbar.
+ */
+export function isHomeHeroDuplicateFeedPost(
+  item: ClassifiedFeedPost,
+  heroEventId: string,
+  heroMatchId?: string | null,
+): boolean {
+  if (!isSchedulingAnnouncementPost(item)) return false;
+
+  const heroEid = heroEventId.trim();
+  const heroMid = (heroMatchId ?? '').trim();
+  if (!heroEid && !heroMid) return false;
+
+  const post = classifiedPostRow(item);
+  const postEventId = (post.event_id ?? '').trim();
+  if (heroEid && postEventId && postEventId === heroEid) return true;
+
+  const postMatchId = matchIdFromFeedPayload(post.payload);
+  if (heroMid && postMatchId && postMatchId === heroMid) return true;
+
+  return false;
+}
+
 export function buildEventStatusMap(events: Pick<EventRow, 'id' | 'status'>[]): Map<string, string> {
   const m = new Map<string, string>();
   for (const e of events) {

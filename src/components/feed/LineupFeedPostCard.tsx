@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardList, Heart, Share2 } from 'lucide-react';
+import type { EventRow } from '../../hooks/useEvents';
 import type { LineupFeedPostRow } from '../../lib/matchdayFeedTypes';
+import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 import type { LineupFeedPlayer } from '../../lib/lineupFeedTypes';
 import {
   lineupFeedDisplayPlayerName,
@@ -22,6 +24,7 @@ import { FeedPostArticleShell } from './FeedPostArticleShell';
 
 type Props = {
   post: LineupFeedPostRow;
+  liveEvent?: EventRow | null;
   teamLabel: string;
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
@@ -42,6 +45,7 @@ function likeStorageKey(postId: string): string {
 
 export const LineupFeedPostCard: React.FC<Props> = ({
   post,
+  liveEvent,
   teamLabel,
   staffCanDelete,
   onFeedPostDeleted,
@@ -63,11 +67,15 @@ export const LineupFeedPostCard: React.FC<Props> = ({
     [p.lineup_players],
   );
 
-  const deepLink = useMemo(() => {
-    if (p.deep_link?.startsWith('/')) return p.deep_link;
-    if (p.match_id) return `/app/match/${encodeURIComponent(p.match_id)}`;
-    return `/app/events/${p.event_id}`;
-  }, [p.deep_link, p.event_id, p.match_id]);
+  const gameHref = useMemo(
+    () =>
+      resolveMatchGameHref({
+        matchId: p.match_id ?? liveEvent?.match_id,
+        eventId: p.event_id,
+        status: liveEvent?.status ?? 'upcoming',
+      }),
+    [p.match_id, p.event_id, liveEvent?.match_id, liveEvent?.status],
+  );
 
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
 
@@ -83,7 +91,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
 
   const onShare = useCallback(async () => {
     const base = (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '');
-    const path = deepLink.startsWith('/') ? deepLink : `/${deepLink}`;
+    const path = gameHref.startsWith('/') ? gameHref : `/${gameHref}`;
     const url = `${window.location.origin}${base}${path}`;
     const outcome = await shareFeedContent({
       title: 'SpielzeitApp · Startaufstellung',
@@ -94,7 +102,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
     else if (outcome === 'copied') setShareHint('Text kopiert.');
     else setShareHint('Teilen nicht möglich.');
     window.setTimeout(() => setShareHint(null), 2400);
-  }, [deepLink, post.caption]);
+  }, [gameHref, post.caption]);
 
   return (
     <FeedPostArticleShell
@@ -184,7 +192,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
 
             <div className="flex justify-center pt-0.5">
               <Link
-                to={deepLink}
+                to={gameHref}
                 className="inline-flex min-h-[44px] w-full max-w-[240px] touch-manipulation items-center justify-center rounded-lg border border-red-400/45 bg-gradient-to-b from-red-600/90 to-red-900 px-4 text-[12px] font-black uppercase tracking-wide text-white shadow-[0_0_20px_rgba(220,38,38,0.28)] transition hover:from-red-500 hover:to-red-800 sm:text-[13px]"
               >
                 Zum Spiel

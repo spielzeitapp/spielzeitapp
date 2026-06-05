@@ -18,6 +18,7 @@ import {
   FeedMatchMetaLine,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
+import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 
 type Props = {
   post: ResultFeedPostRow;
@@ -173,9 +174,19 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     }
   }, [liked, post.id]);
 
+  const gameHref = useMemo(
+    () =>
+      resolveMatchGameHref({
+        matchId: p.match_id,
+        eventId: p.event_id,
+        status: 'finished',
+      }),
+    [p.match_id, p.event_id],
+  );
+
   const onShare = useCallback(async () => {
     const base = (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '');
-    const path = p.deep_link.startsWith('/') ? p.deep_link : `/${p.deep_link}`;
+    const path = gameHref.startsWith('/') ? gameHref : `/${gameHref}`;
     const url = `${window.location.origin}${base}${path}`;
     const title = 'SpielzeitApp · Ergebnis';
     const text = `${post.caption}\n${p.home_team_name} ${p.home_score}:${p.away_score} ${p.away_team_name}`;
@@ -188,9 +199,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     else if (outcome === 'copied') setShareHint('Text kopiert.');
     else setShareHint('Teilen nicht möglich.');
     window.setTimeout(() => setShareHint(null), 2400);
-  }, [post.caption, p.away_score, p.away_team_name, p.deep_link, p.home_score, p.home_team_name]);
-
-  const toGame = p.deep_link.startsWith('/') ? p.deep_link : `/${p.deep_link}`;
+  }, [post.caption, p.away_score, p.away_team_name, gameHref, p.home_score, p.home_team_name]);
 
   const matchMetaLine = buildFeedMatchMetaLine(
     pickFeedAgeGroup(teamLabel, p.home_team_name, p.away_team_name),
@@ -283,7 +292,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
           ) : null}
           <p className="pt-0.5">
             <Link
-              to={toGame}
+              to={gameHref}
               className="inline-flex touch-manipulation text-[10px] font-semibold text-amber-200/90 underline decoration-amber-500/40 underline-offset-2 transition hover:text-amber-100"
             >
               Zum Spiel

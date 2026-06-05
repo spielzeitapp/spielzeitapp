@@ -48,6 +48,7 @@ export const HomeFeedPostRenderer: React.FC<Props> = ({
     return (
       <LineupFeedPostCard
         post={item.post}
+        liveEvent={eventById.get(item.post.event_id)}
         teamLabel={teamLabel}
         staffCanDelete={staffCanDelete}
         onFeedPostDeleted={onFeedPostDeleted}

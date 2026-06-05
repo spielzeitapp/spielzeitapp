@@ -18,6 +18,7 @@ import {
   FeedCaption,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
+import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 
 type Props = {
   post: NextMatchFeedPostRow;
@@ -114,7 +115,11 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
     return (formatFullLocation(place, addr) || '').trim() || '—';
   }, [p.location, p.address]);
 
-  const deepLink = p.deep_link?.startsWith('/') ? p.deep_link : `/app/events/${p.event_id}`;
+  const gameHref = resolveMatchGameHref({
+    matchId: p.match_id,
+    eventId: p.event_id,
+    status: 'upcoming',
+  });
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
   const dateLabel = formatKickoffDate(p.kickoff_iso);
   const kickoffLabel = formatKickoffTime(p.kickoff_iso);
@@ -131,7 +136,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
 
   const onShare = useCallback(async () => {
     const base = (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '');
-    const path = deepLink.startsWith('/') ? deepLink : `/${deepLink}`;
+    const path = gameHref.startsWith('/') ? gameHref : `/${gameHref}`;
     const url = `${window.location.origin}${base}${path}`;
     const outcome = await shareFeedContent({
       title: 'SpielzeitApp · Nächstes Spiel',
@@ -142,7 +147,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
     else if (outcome === 'copied') setShareHint('Text kopiert.');
     else setShareHint('Teilen nicht möglich.');
     window.setTimeout(() => setShareHint(null), 2400);
-  }, [deepLink, post.caption]);
+  }, [gameHref, post.caption]);
 
   return (
     <FeedPostArticleShell
@@ -230,7 +235,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
             </dl>
             <div className="flex justify-center pt-0.5">
               <Link
-                to={deepLink}
+                to={gameHref}
                 className="inline-flex min-h-[40px] touch-manipulation items-center justify-center rounded-lg border border-red-500/40 bg-red-600/85 px-4 text-[12px] font-bold text-white shadow-md transition hover:bg-red-500"
               >
                 Zum Spiel

@@ -6,6 +6,7 @@ import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocati
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatMeetupTimeOnlyDe } from '../../components/match/matchCardLabels';
 import { MatchdayPosterCard } from '../../components/feed/MatchdayPosterCard';
+import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 
 type Props = {
   pick: HomeMatchCardPick;
@@ -66,6 +67,11 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick }) => {
   }, [eventUrl, kickoff, opponent, ourClub]);
 
   const announcementTiming = status === 'today' || status === 'tomorrow' ? status : null;
+  const gameHref = resolveMatchGameHref({
+    matchId: event.match_id,
+    eventId: event.id,
+    status: event.status ?? 'upcoming',
+  });
 
   return (
     <section className="min-w-0" aria-label="Spieltag">
@@ -85,7 +91,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick }) => {
       />
       <div className="mt-2.5 flex flex-wrap gap-2">
         <Link
-          to={`/app/events/${event.id}`}
+          to={gameHref}
           className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center rounded-xl border border-red-500/45 bg-red-600/90 px-4 text-sm font-bold text-white shadow-[0_4px_16px_rgba(185,28,28,0.35)] transition hover:bg-red-500 sm:flex-initial sm:min-w-[8.5rem]"
         >
           Zum Spiel

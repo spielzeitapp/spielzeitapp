@@ -14,6 +14,7 @@ import { HomeFeedComposer } from './HomeFeedComposer';
 import { HomeUpcomingMatchCompact } from './HomeUpcomingMatchCompact';
 import { HomeSpieltagHintCard } from './HomeSpieltagHintCard';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
+import { isHomeHeroDuplicateFeedPost } from '../../lib/feedPostPriority';
 import { dsPrimaryCtaClass, dsSublineClass } from '../../lib/premiumDesignSystem';
 import {
   GlassCard,
@@ -68,6 +69,18 @@ export const HomePage: React.FC = () => {
     matchPick && (matchPick.status === 'today' || matchPick.status === 'tomorrow') ? matchPick : null;
   const showNextMatchCompact = Boolean(matchPick && matchPick.status === 'next');
 
+  const visibleFeedPosts = useMemo(() => {
+    if (!spieltagHintPick) return teamFeedPosts;
+    return teamFeedPosts.filter(
+      (item) =>
+        !isHomeHeroDuplicateFeedPost(
+          item,
+          spieltagHintPick.event.id,
+          spieltagHintPick.event.match_id,
+        ),
+    );
+  }, [teamFeedPosts, spieltagHintPick]);
+
   return (
     <PageShell
       variant="subtle"
@@ -111,7 +124,7 @@ export const HomePage: React.FC = () => {
               </SectionTitle>
               {teamFeedLoading ? (
                 <p className="text-sm text-white/50">Feed wird geladen…</p>
-              ) : teamFeedPosts.length === 0 ? (
+              ) : visibleFeedPosts.length === 0 ? (
                 <PremiumEmptyState
                   variant="subtle"
                   title="Noch keine Beiträge"
@@ -119,7 +132,7 @@ export const HomePage: React.FC = () => {
                 />
               ) : (
                 <div className="min-w-0 space-y-4">
-                  {teamFeedPosts.map((item) => (
+                  {visibleFeedPosts.map((item) => (
                     <HomeFeedPostRenderer
                       key={item.post.id}
                       item={item}

@@ -25,6 +25,7 @@ import {
   FeedCaption,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
+import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 
 type Props = {
   post: TeamFeedPostRow;
@@ -120,11 +121,19 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
 
   const venueLabel = (liveEvent?.is_home ?? p.is_home) === false ? 'Auswärtsspiel' : 'Heimspiel';
 
-  const deepLink = p.deep_link?.startsWith('/') ? p.deep_link : `/app/events/${p.event_id}`;
+  const gameHref = useMemo(
+    () =>
+      resolveMatchGameHref({
+        matchId: p.match_id ?? liveEvent?.match_id,
+        eventId: p.event_id,
+        status: eventStatus,
+      }),
+    [p.match_id, p.event_id, liveEvent?.match_id, eventStatus],
+  );
 
   const onShare = useCallback(async () => {
     const base = (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '');
-    const path = deepLink.startsWith('/') ? deepLink : `/${deepLink}`;
+    const path = gameHref.startsWith('/') ? gameHref : `/${gameHref}`;
     const url = `${window.location.origin}${base}${path}`;
     const kickDate = new Date(p.kickoff_iso);
     const datePart = Number.isNaN(kickDate.getTime())
@@ -233,7 +242,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
     p.kickoff_iso,
     p.event_id,
     kickoffTime,
-    deepLink,
+    gameHref,
   ]);
 
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
@@ -290,7 +299,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           style={{ boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.04)' }}
         >
           <Link
-            to={deepLink}
+            to={gameHref}
             className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center rounded-xl border border-red-500/45 bg-red-600/90 px-4 text-sm font-bold text-white shadow-[0_4px_16px_rgba(185,28,28,0.3)] transition hover:bg-red-500"
           >
             Zum Spiel
