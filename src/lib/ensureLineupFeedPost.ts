@@ -186,6 +186,44 @@ function countFieldPlayersFromSlotMap(slotToPlayer: Map<FieldSlotId, string>): n
   return n;
 }
 
+function lineupCountDiagnostics(slotToPlayer: Map<FieldSlotId, string>): {
+  totalPlayers: number;
+  fieldPlayers: number;
+  goalkeeperCount: number;
+  detectedPositions: Array<{ slot: FieldSlotId; playerId: string }>;
+} {
+  const detectedPositions: Array<{ slot: FieldSlotId; playerId: string }> = [];
+  for (const slot of LIVE_FIELD_SLOT_ORDER) {
+    const playerId = slotToPlayer.get(slot)?.trim() ?? '';
+    if (!playerId) continue;
+    detectedPositions.push({ slot, playerId });
+  }
+  return {
+    totalPlayers: detectedPositions.length,
+    fieldPlayers: countFieldPlayersFromSlotMap(slotToPlayer),
+    goalkeeperCount: slotToPlayer.get('GK') ? 1 : 0,
+    detectedPositions,
+  };
+}
+
+function logLineupCountDiagnostics(
+  matchId: string,
+  source: string,
+  counts: ReturnType<typeof lineupCountDiagnostics>,
+  feedPlayersLength: number,
+): void {
+  console.warn('[LINEUP FEED] lineup-count', {
+    matchId,
+    source,
+    totalPlayers: counts.totalPlayers,
+    fieldPlayers: counts.fieldPlayers,
+    goalkeeperCount: counts.goalkeeperCount,
+    feedPlayersLength,
+    detectedPositions: counts.detectedPositions,
+    minFieldPlayersRequired: MIN_FIELD_PLAYERS,
+  });
+}
+
 async function fetchFormationForMatch(matchId: string): Promise<U11FormationId | null> {
   const { data: matchRow } = await supabase
     .from('matches')
@@ -252,6 +290,7 @@ async function fetchSavedLineupForFeedPost(matchId: string): Promise<{
   playerNames: string[];
   players: LineupFeedPlayer[];
   formation: U11FormationId | null;
+  lineupCounts: ReturnType<typeof lineupCountDiagnostics>;
 } | null> {
   let source: SavedLineupFeedSource = 'match_lineup';
   let slotToPlayer = new Map<FieldSlotId, string>();
@@ -290,9 +329,12 @@ async function fetchSavedLineupForFeedPost(matchId: string): Promise<{
     }
   }
 
+  const lineupCounts = lineupCountDiagnostics(slotToPlayer);
+
   const playerNames: string[] = [];
   const formation = await fetchFormationForMatch(matchId);
   const players = await buildLineupFeedPlayersFromSlotMap(slotToPlayer, formation);
+  logLineupCountDiagnostics(matchId, source, lineupCounts, players.length);
   for (const p of players) {
     if (p.name) playerNames.push(p.name);
   }
@@ -316,6 +358,7 @@ async function fetchSavedLineupForFeedPost(matchId: string): Promise<{
     playerNames,
     players,
     formation,
+    lineupCounts,
   };
 }
 
@@ -524,6 +567,17 @@ export async function ensureLineupFeedPostForMatch(
     return { ok: false, error: 'Aufstellung konnte nicht geladen werden.' };
   }
   if (lineupData.fieldCount < MIN_FIELD_PLAYERS || lineupData.players.length === 0) {
+    console.warn('[LINEUP FEED] lineup-count', {
+      matchId: mid,
+      blockedReason: 'insufficient_lineup',
+      source: lineupData.source,
+      totalPlayers: lineupData.lineupCounts.totalPlayers,
+      fieldPlayers: lineupData.lineupCounts.fieldPlayers,
+      goalkeeperCount: lineupData.lineupCounts.goalkeeperCount,
+      feedPlayersLength: lineupData.players.length,
+      detectedPositions: lineupData.lineupCounts.detectedPositions,
+      minFieldPlayersRequired: MIN_FIELD_PLAYERS,
+    });
     lineupFeedExit('not enough field players', {
       matchFound: true,
       matchId: mid,
