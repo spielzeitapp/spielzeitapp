@@ -60,6 +60,7 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
           <li>showit.php erreichbar: {yesNoUnknown(d.showitPageReachable)}</li>
           <li>JSON-API erreichbar: {yesNo(d.apiReachable)}</li>
           <li>Datenquelle: {labelForTournamentPlanAnalyzeSource(d.source)}</li>
+          {d.fallbackStage ? <li>Fallback-Stufe: {d.fallbackStage}</li> : null}
           <li>Browser-Fallback versucht: {yesNo(Boolean(d.browserFallbackAttempted))}</li>
           {d.browserFallbackAttempted && d.browserFallbackError ? (
             <li className="break-words text-amber-100/85">

@@ -1,11 +1,15 @@
 import {
   analyzeMeinTurnierplanUrl,
   buildMeinTurnierplanJsonEndpoints,
+  buildMeinTurnierplanShowitUrl,
   buildTournamentPlanAnalyzeFailure,
   captureMeinTurnierplanFetchException,
   extractMeinTurnierplanId,
   isSupportedTournamentPlanHost,
+  normalizeTournamentPlanUrl,
+  MEIN_TURNIERPLAN_HTML_FALLBACK_EMPTY_MESSAGE,
   TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE,
+  tryMeinTurnierplanHtmlFallbackAnalyze,
   type TournamentPlanAnalysis,
   type TournamentPlanAnalyzeDiagnostics,
   type TournamentPlanAnalyzeFailure,
@@ -98,10 +102,40 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
   } catch (err) {
     const captured = captureMeinTurnierplanFetchException(err);
     const extractedId = extractMeinTurnierplanId(url);
+    const attemptedEndpoints = extractedId ? buildMeinTurnierplanJsonEndpoints(extractedId) : [];
+    const refererUrl = extractedId
+      ? /showit\.php/i.test(url)
+        ? normalizeTournamentPlanUrl(url)
+        : buildMeinTurnierplanShowitUrl(extractedId)
+      : '';
+
+    let htmlFallbackError: string | null = null;
+    if (extractedId && refererUrl) {
+      const htmlAfterException = await tryMeinTurnierplanHtmlFallbackAnalyze({
+        showitUrl: refererUrl,
+        extractedId,
+        fetchImpl: fetch,
+        attemptedEndpoints,
+        apiReachable: false,
+        showitPageReachable: null,
+      });
+      if (htmlAfterException.ok) {
+        res.status(200).json({
+          ok: true,
+          analysis: htmlAfterException.analysis satisfies TournamentPlanAnalysis,
+          diagnostics: enrichServerDiagnostics(
+            htmlAfterException.diagnostics satisfies TournamentPlanAnalyzeDiagnostics,
+          ),
+        });
+        return;
+      }
+      htmlFallbackError = htmlAfterException.error;
+    }
+
     const failure = buildTournamentPlanAnalyzeFailure({
       code: 'api_unreachable',
       extractedId,
-      attemptedEndpoints: extractedId ? buildMeinTurnierplanJsonEndpoints(extractedId) : [],
+      attemptedEndpoints,
       apiReachable: false,
       linkRecognized: isSupportedTournamentPlanHost(url),
       idExtracted: Boolean(extractedId),
@@ -111,6 +145,10 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
         name: captured.exceptionName,
         message: captured.exceptionMessage,
       },
+      htmlFallbackAttempted: Boolean(extractedId),
+      htmlFallbackSuccessful: false,
+      htmlFallbackError: htmlFallbackError ?? (extractedId ? MEIN_TURNIERPLAN_HTML_FALLBACK_EMPTY_MESSAGE : null),
+      fallbackStage: extractedId ? 'html' : 'json',
     });
     res.status(502).json(failureJson(failure));
   }
