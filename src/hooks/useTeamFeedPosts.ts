@@ -66,17 +66,40 @@ async function fetchPosts(teamSeasonId: string): Promise<{
 }
 
 async function runFeedEnsures(teamSeasonId: string): Promise<void> {
-  const matchdayRes = await ensureMatchdayFeedPostsForSeason(teamSeasonId);
-  console.info('[matchdayFeed] ensureMatchdayFeedPostsForSeason', matchdayRes);
-  await ensureUpcomingMatchFeedPosts(teamSeasonId);
-  console.log('[LINEUP FEED]', 'ensureLineupFeedPostsForSeason invoked from useTeamFeedPosts', {
+  try {
+    const matchdayRes = await ensureMatchdayFeedPostsForSeason(teamSeasonId);
+    console.info('[matchdayFeed] ensureMatchdayFeedPostsForSeason', matchdayRes);
+  } catch (e) {
+    console.warn('[useTeamFeedPosts] ensureMatchdayFeedPostsForSeason failed', e);
+  }
+
+  try {
+    await ensureUpcomingMatchFeedPosts(teamSeasonId);
+  } catch (e) {
+    console.warn('[useTeamFeedPosts] ensureUpcomingMatchFeedPosts failed', e);
+  }
+
+  console.log('[LINEUP FEED] ensureLineupFeedPostsForSeason invoked from useTeamFeedPosts', {
     teamSeasonId,
-    ensureCalled: true,
   });
-  const lineupRes = await ensureLineupFeedPostsForSeason(teamSeasonId);
-  console.log('[LINEUP FEED]', 'ensureLineupFeedPostsForSeason result from useTeamFeedPosts', lineupRes);
-  await ensureRecentResultFeedPostsForSeason(teamSeasonId);
-  await ensureRecentLiveFeedPostsForSeason(teamSeasonId);
+  try {
+    const lineupRes = await ensureLineupFeedPostsForSeason(teamSeasonId);
+    console.log('[LINEUP FEED] ensureLineupFeedPostsForSeason result from useTeamFeedPosts', lineupRes);
+  } catch (e) {
+    console.warn('[useTeamFeedPosts] ensureLineupFeedPostsForSeason failed', e);
+  }
+
+  try {
+    await ensureRecentLiveFeedPostsForSeason(teamSeasonId);
+  } catch (e) {
+    console.warn('[useTeamFeedPosts] ensureRecentLiveFeedPostsForSeason failed', e);
+  }
+
+  try {
+    await ensureRecentResultFeedPostsForSeason(teamSeasonId);
+  } catch (e) {
+    console.warn('[useTeamFeedPosts] ensureRecentResultFeedPostsForSeason failed', e);
+  }
 }
 
 export function useTeamFeedPosts(teamSeasonId: string | null) {

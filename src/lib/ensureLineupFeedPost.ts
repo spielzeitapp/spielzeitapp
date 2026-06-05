@@ -702,6 +702,7 @@ export async function ensureLineupFeedPostsForSeason(
   teamSeasonId: string,
   now: Date = new Date(),
 ): Promise<EnsureLineupFeedPostsForSeasonResult> {
+  console.log('[LINEUP FEED] season scan start', { teamSeasonId });
   const sid = teamSeasonId?.trim();
   const result: EnsureLineupFeedPostsForSeasonResult = {
     scanned: 0,
