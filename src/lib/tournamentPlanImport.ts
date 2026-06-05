@@ -3,6 +3,7 @@ import {
   isTeamAliasMatch,
   type TournamentImportRecognition,
 } from './teamSeasonAliases';
+import { fetchMeinTurnierplanJsonFromShowitHtml } from './meinTurnierplanHtmlFallback';
 
 export type TournamentMatchPhase = 'group' | 'placement' | 'semifinal' | 'final' | 'unknown';
 
@@ -81,7 +82,7 @@ export type TournamentPlanAnalyzeErrorCode =
   | 'plan_no_longer_provided'
   | 'parse_failed';
 
-export type TournamentPlanAnalyzeDataSource = 'server_api' | 'browser_fallback';
+export type TournamentPlanAnalyzeDataSource = 'server_api' | 'browser_fallback' | 'html_fallback';
 
 export type TournamentPlanEndpointAttempt = {
   endpoint: string;
@@ -102,6 +103,9 @@ export type TournamentPlanAnalyzeDiagnostics = {
   showitPageReachable?: boolean | null;
   browserFallbackAttempted?: boolean;
   browserFallbackError?: string | null;
+  htmlFallbackAttempted?: boolean;
+  htmlFallbackError?: string | null;
+  tournamentName?: string | null;
   /** Wo die Analyse-Daten herkamen (Serverless vs. Browser-Fetch). */
   source?: TournamentPlanAnalyzeDataSource;
 };
@@ -109,6 +113,7 @@ export type TournamentPlanAnalyzeDiagnostics = {
 export function labelForTournamentPlanAnalyzeSource(
   source: TournamentPlanAnalyzeDataSource | undefined,
 ): string {
+  if (source === 'html_fallback') return 'HTML-Fallback';
   if (source === 'browser_fallback') return 'Browser-Fallback';
   if (source === 'server_api') return 'Server API';
   return '—';
@@ -482,6 +487,9 @@ export function buildTournamentPlanAnalyzeFailure(params: {
   showitPageReachable?: boolean | null;
   browserFallbackAttempted?: boolean;
   browserFallbackError?: string | null;
+  htmlFallbackAttempted?: boolean;
+  htmlFallbackError?: string | null;
+  tournamentName?: string | null;
   source?: TournamentPlanAnalyzeDataSource;
 }): TournamentPlanAnalyzeFailure {
   const resolvedCode = resolveFinalImportFailureCode({
@@ -507,9 +515,66 @@ export function buildTournamentPlanAnalyzeFailure(params: {
       showitPageReachable: params.showitPageReachable ?? null,
       browserFallbackAttempted: params.browserFallbackAttempted,
       browserFallbackError: params.browserFallbackError ?? null,
+      htmlFallbackAttempted: params.htmlFallbackAttempted,
+      htmlFallbackError: params.htmlFallbackError ?? null,
+      tournamentName: params.tournamentName ?? null,
       source: params.source,
     },
   };
+}
+
+const HTML_FALLBACK_AFTER_JSON_CODES = new Set<TournamentPlanAnalyzeErrorCode>([
+  'api_unreachable',
+  'import_data_unavailable',
+  'parse_failed',
+  'no_groups',
+  'no_teams',
+  'no_matches',
+  'plan_no_longer_provided',
+]);
+
+async function tryMeinTurnierplanHtmlFallbackAnalyze(params: {
+  showitUrl: string;
+  extractedId: string;
+  fetchImpl: typeof fetch;
+  attemptedEndpoints: string[];
+  endpointAttempts?: TournamentPlanEndpointAttempt[];
+  apiReachable: boolean;
+  showitPageReachable: boolean | null;
+}): Promise<
+  | { ok: true; analysis: TournamentPlanAnalysis; diagnostics: TournamentPlanAnalyzeDiagnostics }
+  | { ok: false; error: string }
+> {
+  const htmlResult = await fetchMeinTurnierplanJsonFromShowitHtml(
+    params.showitUrl,
+    params.extractedId,
+    params.fetchImpl,
+  );
+  if (htmlResult.ok) {
+    const analysis = parseMeinTurnierplanJson(htmlResult.tournamentJson);
+    if (!analysis) {
+      return { ok: false, error: 'Turnierdaten aus HTML nicht parsebar' };
+    }
+    return {
+      ok: true,
+      analysis,
+      diagnostics: {
+        linkRecognized: true,
+        idExtracted: true,
+        extractedId: params.extractedId,
+        apiReachable: params.apiReachable,
+        provider: 'meinturnierplan',
+        attemptedEndpoints: params.attemptedEndpoints,
+        endpointAttempts: params.endpointAttempts,
+        showitPageReachable: params.showitPageReachable ?? true,
+        htmlFallbackAttempted: true,
+        htmlFallbackError: null,
+        tournamentName: htmlResult.tournamentName,
+        source: 'html_fallback',
+      },
+    };
+  }
+  return { ok: false, error: htmlResult.error };
 }
 
 export type AnalyzeMeinTurnierplanUrlResult =
@@ -573,8 +638,22 @@ export async function analyzeMeinTurnierplanUrl(
           attemptedEndpoints: fetchResult.attemptedEndpoints,
           endpointAttempts: fetchResult.attempts,
           showitPageReachable,
+          source: 'server_api',
         },
       };
+    }
+
+    const htmlAfterParse = await tryMeinTurnierplanHtmlFallbackAnalyze({
+      showitUrl: refererUrl,
+      extractedId,
+      fetchImpl,
+      attemptedEndpoints: fetchResult.attemptedEndpoints,
+      endpointAttempts: fetchResult.attempts,
+      apiReachable: true,
+      showitPageReachable,
+    });
+    if (htmlAfterParse.ok) {
+      return { ok: true, analysis: htmlAfterParse.analysis, diagnostics: htmlAfterParse.diagnostics };
     }
 
     const parseFailure = buildTournamentPlanAnalyzeFailure({
@@ -586,8 +665,45 @@ export async function analyzeMeinTurnierplanUrl(
       linkRecognized: true,
       idExtracted: true,
       showitPageReachable,
+      htmlFallbackAttempted: true,
+      htmlFallbackError: htmlAfterParse.error,
+      source: 'server_api',
     });
     return { ok: false, failure: parseFailure, httpStatus: 422 };
+  }
+
+  const jsonFailureCode = fetchResult.code;
+  if (HTML_FALLBACK_AFTER_JSON_CODES.has(jsonFailureCode)) {
+    const htmlAfterJsonFail = await tryMeinTurnierplanHtmlFallbackAnalyze({
+      showitUrl: refererUrl,
+      extractedId,
+      fetchImpl,
+      attemptedEndpoints: fetchResult.attemptedEndpoints,
+      endpointAttempts: fetchResult.attempts,
+      apiReachable: fetchResult.apiReachable,
+      showitPageReachable,
+    });
+    if (htmlAfterJsonFail.ok) {
+      return { ok: true, analysis: htmlAfterJsonFail.analysis, diagnostics: htmlAfterJsonFail.diagnostics };
+    }
+
+    const failure = buildTournamentPlanAnalyzeFailure({
+      code: jsonFailureCode,
+      extractedId,
+      attemptedEndpoints: fetchResult.attemptedEndpoints,
+      endpointAttempts: fetchResult.attempts,
+      apiReachable: fetchResult.apiReachable,
+      linkRecognized: true,
+      idExtracted: true,
+      showitPageReachable,
+      htmlFallbackAttempted: true,
+      htmlFallbackError: htmlAfterJsonFail.error,
+      source: 'server_api',
+    });
+
+    const httpStatus =
+      failure.code === 'api_unreachable' || failure.code === 'import_data_unavailable' ? 502 : 422;
+    return { ok: false, failure, httpStatus };
   }
 
   const failure = buildTournamentPlanAnalyzeFailure({
@@ -910,7 +1026,10 @@ function analyzeResultFromMeinTurnierplan(
     return {
       ok: true,
       analysis: result.analysis,
-      diagnostics: { ...result.diagnostics, source },
+      diagnostics: {
+        ...result.diagnostics,
+        source: result.diagnostics.source ?? source,
+      },
     };
   }
   return { ok: false, error: result.failure.message, failure: result.failure };
@@ -936,7 +1055,10 @@ function serverDiagnosticsFromAnalyzeBody(
     showitPageReachable: body.diagnostics?.showitPageReachable ?? null,
     browserFallbackAttempted: body.diagnostics?.browserFallbackAttempted,
     browserFallbackError: body.diagnostics?.browserFallbackError ?? null,
-    source: 'server_api',
+    htmlFallbackAttempted: body.diagnostics?.htmlFallbackAttempted,
+    htmlFallbackError: body.diagnostics?.htmlFallbackError ?? null,
+    tournamentName: body.diagnostics?.tournamentName ?? null,
+    source: body.diagnostics?.source ?? 'server_api',
   };
 }
 
