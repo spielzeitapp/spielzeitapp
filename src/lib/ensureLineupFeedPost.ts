@@ -16,27 +16,101 @@ export type EnsureLineupFeedPostResult =
   | { ok: false; error: string };
 
 const MIN_FIELD_PLAYERS = 5;
-/** Auto-Post nur im 60-Minuten-Fenster vor Anpfiff (Anpfiff muss in der Zukunft liegen). */
+/** Auto-Post im 60-Minuten-Fenster vor Anpfiff (Anpfiff muss in der Zukunft liegen). */
 const MAX_MINUTES_BEFORE_KICKOFF = 60;
+/** Auto-Post maximal 5 Minuten nach Live-Start. */
+const MAX_MINUTES_AFTER_LIVE_START = 5;
 
-function isWithinLineupFeedKickoffWindow(minutesLeft: number | null): minutesLeft is number {
-  return minutesLeft != null && minutesLeft > 0 && minutesLeft <= MAX_MINUTES_BEFORE_KICKOFF;
+const FINISHED_MATCH_STATUSES = new Set(['ended', 'finished', 'completed']);
+
+export type LineupFeedAllowedWindow = 'pre_kickoff_60' | 'live_first_5' | 'blocked';
+
+function minutesUntilKickoff(startsAtIso: string, now: Date): number | null {
+  const kick = new Date(startsAtIso);
+  if (Number.isNaN(kick.getTime())) return null;
+  return (kick.getTime() - now.getTime()) / 60_000;
+}
+
+function minutesSinceKickoff(startsAtIso: string, now: Date): number | null {
+  const kick = new Date(startsAtIso);
+  if (Number.isNaN(kick.getTime())) return null;
+  return (now.getTime() - kick.getTime()) / 60_000;
+}
+
+function evaluateLineupFeedWindow(params: {
+  status: string;
+  minutesUntilKickoff: number | null;
+  minutesSinceKickoff: number | null;
+}): { allowed: boolean; allowedWindow: LineupFeedAllowedWindow; reason: string } {
+  const status = params.status.toLowerCase();
+
+  if (FINISHED_MATCH_STATUSES.has(status)) {
+    return { allowed: false, allowedWindow: 'blocked', reason: 'match_finished' };
+  }
+
+  if (status === 'upcoming') {
+    const minutesLeft = params.minutesUntilKickoff;
+    if (minutesLeft != null && minutesLeft > 0 && minutesLeft <= MAX_MINUTES_BEFORE_KICKOFF) {
+      return { allowed: true, allowedWindow: 'pre_kickoff_60', reason: 'pre_kickoff_window' };
+    }
+    if (minutesLeft != null && minutesLeft <= 0) {
+      return { allowed: false, allowedWindow: 'blocked', reason: 'kickoff_started_not_live' };
+    }
+    return { allowed: false, allowedWindow: 'blocked', reason: 'outside_pre_kickoff_window' };
+  }
+
+  if (status === 'live') {
+    const minutesSince = params.minutesSinceKickoff;
+    if (
+      minutesSince != null &&
+      minutesSince >= 0 &&
+      minutesSince <= MAX_MINUTES_AFTER_LIVE_START
+    ) {
+      return { allowed: true, allowedWindow: 'live_first_5', reason: 'live_first_5_window' };
+    }
+    if (minutesSince != null && minutesSince > MAX_MINUTES_AFTER_LIVE_START) {
+      return { allowed: false, allowedWindow: 'blocked', reason: 'live_too_long' };
+    }
+    return { allowed: false, allowedWindow: 'blocked', reason: 'live_outside_window' };
+  }
+
+  return { allowed: false, allowedWindow: 'blocked', reason: `status_${status || 'unknown'}` };
+}
+
+function lineupFeedWindowLog(
+  reason: string,
+  details: Record<string, unknown> & {
+    matchStatus?: string;
+    minutesUntilKickoff?: number | null;
+    minutesSinceKickoff?: number | null;
+    allowedWindow?: LineupFeedAllowedWindow;
+  },
+): void {
+  console.log('[LINEUP FEED]', {
+    reason,
+    'match.status': details.matchStatus ?? details.match_status,
+    minutesUntilKickoff: details.minutesUntilKickoff ?? null,
+    minutesSinceKickoff: details.minutesSinceKickoff ?? null,
+    allowedWindow: details.allowedWindow ?? 'blocked',
+    ...details,
+  });
 }
 
 function luLog(phase: string, data: Record<string, unknown>): void {
   console.info(`[lineupFeed] ${phase}`, data);
 }
 
-/** Debug-only: strukturierte Exit-/Diagnose-Ausgabe (keine Logikänderung). */
 function lineupFeedExit(reason: string, details: Record<string, unknown> = {}): void {
-  console.log('[LINEUP FEED]', reason, {
+  lineupFeedWindowLog(reason, {
     matchFound: details.matchFound,
     matchId: details.matchId,
     eventId: details.eventId,
     teamSeasonId: details.teamSeasonId,
     matchStatus: details.matchStatus,
     kickoff: details.kickoff,
-    minutesUntilKickoff: details.minutesUntilKickoff,
+    minutesUntilKickoff: details.minutesUntilKickoff as number | null | undefined,
+    minutesSinceKickoff: details.minutesSinceKickoff as number | null | undefined,
+    allowedWindow: details.allowedWindow as LineupFeedAllowedWindow | undefined,
     lineupPlayerCount: details.lineupPlayerCount,
     fieldPlayerCount: details.fieldPlayerCount,
     formationFound: details.formationFound,
@@ -123,12 +197,6 @@ function countFieldPlayersFromSlotMap(slotToPlayer: Map<FieldSlotId, string>): n
     if (slotToPlayer.get(slot)) n += 1;
   }
   return n;
-}
-
-function minutesUntilKickoff(startsAtIso: string, now: Date): number | null {
-  const kick = new Date(startsAtIso);
-  if (Number.isNaN(kick.getTime())) return null;
-  return (kick.getTime() - now.getTime()) / 60_000;
 }
 
 async function fetchFormationForMatch(matchId: string): Promise<U11FormationId | null> {
@@ -352,17 +420,108 @@ export async function ensureLineupFeedPostForMatch(
 
   const status = (match.status ?? '').toLowerCase();
   const teamSeasonIdEarly = match.team_season_id?.trim() ?? '';
-  if (status !== 'upcoming') {
-    lineupFeedExit('not upcoming', {
+
+  if (FINISHED_MATCH_STATUSES.has(status)) {
+    lineupFeedExit('match finished', {
       matchFound: true,
       matchId: mid,
       teamSeasonId: teamSeasonIdEarly || null,
       matchStatus: status,
       dedupeKey: dedupe_key,
       kickoff: match.match_date ?? null,
+      allowedWindow: 'blocked',
+      reason: 'match_finished',
     });
-    luLog('skip: not_upcoming', { matchId: mid, status });
-    return { ok: true, created: false, reason: 'not_upcoming' };
+    luLog('skip: match_finished', { matchId: mid, status });
+    return { ok: true, created: false, reason: 'match_finished' };
+  }
+
+  const { data: evRaw, error: evErr } = await supabase
+    .from('events')
+    .select('id, starts_at')
+    .eq('match_id', mid)
+    .order('starts_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (evErr) luLog('events lookup warning', { matchId: mid, error: evErr.message });
+  const eventId = (evRaw as { id?: string } | null)?.id?.trim() ?? '';
+  if (!eventId) {
+    lineupFeedExit('missing event — using match fallback', {
+      matchFound: true,
+      matchId: mid,
+      eventId: null,
+      teamSeasonId: teamSeasonIdEarly || null,
+      matchStatus: status,
+      dedupeKey: dedupe_key,
+      reason: 'event_fallback',
+    });
+  }
+
+  const starts_at =
+    (evRaw as { starts_at?: string | null } | null)?.starts_at?.trim() ||
+    match.match_date?.trim() ||
+    '';
+  if (!starts_at) {
+    lineupFeedExit('no kickoff', {
+      matchFound: true,
+      matchId: mid,
+      eventId,
+      teamSeasonId: teamSeasonIdEarly || null,
+      matchStatus: status,
+      kickoff: null,
+      dedupeKey: dedupe_key,
+      allowedWindow: 'blocked',
+    });
+    luLog('skip: no_kickoff', { matchId: mid });
+    return { ok: true, created: false, reason: 'no_kickoff' };
+  }
+
+  const minutesLeft = minutesUntilKickoff(starts_at, now);
+  const minutesSince = minutesSinceKickoff(starts_at, now);
+  if (minutesLeft == null || minutesSince == null) {
+    lineupFeedExit('invalid kickoff', {
+      matchFound: true,
+      matchId: mid,
+      eventId,
+      teamSeasonId: teamSeasonIdEarly || null,
+      matchStatus: status,
+      kickoff: starts_at,
+      minutesUntilKickoff: minutesLeft,
+      minutesSinceKickoff: minutesSince,
+      allowedWindow: 'blocked',
+      dedupeKey: dedupe_key,
+    });
+    return { ok: true, created: false, reason: 'invalid_kickoff' };
+  }
+
+  const windowEval = evaluateLineupFeedWindow({
+    status,
+    minutesUntilKickoff: minutesLeft,
+    minutesSinceKickoff: minutesSince,
+  });
+  if (!windowEval.allowed) {
+    lineupFeedExit(windowEval.reason, {
+      matchFound: true,
+      matchId: mid,
+      eventId,
+      teamSeasonId: teamSeasonIdEarly || null,
+      matchStatus: status,
+      kickoff: starts_at,
+      minutesUntilKickoff: minutesLeft,
+      minutesSinceKickoff: minutesSince,
+      allowedWindow: windowEval.allowedWindow,
+      dedupeKey: dedupe_key,
+      reason: windowEval.reason,
+    });
+    luLog('skip: outside_window', {
+      matchId: mid,
+      minutesLeft,
+      minutesSince,
+      allowedWindow: windowEval.allowedWindow,
+      reason: windowEval.reason,
+    });
+    return { ok: true, created: false, reason: windowEval.reason };
   }
 
   const lineupData = await fetchSavedLineupForFeedPost(mid);
@@ -410,89 +569,6 @@ export async function ensureLineupFeedPostForMatch(
       dedupeKey: dedupe_key,
     });
     return { ok: false, error: 'Keine team_season_id am Spiel.' };
-  }
-
-  const { data: evRaw, error: evErr } = await supabase
-    .from('events')
-    .select('id, starts_at')
-    .eq('match_id', mid)
-    .order('starts_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (evErr) luLog('events lookup warning', { matchId: mid, error: evErr.message });
-  const eventId = (evRaw as { id?: string } | null)?.id?.trim() ?? '';
-  if (!eventId) {
-    lineupFeedExit('missing event — using match fallback', {
-      matchFound: true,
-      matchId: mid,
-      eventId: null,
-      teamSeasonId,
-      matchStatus: status,
-      source: lineupData.source,
-      fieldPlayerCount: lineupData.fieldCount,
-      dedupeKey: dedupe_key,
-      reason: 'event_fallback',
-    });
-  }
-
-  const starts_at =
-    (evRaw as { starts_at?: string | null } | null)?.starts_at?.trim() ||
-    match.match_date?.trim() ||
-    '';
-  if (!starts_at) {
-    lineupFeedExit('no kickoff', {
-      matchFound: true,
-      matchId: mid,
-      eventId,
-      teamSeasonId,
-      matchStatus: status,
-      kickoff: null,
-      fieldPlayerCount: lineupData.fieldCount,
-      formationFound: Boolean(lineupData.formation),
-      dedupeKey: dedupe_key,
-    });
-    luLog('skip: no_kickoff', { matchId: mid });
-    return { ok: true, created: false, reason: 'no_kickoff' };
-  }
-
-  const minutesLeft = minutesUntilKickoff(starts_at, now);
-  if (minutesLeft == null) {
-    lineupFeedExit('invalid kickoff', {
-      matchFound: true,
-      matchId: mid,
-      eventId,
-      teamSeasonId,
-      matchStatus: status,
-      kickoff: starts_at,
-      minutesUntilKickoff: null,
-      fieldPlayerCount: lineupData.fieldCount,
-      formationFound: Boolean(lineupData.formation),
-      dedupeKey: dedupe_key,
-    });
-    return { ok: true, created: false, reason: 'invalid_kickoff' };
-  }
-  if (!isWithinLineupFeedKickoffWindow(minutesLeft)) {
-    const reason = minutesLeft <= 0 ? 'kickoff already started' : 'kickoff too far away';
-    lineupFeedExit(reason, {
-      matchFound: true,
-      matchId: mid,
-      eventId,
-      teamSeasonId,
-      matchStatus: status,
-      kickoff: starts_at,
-      minutesUntilKickoff: minutesLeft,
-      fieldPlayerCount: lineupData.fieldCount,
-      formationFound: Boolean(lineupData.formation),
-      dedupeKey: dedupe_key,
-      windowMinutes: MAX_MINUTES_BEFORE_KICKOFF,
-    });
-    luLog('skip: outside_window', { matchId: mid, minutesLeft, reason });
-    return {
-      ok: true,
-      created: false,
-      reason: minutesLeft <= 0 ? 'kickoff_started' : 'outside_window',
-    };
   }
 
   const teamInfo = await resolveTeamForSeason(teamSeasonId);
@@ -598,6 +674,8 @@ export async function ensureLineupFeedPostForMatch(
     matchStatus: status,
     kickoff: starts_at,
     minutesUntilKickoff: minutesLeft,
+    minutesSinceKickoff: minutesSince,
+    allowedWindow: windowEval.allowedWindow,
     source: lineupData.source,
     rawLineupCount: lineupData.rawLineupCount,
     fieldPlayerCount: lineupData.fieldCount,
@@ -619,7 +697,7 @@ export type EnsureLineupFeedPostsForSeasonResult = {
   errors: string[];
 };
 
-/** Beim Feed-Laden: Aufstellungs-Posts für Spiele im 60-Minuten-Fenster vor Anpfiff sicherstellen. */
+/** Beim Feed-Laden: Aufstellungs-Posts für Spiele im Pre-Kickoff- oder Live-Start-Fenster sicherstellen. */
 export async function ensureLineupFeedPostsForSeason(
   teamSeasonId: string,
   now: Date = new Date(),
@@ -644,12 +722,12 @@ export async function ensureLineupFeedPostsForSeason(
     ensureCalled: true,
   });
 
-  const { data, error } = await supabase
-    .from('matches')
-    .select('id')
-    .eq('team_season_id', sid)
-    .eq('status', 'upcoming');
+  const [upcomingRes, liveRes] = await Promise.all([
+    supabase.from('matches').select('id').eq('team_season_id', sid).eq('status', 'upcoming'),
+    supabase.from('matches').select('id').eq('team_season_id', sid).eq('status', 'live'),
+  ]);
 
+  const error = upcomingRes.error ?? liveRes.error;
   if (error) {
     lineupFeedExit('ensureLineupFeedPostsForSeason matches query error', {
       teamSeasonId: sid,
@@ -659,14 +737,20 @@ export async function ensureLineupFeedPostsForSeason(
     return result;
   }
 
-  console.log('[LINEUP FEED]', 'upcoming matches for season', {
+  const matchIds = new Set<string>();
+  for (const row of [...(upcomingRes.data ?? []), ...(liveRes.data ?? [])]) {
+    const id = String((row as { id?: string }).id ?? '').trim();
+    if (id) matchIds.add(id);
+  }
+
+  console.log('[LINEUP FEED]', 'candidate matches for season', {
     teamSeasonId: sid,
-    matchCount: (data ?? []).length,
+    upcomingCount: (upcomingRes.data ?? []).length,
+    liveCount: (liveRes.data ?? []).length,
+    matchCount: matchIds.size,
   });
 
-  for (const row of data ?? []) {
-    const id = String((row as { id?: string }).id ?? '').trim();
-    if (!id) continue;
+  for (const id of matchIds) {
     result.scanned += 1;
     const res = await ensureLineupFeedPostForMatch(id, now);
     if (!res.ok) {
