@@ -33,6 +33,7 @@ import { TrainerTeamPushPage } from '../pages/TrainerTeamPushPage';
 import { TrainerTemplatesPage } from '../pages/TrainerTemplatesPage';
 import { TrainerRemindersPage } from '../pages/TrainerRemindersPage';
 import { TrainerPreviewPage } from '../pages/TrainerPreviewPage';
+import { PlayerMatchdayPosterPreviewPage } from '../pages/dev/PlayerMatchdayPosterPreviewPage';
 import { SeasonManagementPage } from '../pages/SeasonManagementPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { LoginPage } from '../pages/LoginPage';
@@ -218,6 +219,7 @@ function InternalRoutes(): React.ReactElement {
 
         <Route path="nachrichten" element={<NotificationsPage />} />
         <Route path="nachrichten/:messageId" element={<Navigate to="/app/nachrichten" replace />} />
+        <Route path="dev/player-matchday-poster" element={<PlayerMatchdayPosterPreviewPage />} />
         </Route>
       </Route>
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
