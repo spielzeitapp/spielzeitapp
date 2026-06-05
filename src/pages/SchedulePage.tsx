@@ -979,10 +979,10 @@ export const SchedulePage: React.FC = () => {
 
   return (
     <div
-      className="page schedule-page relative flex min-h-0 flex-col overflow-hidden scroll-mt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))] min-h-[60vh] h-[calc(100dvh-max(5.35rem,calc(3.45rem+env(safe-area-inset-top,0px)))-max(5.25rem,calc(4.75rem+env(safe-area-inset-bottom,0px))))] lg:h-[calc(100dvh-max(5.35rem,calc(3.45rem+env(safe-area-inset-top,0px)))-1.5rem)]"
+      className="page schedule-page relative scroll-mt-[max(5.75rem,calc(3.75rem+env(safe-area-inset-top,0px)))]"
       style={dsSchedulePageStyle()}
     >
-      <div className="schedule-page__scroll min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]">
+      <div className="schedule-page__scroll min-w-0 overflow-x-hidden">
         <div className="w-full px-[6px] sm:px-4 md:px-6 lg:px-2">
           <div className="mx-auto mt-1 max-w-3xl space-y-3 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] pt-1 sm:mt-2 sm:space-y-4 sm:pt-2">
           {toastMessage && (
