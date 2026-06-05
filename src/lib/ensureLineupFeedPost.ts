@@ -693,16 +693,16 @@ export async function ensureLineupFeedPostForMatch(
 /** Nach erfolgreichem Aufstellungs-Save: Feed-Post anstoßen (Fehler blockieren Speichern nicht). */
 export async function triggerLineupFeedPostAfterSave(matchId: string): Promise<void> {
   const mid = matchId?.trim();
-  console.log('[LINEUP FEED] save-trigger start', { matchId: mid ?? matchId });
+  console.warn('[LINEUP FEED] save-trigger start', { matchId: mid ?? matchId });
   if (!mid) {
-    console.log('[LINEUP FEED] save-trigger error', { matchId, error: 'missing match id' });
+    console.warn('[LINEUP FEED] save-trigger error', { matchId, error: 'missing match id' });
     return;
   }
   try {
     const result = await ensureLineupFeedPostForMatch(mid);
-    console.log('[LINEUP FEED] save-trigger result', { matchId: mid, result });
+    console.warn('[LINEUP FEED] save-trigger result', { matchId: mid, result });
   } catch (error) {
-    console.log('[LINEUP FEED] save-trigger error', {
+    console.warn('[LINEUP FEED] save-trigger error', {
       matchId: mid,
       error: error instanceof Error ? error.message : String(error),
     });

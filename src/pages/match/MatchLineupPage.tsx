@@ -331,7 +331,6 @@ export const MatchLineupPage: React.FC = () => {
       setSaveError(error);
       return false;
     }
-    void triggerLineupFeedPostAfterSave(matchId);
     const { error: formationErr } = await updateMatchRow(matchId, { u11_formation_id: formationId });
     setSavingLineup(false);
     if (formationErr) {
@@ -340,6 +339,15 @@ export const MatchLineupPage: React.FC = () => {
     }
     setSaveMsg('Aufstellung gespeichert.');
     return true;
+  };
+
+  const onSaveLineupClick = async (): Promise<void> => {
+    console.warn('[LINEUP FEED] SAVE BUTTON CLICKED', { matchId });
+    if (!matchId) return;
+    const saved = await saveLineup();
+    if (!saved) return;
+    console.warn('[LINEUP FEED] LINEUP SAVE SUCCESS', { matchId });
+    void triggerLineupFeedPostAfterSave(matchId);
   };
 
   const onStartLive = async () => {
@@ -352,6 +360,7 @@ export const MatchLineupPage: React.FC = () => {
     if (!saved) {
       return;
     }
+    void triggerLineupFeedPostAfterSave(matchId);
     navigate(`/app/live?matchId=${encodeURIComponent(matchId)}`);
   };
 
@@ -697,7 +706,7 @@ export const MatchLineupPage: React.FC = () => {
           <button
             type="button"
             disabled={savingLineup || startingLive}
-            onClick={() => void saveLineup()}
+            onClick={() => void onSaveLineupClick()}
             className={`flex h-14 min-h-14 flex-1 items-center justify-center px-2 text-xs font-semibold leading-tight ${dsSecondaryCtaClass()}`}
           >
             {savingLineup ? 'Speichern…' : 'Aufstellung speichern'}
