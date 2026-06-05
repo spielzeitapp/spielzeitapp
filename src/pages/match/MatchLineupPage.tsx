@@ -7,6 +7,7 @@ import { LeibchenJersey } from '../../components/match/LeibchenJersey';
 import { LineupFormationPitch } from '../../components/match/LineupFormationPitch';
 import { PitchPlayerMarker } from '../../components/match/PitchPlayerMarker';
 import { triggerLineupFeedPostAfterSave } from '../../lib/ensureLineupFeedPost';
+import { lineupFeedDevWarn } from '../../lib/lineupFeedDebug';
 import {
   fetchLineupForLiveMatch,
   LIVE_FIELD_SLOT_ORDER,
@@ -342,11 +343,11 @@ export const MatchLineupPage: React.FC = () => {
   };
 
   const onSaveLineupClick = async (): Promise<void> => {
-    console.warn('[LINEUP FEED] SAVE BUTTON CLICKED', { matchId });
+    lineupFeedDevWarn('[LINEUP FEED] SAVE BUTTON CLICKED', { matchId });
     if (!matchId) return;
     const saved = await saveLineup();
     if (!saved) return;
-    console.warn('[LINEUP FEED] LINEUP SAVE SUCCESS', { matchId });
+    lineupFeedDevWarn('[LINEUP FEED] LINEUP SAVE SUCCESS', { matchId });
     void triggerLineupFeedPostAfterSave(matchId);
   };
 

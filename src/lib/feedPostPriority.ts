@@ -8,15 +8,15 @@ import {
 
 export const FEED_POST_PRIORITY = {
   live_match: 100,
+  lineup_auto: 95,
   matchday_today: 90,
-  lineup_auto: 85,
   matchday_tomorrow: 80,
   next_match: 70,
   trainer_post: 50,
   video_post: 50,
   image_post: 50,
-  result_post: 40,
   default: 45,
+  result_post: 40,
 } as const;
 
 export type FeedPostPriorityKey = keyof typeof FEED_POST_PRIORITY;
@@ -85,14 +85,14 @@ export function getFeedPostPriority(
     return FEED_POST_PRIORITY.live_match;
   }
 
+  if (pk === 'lineup_auto' || mt === 'lineup') {
+    return FEED_POST_PRIORITY.lineup_auto;
+  }
+
   if (pk === 'matchday_today_auto') {
     const kick = kickoffIsoFromRow(row);
     if (kick && !isSameViennaCalendarDay(new Date(kick), now)) return FEED_POST_PRIORITY.default;
     return FEED_POST_PRIORITY.matchday_today;
-  }
-
-  if (pk === 'lineup_auto' || mt === 'lineup') {
-    return FEED_POST_PRIORITY.lineup_auto;
   }
 
   if (pk === 'matchday_tomorrow_auto') {
@@ -154,19 +154,22 @@ function feedPostUpdatedTimestamp(row: TeamFeedPostDbRow): number {
   return Number.isFinite(updated) ? updated : 0;
 }
 
-/** Home-Feed: neueste Nachricht zuerst; priority nur bei gleichem Zeitstempel. */
+/**
+ * Home-Feed: zuerst Post-Typ-Priorität (live → lineup → matchday → …),
+ * innerhalb gleicher Priorität neueste zuerst (created_at DESC).
+ */
 export function sortClassifiedFeedPosts(
   items: ClassifiedFeedPost[],
   eventStatusById: Map<string, string>,
   now: Date = new Date(),
 ): ClassifiedFeedPost[] {
   return [...items].sort((a, b) => {
-    const ta = feedPostSortTimestamp(classifiedPostRow(a));
-    const tb = feedPostSortTimestamp(classifiedPostRow(b));
-    if (tb !== ta) return tb - ta;
     const pa = getFeedPostPriority(classifiedPostRow(a), eventStatusById, now);
     const pb = getFeedPostPriority(classifiedPostRow(b), eventStatusById, now);
     if (pb !== pa) return pb - pa;
+    const ta = feedPostSortTimestamp(classifiedPostRow(a));
+    const tb = feedPostSortTimestamp(classifiedPostRow(b));
+    if (tb !== ta) return tb - ta;
     return feedPostUpdatedTimestamp(classifiedPostRow(b)) - feedPostUpdatedTimestamp(classifiedPostRow(a));
   });
 }

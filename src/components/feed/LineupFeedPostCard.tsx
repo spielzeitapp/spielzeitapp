@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardList, Heart, Share2 } from 'lucide-react';
 import type { LineupFeedPostRow } from '../../lib/matchdayFeedTypes';
+import type { LineupFeedPlayer } from '../../lib/lineupFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
@@ -23,6 +24,52 @@ type Props = {
 };
 
 const MAX_DISPLAY_PLAYERS = 7;
+
+const LINEUP_FEED_POSITION_LABELS: Record<string, string> = {
+  GK: 'Torwart',
+  TW: 'Torwart',
+  LB: 'Linksverteidiger',
+  LV: 'Linksverteidiger',
+  RB: 'Rechtsverteidiger',
+  RV: 'Rechtsverteidiger',
+  CM: 'Zentrum',
+  ZM: 'Zentrum',
+  IV: 'Zentrum',
+  LW: 'Links außen',
+  LA: 'Links außen',
+  LM: 'Links außen',
+  LZ: 'Links außen',
+  LZM: 'Links außen',
+  LF: 'Links außen',
+  RW: 'Rechts außen',
+  RA: 'Rechts außen',
+  RM: 'Rechts außen',
+  RZM: 'Rechts außen',
+  RF: 'Rechts außen',
+  ST: 'Sturm',
+  LS: 'Sturm',
+  RS: 'Sturm',
+};
+
+function lineupFeedPositionLabel(slot?: string | null): string {
+  const key = (slot ?? '').trim().toUpperCase();
+  if (key && LINEUP_FEED_POSITION_LABELS[key]) return LINEUP_FEED_POSITION_LABELS[key];
+  const trimmed = (slot ?? '').trim();
+  return trimmed || 'Position';
+}
+
+function lineupFeedPlayerName(name?: string | null): string | null {
+  const trimmed = (name ?? '').trim();
+  if (!trimmed || trimmed === 'Spieler') return null;
+  return trimmed;
+}
+
+function lineupFeedPlayerLine(pl: LineupFeedPlayer): { position: string; name: string | null } {
+  return {
+    position: lineupFeedPositionLabel(pl.slot),
+    name: lineupFeedPlayerName(pl.name),
+  };
+}
 
 function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
@@ -47,7 +94,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
   }, [post.id]);
 
   const displayPlayers = useMemo(
-    () => p.lineup_players.slice(0, MAX_DISPLAY_PLAYERS),
+    () => p.lineup_players.slice(0, MAX_DISPLAY_PLAYERS).map(lineupFeedPlayerLine),
     [p.lineup_players],
   );
 
@@ -112,7 +159,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
         {post.caption?.trim() ? <FeedCaption text={post.caption} /> : null}
 
         <div
-          className="relative overflow-hidden rounded-xl border border-red-500/30 px-3 py-3.5"
+          className="relative overflow-hidden rounded-xl border border-red-500/30 px-2.5 py-3 sm:px-3 sm:py-3.5"
           style={{
             background:
               'linear-gradient(180deg, rgba(28,10,12,0.98) 0%, rgba(10,6,8,0.99) 55%, rgba(4,2,4,1) 100%)',
@@ -127,24 +174,44 @@ export const LineupFeedPostCard: React.FC<Props> = ({
             }}
             aria-hidden
           />
-          <div className="relative space-y-3">
-            <p className="text-center text-[12px] font-black uppercase tracking-[0.2em] text-red-200/95">
+          <div className="relative space-y-2.5 sm:space-y-3">
+            <p className="text-center text-[11px] font-black uppercase tracking-[0.2em] text-red-200/95 sm:text-[12px]">
               STARTAUFSTELLUNG
             </p>
 
             {p.formation ? (
-              <p className="text-center text-[13px] font-bold tracking-wide text-white/88">{p.formation}</p>
+              <div className="flex justify-center">
+                <span className="inline-flex min-h-[34px] items-center rounded-full border border-red-400/35 bg-red-950/55 px-4 py-1 text-[15px] font-black tracking-[0.12em] text-white shadow-[0_0_18px_rgba(220,38,38,0.22)] sm:text-[16px]">
+                  {p.formation}
+                </span>
+              </div>
             ) : null}
 
-            <div className="rounded-lg border border-white/[0.07] bg-black/40 px-3 py-2.5">
-              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-red-200/80">Startelf</p>
-              <ul className="space-y-1 text-[13px] font-semibold leading-snug text-white/90">
-                {displayPlayers.map((pl) => (
-                  <li key={pl.player_id} className="flex gap-1.5">
-                    <span className="text-red-400/90" aria-hidden>
-                      •
+            <div className="rounded-lg border border-white/[0.07] bg-black/40 px-2 py-2 sm:px-3 sm:py-2.5">
+              <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-red-200/80 sm:mb-2 sm:text-[10px]">
+                Startelf
+              </p>
+              <ul className="space-y-1">
+                {displayPlayers.map((line, index) => (
+                  <li
+                    key={`${p.lineup_players[index]?.player_id ?? index}-${line.position}`}
+                    className="flex min-h-[30px] items-center rounded-md border border-white/[0.07] bg-white/[0.035] px-2 py-1 sm:min-h-[32px] sm:px-2.5 sm:py-1.5"
+                  >
+                    <span className="shrink-0 text-[10px] font-semibold leading-tight text-red-200/88 sm:text-[11px]">
+                      {line.position}
                     </span>
-                    <span>{pl.name}</span>
+                    {line.name ? (
+                      <>
+                        <span className="mx-1.5 shrink-0 text-[10px] text-white/30" aria-hidden>
+                          ·
+                        </span>
+                        <span className="min-w-0 truncate text-[11px] font-bold leading-tight text-white/95 sm:text-[12px]">
+                          {line.name}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="ml-1.5 text-[10px] italic text-white/45 sm:text-[11px]">nicht benannt</span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -153,7 +220,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
             <div className="flex justify-center pt-0.5">
               <Link
                 to={deepLink}
-                className="inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-lg border border-red-400/45 bg-gradient-to-b from-red-600/90 to-red-900 px-5 text-[13px] font-black uppercase tracking-wide text-white shadow-[0_0_20px_rgba(220,38,38,0.28)] transition hover:from-red-500 hover:to-red-800"
+                className="inline-flex min-h-[44px] w-full max-w-[240px] touch-manipulation items-center justify-center rounded-lg border border-red-400/45 bg-gradient-to-b from-red-600/90 to-red-900 px-4 text-[12px] font-black uppercase tracking-wide text-white shadow-[0_0_20px_rgba(220,38,38,0.28)] transition hover:from-red-500 hover:to-red-800 sm:text-[13px]"
               >
                 Zum Spiel
               </Link>

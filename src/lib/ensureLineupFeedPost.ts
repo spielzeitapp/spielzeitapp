@@ -9,6 +9,7 @@ import {
   type LineupFeedPayload,
   type LineupFeedPlayer,
 } from './lineupFeedTypes';
+import { lineupFeedDevLog, lineupFeedDevWarn } from './lineupFeedDebug';
 import type { FieldSlotId } from '../types/match';
 
 export type EnsureLineupFeedPostResult =
@@ -73,7 +74,7 @@ function lineupFeedWindowLog(
     allowedWindow?: LineupFeedAllowedWindow;
   },
 ): void {
-  console.log('[LINEUP FEED]', {
+  lineupFeedDevLog('[LINEUP FEED]', {
     reason,
     'match.status': details.matchStatus ?? details.match_status,
     minutesUntilKickoff: details.minutesUntilKickoff ?? null,
@@ -84,7 +85,7 @@ function lineupFeedWindowLog(
 }
 
 function luLog(phase: string, data: Record<string, unknown>): void {
-  console.info(`[lineupFeed] ${phase}`, data);
+  if (import.meta.env.DEV) console.info(`[lineupFeed] ${phase}`, data);
 }
 
 function lineupFeedExit(reason: string, details: Record<string, unknown> = {}): void {
@@ -212,7 +213,7 @@ function logLineupCountDiagnostics(
   counts: ReturnType<typeof lineupCountDiagnostics>,
   feedPlayersLength: number,
 ): void {
-  console.warn('[LINEUP FEED] lineup-count', {
+  lineupFeedDevWarn('[LINEUP FEED] lineup-count', {
     matchId,
     source,
     totalPlayers: counts.totalPlayers,
@@ -361,7 +362,7 @@ async function fetchSavedLineupForFeedPost(matchId: string): Promise<{
     if (p.name) playerNames.push(p.name);
   }
 
-  console.log('[LINEUP FEED]', 'saved lineup loaded', {
+  lineupFeedDevLog('[LINEUP FEED]', 'saved lineup loaded', {
     matchId,
     source,
     rawLineupCount,
@@ -404,7 +405,7 @@ export async function ensureLineupFeedPostForMatch(
   const dedupe_key = dedupeKeyForLineupMatch(mid);
 
   const suppressionExists = await isDedupeSuppressed(dedupe_key);
-  console.log('[LINEUP FEED]', 'suppression check', {
+  lineupFeedDevLog('[LINEUP FEED]', 'suppression check', {
     matchId: mid,
     dedupeKey: dedupe_key,
     suppressionExists,
@@ -426,7 +427,7 @@ export async function ensureLineupFeedPostForMatch(
     .eq('dedupe_key', dedupe_key)
     .maybeSingle();
   const dedupeKeyExists = Boolean(existing?.id);
-  console.log('[LINEUP FEED]', 'dedupe check', {
+  lineupFeedDevLog('[LINEUP FEED]', 'dedupe check', {
     matchId: mid,
     dedupeKey: dedupe_key,
     dedupeKeyExists,
@@ -589,7 +590,7 @@ export async function ensureLineupFeedPostForMatch(
     return { ok: false, error: 'Aufstellung konnte nicht geladen werden.' };
   }
   if (lineupData.fieldCount < MIN_FIELD_PLAYERS) {
-    console.warn('[LINEUP FEED] lineup-count', {
+    lineupFeedDevWarn('[LINEUP FEED] lineup-count', {
       matchId: mid,
       blockedReason: 'insufficient_lineup',
       source: lineupData.source,
@@ -674,7 +675,7 @@ export async function ensureLineupFeedPostForMatch(
       slotToPlayer.set(pos.slot, pos.playerId);
     }
     feedPlayers = buildLineupFeedPlayersFromSlotMapSync(slotToPlayer, lineupData.formation);
-    console.warn('[LINEUP FEED] lineup-count', {
+    lineupFeedDevWarn('[LINEUP FEED] lineup-count', {
       matchId: mid,
       feedPlayersFallback: true,
       feedPlayersLength: feedPlayers.length,
@@ -772,16 +773,16 @@ export async function ensureLineupFeedPostForMatch(
 /** Nach erfolgreichem Aufstellungs-Save: Feed-Post anstoßen (Fehler blockieren Speichern nicht). */
 export async function triggerLineupFeedPostAfterSave(matchId: string): Promise<void> {
   const mid = matchId?.trim();
-  console.warn('[LINEUP FEED] save-trigger start', { matchId: mid ?? matchId });
+  lineupFeedDevWarn('[LINEUP FEED] save-trigger start', { matchId: mid ?? matchId });
   if (!mid) {
-    console.warn('[LINEUP FEED] save-trigger error', { matchId, error: 'missing match id' });
+    lineupFeedDevWarn('[LINEUP FEED] save-trigger error', { matchId, error: 'missing match id' });
     return;
   }
   try {
     const result = await ensureLineupFeedPostForMatch(mid);
-    console.warn('[LINEUP FEED] save-trigger result', { matchId: mid, result });
+    lineupFeedDevWarn('[LINEUP FEED] save-trigger result', { matchId: mid, result });
   } catch (error) {
-    console.warn('[LINEUP FEED] save-trigger error', {
+    lineupFeedDevWarn('[LINEUP FEED] save-trigger error', {
       matchId: mid,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -800,7 +801,7 @@ export async function ensureLineupFeedPostsForSeason(
   teamSeasonId: string,
   now: Date = new Date(),
 ): Promise<EnsureLineupFeedPostsForSeasonResult> {
-  console.log('[LINEUP FEED] season scan start', { teamSeasonId });
+  lineupFeedDevLog('[LINEUP FEED] season scan start', { teamSeasonId });
   const sid = teamSeasonId?.trim();
   const result: EnsureLineupFeedPostsForSeasonResult = {
     scanned: 0,
@@ -842,7 +843,7 @@ export async function ensureLineupFeedPostsForSeason(
     if (id) matchIds.add(id);
   }
 
-  console.log('[LINEUP FEED]', 'candidate matches for season', {
+  lineupFeedDevLog('[LINEUP FEED]', 'candidate matches for season', {
     teamSeasonId: sid,
     upcomingCount: (upcomingRes.data ?? []).length,
     liveCount: (liveRes.data ?? []).length,
