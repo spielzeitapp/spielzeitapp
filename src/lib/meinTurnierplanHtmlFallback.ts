@@ -24,12 +24,63 @@ function nodeErrorCode(err: unknown): string | null {
   if (!err || typeof err !== 'object') return null;
   const direct = (err as { code?: unknown }).code;
   if (typeof direct === 'string' && direct.trim()) return direct.trim();
-  const cause = (err as { cause?: unknown }).cause;
-  if (cause && typeof cause === 'object') {
-    const causeCode = (cause as { code?: unknown }).code;
-    if (typeof causeCode === 'string' && causeCode.trim()) return causeCode.trim();
+  return null;
+}
+
+function nodeErrorCodeDeep(err: unknown): string | null {
+  const seen = new Set<unknown>();
+  let current: unknown = err;
+  while (current != null && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current);
+    const code = nodeErrorCode(current);
+    if (code) return code;
+    current = (current as { cause?: unknown }).cause;
   }
   return null;
+}
+
+function formatErrorCauseDetail(err: Error): string {
+  const parts = [err.name || 'Error', err.message.trim() || 'Unknown error'];
+  const code = nodeErrorCode(err);
+  if (code) parts.push(`code=${code}`);
+  const syscall = (err as { syscall?: unknown }).syscall;
+  if (typeof syscall === 'string' && syscall.trim()) parts.push(`syscall=${syscall.trim()}`);
+  const hostname = (err as { hostname?: unknown }).hostname;
+  if (typeof hostname === 'string' && hostname.trim()) parts.push(`hostname=${hostname.trim()}`);
+  return parts.join(' · ');
+}
+
+function formatUnknownCause(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  if (value instanceof Error) return formatErrorCauseDetail(value);
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
+function collectCauseChain(err: unknown): string | null {
+  const parts: string[] = [];
+  const seen = new Set<unknown>();
+  let current: unknown = err instanceof Error ? err.cause : null;
+  while (current != null && !seen.has(current)) {
+    seen.add(current);
+    const formatted = formatUnknownCause(current);
+    if (formatted) parts.push(formatted);
+    current =
+      current instanceof Error && current.cause != null && current.cause !== current ? current.cause : null;
+  }
+  if (err instanceof Error && 'errors' in err && Array.isArray((err as AggregateError).errors)) {
+    for (const nested of (err as AggregateError).errors) {
+      const formatted = formatUnknownCause(nested);
+      if (formatted) parts.push(formatted);
+    }
+  }
+  return parts.length > 0 ? parts.join(' → ') : null;
 }
 
 /** Volle Fetch-Exception für HTML-Fallback-Diagnostics (DNS/TLS/Timeout/…). */
@@ -37,24 +88,8 @@ export function captureMeinTurnierplanHtmlFallbackException(
   err: unknown,
 ): MeinTurnierplanHtmlFallbackException {
   if (err instanceof Error) {
-    const code = nodeErrorCode(err) ?? nodeErrorCode(err.cause);
-    let cause: string | null = null;
-    if (err.cause !== undefined && err.cause !== null) {
-      if (err.cause instanceof Error) {
-        const causeCode = nodeErrorCode(err.cause);
-        cause = causeCode
-          ? `${err.cause.name}: ${err.cause.message} (${causeCode})`
-          : `${err.cause.name}: ${err.cause.message}`;
-      } else if (typeof err.cause === 'object') {
-        try {
-          cause = JSON.stringify(err.cause);
-        } catch {
-          cause = String(err.cause);
-        }
-      } else {
-        cause = String(err.cause);
-      }
-    }
+    const code = nodeErrorCodeDeep(err);
+    const cause = collectCauseChain(err);
     return {
       name: err.name || 'Error',
       message: err.message.trim() || 'Unknown error',

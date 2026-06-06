@@ -706,13 +706,15 @@ function mergeHtmlFallbackDiagnostics(
   const attemptedSources = list.filter((s) => s.htmlFallbackAttempted);
   if (attemptedSources.length > 0) {
     const last = attemptedSources[attemptedSources.length - 1];
+    const htmlFallbackException =
+      [...attemptedSources].reverse().find((s) => s.htmlFallbackException)?.htmlFallbackException ?? null;
     return {
       htmlFallbackAttempted: true,
       htmlFallbackSuccessful: false,
       htmlFallbackTeamsFound: last.htmlFallbackTeamsFound,
       htmlFallbackMatchesFound: last.htmlFallbackMatchesFound,
       htmlFallbackError: last.htmlFallbackError ?? MEIN_TURNIERPLAN_HTML_FALLBACK_EMPTY_MESSAGE,
-      htmlFallbackException: last.htmlFallbackException ?? null,
+      htmlFallbackException,
       tournamentName: last.tournamentName ?? null,
       fallbackStage: 'html',
     };
@@ -1781,6 +1783,7 @@ async function tryServerHtmlTournamentPlanFallback(
               htmlFallbackAttempted: true,
               htmlFallbackSuccessful: false,
               htmlFallbackError,
+              htmlFallbackException: body.diagnostics?.htmlFallbackException ?? null,
               fallbackStage: 'html',
               source: 'html_fallback',
             },

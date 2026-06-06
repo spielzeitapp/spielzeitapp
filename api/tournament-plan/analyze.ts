@@ -1,3 +1,4 @@
+import { captureMeinTurnierplanHtmlFallbackException } from '../../src/lib/meinTurnierPlanHtmlFallback';
 import {
   analyzeMeinTurnierplanUrl,
   analyzeMeinTurnierplanUrlForceHtmlFallback,
@@ -38,18 +39,31 @@ function queryParam(
 function readFetchRuntimeDiagnostics(): TournamentPlanFetchRuntimeDiagnostics {
   return {
     vercel: process.env.VERCEL === '1',
-    region: process.env.VERCEL_REGION?.trim() || null,
+    region: process.env.VERCEL_REGION?.trim() || process.env.AWS_REGION?.trim() || null,
     nodeVersion: process.version,
+  };
+}
+
+function ensureHtmlFallbackExceptionDiagnostics(
+  diagnostics: TournamentPlanAnalyzeDiagnostics,
+): TournamentPlanAnalyzeDiagnostics {
+  if (diagnostics.htmlFallbackException) return diagnostics;
+  if (!diagnostics.htmlFallbackAttempted) return diagnostics;
+  const errorMessage = diagnostics.htmlFallbackError?.trim();
+  if (!errorMessage) return diagnostics;
+  return {
+    ...diagnostics,
+    htmlFallbackException: captureMeinTurnierplanHtmlFallbackException(new Error(errorMessage)),
   };
 }
 
 function enrichServerDiagnostics(
   diagnostics: TournamentPlanAnalyzeDiagnostics,
 ): TournamentPlanAnalyzeDiagnostics {
-  return {
+  return ensureHtmlFallbackExceptionDiagnostics({
     ...diagnostics,
     fetchRuntime: readFetchRuntimeDiagnostics(),
-  };
+  });
 }
 
 function failureJson(failure: TournamentPlanAnalyzeFailure): Record<string, unknown> {
@@ -138,7 +152,9 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
         return;
       }
       htmlFallbackError = htmlAfterException.error;
-      htmlFallbackException = htmlAfterException.htmlFallbackException ?? null;
+      htmlFallbackException =
+        htmlAfterException.htmlFallbackException ??
+        captureMeinTurnierplanHtmlFallbackException(new Error(htmlAfterException.error));
     }
 
     const failure = buildTournamentPlanAnalyzeFailure({

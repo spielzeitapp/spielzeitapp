@@ -22,6 +22,36 @@ function yesNoUnknown(value: boolean | null | undefined): string {
   return '—';
 }
 
+function HtmlFallbackExceptionDetails({
+  exception,
+}: {
+  exception: NonNullable<TournamentPlanAnalyzeDiagnostics['htmlFallbackException']>;
+}) {
+  return (
+    <li className="break-words text-amber-50/95">
+      <div className="font-medium text-amber-50">HTML-Fallback Exception</div>
+      <dl className="mt-1 space-y-0.5 font-mono text-[10px] leading-snug text-white/80">
+        <div>
+          <dt className="inline text-white/50">name: </dt>
+          <dd className="inline">{exception.name || '—'}</dd>
+        </div>
+        <div>
+          <dt className="inline text-white/50">message: </dt>
+          <dd className="inline break-all">{exception.message || '—'}</dd>
+        </div>
+        <div>
+          <dt className="inline text-white/50">code: </dt>
+          <dd className="inline">{exception.code ?? '—'}</dd>
+        </div>
+        <div>
+          <dt className="inline text-white/50">cause: </dt>
+          <dd className="inline break-all">{exception.cause ?? '—'}</dd>
+        </div>
+      </dl>
+    </li>
+  );
+}
+
 export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diagnostics }) => {
   const d = failure?.diagnostics ?? diagnostics;
   if (!d && !failure) return null;
@@ -82,23 +112,7 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
               HTML-Fallback Fehler: {d.htmlFallbackError}
             </li>
           ) : null}
-          {d.htmlFallbackException ? (
-            <li className="break-words text-amber-50/95">
-              HTML-Fallback Exception:{' '}
-              <span className="font-mono text-[11px]">
-                {d.htmlFallbackException.name}
-                {d.htmlFallbackException.code ? ` · ${d.htmlFallbackException.code}` : ''}
-              </span>
-              <div className="mt-0.5 font-mono text-[10px] leading-snug text-white/75">
-                {d.htmlFallbackException.message}
-              </div>
-              {d.htmlFallbackException.cause ? (
-                <div className="mt-0.5 font-mono text-[10px] leading-snug text-white/60">
-                  cause: {d.htmlFallbackException.cause}
-                </div>
-              ) : null}
-            </li>
-          ) : null}
+          {d.htmlFallbackException ? <HtmlFallbackExceptionDetails exception={d.htmlFallbackException} /> : null}
           {d.tournamentName ? <li>Turniername (HTML): {d.tournamentName}</li> : null}
           {d.serverException ? (
             <li className="break-words text-amber-100/85">
@@ -107,15 +121,19 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
           ) : null}
           {d.fetchRuntime ? (
             <>
+              <li>Runtime: {d.fetchRuntime.vercel ? 'Vercel' : 'lokal'}</li>
               <li>
-                Runtime: {d.fetchRuntime.vercel ? 'Vercel' : 'lokal'}
-                {d.fetchRuntime.region ? ` · Region: ${d.fetchRuntime.region}` : ''}
+                Vercel Region:{' '}
+                <span className="font-mono text-[11px] text-white/80">
+                  {d.fetchRuntime.region ?? '—'}
+                </span>
               </li>
-              {d.fetchRuntime.nodeVersion ? (
-                <li className="font-mono text-[11px] text-white/65">
-                  Node: {d.fetchRuntime.nodeVersion}
-                </li>
-              ) : null}
+              <li>
+                Node Version:{' '}
+                <span className="font-mono text-[11px] text-white/80">
+                  {d.fetchRuntime.nodeVersion ?? '—'}
+                </span>
+              </li>
             </>
           ) : null}
         </ul>
