@@ -37,6 +37,7 @@ import {
   engineEventToInsertPayload,
   fetchEventIsHomeByMatchId,
   fetchFirstLiveMatch,
+  ensureKickoffLineupSnapshot,
   fetchKickoffLineupPlayerIds,
   fetchLineupForLiveMatch,
   fetchMatchById,
@@ -968,9 +969,18 @@ export const LiveMatchScreen: React.FC = () => {
       const kickFinal = kickFromSnap ?? [...lineData.startingPlayerIds].slice(0, 7);
       setKickoffStartingPlayerIds(kickFinal);
       if (!kickFromSnap && mRes.data?.status === 'live' && import.meta.env.DEV) {
-        console.warn(
-          '[LiveMatch] Kein Kickoff-Snapshot (match_lineup_snapshots); Replay-Basis = aktuelles match_lineup.',
+        const hasSubs = sorted.some(
+          (e) => e.type === 'substitution' || e.type === 'sub_out' || e.type === 'sub_in',
         );
+        if (hasSubs) {
+          console.warn('LiveMatch missing kickoff snapshot - playtime replay may be wrong', {
+            matchId: resolvedId,
+          });
+        } else {
+          console.warn(
+            '[LiveMatch] Kein Kickoff-Snapshot (match_lineup_snapshots); Replay-Basis = aktuelles match_lineup.',
+          );
+        }
       }
       if (lineRes.error) setSaveError(lineRes.error);
       if (evRes.error) setSaveError(evRes.error);
@@ -1570,6 +1580,31 @@ export const LiveMatchScreen: React.FC = () => {
 
   const safeSlotOrder = Array.isArray(LIVE_FIELD_SLOT_ORDER) ? LIVE_FIELD_SLOT_ORDER : [];
   const eventsSortedAsc = useMemo(() => sortMatchEventsChronologically(events), [events]);
+
+  const kickoffSnapshotWarnedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!import.meta.env.DEV || !effectiveMatchId || matchRow?.status !== 'live') return;
+    const hasSubs = eventsSortedAsc.some(
+      (e) => e.type === 'substitution' || e.type === 'sub_out' || e.type === 'sub_in',
+    );
+    if (!hasSubs) return;
+    if (kickoffSnapshotWarnedRef.current === effectiveMatchId) return;
+
+    let cancelled = false;
+    void fetchKickoffLineupPlayerIds(effectiveMatchId).then((ids) => {
+      if (cancelled) return;
+      const hasSnap = ids != null && ids.some((id) => String(id ?? '').trim().length > 0);
+      if (!hasSnap) {
+        kickoffSnapshotWarnedRef.current = effectiveMatchId;
+        console.warn('LiveMatch missing kickoff snapshot - playtime replay may be wrong', {
+          matchId: effectiveMatchId,
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveMatchId, matchRow?.status, eventsSortedAsc]);
 
   const playtimeFinalSecond = useMemo(
     () =>
@@ -2444,6 +2479,18 @@ export const LiveMatchScreen: React.FC = () => {
   const onStartClick = async () => {
     if (!canControlLiveMatch || matchIsFinished || isRunning || !effectiveMatchId) return;
     if (!hasClockStarted) {
+      const { error: snapErr } = await ensureKickoffLineupSnapshot(effectiveMatchId);
+      if (snapErr) {
+        setSaveError(snapErr);
+        return;
+      }
+      const kickoffIds = await fetchKickoffLineupPlayerIds(effectiveMatchId);
+      if (kickoffIds?.some((id) => String(id ?? '').trim().length > 0)) {
+        setKickoffStartingPlayerIds(kickoffIds.slice(0, 7));
+      } else if (startingPlayerIds.some((id) => String(id ?? '').trim().length > 0)) {
+        setKickoffStartingPlayerIds(startingPlayerIds.slice(0, 7));
+      }
+
       const { ok } = await persistSingle({ type: 'start', timestamp: 0 });
       if (!ok) return;
       const ts = new Date().toISOString();
