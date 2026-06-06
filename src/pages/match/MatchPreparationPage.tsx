@@ -268,6 +268,7 @@ export const MatchPreparationPage: React.FC = () => {
       setPersistError(error);
       return false;
     }
+    setRestoredSelectedPlayers(nextSquadIds);
     setLineupPlayerIds((prev) => {
       const next = new Set<string>();
       for (const id of prev) {
@@ -301,7 +302,9 @@ export const MatchPreparationPage: React.FC = () => {
         });
         return;
       }
+      const nextSquad = selectedPlayersForSquad.filter((id) => id !== playerId);
       applyRemoveFromSquad(playerId);
+      void persistSquadSelection(nextSquad);
       return;
     }
     setSelectedPlayers((prev) => (prev.includes(playerId) ? prev : [...prev, playerId]));
@@ -331,19 +334,7 @@ export const MatchPreparationPage: React.FC = () => {
                 selected={selected}
                 status={status === 'available' ? 'yes' : status === 'absent' ? 'no' : 'open'}
                 rightLabel={
-                  status === 'absent'
-                    ? 'Abwesend'
-                    : !squadEditable
-                      ? selected
-                        ? '✓ Im Kader'
-                        : '—'
-                      : status === 'open'
-                        ? selected
-                          ? '✓ Im Kader'
-                          : 'Hinzufügen'
-                        : selected
-                          ? '✓ Im Kader'
-                          : 'Auswählen'
+                  status === 'absent' ? 'Abwesend' : selected ? '✓ IM KADER' : 'NICHT IM KADER'
                 }
                 onClick={disabled ? undefined : () => togglePlayer(p.id, status)}
               />

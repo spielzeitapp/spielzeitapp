@@ -365,6 +365,32 @@ export type LineupLoadResult = {
   squadPlayerIds: string[];
 };
 
+/** Entfernt Spieler aus Startelf, die nicht im Matchkader sind (Vorbereitung vor Anpfiff). */
+export function sanitizeLineupToMatchSquad(
+  startingPlayerIds: readonly (string | null | undefined)[],
+  squadPlayerIds: readonly string[],
+): LineupLoadResult {
+  const normalizeId = (raw: string | null | undefined): string | null => {
+    const v = String(raw ?? '').trim();
+    return v.length > 0 ? v : null;
+  };
+
+  const cleanSquad = [
+    ...new Set(squadPlayerIds.map(normalizeId).filter((id): id is string => Boolean(id))),
+  ];
+  const squadSet = new Set(cleanSquad);
+  const seenOnField = new Set<string>();
+
+  const starters = LIVE_FIELD_SLOT_ORDER.map((_, i) => {
+    const pid = normalizeId(startingPlayerIds[i]);
+    if (!pid || !squadSet.has(pid) || seenOnField.has(pid)) return '';
+    seenOnField.add(pid);
+    return pid;
+  });
+
+  return { startingPlayerIds: starters, squadPlayerIds: cleanSquad };
+}
+
 export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: LineupLoadResult; error: string | null }> {
   const [lineupRes, benchRes] = await Promise.all([
     supabase.from('match_lineup').select('player_id, slot').eq('match_id', matchId),

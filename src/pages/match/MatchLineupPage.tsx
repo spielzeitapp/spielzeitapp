@@ -11,6 +11,7 @@ import {
   fetchLineupForLiveMatch,
   LIVE_FIELD_SLOT_ORDER,
   replaceMatchLineupAndBench,
+  sanitizeLineupToMatchSquad,
   updateMatchRow,
 } from '../../lib/liveMatchService';
 import {
@@ -185,31 +186,26 @@ export const MatchLineupPage: React.FC = () => {
       if (error) {
         setLineupError(error);
       } else {
-        const used = new Set<string>();
-        for (let i = 0; i < LIVE_FIELD_SLOT_ORDER.length; i += 1) {
-          const pid = data.startingPlayerIds[i] ?? null;
-          if (!pid || used.has(pid)) {
-            initialSlots[LIVE_FIELD_SLOT_ORDER[i]] = null;
-            continue;
-          }
-          used.add(pid);
-          initialSlots[LIVE_FIELD_SLOT_ORDER[i]] = pid;
-        }
         if (initialSquad.length === 0) {
           initialSquad = data.squadPlayerIds.filter((id, idx, arr) => arr.indexOf(id) === idx);
+        }
+        const sanitized = sanitizeLineupToMatchSquad(data.startingPlayerIds, initialSquad);
+        initialSquad = sanitized.squadPlayerIds;
+        for (let i = 0; i < LIVE_FIELD_SLOT_ORDER.length; i += 1) {
+          const pid = sanitized.startingPlayerIds[i] ?? null;
+          initialSlots[LIVE_FIELD_SLOT_ORDER[i]] = pid && pid.length > 0 ? pid : null;
         }
       }
 
       setSlots(initialSlots);
-      const dedupSquad = [...new Set(initialSquad)];
-      setSquadIds(dedupSquad);
+      setSquadIds(initialSquad);
       setLineupLoading(false);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [matchId, selectedFromState]);
+  }, [matchId, selectedFromState, location.key]);
 
   useEffect(() => {
     if (!matchId || !matchRow) return;
@@ -240,6 +236,22 @@ export const MatchLineupPage: React.FC = () => {
       setSelectedBankPlayerId(null);
     }
   }, [selectedBankPlayerId, squadIds]);
+
+  useEffect(() => {
+    const squadSet = new Set(squadIds);
+    setSlots((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const slot of LIVE_FIELD_SLOT_ORDER) {
+        const pid = next[slot];
+        if (pid && !squadSet.has(pid)) {
+          next[slot] = null;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [squadIds]);
 
   useEffect(() => {
     return () => {
@@ -287,6 +299,7 @@ export const MatchLineupPage: React.FC = () => {
   const hasSquad = squadIds.length > 0;
 
   const onTapBankPlayer = (playerId: string) => {
+    if (!squadIds.includes(playerId)) return;
     setSelectedBankPlayerId((prev) => (prev === playerId ? null : playerId));
   };
 
@@ -295,13 +308,17 @@ export const MatchLineupPage: React.FC = () => {
     setSaveError(null);
     const wasOccupied = Boolean(slots[slot]);
     const bankPick = selectedBankPlayerId;
+    if (bankPick && !squadIds.includes(bankPick)) {
+      setSelectedBankPlayerId(null);
+      return;
+    }
     setSlots((prev) => {
       const next = { ...prev };
       if (next[slot]) {
         next[slot] = null;
         return next;
       }
-      if (!selectedBankPlayerId) return prev;
+      if (!selectedBankPlayerId || !squadIds.includes(selectedBankPlayerId)) return prev;
       for (const s of LIVE_FIELD_SLOT_ORDER) {
         if (next[s] === selectedBankPlayerId) next[s] = null;
       }
@@ -524,7 +541,8 @@ export const MatchLineupPage: React.FC = () => {
                   assignFlashSlot={assignFlashSlot}
                   className="max-h-[min(70dvh,50rem)] w-full sm:max-h-[min(50rem,78vh)]"
                   renderSlotContent={({ label, labelDx, labelDy, playerId, flash, isGk, emphasize }) => {
-                    const player = playerId ? playersById.get(playerId) : null;
+                    if (!playerId || !squadIds.includes(playerId)) return null;
+                    const player = playersById.get(playerId);
                     if (!player) return null;
                     return (
                       <div className="pointer-events-none">
