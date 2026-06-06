@@ -1900,20 +1900,47 @@ export const LiveMatchScreen: React.FC = () => {
     [benchPlayers],
   );
 
-  const substitutionFieldRows = useMemo(() => {
+  type SubstitutionFieldRow = (typeof safeLineupRows)[number] & { isFairPlayExtra?: boolean };
+
+  const substitutionFieldRows = useMemo((): SubstitutionFieldRow[] => {
     if (!Array.isArray(safeLineupRows)) return [];
-    return safeLineupRows.filter((row) => {
+    const rows: SubstitutionFieldRow[] = safeLineupRows.filter((row) => {
       const slot = row?.slot;
       if (!slot) return false;
       const pid = lineupSlotsForDisplay?.[slot];
       return typeof pid === 'string' && pid.length > 0;
     });
-  }, [safeLineupRows, lineupSlotsForDisplay]);
+    const extra = fairPlayExtraPlayerId?.trim();
+    if (extra) {
+      const player = rosterById.get(extra) ?? null;
+      rows.push({
+        id: extra,
+        slot: 'ST',
+        rightLabel: 'FairPlay +1',
+        display_name: player?.name ?? 'Spieler',
+        position: player?.position ?? null,
+        jersey_number: player?.number ?? null,
+        avatar_url: player?.avatarUrl ?? null,
+        isFairPlayExtra: true,
+      });
+    }
+    return rows;
+  }, [safeLineupRows, lineupSlotsForDisplay, fairPlayExtraPlayerId, rosterById]);
 
   const substitutionBenchRows = useMemo(() => {
+    const extra = fairPlayExtraPlayerId?.trim();
     if (!Array.isArray(safeBenchRows)) return [];
-    return safeBenchRows.filter((r) => typeof r?.id === 'string' && r.id.length > 0);
-  }, [safeBenchRows]);
+    return safeBenchRows.filter((r) => {
+      const id = String(r?.id ?? '').trim();
+      if (!id) return false;
+      if (extra && id === extra) return false;
+      return true;
+    });
+  }, [safeBenchRows, fairPlayExtraPlayerId]);
+
+  const fairPlaySubOutOnly =
+    Boolean(fairPlayExtraPlayerId) &&
+    String(subOutPlayerId ?? '').trim() === String(fairPlayExtraPlayerId ?? '').trim();
 
   const wechselSheetPickLabels = useMemo(() => {
     const outPid = String(subOutPlayerId ?? '').trim();
@@ -1925,6 +1952,7 @@ export const LiveMatchScreen: React.FC = () => {
           String(
             outP?.name ??
               (substitutionFieldRows.find((r) => {
+                if (r.isFairPlayExtra) return String(r.id ?? '').trim() === outPid;
                 const sl = r?.slot;
                 const id =
                   sl && lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object'
@@ -1947,7 +1975,15 @@ export const LiveMatchScreen: React.FC = () => {
         )
       : '';
     return { outLabel, inLabel };
-  }, [subOutPlayerId, subInPlayerId, rosterById, substitutionFieldRows, substitutionBenchRows, lineupSlotsForDisplay]);
+  }, [
+    subOutPlayerId,
+    subInPlayerId,
+    rosterById,
+    substitutionFieldRows,
+    substitutionBenchRows,
+    lineupSlotsForDisplay,
+    fairPlayExtraPlayerId,
+  ]);
 
   const safeLineupSlots = useMemo(
     () => (lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object' ? lineupSlotsForDisplay : {}),
@@ -2375,9 +2411,9 @@ export const LiveMatchScreen: React.FC = () => {
     queueRealtimeReload,
   ]);
 
-  const runPersistFairPlayExtraOff = useCallback(async () => {
+  const runPersistFairPlayExtraOff = useCallback(async (removedIdOverride?: string | null) => {
     const extraId = String(fairPlayExtraPlayerId ?? '').trim();
-    const removedId = String(fairPlayRemovePickId ?? '').trim();
+    const removedId = String(removedIdOverride ?? fairPlayRemovePickId ?? '').trim();
     const mid = effectiveMatchId?.trim();
     if (!mid || !extraId || !removedId || fairPlayRemoveSaving) return;
     setFairPlayRemoveSaving(true);
@@ -2812,17 +2848,19 @@ export const LiveMatchScreen: React.FC = () => {
   const confirmSubstitution = useCallback(async () => {
     const outId = String(subOutPlayerId ?? '').trim();
     const inId = String(subInPlayerId ?? '').trim();
+    const extraId = String(fairPlayExtraPlayerId ?? '').trim();
     if (!outId) {
       if (import.meta.env.DEV) console.warn('[LiveMatch] confirmSubstitution: missing playerOutId');
       setSaveError('Bitte zuerst den auswechselnden Spieler wählen.');
       return;
     }
-    if (!inId) {
+    const fairPlayOutOnly = Boolean(extraId) && outId === extraId;
+    if (!fairPlayOutOnly && !inId) {
       if (import.meta.env.DEV) console.warn('[LiveMatch] confirmSubstitution: missing playerInId');
       setSaveError('Bitte zuerst den einwechselnden Spieler wählen.');
       return;
     }
-    if (outId === inId) return;
+    if (!fairPlayOutOnly && outId === inId) return;
     if (subSaveInFlightRef.current) {
       if (import.meta.env.DEV) console.warn('[LiveMatch] confirmSubstitution: duplicate save while saving');
       return;
@@ -2830,6 +2868,13 @@ export const LiveMatchScreen: React.FC = () => {
     subSaveInFlightRef.current = true;
     setSubSaving(true);
     try {
+      if (fairPlayOutOnly) {
+        await runPersistFairPlayExtraOff(outId);
+        const outName = mobileLineupName((rosterById.get(outId)?.name ?? 'Spieler').trim() || 'Spieler');
+        closeWechselSheet();
+        showSubstitutionToast(`FairPlay beendet · ${outName} auf die Bank`);
+        return;
+      }
       const ok = await persistSubstitution(outId, inId);
       if (ok) {
         const outName = mobileLineupName((rosterById.get(outId)?.name ?? 'Spieler').trim() || 'Spieler');
@@ -2848,7 +2893,17 @@ export const LiveMatchScreen: React.FC = () => {
       subSaveInFlightRef.current = false;
       setSubSaving(false);
     }
-  }, [subOutPlayerId, subInPlayerId, persistSubstitution, queueRealtimeReload, rosterById, showSubstitutionToast]);
+  }, [
+    subOutPlayerId,
+    subInPlayerId,
+    fairPlayExtraPlayerId,
+    persistSubstitution,
+    runPersistFairPlayExtraOff,
+    closeWechselSheet,
+    queueRealtimeReload,
+    rosterById,
+    showSubstitutionToast,
+  ]);
 
   useEffect(() => {
     if (subSheetView === 'list') {
@@ -4451,7 +4506,7 @@ export const LiveMatchScreen: React.FC = () => {
               ) : canRenderLivePitch ? (
                 <>
                   <div className="mx-auto mb-0 w-full max-w-md overflow-visible px-0.5 pb-1">
-                  <div className="-translate-y-[3px]">
+                  <div className="-translate-y-[3px] relative">
                   <LineupFormationPitch
                   formationId={safeFormationId}
                   slots={safeLineupSlots as Record<FieldSlotId, string | null>}
@@ -4533,48 +4588,49 @@ export const LiveMatchScreen: React.FC = () => {
                     );
                   }}
                 />
-                  </div>
-                  </div>
                 {fairPlayExtraPlayerId ? (
-                  <div className="flex shrink-0 items-center justify-center gap-2 px-1 py-0">
-                    <span className="text-[11px] font-black uppercase tracking-[0.12em] text-amber-200/85">
+                  <div className="pointer-events-none absolute bottom-0 left-1/2 z-[4] flex -translate-x-1/2 translate-y-[18%] flex-col items-center">
+                    <span className="mb-0.5 rounded-full border border-amber-300/70 bg-amber-500/25 px-1.5 py-px text-[8px] font-black uppercase tracking-[0.1em] text-amber-100 shadow-sm">
                       FairPlay +1
                     </span>
-                    <div className="relative flex items-center gap-1.5">
-                      <span
-                        className="absolute -right-1 -top-1 z-[2] rounded-full border border-amber-300/90 bg-amber-400 px-0.5 text-[11px] font-black leading-none text-black"
-                        aria-label="Zusatzspieler"
-                      >
-                        +1
-                      </span>
-                      {(() => {
-                        const pid = fairPlayExtraPlayerId.trim();
-                        const player = rosterById.get(pid) ?? null;
-                        const rawName = (player?.displayName ?? player?.name ?? '').trim() || 'Spieler';
-                        const shortName = mobileLineupName(rawName);
-                        return (
-                          <>
-                            <LeibchenJersey
-                              lastName={shortName === '—' || !shortName ? 'Spieler' : shortName}
-                              number={player?.number ?? '–'}
-                              position="FP"
-                              variant="field"
-                              size="compact"
-                              pitchStyleBack
-                              className="!h-[2.5rem] !w-[2rem] ring-1 ring-amber-400/45"
-                            />
-                            <div className="min-w-0 text-left">
-                              <p className={`max-w-[5.5rem] ${dsPlayerNameClass()}`}>{rawName}</p>
-                              <p className="font-mono text-[11px] font-bold tabular-nums text-amber-200/90">
-                                {formatClock(playtimes[pid] ?? 0)}
-                              </p>
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
+                    {(() => {
+                      const pid = fairPlayExtraPlayerId.trim();
+                      const player = rosterById.get(pid) ?? null;
+                      const rawName = (player?.displayName ?? player?.name ?? '').trim() || 'Spieler';
+                      const shortName = mobileLineupName(rawName);
+                      return (
+                        <div className="relative flex flex-col items-center">
+                          <span
+                            className="absolute -right-1 -top-1 z-[2] rounded-full border border-amber-300/90 bg-amber-400 px-0.5 text-[10px] font-black leading-none text-black"
+                            aria-hidden
+                          >
+                            +1
+                          </span>
+                          <LeibchenJersey
+                            lastName={shortName === '—' || !shortName ? 'Spieler' : shortName}
+                            number={player?.number ?? '–'}
+                            position="FP"
+                            variant="field"
+                            size="compact"
+                            pitchStyleBack
+                            className="!h-[2.65rem] !w-[2.1rem] ring-2 ring-amber-400/55 shadow-[0_0_16px_rgba(251,191,36,0.35)]"
+                          />
+                          <span
+                            className="mt-0.5 max-w-[5.5rem] truncate rounded-full border border-amber-400/35 bg-black/88 px-1.5 py-px text-center text-[10px] font-semibold text-amber-50"
+                            title={rawName}
+                          >
+                            {shortName}
+                          </span>
+                          <p className="font-mono text-[10px] font-bold tabular-nums text-amber-200/90">
+                            {formatClock(playtimes[pid] ?? 0)}
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : null}
+                  </div>
+                  </div>
                 </>
               ) : (
                 <p className="rounded-xl border border-white/10 bg-black/25 px-3 py-4 text-sm text-white/55">
@@ -5240,24 +5296,28 @@ export const LiveMatchScreen: React.FC = () => {
                       >
                         <div className="flex flex-col gap-1">
                           {substitutionFieldRows.map((row) => {
+                            const isFairPlayExtra = Boolean(row.isFairPlayExtra);
                             const slot = row?.slot;
-                            const pid =
-                              slot && lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object'
+                            const pid = isFairPlayExtra
+                              ? String(row.id ?? '').trim()
+                              : slot && lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object'
                                 ? String(lineupSlotsForDisplay[slot] ?? '').trim()
                                 : '';
                             if (!pid) return null;
                             const rosterP = rosterById.get(pid) ?? null;
                             const name = String(row?.display_name ?? rosterP?.name ?? 'Spieler').trim() || 'Spieler';
                             const jerseyName = mobileLineupName(name);
-                            const slotBadge = String(row?.rightLabel ?? '–').trim() || '—';
-                            const posLabel = getPositionLabel(row.position) || slotBadge;
+                            const slotBadge = isFairPlayExtra
+                              ? 'FairPlay +1'
+                              : String(row?.rightLabel ?? '–').trim() || '—';
+                            const posLabel = isFairPlayExtra ? 'FP' : getPositionLabel(row.position) || slotBadge;
                             const num = rosterP?.number ?? row?.jersey_number ?? null;
                             const selected = subOutPlayerId === pid;
                             const recOut = Boolean(subRecommendedOutId && subRecommendedOutId === pid && !selected);
-                            const isGk = posLabel === 'TW' || slotBadge === 'TW';
+                            const isGk = !isFairPlayExtra && (posLabel === 'TW' || slotBadge === 'TW');
                             return (
                               <button
-                                key={`sub-out-${slot}-${pid}`}
+                                key={isFairPlayExtra ? `sub-out-fairplay-${pid}` : `sub-out-${slot}-${pid}`}
                                 type="button"
                                 onClick={() => setSubOutPlayerId(pid)}
                                 className={dsWechselPickRowClass({
@@ -5274,12 +5334,22 @@ export const LiveMatchScreen: React.FC = () => {
                                     variant={isGk ? 'goalkeeper' : 'field'}
                                     size="compact"
                                     pitchStyleBack
-                                    className="!h-[2.9rem] !w-[2.28rem] sm:!h-[3.1rem] sm:!w-[2.55rem]"
+                                    className={[
+                                      '!h-[2.9rem] !w-[2.28rem] sm:!h-[3.1rem] sm:!w-[2.55rem]',
+                                      isFairPlayExtra ? 'ring-1 ring-amber-400/55' : '',
+                                    ].join(' ')}
                                   />
                                 </div>
                                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 pr-1">
                                   <p className={dsPlayerNameClass()}>{name}</p>
-                                  <span className="inline-flex w-fit rounded-md border border-transparent bg-[rgba(120,18,28,0.26)] px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-[#FF8D98]">
+                                  <span
+                                    className={[
+                                      'inline-flex w-fit rounded-md border border-transparent px-1.5 py-px text-[8px] font-bold uppercase tracking-wide',
+                                      isFairPlayExtra
+                                        ? 'bg-amber-500/20 text-amber-100'
+                                        : 'bg-[rgba(120,18,28,0.26)] text-[#FF8D98]',
+                                    ].join(' ')}
+                                  >
                                     {slotBadge}
                                   </span>
                                 </div>
@@ -5419,6 +5489,49 @@ export const LiveMatchScreen: React.FC = () => {
                           className="min-h-[11rem] max-h-[min(46dvh,28rem)] w-full sm:max-h-[min(48dvh,30rem)]"
                         />
                   </div>
+                  {fairPlayExtraPlayerId ? (
+                    <div className="mx-auto mt-1 flex w-full max-w-md justify-center px-0.5">
+                      {(() => {
+                        const pid = fairPlayExtraPlayerId.trim();
+                        const player = rosterById.get(pid) ?? null;
+                        const rawName = (player?.displayName ?? player?.name ?? '').trim() || 'Spieler';
+                        const shortName = mobileLineupName(rawName);
+                        const selected = String(subOutPlayerId ?? '').trim() === pid;
+                        const recOut =
+                          Boolean(subRecommendedOutId) &&
+                          String(subRecommendedOutId ?? '').trim() === pid &&
+                          !selected;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => setSubOutPlayerId(pid)}
+                            className={[
+                              'flex min-w-[9.5rem] flex-col items-center rounded-xl border bg-black/45 px-2 py-1.5 transition-all active:scale-[0.98]',
+                              selected
+                                ? 'border-red-500 shadow-[0_0_18px_rgba(239,68,68,0.45)] ring-2 ring-red-500/65'
+                                : recOut
+                                  ? 'border-amber-400/55 shadow-[0_0_12px_rgba(251,191,36,0.28)] ring-1 ring-amber-400/45'
+                                  : 'border-amber-400/35 hover:border-amber-300/55',
+                            ].join(' ')}
+                          >
+                            <span className="mb-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-amber-200/90">
+                              FairPlay +1 · Raus
+                            </span>
+                            <LeibchenJersey
+                              lastName={shortName}
+                              number={player?.number ?? '–'}
+                              position="FP"
+                              variant="field"
+                              size="compact"
+                              pitchStyleBack
+                              className="!h-[3rem] !w-[2.35rem] ring-1 ring-amber-400/55"
+                            />
+                            <span className="mt-0.5 truncate text-[10px] font-semibold text-white">{shortName}</span>
+                          </button>
+                        );
+                      })()}
+                    </div>
+                  ) : null}
                   <section
                     className="border-t border-white/[0.08] pt-1 transition-opacity duration-200"
                     style={{ paddingBottom: WECHSEL_PITCH_TAB_SCROLL_BOTTOM_PAD }}
@@ -5502,15 +5615,18 @@ export const LiveMatchScreen: React.FC = () => {
                     subSaving ||
                     posSwapSaving ||
                     !String(subOutPlayerId ?? '').trim() ||
-                    !String(subInPlayerId ?? '').trim() ||
-                    String(subOutPlayerId ?? '').trim() === String(subInPlayerId ?? '').trim()
+                    (!fairPlaySubOutOnly &&
+                      (!String(subInPlayerId ?? '').trim() ||
+                        String(subOutPlayerId ?? '').trim() === String(subInPlayerId ?? '').trim()))
                   }
                   onClick={() => void confirmSubstitution()}
                   className={`flex min-h-[48px] flex-1 items-center justify-center px-1 text-[11px] font-bold ${dsPrimaryCtaClass()}`}
                 >
                   {subSaving
                     ? '…'
-                    : wechselSheetPickLabels.outLabel && wechselSheetPickLabels.inLabel
+                    : fairPlaySubOutOnly
+                      ? 'FairPlay beenden'
+                      : wechselSheetPickLabels.outLabel && wechselSheetPickLabels.inLabel
                       ? (() => {
                           const s = `${wechselSheetPickLabels.outLabel} → ${wechselSheetPickLabels.inLabel}`;
                           return s.length <= 30 ? s : 'Wechsel bestätigen';
@@ -5787,7 +5903,7 @@ export const LiveMatchScreen: React.FC = () => {
                           <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">
                             {p.name}
                             {isExtra ? (
-                              <span className="ml-1 text-[10px] font-semibold text-amber-300/90">Zusatz</span>
+                              <span className="ml-1 text-[10px] font-semibold text-amber-300/90">FairPlay +1</span>
                             ) : null}
                           </span>
                         </button>
