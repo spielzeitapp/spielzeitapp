@@ -574,8 +574,8 @@ export async function upsertMatchForSetup(params: {
 }
 
 /**
- * Nur Match-Kader (Bank) speichern — ohne `match_lineup` anzutasten.
- * Bank-Zeilen = Kader minus aktuelle Startelf aus `match_lineup`.
+ * Match-Kader speichern. Startelf-Slots bleiben nur für Spieler im Kader belegt;
+ * entfernte Spieler werden aus Aufstellung und Bank entfernt.
  */
 export async function saveMatchSquadOnly(
   matchId: string,
@@ -585,29 +585,23 @@ export async function saveMatchSquadOnly(
 
   const { data: lineupRows, error: lineupErr } = await supabase
     .from('match_lineup')
-    .select('player_id')
+    .select('slot, player_id')
     .eq('match_id', matchId);
 
   if (lineupErr) return { error: lineupErr.message };
 
-  const starterIds = new Set(
-    (lineupRows ?? [])
-      .map((r: { player_id: string | null }) => r.player_id)
-      .filter((id): id is string => typeof id === 'string' && id.length > 0),
-  );
-
-  const benchIds = uniqueSquad.filter((id) => !starterIds.has(id));
-
-  const delBench = await supabase.from('match_bench').delete().eq('match_id', matchId);
-  if (delBench.error) return { error: delBench.error.message };
-
-  if (benchIds.length > 0) {
-    const benchRows = benchIds.map((player_id) => ({ match_id: matchId, player_id }));
-    const insBench = await supabase.from('match_bench').insert(benchRows);
-    if (insBench.error) return { error: insBench.error.message };
+  const squadSet = new Set(uniqueSquad);
+  const bySlot: Partial<Record<FieldSlotId, string>> = {};
+  for (const row of (lineupRows ?? []) as { slot?: string | null; player_id?: string | null }[]) {
+    const slotRaw = String(row.slot ?? '').trim().toUpperCase();
+    const slot = slotRaw as FieldSlotId;
+    const pid = String(row.player_id ?? '').trim();
+    if (!pid || LIVE_FIELD_SLOT_ORDER.indexOf(slot) === -1) continue;
+    if (squadSet.has(pid)) bySlot[slot] = pid;
   }
 
-  return { error: null };
+  const startingPlayerIds = LIVE_FIELD_SLOT_ORDER.map((s) => bySlot[s] ?? '');
+  return replaceMatchLineupAndBench(matchId, startingPlayerIds, uniqueSquad);
 }
 
 /** Lineup + Bank komplett ersetzen (7 Slots + bench). */

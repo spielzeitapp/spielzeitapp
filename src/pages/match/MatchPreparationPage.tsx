@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePlayers } from '../../hooks/usePlayers';
 import { comparePlayerItems } from '../../lib/rosterPlayer';
 import { saveMatchSquadOnly } from '../../lib/liveMatchService';
+import { isMatchSquadEditable } from '../../lib/matchPreparationAccess';
 import { MinimumPlaytimeMatchSettings } from '../../components/live/MinimumPlaytimeMatchSettings';
 import { MatchdayFeedAutomationSettings } from '../../components/match/MatchdayFeedAutomationSettings';
 import {
@@ -22,6 +23,7 @@ import {
   dsPageSubtitleClass,
   dsPageTitleClass,
   dsPrimaryCtaClass,
+  dsSecondaryCtaClass,
   dsSectionLabelClass,
   dsStatusChipClass,
   dsStickyCtaBarClass,
@@ -34,6 +36,8 @@ type MatchRowLite = {
   id: string;
   team_season_id: string;
   opponent: string | null;
+  status: string | null;
+  live_started_at: string | null;
   minimum_playtime_enabled: boolean | null;
   minimum_playtime_minutes: number | null;
   planned_match_minutes: number | null;
@@ -68,6 +72,11 @@ export const MatchPreparationPage: React.FC = () => {
   const [persisting, setPersisting] = useState(false);
   const [persistError, setPersistError] = useState<string | null>(null);
   const [attendanceByPlayerId, setAttendanceByPlayerId] = useState<Record<string, 'yes' | 'no'>>({});
+  const [lineupPlayerIds, setLineupPlayerIds] = useState<Set<string>>(() => new Set());
+  const [lineupRemoveConfirm, setLineupRemoveConfirm] = useState<{ playerId: string; name: string } | null>(
+    null,
+  );
+  const [squadSaveBusy, setSquadSaveBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,11 +94,11 @@ export const MatchPreparationPage: React.FC = () => {
         supabase
           .from('matches')
           .select(
-            'id, team_season_id, opponent, minimum_playtime_enabled, minimum_playtime_minutes, planned_match_minutes, auto_matchday_feed_enabled',
+            'id, team_season_id, opponent, status, live_started_at, minimum_playtime_enabled, minimum_playtime_minutes, planned_match_minutes, auto_matchday_feed_enabled',
           )
           .eq('id', matchId)
           .maybeSingle(),
-        supabase.from('match_lineup').select('player_id').eq('match_id', matchId),
+        supabase.from('match_lineup').select('player_id, slot').eq('match_id', matchId),
         supabase.from('match_bench').select('player_id').eq('match_id', matchId),
       ]);
       if (cancelled) return;
@@ -99,8 +108,12 @@ export const MatchPreparationPage: React.FC = () => {
       } else {
         setMatchRow(data as MatchRowLite);
         const restored = new Set<string>();
-        for (const row of (lineupRes.data ?? []) as Array<{ player_id: string | null }>) {
-          if (row.player_id) restored.add(row.player_id);
+        const onLineup = new Set<string>();
+        for (const row of (lineupRes.data ?? []) as Array<{ player_id: string | null; slot?: string | null }>) {
+          if (row.player_id) {
+            restored.add(row.player_id);
+            if (String(row.slot ?? '').trim()) onLineup.add(row.player_id);
+          }
         }
         for (const row of (benchRes.data ?? []) as Array<{ player_id: string | null }>) {
           if (row.player_id) restored.add(row.player_id);
@@ -108,6 +121,7 @@ export const MatchPreparationPage: React.FC = () => {
         const restoredList = [...restored];
         setRestoredSelectedPlayers(restoredList);
         setSelectedPlayers(restoredList);
+        setLineupPlayerIds(onLineup);
       }
       setMatchLoading(false);
     })();
@@ -180,6 +194,14 @@ export const MatchPreparationPage: React.FC = () => {
 
   const getAttendance = (playerId: string): 'yes' | 'no' | null => attendanceByPlayerId[playerId.toLowerCase()] ?? null;
 
+  const squadEditable = useMemo(
+    () =>
+      matchRow
+        ? isMatchSquadEditable({ status: matchRow.status, live_started_at: matchRow.live_started_at })
+        : true,
+    [matchRow],
+  );
+
   const grouped = useMemo(() => {
     const sorted = [...players].sort(comparePlayerItems);
     const available: typeof sorted = [];
@@ -194,24 +216,34 @@ export const MatchPreparationPage: React.FC = () => {
     return { available, open, absent };
   }, [players, attendanceByPlayerId]);
 
+  const selectedPlayersForSquad = useMemo(
+    () => selectedPlayers.filter((id) => getAttendance(id) !== 'no'),
+    [selectedPlayers, attendanceByPlayerId],
+  );
+  const selectedSet = useMemo(() => new Set(selectedPlayersForSquad), [selectedPlayersForSquad]);
+
   const summary = useMemo(
     () => ({
       yes: grouped.available.length,
       open: grouped.open.length,
       no: grouped.absent.length,
-      selected: selectedPlayers.filter((id) => grouped.available.some((p) => p.id === id)).length,
+      selected: selectedPlayersForSquad.length,
     }),
-    [grouped.available, grouped.open.length, grouped.absent.length, selectedPlayers],
+    [grouped.available.length, grouped.open.length, grouped.absent.length, selectedPlayersForSquad.length],
   );
 
   useEffect(() => {
     if (selectionInitialized) return;
     if (playersLoading || attendanceLoading) return;
     if (players.length === 0) return;
-    const initial = new Set<string>();
-    for (const restoredId of restoredSelectedPlayers) {
-      if (getAttendance(restoredId) === 'yes') initial.add(restoredId);
+
+    if (restoredSelectedPlayers.length > 0) {
+      setSelectedPlayers(restoredSelectedPlayers.filter((id) => getAttendance(id) !== 'no'));
+      setSelectionInitialized(true);
+      return;
     }
+
+    const initial = new Set<string>();
     for (const p of players) {
       if (getAttendance(p.id) === 'yes') initial.add(p.id);
     }
@@ -226,21 +258,63 @@ export const MatchPreparationPage: React.FC = () => {
     attendanceByPlayerId,
   ]);
 
-  const togglePlayer = (playerId: string, status: PrepStatus) => {
-    if (status !== 'available') return;
+  const persistSquadSelection = async (nextSquadIds: string[]): Promise<boolean> => {
+    if (!matchId) return false;
+    setPersistError(null);
+    setSquadSaveBusy(true);
+    const { error } = await saveMatchSquadOnly(matchId, nextSquadIds);
+    setSquadSaveBusy(false);
+    if (error) {
+      setPersistError(error);
+      return false;
+    }
+    setLineupPlayerIds((prev) => {
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (nextSquadIds.includes(id)) next.add(id);
+      }
+      return next;
+    });
+    return true;
+  };
+
+  const applyRemoveFromSquad = (playerId: string) => {
     setSelectionInitialized(true);
-    setSelectedPlayers((prev) => {
-      if (prev.includes(playerId)) return prev.filter((id) => id !== playerId);
-      return [...prev, playerId];
+    setSelectedPlayers((prev) => prev.filter((id) => id !== playerId));
+    setLineupPlayerIds((prev) => {
+      if (!prev.has(playerId)) return prev;
+      const next = new Set(prev);
+      next.delete(playerId);
+      return next;
     });
   };
 
-  const selectablePlayerIds = useMemo(() => new Set(grouped.available.map((p) => p.id)), [grouped.available]);
-  const selectedPlayersAvailableOnly = useMemo(
-    () => selectedPlayers.filter((id) => selectablePlayerIds.has(id)),
-    [selectedPlayers, selectablePlayerIds],
-  );
-  const selectedSet = useMemo(() => new Set(selectedPlayersAvailableOnly), [selectedPlayersAvailableOnly]);
+  const togglePlayer = (playerId: string, status: PrepStatus) => {
+    if (!squadEditable || status === 'absent') return;
+    setSelectionInitialized(true);
+    if (selectedSet.has(playerId)) {
+      if (lineupPlayerIds.has(playerId)) {
+        const p = players.find((x) => x.id === playerId);
+        setLineupRemoveConfirm({
+          playerId,
+          name: premiumPlayerDisplayName(p ?? { display_name: 'Spieler' }),
+        });
+        return;
+      }
+      applyRemoveFromSquad(playerId);
+      return;
+    }
+    setSelectedPlayers((prev) => (prev.includes(playerId) ? prev : [...prev, playerId]));
+  };
+
+  const confirmRemoveFromLineupAndSquad = async () => {
+    if (!lineupRemoveConfirm || !matchId) return;
+    const { playerId } = lineupRemoveConfirm;
+    const nextSquad = selectedPlayersForSquad.filter((id) => id !== playerId);
+    setLineupRemoveConfirm(null);
+    applyRemoveFromSquad(playerId);
+    await persistSquadSelection(nextSquad);
+  };
 
   const renderSection = (title: string, list: typeof players, status: PrepStatus) => (
     <section className={`flex flex-col ${DS_SECTION_GAP}`}>
@@ -249,21 +323,27 @@ export const MatchPreparationPage: React.FC = () => {
       <div className={`flex flex-col ${DS_LIST_GAP}`}>
         {list.map((p) => {
           const selected = selectedSet.has(p.id);
-          const disabled = status !== 'available';
+          const disabled = !squadEditable || status === 'absent';
           return (
-            <div key={p.id} className={disabled ? "opacity-70" : ""}>
+            <div key={p.id} className={disabled ? 'opacity-70' : ''}>
               <MatchPlayerRow
                 player={p}
                 selected={selected}
-                status={status === "available" ? "yes" : status === "absent" ? "no" : "open"}
+                status={status === 'available' ? 'yes' : status === 'absent' ? 'no' : 'open'}
                 rightLabel={
-                  status === "absent"
-                    ? "Abwesend"
-                    : status === "open"
-                      ? "Offen"
-                      : selected
-                        ? "✓ Im Kader"
-                        : "Auswählen"
+                  status === 'absent'
+                    ? 'Abwesend'
+                    : !squadEditable
+                      ? selected
+                        ? '✓ Im Kader'
+                        : '—'
+                      : status === 'open'
+                        ? selected
+                          ? '✓ Im Kader'
+                          : 'Hinzufügen'
+                        : selected
+                          ? '✓ Im Kader'
+                          : 'Auswählen'
                 }
                 onClick={disabled ? undefined : () => togglePlayer(p.id, status)}
               />
@@ -290,17 +370,14 @@ export const MatchPreparationPage: React.FC = () => {
   }
 
   const onContinueToLineup = async () => {
-    if (!matchId || selectedPlayersAvailableOnly.length === 0 || persisting) return;
+    if (!matchId || selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy) return;
     setPersistError(null);
     setPersisting(true);
-    const { error } = await saveMatchSquadOnly(matchId, selectedPlayersAvailableOnly);
+    const ok = await persistSquadSelection(selectedPlayersForSquad);
     setPersisting(false);
-    if (error) {
-      setPersistError(error);
-      return;
-    }
+    if (!ok) return;
     navigate(`/app/match-lineup?matchId=${encodeURIComponent(matchId)}`, {
-      state: { selectedPlayers: selectedPlayersAvailableOnly },
+      state: { selectedPlayers: selectedPlayersForSquad },
     });
   };
 
@@ -329,6 +406,11 @@ export const MatchPreparationPage: React.FC = () => {
       <main className={dsPageContentClass(`mx-auto max-w-xl flex flex-col ${DS_SECTION_GAP} px-4 py-5 pb-48`)}>
         {(playersLoading || attendanceLoading) ? <p className="text-sm text-white/55">Lade Spieler und Status…</p> : null}
         {(playersError || attendanceError) ? <p className="text-sm text-red-400">{playersError ?? attendanceError}</p> : null}
+        {!squadEditable ? (
+          <p className="rounded-xl border border-amber-500/25 bg-amber-950/20 px-3 py-2 text-xs text-amber-100/90">
+            Kader ist gesperrt — Änderungen nur noch über Live-Wechsel.
+          </p>
+        ) : null}
         <div className="flex flex-wrap gap-1.5">
           {(
             [
@@ -382,12 +464,12 @@ export const MatchPreparationPage: React.FC = () => {
         ) : null}
 
         <section className={`flex flex-col ${DS_SECTION_GAP}`}>
-          <h2 className={dsSectionLabelClass()}>Matchkader: {selectedPlayersAvailableOnly.length} Spieler</h2>
-          {selectedPlayersAvailableOnly.length === 0 ? (
+          <h2 className={dsSectionLabelClass()}>Matchkader: {selectedPlayersForSquad.length} Spieler</h2>
+          {selectedPlayersForSquad.length === 0 ? (
             <p className="text-xs text-white/45">Noch keine Spieler ausgewählt.</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
-              {selectedPlayersAvailableOnly.map((id) => {
+              {selectedPlayersForSquad.map((id) => {
                 const p = players.find((x) => x.id === id);
                 return (
                   <span
@@ -412,19 +494,55 @@ export const MatchPreparationPage: React.FC = () => {
       >
         <div className="mx-auto flex max-w-xl items-center justify-between gap-3">
           <span className="text-[11px] font-medium text-white/45">
-            Ausgewählt: {selectedPlayersAvailableOnly.length}
+            Ausgewählt: {selectedPlayersForSquad.length}
           </span>
           <button
             type="button"
-            disabled={selectedPlayersAvailableOnly.length === 0 || persisting}
+            disabled={selectedPlayersForSquad.length === 0 || persisting || squadSaveBusy || !squadEditable}
             onClick={() => void onContinueToLineup()}
             className={dsPrimaryCtaClass()}
           >
-            {persisting ? 'Speichern…' : 'Weiter zur Aufstellung'}
+            {persisting || squadSaveBusy ? 'Speichern…' : 'Weiter zur Aufstellung'}
           </button>
         </div>
         {persistError ? <p className="mx-auto mt-1 max-w-xl text-xs text-red-400">{persistError}</p> : null}
       </div>
+
+      {lineupRemoveConfirm ? (
+        <div
+          className="fixed inset-0 z-[100] flex min-h-dvh items-center justify-center bg-black/85 px-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="lineup-remove-confirm-title"
+        >
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[rgba(18,18,22,0.96)] p-4 shadow-xl">
+            <h2 id="lineup-remove-confirm-title" className="text-base font-bold text-white">
+              Spieler entfernen
+            </h2>
+            <p className="mt-2 text-sm leading-snug text-white/70">
+              Dieser Spieler befindet sich in der Aufstellung. Aus Kader entfernen?
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                disabled={squadSaveBusy}
+                onClick={() => setLineupRemoveConfirm(null)}
+                className={`flex-1 min-h-11 ${dsSecondaryCtaClass()}`}
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                disabled={squadSaveBusy}
+                onClick={() => void confirmRemoveFromLineupAndSquad()}
+                className={`flex-1 min-h-11 ${dsPrimaryCtaClass()}`}
+              >
+                {squadSaveBusy ? 'Entfernen…' : 'Entfernen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
