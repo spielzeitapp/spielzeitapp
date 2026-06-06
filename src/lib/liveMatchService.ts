@@ -11,6 +11,10 @@ import {
   replaySubstitutionEventsOnSlots,
   resolveReplayAtMatchSecond,
   dedupeFieldSlotMap,
+  fairPlayExtraPlayerIdFromOffEvent,
+  fairPlayExtraPlayerIdFromSortedEvents,
+  fairPlayRemovedPlayerIdFromEvent,
+  sortMatchEventsChronologically,
   startingLineupToSlotMap,
   swapTwoOccupiedFieldSlots,
   type MatchEngineEvent,
@@ -750,7 +754,7 @@ export async function persistPositionSwap(params: {
 }
 
 /**
- * FairPlay-Zusatzspieler: Event + Spieler von `match_bench` entfernen (kein Wechsel / kein persistSubstitution).
+ * FairPlay-Zusatzspieler: nur Event persistieren (Bank bleibt in DB — Replay filtert Extra aus benchPlayerIds).
  */
 export async function persistExtraPlayerOn(params: {
   matchId: string;
@@ -772,11 +776,6 @@ export async function persistExtraPlayerOn(params: {
   );
   const { id, error } = await saveMatchEvent(payload);
   if (error || !id) return { error: error ?? 'Ereignis konnte nicht gespeichert werden.', eventId: null };
-  const { error: benchErr } = await supabase.from('match_bench').delete().eq('match_id', mid).eq('player_id', pid);
-  if (benchErr) {
-    console.error('[liveMatchService] persistExtraPlayerOn match_bench delete', benchErr);
-    return { error: benchErr.message, eventId: id };
-  }
   return { error: null, eventId: id };
 }
 
@@ -813,10 +812,22 @@ export async function persistExtraPlayerOff(params: {
   if (error || !id) return { error: error ?? 'Ereignis konnte nicht gespeichert werden.', eventId: null };
 
   if (removedId === extraId) {
-    const { error: benchErr } = await supabase.from('match_bench').insert({ match_id: mid, player_id: extraId });
-    if (benchErr) {
-      console.error('[liveMatchService] persistExtraPlayerOff match_bench insert', benchErr);
-      return { error: benchErr.message, eventId: id };
+    const { data: benchRow, error: benchSelErr } = await supabase
+      .from('match_bench')
+      .select('player_id')
+      .eq('match_id', mid)
+      .eq('player_id', extraId)
+      .maybeSingle();
+    if (benchSelErr) {
+      console.error('[liveMatchService] persistExtraPlayerOff match_bench select', benchSelErr);
+      return { error: benchSelErr.message, eventId: id };
+    }
+    if (!benchRow) {
+      const { error: benchErr } = await supabase.from('match_bench').insert({ match_id: mid, player_id: extraId });
+      if (benchErr) {
+        console.error('[liveMatchService] persistExtraPlayerOff match_bench insert', benchErr);
+        return { error: benchErr.message, eventId: id };
+      }
     }
     return { error: null, eventId: id };
   }
@@ -886,6 +897,37 @@ function collectSquadUnionFromRaw(lineupRows: RawLineupRow[], benchRows: RawBenc
     if (p) s.add(p);
   }
   return [...s];
+}
+
+/** Vollständiger Match-Kader ohne Shrink: DB ∪ Kickoff ∪ Event-Teilnehmer. */
+export function collectMatchSquadPlayerIdsUnion(params: {
+  lineupRows?: RawLineupRow[];
+  benchRows?: RawBenchRow[];
+  kickoffStartingPlayerIds?: string[];
+  events?: MatchEngineEvent[];
+  seedIds?: string[];
+}): string[] {
+  const ids = new Set<string>();
+  const add = (raw: string | null | undefined) => {
+    const id = normLineupPid(raw);
+    if (id) ids.add(id);
+  };
+
+  for (const row of params.lineupRows ?? []) add(row.player_id);
+  for (const row of params.benchRows ?? []) add(row.player_id);
+  for (const id of params.kickoffStartingPlayerIds ?? []) add(id);
+  for (const id of params.seedIds ?? []) add(id);
+
+  for (const e of params.events ?? []) {
+    add(e.playerId);
+    add(e.swapWithPlayerId);
+    if (e.type === 'extra_player_off') {
+      add(fairPlayRemovedPlayerIdFromEvent(e));
+      add(fairPlayExtraPlayerIdFromOffEvent(e));
+    }
+  }
+
+  return [...ids];
 }
 
 /**
@@ -1061,13 +1103,11 @@ export async function syncFinalLineupBenchFromEventReplay(params: {
 
   const startingPlayerIds = fieldSlotMapToStartingIds(replay.slots);
   const fieldIds = getOnFieldIdsInSlotOrder(replay.slots);
-  const squadPlayerIds = [
-    ...new Set(
-      [...params.squadPlayerIds, ...kickoffBase, ...fieldIds]
-        .map((id) => String(id ?? '').trim())
-        .filter(Boolean),
-    ),
-  ];
+  const squadPlayerIds = collectMatchSquadPlayerIdsUnion({
+    kickoffStartingPlayerIds: [...params.kickoffStartingPlayerIds, ...kickoffBase],
+    events: params.events,
+    seedIds: [...params.squadPlayerIds, ...fieldIds],
+  });
 
   const { error } = await replaceMatchLineupAndBench(mid, startingPlayerIds, squadPlayerIds);
   return {
@@ -1103,9 +1143,30 @@ export async function repairLiveMatchLineupBenchIfNeeded(matchId: string): Promi
   const events = evRes.data ?? [];
   const elapsed = Number((matchRes.data as { live_elapsed_seconds?: number | null } | null)?.live_elapsed_seconds ?? 0);
 
+  const squadUnion = collectMatchSquadPlayerIdsUnion({
+    lineupRows,
+    benchRows,
+    kickoffStartingPlayerIds: kickoff ?? [],
+    events,
+  });
+
   if (hasKickoff && events.length > 0 && (matchStatus === 'finished' || matchStatus === 'live')) {
     const atSec = resolveReplayAtMatchSecond(events, elapsed);
-    const squadUnion = computeRepairedLiveLineupFromRaw(lineupRows, benchRows).squadPlayerIds;
+    const eventsAsc = sortMatchEventsChronologically(events);
+    const activeFairPlayExtra = fairPlayExtraPlayerIdFromSortedEvents(
+      eventsAsc.filter((e) => (e.timestamp ?? 0) <= atSec),
+    );
+
+    if (activeFairPlayExtra) {
+      if (!liveLineupRawDiffersFromRepaired(lineupRows, benchRows)) {
+        return { inconsistent: false, repaired: false, error: null };
+      }
+      const { startingPlayerIds } = computeRepairedLiveLineupFromRaw(lineupRows, benchRows);
+      const { error } = await replaceMatchLineupAndBench(mid, startingPlayerIds, squadUnion);
+      if (error) return { inconsistent: true, repaired: false, error };
+      return { inconsistent: true, repaired: true, error: null };
+    }
+
     const replayTarget = await syncFinalLineupBenchFromEventReplay({
       matchId: mid,
       kickoffStartingPlayerIds: kickoff!,
@@ -1127,8 +1188,8 @@ export async function repairLiveMatchLineupBenchIfNeeded(matchId: string): Promi
     return { inconsistent: false, repaired: false, error: null };
   }
 
-  const { startingPlayerIds, squadPlayerIds } = computeRepairedLiveLineupFromRaw(lineupRows, benchRows);
-  const { error } = await replaceMatchLineupAndBench(mid, startingPlayerIds, squadPlayerIds);
+  const { startingPlayerIds } = computeRepairedLiveLineupFromRaw(lineupRows, benchRows);
+  const { error } = await replaceMatchLineupAndBench(mid, startingPlayerIds, squadUnion);
   if (error) return { inconsistent: true, repaired: false, error };
   return { inconsistent: true, repaired: true, error: null };
 }

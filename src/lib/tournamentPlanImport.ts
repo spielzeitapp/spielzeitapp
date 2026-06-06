@@ -344,6 +344,42 @@ function describeFetchFailure(err: unknown): string {
   return captureMeinTurnierplanFetchException(err).errorDetail;
 }
 
+/** Client → `/api/tournament-plan/analyze` (`url` immer über URLSearchParams encoded). */
+export function buildTournamentPlanAnalyzeRequestUrl(
+  tournamentUrl: string,
+  options?: { forceHtmlFallback?: boolean },
+): string {
+  const trimmed = tournamentUrl.trim();
+  const params = new URLSearchParams();
+  params.set('url', trimmed);
+  if (options?.forceHtmlFallback) {
+    params.set('forceHtmlFallback', '1');
+  }
+  const relativePath = `/api/tournament-plan/analyze?${params.toString()}`;
+  if (typeof window === 'undefined') return relativePath;
+  try {
+    return new URL(relativePath, window.location.href).href;
+  } catch (err) {
+    console.warn('[HTML FALLBACK URL] absolute URL build failed, using relative path', {
+      relativePath,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return relativePath;
+  }
+}
+
+function logHtmlFallbackFetchError(context: string, err: unknown): void {
+  if (err instanceof Error) {
+    console.error(`[HTML FALLBACK FETCH ERROR] ${context}`, {
+      name: err.name,
+      message: err.message,
+      stack: err.stack,
+    });
+    return;
+  }
+  console.error(`[HTML FALLBACK FETCH ERROR] ${context}`, { value: String(err) });
+}
+
 export function formatEndpointAttemptSummary(attempt: TournamentPlanEndpointAttempt): string {
   if (attempt.networkError) {
     const parts = [attempt.errorDetail ?? 'Network'];
@@ -1722,10 +1758,13 @@ async function tryServerHtmlTournamentPlanFallback(
   browserFallbackError: string | null,
 ): Promise<AnalyzeTournamentUrlResult> {
   analyzeTrace('[ANALYZE] START SERVER HTML FALLBACK', { url: trimmed });
-  const params = new URLSearchParams({ url: trimmed, forceHtmlFallback: '1' });
+  const requestUrl = buildTournamentPlanAnalyzeRequestUrl(trimmed, { forceHtmlFallback: true });
+  console.log('[HTML FALLBACK URL]', requestUrl);
+  console.log('HTML Fallback Request URL:', requestUrl);
 
   try {
-    const res = await fetch(`/api/tournament-plan/analyze?${params.toString()}`);
+    const res = await fetch(requestUrl);
+    console.log('HTML Fallback Response Status:', res.status);
     const body = (await res.json()) as {
       ok?: boolean;
       analysis?: TournamentPlanAnalysis;
@@ -1809,8 +1848,13 @@ async function tryServerHtmlTournamentPlanFallback(
     const merged = mergeTournamentImportFailures(serverFailure, htmlFailure, browserFallbackError);
     return { ok: false, error: merged.message, failure: merged };
   } catch (err) {
-    const apiErr = describeFetchFailure(err);
-    analyzeTrace('[ANALYZE] SERVER HTML FALLBACK UNREACHABLE', { error: apiErr });
+    logHtmlFallbackFetchError('tryServerHtmlTournamentPlanFallback', err);
+    const captured = captureMeinTurnierplanFetchException(err);
+    const apiErr = captured.exceptionMessage || captured.errorDetail;
+    analyzeTrace('[ANALYZE] SERVER HTML FALLBACK UNREACHABLE', {
+      error: apiErr,
+      exceptionName: captured.exceptionName,
+    });
     const htmlFailure: TournamentPlanAnalyzeFailure = {
       ...browserFailure,
       diagnostics: {
@@ -1820,6 +1864,7 @@ async function tryServerHtmlTournamentPlanFallback(
         htmlFallbackAttempted: true,
         htmlFallbackSuccessful: false,
         htmlFallbackError: `Server HTML-Fallback nicht erreichbar: ${apiErr}`,
+        htmlFallbackException: captureMeinTurnierplanHtmlFallbackException(err),
         fallbackStage: 'html',
         source: 'html_fallback',
       },
@@ -1896,11 +1941,14 @@ export async function analyzeTournamentUrl(
     return { ok: false, error: failure.message, failure };
   }
 
-  const params = new URLSearchParams({ url: trimmed });
   let serverFailure: TournamentPlanAnalyzeFailure | null = null;
 
+  const requestUrl = buildTournamentPlanAnalyzeRequestUrl(trimmed);
+  console.log('[HTML FALLBACK URL]', requestUrl);
+
   try {
-    const res = await fetch(`/api/tournament-plan/analyze?${params.toString()}`);
+    const res = await fetch(requestUrl);
+    console.log('HTML Fallback Response Status:', res.status);
     const body = (await res.json()) as {
       ok?: boolean;
       analysis?: TournamentPlanAnalysis;
