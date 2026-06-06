@@ -8,14 +8,15 @@ import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
-import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { FeedClubName } from './FeedClubName';
 import {
+  FEED_ACTIONS_ROW_CLASS,
   FEED_POST_BODY_CLASS,
-  FEED_POST_HEADER_CLASS,
-  FEED_TIMESTAMP_CLASS,
+  FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
+  FeedPostHeader,
+  FeedPostTypeBadge,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
@@ -156,24 +157,19 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
           'inset 0 0 48px rgba(80,10,10,0.08), 0 12px 28px rgba(0,0,0,0.45), 0 0 0 1px rgba(220,38,38,0.08)',
       }}
     >
-      <header className={`${FEED_POST_HEADER_CLASS} bg-black/25`}>
-        <div className="min-w-0 flex-1">
-          <FeedCardHeaderBrand teamLabel={teamLabel} />
-          <p className={FEED_TIMESTAMP_CLASS}>{whenLabel}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {staffCanDelete && onFeedPostDeleted ? (
+      <FeedPostHeader
+        teamLabel={teamLabel}
+        whenLabel={whenLabel}
+        headerClassName="bg-black/25"
+        actions={
+          staffCanDelete && onFeedPostDeleted ? (
             <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
-          ) : null}
-          <span className="shrink-0 rounded-full border border-red-500/30 bg-red-950/55 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-red-100">
-            Ankündigung
-          </span>
-        </div>
-      </header>
+          ) : null
+        }
+      />
+      <FeedPostTypeBadge>Ankündigung</FeedPostTypeBadge>
 
-      <div className={`${FEED_POST_BODY_CLASS} space-y-3 pb-3`}>
-        {post.caption?.trim() ? <FeedCaption text={post.caption} /> : null}
-
+      <div className={`${FEED_POST_BODY_CLASS} pb-3`}>
         <div
           className="relative overflow-hidden rounded-xl border border-red-600/28 px-2.5 py-2.5"
           style={{
@@ -244,27 +240,31 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
           </div>
         </div>
 
-        {shareHint ? <p className="text-center text-[12px] text-white/60">{shareHint}</p> : null}
+        {post.caption?.trim() ? (
+          <div className={FEED_POST_CAPTION_AFTER_MEDIA_CLASS}>
+            <FeedCaption text={post.caption} />
+          </div>
+        ) : null}
 
-        <div className="flex items-center justify-between gap-1 border-t border-white/[0.06] pt-2.5">
+        {shareHint ? <p className="mt-2 text-center text-[12px] text-white/60">{shareHint}</p> : null}
+
+        <div className={`${FEED_ACTIONS_ROW_CLASS} mx-0 justify-center gap-6 border-t-0 pt-1`}>
           <button
             type="button"
             onClick={onToggleLike}
-            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-colors ${
-              liked ? 'text-red-400' : 'text-white/55 hover:bg-white/[0.04] hover:text-white/88'
-            }`}
+            className={`inline-flex items-center gap-1.5 text-[12px] font-semibold transition ${liked ? 'text-red-300' : 'text-white/55 hover:text-white/80'}`}
             aria-pressed={liked}
           >
-            <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} strokeWidth={2} />
+            <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} aria-hidden />
             Gefällt mir
           </button>
           <button
             type="button"
             onClick={() => void onShare()}
-            className="inline-flex min-h-[40px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold text-white/68 transition-colors hover:bg-white/[0.06] hover:text-white/92"
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/55 transition hover:text-white/80"
             aria-label="Spielankündigung teilen"
           >
-            <Share2 className="h-4 w-4 shrink-0" strokeWidth={2} />
+            <Share2 className="h-4 w-4" aria-hidden />
             Teilen
           </button>
         </div>

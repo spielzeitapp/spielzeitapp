@@ -1,19 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Heart, Maximize, MessageCircle, Pause, Play, Share2, Volume2, VolumeX } from 'lucide-react';
+import { Maximize, Pause, Play, Volume2, VolumeX } from 'lucide-react';
 import type { TeamFeedPostDbRow } from '../../lib/matchdayFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { useFeedMediaSrc } from '../../hooks/useFeedMediaSrc';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
-import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import {
-  FEED_ACTIONS_ROW_CLASS,
   FEED_POST_BODY_CLASS,
-  FEED_POST_HEADER_CLASS,
-  FEED_TIMESTAMP_CLASS,
+  FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
+  FeedPostHeader,
+  FeedPostTypeBadge,
+  FeedStandardActions,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 
@@ -219,20 +218,16 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
           'inset 0 0 70px rgba(120,20,20,0.12), 0 20px 44px rgba(0,0,0,0.58), 0 0 0 1px rgba(220,38,38,0.12), 0 0 36px -8px rgba(220,38,38,0.18)',
       }}
     >
-      <header className={FEED_POST_HEADER_CLASS}>
-        <div className="min-w-0 flex-1">
-          <FeedCardHeaderBrand teamLabel={teamLabel} />
-          <p className={FEED_TIMESTAMP_CLASS}>{whenLabel}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {staffCanDelete && onFeedPostDeleted ? (
+      <FeedPostHeader
+        teamLabel={teamLabel}
+        whenLabel={whenLabel}
+        actions={
+          staffCanDelete && onFeedPostDeleted ? (
             <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
-          ) : null}
-          <span className="shrink-0 rounded-full border border-red-500/35 bg-red-950/55 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/95">
-            Video
-          </span>
-        </div>
-      </header>
+          ) : null
+        }
+      />
+      <FeedPostTypeBadge>Video</FeedPostTypeBadge>
 
       <div className={FEED_POST_BODY_CLASS}>
         <div
@@ -309,38 +304,15 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
           ) : null}
         </div>
 
-        {post.caption?.trim() ? <FeedCaption text={post.caption} /> : null}
+        {post.caption?.trim() ? (
+          <div className={FEED_POST_CAPTION_AFTER_MEDIA_CLASS}>
+            <FeedCaption text={post.caption} />
+          </div>
+        ) : null}
 
-        {shareHint ? <p className="text-center text-[13px] text-white/65">{shareHint}</p> : null}
+        {shareHint ? <p className="mt-2 text-center text-[12px] text-white/65">{shareHint}</p> : null}
 
-        <div className={FEED_ACTIONS_ROW_CLASS} style={{ boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.06)' }}>
-          <button
-            type="button"
-            onClick={onToggleLike}
-            className={`inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-colors ${
-              liked ? 'text-red-400' : 'text-white/55 hover:bg-white/[0.04] hover:text-white/88'
-            }`}
-            aria-pressed={liked}
-          >
-            <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} strokeWidth={2} />
-            Gefällt mir
-          </button>
-          <Link
-            to="/app/nachrichten"
-            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold text-white/68 transition-colors hover:bg-white/[0.06] hover:text-white/92"
-          >
-            <MessageCircle className="h-4 w-4" strokeWidth={2} />
-            Kommentar
-          </Link>
-          <button
-            type="button"
-            onClick={() => void onShare()}
-            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold text-white/68 transition-colors hover:bg-white/[0.06] hover:text-white/92"
-          >
-            <Share2 className="h-4 w-4 shrink-0" strokeWidth={2} />
-            Teilen
-          </button>
-        </div>
+        <FeedStandardActions liked={liked} onToggleLike={onToggleLike} onShare={() => void onShare()} />
       </div>
     </FeedPostArticleShell>
   );

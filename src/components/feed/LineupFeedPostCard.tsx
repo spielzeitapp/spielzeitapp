@@ -12,13 +12,14 @@ import {
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
-import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import {
+  FEED_ACTIONS_ROW_CLASS,
   FEED_POST_BODY_CLASS,
-  FEED_POST_HEADER_CLASS,
-  FEED_TIMESTAMP_CLASS,
+  FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
+  FeedPostHeader,
+  FeedPostTypeBadge,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 
@@ -112,25 +113,24 @@ export const LineupFeedPostCard: React.FC<Props> = ({
           'inset 0 0 52px rgba(80,12,12,0.1), 0 14px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(220,38,38,0.12)',
       }}
     >
-      <header className={`${FEED_POST_HEADER_CLASS} bg-black/30`}>
-        <div className="min-w-0 flex-1">
-          <FeedCardHeaderBrand teamLabel={teamLabel} />
-          <p className={FEED_TIMESTAMP_CLASS}>{whenLabel}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {staffCanDelete && onFeedPostDeleted ? (
+      <FeedPostHeader
+        teamLabel={teamLabel}
+        whenLabel={whenLabel}
+        headerClassName="bg-black/30"
+        actions={
+          staffCanDelete && onFeedPostDeleted ? (
             <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
-          ) : null}
-          <span className="inline-flex items-center gap-1 rounded-full border border-red-500/40 bg-red-950/70 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-red-100 shadow-[0_0_14px_rgba(220,38,38,0.28)]">
-            <ClipboardList className="h-3 w-3 shrink-0 opacity-90" aria-hidden />
-            Startaufstellung
-          </span>
-        </div>
-      </header>
+          ) : null
+        }
+      />
+      <FeedPostTypeBadge>
+        <span className="inline-flex items-center gap-1">
+          <ClipboardList className="h-3 w-3 shrink-0 opacity-90" aria-hidden />
+          Spieltag · Aufstellung
+        </span>
+      </FeedPostTypeBadge>
 
-      <div className={`${FEED_POST_BODY_CLASS} space-y-3 pb-3`}>
-        {post.caption?.trim() ? <FeedCaption text={post.caption} /> : null}
-
+      <div className={`${FEED_POST_BODY_CLASS} pb-3`}>
         <div
           className="relative overflow-hidden rounded-xl border border-red-500/30 px-2.5 py-3 sm:px-3 sm:py-3.5"
           style={{
@@ -201,9 +201,15 @@ export const LineupFeedPostCard: React.FC<Props> = ({
           </div>
         </div>
 
-        {shareHint ? <p className="text-center text-[12px] text-white/60">{shareHint}</p> : null}
+        {post.caption?.trim() ? (
+          <div className={FEED_POST_CAPTION_AFTER_MEDIA_CLASS}>
+            <FeedCaption text={post.caption} />
+          </div>
+        ) : null}
 
-        <div className="flex items-center justify-center gap-6 border-t border-white/[0.06] pt-2">
+        {shareHint ? <p className="mt-2 text-center text-[12px] text-white/60">{shareHint}</p> : null}
+
+        <div className={`${FEED_ACTIONS_ROW_CLASS} mx-0 justify-center gap-6 border-t-0 pt-1`}>
           <button
             type="button"
             onClick={onToggleLike}
@@ -211,7 +217,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
             aria-pressed={liked}
           >
             <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} aria-hidden />
-            {liked ? 'Gefällt mir' : 'Gefällt mir'}
+            Gefällt mir
           </button>
           <button
             type="button"

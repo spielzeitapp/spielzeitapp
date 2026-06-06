@@ -1,11 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MessageCircle, Share2 } from 'lucide-react';
 import type { ResultFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
-import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../match/matchCardLabels';
 import { isValidLogoUrl } from '../../utils/logoResolver';
@@ -13,9 +11,11 @@ import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNami
 import { FeedClubName } from './FeedClubName';
 import {
   FEED_CAPTION_FOOTER_CLASS,
-  FEED_TIMESTAMP_CLASS,
   FeedCaption,
   FeedMatchMetaLine,
+  FeedPostHeader,
+  FeedPostTypeBadge,
+  FeedStandardActions,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
@@ -220,24 +220,23 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     >
       {/* feed-result-comments-v1: reserved slot for threaded comments MVP (no UI yet) */}
       <div data-feed-comment-slot="reserved" hidden aria-hidden />
+      <FeedPostHeader
+        teamLabel={teamLabel}
+        whenLabel={whenLabel}
+        headerClassName="bg-black/35"
+        actions={
+          staffCanDelete && onFeedPostDeleted ? (
+            <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
+          ) : null
+        }
+      />
+      <FeedPostTypeBadge>Ergebnis</FeedPostTypeBadge>
       <div className={`relative bg-gradient-to-b ${presentation.shellTint} px-2.5 pb-2 pt-2 sm:px-3`}>
         <div
           className="pointer-events-none absolute inset-0 opacity-90"
           style={{ background: presentation.radial }}
         />
         <div className="pointer-events-none absolute inset-x-0 top-[28%] h-[42%] bg-[radial-gradient(ellipse_70%_80%_at_50%_50%,rgba(255,255,255,0.06),transparent_70%)]" />
-
-        <div className="relative flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <FeedCardHeaderBrand teamLabel={teamLabel} />
-            <p className="mt-0.5 text-[9px] leading-tight text-white/38 sm:text-[10px]">{whenLabel}</p>
-          </div>
-          {staffCanDelete && onFeedPostDeleted ? (
-            <div className="shrink-0">
-              <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
-            </div>
-          ) : null}
-        </div>
 
         <FeedMatchMetaLine line={matchMetaLine} className="relative text-center" />
 
@@ -337,34 +336,12 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
         {shareHint ? <p className="mt-2 text-center text-[12px] text-white/55">{shareHint}</p> : null}
 
-        <div className="mt-3 flex items-center justify-between gap-0.5 px-0.5">
-          <button
-            type="button"
-            onClick={onToggleLike}
-            className={`inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold transition-colors ${
-              liked ? 'text-red-400' : 'text-white/65 hover:bg-white/[0.05] hover:text-white/90'
-            }`}
-            aria-pressed={liked}
-          >
-            <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} strokeWidth={2} />
-            Gefällt mir
-          </button>
-          <Link
-            to="/app/nachrichten"
-            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold text-white/52 transition-colors hover:bg-white/[0.04] hover:text-white/85"
-          >
-            <MessageCircle className="h-4 w-4" strokeWidth={2} />
-            Kommentar
-          </Link>
-          <button
-            type="button"
-            onClick={() => void onShare()}
-            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold text-white/65 transition-colors hover:bg-white/[0.05] hover:text-white/90"
-          >
-            <Share2 className="h-4 w-4 shrink-0" strokeWidth={2} />
-            Teilen
-          </button>
-        </div>
+        <FeedStandardActions
+          liked={liked}
+          onToggleLike={onToggleLike}
+          onShare={() => void onShare()}
+          className="mt-1 border-t-0 pt-0"
+        />
       </div>
     </FeedPostArticleShell>
   );
