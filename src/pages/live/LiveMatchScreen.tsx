@@ -2575,7 +2575,7 @@ export const LiveMatchScreen: React.FC = () => {
     if (matchIsFinished) setPauseConfirmOpen(false);
   }, [matchIsFinished]);
 
-  /** Ende: Uhr stoppen, Match in DB beenden, Endstand aus Toren — ohne Kalender-Termin (kommt bei „Spiel abschließen“). */
+  /** Ende: Uhr stoppen, Match in DB beenden, Endstand aus Toren — Kalender kommt bei „Spiel abschließen“. */
   const persistMatchEndWithoutCalendar = async () => {
     if (!canControlLiveMatch || matchIsFinished || !effectiveMatchId) return;
     const frozen = currentMatchSeconds;
@@ -2651,9 +2651,18 @@ export const LiveMatchScreen: React.FC = () => {
   /** Nachgelagert: verknüpften Kalender-Termin abschließen (events.status). */
   const finalizeCalendarForMatch = async () => {
     if (!effectiveMatchId || calendarFinalized) return;
-    const { error } = await supabase.from('events').update({ status: 'finished' }).eq('match_id', effectiveMatchId);
-    if (error) setSaveError(error.message);
-    else {
+    const { error } = await supabase
+      .from('events')
+      .update({ status: 'finished', updated_at: new Date().toISOString() })
+      .eq('match_id', effectiveMatchId);
+    if (error) {
+      console.warn('[LiveMatch] events.status finalize failed', {
+        matchId: effectiveMatchId,
+        error: error.message,
+      });
+      setSaveError(error.message);
+    } else {
+      console.info('[LiveMatch] events.status finalized', { matchId: effectiveMatchId });
       setCalendarFinalized(true);
       setSpielAbschlussOpen(false);
       navigate('/app');
@@ -3018,12 +3027,15 @@ export const LiveMatchScreen: React.FC = () => {
   const lastHomeGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'home'), [events]);
   const lastAwayGoalEventId = useMemo(() => findLastGoalEventIdForSide(events, 'away'), [events]);
 
+  const matchReviewOpen = matchIsFinished && !calendarFinalized;
+
   const periodDisplayLine = useMemo(() => {
+    if (matchReviewOpen) return 'NACHARBEIT OFFEN';
     if (matchIsFinished) return 'SPIEL BEENDET';
     const lp = matchRow?.live_period;
     if (typeof lp === 'number' && lp >= 1 && lp <= 3) return `${lp}. Drittel`;
     return `${half}. Drittel`;
-  }, [matchIsFinished, matchRow?.live_period, half]);
+  }, [matchIsFinished, matchReviewOpen, matchRow?.live_period, half]);
 
   const positionSwapPrimaryLine = useCallback(
     (ev: MatchEngineEvent): string | null => {
@@ -3829,6 +3841,14 @@ export const LiveMatchScreen: React.FC = () => {
                     {matchIsFinished ? 'Endstand' : hasClockStarted ? 'Live' : 'Bereit'}
                   </div>
                 </div>
+
+                {matchReviewOpen && !spectatorView && canControlLiveMatch ? (
+                  <div className="mt-1.5 flex justify-center px-2" role="status">
+                    <p className="max-w-[18rem] text-center text-[10px] font-semibold leading-snug text-amber-200/95 sm:text-[11px]">
+                      Spiel beendet – bitte Ergebnis prüfen und Spiel abschließen
+                    </p>
+                  </div>
+                ) : null}
 
                 {isPaused && !matchIsFinished ? (
                   <div className="mt-1 flex justify-center px-2">

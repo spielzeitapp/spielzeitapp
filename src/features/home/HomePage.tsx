@@ -19,6 +19,8 @@ import {
   isMatchdayFeedPostHiddenByAutomation,
   loadAutoMatchdayFeedDisabledMatchIds,
 } from '../../lib/autoMatchdayFeedEnabled';
+import { isMatchReviewPending } from '../../lib/matchPreparationAccess';
+import { supabase } from '../../lib/supabaseClient';
 import { dsPrimaryCtaClass, dsSublineClass } from '../../lib/premiumDesignSystem';
 import {
   GlassCard,
@@ -47,6 +49,28 @@ export const HomePage: React.FC = () => {
 
   const [now, setNow] = useState(() => new Date());
   const [disabledMatchdayMatchIds, setDisabledMatchdayMatchIds] = useState<Set<string>>(() => new Set());
+  const [matchStatusById, setMatchStatusById] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const matchIds = Array.from(
+      new Set((events ?? []).filter((e) => e.match_id).map((e) => e.match_id!)),
+    );
+    if (matchIds.length === 0) {
+      setMatchStatusById({});
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const { data, error } = await supabase.from('matches').select('id, status').in('id', matchIds);
+      if (cancelled || error) return;
+      const next: Record<string, string> = {};
+      for (const row of data ?? []) next[row.id] = row.status ?? 'upcoming';
+      setMatchStatusById(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [events]);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 60_000);
@@ -91,6 +115,15 @@ export const HomePage: React.FC = () => {
   const spieltagHintPick =
     matchPick && (matchPick.status === 'today' || matchPick.status === 'tomorrow') ? matchPick : null;
   const showNextMatchCompact = Boolean(matchPick && matchPick.status === 'next');
+
+  const reviewPendingForEvent = (event: EventRow | undefined) =>
+    Boolean(
+      event?.match_id &&
+        isMatchReviewPending({
+          eventStatus: event.status,
+          matchStatus: matchStatusById[event.match_id],
+        }),
+    );
 
   const visibleFeedPosts = useMemo(() => {
     const withoutDisabledMatchday = teamFeedPosts.filter(
@@ -142,7 +175,12 @@ export const HomePage: React.FC = () => {
               />
             ) : null}
 
-            {spieltagHintPick ? <HomeSpieltagHintCard pick={spieltagHintPick} /> : null}
+            {spieltagHintPick ? (
+              <HomeSpieltagHintCard
+                pick={spieltagHintPick}
+                reviewPending={reviewPendingForEvent(spieltagHintPick.event)}
+              />
+            ) : null}
 
             <section className="min-w-0 space-y-3" aria-label="Team-Feed">
               <SectionTitle variant="interactive" as="p" className="!text-[11px] sm:!text-xs">
@@ -177,7 +215,11 @@ export const HomePage: React.FC = () => {
                 <SectionTitle variant="subtle" as="p" className="!text-[11px] uppercase sm:!text-xs">
                   Nächstes Spiel
                 </SectionTitle>
-                <HomeUpcomingMatchCompact pick={matchPick} teamName={teamName} />
+                <HomeUpcomingMatchCompact
+                  pick={matchPick}
+                  teamName={teamName}
+                  reviewPending={reviewPendingForEvent(matchPick.event)}
+                />
               </section>
             ) : !matchPick ? (
               <PremiumEmptyState

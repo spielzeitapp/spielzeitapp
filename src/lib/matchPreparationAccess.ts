@@ -22,3 +22,13 @@ export function isMatchPreparationAccessible(
     return s === 'finished' || s === 'ended' || s === 'completed';
   });
 }
+
+/** Match beendet, Kalender-Termin noch offen (Nacharbeit / Review). */
+export function isMatchReviewPending(params: {
+  eventStatus?: string | null;
+  matchStatus?: string | null;
+}): boolean {
+  const ms = String(params.matchStatus ?? '').trim().toLowerCase();
+  const es = String(params.eventStatus ?? '').trim().toLowerCase();
+  return ms === 'finished' && es !== 'finished' && es !== 'canceled';
+}

@@ -32,6 +32,8 @@ export type CompactEventCardProps = {
   ourTeamName: string;
   opponentLogoUrl?: string | null;
   forcePublicView: boolean;
+  /** Match beendet, Kalender noch offen. */
+  reviewPending?: boolean;
   /** Eltern/Spieler „Weitere Termine“: 3 Spalten (Datum | Text | Button+Pfeil), ohne Logos. */
   parentCompactLayout?: boolean;
   trailing?: React.ReactNode;
@@ -177,6 +179,7 @@ export function CompactEventCard({
   parentCompactLayout = false,
   trailing,
   forcePublicView,
+  reviewPending = false,
   onNavigate,
 }: CompactEventCardProps) {
   const { wd, day, monYear } = formatCompactListDateParts(ev.starts_at);
@@ -282,6 +285,11 @@ export function CompactEventCard({
                   matchType={ev.match_type}
                   className="mt-0.5"
                 />
+                {reviewPending ? (
+                  <span className="mt-1 inline-flex rounded-full border border-amber-400/35 bg-amber-950/55 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-100/95">
+                    Nacharbeit
+                  </span>
+                ) : null}
               </div>
             ) : et === 'tournament' ? (
               <div className="min-w-0 flex-1">
@@ -358,6 +366,11 @@ export function CompactEventCard({
             {oppName}
           </p>
           <GameCompactMeta isHome={ev.is_home} matchType={ev.match_type} className="mt-0.5" />
+          {reviewPending ? (
+            <span className="mt-1 inline-flex rounded-full border border-amber-400/35 bg-amber-950/55 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-100/95">
+              Nacharbeit
+            </span>
+          ) : null}
         </>
       ) : et === 'training' ? (
         <>

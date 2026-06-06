@@ -67,15 +67,12 @@ async function resolveTeamForSeason(teamSeasonId: string): Promise<{ teamId: str
 
 type EventRowLite = {
   id: string;
-  is_home: boolean | null;
+  is_home: boolean;
   starts_at: string | null;
   meeting_at: string | null;
   location: string | null;
-  address?: string | null;
   match_type: string | null;
   opponent: string | null;
-  opponent_logo_url: string | null;
-  opponent_slug?: string | null;
 };
 
 type RpcResultRow = {
@@ -116,6 +113,11 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
     return { ok: true, created: false, reason: 'not_finished' };
   }
 
+  if (match.auto_matchday_feed_enabled === false) {
+    console.info('[resultFeed] result auto feed disabled for match', { matchId: mid });
+    return { ok: true, created: false, reason: 'auto_feed_disabled' };
+  }
+
   const { data: existing, error: exErr } = await supabase
     .from('team_feed_posts')
     .select('id')
@@ -140,21 +142,33 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
 
   const { data: evRaw, error: evErr } = await supabase
     .from('events')
-    .select(
-      'id, is_home, starts_at, meeting_at, location, address, match_type, opponent, opponent_logo_url, opponent_slug',
-    )
+    .select('id, is_home, starts_at, meeting_at, location, match_type, opponent')
     .eq('match_id', mid)
     .maybeSingle();
 
-  if (evErr) {
-    rfLog('events lookup warning (using fallbacks)', { matchId: mid, error: evErr.message });
+  if (evErr || !evRaw) {
+    console.warn('[resultFeed] event lookup failed, skipping result post', {
+      matchId: mid,
+      error: evErr?.message ?? 'no_event_row',
+    });
+    return { ok: false, error: evErr?.message ?? 'Kalendertermin zum Spiel nicht gefunden.' };
   }
-  const ev = (evErr ? null : evRaw) as EventRowLite | null;
 
-  const opponentName = (ev?.opponent ?? match.opponent ?? '').trim() || 'Gegner';
+  const ev = evRaw as EventRowLite;
+
+  if (ev.is_home !== true && ev.is_home !== false) {
+    console.warn('[resultFeed] is_home missing on event, skipping result post', {
+      matchId: mid,
+      eventId: ev.id,
+      is_home: ev.is_home,
+    });
+    return { ok: false, error: 'Heim/Auswärts am Termin nicht gesetzt.' };
+  }
+
+  const opponentName = (ev.opponent ?? match.opponent ?? '').trim() || 'Gegner';
   const ownTeamName = teamInfo.name;
   const sides = getMatchSides({
-    isHome: ev?.is_home,
+    isHome: ev.is_home,
     ownTeamName,
     opponentName,
   });
@@ -167,18 +181,12 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
   if (ourScore > oppScore) result_state = 'win';
   else if (ourScore < oppScore) result_state = 'loss';
 
-  const oppLogo = ev?.opponent_logo_url ?? null;
-  const oppSlug = ev?.opponent_slug ?? null;
-  const home_logo_url = sides.isOwnTeamHome
-    ? getClubLogo(sides.homeTeamName)
-    : getClubLogo(sides.homeTeamName, { slug: oppSlug ?? undefined, logoUrl: oppLogo });
-  const away_logo_url = sides.isOwnTeamHome
-    ? getClubLogo(sides.awayTeamName, { slug: oppSlug ?? undefined, logoUrl: oppLogo })
-    : getClubLogo(sides.awayTeamName);
+  const home_logo_url = getClubLogo(sides.homeTeamName);
+  const away_logo_url = getClubLogo(sides.awayTeamName);
 
-  const locParsed = splitCombinedLocation(ev?.location ?? match.location ?? null);
+  const locParsed = splitCombinedLocation(ev.location ?? match.location ?? null);
   const location =
-    formatFullLocation(locParsed.place, ev?.address ?? null) || (match.location ?? '').trim() || '—';
+    formatFullLocation(locParsed.place, locParsed.address || '') || (match.location ?? '').trim() || '—';
 
   let goalRows: { id?: string; type?: string; minute?: number | null; player_id?: string | null }[] = [];
   const { data: goalsData, error: gErr } = await supabase
@@ -230,9 +238,9 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
     return { player_name, minute_label: label };
   });
 
-  const starts_at = ev?.starts_at ?? match.match_date ?? null;
-  const meeting_at = ev?.meeting_at ?? null;
-  const event_id = ev?.id ?? null;
+  const starts_at = ev.starts_at ?? match.match_date ?? null;
+  const meeting_at = ev.meeting_at ?? null;
+  const event_id = ev.id;
   const deep_link = event_id ? `/app/events/${event_id}` : `/app/live?matchId=${encodeURIComponent(mid)}`;
 
   const payload: ResultFeedPayload = {
@@ -245,7 +253,7 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
     away_logo_url,
     home_score: homeScore,
     away_score: awayScore,
-    match_type: ev?.match_type ?? null,
+    match_type: ev.match_type ?? null,
     starts_at,
     meeting_at,
     location,

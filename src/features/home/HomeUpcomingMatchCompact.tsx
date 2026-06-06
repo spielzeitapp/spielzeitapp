@@ -15,9 +15,14 @@ import { PremiumCard } from '../../ui';
 type Props = {
   pick: HomeMatchCardPick;
   teamName?: string;
+  reviewPending?: boolean;
 };
 
-export const HomeUpcomingMatchCompact: React.FC<Props> = ({ pick, teamName }) => {
+export const HomeUpcomingMatchCompact: React.FC<Props> = ({
+  pick,
+  teamName,
+  reviewPending = false,
+}) => {
   const { event, status } = pick;
   const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
   const ourFullName = (teamName ?? getOurTeamDisplayName()).trim() || getOurTeamDisplayName();
@@ -25,10 +30,16 @@ export const HomeUpcomingMatchCompact: React.FC<Props> = ({ pick, teamName }) =>
   const matchLabel = getMatchTypeLabel(event.match_type ?? event.type);
 
   const titleLine = useMemo(() => {
+    if (reviewPending) return 'Spiel beendet – prüfen';
     if (status === 'today') return HOME_FEED_HERO_STATUS_LABEL.today;
     if (status === 'tomorrow') return HOME_NEXT_MATCH_ORG_LABEL.tomorrow;
     return HOME_NEXT_MATCH_ORG_LABEL.next;
-  }, [status]);
+  }, [reviewPending, status]);
+
+  const eventLink =
+    reviewPending && event.match_id
+      ? `/app/live?matchId=${encodeURIComponent(event.match_id)}`
+      : `/app/events/${event.id}`;
 
   const matchMetaLine = buildFeedMatchMetaLine(ourParts.ageGroup, matchLabel);
 
@@ -57,12 +68,18 @@ export const HomeUpcomingMatchCompact: React.FC<Props> = ({ pick, teamName }) =>
     >
       <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-red-600/12 blur-2xl" />
       <Link
-        to={`/app/events/${event.id}`}
+        to={eventLink}
         className="relative flex min-h-[80px] items-stretch gap-3 px-3 py-3.5 pr-2 transition-colors hover:bg-white/[0.02] active:bg-white/[0.04]"
       >
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md border border-red-500/35 bg-red-950/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-200/95">
+            <span
+              className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                reviewPending
+                  ? 'border-amber-400/35 bg-amber-950/50 text-amber-100/95'
+                  : 'border-red-500/35 bg-red-950/50 text-red-200/95'
+              }`}
+            >
               {titleLine}
             </span>
           </div>

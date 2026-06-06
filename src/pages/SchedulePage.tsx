@@ -23,6 +23,7 @@ import { useLinkedPlayerIsLaz } from '../hooks/useLinkedPlayerIsLaz';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from '../auth/useSession';
 import { normalizeRole, canManageMatches, canSeeMeetup } from '../lib/roles';
+import { isMatchReviewPending } from '../lib/matchPreparationAccess';
 import { getOurTeamDisplayName } from '../lib/teamLogos';
 import { supabase } from '../lib/supabaseClient';
 import { downloadEventIcs } from '../lib/ics';
@@ -199,7 +200,6 @@ export const SchedulePage: React.FC = () => {
       if (!e.match_id) return e;
       const ms = matchStatusById[e.match_id];
       if (ms === 'live' && e.status !== 'live') return { ...e, status: 'live' as const };
-      if (ms === 'finished' && e.status !== 'finished') return { ...e, status: 'finished' as const };
       return e;
     }),
   [rawEvents, matchStatusById]);
@@ -745,6 +745,13 @@ export const SchedulePage: React.FC = () => {
     });
 
     const sorted = [...base].sort((a, b) => {
+      const reviewA =
+        a.match_id &&
+        isMatchReviewPending({ eventStatus: a.status, matchStatus: matchStatusById[a.match_id] });
+      const reviewB =
+        b.match_id &&
+        isMatchReviewPending({ eventStatus: b.status, matchStatus: matchStatusById[b.match_id] });
+      if (reviewA !== reviewB) return reviewA ? -1 : 1;
       const wa = statusWeight[a.status ?? 'upcoming'] ?? 0;
       const wb = statusWeight[b.status ?? 'upcoming'] ?? 0;
       if (wa !== wb) return wa - wb;
@@ -759,7 +766,7 @@ export const SchedulePage: React.FC = () => {
       return sorted.filter((e) => getEventTab(e) === 'finished');
     }
     return sorted.filter((e) => getTimeBucket(e, now) === timeFilter);
-  }, [events, kindFilter, normalizedUiRole, timeFilter]);
+  }, [events, kindFilter, normalizedUiRole, timeFilter, matchStatusById]);
 
   const showHeroCard = useMemo(() => {
     if (displayEvents.length === 0) return false;
@@ -1156,7 +1163,15 @@ export const SchedulePage: React.FC = () => {
                             ? attendanceStatusByEventId[ev.id] ?? myStatusFromDb ?? null
                             : undefined;
                         const matchScore = ev.match_id ? matchScoreById[ev.match_id] : undefined;
-                        const isFinishedMatch = et === 'game' && ev.status === 'finished' && Boolean(ev.match_id);
+                        const matchReviewPending = Boolean(
+                          ev.match_id &&
+                            isMatchReviewPending({
+                              eventStatus: ev.status,
+                              matchStatus: matchStatusById[ev.match_id],
+                            }),
+                        );
+                        const isFinishedMatch =
+                          et === 'game' && ev.status === 'finished' && Boolean(ev.match_id);
                         const publicWrap = forcePublicView
                           ? {
                               onClick: (e: React.MouseEvent) => {
@@ -1218,7 +1233,7 @@ export const SchedulePage: React.FC = () => {
                           forcePublicView || !ev.id
                             ? undefined
                             : (id: string) => {
-                                if (isFinishedMatch && ev.match_id) {
+                                if ((isFinishedMatch || matchReviewPending) && ev.match_id) {
                                   navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`);
                                   return;
                                 }
@@ -1229,7 +1244,7 @@ export const SchedulePage: React.FC = () => {
                           et === 'game' &&
                           ev.match_id &&
                           !forcePublicView &&
-                          (heroIsLive || (Boolean(heroShowsTrainerStats) && heroLineupReady))
+                          (heroIsLive || matchReviewPending || (Boolean(heroShowsTrainerStats) && heroLineupReady))
                             ? () => navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id!)}`)
                             : undefined;
                         const opponentLogo = ev.opponent_logo_url ?? null;
@@ -1293,6 +1308,7 @@ export const SchedulePage: React.FC = () => {
                                   lineupReady={Boolean(heroShowsTrainerStats && heroLineupReady)}
                                   scheduleHeroMatchId={ev.match_id ?? null}
                                   liveIsRunning={matchScore?.liveIsRunning ?? null}
+                                  reviewPending={matchReviewPending}
                                 />
                               </EventHeroCard>
                             </div>
@@ -1399,6 +1415,13 @@ export const SchedulePage: React.FC = () => {
                       ) : undefined;
                       const opponentLogo = ev.opponent_logo_url ?? null;
                       const matchScoreRow = ev.match_id ? matchScoreById[ev.match_id] : undefined;
+                      const matchReviewPending = Boolean(
+                        ev.match_id &&
+                          isMatchReviewPending({
+                            eventStatus: ev.status,
+                            matchStatus: matchStatusById[ev.match_id],
+                          }),
+                      );
                       const showPastResultCard = et === 'game' && ev.status === 'finished';
                       if (showPastResultCard) {
                         return (
@@ -1426,10 +1449,11 @@ export const SchedulePage: React.FC = () => {
                           trailing={compactTrailing}
                           forcePublicView={forcePublicView}
                           onNavigate={(id) =>
-                            isFinishedMatch && ev.match_id
+                            (isFinishedMatch || matchReviewPending) && ev.match_id
                               ? navigate(`/app/live?matchId=${encodeURIComponent(ev.match_id)}`)
                               : navigate(`/app/events/${id}`)
                           }
+                          reviewPending={matchReviewPending}
                         />
                       );
                     })}

@@ -10,9 +10,10 @@ import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 
 type Props = {
   pick: HomeMatchCardPick;
+  reviewPending?: boolean;
 };
 
-export const HomeSpieltagHintCard: React.FC<Props> = ({ pick }) => {
+export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = false }) => {
   const { event, status } = pick;
   const [shareHint, setShareHint] = useState<string | null>(null);
   const opponent = (event.opponent ?? 'Gegner').trim() || 'Gegner';
@@ -67,11 +68,13 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick }) => {
   }, [eventUrl, kickoff, opponent, ourClub]);
 
   const announcementTiming = status === 'today' || status === 'tomorrow' ? status : null;
-  const gameHref = resolveMatchGameHref({
-    matchId: event.match_id,
-    eventId: event.id,
-    status: event.status ?? 'upcoming',
-  });
+  const gameHref = reviewPending && event.match_id
+    ? `/app/live?matchId=${encodeURIComponent(event.match_id)}`
+    : resolveMatchGameHref({
+        matchId: event.match_id,
+        eventId: event.id,
+        status: event.status ?? 'upcoming',
+      });
 
   return (
     <section className="min-w-0" aria-label="Spieltag">
@@ -94,7 +97,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick }) => {
           to={gameHref}
           className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center rounded-xl border border-red-500/45 bg-red-600/90 px-4 text-sm font-bold text-white shadow-[0_4px_16px_rgba(185,28,28,0.35)] transition hover:bg-red-500 sm:flex-initial sm:min-w-[8.5rem]"
         >
-          Zum Spiel
+          {reviewPending ? 'Ergebnis prüfen' : 'Zum Spiel'}
         </Link>
         <button
           type="button"

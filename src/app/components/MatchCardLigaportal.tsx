@@ -96,6 +96,8 @@ type MatchCardLigaportalProps = {
   scheduleHeroMatchId?: string | null;
   /** Match läuft (DB live_is_running) – Audience-Live-State auch wenn Event-Status noch nachzieht. */
   liveIsRunning?: boolean | null;
+  /** Match beendet, Kalender noch offen – Nacharbeit-Badge. */
+  reviewPending?: boolean;
   /** Event-Detail: Matchcard kompakter wie Schedule-Hero, ohne dessen Header/Actions. */
   compactDetailGame?: boolean;
 };
@@ -138,6 +140,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   lineupReady = false,
   scheduleHeroMatchId = null,
   liveIsRunning = null,
+  reviewPending = false,
   compactDetailGame = false,
 }) => {
   const navigate = useNavigate();
@@ -220,12 +223,18 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       }).format(date)
     : '–';
 
-  const hasScore = status === 'live' || status === 'finished';
+  const hasScore = status === 'live' || status === 'finished' || reviewPending;
   const showScore = hasScore && (scoreHome != null || scoreAway != null);
   const home = scoreHome ?? 0;
   const away = scoreAway ?? 0;
   const isMatch = effectiveEventType === 'game';
-  const kickoffHeaderLabel = showScore && status === 'finished' ? 'ENDSTAND' : status === 'live' ? 'LIVE' : 'ANPFIFF';
+  const kickoffHeaderLabel = reviewPending
+    ? 'NACHARBEIT'
+    : showScore && status === 'finished'
+      ? 'ENDSTAND'
+      : status === 'live'
+        ? 'LIVE'
+        : 'ANPFIFF';
 
   /** Nur Schedule „Nächstes Spiel“: Platzname (erstes Komma-Segment), volle Adresse auf EventDetail. */
   const scheduleHeroKickoffLocation =
@@ -312,6 +321,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   const heroDateParts = formatHeroDateParts(startsAt);
 
   const matchPhase: 'pre_meetup' | 'pre_kickoff' | 'live' | 'finished' = (() => {
+    if (reviewPending) return 'finished';
     if (status === 'finished' || status === 'completed' || status === 'ended') return 'finished';
     if (status === 'live' || status === 'running' || liveIsRunning === true) return 'live';
     const now = Date.now();
