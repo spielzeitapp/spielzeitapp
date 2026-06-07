@@ -79,7 +79,43 @@ function failureJson(failure: TournamentPlanAnalyzeFailure): Record<string, unkn
   };
 }
 
-export default async function handler(req: VercelLikeReq, res: VercelLikeRes): Promise<void> {
+function htmlFallbackServerErrorJson(url: string, err: unknown): Record<string, unknown> {
+  const captured = captureMeinTurnierplanFetchException(err);
+  const htmlFallbackException = captureMeinTurnierplanHtmlFallbackException(err);
+  const extractedId = extractMeinTurnierplanId(url);
+  const attemptedEndpoints = extractedId ? buildMeinTurnierplanJsonEndpoints(extractedId) : [];
+
+  return {
+    ok: false,
+    code: 'html_fallback_server_error',
+    message: 'HTML-Fallback konnte serverseitig nicht ausgeführt werden.',
+    error: captured.exceptionMessage || 'HTML-Fallback konnte serverseitig nicht ausgeführt werden.',
+    provider: 'meinturnierplan',
+    extractedId,
+    attemptedEndpoints,
+    diagnostics: enrichServerDiagnostics({
+      linkRecognized: isSupportedTournamentPlanHost(url),
+      idExtracted: Boolean(extractedId),
+      extractedId,
+      apiReachable: false,
+      provider: 'meinturnierplan',
+      attemptedEndpoints,
+      htmlFallbackAttempted: true,
+      htmlFallbackSuccessful: false,
+      htmlFallbackError: captured.exceptionMessage || 'HTML-Fallback konnte serverseitig nicht ausgeführt werden.',
+      htmlFallbackException,
+      serverException: {
+        name: captured.exceptionName,
+        message: captured.exceptionMessage,
+      },
+      source: 'html_fallback',
+      fallbackStage: 'html',
+      analyzeLastStep: 'html_fallback',
+    }),
+  };
+}
+
+async function handleAnalyzeRequest(req: VercelLikeReq, res: VercelLikeRes): Promise<void> {
   if (req.method !== 'GET') {
     res.status(405).json({ ok: false, error: 'Method not allowed', code: 'parse_failed' });
     return;
@@ -103,7 +139,6 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
   const forceHtmlFallback = forceHtmlRaw === '1' || forceHtmlRaw.toLowerCase() === 'true';
 
   try {
-    // forceHtmlFallback=1: JSON überspringen, showit.php serverseitig + parseMeinTurnierplanHtml.
     const result = forceHtmlFallback
       ? await analyzeMeinTurnierplanUrlForceHtmlFallback(url)
       : await analyzeMeinTurnierplanUrl(url);
@@ -121,6 +156,11 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
 
     res.status(result.httpStatus).json(failureJson(result.failure));
   } catch (err) {
+    if (forceHtmlFallback) {
+      res.status(500).json(htmlFallbackServerErrorJson(url, err));
+      return;
+    }
+
     const captured = captureMeinTurnierplanFetchException(err);
     const extractedId = extractMeinTurnierplanId(url);
     const attemptedEndpoints = extractedId ? buildMeinTurnierplanJsonEndpoints(extractedId) : [];
@@ -132,29 +172,36 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
 
     let htmlFallbackError: string | null = null;
     let htmlFallbackException: TournamentPlanAnalyzeDiagnostics['htmlFallbackException'] = null;
+
     if (extractedId && refererUrl) {
-      const htmlAfterException = await tryMeinTurnierplanHtmlFallbackAnalyze({
-        showitUrl: refererUrl,
-        extractedId,
-        fetchImpl: fetch,
-        attemptedEndpoints,
-        apiReachable: false,
-        showitPageReachable: null,
-      });
-      if (htmlAfterException.ok) {
-        res.status(200).json({
-          ok: true,
-          analysis: htmlAfterException.analysis satisfies TournamentPlanAnalysis,
-          diagnostics: enrichServerDiagnostics(
-            htmlAfterException.diagnostics satisfies TournamentPlanAnalyzeDiagnostics,
-          ),
+      try {
+        const htmlAfterException = await tryMeinTurnierplanHtmlFallbackAnalyze({
+          showitUrl: refererUrl,
+          extractedId,
+          fetchImpl: fetch,
+          attemptedEndpoints,
+          apiReachable: false,
+          showitPageReachable: null,
         });
-        return;
+        if (htmlAfterException.ok) {
+          res.status(200).json({
+            ok: true,
+            analysis: htmlAfterException.analysis satisfies TournamentPlanAnalysis,
+            diagnostics: enrichServerDiagnostics(
+              htmlAfterException.diagnostics satisfies TournamentPlanAnalyzeDiagnostics,
+            ),
+          });
+          return;
+        }
+        htmlFallbackError = htmlAfterException.error;
+        htmlFallbackException =
+          htmlAfterException.htmlFallbackException ??
+          captureMeinTurnierplanHtmlFallbackException(new Error(htmlAfterException.error));
+      } catch (htmlErr) {
+        const htmlCaptured = captureMeinTurnierplanFetchException(htmlErr);
+        htmlFallbackError = htmlCaptured.exceptionMessage;
+        htmlFallbackException = captureMeinTurnierplanHtmlFallbackException(htmlErr);
       }
-      htmlFallbackError = htmlAfterException.error;
-      htmlFallbackException =
-        htmlAfterException.htmlFallbackException ??
-        captureMeinTurnierplanHtmlFallbackException(new Error(htmlAfterException.error));
     }
 
     const failure = buildTournamentPlanAnalyzeFailure({
@@ -177,5 +224,56 @@ export default async function handler(req: VercelLikeReq, res: VercelLikeRes): P
       fallbackStage: extractedId ? 'html' : 'json',
     });
     res.status(502).json(failureJson(failure));
+  }
+}
+
+export default async function handler(req: VercelLikeReq, res: VercelLikeRes): Promise<void> {
+  try {
+    await handleAnalyzeRequest(req, res);
+  } catch (fatalErr) {
+    try {
+      const url = queryParam(req.query, 'url').trim();
+      const forceHtmlRaw = queryParam(req.query, 'forceHtmlFallback');
+      const forceHtmlFallback = forceHtmlRaw === '1' || forceHtmlRaw.toLowerCase() === 'true';
+      if (forceHtmlFallback) {
+        res.status(500).json(htmlFallbackServerErrorJson(url, fatalErr));
+        return;
+      }
+      const captured = captureMeinTurnierplanFetchException(fatalErr);
+      res.status(500).json({
+        ok: false,
+        code: 'api_unreachable',
+        message: captured.exceptionMessage || TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE,
+        error: captured.exceptionMessage || TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE,
+        provider: 'meinturnierplan',
+        extractedId: extractMeinTurnierplanId(url),
+        attemptedEndpoints: [],
+        diagnostics: enrichServerDiagnostics({
+          linkRecognized: isSupportedTournamentPlanHost(url),
+          idExtracted: Boolean(extractMeinTurnierplanId(url)),
+          extractedId: extractMeinTurnierplanId(url),
+          apiReachable: false,
+          provider: 'meinturnierplan',
+          attemptedEndpoints: [],
+          serverException: {
+            name: captured.exceptionName,
+            message: captured.exceptionMessage,
+          },
+          source: 'server_api',
+          fallbackStage: 'json',
+        }),
+      });
+    } catch {
+      try {
+        res.status(500).json({
+          ok: false,
+          code: 'html_fallback_server_error',
+          message: 'HTML-Fallback konnte serverseitig nicht ausgeführt werden.',
+          error: 'HTML-Fallback konnte serverseitig nicht ausgeführt werden.',
+        });
+      } catch {
+        /* response already sent or handler broken */
+      }
+    }
   }
 }

@@ -111,6 +111,16 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
           {d.htmlFallbackResponseStatus != null ? (
             <li>HTML Fallback Response Status: {d.htmlFallbackResponseStatus}</li>
           ) : null}
+          {d.htmlFallbackResponseContentType ? (
+            <li className="break-all font-mono text-[10px] leading-snug text-white/75">
+              HTML Fallback Content-Type: {d.htmlFallbackResponseContentType}
+            </li>
+          ) : null}
+          {d.rawResponsePreview ? (
+            <li className="break-all font-mono text-[10px] leading-snug text-white/75">
+              rawResponsePreview: {d.rawResponsePreview}
+            </li>
+          ) : null}
           {d.htmlFallbackSuccessful && d.htmlFallbackTeamsFound != null ? (
             <li>Teams gefunden: {d.htmlFallbackTeamsFound}</li>
           ) : null}

@@ -84,7 +84,23 @@ const TOURNAMENT_ANALYZE_HTML_FALLBACK_TIMEOUT_MS = 15_000;
 export const TOURNAMENT_ANALYZE_TIMEOUT_MESSAGE =
   'Analyse hat zu lange gedauert. Bitte erneut versuchen.';
 
+export const TOURNAMENT_ANALYZE_NON_JSON_MESSAGE = 'Server hat keine JSON-Antwort geliefert.';
+
 export type TournamentPlanAnalyzeLastStep = 'server_api' | 'browser_fallback' | 'html_fallback';
+
+export class TournamentPlanAnalyzeNonJsonResponseError extends Error {
+  readonly status: number;
+  readonly contentType: string | null;
+  readonly rawResponsePreview: string;
+
+  constructor(status: number, contentType: string | null, rawResponsePreview: string) {
+    super(TOURNAMENT_ANALYZE_NON_JSON_MESSAGE);
+    this.name = 'TournamentPlanAnalyzeNonJsonResponseError';
+    this.status = status;
+    this.contentType = contentType;
+    this.rawResponsePreview = rawResponsePreview;
+  }
+}
 
 const MEIN_TURNIERPLAN_BROWSER_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
@@ -98,7 +114,8 @@ export type TournamentPlanAnalyzeErrorCode =
   | 'no_teams'
   | 'no_matches'
   | 'plan_no_longer_provided'
-  | 'parse_failed';
+  | 'parse_failed'
+  | 'html_fallback_server_error';
 
 export type TournamentPlanAnalyzeDataSource = 'server_api' | 'browser_fallback' | 'html_fallback';
 
@@ -140,6 +157,8 @@ export type TournamentPlanAnalyzeDiagnostics = {
   htmlFallbackException?: MeinTurnierplanHtmlFallbackException | null;
   htmlFallbackRequestUrl?: string | null;
   htmlFallbackResponseStatus?: number | null;
+  htmlFallbackResponseContentType?: string | null;
+  rawResponsePreview?: string | null;
   tournamentName?: string | null;
   serverException?: { name: string; message: string } | null;
   fetchRuntime?: TournamentPlanFetchRuntimeDiagnostics;
@@ -416,17 +435,26 @@ async function fetchTournamentPlanAnalyzeApi(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(requestUrl, { signal: controller.signal });
+    const contentType = res.headers.get('content-type');
     console.log('HTML Fallback Response Status:', res.status);
+    console.log('HTML Fallback Response Content-Type:', contentType ?? '—');
+    const rawText = await res.text();
     let body: TournamentPlanAnalyzeApiBody;
     try {
-      body = (await res.json()) as TournamentPlanAnalyzeApiBody;
+      body = JSON.parse(rawText) as TournamentPlanAnalyzeApiBody;
     } catch (parseErr) {
       logHtmlFallbackFetchError(`${context} (json parse)`, parseErr);
-      throw parseErr;
+      throw new TournamentPlanAnalyzeNonJsonResponseError(
+        res.status,
+        contentType,
+        rawText.slice(0, 300),
+      );
     }
     return { res, body };
   } catch (err) {
-    logHtmlFallbackFetchError(context, err);
+    if (!(err instanceof TournamentPlanAnalyzeNonJsonResponseError)) {
+      logHtmlFallbackFetchError(context, err);
+    }
     if (isAnalyzeTimeoutError(err)) {
       throw Object.assign(new Error(TOURNAMENT_ANALYZE_TIMEOUT_MESSAGE), { name: 'AbortError' });
     }
@@ -620,6 +648,44 @@ export function messageForTournamentPlanAnalyzeCode(code: TournamentPlanAnalyzeE
   }
 }
 
+function buildNonJsonHtmlFallbackFailure(
+  trimmed: string,
+  requestUrl: string,
+  err: TournamentPlanAnalyzeNonJsonResponseError,
+  browserFailure: TournamentPlanAnalyzeFailure,
+  browserFallbackError: string | null,
+): TournamentPlanAnalyzeFailure {
+  const extractedId = extractMeinTurnierplanId(trimmed);
+  return {
+    code: 'html_fallback_server_error',
+    message: TOURNAMENT_ANALYZE_NON_JSON_MESSAGE,
+    provider: 'meinturnierplan',
+    extractedId,
+    attemptedEndpoints: extractedId ? buildMeinTurnierplanJsonEndpoints(extractedId) : [],
+    diagnostics: {
+      ...browserFailure.diagnostics,
+      linkRecognized: isSupportedTournamentPlanHost(trimmed),
+      idExtracted: Boolean(extractedId),
+      extractedId,
+      apiReachable: false,
+      provider: 'meinturnierplan',
+      attemptedEndpoints: extractedId ? buildMeinTurnierplanJsonEndpoints(extractedId) : [],
+      browserFallbackAttempted: true,
+      browserFallbackError,
+      htmlFallbackAttempted: true,
+      htmlFallbackSuccessful: false,
+      htmlFallbackError: TOURNAMENT_ANALYZE_NON_JSON_MESSAGE,
+      htmlFallbackRequestUrl: requestUrl,
+      htmlFallbackResponseStatus: err.status,
+      htmlFallbackResponseContentType: err.contentType,
+      rawResponsePreview: err.rawResponsePreview,
+      fallbackStage: 'html',
+      source: 'html_fallback',
+      analyzeLastStep: 'html_fallback',
+    },
+  };
+}
+
 /** Rohdaten vor parseMeinTurnierplanJson prüfen (genauere Fehlercodes). */
 export function diagnoseMeinTurnierplanPayload(data: unknown): TournamentPlanAnalyzeErrorCode | 'ok' {
   if (data == null || typeof data !== 'object') {
@@ -782,6 +848,8 @@ export function buildTournamentPlanAnalyzeFailure(params: {
   fallbackStage?: TournamentPlanAnalyzeFallbackStage;
   analyzeTimedOut?: boolean;
   analyzeLastStep?: TournamentPlanAnalyzeLastStep;
+  htmlFallbackResponseContentType?: string | null;
+  rawResponsePreview?: string | null;
 }): TournamentPlanAnalyzeFailure {
   const resolvedCode = resolveFinalImportFailureCode({
     code: params.code,
@@ -819,6 +887,8 @@ export function buildTournamentPlanAnalyzeFailure(params: {
       fallbackStage: params.fallbackStage,
       analyzeTimedOut: params.analyzeTimedOut,
       analyzeLastStep: params.analyzeLastStep,
+      htmlFallbackResponseContentType: params.htmlFallbackResponseContentType ?? null,
+      rawResponsePreview: params.rawResponsePreview ?? null,
     },
   };
 }
@@ -1854,10 +1924,15 @@ function mergeTournamentImportFailures(
     browserFailure.diagnostics.analyzeLastStep ?? serverFailure?.diagnostics.analyzeLastStep;
 
   return {
-    code: resolvedCode,
+    code:
+      browserFailure.code === 'html_fallback_server_error'
+        ? 'html_fallback_server_error'
+        : resolvedCode,
     message: analyzeTimedOut
       ? TOURNAMENT_ANALYZE_TIMEOUT_MESSAGE
-      : messageForTournamentPlanAnalyzeCode(resolvedCode),
+      : browserFailure.code === 'html_fallback_server_error'
+        ? browserFailure.message
+        : messageForTournamentPlanAnalyzeCode(resolvedCode),
     provider: 'meinturnierplan',
     extractedId: browserFailure.extractedId ?? serverFailure?.extractedId ?? null,
     attemptedEndpoints,
@@ -1888,6 +1963,14 @@ function mergeTournamentImportFailures(
       htmlFallbackResponseStatus:
         browserFailure.diagnostics.htmlFallbackResponseStatus ??
         serverFailure?.diagnostics.htmlFallbackResponseStatus ??
+        null,
+      htmlFallbackResponseContentType:
+        browserFailure.diagnostics.htmlFallbackResponseContentType ??
+        serverFailure?.diagnostics.htmlFallbackResponseContentType ??
+        null,
+      rawResponsePreview:
+        browserFailure.diagnostics.rawResponsePreview ??
+        serverFailure?.diagnostics.rawResponsePreview ??
         null,
       tournamentName: htmlDiagnostics.tournamentName ?? null,
       serverException: serverFailure?.diagnostics.serverException ?? null,
@@ -1991,6 +2074,21 @@ async function tryServerHtmlTournamentPlanFallback(
     const merged = mergeTournamentImportFailures(serverFailure, htmlFailure, browserFallbackError);
     return { ok: false, error: merged.message, failure: merged };
   } catch (err) {
+    if (err instanceof TournamentPlanAnalyzeNonJsonResponseError) {
+      analyzeTrace('[ANALYZE] SERVER HTML FALLBACK NON-JSON', {
+        status: err.status,
+        contentType: err.contentType,
+      });
+      const nonJsonFailure = buildNonJsonHtmlFallbackFailure(
+        trimmed,
+        requestUrl,
+        err,
+        browserFailure,
+        browserFallbackError,
+      );
+      const merged = mergeTournamentImportFailures(serverFailure, nonJsonFailure, browserFallbackError);
+      return { ok: false, error: merged.message, failure: merged };
+    }
     if (isAnalyzeTimeoutError(err)) {
       analyzeTrace('[ANALYZE] SERVER HTML FALLBACK TIMEOUT', { url: trimmed });
       const timeoutFailure = buildAnalyzeTimeoutFailure(trimmed, 'html_fallback', {
