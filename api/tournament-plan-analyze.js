@@ -1,3 +1,5 @@
+import { analyzeTournamentPlanJson } from './_lib/tournamentPlanJsonAnalyze.js';
+
 export default async function handler(req, res) {
   if (req.query?.debugPing === '1') {
     return res.status(200).json({
@@ -18,7 +20,12 @@ export default async function handler(req, res) {
   }
 
   const rawUrl = req.query?.url;
-  const url = typeof rawUrl === 'string' ? rawUrl.trim() : Array.isArray(rawUrl) ? String(rawUrl[0] ?? '').trim() : '';
+  const url =
+    typeof rawUrl === 'string'
+      ? rawUrl.trim()
+      : Array.isArray(rawUrl)
+        ? String(rawUrl[0] ?? '').trim()
+        : '';
 
   if (!url) {
     return res.status(400).json({
@@ -32,7 +39,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { analyzeTournamentPlanJson } = await import('../src/lib/server/tournamentPlanJsonAnalyze');
     const result = await analyzeTournamentPlanJson(url);
 
     if (result.ok) {
