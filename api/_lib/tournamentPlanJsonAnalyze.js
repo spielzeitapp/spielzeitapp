@@ -171,6 +171,29 @@ function diagnoseMeinTurnierplanPayload(data) {
   return 'ok';
 }
 
+function kickoffHHmmFromDateTime(dateAndTime) {
+  const raw = (dateAndTime ?? '').trim();
+  const match = raw.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return '10:00';
+  return `${match[1].padStart(2, '0')}:${match[2]}`;
+}
+
+function inferKnockoutPhaseFromMeinTurnierplan(modeMapping, sourceTeam1, sourceTeam2) {
+  const round = modeMapping?.round ?? 1;
+  const matchNo = modeMapping?.match ?? 0;
+  const rank1 = sourceTeam1?.rank ?? 0;
+  const rank2 = sourceTeam2?.rank ?? 0;
+  const maxRank = Math.max(rank1, rank2);
+  const minRank = Math.min(rank1, rank2);
+
+  if (round === 1 && matchNo === 1 && minRank === 1 && maxRank === 1) return 'final';
+  if (maxRank >= 5 || matchNo >= 5) return 'placement';
+  if (round >= 2) return 'semifinal';
+  if (maxRank <= 2 && matchNo <= 2) return 'semifinal';
+  if (maxRank === 3 || maxRank === 4) return 'placement';
+  return 'unknown';
+}
+
 function parseMeinTurnierplanJson(data) {
   const json = data;
   if (
@@ -206,24 +229,73 @@ function parseMeinTurnierplanJson(data) {
 
   if (teams.length === 0) return null;
 
-  let matchCount = 0;
+  const groupMinutes = Math.max(1, Math.min(120, Math.trunc(json.groupMatchDuration ?? 10) || 10));
+  const knockoutMinutes = Math.max(
+    1,
+    Math.min(120, Math.trunc(json.finalMatchDuration ?? json.groupMatchDuration ?? 10) || 10),
+  );
+  const courts = json.courts ?? [];
+  const rawMatches = [];
 
   for (const match of json.groupMatches ?? []) {
     const homeTeam = participantName(participants, match.homeParticipant);
     const awayTeam = participantName(participants, match.awayParticipant);
-    if (homeTeam && awayTeam) matchCount += 1;
+    if (!homeTeam || !awayTeam) continue;
+
+    const groupIdx = match.groupId ?? 0;
+    const groupLabel = (json.groups[groupIdx]?.displayId ?? '').trim() || null;
+    const court = courts[match.courtId ?? -1];
+    const pitch = court?.displayId?.trim() ? `Platz ${court.displayId.trim()}` : null;
+
+    rawMatches.push({
+      homeTeam,
+      awayTeam,
+      groupLabel,
+      phase: 'group',
+      kickoffTimeHHmm: kickoffHHmmFromDateTime(match.dateAndTime),
+      plannedMinutes: groupMinutes,
+      pitch,
+    });
   }
+
+  const preliminaryMatchCount = rawMatches.length;
 
   for (const match of json.finalMatches ?? []) {
     const homeTeam = participantName(participants, match.homeParticipant);
     const awayTeam = participantName(participants, match.awayParticipant);
-    if (homeTeam && awayTeam) matchCount += 1;
+    if (!homeTeam || !awayTeam) continue;
+
+    const phase = inferKnockoutPhaseFromMeinTurnierplan(
+      match.modeMapping,
+      match.sourceTeam1,
+      match.sourceTeam2,
+    );
+    const court = courts[match.courtId ?? -1];
+    const pitch = court?.displayId?.trim() ? `Platz ${court.displayId.trim()}` : null;
+
+    rawMatches.push({
+      homeTeam,
+      awayTeam,
+      groupLabel: null,
+      phase,
+      kickoffTimeHHmm: kickoffHHmmFromDateTime(match.dateAndTime),
+      plannedMinutes: knockoutMinutes,
+      pitch,
+    });
   }
 
+  const knockoutMatchCount = rawMatches.length - preliminaryMatchCount;
+
   return {
+    provider: 'meinturnierplan',
     teamCount: teams.length,
-    groupCount: groupSummaries.length > 0 ? groupSummaries.length : 1,
-    matchCount,
+    groupCount: groupSummaries.length,
+    matchCount: rawMatches.length,
+    preliminaryMatchCount,
+    knockoutMatchCount,
+    groupSummaries,
+    teams,
+    rawMatches,
   };
 }
 
@@ -267,7 +339,7 @@ async function fetchMeinTurnierplanJsonWithFallbacks(tournamentId, fetchImpl = f
 
       const analysis = parseMeinTurnierplanJson(payload);
       if (analysis) {
-        return { ok: true, json: payload, attemptedEndpoints };
+        return { ok: true, json: payload, attemptedEndpoints, analysis };
       }
       bestFailureCode = 'parse_failed';
     } catch {
@@ -306,7 +378,7 @@ export async function analyzeTournamentPlanJson(url, fetchImpl = fetch) {
     return buildFailure(fetchResult.code, extractedId, fetchResult.attemptedEndpoints);
   }
 
-  const analysis = parseMeinTurnierplanJson(fetchResult.json);
+  const analysis = fetchResult.analysis ?? parseMeinTurnierplanJson(fetchResult.json);
   if (!analysis) {
     return buildFailure('parse_failed', extractedId, fetchResult.attemptedEndpoints);
   }
@@ -314,8 +386,18 @@ export async function analyzeTournamentPlanJson(url, fetchImpl = fetch) {
   return {
     ok: true,
     provider: 'meinturnierplan',
-    teamCount: analysis.teamCount,
-    groupCount: analysis.groupCount,
-    matchCount: analysis.matchCount,
+    extractedId,
+    attemptedEndpoints: fetchResult.attemptedEndpoints,
+    analysis,
+    diagnostics: {
+      linkRecognized: true,
+      idExtracted: true,
+      extractedId,
+      apiReachable: true,
+      provider: 'meinturnierplan',
+      attemptedEndpoints: fetchResult.attemptedEndpoints,
+      source: 'server_api',
+      fallbackStage: 'json',
+    },
   };
 }

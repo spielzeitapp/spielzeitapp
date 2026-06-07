@@ -45,9 +45,13 @@ export default async function handler(req, res) {
       return res.status(200).json({
         ok: true,
         provider: result.provider,
-        teamCount: result.teamCount,
-        groupCount: result.groupCount,
-        matchCount: result.matchCount,
+        extractedId: result.extractedId,
+        attemptedEndpoints: result.attemptedEndpoints,
+        analysis: result.analysis,
+        diagnostics: result.diagnostics,
+        teamCount: result.analysis.teamCount,
+        groupCount: result.analysis.groupCount,
+        matchCount: result.analysis.matchCount,
       });
     }
 
