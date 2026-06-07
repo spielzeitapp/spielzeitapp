@@ -16,6 +16,7 @@ import {
   computeTournamentPlanRefreshPreview,
   fetchTournamentImportRecognition,
   importTournamentPlanFromAnalysis,
+  TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE,
   type TournamentImportRecognition,
   type TournamentPlanAnalysis,
   type TournamentPlanAnalyzeDiagnostics,
@@ -188,21 +189,27 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     setImportAnalyzeDiagnostics(null);
     setImportAnalysis(null);
 
-    const rec = await fetchTournamentImportRecognition(teamSeasonId);
-    setRecognition(rec);
+    try {
+      const rec = await fetchTournamentImportRecognition(teamSeasonId);
+      setRecognition(rec);
 
-    const result = await analyzeTournamentUrl(url);
-    setImportLoading(false);
+      const result = await analyzeTournamentUrl(url);
+      if (!result.ok) {
+        setImportError(result.error);
+        setImportAnalyzeFailure(result.failure ?? null);
+        setImportAnalyzeDiagnostics(result.failure?.diagnostics ?? null);
+        return;
+      }
 
-    if (!result.ok) {
-      setImportError(result.error);
-      setImportAnalyzeFailure(result.failure ?? null);
-      setImportAnalyzeDiagnostics(result.failure?.diagnostics ?? null);
-      return;
+      setImportAnalyzeDiagnostics(result.diagnostics ?? null);
+      setImportAnalysis(result.analysis);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE);
+      setImportAnalyzeFailure(null);
+      setImportAnalyzeDiagnostics(null);
+    } finally {
+      setImportLoading(false);
     }
-
-    setImportAnalyzeDiagnostics(result.diagnostics ?? null);
-    setImportAnalysis(result.analysis);
   }, [officialTournamentUrl, teamSeasonId]);
 
   const handleImportConfirm = useCallback(async () => {
@@ -276,29 +283,34 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     setRefreshAnalysis(null);
     setRefreshPreview(null);
 
-    const rec = await fetchTournamentImportRecognition(teamSeasonId);
-    setRecognition(rec);
+    try {
+      const rec = await fetchTournamentImportRecognition(teamSeasonId);
+      setRecognition(rec);
 
-    const result = await analyzeTournamentUrl(url);
-    if (!result.ok) {
+      const result = await analyzeTournamentUrl(url);
+      if (!result.ok) {
+        setRefreshError(result.error);
+        setRefreshAnalyzeFailure(result.failure ?? null);
+        setRefreshAnalyzeDiagnostics(result.failure?.diagnostics ?? null);
+        return;
+      }
+
+      setRefreshAnalyzeDiagnostics(result.diagnostics ?? null);
+      setRefreshAnalysis(result.analysis);
+      const preview = await computeTournamentPlanRefreshPreview({
+        analysis: result.analysis,
+        existingTeamNames,
+        existingSlots,
+        knownNames: rec.knownNames,
+      });
+      setRefreshPreview(preview);
+    } catch (err) {
+      setRefreshError(err instanceof Error ? err.message : TOURNAMENT_IMPORT_FETCH_ERROR_MESSAGE);
+      setRefreshAnalyzeFailure(null);
+      setRefreshAnalyzeDiagnostics(null);
+    } finally {
       setRefreshLoading(false);
-      setRefreshError(result.error);
-      setRefreshAnalyzeFailure(result.failure ?? null);
-      setRefreshAnalyzeDiagnostics(result.failure?.diagnostics ?? null);
-      return;
     }
-
-    setRefreshAnalyzeDiagnostics(result.diagnostics ?? null);
-
-    setRefreshAnalysis(result.analysis);
-    const preview = await computeTournamentPlanRefreshPreview({
-      analysis: result.analysis,
-      existingTeamNames,
-      existingSlots,
-      knownNames: rec.knownNames,
-    });
-    setRefreshPreview(preview);
-    setRefreshLoading(false);
   }, [existingSlots, existingTeamNames, officialTournamentUrl, teamSeasonId]);
 
   const handleRefreshConfirm = useCallback(async () => {

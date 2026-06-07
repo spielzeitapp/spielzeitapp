@@ -90,6 +90,8 @@ export const TournamentPlanAnalyzeDebugPanel: React.FC<Props> = ({ failure, diag
           <li>showit.php erreichbar: {yesNoUnknown(d.showitPageReachable)}</li>
           <li>JSON-API erreichbar: {yesNo(d.apiReachable)}</li>
           <li>Datenquelle: {labelForTournamentPlanAnalyzeSource(d.source)}</li>
+          {d.analyzeLastStep ? <li>letzter Schritt: {d.analyzeLastStep}</li> : null}
+          {d.analyzeTimedOut != null ? <li>timeout: {yesNo(d.analyzeTimedOut)}</li> : null}
           {d.fallbackStage ? <li>Fallback-Stufe: {d.fallbackStage}</li> : null}
           <li>Browser-Fallback versucht: {yesNo(Boolean(d.browserFallbackAttempted))}</li>
           {d.browserFallbackAttempted && d.browserFallbackError ? (
