@@ -1,10 +1,16 @@
 import { supabase } from './supabaseClient';
 import type { EventRow } from '../hooks/useEvents';
-import type { EventFeedSettingsRow } from '../types/eventFeedSettings';
+import type { EventFeedPostOffset, EventFeedSettingsRow } from '../types/eventFeedSettings';
 import { formatDateTimeMediumDeVienna } from './notifications/format';
 
 export function eventPosterManualDedupeKey(eventId: string): string {
   return `event_feed:${eventId.trim()}:manual`;
+}
+
+export function eventPosterAutoDedupeKey(eventId: string, offset: EventFeedPostOffset): string {
+  const id = eventId.trim();
+  if (offset === 'immediate') return `event_feed:${id}:immediate`;
+  return `event_feed:${id}:offset_${offset}`;
 }
 
 function eventPosterTitle(event: Pick<EventRow, 'kind' | 'type' | 'opponent' | 'notes'>): string {

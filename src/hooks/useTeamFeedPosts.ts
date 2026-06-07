@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ensureEventFeedPostsForSeason } from '../lib/ensureEventFeedPosts';
 import { ensureMatchdayFeedPostsForSeason } from '../lib/ensureMatchdayFeedPosts';
 import { ensureRecentLiveFeedPostsForSeason } from '../lib/ensureLiveFeedPost';
 import { ensureRecentResultFeedPostsForSeason } from '../lib/ensureResultFeedPost';
@@ -77,6 +78,12 @@ async function runFeedEnsures(teamSeasonId: string): Promise<void> {
     await ensureUpcomingMatchFeedPosts(teamSeasonId);
   } catch (e) {
     console.warn('[useTeamFeedPosts] ensureUpcomingMatchFeedPosts failed', e);
+  }
+
+  try {
+    await ensureEventFeedPostsForSeason(teamSeasonId);
+  } catch (e) {
+    console.warn('[useTeamFeedPosts] ensureEventFeedPostsForSeason failed', e);
   }
 
   try {

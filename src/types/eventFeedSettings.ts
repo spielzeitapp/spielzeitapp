@@ -1,5 +1,7 @@
 export type EventFeedPosterSource = 'custom' | 'generated' | 'none';
 export type EventFeedPostMode = 'manual_only' | 'auto';
+/** Kalendertage vor Termin (0 = Veranstaltungstag) oder sofort beim Feed-Laden. */
+export type EventFeedPostOffset = number | 'immediate';
 
 export type EventFeedSettingsRow = {
   id: string;
@@ -9,7 +11,7 @@ export type EventFeedSettingsRow = {
   poster_storage_path: string | null;
   poster_source: EventFeedPosterSource;
   auto_post_enabled: boolean;
-  post_offsets_days: number[];
+  post_offsets_days: EventFeedPostOffset[];
   post_mode: EventFeedPostMode;
   prefer_custom_poster: boolean;
   caption_override: string | null;

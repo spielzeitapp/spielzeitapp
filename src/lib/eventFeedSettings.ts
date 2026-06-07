@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import { uploadStorageObject } from './storageUpload';
 import type {
   EventFeedPosterSource,
+  EventFeedPostOffset,
   EventFeedSettingsRow,
   UpsertEventFeedSettingsInput,
 } from '../types/eventFeedSettings';
@@ -10,9 +11,22 @@ const TEAM_FEED_BUCKET = 'team-feed';
 const POSTER_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_POSTER_BYTES = 10 * 1024 * 1024;
 
-function parsePostOffsets(raw: unknown): number[] {
+export function parseEventFeedPostOffsets(raw: unknown): EventFeedPostOffset[] {
   if (!Array.isArray(raw)) return [];
-  return raw.map((v) => Number(v)).filter((n) => Number.isFinite(n));
+  const out: EventFeedPostOffset[] = [];
+  for (const v of raw) {
+    if (v === 'immediate' || String(v).trim().toLowerCase() === 'immediate') {
+      out.push('immediate');
+      continue;
+    }
+    const n = Number(v);
+    if (Number.isFinite(n)) out.push(n);
+  }
+  return out;
+}
+
+function parsePostOffsets(raw: unknown): EventFeedPostOffset[] {
+  return parseEventFeedPostOffsets(raw);
 }
 
 function mapRow(raw: Record<string, unknown>): EventFeedSettingsRow {

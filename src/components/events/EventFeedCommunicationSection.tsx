@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ImagePlus, Send, Trash2 } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
-import type { EventFeedSettingsRow } from '../../types/eventFeedSettings';
+import type { EventFeedPostMode, EventFeedPostOffset, EventFeedSettingsRow } from '../../types/eventFeedSettings';
 import {
   clearEventPoster,
   loadEventFeedSettings,
+  parseEventFeedPostOffsets,
   uploadEventPoster,
   upsertEventFeedSettings,
 } from '../../lib/eventFeedSettings';
@@ -24,6 +25,19 @@ type Props = {
 const inputClass =
   'w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-red-500/40 focus:outline-none focus:ring-1 focus:ring-red-500/30';
 
+const OFFSET_OPTIONS: { value: EventFeedPostOffset; label: string }[] = [
+  { value: 'immediate', label: 'Sofort' },
+  { value: 14, label: '14 Tage vorher' },
+  { value: 7, label: '7 Tage vorher' },
+  { value: 3, label: '3 Tage vorher' },
+  { value: 1, label: '1 Tag vorher' },
+  { value: 0, label: 'Am Veranstaltungstag' },
+];
+
+function offsetKey(v: EventFeedPostOffset): string {
+  return v === 'immediate' ? 'immediate' : String(v);
+}
+
 export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }) => {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -33,6 +47,9 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }
   const [settings, setSettings] = useState<EventFeedSettingsRow | null>(null);
   const [captionOverride, setCaptionOverride] = useState('');
   const [preferCustomPoster, setPreferCustomPoster] = useState(true);
+  const [postMode, setPostMode] = useState<EventFeedPostMode>('manual_only');
+  const [autoPostEnabled, setAutoPostEnabled] = useState(false);
+  const [selectedOffsets, setSelectedOffsets] = useState<EventFeedPostOffset[]>([]);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [manualPublished, setManualPublished] = useState(false);
@@ -40,6 +57,9 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }
 
   const posterPath = settings?.poster_storage_path ?? settings?.poster_url ?? null;
   const previewSrc = useFeedMediaSrc(posterPath);
+  const isAutoMode = postMode === 'auto';
+  const autoActive = isAutoMode && autoPostEnabled;
+  const canEnableAuto = Boolean(posterPath);
 
   const reload = useCallback(async () => {
     if (!event.id) return;
@@ -52,6 +72,9 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }
     setSettings(row);
     setCaptionOverride(row?.caption_override ?? '');
     setPreferCustomPoster(row?.prefer_custom_poster !== false);
+    setPostMode(row?.post_mode === 'auto' ? 'auto' : 'manual_only');
+    setAutoPostEnabled(Boolean(row?.auto_post_enabled));
+    setSelectedOffsets(parseEventFeedPostOffsets(row?.post_offsets_days ?? []));
     setManualPublished(published);
     setLoading(false);
   }, [event.id]);
@@ -59,6 +82,16 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }
   useEffect(() => {
     if (expanded) void reload();
   }, [expanded, reload]);
+
+  const toggleOffset = (value: EventFeedPostOffset) => {
+    setSelectedOffsets((prev) => {
+      const key = offsetKey(value);
+      if (prev.some((o) => offsetKey(o) === key)) {
+        return prev.filter((o) => offsetKey(o) !== key);
+      }
+      return [...prev, value];
+    });
+  };
 
   const onPickPoster = () => {
     setError(null);
@@ -88,8 +121,21 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }
     await reload();
   };
 
-  const onSaveTextSettings = async () => {
+  const onSaveSettings = async () => {
     if (!event.team_season_id) return;
+
+    const effectiveMode: EventFeedPostMode = isAutoMode && autoPostEnabled && canEnableAuto ? 'auto' : 'manual_only';
+    const effectiveAuto = effectiveMode === 'auto';
+
+    if (isAutoMode && autoPostEnabled && !canEnableAuto) {
+      setError('Für automatische Posts zuerst ein Poster hochladen.');
+      return;
+    }
+    if (effectiveAuto && selectedOffsets.length === 0) {
+      setError('Bitte mindestens einen Zeitpunkt für automatische Posts wählen.');
+      return;
+    }
+
     setSaving(true);
     setError(null);
     setStatusMessage(null);
@@ -98,7 +144,9 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }
       team_season_id: event.team_season_id,
       caption_override: captionOverride.trim() || null,
       prefer_custom_poster: preferCustomPoster,
-      post_mode: 'manual_only',
+      post_mode: effectiveMode,
+      auto_post_enabled: effectiveAuto,
+      post_offsets_days: effectiveAuto ? selectedOffsets : [],
       created_by: userId,
     });
     setSaving(false);
@@ -126,6 +174,18 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }
       setError(delErr);
       return;
     }
+    if (autoActive) {
+      await upsertEventFeedSettings({
+        event_id: event.id,
+        team_season_id: event.team_season_id,
+        post_mode: 'manual_only',
+        auto_post_enabled: false,
+        post_offsets_days: [],
+      });
+      setPostMode('manual_only');
+      setAutoPostEnabled(false);
+      setSelectedOffsets([]);
+    }
     setStatusMessage('Poster entfernt.');
     await reload();
   };
@@ -152,6 +212,15 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }
     setStatusMessage('Poster wurde im Feed veröffentlicht.');
   };
 
+  const onModeChange = (mode: EventFeedPostMode) => {
+    setPostMode(mode);
+    if (mode === 'manual_only') {
+      setAutoPostEnabled(false);
+    } else {
+      setAutoPostEnabled(true);
+    }
+  };
+
   return (
     <Card className="mt-6 flex flex-col gap-2 overflow-hidden">
       <button
@@ -168,11 +237,6 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }
 
       {expanded ? (
         <div className="flex flex-col gap-3 pt-1">
-          <p className="text-[13px] leading-snug text-white/70">
-            Automatische Veröffentlichung folgt im nächsten Schritt. Du kannst das Poster bereits manuell im Feed
-            veröffentlichen.
-          </p>
-
           {loading ? <p className="text-[14px] text-white/70">Lade Einstellungen…</p> : null}
 
           <div className="rounded-xl border border-white/10 bg-black/25 p-3">
@@ -248,8 +312,92 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }
             <span>Eigenes Poster bevorzugen</span>
           </label>
 
+          <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+            <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-white/55">
+              Automatische Veröffentlichung
+            </p>
+
+            <div className="mb-3 flex rounded-lg border border-white/10 bg-black/30 p-0.5">
+              {(['manual_only', 'auto'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => onModeChange(mode)}
+                  className={`min-h-[36px] flex-1 rounded-md px-2 text-[13px] font-medium transition-colors ${
+                    postMode === mode
+                      ? 'bg-red-600/90 text-white shadow-sm'
+                      : 'text-white/65 hover:text-white/90'
+                  }`}
+                >
+                  {mode === 'manual_only' ? 'Manuell' : 'Automatisch'}
+                </button>
+              ))}
+            </div>
+
+            {isAutoMode ? (
+              <>
+                <label
+                  className={`mb-3 flex items-start gap-2 text-[14px] ${
+                    canEnableAuto ? 'cursor-pointer text-white/90' : 'cursor-not-allowed text-white/45'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={autoPostEnabled}
+                    disabled={!canEnableAuto}
+                    onChange={(ev) => setAutoPostEnabled(ev.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border border-white/25 bg-black/30 disabled:opacity-40"
+                  />
+                  <span>Automatisch im Feed veröffentlichen</span>
+                </label>
+
+                {!canEnableAuto ? (
+                  <p className="mb-2 text-[12px] text-amber-200/85">
+                    Für automatische Posts zuerst ein Poster hochladen.
+                  </p>
+                ) : null}
+
+                <p className="mb-2 text-[12px] text-white/55">Zeitpunkte</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {OFFSET_OPTIONS.map((opt) => {
+                    const checked = selectedOffsets.some((o) => offsetKey(o) === offsetKey(opt.value));
+                    const disabled = !canEnableAuto || !autoPostEnabled;
+                    return (
+                      <label
+                        key={offsetKey(opt.value)}
+                        className={`flex min-h-[36px] items-center gap-2 rounded-lg border px-2 py-1.5 text-[13px] ${
+                          disabled
+                            ? 'cursor-not-allowed border-white/5 text-white/35'
+                            : 'cursor-pointer border-white/10 text-white/85'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={disabled}
+                          onChange={() => toggleOffset(opt.value)}
+                          className="h-3.5 w-3.5 shrink-0 rounded border border-white/25 bg-black/30"
+                        />
+                        <span className="leading-tight">{opt.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                <p className="mt-3 text-[12px] leading-snug text-white/55">
+                  Automatische Posts werden erzeugt, sobald der Feed geladen wird. Exakte Uhrzeiten folgen später mit
+                  einem Scheduler.
+                </p>
+              </>
+            ) : (
+              <p className="text-[13px] text-white/60">
+                Im manuellen Modus kannst du das Poster unten jederzeit selbst im Feed veröffentlichen.
+              </p>
+            )}
+          </div>
+
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <Button variant="primary" size="sm" disabled={saving || uploading} onClick={() => void onSaveTextSettings()}>
+            <Button variant="primary" size="sm" disabled={saving || uploading} onClick={() => void onSaveSettings()}>
               {saving ? 'Speichern…' : 'Einstellungen speichern'}
             </Button>
             <Button
@@ -265,7 +413,7 @@ export const EventFeedCommunicationSection: React.FC<Props> = ({ event, userId }
           </div>
 
           {manualPublished ? (
-            <p className="text-[13px] text-amber-200/90">Dieses Poster wurde bereits im Feed veröffentlicht.</p>
+            <p className="text-[13px] text-amber-200/90">Dieses Poster wurde bereits manuell im Feed veröffentlicht.</p>
           ) : null}
           {statusMessage ? <p className="text-[13px] text-emerald-300/95">{statusMessage}</p> : null}
           {error ? <p className="text-[13px] text-red-300/95">{error}</p> : null}
