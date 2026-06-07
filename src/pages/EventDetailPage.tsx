@@ -46,6 +46,8 @@ import {
 import { AudienceMatchdayDetailCard } from '../components/events/AudienceMatchdayDetailCard';
 import { TournamentDetailSections } from '../components/tournament/TournamentDetailSections';
 import { TrainingAttendancePanel } from '../components/events/TrainingAttendancePanel';
+import { EventFeedCommunicationSection } from '../components/events/EventFeedCommunicationSection';
+import { useSession } from '../auth/useSession';
 import { ScheduleEventActionsPanel } from '../components/schedule/ScheduleEventActionsPanel';
 import { PremiumPlayerCard } from '../components/player/PremiumPlayerCard';
 import { PremiumStatusBadge } from '../components/player/PremiumStatusBadge';
@@ -446,6 +448,7 @@ export const EventDetailPage: React.FC = () => {
   const [feedSectionExpanded, setFeedSectionExpanded] = useState(false);
 
   const { teamLabel, role: roleFromHook } = useActiveTeamSeason();
+  const { user: sessionUser } = useSession();
   const effectiveRole = normalizeRole(roleFromHook);
   const showMeetup = canSeeMeetup(effectiveRole);
   const isFan = effectiveRole === 'fan';
@@ -3610,6 +3613,10 @@ export const EventDetailPage: React.FC = () => {
             ) : null}
           </Card>
         )}
+
+        {canTrainerManageEvent ? (
+          <EventFeedCommunicationSection event={event} userId={sessionUser?.id ?? null} />
+        ) : null}
 
         <Modal
           isOpen={attendanceModalOpen}
