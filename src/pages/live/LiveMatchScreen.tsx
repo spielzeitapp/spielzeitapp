@@ -98,6 +98,7 @@ import {
 } from '../../lib/premiumDesignSystem';
 import { matchdayBenchTileClass } from '../../lib/matchdayPlayerCard';
 import {
+  DEFAULT_U11_FORMATION,
   isU11FormationId,
   labelForSlotInFormation,
   U11_FORMATION_CHOICES,
@@ -765,6 +766,26 @@ function liveLineupPitchNameOffset(
   }
 
   return { dx, dy: baseDy + addDy };
+}
+
+/** FairPlay +1 ohne Positionswechsel: zentral im Feld nahe ZM, nicht am TW. */
+function fairPlayDefaultOverlayPosition(formationId: U11FormationId): { leftPct: number; topPct: number } {
+  const rows = U11_FORMATIONS[formationId] ?? U11_FORMATIONS[DEFAULT_U11_FORMATION];
+  const gk = rows.find((r) => r.slot === 'GK');
+  const cm = rows.find((r) => r.slot === 'CM');
+  const lb = rows.find((r) => r.slot === 'LB');
+  const rb = rows.find((r) => r.slot === 'RB');
+  if (!gk) return { leftPct: 56, topPct: 58 };
+
+  const midRows = [lb, rb, cm].filter((r): r is (typeof rows)[number] => Boolean(r));
+  const avgY =
+    midRows.length > 0 ? midRows.reduce((sum, r) => sum + r.y, 0) / midRows.length : 55;
+
+  const topPct = Math.min(gk.y - 12, avgY + 5);
+  const cmX = cm?.x ?? 50;
+  const leftPct = cmX === 50 ? 58 : cmX + (cmX < 50 ? 12 : -12);
+
+  return { leftPct, topPct };
 }
 
 /** Startelf-Liste: Scroll-Puffer über BottomNav */
@@ -4720,12 +4741,27 @@ export const LiveMatchScreen: React.FC = () => {
                 {fairPlayExtraPlayerId ? (
                   <div
                     className={[
-                      'absolute bottom-0 left-1/2 z-[4] flex -translate-x-1/2 translate-y-[18%] flex-col items-center rounded-xl transition-transform',
+                      'absolute z-[4] flex flex-col items-center rounded-xl transition-transform',
+                      fairPlayVisualAnchorSlot
+                        ? 'bottom-0 left-1/2 -translate-x-1/2 translate-y-[18%]'
+                        : '',
                       lineupPositionMode && canControlLiveMatch && !matchIsFinished
                         ? 'pointer-events-auto cursor-pointer touch-manipulation'
                         : 'pointer-events-none',
                       posSwapFairPlayPick && !posSwapSlotA ? 'scale-[1.04] ring-2 ring-amber-400/75' : '',
                     ].join(' ')}
+                    style={
+                      fairPlayVisualAnchorSlot
+                        ? undefined
+                        : (() => {
+                            const { leftPct, topPct } = fairPlayDefaultOverlayPosition(safeFormationId);
+                            return {
+                              left: `${leftPct}%`,
+                              top: `${topPct}%`,
+                              transform: 'translate(-50%, -50%)',
+                            };
+                          })()
+                    }
                     role={lineupPositionMode && canControlLiveMatch && !matchIsFinished ? 'button' : undefined}
                     tabIndex={lineupPositionMode && canControlLiveMatch && !matchIsFinished ? 0 : undefined}
                     onClick={
