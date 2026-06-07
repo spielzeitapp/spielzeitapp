@@ -353,22 +353,19 @@ export const SchedulePage: React.FC = () => {
     const evRow = events.find((x) => x.id === eventId);
     const isTrainingEv = evRow != null && getEffectiveEventType(evRow) === 'training';
     if (isTrainingEv && status === 'yes') {
-      const del = await supabase
-        .from('event_attendance')
-        .delete()
-        .eq('event_id', eventId)
-        .eq('player_id', playerId);
-      if (del.error) {
-        setToastMessage(del.error.message ?? 'Speichern fehlgeschlagen.');
+      const payload = {
+        event_id: eventId,
+        player_id: playerId,
+        status: 'yes' as const,
+      };
+      const result = await upsertEventAttendanceMinimal(supabase, payload);
+      if (result.error) {
+        setToastMessage(result.error.message ?? 'Speichern fehlgeschlagen.');
         setAttendanceModalEvent(null);
         setTrainingCancelReason('');
         return;
       }
-      setAttendanceStatusByEventId((prev) => {
-        const next = { ...prev };
-        delete next[eventId];
-        return next;
-      });
+      setAttendanceStatusByEventId((prev) => ({ ...prev, [eventId]: 'yes' }));
       setAttendanceModalEvent(null);
       setTrainingCancelReason('');
       await refreshAttendance();
@@ -869,91 +866,43 @@ export const SchedulePage: React.FC = () => {
   });
 
   /**
-   * Training „Wieder dabei“: Absage-Zeile in event_attendance zuverlässig entfernen
-   * (Standard = dabei ohne Datensatz). Umgeht Toggle-/Stale-State-Fälle von setAttendance.
+   * Training „Wieder dabei“: status = yes in event_attendance speichern (UPSERT).
+   * Umgeht Toggle-/Stale-State-Fälle von setAttendance.
    */
   const reinstateTrainingParticipation = useCallback(
     async (eventId: string): Promise<boolean> => {
-      const myPidKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
-      const fromDbRaw =
-        myAttendancePlayerIds[0] && attendanceByEventId[eventId]
-          ? attendanceByEventId[eventId].availabilityByPlayerId[myPidKey]
-          : undefined;
-      const fromDb: 'yes' | 'no' | null = fromDbRaw === 'yes' || fromDbRaw === 'no' ? fromDbRaw : null;
-      const currentLocal = attendanceStatusByEventId[eventId] ?? fromDb ?? null;
-
-      const candidatePlayerIds = new Set<string>();
-      if (myAttendancePlayerIds[0]) candidatePlayerIds.add(myAttendancePlayerIds[0]);
-      if (userId) {
+      let playerId = myAttendancePlayerIds[0] ?? null;
+      if (!playerId && userId) {
         const byGuardian = await supabase.from('player_guardians').select('player_id').eq('user_id', userId);
-        for (const row of byGuardian.data ?? []) {
-          if (row?.player_id) candidatePlayerIds.add(String(row.player_id));
-        }
-        const byPlayer = await supabase.from('player_users').select('player_id').eq('user_id', userId);
-        for (const row of byPlayer.data ?? []) {
-          if (row?.player_id) candidatePlayerIds.add(String(row.player_id));
+        if (!byGuardian.error && byGuardian.data?.length) playerId = byGuardian.data[0].player_id;
+        if (!playerId) {
+          const byPlayer = await supabase.from('player_users').select('player_id').eq('user_id', userId);
+          if (!byPlayer.error && byPlayer.data?.length) playerId = byPlayer.data[0].player_id;
         }
       }
-      const playerIds = Array.from(candidatePlayerIds);
 
-      console.debug('[TRAINING REJOIN] start', {
-        eventId,
-        userId,
-        playerId: myAttendancePlayerIds[0] ?? null,
-        candidatePlayerIds: playerIds,
-        currentLocal,
-      });
-
-      if (!eventId || playerIds.length === 0) {
-        setToastMessage(playerIds.length === 0 ? 'Kein Spieler zugeordnet.' : 'Event fehlt.');
+      if (!eventId || !playerId) {
+        setToastMessage(!playerId ? 'Kein Spieler zugeordnet.' : 'Event fehlt.');
         return false;
       }
 
-      // Training-Default = dabei ohne Datensatz: entferne alle negativen Status des aktuellen Users/Players.
-      const deleteQuery = supabase
-        .from('event_attendance')
-        .delete()
-        .eq('event_id', eventId)
-        .in('player_id', playerIds)
-        .in('status', ['no', 'absent', 'declined', 'external_training']);
-      console.debug('[TRAINING REJOIN] delete filter', {
-        table: 'event_attendance',
+      const result = await upsertEventAttendanceMinimal(supabase, {
         event_id: eventId,
-        player_id_in: playerIds,
-        status_in: ['no', 'absent', 'declined', 'external_training'],
+        player_id: playerId,
+        status: 'yes',
       });
-      const { error } = await deleteQuery;
-      console.debug('[TRAINING REJOIN] delete result', { error });
 
-      if (error) {
-        console.error('[ATTENDANCE] Training rejoin delete', error);
-        setToastMessage(error.message ?? 'Speichern fehlgeschlagen.');
+      if (result.error) {
+        console.error('[ATTENDANCE] Training rejoin upsert', result.error);
+        setToastMessage(result.error.message ?? 'Speichern fehlgeschlagen.');
         return false;
       }
 
-      // Optimistisch sofort grün anzeigen (✓ Dabei), bis Refresh final aus DB synchronisiert.
       setAttendanceStatusByEventId((prev) => ({ ...prev, [eventId]: 'yes' }));
       await refreshAttendance();
-      const refreshForEvent = attendanceByEventId[eventId];
-      const refreshStatusForActivePlayer =
-        myAttendancePlayerIds[0] && refreshForEvent
-          ? refreshForEvent.availabilityByPlayerId[(myAttendancePlayerIds[0] ?? '').toLowerCase()] ?? null
-          : null;
-      const { data: remainingNoRows, error: remainingNoRowsError } = await supabase
-        .from('event_attendance')
-        .select('event_id, player_id, status')
-        .eq('event_id', eventId)
-        .in('status', ['no', 'absent', 'declined']);
-      console.debug('[TRAINING REJOIN] refresh result for event', {
-        eventId,
-        refreshStatusForActivePlayer,
-        attendanceByEventIdEntry: refreshForEvent ?? null,
-        remainingNoRows,
-        remainingNoRowsError,
-      });
       return true;
     },
-    [attendanceByEventId, attendanceStatusByEventId, myAttendancePlayerIds, userId, refreshAttendance],
+    [myAttendancePlayerIds, userId, refreshAttendance],
   );
 
   const rosterPlayerIds = useMemo(() => players.map((p) => p.id), [players]);

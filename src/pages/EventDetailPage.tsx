@@ -961,25 +961,6 @@ export const EventDetailPage: React.FC = () => {
         if (lazErr || !lazRow?.is_laz_player) return;
       }
 
-      if (event?.kind === 'training' && status === 'yes') {
-        const del = await supabase
-          .from('event_attendance')
-          .delete()
-          .eq('event_id', eventId)
-          .eq('player_id', resolvedPlayerId);
-        if (del.error) return;
-        setRsvpStatus(null);
-        setEventAttendanceByPlayerId((prev) => {
-          const n = { ...prev };
-          delete n[(resolvedPlayerId ?? '').toLowerCase()];
-          return n;
-        });
-        setAttendanceModalOpen(false);
-        setCancelReason('');
-        await loadEventAttendance();
-        return;
-      }
-
       const payload = {
         event_id: eventId,
         player_id: resolvedPlayerId,
@@ -1003,7 +984,7 @@ export const EventDetailPage: React.FC = () => {
     [eventId, playerId, effectiveRole, loadEventAttendance, event?.kind]
   );
 
-  /** Trainer/Admin: RSVP für einen beliebigen Spieler des Teams setzen. Training: „Dabei“ = Eintrag löschen (nur Absagen speichern). */
+  /** Trainer/Admin: RSVP für einen beliebigen Spieler des Teams setzen. */
   const handleTrainerRsvp = useCallback(
     async (targetPlayerId: string, status: 'yes' | 'no') => {
       console.log('[ATTENDANCE FLOW] handleTrainerRsvp invoked', {
