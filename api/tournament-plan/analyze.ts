@@ -1,4 +1,4 @@
-import { captureMeinTurnierplanHtmlFallbackException } from '../../src/lib/meinTurnierPlanHtmlFallback';
+import { captureMeinTurnierplanHtmlFallbackException } from '../../src/lib/meinTurnierplanHtmlFallback';
 import {
   analyzeMeinTurnierplanUrl,
   analyzeMeinTurnierplanUrlForceHtmlFallback,

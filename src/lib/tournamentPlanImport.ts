@@ -4,6 +4,7 @@ import {
   type TournamentImportRecognition,
 } from './teamSeasonAliases';
 import {
+  captureMeinTurnierplanHtmlFallbackException,
   extractMeinTurnierplanJsonFromShowitHtml,
   fetchMeinTurnierplanShowitPageHtml,
   type MeinTurnierplanHtmlFallbackException,
