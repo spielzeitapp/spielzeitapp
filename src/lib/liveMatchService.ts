@@ -149,12 +149,19 @@ export function matchEventDbRowToEngine(row: MatchEventDbRow): MatchEngineEvent 
     const p = row.payload && typeof row.payload === 'object' ? (row.payload as Record<string, unknown>) : {};
     const swapWith =
       typeof p.swap_player_id === 'string' && p.swap_player_id.trim().length > 0 ? p.swap_player_id.trim() : '';
+    const fairPlayPositionSwap = p.fair_play === true || p.fair_play === 'true';
+    const anchorRaw = typeof p.anchor_slot === 'string' ? p.anchor_slot.trim() : '';
+    const anchorSlot = LIVE_FIELD_SLOT_ORDER.includes(anchorRaw as FieldSlotId)
+      ? (anchorRaw as FieldSlotId)
+      : undefined;
     return {
       id: row.id,
       type: 'position_swap',
       timestamp: row.minute ?? 0,
       playerId: row.player_id ?? undefined,
       swapWithPlayerId: swapWith || undefined,
+      fairPlayPositionSwap: fairPlayPositionSwap || undefined,
+      fairPlayAnchorSlot: anchorSlot,
       createdAt,
     };
   }
@@ -281,13 +288,18 @@ export function engineEventToInsertPayload(
 
   if (ev.type === 'position_swap') {
     debugAssertMatchEventDbType('engineEventToInsertPayload', 'position_swap');
+    const payload: Record<string, unknown> = { swap_player_id: ev.swapWithPlayerId ?? null };
+    if (ev.fairPlayPositionSwap) {
+      payload.fair_play = true;
+      if (ev.fairPlayAnchorSlot) payload.anchor_slot = ev.fairPlayAnchorSlot;
+    }
     return {
       match_id: matchId,
       type: 'position_swap',
       minute: safeMinute,
       period: period ?? null,
       player_id: ev.playerId ?? null,
-      payload: { swap_player_id: ev.swapWithPlayerId ?? null },
+      payload,
     };
   }
   const dbType = ev.type === 'goal' ? 'goal' : ev.type === 'goal_away' ? 'goal_away' : (ev.type as string);
@@ -750,6 +762,40 @@ export async function persistPositionSwap(params: {
     player_id: pidA || null,
     payload: { swap_player_id: pidB || null },
   });
+  return { error: error ?? null, eventId: id };
+}
+
+/**
+ * FairPlay-Positionswechsel: nur Event (Ticker), kein `match_lineup` / `match_bench`-Update.
+ */
+export async function persistFairPlayPositionSwap(params: {
+  matchId: string;
+  extraPlayerId: string;
+  slot: FieldSlotId;
+  slotPlayerId: string;
+  timestamp: number;
+  period: number | null;
+}): Promise<{ error: string | null; eventId: string | null }> {
+  const mid = params.matchId?.trim();
+  const extraId = String(params.extraPlayerId ?? '').trim();
+  const slotPlayerId = String(params.slotPlayerId ?? '').trim();
+  const slot = params.slot;
+  if (!mid || !extraId || !slotPlayerId || LIVE_FIELD_SLOT_ORDER.indexOf(slot) === -1) {
+    return { error: 'Ungültige Eingabe.', eventId: null };
+  }
+  const payload = engineEventToInsertPayload(
+    mid,
+    {
+      type: 'position_swap',
+      timestamp: clampEffectiveMatchSeconds(params.timestamp),
+      playerId: extraId,
+      swapWithPlayerId: slotPlayerId,
+      fairPlayPositionSwap: true,
+      fairPlayAnchorSlot: slot,
+    },
+    params.period,
+  );
+  const { id, error } = await saveMatchEvent(payload);
   return { error: error ?? null, eventId: id };
 }
 

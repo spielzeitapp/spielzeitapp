@@ -118,6 +118,10 @@ export type MatchEngineEvent = {
   createdAt?: string;
   /** `position_swap`: zweiter Spieler (UUID), Tausch nur zwischen diesen beiden auf dem Feld. */
   swapWithPlayerId?: string;
+  /** `position_swap` mit FairPlay-Extra: kein Slot-Remap in `match_lineup`, nur visuelle Positionsanker. */
+  fairPlayPositionSwap?: boolean;
+  /** Ziel-Slot für FairPlay-Overlay nach Positionswechsel mit Feldspieler. */
+  fairPlayAnchorSlot?: FieldSlotId;
   /** `extra_player_off`: Zusatzspieler-Session (`playerId`); dieser Spieler verlässt das Feld. */
   fairPlayRemovedPlayerId?: string;
 };
@@ -312,6 +316,58 @@ export function swapTwoOccupiedFieldSlots(
   next[slotA] = b;
   next[slotB] = a;
   return dedupeFieldSlotMap(next);
+}
+
+function normFairPlayAnchorSlot(raw: unknown): FieldSlotId | null {
+  const s = String(raw ?? '').trim().toUpperCase();
+  return FIELD_SLOT_ORDER.includes(s as FieldSlotId) ? (s as FieldSlotId) : null;
+}
+
+/** FairPlay-Zusatzspieler tauscht nur die Anzeige-Position mit einem Slot-Spieler (kein Bank-Wechsel). */
+export function isFairPlayPositionSwapEvent(
+  e: MatchEngineEvent,
+  fairPlayExtraId: string | null | undefined,
+): boolean {
+  if (e.type !== 'position_swap') return false;
+  if (e.fairPlayPositionSwap) return true;
+  const extra = String(fairPlayExtraId ?? '').trim();
+  if (!extra) return false;
+  const a = String(e.playerId ?? '').trim();
+  const b = String(e.swapWithPlayerId ?? '').trim();
+  return a === extra || b === extra;
+}
+
+export function deriveFairPlayVisualPosition(
+  fairPlayExtraId: string | null,
+  slotsBySlot: Record<FieldSlotId, string | null>,
+  eventsAsc: MatchEngineEvent[],
+  finalSecond: number,
+): { anchorSlot: FieldSlotId | null; partnerPlayerId: string | null } {
+  const extra = fairPlayExtraId?.trim();
+  if (!extra) return { anchorSlot: null, partnerPlayerId: null };
+  let anchorSlot: FieldSlotId | null = null;
+  let partnerPlayerId: string | null = null;
+  const capped = clampEffectiveMatchSeconds(finalSecond);
+  for (const e of eventsAsc) {
+    const t = eventMatchSecondOrNull(e);
+    if (t == null || t > capped) continue;
+    if (!isFairPlayPositionSwapEvent(e, extra)) continue;
+    const extraAtEv = fairPlayExtraPlayerIdAtSecond(eventsAsc, t);
+    if (extraAtEv !== extra) continue;
+    const a = String(e.playerId ?? '').trim();
+    const b = String(e.swapWithPlayerId ?? '').trim();
+    const partner = a === extra ? b : b === extra ? a : null;
+    if (!partner) continue;
+    const anchor =
+      normFairPlayAnchorSlot(e.fairPlayAnchorSlot) ??
+      FIELD_SLOT_ORDER.find((s) => String(slotsBySlot[s] ?? '').trim() === partner) ??
+      null;
+    if (anchor) {
+      anchorSlot = anchor;
+      partnerPlayerId = partner;
+    }
+  }
+  return { anchorSlot, partnerPlayerId };
 }
 
 function applyPositionSwapByPlayerIds(
@@ -557,7 +613,12 @@ export function replaySubstitutionEventsOnSlots(
     if (e.type === 'position_swap') {
       const a = String(e.playerId ?? '').trim();
       const b = String(e.swapWithPlayerId ?? '').trim();
-      if (a && b) slots = applyPositionSwapByPlayerIds(slots, a, b);
+      if (!a || !b) continue;
+      if (e.fairPlayPositionSwap) continue;
+      const slotA = FIELD_SLOT_ORDER.find((s) => String(slots[s] ?? '').trim() === a);
+      const slotB = FIELD_SLOT_ORDER.find((s) => String(slots[s] ?? '').trim() === b);
+      if ((slotA && !slotB) || (!slotA && slotB)) continue;
+      slots = applyPositionSwapByPlayerIds(slots, a, b);
       continue;
     }
     if (e.type === 'substitution') {
@@ -667,6 +728,9 @@ export type LiveMatchReplayState = {
   activePlayerIds: string[];
   benchPlayerIds: string[];
   fairPlayExtraPlayerId: string | null;
+  /** FairPlay-Extra am Slot (Formation); Partner-Spieler im Overlay unten. */
+  fairPlayVisualAnchorSlot: FieldSlotId | null;
+  fairPlayOverlayPartnerPlayerId: string | null;
   playtimeSecondsByPlayerId: PlayerPlaytimeMap;
   diagnostics: LiveMatchReplayDiagnostics;
 };
@@ -732,6 +796,9 @@ export function deriveLiveMatchReplayState(params: DeriveLiveMatchReplayParams):
   }
 
   const benchPlayerIds = getBenchPlayers(squad, activePlayerIds);
+
+  const { anchorSlot: fairPlayVisualAnchorSlot, partnerPlayerId: fairPlayOverlayPartnerPlayerId } =
+    deriveFairPlayVisualPosition(extra ?? null, slotsBySlot, eventsAsc, finalSecond);
 
   const playtimeRaw = computePlayerPlaytimeFromEvents({
     kickoffStartingPlayerIds: kickoffPlaytime,
@@ -816,6 +883,8 @@ export function deriveLiveMatchReplayState(params: DeriveLiveMatchReplayParams):
     activePlayerIds,
     benchPlayerIds,
     fairPlayExtraPlayerId,
+    fairPlayVisualAnchorSlot,
+    fairPlayOverlayPartnerPlayerId,
     playtimeSecondsByPlayerId,
     diagnostics: {
       warnings,
