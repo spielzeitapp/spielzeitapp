@@ -70,6 +70,7 @@ function emptySlots(): Record<FieldSlotId, string | null> {
     LW: null,
     RW: null,
     ST: null,
+    FP: null,
   };
 }
 

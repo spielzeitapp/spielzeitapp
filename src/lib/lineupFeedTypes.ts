@@ -31,6 +31,7 @@ export const LINEUP_FEED_FIELD_SLOT_LABELS: Record<FieldSlotId, string> = {
   LW: 'Links außen',
   RW: 'Rechts außen',
   ST: 'Sturm',
+  FP: 'FairPlay',
 };
 
 const LINEUP_POSITION_ABBREVS = new Set([

@@ -90,7 +90,7 @@ export function displayMatchMinuteFromEffectiveSeconds(sec: number): number {
 }
 
 /** Gleiche Reihenfolge wie DB-/Aufstellung (`match_lineup.slot` / LIVE_FIELD_SLOT_ORDER). */
-export const FIELD_SLOT_ORDER: FieldSlotId[] = ['GK', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'];
+export const FIELD_SLOT_ORDER: FieldSlotId[] = ['GK', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST', 'FP'];
 
 export type MatchEventType =
   | 'start'
@@ -439,6 +439,26 @@ function mergeFieldSlotsPreferReplay(
   replay: Record<FieldSlotId, string | null>,
   fallback: Record<FieldSlotId, string | null>,
 ): Record<FieldSlotId, string | null> {
+  const coreSlots = FIELD_SLOT_ORDER.filter((s) => s !== 'FP');
+  const replayCoreSet = new Set(
+    coreSlots.map((s) => String(replay[s] ?? '').trim()).filter(Boolean),
+  );
+  const fallbackCoreSet = new Set(
+    coreSlots.map((s) => String(fallback[s] ?? '').trim()).filter(Boolean),
+  );
+  const coreDiff =
+    [...fallbackCoreSet].some((id) => !replayCoreSet.has(id)) ||
+    [...replayCoreSet].some((id) => !fallbackCoreSet.has(id));
+
+  if (coreDiff) {
+    const next = { ...fallback } as Record<FieldSlotId, string | null>;
+    const replayFp = String(replay.FP ?? '').trim();
+    if (replayFp && !String(next.FP ?? '').trim()) {
+      next.FP = replayFp;
+    }
+    return dedupeFieldSlotMap(next);
+  }
+
   const next = { ...replay } as Record<FieldSlotId, string | null>;
   for (const s of FIELD_SLOT_ORDER) {
     if (!String(next[s] ?? '').trim() && String(fallback[s] ?? '').trim()) {
@@ -511,42 +531,55 @@ export function canonicalSubstitutionEventsForReplay(
   return { canonical, orphanInIgnored, orphanOutIgnored };
 }
 
-/** FairPlay-Ende: Feld verlässt / Zusatzspieler übernimmt Slot (7/7 nach `extra_player_off`). */
-function applyFairPlayEventsToSlots(
+/** FairPlay: Zusatzspieler im FP-Slot; Ende entfernt FP oder überträgt Slot. */
+function applyExtraPlayerOnToSlots(
   slots: Record<FieldSlotId, string | null>,
-  events: MatchEngineEvent[],
-  atMatchSecond: number,
+  extraId: string,
 ): Record<FieldSlotId, string | null> {
-  const t = Math.max(0, atMatchSecond);
-  const sorted = sortMatchEventsChronologically(events).filter((e) => e.timestamp <= t);
-  let next = { ...slots } as Record<FieldSlotId, string | null>;
-  for (const e of sorted) {
-    if (e.type !== 'extra_player_off') continue;
-    const removed = fairPlayRemovedPlayerIdFromEvent(e);
-    const extraId = fairPlayExtraPlayerIdFromOffEvent(e);
-    if (!removed) continue;
-    if (extraId && removed === extraId) {
-      for (const s of FIELD_SLOT_ORDER) {
-        if (String(next[s] ?? '').trim() === extraId) next[s] = null;
-      }
-      continue;
+  const extra = String(extraId ?? '').trim();
+  if (!extra) return slots;
+  const next = { ...slots } as Record<FieldSlotId, string | null>;
+  next.FP = extra;
+  for (const s of FIELD_SLOT_ORDER) {
+    if (s !== 'FP' && String(next[s] ?? '').trim() === extra) {
+      next[s] = null;
     }
-    if (!extraId) continue;
-    let placed = false;
+  }
+  return dedupeFieldSlotMap(next);
+}
+
+function applyExtraPlayerOffToSlots(
+  slots: Record<FieldSlotId, string | null>,
+  removed: string | null,
+  extraId: string | null,
+): Record<FieldSlotId, string | null> {
+  let next = { ...slots } as Record<FieldSlotId, string | null>;
+  if (extraId) {
     for (const s of FIELD_SLOT_ORDER) {
-      if (String(next[s] ?? '').trim() === removed) {
+      if (String(next[s] ?? '').trim() === extraId) {
+        next[s] = null;
+      }
+    }
+  }
+  next.FP = null;
+  if (!removed) return dedupeFieldSlotMap(next);
+  if (extraId && removed === extraId) return dedupeFieldSlotMap(next);
+  if (!extraId) return dedupeFieldSlotMap(next);
+
+  let placed = false;
+  for (const s of FIELD_SLOT_ORDER) {
+    if (String(next[s] ?? '').trim() === removed) {
+      next[s] = extraId;
+      placed = true;
+      break;
+    }
+  }
+  if (!placed) {
+    for (const s of FIELD_SLOT_ORDER) {
+      if (!String(next[s] ?? '').trim()) {
         next[s] = extraId;
         placed = true;
         break;
-      }
-    }
-    if (!placed) {
-      for (const s of FIELD_SLOT_ORDER) {
-        if (!String(next[s] ?? '').trim()) {
-          next[s] = extraId;
-          placed = true;
-          break;
-        }
       }
     }
   }
@@ -579,7 +612,13 @@ export function replaySubstitutionEventsOnSlots(
 
   const { canonical, orphanInIgnored, orphanOutIgnored } = canonicalSubstitutionEventsForReplay(events, t);
   const subs = sortSubEventsForSlotReplay(
-    canonical.filter((e) => e.type === 'substitution' || e.type === 'position_swap'),
+    canonical.filter(
+      (e) =>
+        e.type === 'substitution' ||
+        e.type === 'position_swap' ||
+        e.type === 'extra_player_on' ||
+        e.type === 'extra_player_off',
+    ),
   );
 
   const steps: LiveSubReplayStepDebug[] = [];
@@ -610,11 +649,25 @@ export function replaySubstitutionEventsOnSlots(
   };
 
   for (const e of subs) {
+    if (e.type === 'extra_player_on') {
+      const extraId = String(e.playerId ?? '').trim();
+      if (extraId) {
+        slots = applyExtraPlayerOnToSlots(slots, extraId);
+        pushStep('pair', null, extraId);
+      }
+      continue;
+    }
+    if (e.type === 'extra_player_off') {
+      const removed = fairPlayRemovedPlayerIdFromEvent(e);
+      const extraId = fairPlayExtraPlayerIdFromOffEvent(e);
+      slots = applyExtraPlayerOffToSlots(slots, removed, extraId);
+      pushStep('pair', removed, extraId);
+      continue;
+    }
     if (e.type === 'position_swap') {
       const a = String(e.playerId ?? '').trim();
       const b = String(e.swapWithPlayerId ?? '').trim();
       if (!a || !b) continue;
-      if (e.fairPlayPositionSwap) continue;
       const slotA = FIELD_SLOT_ORDER.find((s) => String(slots[s] ?? '').trim() === a);
       const slotB = FIELD_SLOT_ORDER.find((s) => String(slots[s] ?? '').trim() === b);
       if ((slotA && !slotB) || (!slotA && slotB)) continue;
@@ -633,14 +686,13 @@ export function replaySubstitutionEventsOnSlots(
     }
   }
 
-  slots = applyFairPlayEventsToSlots(slots, events, t);
-
   if (opts?.fallbackSlotMap) {
     slots = mergeFieldSlotsPreferReplay(slots, opts.fallbackSlotMap);
   }
 
   const fieldCount = getOnFieldIdsInSlotOrder(slots).length;
-  if (fieldCount < 7 && opts?.fallbackSlotMap) {
+  const minFieldCount = String(slots.FP ?? '').trim() ? 8 : 7;
+  if (fieldCount < minFieldCount && opts?.fallbackSlotMap) {
     slots = mergeFieldSlotsPreferReplay(slots, opts.fallbackSlotMap);
   }
 
@@ -724,13 +776,9 @@ export type LiveMatchReplayDiagnostics = {
 export type LiveMatchReplayState = {
   slotsBySlot: Record<FieldSlotId, string | null>;
   onFieldPlayerIds: string[];
-  /** 7 Slots + FairPlay-Extra (wenn aktiv und nicht bereits im Slot). */
   activePlayerIds: string[];
   benchPlayerIds: string[];
   fairPlayExtraPlayerId: string | null;
-  /** FairPlay-Extra am Slot (Formation); Partner-Spieler im Overlay unten. */
-  fairPlayVisualAnchorSlot: FieldSlotId | null;
-  fairPlayOverlayPartnerPlayerId: string | null;
   playtimeSecondsByPlayerId: PlayerPlaytimeMap;
   diagnostics: LiveMatchReplayDiagnostics;
 };
@@ -769,7 +817,7 @@ export function deriveLiveMatchReplayState(params: DeriveLiveMatchReplayParams):
   }
 
   const kickoff = params.kickoffLineup.slice(0, 7);
-  const fallback = (params.fallbackStartingPlayerIds ?? kickoff).slice(0, 7);
+  const fallback = (params.fallbackStartingPlayerIds ?? kickoff).slice(0, FIELD_SLOT_ORDER.length);
   const kickoffPlaytime = (params.kickoffLineupForPlaytime ?? kickoff).slice(0, 7);
   const squad = params.squadPlayerIds;
   const squadSet = new Set(squad.map((id) => String(id ?? '').trim()).filter(Boolean));
@@ -787,18 +835,12 @@ export function deriveLiveMatchReplayState(params: DeriveLiveMatchReplayParams):
   const onFieldPlayerIds = getOnFieldIdsInSlotOrder(slotsBySlot);
 
   const eventsUpToFinal = eventsAsc.filter((e) => (eventMatchSecondOrNull(e) ?? 0) <= finalSecond);
-  const fairPlayExtraPlayerId = fairPlayExtraPlayerIdFromSortedEvents(eventsUpToFinal);
+  const fairPlayExtraPlayerId =
+    String(slotsBySlot.FP ?? '').trim() ||
+    fairPlayExtraPlayerIdFromSortedEvents(eventsUpToFinal);
 
   const activePlayerIds = [...onFieldPlayerIds];
-  const extra = fairPlayExtraPlayerId?.trim();
-  if (extra && !activePlayerIds.includes(extra)) {
-    activePlayerIds.push(extra);
-  }
-
   const benchPlayerIds = getBenchPlayers(squad, activePlayerIds);
-
-  const { anchorSlot: fairPlayVisualAnchorSlot, partnerPlayerId: fairPlayOverlayPartnerPlayerId } =
-    deriveFairPlayVisualPosition(extra ?? null, slotsBySlot, eventsAsc, finalSecond);
 
   const playtimeRaw = computePlayerPlaytimeFromEvents({
     kickoffStartingPlayerIds: kickoffPlaytime,
@@ -829,6 +871,7 @@ export function deriveLiveMatchReplayState(params: DeriveLiveMatchReplayParams):
     warnLiveReplayDevtools('Spieler doppelt Feld/Bank', { playersInBoth });
   }
 
+  const extra = fairPlayExtraPlayerId?.trim();
   if (extra && benchSet.has(extra)) {
     warnings.push('fairplay_extra_on_bench');
     warnLiveReplayDevtools('FairPlay-Zusatzspieler in benchPlayerIds', { extra });
@@ -882,9 +925,7 @@ export function deriveLiveMatchReplayState(params: DeriveLiveMatchReplayParams):
     onFieldPlayerIds,
     activePlayerIds,
     benchPlayerIds,
-    fairPlayExtraPlayerId,
-    fairPlayVisualAnchorSlot,
-    fairPlayOverlayPartnerPlayerId,
+    fairPlayExtraPlayerId: extra ?? null,
     playtimeSecondsByPlayerId,
     diagnostics: {
       warnings,

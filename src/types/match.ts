@@ -18,7 +18,7 @@ export interface Team {
 
 export type MatchStatus = 'planned' | 'live' | 'finished';
 
-export type FieldSlotId = 'GK' | 'LB' | 'RB' | 'CM' | 'LW' | 'RW' | 'ST';
+export type FieldSlotId = 'GK' | 'LB' | 'RB' | 'CM' | 'LW' | 'RW' | 'ST' | 'FP';
 
 export interface FieldSlot {
   id: FieldSlotId;

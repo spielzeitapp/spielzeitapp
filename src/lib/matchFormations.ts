@@ -1,7 +1,7 @@
 import type { FieldSlotId } from '../types/match';
 
-/** Sichtbare 7er-Systeme (U11); Speicherung bleibt über FieldSlotId in match_lineup. */
-export type U11FormationId = '1-2-2-2' | '1-2-3-1' | '1-3-2-1' | '1-3-3';
+/** Sichtbare 7er-Systeme (U11); Speicherung bleibt über FieldSlotId in match_lineup. FairPlay nutzt intern `1-4-3` (8 Slots). */
+export type U11FormationId = '1-2-2-2' | '1-2-3-1' | '1-3-2-1' | '1-3-3' | '1-4-3';
 
 export const DEFAULT_U11_FORMATION: U11FormationId = '1-2-2-2';
 
@@ -65,6 +65,17 @@ export const U11_FORMATIONS: Record<U11FormationId, FormationSlotLayout[]> = {
     { slot: 'RW', label: 'RF', x: 83, y: 24, labelDx: -6, labelDy: 1 },
     { slot: 'ST', label: 'ST', x: 50, y: 12, labelDy: 0 },
   ],
+  /** FairPlay +1: 1 TW + 4 Feld hinten (inkl. FP) + 3 vorne — nur bei aktivem Zusatzspieler. */
+  '1-4-3': [
+    { slot: 'GK', label: 'GK', x: 50, y: 86, labelDy: -5 },
+    { slot: 'LB', label: 'LV', x: 16, y: 68, labelDx: 5, labelDy: 3 },
+    { slot: 'FP', label: 'FP', x: 38, y: 70, labelDx: 0, labelDy: 2 },
+    { slot: 'CM', label: 'IV', x: 62, y: 70, labelDy: 3 },
+    { slot: 'RB', label: 'RV', x: 84, y: 68, labelDx: -5, labelDy: 3 },
+    { slot: 'LW', label: 'LF', x: 17, y: 24, labelDx: 6, labelDy: 1 },
+    { slot: 'RW', label: 'RF', x: 83, y: 24, labelDx: -6, labelDy: 1 },
+    { slot: 'ST', label: 'ST', x: 50, y: 12, labelDy: 0 },
+  ],
 };
 
 if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
@@ -74,6 +85,11 @@ if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
     if (rows.length !== 7 || new Set(slots).size !== 7) {
       throw new Error(`U11_FORMATIONS[${fid}] muss genau 7 eindeutige Slots (GK + 6 Feld) haben.`);
     }
+  }
+  const fpRows = U11_FORMATIONS['1-4-3'];
+  const fpSlots = fpRows.map((r) => r.slot);
+  if (fpRows.length !== 8 || new Set(fpSlots).size !== 8) {
+    throw new Error('U11_FORMATIONS[1-4-3] muss genau 8 eindeutige Slots haben.');
   }
 }
 
@@ -85,11 +101,22 @@ const FALLBACK_LABELS: Record<FieldSlotId, string> = {
   LW: 'LA',
   RW: 'RA',
   ST: 'ST',
+  FP: 'FP',
 };
 
 export function isU11FormationId(v: string | null | undefined): v is U11FormationId {
   const s = String(v ?? '').trim();
-  return s === '1-2-2-2' || s === '1-2-3-1' || s === '1-3-2-1' || s === '1-3-3';
+  return s === '1-2-2-2' || s === '1-2-3-1' || s === '1-3-2-1' || s === '1-3-3' || s === '1-4-3';
+}
+
+/** Live-Pitch: bei FairPlay automatisch 1-4-3 (8 Slots), sonst gespeicherte Formation. */
+export function resolveLivePitchFormationId(
+  baseFormationId: U11FormationId,
+  fairPlayActive: boolean,
+): U11FormationId {
+  if (fairPlayActive) return '1-4-3';
+  if (baseFormationId === '1-4-3') return U11_FORMATION_DB_FALLBACK;
+  return baseFormationId;
 }
 
 export function labelForSlotInFormation(formationId: U11FormationId, storageSlot: FieldSlotId): string {

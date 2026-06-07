@@ -22,7 +22,7 @@ import {
 } from './matchEngine';
 
 /** Reihenfolge der Slots = Startelf-Reihenfolge (7er). */
-export const LIVE_FIELD_SLOT_ORDER: FieldSlotId[] = ['GK', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'];
+export const LIVE_FIELD_SLOT_ORDER: FieldSlotId[] = ['GK', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST', 'FP'];
 
 export type LiveMatchRow = {
   id: string;

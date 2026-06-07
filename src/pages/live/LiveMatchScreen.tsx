@@ -51,7 +51,6 @@ import {
   repairLiveMatchLineupBenchIfNeeded,
   syncFinalLineupBenchFromEventReplay,
   persistPositionSwap,
-  persistFairPlayPositionSwap,
   saveMatchEvent,
   updateMatchRow,
   type LiveMatchRow,
@@ -98,9 +97,9 @@ import {
 } from '../../lib/premiumDesignSystem';
 import { matchdayBenchTileClass } from '../../lib/matchdayPlayerCard';
 import {
-  DEFAULT_U11_FORMATION,
   isU11FormationId,
   labelForSlotInFormation,
+  resolveLivePitchFormationId,
   U11_FORMATION_CHOICES,
   U11_FORMATIONS,
   U11_FORMATION_DB_FALLBACK,
@@ -768,26 +767,6 @@ function liveLineupPitchNameOffset(
   return { dx, dy: baseDy + addDy };
 }
 
-/** FairPlay +1 ohne Positionswechsel: zentral im Feld nahe ZM, nicht am TW. */
-function fairPlayDefaultOverlayPosition(formationId: U11FormationId): { leftPct: number; topPct: number } {
-  const rows = U11_FORMATIONS[formationId] ?? U11_FORMATIONS[DEFAULT_U11_FORMATION];
-  const gk = rows.find((r) => r.slot === 'GK');
-  const cm = rows.find((r) => r.slot === 'CM');
-  const lb = rows.find((r) => r.slot === 'LB');
-  const rb = rows.find((r) => r.slot === 'RB');
-  if (!gk) return { leftPct: 56, topPct: 58 };
-
-  const midRows = [lb, rb, cm].filter((r): r is (typeof rows)[number] => Boolean(r));
-  const avgY =
-    midRows.length > 0 ? midRows.reduce((sum, r) => sum + r.y, 0) / midRows.length : 55;
-
-  const topPct = Math.min(gk.y - 12, avgY + 5);
-  const cmX = cm?.x ?? 50;
-  const leftPct = cmX === 50 ? 58 : cmX + (cmX < 50 ? 12 : -12);
-
-  return { leftPct, topPct };
-}
-
 /** Startelf-Liste: Scroll-Puffer über BottomNav */
 const KICKOFF_LINEUP_SCROLL_BOTTOM_PAD = LINEUP_CONTENT_SCROLL_BOTTOM_PAD;
 
@@ -1190,8 +1169,13 @@ export const LiveMatchScreen: React.FC = () => {
     if (mRes.data) setMatchRow(mRes.data);
     void reloadMatchSetupFromDb();
     if (evRes.error) setSaveError(evRes.error);
-    const sorted = sortMatchEventsChronologically(evRes.data);
-    setEvents([...sorted].reverse());
+    const sorted = sortMatchEventsChronologically(evRes.data ?? []);
+    setEvents((prev) => {
+      const fetchedIds = new Set(sorted.map((e) => e.id));
+      const pending = prev.filter((e) => !fetchedIds.has(e.id));
+      const merged = sortMatchEventsChronologically([...sorted, ...pending]);
+      return [...merged].reverse();
+    });
   }, [effectiveMatchId, reloadMatchSetupFromDb]);
 
   const queueRealtimeReload = useCallback(() => {
@@ -1321,7 +1305,6 @@ export const LiveMatchScreen: React.FC = () => {
   const [lineupPanelView, setLineupPanelView] = useState<'live' | 'kickoff'>('live');
   const [posSwapSlotA, setPosSwapSlotA] = useState<FieldSlotId | null>(null);
   const [posSwapSlotB, setPosSwapSlotB] = useState<FieldSlotId | null>(null);
-  const [posSwapFairPlayPick, setPosSwapFairPlayPick] = useState(false);
   const [posSwapConfirmOpen, setPosSwapConfirmOpen] = useState(false);
   const [posSwapSaving, setPosSwapSaving] = useState(false);
   const [fairPlayExtraSheetOpen, setFairPlayExtraSheetOpen] = useState(false);
@@ -1341,7 +1324,6 @@ export const LiveMatchScreen: React.FC = () => {
     setLineupPositionMode(false);
     setPosSwapSlotA(null);
     setPosSwapSlotB(null);
-    setPosSwapFairPlayPick(false);
     setPosSwapConfirmOpen(false);
     setPosSwapSaving(false);
   }, []);
@@ -1355,7 +1337,6 @@ export const LiveMatchScreen: React.FC = () => {
     setLineupPositionMode(false);
     setPosSwapSlotA(null);
     setPosSwapSlotB(null);
-    setPosSwapFairPlayPick(false);
     setPosSwapConfirmOpen(false);
     setPosSwapSaving(false);
     setWechselSheetOpen(true);
@@ -1651,14 +1632,15 @@ export const LiveMatchScreen: React.FC = () => {
       squadPlayerIds,
       events: eventsSortedAsc,
       finalSecond: playtimeFinalSecond,
-      fallbackStartingPlayerIds: startingPlayerIds.slice(0, 7),
+      fallbackStartingPlayerIds: startingPlayerIds,
       previousPlaytimesByPlayerId: prevPlaytimesRef.current,
       isLiveMatchRunning: matchRow?.status === 'live' && isRunning && !matchIsFinished,
     });
     prevPlaytimesRef.current = state.playtimeSecondsByPlayerId;
     if (import.meta.env.DEV && matchRow?.status === 'live') {
       const n = countOccupiedFieldSlots(state.slotsBySlot);
-      if (n < 7 && !state.fairPlayExtraPlayerId) {
+      const minExpected = state.fairPlayExtraPlayerId ? 8 : 7;
+      if (n < minExpected) {
         console.warn('[LiveMatch] Replay: weniger als 7 Feldspieler in Slots', {
           slotCount: n,
           warnings: state.diagnostics.warnings,
@@ -1682,8 +1664,6 @@ export const LiveMatchScreen: React.FC = () => {
   const onFieldIds = liveReplayState.onFieldPlayerIds;
   const activePlayerIds = liveReplayState.activePlayerIds;
   const fairPlayExtraPlayerId = liveReplayState.fairPlayExtraPlayerId;
-  const fairPlayVisualAnchorSlot = liveReplayState.fairPlayVisualAnchorSlot;
-  const fairPlayOverlayPartnerPlayerId = liveReplayState.fairPlayOverlayPartnerPlayerId;
   const playtimes = liveReplayState.playtimeSecondsByPlayerId;
 
   const plannedMatchMinutes = normalizePlannedMatchMinutes(
@@ -1795,6 +1775,11 @@ export const LiveMatchScreen: React.FC = () => {
     return isU11FormationId(raw) ? raw : U11_FORMATION_DB_FALLBACK;
   }, [matchRow]);
 
+  const pitchFormationId = useMemo(
+    (): U11FormationId => resolveLivePitchFormationId(safeFormationId, Boolean(fairPlayExtraPlayerId)),
+    [safeFormationId, fairPlayExtraPlayerId],
+  );
+
   const requestFormationChange = useCallback(
     (id: U11FormationId) => {
       if (!effectiveMatchId || !canControlLiveMatch || formationSaving) return;
@@ -1858,7 +1843,7 @@ export const LiveMatchScreen: React.FC = () => {
         return {
           id: player?.id ?? slot,
           slot,
-          rightLabel: getPositionLabel(labelForSlotInFormation(safeFormationId, slot)) || '–',
+          rightLabel: getPositionLabel(labelForSlotInFormation(pitchFormationId, slot)) || '–',
           display_name: player?.name ?? 'Spieler',
           position: player?.position ?? null,
           jersey_number: player?.number ?? null,
@@ -1878,7 +1863,7 @@ export const LiveMatchScreen: React.FC = () => {
         return {
           id: player?.id ?? `kickoff-${slot}`,
           slot,
-          rightLabel: getPositionLabel(labelForSlotInFormation(safeFormationId, slot)) || '–',
+          rightLabel: getPositionLabel(labelForSlotInFormation(pitchFormationId, slot)) || '–',
           display_name: player?.name ?? '—',
           position: player?.position ?? null,
           jersey_number: player?.number ?? null,
@@ -1927,43 +1912,22 @@ export const LiveMatchScreen: React.FC = () => {
     [benchPlayers],
   );
 
-  type SubstitutionFieldRow = (typeof safeLineupRows)[number] & { isFairPlayExtra?: boolean };
+  type SubstitutionFieldRow = (typeof safeLineupRows)[number];
 
   const substitutionFieldRows = useMemo((): SubstitutionFieldRow[] => {
     if (!Array.isArray(safeLineupRows)) return [];
-    const rows: SubstitutionFieldRow[] = safeLineupRows.filter((row) => {
+    return safeLineupRows.filter((row) => {
       const slot = row?.slot;
       if (!slot) return false;
       const pid = lineupSlotsForDisplay?.[slot];
       return typeof pid === 'string' && pid.length > 0;
     });
-    const extra = fairPlayExtraPlayerId?.trim();
-    if (extra) {
-      const player = rosterById.get(extra) ?? null;
-      rows.push({
-        id: extra,
-        slot: 'ST',
-        rightLabel: 'FairPlay +1',
-        display_name: player?.name ?? 'Spieler',
-        position: player?.position ?? null,
-        jersey_number: player?.number ?? null,
-        avatar_url: player?.avatarUrl ?? null,
-        isFairPlayExtra: true,
-      });
-    }
-    return rows;
-  }, [safeLineupRows, lineupSlotsForDisplay, fairPlayExtraPlayerId, rosterById]);
+  }, [safeLineupRows, lineupSlotsForDisplay]);
 
   const substitutionBenchRows = useMemo(() => {
-    const extra = fairPlayExtraPlayerId?.trim();
     if (!Array.isArray(safeBenchRows)) return [];
-    return safeBenchRows.filter((r) => {
-      const id = String(r?.id ?? '').trim();
-      if (!id) return false;
-      if (extra && id === extra) return false;
-      return true;
-    });
-  }, [safeBenchRows, fairPlayExtraPlayerId]);
+    return safeBenchRows.filter((r) => String(r?.id ?? '').trim().length > 0);
+  }, [safeBenchRows]);
 
   const fairPlaySubOutOnly =
     Boolean(fairPlayExtraPlayerId) &&
@@ -1979,7 +1943,6 @@ export const LiveMatchScreen: React.FC = () => {
           String(
             outP?.name ??
               (substitutionFieldRows.find((r) => {
-                if (r.isFairPlayExtra) return String(r.id ?? '').trim() === outPid;
                 const sl = r?.slot;
                 const id =
                   sl && lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object'
@@ -2042,14 +2005,6 @@ export const LiveMatchScreen: React.FC = () => {
   const wechselPitchSlotHighlight = subPitchSlotHighlight;
 
   const posSwapConfirmLabels = useMemo(() => {
-    if (posSwapFairPlayPick && posSwapSlotA) {
-      const slots = lineupSlotsForDisplay as Record<FieldSlotId, string | null>;
-      const extraId = fairPlayExtraPlayerId?.trim() ?? '';
-      const slotPid = String(slots[posSwapSlotA] ?? '').trim();
-      const extraName = mobileLineupName((rosterById.get(extraId)?.name ?? '').trim() || '—');
-      const slotName = mobileLineupName((rosterById.get(slotPid)?.name ?? '').trim() || '—');
-      return { a: extraName, b: slotName };
-    }
     if (!posSwapSlotA || !posSwapSlotB) return { a: '', b: '' };
     const slots = lineupSlotsForDisplay as Record<FieldSlotId, string | null>;
     const ida = String(slots[posSwapSlotA] ?? '').trim();
@@ -2057,7 +2012,7 @@ export const LiveMatchScreen: React.FC = () => {
     const na = mobileLineupName((rosterById.get(ida)?.name ?? '—').trim() || '—');
     const nb = mobileLineupName((rosterById.get(idb)?.name ?? '—').trim() || '—');
     return { a: na, b: nb };
-  }, [posSwapSlotA, posSwapSlotB, posSwapFairPlayPick, fairPlayExtraPlayerId, lineupSlotsForDisplay, rosterById]);
+  }, [posSwapSlotA, posSwapSlotB, lineupSlotsForDisplay, rosterById]);
 
   const [substitutionTransitionBySlot, setSubstitutionTransitionBySlot] = useState<
     Partial<Record<FieldSlotId, { outgoingPlayerId: string | null; incomingPlayerId: string | null }>>
@@ -2071,7 +2026,7 @@ export const LiveMatchScreen: React.FC = () => {
     }
     return merged;
   }, [slotHighlightBySlot, lineupPosSwapRingHighlight]);
-  const canRenderLivePitch = safeSlotOrder.length > 0 && safeFormationId != null;
+  const canRenderLivePitch = safeSlotOrder.length > 0 && pitchFormationId != null;
   const safeBenchRowsCount = Array.isArray(safeBenchRows) ? safeBenchRows.length : 0;
 
   useEffect(() => {
@@ -2689,7 +2644,7 @@ export const LiveMatchScreen: React.FC = () => {
         squadPlayerIds,
         events: sortMatchEventsChronologically(events),
         atMatchSecond: atReplay,
-        fallbackStartingPlayerIds: startingPlayerIds.slice(0, 7),
+        fallbackStartingPlayerIds: startingPlayerIds,
       });
       if (syncRes.error) {
         setSaveError(syncRes.error);
@@ -2781,7 +2736,7 @@ export const LiveMatchScreen: React.FC = () => {
         squadPlayerIds,
         events,
         finalSecond: tsSub,
-        fallbackStartingPlayerIds: startingPlayerIds.slice(0, 7),
+        fallbackStartingPlayerIds: startingPlayerIds,
       });
       const slotBefore = replayBefore.slotsBySlot;
       const fieldIdsBefore = replayBefore.onFieldPlayerIds;
@@ -2808,7 +2763,7 @@ export const LiveMatchScreen: React.FC = () => {
 
       const nextStarting = fieldSlotMapToStartingIds(nextSlots);
       const nextSquad = [...new Set([...squadPlayerIds, outId, inId])];
-      const fieldIdsAfter = LIVE_FIELD_SLOT_ORDER.map((s) => String(nextSlots[s] ?? '').trim()).filter(Boolean);
+      const fieldIdsAfter = getOnFieldIdsInSlotOrder(nextSlots);
       const benchIdsAfter = getBenchPlayers(nextSquad, fieldIdsAfter);
 
       if (import.meta.env.DEV) {
@@ -2944,7 +2899,6 @@ export const LiveMatchScreen: React.FC = () => {
     if (subSheetView === 'list') {
       setPosSwapSlotA(null);
       setPosSwapSlotB(null);
-      setPosSwapFairPlayPick(false);
       setPosSwapConfirmOpen(false);
     }
   }, [subSheetView]);
@@ -2956,7 +2910,6 @@ export const LiveMatchScreen: React.FC = () => {
     } else {
       setPosSwapSlotA(null);
       setPosSwapSlotB(null);
-      setPosSwapFairPlayPick(false);
       setPosSwapConfirmOpen(false);
     }
   }, [lineupPositionMode]);
@@ -2968,52 +2921,30 @@ export const LiveMatchScreen: React.FC = () => {
   }, [mainTab]);
 
   const confirmPositionSwap = useCallback(async () => {
-    if (!effectiveMatchId || !posSwapSlotA || matchIsFinished) return;
-    const extraId = fairPlayExtraPlayerId?.trim() ?? '';
-    const fairPlaySwap = posSwapFairPlayPick && Boolean(extraId);
-    if (!fairPlaySwap && (!posSwapSlotB || posSwapSlotA === posSwapSlotB)) return;
+    if (!effectiveMatchId || !posSwapSlotA || !posSwapSlotB || posSwapSlotA === posSwapSlotB || matchIsFinished) {
+      return;
+    }
 
     setPosSwapSaving(true);
     setSaveError(null);
     try {
       const map = lineupSlotsForDisplay as Record<FieldSlotId, string | null>;
-      if (fairPlaySwap) {
-        const slotPlayerId = String(map[posSwapSlotA] ?? '').trim();
-        if (!slotPlayerId) {
-          setSaveError('Kein Feldspieler im gewählten Slot.');
-          return;
-        }
-        const { error } = await persistFairPlayPositionSwap({
-          matchId: effectiveMatchId,
-          extraPlayerId: extraId,
-          slot: posSwapSlotA,
-          slotPlayerId,
-          timestamp: currentMatchSeconds,
-          period: half,
-        });
-        if (error) {
-          setSaveError(error);
-          return;
-        }
-      } else {
-        const { error } = await persistPositionSwap({
-          matchId: effectiveMatchId,
-          slotA: posSwapSlotA,
-          slotB: posSwapSlotB!,
-          currentSlots: map,
-          squadPlayerIds,
-          timestamp: currentMatchSeconds,
-          period: half,
-        });
-        if (error) {
-          setSaveError(error);
-          return;
-        }
+      const { error } = await persistPositionSwap({
+        matchId: effectiveMatchId,
+        slotA: posSwapSlotA,
+        slotB: posSwapSlotB,
+        currentSlots: map,
+        squadPlayerIds,
+        timestamp: currentMatchSeconds,
+        period: half,
+      });
+      if (error) {
+        setSaveError(error);
+        return;
       }
       setPosSwapConfirmOpen(false);
       setPosSwapSlotA(null);
       setPosSwapSlotB(null);
-      setPosSwapFairPlayPick(false);
       setLineupPositionMode(false);
       void queueRealtimeReload();
     } catch (e) {
@@ -3026,41 +2957,12 @@ export const LiveMatchScreen: React.FC = () => {
     effectiveMatchId,
     posSwapSlotA,
     posSwapSlotB,
-    posSwapFairPlayPick,
-    fairPlayExtraPlayerId,
     matchIsFinished,
     lineupSlotsForDisplay,
     squadPlayerIds,
     currentMatchSeconds,
     half,
     queueRealtimeReload,
-  ]);
-
-  const handleFairPlayPositionTap = useCallback(() => {
-    if (!lineupPositionMode || !canControlLiveMatch || matchIsFinished || posSwapSaving || posSwapConfirmOpen) return;
-    const extraId = fairPlayExtraPlayerId?.trim();
-    if (!extraId) return;
-    if (posSwapFairPlayPick && !posSwapSlotA) {
-      setPosSwapFairPlayPick(false);
-      return;
-    }
-    if (posSwapSlotA && !posSwapFairPlayPick) {
-      setPosSwapFairPlayPick(true);
-      setPosSwapConfirmOpen(true);
-      return;
-    }
-    if (!posSwapSlotA && !posSwapFairPlayPick) {
-      setPosSwapFairPlayPick(true);
-    }
-  }, [
-    lineupPositionMode,
-    canControlLiveMatch,
-    matchIsFinished,
-    posSwapSaving,
-    posSwapConfirmOpen,
-    fairPlayExtraPlayerId,
-    posSwapFairPlayPick,
-    posSwapSlotA,
   ]);
 
   const handleLineupPositionSlotTap = useCallback(
@@ -3070,24 +2972,18 @@ export const LiveMatchScreen: React.FC = () => {
       const slots = safeLineupSlots as Record<FieldSlotId, string | null>;
       const pid = String(slots[slot] ?? '').trim();
       if (!pid) return;
-      if (posSwapFairPlayPick) {
-        if (posSwapSlotA === slot) {
-          setPosSwapSlotA(null);
-          setPosSwapConfirmOpen(false);
-          return;
-        }
-        setPosSwapSlotA(slot);
-        setPosSwapConfirmOpen(true);
+      if (posSwapSlotA === slot) {
+        setPosSwapSlotA(null);
+        setPosSwapSlotB(null);
+        setPosSwapConfirmOpen(false);
         return;
       }
       if (!posSwapSlotA) {
         setPosSwapSlotA(slot);
         return;
       }
-      if (posSwapSlotA === slot) {
-        setPosSwapSlotA(null);
+      if (posSwapSlotB === slot) {
         setPosSwapSlotB(null);
-        setPosSwapFairPlayPick(false);
         setPosSwapConfirmOpen(false);
         return;
       }
@@ -3102,7 +2998,7 @@ export const LiveMatchScreen: React.FC = () => {
       posSwapConfirmOpen,
       safeLineupSlots,
       posSwapSlotA,
-      posSwapFairPlayPick,
+      posSwapSlotB,
     ],
   );
 
@@ -4541,7 +4437,7 @@ export const LiveMatchScreen: React.FC = () => {
                             <span aria-hidden className="mr-0.5">
                               ↔
                             </span>
-                            2 Spieler antippen & tauschen (FairPlay +1 möglich)
+                            2 Spieler antippen & tauschen
                           </p>
                         ) : null}
                       </div>
@@ -4611,7 +4507,7 @@ export const LiveMatchScreen: React.FC = () => {
                   <div className="mx-auto mb-0 w-full max-w-md overflow-visible px-0.5 pb-1">
                   <div className="-translate-y-[3px] relative">
                   <LineupFormationPitch
-                  formationId={safeFormationId}
+                  formationId={pitchFormationId}
                   slots={safeLineupSlots as Record<FieldSlotId, string | null>}
                   interactive={Boolean(canControlLiveMatch && lineupPositionMode && !matchIsFinished)}
                   onSlotTap={handleLineupPositionSlotTap}
@@ -4619,66 +4515,23 @@ export const LiveMatchScreen: React.FC = () => {
                   slotHighlightBySlot={mainLineupPitchSlotHighlight}
                   className="min-h-[10rem] max-h-[min(53dvh,31rem)] w-full"
                   renderSlotContent={({ slot, label, playerId, isGk }) => {
-                    const extraId = fairPlayExtraPlayerId?.trim() ?? '';
-                    const anchorSlot = fairPlayVisualAnchorSlot;
-                    const partnerId = fairPlayOverlayPartnerPlayerId?.trim() ?? '';
-
-                    if (extraId && anchorSlot === slot) {
-                      const player = rosterById.get(extraId) ?? null;
-                      const rawName = (player?.displayName ?? player?.name ?? '').trim() || 'Spieler';
-                      const shortName = (() => {
-                        const s = mobileLineupName(rawName);
-                        return s === '—' || !s ? 'Spieler' : s;
-                      })();
-                      const isPosSwapPick =
-                        lineupPositionMode &&
-                        (posSwapFairPlayPick || posSwapSlotA === slot) &&
-                        !posSwapConfirmOpen;
-                      return (
-                        <div
-                          className={[
-                            'pointer-events-none relative flex w-full max-w-[min(20vw,6.25rem)] flex-col items-center justify-start gap-0 overflow-visible',
-                            isPosSwapPick ? 'scale-[1.04]' : '',
-                          ].join(' ')}
-                        >
-                          <span className="mb-0.5 rounded-full border border-amber-300/70 bg-amber-500/25 px-1 py-px text-[7px] font-black uppercase tracking-[0.08em] text-amber-100">
-                            +1
-                          </span>
-                          <LeibchenJersey
-                            lastName={shortName}
-                            number={player?.number ?? '–'}
-                            position="FP"
-                            variant="field"
-                            size="compact"
-                            pitchStyleBack
-                            className={[
-                              isPosSwapPick ? 'ring-2 ring-amber-400/75' : 'ring-2 ring-amber-400/55',
-                            ].join(' ')}
-                          />
-                          <span
-                            className="mx-auto mt-1 block w-full min-w-0 max-w-[6.5rem] truncate rounded-full border border-amber-400/35 bg-black/78 px-2 py-[3px] text-center text-[11px] font-medium leading-tight text-amber-50"
-                            title={rawName}
-                          >
-                            {shortName}
-                          </span>
-                        </div>
-                      );
-                    }
-
-                    if (partnerId && playerId === partnerId) return null;
                     if (!playerId) return null;
                     const player = rosterById.get(playerId) ?? null;
-                    const posLabel = getPositionLabel(label) || '–';
+                    const isFairPlaySlot = slot === 'FP';
+                    const posLabel = isFairPlaySlot ? 'FP' : getPositionLabel(label) || '–';
                     const rawName = (player?.displayName ?? player?.name ?? '').trim() || 'Spieler';
                     const shortName = (() => {
                       const s = mobileLineupName(rawName);
                       return s === '—' || !s ? 'Spieler' : s;
                     })();
                     const isPosSwapPick =
-                      lineupPositionMode && posSwapSlotA === slot && Boolean(playerId) && !posSwapConfirmOpen;
+                      lineupPositionMode &&
+                      (posSwapSlotA === slot || posSwapSlotB === slot) &&
+                      Boolean(playerId) &&
+                      !posSwapConfirmOpen;
                     const { dx: nameOffsetX, dy: nameOffsetY } = liveLineupPitchNameOffset(
                       slot,
-                      safeFormationId,
+                      pitchFormationId,
                     );
                     return (
                       <div
@@ -4687,6 +4540,11 @@ export const LiveMatchScreen: React.FC = () => {
                           isPosSwapPick ? 'scale-[1.04]' : '',
                         ].join(' ')}
                       >
+                        {isFairPlaySlot ? (
+                          <span className="mb-0.5 rounded-full border border-amber-300/70 bg-amber-500/25 px-1 py-px text-[7px] font-black uppercase tracking-[0.08em] text-amber-100">
+                            +1
+                          </span>
+                        ) : null}
                         {(() => {
                           const t = substitutionTransitionBySlot[slot];
                           const outgoingId = t?.outgoingPlayerId ?? null;
@@ -4724,11 +4582,19 @@ export const LiveMatchScreen: React.FC = () => {
                             variant={isGk ? 'goalkeeper' : 'field'}
                             size="compact"
                             pitchStyleBack
-                            className={isPosSwapPick ? 'ring-2 ring-amber-400/75' : ''}
+                            className={[
+                              isPosSwapPick ? 'ring-2 ring-amber-400/75' : '',
+                              isFairPlaySlot ? 'ring-2 ring-amber-400/55' : '',
+                            ].join(' ')}
                           />
                         </div>
                         <span
-                          className="mx-auto mt-1 block w-full min-w-0 max-w-[6.5rem] truncate rounded-full border border-white/10 bg-black/78 px-2 py-[3px] text-center text-[11px] font-medium leading-tight text-white/95 shadow-[0_2px_10px_rgba(0,0,0,0.42)] backdrop-blur-sm transition-all duration-200"
+                          className={[
+                            'mx-auto mt-1 block w-full min-w-0 max-w-[6.5rem] truncate rounded-full border px-2 py-[3px] text-center text-[11px] font-medium leading-tight shadow-[0_2px_10px_rgba(0,0,0,0.42)] backdrop-blur-sm transition-all duration-200',
+                            isFairPlaySlot
+                              ? 'border-amber-400/35 bg-black/78 text-amber-50'
+                              : 'border-white/10 bg-black/78 text-white/95',
+                          ].join(' ')}
                           title={rawName}
                           style={{ transform: `translate(${nameOffsetX}px, ${nameOffsetY}px)` }}
                         >
@@ -4738,104 +4604,6 @@ export const LiveMatchScreen: React.FC = () => {
                     );
                   }}
                 />
-                {fairPlayExtraPlayerId ? (
-                  <div
-                    className={[
-                      'absolute z-[4] flex flex-col items-center rounded-xl transition-transform',
-                      fairPlayVisualAnchorSlot
-                        ? 'bottom-0 left-1/2 -translate-x-1/2 translate-y-[18%]'
-                        : '',
-                      lineupPositionMode && canControlLiveMatch && !matchIsFinished
-                        ? 'pointer-events-auto cursor-pointer touch-manipulation'
-                        : 'pointer-events-none',
-                      posSwapFairPlayPick && !posSwapSlotA ? 'scale-[1.04] ring-2 ring-amber-400/75' : '',
-                    ].join(' ')}
-                    style={
-                      fairPlayVisualAnchorSlot
-                        ? undefined
-                        : (() => {
-                            const { leftPct, topPct } = fairPlayDefaultOverlayPosition(safeFormationId);
-                            return {
-                              left: `${leftPct}%`,
-                              top: `${topPct}%`,
-                              transform: 'translate(-50%, -50%)',
-                            };
-                          })()
-                    }
-                    role={lineupPositionMode && canControlLiveMatch && !matchIsFinished ? 'button' : undefined}
-                    tabIndex={lineupPositionMode && canControlLiveMatch && !matchIsFinished ? 0 : undefined}
-                    onClick={
-                      lineupPositionMode && canControlLiveMatch && !matchIsFinished
-                        ? () => handleFairPlayPositionTap()
-                        : undefined
-                    }
-                    onKeyDown={
-                      lineupPositionMode && canControlLiveMatch && !matchIsFinished
-                        ? (e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              handleFairPlayPositionTap();
-                            }
-                          }
-                        : undefined
-                    }
-                  >
-                    <span className="mb-0.5 rounded-full border border-amber-300/70 bg-amber-500/25 px-1.5 py-px text-[8px] font-black uppercase tracking-[0.1em] text-amber-100 shadow-sm">
-                      FairPlay +1
-                    </span>
-                    {(() => {
-                      const extraPid = fairPlayExtraPlayerId.trim();
-                      const partnerPid = fairPlayOverlayPartnerPlayerId?.trim() ?? '';
-                      const anchorSlot = fairPlayVisualAnchorSlot;
-                      const showPid = partnerPid || (!anchorSlot ? extraPid : '');
-                      if (!showPid) return null;
-                      const player = rosterById.get(showPid) ?? null;
-                      const rawName = (player?.displayName ?? player?.name ?? '').trim() || 'Spieler';
-                      const shortName = mobileLineupName(rawName);
-                      const isExtraShown = showPid === extraPid;
-                      return (
-                        <div className="relative flex flex-col items-center">
-                          {isExtraShown ? (
-                            <span
-                              className="absolute -right-1 -top-1 z-[2] rounded-full border border-amber-300/90 bg-amber-400 px-0.5 text-[10px] font-black leading-none text-black"
-                              aria-hidden
-                            >
-                              +1
-                            </span>
-                          ) : null}
-                          <LeibchenJersey
-                            lastName={shortName === '—' || !shortName ? 'Spieler' : shortName}
-                            number={player?.number ?? '–'}
-                            position={isExtraShown ? 'FP' : getPositionLabel(player?.position ?? '') || '–'}
-                            variant="field"
-                            size="compact"
-                            pitchStyleBack
-                            className={[
-                              '!h-[2.65rem] !w-[2.1rem]',
-                              isExtraShown
-                                ? 'ring-2 ring-amber-400/55 shadow-[0_0_16px_rgba(251,191,36,0.35)]'
-                                : 'ring-1 ring-white/25',
-                            ].join(' ')}
-                          />
-                          <span
-                            className={[
-                              'mt-0.5 max-w-[5.5rem] truncate rounded-full border px-1.5 py-px text-center text-[10px] font-semibold',
-                              isExtraShown
-                                ? 'border-amber-400/35 bg-black/88 text-amber-50'
-                                : 'border-white/15 bg-black/88 text-white/95',
-                            ].join(' ')}
-                            title={rawName}
-                          >
-                            {shortName}
-                          </span>
-                          <p className="font-mono text-[10px] font-bold tabular-nums text-amber-200/90">
-                            {formatClock(playtimes[showPid] ?? 0)}
-                          </p>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                ) : null}
                   </div>
                   </div>
                 </>
@@ -5503,11 +5271,10 @@ export const LiveMatchScreen: React.FC = () => {
                       >
                         <div className="flex flex-col gap-1">
                           {substitutionFieldRows.map((row) => {
-                            const isFairPlayExtra = Boolean(row.isFairPlayExtra);
                             const slot = row?.slot;
-                            const pid = isFairPlayExtra
-                              ? String(row.id ?? '').trim()
-                              : slot && lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object'
+                            const isFairPlayExtra = slot === 'FP';
+                            const pid =
+                              slot && lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object'
                                 ? String(lineupSlotsForDisplay[slot] ?? '').trim()
                                 : '';
                             if (!pid) return null;
@@ -5635,7 +5402,7 @@ export const LiveMatchScreen: React.FC = () => {
                 <>
                   <div className="mx-auto w-full max-w-md px-0.5">
                     <LineupFormationPitch
-                          formationId={safeFormationId}
+                          formationId={pitchFormationId}
                           slots={(safeLineupSlots ?? {}) as Record<FieldSlotId, string | null>}
                           interactive
                           onSlotTap={(slot) => {
@@ -5846,11 +5613,7 @@ export const LiveMatchScreen: React.FC = () => {
         </div>
       ) : null}
 
-      {posSwapConfirmOpen &&
-      posSwapSlotA &&
-      (posSwapFairPlayPick || posSwapSlotB) &&
-      canControlLiveMatch &&
-      !matchIsFinished ? (
+      {posSwapConfirmOpen && posSwapSlotA && posSwapSlotB && canControlLiveMatch && !matchIsFinished ? (
         <div
           className="pointer-events-auto fixed inset-0 z-[10060] flex flex-col justify-end"
           style={{ paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))' }}
@@ -5865,7 +5628,6 @@ export const LiveMatchScreen: React.FC = () => {
               setPosSwapConfirmOpen(false);
               setPosSwapSlotA(null);
               setPosSwapSlotB(null);
-              setPosSwapFairPlayPick(false);
             }}
           />
           <div
@@ -5893,7 +5655,6 @@ export const LiveMatchScreen: React.FC = () => {
                   setPosSwapConfirmOpen(false);
                   setPosSwapSlotA(null);
                   setPosSwapSlotB(null);
-                  setPosSwapFairPlayPick(false);
                 }}
                 className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-white/14 bg-zinc-900/90 text-[12px] font-bold text-white/88 backdrop-blur-sm hover:bg-zinc-800 disabled:opacity-45"
               >
