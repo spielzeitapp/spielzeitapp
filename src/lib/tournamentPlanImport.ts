@@ -373,7 +373,7 @@ function describeFetchFailure(err: unknown): string {
   return captureMeinTurnierplanFetchException(err).errorDetail;
 }
 
-/** Client → `/api/tournament-plan/analyze` (`url` immer über URLSearchParams encoded). */
+/** Client → `/api/tournament-plan-analyze` (`url` immer über URLSearchParams encoded). */
 export function buildTournamentPlanAnalyzeRequestUrl(
   tournamentUrl: string,
   options?: { forceHtmlFallback?: boolean },
@@ -384,7 +384,7 @@ export function buildTournamentPlanAnalyzeRequestUrl(
   if (options?.forceHtmlFallback) {
     params.set('forceHtmlFallback', '1');
   }
-  const path = `/api/tournament-plan/analyze?${params.toString()}`;
+  const path = `/api/tournament-plan-analyze?${params.toString()}`;
 
   if (typeof window === 'undefined') return path;
 
