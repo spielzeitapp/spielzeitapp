@@ -1,8 +1,5 @@
-import {
-  buildTournamentImportRecognition,
-  isTeamAliasMatch,
-  type TournamentImportRecognition,
-} from './teamSeasonAliases';
+import { isTeamAliasMatch } from './teamSeasonAliasMatch';
+import type { TournamentImportRecognition } from './teamSeasonAliases';
 import {
   captureMeinTurnierplanHtmlFallbackException,
   extractMeinTurnierplanJsonFromShowitHtml,
@@ -1738,8 +1735,6 @@ export function countOwnTeamMatchesInAnalysis(
 ): number {
   if (knownNames.length === 0) return 0;
 
-  const { isTeamAliasMatch } = require('./teamSeasonAliases') as typeof import('./teamSeasonAliases');
-
   let count = 0;
   for (const match of analysis.rawMatches) {
     const homeOurs = isTeamAliasMatch(match.homeTeam, knownNames);
@@ -2281,6 +2276,7 @@ export async function analyzeTournamentUrl(
 export async function fetchTournamentImportRecognition(
   teamSeasonId: string,
 ): Promise<TournamentImportRecognition> {
+  const { buildTournamentImportRecognition } = await import('./teamSeasonAliases');
   return buildTournamentImportRecognition(teamSeasonId);
 }
 

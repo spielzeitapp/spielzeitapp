@@ -1,4 +1,3 @@
-import { captureMeinTurnierplanHtmlFallbackException } from '../../src/lib/meinTurnierplanHtmlFallback';
 import {
   analyzeMeinTurnierplanUrl,
   analyzeMeinTurnierplanUrlForceHtmlFallback,
@@ -6,6 +5,7 @@ import {
   buildMeinTurnierplanShowitUrl,
   buildTournamentPlanAnalyzeFailure,
   captureMeinTurnierplanFetchException,
+  captureMeinTurnierplanHtmlFallbackException,
   extractMeinTurnierplanId,
   isSupportedTournamentPlanHost,
   normalizeTournamentPlanUrl,
@@ -16,7 +16,7 @@ import {
   type TournamentPlanAnalyzeDiagnostics,
   type TournamentPlanAnalyzeFailure,
   type TournamentPlanFetchRuntimeDiagnostics,
-} from '../../src/lib/tournamentPlanImport';
+} from '../../src/lib/server/tournamentPlanAnalyzeServer';
 
 type VercelLikeReq = {
   method?: string;
@@ -118,6 +118,12 @@ function htmlFallbackServerErrorJson(url: string, err: unknown): Record<string, 
 async function handleAnalyzeRequest(req: VercelLikeReq, res: VercelLikeRes): Promise<void> {
   if (req.method !== 'GET') {
     res.status(405).json({ ok: false, error: 'Method not allowed', code: 'parse_failed' });
+    return;
+  }
+
+  const debugPing = queryParam(req.query, 'debugPing');
+  if (debugPing === '1') {
+    res.status(200).json({ ok: true, route: 'analyze', runtime: 'node' });
     return;
   }
 
