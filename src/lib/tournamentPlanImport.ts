@@ -129,6 +129,8 @@ export type TournamentPlanAnalyzeDiagnostics = {
   htmlFallbackMatchesFound?: number;
   htmlFallbackError?: string | null;
   htmlFallbackException?: MeinTurnierplanHtmlFallbackException | null;
+  htmlFallbackRequestUrl?: string | null;
+  htmlFallbackResponseStatus?: number | null;
   tournamentName?: string | null;
   serverException?: { name: string; message: string } | null;
   fetchRuntime?: TournamentPlanFetchRuntimeDiagnostics;
@@ -349,22 +351,63 @@ export function buildTournamentPlanAnalyzeRequestUrl(
   tournamentUrl: string,
   options?: { forceHtmlFallback?: boolean },
 ): string {
-  const trimmed = tournamentUrl.trim();
+  const trimmed = normalizeTournamentPlanUrl(tournamentUrl.trim());
   const params = new URLSearchParams();
   params.set('url', trimmed);
   if (options?.forceHtmlFallback) {
     params.set('forceHtmlFallback', '1');
   }
-  const relativePath = `/api/tournament-plan/analyze?${params.toString()}`;
-  if (typeof window === 'undefined') return relativePath;
+  const path = `/api/tournament-plan/analyze?${params.toString()}`;
+
+  if (typeof window === 'undefined') return path;
+
+  const origin = window.location.origin;
+  if (origin && origin !== 'null' && !origin.startsWith('file:')) {
+    return `${origin}${path}`;
+  }
+
   try {
-    return new URL(relativePath, window.location.href).href;
+    return new URL(path, window.location.href).href;
   } catch (err) {
     console.warn('[HTML FALLBACK URL] absolute URL build failed, using relative path', {
-      relativePath,
+      path,
+      href: window.location.href,
       error: err instanceof Error ? err.message : String(err),
     });
-    return relativePath;
+    return path;
+  }
+}
+
+type TournamentPlanAnalyzeApiBody = {
+  ok?: boolean;
+  analysis?: TournamentPlanAnalysis;
+  diagnostics?: TournamentPlanAnalyzeDiagnostics;
+  error?: string;
+  code?: TournamentPlanAnalyzeErrorCode;
+  message?: string;
+  provider?: 'meinturnierplan';
+  extractedId?: string | null;
+  attemptedEndpoints?: string[];
+};
+
+function logHtmlFallbackRequestUrl(url: string): void {
+  console.log('[HTML FALLBACK URL]', url);
+  console.log('HTML Fallback Request URL:', url);
+}
+
+async function fetchTournamentPlanAnalyzeApi(
+  requestUrl: string,
+  context: string,
+): Promise<{ res: Response; body: TournamentPlanAnalyzeApiBody }> {
+  logHtmlFallbackRequestUrl(requestUrl);
+  try {
+    const res = await fetch(requestUrl);
+    console.log('HTML Fallback Response Status:', res.status);
+    const body = (await res.json()) as TournamentPlanAnalyzeApiBody;
+    return { res, body };
+  } catch (err) {
+    logHtmlFallbackFetchError(context, err);
+    throw err;
   }
 }
 
@@ -1759,23 +1802,12 @@ async function tryServerHtmlTournamentPlanFallback(
 ): Promise<AnalyzeTournamentUrlResult> {
   analyzeTrace('[ANALYZE] START SERVER HTML FALLBACK', { url: trimmed });
   const requestUrl = buildTournamentPlanAnalyzeRequestUrl(trimmed, { forceHtmlFallback: true });
-  console.log('[HTML FALLBACK URL]', requestUrl);
-  console.log('HTML Fallback Request URL:', requestUrl);
 
   try {
-    const res = await fetch(requestUrl);
-    console.log('HTML Fallback Response Status:', res.status);
-    const body = (await res.json()) as {
-      ok?: boolean;
-      analysis?: TournamentPlanAnalysis;
-      diagnostics?: TournamentPlanAnalyzeDiagnostics;
-      error?: string;
-      code?: TournamentPlanAnalyzeErrorCode;
-      message?: string;
-      provider?: 'meinturnierplan';
-      extractedId?: string | null;
-      attemptedEndpoints?: string[];
-    };
+    const { res, body } = await fetchTournamentPlanAnalyzeApi(
+      requestUrl,
+      'tryServerHtmlTournamentPlanFallback',
+    );
 
     if (res.ok && body.ok && body.analysis) {
       analyzeTrace('[ANALYZE] SERVER HTML FALLBACK SUCCESS', {
@@ -1822,6 +1854,8 @@ async function tryServerHtmlTournamentPlanFallback(
               htmlFallbackAttempted: true,
               htmlFallbackSuccessful: false,
               htmlFallbackError,
+              htmlFallbackRequestUrl: requestUrl,
+              htmlFallbackResponseStatus: res.status,
               htmlFallbackException: body.diagnostics?.htmlFallbackException ?? null,
               fallbackStage: 'html',
               source: 'html_fallback',
@@ -1836,6 +1870,8 @@ async function tryServerHtmlTournamentPlanFallback(
               htmlFallbackAttempted: true,
               htmlFallbackSuccessful: false,
               htmlFallbackError,
+              htmlFallbackRequestUrl: requestUrl,
+              htmlFallbackResponseStatus: res.status,
               fallbackStage: 'html',
               source: 'html_fallback',
             },
@@ -1848,7 +1884,6 @@ async function tryServerHtmlTournamentPlanFallback(
     const merged = mergeTournamentImportFailures(serverFailure, htmlFailure, browserFallbackError);
     return { ok: false, error: merged.message, failure: merged };
   } catch (err) {
-    logHtmlFallbackFetchError('tryServerHtmlTournamentPlanFallback', err);
     const captured = captureMeinTurnierplanFetchException(err);
     const apiErr = captured.exceptionMessage || captured.errorDetail;
     analyzeTrace('[ANALYZE] SERVER HTML FALLBACK UNREACHABLE', {
@@ -1864,6 +1899,8 @@ async function tryServerHtmlTournamentPlanFallback(
         htmlFallbackAttempted: true,
         htmlFallbackSuccessful: false,
         htmlFallbackError: `Server HTML-Fallback nicht erreichbar: ${apiErr}`,
+        htmlFallbackRequestUrl: requestUrl,
+        htmlFallbackResponseStatus: null,
         htmlFallbackException: captureMeinTurnierplanHtmlFallbackException(err),
         fallbackStage: 'html',
         source: 'html_fallback',
@@ -1944,22 +1981,9 @@ export async function analyzeTournamentUrl(
   let serverFailure: TournamentPlanAnalyzeFailure | null = null;
 
   const requestUrl = buildTournamentPlanAnalyzeRequestUrl(trimmed);
-  console.log('[HTML FALLBACK URL]', requestUrl);
 
   try {
-    const res = await fetch(requestUrl);
-    console.log('HTML Fallback Response Status:', res.status);
-    const body = (await res.json()) as {
-      ok?: boolean;
-      analysis?: TournamentPlanAnalysis;
-      diagnostics?: TournamentPlanAnalyzeDiagnostics;
-      error?: string;
-      code?: TournamentPlanAnalyzeErrorCode;
-      message?: string;
-      provider?: 'meinturnierplan';
-      extractedId?: string | null;
-      attemptedEndpoints?: string[];
-    };
+    const { res, body } = await fetchTournamentPlanAnalyzeApi(requestUrl, 'analyzeTournamentUrl');
 
     if (res.ok && body.ok && body.analysis) {
       return {
@@ -1998,8 +2022,8 @@ export async function analyzeTournamentUrl(
     if (body.error && res.status !== 404) {
       return { ok: false, error: body.error };
     }
-  } catch {
-    /* /api nicht erreichbar — Browser-Fallback */
+  } catch (err) {
+    logHtmlFallbackFetchError('analyzeTournamentUrl (server API)', err);
   }
 
   return tryBrowserTournamentPlanFallback(trimmed, serverFailure);
