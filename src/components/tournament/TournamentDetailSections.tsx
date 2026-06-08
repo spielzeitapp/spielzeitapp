@@ -27,7 +27,13 @@ import {
   type TournamentMatchSlotView,
   type TournamentParticipant,
 } from '../../lib/tournamentPlan';
+import { computeTournamentGroupStandings, type TournamentGroupStandings } from '../../lib/tournamentGroupStandings';
+import {
+  analyzeTournamentUrl,
+  fetchTournamentImportRecognition,
+} from '../../lib/tournamentPlanImport';
 import { TournamentBalanceCard } from './TournamentBalanceCard';
+import { TournamentGroupStandingCard } from './TournamentGroupStandingCard';
 import { TournamentHeroCard } from './TournamentHeroCard';
 import { TournamentOfficialPlanCard } from './TournamentOfficialPlanCard';
 import { TournamentTeamAliasesCard } from './TournamentTeamAliasesCard';
@@ -89,6 +95,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [matchGroup, setMatchGroup] = useState('');
   const [matchBusy, setMatchBusy] = useState(false);
   const [matchModalError, setMatchModalError] = useState<string | null>(null);
+  const [groupStandings, setGroupStandings] = useState<TournamentGroupStandings | null>(null);
+  const [groupStandingsLoading, setGroupStandingsLoading] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -140,6 +148,47 @@ export const TournamentDetailSections: React.FC<Props> = ({
   );
 
   const teamBalance = useMemo(() => computeTournamentTeamBalance(slots), [slots]);
+
+  useEffect(() => {
+    const planUrl = officialTournamentUrl?.trim();
+    if (!planUrl || !teamSeasonId || participants.length === 0) {
+      setGroupStandings(null);
+      setGroupStandingsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setGroupStandingsLoading(true);
+
+    void (async () => {
+      try {
+        const recognition = await fetchTournamentImportRecognition(teamSeasonId);
+        if (cancelled) return;
+
+        const analysisResult = await analyzeTournamentUrl(planUrl);
+        if (cancelled) return;
+
+        if (!analysisResult.ok) {
+          setGroupStandings(null);
+          return;
+        }
+
+        setGroupStandings(
+          computeTournamentGroupStandings({
+            participants,
+            rawMatches: analysisResult.analysis.rawMatches,
+            ourTeamNames: recognition.knownNames,
+          }),
+        );
+      } finally {
+        if (!cancelled) setGroupStandingsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [officialTournamentUrl, teamSeasonId, participants]);
 
   const nextMatchId = heroSummary.nextMatch?.id ?? null;
 
@@ -281,6 +330,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
       />
 
       <TournamentBalanceCard balance={teamBalance} loading={loading} />
+
+      <TournamentGroupStandingCard standings={groupStandings} loading={groupStandingsLoading} />
 
       <TournamentOfficialPlanCard
         tournamentEventId={tournamentEventId}
