@@ -49,6 +49,7 @@ export const HomePage: React.FC = () => {
 
   const [now, setNow] = useState(() => new Date());
   const [disabledMatchdayMatchIds, setDisabledMatchdayMatchIds] = useState<Set<string>>(() => new Set());
+  const [disabledMatchdayLoading, setDisabledMatchdayLoading] = useState(false);
   const [matchStatusById, setMatchStatusById] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -80,14 +81,24 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     if (FEED_DEMO) {
       setDisabledMatchdayMatchIds(new Set());
+      setDisabledMatchdayLoading(false);
       return;
     }
     const matchIds = (events ?? [])
       .filter((e) => e.kind === 'match')
       .map((e) => e.match_id);
+    if (matchIds.length === 0) {
+      setDisabledMatchdayMatchIds(new Set());
+      setDisabledMatchdayLoading(false);
+      return;
+    }
     let cancelled = false;
+    setDisabledMatchdayLoading(true);
     void loadAutoMatchdayFeedDisabledMatchIds(matchIds).then((ids) => {
-      if (!cancelled) setDisabledMatchdayMatchIds(ids);
+      if (!cancelled) {
+        setDisabledMatchdayMatchIds(ids);
+        setDisabledMatchdayLoading(false);
+      }
     });
     return () => {
       cancelled = true;
@@ -99,7 +110,12 @@ export const HomePage: React.FC = () => {
     return pickHomeMatchCard(source, now, disabledMatchdayMatchIds);
   }, [events, now, disabledMatchdayMatchIds]);
 
-  const { posts: teamFeedPosts, loading: teamFeedLoading, refetch: refetchFeed } = useTeamFeedPosts(teamSeasonId);
+  const {
+    posts: teamFeedPosts,
+    loading: teamFeedLoading,
+    ensuring: teamFeedEnsuring,
+    refetch: refetchFeed,
+  } = useTeamFeedPosts(teamSeasonId);
   const staffCanDeleteFeed = canStaffManageTeamFeed(backendRole, membershipRole);
 
   const eventById = useMemo(() => {
@@ -110,6 +126,8 @@ export const HomePage: React.FC = () => {
   }, [events, now]);
 
   const loading = sessionLoading || evLoading;
+  const feedBusy = teamFeedLoading || teamFeedEnsuring;
+  const matchSectionReady = !loading && !feedBusy && !disabledMatchdayLoading;
   const showContent = teamSeasonId || FEED_DEMO;
 
   const spieltagHintPick =
@@ -139,6 +157,9 @@ export const HomePage: React.FC = () => {
         ),
     );
   }, [teamFeedPosts, spieltagHintPick, disabledMatchdayMatchIds]);
+
+  const showNoUpcomingMatchEmpty =
+    matchSectionReady && !matchPick && visibleFeedPosts.length === 0;
 
   return (
     <PageShell
@@ -186,7 +207,7 @@ export const HomePage: React.FC = () => {
               <SectionTitle variant="interactive" as="p" className="!text-[11px] sm:!text-xs">
                 Im Feed
               </SectionTitle>
-              {teamFeedLoading ? (
+              {feedBusy ? (
                 <p className="text-sm text-white/50">Feed wird geladen…</p>
               ) : visibleFeedPosts.length === 0 ? (
                 <PremiumEmptyState
@@ -210,7 +231,9 @@ export const HomePage: React.FC = () => {
               )}
             </section>
 
-            {showNextMatchCompact && matchPick ? (
+            {!matchSectionReady ? (
+              <p className="text-sm text-white/50">Spielplan wird geladen…</p>
+            ) : showNextMatchCompact && matchPick ? (
               <section className="space-y-2" aria-label="Nächstes Spiel">
                 <SectionTitle variant="subtle" as="p" className="!text-[11px] uppercase sm:!text-xs">
                   Nächstes Spiel
@@ -221,7 +244,7 @@ export const HomePage: React.FC = () => {
                   reviewPending={reviewPendingForEvent(matchPick.event)}
                 />
               </section>
-            ) : !matchPick ? (
+            ) : showNoUpcomingMatchEmpty ? (
               <PremiumEmptyState
                 title="Kein Spiel in Sicht"
                 description="Für dein Team ist aktuell kein kommendes Spiel eingetragen."

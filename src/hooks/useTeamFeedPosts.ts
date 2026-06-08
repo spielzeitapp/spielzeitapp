@@ -108,19 +108,23 @@ async function runFeedEnsures(teamSeasonId: string): Promise<void> {
 export function useTeamFeedPosts(teamSeasonId: string | null) {
   const [posts, setPosts] = useState<ClassifiedFeedPost[]>([]);
   const [loading, setLoading] = useState(false);
+  const [ensuring, setEnsuring] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
     if (!teamSeasonId) {
       setPosts([]);
       setError(null);
+      setEnsuring(false);
       return;
     }
     setLoading(true);
+    setEnsuring(true);
     setError(null);
     try {
       await logMatchdayFeedSeasonContext(teamSeasonId);
       await runFeedEnsures(teamSeasonId);
+      setEnsuring(false);
       const { posts: mapped, dbRowCount, parseDropped } = await fetchPosts(teamSeasonId);
       console.info('[matchday] (5) team_feed_posts nach SELECT:', {
         dbZeilen_roh: dbRowCount,
@@ -133,6 +137,7 @@ export function useTeamFeedPosts(teamSeasonId: string | null) {
       setPosts([]);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
+      setEnsuring(false);
       setLoading(false);
     }
   }, [teamSeasonId]);
@@ -142,17 +147,20 @@ export function useTeamFeedPosts(teamSeasonId: string | null) {
     if (!teamSeasonId) {
       setPosts([]);
       setError(null);
+      setEnsuring(false);
       return;
     }
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setEnsuring(true);
       setError(null);
       try {
         await logMatchdayFeedSeasonContext(teamSeasonId);
         if (cancelled) return;
         await runFeedEnsures(teamSeasonId);
         if (cancelled) return;
+        setEnsuring(false);
         const { posts: mapped, dbRowCount, parseDropped } = await fetchPosts(teamSeasonId);
         if (cancelled) return;
         console.info('[matchday] (5) team_feed_posts nach SELECT:', {
@@ -168,7 +176,10 @@ export function useTeamFeedPosts(teamSeasonId: string | null) {
           setError(e instanceof Error ? e.message : String(e));
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setEnsuring(false);
+          setLoading(false);
+        }
       }
     })();
     return () => {
@@ -176,5 +187,5 @@ export function useTeamFeedPosts(teamSeasonId: string | null) {
     };
   }, [teamSeasonId]);
 
-  return { posts, loading, error, refetch };
+  return { posts, loading, ensuring, error, refetch };
 }
