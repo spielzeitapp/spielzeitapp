@@ -11,6 +11,7 @@ import {
 import {
   addTournamentParticipant,
   computeTournamentHeroSummary,
+  computeTournamentTeamBalance,
   createTournamentMatchSlot,
   fetchTournamentMatchSlots,
   fetchTournamentParticipants,
@@ -26,6 +27,7 @@ import {
   type TournamentMatchSlotView,
   type TournamentParticipant,
 } from '../../lib/tournamentPlan';
+import { TournamentBalanceCard } from './TournamentBalanceCard';
 import { TournamentHeroCard } from './TournamentHeroCard';
 import { TournamentOfficialPlanCard } from './TournamentOfficialPlanCard';
 import { TournamentTeamAliasesCard } from './TournamentTeamAliasesCard';
@@ -136,6 +138,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
     () => computeTournamentHeroSummary(participants, slots),
     [participants, slots],
   );
+
+  const teamBalance = useMemo(() => computeTournamentTeamBalance(slots), [slots]);
 
   const nextMatchId = heroSummary.nextMatch?.id ?? null;
 
@@ -275,6 +279,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
         slots={slots}
         loading={loading}
       />
+
+      <TournamentBalanceCard balance={teamBalance} loading={loading} />
 
       <TournamentOfficialPlanCard
         tournamentEventId={tournamentEventId}

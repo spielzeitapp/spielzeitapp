@@ -92,6 +92,33 @@ export type TournamentHeroSummary = {
   allFinished: boolean;
 };
 
+export type TournamentTeamBalance = {
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+};
+
+/** Bilanz aus eigenen Turnierspielen (score_home = wir, nur status finished). */
+export function computeTournamentTeamBalance(slots: TournamentMatchSlotView[]): TournamentTeamBalance {
+  let played = 0;
+  let wins = 0;
+  let draws = 0;
+  let losses = 0;
+
+  for (const slot of slots) {
+    if ((slot.match_status ?? '').toLowerCase() !== 'finished') continue;
+    played += 1;
+    const ourGoals = Number(slot.score_home ?? 0);
+    const oppGoals = Number(slot.score_away ?? 0);
+    if (ourGoals > oppGoals) wins += 1;
+    else if (ourGoals < oppGoals) losses += 1;
+    else draws += 1;
+  }
+
+  return { played, wins, draws, losses };
+}
+
 export function computeTournamentHeroSummary(
   participants: TournamentParticipant[],
   slots: TournamentMatchSlotView[],
