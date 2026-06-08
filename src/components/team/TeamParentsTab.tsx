@@ -10,6 +10,8 @@ import {
 } from "../../ui";
 import {
   buildParentReminderWhatsAppText,
+  parentPrimaryLabel,
+  parentShowEmailBelow,
   PARENT_LINKS_RPC_MIGRATION_HINT,
   type PlayerParentLinkRow,
 } from "../../hooks/useTeamPlayerParentLinks";
@@ -212,9 +214,13 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
                                   ✅
                                 </span>
                                 <div className="min-w-0">
-                                  <p className="font-medium">{parent.name}</p>
-                                  {parent.email ? (
-                                    <p className="text-[13px] text-white/60">{parent.email}</p>
+                                  <p className="text-[15px] font-semibold leading-snug text-white">
+                                    {parentPrimaryLabel(parent)}
+                                  </p>
+                                  {parentShowEmailBelow(parent) ? (
+                                    <p className="mt-0.5 text-[12px] leading-snug text-white/55">
+                                      {parent.email}
+                                    </p>
                                   ) : null}
                                 </div>
                               </div>

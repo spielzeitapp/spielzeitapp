@@ -3,7 +3,9 @@ import { supabase } from "../lib/supabaseClient";
 
 export type ParentLinkInfo = {
   user_id: string;
-  name: string;
+  name: string | null;
+  full_name: string | null;
+  display_name: string | null;
   email: string | null;
 };
 
@@ -29,6 +31,36 @@ function isParentLinksRpcMissingError(message: string | null): boolean {
   );
 }
 
+function pickParentName(o: Record<string, unknown>): string | null {
+  const candidates = [
+    o.display_name,
+    o.full_name,
+    o.name,
+    o.first_name && o.last_name
+      ? `${String(o.first_name).trim()} ${String(o.last_name).trim()}`
+      : null,
+  ];
+  for (const raw of candidates) {
+    const s = raw != null ? String(raw).trim() : "";
+    if (s.length > 0) return s;
+  }
+  return null;
+}
+
+/** Primäre Anzeige: Name, sonst E-Mail. */
+export function parentPrimaryLabel(parent: ParentLinkInfo): string {
+  const name = parent.display_name ?? parent.full_name ?? parent.name;
+  if (name && name.trim().length > 0) return name.trim();
+  if (parent.email) return parent.email;
+  return "Elternteil";
+}
+
+/** E-Mail nur als zweite Zeile, wenn ein echter Name vorhanden ist. */
+export function parentShowEmailBelow(parent: ParentLinkInfo): boolean {
+  const name = parent.display_name ?? parent.full_name ?? parent.name;
+  return !!(name && name.trim().length > 0 && parent.email);
+}
+
 function parseParents(raw: unknown): ParentLinkInfo[] {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -37,11 +69,21 @@ function parseParents(raw: unknown): ParentLinkInfo[] {
       const o = item as Record<string, unknown>;
       const userId = String(o.user_id ?? "").trim();
       if (!userId) return null;
-      const name = String(o.name ?? "").trim() || "Elternteil";
+      const displayName = pickParentName(o);
+      const fullName =
+        o.full_name != null && String(o.full_name).trim() !== ""
+          ? String(o.full_name).trim()
+          : null;
       const emailRaw = o.email;
       const email =
         emailRaw != null && String(emailRaw).trim() !== "" ? String(emailRaw).trim() : null;
-      return { user_id: userId, name, email };
+      return {
+        user_id: userId,
+        name: displayName,
+        full_name: fullName,
+        display_name: displayName,
+        email,
+      };
     })
     .filter((x): x is ParentLinkInfo => x != null);
 }
