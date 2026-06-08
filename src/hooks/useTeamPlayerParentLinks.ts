@@ -4,7 +4,6 @@ import { supabase } from "../lib/supabaseClient";
 export type ParentLinkInfo = {
   user_id: string;
   name: string | null;
-  full_name: string | null;
   display_name: string | null;
   email: string | null;
 };
@@ -32,33 +31,33 @@ function isParentLinksRpcMissingError(message: string | null): boolean {
 }
 
 function pickParentName(o: Record<string, unknown>): string | null {
-  const candidates = [
-    o.display_name,
-    o.full_name,
-    o.name,
-    o.first_name && o.last_name
-      ? `${String(o.first_name).trim()} ${String(o.last_name).trim()}`
-      : null,
-  ];
+  const first = o.first_name != null ? String(o.first_name).trim() : "";
+  const last = o.last_name != null ? String(o.last_name).trim() : "";
+  const fromParts = [first, last].filter(Boolean).join(" ").trim();
+
+  const candidates = [o.display_name, o.name, fromParts || null];
   for (const raw of candidates) {
     const s = raw != null ? String(raw).trim() : "";
-    if (s.length > 0) return s;
+    if (s.length > 0 && s !== "Elternteil") return s;
   }
   return null;
 }
 
-/** Primäre Anzeige: Name, sonst E-Mail. */
+/** Hauptzeile: Name → E-Mail → Fallback. */
 export function parentPrimaryLabel(parent: ParentLinkInfo): string {
-  const name = parent.display_name ?? parent.full_name ?? parent.name;
-  if (name && name.trim().length > 0) return name.trim();
-  if (parent.email) return parent.email;
-  return "Elternteil";
+  return (
+    parent.name?.trim() ||
+    parent.display_name?.trim() ||
+    parent.email?.trim() ||
+    "Elternaccount"
+  );
 }
 
-/** E-Mail nur als zweite Zeile, wenn ein echter Name vorhanden ist. */
+/** E-Mail-Zeile nur, wenn sie sich von der Hauptzeile unterscheidet. */
 export function parentShowEmailBelow(parent: ParentLinkInfo): boolean {
-  const name = parent.display_name ?? parent.full_name ?? parent.name;
-  return !!(name && name.trim().length > 0 && parent.email);
+  const label = parentPrimaryLabel(parent);
+  const email = parent.email?.trim() ?? "";
+  return email.length > 0 && email !== label;
 }
 
 function parseParents(raw: unknown): ParentLinkInfo[] {
@@ -70,17 +69,12 @@ function parseParents(raw: unknown): ParentLinkInfo[] {
       const userId = String(o.user_id ?? "").trim();
       if (!userId) return null;
       const displayName = pickParentName(o);
-      const fullName =
-        o.full_name != null && String(o.full_name).trim() !== ""
-          ? String(o.full_name).trim()
-          : null;
       const emailRaw = o.email;
       const email =
         emailRaw != null && String(emailRaw).trim() !== "" ? String(emailRaw).trim() : null;
       return {
         user_id: userId,
         name: displayName,
-        full_name: fullName,
         display_name: displayName,
         email,
       };

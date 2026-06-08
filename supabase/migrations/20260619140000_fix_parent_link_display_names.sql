@@ -1,4 +1,5 @@
--- Eltern-Verknüpfungen: Namen aus profiles (first/last, full_name, display_name) + E-Mail-Fallback.
+-- Eltern-Verknüpfungen: Namen nur aus vorhandenen Feldern (first_name/last_name, auth-Metadaten).
+-- Kein full_name (live nicht überall vorhanden). name/display_name nur wenn echter Name, sonst null.
 
 CREATE OR REPLACE FUNCTION public.get_team_player_parent_links(p_team_season_id uuid)
 RETURNS TABLE (
@@ -41,14 +42,31 @@ BEGIN
           'user_id', pg.user_id,
           'first_name', pr.first_name,
           'last_name', pr.last_name,
-          'full_name', NULLIF(trim(pr.full_name), ''),
           'display_name', coalesce(
             NULLIF(trim(concat_ws(' ', pr.first_name, pr.last_name)), ''),
-            NULLIF(trim(pr.full_name), '')
+            NULLIF(
+              trim(
+                concat_ws(
+                  ' ',
+                  u.raw_user_meta_data ->> 'first_name',
+                  u.raw_user_meta_data ->> 'last_name'
+                )
+              ),
+              ''
+            )
           ),
           'name', coalesce(
             NULLIF(trim(concat_ws(' ', pr.first_name, pr.last_name)), ''),
-            NULLIF(trim(pr.full_name), '')
+            NULLIF(
+              trim(
+                concat_ws(
+                  ' ',
+                  u.raw_user_meta_data ->> 'first_name',
+                  u.raw_user_meta_data ->> 'last_name'
+                )
+              ),
+              ''
+            )
           ),
           'email', coalesce(
             NULLIF(trim(pr.email), ''),
@@ -80,6 +98,6 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.get_team_player_parent_links(uuid) IS
-  'Eltern-Verknüpfungen je Kader-Spieler. Namen aus profiles (first/last, full_name); E-Mail aus profiles oder auth.users.';
+  'Eltern-Verknüpfungen: name/display_name aus profiles.first_name/last_name oder auth-Metadaten; E-Mail separat.';
 
 SELECT pg_notify('pgrst', 'reload schema');
