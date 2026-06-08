@@ -97,6 +97,11 @@ export type TournamentTeamBalance = {
   wins: number;
   draws: number;
   losses: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+  isCompleted: boolean;
 };
 
 /** Bilanz aus eigenen Turnierspielen (score_home = wir, nur status finished). */
@@ -105,18 +110,43 @@ export function computeTournamentTeamBalance(slots: TournamentMatchSlotView[]): 
   let wins = 0;
   let draws = 0;
   let losses = 0;
+  let goalsFor = 0;
+  let goalsAgainst = 0;
 
   for (const slot of slots) {
     if ((slot.match_status ?? '').toLowerCase() !== 'finished') continue;
     played += 1;
     const ourGoals = Number(slot.score_home ?? 0);
     const oppGoals = Number(slot.score_away ?? 0);
+    goalsFor += ourGoals;
+    goalsAgainst += oppGoals;
     if (ourGoals > oppGoals) wins += 1;
     else if (ourGoals < oppGoals) losses += 1;
     else draws += 1;
   }
 
-  return { played, wins, draws, losses };
+  const points = wins * 3 + draws;
+  const goalDifference = goalsFor - goalsAgainst;
+  const isCompleted =
+    slots.length > 0 &&
+    slots.every((slot) => (slot.match_status ?? '').toLowerCase() === 'finished');
+
+  return {
+    played,
+    wins,
+    draws,
+    losses,
+    goalsFor,
+    goalsAgainst,
+    goalDifference,
+    points,
+    isCompleted,
+  };
+}
+
+export function formatTournamentGoalDifference(diff: number): string {
+  if (diff > 0) return `+${diff}`;
+  return String(diff);
 }
 
 export function computeTournamentHeroSummary(
