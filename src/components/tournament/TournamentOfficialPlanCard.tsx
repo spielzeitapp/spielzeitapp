@@ -42,6 +42,7 @@ type Props = {
   existingTeamNames: string[];
   existingSlots: TournamentMatchSlotView[];
   canManage: boolean;
+  tournamentArchived?: boolean;
   onUrlUpdated: (url: string | null) => void;
   onImportComplete: () => void;
   onScrollToAliases?: () => void;
@@ -59,6 +60,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   existingTeamNames,
   existingSlots,
   canManage,
+  tournamentArchived = false,
   onUrlUpdated,
   onImportComplete,
   onScrollToAliases,
@@ -410,6 +412,13 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
           {saveError ? (
             <p className="text-[13px] text-red-300/90" role="alert">
               {saveError}
+            </p>
+          ) : null}
+
+          {tournamentArchived ? (
+            <p className="rounded-xl border border-amber-500/20 bg-amber-950/15 px-3 py-2 text-[12px] leading-snug text-white/60">
+              Turnier ist abgeschlossen. Aktualisieren kann neue Daten ergänzen, überschreibt aber keine
+              Live-Daten.
             </p>
           ) : null}
 

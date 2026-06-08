@@ -28,10 +28,14 @@ import {
   type TournamentParticipant,
 } from '../../lib/tournamentPlan';
 import { computeTournamentFinalSummary } from '../../lib/tournamentFinalSummary';
+import { usePlayers } from '../../hooks/usePlayers';
 import {
-  fetchTournamentGoalScorers,
-  type TournamentGoalScorer,
-} from '../../lib/tournamentGoalScorers';
+  completeTournamentEvent,
+  fetchTournamentCompletion,
+  type TournamentCompletionState,
+} from '../../lib/tournamentCompletion';
+import { fetchTournamentCombinedGoalScorers } from '../../lib/tournamentManualGoalScorers';
+import type { TournamentGoalScorer } from '../../lib/tournamentGoalScorers';
 import { computeTournamentGroupStandings, type TournamentGroupStandings } from '../../lib/tournamentGroupStandings';
 import {
   analyzeTournamentUrl,
@@ -53,8 +57,10 @@ type Props = {
   location: string | null;
   officialTournamentUrl: string | null;
   canManage: boolean;
+  userId?: string | null;
   onOpenMatchPreparation: (matchId: string) => void;
   onOfficialTournamentUrlUpdated: (url: string | null) => void;
+  onTournamentCompleted?: () => void;
 };
 
 const inputClass =
@@ -72,8 +78,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
   location,
   officialTournamentUrl,
   canManage,
+  userId = null,
   onOpenMatchPreparation,
   onOfficialTournamentUrlUpdated,
+  onTournamentCompleted,
 }) => {
   const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
   const [slots, setSlots] = useState<TournamentMatchSlotView[]>([]);
@@ -111,6 +119,16 @@ export const TournamentDetailSections: React.FC<Props> = ({
   } | null>(null);
   const [goalScorers, setGoalScorers] = useState<TournamentGoalScorer[]>([]);
   const [goalScorersLoading, setGoalScorersLoading] = useState(false);
+  const [hasMatchEventGoals, setHasMatchEventGoals] = useState(false);
+  const [completion, setCompletion] = useState<TournamentCompletionState>({
+    completedAt: null,
+    completedBy: null,
+    finalPlacement: null,
+    finalTeamsCount: null,
+    finalLabel: null,
+  });
+  const [completingTournament, setCompletingTournament] = useState(false);
+  const { players, loading: playersLoading } = usePlayers(teamSeasonId);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -176,28 +194,62 @@ export const TournamentDetailSections: React.FC<Props> = ({
     [teamBalance, planImportContext, slots, groupStandings],
   );
 
-  useEffect(() => {
+  const reloadGoalScorers = useCallback(async () => {
     const matchIds = slots.map((slot) => slot.match_id).filter(Boolean);
     if (matchIds.length === 0) {
       setGoalScorers([]);
+      setHasMatchEventGoals(false);
       setGoalScorersLoading(false);
       return;
     }
 
-    let cancelled = false;
     setGoalScorersLoading(true);
+    const result = await fetchTournamentCombinedGoalScorers({
+      matchIds,
+      eventId: tournamentEventId,
+    });
+    setGoalScorers(result.data);
+    setHasMatchEventGoals(result.hasMatchEventGoals);
+    setGoalScorersLoading(false);
+  }, [slots, tournamentEventId]);
 
+  useEffect(() => {
+    void reloadGoalScorers();
+  }, [reloadGoalScorers]);
+
+  useEffect(() => {
+    let cancelled = false;
     void (async () => {
-      const result = await fetchTournamentGoalScorers(matchIds);
-      if (cancelled) return;
-      setGoalScorers(result.data);
-      setGoalScorersLoading(false);
+      const result = await fetchTournamentCompletion(tournamentEventId);
+      if (!cancelled) setCompletion(result.data);
     })();
-
     return () => {
       cancelled = true;
     };
-  }, [slots]);
+  }, [tournamentEventId]);
+
+  const handleCompleteTournament = async () => {
+    if (!finalSummary || !userId) return;
+    if (!window.confirm('Turnier jetzt abschließen? Import bleibt möglich.')) return;
+
+    setCompletingTournament(true);
+    const result = await completeTournamentEvent({
+      eventId: tournamentEventId,
+      userId,
+      summary: finalSummary,
+    });
+    setCompletingTournament(false);
+
+    if (result.error) {
+      setListError(result.error);
+      return;
+    }
+    if (result.data) {
+      setCompletion(result.data);
+      setToastMessage('Turnier abgeschlossen.');
+      onTournamentCompleted?.();
+    }
+  };
 
   useEffect(() => {
     const planUrl = officialTournamentUrl?.trim();
@@ -388,11 +440,22 @@ export const TournamentDetailSections: React.FC<Props> = ({
       <TournamentBalanceCard balance={teamBalance} loading={loading} />
 
       <TournamentFinalSummaryCard
+        tournamentEventId={tournamentEventId}
+        tournamentTitle={tournamentTitle}
         balance={teamBalance}
         summary={finalSummary}
+        completion={completion}
         goalScorers={goalScorers}
         goalScorersLoading={goalScorersLoading}
+        hasMatchEventGoals={hasMatchEventGoals}
+        canManage={canManage}
+        userId={userId}
+        players={players}
+        playersLoading={playersLoading}
         loading={loading || groupStandingsLoading}
+        onManualScorersSaved={() => void reloadGoalScorers()}
+        onCompleteTournament={() => void handleCompleteTournament()}
+        completingTournament={completingTournament}
       />
 
       <TournamentGroupStandingCard standings={groupStandings} loading={groupStandingsLoading} />
@@ -406,6 +469,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
         existingTeamNames={participants.map((p) => p.team_name)}
         existingSlots={slots}
         canManage={canManage}
+        tournamentArchived={Boolean(completion.completedAt)}
         onUrlUpdated={onOfficialTournamentUrlUpdated}
         onImportComplete={() => void reload()}
         onScrollToAliases={scrollToTeamAliases}

@@ -5,12 +5,18 @@ import type { TournamentPlanImportRawMatch } from './tournamentPlanImport';
 
 export type TournamentPlacementSource = 'final' | 'third_place_match' | 'group' | 'unknown';
 
+export type TournamentFinalMatchDisplay = {
+  title: string;
+  scoreline: string;
+};
+
 export type TournamentFinalSummary = {
   tournamentCompleted: boolean;
   finalPlacementLabel: string | null;
   finalPlacementRank: number | null;
   finalPlacementTotal: number | null;
   placementSource: TournamentPlacementSource;
+  finalMatch: TournamentFinalMatchDisplay | null;
 };
 
 type MatchOutcome = 'win' | 'loss' | 'draw';
@@ -209,6 +215,52 @@ function findOurFinishedSlot(
   );
 }
 
+function buildFinalMatchDisplay(params: {
+  rawMatch: TournamentPlanImportRawMatch | null;
+  slot: TournamentMatchSlotView | null;
+  ourTeamNames: string[];
+}): TournamentFinalMatchDisplay | null {
+  if (
+    params.rawMatch?.hasResult &&
+    params.rawMatch.homeGoals != null &&
+    params.rawMatch.awayGoals != null
+  ) {
+    return {
+      title: 'Finale',
+      scoreline: `${params.rawMatch.homeTeam} ${params.rawMatch.homeGoals}:${params.rawMatch.awayGoals} ${params.rawMatch.awayTeam}`,
+    };
+  }
+
+  if (params.slot && (params.slot.match_status ?? '').toLowerCase() === 'finished') {
+    const ourName = params.ourTeamNames.find((name) => name.trim())?.trim() || 'Unser Team';
+    return {
+      title: 'Finale',
+      scoreline: `${ourName} ${params.slot.score_home}:${params.slot.score_away} ${params.slot.opponent_name}`,
+    };
+  }
+
+  return null;
+}
+
+export function formatTournamentPlacementRankLine(summary: TournamentFinalSummary): string | null {
+  if (!summary.finalPlacementLabel) return null;
+
+  if (summary.placementSource === 'group') {
+    return formatTournamentFinalPlacementHeadline(summary);
+  }
+
+  const rank = summary.finalPlacementRank;
+  const total = summary.finalPlacementTotal;
+  if (rank != null && total != null) {
+    if (rank === 1) return `🥇 1. Platz von ${total} Teams`;
+    if (rank === 2) return `🥈 2. Platz von ${total} Teams`;
+    if (rank === 3) return `🥉 3. Platz von ${total} Teams`;
+    return `${rank}. Platz von ${total} Teams`;
+  }
+
+  return formatTournamentFinalPlacementHeadline(summary);
+}
+
 export function formatTournamentFinalPlacementHeadline(summary: TournamentFinalSummary): string | null {
   if (!summary.finalPlacementLabel) return null;
   const label = summary.finalPlacementLabel;
@@ -232,10 +284,18 @@ export function formatTournamentFinalPlacementHeadline(summary: TournamentFinalS
 }
 
 export function tournamentPlacementSourceHint(source: TournamentPlacementSource): string | null {
-  if (source === 'group') return 'Platzierung aus Gruppentabelle berechnet';
+  if (source === 'group') return 'Platzierung aus Gruppenphase berechnet';
   if (source === 'final') return 'Platzierung aus Finalspiel berechnet';
   if (source === 'third_place_match') return 'Platzierung aus Spiel um Platz 3 berechnet';
   return null;
+}
+
+export function canCompleteTournament(
+  balance: TournamentTeamBalance,
+  summary: TournamentFinalSummary | null,
+): boolean {
+  if (!summary?.finalPlacementLabel) return false;
+  return balance.isCompleted;
 }
 
 export function shouldShowTournamentFinalSummaryCard(
@@ -277,15 +337,19 @@ export function computeTournamentFinalSummary(params: {
   };
 
   const ourFinalRaw = findOurFinishedRawMatch(rawMatches, 'final', params.ourTeamNames);
+  const ourFinalSlot = findOurFinishedSlot(slots, 'final');
+  const finalMatch = buildFinalMatchDisplay({
+    rawMatch: ourFinalRaw,
+    slot: ourFinalSlot,
+    ourTeamNames: params.ourTeamNames,
+  });
+
   if (ourFinalRaw) {
     const outcome = rawMatchOutcomeForUs(ourFinalRaw, params.ourTeamNames);
     if (outcome) placement = placementFromFinal(outcome, teamCount);
-  } else {
-    const ourFinalSlot = findOurFinishedSlot(slots, 'final');
-    if (ourFinalSlot) {
-      const outcome = slotOutcomeForUs(ourFinalSlot);
-      if (outcome) placement = placementFromFinal(outcome, teamCount);
-    }
+  } else if (ourFinalSlot) {
+    const outcome = slotOutcomeForUs(ourFinalSlot);
+    if (outcome) placement = placementFromFinal(outcome, teamCount);
   }
 
   if (!placement.finalPlacementLabel) {
@@ -313,11 +377,13 @@ export function computeTournamentFinalSummary(params: {
       finalPlacementRank: null,
       finalPlacementTotal: null,
       placementSource: 'unknown',
+      finalMatch: null,
     };
   }
 
   return {
     tournamentCompleted,
     ...placement,
+    finalMatch: placement.placementSource === 'final' ? finalMatch : null,
   };
 }

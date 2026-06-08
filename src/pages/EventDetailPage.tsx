@@ -3092,6 +3092,7 @@ export const EventDetailPage: React.FC = () => {
                 location={event.location}
                 officialTournamentUrl={event.official_tournament_url ?? null}
                 canManage={canTrainerManageEvent}
+                userId={sessionUser?.id ?? null}
                 onOpenMatchPreparation={(matchId) =>
                   navigate(`/app/match-preparation?matchId=${encodeURIComponent(matchId)}`)
                 }
