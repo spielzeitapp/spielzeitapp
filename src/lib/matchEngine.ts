@@ -532,7 +532,7 @@ export function canonicalSubstitutionEventsForReplay(
 }
 
 /** FairPlay: Zusatzspieler im FP-Slot; Ende entfernt FP oder überträgt Slot. */
-function applyExtraPlayerOnToSlots(
+export function applyExtraPlayerOnToSlots(
   slots: Record<FieldSlotId, string | null>,
   extraId: string,
 ): Record<FieldSlotId, string | null> {
@@ -548,7 +548,7 @@ function applyExtraPlayerOnToSlots(
   return dedupeFieldSlotMap(next);
 }
 
-function applyExtraPlayerOffToSlots(
+export function applyExtraPlayerOffToSlots(
   slots: Record<FieldSlotId, string | null>,
   removed: string | null,
   extraId: string | null,
@@ -831,14 +831,18 @@ export function deriveLiveMatchReplayState(params: DeriveLiveMatchReplayParams):
     fallbackSlotMap,
   });
 
-  const slotsBySlot = dedupeFieldSlotMap(replayResult.slots);
-  const onFieldPlayerIds = getOnFieldIdsInSlotOrder(slotsBySlot);
+  let slotsBySlot = dedupeFieldSlotMap(replayResult.slots);
 
   const eventsUpToFinal = eventsAsc.filter((e) => (eventMatchSecondOrNull(e) ?? 0) <= finalSecond);
-  const fairPlayExtraPlayerId =
+  let fairPlayExtraPlayerId =
     String(slotsBySlot.FP ?? '').trim() ||
     fairPlayExtraPlayerIdFromSortedEvents(eventsUpToFinal);
 
+  if (fairPlayExtraPlayerId && String(slotsBySlot.FP ?? '').trim() !== fairPlayExtraPlayerId) {
+    slotsBySlot = applyExtraPlayerOnToSlots(slotsBySlot, fairPlayExtraPlayerId);
+  }
+
+  const onFieldPlayerIds = getOnFieldIdsInSlotOrder(slotsBySlot);
   const activePlayerIds = [...onFieldPlayerIds];
   const benchPlayerIds = getBenchPlayers(squad, activePlayerIds);
 
@@ -863,6 +867,7 @@ export function deriveLiveMatchReplayState(params: DeriveLiveMatchReplayParams):
     }
   }
 
+  const extra = fairPlayExtraPlayerId?.trim();
   const fieldSet = new Set(onFieldPlayerIds);
   const benchSet = new Set(benchPlayerIds);
   const playersInBoth = onFieldPlayerIds.filter((id) => benchSet.has(id));
@@ -871,7 +876,6 @@ export function deriveLiveMatchReplayState(params: DeriveLiveMatchReplayParams):
     warnLiveReplayDevtools('Spieler doppelt Feld/Bank', { playersInBoth });
   }
 
-  const extra = fairPlayExtraPlayerId?.trim();
   if (extra && benchSet.has(extra)) {
     warnings.push('fairplay_extra_on_bench');
     warnLiveReplayDevtools('FairPlay-Zusatzspieler in benchPlayerIds', { extra });

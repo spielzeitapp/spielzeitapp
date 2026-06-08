@@ -10,6 +10,8 @@ import {
   pickKickoffLineupBaseForReplay,
   replaySubstitutionEventsOnSlots,
   resolveReplayAtMatchSecond,
+  applyExtraPlayerOnToSlots,
+  applyExtraPlayerOffToSlots,
   dedupeFieldSlotMap,
   fairPlayExtraPlayerIdFromOffEvent,
   fairPlayExtraPlayerIdFromSortedEvents,
@@ -800,17 +802,24 @@ export async function persistFairPlayPositionSwap(params: {
 }
 
 /**
- * FairPlay-Zusatzspieler: nur Event persistieren (Bank bleibt in DB — Replay filtert Extra aus benchPlayerIds).
+ * FairPlay-Zusatzspieler: Event + `match_lineup` (FP-Slot) + Bank bereinigen.
  */
 export async function persistExtraPlayerOn(params: {
   matchId: string;
   playerId: string;
   currentMatchSeconds: number;
   period: number | null;
-}): Promise<{ error: string | null; eventId: string | null }> {
+  currentSlots: Record<FieldSlotId, string | null>;
+  squadPlayerIds: string[];
+}): Promise<{ error: string | null; eventId: string | null; startingPlayerIds?: string[] }> {
   const mid = params.matchId?.trim();
   const pid = String(params.playerId ?? '').trim();
   if (!mid || !pid) return { error: 'Ungültige Eingabe.', eventId: null };
+
+  const nextSlots = applyExtraPlayerOnToSlots(params.currentSlots, pid);
+  const nextStarting = fieldSlotMapToStartingIds(nextSlots);
+  const squad = [...new Set([...params.squadPlayerIds, pid])];
+
   const payload = engineEventToInsertPayload(
     mid,
     {
@@ -822,7 +831,14 @@ export async function persistExtraPlayerOn(params: {
   );
   const { id, error } = await saveMatchEvent(payload);
   if (error || !id) return { error: error ?? 'Ereignis konnte nicht gespeichert werden.', eventId: null };
-  return { error: null, eventId: id };
+
+  const lineupRes = await replaceMatchLineupAndBench(mid, nextStarting, squad);
+  if (lineupRes.error) {
+    await deleteMatchEventById(id);
+    return { error: lineupRes.error, eventId: null };
+  }
+
+  return { error: null, eventId: id, startingPlayerIds: nextStarting };
 }
 
 /**
@@ -840,7 +856,7 @@ export async function persistExtraPlayerOff(params: {
   /** Aktuelle Slot-Belegung (7er), wenn ein anderer Feldspieler rausgeht. */
   currentStartingPlayerIds?: string[];
   squadPlayerIds?: string[];
-}): Promise<{ error: string | null; eventId: string | null }> {
+}): Promise<{ error: string | null; eventId: string | null; startingPlayerIds?: string[] }> {
   const mid = params.matchId?.trim();
   const extraId = String(params.extraPlayerId ?? '').trim();
   const removedId = String(params.removedPlayerId ?? '').trim();
@@ -857,59 +873,79 @@ export async function persistExtraPlayerOff(params: {
   });
   if (error || !id) return { error: error ?? 'Ereignis konnte nicht gespeichert werden.', eventId: null };
 
+  const squad = params.squadPlayerIds ?? [];
+  const baseSlots = params.currentStartingPlayerIds?.length
+    ? startingLineupToSlotMap(params.currentStartingPlayerIds)
+    : ({} as Record<FieldSlotId, string | null>);
+
   if (removedId === extraId) {
-    const { data: benchRow, error: benchSelErr } = await supabase
-      .from('match_bench')
-      .select('player_id')
-      .eq('match_id', mid)
-      .eq('player_id', extraId)
-      .maybeSingle();
-    if (benchSelErr) {
-      console.error('[liveMatchService] persistExtraPlayerOff match_bench select', benchSelErr);
-      return { error: benchSelErr.message, eventId: id };
-    }
-    if (!benchRow) {
-      const { error: benchErr } = await supabase.from('match_bench').insert({ match_id: mid, player_id: extraId });
-      if (benchErr) {
-        console.error('[liveMatchService] persistExtraPlayerOff match_bench insert', benchErr);
-        return { error: benchErr.message, eventId: id };
-      }
-    }
-    return { error: null, eventId: id };
+    const nextSlots = applyExtraPlayerOffToSlots(baseSlots, removedId, extraId);
+    const nextStarting = fieldSlotMapToStartingIds(nextSlots);
+    const lineupRes = await replaceMatchLineupAndBench(mid, nextStarting, squad.length ? squad : [extraId]);
+    if (lineupRes.error) return { error: lineupRes.error, eventId: id };
+    return { error: null, eventId: id, startingPlayerIds: nextStarting };
   }
 
-  const squad = params.squadPlayerIds ?? [];
   if (!params.currentStartingPlayerIds?.length) {
     return { error: 'Aufstellung fehlt für Feldwechsel.', eventId: id };
   }
 
-  const slots = startingLineupToSlotMap(params.currentStartingPlayerIds.slice(0, 7));
-  let placed = false;
-  for (const slot of LIVE_FIELD_SLOT_ORDER) {
-    if (String(slots[slot] ?? '').trim() === removedId) {
-      slots[slot] = extraId;
-      placed = true;
-      break;
-    }
-  }
-  if (!placed) {
-    for (const slot of LIVE_FIELD_SLOT_ORDER) {
-      if (!String(slots[slot] ?? '').trim()) {
-        slots[slot] = extraId;
-        placed = true;
-        break;
-      }
-    }
-  }
-  if (!placed) {
+  const slots = applyExtraPlayerOffToSlots(baseSlots, removedId, extraId);
+  const nextStarting = fieldSlotMapToStartingIds(dedupeFieldSlotMap(slots));
+  if (!getOnFieldIdsInSlotOrder(dedupeFieldSlotMap(slots)).includes(extraId)) {
     return { error: 'Gewählter Spieler nicht auf dem Feld gefunden.', eventId: id };
   }
-
-  const nextStarting = fieldSlotMapToStartingIds(dedupeFieldSlotMap(slots));
   const lineupRes = await replaceMatchLineupAndBench(mid, nextStarting, squad);
   if (lineupRes.error) return { error: lineupRes.error, eventId: id };
 
-  return { error: null, eventId: id };
+  return { error: null, eventId: id, startingPlayerIds: nextStarting };
+}
+
+/** FairPlay-Session auf neuen Zusatzspieler übertragen (nach normalem Wechsel auf FP-Slot). */
+export async function persistFairPlayExtraSessionTransfer(params: {
+  matchId: string;
+  oldExtraPlayerId: string;
+  newExtraPlayerId: string;
+  currentMatchSeconds: number;
+  period: number | null;
+}): Promise<{ error: string | null }> {
+  const mid = params.matchId?.trim();
+  const oldId = String(params.oldExtraPlayerId ?? '').trim();
+  const newId = String(params.newExtraPlayerId ?? '').trim();
+  if (!mid || !oldId || !newId || oldId === newId) {
+    return { error: 'Ungültige FairPlay-Übertragung.' };
+  }
+
+  const ts = clampEffectiveMatchSeconds(params.currentMatchSeconds);
+  const offPayload = engineEventToInsertPayload(
+    mid,
+    {
+      type: 'extra_player_off',
+      timestamp: ts,
+      playerId: oldId,
+      fairPlayRemovedPlayerId: oldId,
+    },
+    params.period,
+  );
+  const { id: offId, error: offErr } = await saveMatchEvent(offPayload);
+  if (offErr || !offId) return { error: offErr ?? 'FairPlay-Ende konnte nicht gespeichert werden.' };
+
+  const onPayload = engineEventToInsertPayload(
+    mid,
+    {
+      type: 'extra_player_on',
+      timestamp: ts,
+      playerId: newId,
+    },
+    params.period,
+  );
+  const { id: onId, error: onErr } = await saveMatchEvent(onPayload);
+  if (onErr || !onId) {
+    await deleteMatchEventById(offId);
+    return { error: onErr ?? 'FairPlay-Start konnte nicht gespeichert werden.' };
+  }
+
+  return { error: null };
 }
 
 export type LiveLineupRepairResult = {
@@ -1039,6 +1075,7 @@ export function computeRepairedLiveLineupFromRaw(
   let benchQueue = stableBenchQueue(fieldSetNow, benchRows, U);
 
   for (const emptySlot of LIVE_FIELD_SLOT_ORDER) {
+    if (emptySlot === 'FP') continue;
     if (normLineupPid(slots[emptySlot])) continue;
     const next = benchQueue.shift();
     if (!next) break;
@@ -1138,7 +1175,7 @@ export async function syncFinalLineupBenchFromEventReplay(params: {
       : resolveReplayAtMatchSecond(params.events, 0);
 
   const fallbackSlots = params.fallbackStartingPlayerIds?.length
-    ? startingLineupToSlotMap(params.fallbackStartingPlayerIds.slice(0, 7))
+    ? startingLineupToSlotMap(params.fallbackStartingPlayerIds)
     : undefined;
 
   const kickoffBase = pickKickoffLineupBaseForReplay(params.kickoffStartingPlayerIds, params.fallbackStartingPlayerIds);
@@ -1204,12 +1241,20 @@ export async function repairLiveMatchLineupBenchIfNeeded(matchId: string): Promi
     );
 
     if (activeFairPlayExtra) {
-      if (!liveLineupRawDiffersFromRepaired(lineupRows, benchRows)) {
+      const replayTarget = await syncFinalLineupBenchFromEventReplay({
+        matchId: mid,
+        kickoffStartingPlayerIds: kickoff!,
+        squadPlayerIds: squadUnion,
+        events,
+        atMatchSecond: atSec,
+        fallbackStartingPlayerIds: dbStarting,
+      });
+      if (replayTarget.error) return { inconsistent: true, repaired: false, error: replayTarget.error };
+      const replaySnap = snapshotRepairedLineupBench(replayTarget.startingPlayerIds, replayTarget.squadPlayerIds);
+      const rawSnap = snapshotRawLineupBench(lineupRows, benchRows);
+      if (replaySnap === rawSnap) {
         return { inconsistent: false, repaired: false, error: null };
       }
-      const { startingPlayerIds } = computeRepairedLiveLineupFromRaw(lineupRows, benchRows);
-      const { error } = await replaceMatchLineupAndBench(mid, startingPlayerIds, squadUnion);
-      if (error) return { inconsistent: true, repaired: false, error };
       return { inconsistent: true, repaired: true, error: null };
     }
 

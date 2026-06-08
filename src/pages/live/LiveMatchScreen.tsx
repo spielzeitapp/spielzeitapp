@@ -47,6 +47,7 @@ import {
   LIVE_FIELD_SLOT_ORDER,
   persistExtraPlayerOff,
   persistExtraPlayerOn,
+  persistFairPlayExtraSessionTransfer,
   replaceMatchLineupAndBench,
   repairLiveMatchLineupBenchIfNeeded,
   syncFinalLineupBenchFromEventReplay,
@@ -1099,7 +1100,7 @@ export const LiveMatchScreen: React.FC = () => {
       return;
     }
     setSquadPlayerIds([...lineupData.squadPlayerIds]);
-    setStartingPlayerIds([...lineupData.startingPlayerIds].slice(0, 7));
+    setStartingPlayerIds([...lineupData.startingPlayerIds]);
     setInitialStartingPlayerIds((prev) =>
       prev.length > 0 ? prev : [...lineupData.startingPlayerIds].slice(0, 7),
     );
@@ -2366,17 +2367,23 @@ export const LiveMatchScreen: React.FC = () => {
     const pid = String(fairPlayExtraPickId ?? '').trim();
     const mid = effectiveMatchId?.trim();
     if (!mid || !pid || fairPlayExtraSaving) return;
+    if (fairPlayExtraPlayerId) {
+      setSaveError('Es ist bereits ein FairPlay-Zusatzspieler aktiv.');
+      return;
+    }
     setFairPlayExtraSaving(true);
     setSaveError(null);
     const tempId = newEventId();
     const ts = clampEffectiveMatchSeconds(currentMatchSeconds);
     const optimistic: MatchEngineEvent = { id: tempId, type: 'extra_player_on', timestamp: ts, playerId: pid };
     setEvents((prev) => [optimistic, ...prev]);
-    const { eventId, error } = await persistExtraPlayerOn({
+    const { eventId, error, startingPlayerIds: nextStarting } = await persistExtraPlayerOn({
       matchId: mid,
       playerId: pid,
       currentMatchSeconds: ts,
       period: half,
+      currentSlots: lineupSlotsForDisplay,
+      squadPlayerIds,
     });
     if (error || !eventId) {
       setEvents((prev) => prev.filter((e) => e.id !== tempId));
@@ -2385,6 +2392,7 @@ export const LiveMatchScreen: React.FC = () => {
       return;
     }
     setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...optimistic, id: eventId } : e)));
+    if (nextStarting?.length) setStartingPlayerIds(nextStarting);
     closeFairPlayExtraSheet();
     setFairPlayExtraSaving(false);
     setMainTab('hub');
@@ -2392,10 +2400,13 @@ export const LiveMatchScreen: React.FC = () => {
     void queueRealtimeReload();
   }, [
     fairPlayExtraPickId,
+    fairPlayExtraPlayerId,
     effectiveMatchId,
     fairPlayExtraSaving,
     currentMatchSeconds,
     half,
+    lineupSlotsForDisplay,
+    squadPlayerIds,
     closeFairPlayExtraSheet,
     stabilizeLiveHubAfterFairPlay,
     queueRealtimeReload,
@@ -2418,7 +2429,7 @@ export const LiveMatchScreen: React.FC = () => {
       fairPlayRemovedPlayerId: removedId,
     };
     setEvents((prev) => [optimistic, ...prev]);
-    const { eventId, error } = await persistExtraPlayerOff({
+    const { eventId, error, startingPlayerIds: nextStarting } = await persistExtraPlayerOff({
       matchId: mid,
       extraPlayerId: extraId,
       removedPlayerId: removedId,
@@ -2434,6 +2445,7 @@ export const LiveMatchScreen: React.FC = () => {
       return;
     }
     setEvents((prev) => prev.map((e) => (e.id === tempId ? { ...optimistic, id: eventId } : e)));
+    if (nextStarting?.length) setStartingPlayerIds(nextStarting);
     closeFairPlayRemoveSheet();
     setFairPlayRemoveSaving(false);
     setMainTab('hub');
@@ -2813,6 +2825,23 @@ export const LiveMatchScreen: React.FC = () => {
         setSaveError(swapErr);
         await deleteMatchEventById(id);
         return false;
+      }
+
+      const wasFairPlayOut = String(replayBefore.fairPlayExtraPlayerId ?? '').trim() === outId;
+      if (wasFairPlayOut) {
+        const { error: fpTransferErr } = await persistFairPlayExtraSessionTransfer({
+          matchId: effectiveMatchId,
+          oldExtraPlayerId: outId,
+          newExtraPlayerId: inId,
+          currentMatchSeconds: ts,
+          period: half,
+        });
+        if (fpTransferErr) {
+          setSaveError(fpTransferErr);
+          await deleteMatchEventById(id);
+          await replaceMatchLineupAndBench(effectiveMatchId, fieldSlotMapToStartingIds(slotBefore), squadPlayerIds);
+          return false;
+        }
       }
 
       setStartingPlayerIds(nextStarting);
@@ -4431,7 +4460,9 @@ export const LiveMatchScreen: React.FC = () => {
                     ) : (
                       <div className="flex flex-col gap-0.5">
                         <p className="text-[15px] font-semibold leading-tight text-white/90">Mannschaft am Feld</p>
-                        <p className="text-[12px] leading-snug text-white/52">Stand jetzt im Spiel</p>
+                        <p className="text-[12px] leading-snug text-white/52">
+                          Stand jetzt im Spiel · {onFieldIds.length} Spieler am Feld
+                        </p>
                         {canControlLiveMatch && lineupPositionMode && !matchIsFinished ? (
                           <p className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium leading-snug text-amber-300/90">
                             <span aria-hidden className="mr-0.5">
@@ -4541,8 +4572,8 @@ export const LiveMatchScreen: React.FC = () => {
                         ].join(' ')}
                       >
                         {isFairPlaySlot ? (
-                          <span className="mb-0.5 rounded-full border border-amber-300/70 bg-amber-500/25 px-1 py-px text-[7px] font-black uppercase tracking-[0.08em] text-amber-100">
-                            +1
+                          <span className="mb-0.5 rounded-full border border-amber-300/70 bg-amber-500/25 px-1 py-px text-[7px] font-black uppercase tracking-[0.06em] text-amber-100">
+                            Fairplay +1
                           </span>
                         ) : null}
                         {(() => {
@@ -5093,7 +5124,9 @@ export const LiveMatchScreen: React.FC = () => {
               <p className="mt-0.5 truncate text-[10px] leading-tight text-white/45">
                 {formationPendingId
                   ? 'Spieler bleiben erhalten — nur Positionen ändern sich.'
-                  : '7 aktive Spieler bleiben auf den Slots erhalten.'}
+                  : fairPlayExtraPlayerId
+                    ? '8 aktive Spieler bleiben auf den Slots erhalten.'
+                    : '7 aktive Spieler bleiben auf den Slots erhalten.'}
               </p>
             </div>
             {formationPendingId ? (
@@ -5463,7 +5496,7 @@ export const LiveMatchScreen: React.FC = () => {
                           className="min-h-[11rem] max-h-[min(46dvh,28rem)] w-full sm:max-h-[min(48dvh,30rem)]"
                         />
                   </div>
-                  {fairPlayExtraPlayerId ? (
+                  {fairPlayExtraPlayerId && !String(lineupSlotsForDisplay?.FP ?? '').trim() ? (
                     <div className="mx-auto mt-1 flex w-full max-w-md justify-center px-0.5">
                       {(() => {
                         const pid = fairPlayExtraPlayerId.trim();
