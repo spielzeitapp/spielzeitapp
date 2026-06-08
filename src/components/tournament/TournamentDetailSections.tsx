@@ -28,6 +28,10 @@ import {
   type TournamentParticipant,
 } from '../../lib/tournamentPlan';
 import { computeTournamentFinalSummary } from '../../lib/tournamentFinalSummary';
+import {
+  fetchTournamentGoalScorers,
+  type TournamentGoalScorer,
+} from '../../lib/tournamentGoalScorers';
 import { computeTournamentGroupStandings, type TournamentGroupStandings } from '../../lib/tournamentGroupStandings';
 import {
   analyzeTournamentUrl,
@@ -105,6 +109,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
     teamCount: number;
     ourTeamNames: string[];
   } | null>(null);
+  const [goalScorers, setGoalScorers] = useState<TournamentGoalScorer[]>([]);
+  const [goalScorersLoading, setGoalScorersLoading] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -169,6 +175,29 @@ export const TournamentDetailSections: React.FC<Props> = ({
       }),
     [teamBalance, planImportContext, slots, groupStandings],
   );
+
+  useEffect(() => {
+    const matchIds = slots.map((slot) => slot.match_id).filter(Boolean);
+    if (matchIds.length === 0) {
+      setGoalScorers([]);
+      setGoalScorersLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setGoalScorersLoading(true);
+
+    void (async () => {
+      const result = await fetchTournamentGoalScorers(matchIds);
+      if (cancelled) return;
+      setGoalScorers(result.data);
+      setGoalScorersLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [slots]);
 
   useEffect(() => {
     const planUrl = officialTournamentUrl?.trim();
@@ -361,6 +390,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
       <TournamentFinalSummaryCard
         balance={teamBalance}
         summary={finalSummary}
+        goalScorers={goalScorers}
+        goalScorersLoading={goalScorersLoading}
         loading={loading || groupStandingsLoading}
       />
 

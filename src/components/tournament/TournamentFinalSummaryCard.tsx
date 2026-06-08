@@ -8,16 +8,21 @@ import {
   tournamentPlacementSourceHint,
   type TournamentFinalSummary,
 } from '../../lib/tournamentFinalSummary';
+import type { TournamentGoalScorer } from '../../lib/tournamentGoalScorers';
 
 type Props = {
   balance: TournamentTeamBalance;
   summary: TournamentFinalSummary | null;
+  goalScorers?: TournamentGoalScorer[];
+  goalScorersLoading?: boolean;
   loading?: boolean;
 };
 
 export const TournamentFinalSummaryCard: React.FC<Props> = ({
   balance,
   summary,
+  goalScorers = [],
+  goalScorersLoading = false,
   loading = false,
 }) => {
   if (loading) return null;
@@ -49,6 +54,24 @@ export const TournamentFinalSummaryCard: React.FC<Props> = ({
         </p>
         <p className="font-semibold tabular-nums text-amber-200/95">Punkte {balance.points}</p>
         {sourceHint ? <p className="mt-1 text-[12px] text-white/50">{sourceHint}</p> : null}
+
+        <div className="mt-4 border-t border-white/10 pt-3">
+          <p className="text-[14px] font-semibold text-white/90">Torschützen</p>
+          {goalScorersLoading ? (
+            <p className="mt-2 text-[13px] text-white/55">Torschützen werden geladen…</p>
+          ) : goalScorers.length === 0 ? (
+            <p className="mt-2 text-[13px] text-white/55">Torschützen noch nicht erfasst.</p>
+          ) : (
+            <ol className="mt-2 flex list-none flex-col gap-1 p-0">
+              {goalScorers.map((scorer, index) => (
+                <li key={scorer.playerId} className="text-[14px] text-white/80">
+                  {index + 1}. {scorer.playerName} – {scorer.goals}{' '}
+                  {scorer.goals === 1 ? 'Tor' : 'Tore'}
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
       </div>
     </Card>
   );
