@@ -75,3 +75,8 @@ export function canManageTeam(role: RoleKey | null): boolean {
 export function canSeeMeetup(role: RoleKey | null): boolean {
   return role === 'player' || role === 'parent' || role === 'trainer' || role === 'admin';
 }
+
+/** Darf Eltern-Verknüpfungsübersicht im Team-Tab sehen (Staff). */
+export function canViewParentLinks(role: RoleKey | null): boolean {
+  return canManageMatches(role);
+}

@@ -15,7 +15,7 @@ import {
 import { Camera } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
-import { normalizeRole, canManageRoster } from "../lib/roles";
+import { normalizeRole, canManageRoster, canViewParentLinks } from "../lib/roles";
 import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
 import { uploadPlayerProfileAvatar, uploadPlayerProfileCutout, logProfileHeroUpload } from "../lib/profileCutoutUpload";
@@ -28,11 +28,13 @@ import { PlayerCard } from "../components/team/PlayerCard";
 import { STAFF_RPC_MIGRATION_HINT, useTeamStaff } from "../hooks/useTeamStaff";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
+import { TeamParentsTab } from "../components/team/TeamParentsTab";
+import { useTeamPlayerParentLinks } from "../hooks/useTeamPlayerParentLinks";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
 const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
 
-type TeamTabId = "squad" | "trainers" | "training" | "matches";
+type TeamTabId = "squad" | "parents" | "trainers" | "training" | "matches";
 type SquadFilterId = "active" | "paused" | "all";
 
 type RecentMatchRow = {
@@ -141,6 +143,7 @@ export const TeamPage: React.FC = () => {
 
   const roleNormalized = normalizeRole(role);
   const canManagePlayers = canManageRoster(roleNormalized);
+  const showParentLinksTab = canViewParentLinks(roleNormalized);
 
   const [showForm, setShowForm] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("create");
@@ -697,22 +700,45 @@ export const TeamPage: React.FC = () => {
     await refetchPlayers();
   };
 
-  const teamTabs = [
-    { id: "squad" as const, label: "Kader" },
-    { id: "trainers" as const, label: "Trainer" },
-    { id: "training" as const, label: "Training" },
-    { id: "matches" as const, label: "Spiele" },
-  ];
+  const teamTabs = useMemo(() => {
+    const tabs: { id: TeamTabId; label: string }[] = [
+      { id: "squad", label: "Kader" },
+    ];
+    if (showParentLinksTab) {
+      tabs.push({ id: "parents", label: "Eltern" });
+    }
+    tabs.push(
+      { id: "trainers", label: "Trainer" },
+      { id: "training", label: "Training" },
+      { id: "matches", label: "Spiele" },
+    );
+    return tabs;
+  }, [showParentLinksTab]);
 
   const [activeTab, setActiveTab] = useState<TeamTabId>("squad");
   const [squadFilter, setSquadFilter] = useState<SquadFilterId>("active");
 
+  const parentsTabActive = activeTab === "parents" && showParentLinksTab;
+  const {
+    rows: parentLinkRows,
+    loading: parentLinksLoading,
+    error: parentLinksError,
+    rpcMissing: parentLinksRpcMissing,
+  } = useTeamPlayerParentLinks(teamSeasonId, parentsTabActive);
+
   useEffect(() => {
     const tab = (location.state as { tab?: string } | null)?.tab;
-    if (tab === "trainers" || tab === "squad" || tab === "training" || tab === "matches") {
+    if (
+      tab === "trainers" ||
+      tab === "squad" ||
+      tab === "parents" ||
+      tab === "training" ||
+      tab === "matches"
+    ) {
+      if (tab === "parents" && !showParentLinksTab) return;
       setActiveTab(tab);
     }
-  }, [location.state]);
+  }, [location.state, showParentLinksTab]);
 
   const sortedPlayers = useMemo(() => {
     const list = players.filter((p) => {
@@ -1036,6 +1062,17 @@ export const TeamPage: React.FC = () => {
           )}
         </div>
       </PremiumCard>
+      ) : null}
+
+      {activeTab === "parents" && showParentLinksTab ? (
+        <TeamParentsTab
+          teamSeasonId={teamSeasonId}
+          tsLoading={tsLoading}
+          rows={parentLinkRows}
+          loading={parentLinksLoading}
+          error={parentLinksError}
+          rpcMissing={parentLinksRpcMissing}
+        />
       ) : null}
 
       {activeTab === "trainers" ? (

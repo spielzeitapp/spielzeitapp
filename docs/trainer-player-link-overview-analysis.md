@@ -299,3 +299,52 @@ Zusatzaufwand falls `player_users`-Insert im Spieler-Onboarding nachgerüstet wi
 | RLS Migrationen | `supabase/migrations/20260308100000_rsvp_permissions_player_users.sql`, `20260308120001_profiles_names_and_guardian_verification.sql`, `20260528135200_players_status_and_rls.sql`, `20260605120000_team_staff_visibility.sql` |
 
 *Erstellt: Juni 2026 — reine Analyse, keine Implementierung.*
+
+---
+
+## Umgesetzte Phase 1: Eltern-Verknüpfungen
+
+**Stand:** Juni 2026 — Read-only Übersicht für Trainer-Staff im Team-Bereich.
+
+### Datenquelle / RPC
+
+Statt direkter RLS auf `player_guardians` (bisher nur `select_own`) wurde eine **SECURITY DEFINER RPC** ergänzt:
+
+- **Funktion:** `get_team_player_parent_links(p_team_season_id uuid)`
+- **Migration:** `supabase/migrations/20260619120000_get_team_player_parent_links.sql`
+- **Berechtigung:** `can_manage_team_staff(p_team_season_id)` → `trainer`, `co_trainer`, `head_coach`, `admin` (+ System-Admin)
+- **Joins:** `players` ← `player_guardians` → `profiles` (nur Kontaktfelder)
+- **Rückgabe pro Spieler:** `player_id`, `player_name`, `jersey_number`, `status`, `is_active`, `parent_count`, `parents` (JSON-Array mit `user_id`, `name`, `email`)
+
+**Warum RPC statt RLS:** `player_guardians` hat keine Staff-Select-Policy; eine breite RLS-Policy würde allen Team-Mitgliedern Zugriff geben. Die RPC liefert nur aggregierte Team-Daten an Staff und vermeidet `auth.users`-Zugriffe.
+
+### UI-Position
+
+- **Route:** `/app/team` (bestehende Spielerverwaltung)
+- **Tab:** „Eltern“ (zwischen „Kader“ und „Trainer“)
+- **Sichtbar für:** Staff (`canViewParentLinks` → `canManageMatches`)
+- **Komponenten:** `src/components/team/TeamParentsTab.tsx`, Hook `src/hooks/useTeamPlayerParentLinks.ts`
+
+### Funktionen
+
+- Summary: Spieler gesamt / verknüpft / offen
+- Filter: Alle / Verknüpft / Offen
+- Spielerkarten mit Elternliste (Name + optional `profiles.email`)
+- WhatsApp-Erinnerungstext kopieren bei offenen Spielern (Clipboard, kein API-Call)
+- Loading-, Fehler- und Leerzustände
+
+### Datenschutzentscheidung
+
+- Nur Spieler der eigenen `team_season_id`
+- Nur verknüpfte Eltern aus `player_guardians`
+- E-Mail nur aus `profiles.email` (Kontaktfeld), kein `auth.users`
+- Keine UUIDs in der UI
+- Keine Codes
+
+### Bewusst nicht umgesetzt
+
+- Spieler-App-Verknüpfungen (`player_users`)
+- Spielercodes / Invite-System
+- Neues Onboarding
+- Schreibzugriffe / Verifizierung (`verified_at`)
+- Position unter Mehr → Teamverwaltung (bewusst im Kader-Tab belassen)
