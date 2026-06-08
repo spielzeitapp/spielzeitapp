@@ -27,12 +27,15 @@ import {
   type TournamentMatchSlotView,
   type TournamentParticipant,
 } from '../../lib/tournamentPlan';
+import { computeTournamentFinalSummary } from '../../lib/tournamentFinalSummary';
 import { computeTournamentGroupStandings, type TournamentGroupStandings } from '../../lib/tournamentGroupStandings';
 import {
   analyzeTournamentUrl,
   fetchTournamentImportRecognition,
+  type TournamentPlanImportRawMatch,
 } from '../../lib/tournamentPlanImport';
 import { TournamentBalanceCard } from './TournamentBalanceCard';
+import { TournamentFinalSummaryCard } from './TournamentFinalSummaryCard';
 import { TournamentGroupStandingCard } from './TournamentGroupStandingCard';
 import { TournamentHeroCard } from './TournamentHeroCard';
 import { TournamentOfficialPlanCard } from './TournamentOfficialPlanCard';
@@ -97,6 +100,11 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [matchModalError, setMatchModalError] = useState<string | null>(null);
   const [groupStandings, setGroupStandings] = useState<TournamentGroupStandings | null>(null);
   const [groupStandingsLoading, setGroupStandingsLoading] = useState(false);
+  const [planImportContext, setPlanImportContext] = useState<{
+    rawMatches: TournamentPlanImportRawMatch[];
+    teamCount: number;
+    ourTeamNames: string[];
+  } | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -149,10 +157,24 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const teamBalance = useMemo(() => computeTournamentTeamBalance(slots), [slots]);
 
+  const finalSummary = useMemo(
+    () =>
+      computeTournamentFinalSummary({
+        balance: teamBalance,
+        rawMatches: planImportContext?.rawMatches,
+        slots,
+        groupStandings,
+        ourTeamNames: planImportContext?.ourTeamNames ?? [],
+        teamCount: planImportContext?.teamCount ?? null,
+      }),
+    [teamBalance, planImportContext, slots, groupStandings],
+  );
+
   useEffect(() => {
     const planUrl = officialTournamentUrl?.trim();
     if (!planUrl || !teamSeasonId || participants.length === 0) {
       setGroupStandings(null);
+      setPlanImportContext(null);
       setGroupStandingsLoading(false);
       return;
     }
@@ -170,14 +192,19 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
         if (!analysisResult.ok) {
           setGroupStandings(null);
+          setPlanImportContext(null);
           return;
         }
 
+        const ourTeamNames = recognition.knownNames;
+        const { rawMatches, teamCount } = analysisResult.analysis;
+
+        setPlanImportContext({ rawMatches, teamCount, ourTeamNames });
         setGroupStandings(
           computeTournamentGroupStandings({
             participants,
-            rawMatches: analysisResult.analysis.rawMatches,
-            ourTeamNames: recognition.knownNames,
+            rawMatches,
+            ourTeamNames,
           }),
         );
       } finally {
@@ -330,6 +357,12 @@ export const TournamentDetailSections: React.FC<Props> = ({
       />
 
       <TournamentBalanceCard balance={teamBalance} loading={loading} />
+
+      <TournamentFinalSummaryCard
+        balance={teamBalance}
+        summary={finalSummary}
+        loading={loading || groupStandingsLoading}
+      />
 
       <TournamentGroupStandingCard standings={groupStandings} loading={groupStandingsLoading} />
 
