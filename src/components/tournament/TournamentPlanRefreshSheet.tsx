@@ -5,6 +5,7 @@ import { AppButton } from '../ui/AppButton';
 import {
   countOwnTeamMatchesInAnalysis,
   labelForTournamentPlanAnalyzeSource,
+  listOwnTeamMatchesForImportPreview,
   type TournamentImportRecognition,
   type TournamentPlanAnalysis,
   type TournamentPlanAnalyzeDiagnostics,
@@ -13,6 +14,7 @@ import {
 } from '../../lib/tournamentPlanImport';
 import { TournamentImportRecognitionPanel } from './TournamentImportRecognitionPanel';
 import { TournamentPlanAnalyzeDebugPanel } from './TournamentPlanAnalyzeDebugPanel';
+import { TournamentPlanResultPreviewSection } from './TournamentPlanResultPreviewSection';
 
 type Props = {
   isOpen: boolean;
@@ -45,10 +47,14 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
 }) => {
   if (!isOpen || typeof document === 'undefined') return null;
 
-  const noNewMatches = preview && preview.newMatches === 0;
-  const canImport = Boolean(preview && (preview.newMatches > 0 || preview.newTeams > 0));
+  const noNewMatches = preview && preview.newMatches === 0 && preview.resultUpdates === 0;
+  const canImport = Boolean(
+    preview && (preview.newMatches > 0 || preview.newTeams > 0 || preview.resultUpdates > 0),
+  );
   const ownTeamMatchCount =
     analysis && recognition ? countOwnTeamMatchesInAnalysis(analysis, recognition.knownNames) : 0;
+  const ownMatches =
+    analysis && recognition ? listOwnTeamMatchesForImportPreview(analysis, recognition.knownNames) : [];
 
   return createPortal(
     <div
@@ -98,9 +104,15 @@ export const TournamentPlanRefreshSheet: React.FC<Props> = ({
                 <p>Neue Teams: {preview.newTeams}</p>
                 <p>Neue Spiele: {preview.newMatches}</p>
                 <p>Bereits vorhanden: {preview.existingMatches}</p>
+                <p>Ergebnisse zum Aktualisieren: {preview.resultUpdates}</p>
               </div>
-              {noNewMatches ? (
-                <p className="text-[14px] text-white/70">Keine neuen Spiele gefunden.</p>
+              <TournamentPlanResultPreviewSection
+                matchesWithResult={preview.matchesWithResult}
+                matchesWithoutResult={preview.matchesWithoutResult}
+                ownMatches={ownMatches}
+              />
+              {noNewMatches && preview.newTeams === 0 ? (
+                <p className="text-[14px] text-white/70">Keine neuen Spiele oder Ergebnisse gefunden.</p>
               ) : null}
               <TournamentImportRecognitionPanel
                 recognition={recognition}

@@ -422,6 +422,41 @@ export async function removeTournamentMatchSlot(matchId: string): Promise<{ erro
   return { error: error ? normalizeTournamentDbError(error.message, error.code) : null };
 }
 
+/** Ergebnis aus Turnierplan-Import — nur leere/ungefüllte Matches, kein Live-Override. */
+export async function applyTournamentMatchResultIfEmpty(params: {
+  matchId: string;
+  ourGoals: number;
+  oppGoals: number;
+  currentStatus?: string | null;
+  currentScoreHome?: number;
+  currentScoreAway?: number;
+}): Promise<{ applied: boolean; error: string | null }> {
+  const st = (params.currentStatus ?? 'upcoming').toLowerCase();
+  if (st === 'live') {
+    return { applied: false, error: null };
+  }
+
+  const scoreHome = Number(params.currentScoreHome ?? 0);
+  const scoreAway = Number(params.currentScoreAway ?? 0);
+  if (st === 'finished' && (scoreHome > 0 || scoreAway > 0)) {
+    return { applied: false, error: null };
+  }
+
+  const ourGoals = Math.max(0, Math.trunc(params.ourGoals));
+  const oppGoals = Math.max(0, Math.trunc(params.oppGoals));
+
+  const { error } = await updateMatchRow(params.matchId, {
+    score_home: ourGoals,
+    score_away: oppGoals,
+    status: 'finished',
+  });
+
+  if (error) {
+    return { applied: false, error: normalizeTournamentDbError(error, null) };
+  }
+  return { applied: true, error: null };
+}
+
 export function groupParticipantsByLabel(
   participants: TournamentParticipant[],
 ): { label: string | null; items: TournamentParticipant[] }[] {

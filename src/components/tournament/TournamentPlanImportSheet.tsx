@@ -3,8 +3,10 @@ import { createPortal } from 'react-dom';
 import { FileDown } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
 import {
+  countAnalysisMatchResults,
   countOwnTeamMatchesInAnalysis,
   labelForTournamentPlanAnalyzeSource,
+  listOwnTeamMatchesForImportPreview,
   type TournamentImportRecognition,
   type TournamentPlanAnalysis,
   type TournamentPlanAnalyzeDiagnostics,
@@ -12,6 +14,7 @@ import {
 } from '../../lib/tournamentPlanImport';
 import { TournamentImportRecognitionPanel } from './TournamentImportRecognitionPanel';
 import { TournamentPlanAnalyzeDebugPanel } from './TournamentPlanAnalyzeDebugPanel';
+import { TournamentPlanResultPreviewSection } from './TournamentPlanResultPreviewSection';
 
 type Props = {
   isOpen: boolean;
@@ -50,6 +53,9 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
 
   const ownTeamMatchCount =
     analysis && recognition ? countOwnTeamMatchesInAnalysis(analysis, recognition.knownNames) : 0;
+  const resultCounts = analysis ? countAnalysisMatchResults(analysis) : null;
+  const ownMatches =
+    analysis && recognition ? listOwnTeamMatchesForImportPreview(analysis, recognition.knownNames) : [];
 
   return createPortal(
     <div
@@ -114,6 +120,14 @@ export const TournamentPlanImportSheet: React.FC<Props> = ({
                   ? '1 Vorrundenspiel'
                   : `${analysis.preliminaryMatchCount} Vorrundenspiele`}
               </p>
+
+              {resultCounts ? (
+                <TournamentPlanResultPreviewSection
+                  matchesWithResult={resultCounts.withResult}
+                  matchesWithoutResult={resultCounts.withoutResult}
+                  ownMatches={ownMatches}
+                />
+              ) : null}
 
               <TournamentImportRecognitionPanel
                 recognition={recognition}

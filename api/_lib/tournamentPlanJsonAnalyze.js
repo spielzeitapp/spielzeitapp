@@ -178,6 +178,39 @@ function kickoffHHmmFromDateTime(dateAndTime) {
   return `${match[1].padStart(2, '0')}:${match[2]}`;
 }
 
+/** MeinTurnierplan JSON: score1 = Heim, score2 = Auswärts. */
+function extractMeinTurnierplanMatchScores(match) {
+  const rawHome = match?.score1;
+  const rawAway = match?.score2;
+  const hasHome = rawHome !== null && rawHome !== undefined && String(rawHome).trim() !== '';
+  const hasAway = rawAway !== null && rawAway !== undefined && String(rawAway).trim() !== '';
+  if (!hasHome || !hasAway) {
+    return { hasResult: false, homeGoals: null, awayGoals: null };
+  }
+  const homeGoals = Number.parseInt(String(rawHome).trim(), 10);
+  const awayGoals = Number.parseInt(String(rawAway).trim(), 10);
+  if (!Number.isFinite(homeGoals) || !Number.isFinite(awayGoals) || homeGoals < 0 || awayGoals < 0) {
+    return { hasResult: false, homeGoals: null, awayGoals: null };
+  }
+  return { hasResult: true, homeGoals, awayGoals };
+}
+
+function pushRawMatch(rawMatches, entry) {
+  const scores = extractMeinTurnierplanMatchScores(entry.source);
+  rawMatches.push({
+    homeTeam: entry.homeTeam,
+    awayTeam: entry.awayTeam,
+    groupLabel: entry.groupLabel,
+    phase: entry.phase,
+    kickoffTimeHHmm: entry.kickoffTimeHHmm,
+    plannedMinutes: entry.plannedMinutes,
+    pitch: entry.pitch,
+    hasResult: scores.hasResult,
+    homeGoals: scores.homeGoals,
+    awayGoals: scores.awayGoals,
+  });
+}
+
 function inferKnockoutPhaseFromMeinTurnierplan(modeMapping, sourceTeam1, sourceTeam2) {
   const round = modeMapping?.round ?? 1;
   const matchNo = modeMapping?.match ?? 0;
@@ -247,7 +280,8 @@ function parseMeinTurnierplanJson(data) {
     const court = courts[match.courtId ?? -1];
     const pitch = court?.displayId?.trim() ? `Platz ${court.displayId.trim()}` : null;
 
-    rawMatches.push({
+    pushRawMatch(rawMatches, {
+      source: match,
       homeTeam,
       awayTeam,
       groupLabel,
@@ -273,7 +307,8 @@ function parseMeinTurnierplanJson(data) {
     const court = courts[match.courtId ?? -1];
     const pitch = court?.displayId?.trim() ? `Platz ${court.displayId.trim()}` : null;
 
-    rawMatches.push({
+    pushRawMatch(rawMatches, {
+      source: match,
       homeTeam,
       awayTeam,
       groupLabel: null,

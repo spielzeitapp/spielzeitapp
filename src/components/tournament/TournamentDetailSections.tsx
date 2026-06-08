@@ -647,7 +647,7 @@ function TournamentMatchRow({
   const scoreLine =
     status.kind === 'result' ? `${status.ourGoals}:${status.oppGoals}` : null;
 
-  const subline = [scoreLine ? `Ergebnis ${scoreLine}` : null, meta].filter(Boolean).join(' · ');
+  const subline = [scoreLine ? `Ergebnis: ${scoreLine}` : null, meta].filter(Boolean).join(' · ');
 
   const cardShellClass = isNextUpcoming
     ? 'border-purple-400/50 bg-[linear-gradient(135deg,rgba(88,28,135,0.26)_0%,rgba(251,191,36,0.06)_48%,rgba(255,255,255,0.04)_100%)] shadow-[0_0_28px_rgba(168,85,247,0.14),inset_0_1px_0_rgba(251,191,36,0.12)]'
@@ -686,9 +686,17 @@ function TournamentMatchRow({
             } ${canManage ? 'pr-11' : 'pr-10'}`}
           >
             <p className="text-[14px] font-semibold tabular-nums text-purple-200/90">{timeLabel} Uhr</p>
-            <p className="text-[20px] font-bold leading-[1.2] text-white break-words line-clamp-2">
-              {slot.opponent_name}
-            </p>
+            {scoreLine ? (
+              <p className="text-[20px] font-bold leading-[1.2] text-white break-words">
+                <span className="tabular-nums text-emerald-300/95">{scoreLine}</span>
+                <span className="text-white/70"> · </span>
+                <span className="line-clamp-2">{slot.opponent_name}</span>
+              </p>
+            ) : (
+              <p className="text-[20px] font-bold leading-[1.2] text-white break-words line-clamp-2">
+                {slot.opponent_name}
+              </p>
+            )}
             {subline ? <p className="text-[12px] leading-snug text-white/55 break-words">{subline}</p> : null}
             <span className={`self-start ${dsStatusChipClass(chipTone)}`}>{badgeLabel}</span>
           </div>
@@ -701,9 +709,17 @@ function TournamentMatchRow({
           >
             <span className="w-[52px] shrink-0 text-[17px] font-bold tabular-nums text-white">{timeLabel}</span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[16px] font-semibold leading-snug text-white break-words line-clamp-2">
-                {slot.opponent_name}
-              </span>
+              {scoreLine ? (
+                <span className="block text-[16px] font-semibold leading-snug text-white break-words">
+                  <span className="tabular-nums text-emerald-300/95">{scoreLine}</span>
+                  <span className="text-white/70"> · </span>
+                  <span className="line-clamp-2">{slot.opponent_name}</span>
+                </span>
+              ) : (
+                <span className="block text-[16px] font-semibold leading-snug text-white break-words line-clamp-2">
+                  {slot.opponent_name}
+                </span>
+              )}
               {subline ? (
                 <span className="mt-0.5 block text-[12px] leading-snug text-white/55 break-words">{subline}</span>
               ) : null}

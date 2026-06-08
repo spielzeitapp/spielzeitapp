@@ -218,7 +218,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     setImportBusy(true);
     setImportError(null);
 
-    const { importedTeams, importedMatches, error } = await importTournamentPlanFromAnalysis({
+    const { importedTeams, importedMatches, updatedResults, error } = await importTournamentPlanFromAnalysis({
       tournamentEventId,
       teamSeasonId,
       tournamentDayIso,
@@ -239,17 +239,31 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     setImportSheetOpen(false);
     onImportComplete();
 
-    if (importedMatches === 0 && importedTeams === 0) {
+    if (importedMatches === 0 && importedTeams === 0 && updatedResults === 0) {
       setToastMessage('Keine neuen Einträge – alles bereits importiert');
+    } else if (updatedResults > 0 && importedMatches === 0 && importedTeams === 0) {
+      setToastMessage(
+        updatedResults === 1 ? '1 Ergebnis importiert' : `${updatedResults} Ergebnisse importiert`,
+      );
     } else if (importedMatches > 0) {
+      const resultSuffix =
+        updatedResults > 0
+          ? updatedResults === 1
+            ? ', 1 Ergebnis'
+            : `, ${updatedResults} Ergebnisse`
+          : '';
       setToastMessage(
         importedMatches === 1
-          ? '1 neues Spiel importiert'
-          : `${importedMatches} neue Spiele importiert`,
+          ? `1 neues Spiel importiert${resultSuffix}`
+          : `${importedMatches} neue Spiele importiert${resultSuffix}`,
       );
     } else {
+      const teamMsg =
+        importedTeams === 1 ? '1 neues Team importiert' : `${importedTeams} neue Teams importiert`;
       setToastMessage(
-        importedTeams === 1 ? '1 neues Team importiert' : `${importedTeams} neue Teams importiert`,
+        updatedResults > 0
+          ? `${teamMsg}, ${updatedResults === 1 ? '1 Ergebnis' : `${updatedResults} Ergebnisse`}`
+          : teamMsg,
       );
     }
   }, [
@@ -319,7 +333,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     setRefreshBusy(true);
     setRefreshError(null);
 
-    const { importedTeams, importedMatches, error } = await importTournamentPlanFromAnalysis({
+    const { importedTeams, importedMatches, updatedResults, error } = await importTournamentPlanFromAnalysis({
       tournamentEventId,
       teamSeasonId,
       tournamentDayIso,
@@ -340,17 +354,31 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     setRefreshSheetOpen(false);
     onImportComplete();
 
-    if (importedMatches === 0 && importedTeams === 0) {
-      setToastMessage('Keine neuen Spiele gefunden.');
+    if (importedMatches === 0 && importedTeams === 0 && updatedResults === 0) {
+      setToastMessage('Keine neuen Spiele oder Ergebnisse gefunden.');
+    } else if (updatedResults > 0 && importedMatches === 0 && importedTeams === 0) {
+      setToastMessage(
+        updatedResults === 1 ? '1 Ergebnis aktualisiert' : `${updatedResults} Ergebnisse aktualisiert`,
+      );
     } else if (importedMatches > 0) {
+      const resultSuffix =
+        updatedResults > 0
+          ? updatedResults === 1
+            ? ', 1 Ergebnis'
+            : `, ${updatedResults} Ergebnisse`
+          : '';
       setToastMessage(
         importedMatches === 1
-          ? '1 neues Spiel importiert'
-          : `${importedMatches} neue Spiele importiert`,
+          ? `1 neues Spiel importiert${resultSuffix}`
+          : `${importedMatches} neue Spiele importiert${resultSuffix}`,
       );
     } else {
+      const teamMsg =
+        importedTeams === 1 ? '1 neues Team importiert' : `${importedTeams} neue Teams importiert`;
       setToastMessage(
-        importedTeams === 1 ? '1 neues Team importiert' : `${importedTeams} neue Teams importiert`,
+        updatedResults > 0
+          ? `${teamMsg}, ${updatedResults === 1 ? '1 Ergebnis' : `${updatedResults} Ergebnisse`}`
+          : teamMsg,
       );
     }
   }, [

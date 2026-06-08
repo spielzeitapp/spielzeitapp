@@ -24,6 +24,9 @@ export type TournamentPlanImportRawMatch = {
   kickoffTimeHHmm: string;
   plannedMinutes: number;
   pitch: string | null;
+  hasResult: boolean;
+  homeGoals: number | null;
+  awayGoals: number | null;
 };
 
 export type TournamentPlanGroupSummary = {
@@ -51,6 +54,17 @@ export type TournamentPlanImportMatch = {
   plannedMinutes: number;
   pitch: string | null;
   dedupeKey: string;
+  hasResult: boolean;
+  ourGoals: number | null;
+  oppGoals: number | null;
+};
+
+export type TournamentPlanOwnMatchPreview = {
+  opponentName: string;
+  kickoffTimeHHmm: string;
+  hasResult: boolean;
+  ourGoals: number | null;
+  oppGoals: number | null;
 };
 
 export type { TournamentImportRecognition };
@@ -59,6 +73,9 @@ export type TournamentPlanRefreshPreview = {
   newTeams: number;
   newMatches: number;
   existingMatches: number;
+  resultUpdates: number;
+  matchesWithResult: number;
+  matchesWithoutResult: number;
 };
 
 export const TOURNAMENT_IMPORT_UNSUPPORTED_MESSAGE = 'Turnierplan wird aktuell nicht unterstützt.';
@@ -211,6 +228,8 @@ type MeinTurnierplanGroupMatch = {
   homeParticipant?: number;
   awayParticipant?: number;
   courtId?: number;
+  score1?: string | number | null;
+  score2?: string | number | null;
 };
 type MeinTurnierplanSourceTeam = {
   type?: string;
@@ -227,6 +246,8 @@ type MeinTurnierplanFinalMatch = {
   homeParticipant?: number;
   awayParticipant?: number;
   courtId?: number;
+  score1?: string | number | null;
+  score2?: string | number | null;
   modeMapping?: MeinTurnierplanModeMapping;
   sourceTeam1?: MeinTurnierplanSourceTeam;
   sourceTeam2?: MeinTurnierplanSourceTeam;
@@ -1341,6 +1362,31 @@ function kickoffHHmmFromDateTime(dateAndTime: string | undefined): string {
   return `${match[1].padStart(2, '0')}:${match[2]}`;
 }
 
+/** MeinTurnierplan JSON: score1 = Heim, score2 = Auswärts. */
+function extractMeinTurnierplanMatchScores(match: {
+  score1?: string | number | null;
+  score2?: string | number | null;
+}): { hasResult: boolean; homeGoals: number | null; awayGoals: number | null } {
+  const rawHome = match.score1;
+  const rawAway = match.score2;
+  const hasHome = rawHome !== null && rawHome !== undefined && String(rawHome).trim() !== '';
+  const hasAway = rawAway !== null && rawAway !== undefined && String(rawAway).trim() !== '';
+  if (!hasHome || !hasAway) {
+    return { hasResult: false, homeGoals: null, awayGoals: null };
+  }
+  const homeGoals = Number.parseInt(String(rawHome).trim(), 10);
+  const awayGoals = Number.parseInt(String(rawAway).trim(), 10);
+  if (
+    !Number.isFinite(homeGoals) ||
+    !Number.isFinite(awayGoals) ||
+    homeGoals < 0 ||
+    awayGoals < 0
+  ) {
+    return { hasResult: false, homeGoals: null, awayGoals: null };
+  }
+  return { hasResult: true, homeGoals, awayGoals };
+}
+
 /** KO-Phase aus MeinTurnierplan modeMapping + Gruppen-Rängen (Heuristik). */
 export function inferKnockoutPhaseFromMeinTurnierplan(
   modeMapping: MeinTurnierplanModeMapping | undefined,
@@ -1472,6 +1518,9 @@ function parseVisibleHtmlTableMatches(html: string): TournamentPlanImportRawMatc
       kickoffTimeHHmm,
       plannedMinutes: 10,
       pitch: null,
+      hasResult: false,
+      homeGoals: null,
+      awayGoals: null,
     });
   }
   return matches;
@@ -1531,6 +1580,9 @@ function parseVisibleHtmlTextBlocks(text: string): {
             kickoffTimeHHmm,
             plannedMinutes: 10,
             pitch: null,
+            hasResult: false,
+            homeGoals: null,
+            awayGoals: null,
           });
           for (const name of parts) teamNames.add(name);
         }
@@ -1663,6 +1715,7 @@ export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis 
     const court = courts[match.courtId ?? -1];
     const pitch = court?.displayId?.trim() ? `Platz ${court.displayId.trim()}` : null;
 
+    const scores = extractMeinTurnierplanMatchScores(match);
     rawMatches.push({
       homeTeam,
       awayTeam,
@@ -1671,6 +1724,9 @@ export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis 
       kickoffTimeHHmm: kickoffHHmmFromDateTime(match.dateAndTime),
       plannedMinutes: groupMinutes,
       pitch,
+      hasResult: scores.hasResult,
+      homeGoals: scores.homeGoals,
+      awayGoals: scores.awayGoals,
     });
   }
 
@@ -1688,6 +1744,7 @@ export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis 
     );
     const court = courts[match.courtId ?? -1];
     const pitch = court?.displayId?.trim() ? `Platz ${court.displayId.trim()}` : null;
+    const scores = extractMeinTurnierplanMatchScores(match);
 
     rawMatches.push({
       homeTeam,
@@ -1697,6 +1754,9 @@ export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis 
       kickoffTimeHHmm: kickoffHHmmFromDateTime(match.dateAndTime),
       plannedMinutes: knockoutMinutes,
       pitch,
+      hasResult: scores.hasResult,
+      homeGoals: scores.homeGoals,
+      awayGoals: scores.awayGoals,
     });
   }
 
@@ -1744,6 +1804,72 @@ export function countOwnTeamMatchesInAnalysis(
   return count;
 }
 
+function mapOwnTeamGoalsFromRawMatch(
+  match: TournamentPlanImportRawMatch,
+  homeOurs: boolean,
+): { hasResult: boolean; ourGoals: number | null; oppGoals: number | null } {
+  if (!match.hasResult || match.homeGoals == null || match.awayGoals == null) {
+    return { hasResult: false, ourGoals: null, oppGoals: null };
+  }
+  return homeOurs
+    ? { hasResult: true, ourGoals: match.homeGoals, oppGoals: match.awayGoals }
+    : { hasResult: true, ourGoals: match.awayGoals, oppGoals: match.homeGoals };
+}
+
+export function countAnalysisMatchResults(analysis: TournamentPlanAnalysis): {
+  withResult: number;
+  withoutResult: number;
+} {
+  let withResult = 0;
+  for (const match of analysis.rawMatches) {
+    if (match.hasResult) withResult += 1;
+  }
+  return { withResult, withoutResult: analysis.rawMatches.length - withResult };
+}
+
+export function listOwnTeamMatchesForImportPreview(
+  analysis: TournamentPlanAnalysis,
+  knownNames: string[],
+): TournamentPlanOwnMatchPreview[] {
+  if (knownNames.length === 0) return [];
+
+  const previews: TournamentPlanOwnMatchPreview[] = [];
+  for (const match of analysis.rawMatches) {
+    const homeOurs = isTeamAliasMatch(match.homeTeam, knownNames);
+    const awayOurs = isTeamAliasMatch(match.awayTeam, knownNames);
+    let opponentName: string | null = null;
+
+    if (homeOurs && !awayOurs) opponentName = match.awayTeam;
+    else if (awayOurs && !homeOurs) opponentName = match.homeTeam;
+    if (!opponentName) continue;
+
+    const goals = mapOwnTeamGoalsFromRawMatch(match, homeOurs);
+    previews.push({
+      opponentName,
+      kickoffTimeHHmm: match.kickoffTimeHHmm,
+      hasResult: goals.hasResult,
+      ourGoals: goals.ourGoals,
+      oppGoals: goals.oppGoals,
+    });
+  }
+  return previews;
+}
+
+export function canApplyImportedTournamentResult(slot: {
+  match_status?: string | null;
+  score_home?: number;
+  score_away?: number;
+}): boolean {
+  const st = (slot.match_status ?? 'upcoming').toLowerCase();
+  if (st === 'live') return false;
+  if (st === 'finished') {
+    const sh = Number(slot.score_home ?? 0);
+    const sa = Number(slot.score_away ?? 0);
+    return sh === 0 && sa === 0;
+  }
+  return true;
+}
+
 export function buildImportMatchesForOwnTeam(
   rawMatches: TournamentPlanImportRawMatch[],
   knownNames: string[],
@@ -1762,6 +1888,8 @@ export function buildImportMatchesForOwnTeam(
 
     if (!opponentName) continue;
 
+    const goals = mapOwnTeamGoalsFromRawMatch(match, homeOurs);
+
     result.push({
       opponentName,
       groupLabel: match.groupLabel,
@@ -1769,6 +1897,9 @@ export function buildImportMatchesForOwnTeam(
       kickoffTimeHHmm: match.kickoffTimeHHmm,
       plannedMinutes: match.plannedMinutes,
       pitch: match.pitch,
+      hasResult: goals.hasResult,
+      ourGoals: goals.ourGoals,
+      oppGoals: goals.oppGoals,
       dedupeKey: buildTournamentMatchDedupeKey({
         kickoffTimeHHmm: match.kickoffTimeHHmm,
         opponentName,
@@ -1789,6 +1920,10 @@ export async function computeTournamentPlanRefreshPreview(params: {
     kickoff_at: string;
     group_label: string | null;
     phase?: string | null;
+    match_id?: string;
+    match_status?: string | null;
+    score_home?: number;
+    score_away?: number;
   }>;
   knownNames?: string[];
 }): Promise<TournamentPlanRefreshPreview> {
@@ -1802,31 +1937,50 @@ export async function computeTournamentPlanRefreshPreview(params: {
     }
   }
 
-  const existingMatchKeys = new Set(
-    params.existingSlots.map((slot) =>
+  const existingSlotByKey = new Map(
+    params.existingSlots.map((slot) => [
       buildTournamentMatchDedupeKey({
         kickoffTimeHHmm: formatTournamentKickoffTime(slot.kickoff_at),
         opponentName: slot.opponent_name,
         groupLabel: slot.group_label,
         phase: slot.phase ?? (slot.group_label?.trim() ? 'group' : null),
       }),
-    ),
+      slot,
+    ]),
   );
 
   const knownNames = params.knownNames ?? [];
   const importMatches = buildImportMatchesForOwnTeam(params.analysis.rawMatches, knownNames);
+  const resultCounts = countAnalysisMatchResults(params.analysis);
 
   let newMatches = 0;
   let existingMatches = 0;
+  let resultUpdates = 0;
   for (const match of importMatches) {
-    if (existingMatchKeys.has(match.dedupeKey)) {
+    const existingSlot = existingSlotByKey.get(match.dedupeKey);
+    if (existingSlot) {
       existingMatches += 1;
+      if (
+        match.hasResult &&
+        match.ourGoals != null &&
+        match.oppGoals != null &&
+        canApplyImportedTournamentResult(existingSlot)
+      ) {
+        resultUpdates += 1;
+      }
     } else {
       newMatches += 1;
     }
   }
 
-  return { newTeams, newMatches, existingMatches };
+  return {
+    newTeams,
+    newMatches,
+    existingMatches,
+    resultUpdates,
+    matchesWithResult: resultCounts.withResult,
+    matchesWithoutResult: resultCounts.withoutResult,
+  };
 }
 
 export type AnalyzeTournamentUrlResult =
@@ -2326,16 +2480,22 @@ export async function importTournamentPlanFromAnalysis(params: {
     kickoff_at: string;
     group_label: string | null;
     phase?: string | null;
+    match_id?: string;
+    match_status?: string | null;
+    score_home?: number;
+    score_away?: number;
   }>;
   knownNames?: string[];
 }): Promise<{
   importedTeams: number;
   importedMatches: number;
   skippedMatches: number;
+  updatedResults: number;
   error: string | null;
 }> {
   const {
     addTournamentParticipant,
+    applyTournamentMatchResultIfEmpty,
     createTournamentMatchSlot,
     formatTournamentKickoffTime,
     normalizeTournamentDbError,
@@ -2358,6 +2518,7 @@ export async function importTournamentPlanFromAnalysis(params: {
         importedTeams,
         importedMatches: 0,
         skippedMatches: 0,
+        updatedResults: 0,
         error: normalizeTournamentDbError(error, null),
       };
     }
@@ -2367,27 +2528,56 @@ export async function importTournamentPlanFromAnalysis(params: {
 
   const knownNames = params.knownNames ?? [];
   const importMatches = buildImportMatchesForOwnTeam(params.analysis.rawMatches, knownNames);
-  const existingMatchKeys = new Set(
-    params.existingSlots.map((slot) =>
+  const existingSlotByKey = new Map(
+    params.existingSlots.map((slot) => [
       buildTournamentMatchDedupeKey({
         kickoffTimeHHmm: formatTournamentKickoffTime(slot.kickoff_at),
         opponentName: slot.opponent_name,
         groupLabel: slot.group_label,
         phase: slot.phase ?? (slot.group_label?.trim() ? 'group' : null),
       }),
-    ),
+      slot,
+    ]),
   );
 
   let importedMatches = 0;
   let skippedMatches = 0;
+  let updatedResults = 0;
 
   for (const match of importMatches) {
-    if (existingMatchKeys.has(match.dedupeKey)) {
+    const existingSlot = existingSlotByKey.get(match.dedupeKey);
+    if (existingSlot) {
       skippedMatches += 1;
+      if (
+        match.hasResult &&
+        match.ourGoals != null &&
+        match.oppGoals != null &&
+        existingSlot.match_id &&
+        canApplyImportedTournamentResult(existingSlot)
+      ) {
+        const { applied, error: resultErr } = await applyTournamentMatchResultIfEmpty({
+          matchId: existingSlot.match_id,
+          ourGoals: match.ourGoals,
+          oppGoals: match.oppGoals,
+          currentStatus: existingSlot.match_status,
+          currentScoreHome: existingSlot.score_home,
+          currentScoreAway: existingSlot.score_away,
+        });
+        if (resultErr) {
+          return {
+            importedTeams,
+            importedMatches,
+            skippedMatches,
+            updatedResults,
+            error: normalizeTournamentDbError(resultErr, null),
+          };
+        }
+        if (applied) updatedResults += 1;
+      }
       continue;
     }
 
-    const { error } = await createTournamentMatchSlot({
+    const { matchId, error } = await createTournamentMatchSlot({
       tournamentEventId: params.tournamentEventId,
       teamSeasonId: params.teamSeasonId,
       tournamentDayIso: params.tournamentDayIso,
@@ -2405,13 +2595,39 @@ export async function importTournamentPlanFromAnalysis(params: {
         importedTeams,
         importedMatches,
         skippedMatches,
+        updatedResults,
         error: normalizeTournamentDbError(error, null),
       };
     }
 
-    existingMatchKeys.add(match.dedupeKey);
     importedMatches += 1;
+
+    if (
+      match.hasResult &&
+      match.ourGoals != null &&
+      match.oppGoals != null &&
+      matchId
+    ) {
+      const { applied, error: resultErr } = await applyTournamentMatchResultIfEmpty({
+        matchId,
+        ourGoals: match.ourGoals,
+        oppGoals: match.oppGoals,
+        currentStatus: 'upcoming',
+        currentScoreHome: 0,
+        currentScoreAway: 0,
+      });
+      if (resultErr) {
+        return {
+          importedTeams,
+          importedMatches,
+          skippedMatches,
+          updatedResults,
+          error: normalizeTournamentDbError(resultErr, null),
+        };
+      }
+      if (applied) updatedResults += 1;
+    }
   }
 
-  return { importedTeams, importedMatches, skippedMatches, error: null };
+  return { importedTeams, importedMatches, skippedMatches, updatedResults, error: null };
 }
