@@ -229,7 +229,11 @@ export const MatchDetailPage: React.FC = () => {
         fetchMatchEvents(matchId),
       ]);
       if (cancelled) return;
-      setLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
+      setLineupData(
+        lineRes.error
+          ? { startingPlayerIds: [], squadPlayerIds: [], savedBenchPlayerIds: [] }
+          : lineRes.data,
+      );
       const sorted = sortMatchEventsChronologically(evRes.data);
       setEvents(evRes.error ? [] : [...sorted].reverse());
     })();

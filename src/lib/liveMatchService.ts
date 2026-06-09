@@ -382,6 +382,8 @@ export async function fetchMatchEvents(matchId: string): Promise<{ data: MatchEn
 export type LineupLoadResult = {
   startingPlayerIds: string[];
   squadPlayerIds: string[];
+  /** Reihenfolge aus `match_bench` (nur für UI-Sortierung). */
+  savedBenchPlayerIds: string[];
 };
 
 /** Entfernt Spieler aus Startelf, die nicht im Matchkader sind (Vorbereitung vor Anpfiff). */
@@ -407,7 +409,9 @@ export function sanitizeLineupToMatchSquad(
     return pid;
   });
 
-  return { startingPlayerIds: starters, squadPlayerIds: cleanSquad };
+  const fieldSet = new Set(starters.filter((id) => id.length > 0));
+  const savedBenchPlayerIds = cleanSquad.filter((id) => !fieldSet.has(id));
+  return { startingPlayerIds: starters, squadPlayerIds: cleanSquad, savedBenchPlayerIds };
 }
 
 export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: LineupLoadResult; error: string | null }> {
@@ -416,8 +420,12 @@ export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: 
     supabase.from('match_bench').select('player_id').eq('match_id', matchId),
   ]);
 
-  if (lineupRes.error) return { data: { startingPlayerIds: [], squadPlayerIds: [] }, error: lineupRes.error.message };
-  if (benchRes.error) return { data: { startingPlayerIds: [], squadPlayerIds: [] }, error: benchRes.error.message };
+  if (lineupRes.error) {
+    return { data: { startingPlayerIds: [], squadPlayerIds: [], savedBenchPlayerIds: [] }, error: lineupRes.error.message };
+  }
+  if (benchRes.error) {
+    return { data: { startingPlayerIds: [], squadPlayerIds: [], savedBenchPlayerIds: [] }, error: benchRes.error.message };
+  }
 
   const lineupRows = (lineupRes.data ?? []) as { player_id: string | null; slot?: string | null }[];
   const benchRows = (benchRes.data ?? []) as { player_id: string | null }[];
@@ -448,25 +456,18 @@ export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: 
   }
   const startingPlayerIds = LIVE_FIELD_SLOT_ORDER.map((s) => slotOccupants[s] ?? '');
 
-  const startingSet = new Set(startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0));
-  const benchPlayerIds = benchRows
-    .map((r) => r.player_id)
-    .filter((id): id is string => typeof id === 'string' && id.length > 0)
+  const fieldIds = startingPlayerIds
+    .map((id) => String(id ?? '').trim())
+    .filter((id) => id.length > 0);
+  const startingSet = new Set(fieldIds);
+  const savedBenchPlayerIds = benchRows
+    .map((r) => (typeof r.player_id === 'string' ? r.player_id.trim() : ''))
+    .filter((id) => id.length > 0)
     .filter((id, idx, arr) => arr.indexOf(id) === idx)
     .filter((id) => !startingSet.has(id));
-  const squadPlayerIds = [
-    ...startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0),
-    ...benchPlayerIds,
-  ].filter((id, idx, arr) => arr.indexOf(id) === idx);
-  console.log('fetchLineupForLiveMatch final', {
-    matchId,
-    lineupRows,
-    benchRows,
-    startingPlayerIds,
-    squadPlayerIds,
-  });
+  const squadPlayerIds = [...new Set([...fieldIds, ...savedBenchPlayerIds])];
 
-  return { data: { startingPlayerIds, squadPlayerIds }, error: null };
+  return { data: { startingPlayerIds, squadPlayerIds, savedBenchPlayerIds }, error: null };
 }
 
 /** Kickoff-Snapshot (`match_lineup_snapshots.snapshot_type = kickoff`) → 7er-Array in Slot-Reihenfolge; fehlt → `null`. */

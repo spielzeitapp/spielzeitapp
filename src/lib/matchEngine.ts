@@ -297,9 +297,45 @@ export function fieldSlotMapToStartingIds(slots: Record<FieldSlotId, string | nu
   });
 }
 
-export function getBenchPlayers(squadPlayerIds: string[], onFieldPlayerIds: string[]): string[] {
-  const on = new Set(onFieldPlayerIds);
-  return squadPlayerIds.filter((id) => !on.has(id));
+/** Bank = Kader minus aktuelle Feldspieler; optional gespeicherte Bank-Reihenfolge beibehalten. */
+export function getBenchPlayers(
+  squadPlayerIds: string[],
+  onFieldPlayerIds: string[],
+  preferredBenchOrder?: readonly string[],
+): string[] {
+  const on = new Set(onFieldPlayerIds.map((id) => String(id ?? '').trim()).filter(Boolean));
+  const bench = squadPlayerIds
+    .map((id) => String(id ?? '').trim())
+    .filter((id) => id.length > 0 && !on.has(id));
+  if (!preferredBenchOrder?.length) return bench;
+
+  const remaining = new Set(bench);
+  const ordered: string[] = [];
+  for (const raw of preferredBenchOrder) {
+    const id = String(raw ?? '').trim();
+    if (id && remaining.has(id)) {
+      ordered.push(id);
+      remaining.delete(id);
+    }
+  }
+  for (const id of bench) {
+    if (remaining.has(id)) ordered.push(id);
+  }
+  return ordered;
+}
+
+/** Füllt nur leere Slots aus Fallback — überschreibt keine belegten Replay-Slots (FairPlay-sicher). */
+export function fillEmptyFieldSlotsFromFallback(
+  replay: Record<FieldSlotId, string | null>,
+  fallback: Record<FieldSlotId, string | null>,
+): Record<FieldSlotId, string | null> {
+  const next = { ...replay } as Record<FieldSlotId, string | null>;
+  for (const s of FIELD_SLOT_ORDER) {
+    if (!String(next[s] ?? '').trim() && String(fallback[s] ?? '').trim()) {
+      next[s] = fallback[s];
+    }
+  }
+  return dedupeFieldSlotMap(next);
 }
 
 /** Tauscht nur die Belegung zweier Slots (beide müssen Spieler haben). */
@@ -439,6 +475,11 @@ function mergeFieldSlotsPreferReplay(
   replay: Record<FieldSlotId, string | null>,
   fallback: Record<FieldSlotId, string | null>,
 ): Record<FieldSlotId, string | null> {
+  const replayFp = String(replay.FP ?? '').trim();
+  if (replayFp) {
+    return fillEmptyFieldSlotsFromFallback(replay, fallback);
+  }
+
   const coreSlots = FIELD_SLOT_ORDER.filter((s) => s !== 'FP');
   const replayCoreSet = new Set(
     coreSlots.map((s) => String(replay[s] ?? '').trim()).filter(Boolean),
@@ -452,20 +493,13 @@ function mergeFieldSlotsPreferReplay(
 
   if (coreDiff) {
     const next = { ...fallback } as Record<FieldSlotId, string | null>;
-    const replayFp = String(replay.FP ?? '').trim();
     if (replayFp && !String(next.FP ?? '').trim()) {
       next.FP = replayFp;
     }
     return dedupeFieldSlotMap(next);
   }
 
-  const next = { ...replay } as Record<FieldSlotId, string | null>;
-  for (const s of FIELD_SLOT_ORDER) {
-    if (!String(next[s] ?? '').trim() && String(fallback[s] ?? '').trim()) {
-      next[s] = fallback[s];
-    }
-  }
-  return dedupeFieldSlotMap(next);
+  return fillEmptyFieldSlotsFromFallback(replay, fallback);
 }
 
 /**
@@ -793,6 +827,8 @@ export type DeriveLiveMatchReplayParams = {
   /** Kickoff nur für Spielzeit (falls abweichend von `kickoffLineup`). */
   kickoffLineupForPlaytime?: string[];
   previousPlaytimesByPlayerId?: PlayerPlaytimeMap;
+  /** Optional: Bank-Reihenfolge aus DB (nur Sortierung, keine Mitgliedschaft). */
+  savedBenchPlayerIds?: readonly string[];
   /** DEV: Warnung wenn aktive Menge leer bei laufender Spielzeit. */
   isLiveMatchRunning?: boolean;
 };
@@ -844,7 +880,7 @@ export function deriveLiveMatchReplayState(params: DeriveLiveMatchReplayParams):
 
   const onFieldPlayerIds = getOnFieldIdsInSlotOrder(slotsBySlot);
   const activePlayerIds = [...onFieldPlayerIds];
-  const benchPlayerIds = getBenchPlayers(squad, activePlayerIds);
+  const benchPlayerIds = getBenchPlayers(squad, activePlayerIds, params.savedBenchPlayerIds);
 
   const playtimeRaw = computePlayerPlaytimeFromEvents({
     kickoffStartingPlayerIds: kickoffPlaytime,

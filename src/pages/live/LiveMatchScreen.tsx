@@ -98,6 +98,8 @@ import {
 } from '../../lib/premiumDesignSystem';
 import { matchdayBenchTileClass } from '../../lib/matchdayPlayerCard';
 import {
+  FAIRPLAY_FORMATION_CHOICES,
+  isFairPlayFormationId,
   isU11FormationId,
   labelForSlotInFormation,
   resolveLivePitchFormationId,
@@ -222,6 +224,9 @@ const FORMATION_OPTION_LABELS: Record<U11FormationId, string> = {
   '1-2-3-1': 'Ausgewogen',
   '1-3-2-1': 'Defensiver',
   '1-3-3': 'Offensiver',
+  '1-3-3-1': 'FairPlay · 3-3 + FP',
+  '1-4-3': 'FairPlay · 4er Kette',
+  '1-3-4': 'FairPlay · 4 vorne',
 };
 
 /** Mini-Pitch mit Slot-Punkten für Formation-Karten im Coach-Sheet. */
@@ -888,12 +893,14 @@ export const LiveMatchScreen: React.FC = () => {
   const [lineupData, setLineupData] = useState<{
     startingPlayerIds: string[];
     squadPlayerIds: string[];
+    savedBenchPlayerIds: string[];
   } | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const [squadPlayerIds, setSquadPlayerIds] = useState<string[]>([]);
+  const [savedBenchPlayerIds, setSavedBenchPlayerIds] = useState<string[]>([]);
   const [startingPlayerIds, setStartingPlayerIds] = useState<string[]>([]);
   /** Kickoff-Feld aus `match_lineup_snapshots` — einzige Basis für Live-Wechsel-Replay (nicht mutierendes DB-Lineup). */
   const [kickoffStartingPlayerIds, setKickoffStartingPlayerIds] = useState<string[]>([]);
@@ -960,7 +967,9 @@ export const LiveMatchScreen: React.FC = () => {
       setEffectiveMatchId(resolvedId);
       setMatchRow(mRes.data);
       setEventIsHome(isHomeRes.isHome);
-      const lineData = lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data;
+      const lineData = lineRes.error
+        ? { startingPlayerIds: [], squadPlayerIds: [], savedBenchPlayerIds: [] }
+        : lineRes.data;
       setLineupData(lineData);
       const sorted = sortMatchEventsChronologically(evRes.data);
       setEvents([...sorted].reverse());
@@ -1101,6 +1110,7 @@ export const LiveMatchScreen: React.FC = () => {
     }
     setSquadPlayerIds([...lineupData.squadPlayerIds]);
     setStartingPlayerIds([...lineupData.startingPlayerIds]);
+    setSavedBenchPlayerIds([...(lineupData.savedBenchPlayerIds ?? [])]);
     setInitialStartingPlayerIds((prev) =>
       prev.length > 0 ? prev : [...lineupData.startingPlayerIds].slice(0, 7),
     );
@@ -1147,7 +1157,11 @@ export const LiveMatchScreen: React.FC = () => {
         }
       }
       const lineRes = await fetchLineupForLiveMatch(effectiveMatchId);
-      setLineupData(lineRes.error ? { startingPlayerIds: [], squadPlayerIds: [] } : lineRes.data);
+      setLineupData(
+        lineRes.error
+          ? { startingPlayerIds: [], squadPlayerIds: [], savedBenchPlayerIds: [] }
+          : lineRes.data,
+      );
       if (lineRes.error) setSaveError(lineRes.error);
     } finally {
       lineupReloadInFlightRef.current = false;
@@ -1634,6 +1648,7 @@ export const LiveMatchScreen: React.FC = () => {
       events: eventsSortedAsc,
       finalSecond: playtimeFinalSecond,
       fallbackStartingPlayerIds: startingPlayerIds,
+      savedBenchPlayerIds,
       previousPlaytimesByPlayerId: prevPlaytimesRef.current,
       isLiveMatchRunning: matchRow?.status === 'live' && isRunning && !matchIsFinished,
     });
@@ -1656,6 +1671,7 @@ export const LiveMatchScreen: React.FC = () => {
     eventsSortedAsc,
     playtimeFinalSecond,
     startingPlayerIds,
+    savedBenchPlayerIds,
     matchRow?.status,
     isRunning,
     matchIsFinished,
@@ -1663,6 +1679,7 @@ export const LiveMatchScreen: React.FC = () => {
 
   const lineupSlotsForDisplay = liveReplayState.slotsBySlot;
   const onFieldIds = liveReplayState.onFieldPlayerIds;
+  const currentFieldPlayerCount = countOccupiedFieldSlots(lineupSlotsForDisplay);
   const activePlayerIds = liveReplayState.activePlayerIds;
   const fairPlayExtraPlayerId = liveReplayState.fairPlayExtraPlayerId;
   const playtimes = liveReplayState.playtimeSecondsByPlayerId;
@@ -1781,16 +1798,31 @@ export const LiveMatchScreen: React.FC = () => {
     [safeFormationId, fairPlayExtraPlayerId],
   );
 
+  const formationSheetChoices = useMemo(
+    (): U11FormationId[] =>
+      fairPlayExtraPlayerId ? [...FAIRPLAY_FORMATION_CHOICES] : [...U11_FORMATION_CHOICES],
+    [fairPlayExtraPlayerId],
+  );
+
   const requestFormationChange = useCallback(
     (id: U11FormationId) => {
       if (!effectiveMatchId || !canControlLiveMatch || formationSaving) return;
-      if (id === safeFormationId) {
+      if (fairPlayExtraPlayerId && !isFairPlayFormationId(id)) return;
+      if (!fairPlayExtraPlayerId && isFairPlayFormationId(id)) return;
+      if (id === pitchFormationId) {
         closeFormationSheet();
         return;
       }
       setFormationPendingId(id);
     },
-    [effectiveMatchId, canControlLiveMatch, formationSaving, safeFormationId, closeFormationSheet],
+    [
+      effectiveMatchId,
+      canControlLiveMatch,
+      formationSaving,
+      pitchFormationId,
+      fairPlayExtraPlayerId,
+      closeFormationSheet,
+    ],
   );
 
   const confirmFormationChange = useCallback(async () => {
@@ -1801,9 +1833,11 @@ export const LiveMatchScreen: React.FC = () => {
     try {
       const ordered = fieldSlotMapToStartingIds(liveReplayState.slotsBySlot);
       const active = ordered.filter((x) => String(x ?? '').trim().length > 0);
-      if (import.meta.env.DEV && active.length < 7) {
+      const minFieldExpected = fairPlayExtraPlayerId ? 8 : 7;
+      if (import.meta.env.DEV && active.length < minFieldExpected) {
         console.warn('[LiveMatch] Live formation remap lost active player', {
           activeCount: active.length,
+          minFieldExpected,
           ordered,
         });
       }
@@ -1818,6 +1852,9 @@ export const LiveMatchScreen: React.FC = () => {
         return;
       }
       setStartingPlayerIds(ordered);
+      setSavedBenchPlayerIds(
+        getBenchPlayers(squadPlayerIds, active, savedBenchPlayerIds),
+      );
       setFormationPendingId(null);
       closeFormationSheet();
       setFormationChangeToast(true);
@@ -1830,8 +1867,10 @@ export const LiveMatchScreen: React.FC = () => {
     effectiveMatchId,
     canControlLiveMatch,
     formationSaving,
+    fairPlayExtraPlayerId,
     liveReplayState.slotsBySlot,
     squadPlayerIds,
+    savedBenchPlayerIds,
     closeFormationSheet,
     queueRealtimeReload,
   ]);
@@ -2664,9 +2703,15 @@ export const LiveMatchScreen: React.FC = () => {
         setStartingPlayerIds(syncRes.startingPlayerIds);
         setSquadPlayerIds(syncRes.squadPlayerIds);
         if (lineupData) {
+          const fieldAfter = syncRes.startingPlayerIds.filter((id) => String(id ?? '').trim().length > 0);
           setLineupData({
             startingPlayerIds: syncRes.startingPlayerIds,
             squadPlayerIds: syncRes.squadPlayerIds,
+            savedBenchPlayerIds: getBenchPlayers(
+              syncRes.squadPlayerIds,
+              fieldAfter,
+              savedBenchPlayerIds,
+            ),
           });
         }
       }
@@ -2760,13 +2805,6 @@ export const LiveMatchScreen: React.FC = () => {
       };
 
       let applied = applySubstitutionToSlots(slotBefore, outId, inId);
-      if (!applied.outSlot) {
-        applied = applySubstitutionToSlots(
-          startingLineupToSlotMap(liveLineupBasePlayerIds.slice(0, 7)),
-          outId,
-          inId,
-        );
-      }
       const { slots: nextSlots, outSlot } = applied;
       if (!outSlot) {
         setSaveError('Spielerposition für Wechsel nicht gefunden.');
@@ -2846,6 +2884,7 @@ export const LiveMatchScreen: React.FC = () => {
 
       setStartingPlayerIds(nextStarting);
       setSquadPlayerIds(nextSquad);
+      setSavedBenchPlayerIds(benchIdsAfter);
       setEvents((prev) => [{ ...subPartial, id }, ...prev.filter((e) => e.id !== tempId)]);
       return true;
     },
@@ -2861,6 +2900,7 @@ export const LiveMatchScreen: React.FC = () => {
       kickoffStartingPlayerIds,
       startingPlayerIds,
       squadPlayerIds,
+      savedBenchPlayerIds,
     ],
   );
 
@@ -4461,7 +4501,7 @@ export const LiveMatchScreen: React.FC = () => {
                       <div className="flex flex-col gap-0.5">
                         <p className="text-[15px] font-semibold leading-tight text-white/90">Mannschaft am Feld</p>
                         <p className="text-[12px] leading-snug text-white/52">
-                          Stand jetzt im Spiel · {onFieldIds.length} Spieler am Feld
+                          Stand jetzt im Spiel · {currentFieldPlayerCount} Spieler am Feld
                         </p>
                         {canControlLiveMatch && lineupPositionMode && !matchIsFinished ? (
                           <p className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium leading-snug text-amber-300/90">
@@ -5105,7 +5145,7 @@ export const LiveMatchScreen: React.FC = () => {
           <div
             className={[
               'relative flex w-full max-w-lg flex-col overflow-hidden rounded-t-[1.35rem] border border-white/10 border-b-0 bg-gradient-to-b from-zinc-950/98 via-black to-black text-white shadow-[0_-20px_60px_rgba(0,0,0,0.75),0_0_40px_rgba(220,38,38,0.08)] transition-all duration-200 sm:max-w-none',
-              U11_FORMATION_CHOICES.length <= 4
+              formationSheetChoices.length <= 4
                 ? 'h-auto max-h-[min(92dvh,820px)]'
                 : 'max-h-[min(90dvh,820px)] min-h-0',
             ].join(' ')}
@@ -5133,7 +5173,7 @@ export const LiveMatchScreen: React.FC = () => {
               <div className="mx-4 mb-3 shrink-0 rounded-2xl border border-amber-400/35 bg-gradient-to-br from-amber-950/40 to-black/80 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                 <p className="text-center text-[14px] font-black text-amber-100">Formation wechseln?</p>
                 <p className="mt-1.5 text-center text-[12px] font-medium leading-snug text-white/75">
-                  Alle {countOccupiedFieldSlots(lineupSlotsForDisplay)} aktiven Spieler bleiben erhalten und werden bei
+                  Alle {currentFieldPlayerCount} aktiven Spieler bleiben erhalten und werden bei
                   Bedarf auf die neuen Slot-Positionen abgebildet.
                 </p>
                 <div className="mt-3 flex gap-2">
@@ -5159,13 +5199,13 @@ export const LiveMatchScreen: React.FC = () => {
             <div
               className={[
                 'flex shrink-0 flex-col px-4',
-                U11_FORMATION_CHOICES.length > 4
+                formationSheetChoices.length > 4
                   ? 'min-h-0 flex-1 gap-2 overflow-y-auto overscroll-y-contain py-1 [-webkit-overflow-scrolling:touch]'
                   : 'gap-1.5 py-0.5',
               ].join(' ')}
             >
-              {U11_FORMATION_CHOICES.map((id) => {
-                const active = id === safeFormationId;
+              {formationSheetChoices.map((id) => {
+                const active = id === pitchFormationId;
                 return (
                   <button
                     key={`formation-pick-${id}`}
