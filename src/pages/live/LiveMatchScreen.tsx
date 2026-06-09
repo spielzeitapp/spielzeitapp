@@ -30,6 +30,7 @@ import {
   fairPlayRemovedPlayerIdFromEvent,
   sortMatchEventsChronologically,
   startingLineupToSlotMap,
+  swapTwoOccupiedFieldSlots,
   type MatchEngineEvent,
   type MatchEventType,
 } from '../../lib/matchEngine';
@@ -48,9 +49,8 @@ import {
   persistExtraPlayerOff,
   persistExtraPlayerOn,
   persistFairPlayExtraSessionTransfer,
-  fetchMatchBenchPlayerIds,
-  replaceMatchLineupAndBench,
-  resolveMatchSquadForLineupPersist,
+  lineupPersistInProgress,
+  persistLiveLineupAndBenchSafe,
   repairLiveMatchLineupBenchIfNeeded,
   syncFinalLineupBenchFromEventReplay,
   persistPositionSwap,
@@ -901,7 +901,6 @@ export const LiveMatchScreen: React.FC = () => {
   const [pageLoading, setPageLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const formationSavingRef = useRef(false);
 
   const [squadPlayerIds, setSquadPlayerIds] = useState<string[]>([]);
   const [savedBenchPlayerIds, setSavedBenchPlayerIds] = useState<string[]>([]);
@@ -1127,7 +1126,7 @@ export const LiveMatchScreen: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
-        if (formationSavingRef.current) return;
+        if (lineupPersistInProgress.current) return;
         const { repaired, error } = await repairLiveMatchLineupBenchIfNeeded(effectiveMatchId);
         if (error) setSaveError(error);
         if (!repaired || cancelled) return;
@@ -1152,7 +1151,7 @@ export const LiveMatchScreen: React.FC = () => {
     lineupReloadInFlightRef.current = true;
     try {
       if (
-        !formationSavingRef.current &&
+        !lineupPersistInProgress.current &&
         canControlLiveMatch &&
         (matchRow?.status === 'live' || matchRow?.status === 'finished')
       ) {
@@ -1212,6 +1211,12 @@ export const LiveMatchScreen: React.FC = () => {
   /** Gleiche Reload-Kette für alle Rollen: Match-Zeile, Events, Lineup + Bank aus der DB. */
   const queueLiveMatchRealtimeUpdate = useCallback(
     (payload: { eventType?: string }) => {
+      if (lineupPersistInProgress.current) {
+        if (import.meta.env.DEV) {
+          console.debug('[LiveMatch] realtime update deferred — lineup persist in progress', payload.eventType);
+        }
+        return;
+      }
       if (import.meta.env.DEV) {
         console.log('live lineup realtime update', payload.eventType);
       }
@@ -1385,7 +1390,6 @@ export const LiveMatchScreen: React.FC = () => {
   const [formationSaving, setFormationSaving] = useState(false);
   const [formationPendingId, setFormationPendingId] = useState<U11FormationId | null>(null);
   const closeFormationSheet = useCallback(() => {
-    formationSavingRef.current = false;
     setFormationSheetOpen(false);
     setFormationSaving(false);
     setFormationPendingId(null);
@@ -1836,14 +1840,11 @@ export const LiveMatchScreen: React.FC = () => {
     const id = formationPendingId;
     if (!id || !effectiveMatchId || !canControlLiveMatch || formationSaving) return;
     setFormationSaving(true);
-    formationSavingRef.current = true;
     setSaveError(null);
     try {
       const layoutAudit = auditFormationSlotLayout(id);
       const beforeFieldIds = [...liveReplayState.onFieldPlayerIds];
       const beforeBenchIds = [...liveReplayState.benchPlayerIds];
-      const ordered = fieldSlotMapToStartingIds(liveReplayState.slotsBySlot);
-      const afterFieldIds = ordered.filter((x) => String(x ?? '').trim().length > 0);
       const minFieldExpected = fairPlayExtraPlayerId ? 8 : 7;
 
       if (fairPlayExtraPlayerId && layoutAudit.formationSlotsLength !== 8) {
@@ -1856,64 +1857,37 @@ export const LiveMatchScreen: React.FC = () => {
         setSaveError('Formation ungültig: doppelte oder fehlende Slots.');
         return;
       }
-      if (import.meta.env.DEV && afterFieldIds.length < minFieldExpected) {
+      if (import.meta.env.DEV && beforeFieldIds.length < minFieldExpected) {
         console.warn('[LiveMatch] Live formation remap lost active player', {
-          activeCount: afterFieldIds.length,
+          activeCount: beforeFieldIds.length,
           minFieldExpected,
-          ordered,
         });
       }
 
-      const dbBenchIds = await fetchMatchBenchPlayerIds(effectiveMatchId);
-      const { squadPlayerIds: fullSquadIds, benchPlayerIds: afterBenchIds } = resolveMatchSquadForLineupPersist({
+      const lineRes = await persistLiveLineupAndBenchSafe({
+        matchId: effectiveMatchId,
+        reason: 'formation_change',
+        slots: liveReplayState.slotsBySlot,
+        beforeFieldIds,
+        beforeBenchIds,
         squadPlayerIds,
-        savedBenchPlayerIds: [...new Set([...savedBenchPlayerIds, ...beforeBenchIds])],
-        dbBenchPlayerIds: dbBenchIds,
-        fieldPlayerIds: afterFieldIds,
-        kickoffStartingPlayerIds: kickoffStartingPlayerIds,
+        savedBenchPlayerIds,
+        kickoffStartingPlayerIds,
         events: eventsSortedAsc,
       });
-
-      const beforeUnion = new Set([...beforeFieldIds, ...beforeBenchIds]);
-      const afterUnion = new Set([...afterFieldIds, ...afterBenchIds]);
-      const removedIds = [...beforeUnion].filter((pid) => !afterUnion.has(pid));
-
-      console.log('[formation-change]', {
-        formationId: id,
-        formationSlotsLength: layoutAudit.formationSlotsLength,
-        slotIds: layoutAudit.slotIds,
-        duplicateSlotIds: layoutAudit.duplicateSlotIds,
-        beforeFieldIds,
-        afterFieldIds,
-        beforeBenchIds,
-        afterBenchIds,
-        fullSquadIds,
-        removedIds,
-      });
-
-      if (removedIds.length > 0) {
-        console.warn('[formation-change] Kader würde Spieler verlieren — Speichern abgebrochen', {
-          removedIds,
-        });
-        setSaveError('Formation konnte nicht gespeichert werden: Bank/Kader wäre unvollständig.');
+      if (lineRes.error || !lineRes.payload) {
+        setSaveError(lineRes.error ?? 'Formation konnte nicht gespeichert werden.');
         return;
       }
 
-      const { error: lineErr } = await replaceMatchLineupAndBench(
-        effectiveMatchId,
-        ordered,
-        fullSquadIds,
-        { benchPlayerIds: afterBenchIds },
-      );
-      if (lineErr) {
-        setSaveError(lineErr);
-        return;
-      }
       const { error: rowErr } = await updateMatchRow(effectiveMatchId, { u11_formation_id: id });
       if (rowErr) {
         setSaveError(rowErr);
         return;
       }
+
+      const { startingPlayerIds: ordered, squadPlayerIds: fullSquadIds, benchPlayerIds: afterBenchIds } =
+        lineRes.payload;
       setStartingPlayerIds(ordered);
       setSquadPlayerIds(fullSquadIds);
       setSavedBenchPlayerIds(afterBenchIds);
@@ -1927,7 +1901,6 @@ export const LiveMatchScreen: React.FC = () => {
       setFormationChangeToast(true);
       void queueRealtimeReload();
     } finally {
-      formationSavingRef.current = false;
       setFormationSaving(false);
     }
   }, [
@@ -2495,6 +2468,11 @@ export const LiveMatchScreen: React.FC = () => {
       period: half,
       currentSlots: lineupSlotsForDisplay,
       squadPlayerIds,
+      beforeFieldIds: liveReplayState.onFieldPlayerIds,
+      beforeBenchIds: liveReplayState.benchPlayerIds,
+      savedBenchPlayerIds,
+      kickoffStartingPlayerIds,
+      events: eventsSortedAsc,
     });
     if (error || !eventId) {
       setEvents((prev) => prev.filter((e) => e.id !== tempId));
@@ -2517,7 +2495,12 @@ export const LiveMatchScreen: React.FC = () => {
     currentMatchSeconds,
     half,
     lineupSlotsForDisplay,
+    liveReplayState.onFieldPlayerIds,
+    liveReplayState.benchPlayerIds,
     squadPlayerIds,
+    savedBenchPlayerIds,
+    kickoffStartingPlayerIds,
+    eventsSortedAsc,
     closeFairPlayExtraSheet,
     stabilizeLiveHubAfterFairPlay,
     queueRealtimeReload,
@@ -2548,6 +2531,11 @@ export const LiveMatchScreen: React.FC = () => {
       period: half,
       currentStartingPlayerIds: fieldSlotMapToStartingIds(lineupSlotsForDisplay),
       squadPlayerIds,
+      beforeFieldIds: liveReplayState.onFieldPlayerIds,
+      beforeBenchIds: liveReplayState.benchPlayerIds,
+      savedBenchPlayerIds,
+      kickoffStartingPlayerIds,
+      events: eventsSortedAsc,
     });
     if (error || !eventId) {
       setEvents((prev) => prev.filter((e) => e.id !== tempId));
@@ -2570,7 +2558,12 @@ export const LiveMatchScreen: React.FC = () => {
     currentMatchSeconds,
     half,
     lineupSlotsForDisplay,
+    liveReplayState.onFieldPlayerIds,
+    liveReplayState.benchPlayerIds,
     squadPlayerIds,
+    savedBenchPlayerIds,
+    kickoffStartingPlayerIds,
+    eventsSortedAsc,
     closeFairPlayRemoveSheet,
     stabilizeLiveHubAfterFairPlay,
     queueRealtimeReload,
@@ -2929,10 +2922,20 @@ export const LiveMatchScreen: React.FC = () => {
         return false;
       }
 
-      const { error: swapErr } = await replaceMatchLineupAndBench(effectiveMatchId, nextStarting, nextSquad);
-      if (swapErr) {
-        console.error('[LiveMatch] replaceMatchLineupAndBench after substitution', swapErr);
-        setSaveError(swapErr);
+      const lineupRes = await persistLiveLineupAndBenchSafe({
+        matchId: effectiveMatchId,
+        reason: 'substitution',
+        slots: nextSlots,
+        beforeFieldIds: fieldIdsBefore,
+        beforeBenchIds: benchIdsBefore,
+        squadPlayerIds: nextSquad,
+        savedBenchPlayerIds,
+        kickoffStartingPlayerIds,
+        events: [...events, { ...subPartial, id }],
+      });
+      if (lineupRes.error || !lineupRes.payload) {
+        console.error('[LiveMatch] persistLiveLineupAndBenchSafe after substitution', lineupRes.error);
+        setSaveError(lineupRes.error ?? 'Wechsel konnte nicht gespeichert werden.');
         await deleteMatchEventById(id);
         return false;
       }
@@ -2949,14 +2952,30 @@ export const LiveMatchScreen: React.FC = () => {
         if (fpTransferErr) {
           setSaveError(fpTransferErr);
           await deleteMatchEventById(id);
-          await replaceMatchLineupAndBench(effectiveMatchId, fieldSlotMapToStartingIds(slotBefore), squadPlayerIds);
+          await persistLiveLineupAndBenchSafe({
+            matchId: effectiveMatchId,
+            reason: 'substitution',
+            slots: slotBefore,
+            beforeFieldIds: fieldIdsBefore,
+            beforeBenchIds: benchIdsBefore,
+            squadPlayerIds,
+            savedBenchPlayerIds,
+            kickoffStartingPlayerIds,
+            events,
+          });
           return false;
         }
       }
 
-      setStartingPlayerIds(nextStarting);
-      setSquadPlayerIds(nextSquad);
-      setSavedBenchPlayerIds(benchIdsAfter);
+      const persisted = lineupRes.payload;
+      setStartingPlayerIds(persisted.startingPlayerIds);
+      setSquadPlayerIds(persisted.squadPlayerIds);
+      setSavedBenchPlayerIds(persisted.benchPlayerIds);
+      setLineupData({
+        startingPlayerIds: persisted.startingPlayerIds,
+        squadPlayerIds: persisted.squadPlayerIds,
+        savedBenchPlayerIds: persisted.benchPlayerIds,
+      });
       setEvents((prev) => [{ ...subPartial, id }, ...prev.filter((e) => e.id !== tempId)]);
       return true;
     },
@@ -3076,12 +3095,30 @@ export const LiveMatchScreen: React.FC = () => {
         slotB: posSwapSlotB,
         currentSlots: map,
         squadPlayerIds,
+        beforeFieldIds: liveReplayState.onFieldPlayerIds,
+        beforeBenchIds: liveReplayState.benchPlayerIds,
+        savedBenchPlayerIds,
+        kickoffStartingPlayerIds,
+        events: eventsSortedAsc,
         timestamp: currentMatchSeconds,
         period: half,
       });
       if (error) {
         setSaveError(error);
         return;
+      }
+      const swapped = swapTwoOccupiedFieldSlots(map, posSwapSlotA, posSwapSlotB);
+      if (swapped) {
+        const ordered = fieldSlotMapToStartingIds(swapped);
+        setStartingPlayerIds(ordered);
+        setLineupData((prev) =>
+          prev
+            ? {
+                ...prev,
+                startingPlayerIds: ordered,
+              }
+            : prev,
+        );
       }
       setPosSwapConfirmOpen(false);
       setPosSwapSlotA(null);
@@ -3100,7 +3137,12 @@ export const LiveMatchScreen: React.FC = () => {
     posSwapSlotB,
     matchIsFinished,
     lineupSlotsForDisplay,
+    liveReplayState.onFieldPlayerIds,
+    liveReplayState.benchPlayerIds,
     squadPlayerIds,
+    savedBenchPlayerIds,
+    kickoffStartingPlayerIds,
+    eventsSortedAsc,
     currentMatchSeconds,
     half,
     queueRealtimeReload,
