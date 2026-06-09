@@ -48,7 +48,9 @@ import {
   persistExtraPlayerOff,
   persistExtraPlayerOn,
   persistFairPlayExtraSessionTransfer,
+  fetchMatchBenchPlayerIds,
   replaceMatchLineupAndBench,
+  resolveMatchSquadForLineupPersist,
   repairLiveMatchLineupBenchIfNeeded,
   syncFinalLineupBenchFromEventReplay,
   persistPositionSwap,
@@ -1831,30 +1833,73 @@ export const LiveMatchScreen: React.FC = () => {
     setFormationSaving(true);
     setSaveError(null);
     try {
+      const beforeFieldIds = [...liveReplayState.onFieldPlayerIds];
+      const beforeBenchIds = [...liveReplayState.benchPlayerIds];
       const ordered = fieldSlotMapToStartingIds(liveReplayState.slotsBySlot);
-      const active = ordered.filter((x) => String(x ?? '').trim().length > 0);
+      const afterFieldIds = ordered.filter((x) => String(x ?? '').trim().length > 0);
       const minFieldExpected = fairPlayExtraPlayerId ? 8 : 7;
-      if (import.meta.env.DEV && active.length < minFieldExpected) {
+      if (import.meta.env.DEV && afterFieldIds.length < minFieldExpected) {
         console.warn('[LiveMatch] Live formation remap lost active player', {
-          activeCount: active.length,
+          activeCount: afterFieldIds.length,
           minFieldExpected,
           ordered,
         });
       }
+
+      const dbBenchIds = await fetchMatchBenchPlayerIds(effectiveMatchId);
+      const { squadPlayerIds: fullSquadIds, benchPlayerIds: afterBenchIds } = resolveMatchSquadForLineupPersist({
+        squadPlayerIds,
+        savedBenchPlayerIds: [...new Set([...savedBenchPlayerIds, ...beforeBenchIds])],
+        dbBenchPlayerIds: dbBenchIds,
+        fieldPlayerIds: afterFieldIds,
+        kickoffStartingPlayerIds: kickoffStartingPlayerIds,
+        events: eventsSortedAsc,
+      });
+
+      const beforeUnion = new Set([...beforeFieldIds, ...beforeBenchIds]);
+      const afterUnion = new Set([...afterFieldIds, ...afterBenchIds]);
+      const removedIds = [...beforeUnion].filter((pid) => !afterUnion.has(pid));
+
+      console.log('[formation-change]', {
+        beforeFieldIds,
+        beforeBenchIds,
+        fullSquadIds,
+        afterFieldIds,
+        afterBenchIds,
+        removedIds,
+      });
+
+      if (removedIds.length > 0) {
+        console.warn('[formation-change] Kader würde Spieler verlieren — Speichern abgebrochen', {
+          removedIds,
+        });
+        setSaveError('Formation konnte nicht gespeichert werden: Bank/Kader wäre unvollständig.');
+        return;
+      }
+
       const { error: rowErr } = await updateMatchRow(effectiveMatchId, { u11_formation_id: id });
       if (rowErr) {
         setSaveError(rowErr);
         return;
       }
-      const { error: lineErr } = await replaceMatchLineupAndBench(effectiveMatchId, ordered, squadPlayerIds);
+      const { error: lineErr } = await replaceMatchLineupAndBench(
+        effectiveMatchId,
+        ordered,
+        fullSquadIds,
+        { benchPlayerIds: afterBenchIds },
+      );
       if (lineErr) {
         setSaveError(lineErr);
         return;
       }
       setStartingPlayerIds(ordered);
-      setSavedBenchPlayerIds(
-        getBenchPlayers(squadPlayerIds, active, savedBenchPlayerIds),
-      );
+      setSquadPlayerIds(fullSquadIds);
+      setSavedBenchPlayerIds(afterBenchIds);
+      setLineupData({
+        startingPlayerIds: ordered,
+        squadPlayerIds: fullSquadIds,
+        savedBenchPlayerIds: afterBenchIds,
+      });
       setFormationPendingId(null);
       closeFormationSheet();
       setFormationChangeToast(true);
@@ -1869,8 +1914,12 @@ export const LiveMatchScreen: React.FC = () => {
     formationSaving,
     fairPlayExtraPlayerId,
     liveReplayState.slotsBySlot,
+    liveReplayState.onFieldPlayerIds,
+    liveReplayState.benchPlayerIds,
     squadPlayerIds,
     savedBenchPlayerIds,
+    kickoffStartingPlayerIds,
+    eventsSortedAsc,
     closeFormationSheet,
     queueRealtimeReload,
   ]);

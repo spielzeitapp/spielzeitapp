@@ -470,6 +470,53 @@ export async function fetchLineupForLiveMatch(matchId: string): Promise<{ data: 
   return { data: { startingPlayerIds, squadPlayerIds, savedBenchPlayerIds }, error: null };
 }
 
+/** Aktuelle `match_bench`-IDs (für Formationwechsel-Kader-Union). */
+export async function fetchMatchBenchPlayerIds(matchId: string): Promise<string[]> {
+  const mid = matchId?.trim();
+  if (!mid) return [];
+  const { data, error } = await supabase.from('match_bench').select('player_id').eq('match_id', mid);
+  if (error) return [];
+  return (data ?? [])
+    .map((r) => (typeof r.player_id === 'string' ? r.player_id.trim() : ''))
+    .filter((id) => id.length > 0);
+}
+
+export type ReplaceLineupBenchOptions = {
+  /** Explizite Bank; Kader = Union(squad, bench, Feld) — nie verkleinern. */
+  benchPlayerIds?: readonly string[];
+};
+
+/** Vollständiger Match-Kader für Persistenz — ohne slice/Shrink. */
+export function resolveMatchSquadForLineupPersist(params: {
+  squadPlayerIds: readonly string[];
+  savedBenchPlayerIds?: readonly string[];
+  dbBenchPlayerIds?: readonly string[];
+  fieldPlayerIds: readonly string[];
+  kickoffStartingPlayerIds?: readonly string[];
+  events?: readonly MatchEngineEvent[];
+}): { squadPlayerIds: string[]; benchPlayerIds: string[] } {
+  const squadPlayerIds = collectMatchSquadPlayerIdsUnion({
+    seedIds: [
+      ...params.squadPlayerIds,
+      ...(params.savedBenchPlayerIds ?? []),
+      ...(params.dbBenchPlayerIds ?? []),
+      ...params.fieldPlayerIds,
+    ],
+    kickoffStartingPlayerIds: params.kickoffStartingPlayerIds
+      ? [...params.kickoffStartingPlayerIds]
+      : undefined,
+    events: params.events ? [...params.events] : undefined,
+  });
+  const benchPlayerIds = getBenchPlayers(
+    squadPlayerIds,
+    params.fieldPlayerIds,
+    params.savedBenchPlayerIds?.length
+      ? params.savedBenchPlayerIds
+      : params.dbBenchPlayerIds,
+  );
+  return { squadPlayerIds, benchPlayerIds };
+}
+
 /** Kickoff-Snapshot (`match_lineup_snapshots.snapshot_type = kickoff`) → 7er-Array in Slot-Reihenfolge; fehlt → `null`. */
 export async function fetchKickoffLineupPlayerIds(matchId: string): Promise<string[] | null> {
   const mid = matchId?.trim();
@@ -650,11 +697,12 @@ export async function saveMatchSquadOnly(
   return replaceMatchLineupAndBench(matchId, startingPlayerIds, uniqueSquad);
 }
 
-/** Lineup + Bank komplett ersetzen (7 Slots + bench). */
+/** Lineup + Bank komplett ersetzen (Feld-Slots + Bank). */
 export async function replaceMatchLineupAndBench(
   matchId: string,
   startingPlayerIds: Array<string | null | undefined>,
   squadPlayerIds: string[],
+  options?: ReplaceLineupBenchOptions,
 ): Promise<{ error: string | null }> {
   const normalizeId = (raw: string | null | undefined): string | null => {
     const v = String(raw ?? '').trim();
@@ -665,8 +713,15 @@ export async function replaceMatchLineupAndBench(
   const lineup = starters.filter((id): id is string => Boolean(id));
   const lineupSet = new Set(lineup);
   const kader = [...new Set(squadPlayerIds.map((id) => normalizeId(id)).filter((id): id is string => Boolean(id)))];
-  // Bench immer aus aktuellem UI-State berechnen: bench = kader - lineup
-  const benchIds = kader.filter((id) => !lineupSet.has(id));
+  const explicitBench = (options?.benchPlayerIds ?? [])
+    .map((id) => normalizeId(id))
+    .filter((id): id is string => Boolean(id))
+    .filter((id) => !lineupSet.has(id));
+  const fullSquad = [...new Set([...kader, ...lineup, ...explicitBench])];
+  const benchIds =
+    explicitBench.length > 0
+      ? [...new Set(explicitBench)]
+      : fullSquad.filter((id) => !lineupSet.has(id));
   const lineupRows = LIVE_FIELD_SLOT_ORDER
     .map((slot, i) => {
       const playerId = starters[i];
@@ -702,7 +757,22 @@ export async function replaceMatchLineupAndBench(
     matchId,
     starters,
     benchIds,
+    fullSquadSize: fullSquad.length,
   });
+
+  // Bank zuerst: Realtime auf match_lineup darf nie eine leere Bank lesen (Repair-Race).
+  if (benchIds.length > 0) {
+    const benchRows = benchIds.map((player_id) => ({ match_id: matchId, player_id }));
+    const insBench = await supabase.from('match_bench').insert(benchRows);
+    if (insBench.error) {
+      console.error('[liveMatchService] replaceMatchLineupAndBench match_bench', insBench.error);
+      return { error: insBench.error.message };
+    }
+  }
+  console.log('[replaceMatchLineupAndBench][insert-bench-result]', {
+    benchIdsCount: benchIds.length,
+  });
+
   const insLineup = await supabase.from('match_lineup').insert(lineupRows);
   console.log('[replaceMatchLineupAndBench][insert-lineup-result]', {
     error: insLineup.error ?? null,
@@ -718,18 +788,6 @@ export async function replaceMatchLineupAndBench(
     console.error('[liveMatchService] replaceMatchLineupAndBench match_lineup', insLineup.error);
     return { error: insLineup.error.message };
   }
-
-  if (benchIds.length > 0) {
-    const benchRows = benchIds.map((player_id) => ({ match_id: matchId, player_id }));
-    const insBench = await supabase.from('match_bench').insert(benchRows);
-    if (insBench.error) {
-      console.error('[liveMatchService] replaceMatchLineupAndBench match_bench', insBench.error);
-      return { error: insBench.error.message };
-    }
-  }
-  console.log('[replaceMatchLineupAndBench][insert-bench-result]', {
-    benchIdsCount: benchIds.length,
-  });
 
   return { error: null };
 }
@@ -1233,6 +1291,14 @@ export async function repairLiveMatchLineupBenchIfNeeded(matchId: string): Promi
     kickoffStartingPlayerIds: kickoff ?? [],
     events,
   });
+
+  const fieldRowCount = lineupRows.filter((r) => normLineupPid(r.player_id)).length;
+  if (matchStatus === 'live' && benchRows.length === 0 && fieldRowCount >= 7) {
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.debug('[liveMatchService] repair: übersprungen (transiente leere Bank während Lineup-Schreiben)');
+    }
+    return { inconsistent: false, repaired: false, error: null };
+  }
 
   if (hasKickoff && events.length > 0 && (matchStatus === 'finished' || matchStatus === 'live')) {
     const atSec = resolveReplayAtMatchSecond(events, elapsed);
