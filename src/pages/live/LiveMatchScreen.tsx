@@ -2016,7 +2016,8 @@ export const LiveMatchScreen: React.FC = () => {
 
   const fairPlaySubOutOnly =
     Boolean(fairPlayExtraPlayerId) &&
-    String(subOutPlayerId ?? '').trim() === String(fairPlayExtraPlayerId ?? '').trim();
+    String(subOutPlayerId ?? '').trim() === String(fairPlayExtraPlayerId ?? '').trim() &&
+    !String(subInPlayerId ?? '').trim();
 
   const wechselSheetPickLabels = useMemo(() => {
     const outPid = String(subOutPlayerId ?? '').trim();
@@ -3004,7 +3005,9 @@ export const LiveMatchScreen: React.FC = () => {
       setSaveError('Bitte zuerst den auswechselnden Spieler wählen.');
       return;
     }
-    const fairPlayOutOnly = Boolean(extraId) && outId === extraId;
+    // Nur ohne „Rein“-Auswahl ist es ein FairPlay-Ende. Mit Einwechselspieler läuft ein
+    // normaler Wechsel inkl. Session-Transfer (neuer Spieler wird Zusatzspieler).
+    const fairPlayOutOnly = Boolean(extraId) && outId === extraId && !inId;
     if (!fairPlayOutOnly && !inId) {
       if (import.meta.env.DEV) console.warn('[LiveMatch] confirmSubstitution: missing playerInId');
       setSaveError('Bitte zuerst den einwechselnden Spieler wählen.');
@@ -4702,8 +4705,11 @@ export const LiveMatchScreen: React.FC = () => {
                   renderSlotContent={({ slot, label, playerId, isGk }) => {
                     if (!playerId) return null;
                     const player = rosterById.get(playerId) ?? null;
-                    const isFairPlaySlot = slot === 'FP';
-                    const posLabel = isFairPlaySlot ? 'FP' : getPositionLabel(label) || '–';
+                    // Badge folgt der Session-player_id, nicht dem FP-Slot (position_swap-sicher).
+                    const isFairPlayExtra =
+                      Boolean(fairPlayExtraPlayerId) &&
+                      String(fairPlayExtraPlayerId ?? '').trim() === String(playerId).trim();
+                    const posLabel = slot === 'FP' ? 'FP' : getPositionLabel(label) || '–';
                     const rawName = (player?.displayName ?? player?.name ?? '').trim() || 'Spieler';
                     const shortName = (() => {
                       const s = mobileLineupName(rawName);
@@ -4725,7 +4731,7 @@ export const LiveMatchScreen: React.FC = () => {
                           isPosSwapPick ? 'scale-[1.04]' : '',
                         ].join(' ')}
                       >
-                        {isFairPlaySlot ? (
+                        {isFairPlayExtra ? (
                           <span className="mb-0.5 rounded-full border border-amber-300/70 bg-amber-500/25 px-1 py-px text-[7px] font-black uppercase tracking-[0.06em] text-amber-100">
                             Fairplay +1
                           </span>
@@ -4769,14 +4775,14 @@ export const LiveMatchScreen: React.FC = () => {
                             pitchStyleBack
                             className={[
                               isPosSwapPick ? 'ring-2 ring-amber-400/75' : '',
-                              isFairPlaySlot ? 'ring-2 ring-amber-400/55' : '',
+                              isFairPlayExtra ? 'ring-2 ring-amber-400/55' : '',
                             ].join(' ')}
                           />
                         </div>
                         <span
                           className={[
                             'mx-auto mt-1 block w-full min-w-0 max-w-[6.5rem] truncate rounded-full border px-2 py-[3px] text-center text-[11px] font-medium leading-tight shadow-[0_2px_10px_rgba(0,0,0,0.42)] backdrop-blur-sm transition-all duration-200',
-                            isFairPlaySlot
+                            isFairPlayExtra
                               ? 'border-amber-400/35 bg-black/78 text-amber-50'
                               : 'border-white/10 bg-black/78 text-white/95',
                           ].join(' ')}
@@ -5459,23 +5465,27 @@ export const LiveMatchScreen: React.FC = () => {
                         <div className="flex flex-col gap-1">
                           {substitutionFieldRows.map((row) => {
                             const slot = row?.slot;
-                            const isFairPlayExtra = slot === 'FP';
                             const pid =
                               slot && lineupSlotsForDisplay && typeof lineupSlotsForDisplay === 'object'
                                 ? String(lineupSlotsForDisplay[slot] ?? '').trim()
                                 : '';
                             if (!pid) return null;
+                            // Badge folgt der Session-player_id, nicht dem FP-Slot.
+                            const isFairPlayExtra =
+                              Boolean(fairPlayExtraPlayerId) &&
+                              String(fairPlayExtraPlayerId ?? '').trim() === pid;
                             const rosterP = rosterById.get(pid) ?? null;
                             const name = String(row?.display_name ?? rosterP?.name ?? 'Spieler').trim() || 'Spieler';
                             const jerseyName = mobileLineupName(name);
                             const slotBadge = isFairPlayExtra
                               ? 'FairPlay +1'
                               : String(row?.rightLabel ?? '–').trim() || '—';
-                            const posLabel = isFairPlayExtra ? 'FP' : getPositionLabel(row.position) || slotBadge;
+                            const posLabel =
+                              slot === 'FP' ? 'FP' : getPositionLabel(row.position) || slotBadge;
                             const num = rosterP?.number ?? row?.jersey_number ?? null;
                             const selected = subOutPlayerId === pid;
                             const recOut = Boolean(subRecommendedOutId && subRecommendedOutId === pid && !selected);
-                            const isGk = !isFairPlayExtra && (posLabel === 'TW' || slotBadge === 'TW');
+                            const isGk = slot !== 'FP' && (posLabel === 'TW' || slotBadge === 'TW');
                             return (
                               <button
                                 key={isFairPlayExtra ? `sub-out-fairplay-${pid}` : `sub-out-${slot}-${pid}`}
@@ -5650,7 +5660,10 @@ export const LiveMatchScreen: React.FC = () => {
                           className="min-h-[11rem] max-h-[min(46dvh,28rem)] w-full sm:max-h-[min(48dvh,30rem)]"
                         />
                   </div>
-                  {fairPlayExtraPlayerId && !String(lineupSlotsForDisplay?.FP ?? '').trim() ? (
+                  {fairPlayExtraPlayerId &&
+                  !Object.values(lineupSlotsForDisplay ?? {}).some(
+                    (v) => String(v ?? '').trim() === String(fairPlayExtraPlayerId ?? '').trim(),
+                  ) ? (
                     <div className="mx-auto mt-1 flex w-full max-w-md justify-center px-0.5">
                       {(() => {
                         const pid = fairPlayExtraPlayerId.trim();

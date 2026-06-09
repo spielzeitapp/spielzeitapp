@@ -148,8 +148,9 @@ const TYPE_ORDER: Record<MatchEventType, number> = {
   substitution: 3.25,
   /** Gleiche Spielsekunde wie Wechsel: zuerst sub_out/sub_in, dann Positionskorrektur. */
   position_swap: 3.5,
-  extra_player_on: 3.52,
-  extra_player_off: 3.53,
+  /** Session-Transfer (off+on gleiche Sekunde): zuerst alte Session beenden, dann neue starten. */
+  extra_player_off: 3.52,
+  extra_player_on: 3.53,
   goal: 4,
   goal_away: 5,
   pause: 6,
@@ -573,12 +574,28 @@ export function applyExtraPlayerOnToSlots(
   const extra = String(extraId ?? '').trim();
   if (!extra) return slots;
   const next = { ...slots } as Record<FieldSlotId, string | null>;
-  next.FP = extra;
+
+  // Bisherigen Slot des neuen Zusatzspielers leeren (z. B. bei Session-Transfer nach Wechsel).
+  let freedSlot: FieldSlotId | null = null;
   for (const s of FIELD_SLOT_ORDER) {
     if (s !== 'FP' && String(next[s] ?? '').trim() === extra) {
       next[s] = null;
+      freedSlot = s;
     }
   }
+
+  // Steht ein anderer Spieler im FP-Slot (nach position_swap), nicht überschreiben,
+  // sondern auf einen freien Slot umsetzen.
+  const fpOccupant = String(next.FP ?? '').trim();
+  if (fpOccupant && fpOccupant !== extra) {
+    const target =
+      freedSlot && !String(next[freedSlot] ?? '').trim()
+        ? freedSlot
+        : FIELD_SLOT_ORDER.find((s) => s !== 'FP' && !String(next[s] ?? '').trim()) ?? null;
+    if (target) next[target] = fpOccupant;
+  }
+
+  next.FP = extra;
   return dedupeFieldSlotMap(next);
 }
 
@@ -588,30 +605,54 @@ export function applyExtraPlayerOffToSlots(
   extraId: string | null,
 ): Record<FieldSlotId, string | null> {
   let next = { ...slots } as Record<FieldSlotId, string | null>;
-  if (extraId) {
+  const extra = String(extraId ?? '').trim() || null;
+  const rem = String(removed ?? '').trim() || null;
+
+  // Slot des Zusatzspielers leeren (kann nach position_swap auch ein Nicht-FP-Slot sein).
+  let extraSlot: FieldSlotId | null = null;
+  if (extra) {
     for (const s of FIELD_SLOT_ORDER) {
-      if (String(next[s] ?? '').trim() === extraId) {
+      if (String(next[s] ?? '').trim() === extra) {
+        extraSlot = s;
         next[s] = null;
       }
     }
   }
-  next.FP = null;
-  if (!removed) return dedupeFieldSlotMap(next);
-  if (extraId && removed === extraId) return dedupeFieldSlotMap(next);
-  if (!extraId) return dedupeFieldSlotMap(next);
+
+  // FP-Slot soll nach FairPlay-Ende leer sein. Steht dort ein anderer Spieler
+  // (nach position_swap), darf er nicht verschwinden, sondern rückt auf einen freien Slot.
+  // Gibt es keinen freien Slot (Session-Transfer: off+on zur selben Sekunde), bleibt er
+  // vorerst im FP-Slot — das folgende extra_player_on setzt ihn dann korrekt um.
+  const fpOccupant = String(next.FP ?? '').trim();
+  if (fpOccupant && fpOccupant !== extra) {
+    const target =
+      extraSlot && extraSlot !== 'FP' && !String(next[extraSlot] ?? '').trim()
+        ? extraSlot
+        : FIELD_SLOT_ORDER.find((s) => s !== 'FP' && !String(next[s] ?? '').trim()) ?? null;
+    if (target) {
+      next[target] = fpOccupant;
+      next.FP = null;
+    }
+  } else {
+    next.FP = null;
+  }
+
+  if (!rem) return dedupeFieldSlotMap(next);
+  if (extra && rem === extra) return dedupeFieldSlotMap(next);
+  if (!extra) return dedupeFieldSlotMap(next);
 
   let placed = false;
   for (const s of FIELD_SLOT_ORDER) {
-    if (String(next[s] ?? '').trim() === removed) {
-      next[s] = extraId;
+    if (String(next[s] ?? '').trim() === rem) {
+      next[s] = extra;
       placed = true;
       break;
     }
   }
   if (!placed) {
     for (const s of FIELD_SLOT_ORDER) {
-      if (!String(next[s] ?? '').trim()) {
-        next[s] = extraId;
+      if (s !== 'FP' && !String(next[s] ?? '').trim()) {
+        next[s] = extra;
         placed = true;
         break;
       }
@@ -870,12 +911,23 @@ export function deriveLiveMatchReplayState(params: DeriveLiveMatchReplayParams):
   let slotsBySlot = dedupeFieldSlotMap(replayResult.slots);
 
   const eventsUpToFinal = eventsAsc.filter((e) => (eventMatchSecondOrNull(e) ?? 0) <= finalSecond);
+  // Session-Identität (extra_player_on/off-Events) hat Vorrang: Das FairPlay-Badge folgt
+  // der player_id, nicht dem FP-Slot. Nach einem position_swap darf der Zusatzspieler auf
+  // einem anderen Slot stehen, während ein anderer Spieler den FP-Slot belegt.
   let fairPlayExtraPlayerId =
+    fairPlayExtraPlayerIdFromSortedEvents(eventsUpToFinal) ||
     String(slotsBySlot.FP ?? '').trim() ||
-    fairPlayExtraPlayerIdFromSortedEvents(eventsUpToFinal);
+    null;
 
-  if (fairPlayExtraPlayerId && String(slotsBySlot.FP ?? '').trim() !== fairPlayExtraPlayerId) {
-    slotsBySlot = applyExtraPlayerOnToSlots(slotsBySlot, fairPlayExtraPlayerId);
+  if (fairPlayExtraPlayerId) {
+    const extraOnField = FIELD_SLOT_ORDER.some(
+      (s) => String(slotsBySlot[s] ?? '').trim() === fairPlayExtraPlayerId,
+    );
+    // Nur reparieren, wenn der aktive Zusatzspieler gar nicht auf dem Feld steht —
+    // sonst würde ein position_swap (Extra auf anderem Slot) rückgängig gemacht.
+    if (!extraOnField) {
+      slotsBySlot = applyExtraPlayerOnToSlots(slotsBySlot, fairPlayExtraPlayerId);
+    }
   }
 
   const onFieldPlayerIds = getOnFieldIdsInSlotOrder(slotsBySlot);
