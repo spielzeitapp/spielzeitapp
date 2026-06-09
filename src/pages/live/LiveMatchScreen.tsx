@@ -100,6 +100,7 @@ import {
 } from '../../lib/premiumDesignSystem';
 import { matchdayBenchTileClass } from '../../lib/matchdayPlayerCard';
 import {
+  auditFormationSlotLayout,
   FAIRPLAY_FORMATION_CHOICES,
   isFairPlayFormationId,
   isU11FormationId,
@@ -900,6 +901,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [pageLoading, setPageLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const formationSavingRef = useRef(false);
 
   const [squadPlayerIds, setSquadPlayerIds] = useState<string[]>([]);
   const [savedBenchPlayerIds, setSavedBenchPlayerIds] = useState<string[]>([]);
@@ -1125,6 +1127,7 @@ export const LiveMatchScreen: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
+        if (formationSavingRef.current) return;
         const { repaired, error } = await repairLiveMatchLineupBenchIfNeeded(effectiveMatchId);
         if (error) setSaveError(error);
         if (!repaired || cancelled) return;
@@ -1149,6 +1152,7 @@ export const LiveMatchScreen: React.FC = () => {
     lineupReloadInFlightRef.current = true;
     try {
       if (
+        !formationSavingRef.current &&
         canControlLiveMatch &&
         (matchRow?.status === 'live' || matchRow?.status === 'finished')
       ) {
@@ -1381,6 +1385,7 @@ export const LiveMatchScreen: React.FC = () => {
   const [formationSaving, setFormationSaving] = useState(false);
   const [formationPendingId, setFormationPendingId] = useState<U11FormationId | null>(null);
   const closeFormationSheet = useCallback(() => {
+    formationSavingRef.current = false;
     setFormationSheetOpen(false);
     setFormationSaving(false);
     setFormationPendingId(null);
@@ -1831,13 +1836,26 @@ export const LiveMatchScreen: React.FC = () => {
     const id = formationPendingId;
     if (!id || !effectiveMatchId || !canControlLiveMatch || formationSaving) return;
     setFormationSaving(true);
+    formationSavingRef.current = true;
     setSaveError(null);
     try {
+      const layoutAudit = auditFormationSlotLayout(id);
       const beforeFieldIds = [...liveReplayState.onFieldPlayerIds];
       const beforeBenchIds = [...liveReplayState.benchPlayerIds];
       const ordered = fieldSlotMapToStartingIds(liveReplayState.slotsBySlot);
       const afterFieldIds = ordered.filter((x) => String(x ?? '').trim().length > 0);
       const minFieldExpected = fairPlayExtraPlayerId ? 8 : 7;
+
+      if (fairPlayExtraPlayerId && layoutAudit.formationSlotsLength !== 8) {
+        console.warn('[formation-change] FairPlay-Formation hat nicht 8 Slots — Speichern abgebrochen', layoutAudit);
+        setSaveError('Formation ungültig: FairPlay erfordert genau 8 Feldslots.');
+        return;
+      }
+      if (!layoutAudit.valid) {
+        console.warn('[formation-change] Formation-Layout ungültig — Speichern abgebrochen', layoutAudit);
+        setSaveError('Formation ungültig: doppelte oder fehlende Slots.');
+        return;
+      }
       if (import.meta.env.DEV && afterFieldIds.length < minFieldExpected) {
         console.warn('[LiveMatch] Live formation remap lost active player', {
           activeCount: afterFieldIds.length,
@@ -1861,11 +1879,15 @@ export const LiveMatchScreen: React.FC = () => {
       const removedIds = [...beforeUnion].filter((pid) => !afterUnion.has(pid));
 
       console.log('[formation-change]', {
+        formationId: id,
+        formationSlotsLength: layoutAudit.formationSlotsLength,
+        slotIds: layoutAudit.slotIds,
+        duplicateSlotIds: layoutAudit.duplicateSlotIds,
         beforeFieldIds,
-        beforeBenchIds,
-        fullSquadIds,
         afterFieldIds,
+        beforeBenchIds,
         afterBenchIds,
+        fullSquadIds,
         removedIds,
       });
 
@@ -1877,11 +1899,6 @@ export const LiveMatchScreen: React.FC = () => {
         return;
       }
 
-      const { error: rowErr } = await updateMatchRow(effectiveMatchId, { u11_formation_id: id });
-      if (rowErr) {
-        setSaveError(rowErr);
-        return;
-      }
       const { error: lineErr } = await replaceMatchLineupAndBench(
         effectiveMatchId,
         ordered,
@@ -1890,6 +1907,11 @@ export const LiveMatchScreen: React.FC = () => {
       );
       if (lineErr) {
         setSaveError(lineErr);
+        return;
+      }
+      const { error: rowErr } = await updateMatchRow(effectiveMatchId, { u11_formation_id: id });
+      if (rowErr) {
+        setSaveError(rowErr);
         return;
       }
       setStartingPlayerIds(ordered);
@@ -1905,6 +1927,7 @@ export const LiveMatchScreen: React.FC = () => {
       setFormationChangeToast(true);
       void queueRealtimeReload();
     } finally {
+      formationSavingRef.current = false;
       setFormationSaving(false);
     }
   }, [

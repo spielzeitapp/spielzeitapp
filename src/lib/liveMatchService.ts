@@ -1250,8 +1250,11 @@ export async function syncFinalLineupBenchFromEventReplay(params: {
     events: params.events,
     seedIds: [...params.squadPlayerIds, ...fieldIds],
   });
+  const benchPlayerIds = getBenchPlayers(squadPlayerIds, fieldIds);
 
-  const { error } = await replaceMatchLineupAndBench(mid, startingPlayerIds, squadPlayerIds);
+  const { error } = await replaceMatchLineupAndBench(mid, startingPlayerIds, squadPlayerIds, {
+    benchPlayerIds,
+  });
   return {
     error,
     startingPlayerIds,
@@ -1278,7 +1281,6 @@ export async function repairLiveMatchLineupBenchIfNeeded(matchId: string): Promi
 
   const lineupRows = (lineupRes.data ?? []) as RawLineupRow[];
   const benchRows = (benchRes.data ?? []) as RawBenchRow[];
-  const dbStarting = computeRepairedLiveLineupFromRaw(lineupRows, benchRows).startingPlayerIds;
 
   const matchStatus = (matchRes.data as { status?: string | null } | null)?.status ?? '';
   const hasKickoff = (kickoff ?? []).some((id) => String(id ?? '').trim().length > 0);
@@ -1314,7 +1316,6 @@ export async function repairLiveMatchLineupBenchIfNeeded(matchId: string): Promi
         squadPlayerIds: squadUnion,
         events,
         atMatchSecond: atSec,
-        fallbackStartingPlayerIds: dbStarting,
       });
       if (replayTarget.error) return { inconsistent: true, repaired: false, error: replayTarget.error };
       const replaySnap = snapshotRepairedLineupBench(replayTarget.startingPlayerIds, replayTarget.squadPlayerIds);
@@ -1331,7 +1332,6 @@ export async function repairLiveMatchLineupBenchIfNeeded(matchId: string): Promi
       squadPlayerIds: squadUnion,
       events,
       atMatchSecond: atSec,
-      fallbackStartingPlayerIds: dbStarting,
     });
     if (replayTarget.error) return { inconsistent: true, repaired: false, error: replayTarget.error };
     const replaySnap = snapshotRepairedLineupBench(replayTarget.startingPlayerIds, replayTarget.squadPlayerIds);

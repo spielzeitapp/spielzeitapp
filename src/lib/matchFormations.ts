@@ -151,6 +151,42 @@ export function isU11FormationId(v: string | null | undefined): v is U11Formatio
   return isSevenFormationId(v) || isFairPlayFormationId(v);
 }
 
+const FAIRPLAY_REQUIRED_SLOT_COUNT = 8;
+
+/** Prüft Formation-Layout: Slot-Anzahl, IDs, Duplikate (FairPlay = 8 inkl. FP). */
+export function auditFormationSlotLayout(formationId: U11FormationId): {
+  formationId: U11FormationId;
+  formationSlotsLength: number;
+  slotIds: FieldSlotId[];
+  duplicateSlotIds: FieldSlotId[];
+  valid: boolean;
+  fairPlayExpected: number;
+} {
+  const rows = U11_FORMATIONS[formationId] ?? [];
+  const slotIds = rows.map((r) => r.slot);
+  const seen = new Set<FieldSlotId>();
+  const duplicateSlotIds: FieldSlotId[] = [];
+  for (const s of slotIds) {
+    if (seen.has(s)) duplicateSlotIds.push(s);
+    else seen.add(s);
+  }
+  const fairPlay = isFairPlayFormationId(formationId);
+  const expected = fairPlay ? FAIRPLAY_REQUIRED_SLOT_COUNT : 7;
+  const hasFp = slotIds.includes('FP');
+  const valid =
+    rows.length === expected &&
+    duplicateSlotIds.length === 0 &&
+    (!fairPlay || (hasFp && rows.length === FAIRPLAY_REQUIRED_SLOT_COUNT));
+  return {
+    formationId,
+    formationSlotsLength: rows.length,
+    slotIds,
+    duplicateSlotIds,
+    valid,
+    fairPlayExpected: expected,
+  };
+}
+
 /** Live-Pitch: bei FairPlay gespeicherte 8er-Formation oder Default 1-4-3. */
 export function resolveLivePitchFormationId(
   baseFormationId: U11FormationId,
