@@ -8,6 +8,7 @@ import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
+import { isValidLogoUrl } from '../../utils/logoResolver';
 import { FeedClubName } from './FeedClubName';
 import {
   FEED_ACTIONS_ROW_CLASS,
@@ -26,7 +27,8 @@ type Props = {
   onFeedPostDeleted?: () => void;
 };
 
-const PLACEHOLDER = '/logos/placeholder-shield-a.png';
+/** Stadion-Backdrop wie Welcome-Screen / Spieltag-Poster / Ergebnis-Post. */
+const stadiumBgUrl = `${import.meta.env.BASE_URL || '/'}intro/welcome-hero.png`;
 
 function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
@@ -44,25 +46,27 @@ function formatKickoffTime(iso: string | null): string {
 
 function LogoBlock({ src, alt }: { src: string; alt: string }) {
   const [failed, setFailed] = useState(false);
-  const url = failed ? PLACEHOLDER : src || PLACEHOLDER;
-  const isPlaceholder = !url || url === PLACEHOLDER;
-  if (isPlaceholder) {
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+  const valid = !failed && isValidLogoUrl(src);
+  if (!valid) {
     return (
       <div
-        className="flex h-14 w-14 items-center justify-center rounded-full border border-red-500/35 bg-black/50 shadow-[0_0_16px_rgba(220,38,38,0.25)]"
+        className="flex h-[4.25rem] w-[4.25rem] shrink-0 items-center justify-center rounded-full border border-red-500/30 bg-black/45 shadow-[0_0_16px_rgba(0,0,0,0.4)] sm:h-20 sm:w-20"
         aria-label={alt}
       >
-        <span className="text-[9px] font-black uppercase tracking-[0.12em] text-red-200/85">Club</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-red-200/80">Club</span>
       </div>
     );
   }
   return (
     <img
-      src={url}
+      src={src}
       alt={alt}
       loading="lazy"
       onError={() => setFailed(true)}
-      className="h-14 w-14 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.45)]"
+      className="h-[4.25rem] w-[4.25rem] shrink-0 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)] sm:h-20 sm:w-20"
     />
   );
 }
@@ -121,16 +125,16 @@ export const LiveFeedPostCard: React.FC<Props> = ({
 
   return (
     <FeedPostArticleShell
-      className="border-red-600/45"
+      className="!border-[rgba(255,71,71,0.15)]"
       style={{
         boxShadow:
-          'inset 0 0 56px rgba(120,20,20,0.12), 0 14px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(220,38,38,0.14)',
+          'inset 0 0 48px rgba(80,10,10,0.1), 0 14px 32px rgba(0,0,0,0.5), 0 0 36px rgba(227,29,47,0.13)',
       }}
     >
       <FeedPostHeader
         teamLabel={teamLabel}
         whenLabel={whenLabel}
-        headerClassName="bg-black/30"
+        headerClassName="bg-black/25"
         actions={
           staffCanDelete && onFeedPostDeleted ? (
             <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
@@ -146,62 +150,67 @@ export const LiveFeedPostCard: React.FC<Props> = ({
       </FeedPostTypeBadge>
 
       <div className={`${FEED_POST_BODY_CLASS} pb-3`}>
-        <div
-          className="relative overflow-hidden rounded-xl border border-red-500/35 px-2.5 py-3"
-          style={{
-            background:
-              'linear-gradient(180deg, rgba(48,8,8,0.98) 0%, rgba(14,0,0,0.99) 50%, rgba(4,0,0,1) 100%)',
-            boxShadow: 'inset 0 0 72px rgba(180,30,30,0.14), 0 0 28px rgba(220,38,38,0.12)',
-          }}
-        >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.12]"
-            style={{
-              background:
-                'radial-gradient(ellipse 85% 55% at 50% 0%, rgba(248,113,113,0.55), transparent 72%)',
-            }}
-          />
-          <div className="relative space-y-2.5">
-            <p className="text-center text-[11px] font-black uppercase tracking-[0.22em] text-red-300">
+        <div className="relative overflow-hidden rounded-[20px] border border-[rgba(255,71,71,0.15)] px-3 pb-4 pt-4 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)]">
+          {/* Stadion-Backdrop: Crowd-Silhouetten, Flutlicht oben, roter Nebel unten */}
+          <div className="pointer-events-none absolute inset-0" aria-hidden>
+            <img
+              src={stadiumBgUrl}
+              alt=""
+              loading="lazy"
+              className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_30%] opacity-[0.3] brightness-[0.56] saturate-[0.78]"
+            />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,8,9,0.74)_0%,rgba(9,4,5,0.86)_52%,rgba(5,2,3,0.94)_100%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-10%,rgba(255,240,220,0.16)_0%,transparent_62%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_65%_at_50%_115%,rgba(227,29,47,0.22)_0%,transparent_64%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_8%_100%,rgba(227,29,47,0.12)_0%,transparent_60%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_22%)]" />
+          </div>
+
+          <div className="relative space-y-3">
+            <p className="text-center text-[17px] font-black uppercase leading-none tracking-[0.16em] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.7),0_0_18px_rgba(255,71,71,0.45)] sm:text-[20px] sm:tracking-[0.2em]">
               Live jetzt
             </p>
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-              <div className="min-w-0 space-y-1">
-                <div className="flex justify-center">
-                  <LogoBlock src={p.home_logo_url} alt={`${p.home_team_name} Logo`} />
-                </div>
+
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 pt-0.5">
+              <div className="flex min-w-0 flex-col items-center gap-1.5">
+                <LogoBlock src={p.home_logo_url} alt={`${p.home_team_name} Logo`} />
                 <FeedClubName fullName={p.home_team_name} variant="compact" className="w-full px-0.5" />
               </div>
-              <span className="px-0.5 text-xl font-black uppercase tracking-[0.1em] text-white/80">VS</span>
-              <div className="min-w-0 space-y-1">
-                <div className="flex justify-center">
-                  <LogoBlock src={p.away_logo_url} alt={`${p.away_team_name} Logo`} />
-                </div>
+              <span className="-skew-x-6 px-1 text-2xl font-black italic uppercase leading-none tracking-[0.02em] text-red-400 [text-shadow:0_3px_12px_rgba(0,0,0,0.7),0_0_20px_rgba(227,29,47,0.4)] sm:text-[2.1rem]">
+                VS
+              </span>
+              <div className="flex min-w-0 flex-col items-center gap-1.5">
+                <LogoBlock src={p.away_logo_url} alt={`${p.away_team_name} Logo`} />
                 <FeedClubName fullName={p.away_team_name} variant="compact" className="w-full px-0.5" />
               </div>
             </div>
-            <dl className="grid grid-cols-2 gap-1.5 rounded-lg border border-white/[0.06] bg-black/35 px-2 py-2 text-center">
-              <div className="min-w-0">
-                <dt className="flex items-center justify-center gap-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-red-200/85">
+
+            <dl className="grid grid-cols-2 gap-1.5 text-center">
+              <div className="min-w-0 rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-1 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
+                <dt className="flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em] text-red-200/85">
                   <Clock3 className="h-3 w-3 shrink-0" aria-hidden />
                   Anpfiff
                 </dt>
-                <dd className="mt-0.5 truncate text-[11px] font-semibold text-white/90">{kickoffLabel}</dd>
+                <dd className="mt-1 truncate text-[12px] font-semibold text-white">{kickoffLabel}</dd>
               </div>
-              <div className="min-w-0">
-                <dt className="flex items-center justify-center gap-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-red-200/85">
+              <div className="min-w-0 rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-1 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
+                <dt className="flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em] text-red-200/85">
                   <MapPin className="h-3 w-3 shrink-0" aria-hidden />
                   Ort
                 </dt>
-                <dd className="mt-0.5 line-clamp-2 break-words text-[10px] font-semibold leading-snug text-white/82">
+                <dd
+                  className="mt-1 line-clamp-3 break-words text-[10.5px] font-semibold leading-snug text-white/90"
+                  title={locationLine}
+                >
                   {locationLine}
                 </dd>
               </div>
             </dl>
+
             <div className="flex justify-center pt-1">
               <Link
                 to={deepLink}
-                className="inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-lg border border-red-400/50 bg-gradient-to-b from-red-500 to-red-800 px-5 text-[13px] font-black uppercase tracking-wide text-white shadow-[0_0_22px_rgba(220,38,38,0.35)] transition hover:from-red-400 hover:to-red-700"
+                className="inline-flex min-h-[48px] w-full max-w-[22rem] touch-manipulation items-center justify-center rounded-[22px] bg-gradient-to-b from-[#FF4747] to-[#E31D2F] px-6 text-[14px] font-bold tracking-[0.02em] text-white shadow-[0_10px_26px_rgba(227,29,47,0.38),inset_0_1px_0_rgba(255,255,255,0.28),0_2px_8px_rgba(0,0,0,0.4)] transition hover:brightness-110 active:scale-[0.98]"
               >
                 Zum Liveticker
               </Link>
