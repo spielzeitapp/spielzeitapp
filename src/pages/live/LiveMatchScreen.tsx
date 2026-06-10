@@ -5004,6 +5004,15 @@ export const LiveMatchScreen: React.FC = () => {
                         Statistik ansehen
                       </button>
                     </div>
+                  ) : minimumPlaytimeEnabled && (matchRow?.status === 'live' || matchIsFinished) ? (
+                    <div className="mb-1 rounded-md border border-emerald-500/25 bg-emerald-950/20 px-2 py-1">
+                      <p className="text-[10px] font-semibold leading-snug text-emerald-100/90">
+                        <span aria-hidden className="mr-0.5">
+                          ✅
+                        </span>
+                        Alle Mindestspielzeiten erreicht
+                      </p>
+                    </div>
                   ) : null}
               <div className="space-y-1">
                 {matchRow?.status !== 'live' && !matchIsFinished ? (

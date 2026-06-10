@@ -525,6 +525,12 @@ export function canonicalSubstitutionEventsForReplay(
       canonical.push(e);
       continue;
     }
+    // FairPlay-Events müssen in den Slot-Replay: Sie ändern Feld/Bank-Status
+    // (Zusatzspieler rein, Spieler bei FairPlay-Ende raus) und damit die Spielzeit.
+    if (e.type === 'extra_player_on' || e.type === 'extra_player_off') {
+      canonical.push(e);
+      continue;
+    }
     if (e.type === 'substitution') {
       orphanOutIgnored += pendingOut.length;
       pendingOut.length = 0;
