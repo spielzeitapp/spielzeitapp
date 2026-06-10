@@ -11,6 +11,7 @@ import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNami
 import { FeedClubName } from './FeedClubName';
 import {
   FEED_CAPTION_FOOTER_CLASS,
+  FEED_POST_BODY_CLASS,
   FeedCaption,
   FeedMatchMetaLine,
   FeedPostHeader,
@@ -28,6 +29,9 @@ type Props = {
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
 };
+
+/** Stadion-Backdrop wie Welcome-Screen / Spieltag-Poster. */
+const stadiumBgUrl = `${import.meta.env.BASE_URL || '/'}intro/welcome-hero.png`;
 
 function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
@@ -63,71 +67,68 @@ function isRealScorerName(name: string): boolean {
 
 type ResultVisualState = 'win' | 'draw' | 'loss';
 
+const BASE_ARTICLE_SHADOW =
+  'inset 0 0 48px rgba(80,10,10,0.1), 0 14px 32px rgba(0,0,0,0.5), 0 0 36px rgba(227,29,47,0.13)';
+
+const BASE_SCORE_SHADOW =
+  '0 0 44px rgba(0,0,0,0.8), 0 6px 28px rgba(0,0,0,0.6), 0 0 2px rgba(255,255,255,0.1)';
+
 function resultPresentation(state: ResultVisualState) {
   if (state === 'win') {
     return {
-      badge: 'SIEG',
-      headline: '🏆 SIEG!',
-      shellTint: 'from-emerald-950/[0.58] via-zinc-950/92 to-[#050508]',
-      radial:
-        'radial-gradient(ellipse 95% 55% at 50% 12%, rgba(251,191,36,0.38) 0%, transparent 54%), radial-gradient(ellipse 80% 45% at 50% 100%, rgba(0,0,0,0.55) 0%, transparent 55%)',
-      articleShadow:
-        'inset 0 0 60px rgba(120,80,10,0.14), 0 16px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(251,191,36,0.18), 0 0 32px -4px rgba(251,191,36,0.22)',
-      badgeClass:
-        'border-amber-300/60 bg-gradient-to-b from-amber-400/45 via-amber-600/25 to-amber-950/75 text-amber-50 shadow-[0_0_32px_rgba(251,191,36,0.5),0_0_14px_rgba(245,158,11,0.28),inset_0_1px_0_rgba(255,255,255,0.22)]',
-      headlineClass: 'text-[1.35rem] font-black uppercase tracking-[0.06em] text-amber-50 sm:text-2xl [text-shadow:0_0_28px_rgba(251,191,36,0.35)]',
-      scorersBorder: 'border-amber-500/28',
-      scorersGlow: 'shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_22px_rgba(251,191,36,0.12)]',
-      scorersTitle: 'text-amber-200/90',
+      status: 'SIEG!',
+      statusClass:
+        'text-amber-300 [text-shadow:0_2px_10px_rgba(0,0,0,0.75),0_0_24px_rgba(251,191,36,0.45)]',
+      accentRadial:
+        'radial-gradient(ellipse 85% 55% at 50% 0%, rgba(251,191,36,0.16) 0%, transparent 60%)',
+      articleShadow: `${BASE_ARTICLE_SHADOW}, 0 0 30px -6px rgba(251,191,36,0.22)`,
+      scoreShadow:
+        '0 0 44px rgba(0,0,0,0.8), 0 6px 28px rgba(0,0,0,0.6), 0 0 28px rgba(251,191,36,0.25)',
     };
   }
   if (state === 'loss') {
     return {
-      badge: 'KOPF HOCH',
-      headline: '⚽ KOPF HOCH!',
-      shellTint: 'from-zinc-900/85 via-[#0c0606] to-black',
-      radial:
-        'radial-gradient(ellipse 95% 55% at 50% 12%, rgba(220,38,38,0.2) 0%, transparent 54%), radial-gradient(ellipse 80% 45% at 50% 100%, rgba(0,0,0,0.58) 0%, transparent 55%)',
-      articleShadow:
-        'inset 0 0 60px rgba(80,10,10,0.14), 0 16px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(220,38,38,0.14), 0 0 24px -6px rgba(185,28,28,0.18)',
-      badgeClass:
-        'border-red-500/35 bg-gradient-to-b from-red-950/55 via-zinc-950/80 to-black/90 text-red-100/95 shadow-[0_0_18px_rgba(185,28,28,0.22),inset_0_1px_0_rgba(255,255,255,0.06)]',
-      headlineClass: 'text-[1.2rem] font-black uppercase tracking-[0.05em] text-red-100/95 sm:text-[1.35rem] [text-shadow:0_0_18px_rgba(220,38,38,0.2)]',
-      scorersBorder: 'border-red-500/22',
-      scorersGlow: 'shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_16px_rgba(185,28,28,0.08)]',
-      scorersTitle: 'text-red-200/85',
+      status: 'SPIEL BEENDET',
+      statusClass:
+        'text-red-200/90 [text-shadow:0_2px_10px_rgba(0,0,0,0.75),0_0_18px_rgba(220,38,38,0.3)]',
+      accentRadial: null,
+      articleShadow: BASE_ARTICLE_SHADOW,
+      scoreShadow: BASE_SCORE_SHADOW,
     };
   }
   return {
-    badge: 'UNENTSCHIEDEN',
-    headline: '🤝 UNENTSCHIEDEN!',
-    shellTint: 'from-slate-900/78 via-zinc-950/92 to-[#050508]',
-    radial:
-      'radial-gradient(ellipse 95% 55% at 50% 12%, rgba(255,255,255,0.12) 0%, transparent 54%), radial-gradient(ellipse 80% 45% at 50% 100%, rgba(0,0,0,0.55) 0%, transparent 55%)',
-    articleShadow:
-      'inset 0 0 60px rgba(40,40,48,0.12), 0 16px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08), 0 0 22px -8px rgba(255,255,255,0.06)',
-    badgeClass:
-      'border-white/22 bg-gradient-to-b from-zinc-700/45 via-zinc-900/75 to-zinc-950/90 text-white/92 shadow-[0_0_20px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.1)]',
-    headlineClass: 'text-[1.15rem] font-black uppercase tracking-[0.04em] text-white/95 sm:text-xl [text-shadow:0_0_16px_rgba(255,255,255,0.12)]',
-    scorersBorder: 'border-white/14',
-    scorersGlow: 'shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_14px_rgba(255,255,255,0.04)]',
-    scorersTitle: 'text-white/72',
+    status: 'PUNKTETEILUNG',
+    statusClass:
+      'text-white/92 [text-shadow:0_2px_10px_rgba(0,0,0,0.75),0_0_18px_rgba(255,255,255,0.2)]',
+    accentRadial: null,
+    articleShadow: BASE_ARTICLE_SHADOW,
+    scoreShadow: BASE_SCORE_SHADOW,
   };
 }
 
-function LogoImg({ src }: { src: string }) {
-  const [imgSrc, setImgSrc] = useState(isValidLogoUrl(src) ? src : '/logos/placeholder-shield-a.png');
+function LogoBlock({ src, alt }: { src: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
-    setImgSrc(isValidLogoUrl(src) ? src : '/logos/placeholder-shield-a.png');
+    setFailed(false);
   }, [src]);
+  const valid = !failed && isValidLogoUrl(src);
+  if (!valid) {
+    return (
+      <div
+        className="flex h-[4.25rem] w-[4.25rem] shrink-0 items-center justify-center rounded-full border border-red-500/30 bg-black/45 shadow-[0_0_16px_rgba(0,0,0,0.4)] sm:h-20 sm:w-20"
+        aria-label={alt}
+      >
+        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-red-200/80">Club</span>
+      </div>
+    );
+  }
   return (
     <img
-      src={imgSrc}
-      alt=""
-      className="h-[3.75rem] w-[3.75rem] shrink-0 object-contain drop-shadow-[0_4px_20px_rgba(0,0,0,0.55)] sm:h-[4.5rem] sm:w-[4.5rem]"
-      onError={() => {
-        if (imgSrc !== '/logos/placeholder-shield-a.png') setImgSrc('/logos/placeholder-shield-a.png');
-      }}
+      src={src}
+      alt={alt}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="h-[4.25rem] w-[4.25rem] shrink-0 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)] sm:h-20 sm:w-20"
     />
   );
 }
@@ -220,7 +221,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
   return (
     <FeedPostArticleShell
-      className="border-red-600/30"
+      className="!border-[rgba(255,71,71,0.15)]"
       style={{ boxShadow: presentation.articleShadow }}
       data-feed-result-card="v2"
     >
@@ -229,7 +230,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       <FeedPostHeader
         teamLabel={teamLabel}
         whenLabel={whenLabel}
-        headerClassName="bg-black/35"
+        headerClassName="bg-black/25"
         actions={
           staffCanDelete && onFeedPostDeleted ? (
             <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
@@ -237,81 +238,98 @@ export const ResultFeedPostCard: React.FC<Props> = ({
         }
       />
       <FeedPostTypeBadge>Ergebnis</FeedPostTypeBadge>
-      <div className={`relative bg-gradient-to-b ${presentation.shellTint} px-2.5 pb-2 pt-2 sm:px-3`}>
-        <div
-          className="pointer-events-none absolute inset-0 opacity-90"
-          style={{ background: presentation.radial }}
-        />
-        <div className="pointer-events-none absolute inset-x-0 top-[28%] h-[42%] bg-[radial-gradient(ellipse_70%_80%_at_50%_50%,rgba(255,255,255,0.06),transparent_70%)]" />
 
-        <FeedMatchMetaLine line={matchMetaLine} className="relative text-center" />
-
-        <div className="relative flex flex-col items-center gap-1 pb-0.5 pt-0.5">
-          <span
-            className={`inline-flex max-w-full items-center justify-center rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] sm:px-3 sm:text-[9px] sm:tracking-[0.18em] ${presentation.badgeClass}`}
-            aria-label={presentation.badge}
-          >
-            <span className="truncate">{presentation.badge}</span>
-          </span>
-          <p className={`text-center leading-none ${presentation.headlineClass}`}>{presentation.headline}</p>
-        </div>
-
-        <div className="relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-0.5 gap-y-0 px-0 sm:gap-x-1">
-          <div className="flex min-w-0 flex-col items-center gap-0.5 text-center">
-            <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-white/28">Heim</span>
-            <LogoImg src={p.home_logo_url} />
-            <FeedClubName fullName={p.home_team_name} variant="result" className="w-full px-0.5" />
+      <div className={`${FEED_POST_BODY_CLASS} pb-3`}>
+        <div className="relative overflow-hidden rounded-[20px] border border-[rgba(255,71,71,0.15)] px-3 pb-4 pt-4 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)]">
+          {/* Stadion-Backdrop: Crowd-Silhouetten, Flutlicht oben, roter Nebel unten */}
+          <div className="pointer-events-none absolute inset-0" aria-hidden>
+            <img
+              src={stadiumBgUrl}
+              alt=""
+              loading="lazy"
+              className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_30%] opacity-[0.3] brightness-[0.56] saturate-[0.78]"
+            />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,8,9,0.74)_0%,rgba(9,4,5,0.86)_52%,rgba(5,2,3,0.94)_100%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-10%,rgba(255,240,220,0.16)_0%,transparent_62%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_65%_at_50%_115%,rgba(227,29,47,0.22)_0%,transparent_64%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_8%_100%,rgba(227,29,47,0.12)_0%,transparent_60%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_22%)]" />
+            {presentation.accentRadial ? (
+              <div className="absolute inset-0" style={{ background: presentation.accentRadial }} />
+            ) : null}
           </div>
 
-          <div className="flex min-w-0 flex-col items-center justify-center px-0.5 sm:px-1">
-            <p
-              className="text-[2.85rem] font-black tabular-nums leading-none tracking-tighter text-white min-[390px]:text-[3.15rem] sm:text-[4rem] sm:tracking-tight"
-              style={{
-                textShadow:
-                  '0 0 40px rgba(0,0,0,0.75), 0 6px 28px rgba(0,0,0,0.55), 0 0 2px rgba(255,255,255,0.12)',
-              }}
-            >
-              {p.home_score}
-              <span className="mx-0.5 align-middle text-[0.55em] font-black text-white/28 sm:mx-1">:</span>
-              {p.away_score}
-            </p>
-          </div>
+          <div className="relative space-y-3">
+            <FeedMatchMetaLine line={matchMetaLine} className="text-center" />
 
-          <div className="flex min-w-0 flex-col items-center gap-0.5 text-center">
-            <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-white/28">Gast</span>
-            <LogoImg src={p.away_logo_url} />
-            <p className="line-clamp-2 max-w-full break-words px-0.5 text-center text-[10px] font-bold leading-tight text-white/88 [text-wrap:balance] sm:text-[11px]">
-              {p.away_team_name}
-            </p>
-          </div>
-        </div>
+            <div className="space-y-1.5 text-center">
+              <p className="text-[19px] font-black uppercase leading-none tracking-[0.22em] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.7),0_0_18px_rgba(255,71,71,0.45)] sm:text-[22px] sm:tracking-[0.26em]">
+                Endstand
+              </p>
+              <p
+                className={`text-[12px] font-black uppercase leading-none tracking-[0.18em] sm:text-[13px] ${presentation.statusClass}`}
+              >
+                {presentation.status}
+              </p>
+            </div>
 
-        <div className="relative mt-1.5 space-y-0.5 text-center">
-          {metaLine ? (
-            <p className="line-clamp-2 px-1 text-[10px] leading-snug text-white/48 sm:text-[11px]">{metaLine}</p>
-          ) : null}
-          {periodLine ? (
-            <p className="text-[8px] font-medium tabular-nums tracking-wide text-white/28 sm:text-[9px]">
-              Drittel {periodLine}
-            </p>
-          ) : null}
-          <p className="pt-0.5">
-            <Link
-              to={gameHref}
-              className="inline-flex touch-manipulation text-[10px] font-semibold text-amber-200/90 underline decoration-amber-500/40 underline-offset-2 transition hover:text-amber-100"
-            >
-              Zum Spiel
-            </Link>
-          </p>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 pt-0.5">
+              <div className="flex min-w-0 flex-col items-center gap-1 text-center">
+                <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-white/40">
+                  Heim
+                </span>
+                <LogoBlock src={p.home_logo_url} alt={`${p.home_team_name} Logo`} />
+                <FeedClubName fullName={p.home_team_name} variant="compact" className="w-full px-0.5" />
+              </div>
+
+              <p
+                className="px-0.5 text-center text-[3.1rem] font-black tabular-nums leading-none tracking-tighter text-white min-[390px]:text-[3.6rem] sm:px-1 sm:text-[4.5rem] sm:tracking-tight"
+                style={{ textShadow: presentation.scoreShadow }}
+              >
+                {p.home_score}
+                <span className="mx-0.5 align-middle text-[0.5em] font-black text-red-400/70 sm:mx-1">
+                  :
+                </span>
+                {p.away_score}
+              </p>
+
+              <div className="flex min-w-0 flex-col items-center gap-1 text-center">
+                <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-white/40">
+                  Gast
+                </span>
+                <LogoBlock src={p.away_logo_url} alt={`${p.away_team_name} Logo`} />
+                <FeedClubName fullName={p.away_team_name} variant="compact" className="w-full px-0.5" />
+              </div>
+            </div>
+
+            {periodLine ? (
+              <div className="flex justify-center">
+                <span className="inline-flex items-center rounded-full border border-[rgba(255,71,71,0.12)] bg-black/35 px-3 py-1 text-[9px] font-semibold tabular-nums tracking-[0.08em] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:text-[10px]">
+                  Drittel {periodLine}
+                </span>
+              </div>
+            ) : null}
+
+            {metaLine ? (
+              <p className="line-clamp-2 px-1 text-center text-[10px] leading-snug text-white/55 sm:text-[11px]">
+                {metaLine}
+              </p>
+            ) : null}
+
+            <div className="flex justify-center pt-1">
+              <Link
+                to={gameHref}
+                className="inline-flex min-h-[48px] w-full max-w-[22rem] touch-manipulation items-center justify-center rounded-[22px] bg-gradient-to-b from-[#FF4747] to-[#E31D2F] px-6 text-[14px] font-bold tracking-[0.02em] text-white shadow-[0_10px_26px_rgba(227,29,47,0.38),inset_0_1px_0_rgba(255,255,255,0.28),0_2px_8px_rgba(0,0,0,0.4)] transition hover:brightness-110 active:scale-[0.98]"
+              >
+                Zum Spiel
+              </Link>
+            </div>
+          </div>
         </div>
 
         {filteredScorers.length > 0 ? (
-          <div
-            className={`relative mt-2.5 overflow-hidden rounded-xl border bg-gradient-to-br from-[rgba(22,22,26,0.88)] to-[rgba(48,10,16,0.18)] px-3.5 py-3 sm:px-4 sm:py-3.5 ${presentation.scorersBorder} ${presentation.scorersGlow}`}
-          >
-            <p
-              className={`text-[10px] font-bold uppercase tracking-[0.14em] sm:text-[11px] sm:tracking-[0.16em] ${presentation.scorersTitle}`}
-            >
+          <div className="mt-3 overflow-hidden rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-4 sm:py-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/85 sm:text-[11px] sm:tracking-[0.16em]">
               Torschützen
             </p>
             <ul className="mt-2 space-y-2">
