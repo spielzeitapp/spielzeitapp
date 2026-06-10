@@ -68,6 +68,7 @@ type MeinTurnierplanJson = {
   courts?: { displayId?: string }[];
 };
 
+export type TournamentPlanJsonAnalyzeSuccess = {
   ok: true;
   provider: 'meinturnierplan';
   teamCount: number;
