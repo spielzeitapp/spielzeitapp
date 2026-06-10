@@ -125,20 +125,33 @@ body {
 }
 
 /*
- * Live-Shell: feste App-Shell-Höhe unter dem fixen Header.
- * Muss exakt dem Header-Padding des InternalLayout entsprechen:
- * pt-[max(5.35rem, 3.45rem + env(safe-area-inset-top))] — sonst ragt die Shell
- * auf Notch-iPhones unten aus dem Viewport (Buttons hinter der BottomNav).
+ * Zentrale Layout-Variablen.
+ * --app-header-offset: Abstand unter dem fixen App-Header — muss exakt dem
+ *   Header-Padding des InternalLayout entsprechen (pt-[var(--app-header-offset)]).
+ * --app-bottomnav-pad: Scroll-Ende über BottomNav + iOS Home-Indicator.
+ * --app-vh / --app-visual-vh: werden von useViewportRecovery (JS) gepflegt —
+ *   robuste Viewport-Höhe nach iOS/PWA-Resume (100svh/innerHeight sind dort
+ *   nach pageshow/visibilitychange oft stale).
  */
-.live-shell-viewport {
-  height: calc(100vh - max(5.35rem, 3.45rem + env(safe-area-inset-top, 0px)));
-  max-height: calc(100vh - max(5.35rem, 3.45rem + env(safe-area-inset-top, 0px)));
+:root {
+  --app-header-offset: max(5.35rem, 3.45rem + env(safe-area-inset-top, 0px));
+  --app-bottomnav-pad: calc(9rem + env(safe-area-inset-bottom, 0px));
 }
 
-@supports (height: 100svh) {
+/*
+ * Live-Shell: feste App-Shell-Höhe unter dem fixen Header.
+ * Bevorzugt die JS-gepflegten Viewport-Variablen (Resume-sicher);
+ * Fallback-Kette: --app-visual-vh → --app-vh → 1svh/1vh (erster Paint vor JS).
+ */
+.live-shell-viewport {
+  height: calc(var(--app-visual-vh, var(--app-vh, 1vh)) * 100 - var(--app-header-offset));
+  max-height: calc(var(--app-visual-vh, var(--app-vh, 1vh)) * 100 - var(--app-header-offset));
+}
+
+@supports (height: 1svh) {
   .live-shell-viewport {
-    height: calc(100svh - max(5.35rem, 3.45rem + env(safe-area-inset-top, 0px)));
-    max-height: calc(100svh - max(5.35rem, 3.45rem + env(safe-area-inset-top, 0px)));
+    height: calc(var(--app-visual-vh, var(--app-vh, 1svh)) * 100 - var(--app-header-offset));
+    max-height: calc(var(--app-visual-vh, var(--app-vh, 1svh)) * 100 - var(--app-header-offset));
   }
 }
 
@@ -147,5 +160,5 @@ body {
  * BottomNav + iOS Home-Indicator (Safe-Area).
  */
 .live-page-safe-scroll {
-  padding-bottom: calc(9rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: var(--app-bottomnav-pad);
 }

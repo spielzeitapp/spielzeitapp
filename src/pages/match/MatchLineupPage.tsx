@@ -613,12 +613,13 @@ export const MatchLineupPage: React.FC = () => {
           <div
             className="flex w-full flex-1 min-h-0 flex-col"
             style={{
+              // Resume-sichere Viewport-Höhe (useViewportRecovery) statt 100dvh — iOS/PWA.
               height: isMobile
-                ? 'calc(100dvh - 6rem - 11.25rem - 5.75rem)'
-                : 'calc(100dvh - 6rem - 11.25rem - 9.5rem)',
+                ? 'calc(var(--app-visual-vh, var(--app-vh, 1dvh)) * 100 - 6rem - 11.25rem - 5.75rem)'
+                : 'calc(var(--app-visual-vh, var(--app-vh, 1dvh)) * 100 - 6rem - 11.25rem - 9.5rem)',
               maxHeight: isMobile
-                ? 'calc(100dvh - 6rem - 11.25rem - 5.75rem)'
-                : 'calc(100dvh - 6rem - 11.25rem - 9.5rem)',
+                ? 'calc(var(--app-visual-vh, var(--app-vh, 1dvh)) * 100 - 6rem - 11.25rem - 5.75rem)'
+                : 'calc(var(--app-visual-vh, var(--app-vh, 1dvh)) * 100 - 6rem - 11.25rem - 9.5rem)',
             }}
           >
             <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-[22px] border border-transparent bg-gradient-to-br from-[#121214] via-[#0a0a0c] to-black p-1.5 shadow-[0_6px_28px_rgba(0,0,0,0.5),0_0_24px_rgba(224,33,41,0.05)] sm:p-2">

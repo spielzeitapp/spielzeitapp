@@ -35,3 +35,8 @@ export function forceReleaseBodyScrollLocks(): void {
   lockCount = 0;
   applyLockStyles(false);
 }
+
+/** True, solange mindestens ein Sheet/Modal einen Scroll-Lock hält. */
+export function hasActiveBodyScrollLocks(): boolean {
+  return lockCount > 0;
+}

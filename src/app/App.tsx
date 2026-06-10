@@ -8,6 +8,7 @@ import { SplashScreen } from './intro/SplashScreen';
 import { WelcomeScreen } from './intro/WelcomeScreen';
 import { RoleProvider } from './role/RoleContext';
 import { RequireAuth } from '../auth/RequireAuth';
+import { useViewportRecovery } from '../hooks/useViewportRecovery';
 import { HomePage } from '../pages/HomePage';
 import { AppHomePage } from '../pages/AppHomePage';
 import { SchedulePage } from '../pages/SchedulePage';
@@ -272,6 +273,8 @@ interface AppProps {
 }
 
 export default function App({ isInternalDomain }: AppProps): React.ReactElement {
+  // iOS/PWA: Viewport-Variablen (--app-vh/--app-visual-vh) über den App-Lebenszyklus pflegen.
+  useViewportRecovery();
   return (
     <AppErrorBoundary>
       <RoleProvider>
