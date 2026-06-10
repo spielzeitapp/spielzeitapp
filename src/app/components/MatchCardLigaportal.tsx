@@ -355,8 +355,12 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
 
   const openTrainerLiveAccessSheet = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (!isTrainerScheduleHero || !isMatchPreparationAccessible(status)) return;
-    if (!(scheduleHeroMatchId ?? '').trim()) return;
+    if (!isTrainerScheduleHero) return;
+    if (!isMatchPreparationAccessible(status) || !(scheduleHeroMatchId ?? '').trim()) {
+      // Kein totes Touch-Ziel: ohne Match-Row/Zugriff wie der Card-Klick weiterleiten.
+      handleCardClick();
+      return;
+    }
     setLiveAccessSheetOpen(true);
   };
 
@@ -467,19 +471,12 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
   };
 
   const renderScheduleHeroLivePrepareTile = (onActivate: () => void) => (
-    <div
-      role="button"
-      tabIndex={0}
-      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer pr-5`}
+    <button
+      type="button"
+      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-h-[44px] w-full min-w-0 cursor-pointer pr-5`}
       style={{ WebkitAppearance: 'none' }}
       onClick={wrapHeroTileActivate(onActivate)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          e.stopPropagation();
-          onActivate();
-        }
-      }}
+      aria-label="LIVE Spiel vorbereiten"
     >
       <span className={`${heroMatchMetaIcon} text-red-400`}>
         <Radio strokeWidth={2} aria-hidden />
@@ -492,23 +489,16 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       <div className={heroLivePrepareStripe} aria-hidden>
         <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.25} />
       </div>
-    </div>
+    </button>
   );
 
   const renderScheduleHeroLiveReadyTile = (onActivate: () => void) => (
-    <div
-      role="button"
-      tabIndex={0}
-      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer pr-5`}
+    <button
+      type="button"
+      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-h-[44px] w-full min-w-0 cursor-pointer pr-5`}
       style={{ WebkitAppearance: 'none' }}
       onClick={wrapHeroTileActivate(onActivate)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          e.stopPropagation();
-          onActivate();
-        }
-      }}
+      aria-label="Live starten"
     >
       <span className={`${heroMatchMetaIcon} text-emerald-400`}>
         <Check strokeWidth={2.5} aria-hidden />
@@ -520,23 +510,16 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       <div className="pointer-events-none absolute inset-y-0 right-0 z-[2] flex w-5 shrink-0 items-center justify-center bg-emerald-700/80" aria-hidden>
         <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.25} />
       </div>
-    </div>
+    </button>
   );
 
   const renderScheduleHeroLiveOpenTile = (onActivate: () => void) => (
-    <div
-      role="button"
-      tabIndex={0}
-      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-w-0 cursor-pointer overflow-hidden pr-5`}
+    <button
+      type="button"
+      className={`${heroMatchMetaTile} ${heroMatchMetaTileBorder} relative min-h-[44px] w-full min-w-0 cursor-pointer overflow-hidden pr-5`}
       style={{ WebkitAppearance: 'none' }}
       onClick={wrapHeroTileActivate(onActivate)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          e.stopPropagation();
-          onActivate();
-        }
-      }}
+      aria-label="Livespiel öffnen"
     >
       <span className={`${heroMatchMetaIcon} text-red-400`}>
         <Radio className="animate-pulse" strokeWidth={2} aria-hidden />
@@ -549,7 +532,7 @@ export const MatchCardLigaportal: React.FC<MatchCardLigaportalProps> = ({
       <div className={heroLivePrepareStripe} aria-hidden>
         <ChevronRight className="h-3.5 w-3.5 text-white" strokeWidth={2.25} />
       </div>
-    </div>
+    </button>
   );
 
   const splitAudienceHeroPlaceLines = (place: string): { line2: string; line3: string } => {

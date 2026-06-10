@@ -1147,9 +1147,9 @@ export const SchedulePage: React.FC = () => {
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    setAttendanceModalEvent(ev);
+                                    navigate(`/app/events/${ev.id}`);
                                   }}
-                                  aria-label="Zu-/Absagen öffnen"
+                                  aria-label="Teilnehmerübersicht öffnen"
                                 >
                                   <TrainerStatsMini
                                     yes={countsForCard.yes}
@@ -1248,9 +1248,12 @@ export const SchedulePage: React.FC = () => {
                                         : null
                                   }
                                   onOpenAttendance={
-                                    heroShowsTrainerStats || heroShowsParentPill
-                                      ? () => setAttendanceModalEvent(ev)
-                                      : undefined
+                                    heroShowsTrainerStats
+                                      ? // Trainer: Teilnehmerübersicht (wer dabei/offen/abgesagt) im Termin-Detail
+                                        () => navigate(`/app/events/${ev.id}`)
+                                      : heroShowsParentPill
+                                        ? () => setAttendanceModalEvent(ev)
+                                        : undefined
                                   }
                                   isPublicView={forcePublicView}
                                   onScheduleHeroGoLive={heroGoLive}
@@ -1332,11 +1335,11 @@ export const SchedulePage: React.FC = () => {
                         <button
                           type="button"
                           className="inline-flex items-center justify-center rounded-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-black/70"
-                          aria-label="Zu-/Absagen öffnen"
+                          aria-label="Teilnehmerübersicht öffnen"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            setAttendanceModalEvent(ev);
+                            navigate(`/app/events/${ev.id}`);
                           }}
                         >
                           <TrainerStatsMini
@@ -1420,7 +1423,7 @@ export const SchedulePage: React.FC = () => {
             onClose={() => setCreateModalOpen(false)}
             teamSeasonId={teamSeasonId}
             onSuccess={refetch}
-            eventType="event"
+            eventType="match"
           />
 
           <Modal
