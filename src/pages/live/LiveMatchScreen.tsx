@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSession } from '../../auth/useSession';
 import { usePlayers, type PlayerItem } from '../../hooks/usePlayers';
 import { PlayerProfileModal } from '../../components/team/PlayerProfileModal';
@@ -11,6 +11,7 @@ import {
 import { PremiumEmptyState } from '../../ui';
 import { canManageRoster, normalizeRole } from '../../lib/roles';
 import { useMatchTimer } from '../../hooks/useMatchTimer';
+import { useResetScrollOnLiveEntry } from '../../hooks/useResetScrollOnLiveEntry';
 import {
   applySubstitutionToSlots,
   collectLiveStatPlayerIds,
@@ -1444,6 +1445,13 @@ export const LiveMatchScreen: React.FC = () => {
   const goalUndoFadeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const liveScrollRef = useRef<HTMLDivElement>(null);
   const liveHubScrollRef = useRef<HTMLElement>(null);
+
+  // Scroll-Reset: bei Route-Eintritt (location.key) und jedem Tab-Wechsel
+  // (Hub ↔ Übersicht/Aufstellung/Liveticker/Statistik) zuverlässig oben starten.
+  // Hub und Unterseiten teilen sich per CSS umgeschaltete Scrollcontainer,
+  // deren scrollTop sonst erhalten bleibt (plus iOS/bfcache window-Restore).
+  const routeLocation = useLocation();
+  useResetScrollOnLiveEntry(`${routeLocation.key}:${mainTab}`, [liveHubScrollRef, liveScrollRef]);
 
   const releaseLiveBodyScrollLock = useCallback(() => {
     // Defensiv: alle hängenden Locks lösen (body + html), z. B. nach Sheet-Races.
