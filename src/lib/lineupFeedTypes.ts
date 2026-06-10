@@ -11,6 +11,8 @@ export type LineupFeedPlayer = {
   slot?: string;
   /** Lesbares Positionslabel für Eltern/Fans */
   positionLabel?: string;
+  /** Rückennummer (optional, Legacy-Posts ohne Feld) */
+  jersey_number?: number | null;
 };
 
 export type LineupFeedPayload = {
@@ -21,6 +23,12 @@ export type LineupFeedPayload = {
   lineup_players: LineupFeedPlayer[];
   starts_at?: string | null;
   deep_link?: string;
+  /** Ersatzbank (optional, Legacy-Posts ohne Feld) */
+  bench_players?: LineupFeedPlayer[];
+  /** Teamnamen/Heimrecht für VS-Block (optional, Legacy-Posts ohne Felder) */
+  our_team_name?: string | null;
+  opponent_name?: string | null;
+  is_home?: boolean | null;
 };
 
 export const LINEUP_FEED_FIELD_SLOT_LABELS: Record<FieldSlotId, string> = {
@@ -145,12 +153,17 @@ function normalizeLineupFeedPlayerRow(row: Record<string, unknown>): LineupFeedP
     typeof row.positionLabel === 'string' ? row.positionLabel.trim() : undefined;
   const playerName = sanitizeLineupFeedPlayerName(rawName, slot);
 
+  const jerseyRaw = Number(row.jersey_number);
+  const jersey_number =
+    Number.isFinite(jerseyRaw) && jerseyRaw > 0 ? Math.trunc(jerseyRaw) : null;
+
   return {
     player_id,
     playerName,
     name: playerName,
     slot,
     positionLabel: positionLabel || undefined,
+    jersey_number,
   };
 }
 
@@ -162,15 +175,19 @@ export function parseLineupFeedPayload(raw: unknown): LineupFeedPayload | null {
   const teamSeasonId = typeof p.team_season_id === 'string' ? p.team_season_id.trim() : '';
   if (!matchId || !eventId || !teamSeasonId) return null;
 
-  const rawPlayers = p.lineup_players;
-  const lineup_players: LineupFeedPlayer[] = [];
-  if (Array.isArray(rawPlayers)) {
-    for (const item of rawPlayers) {
+  const collectPlayers = (raw: unknown): LineupFeedPlayer[] => {
+    const out: LineupFeedPlayer[] = [];
+    if (!Array.isArray(raw)) return out;
+    for (const item of raw) {
       if (!item || typeof item !== 'object') continue;
       const normalized = normalizeLineupFeedPlayerRow(item as Record<string, unknown>);
-      if (normalized) lineup_players.push(normalized);
+      if (normalized) out.push(normalized);
     }
-  }
+    return out;
+  };
+
+  const lineup_players = collectPlayers(p.lineup_players);
+  const bench_players = collectPlayers(p.bench_players);
 
   const formationRaw = p.formation;
   const formation =
@@ -188,6 +205,12 @@ export function parseLineupFeedPayload(raw: unknown): LineupFeedPayload | null {
     lineup_players,
     starts_at: typeof p.starts_at === 'string' ? p.starts_at : null,
     deep_link: typeof p.deep_link === 'string' ? p.deep_link : undefined,
+    bench_players: bench_players.length > 0 ? bench_players : undefined,
+    our_team_name:
+      typeof p.our_team_name === 'string' && p.our_team_name.trim() ? p.our_team_name.trim() : null,
+    opponent_name:
+      typeof p.opponent_name === 'string' && p.opponent_name.trim() ? p.opponent_name.trim() : null,
+    is_home: typeof p.is_home === 'boolean' ? p.is_home : null,
   };
 }
 

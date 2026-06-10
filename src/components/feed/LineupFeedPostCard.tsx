@@ -13,8 +13,12 @@ import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
+import { getClubLogo } from '../../lib/teamLogos';
+import { isValidLogoUrl } from '../../utils/logoResolver';
+import { FeedClubName } from './FeedClubName';
 import {
   FEED_ACTIONS_ROW_CLASS,
+  FEED_HASHTAG,
   FEED_POST_BODY_CLASS,
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
@@ -33,17 +37,52 @@ type Props = {
   onFeedPostDeleted?: () => void;
 };
 
-const MAX_DISPLAY_PLAYERS = 7;
+/** 8 statt 7: FairPlay-Formationen haben einen Zusatzspieler (FP-Slot). */
+const MAX_DISPLAY_PLAYERS = 8;
 
-function lineupFeedPlayerLine(pl: LineupFeedPlayer): { position: string; name: string | null } {
-  return {
-    position: lineupFeedDisplayPositionLabel(pl),
-    name: lineupFeedDisplayPlayerName(pl),
-  };
-}
+/** Stadion-Backdrop wie Welcome-Screen / Spieltag-Poster / Ergebnis-Post. */
+const stadiumBgUrl = `${import.meta.env.BASE_URL || '/'}intro/welcome-hero.png`;
 
 function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
+}
+
+/** Badge-Inhalt: Rückennummer, sonst Positions-Kürzel (Slot), sonst Strich. */
+function lineupBadgeLabel(pl: LineupFeedPlayer): string {
+  const jersey = pl.jersey_number;
+  if (typeof jersey === 'number' && Number.isFinite(jersey) && jersey > 0) {
+    return String(Math.trunc(jersey));
+  }
+  const slot = (pl.slot ?? '').trim().toUpperCase();
+  if (slot) return slot;
+  return '–';
+}
+
+function LogoBlock({ src, alt }: { src: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+  const valid = !failed && isValidLogoUrl(src);
+  if (!valid) {
+    return (
+      <div
+        className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-red-500/30 bg-black/45 shadow-[0_0_16px_rgba(0,0,0,0.4)] sm:h-[4.5rem] sm:w-[4.5rem]"
+        aria-label={alt}
+      >
+        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-red-200/80">Club</span>
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="h-16 w-16 shrink-0 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)] sm:h-[4.5rem] sm:w-[4.5rem]"
+    />
+  );
 }
 
 export const LineupFeedPostCard: React.FC<Props> = ({
@@ -66,9 +105,28 @@ export const LineupFeedPostCard: React.FC<Props> = ({
   }, [post.id]);
 
   const displayPlayers = useMemo(
-    () => p.lineup_players.slice(0, MAX_DISPLAY_PLAYERS).map(lineupFeedPlayerLine),
+    () => p.lineup_players.slice(0, MAX_DISPLAY_PLAYERS),
     [p.lineup_players],
   );
+
+  const benchPlayers = useMemo(
+    () => (p.bench_players ?? []).filter((pl) => lineupFeedDisplayPlayerName(pl)),
+    [p.bench_players],
+  );
+
+  /** VS-Block: Payload bevorzugt (neue Posts), sonst liveEvent (Bestands-Posts). */
+  const vsTeams = useMemo(() => {
+    const ourName = (p.our_team_name ?? '').trim() || teamLabel.trim();
+    const oppName = (p.opponent_name ?? '').trim() || (liveEvent?.opponent ?? '').trim();
+    if (!ourName || !oppName) return null;
+    const isHome = p.is_home ?? liveEvent?.is_home ?? true;
+    const our = { name: ourName, logo: getClubLogo(ourName) };
+    const opp = {
+      name: oppName,
+      logo: getClubLogo(oppName, { logoUrl: liveEvent?.opponent_logo_url }),
+    };
+    return isHome ? { left: our, right: opp } : { left: opp, right: our };
+  }, [p.our_team_name, p.opponent_name, p.is_home, teamLabel, liveEvent]);
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
@@ -113,16 +171,16 @@ export const LineupFeedPostCard: React.FC<Props> = ({
 
   return (
     <FeedPostArticleShell
-      className="border-red-950/50"
+      className="!border-[rgba(255,71,71,0.15)]"
       style={{
         boxShadow:
-          'inset 0 0 52px rgba(80,12,12,0.1), 0 14px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(220,38,38,0.12)',
+          'inset 0 0 48px rgba(80,10,10,0.1), 0 14px 32px rgba(0,0,0,0.5), 0 0 36px rgba(227,29,47,0.13)',
       }}
     >
       <FeedPostHeader
         teamLabel={teamLabel}
         whenLabel={whenLabel}
-        headerClassName="bg-black/30"
+        headerClassName="bg-black/25"
         actions={
           staffCanDelete && onFeedPostDeleted ? (
             <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
@@ -137,73 +195,120 @@ export const LineupFeedPostCard: React.FC<Props> = ({
       </FeedPostTypeBadge>
 
       <div className={`${FEED_POST_BODY_CLASS} pb-3`}>
-        <div
-          className="relative overflow-hidden rounded-xl border border-red-500/30 px-2.5 py-3 sm:px-3 sm:py-3.5"
-          style={{
-            background:
-              'linear-gradient(180deg, rgba(28,10,12,0.98) 0%, rgba(10,6,8,0.99) 55%, rgba(4,2,4,1) 100%)',
-            boxShadow: 'inset 0 0 64px rgba(140,24,24,0.1), 0 0 22px rgba(220,38,38,0.08)',
-          }}
-        >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.1]"
-            style={{
-              background:
-                'radial-gradient(ellipse 90% 50% at 50% 0%, rgba(248,113,113,0.45), transparent 70%)',
-            }}
-            aria-hidden
-          />
-          <div className="relative space-y-2.5 sm:space-y-3">
-            <p className="text-center text-[11px] font-black uppercase tracking-[0.2em] text-red-200/95 sm:text-[12px]">
-              STARTAUFSTELLUNG
-            </p>
+        <div className="relative overflow-hidden rounded-[20px] border border-[rgba(255,71,71,0.15)] px-3 pb-4 pt-4 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)]">
+          {/* Stadion-Backdrop: Crowd-Silhouetten, Flutlicht oben, roter Nebel unten */}
+          <div className="pointer-events-none absolute inset-0" aria-hidden>
+            <img
+              src={stadiumBgUrl}
+              alt=""
+              loading="lazy"
+              className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_30%] opacity-[0.3] brightness-[0.56] saturate-[0.78]"
+            />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,8,9,0.74)_0%,rgba(9,4,5,0.86)_52%,rgba(5,2,3,0.94)_100%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-10%,rgba(255,240,220,0.16)_0%,transparent_62%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_65%_at_50%_115%,rgba(227,29,47,0.22)_0%,transparent_64%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_8%_100%,rgba(227,29,47,0.12)_0%,transparent_60%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_22%)]" />
+          </div>
 
-            {p.formation ? (
-              <div className="flex justify-center">
-                <span className="inline-flex min-h-[34px] items-center rounded-full border border-red-400/35 bg-red-950/55 px-4 py-1 text-[15px] font-black tracking-[0.12em] text-white shadow-[0_0_18px_rgba(220,38,38,0.22)] sm:text-[16px]">
-                  {p.formation}
+          <div className="relative space-y-3">
+            <div className="space-y-1.5 text-center">
+              <p className="text-[17px] font-black uppercase leading-none tracking-[0.16em] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.7),0_0_18px_rgba(255,71,71,0.45)] sm:text-[20px] sm:tracking-[0.2em]">
+                Startaufstellung
+              </p>
+              {p.formation ? (
+                <div className="flex justify-center pt-0.5">
+                  <span className="inline-flex items-center rounded-full border border-[rgba(255,71,71,0.18)] bg-black/35 px-3.5 py-1 text-[13px] font-black tabular-nums tracking-[0.14em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_18px_rgba(227,29,47,0.18)] backdrop-blur-md sm:text-[14px]">
+                    {p.formation}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+
+            {vsTeams ? (
+              <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 pt-0.5">
+                <div className="flex min-w-0 flex-col items-center gap-1.5">
+                  <LogoBlock src={vsTeams.left.logo} alt={`${vsTeams.left.name} Logo`} />
+                  <FeedClubName fullName={vsTeams.left.name} variant="compact" className="w-full px-0.5" />
+                </div>
+                <span className="-skew-x-6 px-1 text-2xl font-black italic uppercase leading-none tracking-[0.02em] text-red-400 [text-shadow:0_3px_12px_rgba(0,0,0,0.7),0_0_20px_rgba(227,29,47,0.4)] sm:text-[1.8rem]">
+                  VS
                 </span>
+                <div className="flex min-w-0 flex-col items-center gap-1.5">
+                  <LogoBlock src={vsTeams.right.logo} alt={`${vsTeams.right.name} Logo`} />
+                  <FeedClubName fullName={vsTeams.right.name} variant="compact" className="w-full px-0.5" />
+                </div>
               </div>
             ) : null}
 
-            <div className="rounded-lg border border-white/[0.07] bg-black/40 px-2 py-1.5 sm:px-3 sm:py-2">
-              <p className="mb-1 text-[9px] font-black uppercase tracking-[0.16em] text-red-200/75">
+            <div className="rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-3 sm:py-3">
+              <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-red-200/85 sm:text-[10px]">
                 Startelf
               </p>
-              <ul className="space-y-0.5">
-                {displayPlayers.map((line, index) => (
-                  <li
-                    key={`${p.lineup_players[index]?.player_id ?? index}-${line.position}`}
-                    className="flex min-h-[26px] items-center gap-1 rounded-md border border-white/[0.06] bg-white/[0.03] px-2 py-0.5 sm:min-h-[28px] sm:px-2.5 sm:py-1"
-                  >
-                    <span className="shrink-0 text-[9px] font-semibold leading-tight text-red-300/80 sm:text-[10px]">
-                      {line.position}
-                    </span>
-                    <span className="shrink-0 text-[9px] text-white/25" aria-hidden>
-                      ·
-                    </span>
-                    {line.name ? (
-                      <span className="min-w-0 truncate text-[12px] font-bold leading-tight text-white sm:text-[13px]">
-                        {line.name}
+              <ul className="space-y-1">
+                {displayPlayers.map((pl, index) => {
+                  const name = lineupFeedDisplayPlayerName(pl);
+                  return (
+                    <li
+                      key={`${pl.player_id ?? index}-${pl.slot ?? index}`}
+                      className="flex min-h-[30px] items-center gap-2 rounded-lg bg-white/[0.03] px-2 py-1 sm:gap-2.5 sm:px-2.5"
+                    >
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-red-400/35 bg-gradient-to-b from-red-600/55 to-red-950/80 text-[10px] font-black tabular-nums text-white shadow-[0_0_10px_rgba(220,38,38,0.25)] sm:h-7 sm:w-7 sm:text-[11px]">
+                        {lineupBadgeLabel(pl)}
                       </span>
-                    ) : (
-                      <span className="min-w-0 truncate text-[11px] italic text-white/45 sm:text-[12px]">
-                        nicht benannt
+                      {name ? (
+                        <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold leading-tight text-white sm:text-[13.5px]">
+                          {name}
+                        </span>
+                      ) : (
+                        <span className="min-w-0 flex-1 truncate text-[11px] italic leading-tight text-white/45 sm:text-[12px]">
+                          nicht benannt
+                        </span>
+                      )}
+                      <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em] text-red-200/65 sm:text-[10px]">
+                        {lineupFeedDisplayPositionLabel(pl)}
                       </span>
-                    )}
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
 
-            <div className="flex justify-center pt-0.5">
+            {benchPlayers.length > 0 ? (
+              <div className="rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-3 sm:py-3">
+                <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-red-200/85 sm:text-[10px]">
+                  Ersatzbank
+                </p>
+                <ul className="space-y-1">
+                  {benchPlayers.map((pl, index) => (
+                    <li
+                      key={`${pl.player_id ?? index}-bench`}
+                      className="flex min-h-[28px] items-center gap-2 rounded-lg bg-white/[0.03] px-2 py-1 sm:gap-2.5 sm:px-2.5"
+                    >
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/45 text-[10px] font-black tabular-nums text-white/85 sm:h-7 sm:w-7 sm:text-[11px]">
+                        {lineupBadgeLabel(pl)}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[12px] font-semibold leading-tight text-white/90 sm:text-[13px]">
+                        {lineupFeedDisplayPlayerName(pl)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <div className="flex justify-center pt-1">
               <Link
                 to={gameHref}
-                className="inline-flex min-h-[44px] w-full max-w-[240px] touch-manipulation items-center justify-center rounded-lg border border-red-400/45 bg-gradient-to-b from-red-600/90 to-red-900 px-4 text-[12px] font-black uppercase tracking-wide text-white shadow-[0_0_20px_rgba(220,38,38,0.28)] transition hover:from-red-500 hover:to-red-800 sm:text-[13px]"
+                className="inline-flex min-h-[48px] w-full max-w-[22rem] touch-manipulation items-center justify-center rounded-[22px] bg-gradient-to-b from-[#FF4747] to-[#E31D2F] px-6 text-[14px] font-bold tracking-[0.02em] text-white shadow-[0_10px_26px_rgba(227,29,47,0.38),inset_0_1px_0_rgba(255,255,255,0.28),0_2px_8px_rgba(0,0,0,0.4)] transition hover:brightness-110 active:scale-[0.98]"
               >
                 Zum Spiel
               </Link>
             </div>
+
+            <p className="text-center text-[10px] font-bold uppercase tracking-[0.16em] text-red-200/55">
+              {FEED_HASHTAG}
+            </p>
           </div>
         </div>
 
