@@ -66,7 +66,7 @@ function LogoBlock({ src, alt }: { src: string; alt: string }) {
   if (isPlaceholder) {
     return (
       <div
-        className="flex h-16 w-16 items-center justify-center rounded-full border border-red-500/30 bg-black/45 shadow-[0_0_16px_rgba(0,0,0,0.4)] sm:h-[4.5rem] sm:w-[4.5rem]"
+        className="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full border border-red-500/30 bg-black/45 shadow-[0_0_16px_rgba(0,0,0,0.4)] sm:h-20 sm:w-20"
         aria-label={alt}
       >
         <span className="text-[10px] font-black uppercase tracking-[0.12em] text-red-200/80">Club</span>
@@ -79,7 +79,7 @@ function LogoBlock({ src, alt }: { src: string; alt: string }) {
       alt={alt}
       loading="lazy"
       onError={() => setFailed(true)}
-      className="h-16 w-16 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)] sm:h-[4.5rem] sm:w-[4.5rem]"
+      className="h-[4.5rem] w-[4.5rem] object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)] sm:h-20 sm:w-20"
     />
   );
 }
@@ -186,15 +186,16 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
               src={stadiumBgUrl}
               alt=""
               loading="lazy"
-              className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_30%] opacity-[0.22] brightness-[0.5] saturate-[0.72]"
+              className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_30%] opacity-[0.3] brightness-[0.56] saturate-[0.78]"
             />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,8,9,0.84)_0%,rgba(9,4,5,0.92)_52%,rgba(5,2,3,0.97)_100%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-10%,rgba(255,240,220,0.13)_0%,transparent_62%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_65%_at_50%_115%,rgba(227,29,47,0.15)_0%,transparent_62%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,8,9,0.74)_0%,rgba(9,4,5,0.86)_52%,rgba(5,2,3,0.94)_100%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-10%,rgba(255,240,220,0.16)_0%,transparent_62%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_65%_at_50%_115%,rgba(227,29,47,0.22)_0%,transparent_64%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_8%_100%,rgba(227,29,47,0.12)_0%,transparent_60%)]" />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_22%)]" />
           </div>
           <div className="relative space-y-3">
-            <p className="text-center text-[17px] font-black uppercase leading-none tracking-[0.2em] text-white drop-shadow-[0_0_14px_rgba(255,71,71,0.35)] sm:text-[19px] sm:tracking-[0.24em]">
+            <p className="text-center text-[18px] font-black uppercase leading-none tracking-[0.2em] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.7),0_0_18px_rgba(255,71,71,0.45)] sm:text-[20px] sm:tracking-[0.24em]">
               Nächstes Spiel
             </p>
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 pt-0.5">
@@ -204,7 +205,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
                 </div>
                 <FeedClubName fullName={p.display_home_name} variant="compact" className="w-full px-0.5" />
               </div>
-              <span className="px-1 text-2xl font-black italic uppercase leading-none tracking-[0.04em] text-red-400/90 drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)] sm:text-[1.7rem]">
+              <span className="-skew-x-6 px-1 text-3xl font-black italic uppercase leading-none tracking-[0.02em] text-red-400 [text-shadow:0_3px_12px_rgba(0,0,0,0.7),0_0_20px_rgba(227,29,47,0.4)] sm:text-[2.1rem]">
                 VS
               </span>
               <div className="min-w-0 space-y-1.5">
@@ -215,21 +216,21 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
               </div>
             </div>
             <dl className="grid grid-cols-3 gap-1.5 text-center">
-              <div className="min-w-0 rounded-2xl border border-white/[0.06] bg-white/[0.045] px-1 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
+              <div className="min-w-0 rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-1 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
                 <dt className="flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em] text-red-200/85">
                   <CalendarDays className="h-3 w-3 shrink-0" aria-hidden />
                   Datum
                 </dt>
                 <dd className="mt-1 truncate text-[12px] font-semibold text-white">{dateLabel}</dd>
               </div>
-              <div className="min-w-0 rounded-2xl border border-white/[0.06] bg-white/[0.045] px-1 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
+              <div className="min-w-0 rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-1 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
                 <dt className="flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em] text-red-200/85">
                   <Clock3 className="h-3 w-3 shrink-0" aria-hidden />
                   Anpfiff
                 </dt>
                 <dd className="mt-1 truncate text-[12px] font-semibold text-white">{kickoffLabel}</dd>
               </div>
-              <div className="min-w-0 rounded-2xl border border-white/[0.06] bg-white/[0.045] px-1 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
+              <div className="min-w-0 rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-1 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
                 <dt className="flex items-center justify-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em] text-red-200/85">
                   <MapPin className="h-3 w-3 shrink-0" aria-hidden />
                   Ort
