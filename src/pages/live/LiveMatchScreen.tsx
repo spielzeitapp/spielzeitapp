@@ -59,6 +59,7 @@ import {
   type LiveMatchRow,
 } from '../../lib/liveMatchService';
 import { ensureLiveFeedPostForMatch } from '../../lib/ensureLiveFeedPost';
+import { forceReleaseBodyScrollLocks, lockBodyScroll } from '../../lib/bodyScrollLock';
 import { getMatchSides } from '../../lib/matchSides';
 import {
   DEFAULT_MINIMUM_PLAYTIME_MINUTES,
@@ -1445,7 +1446,8 @@ export const LiveMatchScreen: React.FC = () => {
   const liveHubScrollRef = useRef<HTMLElement>(null);
 
   const releaseLiveBodyScrollLock = useCallback(() => {
-    document.body.style.overflow = '';
+    // Defensiv: alle hängenden Locks lösen (body + html), z. B. nach Sheet-Races.
+    forceReleaseBodyScrollLocks();
   }, []);
 
   const stabilizeLiveHubAfterFairPlay = useCallback(() => {
@@ -2579,21 +2581,13 @@ export const LiveMatchScreen: React.FC = () => {
   useEffect(() => {
     if (!wechselSheetOpen) {
       releaseLiveBodyScrollLock();
-      document.documentElement.style.overflow = '';
       const t = window.setTimeout(() => {
         liveHubScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
         liveScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
       }, 50);
       return () => window.clearTimeout(t);
     }
-    const prevBody = document.body.style.overflow;
-    const prevHtml = document.documentElement.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prevBody;
-      document.documentElement.style.overflow = prevHtml;
-    };
+    return lockBodyScroll();
   }, [wechselSheetOpen, releaseLiveBodyScrollLock]);
 
   useEffect(() => {
@@ -3964,9 +3958,8 @@ export const LiveMatchScreen: React.FC = () => {
     );
   };
 
-  /** Höhe unter globalem App-Header (main pt); Matchboard+Hub fix, Module scrollen (inkl. pb für Bottom-Nav). */
-  const liveShellOuter =
-    'relative flex h-[calc(100svh-5.5rem)] max-h-[calc(100svh-5.5rem)] flex-col overflow-hidden text-white';
+  /** Höhe unter globalem App-Header (main pt, safe-area-korrekt); Matchboard+Hub fix, Module scrollen (inkl. pb für Bottom-Nav). */
+  const liveShellOuter = 'live-shell-viewport relative flex flex-col overflow-hidden text-white';
   const wechselScreenActive = Boolean(canControlLiveMatch && wechselSheetOpen && !matchIsFinished);
 
   const kickoffProfilePhotoUrl = kickoffProfilePlayer

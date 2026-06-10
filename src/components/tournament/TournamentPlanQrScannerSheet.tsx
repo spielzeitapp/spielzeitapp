@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ScanLine } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
+import { lockBodyScroll } from '../../lib/bodyScrollLock';
 import {
   getQrCameraErrorMessage,
   QR_SCAN_UNSUPPORTED_MESSAGE,
@@ -128,11 +129,7 @@ export const TournamentPlanQrScannerSheet: React.FC<Props> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return lockBodyScroll();
   }, [isOpen]);
 
   useEffect(() => {

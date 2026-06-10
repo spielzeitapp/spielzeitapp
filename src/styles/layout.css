@@ -123,3 +123,29 @@ body {
   width: 100%;
   max-width: 100%;
 }
+
+/*
+ * Live-Shell: feste App-Shell-Höhe unter dem fixen Header.
+ * Muss exakt dem Header-Padding des InternalLayout entsprechen:
+ * pt-[max(5.35rem, 3.45rem + env(safe-area-inset-top))] — sonst ragt die Shell
+ * auf Notch-iPhones unten aus dem Viewport (Buttons hinter der BottomNav).
+ */
+.live-shell-viewport {
+  height: calc(100vh - max(5.35rem, 3.45rem + env(safe-area-inset-top, 0px)));
+  max-height: calc(100vh - max(5.35rem, 3.45rem + env(safe-area-inset-top, 0px)));
+}
+
+@supports (height: 100svh) {
+  .live-shell-viewport {
+    height: calc(100svh - max(5.35rem, 3.45rem + env(safe-area-inset-top, 0px)));
+    max-height: calc(100svh - max(5.35rem, 3.45rem + env(safe-area-inset-top, 0px)));
+  }
+}
+
+/*
+ * Live-Unterseiten im normalen Layout-Flow: Scroll-Ende immer über
+ * BottomNav + iOS Home-Indicator (Safe-Area).
+ */
+.live-page-safe-scroll {
+  padding-bottom: calc(9rem + env(safe-area-inset-bottom, 0px));
+}

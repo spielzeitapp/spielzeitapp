@@ -434,7 +434,7 @@ export const MatchLineupPage: React.FC = () => {
   }
 
   return (
-    <div className={dsPageShellClass('relative flex flex-col overflow-hidden')}>
+    <div className={dsPageShellClass('relative flex flex-col')}>
       <div className={dsPageAtmosphereClass()} aria-hidden />
       <style>{`@media (max-width: 639px){ nav[aria-label="Hauptnavigation"]{ display:none !important; } }`}</style>
 
@@ -451,10 +451,11 @@ export const MatchLineupPage: React.FC = () => {
       ) : null}
 
       <main
-        className={dsPageContentClass([
-          'mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-0 px-4 pb-[11.5rem] pt-0.5 sm:pb-[25rem] sm:pt-1',
-          lineupViewMode === 'list' ? 'overflow-hidden' : 'overflow-y-auto',
-        ].join(' '))}
+        className={dsPageContentClass(
+          // Normaler Layout-Flow: Seite scrollt im Body, kein verschachtelter Scroll/overflow-hidden
+          // (iOS/iPhone SE: Inhalte sonst abgeschnitten). Scroll-Ende über BottomNav + Safe-Area.
+          'live-page-safe-scroll mx-auto flex w-full max-w-xl flex-1 min-h-0 flex-col gap-0 px-4 pt-0.5 sm:pb-[25rem] sm:pt-1',
+        )}
       >
         <header className="relative flex min-h-[2.75rem] shrink-0 items-center justify-center px-0 py-2">
           <button

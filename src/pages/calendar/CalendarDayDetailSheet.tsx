@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { lockBodyScroll } from '../../lib/bodyScrollLock';
 import type { CalendarEvent } from './calendarTypes';
 import {
   formatDaySheetHeader,
@@ -104,11 +105,7 @@ export const CalendarDayDetailSheet: React.FC<Props> = ({ isOpen, dayDate, event
 
   useEffect(() => {
     if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return lockBodyScroll();
   }, [isOpen]);
 
   if (!isOpen || !dayDate) return null;

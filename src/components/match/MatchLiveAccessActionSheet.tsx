@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronRight, ClipboardList, Radio } from 'lucide-react';
+import { lockBodyScroll } from '../../lib/bodyScrollLock';
 
 type Props = {
   open: boolean;
@@ -28,11 +29,7 @@ export function MatchLiveAccessActionSheet({
 
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return lockBodyScroll();
   }, [open]);
 
   if (!open) return null;

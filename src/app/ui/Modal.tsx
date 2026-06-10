@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { lockBodyScroll } from '../../lib/bodyScrollLock';
 
 interface ModalProps {
   /** Bevorzugter Prop-Name (Alias: `open`). */
@@ -44,11 +45,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   useEffect(() => {
     if (!effectiveOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return lockBodyScroll();
   }, [effectiveOpen]);
 
   if (!effectiveOpen) return null;
