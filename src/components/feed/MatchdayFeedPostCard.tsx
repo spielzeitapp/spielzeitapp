@@ -26,6 +26,8 @@ import {
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
+import { useSession } from '../../auth/useSession';
+import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 
 type Props = {
   post: TeamFeedPostRow;
@@ -121,14 +123,18 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
 
   const venueLabel = (liveEvent?.is_home ?? p.is_home) === false ? 'Auswärtsspiel' : 'Heimspiel';
 
+  const { backendRole, membershipRole } = useSession();
+  const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
+
   const gameHref = useMemo(
     () =>
       resolveMatchGameHref({
         matchId: p.match_id ?? liveEvent?.match_id,
         eventId: p.event_id,
         status: eventStatus,
+        canManage: viewerIsStaff,
       }),
-    [p.match_id, p.event_id, liveEvent?.match_id, eventStatus],
+    [p.match_id, p.event_id, liveEvent?.match_id, eventStatus, viewerIsStaff],
   );
 
   const onShare = useCallback(async () => {

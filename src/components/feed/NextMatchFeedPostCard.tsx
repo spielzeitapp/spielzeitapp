@@ -20,6 +20,8 @@ import {
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
+import { useSession } from '../../auth/useSession';
+import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 
 type Props = {
   post: NextMatchFeedPostRow;
@@ -116,10 +118,13 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
     return (formatFullLocation(place, addr) || '').trim() || '—';
   }, [p.location, p.address]);
 
+  const { backendRole, membershipRole } = useSession();
+  const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
   const gameHref = resolveMatchGameHref({
     matchId: p.match_id,
     eventId: p.event_id,
     status: 'upcoming',
+    canManage: viewerIsStaff,
   });
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
   const dateLabel = formatKickoffDate(p.kickoff_iso);

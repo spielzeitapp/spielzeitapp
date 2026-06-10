@@ -19,6 +19,8 @@ import {
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
+import { useSession } from '../../auth/useSession';
+import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 
 type Props = {
   post: ResultFeedPostRow;
@@ -174,14 +176,18 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     }
   }, [liked, post.id]);
 
+  const { backendRole, membershipRole } = useSession();
+  const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
+
   const gameHref = useMemo(
     () =>
       resolveMatchGameHref({
         matchId: p.match_id,
         eventId: p.event_id,
         status: 'finished',
+        canManage: viewerIsStaff,
       }),
-    [p.match_id, p.event_id],
+    [p.match_id, p.event_id, viewerIsStaff],
   );
 
   const onShare = useCallback(async () => {

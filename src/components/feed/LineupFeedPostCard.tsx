@@ -22,6 +22,8 @@ import {
   FeedPostTypeBadge,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
+import { useSession } from '../../auth/useSession';
+import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 
 type Props = {
   post: LineupFeedPostRow;
@@ -68,14 +70,18 @@ export const LineupFeedPostCard: React.FC<Props> = ({
     [p.lineup_players],
   );
 
+  const { backendRole, membershipRole } = useSession();
+  const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
+
   const gameHref = useMemo(
     () =>
       resolveMatchGameHref({
         matchId: p.match_id ?? liveEvent?.match_id,
         eventId: p.event_id,
         status: liveEvent?.status ?? 'upcoming',
+        canManage: viewerIsStaff,
       }),
-    [p.match_id, p.event_id, liveEvent?.match_id, liveEvent?.status],
+    [p.match_id, p.event_id, liveEvent?.match_id, liveEvent?.status, viewerIsStaff],
   );
 
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);

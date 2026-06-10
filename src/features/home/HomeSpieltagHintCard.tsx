@@ -7,6 +7,8 @@ import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
 import { formatMeetupTimeOnlyDe } from '../../components/match/matchCardLabels';
 import { MatchdayPosterCard } from '../../components/feed/MatchdayPosterCard';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
+import { useSession } from '../../auth/useSession';
+import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 
 type Props = {
   pick: HomeMatchCardPick;
@@ -67,6 +69,9 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
     window.setTimeout(() => setShareHint(null), 2200);
   }, [eventUrl, kickoff, opponent, ourClub]);
 
+  const { backendRole, membershipRole } = useSession();
+  const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
+
   const announcementTiming = status === 'today' || status === 'tomorrow' ? status : null;
   const gameHref = reviewPending && event.match_id
     ? `/app/live?matchId=${encodeURIComponent(event.match_id)}`
@@ -74,6 +79,7 @@ export const HomeSpieltagHintCard: React.FC<Props> = ({ pick, reviewPending = fa
         matchId: event.match_id,
         eventId: event.id,
         status: event.status ?? 'upcoming',
+        canManage: viewerIsStaff,
       });
 
   return (
