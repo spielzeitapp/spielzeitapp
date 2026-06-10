@@ -445,7 +445,7 @@ export const MatchPreparationPage: React.FC = () => {
         {matchId && matchRow ? (
           <MatchdayFeedAutomationSettings
             matchId={matchId}
-            enabled={matchRow.auto_matchday_feed_enabled !== false}
+            enabled={matchRow.auto_matchday_feed_enabled === true}
             onSaved={(nextEnabled) =>
               setMatchRow((prev) =>
                 prev ? { ...prev, auto_matchday_feed_enabled: nextEnabled } : prev,

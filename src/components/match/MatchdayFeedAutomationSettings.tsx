@@ -69,12 +69,12 @@ export function MatchdayFeedAutomationSettings({
         />
         <span className="min-w-0 flex-1">
           <span className="block text-[14px] font-semibold text-white/92">
-            Automatischen Matchday-Post erstellen
+            Automatischen Spieltag-Post erstellen
           </span>
           <span className="mt-1 block text-[12px] leading-snug text-white/55">
-            Wenn deaktiviert, wird kein automatischer Matchday-Post im Feed erstellt und die
-            Spieltag-Hero-Karte auf Home ausgeblendet. Aufstellung, Live-Updates und Ergebnis
-            bleiben aktiv.
+            Wenn aktiviert, erstellt die App am Spieltag automatisch einen Spieltag-Post im Feed
+            und zeigt die Spieltag-Hero-Karte auf Home an. Aufstellung, Live-Updates und Ergebnis
+            bleiben davon unabhängig.
           </span>
         </span>
       </label>

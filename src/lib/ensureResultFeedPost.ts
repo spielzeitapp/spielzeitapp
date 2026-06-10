@@ -113,10 +113,8 @@ export async function ensureResultFeedPostForMatch(matchId: string): Promise<Ens
     return { ok: true, created: false, reason: 'not_finished' };
   }
 
-  if (match.auto_matchday_feed_enabled === false) {
-    console.info('[resultFeed] result auto feed disabled for match', { matchId: mid });
-    return { ok: true, created: false, reason: 'auto_feed_disabled' };
-  }
+  // Hinweis: auto_matchday_feed_enabled steuert NUR den Spieltag-Post/Hero.
+  // Der Ergebnis-Post bleibt davon unabhängig und wird immer erstellt.
 
   const { data: existing, error: exErr } = await supabase
     .from('team_feed_posts')
