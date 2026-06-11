@@ -40,6 +40,8 @@ type PushRecipientResult = {
   body?: string;
 };
 
+type RecipientGroup = 'parents' | 'players' | 'all' | 'self';
+
 type SendTeamResponse = {
   ok?: boolean;
   totalRecipients?: number;
@@ -50,6 +52,7 @@ type SendTeamResponse = {
   notificationsInsertError?: string;
   results?: PushRecipientResult[];
   error?: string;
+  hint?: string;
 };
 
 function previewLine(text: string, max = 72): string {
@@ -74,7 +77,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
   const [teamIdResolved, setTeamIdResolved] = useState<string | null>(null);
   const teamId = teamIdFromSession ?? teamIdResolved;
 
-  const [recipientGroup, setRecipientGroup] = useState<'parents' | 'players' | 'all'>('all');
+  const [recipientGroup, setRecipientGroup] = useState<RecipientGroup>('all');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [url, setUrl] = useState(DEFAULT_TEAM_PUSH_LINK);
@@ -219,11 +222,25 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
       }
 
       if (failed === 0) {
-        setMessage(
-          total === 0
-            ? `Kein aktives Push-Gerät bei den Empfängern. ${msgSaved} Team-Nachricht(en) gespeichert, ${notifN} In-App-Benachrichtigung(en).`
-            : `Erfolgreich: ${sent} Push(s) gesendet, ${notifN} In-App-Benachrichtigung(en), ${msgSaved} Eintrag/Einträge im Team-Postfach.`,
-        );
+        if (typeof data.hint === 'string' && data.hint.trim()) {
+          setMessage(data.hint.trim());
+        } else if (recipientGroup === 'self' && total === 0) {
+          setMessage(
+            `Kein Push-Gerät mit aktivierten Benachrichtigungen. ${notifN} In-App-Benachrichtigung(en) angelegt — Badge/Inbox kannst du trotzdem prüfen.`,
+          );
+        } else if (total === 0) {
+          setMessage(
+            `Kein aktives Push-Gerät bei den Empfängern. ${msgSaved} Team-Nachricht(en) gespeichert, ${notifN} In-App-Benachrichtigung(en).`,
+          );
+        } else if (recipientGroup === 'self') {
+          setMessage(
+            `Test-Push: ${sent} Gerät(e) erreicht, ${notifN} In-App-Benachrichtigung(en).`,
+          );
+        } else {
+          setMessage(
+            `Erfolgreich: ${sent} Push(s) gesendet, ${notifN} In-App-Benachrichtigung(en), ${msgSaved} Eintrag/Einträge im Team-Postfach.`,
+          );
+        }
         setTitle('');
         setBody('');
         setUrl(DEFAULT_TEAM_PUSH_LINK);
@@ -358,7 +375,7 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
           id="push-recipient"
           value={recipientGroup}
           onChange={(e) =>
-            setRecipientGroup(e.target.value as 'parents' | 'players' | 'all')
+            setRecipientGroup(e.target.value as RecipientGroup)
           }
           disabled={disabled || loading}
           className="mt-1 w-full rounded-md border border-[var(--border)] bg-black/40 px-2 py-2 text-sm text-[var(--text-main)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
@@ -366,7 +383,13 @@ export const PushTeamSendPanel: React.FC<Props> = ({ teamSeasonId, variant = 'fu
           <option value="all">Alle (Eltern + Spieler)</option>
           <option value="parents">Nur Eltern</option>
           <option value="players">Nur Spieler</option>
+          <option value="self">Test an mich selbst</option>
         </select>
+        {recipientGroup === 'self' && (
+          <p className="mt-2 text-[13px] leading-snug text-white/65">
+            Sendet nur an deine eigenen Geräte mit aktivierten Push-Benachrichtigungen.
+          </p>
+        )}
 
         <label className="mt-3 block text-[12px] font-medium uppercase tracking-wide text-white/60" htmlFor="push-template-pick">
           Vorlage auswählen

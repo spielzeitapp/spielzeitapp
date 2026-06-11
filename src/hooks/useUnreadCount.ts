@@ -43,16 +43,23 @@ export function useUnreadCount(userId: string | undefined | null): number {
     void refresh();
   }, [refresh]);
 
-  /** PWA wieder sichtbar: Badge + offene Nachrichten-Liste aus Supabase (kein automatisches Gelesen). */
+  /** PWA wieder sichtbar: Inbox + Homescreen-Badge aus Supabase neu synchronisieren. */
   useEffect(() => {
     if (!userId) return;
-    const onVisibility = () => {
+    const resync = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         requestInboxSync();
       }
     };
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
+    const onPageShow = () => {
+      requestInboxSync();
+    };
+    document.addEventListener('visibilitychange', resync);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      document.removeEventListener('visibilitychange', resync);
+      window.removeEventListener('pageshow', onPageShow);
+    };
   }, [userId]);
 
   useEffect(() => {

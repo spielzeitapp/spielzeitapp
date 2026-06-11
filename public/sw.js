@@ -41,19 +41,22 @@ function readBadgeCountFromPayload(payload) {
 }
 
 function applyAppBadgeFromCount(n) {
-  try {
-    const nav = self.navigator;
-    if (!nav || typeof nav.setAppBadge !== 'function' || typeof nav.clearAppBadge !== 'function') return;
-    if (!Number.isFinite(n)) return;
-    const i = Math.floor(n);
-    if (i <= 0) {
-      void nav.clearAppBadge().catch(() => {});
-      return;
-    }
-    void nav.setAppBadge(Math.min(99, i)).catch(() => {});
-  } catch {
-    /* ignore */
+  const nav = self.navigator;
+  if (!nav || typeof nav.setAppBadge !== 'function' || typeof nav.clearAppBadge !== 'function') {
+    return Promise.resolve();
   }
+  if (!Number.isFinite(n)) {
+    return Promise.resolve();
+  }
+  const i = Math.floor(n);
+  if (i <= 0) {
+    return nav.clearAppBadge().catch((e) => {
+      console.warn('[sw] clearAppBadge failed', e);
+    });
+  }
+  return nav.setAppBadge(Math.min(99, i)).catch((e) => {
+    console.warn('[sw] setAppBadge failed', e);
+  });
 }
 
 function parsePushPayload(event) {
@@ -172,22 +175,23 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    (async () => {
-      try {
-        await self.registration.showNotification(title, options);
-      } catch (e) {
+    Promise.all([
+      self.registration.showNotification(title, options).catch((e) => {
         console.error('[sw] showNotification failed', e);
-      }
-      applyAppBadgeFromCount(badgeCount);
-      try {
-        const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-        for (const client of clients) {
-          client.postMessage({ type: 'SPZ_PUSH_RECEIVED' });
-        }
-      } catch {
-        /* ignore */
-      }
-    })(),
+      }),
+      applyAppBadgeFromCount(badgeCount),
+    ]).then(() =>
+      self.clients
+        .matchAll({ type: 'window', includeUncontrolled: true })
+        .then((clients) => {
+          for (const client of clients) {
+            client.postMessage({ type: 'SPZ_PUSH_RECEIVED' });
+          }
+        })
+        .catch((e) => {
+          console.warn('[sw] postMessage SPZ_PUSH_RECEIVED failed', e);
+        }),
+    ),
   );
 });
 

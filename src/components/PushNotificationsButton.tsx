@@ -31,11 +31,6 @@ function textLooksLikeVapidMismatch(t: string): boolean {
   return /VapidPkHashMismatch/i.test(t);
 }
 
-function isAppleMobileUa(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
 function detectFrontendRuntime(): 'vite' | 'next' | 'unknown' {
   if (typeof import.meta !== 'undefined' && import.meta.env && 'MODE' in import.meta.env) {
     return 'vite';
@@ -161,8 +156,6 @@ export const PushNotificationsButton: React.FC<Props> = ({
         return;
       }
 
-      await syncFromBrowser();
-
       const payload: {
         endpoint: string;
         keys: { p256dh: string; auth: string };
@@ -184,13 +177,7 @@ export const PushNotificationsButton: React.FC<Props> = ({
         body: JSON.stringify(payload),
       });
 
-      let data: { ok?: boolean; step?: string; error?: string; code?: string } = {};
-      try {
-        data = (await res.json()) as { ok?: boolean; step?: string; error?: string; code?: string };
-      } catch (parseErr) {
-        console.error('[PushNotificationsButton] subscribe API response parse failed', parseErr);
-      }
-
+      const data = (await res.json()) as { ok?: boolean; step?: string; error?: string };
       if (isAdminToolsVisible) {
         setDebugSnapshot({
           lastApiStatus: res.status,
@@ -200,17 +187,12 @@ export const PushNotificationsButton: React.FC<Props> = ({
       }
 
       if (!res.ok || data.ok === false) {
-        console.error('[PushNotificationsButton] subscribe API failed', {
-          status: res.status,
-          step: data.step,
-          error: data.error,
-          code: data.code,
-        });
         setActionError('Aktivierung fehlgeschlagen. Bitte versuche es erneut.');
         return;
       }
-    } catch (err) {
-      console.error('[PushNotificationsButton] activate failed', err);
+
+      await syncFromBrowser();
+    } catch {
       setActionError('Aktivierung fehlgeschlagen. Bitte versuche es erneut.');
     } finally {
       setLoading(false);
@@ -317,9 +299,6 @@ export const PushNotificationsButton: React.FC<Props> = ({
     return isActive ? 'Benachrichtigungen deaktivieren' : 'Benachrichtigungen aktivieren';
   }, [loadingAction, isActive]);
 
-  const showIphonePwaHint =
-    !browserOk && isAppleMobileUa() && typeof window !== 'undefined' && !('PushManager' in window);
-
   if (!browserOk) {
     return (
       <div className={className}>
@@ -327,19 +306,9 @@ export const PushNotificationsButton: React.FC<Props> = ({
         <p className="mt-1 text-sm text-[var(--text-sub)]">
           Erhalte Updates zu Spielen, Terminen und wichtigen Änderungen.
         </p>
-        {showIphonePwaHint ? (
-          <div className="mt-2 space-y-2 text-sm text-[var(--text-sub)]">
-            <p>
-              Auf dem iPhone funktionieren Push-Benachrichtigungen nur, wenn du die SpielzeitApp zum
-              Home-Bildschirm hinzufügst und von dort öffnest.
-            </p>
-            <p>Teilen-Symbol → Zum Home-Bildschirm → Hinzufügen</p>
-          </div>
-        ) : (
-          <p className="mt-2 text-sm text-[var(--text-sub)]">
-            In diesem Browser werden Push-Benachrichtigungen nicht unterstützt.
-          </p>
-        )}
+        <p className="mt-2 text-sm text-[var(--text-sub)]">
+          In diesem Browser werden Push-Benachrichtigungen nicht unterstützt.
+        </p>
       </div>
     );
   }

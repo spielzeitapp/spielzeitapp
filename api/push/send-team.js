@@ -141,10 +141,15 @@ function parseBody(req) {
 }
 
 function recipientRolesForGroup(group) {
+  if (group === "self") return null;
   if (group === "parents") return ["parent"];
   if (group === "players") return ["player"];
   if (group === "all") return ["parent", "player"];
   return null;
+}
+
+function isSelfRecipientGroup(group) {
+  return group === "self";
 }
 
 export default async function handler(req, res) {
@@ -189,13 +194,14 @@ export default async function handler(req, res) {
         ? body.related_event_id.trim()
         : null;
 
+    const isSelfSend = isSelfRecipientGroup(recipient_group);
     const wantedRoles = recipientRolesForGroup(recipient_group);
-    if (!team_season_id || !wantedRoles) {
+    if (!team_season_id || (!isSelfSend && !wantedRoles)) {
       return res.status(400).json({
         ok: false,
         step: "validate",
         error:
-          "team_season_id and recipient_group (parents|players|all) required",
+          "team_season_id and recipient_group (parents|players|all|self) required",
       });
     }
     if (!title || !textBody) {
@@ -267,36 +273,54 @@ export default async function handler(req, res) {
 
     const contentWithLink = url ? `${textBody}\n\n${url}` : textBody;
 
-    const { data: memRows, error: memErr } = await supabase
-      .from("memberships")
-      .select("user_id, role")
-      .eq("team_season_id", team_season_id);
-
-    if (memErr) {
-      return res.status(500).json({
-        ok: false,
-        step: "memberships",
-        error: memErr.message || String(memErr),
-      });
-    }
-
-    const userIds = [
-      ...new Set(
-        (memRows || [])
-          .filter((m) => {
-            const r = normalizeMembershipRole(m.role);
-            return r && wantedRoles.includes(r);
-          })
-          .map((m) => m.user_id)
-          .filter(Boolean),
-      ),
-    ];
-
     /** user_id → Team-Rolle (memberships) für diese Saison */
     const userIdToRole = new Map();
-    for (const m of memRows || []) {
-      const r = normalizeMembershipRole(m.role);
-      if (m.user_id && r) userIdToRole.set(m.user_id, r);
+    let userIds;
+
+    if (isSelfSend) {
+      userIds = [user.id];
+      const { data: senderMem } = await supabase
+        .from("memberships")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("team_season_id", team_season_id)
+        .maybeSingle();
+      const senderRole = normalizeMembershipRole(senderMem?.role);
+      if (senderRole) {
+        userIdToRole.set(user.id, senderRole);
+      } else if (globalRole === "admin") {
+        userIdToRole.set(user.id, "admin");
+      }
+    } else {
+      const { data: memRows, error: memErr } = await supabase
+        .from("memberships")
+        .select("user_id, role")
+        .eq("team_season_id", team_season_id);
+
+      if (memErr) {
+        return res.status(500).json({
+          ok: false,
+          step: "memberships",
+          error: memErr.message || String(memErr),
+        });
+      }
+
+      userIds = [
+        ...new Set(
+          (memRows || [])
+            .filter((m) => {
+              const r = normalizeMembershipRole(m.role);
+              return r && wantedRoles.includes(r);
+            })
+            .map((m) => m.user_id)
+            .filter(Boolean),
+        ),
+      ];
+
+      for (const m of memRows || []) {
+        const r = normalizeMembershipRole(m.role);
+        if (m.user_id && r) userIdToRole.set(m.user_id, r);
+      }
     }
 
     if (userIds.length === 0) {
@@ -508,6 +532,9 @@ export default async function handler(req, res) {
       }
     }
 
+    const noSelfPushSubscriptions =
+      isSelfSend && totalRecipients === 0 && sent === 0 && failed === 0;
+
     return res.status(200).json({
       ok: true,
       recipient_group,
@@ -524,6 +551,12 @@ export default async function handler(req, res) {
       },
       ...(notificationsInsertError != null ? { notificationsInsertError } : {}),
       ...(messagesInsertError != null ? { messagesInsertError } : {}),
+      ...(noSelfPushSubscriptions
+        ? {
+            hint:
+              "Keine aktive Push-Subscription auf deinem Konto. Bitte Push-Benachrichtigungen zuerst aktivieren (Mehr → Benachrichtigungen).",
+          }
+        : {}),
     });
   } catch (err) {
     console.error("[push/send-team] full error:", err);
