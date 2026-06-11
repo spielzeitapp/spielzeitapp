@@ -11,8 +11,8 @@ export async function clearAppBadgeSafe(): Promise<void> {
     if (typeof navigator === 'undefined' || typeof navigator.clearAppBadge !== 'function') return;
     await navigator.clearAppBadge();
     console.log('[badge] cleared');
-  } catch {
-    /* ignore */
+  } catch (e) {
+    console.warn('[badge] clearAppBadge failed', e);
   }
 }
 
@@ -31,7 +31,7 @@ export async function syncAppBadge(unreadCount: number): Promise<void> {
     const n = Math.min(raw, BADGE_CAP);
     await navigator.setAppBadge(n);
     console.log('[badge] synced', n);
-  } catch {
-    /* ignore — App darf nicht crashen */
+  } catch (e) {
+    console.warn('[badge] setAppBadge failed', e);
   }
 }

@@ -20,7 +20,7 @@ function shortEndpoint(endpoint) {
   return `${s.slice(0, 72)}…`;
 }
 
-function mapSupabaseInsertError(error) {
+function mapSupabaseWriteError(error) {
   const msg = error?.message || String(error);
   const code = error?.code;
   if (
@@ -105,17 +105,22 @@ export default async function handler(req, res) {
     const userId = body.user_id || null;
     const ts = new Date().toISOString();
 
-    const { error } = await supabase.from("push_subscriptions").insert({
+    const row = {
       user_id: userId,
       endpoint,
       p256dh,
       auth,
       user_agent: req.headers["user-agent"] || null,
+      updated_at: ts,
+    };
+
+    const { error } = await supabase.from("push_subscriptions").upsert(row, {
+      onConflict: "endpoint",
     });
 
     if (error) {
-      const mapped = mapSupabaseInsertError(error);
-      console.error("[push/subscribe] insert failed:", error);
+      const mapped = mapSupabaseWriteError(error);
+      console.error("[push/subscribe] upsert failed:", error);
       return res.status(mapped.status).json(mapped.body);
     }
 
