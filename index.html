@@ -8,7 +8,8 @@
         var isInternal =
           host === 'app.spielzeitapp.at' ||
           host === 'spielzeitapp.at' ||
-          host === 'www.spielzeitapp.at';
+          host === 'www.spielzeitapp.at' ||
+          (host.includes('spielzeitapp-intern') && host.endsWith('.vercel.app'));
         window.__HOST_IS_INTERNAL__ = isInternal;
         if (isInternal) {
           var path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
