@@ -322,7 +322,7 @@ export const PushNotificationsButton: React.FC<Props> = ({
 
       {!hasVapidKey && (
         <p className="mt-3 text-sm text-amber-200/90">
-          Diese Funktion ist aktuell nicht verfügbar.
+          Push-Benachrichtigungen sind auf diesem Server noch nicht konfiguriert.
         </p>
       )}
 
