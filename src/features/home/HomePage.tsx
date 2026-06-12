@@ -49,7 +49,8 @@ export const HomePage: React.FC = () => {
 
   const [now, setNow] = useState(() => new Date());
   const [disabledMatchdayMatchIds, setDisabledMatchdayMatchIds] = useState<Set<string>>(() => new Set());
-  const [disabledMatchdayLoading, setDisabledMatchdayLoading] = useState(false);
+  /** Pessimistischer Default: Auto-Matchday erst nach Settings-Load anzeigen (kein Flash). */
+  const [disabledMatchdayLoading, setDisabledMatchdayLoading] = useState(true);
   const [matchStatusById, setMatchStatusById] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -105,10 +106,20 @@ export const HomePage: React.FC = () => {
     };
   }, [events]);
 
-  const matchPick = useMemo(() => {
+  const hasMatchEventsToCheck = useMemo(() => {
+    if (FEED_DEMO) return false;
+    return (events ?? []).some((e) => e.kind === 'match' && Boolean(e.match_id?.trim()));
+  }, [events]);
+
+  const autoMatchdaySettingsReady =
+    FEED_DEMO || (!evLoading && (!hasMatchEventsToCheck || !disabledMatchdayLoading));
+
+  const matchPickResolved = useMemo(() => {
     const source = FEED_DEMO ? buildDemoHomeMatchEvents(now) : (events ?? []);
     return pickHomeMatchCard(source, now, disabledMatchdayMatchIds);
   }, [events, now, disabledMatchdayMatchIds]);
+
+  const matchPick = autoMatchdaySettingsReady ? matchPickResolved : null;
 
   const {
     posts: teamFeedPosts,
@@ -127,7 +138,7 @@ export const HomePage: React.FC = () => {
 
   const loading = sessionLoading || evLoading;
   const feedBusy = teamFeedLoading || teamFeedEnsuring;
-  const matchSectionReady = !loading && !feedBusy && !disabledMatchdayLoading;
+  const matchSectionReady = !loading && !feedBusy && autoMatchdaySettingsReady;
   const showContent = teamSeasonId || FEED_DEMO;
 
   const spieltagHintPick =
@@ -144,9 +155,11 @@ export const HomePage: React.FC = () => {
     );
 
   const visibleFeedPosts = useMemo(() => {
-    const withoutDisabledMatchday = teamFeedPosts.filter(
-      (item) => !isMatchdayFeedPostHiddenByAutomation(item, disabledMatchdayMatchIds),
-    );
+    const withoutDisabledMatchday = autoMatchdaySettingsReady
+      ? teamFeedPosts.filter(
+          (item) => !isMatchdayFeedPostHiddenByAutomation(item, disabledMatchdayMatchIds),
+        )
+      : teamFeedPosts.filter((item) => item.kind !== 'matchday');
     if (!spieltagHintPick) return withoutDisabledMatchday;
     return withoutDisabledMatchday.filter(
       (item) =>
@@ -156,7 +169,7 @@ export const HomePage: React.FC = () => {
           spieltagHintPick.event.match_id,
         ),
     );
-  }, [teamFeedPosts, spieltagHintPick, disabledMatchdayMatchIds]);
+  }, [teamFeedPosts, spieltagHintPick, disabledMatchdayMatchIds, autoMatchdaySettingsReady]);
 
   const showNoUpcomingMatchEmpty =
     matchSectionReady && !matchPick && visibleFeedPosts.length === 0;
