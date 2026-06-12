@@ -84,6 +84,14 @@ function PushOnboardingSheet({
         .push-onboarding-cta-glow {
           animation: pushOnboardingCtaGlow 2.4s ease-in-out infinite;
         }
+        .push-onboarding-sheet {
+          max-height: 92vh !important;
+        }
+        @media (max-height: 680px) {
+          .push-onboarding-footer-hint {
+            display: none;
+          }
+        }
       `}</style>
 
       <div
@@ -97,8 +105,8 @@ function PushOnboardingSheet({
         <div
           className={[
             'modalSheet push-onboarding-sheet',
-            '!flex !max-w-[420px] !flex-col !overflow-hidden !overflow-y-hidden',
-            '!rounded-t-[22px] !border-white/[0.08] !bg-[#0A0A0C] !p-0',
+            '!flex !max-h-[92vh] !max-w-[420px] !flex-col !overflow-hidden',
+            '!rounded-t-[20px] !border-white/[0.08] !bg-[#0A0A0C] !p-0',
             entered ? 'push-onboarding-sheet-enter' : 'opacity-0',
           ].join(' ')}
           style={{ boxShadow: SHEET_SHADOW }}
@@ -107,8 +115,8 @@ function PushOnboardingSheet({
           aria-labelledby="push-onboarding-title"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Hero — Vereins-/Familienfoto, ruhiger Verlauf */}
-          <div className="relative h-[180px] w-full shrink-0 overflow-hidden rounded-t-[22px] sm:h-[200px]">
+          {/* Hero — kompakt auf kleinen Screens (iPhone SE) */}
+          <div className="relative h-[140px] w-full shrink-0 overflow-hidden rounded-t-[20px] max-[380px]:h-[135px] sm:h-[185px]">
             <img
               src={PUSH_HERO_SRC}
               alt=""
@@ -121,7 +129,7 @@ function PushOnboardingSheet({
 
             <button
               type="button"
-              className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/12 bg-black/40 text-base leading-none text-white/75 backdrop-blur-sm transition hover:bg-black/55 hover:text-white"
+              className="absolute right-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-white/12 bg-black/40 text-sm leading-none text-white/75 backdrop-blur-sm transition hover:bg-black/55 hover:text-white"
               onClick={onRemindLater}
               aria-label="Schließen"
             >
@@ -129,28 +137,28 @@ function PushOnboardingSheet({
             </button>
           </div>
 
-          {/* Content — kompakt, iPhone SE ohne Scroll */}
-          <div className="flex min-h-0 flex-1 flex-col px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3.5 sm:px-5 sm:pt-4">
-            <p className="text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-red-400/85">
+          {/* Content — kompakt, iPhone SE ohne Scroll/Abschneiden */}
+          <div className="flex min-h-0 shrink flex-col px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2.5 sm:px-5 sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pt-3.5">
+            <p className="text-center text-[9px] font-semibold uppercase tracking-[0.18em] text-red-400/85 sm:text-[10px]">
               SpielzeitApp
             </p>
             <h2
               id="push-onboarding-title"
-              className="mt-1 text-center text-[1.2rem] font-bold leading-snug tracking-[-0.02em] text-white sm:text-[1.35rem]"
+              className="mt-0.5 text-center text-[1.05rem] font-bold leading-tight tracking-[-0.02em] text-white sm:mt-1 sm:text-[1.25rem]"
             >
               Keine wichtigen Infos verpassen
             </h2>
-            <p className="mt-2 text-center text-[13px] leading-snug text-white/62 sm:text-sm">
+            <p className="mt-1.5 text-center text-[12px] leading-snug text-white/60 sm:mt-2 sm:text-[13px]">
               Aktiviere Benachrichtigungen und erhalte wichtige Informationen direkt aufs Handy.
             </p>
 
-            <ul className="mt-3.5 space-y-1.5 sm:mt-4 sm:space-y-2">
+            <ul className="mt-2 space-y-0.5 sm:mt-3 sm:space-y-1">
               {BENEFIT_ROWS.map((row) => (
                 <li
                   key={row.label}
-                  className="flex items-center gap-2.5 text-[13px] leading-snug text-[#E8E4E6] sm:text-[0.9rem]"
+                  className="flex items-center gap-2 text-[12px] leading-tight text-[#E8E4E6] sm:text-[13px]"
                 >
-                  <span className="w-5 shrink-0 text-center text-[15px] leading-none" aria-hidden>
+                  <span className="w-4 shrink-0 text-center text-[13px] leading-none sm:w-5 sm:text-[14px]" aria-hidden>
                     {row.icon}
                   </span>
                   <span>{row.label}</span>
@@ -158,7 +166,7 @@ function PushOnboardingSheet({
               ))}
             </ul>
 
-            <div className="mt-4 flex flex-col gap-2 sm:mt-5">
+            <div className="mt-2.5 flex shrink-0 flex-col gap-1.5 sm:mt-4 sm:gap-2">
               <button
                 type="button"
                 disabled={busy || !pushReady}
@@ -166,7 +174,7 @@ function PushOnboardingSheet({
                 className={[
                   'push-onboarding-cta-glow w-full',
                   dsPrimaryCtaClass(),
-                  '!min-h-[46px] !rounded-2xl !py-2.5 !text-[15px]',
+                  '!min-h-[44px] !rounded-xl !py-2 !text-[14px] sm:!min-h-[46px] sm:!rounded-2xl sm:!text-[15px]',
                 ].join(' ')}
               >
                 {busy ? 'Wird aktiviert…' : 'Benachrichtigungen aktivieren'}
@@ -177,14 +185,14 @@ function PushOnboardingSheet({
                 onClick={onRemindLater}
                 className={[
                   dsSecondaryCtaClass(),
-                  'w-full !min-h-[42px] !rounded-2xl !py-2.5 !text-[15px]',
+                  'w-full !min-h-[40px] !rounded-xl !py-2 !text-[14px] sm:!min-h-[42px] sm:!rounded-2xl sm:!text-[15px]',
                 ].join(' ')}
               >
                 Später erinnern
               </button>
             </div>
 
-            <p className="mt-2.5 text-center text-[10px] leading-snug text-white/38 sm:mt-3 sm:text-[11px]">
+            <p className="push-onboarding-footer-hint mt-2 text-center text-[9px] leading-tight text-white/35 sm:mt-2.5 sm:text-[10px]">
               Du kannst Benachrichtigungen jederzeit in den Einstellungen ändern.
             </p>
           </div>
