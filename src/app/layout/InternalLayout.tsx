@@ -12,6 +12,7 @@ import { useSyncPendingProfile } from '../../auth/useSyncPendingProfile';
 import { useSyncProfileFromUserMetadata } from '../../auth/useSyncProfileFromUserMetadata';
 import { supabase } from '../../lib/supabaseClient';
 import { TabletSidebar } from '../components/TabletSidebar';
+import { PushOnboardingPrompt } from '../../components/PushOnboardingPrompt';
 import { canManageMatches, normalizeRole as normalizeRoleKey } from '../../lib/roles';
 
 const ONBOARDING_EXEMPT_PATHS = [
@@ -168,6 +169,7 @@ export const InternalLayout: React.FC = () => {
 
       <div className="lg:hidden">{isTouchLayout ? <BottomNav /> : null}</div>
       <div className="lg:hidden">{isTouchLayout ? <AppFab /> : null}</div>
+      <PushOnboardingPrompt />
     </AppBackground>
   );
 };
