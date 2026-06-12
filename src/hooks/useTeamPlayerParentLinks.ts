@@ -6,6 +6,8 @@ export type ParentLinkInfo = {
   name: string | null;
   display_name: string | null;
   email: string | null;
+  push_active?: boolean;
+  push_device_count?: number;
 };
 
 export type PlayerParentLinkRow = {
@@ -60,6 +62,12 @@ export function parentShowEmailBelow(parent: ParentLinkInfo): boolean {
   return email.length > 0 && email !== label;
 }
 
+export function parentPushDeviceLabel(count: number | undefined): string | null {
+  const n = typeof count === "number" && Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+  if (n <= 1) return null;
+  return `${n} Geräte`;
+}
+
 function parseParents(raw: unknown): ParentLinkInfo[] {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -72,11 +80,24 @@ function parseParents(raw: unknown): ParentLinkInfo[] {
       const emailRaw = o.email;
       const email =
         emailRaw != null && String(emailRaw).trim() !== "" ? String(emailRaw).trim() : null;
+      const pushActive = o.push_active === true;
+      const rawCount = o.push_device_count;
+      const pushDeviceCount =
+        typeof rawCount === "number" && Number.isFinite(rawCount)
+          ? Math.max(0, Math.floor(rawCount))
+          : typeof rawCount === "string" && rawCount.trim() !== ""
+            ? Math.max(0, Math.floor(Number(rawCount)) || 0)
+            : pushActive
+              ? 1
+              : 0;
+
       return {
         user_id: userId,
         name: displayName,
         display_name: displayName,
         email,
+        push_active: pushActive,
+        push_device_count: pushDeviceCount,
       };
     })
     .filter((x): x is ParentLinkInfo => x != null);

@@ -11,8 +11,10 @@ import {
 import {
   buildParentReminderWhatsAppText,
   parentPrimaryLabel,
+  parentPushDeviceLabel,
   parentShowEmailBelow,
   PARENT_LINKS_RPC_MIGRATION_HINT,
+  type ParentLinkInfo,
   type PlayerParentLinkRow,
 } from "../../hooks/useTeamPlayerParentLinks";
 
@@ -37,6 +39,32 @@ function statusBadgeClass(row: PlayerParentLinkRow): string {
     return "border-amber-400/35 bg-amber-900/30 text-amber-200";
   }
   return "border-emerald-400/30 bg-emerald-900/25 text-emerald-200";
+}
+
+function ParentPushStatusBadges({ parent }: { parent: ParentLinkInfo }): React.ReactElement {
+  const active = parent.push_active === true;
+  const deviceLabel = active ? parentPushDeviceLabel(parent.push_device_count) : null;
+
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+      <span className="inline-flex items-center rounded-full border border-white/12 bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium text-white/55">
+        Verknüpft
+      </span>
+      <span
+        className={[
+          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-none",
+          active
+            ? "border-emerald-400/35 bg-emerald-950/35 text-emerald-200"
+            : "border-white/12 bg-white/[0.03] text-white/45",
+        ].join(" ")}
+      >
+        {active ? "Push aktiv ✅" : "Push aus ❌"}
+      </span>
+      {deviceLabel ? (
+        <span className="text-[10px] font-medium text-white/40">{deviceLabel}</span>
+      ) : null}
+    </div>
+  );
 }
 
 export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
@@ -208,21 +236,17 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
                             {row.parents.map((parent) => (
                               <div
                                 key={parent.user_id}
-                                className="flex items-start gap-2 text-[14px] text-white/90"
+                                className="rounded-lg border border-white/[0.06] bg-black/15 px-2.5 py-2 text-[14px] text-white/90"
                               >
-                                <span className="shrink-0 text-emerald-400" aria-hidden>
-                                  ✅
-                                </span>
-                                <div className="min-w-0">
-                                  <p className="text-[15px] font-semibold leading-snug text-white">
-                                    {parentPrimaryLabel(parent)}
+                                <p className="text-[15px] font-semibold leading-snug text-white">
+                                  {parentPrimaryLabel(parent)}
+                                </p>
+                                {parentShowEmailBelow(parent) ? (
+                                  <p className="mt-0.5 text-[12px] leading-snug text-white/55">
+                                    {parent.email}
                                   </p>
-                                  {parentShowEmailBelow(parent) ? (
-                                    <p className="mt-0.5 text-[12px] leading-snug text-white/55">
-                                      {parent.email}
-                                    </p>
-                                  ) : null}
-                                </div>
+                                ) : null}
+                                <ParentPushStatusBadges parent={parent} />
                               </div>
                             ))}
                           </div>
