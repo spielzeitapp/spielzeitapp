@@ -187,3 +187,28 @@ export function buildParentReminderWhatsAppText(playerName: string): string {
   }
   return "Hallo! Bitte melde dich noch in der SpielzeitApp an und verknüpfe dein Kind mit dem Team. Dann bekommst du Termine, Absagen und Spielinfos direkt in der App. Danke!";
 }
+
+/** Push-Erinnerung für verknüpfte Eltern ohne aktive Benachrichtigungen. */
+export function buildPushReminderText(
+  parentName?: string | null,
+  playerName?: string | null,
+): string {
+  const parent = parentName?.trim();
+  const player = playerName?.trim();
+  const greeting =
+    parent && parent !== "Elternaccount" ? `Hallo ${parent}!` : "Hallo!";
+  const playerHint =
+    player && player !== "Spieler"
+      ? `\n\nAls Elternteil von ${player} ist es besonders wichtig, dass du Benachrichtigungen aktivierst.`
+      : "";
+
+  return `${greeting}
+
+Bitte öffne einmal die SpielzeitApp und aktiviere die Benachrichtigungen.${playerHint}
+
+So erhältst du wichtige Informationen zu Spielen, Trainings, Treffpunkten, Absagen und kurzfristigen Änderungen direkt aufs Handy.
+
+In der App einfach auf „Benachrichtigungen aktivieren“ tippen und danach „Erlauben“ auswählen.
+
+Vielen Dank!`;
+}
