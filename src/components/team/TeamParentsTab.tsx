@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { AppButton } from "../ui/AppButton";
 import {
   GlassCard,
   PremiumCard,
@@ -8,6 +7,7 @@ import {
   PremiumTabTrack,
   SectionTitle,
 } from "../../ui";
+import { dsPrimaryCtaClass, dsSecondaryCtaClass } from "../../lib/premiumDesignSystem";
 import {
   buildParentReminderWhatsAppText,
   buildPushReminderText,
@@ -54,11 +54,11 @@ function ParentPushStatusBadges({ parent }: { parent: ParentLinkInfo }): React.R
       <span
         className={[
           CHIP_BASE,
-          "h-8 gap-1 px-3 text-[11px] text-emerald-100/90",
-          "border-emerald-500/30 bg-[#0a1210]/90",
+          "h-7 gap-0.5 px-2 text-[10px] font-medium text-emerald-100/70",
+          "border-emerald-600/25 bg-[#080c0a]/95",
         ].join(" ")}
       >
-        <span aria-hidden className="text-[10px] leading-none text-emerald-400/90">
+        <span aria-hidden className="text-[9px] leading-none text-emerald-500/80">
           ✓
         </span>
         Verknüpft
@@ -68,8 +68,8 @@ function ParentPushStatusBadges({ parent }: { parent: ParentLinkInfo }): React.R
           className={[
             CHIP_BASE,
             "h-8 gap-1 px-3 text-[11px] font-bold text-emerald-50",
-            "border-emerald-400/45 bg-emerald-950/55",
-            "shadow-[0_0_14px_rgba(52,211,153,0.2)]",
+            "border-emerald-400/55 bg-emerald-800/50",
+            "shadow-[0_0_16px_rgba(52,211,153,0.28)]",
           ].join(" ")}
         >
           <span aria-hidden className="text-[12px] leading-none">
@@ -81,11 +81,12 @@ function ParentPushStatusBadges({ parent }: { parent: ParentLinkInfo }): React.R
         <span
           className={[
             CHIP_BASE,
-            "h-7 gap-1 px-2.5 text-[10px] font-medium text-red-200/75",
-            "border-red-900/50 bg-red-950/35",
+            "h-8 gap-1 px-3 text-[11px] font-bold text-red-50",
+            "border-red-500/50 bg-red-900/55",
+            "shadow-[0_0_14px_rgba(239,68,68,0.22)]",
           ].join(" ")}
         >
-          <span aria-hidden className="text-[11px] leading-none opacity-80">
+          <span aria-hidden className="text-[12px] leading-none">
             🔕
           </span>
           Push aus
@@ -95,8 +96,8 @@ function ParentPushStatusBadges({ parent }: { parent: ParentLinkInfo }): React.R
         <span
           className={[
             CHIP_BASE,
-            "h-8 gap-1 px-3 text-[11px] font-medium text-white/55",
-            "border-white/12 bg-white/[0.05]",
+            "h-8 gap-1 px-3 text-[11px] font-medium text-white/60",
+            "border-white/14 bg-white/[0.06]",
           ].join(" ")}
         >
           <span aria-hidden className="text-[12px] leading-none">
@@ -119,19 +120,35 @@ function PushReminderButton({
       type="button"
       onClick={onClick}
       className={[
-        "mt-2.5 inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center gap-2",
-        "rounded-xl border border-emerald-500/40 px-3 py-2",
-        "bg-gradient-to-b from-emerald-700/95 via-emerald-900/95 to-[#071510]",
-        "text-[13px] font-bold text-white",
-        "shadow-[0_0_20px_rgba(16,185,129,0.22),inset_0_1px_0_rgba(255,255,255,0.1)]",
-        "transition hover:border-emerald-400/55 hover:shadow-[0_0_26px_rgba(16,185,129,0.32)]",
-        "active:scale-[0.99] sm:w-auto sm:min-w-[11.5rem]",
+        "mt-2.5 inline-flex w-full min-h-[44px] touch-manipulation items-center justify-center gap-2",
+        dsPrimaryCtaClass(),
+        "!rounded-xl !py-2.5 !text-[14px] !font-bold",
       ].join(" ")}
     >
       <span aria-hidden className="text-[14px] leading-none">
         🔔
       </span>
       Erinnerung senden
+    </button>
+  );
+}
+
+function WhatsAppCopyButton({
+  onClick,
+}: {
+  onClick: () => void;
+}): React.ReactElement {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "inline-flex w-full min-h-[44px] touch-manipulation items-center justify-center",
+        dsSecondaryCtaClass(),
+        "!rounded-xl !py-2.5 !text-[14px] !font-semibold",
+      ].join(" ")}
+    >
+      WhatsApp-Text kopieren
     </button>
   );
 }
@@ -146,35 +163,37 @@ function ParentPushSummaryCard({
   const total = pushActiveCount + pushInactiveCount;
   if (total === 0) return null;
 
+  const pushQuote = Math.round((pushActiveCount / total) * 100);
+
   return (
-    <GlassCard variant="subtle" showAmbientGlow={false} className="min-w-0 px-3 py-2.5 sm:px-4 sm:py-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-white/45">Push-Status</p>
-      <div className="mt-1.5 flex min-w-0 flex-col gap-1 sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-1">
-        <span className="inline-flex min-w-0 items-center gap-1.5 text-[13px] text-emerald-200/95">
-          <span aria-hidden className="shrink-0 text-[10px] leading-none">
+    <GlassCard variant="subtle" showAmbientGlow={false} className="min-w-0 px-3 py-2 sm:px-4">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-0.5 text-[12px] sm:text-[13px]">
+        <span className="inline-flex shrink-0 items-center gap-1 text-emerald-200/95">
+          <span aria-hidden className="text-[9px] leading-none">
             🟢
           </span>
           <span>
-            <span className="font-bold text-emerald-100">{pushActiveCount}</span>
-            <span className="text-white/70">
-              {" "}
-              {pushActiveCount === 1 ? "Elternteil Push aktiv" : "Eltern Push aktiv"}
-            </span>
+            <span className="font-bold text-emerald-50">{pushActiveCount}</span>
+            <span className="text-white/65"> aktiv</span>
           </span>
         </span>
-        <span className="inline-flex min-w-0 items-center gap-1.5 text-[13px] text-red-200/80">
-          <span aria-hidden className="shrink-0 text-[10px] leading-none">
+        <span className="inline-flex shrink-0 items-center gap-1 text-red-200/90">
+          <span aria-hidden className="text-[9px] leading-none">
             🔴
           </span>
           <span>
-            <span className="font-bold text-red-100/90">{pushInactiveCount}</span>
-            <span className="text-white/55">
-              {" "}
-              {pushInactiveCount === 1 ? "Elternteil ohne Push" : "Eltern ohne Push"}
-            </span>
+            <span className="font-bold text-red-100">{pushInactiveCount}</span>
+            <span className="text-white/55"> ohne Push</span>
           </span>
         </span>
       </div>
+      <p className="mt-1 text-[11px] leading-tight text-white/45">
+        <span aria-hidden className="mr-0.5">
+          🟢
+        </span>
+        Push-Quote:{" "}
+        <span className="font-semibold tabular-nums text-emerald-200/85">{pushQuote} %</span>
+      </p>
     </GlassCard>
   );
 }
@@ -393,7 +412,12 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
                               return (
                                 <div
                                   key={parent.user_id}
-                                  className="min-w-0 rounded-lg border border-white/[0.06] bg-black/15 px-2.5 py-2.5 text-[14px] text-white/90 sm:px-3"
+                                  className={[
+                                    "min-w-0 rounded-lg border px-2.5 py-2.5 text-[14px] text-white/90 sm:px-3",
+                                    showPushReminder
+                                      ? "border-red-500/15 bg-red-950/[0.12]"
+                                      : "border-white/[0.06] bg-black/15",
+                                  ].join(" ")}
                                 >
                                   <p className="text-[15px] font-semibold leading-snug text-white">
                                     {parentPrimaryLabel(parent)}
@@ -421,15 +445,7 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
                               </span>
                               <span>Kein Elternaccount verknüpft</span>
                             </p>
-                            <AppButton
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              className="w-full sm:w-auto"
-                              onClick={() => void handleCopyReminder(row.player_name)}
-                            >
-                              WhatsApp-Text kopieren
-                            </AppButton>
+                            <WhatsAppCopyButton onClick={() => void handleCopyReminder(row.player_name)} />
                           </div>
                         )}
                       </GlassCard>
