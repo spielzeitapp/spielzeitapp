@@ -20,7 +20,7 @@ import {
   FeedStandardActions,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
-import { resolveMatchGameHref } from '../../lib/matchFeedLink';
+import { formatPeriodScoresBracketFromRaw } from '../../lib/matchEventScores';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
 
@@ -36,21 +36,6 @@ const stadiumBgUrl = `${import.meta.env.BASE_URL || '/'}intro/welcome-hero.png`;
 
 function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
-}
-
-function formatPeriodScoresBrief(value: unknown): string | null {
-  if (!value || typeof value !== 'object') return null;
-  const o = value as Record<string, { h?: unknown; a?: unknown } | undefined>;
-  const seg = (key: string) => {
-    const pr = o[key];
-    if (!pr || typeof pr !== 'object') return '-:-';
-    const h = Math.max(0, Math.trunc(Number(pr.h) || 0));
-    const a = Math.max(0, Math.trunc(Number(pr.a) || 0));
-    return `${h}:${a}`;
-  };
-  const line = `${seg('p1')} · ${seg('p2')} · ${seg('p3')}`;
-  if (line === '-:- · -:- · -:-') return null;
-  return line;
 }
 
 function isSensibleScorerMinute(minuteLabel: string): boolean {
@@ -153,7 +138,10 @@ export const ResultFeedPostCard: React.FC<Props> = ({
   }, [post.id]);
 
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
-  const periodLine = formatPeriodScoresBrief(p.period_scores);
+  const periodBracketLine = useMemo(
+    () => formatPeriodScoresBracketFromRaw(p.period_scores),
+    [p.period_scores],
+  );
   const captionTrim = post.caption?.trim() ?? '';
 
   const filteredScorers = useMemo(
@@ -229,8 +217,8 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       />
       <FeedPostTypeBadge>Ergebnis</FeedPostTypeBadge>
 
-      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-4`}>
-        <div className="relative min-w-0 overflow-hidden rounded-none border-y border-[rgba(255,71,71,0.15)] px-2 pb-3.5 pt-3 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-3.5 sm:pt-3.5">
+      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
+        <div className="relative min-w-0 overflow-hidden rounded-none border-y border-[rgba(255,71,71,0.15)] px-2 pb-4 pt-3 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-4 sm:pt-3.5">
           <div className="pointer-events-none absolute inset-0" aria-hidden>
             <img
               src={stadiumBgUrl}
@@ -270,30 +258,29 @@ export const ResultFeedPostCard: React.FC<Props> = ({
                 <FeedClubName fullName={p.home_team_name} variant="compact" className="w-full px-0.5" />
               </div>
 
-              <p
-                className="px-0.5 text-center text-[2.85rem] font-black tabular-nums leading-none tracking-tighter text-white min-[390px]:text-[3.25rem] sm:px-1 sm:text-[4.25rem] sm:tracking-tight"
-                style={{ textShadow: presentation.scoreShadow }}
-              >
-                {p.home_score}
-                <span className="mx-0.5 align-middle text-[0.5em] font-black text-red-400/70 sm:mx-1">
-                  :
-                </span>
-                {p.away_score}
-              </p>
+              <div className="flex min-w-0 flex-col items-center justify-center px-0.5 text-center">
+                <p
+                  className="text-[2.85rem] font-black tabular-nums leading-none tracking-tighter text-white min-[390px]:text-[3.25rem] sm:text-[4.25rem] sm:tracking-tight"
+                  style={{ textShadow: presentation.scoreShadow }}
+                >
+                  {p.home_score}
+                  <span className="mx-0.5 align-middle text-[0.5em] font-black text-red-400/70 sm:mx-1">
+                    :
+                  </span>
+                  {p.away_score}
+                </p>
+                {periodBracketLine ? (
+                  <p className="mt-0.5 max-w-[14rem] text-center text-[11px] font-medium tabular-nums leading-snug text-white/55 sm:max-w-none sm:text-[12px]">
+                    {periodBracketLine}
+                  </p>
+                ) : null}
+              </div>
 
               <div className="flex min-w-0 flex-col items-center gap-0.5 text-center sm:gap-1">
                 <LogoBlock src={p.away_logo_url} alt={`${p.away_team_name} Logo`} />
                 <FeedClubName fullName={p.away_team_name} variant="compact" className="w-full px-0.5" />
               </div>
             </div>
-
-            {periodLine ? (
-              <div className="flex justify-center">
-                <span className="inline-flex items-center rounded-full border border-[rgba(255,71,71,0.12)] bg-black/35 px-2.5 py-0.5 text-[9px] font-semibold tabular-nums tracking-[0.06em] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-3 sm:py-1 sm:text-[10px]">
-                  Drittel {periodLine}
-                </span>
-              </div>
-            ) : null}
 
             {filteredScorers.length > 0 ? (
               <div className="rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-1.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-2.5 sm:py-2.5">
@@ -352,7 +339,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
         </div>
       </div>
 
-      <div className={FEED_CAPTION_FOOTER_CLASS}>
+      <div className={`${FEED_CAPTION_FOOTER_CLASS} pb-[max(1.25rem,calc(0.75rem+env(safe-area-inset-bottom,0px)))]`}>
         {shareHint ? <p className="text-center text-[12px] text-white/55">{shareHint}</p> : null}
 
         <FeedStandardActions

@@ -172,3 +172,9 @@ export function sumPeriodScoresTriplet(t: PeriodScoresTriplet): { home: number; 
 export function formatPeriodScoresBracket(t: PeriodScoresTriplet): string {
   return `(${t.p1.h}:${t.p1.a} | ${t.p2.h}:${t.p2.a} | ${t.p3.h}:${t.p3.a})`;
 }
+
+/** Wie Termine „Vergangen“: `(2:0 | 1:1 | 1:2)` aus rohem `period_scores`. */
+export function formatPeriodScoresBracketFromRaw(raw: unknown): string | null {
+  const triplet = parsePeriodScores(raw);
+  return triplet ? formatPeriodScoresBracket(triplet) : null;
+}

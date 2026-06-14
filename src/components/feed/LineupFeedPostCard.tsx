@@ -195,8 +195,8 @@ export const LineupFeedPostCard: React.FC<Props> = ({
         </span>
       </FeedPostTypeBadge>
 
-      <div className={`${FEED_POST_BODY_CLASS} pb-4`}>
-        <div className="relative overflow-hidden rounded-none border-y border-[rgba(255,71,71,0.15)] px-2 pb-4 pt-3 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-4 sm:pt-4">
+      <div className={`${FEED_POST_BODY_CLASS} pb-6`}>
+        <div className="relative overflow-hidden rounded-none border-y border-[rgba(255,71,71,0.15)] px-2 pb-5 pt-3 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-5 sm:pt-4">
           {/* Stadion-Backdrop: Crowd-Silhouetten, Flutlicht oben, roter Nebel unten */}
           <div className="pointer-events-none absolute inset-0" aria-hidden>
             <img
@@ -324,7 +324,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
           <p className={`${FEED_POST_BODY_INSET_CLASS} mt-2 text-center text-[12px] text-white/60`}>{shareHint}</p>
         ) : null}
 
-        <div className={`${FEED_ACTIONS_ROW_CLASS} mx-0 justify-center gap-6 border-t-0 pb-2 pt-1`}>
+        <div className={`${FEED_ACTIONS_ROW_CLASS} mx-0 justify-center gap-6 border-t-0 pb-[max(1.25rem,calc(0.75rem+env(safe-area-inset-bottom,0px)))] pt-1`}>
           <button
             type="button"
             onClick={onToggleLike}
