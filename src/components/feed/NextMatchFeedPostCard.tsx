@@ -179,7 +179,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
       <FeedPostTypeBadge>Ankündigung</FeedPostTypeBadge>
 
       <div className={`${FEED_POST_BODY_CLASS} pb-3`}>
-        <div className="relative overflow-hidden rounded-[20px] border border-[rgba(255,71,71,0.15)] px-3 pb-4 pt-4 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="relative overflow-hidden rounded-none border-y border-[rgba(255,71,71,0.15)] px-2 pb-3 pt-3 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-4 sm:pt-4">
           {/* Stadion-Backdrop: Crowd-Silhouetten, Flutlicht oben, roter Nebel unten */}
           <div className="pointer-events-none absolute inset-0" aria-hidden>
             <img
@@ -198,7 +198,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
             <p className="text-center text-[18px] font-black uppercase leading-none tracking-[0.2em] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.7),0_0_18px_rgba(255,71,71,0.45)] sm:text-[20px] sm:tracking-[0.24em]">
               Nächstes Spiel
             </p>
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 pt-0.5">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 pt-0.5">
               <div className="min-w-0 space-y-1.5">
                 <div className="flex justify-center">
                   <LogoBlock src={homeLogoUrl} alt={`${p.display_home_name} Logo`} />
@@ -246,7 +246,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
             <div className="flex justify-center pt-1">
               <Link
                 to={gameHref}
-                className="inline-flex min-h-[48px] w-full max-w-[22rem] touch-manipulation items-center justify-center rounded-[22px] bg-gradient-to-b from-[#FF4747] to-[#E31D2F] px-6 text-[14px] font-bold tracking-[0.02em] text-white shadow-[0_10px_26px_rgba(227,29,47,0.38),inset_0_1px_0_rgba(255,255,255,0.28),0_2px_8px_rgba(0,0,0,0.4)] transition hover:brightness-110 active:scale-[0.98]"
+                className="inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-[22px] bg-gradient-to-b from-[#FF4747] to-[#E31D2F] px-6 text-[14px] font-bold tracking-[0.02em] text-white shadow-[0_10px_26px_rgba(227,29,47,0.38),inset_0_1px_0_rgba(255,255,255,0.28),0_2px_8px_rgba(0,0,0,0.4)] transition hover:brightness-110 active:scale-[0.98]"
               >
                 Zum Spiel
               </Link>

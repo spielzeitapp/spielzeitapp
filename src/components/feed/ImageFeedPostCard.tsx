@@ -96,7 +96,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
 
       <div className={FEED_POST_BODY_CLASS}>
         {resolvedSrc ? (
-          <div className="overflow-hidden rounded-2xl border border-red-900/25 bg-black">
+          <div className="overflow-hidden rounded-none border-y border-red-900/25 bg-black sm:rounded-2xl sm:border">
             <img
               src={resolvedSrc}
               alt=""

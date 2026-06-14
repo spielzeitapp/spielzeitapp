@@ -19,6 +19,7 @@ import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import {
   FEED_POST_BODY_CLASS,
+  FEED_POST_BODY_INSET_CLASS,
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
   FeedPostHeader,
@@ -306,7 +307,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           <p className="mt-2 text-center text-[12px] text-white/65">{shareHint}</p>
         ) : null}
         <div
-          className="mx-0 flex gap-2 border-t border-white/[0.06] pt-2"
+          className={`${FEED_POST_BODY_INSET_CLASS} flex gap-2 border-t border-white/[0.06] pt-2`}
           style={{ boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.04)' }}
         >
           <Link

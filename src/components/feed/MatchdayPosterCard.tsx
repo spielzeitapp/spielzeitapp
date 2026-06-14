@@ -101,7 +101,7 @@ export const MatchdayPosterCard = React.forwardRef<HTMLDivElement, MatchdayPoste
     return (
       <div
         ref={ref}
-        className="relative w-full overflow-hidden rounded-2xl border border-red-500/40 p-[1px] sm:rounded-3xl"
+        className="relative w-full overflow-hidden rounded-none border-y border-red-500/40 p-[1px] sm:rounded-3xl sm:border"
         style={{ boxShadow: SHELL_SHADOW }}
       >
         <MatchdayPosterArtwork

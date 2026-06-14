@@ -230,7 +230,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       <FeedPostTypeBadge>Ergebnis</FeedPostTypeBadge>
 
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-3`}>
-        <div className="relative min-w-0 overflow-hidden rounded-[20px] border border-[rgba(255,71,71,0.15)] px-2.5 pb-3 pt-3 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)] sm:px-3 sm:pb-3.5 sm:pt-3.5">
+        <div className="relative min-w-0 overflow-hidden rounded-none border-y border-[rgba(255,71,71,0.15)] px-2 pb-3 pt-3 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-3.5 sm:pt-3.5">
           <div className="pointer-events-none absolute inset-0" aria-hidden>
             <img
               src={stadiumBgUrl}
@@ -264,7 +264,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
               </p>
             </div>
 
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 pt-0.5">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-0.5 pt-0.5 sm:gap-1">
               <div className="flex min-w-0 flex-col items-center gap-0.5 text-center sm:gap-1">
                 <LogoBlock src={p.home_logo_url} alt={`${p.home_team_name} Logo`} />
                 <FeedClubName fullName={p.home_team_name} variant="compact" className="w-full px-0.5" />
@@ -296,7 +296,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
             ) : null}
 
             {filteredScorers.length > 0 ? (
-              <div className="rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-2.5 sm:py-2.5">
+              <div className="rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-1.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-2.5 sm:py-2.5">
                 <p className="text-[10px] font-black uppercase tracking-[0.14em] text-red-200/90 sm:text-[11px]">
                   Torschützen
                 </p>
@@ -307,7 +307,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
                     return (
                       <li
                         key={`${s.player_name}-${i}`}
-                        className="grid grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-x-2 rounded-lg bg-white/[0.03] px-2 py-1.5 sm:grid-cols-[3.5rem_minmax(0,1fr)] sm:gap-x-2.5 sm:px-2.5"
+                        className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 rounded-lg bg-white/[0.03] px-1.5 py-1.5 sm:gap-x-2.5 sm:px-2.5"
                       >
                         <span className="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-bold tabular-nums leading-none text-red-200/90 sm:text-[12px]">
                           <span aria-hidden className="text-[12px]">

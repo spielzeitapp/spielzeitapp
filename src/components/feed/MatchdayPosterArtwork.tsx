@@ -249,7 +249,7 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
       livePulse: false,
     };
     const venueLine = isHomeGame === true ? 'Heimspiel' : isHomeGame === false ? 'Auswärtsspiel' : null;
-    const padX = compact ? 'px-2' : 'px-3 sm:px-3.5';
+    const padX = compact ? 'px-2' : 'px-2 sm:px-2.5';
     const padY = compact ? 'py-3 pb-4' : 'py-3.5 pb-4.5 sm:py-4 sm:pb-5.5';
     const showMetaRow = Boolean(meetingTime) || Boolean(location && location !== '—');
 

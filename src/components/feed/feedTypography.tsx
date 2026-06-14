@@ -19,15 +19,18 @@ export const FEED_POST_BADGE_ROW_CLASS =
 export const FEED_POST_TYPE_BADGE_CLASS =
   'inline-flex rounded-full border border-red-500/35 bg-red-950/55 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/95';
 
-export const FEED_POST_BODY_CLASS = 'min-w-0 px-3 pb-1 pt-0 sm:px-4';
+export const FEED_POST_BODY_CLASS = 'min-w-0 px-0 pb-0 pt-0';
 
-export const FEED_POST_CAPTION_AFTER_MEDIA_CLASS = 'mt-3 mb-0.5';
+/** Text/Actions unter Vollbreite-Medien — ein Padding-Layer (12–16px). */
+export const FEED_POST_BODY_INSET_CLASS = 'px-3 sm:px-4';
+
+export const FEED_POST_CAPTION_AFTER_MEDIA_CLASS = 'mt-3 mb-0.5 px-3 sm:px-4';
 
 export const FEED_CAPTION_FOOTER_CLASS =
   'min-w-0 border-t border-white/[0.04] bg-[#060606]/95 px-3 pb-[max(0.35rem,calc(0.2rem+env(safe-area-inset-bottom,0px)))] pt-3 sm:px-4';
 
 export const FEED_ACTIONS_ROW_CLASS =
-  'mx-3 flex items-center justify-between gap-0 border-t border-white/[0.06] pt-2 sm:mx-4';
+  'flex items-center justify-between gap-0 border-t border-white/[0.06] px-3 pt-2 sm:px-4';
 
 export const FEED_ACTION_BUTTON_CLASS =
   'inline-flex min-h-[40px] flex-1 touch-manipulation items-center justify-center gap-1 rounded-lg py-1.5 text-[13px] font-semibold transition-colors sm:min-h-[42px] sm:text-sm';
