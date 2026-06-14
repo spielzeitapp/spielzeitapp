@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
+import { PlayerLoginPanel } from '../components/auth/PlayerLoginPanel';
+import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import { setRememberMePreference, supabase } from '../lib/supabaseClient';
 
 const inputClass =
@@ -15,8 +17,18 @@ export const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPlayerLogin, setShowPlayerLogin] = useState(false);
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/app/termine';
+  const playerLoginEnabled = isPlayerQrAccessEnabled();
+
+  if (showPlayerLogin) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-8">
+        <PlayerLoginPanel onBack={() => setShowPlayerLogin(false)} />
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +109,21 @@ export const LoginPage: React.FC = () => {
             {loading ? 'Wird angemeldet…' : 'Anmelden'}
           </Button>
         </form>
+
+        {playerLoginEnabled ? (
+          <div className="mt-4 border-t border-white/10 pt-4">
+            <button
+              type="button"
+              onClick={() => setShowPlayerLogin(true)}
+              className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10"
+            >
+              Spieler-Login
+            </button>
+            <p className="mt-2 text-center text-[11px] text-white/50">
+              Für Kinder ohne E-Mail — Code und PIN von den Eltern
+            </p>
+          </div>
+        ) : null}
 
         <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4">
           <Link
