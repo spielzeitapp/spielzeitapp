@@ -295,11 +295,11 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     error: trainingStatsError,
   } = usePlayerTrainingStats(player.id, player.team_season_id, canViewTrainingParticipation);
 
-  const goalsPer90Display = useMemo(() => {
-    const v = Number(stats.goalsPer90);
+  const goalsPerGameDisplay = useMemo(() => {
+    const v = Number(stats.goalsPerGame);
     if (!Number.isFinite(v)) return "0.00";
     return v.toFixed(2);
-  }, [stats.goalsPer90]);
+  }, [stats.goalsPerGame]);
 
   const { line1: firstNameLine, line2: lastNameLine } = nameHeroLines(player);
   const avatarSrc = (photoUrl ?? "").trim() || "/avatars/player-placeholder.png";
@@ -525,7 +525,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   <ProfileStatTile
                     icon={<PLAYER_STAT_TILES.goalsPerGame />}
                     label="Tore / Spiel"
-                    value={goalsPer90Display}
+                    value={goalsPerGameDisplay}
                   />
                   <ProfileStatTile
                     icon={<PLAYER_STAT_TILES.deployments />}
