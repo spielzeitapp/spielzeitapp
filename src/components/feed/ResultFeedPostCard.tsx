@@ -229,8 +229,8 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       />
       <FeedPostTypeBadge>Ergebnis</FeedPostTypeBadge>
 
-      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-3`}>
-        <div className="relative min-w-0 overflow-hidden rounded-none border-y border-[rgba(255,71,71,0.15)] px-2 pb-3 pt-3 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-3.5 sm:pt-3.5">
+      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-4`}>
+        <div className="relative min-w-0 overflow-hidden rounded-none border-y border-[rgba(255,71,71,0.15)] px-2 pb-3.5 pt-3 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-3.5 sm:pt-3.5">
           <div className="pointer-events-none absolute inset-0" aria-hidden>
             <img
               src={stadiumBgUrl}
@@ -248,7 +248,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
             ) : null}
           </div>
 
-          <div className="relative min-w-0 space-y-2.5">
+          <div className="relative min-w-0 space-y-3">
             {matchMetaLine ? (
               <FeedMatchMetaLine line={matchMetaLine} className="text-center" />
             ) : null}
@@ -326,7 +326,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
             ) : null}
 
             {captionTrim ? (
-              <div className="rounded-2xl border border-white/[0.06] bg-black/30 px-2 py-2 sm:px-2.5 sm:py-2.5">
+              <div className="mt-0.5 rounded-2xl border border-white/[0.06] bg-black/30 px-2 py-2 sm:px-2.5 sm:py-2.5">
                 <p className="text-[10px] font-black uppercase tracking-[0.14em] text-red-200/85 sm:text-[11px]">
                   Kurzbericht
                 </p>

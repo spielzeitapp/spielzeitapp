@@ -304,7 +304,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
         ) : null}
 
         {shareHint ? (
-          <p className="mt-2 text-center text-[12px] text-white/65">{shareHint}</p>
+          <p className={`${FEED_POST_BODY_INSET_CLASS} mt-2 text-center text-[12px] text-white/65`}>{shareHint}</p>
         ) : null}
         <div
           className={`${FEED_POST_BODY_INSET_CLASS} flex gap-2 border-t border-white/[0.06] pt-2`}

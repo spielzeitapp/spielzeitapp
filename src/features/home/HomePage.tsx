@@ -178,7 +178,7 @@ export const HomePage: React.FC = () => {
     <PageShell
       variant="subtle"
       showAtmosphere={false}
-      className="page app-home min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-28 pt-2 sm:px-4 md:px-0"
+      className="page app-home min-h-[60vh] w-full max-w-none min-w-0 overflow-x-hidden px-3 pb-[max(7rem,calc(5.75rem+env(safe-area-inset-bottom,0px)))] pt-4 sm:px-4 sm:pt-5 md:px-0"
       contentClassName="mx-auto w-full min-w-0 max-w-none space-y-3 md:max-w-3xl lg:max-w-4xl"
     >
       {loading && <p className="text-sm text-white/50">Laden…</p>}
@@ -216,7 +216,7 @@ export const HomePage: React.FC = () => {
               />
             ) : null}
 
-            <section className="min-w-0 space-y-3" aria-label="Team-Feed">
+            <section className="min-w-0 space-y-3 pt-2 sm:pt-1" aria-label="Team-Feed">
               <SectionTitle variant="interactive" as="p" className="!text-[11px] sm:!text-xs">
                 Im Feed
               </SectionTitle>
