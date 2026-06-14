@@ -1,4 +1,5 @@
 import React from "react";
+import { BarChart3 } from "lucide-react";
 import { getTrainingPlayerListSrc } from "../../../config/trainingIconVariant";
 
 type IconProps = { className?: string };
@@ -125,6 +126,10 @@ export function StatIconShield({ className = deco }: IconProps) {
   );
 }
 
+export function StatIconBarChart({ className = deco }: IconProps) {
+  return <BarChart3 className={className} strokeWidth={1.8} aria-hidden />;
+}
+
 export function StatIconTrendingUp({ className = deco }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
@@ -144,7 +149,7 @@ export function StatIconTrendingUp({ className = deco }: IconProps) {
 export const PLAYER_STAT_TILES = {
   games: StatIconPitch,
   goals: StatIconFootball,
-  avgMinutesPerGame: StatIconTrendingUp,
+  avgMinutesPerGame: StatIconBarChart,
   minutes: StatIconStopwatch,
   deployments: StatIconTrophy,
   goalsPerGame: StatIconTarget,
