@@ -11,6 +11,13 @@ import { useProfile, profileDisplayName } from '../auth/useProfile';
 import { supabase } from '../lib/supabaseClient';
 import { Card, CardTitle } from '../app/components/ui/Card';
 import { PushNotificationsButton } from '../components/PushNotificationsButton';
+import { PlayerAccessQrPanel } from '../components/player/PlayerAccessQrPanel';
+import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
+
+type LinkedChild = {
+  id: string;
+  name: string;
+};
 
 /** Profil-Lade-Timeout: danach Fallback-Karte statt stiller Blockade */
 const PROFILE_LOAD_TIMEOUT_MS = 12000;
@@ -74,7 +81,7 @@ export const ProfilePage: React.FC = () => {
     membershipError,
   } = useSession();
 
-  const [linkedChildren, setLinkedChildren] = useState<string[]>([]);
+  const [linkedChildren, setLinkedChildren] = useState<LinkedChild[]>([]);
   const [childrenLoading, setChildrenLoading] = useState(false);
   const [childrenError, setChildrenError] = useState<string | null>(null);
 
@@ -229,14 +236,16 @@ export const ProfilePage: React.FC = () => {
           return;
         }
 
-        const names = (playerRows ?? []).map((row: { first_name?: string; last_name?: string }) => {
-          const first = (row.first_name ?? '').toString().trim();
-          const last = (row.last_name ?? '').toString().trim();
-          const label = `${first} ${last}`.trim() || 'Spieler';
-          return label;
-        });
+        const children = (playerRows ?? []).map(
+          (row: { id?: string; first_name?: string; last_name?: string }) => {
+            const first = (row.first_name ?? '').toString().trim();
+            const last = (row.last_name ?? '').toString().trim();
+            const label = `${first} ${last}`.trim() || 'Spieler';
+            return { id: String(row.id ?? ''), name: label };
+          },
+        ).filter((c) => c.id.length > 0);
 
-        if (!cancelled) setLinkedChildren(names);
+        if (!cancelled) setLinkedChildren(children);
       } catch (e: unknown) {
         if (!cancelled) {
           console.error('[PROFILE CHILDREN LOAD ERROR]', e);
@@ -275,6 +284,9 @@ export const ProfilePage: React.FC = () => {
       </div>
     );
   }, [profileLoadTimedOut, blockingLoad]);
+
+  const showLinkedChildrenSection =
+    effectiveRole === 'parent' || (isPlayerQrAccessEnabled() && linkedChildren.length > 0);
 
   return (
     <div
@@ -332,7 +344,7 @@ export const ProfilePage: React.FC = () => {
             Team: <span className="font-medium text-[var(--text-main)]">{selectedTeamName}</span>
           </p>
 
-          {effectiveRole === 'parent' && (
+          {showLinkedChildrenSection && (
             <ProfileSectionErrorBoundary label="Verknüpfte Kinder">
               <div className="mt-4 border-t border-white/10 pt-3 text-sm text-[var(--text-sub)]">
                 <div className="font-medium text-[var(--text-main)]">Verknüpfte Kinder</div>
@@ -343,9 +355,14 @@ export const ProfilePage: React.FC = () => {
                 ) : linkedChildren.length === 0 ? (
                   <p className="mt-0.5 text-xs text-[var(--text-sub)]">Kein Kind verknüpft.</p>
                 ) : (
-                  <ul className="mt-0.5 list-disc pl-4 text-xs text-[var(--text-main)]">
-                    {linkedChildren.map((name) => (
-                      <li key={name}>{name}</li>
+                  <ul className="mt-2 space-y-3">
+                    {linkedChildren.map((child) => (
+                      <li key={child.id} className="text-xs text-[var(--text-main)]">
+                        <span className="font-medium">{child.name}</span>
+                        {isPlayerQrAccessEnabled() ? (
+                          <PlayerAccessQrPanel playerId={child.id} playerName={child.name} />
+                        ) : null}
+                      </li>
                     ))}
                   </ul>
                 )}
