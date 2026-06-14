@@ -20,6 +20,7 @@ import {
   FeedStandardActions,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
+import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 import { formatPeriodScoresBracketFromRaw } from '../../lib/matchEventScores';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
