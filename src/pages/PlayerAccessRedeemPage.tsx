@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useSession } from '../auth/useSession';
 import { isPlayerQrAccessEnabled } from '../lib/playerAccessFeature';
 import { mapPlayerAccessRedeemError } from '../lib/playerAccessRedeemErrors';
+import { INTRO_WELCOME_PATH } from '../app/intro/introFlowSession';
 
 type RedeemPhase = 'idle' | 'working' | 'success' | 'error';
 
@@ -72,7 +73,7 @@ export const PlayerAccessRedeemPage: React.FC = () => {
 
         setPreviewRole('player');
         setPhase('success');
-        window.location.replace('/app/home');
+        window.location.replace(INTRO_WELCOME_PATH);
       } catch (e: unknown) {
         if (!alive) return;
         setPhase('error');
@@ -117,7 +118,7 @@ export const PlayerAccessRedeemPage: React.FC = () => {
       {phase === 'success' ? (
         <>
           <p className="text-lg font-semibold text-white">Willkommen!</p>
-          <p className="mt-2 text-sm text-white/60">Weiterleitung zur App…</p>
+          <p className="mt-2 text-sm text-white/60">Weiterleitung zur Willkommensseite…</p>
         </>
       ) : null}
 

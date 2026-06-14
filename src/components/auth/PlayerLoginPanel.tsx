@@ -7,6 +7,7 @@ import {
   mapPlayerLoginError,
   type PlayerCodeLoginResult,
 } from '../../lib/playerLoginErrors';
+import { INTRO_WELCOME_PATH } from '../../app/intro/introFlowSession';
 import { supabase } from '../../lib/supabaseClient';
 
 const inputClass =
@@ -70,7 +71,7 @@ export const PlayerLoginPanel: React.FC<Props> = ({ onBack }) => {
       }
 
       setPreviewRole('player');
-      window.location.replace('/app/home');
+      window.location.replace(INTRO_WELCOME_PATH);
     } catch (e: unknown) {
       setError(mapPlayerLoginError(e instanceof Error ? e.message : String(e)));
     } finally {
