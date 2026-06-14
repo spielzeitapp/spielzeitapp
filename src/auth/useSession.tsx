@@ -146,6 +146,10 @@ interface SessionContextValue {
   selectedMembership: MembershipWithJoin | null;
   /** True, wenn es mindestens eine pending Spieler-Anfrage (join_requests.requested_role='player') gibt. */
   hasPendingPlayerRequest: boolean;
+  /** Aus player_users.access_mode — null wenn keine Verknüpfung. */
+  playerAccessMode: 'full' | 'view_only' | null;
+  /** QR-U11-Spieler: nur Lesen, kein Zu-/Absage. */
+  isViewOnlyPlayer: boolean;
 }
 
 const SessionContext = createContext<SessionContextValue | undefined>(undefined);
@@ -168,6 +172,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   /** Kein Restore aus localStorage: Preview darf den Login-Flow nicht überschreiben. */
   const [previewRole, setPreviewRoleState] = useState<string | null>(null);
   const [hasPendingPlayerRequest, setHasPendingPlayerRequest] = useState(false);
+  const [playerAccessMode, setPlayerAccessMode] = useState<'full' | 'view_only' | null>(null);
 
   const selectedTeamSeason = useMemo(
     () => teamSeasons.find((ts) => ts.id === selectedTeamSeasonId) ?? null,
@@ -304,6 +309,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!authUser) {
       setRoleFromUserRoles(null);
       setHasPendingPlayerRequest(false);
+      setPlayerAccessMode(null);
       setPreviewRoleState(null);
       try {
         window.localStorage.removeItem(PREVIEW_ROLE_STORAGE_KEY);
@@ -323,6 +329,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setSelectedTeamSeasonIdState(null);
       setMemberships([]);
       setHasPendingPlayerRequest(false);
+      setPlayerAccessMode(null);
       return;
     }
 
@@ -472,6 +479,28 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
           console.warn('[useSession] join_requests(player,pending) exception:', msg);
           if (!cancelled) setHasPendingPlayerRequest(false);
         }
+
+        try {
+          if (!cancelled) {
+            const { data: puData, error: puError } = await supabase
+              .from('player_users')
+              .select('access_mode')
+              .eq('user_id', authUser.id);
+            if (puError) {
+              console.warn('[useSession] player_users access_mode error:', puError.message);
+              setPlayerAccessMode(null);
+            } else if (!puData?.length) {
+              setPlayerAccessMode(null);
+            } else {
+              const viewOnly = (puData as { access_mode?: string | null }[]).some(
+                (r) => r.access_mode === 'view_only',
+              );
+              setPlayerAccessMode(viewOnly ? 'view_only' : 'full');
+            }
+          }
+        } catch {
+          if (!cancelled) setPlayerAccessMode(null);
+        }
       } finally {
         if (!cancelled) {
           console.info('[startup] memberships fetch end');
@@ -561,6 +590,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     effectiveRole,
     selectedMembership,
     hasPendingPlayerRequest,
+    playerAccessMode,
+    isViewOnlyPlayer: playerAccessMode === 'view_only',
   };
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

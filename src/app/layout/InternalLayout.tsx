@@ -20,6 +20,7 @@ const ONBOARDING_EXEMPT_PATHS = [
   '/app/role-choice',
   '/app/set-password',
   '/app/player-onboarding',
+  '/app/player-access',
 ] as const;
 
 function isOnboardingExemptPath(pathname: string): boolean {

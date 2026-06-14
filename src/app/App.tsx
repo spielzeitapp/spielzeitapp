@@ -45,6 +45,7 @@ import { AdminDashboardPage } from '../pages/AdminDashboardPage';
 import { SetupAdminPage } from '../pages/SetupAdminPage';
 import { RolesAdminPage } from '../pages/RolesAdminPage';
 import { JoinRequestsAdminPage } from '../pages/JoinRequestsAdminPage';
+import { PlayerAccessRedeemPage } from '../pages/PlayerAccessRedeemPage';
 
 /** Freundliche Fallback-UI statt endloser „App lädt…“ nach Render-Crash */
 function AppErrorFallback({
@@ -172,6 +173,7 @@ function InternalRoutes(): React.ReactElement {
       <Route path="login" element={<LoginPage />} />
       <Route path="register" element={<RegisterPage />} />
       <Route path="forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="app/player-access" element={<PlayerAccessRedeemPage />} />
       <Route path="schedule" element={<Navigate to="/app/termine" replace />} />
       <Route path="live" element={<LiveShortcutRedirect />} />
       <Route path="app" element={<RequireAuth><IntroAppOutlet /></RequireAuth>}>

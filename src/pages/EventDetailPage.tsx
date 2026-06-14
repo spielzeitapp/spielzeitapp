@@ -448,8 +448,10 @@ export const EventDetailPage: React.FC = () => {
   const [feedSectionExpanded, setFeedSectionExpanded] = useState(false);
 
   const { teamLabel, role: roleFromHook } = useActiveTeamSeason();
-  const { user: sessionUser } = useSession();
+  const { user: sessionUser, isViewOnlyPlayer } = useSession();
   const effectiveRole = normalizeRole(roleFromHook);
+  const canShowSelfRsvp =
+    (effectiveRole === 'player' || effectiveRole === 'parent') && !isViewOnlyPlayer;
   const showMeetup = canSeeMeetup(effectiveRole);
   const isFan = effectiveRole === 'fan';
   /** Trainer/Chef/Co/Admin: Spielplan & Spielbericht (Membership-Rolle ist bereits normalisiert). */
@@ -461,6 +463,7 @@ export const EventDetailPage: React.FC = () => {
   const { myAttendancePlayerIds } = useAvailabilityPermissions({
     role: effectiveRole,
     teamSeasonId,
+    viewOnlyPlayer: isViewOnlyPlayer,
   });
   const playerId = myAttendancePlayerIds[0] ?? null;
   const { isLazPlayer: linkedPlayerIsLaz } = useLinkedPlayerIsLaz(playerId);
@@ -3202,7 +3205,7 @@ export const EventDetailPage: React.FC = () => {
           </Card>
         ) : null}
 
-        {isAudienceMatchDetail && (effectiveRole === 'player' || effectiveRole === 'parent') ? (
+        {isAudienceMatchDetail && canShowSelfRsvp ? (
           <Card className="flex flex-col gap-3 border border-white/[0.06] bg-[rgba(10,10,14,0.97)]">
             <CardTitle>Zu-/Absagen</CardTitle>
             {!playerId ? (
@@ -3270,7 +3273,7 @@ export const EventDetailPage: React.FC = () => {
         ) : null}
 
         {!isFan &&
-        !(isAudienceMatchDetail && (effectiveRole === 'player' || effectiveRole === 'parent')) ? (
+        !(isAudienceMatchDetail && canShowSelfRsvp) ? (
           <Card
             className={
               isTraining
@@ -3412,7 +3415,7 @@ export const EventDetailPage: React.FC = () => {
                   </>
                 )}
               </div>
-            ) : (effectiveRole === 'player' || effectiveRole === 'parent') && !isAudienceMatchDetail ? (
+            ) : canShowSelfRsvp && !isAudienceMatchDetail ? (
               <div className="flex flex-col gap-2">
                 {!playerId ? (
                   <p className="text-[14px] text-white/90">Kein Spieler zugeordnet. Bitte beim Trainer melden.</p>

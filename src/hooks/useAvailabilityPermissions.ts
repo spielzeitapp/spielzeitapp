@@ -4,8 +4,10 @@ import { supabase } from "../lib/supabaseClient";
 export function useAvailabilityPermissions(params: {
   role: string | null;
   teamSeasonId: string | null;
+  /** QR-U11 view_only: kein Zu-/Absage. */
+  viewOnlyPlayer?: boolean;
 }) {
-  const { role } = params;
+  const { role, viewOnlyPlayer } = params;
 
   const [allowedPlayerIds, setAllowedPlayerIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -112,11 +114,19 @@ export function useAvailabilityPermissions(params: {
   }, [role]);
 
   const canEdit = useMemo(() => {
+    if (viewOnlyPlayer) {
+      return (_playerId: string) => false;
+    }
     return (playerId: string) => {
       if (allowedPlayerIds.has("*")) return true;
       return allowedPlayerIds.has(playerId);
     };
-  }, [allowedPlayerIds]);
+  }, [allowedPlayerIds, viewOnlyPlayer]);
+
+  const canRsvp = useMemo(() => {
+    if (viewOnlyPlayer) return false;
+    return role === 'parent' || role === 'player';
+  }, [role, viewOnlyPlayer]);
 
   /** Für Parent: Kinder (player_guardians). Für Player: Selbst (player_users). Für Trainer: []. Für Zu-/Absage-Persistenz. */
   const myAttendancePlayerIds = useMemo(() => {
@@ -124,5 +134,5 @@ export function useAvailabilityPermissions(params: {
     return Array.from(allowedPlayerIds);
   }, [allowedPlayerIds]);
 
-  return { canEdit, myAttendancePlayerIds, loading, error };
+  return { canEdit, myAttendancePlayerIds, canRsvp, loading, error };
 }

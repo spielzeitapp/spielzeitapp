@@ -166,7 +166,7 @@ export const SchedulePage: React.FC = () => {
     useActiveTeamSeason();
   const { teamSeasonId: publicTeamId, teamLabel: publicLabel, loading: publicLoading } =
     usePublicTeamSeason();
-  const { selectedMembership, user, selectedTeamSeason } = useSession();
+  const { selectedMembership, user, selectedTeamSeason, isViewOnlyPlayer } = useSession();
   const userId = user?.id ?? null;
   const effectiveTeamSeasonId = teamSeasonId ?? publicTeamId;
   const { events: rawEvents, loading: eLoading, error: eError, refetch } = useEvents(effectiveTeamSeasonId);
@@ -241,6 +241,7 @@ export const SchedulePage: React.FC = () => {
   const uiRoleRaw = forcePublicView ? null : (backendRole ?? null);
   const normalizedUiRole = normalizeRole(uiRoleRaw);
   const uiRole = normalizedUiRole === 'fan' ? null : normalizedUiRole;
+  const canShowRsvpUi = (uiRole === 'parent' || uiRole === 'player') && !isViewOnlyPlayer;
   const canManage = forcePublicView ? false : canManageMatches(normalizedUiRole);
   const showMeetupForRole = forcePublicView ? true : canSeeMeetup(normalizedUiRole); // Öffentlich: Treffpunkt für alle
   const ourTeamName = teamLabel ?? publicLabel ?? getOurTeamDisplayName();
@@ -863,6 +864,7 @@ export const SchedulePage: React.FC = () => {
   const { myAttendancePlayerIds } = useAvailabilityPermissions({
     role: normalizedUiRole,
     teamSeasonId,
+    viewOnlyPlayer: isViewOnlyPlayer,
   });
 
   /**
@@ -1104,11 +1106,11 @@ export const SchedulePage: React.FC = () => {
                             : { yes: yesRaw, no, open };
                         const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
                         const myStatusFromDb =
-                          (uiRole === 'parent' || uiRole === 'player') &&
+                          canShowRsvpUi &&
                           myAttendancePlayerIds[0] &&
                           evAttendance?.availabilityByPlayerId[myPlayerIdKey];
                         const attendanceStatusMerged =
-                          uiRole === 'parent' || uiRole === 'player'
+                          canShowRsvpUi
                             ? attendanceStatusByEventId[ev.id] ?? myStatusFromDb ?? null
                             : undefined;
                         const matchScore = ev.match_id ? matchScoreById[ev.match_id] : undefined;
@@ -1136,7 +1138,7 @@ export const SchedulePage: React.FC = () => {
                         const heroShowsParentPill =
                           !forcePublicView &&
                           !isFinishedMatch &&
-                          (uiRole === 'parent' || uiRole === 'player');
+                          canShowRsvpUi;
                         const heroTopRight =
                           normalizedUiRole === 'fan'
                             ? null
@@ -1236,7 +1238,7 @@ export const SchedulePage: React.FC = () => {
                                   role={
                                     !forcePublicView && !isFinishedMatch && et === 'game' && normalizedUiRole === 'fan'
                                       ? 'fan'
-                                      : heroShowsParentPill && (uiRole === 'parent' || uiRole === 'player')
+                                      : heroShowsParentPill && canShowRsvpUi
                                         ? uiRole
                                         : null
                                   }
@@ -1316,11 +1318,11 @@ export const SchedulePage: React.FC = () => {
                           : { yes: yesRaw, no, open };
                       const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
                       const myStatusFromDb =
-                        (uiRole === 'parent' || uiRole === 'player') &&
+                        canShowRsvpUi &&
                         myAttendancePlayerIds[0] &&
                         evAttendance?.availabilityByPlayerId[myPlayerIdKey];
                       const attendanceStatusMerged =
-                        uiRole === 'parent' || uiRole === 'player'
+                        canShowRsvpUi
                           ? attendanceStatusByEventId[ev.id] ?? myStatusFromDb ?? null
                           : undefined;
                       const isFinishedMatch = et === 'game' && ev.status === 'finished' && Boolean(ev.match_id);
@@ -1330,7 +1332,7 @@ export const SchedulePage: React.FC = () => {
                         normalizedUiRole !== 'fan' &&
                         !forcePublicView &&
                         !isFinishedMatch &&
-                        (uiRole === 'parent' || uiRole === 'player');
+                        canShowRsvpUi;
                       const compactTrailing = showCompactTrainerStats ? (
                         <button
                           type="button"
@@ -1730,7 +1732,7 @@ export const SchedulePage: React.FC = () => {
                   {(() => {
                     const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
                     const myStatusFromDb =
-                      (uiRole === 'parent' || uiRole === 'player') && myAttendancePlayerIds[0] && attendanceByEventId[attendanceModalEvent.id]
+                      (canShowRsvpUi) && myAttendancePlayerIds[0] && attendanceByEventId[attendanceModalEvent.id]
                         ? attendanceByEventId[attendanceModalEvent.id].availabilityByPlayerId[myPlayerIdKey] ?? null
                         : null;
 
