@@ -297,8 +297,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
   const goalsPerGameDisplay = useMemo(() => {
     const v = Number(stats.goalsPerGame);
-    if (!Number.isFinite(v)) return "0.00";
-    return v.toFixed(2);
+    if (!Number.isFinite(v)) return "0.0";
+    return v.toFixed(1);
   }, [stats.goalsPerGame]);
 
   const avgMinutesPerGameDisplay = useMemo(() => {
