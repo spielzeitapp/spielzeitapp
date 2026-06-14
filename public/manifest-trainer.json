@@ -1,6 +1,6 @@
 {
-  "name": "Spielzeit Trainer",
-  "short_name": "Trainer",
+  "name": "SpielzeitApp",
+  "short_name": "SpielzeitApp",
   "start_url": "/app",
   "scope": "/app",
   "display": "standalone",

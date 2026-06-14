@@ -1,6 +1,6 @@
 {
   "name": "SpielzeitApp",
-  "short_name": "Spielzeit",
+  "short_name": "SpielzeitApp",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
