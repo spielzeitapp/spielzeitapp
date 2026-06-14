@@ -301,6 +301,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     return v.toFixed(2);
   }, [stats.goalsPerGame]);
 
+  const avgMinutesPerGameDisplay = useMemo(() => {
+    const v = Number(stats.averageMinutesPerGame);
+    if (!Number.isFinite(v)) return "0.0";
+    return v.toFixed(1);
+  }, [stats.averageMinutesPerGame]);
+
   const { line1: firstNameLine, line2: lastNameLine } = nameHeroLines(player);
   const avatarSrc = (photoUrl ?? "").trim() || "/avatars/player-placeholder.png";
   const jerseyWatermark =
@@ -491,9 +497,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                           value: String(stats.goals),
                         },
                         {
-                          Icon: PLAYER_STAT_TILES.assists,
-                          label: "Assists",
-                          value: String(stats.assists),
+                          Icon: PLAYER_STAT_TILES.avgMinutesPerGame,
+                          label: "Ø Min./Spiel",
+                          value: avgMinutesPerGameDisplay,
                         },
                         {
                           Icon: PLAYER_STAT_TILES.minutes,

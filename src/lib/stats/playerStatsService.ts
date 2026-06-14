@@ -14,6 +14,8 @@ export type PlayerSeasonStats = {
   minutes: number;
   /** Tore pro Spiel (goals / games). */
   goalsPerGame: number;
+  /** Durchschnittliche Spielminuten pro Einsatz (minutes / games). */
+  averageMinutesPerGame: number;
   goalsPer90: number;
   /** Legacy – nicht mehr in der Jugend-UI; bleibt für Aggregation/API-Kompatibilität. */
   yellowCards: number;
@@ -356,7 +358,7 @@ function aggregateForPlayer(
   const pid = playerId?.trim();
   if (!pid || matches.length === 0) {
     return {
-      stats: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPerGame: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
+      stats: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPerGame: 0, averageMinutesPerGame: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
       lastMatches: [],
     };
   }
@@ -431,6 +433,7 @@ function aggregateForPlayer(
   }
 
   const goalsPerGame = games > 0 ? goals / games : 0;
+  const averageMinutesPerGame = games > 0 ? minutes / games : 0;
   const goalsPer90 = minutes > 0 ? (goals / minutes) * 90 : 0;
 
   lastRows.sort((a, b) => {
@@ -440,7 +443,7 @@ function aggregateForPlayer(
   });
 
   return {
-    stats: { games, goals, assists, minutes, goalsPerGame, goalsPer90, yellowCards, redCards },
+    stats: { games, goals, assists, minutes, goalsPerGame, averageMinutesPerGame, goalsPer90, yellowCards, redCards },
     lastMatches: lastRows.slice(0, 5),
   };
 }
@@ -451,11 +454,11 @@ export async function getPlayerSeasonStats(
 ): Promise<{ data: PlayerSeasonStats; error: string | null }> {
   const { data: matches, error: mErr } = await fetchFinishedMatches(teamSeasonId);
   if (mErr)
-    return { data: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPerGame: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 }, error: mErr };
+    return { data: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPerGame: 0, averageMinutesPerGame: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 }, error: mErr };
   const matchIds = matches.map((m) => m.id);
   if (matchIds.length === 0) {
     return {
-      data: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPerGame: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
+      data: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPerGame: 0, averageMinutesPerGame: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
       error: null,
     };
   }
@@ -501,7 +504,7 @@ export async function getPlayerProfileStatsBundle(
   const { data: matches, error: mErr } = await fetchFinishedMatches(teamSeasonId);
   if (mErr) {
     return {
-      stats: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPerGame: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
+      stats: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPerGame: 0, averageMinutesPerGame: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
       lastMatches: [],
       error: mErr,
     };
@@ -509,7 +512,7 @@ export async function getPlayerProfileStatsBundle(
   const matchIds = matches.map((m) => m.id);
   if (matchIds.length === 0) {
     return {
-      stats: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPerGame: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
+      stats: { games: 0, goals: 0, assists: 0, minutes: 0, goalsPerGame: 0, averageMinutesPerGame: 0, goalsPer90: 0, yellowCards: 0, redCards: 0 },
       lastMatches: [],
       error: null,
     };

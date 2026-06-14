@@ -11,6 +11,7 @@ const EMPTY_STATS: PlayerSeasonStats = {
   assists: 0,
   minutes: 0,
   goalsPerGame: 0,
+  averageMinutesPerGame: 0,
   goalsPer90: 0,
   yellowCards: 0,
   redCards: 0,
