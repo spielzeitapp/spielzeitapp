@@ -5,10 +5,11 @@ import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
-import { formatMeetupTimeOnlyDe, getMatchTypeLabel } from '../match/matchCardLabels';
+import { getMatchTypeLabel } from '../match/matchCardLabels';
 import { isValidLogoUrl } from '../../utils/logoResolver';
 import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import { FeedClubName } from './FeedClubName';
+import { dsSecondaryCtaClass } from '../../lib/premiumDesignSystem';
 import {
   FEED_CAPTION_FOOTER_CLASS,
   FEED_POST_BODY_CLASS,
@@ -115,7 +116,7 @@ function LogoBlock({ src, alt }: { src: string; alt: string }) {
   if (!valid) {
     return (
       <div
-        className="flex h-[4.25rem] w-[4.25rem] shrink-0 items-center justify-center rounded-full border border-red-500/30 bg-black/45 shadow-[0_0_16px_rgba(0,0,0,0.4)] sm:h-20 sm:w-20"
+        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-red-500/30 bg-black/45 shadow-[0_0_16px_rgba(0,0,0,0.4)] sm:h-[4.25rem] sm:w-[4.25rem]"
         aria-label={alt}
       >
         <span className="text-[10px] font-black uppercase tracking-[0.12em] text-red-200/80">Club</span>
@@ -128,7 +129,7 @@ function LogoBlock({ src, alt }: { src: string; alt: string }) {
       alt={alt}
       loading="lazy"
       onError={() => setFailed(true)}
-      className="h-[4.25rem] w-[4.25rem] shrink-0 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)] sm:h-20 sm:w-20"
+      className="h-14 w-14 shrink-0 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)] sm:h-[4.25rem] sm:w-[4.25rem]"
     />
   );
 }
@@ -152,17 +153,12 @@ export const ResultFeedPostCard: React.FC<Props> = ({
   }, [post.id]);
 
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
-  const kickoffLabel = p.starts_at ? formatDateTimeMediumDeVienna(p.starts_at) : '—';
-  const meetingLabel = p.meeting_at ? formatMeetupTimeOnlyDe(p.meeting_at) : null;
   const periodLine = formatPeriodScoresBrief(p.period_scores);
+  const captionTrim = post.caption?.trim() ?? '';
 
   const filteredScorers = useMemo(
     () => p.scorers.filter((s) => isRealScorerName(s.player_name)),
     [p.scorers],
-  );
-  const showScorerMinutes = useMemo(
-    () => filteredScorers.some((s) => isSensibleScorerMinute(s.minute_label)),
-    [filteredScorers],
   );
 
   const presentation = resultPresentation(p.result_state);
@@ -212,18 +208,12 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     pickFeedAgeGroup(teamLabel, p.home_team_name, p.away_team_name),
     getMatchTypeLabel(p.match_type ?? undefined) || null,
   );
-  const metaBits = [
-    kickoffLabel !== '—' ? `Anpfiff ${kickoffLabel}` : null,
-    meetingLabel ? `Treff ${meetingLabel}` : null,
-  ].filter(Boolean);
-  const locTrim = (p.location ?? '').trim();
-  const metaLine = [...metaBits, locTrim || null].filter(Boolean).join(' · ');
 
   return (
     <FeedPostArticleShell
       className="!border-[rgba(255,71,71,0.15)]"
       style={{ boxShadow: presentation.articleShadow }}
-      data-feed-result-card="v2"
+      data-feed-result-card="v3"
     >
       {/* feed-result-comments-v1: reserved slot for threaded comments MVP (no UI yet) */}
       <div data-feed-comment-slot="reserved" hidden aria-hidden />
@@ -239,9 +229,8 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       />
       <FeedPostTypeBadge>Ergebnis</FeedPostTypeBadge>
 
-      <div className={`${FEED_POST_BODY_CLASS} pb-3`}>
-        <div className="relative overflow-hidden rounded-[20px] border border-[rgba(255,71,71,0.15)] px-3 pb-4 pt-4 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)]">
-          {/* Stadion-Backdrop: Crowd-Silhouetten, Flutlicht oben, roter Nebel unten */}
+      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-3`}>
+        <div className="relative min-w-0 overflow-hidden rounded-[20px] border border-[rgba(255,71,71,0.15)] px-2.5 pb-3 pt-3 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)] sm:px-3 sm:pb-3.5 sm:pt-3.5">
           <div className="pointer-events-none absolute inset-0" aria-hidden>
             <img
               src={stadiumBgUrl}
@@ -259,31 +248,30 @@ export const ResultFeedPostCard: React.FC<Props> = ({
             ) : null}
           </div>
 
-          <div className="relative space-y-3">
-            <FeedMatchMetaLine line={matchMetaLine} className="text-center" />
+          <div className="relative min-w-0 space-y-2.5">
+            {matchMetaLine ? (
+              <FeedMatchMetaLine line={matchMetaLine} className="text-center" />
+            ) : null}
 
-            <div className="space-y-1.5 text-center">
-              <p className="text-[19px] font-black uppercase leading-none tracking-[0.22em] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.7),0_0_18px_rgba(255,71,71,0.45)] sm:text-[22px] sm:tracking-[0.26em]">
+            <div className="space-y-1 text-center">
+              <p className="text-[17px] font-black uppercase leading-none tracking-[0.2em] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.7),0_0_18px_rgba(255,71,71,0.45)] sm:text-[22px] sm:tracking-[0.26em]">
                 Endstand
               </p>
               <p
-                className={`text-[12px] font-black uppercase leading-none tracking-[0.18em] sm:text-[13px] ${presentation.statusClass}`}
+                className={`text-[11px] font-black uppercase leading-none tracking-[0.16em] sm:text-[13px] sm:tracking-[0.18em] ${presentation.statusClass}`}
               >
                 {presentation.status}
               </p>
             </div>
 
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 pt-0.5">
-              <div className="flex min-w-0 flex-col items-center gap-1 text-center">
-                <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-white/40">
-                  Heim
-                </span>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 pt-0.5">
+              <div className="flex min-w-0 flex-col items-center gap-0.5 text-center sm:gap-1">
                 <LogoBlock src={p.home_logo_url} alt={`${p.home_team_name} Logo`} />
                 <FeedClubName fullName={p.home_team_name} variant="compact" className="w-full px-0.5" />
               </div>
 
               <p
-                className="px-0.5 text-center text-[3.1rem] font-black tabular-nums leading-none tracking-tighter text-white min-[390px]:text-[3.6rem] sm:px-1 sm:text-[4.5rem] sm:tracking-tight"
+                className="px-0.5 text-center text-[2.85rem] font-black tabular-nums leading-none tracking-tighter text-white min-[390px]:text-[3.25rem] sm:px-1 sm:text-[4.25rem] sm:tracking-tight"
                 style={{ textShadow: presentation.scoreShadow }}
               >
                 {p.home_score}
@@ -293,10 +281,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
                 {p.away_score}
               </p>
 
-              <div className="flex min-w-0 flex-col items-center gap-1 text-center">
-                <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-white/40">
-                  Gast
-                </span>
+              <div className="flex min-w-0 flex-col items-center gap-0.5 text-center sm:gap-1">
                 <LogoBlock src={p.away_logo_url} alt={`${p.away_team_name} Logo`} />
                 <FeedClubName fullName={p.away_team_name} variant="compact" className="w-full px-0.5" />
               </div>
@@ -304,61 +289,71 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
             {periodLine ? (
               <div className="flex justify-center">
-                <span className="inline-flex items-center rounded-full border border-[rgba(255,71,71,0.12)] bg-black/35 px-3 py-1 text-[9px] font-semibold tabular-nums tracking-[0.08em] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:text-[10px]">
+                <span className="inline-flex items-center rounded-full border border-[rgba(255,71,71,0.12)] bg-black/35 px-2.5 py-0.5 text-[9px] font-semibold tabular-nums tracking-[0.06em] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-3 sm:py-1 sm:text-[10px]">
                   Drittel {periodLine}
                 </span>
               </div>
             ) : null}
 
-            {metaLine ? (
-              <p className="line-clamp-2 px-1 text-center text-[10px] leading-snug text-white/55 sm:text-[11px]">
-                {metaLine}
-              </p>
+            {filteredScorers.length > 0 ? (
+              <div className="rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-2.5 sm:py-2.5">
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-red-200/90 sm:text-[11px]">
+                  Torschützen
+                </p>
+                <ul className="mt-1.5 space-y-1">
+                  {filteredScorers.map((s, i) => {
+                    const minOk = isSensibleScorerMinute(s.minute_label);
+                    const minShown = minOk ? s.minute_label.trim() : null;
+                    return (
+                      <li
+                        key={`${s.player_name}-${i}`}
+                        className="grid grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-x-2 rounded-lg bg-white/[0.03] px-2 py-1.5 sm:grid-cols-[3.5rem_minmax(0,1fr)] sm:gap-x-2.5 sm:px-2.5"
+                      >
+                        <span className="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-bold tabular-nums leading-none text-red-200/90 sm:text-[12px]">
+                          <span aria-hidden className="text-[12px]">
+                            ⚽
+                          </span>
+                          {minShown ?? '–'}
+                        </span>
+                        <span className="min-w-0 break-words text-[13px] font-semibold leading-snug text-white sm:text-[14px]">
+                          {s.player_name.trim()}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             ) : null}
 
-            <div className="flex justify-center pt-1">
+            {captionTrim ? (
+              <div className="rounded-2xl border border-white/[0.06] bg-black/30 px-2 py-2 sm:px-2.5 sm:py-2.5">
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-red-200/85 sm:text-[11px]">
+                  Kurzbericht
+                </p>
+                <div className="mt-1 min-w-0">
+                  <FeedCaption text={captionTrim} />
+                </div>
+              </div>
+            ) : null}
+
+            <div className="pt-0.5">
               <Link
                 to={gameHref}
-                className="inline-flex min-h-[48px] w-full max-w-[22rem] touch-manipulation items-center justify-center rounded-[22px] bg-gradient-to-b from-[#FF4747] to-[#E31D2F] px-6 text-[14px] font-bold tracking-[0.02em] text-white shadow-[0_10px_26px_rgba(227,29,47,0.38),inset_0_1px_0_rgba(255,255,255,0.28),0_2px_8px_rgba(0,0,0,0.4)] transition hover:brightness-110 active:scale-[0.98]"
+                className={[
+                  'inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center',
+                  dsSecondaryCtaClass(),
+                  '!rounded-xl !py-2.5 !text-[14px] !font-semibold',
+                ].join(' ')}
               >
                 Zum Spiel
               </Link>
             </div>
           </div>
         </div>
-
-        {filteredScorers.length > 0 ? (
-          <div className="mt-3 overflow-hidden rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-4 sm:py-3.5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/85 sm:text-[11px] sm:tracking-[0.16em]">
-              Torschützen
-            </p>
-            <ul className="mt-2 space-y-2">
-              {filteredScorers.map((s, i) => {
-                const minOk = isSensibleScorerMinute(s.minute_label);
-                const minShown = showScorerMinutes && minOk ? s.minute_label.trim() : null;
-                return (
-                  <li
-                    key={`${s.player_name}-${i}`}
-                    className={`grid gap-x-2.5 border-b border-white/[0.06] pb-2 text-[13px] font-medium leading-snug text-white/94 last:border-0 last:pb-0 sm:text-[14px] ${showScorerMinutes ? 'grid-cols-[minmax(0,1fr)_2.25rem]' : 'grid-cols-1'}`}
-                  >
-                    <span className="min-w-0 break-words">{s.player_name.trim()}</span>
-                    {showScorerMinutes ? (
-                      <span className="shrink-0 text-right tabular-nums text-[12px] font-semibold text-white/55 sm:text-[13px]">
-                        {minShown ?? ''}
-                      </span>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ) : null}
       </div>
 
       <div className={FEED_CAPTION_FOOTER_CLASS}>
-        <FeedCaption text={post.caption} />
-
-        {shareHint ? <p className="mt-2 text-center text-[12px] text-white/55">{shareHint}</p> : null}
+        {shareHint ? <p className="text-center text-[12px] text-white/55">{shareHint}</p> : null}
 
         <FeedStandardActions
           liked={liked}
