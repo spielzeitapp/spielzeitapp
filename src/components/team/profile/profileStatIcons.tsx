@@ -144,7 +144,7 @@ export function StatIconTrendingUp({ className = deco }: IconProps) {
 export const PLAYER_STAT_TILES = {
   games: StatIconPitch,
   goals: StatIconFootball,
-  avgMinutesPerGame: StatIconStopwatch,
+  avgMinutesPerGame: StatIconTrendingUp,
   minutes: StatIconStopwatch,
   deployments: StatIconTrophy,
   goalsPerGame: StatIconTarget,
