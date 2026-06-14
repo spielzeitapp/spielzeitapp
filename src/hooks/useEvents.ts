@@ -106,11 +106,11 @@ export function useEvents(teamSeasonId: string | null) {
       res.error &&
       /training_absence_deadline_disabled|series_id|address|match_type|official_tournament_url|column/i.test(String(res.error.message ?? ""))
     ) {
-      res = await supabase
+      res = (await supabase
         .from("events")
         .select(EVENTS_SELECT_LEGACY)
         .eq("team_season_id", teamSeasonId)
-        .order("starts_at", { ascending: true });
+        .order("starts_at", { ascending: true })) as typeof res;
     }
 
     const { data, error: err } = res;
@@ -123,7 +123,7 @@ export function useEvents(teamSeasonId: string | null) {
         id: r.id,
         team_season_id: r.team_season_id,
         kind: normalizeEventKind(r.kind),
-        type: normalizeEventTypeField(r.kind, r.type),
+        type: normalizeEventTypeField(r.kind, r.type) as EventRow['type'],
         match_type: (() => {
           const s = String(r.match_type ?? "").trim();
           return s === "" ? null : s;

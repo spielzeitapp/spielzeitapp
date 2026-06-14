@@ -32,7 +32,7 @@ export async function shareFeedContent(opts: {
   const tryShareWithFile = async (): Promise<boolean> => {
     if (!file || typeof navigator === 'undefined' || typeof navigator.share !== 'function') return false;
     const withFile: ShareData = { files: [file], title, text };
-    const withAll: ShareData = { files: [file], title, text, url: fetchUrl };
+    const withAll: ShareData = { files: [file], title, text, url: fetchUrl ?? undefined };
     const candidates: ShareData[] = [];
     if (typeof navigator.canShare === 'function') {
       if (navigator.canShare(withAll)) candidates.push(withAll);

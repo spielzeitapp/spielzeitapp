@@ -102,7 +102,7 @@ function LogoBlock({ src, alt }: { src: string; alt: string }) {
   if (!valid) {
     return (
       <div
-        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-red-500/30 bg-black/45 shadow-[0_0_16px_rgba(0,0,0,0.4)] sm:h-[4.25rem] sm:w-[4.25rem]"
+        className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-red-500/35 bg-black/55 shadow-[0_0_20px_rgba(227,29,47,0.22)] sm:h-[4.85rem] sm:w-[4.85rem]"
         aria-label={alt}
       >
         <span className="text-[10px] font-black uppercase tracking-[0.12em] text-red-200/80">Club</span>
@@ -115,7 +115,7 @@ function LogoBlock({ src, alt }: { src: string; alt: string }) {
       alt={alt}
       loading="lazy"
       onError={() => setFailed(true)}
-      className="h-14 w-14 shrink-0 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)] sm:h-[4.25rem] sm:w-[4.25rem]"
+      className="h-16 w-16 shrink-0 object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.65)] sm:h-[4.85rem] sm:w-[4.85rem]"
     />
   );
 }
@@ -202,7 +202,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     <FeedPostArticleShell
       className="!border-[rgba(255,71,71,0.15)]"
       style={{ boxShadow: presentation.articleShadow }}
-      data-feed-result-card="v3"
+      data-feed-result-card="v4"
     >
       {/* feed-result-comments-v1: reserved slot for threaded comments MVP (no UI yet) */}
       <div data-feed-comment-slot="reserved" hidden aria-hidden />
@@ -219,65 +219,66 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       <FeedPostTypeBadge>Ergebnis</FeedPostTypeBadge>
 
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
-        <div className="relative min-w-0 overflow-hidden rounded-none border-y border-[rgba(255,71,71,0.15)] px-2 pb-4 pt-3 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-4 sm:pt-3.5">
+        <div className="relative min-w-0 overflow-hidden rounded-none border-y border-[rgba(255,71,71,0.22)] bg-[#030304] px-2 pb-4 pt-3 shadow-[0_0_36px_rgba(227,29,47,0.14),inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-4 sm:pt-3.5">
           <div className="pointer-events-none absolute inset-0" aria-hidden>
             <img
               src={stadiumBgUrl}
               alt=""
               loading="lazy"
-              className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_30%] opacity-[0.3] brightness-[0.56] saturate-[0.78]"
+              className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_28%] opacity-[0.18] brightness-[0.38] saturate-[0.55] hue-rotate-[-8deg]"
             />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,8,9,0.74)_0%,rgba(9,4,5,0.86)_52%,rgba(5,2,3,0.94)_100%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-10%,rgba(255,240,220,0.16)_0%,transparent_62%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_65%_at_50%_115%,rgba(227,29,47,0.22)_0%,transparent_64%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_8%_100%,rgba(227,29,47,0.12)_0%,transparent_60%)]" />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_22%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,4,6,0.92)_0%,rgba(2,2,4,0.97)_48%,rgba(6,2,4,0.98)_100%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_70%_at_0%_42%,rgba(227,29,47,0.14)_0%,transparent_58%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_70%_at_100%_42%,rgba(227,29,47,0.14)_0%,transparent_58%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_0%,rgba(255,45,85,0.1)_0%,transparent_62%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_65%_at_50%_115%,rgba(180,18,32,0.28)_0%,transparent_66%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,transparent_20%)]" />
             {presentation.accentRadial ? (
-              <div className="absolute inset-0" style={{ background: presentation.accentRadial }} />
+              <div className="absolute inset-0 opacity-80" style={{ background: presentation.accentRadial }} />
             ) : null}
           </div>
 
-          <div className="relative min-w-0 space-y-3">
+          <div className="relative min-w-0 space-y-3.5">
             {matchMetaLine ? (
               <FeedMatchMetaLine line={matchMetaLine} className="text-center" />
             ) : null}
 
-            <div className="space-y-1 text-center">
-              <p className="text-[17px] font-black uppercase leading-none tracking-[0.2em] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.7),0_0_18px_rgba(255,71,71,0.45)] sm:text-[22px] sm:tracking-[0.26em]">
+            <div className="space-y-2.5 text-center">
+              <p className="text-[18px] font-black uppercase leading-none tracking-[0.22em] text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.85),0_0_22px_rgba(255,71,71,0.5)] sm:text-[23px] sm:tracking-[0.28em]">
                 Endstand
               </p>
               <p
-                className={`text-[11px] font-black uppercase leading-none tracking-[0.16em] sm:text-[13px] sm:tracking-[0.18em] ${presentation.statusClass}`}
+                className={`text-[12px] font-black uppercase leading-none tracking-[0.18em] sm:text-[14px] sm:tracking-[0.2em] ${presentation.statusClass}`}
               >
                 {presentation.status}
               </p>
             </div>
 
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-0.5 pt-0.5 sm:gap-1">
-              <div className="flex min-w-0 flex-col items-center gap-0.5 text-center sm:gap-1">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-2 pt-0.5 sm:gap-x-3">
+              <div className="flex min-w-0 flex-col items-center justify-center gap-1.5 text-center sm:gap-2">
                 <LogoBlock src={p.home_logo_url} alt={`${p.home_team_name} Logo`} />
                 <FeedClubName fullName={p.home_team_name} variant="compact" className="w-full px-0.5" />
               </div>
 
-              <div className="flex min-w-0 flex-col items-center justify-center px-0.5 text-center">
-                <p
-                  className="text-[2.85rem] font-black tabular-nums leading-none tracking-tighter text-white min-[390px]:text-[3.25rem] sm:text-[4.25rem] sm:tracking-tight"
-                  style={{ textShadow: presentation.scoreShadow }}
-                >
+              <div
+                className="relative min-w-[8.25rem] max-w-[11.5rem] shrink-0 rounded-2xl border border-red-500/38 bg-[linear-gradient(180deg,rgba(14,14,16,0.98)_0%,rgba(5,5,7,0.99)_55%,rgba(10,4,6,0.99)_100%)] px-3.5 py-3 text-center sm:min-w-[9.5rem] sm:px-4 sm:py-3.5"
+                style={{
+                  boxShadow: `${presentation.scoreShadow}, 0 0 32px rgba(227,29,47,0.28), inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -14px 32px rgba(0,0,0,0.72)`,
+                }}
+              >
+                <p className="text-[2.65rem] font-black tabular-nums leading-none tracking-tighter text-white min-[390px]:text-[3rem] sm:text-[3.65rem]">
                   {p.home_score}
-                  <span className="mx-0.5 align-middle text-[0.5em] font-black text-red-400/70 sm:mx-1">
-                    :
-                  </span>
+                  <span className="mx-0.5 align-middle text-[0.52em] font-black text-[#E31D2F] sm:mx-1">:</span>
                   {p.away_score}
                 </p>
                 {periodBracketLine ? (
-                  <p className="mt-0.5 max-w-[14rem] text-center text-[11px] font-medium tabular-nums leading-snug text-white/55 sm:max-w-none sm:text-[12px]">
+                  <p className="mt-1.5 text-center text-[10px] font-medium tabular-nums leading-snug text-white/52 sm:text-[11px]">
                     {periodBracketLine}
                   </p>
                 ) : null}
               </div>
 
-              <div className="flex min-w-0 flex-col items-center gap-0.5 text-center sm:gap-1">
+              <div className="flex min-w-0 flex-col items-center justify-center gap-1.5 text-center sm:gap-2">
                 <LogoBlock src={p.away_logo_url} alt={`${p.away_team_name} Logo`} />
                 <FeedClubName fullName={p.away_team_name} variant="compact" className="w-full px-0.5" />
               </div>

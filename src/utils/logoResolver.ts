@@ -7,7 +7,7 @@ const BASE = (import.meta.env.BASE_URL ?? '/').replace(/\/+$/, '') + '/';
 const SHIELD_PLACEHOLDER = `${BASE}logos/placeholder-shield-a.png`;
 const LOGO_EXT_RE = /\.(png|jpg|jpeg|svg)(\?.*)?$/i;
 
-export function isValidLogoUrl(url?: string | null): boolean {
+export function isValidLogoUrl(url?: string | null): url is string {
   if (!url || typeof url !== 'string') return false;
   const value = url.trim();
   if (!value) return false;

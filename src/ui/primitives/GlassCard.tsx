@@ -28,7 +28,7 @@ export const GlassCard = React.forwardRef<HTMLElement, GlassCardProps>(function 
 
   if (subtle) {
     return (
-      <Tag {...rest} ref={ref} className={cn(dsScheduleListPanelClass(), 'relative', className)}>
+      <Tag {...rest} ref={ref as React.Ref<HTMLDivElement>} className={cn(dsScheduleListPanelClass(), 'relative', className)}>
         {showAmbientGlow ? (
           <div className={cn(dsScheduleListPanelGlowClass(), 'z-0')} aria-hidden />
         ) : null}
@@ -38,7 +38,7 @@ export const GlassCard = React.forwardRef<HTMLElement, GlassCardProps>(function 
   }
 
   return (
-    <Tag {...rest} ref={ref} className={cn(dsFeedCardShellClass(className), 'relative')}>
+    <Tag {...rest} ref={ref as React.Ref<HTMLDivElement>} className={cn(dsFeedCardShellClass(className), 'relative')}>
       {showAmbientGlow ? (
         <div className={cn(dsFeedCardGlowClass(), 'z-0')} aria-hidden />
       ) : null}
