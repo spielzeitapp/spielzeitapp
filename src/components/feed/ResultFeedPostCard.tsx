@@ -55,22 +55,19 @@ function isRealScorerName(name: string): boolean {
 type ResultVisualState = 'win' | 'draw' | 'loss';
 
 const BASE_ARTICLE_SHADOW =
-  'inset 0 0 48px rgba(80,10,10,0.1), 0 14px 32px rgba(0,0,0,0.5), 0 0 36px rgba(227,29,47,0.13)';
+  'inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 40px rgba(255,0,0,0.18), 0 14px 32px rgba(0,0,0,0.45)';
 
-const BASE_SCORE_SHADOW =
-  '0 0 44px rgba(0,0,0,0.8), 0 6px 28px rgba(0,0,0,0.6), 0 0 2px rgba(255,255,255,0.1)';
+const BASE_SCORE_SHADOW = '0 0 20px rgba(227,29,47,0.16), inset 0 -10px 28px rgba(0,0,0,0.55)';
 
 function resultPresentation(state: ResultVisualState) {
   if (state === 'win') {
     return {
       status: 'SIEG!',
       statusClass:
-        'text-amber-300 [text-shadow:0_2px_10px_rgba(0,0,0,0.75),0_0_24px_rgba(251,191,36,0.45)]',
-      accentRadial:
-        'radial-gradient(ellipse 85% 55% at 50% 0%, rgba(251,191,36,0.16) 0%, transparent 60%)',
-      articleShadow: `${BASE_ARTICLE_SHADOW}, 0 0 30px -6px rgba(251,191,36,0.22)`,
-      scoreShadow:
-        '0 0 44px rgba(0,0,0,0.8), 0 6px 28px rgba(0,0,0,0.6), 0 0 28px rgba(251,191,36,0.25)',
+        'text-amber-300 [text-shadow:0_2px_10px_rgba(0,0,0,0.75),0_0_18px_rgba(251,191,36,0.35)]',
+      accentRadial: null,
+      articleShadow: `${BASE_ARTICLE_SHADOW}, 0 0 28px -8px rgba(220,38,38,0.2)`,
+      scoreShadow: BASE_SCORE_SHADOW,
     };
   }
   if (state === 'loss') {
@@ -202,7 +199,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     <FeedPostArticleShell
       className="!border-[rgba(255,71,71,0.15)]"
       style={{ boxShadow: presentation.articleShadow }}
-      data-feed-result-card="v4"
+      data-feed-result-card="v5"
     >
       {/* feed-result-comments-v1: reserved slot for threaded comments MVP (no UI yet) */}
       <div data-feed-comment-slot="reserved" hidden aria-hidden />
@@ -219,23 +216,17 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       <FeedPostTypeBadge>Ergebnis</FeedPostTypeBadge>
 
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
-        <div className="relative min-w-0 overflow-hidden rounded-none border-y border-[rgba(255,71,71,0.22)] bg-[#030304] px-2 pb-4 pt-3 shadow-[0_0_36px_rgba(227,29,47,0.14),inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-4 sm:pt-3.5">
+        <div className="relative min-w-0 overflow-hidden rounded-none border-y border-red-500/20 bg-gradient-to-br from-[#180000] via-black to-[#240000] px-2 pb-4 pt-3 shadow-[0_10px_40px_rgba(255,0,0,0.18)] [box-shadow:inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-4 sm:pt-3.5">
           <div className="pointer-events-none absolute inset-0" aria-hidden>
             <img
               src={stadiumBgUrl}
               alt=""
               loading="lazy"
-              className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_28%] opacity-[0.18] brightness-[0.38] saturate-[0.55] hue-rotate-[-8deg]"
+              className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_28%] opacity-[0.08] brightness-[0.28] saturate-[0.35]"
             />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,4,6,0.92)_0%,rgba(2,2,4,0.97)_48%,rgba(6,2,4,0.98)_100%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_70%_at_0%_42%,rgba(227,29,47,0.14)_0%,transparent_58%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_70%_at_100%_42%,rgba(227,29,47,0.14)_0%,transparent_58%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_55%_at_50%_0%,rgba(255,45,85,0.1)_0%,transparent_62%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_65%_at_50%_115%,rgba(180,18,32,0.28)_0%,transparent_66%)]" />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,transparent_20%)]" />
-            {presentation.accentRadial ? (
-              <div className="absolute inset-0 opacity-80" style={{ background: presentation.accentRadial }} />
-            ) : null}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#180000]/95 via-black/97 to-[#240000]/95" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(220,38,38,0.14),transparent_55%)] opacity-90" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_50%_at_50%_100%,rgba(120,8,18,0.22)_0%,transparent_62%)]" />
           </div>
 
           <div className="relative min-w-0 space-y-3.5">
@@ -261,10 +252,8 @@ export const ResultFeedPostCard: React.FC<Props> = ({
               </div>
 
               <div
-                className="relative min-w-[8.25rem] max-w-[11.5rem] shrink-0 rounded-2xl border border-red-500/38 bg-[linear-gradient(180deg,rgba(14,14,16,0.98)_0%,rgba(5,5,7,0.99)_55%,rgba(10,4,6,0.99)_100%)] px-3.5 py-3 text-center sm:min-w-[9.5rem] sm:px-4 sm:py-3.5"
-                style={{
-                  boxShadow: `${presentation.scoreShadow}, 0 0 32px rgba(227,29,47,0.28), inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -14px 32px rgba(0,0,0,0.72)`,
-                }}
+                className="relative min-w-[8.25rem] max-w-[11.5rem] shrink-0 rounded-xl border border-red-500/20 bg-black/55 px-3 py-2 text-center sm:min-w-[9.5rem] sm:px-3.5 sm:py-2.5"
+                style={{ boxShadow: presentation.scoreShadow }}
               >
                 <p className="text-[2.65rem] font-black tabular-nums leading-none tracking-tighter text-white min-[390px]:text-[3rem] sm:text-[3.65rem]">
                   {p.home_score}
