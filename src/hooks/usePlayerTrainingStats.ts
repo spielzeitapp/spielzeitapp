@@ -21,12 +21,22 @@ const EMPTY_STATS: TrainingAttendanceStats = {
 /**
  * Trainingsbeteiligung eines Spielers (nur vergangene Trainingseinheiten der Saison).
  */
-export function usePlayerTrainingStats(playerId: string | null, teamSeasonId: string | null) {
+export function usePlayerTrainingStats(
+  playerId: string | null,
+  teamSeasonId: string | null,
+  enabled = true,
+) {
   const [stats, setStats] = useState<TrainingAttendanceStats>(EMPTY_STATS);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    if (!enabled) {
+      setStats(EMPTY_STATS);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     const pid = (playerId ?? '').trim();
     const sid = (teamSeasonId ?? '').trim();
     if (!pid || !sid) {
@@ -84,7 +94,7 @@ export function usePlayerTrainingStats(playerId: string | null, teamSeasonId: st
     } finally {
       setLoading(false);
     }
-  }, [playerId, teamSeasonId]);
+  }, [playerId, teamSeasonId, enabled]);
 
   useEffect(() => {
     void load();

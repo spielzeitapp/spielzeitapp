@@ -8,6 +8,7 @@ import { PLAYER_STAT_TILES } from "./profile/profileStatIcons";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { usePlayerStats } from "../../hooks/usePlayerStats";
 import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
+import { useTrainingParticipationAccess } from "../../hooks/useTrainingParticipationAccess";
 import { Button } from "../../app/components/ui/Button";
 import { AppButton } from "../ui/AppButton";
 import { getPositionFull, getPositionLabel, getTrainingPositionDisplay } from "../../lib/positionLabels";
@@ -278,6 +279,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const [lazSaving, setLazSaving] = useState(false);
   const [lazError, setLazError] = useState<string | null>(null);
   const [saveToastVisible, setSaveToastVisible] = useState(false);
+  const { canViewForPlayer } = useTrainingParticipationAccess(role);
+  const canViewTrainingParticipation = canViewForPlayer(player.id);
+  const visibleTabs = useMemo(
+    () => TAB_CONFIG.filter((t) => t.id !== "training" || canViewTrainingParticipation),
+    [canViewTrainingParticipation],
+  );
   const { data: stats, lastMatches, isLoading: statsLoading, error: statsError } = usePlayerStats(
     player.id,
     player.team_season_id,
@@ -286,7 +293,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     stats: trainingStats,
     loading: trainingStatsLoading,
     error: trainingStatsError,
-  } = usePlayerTrainingStats(player.id, player.team_season_id);
+  } = usePlayerTrainingStats(player.id, player.team_season_id, canViewTrainingParticipation);
 
   const goalsPer90Display = useMemo(() => {
     const v = Number(stats.goalsPer90);
@@ -320,6 +327,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     setIsLazPlayer(player.is_laz_player);
     setLazError(null);
   }, [player.id, player.is_laz_player]);
+
+  useEffect(() => {
+    if (profileTab === "training" && !canViewTrainingParticipation) {
+      setProfileTab("overview");
+    }
+  }, [profileTab, canViewTrainingParticipation]);
 
   useEffect(() => {
     if (!saveToastVisible) return;
@@ -434,7 +447,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           {/* Sticky tabs */}
           <div className="sticky top-0 z-10 -mx-3 mb-4 border-b border-white/10 bg-[linear-gradient(180deg,rgba(0,0,0,0.92)_0%,rgba(0,0,0,0.82)_100%)] px-1 py-1.5 backdrop-blur-md sm:-mx-4">
             <div className="flex gap-1 rounded-xl border border-white/10 bg-black/40 p-0.5">
-              {TAB_CONFIG.map((t) => {
+              {visibleTabs.map((t) => {
                 const active = profileTab === t.id;
                 return (
                   <button

@@ -902,7 +902,12 @@ export const EventDetailPage: React.FC = () => {
   ]);
 
   const loadEventAttendance = useCallback(async () => {
-    if (!eventId) return;
+    if (!eventId || !canTrainerManageEvent) {
+      setEventAttendanceByPlayerId({});
+      setEventAttendanceReasonByPlayerId({});
+      setLoadingEventAttendance(false);
+      return;
+    }
     setLoadingEventAttendance(true);
     const { data, error: err } = await supabase
       .from('event_attendance')
@@ -924,7 +929,7 @@ export const EventDetailPage: React.FC = () => {
         setEventAttendanceReasonByPlayerId({});
       }
     setLoadingEventAttendance(false);
-  }, [eventId]);
+  }, [eventId, canTrainerManageEvent]);
 
   useEffect(() => {
     loadEventAttendance();
