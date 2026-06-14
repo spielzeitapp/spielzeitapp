@@ -7,7 +7,7 @@ import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 import type { LineupFeedPlayer } from '../../lib/lineupFeedTypes';
 import {
   lineupFeedDisplayPlayerName,
-  lineupFeedDisplayPositionLabel,
+  lineupFeedDisplayPositionAbbrev,
 } from '../../lib/lineupFeedTypes';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
@@ -248,25 +248,26 @@ export const LineupFeedPostCard: React.FC<Props> = ({
               <ul className="space-y-1">
                 {displayPlayers.map((pl, index) => {
                   const name = lineupFeedDisplayPlayerName(pl);
+                  const positionAbbrev = lineupFeedDisplayPositionAbbrev(pl);
                   return (
                     <li
                       key={`${pl.player_id ?? index}-${pl.slot ?? index}`}
-                      className="flex min-h-[30px] items-center gap-2 rounded-lg bg-white/[0.03] px-2 py-1 sm:gap-2.5 sm:px-2.5"
+                      className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 rounded-lg bg-white/[0.03] px-2 py-1 sm:gap-x-2.5 sm:px-2.5"
                     >
                       <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-red-400/35 bg-gradient-to-b from-red-600/55 to-red-950/80 text-[10px] font-black tabular-nums text-white shadow-[0_0_10px_rgba(220,38,38,0.25)] sm:h-7 sm:w-7 sm:text-[11px]">
                         {lineupBadgeLabel(pl)}
                       </span>
                       {name ? (
-                        <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold leading-tight text-white sm:text-[13.5px]">
+                        <span className="min-w-0 break-words text-[12px] font-bold leading-snug text-white sm:text-[13.5px]">
                           {name}
                         </span>
                       ) : (
-                        <span className="min-w-0 flex-1 truncate text-[11px] italic leading-tight text-white/45 sm:text-[12px]">
+                        <span className="min-w-0 break-words text-[11px] italic leading-snug text-white/45 sm:text-[12px]">
                           nicht benannt
                         </span>
                       )}
-                      <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em] text-red-200/65 sm:text-[10px]">
-                        {lineupFeedDisplayPositionLabel(pl)}
+                      <span className="w-7 shrink-0 text-right text-[10px] font-bold tabular-nums tracking-wide text-red-200/80 sm:w-8 sm:text-[11px]">
+                        {positionAbbrev}
                       </span>
                     </li>
                   );
@@ -283,12 +284,12 @@ export const LineupFeedPostCard: React.FC<Props> = ({
                   {benchPlayers.map((pl, index) => (
                     <li
                       key={`${pl.player_id ?? index}-bench`}
-                      className="flex min-h-[28px] items-center gap-2 rounded-lg bg-white/[0.03] px-2 py-1 sm:gap-2.5 sm:px-2.5"
+                      className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 rounded-lg bg-white/[0.03] px-2 py-1 sm:gap-x-2.5 sm:px-2.5"
                     >
                       <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/45 text-[10px] font-black tabular-nums text-white/85 sm:h-7 sm:w-7 sm:text-[11px]">
                         {lineupBadgeLabel(pl)}
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-[12px] font-semibold leading-tight text-white/90 sm:text-[13px]">
+                      <span className="min-w-0 break-words text-[12px] font-semibold leading-snug text-white/90 sm:text-[13px]">
                         {lineupFeedDisplayPlayerName(pl)}
                       </span>
                     </li>

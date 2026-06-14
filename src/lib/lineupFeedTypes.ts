@@ -131,6 +131,87 @@ export function lineupFeedDisplayPositionLabel(player: LineupFeedPlayer): string
   return player.slot?.trim() || 'Position';
 }
 
+const LINEUP_POSITION_FULL_TO_ABBREV: Record<string, string> = {
+  Torwart: 'TW',
+  Linksverteidiger: 'LV',
+  Rechtsverteidiger: 'RV',
+  Zentrum: 'ZM',
+  'Links außen': 'LA',
+  'Links Außen': 'LA',
+  'Rechts außen': 'RA',
+  'Rechts Außen': 'RA',
+  Sturm: 'ST',
+  FairPlay: 'FP',
+  'Zentrales Mittelfeld': 'ZM',
+  Stürmer: 'ST',
+  'Linker Flügel': 'LA',
+  'Rechter Flügel': 'RA',
+};
+
+const LINEUP_SLOT_TO_ABBREV: Record<string, string> = {
+  GK: 'TW',
+  TW: 'TW',
+  LB: 'LV',
+  LV: 'LV',
+  RB: 'RV',
+  RV: 'RV',
+  CM: 'ZM',
+  ZM: 'ZM',
+  IV: 'ZM',
+  LW: 'LA',
+  LA: 'LA',
+  LM: 'LA',
+  LZ: 'LA',
+  LZM: 'LA',
+  LF: 'LA',
+  RW: 'RA',
+  RA: 'RA',
+  RM: 'RA',
+  RZM: 'RA',
+  RF: 'RA',
+  ST: 'ST',
+  LS: 'ST',
+  RS: 'ST',
+  FP: 'FP',
+};
+
+/** Kompaktes Positionskürzel für Feed-Karten (Mobile). */
+export function lineupFeedDisplayPositionAbbrev(player: LineupFeedPlayer): string {
+  const slot = (player.slot ?? '').trim().toUpperCase();
+  if (slot && LINEUP_SLOT_TO_ABBREV[slot]) {
+    return LINEUP_SLOT_TO_ABBREV[slot];
+  }
+
+  const explicit = player.positionLabel?.trim();
+  if (explicit) {
+    if (isLineupPositionAbbrev(explicit)) {
+      const upper = explicit.toUpperCase();
+      return LINEUP_SLOT_TO_ABBREV[upper] ?? upper;
+    }
+    const direct = LINEUP_POSITION_FULL_TO_ABBREV[explicit];
+    if (direct) return direct;
+    const ciKey = Object.keys(LINEUP_POSITION_FULL_TO_ABBREV).find(
+      (key) => key.toLowerCase() === explicit.toLowerCase(),
+    );
+    if (ciKey) return LINEUP_POSITION_FULL_TO_ABBREV[ciKey];
+  }
+
+  if (slot && isLineupPositionAbbrev(slot)) {
+    return LINEUP_SLOT_TO_ABBREV[slot] ?? slot;
+  }
+
+  const fromLabel = lineupFeedDisplayPositionLabel(player);
+  const fromFull = LINEUP_POSITION_FULL_TO_ABBREV[fromLabel];
+  if (fromFull) return fromFull;
+  const ciLabelKey = Object.keys(LINEUP_POSITION_FULL_TO_ABBREV).find(
+    (key) => key.toLowerCase() === fromLabel.toLowerCase(),
+  );
+  if (ciLabelKey) return LINEUP_POSITION_FULL_TO_ABBREV[ciLabelKey];
+
+  return slot || '–';
+}
+
+
 export function lineupFeedDisplayPlayerName(player: LineupFeedPlayer): string | null {
   const raw = player.playerName?.trim() || player.name?.trim() || '';
   const clean = sanitizeLineupFeedPlayerName(raw, player.slot);

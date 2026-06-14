@@ -1,0 +1,34 @@
+﻿<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function() {
+        var host = window.location.hostname;
+        var isInternal =
+          host === 'app.spielzeitapp.at' ||
+          host === 'spielzeitapp.at' ||
+          host === 'www.spielzeitapp.at';
+        window.__HOST_IS_INTERNAL__ = isInternal;
+        if (isInternal) {
+          var path = (window.location.pathname || '/').replace(/\/$/, '') || '/';
+          // Normal users should land in the main app flow, not on the admin login.
+          if (path === '/') window.location.replace('/app');
+          else if (path === '/schedule') window.location.replace('/app/schedule');
+          else if (path === '/live') window.location.replace('/app/live');
+        }
+      })();
+    </script>
+    <title>Spielzeit</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#7f1d1d" />
+    <script type="module" crossorigin src="/assets/main-CGYlkjhj.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/main-yuTC4KiR.css">
+  </head>
+  <body>
+    <div id="root"></div>
+
+  </body>
+</html>
+<script async data-explicit-opt-in="true" data-deployment-id="dpl_5mMW8Fp6FBFJpw4DX9yqsme139Kz" src="https://vercel.live/_next-live/feedback/feedback.js"></script>
