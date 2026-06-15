@@ -14,6 +14,8 @@ export type TrainingRankingResult = {
   sessionsCount: number;
   minimumBasis: number;
   teamAverageActivityPct: number | null;
+  /** Aggregierter Mannschaftswert (RPC oder Client-Fallback). */
+  teamParticipationPct: number | null;
 };
 
 /** Wertbare Trainings = Dabei + LAZ + Abwesend (für Ranking-Mindestbasis). */
@@ -175,5 +177,6 @@ export function buildTrainingRanking(
     sessionsCount,
     minimumBasis,
     teamAverageActivityPct,
+    teamParticipationPct: null,
   };
 }

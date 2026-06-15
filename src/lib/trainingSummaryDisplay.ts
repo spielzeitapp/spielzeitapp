@@ -20,8 +20,9 @@ export function kaiserTileName(player: PlayerItem): { primary: string; secondary
   return { primary: parts[0] ?? '—' };
 }
 
-/** Wie TeamTrainingDashboard: Ø gewerteter Spieler (teamRatePct), Fallback teamAverageActivityPct. */
+/** Mannschaftsbeteiligung: RPC-Wert (alle Rollen), sonst Ø gewerteter Spieler, Fallback Aktivität. */
 export function resolveTeamParticipationPct(ranking: TrainingRankingResult): number | null {
+  if (ranking.teamParticipationPct != null) return ranking.teamParticipationPct;
   const fromQualified = averageQualifiedTeamRatePct(ranking.qualified);
   if (fromQualified != null) return fromQualified;
   return ranking.teamAverageActivityPct;
