@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { Gem } from 'lucide-react';
 import type { PlayerItem } from '../../hooks/usePlayers';
 import { useTeamTrainingSummary } from '../../hooks/useTeamTrainingSummary';
 import { countUpcomingTeamTrainings } from '../../lib/trainingSeasonCounts';
 import type { TrainingRankingResult } from '../../lib/trainingRanking';
 import { TrainingKaiserCard } from './TrainingKaiserCard';
 import { JugglingChallengeCard } from './JugglingChallengeCard';
+import { ProfileHighlightTile } from './ProfileHighlightTile';
+import { COACH_STAT_TILES, StatIconTrendingUp } from './profile/profileStatIcons';
 import { GlassCard, PremiumCard, PremiumEmptyState, PremiumTab, PremiumTabTrack, SectionTitle } from '../../ui';
-import { cn } from '../../ui/lib/cn';
 
 type TrainingSubTab = 'overview' | 'kaiser' | 'challenge';
 
@@ -15,40 +17,6 @@ type Props = {
   teamSeasonId: string;
   onPlayerClick?: (player: PlayerItem) => void;
 };
-
-function StatSummaryCard({
-  label,
-  value,
-  valueLine2,
-  sub,
-  className,
-  compactValue = false,
-}: {
-  label: string;
-  value: string;
-  valueLine2?: string;
-  sub?: string;
-  className?: string;
-  compactValue?: boolean;
-}) {
-  return (
-    <GlassCard variant="subtle" showAmbientGlow={false} className={cn('px-3.5 py-3', className)}>
-      <p className="text-[11px] font-medium text-white/55">{label}</p>
-      <p
-        className={cn(
-          'mt-1 break-words font-bold leading-snug text-white',
-          compactValue ? 'text-[14px]' : 'line-clamp-2 text-[15px]',
-        )}
-      >
-        {value}
-      </p>
-      {valueLine2 ? (
-        <p className="break-words text-[13px] font-semibold leading-snug text-white/90">{valueLine2}</p>
-      ) : null}
-      {sub ? <p className="mt-0.5 break-words text-[11px] leading-snug text-white/50">{sub}</p> : null}
-    </GlassCard>
-  );
-}
 
 export const TeamTrainingDashboard: React.FC<Props> = ({
   players,
@@ -97,20 +65,33 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
       </SectionTitle>
 
       <div className="mt-4 grid grid-cols-2 gap-2.5">
-        <StatSummaryCard
-          label="Gewertete Trainings"
+        <ProfileHighlightTile
+          icon={<COACH_STAT_TILES.trainings />}
+          title="Gewertete Trainings"
           value={ratedTrainingsLabel}
-          sub={ratedTrainingsSub}
+          sub={ratedTrainingsSub ?? (ratedTrainingsCount > 0 ? 'Basis dieser Saison' : undefined)}
         />
-        <StatSummaryCard label="Ø Beteiligung" value={participationLabel} />
-        <StatSummaryCard
-          label="🥇 Trainingskaiser"
+        <ProfileHighlightTile
+          icon={<StatIconTrendingUp />}
+          title="Ø Beteiligung"
+          value={participationLabel}
+          sub={participationLabel !== 'Noch keine Daten' ? 'aus gewerteten Trainings' : undefined}
+        />
+        <ProfileHighlightTile
+          icon={<COACH_STAT_TILES.wins />}
+          title="Trainingskaiser"
           value={kaiserName?.primary ?? 'Noch keine Wertung'}
           valueLine2={kaiserName?.secondary}
           sub={kaiserSub}
           compactValue
         />
-        <StatSummaryCard label="Challenge" value="Gaberl-Challenge" sub="Aktiv · Öffnen" />
+        <ProfileHighlightTile
+          icon={<Gem className="h-[4.75rem] w-[4.75rem] text-red-400/[0.18]" strokeWidth={1.4} aria-hidden />}
+          title="Challenge"
+          value="Gaberl-Challenge"
+          sub="Aktiv · Öffnen"
+          compactValue
+        />
       </div>
 
       <PremiumTabTrack className="mt-4" aria-label="Training Unterbereiche">

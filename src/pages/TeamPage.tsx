@@ -29,10 +29,10 @@ import { STAFF_RPC_MIGRATION_HINT, useTeamStaff } from "../hooks/useTeamStaff";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
 import { TeamTrainingDashboard } from "../components/team/TeamTrainingDashboard";
+import { TeamTrainingPublicOverview } from "../components/team/TeamTrainingPublicOverview";
 import { SeasonMatchSummaryCard } from "../components/team/SeasonMatchSummaryCard";
 import { SeasonMatchCard } from "../components/team/SeasonMatchCard";
 import { useSeasonMatchBoard } from "../hooks/useSeasonMatchBoard";
-import { countPastTeamTrainings } from "../lib/trainingSeasonCounts";
 import type { ProfileTab } from "../components/team/PlayerProfileModal";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
@@ -198,7 +198,6 @@ export const TeamPage: React.FC = () => {
   const [teamPhoto, setTeamPhoto] = useState<TeamPhotoRow | null>(null);
   const [teamPhotoUploading, setTeamPhotoUploading] = useState(false);
   const [teamPhotoError, setTeamPhotoError] = useState<string | null>(null);
-  const [trainingCount, setTrainingCount] = useState(0);
   const teamPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const heroTeamName = useMemo(() => {
@@ -250,21 +249,6 @@ export const TeamPage: React.FC = () => {
         }
         setTeamPhoto((data as TeamPhotoRow | null) ?? null);
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [teamSeasonId]);
-
-  useEffect(() => {
-    if (!teamSeasonId) {
-      setTrainingCount(0);
-      return;
-    }
-    let cancelled = false;
-    void countPastTeamTrainings(teamSeasonId).then((count) => {
-      if (cancelled) return;
-      setTrainingCount(count);
-    });
     return () => {
       cancelled = true;
     };
@@ -1129,24 +1113,9 @@ export const TeamPage: React.FC = () => {
               setSelectedProfilePlayer(player);
             }}
           />
-        ) : (
-          <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
-            <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
-              Training
-            </SectionTitle>
-            <div className="mt-4 space-y-3">
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3">
-                  <div className="text-[12px] text-white/60">Gewertete Trainings</div>
-                  <div className="mt-1 text-[22px] font-bold text-white">{trainingCount}</div>
-                </GlassCard>
-              </div>
-              {trainingCount === 0 ? (
-                <PremiumEmptyState variant="subtle" title="Noch keine Trainingsdaten" className="py-6" />
-              ) : null}
-            </div>
-          </PremiumCard>
-        )
+        ) : teamSeasonId != null ? (
+          <TeamTrainingPublicOverview players={players} teamSeasonId={teamSeasonId} />
+        ) : null
       ) : null}
 
       {activeTab === "matches" ? (

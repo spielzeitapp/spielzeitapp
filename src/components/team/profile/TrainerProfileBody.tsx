@@ -1,18 +1,21 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Flame, Gem } from 'lucide-react';
 import type { TeamStaffMember } from '../../../hooks/useTeamStaff';
 import type { TeamSeasonCoachStats } from '../../../hooks/useTeamSeasonCoachStats';
 import type { CoachSeasonAchievements, SeasonMatchCardData, SeasonMatchSummary } from '../../../lib/seasonMatchStats';
 import type { PlayerItem } from '../../../hooks/usePlayers';
 import { useTeamTrainingSummary } from '../../../hooks/useTeamTrainingSummary';
+import { buildTrainerAchievementHighlights } from '../../../lib/trainerAchievementDisplay';
 import { ProfileStatTile } from '../ProfileStatTile';
+import { ProfileHighlightTile } from '../ProfileHighlightTile';
 import { TrainerBalanceCard } from './TrainerBalanceCard';
 import { ProfileContactCard } from './ProfileFooterCards';
-import { COACH_STAT_TILES } from './profileStatIcons';
+import { COACH_STAT_TILES, StatIconTrendingUp } from './profileStatIcons';
 import { SeasonMatchSummaryCard } from '../SeasonMatchSummaryCard';
 import { SeasonMatchCard } from '../SeasonMatchCard';
 import { AppButton } from '../../ui/AppButton';
-import { GlassCard } from '../../../ui';
+import { GlassCard, PremiumEmptyState } from '../../../ui';
 
 type TrainerProfileTab = 'overview' | 'matches' | 'achievements' | 'training';
 
@@ -23,36 +26,20 @@ const TABS: { id: TrainerProfileTab; label: string }[] = [
   { id: 'training', label: 'Training' },
 ];
 
-function TrainingSummaryCard({
-  label,
-  value,
-  valueLine2,
-  sub,
-  compactValue = false,
-}: {
-  label: string;
-  value: string;
-  valueLine2?: string;
-  sub?: string;
-  compactValue?: boolean;
-}) {
-  return (
-    <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3">
-      <p className="text-[11px] font-medium text-white/55">{label}</p>
-      <p
-        className={[
-          'mt-1 break-words font-bold leading-snug text-white',
-          compactValue ? 'text-[14px]' : 'text-[18px] tabular-nums',
-        ].join(' ')}
-      >
-        {value}
-      </p>
-      {valueLine2 ? (
-        <p className="break-words text-[13px] font-semibold leading-snug text-white/90">{valueLine2}</p>
-      ) : null}
-      {sub ? <p className="mt-0.5 break-words text-[11px] leading-snug text-white/50">{sub}</p> : null}
-    </GlassCard>
-  );
+const ACHIEVEMENT_ICONS = [
+  COACH_STAT_TILES.wins,
+  COACH_STAT_TILES.pointsPerGame,
+  COACH_STAT_TILES.goalsFor,
+  Flame,
+  COACH_STAT_TILES.goalsFor,
+] as const;
+
+function FlameWatermark({ className = 'h-[4.75rem] w-[4.75rem] text-red-400/[0.18]' }: { className?: string }) {
+  return <Flame className={className} strokeWidth={1.6} aria-hidden />;
+}
+
+function GemWatermark({ className = 'h-[4.75rem] w-[4.75rem] text-red-400/[0.18]' }: { className?: string }) {
+  return <Gem className={className} strokeWidth={1.4} aria-hidden />;
 }
 
 type Props = {
@@ -117,12 +104,16 @@ export const TrainerProfileBody: React.FC<Props> = ({
     [stats],
   );
 
-  const goalRatio =
-    seasonSummary.goalsFor > 0 || seasonSummary.goalsAgainst > 0
-      ? `${seasonSummary.goalsFor} : ${seasonSummary.goalsAgainst}`
-      : '—';
-
   const trainingBusy = rankingLoading || jugglingLoading;
+
+  const achievementHighlights = useMemo(
+    () => buildTrainerAchievementHighlights(achievements, seasonSummary),
+    [achievements, seasonSummary],
+  );
+
+  const ratedTrainingsValue = trainingBusy
+    ? '…'
+    : String(ratedTrainingsCount > 0 ? ratedTrainingsCount : stats.trainings);
 
   return (
     <>
@@ -217,39 +208,31 @@ export const TrainerProfileBody: React.FC<Props> = ({
 
       {activeTab === 'achievements' ? (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <TrainingSummaryCard
-              label="Siegquote"
-              value={
-                achievements.winRatePct != null
-                  ? `${achievements.winRatePct} %`
-                  : seasonSummary.played > 0
-                    ? '0 %'
-                    : '—'
-              }
-            />
-            <TrainingSummaryCard label="Punkte / Spiel" value={seasonSummary.pointsPerGame} />
-            <TrainingSummaryCard label="Torverhältnis" value={goalRatio} />
-          </div>
-
-          {matchDetails.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2">
-              <TrainingSummaryCard
-                label="Meiste Tore (Spiel)"
-                value={achievements.maxGoalsInGame != null ? String(achievements.maxGoalsInGame) : '—'}
-              />
-              <TrainingSummaryCard
-                label="Längste Siegesserie"
-                value={
-                  achievements.longestWinStreak != null ? String(achievements.longestWinStreak) : '—'
-                }
-              />
+          {achievementHighlights ? (
+            <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+              {achievementHighlights.map((item, index) => {
+                const Icon = ACHIEVEMENT_ICONS[index] ?? COACH_STAT_TILES.wins;
+                const iconNode =
+                  Icon === Flame ? <FlameWatermark /> : <Icon />;
+                return (
+                  <ProfileHighlightTile
+                    key={item.title}
+                    icon={iconNode}
+                    title={item.title}
+                    value={item.value}
+                    sub={item.sub}
+                    compactValue={item.title === 'Torverhältnis'}
+                  />
+                );
+              })}
             </div>
           ) : (
-            <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3">
-              <p className="text-center text-[13px] leading-relaxed text-white/65">
-                Weitere Erfolge folgen mit mehr Saisonspielen.
-              </p>
+            <GlassCard variant="subtle" showAmbientGlow={false} className="px-4 py-6">
+              <PremiumEmptyState
+                variant="subtle"
+                title="Erfolge entstehen mit den ersten Spielen."
+                className="py-2"
+              />
             </GlassCard>
           )}
         </div>
@@ -257,24 +240,30 @@ export const TrainerProfileBody: React.FC<Props> = ({
 
       {activeTab === 'training' ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <TrainingSummaryCard
-              label="Gewertete Trainings"
-              value={trainingBusy ? '…' : String(ratedTrainingsCount > 0 ? ratedTrainingsCount : stats.trainings)}
+          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+            <ProfileHighlightTile
+              icon={<COACH_STAT_TILES.trainings />}
+              title="Gewertete Trainings"
+              value={ratedTrainingsValue}
+              sub={ratedTrainingsCount > 0 ? 'Basis dieser Saison' : undefined}
             />
-            <TrainingSummaryCard
-              label="Ø Mannschaftsbeteiligung"
+            <ProfileHighlightTile
+              icon={<StatIconTrendingUp />}
+              title="Ø Mannschaftsbeteiligung"
               value={trainingBusy ? '…' : participationLabel}
+              sub={participationLabel !== 'Noch keine Daten' ? 'aus gewerteten Trainings' : undefined}
             />
-            <TrainingSummaryCard
-              label="Trainingskaiser"
+            <ProfileHighlightTile
+              icon={<COACH_STAT_TILES.wins />}
+              title="Trainingskaiser"
               value={trainingBusy ? '…' : kaiserName?.primary ?? 'Noch keine Wertung'}
               valueLine2={kaiserName?.secondary}
               sub={kaiserSub}
               compactValue
             />
-            <TrainingSummaryCard
-              label="Gaberlkönig"
+            <ProfileHighlightTile
+              icon={<GemWatermark />}
+              title="Gaberlkönig"
               value={
                 trainingBusy
                   ? '…'
@@ -282,7 +271,7 @@ export const TrainerProfileBody: React.FC<Props> = ({
                     ? gaberlKing.playerName
                     : 'Noch keine Daten'
               }
-              sub={gaberlKing ? `${gaberlKing.endValue} Gaberl` : undefined}
+              sub={gaberlKing ? `${gaberlKing.endValue} Gaberl` : 'Challenge starten'}
               compactValue
             />
           </div>
