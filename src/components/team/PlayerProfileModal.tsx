@@ -12,10 +12,6 @@ import { useTrainingParticipationAccess } from "../../hooks/useTrainingParticipa
 import { Button } from "../../app/components/ui/Button";
 import { AppButton } from "../ui/AppButton";
 import { getPositionFull, getPositionLabel, getTrainingPositionDisplay } from "../../lib/positionLabels";
-import {
-  formatPlayerAppStatusProfileLine,
-  type PlayerAppStatus,
-} from "../../lib/playerAppStatus";
 
 export type PlayerProfileModalProps = {
   player: PlayerItem;
@@ -28,8 +24,6 @@ export type PlayerProfileModalProps = {
   onEdit: () => void;
   /** Nach LAZ-Flag-Änderung Kader + Profil-State aktualisieren. */
   onPlayerUpdated?: (patch: Pick<PlayerItem, "is_laz_player">) => void;
-  /** Nur für Staff: Spieler-App Status (ohne Code/PIN). */
-  playerAppStatus?: PlayerAppStatus;
 };
 
 type ProfileTab = "overview" | "matches" | "achievements" | "training";
@@ -279,7 +273,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   onClose,
   onEdit,
   onPlayerUpdated,
-  playerAppStatus,
 }) => {
   const [profileTab, setProfileTab] = useState<ProfileTab>("overview");
   const [isLazPlayer, setIsLazPlayer] = useState(player.is_laz_player);
@@ -454,11 +447,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 error={lazError}
                 onChange={(next) => void handleLazPlayerToggle(next)}
               />
-              {playerAppStatus ? (
-                <p className="mt-3 text-[13px] font-medium leading-snug text-white/75">
-                  {formatPlayerAppStatusProfileLine(playerAppStatus)}
-                </p>
-              ) : null}
             </PlayerSpecialSettingsSection>
           ) : null}
 

@@ -107,13 +107,10 @@ function ParentPushStatusBadges({ parent }: { parent: ParentLinkInfo }): React.R
         <span
           className={[
             CHIP_BASE,
-            "h-8 gap-1 px-3 text-[11px] font-medium text-white/60",
-            "border-white/14 bg-white/[0.06]",
+            "h-6 gap-0.5 px-1.5 text-[9px] font-medium text-white/45",
+            "border-white/10 bg-white/[0.04]",
           ].join(" ")}
         >
-          <span aria-hidden className="text-[12px] leading-none">
-            📱
-          </span>
           {deviceLabel}
         </span>
       ) : null}
@@ -246,7 +243,7 @@ function PlayerAppStatusSummaryCard({
           </span>
           <span>
             <span className="font-bold text-white/90">{notSetup}</span>
-            <span className="text-white/55"> offen</span>
+            <span className="text-white/55"> nicht eingerichtet</span>
           </span>
         </span>
       </div>
@@ -288,10 +285,29 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
   const appStatusSummary = useMemo(() => summarizePlayerAppStatus(appStatusRows), [appStatusRows]);
 
   const filteredRows = useMemo(() => {
-    if (filter === "linked") return rows.filter((r) => r.parent_count > 0);
-    if (filter === "open") return rows.filter((r) => r.parent_count === 0);
-    return rows;
-  }, [rows, filter]);
+    let list = rows;
+    if (filter === "linked") list = rows.filter((r) => r.parent_count > 0);
+    else if (filter === "open") list = rows.filter((r) => r.parent_count === 0);
+
+    return [...list].sort((a, b) => {
+      const priority = (row: PlayerParentLinkRow): number => {
+        if (row.parent_count === 0) return 0;
+        const app = appStatusByPlayer.get(row.player_id)?.app_status ?? "not_setup";
+        if (app === "not_setup") return 1;
+        const pushOff = row.parents.some((p) => p.push_active !== true);
+        if (pushOff) return 2;
+        if (app === "created") return 3;
+        return 4;
+      };
+      const pa = priority(a);
+      const pb = priority(b);
+      if (pa !== pb) return pa - pb;
+      const ja = a.jersey_number ?? 9999;
+      const jb = b.jersey_number ?? 9999;
+      if (ja !== jb) return ja - jb;
+      return a.player_name.localeCompare(b.player_name, "de");
+    });
+  }, [rows, filter, appStatusByPlayer]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -458,7 +474,7 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
                   const appStatus = appStatusByPlayer.get(row.player_id);
                   const appStatusLine = appStatus
                     ? formatPlayerAppStatusCardLine(appStatus.app_status, appStatus.last_used_at)
-                    : '⚪ Nicht eingerichtet';
+                    : "⚪ Spieler-App nicht eingerichtet";
                   return (
                     <li key={row.player_id} className="min-w-0">
                       <GlassCard
@@ -471,24 +487,25 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
                             : "border-amber-500/25 bg-amber-950/10",
                         ].join(" ")}
                       >
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-[16px] font-semibold leading-snug text-white">
-                              {row.player_name}
-                            </p>
-                            <p className="mt-0.5 text-[13px] text-white/65">
-                              {row.jersey_number != null ? `#${row.jersey_number}` : "—"}
-                              <span className="mx-1.5 text-white/35">·</span>
-                              <span
-                                className={[
-                                  "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-                                  statusBadgeClass(row),
-                                ].join(" ")}
-                              >
-                                {statusLabel(row)}
-                              </span>
-                            </p>
-                          </div>
+                        <div className="min-w-0">
+                          <p className="text-[16px] font-semibold leading-snug text-white">
+                            {row.player_name}
+                          </p>
+                          <p className="mt-0.5 text-[13px] text-white/65">
+                            {row.jersey_number != null ? `#${row.jersey_number}` : "—"}
+                            <span className="mx-1.5 text-white/35">·</span>
+                            <span
+                              className={[
+                                "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                                statusBadgeClass(row),
+                              ].join(" ")}
+                            >
+                              {statusLabel(row)}
+                            </span>
+                          </p>
+                          <p className="mt-2 text-[12px] leading-snug text-white/78 sm:text-[13px]">
+                            {appStatusLine}
+                          </p>
                         </div>
 
                         {linked ? (
@@ -537,13 +554,6 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
                             <WhatsAppCopyButton onClick={() => void handleCopyReminder(row.player_name)} />
                           </div>
                         )}
-
-                        <div className="mt-3 border-t border-white/8 pt-3">
-                          <p className="text-[12px] font-medium uppercase tracking-wide text-white/55">
-                            Spieler-App
-                          </p>
-                          <p className="mt-1.5 text-[13px] leading-snug text-white/88">{appStatusLine}</p>
-                        </div>
                       </GlassCard>
                     </li>
                   );

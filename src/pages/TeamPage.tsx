@@ -31,7 +31,6 @@ import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
 import { TeamParentsTab } from "../components/team/TeamParentsTab";
 import { useTeamPlayerParentLinks } from "../hooks/useTeamPlayerParentLinks";
 import { useTeamPlayerAppStatus } from "../hooks/useTeamPlayerAppStatus";
-import { playerAppStatusMap } from "../lib/playerAppStatus";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
 const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
@@ -729,19 +728,13 @@ export const TeamPage: React.FC = () => {
     rpcMissing: parentLinksRpcMissing,
   } = useTeamPlayerParentLinks(teamSeasonId, parentsTabActive);
 
-  const staffOverviewActive =
-    showParentLinksTab && (parentsTabActive || selectedProfilePlayer != null);
+  const staffOverviewActive = parentsTabActive;
   const {
     rows: playerAppStatusRows,
     loading: playerAppStatusLoading,
     error: playerAppStatusError,
     rpcMissing: playerAppStatusRpcMissing,
   } = useTeamPlayerAppStatus(teamSeasonId, staffOverviewActive);
-
-  const playerAppStatusById = useMemo(
-    () => playerAppStatusMap(playerAppStatusRows),
-    [playerAppStatusRows],
-  );
 
   useEffect(() => {
     const tabFromQuery = searchParams.get("tab");
@@ -799,11 +792,6 @@ export const TeamPage: React.FC = () => {
           setSelectedProfilePlayer((prev) => (prev ? { ...prev, ...patch } : prev));
           void refetchPlayers();
         }}
-        playerAppStatus={
-          showParentLinksTab
-            ? (playerAppStatusById.get(selectedProfilePlayer.id)?.app_status ?? 'not_setup')
-            : undefined
-        }
       />
     ) : null}
     {canManagePlayers && teamSeasonId != null ? (

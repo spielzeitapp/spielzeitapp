@@ -44,18 +44,14 @@ export function formatPlayerAppStatusCardLine(
 ): string {
   if (status === 'active') {
     const last = formatPlayerAppLastUsed(lastUsedAt);
-    return last ? `🟢 Verbunden · letzte Anmeldung ${last}` : '🟢 Verbunden';
+    return last
+      ? `🟢 Spieler-App verbunden · letzte Anmeldung ${last}`
+      : '🟢 Spieler-App verbunden';
   }
   if (status === 'created') {
-    return '🟡 Zugang erstellt · noch nicht angemeldet';
+    return '🟡 Spieler-App Zugang erstellt · noch nicht angemeldet';
   }
-  return '⚪ Nicht eingerichtet';
-}
-
-export function formatPlayerAppStatusProfileLine(status: PlayerAppStatus): string {
-  if (status === 'active') return '📱 Spieler-App: Verbunden';
-  if (status === 'created') return '📱 Spieler-App: Zugang erstellt';
-  return '📱 Spieler-App: Nicht eingerichtet';
+  return '⚪ Spieler-App nicht eingerichtet';
 }
 
 export type PlayerAppStatusSummary = {
