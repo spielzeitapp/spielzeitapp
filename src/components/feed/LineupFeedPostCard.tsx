@@ -179,7 +179,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
 
           <div className="relative min-w-0 space-y-3">
             <div className="text-center">
-              <p className={FEED_HERO_TITLE_CLASS}>Startaufstellung</p>
+              <p className={FEED_HERO_TITLE_CLASS}>Spieltag</p>
             </div>
 
             <FeedMatchMetaBadge line={lineupMetaLine} leadingIcon={<FeedLineupMetaIcon />} />
