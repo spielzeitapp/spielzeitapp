@@ -11,13 +11,12 @@ import {
   STAFF_RPC_MIGRATION_HINT,
   type TeamStaffMember,
 } from "../hooks/useTeamStaff";
-import { useTeamSeasonCoachStats } from "../hooks/useTeamSeasonCoachStats";
+import { useSeasonMatchBoard } from "../hooks/useSeasonMatchBoard";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
 import { TrainerProfileBody } from "../components/team/profile/TrainerProfileBody";
 import { ProfileHeroCard } from "../components/team/profile/ProfileHeroCard";
 import { AppButton } from "../components/ui/AppButton";
-import { useCoachSeasonMatchDetails } from "../hooks/useCoachSeasonMatchDetails";
 import { premiumPlayerInitials } from "../lib/premiumPlayerCard";
 
 function nameHeroLines(member: TeamStaffMember): { line1: string; line2: string } {
@@ -44,14 +43,34 @@ export const TrainerProfilePage: React.FC = () => {
   const [notFound, setNotFound] = useState(false);
   const [rpcMissing, setRpcMissing] = useState(false);
 
-  const { stats, loading: statsLoading, error: statsError } = useTeamSeasonCoachStats(teamSeasonId);
   const {
-    matches: coachMatches,
-    recentMatches,
+    summary: seasonSummary,
+    recent: recentMatches,
+    finishedMatches: coachMatches,
     achievements,
-    loading: matchesLoading,
-    error: matchesError,
-  } = useCoachSeasonMatchDetails(teamSeasonId);
+    trainings,
+    loading: boardLoading,
+    error: boardError,
+  } = useSeasonMatchBoard(teamSeasonId);
+
+  const stats = useMemo(
+    () => ({
+      trainings,
+      matches: seasonSummary.played,
+      wins: seasonSummary.wins,
+      draws: seasonSummary.draws,
+      losses: seasonSummary.losses,
+      goalsFor: seasonSummary.goalsFor,
+      goalsAgainst: seasonSummary.goalsAgainst,
+      pointsPerGame: seasonSummary.pointsPerGame,
+    }),
+    [seasonSummary, trainings],
+  );
+
+  const statsLoading = boardLoading;
+  const statsError = boardError;
+  const matchesLoading = boardLoading;
+  const matchesError = boardError;
 
   const reloadMember = useCallback(async () => {
     const uid = userId?.trim();
@@ -178,6 +197,7 @@ export const TrainerProfilePage: React.FC = () => {
                 member={member}
                 teamSeasonId={teamSeasonId}
                 stats={stats}
+                seasonSummary={seasonSummary}
                 statsLoading={statsLoading}
                 statsError={statsError}
                 matchDetails={coachMatches}

@@ -29,7 +29,9 @@ import { STAFF_RPC_MIGRATION_HINT, useTeamStaff } from "../hooks/useTeamStaff";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
 import { TeamTrainingDashboard } from "../components/team/TeamTrainingDashboard";
-import { fetchVisibleSeasonMatches } from "../lib/seasonMatchStats";
+import { SeasonMatchSummaryCard } from "../components/team/SeasonMatchSummaryCard";
+import { SeasonMatchCard } from "../components/team/SeasonMatchCard";
+import { useSeasonMatchBoard } from "../hooks/useSeasonMatchBoard";
 import { countPastTeamTrainings } from "../lib/trainingSeasonCounts";
 import type { ProfileTab } from "../components/team/PlayerProfileModal";
 
@@ -65,15 +67,6 @@ function readInitialTeamTab(): TeamTabId {
   const tab = new URLSearchParams(window.location.search).get("tab");
   return isTeamTabId(tab) ? tab : "squad";
 }
-
-type RecentMatchRow = {
-  id: string;
-  opponent: string | null;
-  match_date: string | null;
-  status: string | null;
-  score_home: number | null;
-  score_away: number | null;
-};
 
 type TeamPhotoRow = {
   team_season_id: string;
@@ -126,23 +119,6 @@ function isJerseyDuplicateError(err: { code?: string; message?: string }): boole
 function readOptionalPhotoUrl(p: PlayerItem): string | null {
   const v = (p.avatar_url ?? "").trim();
   return v.length > 0 ? v : null;
-}
-
-function formatMatchDateDe(iso: string | null): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("de-DE", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-function formatMatchResult(m: RecentMatchRow): string {
-  const st = (m.status ?? "").trim().toLowerCase();
-  if (st === "live") return "Live";
-  if (st !== "finished") return "—";
-  const h = m.score_home;
-  const a = m.score_away;
-  if (h == null || a == null) return "—";
-  return `${h} : ${a}`;
 }
 
 function readTeamPhotoUrl(row: TeamPhotoRow | null): string | null {
@@ -211,7 +187,14 @@ export const TeamPage: React.FC = () => {
       if (!fetchErr) showSavedToast("Trainer gespeichert");
     },
   });
-  const [recentMatches, setRecentMatches] = useState<RecentMatchRow[]>([]);
+  const {
+    summary: seasonMatchSummary,
+    upcoming: upcomingMatches,
+    recent: recentSeasonMatches,
+    all: allSeasonMatches,
+    loading: seasonMatchesLoading,
+    error: seasonMatchesError,
+  } = useSeasonMatchBoard(teamSeasonId, 10);
   const [teamPhoto, setTeamPhoto] = useState<TeamPhotoRow | null>(null);
   const [teamPhotoUploading, setTeamPhotoUploading] = useState(false);
   const [teamPhotoError, setTeamPhotoError] = useState<string | null>(null);
@@ -246,21 +229,6 @@ export const TeamPage: React.FC = () => {
     [teamPhotoUrl],
   );
   const heroShowsPlaceholder = !teamPhotoUrl || teamPhotoUrl.length === 0;
-
-  useEffect(() => {
-    if (!teamSeasonId) {
-      setRecentMatches([]);
-      return;
-    }
-    let cancelled = false;
-    void fetchVisibleSeasonMatches(teamSeasonId, 5).then((rows) => {
-      if (cancelled) return;
-      setRecentMatches(rows);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [teamSeasonId]);
 
   useEffect(() => {
     if (!teamSeasonId) {
@@ -1188,27 +1156,55 @@ export const TeamPage: React.FC = () => {
           </SectionTitle>
           {teamSeasonId == null && !tsLoading ? (
             <PremiumEmptyState variant="subtle" title="Bitte Team wählen." className="mt-3 py-6" />
-          ) : recentMatches.length === 0 ? (
-            <PremiumEmptyState variant="subtle" title="Keine Spiele vorhanden" className="mt-4 py-6" />
           ) : (
             <div className="mt-4 space-y-4">
+              <SeasonMatchSummaryCard summary={seasonMatchSummary} loading={seasonMatchesLoading} />
+
+              {seasonMatchesError ? (
+                <p className="text-center text-[11px] text-amber-400/95">{seasonMatchesError}</p>
+              ) : null}
+
+              {upcomingMatches.length > 0 ? (
+                <div>
+                  <p className="mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+                    Nächstes Spiel
+                  </p>
+                  <SeasonMatchCard match={upcomingMatches[0]} />
+                </div>
+              ) : null}
+
               <div>
-                <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-white/60">Nächste / letzte Spiele</p>
-                <ul className="space-y-2.5">
-                  {recentMatches.map((m) => (
-                    <li key={m.id}>
-                      <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3 text-sm">
-                        <div className="flex flex-wrap items-baseline justify-between gap-2">
-                          <span className="line-clamp-2 min-w-0 text-[17px] font-semibold leading-snug text-white">
-                            {(m.opponent ?? "").trim() || "—"}
-                          </span>
-                          <span className="shrink-0 tabular-nums text-white/80">{formatMatchResult(m)}</span>
-                        </div>
-                        <div className="mt-1 text-[12px] text-white/60">{formatMatchDateDe(m.match_date)}</div>
-                      </GlassCard>
-                    </li>
-                  ))}
-                </ul>
+                <p className="mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+                  Letzte Spiele
+                </p>
+                {seasonMatchesLoading ? (
+                  <div className="space-y-2">
+                    {[0, 1].map((i) => (
+                      <div
+                        key={`match-skel-${i}`}
+                        className="h-16 animate-pulse rounded-2xl border border-white/5 bg-white/[0.07]"
+                      />
+                    ))}
+                  </div>
+                ) : recentSeasonMatches.length === 0 ? (
+                  <PremiumEmptyState
+                    variant="subtle"
+                    title={
+                      allSeasonMatches.length > 0
+                        ? "Noch keine abgeschlossenen Spiele"
+                        : "Noch keine gültigen Spiele erfasst."
+                    }
+                    className="py-6"
+                  />
+                ) : (
+                  <ul className="space-y-2.5">
+                    {recentSeasonMatches.map((m) => (
+                      <li key={m.id}>
+                        <SeasonMatchCard match={m} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           )}

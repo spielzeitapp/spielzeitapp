@@ -257,3 +257,260 @@ export function computeCoachSeasonAchievements(matches: CoachSeasonMatchDetail[]
     longestWinStreak: longestWinStreak > 0 ? longestWinStreak : null,
   };
 }
+
+export type SeasonMatchSummary = {
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+  pointsPerGame: string;
+};
+
+const EMPTY_SEASON_SUMMARY: SeasonMatchSummary = {
+  played: 0,
+  wins: 0,
+  draws: 0,
+  losses: 0,
+  goalsFor: 0,
+  goalsAgainst: 0,
+  goalDifference: 0,
+  points: 0,
+  pointsPerGame: '–',
+};
+
+/** Bilanz nur aus abgeschlossenen gültigen Spielen mit Ergebnis. */
+export function computeSeasonMatchSummary(matches: CoachSeasonMatchDetail[]): SeasonMatchSummary {
+  const finished = matches.filter((m) => m.outcome != null);
+  if (finished.length === 0) return { ...EMPTY_SEASON_SUMMARY };
+
+  let wins = 0;
+  let draws = 0;
+  let losses = 0;
+  let goalsFor = 0;
+  let goalsAgainst = 0;
+  let points = 0;
+
+  for (const m of finished) {
+    goalsFor += m.teamGoals ?? 0;
+    goalsAgainst += m.oppGoals ?? 0;
+    if (m.outcome === 'win') {
+      wins += 1;
+      points += 3;
+    } else if (m.outcome === 'draw') {
+      draws += 1;
+      points += 1;
+    } else {
+      losses += 1;
+    }
+  }
+
+  return {
+    played: finished.length,
+    wins,
+    draws,
+    losses,
+    goalsFor,
+    goalsAgainst,
+    goalDifference: goalsFor - goalsAgainst,
+    points,
+    pointsPerGame: (points / finished.length).toFixed(2),
+  };
+}
+
+export type SeasonMatchDisplayStatus = 'win' | 'draw' | 'loss' | 'live' | 'upcoming';
+
+export type SeasonMatchCardData = CoachSeasonMatchDetail & {
+  eventId: string | null;
+  location: string | null;
+  isHome: boolean | null;
+  displayStatus: SeasonMatchDisplayStatus;
+};
+
+export type SeasonMatchBoard = {
+  summary: SeasonMatchSummary;
+  upcoming: SeasonMatchCardData[];
+  recent: SeasonMatchCardData[];
+  all: SeasonMatchCardData[];
+};
+
+type MatchEventMeta = {
+  eventId: string;
+  location: string | null;
+  isHome: boolean | null;
+};
+
+async function fetchEventMetaByMatchId(
+  teamSeasonId: string,
+  validMatchIds: Set<string>,
+): Promise<Map<string, MatchEventMeta>> {
+  const sid = teamSeasonId.trim();
+  const meta = new Map<string, MatchEventMeta>();
+  if (!sid || validMatchIds.size === 0) return meta;
+
+  const { data: matchEvents, error: matchEvErr } = await supabase
+    .from('events')
+    .select('id, match_id, location, is_home, status')
+    .eq('team_season_id', sid)
+    .eq('kind', 'match')
+    .not('match_id', 'is', null);
+
+  if (!matchEvErr) {
+    for (const row of matchEvents ?? []) {
+      const mid = (row as { match_id?: string | null }).match_id;
+      if (!mid || !validMatchIds.has(String(mid))) continue;
+      if (isInactiveEventStatus((row as { status?: string | null }).status)) continue;
+      meta.set(String(mid), {
+        eventId: String((row as { id: string }).id),
+        location: (row as { location?: string | null }).location ?? null,
+        isHome: (row as { is_home?: boolean | null }).is_home ?? null,
+      });
+    }
+  }
+
+  const { data: tmRows, error: tmErr } = await supabase
+    .from('tournament_matches')
+    .select('match_id, tournament_event_id')
+    .in('match_id', [...validMatchIds]);
+
+  if (!tmErr && (tmRows ?? []).length > 0) {
+    const tournamentEventIds = [
+      ...new Set((tmRows ?? []).map((r) => (r as { tournament_event_id: string }).tournament_event_id)),
+    ];
+    const { data: tourEvents } = await supabase
+      .from('events')
+      .select('id, is_home, location, status')
+      .in('id', tournamentEventIds);
+
+    const tourById = new Map<string, { id: string; is_home: boolean | null; location: string | null }>();
+    for (const ev of tourEvents ?? []) {
+      if (isInactiveEventStatus((ev as { status?: string | null }).status)) continue;
+      tourById.set(String((ev as { id: string }).id), {
+        id: String((ev as { id: string }).id),
+        is_home: (ev as { is_home?: boolean | null }).is_home ?? null,
+        location: (ev as { location?: string | null }).location ?? null,
+      });
+    }
+
+    for (const tm of tmRows ?? []) {
+      const mid = String((tm as { match_id: string }).match_id);
+      if (meta.has(mid)) continue;
+      const tid = (tm as { tournament_event_id: string }).tournament_event_id;
+      const ev = tourById.get(tid);
+      if (!ev) continue;
+      meta.set(mid, {
+        eventId: ev.id,
+        location: ev.location,
+        isHome: ev.is_home,
+      });
+    }
+  }
+
+  return meta;
+}
+
+function resolveDisplayStatus(
+  detail: CoachSeasonMatchDetail,
+  rawStatus: string | null,
+): SeasonMatchDisplayStatus {
+  const st = (rawStatus ?? '').trim().toLowerCase();
+  if (st === 'live') return 'live';
+  if (detail.outcome === 'win') return 'win';
+  if (detail.outcome === 'draw') return 'draw';
+  if (detail.outcome === 'loss') return 'loss';
+  return 'upcoming';
+}
+
+function compareMatchDateAsc(a: SeasonMatchCardData, b: SeasonMatchCardData): number {
+  const da = a.match_date ? new Date(a.match_date).getTime() : Number.MAX_SAFE_INTEGER;
+  const db = b.match_date ? new Date(b.match_date).getTime() : Number.MAX_SAFE_INTEGER;
+  return da - db;
+}
+
+function compareMatchDateDesc(a: SeasonMatchCardData, b: SeasonMatchCardData): number {
+  const da = a.match_date ? new Date(a.match_date).getTime() : 0;
+  const db = b.match_date ? new Date(b.match_date).getTime() : 0;
+  return db - da;
+}
+
+/** Zielroute für Saison-Spielkarten — immer Event-Detail wenn möglich. */
+export function seasonMatchCardHref(eventId: string | null | undefined): string | null {
+  const id = (eventId ?? '').trim();
+  return id ? `/app/events/${encodeURIComponent(id)}` : null;
+}
+
+type BoardMatchRow = VisibleSeasonMatch & {
+  location: string | null;
+};
+
+/** Gültige Saison-Spiele inkl. Bilanz, kommende und letzte Spiele. */
+export async function fetchSeasonMatchBoard(
+  teamSeasonId: string,
+  recentLimit = 10,
+): Promise<SeasonMatchBoard> {
+  const sid = teamSeasonId.trim();
+  const empty: SeasonMatchBoard = {
+    summary: { ...EMPTY_SEASON_SUMMARY },
+    upcoming: [],
+    recent: [],
+    all: [],
+  };
+  if (!sid) return empty;
+
+  const validIds = await fetchValidSeasonMatchIds(sid);
+  if (validIds.size === 0) return empty;
+
+  const [matchesRes, isHomeByMatchId, eventMetaByMatchId] = await Promise.all([
+    supabase
+      .from('matches')
+      .select('id, opponent, match_date, status, score_home, score_away, location')
+      .eq('team_season_id', sid)
+      .in('id', [...validIds])
+      .order('match_date', { ascending: false }),
+    fetchIsHomeByMatchId(sid, validIds),
+    fetchEventMetaByMatchId(sid, validIds),
+  ]);
+
+  if (matchesRes.error) return empty;
+
+  const rows = ((matchesRes.data ?? []) as BoardMatchRow[]).filter((row) => validIds.has(row.id));
+
+  const all: SeasonMatchCardData[] = rows.map((row) => {
+    const isHome = isHomeByMatchId.get(row.id) ?? eventMetaByMatchId.get(row.id)?.isHome ?? null;
+    const detail = resolveCoachMatchDetail(row, isHome);
+    const eventMeta = eventMetaByMatchId.get(row.id);
+    const location = (eventMeta?.location ?? row.location ?? '').trim() || null;
+    return {
+      ...detail,
+      eventId: eventMeta?.eventId ?? null,
+      location,
+      isHome,
+      displayStatus: resolveDisplayStatus(detail, row.status),
+    };
+  });
+
+  const finished = all.filter((m) => m.outcome != null);
+  const summary = computeSeasonMatchSummary(finished);
+
+  const upcoming = all
+    .filter((m) => m.outcome == null && m.displayStatus !== 'live')
+    .sort(compareMatchDateAsc);
+
+  const live = all.filter((m) => m.displayStatus === 'live').sort(compareMatchDateAsc);
+
+  const upcomingOrdered = [...live, ...upcoming];
+
+  const recent = finished
+    .sort(compareMatchDateDesc)
+    .slice(0, recentLimit > 0 ? recentLimit : undefined);
+
+  return {
+    summary,
+    upcoming: upcomingOrdered,
+    recent,
+    all: [...all].sort(compareMatchDateDesc),
+  };
+}

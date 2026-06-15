@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { TeamStaffMember } from '../../../hooks/useTeamStaff';
 import type { TeamSeasonCoachStats } from '../../../hooks/useTeamSeasonCoachStats';
-import type { CoachSeasonAchievements, CoachSeasonMatchDetail } from '../../../lib/seasonMatchStats';
+import type { CoachSeasonAchievements, SeasonMatchCardData, SeasonMatchSummary } from '../../../lib/seasonMatchStats';
 import type { PlayerItem } from '../../../hooks/usePlayers';
 import { usePlayers } from '../../../hooks/usePlayers';
 import { useTeamTrainingRanking } from '../../../hooks/useTeamTrainingRanking';
@@ -16,6 +16,8 @@ import { ProfileStatTile } from '../ProfileStatTile';
 import { TrainerBalanceCard } from './TrainerBalanceCard';
 import { ProfileContactCard } from './ProfileFooterCards';
 import { COACH_STAT_TILES } from './profileStatIcons';
+import { SeasonMatchSummaryCard } from '../SeasonMatchSummaryCard';
+import { SeasonMatchCard } from '../SeasonMatchCard';
 import { AppButton } from '../../ui/AppButton';
 import { GlassCard } from '../../../ui';
 
@@ -27,32 +29,6 @@ const TABS: { id: TrainerProfileTab; label: string }[] = [
   { id: 'achievements', label: 'Erfolge' },
   { id: 'training', label: 'Training' },
 ];
-
-function formatMatchDateDe(iso: string | null): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function formatMatchScore(m: CoachSeasonMatchDetail): string {
-  if (m.teamGoals == null || m.oppGoals == null) return '—';
-  return `${m.teamGoals} : ${m.oppGoals}`;
-}
-
-function outcomeLabel(outcome: CoachSeasonMatchDetail['outcome']): string {
-  if (outcome === 'win') return 'Sieg';
-  if (outcome === 'draw') return 'Remis';
-  if (outcome === 'loss') return 'Niederlage';
-  return '—';
-}
-
-function outcomeClass(outcome: CoachSeasonMatchDetail['outcome']): string {
-  if (outcome === 'win') return 'text-emerald-400';
-  if (outcome === 'draw') return 'text-amber-300';
-  if (outcome === 'loss') return 'text-red-400';
-  return 'text-white/60';
-}
 
 function kaiserDisplayName(player: PlayerItem): string {
   const first = (player.first_name ?? '').trim();
@@ -83,10 +59,11 @@ type Props = {
   member: TeamStaffMember;
   teamSeasonId: string;
   stats: TeamSeasonCoachStats;
+  seasonSummary: SeasonMatchSummary;
   statsLoading: boolean;
   statsError: string | null;
-  matchDetails: CoachSeasonMatchDetail[];
-  recentMatches: CoachSeasonMatchDetail[];
+  matchDetails: SeasonMatchCardData[];
+  recentMatches: SeasonMatchCardData[];
   matchesLoading: boolean;
   matchesError: string | null;
   achievements: CoachSeasonAchievements;
@@ -98,6 +75,7 @@ export const TrainerProfileBody: React.FC<Props> = ({
   member,
   teamSeasonId,
   stats,
+  seasonSummary,
   statsLoading,
   statsError,
   matchDetails,
@@ -134,8 +112,8 @@ export const TrainerProfileBody: React.FC<Props> = ({
   );
 
   const goalRatio =
-    stats.goalsFor > 0 || stats.goalsAgainst > 0
-      ? `${stats.goalsFor} : ${stats.goalsAgainst}`
+    seasonSummary.goalsFor > 0 || seasonSummary.goalsAgainst > 0
+      ? `${seasonSummary.goalsFor} : ${seasonSummary.goalsAgainst}`
       : '—';
 
   const avgSquadPct = useMemo(
@@ -208,15 +186,7 @@ export const TrainerProfileBody: React.FC<Props> = ({
 
       {activeTab === 'matches' ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <SummaryCard label="Spiele gesamt" value={statsLoading ? '…' : String(stats.matches)} />
-            <SummaryCard label="Siege" value={statsLoading ? '…' : String(stats.wins)} />
-            <SummaryCard
-              label="Niederlagen / Remis"
-              value={statsLoading ? '…' : `${stats.losses} / ${stats.draws}`}
-            />
-            <SummaryCard label="Torverhältnis" value={statsLoading ? '…' : goalRatio} />
-          </div>
+          <SeasonMatchSummaryCard summary={seasonSummary} loading={matchesLoading || statsLoading} />
 
           {matchesError ? (
             <p className="text-center text-[11px] text-amber-400/95">{matchesError}</p>
@@ -236,38 +206,21 @@ export const TrainerProfileBody: React.FC<Props> = ({
                 ))}
               </div>
             ) : recentMatches.length === 0 ? (
-              <p className="text-center text-[12px] text-white/60">Noch keine abgeschlossenen Spiele</p>
+              <p className="text-center text-[12px] text-white/60">
+                {matchDetails.length > 0
+                  ? 'Noch keine abgeschlossenen Spiele'
+                  : 'Noch keine gültigen Spiele erfasst.'}
+              </p>
             ) : (
               <ul className="space-y-2">
                 {recentMatches.map((m) => (
                   <li key={m.id}>
-                    <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3">
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="line-clamp-2 min-w-0 text-[15px] font-semibold leading-snug text-white">
-                          {(m.opponent ?? '').trim() || '—'}
-                        </span>
-                        <span className="shrink-0 tabular-nums font-semibold text-white">
-                          {formatMatchScore(m)}
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between gap-2 text-[12px]">
-                        <span className="text-white/60">{formatMatchDateDe(m.match_date)}</span>
-                        <span className={`font-semibold ${outcomeClass(m.outcome)}`}>
-                          {outcomeLabel(m.outcome)}
-                        </span>
-                      </div>
-                    </GlassCard>
+                    <SeasonMatchCard match={m} compact />
                   </li>
                 ))}
               </ul>
             )}
           </div>
-
-          {!matchesLoading && matchDetails.length > 0 && recentMatches.length < matchDetails.length ? (
-            <p className="text-center text-[11px] text-white/50">
-              {matchDetails.length} gültige Saisonspiele insgesamt
-            </p>
-          ) : null}
         </div>
       ) : null}
 
@@ -277,13 +230,14 @@ export const TrainerProfileBody: React.FC<Props> = ({
             <SummaryCard
               label="Siegquote"
               value={
-                achievements.winRatePct != null ? `${achievements.winRatePct} %` : stats.matches > 0 ? '0 %' : '—'
+                achievements.winRatePct != null
+                  ? `${achievements.winRatePct} %`
+                  : seasonSummary.played > 0
+                    ? '0 %'
+                    : '—'
               }
             />
-            <SummaryCard
-              label="Punkte / Spiel"
-              value={stats.pointsPerGame}
-            />
+            <SummaryCard label="Punkte / Spiel" value={seasonSummary.pointsPerGame} />
             <SummaryCard label="Torverhältnis" value={goalRatio} />
           </div>
 
