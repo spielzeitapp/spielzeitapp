@@ -15,7 +15,7 @@ import {
 import { Camera } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
-import { normalizeRole, canManageRoster } from "../lib/roles";
+import { normalizeRole, canManageRoster, canManageMatches } from "../lib/roles";
 import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
 import { uploadPlayerProfileAvatar, uploadPlayerProfileCutout, logProfileHeroUpload } from "../lib/profileCutoutUpload";
@@ -28,6 +28,8 @@ import { PlayerCard } from "../components/team/PlayerCard";
 import { STAFF_RPC_MIGRATION_HINT, useTeamStaff } from "../hooks/useTeamStaff";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
+import { TrainingKaiserCard } from "../components/team/TrainingKaiserCard";
+import type { ProfileTab } from "../components/team/PlayerProfileModal";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
 const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
@@ -169,6 +171,7 @@ export const TeamPage: React.FC = () => {
 
   const roleNormalized = normalizeRole(role);
   const canManagePlayers = canManageRoster(roleNormalized);
+  const canViewTrainingKaiser = canManageMatches(roleNormalized);
   const tabsReady = !sessionLoading && !tsLoading;
 
   const [showForm, setShowForm] = useState(false);
@@ -190,6 +193,7 @@ export const TeamPage: React.FC = () => {
   const [saveToastLabel, setSaveToastLabel] = useState("Gespeichert");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedProfilePlayer, setSelectedProfilePlayer] = useState<PlayerItem | null>(null);
+  const [profileInitialTab, setProfileInitialTab] = useState<ProfileTab>("overview");
   const {
     staff: staffRows,
     loading: staffLoading,
@@ -419,10 +423,12 @@ export const TeamPage: React.FC = () => {
 
   const openPlayerProfile = (p: PlayerItem) => {
     setSelectedProfilePlayer(p);
+    setProfileInitialTab("overview");
   };
 
   const closePlayerProfile = () => {
     setSelectedProfilePlayer(null);
+    setProfileInitialTab("overview");
   };
 
   const handleEditFromProfile = () => {
@@ -804,6 +810,7 @@ export const TeamPage: React.FC = () => {
         teamName={heroTeamName}
         photoUrl={readOptionalPhotoUrl(selectedProfilePlayer)}
         canManage={canManagePlayers}
+        initialTab={profileInitialTab}
         onClose={closePlayerProfile}
         onEdit={handleEditFromProfile}
         onPlayerUpdated={(patch) => {
@@ -1157,6 +1164,17 @@ export const TeamPage: React.FC = () => {
       ) : null}
 
       {activeTab === "training" ? (
+        <>
+          {canViewTrainingKaiser && teamSeasonId != null ? (
+            <TrainingKaiserCard
+              players={players}
+              teamSeasonId={teamSeasonId}
+              onPlayerClick={(player) => {
+                setProfileInitialTab("training");
+                setSelectedProfilePlayer(player);
+              }}
+            />
+          ) : null}
         <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
           <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
             Training
@@ -1185,6 +1203,7 @@ export const TeamPage: React.FC = () => {
             </div>
           )}
         </PremiumCard>
+        </>
       ) : null}
 
       {activeTab === "matches" ? (

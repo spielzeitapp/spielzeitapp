@@ -24,9 +24,11 @@ export type PlayerProfileModalProps = {
   onEdit: () => void;
   /** Nach LAZ-Flag-Änderung Kader + Profil-State aktualisieren. */
   onPlayerUpdated?: (patch: Pick<PlayerItem, "is_laz_player">) => void;
+  /** Optionaler Start-Tab (z. B. aus Trainingskaiser). */
+  initialTab?: ProfileTab;
 };
 
-type ProfileTab = "overview" | "matches" | "achievements" | "training";
+export type ProfileTab = "overview" | "matches" | "achievements" | "training";
 
 const APPEARANCE_MATCH_CARD_CLASS =
   "relative overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(25,25,28,0.96)] to-[rgba(80,12,20,0.22)] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_28px_rgba(220,38,38,0.12),0_10px_32px_rgba(0,0,0,0.45)]";
@@ -273,8 +275,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   onClose,
   onEdit,
   onPlayerUpdated,
+  initialTab = "overview",
 }) => {
-  const [profileTab, setProfileTab] = useState<ProfileTab>("overview");
+  const [profileTab, setProfileTab] = useState<ProfileTab>(initialTab);
   const [isLazPlayer, setIsLazPlayer] = useState(player.is_laz_player);
   const [lazSaving, setLazSaving] = useState(false);
   const [lazError, setLazError] = useState<string | null>(null);
@@ -336,6 +339,10 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     setIsLazPlayer(player.is_laz_player);
     setLazError(null);
   }, [player.id, player.is_laz_player]);
+
+  useEffect(() => {
+    setProfileTab(initialTab);
+  }, [player.id, initialTab]);
 
   useEffect(() => {
     if (profileTab === "training" && !canViewTrainingParticipation) {
