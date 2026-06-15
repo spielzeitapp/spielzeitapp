@@ -441,7 +441,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             <PlayerSpecialSettingsSection>
               <SpecialSettingToggleRow
                 label="LAZ-Spieler"
-                hint="Eltern können bei Trainings LAZ als Status wählen."
+                hint="Kennzeichnet Spieler mit Leistungsaufenthaltszentrum (LAZ) für Trainings."
                 checked={lazToggleChecked}
                 disabled={lazSaving}
                 error={lazError}

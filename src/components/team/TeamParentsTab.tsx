@@ -19,10 +19,13 @@ import {
   type PlayerParentLinkRow,
 } from "../../hooks/useTeamPlayerParentLinks";
 import {
-  formatPlayerAppStatusCardLine,
+  getPlayerAppStatusDisplay,
   PLAYER_APP_STATUS_RPC_MIGRATION_HINT,
+  playerAppStatusHeadlineClass,
   playerAppStatusMap,
+  playerAppStatusSublineClass,
   summarizePlayerAppStatus,
+  type PlayerAppStatus,
   type PlayerAppStatusRow,
 } from "../../lib/playerAppStatus";
 
@@ -138,6 +141,42 @@ function PushReminderButton({
       </span>
       Erinnerung senden
     </button>
+  );
+}
+
+function playerInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return (parts[0] ?? "?").slice(0, 2).toUpperCase();
+}
+
+/** Platzhalter für späteres Spielerfoto — gleiche Struktur wie Profil-Hero. */
+function PlayerCardAvatar({ name }: { name: string }): React.ReactElement {
+  return (
+    <div
+      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/12 bg-gradient-to-br from-red-950/55 to-black/70 text-[13px] font-bold uppercase tracking-wide text-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+      aria-hidden
+    >
+      {playerInitials(name)}
+    </div>
+  );
+}
+
+function PlayerAppStatusBlock({
+  status,
+  lastUsedAt,
+}: {
+  status: PlayerAppStatus;
+  lastUsedAt: string | null;
+}): React.ReactElement {
+  const display = getPlayerAppStatusDisplay(status, lastUsedAt);
+  return (
+    <div className="mt-2 min-w-0">
+      <p className={playerAppStatusHeadlineClass(display.status)}>{display.headline}</p>
+      {display.subline ? (
+        <p className={`mt-0.5 ${playerAppStatusSublineClass(display.status)}`}>{display.subline}</p>
+      ) : null}
+    </div>
   );
 }
 
@@ -472,9 +511,8 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
                 {filteredRows.map((row) => {
                   const linked = row.parent_count > 0;
                   const appStatus = appStatusByPlayer.get(row.player_id);
-                  const appStatusLine = appStatus
-                    ? formatPlayerAppStatusCardLine(appStatus.app_status, appStatus.last_used_at)
-                    : "⚪ Spieler-App nicht eingerichtet";
+                  const appStatusKey = appStatus?.app_status ?? "not_setup";
+                  const appStatusLastUsed = appStatus?.last_used_at ?? null;
                   return (
                     <li key={row.player_id} className="min-w-0">
                       <GlassCard
@@ -485,27 +523,29 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
                           linked
                             ? "border-emerald-500/20"
                             : "border-amber-500/25 bg-amber-950/10",
+                          appStatusKey === "not_setup" ? "border-white/14 bg-white/[0.03]" : "",
                         ].join(" ")}
                       >
-                        <div className="min-w-0">
-                          <p className="text-[16px] font-semibold leading-snug text-white">
-                            {row.player_name}
-                          </p>
-                          <p className="mt-0.5 text-[13px] text-white/65">
-                            {row.jersey_number != null ? `#${row.jersey_number}` : "—"}
-                            <span className="mx-1.5 text-white/35">·</span>
-                            <span
-                              className={[
-                                "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-                                statusBadgeClass(row),
-                              ].join(" ")}
-                            >
-                              {statusLabel(row)}
-                            </span>
-                          </p>
-                          <p className="mt-2 text-[12px] leading-snug text-white/78 sm:text-[13px]">
-                            {appStatusLine}
-                          </p>
+                        <div className="flex min-w-0 gap-3">
+                          <PlayerCardAvatar name={row.player_name} />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[16px] font-semibold leading-snug text-white">
+                              {row.player_name}
+                            </p>
+                            <p className="mt-0.5 text-[13px] text-white/65">
+                              {row.jersey_number != null ? `#${row.jersey_number}` : "—"}
+                              <span className="mx-1.5 text-white/35">·</span>
+                              <span
+                                className={[
+                                  "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                                  statusBadgeClass(row),
+                                ].join(" ")}
+                              >
+                                {statusLabel(row)}
+                              </span>
+                            </p>
+                            <PlayerAppStatusBlock status={appStatusKey} lastUsedAt={appStatusLastUsed} />
+                          </div>
                         </div>
 
                         {linked ? (

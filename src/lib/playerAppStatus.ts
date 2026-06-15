@@ -38,20 +38,71 @@ export function formatPlayerAppLastUsed(iso: string | null | undefined): string 
   }).format(d);
 }
 
+export type PlayerAppStatusDisplay = {
+  headline: string;
+  subline: string | null;
+  status: PlayerAppStatus;
+};
+
+/** Zeile 1 + optionale Zeile 2 für Eltern-Tab-Karten (Status wichtiger als Datum). */
+export function getPlayerAppStatusDisplay(
+  status: PlayerAppStatus,
+  lastUsedAt: string | null,
+): PlayerAppStatusDisplay {
+  if (status === 'active') {
+    const last = formatPlayerAppLastUsed(lastUsedAt);
+    return {
+      headline: '🟢 Spieler-App verbunden',
+      subline: last ? `Zuletzt aktiv: ${last}` : null,
+      status: 'active',
+    };
+  }
+  if (status === 'created') {
+    return {
+      headline: '🟡 Spieler-App Zugang erstellt',
+      subline: 'Noch nicht angemeldet',
+      status: 'created',
+    };
+  }
+  return {
+    headline: '⚪ Spieler-App nicht eingerichtet',
+    subline: null,
+    status: 'not_setup',
+  };
+}
+
+/** @deprecated Nutze getPlayerAppStatusDisplay für zweizeilige Darstellung. */
 export function formatPlayerAppStatusCardLine(
   status: PlayerAppStatus,
   lastUsedAt: string | null,
 ): string {
+  const { headline, subline } = getPlayerAppStatusDisplay(status, lastUsedAt);
+  return subline ? `${headline}\n${subline}` : headline;
+}
+
+export function playerAppStatusHeadlineClass(status: PlayerAppStatus): string {
   if (status === 'active') {
-    const last = formatPlayerAppLastUsed(lastUsedAt);
-    return last
-      ? `🟢 Spieler-App verbunden · letzte Anmeldung ${last}`
-      : '🟢 Spieler-App verbunden';
+    return 'text-[12px] font-semibold leading-snug text-emerald-200/95 sm:text-[13px]';
   }
   if (status === 'created') {
-    return '🟡 Spieler-App Zugang erstellt · noch nicht angemeldet';
+    return 'text-[12px] font-semibold leading-snug text-amber-200/95 sm:text-[13px]';
   }
-  return '⚪ Spieler-App nicht eingerichtet';
+  return [
+    'inline-flex rounded-lg border border-white/24 bg-white/[0.09] px-2.5 py-1',
+    'text-[12px] font-semibold leading-snug text-white/92',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_0_1px_rgba(255,255,255,0.04)]',
+    'sm:text-[13px]',
+  ].join(' ');
+}
+
+export function playerAppStatusSublineClass(status: PlayerAppStatus): string {
+  if (status === 'active') {
+    return 'text-[11px] leading-snug text-emerald-100/55 sm:text-[12px]';
+  }
+  if (status === 'created') {
+    return 'text-[11px] leading-snug text-amber-100/55 sm:text-[12px]';
+  }
+  return 'text-[11px] leading-snug text-white/45 sm:text-[12px]';
 }
 
 export type PlayerAppStatusSummary = {
