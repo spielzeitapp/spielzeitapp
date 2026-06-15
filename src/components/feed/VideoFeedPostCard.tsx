@@ -12,6 +12,7 @@ import {
   FeedCaption,
   FeedPostHeader,
   FeedPostTypeBadge,
+  FeedPostActionsFooter,
   FeedStandardActions,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
@@ -310,9 +311,9 @@ export const VideoFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
           </div>
         ) : null}
 
-        {shareHint ? <p className="mt-2 text-center text-[12px] text-white/65">{shareHint}</p> : null}
-
-        <FeedStandardActions liked={liked} onToggleLike={onToggleLike} onShare={() => void onShare()} />
+        <FeedPostActionsFooter shareHint={shareHint}>
+          <FeedStandardActions liked={liked} onToggleLike={onToggleLike} onShare={() => void onShare()} inFooter />
+        </FeedPostActionsFooter>
       </div>
     </FeedPostArticleShell>
   );

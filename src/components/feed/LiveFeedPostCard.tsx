@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Clock3, Heart, MapPin, Share2 } from 'lucide-react';
+import { Clock3, MapPin } from 'lucide-react';
 import type { LiveFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
@@ -11,12 +10,14 @@ import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { isValidLogoUrl } from '../../utils/logoResolver';
 import { FeedClubName } from './FeedClubName';
 import {
-  FEED_ACTIONS_ROW_CLASS,
   FEED_POST_BODY_CLASS,
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
+  FeedGameCtaLink,
+  FeedPostActionsFooter,
   FeedPostHeader,
   FeedPostTypeBadge,
+  FeedStandardActions,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 
@@ -208,12 +209,7 @@ export const LiveFeedPostCard: React.FC<Props> = ({
             </dl>
 
             <div className="flex justify-center pt-1">
-              <Link
-                to={deepLink}
-                className="inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-[22px] bg-gradient-to-b from-[#FF4747] to-[#E31D2F] px-6 text-[14px] font-bold tracking-[0.02em] text-white shadow-[0_10px_26px_rgba(227,29,47,0.38),inset_0_1px_0_rgba(255,255,255,0.28),0_2px_8px_rgba(0,0,0,0.4)] transition hover:brightness-110 active:scale-[0.98]"
-              >
-                Zum Liveticker
-              </Link>
+              <FeedGameCtaLink to={deepLink}>Zum Liveticker</FeedGameCtaLink>
             </div>
           </div>
         </div>
@@ -224,28 +220,14 @@ export const LiveFeedPostCard: React.FC<Props> = ({
           </div>
         ) : null}
 
-        {shareHint ? <p className="mt-2 text-center text-[12px] text-white/60">{shareHint}</p> : null}
-
-        <div className={`${FEED_ACTIONS_ROW_CLASS} mx-0 justify-center gap-6 border-t-0 pt-1`}>
-          <button
-            type="button"
-            onClick={onToggleLike}
-            className={`inline-flex items-center gap-1.5 text-[12px] font-semibold transition ${liked ? 'text-red-300' : 'text-white/55 hover:text-white/80'}`}
-            aria-pressed={liked}
-          >
-            <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} aria-hidden />
-            Gefällt mir
-          </button>
-          <button
-            type="button"
-            onClick={() => void onShare()}
-            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/55 transition hover:text-white/80"
-            aria-label="Live-Spiel teilen"
-          >
-            <Share2 className="h-4 w-4" aria-hidden />
-            Teilen
-          </button>
-        </div>
+        <FeedPostActionsFooter shareHint={shareHint}>
+          <FeedStandardActions
+            liked={liked}
+            onToggleLike={onToggleLike}
+            onShare={() => void onShare()}
+            inFooter
+          />
+        </FeedPostActionsFooter>
       </div>
     </FeedPostArticleShell>
   );

@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Share2 } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import type { MatchdayFeedPayload, TeamFeedPostRow } from '../../lib/matchdayFeedTypes';
@@ -22,6 +21,7 @@ import {
   FEED_POST_BODY_INSET_CLASS,
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
+  FeedGameCtaLink,
   FeedPostHeader,
   FeedPostTypeBadge,
 } from './feedTypography';
@@ -310,12 +310,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           className={`${FEED_POST_BODY_INSET_CLASS} flex gap-2 border-t border-white/[0.06] pt-2`}
           style={{ boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.04)' }}
         >
-          <Link
-            to={gameHref}
-            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center rounded-xl border border-red-500/45 bg-red-600/90 px-4 text-sm font-bold text-white shadow-[0_4px_16px_rgba(185,28,28,0.3)] transition hover:bg-red-500"
-          >
-            Zum Spiel
-          </Link>
+          <FeedGameCtaLink to={gameHref} className="flex-1" />
           <button
             type="button"
             onClick={() => void onShare()}

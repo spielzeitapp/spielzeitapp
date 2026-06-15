@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ClipboardList, Heart, Share2 } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import type { LineupFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
@@ -17,14 +16,15 @@ import { getClubLogo } from '../../lib/teamLogos';
 import { isValidLogoUrl } from '../../utils/logoResolver';
 import { FeedClubName } from './FeedClubName';
 import {
-  FEED_ACTIONS_ROW_CLASS,
-  FEED_HASHTAG,
   FEED_POST_BODY_CLASS,
-  FEED_POST_BODY_INSET_CLASS,
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
+  FEED_HASHTAG,
   FeedCaption,
+  FeedGameCtaLink,
+  FeedPostActionsFooter,
   FeedPostHeader,
   FeedPostTypeBadge,
+  FeedStandardActions,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { useSession } from '../../auth/useSession';
@@ -300,12 +300,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
             ) : null}
 
             <div className="flex justify-center pt-1">
-              <Link
-                to={gameHref}
-                className="inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-[22px] bg-gradient-to-b from-[#FF4747] to-[#E31D2F] px-6 text-[14px] font-bold tracking-[0.02em] text-white shadow-[0_10px_26px_rgba(227,29,47,0.38),inset_0_1px_0_rgba(255,255,255,0.28),0_2px_8px_rgba(0,0,0,0.4)] transition hover:brightness-110 active:scale-[0.98]"
-              >
-                Zum Spiel
-              </Link>
+              <FeedGameCtaLink to={gameHref} />
             </div>
 
             <p className="text-center text-[10px] font-bold uppercase tracking-[0.16em] text-red-200/55">
@@ -320,29 +315,14 @@ export const LineupFeedPostCard: React.FC<Props> = ({
           </div>
         ) : null}
 
-        {shareHint ? (
-          <p className={`${FEED_POST_BODY_INSET_CLASS} mt-2 text-center text-[12px] text-white/60`}>{shareHint}</p>
-        ) : null}
-
-        <div className={`${FEED_ACTIONS_ROW_CLASS} mx-0 justify-center gap-6 border-t-0 pb-[max(1.25rem,calc(0.75rem+env(safe-area-inset-bottom,0px)))] pt-1`}>
-          <button
-            type="button"
-            onClick={onToggleLike}
-            className={`inline-flex items-center gap-1.5 text-[12px] font-semibold transition ${liked ? 'text-red-300' : 'text-white/55 hover:text-white/80'}`}
-            aria-pressed={liked}
-          >
-            <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} aria-hidden />
-            Gefällt mir
-          </button>
-          <button
-            type="button"
-            onClick={() => void onShare()}
-            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/55 transition hover:text-white/80"
-          >
-            <Share2 className="h-4 w-4" aria-hidden />
-            Teilen
-          </button>
-        </div>
+        <FeedPostActionsFooter shareHint={shareHint}>
+          <FeedStandardActions
+            liked={liked}
+            onToggleLike={onToggleLike}
+            onShare={() => void onShare()}
+            inFooter
+          />
+        </FeedPostActionsFooter>
       </div>
     </FeedPostArticleShell>
   );

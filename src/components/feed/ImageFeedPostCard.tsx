@@ -7,11 +7,11 @@ import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import {
   FEED_POST_BODY_CLASS,
-  FEED_POST_BODY_INSET_CLASS,
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
   FeedPostHeader,
   FeedPostTypeBadge,
+  FeedPostActionsFooter,
   FeedStandardActions,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
@@ -118,11 +118,9 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
           </div>
         ) : null}
 
-        {shareHint ? (
-          <p className={`${FEED_POST_BODY_INSET_CLASS} mt-2 text-center text-[12px] text-white/65`}>{shareHint}</p>
-        ) : null}
-
-        <FeedStandardActions liked={liked} onToggleLike={onToggleLike} onShare={() => void onShare()} />
+        <FeedPostActionsFooter shareHint={shareHint}>
+          <FeedStandardActions liked={liked} onToggleLike={onToggleLike} onShare={() => void onShare()} inFooter />
+        </FeedPostActionsFooter>
       </div>
     </FeedPostArticleShell>
   );

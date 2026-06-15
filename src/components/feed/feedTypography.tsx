@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MessageCircle, Share2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Trophy } from 'lucide-react';
 import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
 
 export const FEED_HASHTAG = '#GEMEINSAMEINTEAM';
@@ -29,8 +29,98 @@ export const FEED_POST_CAPTION_AFTER_MEDIA_CLASS = 'mt-3 mb-1 px-3 sm:px-4';
 export const FEED_CAPTION_FOOTER_CLASS =
   'min-w-0 border-t border-white/[0.04] bg-[#060606]/95 px-3 pb-[max(0.75rem,calc(0.35rem+env(safe-area-inset-bottom,0px)))] pt-3 sm:px-4';
 
-export const FEED_ACTIONS_ROW_CLASS =
-  'flex items-center justify-between gap-0 border-t border-white/[0.06] px-3 pb-1 pt-2 sm:px-4';
+export const FEED_ACTIONS_ROW_BASE =
+  'flex items-center justify-between gap-0 px-3 pb-[max(0.75rem,calc(0.35rem+env(safe-area-inset-bottom,0px)))] pt-2 sm:px-4';
+
+export const FEED_ACTIONS_ROW_CLASS = `${FEED_ACTIONS_ROW_BASE} border-t border-white/[0.06]`;
+
+/** Primärer Feed-CTA „Zum Spiel“ — einheitlich rot. */
+export const FEED_GAME_CTA_CLASS =
+  'inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center rounded-xl border border-red-500/45 bg-gradient-to-b from-[#FF4747] to-[#E31D2F] px-4 text-[14px] font-bold tracking-[0.02em] text-white shadow-[0_8px_22px_rgba(227,29,47,0.32),inset_0_1px_0_rgba(255,255,255,0.2)] transition hover:brightness-110 active:scale-[0.98]';
+
+export function FeedGameCtaLink({
+  to,
+  children = 'Zum Spiel',
+  className = '',
+}: {
+  to: string;
+  children?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <Link to={to} className={`${FEED_GAME_CTA_CLASS} ${className}`.trim()}>
+      {children}
+    </Link>
+  );
+}
+
+export function FeedMatchMetaBadge({ line, className = '' }: { line: string | null; className?: string }) {
+  if (!line?.trim()) return null;
+  const display = line.replace(/\s*·\s*/g, ' ').trim();
+  return (
+    <div className={`flex items-center justify-center gap-2.5 px-1 ${className}`.trim()}>
+      <div
+        className="h-px min-w-[1.5rem] flex-1 max-w-[3rem] bg-gradient-to-r from-transparent via-red-500/35 to-red-500/15 sm:max-w-[4rem]"
+        aria-hidden
+      />
+      <p className="flex shrink-0 items-center gap-1.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-red-100/95 sm:text-[11px] sm:tracking-[0.14em]">
+        <Trophy className="h-3 w-3 shrink-0 text-amber-400/90" strokeWidth={2.25} aria-hidden />
+        {display}
+      </p>
+      <div
+        className="h-px min-w-[1.5rem] flex-1 max-w-[3rem] bg-gradient-to-l from-transparent via-red-500/35 to-red-500/15 sm:max-w-[4rem]"
+        aria-hidden
+      />
+    </div>
+  );
+}
+
+export function FeedMatchDateVenueLine({
+  dateLabel,
+  venueLabel,
+  className = '',
+}: {
+  dateLabel: string | null;
+  venueLabel: string | null;
+  className?: string;
+}) {
+  if (!dateLabel && !venueLabel) return null;
+  return (
+    <p
+      className={`flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-[12px] font-medium leading-snug text-white/82 sm:text-[13px] ${className}`.trim()}
+    >
+      {dateLabel ? (
+        <span className="inline-flex items-center gap-1">
+          <span aria-hidden>📅</span>
+          {dateLabel}
+        </span>
+      ) : null}
+      {venueLabel ? (
+        <span className="inline-flex items-center gap-1">
+          <span aria-hidden>📍</span>
+          {venueLabel}
+        </span>
+      ) : null}
+    </p>
+  );
+}
+
+export function FeedPostActionsFooter({
+  shareHint,
+  children,
+  className = '',
+}: {
+  shareHint?: string | null;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`${FEED_CAPTION_FOOTER_CLASS} ${className}`.trim()}>
+      {shareHint ? <p className="mb-2 text-center text-[12px] text-white/55">{shareHint}</p> : null}
+      {children}
+    </div>
+  );
+}
 
 export const FEED_ACTION_BUTTON_CLASS =
   'inline-flex min-h-[40px] flex-1 touch-manipulation items-center justify-center gap-1 rounded-lg py-1.5 text-[13px] font-semibold transition-colors sm:min-h-[42px] sm:text-sm';
@@ -136,6 +226,7 @@ export function FeedStandardActions({
   likeLabel = 'Gefällt mir',
   commentHref = '/app/nachrichten',
   className = '',
+  inFooter = false,
 }: {
   liked: boolean;
   onToggleLike: () => void;
@@ -143,36 +234,39 @@ export function FeedStandardActions({
   likeLabel?: string;
   commentHref?: string;
   className?: string;
+  /** Innerhalb von FeedPostActionsFooter — kein doppelter Top-Border. */
+  inFooter?: boolean;
 }) {
+  const rowClass = inFooter ? FEED_ACTIONS_ROW_BASE : FEED_ACTIONS_ROW_CLASS;
   return (
     <div
-      className={`${FEED_ACTIONS_ROW_CLASS} ${className}`.trim()}
-      style={{ boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.05)' }}
+      className={`${rowClass} ${className}`.trim()}
+      style={inFooter ? undefined : { boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.05)' }}
     >
       <button
         type="button"
         onClick={onToggleLike}
         className={`${FEED_ACTION_BUTTON_CLASS} ${
-          liked ? 'text-red-400' : 'text-white/68 hover:bg-white/[0.06] hover:text-white/92'
+          liked ? 'text-red-400' : 'text-white/62 hover:bg-white/[0.06] hover:text-white/90'
         }`}
         aria-pressed={liked}
       >
-        <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} strokeWidth={2} />
+        <Heart className={`h-4 w-4 shrink-0 ${liked ? 'fill-current' : ''}`} strokeWidth={2} aria-hidden />
         {likeLabel}
       </button>
       <Link
         to={commentHref}
-        className={`${FEED_ACTION_BUTTON_CLASS} text-white/55 hover:bg-white/[0.04] hover:text-white/88`}
+        className={`${FEED_ACTION_BUTTON_CLASS} text-white/58 hover:bg-white/[0.04] hover:text-white/88`}
       >
-        <MessageCircle className="h-4 w-4" strokeWidth={2} />
+        <MessageCircle className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
         Kommentar
       </Link>
       <button
         type="button"
         onClick={onShare}
-        className={`${FEED_ACTION_BUTTON_CLASS} text-white/68 hover:bg-white/[0.06] hover:text-white/92`}
+        className={`${FEED_ACTION_BUTTON_CLASS} text-white/62 hover:bg-white/[0.06] hover:text-white/90`}
       >
-        <Share2 className="h-4 w-4 shrink-0" strokeWidth={2} />
+        <Share2 className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
         Teilen
       </button>
     </div>
