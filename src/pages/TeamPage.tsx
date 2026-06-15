@@ -811,6 +811,7 @@ export const TeamPage: React.FC = () => {
         photoUrl={readOptionalPhotoUrl(selectedProfilePlayer)}
         canManage={canManagePlayers}
         initialTab={profileInitialTab}
+        squadPlayers={players}
         onClose={closePlayerProfile}
         onEdit={handleEditFromProfile}
         onPlayerUpdated={(patch) => {

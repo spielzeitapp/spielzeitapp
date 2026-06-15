@@ -18,6 +18,7 @@ type Props = {
   teamSeasonId: string;
   onPlayerClick?: (player: PlayerItem) => void;
   variant?: 'full' | 'overview';
+  embedded?: boolean;
   onViewAll?: () => void;
   ranking: TrainingRankingResult;
   loading: boolean;
@@ -73,17 +74,19 @@ function PodiumRow({
       onClick={() => onPlayerClick?.(row.player)}
       disabled={!onPlayerClick}
       className={cn(
-        'flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-left transition',
+        'flex w-full items-start justify-between gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-left transition',
         onPlayerClick ? 'cursor-pointer hover:border-red-500/25 hover:bg-white/[0.04] active:scale-[0.99]' : 'cursor-default',
       )}
     >
-      <span className="flex min-w-0 items-center gap-2.5">
+      <span className="flex min-w-0 flex-1 items-start gap-2">
         <span className="shrink-0 text-[22px] leading-none" aria-hidden>
           {medal}
         </span>
-        <span className="min-w-0 truncate text-[15px] font-semibold text-white">{row.player.display_name}</span>
+        <span className="min-w-0 break-words text-[15px] font-semibold leading-snug text-white">
+          {row.player.display_name}
+        </span>
       </span>
-      <span className={cn('shrink-0 text-[18px] font-bold tabular-nums', pctClass)}>
+      <span className={cn('shrink-0 pt-0.5 text-[18px] font-bold tabular-nums', pctClass)}>
         {hasBasis ? `${row.stats.activityRatePct} %` : '—'}
       </span>
     </button>
@@ -119,8 +122,8 @@ function RankingCard({
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[14px] font-semibold text-white">
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-[14px] font-semibold leading-snug text-white">
             {showRank ? <span className="mr-2 tabular-nums text-white/45">{row.rank}.</span> : null}
             {row.player.display_name}
           </p>
@@ -154,6 +157,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
   teamSeasonId: _teamSeasonId,
   onPlayerClick,
   variant = 'full',
+  embedded = false,
   onViewAll,
   ranking,
   loading,
@@ -172,8 +176,8 @@ export const TrainingKaiserCard: React.FC<Props> = ({
   const hasPlayers = qualified.length > 0 || unqualified.length > 0;
   const isOverview = variant === 'overview';
 
-  return (
-    <PremiumCard variant="subtle" showAmbientGlow={false} className={isOverview ? 'sm:p-4' : 'mb-4 sm:p-5'}>
+  const body = (
+    <>
       {!isOverview ? (
         <SectionTitle
           as="h2"
@@ -292,7 +296,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
                                   onClick={() => onPlayerClick?.(row.player)}
                                   disabled={!onPlayerClick}
                                   className={cn(
-                                    'font-semibold text-white',
+                                    'break-words text-left font-semibold text-white',
                                     onPlayerClick ? 'hover:text-red-200' : '',
                                   )}
                                 >
@@ -367,6 +371,16 @@ export const TrainingKaiserCard: React.FC<Props> = ({
           ) : null}
         </div>
       )}
+    </>
+  );
+
+  if (embedded && isOverview) {
+    return <div className="min-w-0">{body}</div>;
+  }
+
+  return (
+    <PremiumCard variant="subtle" showAmbientGlow={false} className={isOverview ? 'sm:p-4' : 'mb-4 sm:p-5'}>
+      {body}
     </PremiumCard>
   );
 };

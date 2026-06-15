@@ -8,7 +8,9 @@ import { PLAYER_STAT_TILES } from "./profile/profileStatIcons";
 import type { PlayerItem } from "../../hooks/usePlayers";
 import { usePlayerStats } from "../../hooks/usePlayerStats";
 import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
+import { useTeamTrainingRanking } from "../../hooks/useTeamTrainingRanking";
 import { useTrainingParticipationAccess } from "../../hooks/useTrainingParticipationAccess";
+import { averageQualifiedTeamRatePct } from "../../lib/trainingRanking";
 import { Button } from "../../app/components/ui/Button";
 import { AppButton } from "../ui/AppButton";
 import { getPositionFull, getPositionLabel, getTrainingPositionDisplay } from "../../lib/positionLabels";
@@ -26,6 +28,8 @@ export type PlayerProfileModalProps = {
   onPlayerUpdated?: (patch: Pick<PlayerItem, "is_laz_player">) => void;
   /** Optionaler Start-Tab (z. B. aus Trainingskaiser). */
   initialTab?: ProfileTab;
+  /** Aktiver Kader für anonymisierten Teamdurchschnitt im Training-Tab. */
+  squadPlayers?: PlayerItem[];
 };
 
 export type ProfileTab = "overview" | "matches" | "achievements" | "training";
@@ -276,6 +280,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   onEdit,
   onPlayerUpdated,
   initialTab = "overview",
+  squadPlayers = [],
 }) => {
   const [profileTab, setProfileTab] = useState<ProfileTab>(initialTab);
   const [isLazPlayer, setIsLazPlayer] = useState(player.is_laz_player);
@@ -297,6 +302,13 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     loading: trainingStatsLoading,
     error: trainingStatsError,
   } = usePlayerTrainingStats(player.id, player.team_season_id, canViewTrainingParticipation);
+
+  const { qualified, teamAverageActivityPct, loading: teamRankingLoading } = useTeamTrainingRanking(
+    squadPlayers,
+    player.team_season_id,
+    canViewTrainingParticipation && squadPlayers.length > 0,
+  );
+  const teamParticipationAvgPct = useMemo(() => averageQualifiedTeamRatePct(qualified), [qualified]);
 
   const goalsPerGameDisplay = useMemo(() => {
     const v = Number(stats.goalsPerGame);
@@ -652,15 +664,26 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 <p className="mt-4 text-[13px] text-red-300/90">{trainingStatsError}</p>
               ) : (
                 <>
+                  <p className="mt-4 text-[12px] text-white/55">
+                    Basis:{' '}
+                    <span className="font-medium text-white/75">
+                      {trainingStats.sessionsCounted} vergangene Trainingseinheiten
+                    </span>
+                  </p>
                   <div className="mt-4 space-y-3">
                     <div>
                       <div className="flex items-start justify-between gap-2">
                         <span className="text-[13px] text-white/70">Team-Trainingsbeteiligung</span>
-                        <div className="text-right">
+                        <div className="shrink-0 text-right">
                           <span className="text-[20px] font-bold tabular-nums text-white">{teamTrainingRatePct}%</span>
                           <p className="mt-0.5 text-xs text-white/60">
                             {trainingsPresent} von {teamTrainingBasis} Trainings
                           </p>
+                          {!teamRankingLoading && teamParticipationAvgPct != null ? (
+                            <p className="mt-1 text-[11px] text-white/50">
+                              Teamdurchschnitt: {teamParticipationAvgPct} %
+                            </p>
+                          ) : null}
                         </div>
                       </div>
                       <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/10">
@@ -673,13 +696,18 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     <div>
                       <div className="flex items-start justify-between gap-2">
                         <span className="text-[13px] text-white/70">Trainingsaktivität gesamt</span>
-                        <div className="text-right">
+                        <div className="shrink-0 text-right">
                           <span className="text-[20px] font-bold tabular-nums text-white">
                             {activityTrainingRatePct}%
                           </span>
                           <p className="mt-0.5 text-xs text-white/60">
                             {activityTrainingNumerator} von {activityTrainingBasis} Trainings
                           </p>
+                          {!teamRankingLoading && teamAverageActivityPct != null ? (
+                            <p className="mt-1 text-[11px] text-white/50">
+                              Teamdurchschnitt: {teamAverageActivityPct} %
+                            </p>
+                          ) : null}
                         </div>
                       </div>
                       <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/10">
@@ -703,8 +731,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     ) : null}
                   </div>
                   <p className="mt-3 text-[11px] leading-relaxed text-white/55">
-                    Verletzt, offen und nicht erfasst zählen nicht in die Quoten. Basis:{' '}
-                    {trainingStats.sessionsCounted} vergangene Trainingseinheiten.
+                    Verletzt, offen und nicht erfasst zählen nicht in die Quoten.
                   </p>
                 </>
               )}

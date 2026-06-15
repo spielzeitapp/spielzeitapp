@@ -3,7 +3,11 @@ import type { PlayerItem } from '../../hooks/usePlayers';
 import { useTeamTrainingRanking } from '../../hooks/useTeamTrainingRanking';
 import { useJugglingChallenge } from '../../hooks/useJugglingChallenge';
 import { deriveJugglingAwards } from '../../lib/challengeScoring';
-import { hasTrainingActivityBasis, type TrainingRankingResult } from '../../lib/trainingRanking';
+import {
+  averageQualifiedTeamRatePct,
+  hasTrainingActivityBasis,
+  type TrainingRankingResult,
+} from '../../lib/trainingRanking';
 import { TrainingKaiserCard } from './TrainingKaiserCard';
 import { JugglingChallengeCard } from './JugglingChallengeCard';
 import { GlassCard, PremiumCard, PremiumEmptyState, PremiumTab, PremiumTabTrack, SectionTitle } from '../../ui';
@@ -30,17 +34,12 @@ function StatSummaryCard({
   className?: string;
 }) {
   return (
-    <GlassCard variant="subtle" showAmbientGlow={false} className={cn('px-3 py-2.5', className)}>
+    <GlassCard variant="subtle" showAmbientGlow={false} className={cn('px-3.5 py-3', className)}>
       <p className="text-[11px] font-medium text-white/55">{label}</p>
-      <p className="mt-1 truncate text-[15px] font-bold leading-tight text-white">{value}</p>
-      {sub ? <p className="mt-0.5 truncate text-[11px] text-white/50">{sub}</p> : null}
+      <p className="mt-1 line-clamp-2 break-words text-[15px] font-bold leading-snug text-white">{value}</p>
+      {sub ? <p className="mt-0.5 line-clamp-2 break-words text-[11px] leading-snug text-white/50">{sub}</p> : null}
     </GlassCard>
   );
-}
-
-function averageTeamParticipationPct(qualified: { stats: { teamRatePct: number } }[]): number | null {
-  if (qualified.length === 0) return null;
-  return Math.round(qualified.reduce((sum, row) => sum + row.stats.teamRatePct, 0) / qualified.length);
 }
 
 export const TeamTrainingDashboard: React.FC<Props> = ({
@@ -75,7 +74,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
   const jugglingState = useJugglingChallenge(players, teamSeasonId, true);
 
   const leader = qualified[0] ?? null;
-  const avgTeamPct = useMemo(() => averageTeamParticipationPct(qualified), [qualified]);
+  const avgTeamPct = useMemo(() => averageQualifiedTeamRatePct(qualified), [qualified]);
 
   const jugglingAwards = useMemo(() => {
     if (!jugglingState.session) return null;
@@ -105,12 +104,12 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
       : undefined;
 
   return (
-    <PremiumCard variant="subtle" showAmbientGlow={false} className="mb-4 sm:p-5">
+    <PremiumCard variant="subtle" showAmbientGlow={false} className="mb-4 w-full max-w-none !px-3 !py-4 sm:!px-5 sm:!py-5">
       <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
         Trainingszentrale
       </SectionTitle>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
+      <div className="mt-4 grid grid-cols-2 gap-2.5">
         <StatSummaryCard label="Trainings" value={trainingsLabel} />
         <StatSummaryCard label="Ø Beteiligung" value={participationLabel} />
         <StatSummaryCard label="Trainingskaiser" value={kaiserLabel} sub={kaiserSub} />
@@ -137,6 +136,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
               teamSeasonId={teamSeasonId}
               onPlayerClick={onPlayerClick}
               variant="overview"
+              embedded
               onViewAll={() => setSubTab('kaiser')}
               ranking={ranking}
               loading={rankingLoading}

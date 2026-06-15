@@ -26,7 +26,7 @@ function AwardPreview({
       <p className="text-[10px] font-semibold text-white/55">
         <span aria-hidden>{emoji}</span> {label}
       </p>
-      <p className="mt-0.5 truncate text-[12px] font-semibold text-white">{name ?? '—'}</p>
+      <p className="mt-0.5 break-words text-[12px] font-semibold leading-snug text-white">{name ?? '—'}</p>
     </div>
   );
 }
@@ -35,7 +35,7 @@ export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', award
   const isTeaser = variant === 'teaser';
 
   return (
-    <PremiumCard variant="subtle" showAmbientGlow={false} className={isTeaser ? 'sm:p-4' : 'sm:p-5'}>
+    <PremiumCard variant="subtle" showAmbientGlow={false} className={isTeaser ? 'w-full sm:p-4' : 'w-full sm:p-5'}>
       <SectionTitle
         as={isTeaser ? 'h3' : 'h2'}
         subtitle={

@@ -64,6 +64,18 @@ export function podiumMedal(rank: number): string | null {
   return null;
 }
 
+/** Durchschnittliche Team-Trainingsbeteiligung (teamRatePct) der gewerteten Spieler. */
+export function averageQualifiedTeamRatePct(rows: TrainingRankingRow[]): number | null {
+  if (rows.length === 0) return null;
+  return Math.round(rows.reduce((sum, row) => sum + row.stats.teamRatePct, 0) / rows.length);
+}
+
+/** Durchschnittliche Trainingsaktivität (activityRatePct) der gewerteten Spieler. */
+export function averageQualifiedActivityRatePct(rows: TrainingRankingRow[]): number | null {
+  if (rows.length === 0) return null;
+  return Math.round(rows.reduce((sum, row) => sum + row.stats.activityRatePct, 0) / rows.length);
+}
+
 function compareTrainingRankingRows(a: TrainingRankingRow, b: TrainingRankingRow): number {
   const activityDiff = b.stats.activityRatePct - a.stats.activityRatePct;
   if (activityDiff !== 0) return activityDiff;
@@ -113,12 +125,7 @@ export function buildTrainingRanking(
 
   unqualified.sort(compareByName);
 
-  const teamAverageActivityPct =
-    qualified.length > 0
-      ? Math.round(
-          qualified.reduce((sum, row) => sum + row.stats.activityRatePct, 0) / qualified.length,
-        )
-      : null;
+  const teamAverageActivityPct = averageQualifiedActivityRatePct(qualified);
 
   return {
     qualified,

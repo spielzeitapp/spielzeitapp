@@ -47,7 +47,7 @@ function AwardCard({
       </p>
       {row ? (
         <>
-          <p className="mt-1 text-[15px] font-bold text-white">{row.playerName}</p>
+          <p className="mt-1 break-words text-[15px] font-bold leading-snug text-white">{row.playerName}</p>
           <p className="mt-0.5 text-[13px] tabular-nums text-red-200/90">
             {title === 'Jonglierkönig'
               ? `${row.endValue} Jonglierungen`
@@ -86,9 +86,9 @@ function RankingList({
         {rows.map((row) => (
           <li
             key={row.playerId}
-            className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/25 px-3 py-2"
+            className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-black/25 px-3 py-2"
           >
-            <span className="min-w-0 text-[13px] font-semibold text-white">
+            <span className="min-w-0 flex-1 break-words text-[13px] font-semibold leading-snug text-white">
               <span className="mr-2 tabular-nums text-white/45">{row.rank}.</span>
               {row.playerName}
             </span>
@@ -138,8 +138,8 @@ function PlayerValueEditor({
 
   return (
     <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-3">
-      <p className="text-[14px] font-semibold text-white">{row.player.display_name}</p>
-      <div className="mt-2 grid grid-cols-2 gap-2">
+      <p className="break-words text-[14px] font-semibold leading-snug text-white">{row.player.display_name}</p>
+      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
         <label className="block text-[11px] text-white/55">
           Start
           <input
@@ -230,7 +230,7 @@ export const JugglingChallengePage: React.FC = () => {
     <PageShell
       background="default"
       className="min-h-[60vh] w-full px-3 py-6 sm:px-4 md:px-0"
-      contentClassName="mx-auto w-full min-w-0 max-w-lg space-y-4"
+      contentClassName="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl"
     >
       <Link
         to="/app/team?tab=training"
@@ -355,7 +355,9 @@ function PlayerTableRow({
 
   return (
     <tr>
-      <td className="rounded-l-lg bg-black/25 px-2 py-2 font-semibold text-white">{row.player.display_name}</td>
+      <td className="rounded-l-lg bg-black/25 px-2 py-2 font-semibold leading-snug text-white">
+        <span className="break-words">{row.player.display_name}</span>
+      </td>
       <td className="bg-black/25 px-2 py-2">
         <input
           type="number"
