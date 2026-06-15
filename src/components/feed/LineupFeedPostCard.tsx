@@ -12,6 +12,7 @@ import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { getClubLogo } from '../../lib/teamLogos';
+import { getMatchTypeLabel } from '../match/matchCardLabels';
 import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import { FeedClubName } from './FeedClubName';
 import { FeedMatchLogoBlock, FEED_MATCH_GRID_CLASS, FEED_MATCH_TEAM_COL_CLASS } from './feedMatchHero';
@@ -110,9 +111,9 @@ export const LineupFeedPostCard: React.FC<Props> = ({
     () =>
       buildFeedMatchMetaLine(
         pickFeedAgeGroup(teamLabel, p.our_team_name ?? '', p.opponent_name ?? liveEvent?.opponent ?? ''),
-        'Startaufstellung',
+        getMatchTypeLabel(liveEvent?.match_type ?? undefined) || null,
       ),
-    [teamLabel, p.our_team_name, p.opponent_name, liveEvent?.opponent],
+    [teamLabel, p.our_team_name, p.opponent_name, liveEvent?.opponent, liveEvent?.match_type],
   );
 
   const { backendRole, membershipRole } = useSession();
