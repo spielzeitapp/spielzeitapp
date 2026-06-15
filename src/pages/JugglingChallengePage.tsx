@@ -17,7 +17,7 @@ import {
 } from '../lib/challengeScoring';
 import type { ChallengeScoringRow, JugglingChallengePlayerRow } from '../lib/challengeTypes';
 import { dsPanelRowClass } from '../lib/premiumDesignSystem';
-import { GlassCard, PageShell, PremiumCard, PremiumEmptyState, SectionTitle } from '../ui';
+import { GlassCard, PageShell, PremiumCard, PremiumEmptyState, PremiumTab, PremiumTabTrack, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
 
 function parseInputInt(raw: string): number | null {
@@ -63,12 +63,16 @@ function AwardCard({
   );
 }
 
+type RankingMetric = 'end' | 'absolute' | 'percent';
+
 function RankingList({
   title,
   rows,
+  metric,
 }: {
   title: string;
   rows: ChallengeScoringRow[];
+  metric: RankingMetric;
 }) {
   if (rows.length === 0) {
     return (
@@ -78,6 +82,12 @@ function RankingList({
       </div>
     );
   }
+
+  const formatValue = (row: ChallengeScoringRow): string => {
+    if (metric === 'end') return String(row.endValue);
+    if (metric === 'percent') return formatImprovementPercent(row.percentImprovement);
+    return formatImprovementDelta(row.absoluteImprovement);
+  };
 
   return (
     <div>
@@ -92,12 +102,8 @@ function RankingList({
               <span className="mr-2 tabular-nums text-white/45">{row.rank}.</span>
               {row.playerName}
             </span>
-            <span className="shrink-0 text-[13px] font-bold tabular-nums text-white/85">
-              {title.includes('Endwert')
-                ? row.endValue
-                : title.includes('Entwicklung')
-                  ? formatImprovementPercent(row.percentImprovement)
-                  : formatImprovementDelta(row.absoluteImprovement)}
+            <span className="shrink-0 pt-0.5 text-[13px] font-bold tabular-nums text-white/85">
+              {formatValue(row)}
             </span>
           </li>
         ))}
@@ -177,7 +183,10 @@ function PlayerValueEditor({
   );
 }
 
+type RankingTab = 'end' | 'improvement' | 'development';
+
 export const JugglingChallengePage: React.FC = () => {
+  const [rankingTab, setRankingTab] = useState<RankingTab>('end');
   const { teamSeasonId, role, loading: tsLoading } = useActiveTeamSeason();
   const roleNormalized = normalizeRole(role);
   const allowed = canManageMatches(roleNormalized);
@@ -229,7 +238,7 @@ export const JugglingChallengePage: React.FC = () => {
   return (
     <PageShell
       background="default"
-      className="min-h-[60vh] w-full px-3 py-6 sm:px-4 md:px-0"
+      className="min-h-[60vh] w-full px-3 py-6 pb-36 sm:px-4 md:px-0"
       contentClassName="mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl"
     >
       <Link
@@ -303,22 +312,43 @@ export const JugglingChallengePage: React.FC = () => {
             )}
           </PremiumCard>
 
-          <PremiumCard variant="subtle" showAmbientGlow={false} className="space-y-4 sm:p-4">
+          <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-4">
             <SectionTitle as="h2" className="[&>h2]:text-base [&>h2]:font-semibold [&>h2]:normal-case">
               Rankings
             </SectionTitle>
             {!hasAnyEndValue ? (
-              <p className="text-[13px] text-white/55">Noch keine Endwerte erfasst.</p>
+              <p className="mt-3 text-[13px] text-white/55">Noch keine Endwerte erfasst.</p>
             ) : (
-              <div className="space-y-4">
-                <RankingList title="1. Endwert-Ranking" rows={endRanking} />
-                <RankingList title="2. Verbesserungs-Ranking" rows={absoluteRanking} />
-                <RankingList title="3. Entwicklungspreis-Ranking" rows={percentRanking} />
-              </div>
+              <>
+                <PremiumTabTrack className="mt-3" aria-label="Jonglier-Rankings">
+                  <PremiumTab active={rankingTab === 'end'} onClick={() => setRankingTab('end')}>
+                    Endwert
+                  </PremiumTab>
+                  <PremiumTab active={rankingTab === 'improvement'} onClick={() => setRankingTab('improvement')}>
+                    Verbesserung
+                  </PremiumTab>
+                  <PremiumTab active={rankingTab === 'development'} onClick={() => setRankingTab('development')}>
+                    Entwicklung
+                  </PremiumTab>
+                </PremiumTabTrack>
+                <div className="mt-3" role="tabpanel">
+                  {rankingTab === 'end' ? (
+                    <RankingList title="Endwert-Ranking" rows={endRanking} metric="end" />
+                  ) : null}
+                  {rankingTab === 'improvement' ? (
+                    <RankingList title="Verbesserungs-Ranking" rows={absoluteRanking} metric="absolute" />
+                  ) : null}
+                  {rankingTab === 'development' ? (
+                    <>
+                      <RankingList title="Entwicklungspreis-Ranking" rows={percentRanking} metric="percent" />
+                      <p className="mt-3 text-[11px] leading-relaxed text-white/45">
+                        Entwicklungspreis nur bei Startwert ≥ {minStart}. Prozentwertung entfällt bei Start = 0.
+                      </p>
+                    </>
+                  ) : null}
+                </div>
+              </>
             )}
-            <p className="text-[11px] leading-relaxed text-white/45">
-              Entwicklungspreis nur bei Startwert ≥ {minStart}. Prozentwertung entfällt bei Start = 0.
-            </p>
           </PremiumCard>
         </div>
       )}

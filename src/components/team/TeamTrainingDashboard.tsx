@@ -25,21 +25,48 @@ type Props = {
 function StatSummaryCard({
   label,
   value,
+  valueLine2,
   sub,
   className,
+  compactValue = false,
 }: {
   label: string;
   value: string;
+  valueLine2?: string;
   sub?: string;
   className?: string;
+  compactValue?: boolean;
 }) {
   return (
     <GlassCard variant="subtle" showAmbientGlow={false} className={cn('px-3.5 py-3', className)}>
       <p className="text-[11px] font-medium text-white/55">{label}</p>
-      <p className="mt-1 line-clamp-2 break-words text-[15px] font-bold leading-snug text-white">{value}</p>
-      {sub ? <p className="mt-0.5 line-clamp-2 break-words text-[11px] leading-snug text-white/50">{sub}</p> : null}
+      <p
+        className={cn(
+          'mt-1 break-words font-bold leading-snug text-white',
+          compactValue ? 'text-[14px]' : 'line-clamp-2 text-[15px]',
+        )}
+      >
+        {value}
+      </p>
+      {valueLine2 ? (
+        <p className="break-words text-[13px] font-semibold leading-snug text-white/90">{valueLine2}</p>
+      ) : null}
+      {sub ? <p className="mt-0.5 break-words text-[11px] leading-snug text-white/50">{sub}</p> : null}
     </GlassCard>
   );
+}
+
+function kaiserTileName(player: PlayerItem): { primary: string; secondary?: string } {
+  const first = (player.first_name ?? '').trim();
+  const last = (player.last_name ?? '').trim();
+  if (first) {
+    return last ? { primary: first, secondary: last } : { primary: first };
+  }
+  const parts = player.display_name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return { primary: parts[0], secondary: parts.slice(1).join(' ') };
+  }
+  return { primary: parts[0] ?? '—' };
 }
 
 export const TeamTrainingDashboard: React.FC<Props> = ({
@@ -88,7 +115,11 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
   }, [jugglingState.rows, jugglingState.session]);
 
   const trainingsLabel =
-    trainingCount > 0 ? String(trainingCount) : sessionsCount > 0 ? String(sessionsCount) : 'Noch keine Daten';
+    sessionsCount > 0
+      ? String(sessionsCount)
+      : trainingCount > 0
+        ? String(trainingCount)
+        : 'Noch keine Daten';
 
   const participationLabel =
     avgTeamPct != null
@@ -97,10 +128,10 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
         ? `${teamAverageActivityPct} %`
         : 'Noch keine Daten';
 
-  const kaiserLabel = leader ? leader.player.display_name : 'Noch keine Wertung';
+  const kaiserName = leader ? kaiserTileName(leader.player) : null;
   const kaiserSub =
     leader && hasTrainingActivityBasis(leader.stats)
-      ? `Aktivität ${leader.stats.activityRatePct} %`
+      ? `${leader.stats.activityRatePct} % Aktivität`
       : undefined;
 
   return (
@@ -112,7 +143,13 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
       <div className="mt-4 grid grid-cols-2 gap-2.5">
         <StatSummaryCard label="Trainings" value={trainingsLabel} />
         <StatSummaryCard label="Ø Beteiligung" value={participationLabel} />
-        <StatSummaryCard label="Trainingskaiser" value={kaiserLabel} sub={kaiserSub} />
+        <StatSummaryCard
+          label="🥇 Trainingskaiser"
+          value={kaiserName?.primary ?? 'Noch keine Wertung'}
+          valueLine2={kaiserName?.secondary}
+          sub={kaiserSub}
+          compactValue
+        />
         <StatSummaryCard label="Challenge" value="Jonglier-Challenge" sub="Aktiv · Öffnen" />
       </div>
 
@@ -143,11 +180,11 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
               error={rankingError}
             />
             <JugglingChallengeCard variant="teaser" />
-            {trainingCount > 0 ? (
+            {(sessionsCount > 0 || trainingCount > 0) ? (
               <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
                 <p className="text-[12px] text-white/60">
-                  {trainingCount} vergangene Trainingseinheiten in dieser Saison.
-                  {avgTeamPct != null ? ` Ø Team-Beteiligung: ${avgTeamPct} %.` : ''}
+                  {sessionsCount > 0 ? sessionsCount : trainingCount} vergangene Trainingseinheiten in dieser Saison.
+                  {avgTeamPct != null ? ` Ø gewertete Spieler (Beteiligung): ${avgTeamPct} %.` : ''}
                 </p>
               </GlassCard>
             ) : null}
@@ -176,7 +213,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
       </div>
 
       {rankingError ? <p className="mt-3 text-[12px] text-red-300/90">{rankingError}</p> : null}
-      {trainingCount === 0 && subTab === 'overview' && !rankingLoading ? (
+      {trainingCount === 0 && sessionsCount === 0 && subTab === 'overview' && !rankingLoading ? (
         <PremiumEmptyState variant="subtle" title="Noch keine Trainingsdaten" className="mt-3 py-4" />
       ) : null}
     </PremiumCard>

@@ -76,6 +76,25 @@ export function averageQualifiedActivityRatePct(rows: TrainingRankingRow[]): num
   return Math.round(rows.reduce((sum, row) => sum + row.stats.activityRatePct, 0) / rows.length);
 }
 
+/** Klartext für Durchschnitt nur gewerteter Spieler (≥ 30 % Trainingsbasis). */
+export const QUALIFIED_AVERAGE_LABEL = 'Ø gewertete Spieler';
+
+export function formatQualifiedAverageLabel(pct: number): string {
+  return `${QUALIFIED_AVERAGE_LABEL}: ${pct} %`;
+}
+
+/** Neutrale Vergleichszeile Spielerwert vs. Durchschnitt gewerteter Spieler. */
+export function formatTrainingComparisonToAverage(
+  playerPct: number,
+  averagePct: number | null,
+): string | null {
+  if (averagePct == null) return null;
+  const diff = Math.round(playerPct - averagePct);
+  if (diff === 0) return 'im Mannschaftsschnitt';
+  if (diff > 0) return `+${diff} Punkte über ${QUALIFIED_AVERAGE_LABEL}`;
+  return `${diff} Punkte unter ${QUALIFIED_AVERAGE_LABEL}`;
+}
+
 function compareTrainingRankingRows(a: TrainingRankingRow, b: TrainingRankingRow): number {
   const activityDiff = b.stats.activityRatePct - a.stats.activityRatePct;
   if (activityDiff !== 0) return activityDiff;

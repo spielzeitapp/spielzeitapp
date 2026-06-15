@@ -301,11 +301,14 @@ export const TeamPage: React.FC = () => {
       return;
     }
     let cancelled = false;
+    const nowIso = new Date().toISOString();
     void supabase
       .from("events")
       .select("id", { count: "exact", head: true })
       .eq("team_season_id", teamSeasonId)
       .eq("kind", "training")
+      .lt("starts_at", nowIso)
+      .neq("status", "canceled")
       .then(({ count, error }) => {
         if (cancelled) return;
         if (error) {

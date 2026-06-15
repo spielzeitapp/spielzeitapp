@@ -245,7 +245,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
                     <span className="mr-1.5" aria-hidden>
                       📊
                     </span>
-                    Teamdurchschnitt{' '}
+                    Ø gewertete Spieler{' '}
                     <span className={cn('tabular-nums', activityRateColorClass(teamAverageActivityPct))}>
                       {teamAverageActivityPct} %
                     </span>
