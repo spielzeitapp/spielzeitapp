@@ -35,9 +35,9 @@ export function dsPageShellClass(extra = ''): string {
     .join(' ');
 }
 
-/** Stadium-Glow + Fog + Vignette (fixed). */
+/** Stadium-Glow + Fog + Vignette (innerhalb PageShell, nicht viewport-fixed). */
 export function dsPageAtmosphereClass(): string {
-  return `pointer-events-none fixed inset-0 z-0 ${PAGE_ATMOSPHERE_LAYERS}`;
+  return `pointer-events-none absolute inset-0 z-0 ${PAGE_ATMOSPHERE_LAYERS}`;
 }
 
 /** Stadium-Glow innerhalb eines Containers (z. B. Wechsel-Sheet). */
@@ -46,7 +46,7 @@ export function dsPageAtmosphereAbsoluteClass(): string {
 }
 
 export function dsPageContentClass(extra = ''): string {
-  return ['relative z-[1]', extra].filter(Boolean).join(' ');
+  return ['relative z-[1] isolate', extra].filter(Boolean).join(' ');
 }
 
 export function dsPageHeaderClass(): string {

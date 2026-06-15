@@ -134,7 +134,7 @@ export const Header: React.FC = () => {
   }, [isStaff]);
 
   return (
-    <header className="fixed left-0 top-0 z-50 w-full border-b border-transparent bg-[rgba(6,6,8,0.72)] pt-[env(safe-area-inset-top,0px)] shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65),inset_0_-1px_0_rgba(255,30,30,0.05)] backdrop-blur-xl backdrop-saturate-150">
+    <header className="app-header fixed left-0 top-0 w-full border-b border-transparent bg-[rgba(6,6,8,0.88)] pt-[env(safe-area-inset-top,0px)] shadow-[0_10px_32px_-8px_rgba(0,0,0,0.65),inset_0_-1px_0_rgba(255,30,30,0.05)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-[rgba(6,6,8,0.72)]">
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[radial-gradient(ellipse_70%_100%_at_18%_0%,rgba(255,30,30,0.07),transparent_68%)]"
         aria-hidden

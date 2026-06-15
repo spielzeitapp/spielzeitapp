@@ -23,7 +23,7 @@ export const AppLayout: React.FC = () => {
       <div className="app min-h-screen bg-black text-white">
         {!publicMvp && <Header />}
         <main
-          className={`app__content appMain ${publicMvp ? 'pt-6 pb-6' : 'pt-24 pb-24'}`}
+          className={`app__content appMain ${publicMvp ? 'pt-6 pb-6' : 'pt-[var(--app-header-offset)] pb-24'}`}
         >
           <Outlet />
         </main>
