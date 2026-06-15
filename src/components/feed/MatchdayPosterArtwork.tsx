@@ -1,6 +1,7 @@
 import React from 'react';
-import { Clock, MapPin } from 'lucide-react';
+import { Clock, MapPin, Trophy } from 'lucide-react';
 import { FeedClubName } from './FeedClubName';
+import { FeedPremiumBadge } from './feedTypography';
 
 const PLACEHOLDER =
   (import.meta.env.BASE_URL ?? '/').replace(/\/*$/, '') + '/logos/placeholder-shield-a.png';
@@ -308,9 +309,17 @@ export const MatchdayPosterArtwork = React.forwardRef<HTMLDivElement, MatchdayPo
             ) : null}
             {competitionLabel ? (
               <div className="flex justify-center pt-0.5">
-                <span className="inline-flex max-w-[94%] items-center justify-center rounded-full border border-red-500/22 bg-black/28 px-2 py-0.5 text-[6px] font-bold uppercase tracking-[0.13em] text-white/76 sm:max-w-full sm:px-2.5 sm:text-[7px]">
-                  {competitionLabel}
-                </span>
+                <FeedPremiumBadge className="max-w-[94%] !min-h-[20px] gap-1 px-2 py-0.5 text-[7px] sm:max-w-full sm:gap-1.5 sm:px-2.5 sm:text-[8px]">
+                  <Trophy className="h-2.5 w-2.5 shrink-0 text-amber-400/95 sm:h-3 sm:w-3" strokeWidth={2.25} aria-hidden />
+                  {competitionLabel.split('·').map((part, i) => (
+                    <React.Fragment key={`${part}-${i}`}>
+                      {i > 0 ? <span className="text-red-300/45" aria-hidden>·</span> : null}
+                      <span className={/^U\d/i.test(part.trim()) ? 'font-bold tracking-wide' : 'tracking-[0.02em]'}>
+                        {part.trim()}
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </FeedPremiumBadge>
               </div>
             ) : null}
           </div>

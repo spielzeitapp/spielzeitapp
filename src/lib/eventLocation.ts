@@ -38,20 +38,45 @@ export function combineLocationParts(
   return p || a;
 }
 
-/** Kurzer Platzname für Feed (ohne Straße/Adresse). */
+/** Kurzer Platzname für Feed (ohne Straße/Adresse/PLZ). */
+function feedVenueLooksLikeAddress(segment: string): boolean {
+  const t = segment.trim();
+  if (!t) return false;
+  if (/^\d{4,5}(\s|$)/.test(t)) return true;
+  if (/\b(straße|str\.|gasse|weg|allee|ring|bundesstraße|bahnstraße)\b/i.test(t) && /\d/.test(t)) return true;
+  if (/^\d+[a-z]?\s+\S/i.test(t)) return true;
+  return false;
+}
+
+function stripPostalCityTail(s: string): string {
+  return s.replace(/,\s*\d{4,5}\s+[\wÄÖÜäöüß.\- ]+$/i, '').trim();
+}
+
 export function formatFeedVenueShort(location: string | null | undefined): string | null {
   const parsed = splitCombinedLocation(location);
-  const place = (parsed.place ?? '').trim();
-  if (place) return place;
+  let place = (parsed.place ?? '').trim();
+  if (place) {
+    const commaParts = place.split(',').map((p) => p.trim()).filter(Boolean);
+    if (commaParts.length > 1 && commaParts.slice(1).some(feedVenueLooksLikeAddress)) {
+      place = commaParts[0];
+    }
+    place = stripPostalCityTail(place);
+    if (place && !feedVenueLooksLikeAddress(place)) return place;
+  }
   const raw = (location ?? '').trim();
   if (!raw) return null;
   const commaIdx = raw.indexOf(',');
   if (commaIdx > 0) {
     const first = raw.slice(0, commaIdx).trim();
     const rest = raw.slice(commaIdx + 1).trim();
-    if (rest && /\d/.test(rest)) return first;
+    if (rest && (/\d/.test(rest) || feedVenueLooksLikeAddress(rest))) {
+      const cleaned = stripPostalCityTail(first);
+      if (cleaned && !feedVenueLooksLikeAddress(cleaned)) return cleaned;
+    }
   }
-  return raw;
+  const cleaned = stripPostalCityTail(raw);
+  if (cleaned && !feedVenueLooksLikeAddress(cleaned)) return cleaned;
+  return null;
 }
 
 /** Liest Platzname + Adresse aus einem gespeicherten location-Wert. */

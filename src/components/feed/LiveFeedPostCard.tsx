@@ -7,8 +7,8 @@ import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
 import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
-import { isValidLogoUrl } from '../../utils/logoResolver';
 import { FeedClubName } from './FeedClubName';
+import { FeedMatchLogoBlock, FEED_MATCH_GRID_CLASS, FEED_MATCH_TEAM_COL_CLASS } from './feedMatchHero';
 import {
   FEED_POST_BODY_CLASS,
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
@@ -19,6 +19,7 @@ import {
   FeedPostTypeBadge,
   FeedStandardActions,
   FeedStadiumHeroBackdrop,
+  FEED_HERO_TITLE_CLASS,
   FEED_STADIUM_ARTICLE_SHADOW,
   FEED_STADIUM_HERO_SHELL_CLASS,
 } from './feedTypography';
@@ -42,33 +43,6 @@ function formatKickoffTime(iso: string | null): string {
   return (
     new Intl.DateTimeFormat('de-AT', { timeZone: VIENNA_TZ, hour: '2-digit', minute: '2-digit' }).format(d) +
     ' Uhr'
-  );
-}
-
-function LogoBlock({ src, alt }: { src: string; alt: string }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    setFailed(false);
-  }, [src]);
-  const valid = !failed && isValidLogoUrl(src);
-  if (!valid) {
-    return (
-      <div
-        className="flex h-[4.25rem] w-[4.25rem] shrink-0 items-center justify-center rounded-full border border-red-500/30 bg-black/45 shadow-[0_0_16px_rgba(0,0,0,0.4)] sm:h-20 sm:w-20"
-        aria-label={alt}
-      >
-        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-red-200/80">Club</span>
-      </div>
-    );
-  }
-  return (
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className="h-[4.25rem] w-[4.25rem] shrink-0 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)] sm:h-20 sm:w-20"
-    />
   );
 }
 
@@ -136,9 +110,8 @@ export const LiveFeedPostCard: React.FC<Props> = ({
           ) : null
         }
       />
-      <FeedPostTypeBadge className="relative border-red-500/50 bg-red-600/90 text-white shadow-[0_0_14px_rgba(220,38,38,0.55)]">
-        <span className="pointer-events-none absolute -inset-0.5 animate-ping rounded-full bg-red-500/40" aria-hidden />
-        <span className="relative inline-flex items-center gap-1">
+      <FeedPostTypeBadge variant="live">
+        <span className="inline-flex items-center gap-1">
           <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden />
           Live
         </span>
@@ -149,20 +122,18 @@ export const LiveFeedPostCard: React.FC<Props> = ({
           <FeedStadiumHeroBackdrop />
 
           <div className="relative space-y-3">
-            <p className="text-center text-[17px] font-black uppercase leading-none tracking-[0.16em] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.7),0_0_18px_rgba(255,71,71,0.45)] sm:text-[20px] sm:tracking-[0.2em]">
-              Live jetzt
-            </p>
+            <p className={`text-center ${FEED_HERO_TITLE_CLASS}`}>Live jetzt</p>
 
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 pt-0.5">
-              <div className="flex min-w-0 flex-col items-center gap-1.5">
-                <LogoBlock src={p.home_logo_url} alt={`${p.home_team_name} Logo`} />
+            <div className={FEED_MATCH_GRID_CLASS}>
+              <div className={FEED_MATCH_TEAM_COL_CLASS}>
+                <FeedMatchLogoBlock src={p.home_logo_url} alt={`${p.home_team_name} Logo`} />
                 <FeedClubName fullName={p.home_team_name} variant="compact" className="w-full px-0.5" />
               </div>
-              <span className="-skew-x-6 px-1 text-2xl font-black italic uppercase leading-none tracking-[0.02em] text-red-400 [text-shadow:0_3px_12px_rgba(0,0,0,0.7),0_0_20px_rgba(227,29,47,0.4)] sm:text-[2.1rem]">
+              <span className="-skew-x-6 shrink-0 px-1 text-2xl font-black italic uppercase leading-none tracking-[0.02em] text-red-400 [text-shadow:0_3px_12px_rgba(0,0,0,0.7),0_0_20px_rgba(227,29,47,0.4)] sm:text-[1.75rem]">
                 VS
               </span>
-              <div className="flex min-w-0 flex-col items-center gap-1.5">
-                <LogoBlock src={p.away_logo_url} alt={`${p.away_team_name} Logo`} />
+              <div className={FEED_MATCH_TEAM_COL_CLASS}>
+                <FeedMatchLogoBlock src={p.away_logo_url} alt={`${p.away_team_name} Logo`} />
                 <FeedClubName fullName={p.away_team_name} variant="compact" className="w-full px-0.5" />
               </div>
             </div>

@@ -5,9 +5,9 @@ import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
-import { isValidLogoUrl } from '../../utils/logoResolver';
 import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import { FeedClubName } from './FeedClubName';
+import { FeedMatchLogoBlock, FEED_MATCH_GRID_CLASS, FEED_MATCH_TEAM_COL_CLASS } from './feedMatchHero';
 import {
   FEED_POST_BODY_CLASS,
   FeedCaption,
@@ -17,8 +17,11 @@ import {
   FeedPostHeader,
   FeedPostTypeBadge,
   FeedPostActionsFooter,
+  FeedSectionHeader,
   FeedStandardActions,
   FeedStadiumHeroBackdrop,
+  FEED_HERO_TITLE_CLASS,
+  FEED_RESULT_SCORE_CLASS,
   FEED_STADIUM_HERO_SHELL_CLASS,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
@@ -107,33 +110,6 @@ function resultPresentation(state: ResultVisualState) {
   };
 }
 
-function LogoBlock({ src, alt }: { src: string; alt: string }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    setFailed(false);
-  }, [src]);
-  const valid = !failed && isValidLogoUrl(src);
-  if (!valid) {
-    return (
-      <div
-        className="flex h-[4.25rem] w-[4.25rem] shrink-0 items-center justify-center rounded-full border border-red-500/35 bg-black/55 shadow-[0_0_20px_rgba(227,29,47,0.22)] sm:h-[5.25rem] sm:w-[5.25rem]"
-        aria-label={alt}
-      >
-        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-red-200/80">Club</span>
-      </div>
-    );
-  }
-  return (
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className="h-[4.25rem] w-[4.25rem] shrink-0 object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.65)] sm:h-[5.25rem] sm:w-[5.25rem]"
-    />
-  );
-}
-
 export const ResultFeedPostCard: React.FC<Props> = ({
   post,
   teamLabel,
@@ -218,7 +194,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     <FeedPostArticleShell
       className="!border-[rgba(255,71,71,0.15)]"
       style={{ boxShadow: presentation.articleShadow }}
-      data-feed-result-card="v7"
+      data-feed-result-card="v8"
     >
       {/* feed-result-comments-v1: reserved slot for threaded comments MVP (no UI yet) */}
       <div data-feed-comment-slot="reserved" hidden aria-hidden />
@@ -238,41 +214,38 @@ export const ResultFeedPostCard: React.FC<Props> = ({
         <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
           <FeedStadiumHeroBackdrop />
 
-          <div className="relative min-w-0 space-y-4">
+          <div className="relative min-w-0 space-y-3">
             <FeedMatchMetaBadge line={matchMetaLine} />
 
-            <div className="space-y-1.5 text-center">
-              <p className="text-[18px] font-black uppercase leading-none tracking-[0.22em] text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.85),0_0_22px_rgba(255,71,71,0.5)] sm:text-[23px] sm:tracking-[0.28em]">
-                Endstand
-              </p>
-              <p
-                className={`pt-2 text-[12px] font-black uppercase leading-none tracking-[0.18em] sm:text-[14px] sm:tracking-[0.2em] ${presentation.statusClass}`}
-              >
-                {presentation.status}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-3 gap-y-3 sm:gap-x-6 md:gap-x-8">
-              <div className="flex min-w-0 flex-col items-center justify-center gap-2 text-center sm:gap-2.5">
-                <LogoBlock src={p.home_logo_url} alt={`${p.home_team_name} Logo`} />
+            <div className={FEED_MATCH_GRID_CLASS}>
+              <div className={FEED_MATCH_TEAM_COL_CLASS}>
+                <FeedMatchLogoBlock src={p.home_logo_url} alt={`${p.home_team_name} Logo`} />
                 <FeedClubName fullName={p.home_team_name} variant="compact" className="w-full px-0.5" />
               </div>
 
               <div className="shrink-0 px-1 text-center sm:px-2">
-                <p className="text-[3rem] font-black tabular-nums leading-none tracking-tight text-white [text-shadow:0_4px_24px_rgba(0,0,0,0.75),0_0_32px_rgba(255,71,71,0.25)] min-[390px]:text-[3.35rem] sm:text-[4rem]">
-                  {p.home_score}
-                  <span className="mx-1.5 align-middle text-[0.42em] font-black text-white sm:mx-2.5">:</span>
-                  {p.away_score}
-                </p>
-                {periodBracketLine ? (
-                  <p className="mt-1.5 text-[11px] font-semibold tabular-nums leading-snug text-white/60 sm:text-[12px]">
-                    {periodBracketLine}
+                <div className="flex flex-col items-center gap-0.5">
+                  <p className={FEED_HERO_TITLE_CLASS}>Endstand</p>
+                  <p
+                    className={`text-[11px] font-black uppercase leading-none tracking-[0.16em] sm:text-[12px] ${presentation.statusClass}`}
+                  >
+                    {presentation.status}
                   </p>
-                ) : null}
+                  <p className={`pt-0.5 ${FEED_RESULT_SCORE_CLASS}`}>
+                    {p.home_score}
+                    <span className="mx-1 align-middle text-[0.42em] font-black text-white sm:mx-1.5">:</span>
+                    {p.away_score}
+                  </p>
+                  {periodBracketLine ? (
+                    <p className="text-[10px] font-semibold tabular-nums leading-snug text-white/58 sm:text-[11px]">
+                      {periodBracketLine}
+                    </p>
+                  ) : null}
+                </div>
               </div>
 
-              <div className="flex min-w-0 flex-col items-center justify-center gap-2 text-center sm:gap-2.5">
-                <LogoBlock src={p.away_logo_url} alt={`${p.away_team_name} Logo`} />
+              <div className={FEED_MATCH_TEAM_COL_CLASS}>
+                <FeedMatchLogoBlock src={p.away_logo_url} alt={`${p.away_team_name} Logo`} />
                 <FeedClubName fullName={p.away_team_name} variant="compact" className="w-full px-0.5" />
               </div>
             </div>
@@ -285,15 +258,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
 
             {filteredScorers.length > 0 ? (
               <div className="rounded-2xl border border-[rgba(255,71,71,0.14)] bg-black/35 px-2 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-3 sm:py-3">
-                <div className="mb-2.5 flex items-center gap-2 border-b border-red-500/20 pb-2">
-                  <span className="text-[11px] leading-none opacity-90" aria-hidden>
-                    ⚽
-                  </span>
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-red-200/95 sm:text-[11px]">
-                    Torschützen
-                  </p>
-                  <div className="h-px flex-1 bg-gradient-to-r from-red-500/40 via-red-500/20 to-transparent" aria-hidden />
-                </div>
+                <FeedSectionHeader icon="⚽" label="Torschützen" />
                 <ul className="space-y-1.5">
                   {filteredScorers.map((s, i) => {
                     const minOk = isSensibleScorerMinute(s.minute_label);

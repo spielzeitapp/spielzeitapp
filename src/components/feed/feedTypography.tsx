@@ -16,8 +16,60 @@ export const FEED_POST_HEADER_CLASS =
 export const FEED_POST_BADGE_ROW_CLASS =
   'flex items-center border-b border-white/[0.04] bg-black/25 px-3 py-1.5 sm:px-4';
 
+/** Premium-Pill (Wettbewerb, Formation) — einheitliche Familie, roter Glow, keine weiße Kante. */
+export const FEED_PREMIUM_BADGE_CLASS =
+  'inline-flex min-h-[26px] shrink-0 items-center justify-center gap-1.5 rounded-full border border-red-500/32 bg-red-950/55 px-3 py-1 text-[10px] font-semibold leading-none text-red-50/95 shadow-[0_0_20px_rgba(220,38,38,0.18)] sm:min-h-[28px] sm:text-[11px]';
+
+export function FeedPremiumBadge({
+  children,
+  className = '',
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <span className={`${FEED_PREMIUM_BADGE_CLASS} ${className}`.trim()}>{children}</span>;
+}
+
+export function FeedFormationBadge({ formation }: { formation: string }) {
+  return (
+    <FeedPremiumBadge className="tabular-nums font-bold tracking-[0.12em] text-white/95">
+      {formation}
+    </FeedPremiumBadge>
+  );
+}
+
+/** Sektionskopf wie TORSCHÜTZEN / STARTELF — Icon + Label + roter Divider. */
+export function FeedSectionHeader({
+  icon,
+  label,
+}: {
+  icon?: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <div className="mb-2.5 flex items-center gap-2 border-b border-red-500/20 pb-2">
+      {icon ? (
+        <span className="text-[11px] leading-none opacity-90" aria-hidden>
+          {icon}
+        </span>
+      ) : null}
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-red-200/95 sm:text-[11px]">{label}</p>
+      <div className="h-px flex-1 bg-gradient-to-r from-red-500/40 via-red-500/20 to-transparent" aria-hidden />
+    </div>
+  );
+}
+
+export const FEED_HERO_TITLE_CLASS =
+  'text-[16px] font-black uppercase leading-none tracking-[0.2em] text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.85),0_0_22px_rgba(255,71,71,0.5)] sm:text-[19px] sm:tracking-[0.24em]';
+
+export const FEED_RESULT_SCORE_CLASS =
+  'text-[2.65rem] font-black tabular-nums leading-none tracking-tight text-white [text-shadow:0_4px_24px_rgba(0,0,0,0.75),0_0_32px_rgba(255,71,71,0.25)] min-[390px]:text-[3rem] sm:text-[3.5rem]';
+
 export const FEED_POST_TYPE_BADGE_CLASS =
-  'inline-flex rounded-full border border-red-500/35 bg-red-950/55 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/95';
+  'inline-flex min-h-[22px] items-center rounded-full border border-red-500/35 bg-red-950/55 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/95 shadow-[0_0_14px_rgba(220,38,38,0.12)]';
+
+export const FEED_POST_TYPE_BADGE_LIVE_CLASS =
+  'inline-flex min-h-[22px] items-center rounded-full border border-red-500/50 bg-red-600/85 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_0_16px_rgba(220,38,38,0.45)]';
 
 export const FEED_POST_BODY_CLASS = 'min-w-0 px-0 pb-0 pt-0';
 
@@ -91,7 +143,7 @@ export function FeedMatchMetaBadge({ line, className = '' }: { line: string | nu
         className="h-px min-w-[1.5rem] flex-1 max-w-[3rem] bg-gradient-to-r from-transparent via-red-500/40 to-red-500/20 sm:max-w-[4rem]"
         aria-hidden
       />
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-red-500/28 bg-red-950/50 px-3 py-1 text-[10px] font-semibold leading-none text-red-50/95 shadow-[0_0_18px_rgba(220,38,38,0.14),inset_0_1px_0_rgba(255,255,255,0.06)] sm:text-[11px]">
+      <FeedPremiumBadge>
         <Trophy className="h-3 w-3 shrink-0 text-amber-400/95" strokeWidth={2.25} aria-hidden />
         {parts.map((part, i) => (
           <React.Fragment key={`${part}-${i}`}>
@@ -99,7 +151,7 @@ export function FeedMatchMetaBadge({ line, className = '' }: { line: string | nu
             <span className={/^U\d/i.test(part) ? 'font-bold tracking-wide' : 'tracking-[0.02em]'}>{part}</span>
           </React.Fragment>
         ))}
-      </span>
+      </FeedPremiumBadge>
       <div
         className="h-px min-w-[1.5rem] flex-1 max-w-[3rem] bg-gradient-to-l from-transparent via-red-500/40 to-red-500/20 sm:max-w-[4rem]"
         aria-hidden
@@ -240,14 +292,17 @@ export function FeedPostHeader({
 
 export function FeedPostTypeBadge({
   children,
+  variant = 'default',
   className = '',
 }: {
   children: React.ReactNode;
+  variant?: 'default' | 'live';
   className?: string;
 }) {
+  const badgeClass = variant === 'live' ? FEED_POST_TYPE_BADGE_LIVE_CLASS : FEED_POST_TYPE_BADGE_CLASS;
   return (
     <div className={FEED_POST_BADGE_ROW_CLASS}>
-      <span className={`${FEED_POST_TYPE_BADGE_CLASS} ${className}`.trim()}>{children}</span>
+      <span className={`${badgeClass} ${className}`.trim()}>{children}</span>
     </div>
   );
 }

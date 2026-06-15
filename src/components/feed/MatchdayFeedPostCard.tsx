@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { EventRow } from '../../hooks/useEvents';import type { MatchdayFeedPayload, TeamFeedPostRow } from '../../lib/matchdayFeedTypes';
-import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { getClubLogo } from '../../lib/teamLogos';
 import { formatMeetupTimeOnlyDe } from '../match/matchCardLabels';
@@ -127,10 +127,8 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
   }, [p]);
 
   const locationLine = useMemo(() => {
-    const parsed = splitCombinedLocation(p.location || null);
-    const place = parsed.place;
-    const addr = parsed.address || (p.address ?? '').trim();
-    return (formatFullLocation(place, addr) || '').trim() || '—';
+    const raw = (p.location ?? '').trim() || (p.address ?? '').trim() || null;
+    return formatFeedVenueShort(raw) ?? '—';
   }, [p.location, p.address]);
 
   const meetingTime = p.meeting_iso ? formatMeetupTimeOnlyDe(p.meeting_iso) : null;

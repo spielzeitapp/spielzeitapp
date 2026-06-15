@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ClipboardList } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import type { LineupFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
@@ -13,18 +12,21 @@ import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { getClubLogo } from '../../lib/teamLogos';
-import { isValidLogoUrl } from '../../utils/logoResolver';
 import { FeedClubName } from './FeedClubName';
+import { FeedMatchLogoBlock, FEED_MATCH_GRID_CLASS, FEED_MATCH_TEAM_COL_CLASS } from './feedMatchHero';
 import {
   FEED_POST_BODY_CLASS,
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
+  FeedFormationBadge,
   FeedGameCtaLink,
   FeedPostActionsFooter,
   FeedPostHeader,
   FeedPostTypeBadge,
+  FeedSectionHeader,
   FeedStandardActions,
   FeedStadiumHeroBackdrop,
+  FEED_HERO_TITLE_CLASS,
   FEED_STADIUM_ARTICLE_SHADOW,
   FEED_STADIUM_HERO_SHELL_CLASS,
 } from './feedTypography';
@@ -56,33 +58,6 @@ function lineupBadgeLabel(pl: LineupFeedPlayer): string {
   const slot = (pl.slot ?? '').trim().toUpperCase();
   if (slot) return slot;
   return '–';
-}
-
-function LogoBlock({ src, alt }: { src: string; alt: string }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    setFailed(false);
-  }, [src]);
-  const valid = !failed && isValidLogoUrl(src);
-  if (!valid) {
-    return (
-      <div
-        className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-red-500/30 bg-black/45 shadow-[0_0_16px_rgba(0,0,0,0.4)] sm:h-[4.5rem] sm:w-[4.5rem]"
-        aria-label={alt}
-      >
-        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-red-200/80">Club</span>
-      </div>
-    );
-  }
-  return (
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      onError={() => setFailed(true)}
-      className="h-16 w-16 shrink-0 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)] sm:h-[4.5rem] sm:w-[4.5rem]"
-    />
-  );
 }
 
 export const LineupFeedPostCard: React.FC<Props> = ({
@@ -184,12 +159,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
           ) : null
         }
       />
-      <FeedPostTypeBadge>
-        <span className="inline-flex items-center gap-1">
-          <ClipboardList className="h-3 w-3 shrink-0 opacity-90" aria-hidden />
-          Spieltag · Aufstellung
-        </span>
-      </FeedPostTypeBadge>
+      <FeedPostTypeBadge>Spieltag · Aufstellung</FeedPostTypeBadge>
 
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
         <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
@@ -197,38 +167,32 @@ export const LineupFeedPostCard: React.FC<Props> = ({
 
           <div className="relative space-y-3">
             <div className="space-y-1.5 text-center">
-              <p className="text-[17px] font-black uppercase leading-none tracking-[0.16em] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.7),0_0_18px_rgba(255,71,71,0.45)] sm:text-[20px] sm:tracking-[0.2em]">
-                Startaufstellung
-              </p>
+              <p className={FEED_HERO_TITLE_CLASS}>Startaufstellung</p>
               {p.formation ? (
                 <div className="flex justify-center pt-0.5">
-                  <span className="inline-flex items-center rounded-full border border-[rgba(255,71,71,0.18)] bg-black/35 px-3.5 py-1 text-[13px] font-black tabular-nums tracking-[0.14em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_18px_rgba(227,29,47,0.18)] backdrop-blur-md sm:text-[14px]">
-                    {p.formation}
-                  </span>
+                  <FeedFormationBadge formation={p.formation} />
                 </div>
               ) : null}
             </div>
 
             {vsTeams ? (
-              <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 pt-0.5">
-                <div className="flex min-w-0 flex-col items-center gap-1.5">
-                  <LogoBlock src={vsTeams.left.logo} alt={`${vsTeams.left.name} Logo`} />
+              <div className={FEED_MATCH_GRID_CLASS}>
+                <div className={FEED_MATCH_TEAM_COL_CLASS}>
+                  <FeedMatchLogoBlock src={vsTeams.left.logo} alt={`${vsTeams.left.name} Logo`} />
                   <FeedClubName fullName={vsTeams.left.name} variant="compact" className="w-full px-0.5" />
                 </div>
-                <span className="-skew-x-6 px-1 text-2xl font-black italic uppercase leading-none tracking-[0.02em] text-red-400 [text-shadow:0_3px_12px_rgba(0,0,0,0.7),0_0_20px_rgba(227,29,47,0.4)] sm:text-[1.8rem]">
+                <span className="-skew-x-6 shrink-0 px-1 text-2xl font-black italic uppercase leading-none tracking-[0.02em] text-red-400 [text-shadow:0_3px_12px_rgba(0,0,0,0.7),0_0_20px_rgba(227,29,47,0.4)] sm:text-[1.75rem]">
                   VS
                 </span>
-                <div className="flex min-w-0 flex-col items-center gap-1.5">
-                  <LogoBlock src={vsTeams.right.logo} alt={`${vsTeams.right.name} Logo`} />
+                <div className={FEED_MATCH_TEAM_COL_CLASS}>
+                  <FeedMatchLogoBlock src={vsTeams.right.logo} alt={`${vsTeams.right.name} Logo`} />
                   <FeedClubName fullName={vsTeams.right.name} variant="compact" className="w-full px-0.5" />
                 </div>
               </div>
             ) : null}
 
-            <div className="rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-1.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-2.5 sm:py-3">
-              <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-red-200/85 sm:text-[10px]">
-                Startelf
-              </p>
+            <div className="rounded-2xl border border-[rgba(255,71,71,0.14)] bg-black/35 px-1.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-2.5 sm:py-3">
+              <FeedSectionHeader icon="👕" label="Startelf" />
               <ul className="space-y-1">
                 {displayPlayers.map((pl, index) => {
                   const name = lineupFeedDisplayPlayerName(pl);
@@ -260,10 +224,8 @@ export const LineupFeedPostCard: React.FC<Props> = ({
             </div>
 
             {benchPlayers.length > 0 ? (
-              <div className="rounded-2xl border border-[rgba(255,71,71,0.12)] bg-black/35 px-1.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-2.5 sm:py-3">
-                <p className="mb-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-red-200/85 sm:text-[10px]">
-                  Ersatzbank
-                </p>
+              <div className="rounded-2xl border border-[rgba(255,71,71,0.14)] bg-black/35 px-1.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-2.5 sm:py-3">
+                <FeedSectionHeader icon="🪑" label="Ersatzbank" />
                 <ul className="space-y-1">
                   {benchPlayers.map((pl, index) => (
                     <li
