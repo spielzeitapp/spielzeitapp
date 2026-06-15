@@ -8,6 +8,7 @@
  */
 
 let lockCount = 0;
+let appMainLockCount = 0;
 const APP_MAIN_SELECTOR = 'main.appMain';
 const APP_MAIN_LOCK_CLASS = 'app-main-scroll-locked';
 
@@ -16,13 +17,37 @@ function getAppMain(): HTMLElement | null {
   return document.querySelector(APP_MAIN_SELECTOR);
 }
 
-function applyLockStyles(locked: boolean): void {
-  document.body.style.overflow = locked ? 'hidden' : '';
-  document.documentElement.style.overflow = locked ? 'hidden' : '';
+function setAppMainLocked(locked: boolean): void {
   const main = getAppMain();
   if (main) {
     main.classList.toggle(APP_MAIN_LOCK_CLASS, locked);
   }
+}
+
+function applyBodyLockStyles(locked: boolean): void {
+  document.body.style.overflow = locked ? 'hidden' : '';
+  document.documentElement.style.overflow = locked ? 'hidden' : '';
+}
+
+function applyLockStyles(locked: boolean): void {
+  applyBodyLockStyles(locked);
+  setAppMainLocked(locked);
+}
+
+/**
+ * Nur Hintergrund-Scroll in main.appMain sperren — für Vollbild-Sheets mit eigenem Scroll.
+ * Setzt body/html NICHT auf overflow:hidden (iOS: sonst bricht nested Touch-Scroll im Portal).
+ */
+export function lockAppMainScroll(): () => void {
+  appMainLockCount += 1;
+  if (appMainLockCount === 1) setAppMainLocked(true);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    appMainLockCount = Math.max(0, appMainLockCount - 1);
+    if (appMainLockCount === 0 && lockCount === 0) setAppMainLocked(false);
+  };
 }
 
 /**
@@ -37,17 +62,22 @@ export function lockBodyScroll(): () => void {
     if (released) return;
     released = true;
     lockCount = Math.max(0, lockCount - 1);
-    if (lockCount === 0) applyLockStyles(false);
+    if (lockCount === 0) {
+      applyBodyLockStyles(false);
+      if (appMainLockCount === 0) setAppMainLocked(false);
+    }
   };
 }
 
 /** Notbremse: alle Locks lösen (z. B. Live-Nav-Reset, defensives Aufräumen). */
 export function forceReleaseBodyScrollLocks(): void {
   lockCount = 0;
-  applyLockStyles(false);
+  appMainLockCount = 0;
+  applyBodyLockStyles(false);
+  setAppMainLocked(false);
 }
 
 /** True, solange mindestens ein Sheet/Modal einen Scroll-Lock hält. */
 export function hasActiveBodyScrollLocks(): boolean {
-  return lockCount > 0;
+  return lockCount > 0 || appMainLockCount > 0;
 }

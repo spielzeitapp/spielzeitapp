@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../../lib/supabaseClient";
-import { lockBodyScroll } from "../../lib/bodyScrollLock";
-import { APP_SHEET_SCROLL_BOTTOM_PAD } from "../../lib/appScrollPadding";
+import { lockAppMainScroll } from "../../lib/bodyScrollLock";
+import { APP_BOTTOM_SCROLL_PAD } from "../../lib/appScrollPadding";
 import { Activity, CalendarDays, Trophy, User } from "lucide-react";
 import { ProfileCompactHeader } from "./profile/ProfileCompactHeader";
 import { ProfileHeroCard } from "./profile/ProfileHeroCard";
@@ -386,7 +386,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  useEffect(() => lockBodyScroll(), []);
+  useEffect(() => lockAppMainScroll(), []);
 
   const handleLazPlayerToggle = async (next: boolean) => {
     if (!canManage || lazSaving) return;
@@ -411,19 +411,20 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
   const modal = (
     <div
-      className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4"
+      className="fixed inset-0 z-[100] flex flex-col sm:items-center sm:justify-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="player-profile-title"
     >
       <button
         type="button"
-        className="absolute inset-0 bg-black/80 backdrop-blur-[3px]"
+        className="absolute inset-0 bg-black/80 backdrop-blur-[3px] sm:block"
         aria-label="Schließen"
         onClick={onClose}
       />
       <div
-        className="relative flex h-[min(92dvh,920px)] max-h-[min(92dvh,920px)] w-full max-w-lg min-h-0 flex-col overflow-hidden rounded-t-[1.75rem] bg-[linear-gradient(180deg,rgba(28,8,8,0.98)_0%,rgba(0,0,0,0.97)_42%,rgba(6,6,10,0.99)_100%)] shadow-[0_-24px_64px_rgba(0,0,0,0.7)] sm:h-auto sm:max-h-[min(94vh,920px)] sm:rounded-3xl sm:shadow-2xl"
+        className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-lg min-h-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(28,8,8,0.98)_0%,rgba(0,0,0,0.97)_42%,rgba(6,6,10,0.99)_100%)] sm:h-auto sm:max-h-[min(94vh,920px)] sm:rounded-3xl sm:shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
       >
         <ProfileSaveSnackbar visible={saveToastVisible} />
         <ProfileCompactHeader
@@ -434,8 +435,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
         />
 
         <div
-          className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 pt-2 [-webkit-overflow-scrolling:touch] sm:px-4"
-          style={{ paddingBottom: `calc(${APP_SHEET_SCROLL_BOTTOM_PAD})` }}
+          className="min-h-0 min-w-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 pt-2 [-webkit-overflow-scrolling:touch] sm:px-4"
+          style={{ paddingBottom: `calc(${APP_BOTTOM_SCROLL_PAD})` }}
         >
           <ProfileHeroCard
             variant="player"
