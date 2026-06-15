@@ -37,6 +37,7 @@ import { TrainerPreviewPage } from '../pages/TrainerPreviewPage';
 import { PlayerMatchdayPosterPreviewPage } from '../pages/dev/PlayerMatchdayPosterPreviewPage';
 import { SeasonManagementPage } from '../pages/SeasonManagementPage';
 import { ParentAccessPage } from '../pages/ParentAccessPage';
+import { JugglingChallengePage } from '../pages/JugglingChallengePage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
@@ -203,6 +204,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="live" element={<LivePage />} />
         <Route path="live/:id" element={<LivePage />} />
         <Route path="team" element={<TeamPage />} />
+        <Route path="team/juggling-challenge" element={<JugglingChallengePage />} />
         <Route
           path="team-management/parent-access"
           element={<Navigate to="/app/mehr/parent-access" replace />}

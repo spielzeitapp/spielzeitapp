@@ -29,6 +29,7 @@ import { STAFF_RPC_MIGRATION_HINT, useTeamStaff } from "../hooks/useTeamStaff";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
 import { TrainingKaiserCard } from "../components/team/TrainingKaiserCard";
+import { JugglingChallengeCard } from "../components/team/JugglingChallengeCard";
 import type { ProfileTab } from "../components/team/PlayerProfileModal";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
@@ -1175,6 +1176,7 @@ export const TeamPage: React.FC = () => {
               }}
             />
           ) : null}
+          {canViewTrainingKaiser && teamSeasonId != null ? <JugglingChallengeCard /> : null}
         <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
           <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
             Training
