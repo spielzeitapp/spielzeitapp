@@ -1169,7 +1169,7 @@ export const TeamPage: React.FC = () => {
                   <p className="mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
                     Nächstes Spiel
                   </p>
-                  <SeasonMatchCard match={upcomingMatches[0]} />
+                  <SeasonMatchCard match={upcomingMatches[0]} ourTeamName={heroTeamName} />
                 </div>
               ) : null}
 
@@ -1200,7 +1200,7 @@ export const TeamPage: React.FC = () => {
                   <ul className="space-y-2.5">
                     {recentSeasonMatches.map((m) => (
                       <li key={m.id}>
-                        <SeasonMatchCard match={m} />
+                        <SeasonMatchCard match={m} ourTeamName={heroTeamName} />
                       </li>
                     ))}
                   </ul>

@@ -1,14 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { PlayerItem } from '../../hooks/usePlayers';
-import { useTeamTrainingRanking } from '../../hooks/useTeamTrainingRanking';
-import { useJugglingChallenge } from '../../hooks/useJugglingChallenge';
-import { deriveJugglingAwards } from '../../lib/challengeScoring';
+import { useTeamTrainingSummary } from '../../hooks/useTeamTrainingSummary';
 import { countUpcomingTeamTrainings } from '../../lib/trainingSeasonCounts';
-import {
-  averageQualifiedTeamRatePct,
-  hasTrainingActivityBasis,
-  type TrainingRankingResult,
-} from '../../lib/trainingRanking';
+import type { TrainingRankingResult } from '../../lib/trainingRanking';
 import { TrainingKaiserCard } from './TrainingKaiserCard';
 import { JugglingChallengeCard } from './JugglingChallengeCard';
 import { GlassCard, PremiumCard, PremiumEmptyState, PremiumTab, PremiumTabTrack, SectionTitle } from '../../ui';
@@ -56,19 +50,6 @@ function StatSummaryCard({
   );
 }
 
-function kaiserTileName(player: PlayerItem): { primary: string; secondary?: string } {
-  const first = (player.first_name ?? '').trim();
-  const last = (player.last_name ?? '').trim();
-  if (first) {
-    return last ? { primary: first, secondary: last } : { primary: first };
-  }
-  const parts = player.display_name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return { primary: parts[0], secondary: parts.slice(1).join(' ') };
-  }
-  return { primary: parts[0] ?? '—' };
-}
-
 export const TeamTrainingDashboard: React.FC<Props> = ({
   players,
   teamSeasonId,
@@ -88,43 +69,17 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
   }, [teamSeasonId]);
 
   const {
-    qualified,
-    unqualified,
-    sessionsCount,
-    minimumBasis,
-    teamAverageActivityPct,
-    loading: rankingLoading,
-    error: rankingError,
-  } = useTeamTrainingRanking(players, teamSeasonId, true);
+    ranking,
+    ratedTrainingsCount,
+    participationLabel,
+    kaiserName,
+    kaiserSub,
+    jugglingAwards,
+    jugglingLoading,
+    rankingLoading,
+    rankingError,
+  } = useTeamTrainingSummary(players, teamSeasonId, true);
 
-  const ranking: TrainingRankingResult = useMemo(
-    () => ({
-      qualified,
-      unqualified,
-      sessionsCount,
-      minimumBasis,
-      teamAverageActivityPct,
-    }),
-    [qualified, unqualified, sessionsCount, minimumBasis, teamAverageActivityPct],
-  );
-
-  const jugglingState = useJugglingChallenge(players, teamSeasonId, true);
-
-  const leader = qualified[0] ?? null;
-  const avgTeamPct = useMemo(() => averageQualifiedTeamRatePct(qualified), [qualified]);
-
-  const jugglingAwards = useMemo(() => {
-    if (!jugglingState.session) return null;
-    const inputs = jugglingState.rows.map((row) => ({
-      playerId: row.player.id,
-      playerName: row.player.display_name,
-      startValue: row.startValue,
-      endValue: row.endValue,
-    }));
-    return deriveJugglingAwards(inputs, jugglingState.session.min_start_for_percent);
-  }, [jugglingState.rows, jugglingState.session]);
-
-  const ratedTrainingsCount = sessionsCount;
   const ratedTrainingsLabel =
     rankingLoading && ratedTrainingsCount === 0
       ? '…'
@@ -134,19 +89,6 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
 
   const ratedTrainingsSub =
     upcomingTrainings > 0 ? `${upcomingTrainings} ausständig` : undefined;
-
-  const participationLabel =
-    avgTeamPct != null
-      ? `${avgTeamPct} %`
-      : teamAverageActivityPct != null
-        ? `${teamAverageActivityPct} %`
-        : 'Noch keine Daten';
-
-  const kaiserName = leader ? kaiserTileName(leader.player) : null;
-  const kaiserSub =
-    leader && hasTrainingActivityBasis(leader.stats)
-      ? `${leader.stats.activityRatePct} % Aktivität`
-      : undefined;
 
   return (
     <PremiumCard variant="subtle" showAmbientGlow={false} className="mb-4 w-full max-w-none !px-3 !py-4 sm:!px-5 sm:!py-5">
@@ -202,7 +144,9 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
               <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
                 <p className="text-[12px] text-white/60">
                   {ratedTrainingsCount} gewertete Team-Trainings in dieser Saison.
-                  {avgTeamPct != null ? ` Ø gewertete Spieler (Beteiligung): ${avgTeamPct} %.` : ''}
+                  {ranking.qualified.length > 0 && participationLabel !== 'Noch keine Daten'
+                    ? ` Ø gewertete Spieler (Beteiligung): ${participationLabel}.`
+                    : ''}
                   {upcomingTrainings > 0 ? ` ${upcomingTrainings} ausständig.` : ''}
                 </p>
               </GlassCard>
@@ -226,7 +170,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
           <JugglingChallengeCard
             variant="full"
             awards={jugglingAwards}
-            loading={jugglingState.loading}
+            loading={jugglingLoading}
           />
         ) : null}
       </div>

@@ -12,6 +12,7 @@ import {
   type TeamStaffMember,
 } from "../hooks/useTeamStaff";
 import { useSeasonMatchBoard } from "../hooks/useSeasonMatchBoard";
+import { usePlayers } from "../hooks/usePlayers";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
 import { TrainerProfileBody } from "../components/team/profile/TrainerProfileBody";
@@ -37,6 +38,10 @@ export const TrainerProfilePage: React.FC = () => {
   const { selectedTeamSeason, selectedMembership } = useSession();
   const { teamSeasonId, teamLabel, role, loading: tsLoading } = useActiveTeamSeason();
   const canManage = canManageRoster(normalizeRole(role));
+
+  const { players } = usePlayers(teamSeasonId, {
+    mode: canManage ? "all" : "active",
+  });
 
   const [member, setMember] = useState<TeamStaffMember | null>(null);
   const [loading, setLoading] = useState(true);
@@ -196,6 +201,8 @@ export const TrainerProfilePage: React.FC = () => {
               <TrainerProfileBody
                 member={member}
                 teamSeasonId={teamSeasonId}
+                teamName={teamName}
+                players={players}
                 stats={stats}
                 seasonSummary={seasonSummary}
                 statsLoading={statsLoading}

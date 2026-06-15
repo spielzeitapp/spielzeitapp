@@ -4,14 +4,7 @@ import type { TeamStaffMember } from '../../../hooks/useTeamStaff';
 import type { TeamSeasonCoachStats } from '../../../hooks/useTeamSeasonCoachStats';
 import type { CoachSeasonAchievements, SeasonMatchCardData, SeasonMatchSummary } from '../../../lib/seasonMatchStats';
 import type { PlayerItem } from '../../../hooks/usePlayers';
-import { usePlayers } from '../../../hooks/usePlayers';
-import { useTeamTrainingRanking } from '../../../hooks/useTeamTrainingRanking';
-import { useJugglingChallenge } from '../../../hooks/useJugglingChallenge';
-import { deriveJugglingAwards } from '../../../lib/challengeScoring';
-import {
-  averageSquadTeamRatePct,
-  hasTrainingActivityBasis,
-} from '../../../lib/trainingRanking';
+import { useTeamTrainingSummary } from '../../../hooks/useTeamTrainingSummary';
 import { ProfileStatTile } from '../ProfileStatTile';
 import { TrainerBalanceCard } from './TrainerBalanceCard';
 import { ProfileContactCard } from './ProfileFooterCards';
@@ -30,27 +23,34 @@ const TABS: { id: TrainerProfileTab; label: string }[] = [
   { id: 'training', label: 'Training' },
 ];
 
-function kaiserDisplayName(player: PlayerItem): string {
-  const first = (player.first_name ?? '').trim();
-  const last = (player.last_name ?? '').trim();
-  if (first && last) return `${first} ${last}`;
-  return player.display_name.trim() || '—';
-}
-
-function SummaryCard({
+function TrainingSummaryCard({
   label,
   value,
+  valueLine2,
   sub,
+  compactValue = false,
 }: {
   label: string;
   value: string;
+  valueLine2?: string;
   sub?: string;
+  compactValue?: boolean;
 }) {
   return (
     <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3">
       <p className="text-[11px] font-medium text-white/55">{label}</p>
-      <p className="mt-1 text-[18px] font-bold tabular-nums leading-tight text-white">{value}</p>
-      {sub ? <p className="mt-0.5 text-[11px] text-white/50">{sub}</p> : null}
+      <p
+        className={[
+          'mt-1 break-words font-bold leading-snug text-white',
+          compactValue ? 'text-[14px]' : 'text-[18px] tabular-nums',
+        ].join(' ')}
+      >
+        {value}
+      </p>
+      {valueLine2 ? (
+        <p className="break-words text-[13px] font-semibold leading-snug text-white/90">{valueLine2}</p>
+      ) : null}
+      {sub ? <p className="mt-0.5 break-words text-[11px] leading-snug text-white/50">{sub}</p> : null}
     </GlassCard>
   );
 }
@@ -58,6 +58,8 @@ function SummaryCard({
 type Props = {
   member: TeamStaffMember;
   teamSeasonId: string;
+  teamName: string;
+  players: PlayerItem[];
   stats: TeamSeasonCoachStats;
   seasonSummary: SeasonMatchSummary;
   statsLoading: boolean;
@@ -74,6 +76,8 @@ type Props = {
 export const TrainerProfileBody: React.FC<Props> = ({
   member,
   teamSeasonId,
+  teamName,
+  players,
   stats,
   seasonSummary,
   statsLoading,
@@ -89,14 +93,16 @@ export const TrainerProfileBody: React.FC<Props> = ({
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TrainerProfileTab>('overview');
 
-  const { players } = usePlayers(teamSeasonId);
-  const trainingEnabled = activeTab === 'training';
+  const trainingEnabled = Boolean(teamSeasonId);
   const {
-    qualified,
-    unqualified,
-    loading: rankingLoading,
-  } = useTeamTrainingRanking(players, teamSeasonId, trainingEnabled);
-  const jugglingState = useJugglingChallenge(players, teamSeasonId, trainingEnabled);
+    ratedTrainingsCount,
+    participationLabel,
+    kaiserName,
+    kaiserSub,
+    gaberlKing,
+    rankingLoading,
+    jugglingLoading,
+  } = useTeamTrainingSummary(players, teamSeasonId, trainingEnabled);
 
   const overviewTiles = useMemo(
     () =>
@@ -116,22 +122,7 @@ export const TrainerProfileBody: React.FC<Props> = ({
       ? `${seasonSummary.goalsFor} : ${seasonSummary.goalsAgainst}`
       : '—';
 
-  const avgSquadPct = useMemo(
-    () => averageSquadTeamRatePct(qualified, unqualified),
-    [qualified, unqualified],
-  );
-
-  const kaiserLeader = qualified[0] ?? null;
-  const gaberlKing = useMemo(() => {
-    if (!jugglingState.session) return null;
-    const inputs = jugglingState.rows.map((row) => ({
-      playerId: row.player.id,
-      playerName: row.player.display_name,
-      startValue: row.startValue,
-      endValue: row.endValue,
-    }));
-    return deriveJugglingAwards(inputs, jugglingState.session.min_start_for_percent).king;
-  }, [jugglingState.rows, jugglingState.session]);
+  const trainingBusy = rankingLoading || jugglingLoading;
 
   return (
     <>
@@ -215,7 +206,7 @@ export const TrainerProfileBody: React.FC<Props> = ({
               <ul className="space-y-2">
                 {recentMatches.map((m) => (
                   <li key={m.id}>
-                    <SeasonMatchCard match={m} compact />
+                    <SeasonMatchCard match={m} ourTeamName={teamName} />
                   </li>
                 ))}
               </ul>
@@ -227,7 +218,7 @@ export const TrainerProfileBody: React.FC<Props> = ({
       {activeTab === 'achievements' ? (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
-            <SummaryCard
+            <TrainingSummaryCard
               label="Siegquote"
               value={
                 achievements.winRatePct != null
@@ -237,17 +228,17 @@ export const TrainerProfileBody: React.FC<Props> = ({
                     : '—'
               }
             />
-            <SummaryCard label="Punkte / Spiel" value={seasonSummary.pointsPerGame} />
-            <SummaryCard label="Torverhältnis" value={goalRatio} />
+            <TrainingSummaryCard label="Punkte / Spiel" value={seasonSummary.pointsPerGame} />
+            <TrainingSummaryCard label="Torverhältnis" value={goalRatio} />
           </div>
 
           {matchDetails.length > 0 ? (
             <div className="grid grid-cols-2 gap-2">
-              <SummaryCard
+              <TrainingSummaryCard
                 label="Meiste Tore (Spiel)"
                 value={achievements.maxGoalsInGame != null ? String(achievements.maxGoalsInGame) : '—'}
               />
-              <SummaryCard
+              <TrainingSummaryCard
                 label="Längste Siegesserie"
                 value={
                   achievements.longestWinStreak != null ? String(achievements.longestWinStreak) : '—'
@@ -267,45 +258,32 @@ export const TrainerProfileBody: React.FC<Props> = ({
       {activeTab === 'training' ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2">
-            <SummaryCard
+            <TrainingSummaryCard
               label="Gewertete Trainings"
-              value={statsLoading ? '…' : String(stats.trainings)}
+              value={trainingBusy ? '…' : String(ratedTrainingsCount > 0 ? ratedTrainingsCount : stats.trainings)}
             />
-            <SummaryCard
+            <TrainingSummaryCard
               label="Ø Mannschaftsbeteiligung"
-              value={
-                rankingLoading
-                  ? '…'
-                  : avgSquadPct != null
-                    ? `${avgSquadPct} %`
-                    : 'Noch keine Daten'
-              }
+              value={trainingBusy ? '…' : participationLabel}
             />
-            <SummaryCard
+            <TrainingSummaryCard
               label="Trainingskaiser"
-              value={
-                rankingLoading
-                  ? '…'
-                  : kaiserLeader
-                    ? kaiserDisplayName(kaiserLeader.player)
-                    : 'Noch keine Wertung'
-              }
-              sub={
-                kaiserLeader && hasTrainingActivityBasis(kaiserLeader.stats)
-                  ? `${kaiserLeader.stats.activityRatePct} % Aktivität`
-                  : undefined
-              }
+              value={trainingBusy ? '…' : kaiserName?.primary ?? 'Noch keine Wertung'}
+              valueLine2={kaiserName?.secondary}
+              sub={kaiserSub}
+              compactValue
             />
-            <SummaryCard
+            <TrainingSummaryCard
               label="Gaberlkönig"
               value={
-                jugglingState.loading
+                trainingBusy
                   ? '…'
                   : gaberlKing
                     ? gaberlKing.playerName
                     : 'Noch keine Daten'
               }
               sub={gaberlKing ? `${gaberlKing.endValue} Gaberl` : undefined}
+              compactValue
             />
           </div>
 

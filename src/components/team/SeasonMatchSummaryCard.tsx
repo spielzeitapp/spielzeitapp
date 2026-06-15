@@ -1,18 +1,27 @@
 import React from 'react';
+import { Handshake, Star, XCircle } from 'lucide-react';
 import type { SeasonMatchSummary } from '../../lib/seasonMatchStats';
+import { ProfileStatTile } from './ProfileStatTile';
+import {
+  COACH_STAT_TILES,
+  STAT_ICON_WATERMARK_CLASS,
+} from './profile/profileStatIcons';
 
 type Props = {
   summary: SeasonMatchSummary;
   loading?: boolean;
 };
 
-function StatCell({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-2.5 py-2 text-center">
-      <div className="text-[18px] font-bold tabular-nums leading-none text-white">{value}</div>
-      <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-white/55">{label}</div>
-    </div>
-  );
+function StatIconHandshake({ className = STAT_ICON_WATERMARK_CLASS }: { className?: string }) {
+  return <Handshake className={className} strokeWidth={1.6} aria-hidden />;
+}
+
+function StatIconStar({ className = STAT_ICON_WATERMARK_CLASS }: { className?: string }) {
+  return <Star className={className} strokeWidth={1.6} aria-hidden />;
+}
+
+function StatIconXCircle({ className = STAT_ICON_WATERMARK_CLASS }: { className?: string }) {
+  return <XCircle className={className} strokeWidth={1.6} aria-hidden />;
 }
 
 export const SeasonMatchSummaryCard: React.FC<Props> = ({ summary, loading = false }) => {
@@ -26,10 +35,28 @@ export const SeasonMatchSummaryCard: React.FC<Props> = ({ summary, loading = fal
       ? `${summary.goalsFor}:${summary.goalsAgainst}`
       : '—';
 
+  const tiles = [
+    { Icon: COACH_STAT_TILES.games, label: 'Spiele', value: String(summary.played) },
+    { Icon: COACH_STAT_TILES.wins, label: 'Siege', value: String(summary.wins) },
+    { Icon: StatIconHandshake, label: 'Remis', value: String(summary.draws) },
+    { Icon: StatIconXCircle, label: 'Niederlagen', value: String(summary.losses) },
+    { Icon: COACH_STAT_TILES.goalsFor, label: 'Tore', value: goalsLabel },
+    { Icon: COACH_STAT_TILES.goalsAgainst, label: 'Gegentore', value: String(summary.goalsAgainst) },
+    { Icon: StatIconStar, label: 'Punkte', value: String(summary.points) },
+    { Icon: COACH_STAT_TILES.pointsPerGame, label: 'Punkte/Spiel', value: summary.pointsPerGame },
+  ] as const;
+
   if (loading) {
     return (
       <div className="overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.28)] bg-gradient-to-br from-[rgba(25,25,28,0.96)] to-[rgba(80,12,20,0.22)] px-3 py-3.5">
-        <div className="h-24 animate-pulse rounded-xl bg-white/[0.06]" />
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div
+              key={`sum-skel-${i}`}
+              className="h-[4.75rem] animate-pulse rounded-2xl border border-white/5 bg-white/[0.07]"
+            />
+          ))}
+        </div>
       </div>
     );
   }
@@ -45,14 +72,14 @@ export const SeasonMatchSummaryCard: React.FC<Props> = ({ summary, loading = fal
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <StatCell label="Spiele" value={String(summary.played)} />
-            <StatCell label="Siege" value={String(summary.wins)} />
-            <StatCell label="Remis" value={String(summary.draws)} />
-            <StatCell label="Niederlagen" value={String(summary.losses)} />
-            <StatCell label="Tore" value={goalsLabel} />
-            <StatCell label="Gegentore" value={String(summary.goalsAgainst)} />
-            <StatCell label="Punkte" value={String(summary.points)} />
-            <StatCell label="Punkte/Spiel" value={summary.pointsPerGame} />
+            {tiles.map((tile) => (
+              <ProfileStatTile
+                key={tile.label}
+                icon={<tile.Icon />}
+                label={tile.label}
+                value={tile.value}
+              />
+            ))}
           </div>
 
           <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-white/[0.06]">
