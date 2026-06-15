@@ -214,7 +214,11 @@ export const MoreHubPage: React.FC = () => {
                   <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
                 </Link>
                 {showParentAccessLink ? (
-                  <Link to="/app/team?tab=parents" className={subRowClass}>
+                  <Link
+                    to="/app/team?tab=parents"
+                    state={{ tab: "parents", clearSelectedPlayer: true }}
+                    className={subRowClass}
+                  >
                     <span className="flex min-w-0 flex-col gap-0.5">
                       <span className="flex items-center gap-2">
                         <Smartphone className="h-4 w-4 shrink-0 text-red-400/90" aria-hidden />

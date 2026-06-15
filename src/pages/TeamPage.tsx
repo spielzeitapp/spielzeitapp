@@ -38,6 +38,27 @@ const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
 type TeamTabId = "squad" | "parents" | "trainers" | "training" | "matches";
 type SquadFilterId = "active" | "paused" | "all";
 
+type TeamNavState = {
+  tab?: string;
+  clearSelectedPlayer?: boolean;
+};
+
+function isTeamTabId(value: string | null | undefined): value is TeamTabId {
+  return (
+    value === "squad" ||
+    value === "parents" ||
+    value === "trainers" ||
+    value === "training" ||
+    value === "matches"
+  );
+}
+
+function readInitialTeamTab(): TeamTabId {
+  if (typeof window === "undefined") return "squad";
+  const tab = new URLSearchParams(window.location.search).get("tab");
+  return isTeamTabId(tab) ? tab : "squad";
+}
+
 type RecentMatchRow = {
   id: string;
   opponent: string | null;
@@ -126,7 +147,7 @@ export const TeamPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { selectedTeamSeason, selectedMembership } = useSession();
+  const { selectedTeamSeason, selectedMembership, loading: sessionLoading } = useSession();
   const {
     teamLabel,
     teamSeasonId,
@@ -146,6 +167,7 @@ export const TeamPage: React.FC = () => {
   const roleNormalized = normalizeRole(role);
   const canManagePlayers = canManageRoster(roleNormalized);
   const showParentLinksTab = canViewParentLinks(roleNormalized);
+  const tabsReady = !sessionLoading && !tsLoading;
 
   const [showForm, setShowForm] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("create");
@@ -717,8 +739,21 @@ export const TeamPage: React.FC = () => {
     return tabs;
   }, [showParentLinksTab]);
 
-  const [activeTab, setActiveTab] = useState<TeamTabId>("squad");
+  const [activeTab, setActiveTab] = useState<TeamTabId>(readInitialTeamTab);
   const [squadFilter, setSquadFilter] = useState<SquadFilterId>("active");
+
+  const clearPlayerDetailState = () => {
+    setSelectedProfilePlayer(null);
+    setShowForm(false);
+    setEditingId(null);
+    setEditingPlayer(null);
+    setFormError(null);
+  };
+
+  const handleTeamTabChange = (tabId: TeamTabId) => {
+    clearPlayerDetailState();
+    setActiveTab(tabId);
+  };
 
   const parentsTabActive = activeTab === "parents" && showParentLinksTab;
   const {
@@ -738,19 +773,46 @@ export const TeamPage: React.FC = () => {
 
   useEffect(() => {
     const tabFromQuery = searchParams.get("tab");
-    const tabFromState = (location.state as { tab?: string } | null)?.tab;
-    const tab = tabFromQuery || tabFromState;
-    if (
-      tab === "trainers" ||
-      tab === "squad" ||
-      tab === "parents" ||
-      tab === "training" ||
-      tab === "matches"
-    ) {
-      if (tab === "parents" && !showParentLinksTab) return;
-      setActiveTab(tab);
+    const navState = (location.state as TeamNavState | null) ?? null;
+    const hasNavState = navState != null && Object.keys(navState).length > 0;
+
+    if (tabFromQuery === "parents") {
+      clearPlayerDetailState();
+      if (showParentLinksTab) {
+        setActiveTab("parents");
+      }
+      if (hasNavState) {
+        navigate({ pathname: "/app/team", search: "?tab=parents" }, { replace: true, state: null });
+      }
+      return;
     }
-  }, [searchParams, location.state, showParentLinksTab]);
+
+    const tab = isTeamTabId(tabFromQuery)
+      ? tabFromQuery
+      : isTeamTabId(navState?.tab)
+        ? navState.tab
+        : null;
+
+    if (!tab) return;
+    if (tab === "parents" && !showParentLinksTab) return;
+
+    if (navState?.clearSelectedPlayer || tab === "parents") {
+      clearPlayerDetailState();
+    }
+    setActiveTab(tab);
+
+    if (hasNavState && (navState?.clearSelectedPlayer || tabFromQuery)) {
+      const search = tabFromQuery ? `?tab=${encodeURIComponent(tabFromQuery)}` : location.search;
+      navigate({ pathname: location.pathname, search }, { replace: true, state: null });
+    }
+  }, [searchParams, location.state, location.pathname, location.search, showParentLinksTab, navigate]);
+
+  useEffect(() => {
+    if (!tabsReady) return;
+    if (activeTab === "parents" && !showParentLinksTab) {
+      setActiveTab("squad");
+    }
+  }, [tabsReady, activeTab, showParentLinksTab]);
 
   const sortedPlayers = useMemo(() => {
     const list = players.filter((p) => {
@@ -947,19 +1009,29 @@ export const TeamPage: React.FC = () => {
         showAmbientGlow={false}
         className="sticky top-0 z-20 !p-1 backdrop-blur-md"
       >
-        <PremiumTabTrack className="min-w-0">
-          {teamTabs.map((tab) => (
-            <PremiumTab
-              key={tab.id}
-              kind="filter"
-              active={activeTab === tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className="min-w-0 px-1.5 text-[10px] sm:px-2.5 sm:text-[12px]"
-            >
-              {tab.label}
-            </PremiumTab>
-          ))}
-        </PremiumTabTrack>
+        {tabsReady ? (
+          <PremiumTabTrack className="min-w-0">
+            {teamTabs.map((tab) => (
+              <PremiumTab
+                key={tab.id}
+                kind="filter"
+                active={activeTab === tab.id}
+                onClick={() => handleTeamTabChange(tab.id)}
+                className="min-w-0 px-1.5 text-[10px] sm:px-2.5 sm:text-[12px]"
+              >
+                {tab.label}
+              </PremiumTab>
+            ))}
+          </PremiumTabTrack>
+        ) : (
+          <div
+            className="flex min-h-[42px] items-center justify-center px-3"
+            aria-busy="true"
+            aria-label="Team-Tabs werden geladen"
+          >
+            <span className="text-[11px] font-medium text-white/45">Lade Team…</span>
+          </div>
+        )}
       </GlassCard>
 
       {activeTab === "squad" ? (
