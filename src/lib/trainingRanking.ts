@@ -8,12 +8,25 @@ export type TrainingRankingRow = {
   rank: number;
 };
 
+export type TrainingRankingResult = {
+  qualified: TrainingRankingRow[];
+  unqualified: TrainingRankingRow[];
+  sessionsCount: number;
+  minimumBasis: number;
+  teamAverageActivityPct: number | null;
+};
+
+/** Wertbare Trainings = Dabei + LAZ + Abwesend (für Ranking-Mindestbasis). */
+export function getValuableTrainingCount(stats: TrainingAttendanceStats): number {
+  return stats.present + stats.external + stats.absent;
+}
+
 export function getTrainingTeamBasis(stats: TrainingAttendanceStats): number {
   return stats.present + stats.absent;
 }
 
 export function getTrainingActivityBasis(stats: TrainingAttendanceStats): number {
-  return stats.present + stats.external + stats.absent;
+  return getValuableTrainingCount(stats);
 }
 
 export function hasTrainingTeamBasis(stats: TrainingAttendanceStats): boolean {
@@ -22,6 +35,20 @@ export function hasTrainingTeamBasis(stats: TrainingAttendanceStats): boolean {
 
 export function hasTrainingActivityBasis(stats: TrainingAttendanceStats): boolean {
   return getTrainingActivityBasis(stats) > 0;
+}
+
+/** Mindestanzahl wertbarer Trainings für offizielles Ranking (30 %, aufgerundet). */
+export function getMinimumRankingBasis(availableTrainings: number): number {
+  if (availableTrainings <= 0) return 0;
+  return Math.ceil(availableTrainings * 0.3);
+}
+
+export function qualifiesForTrainingRanking(
+  stats: TrainingAttendanceStats,
+  sessionsCount: number,
+): boolean {
+  if (sessionsCount <= 0) return false;
+  return getValuableTrainingCount(stats) >= getMinimumRankingBasis(sessionsCount);
 }
 
 export function activityRateColorClass(pct: number): string {
@@ -53,20 +80,51 @@ function compareTrainingRankingRows(a: TrainingRankingRow, b: TrainingRankingRow
   return a.player.display_name.localeCompare(b.player.display_name, 'de');
 }
 
-export function buildTrainingRanking(
+function compareByName(a: TrainingRankingRow, b: TrainingRankingRow): number {
+  return a.player.display_name.localeCompare(b.player.display_name, 'de');
+}
+
+function mapPlayersToRows(
   players: PlayerItem[],
   statsByPlayerId: Map<string, TrainingAttendanceStats>,
 ): TrainingRankingRow[] {
-  const rows: TrainingRankingRow[] = players.map((player) => ({
+  return players.map((player) => ({
     player,
     stats: statsByPlayerId.get(player.id) ?? { ...EMPTY_TRAINING_STATS },
     rank: 0,
   }));
+}
 
-  rows.sort(compareTrainingRankingRows);
-  rows.forEach((row, index) => {
+export function buildTrainingRanking(
+  players: PlayerItem[],
+  statsByPlayerId: Map<string, TrainingAttendanceStats>,
+  sessionsCount = 0,
+): TrainingRankingResult {
+  const rows = mapPlayersToRows(players, statsByPlayerId);
+  const minimumBasis = getMinimumRankingBasis(sessionsCount);
+
+  const qualified = rows.filter((row) => qualifiesForTrainingRanking(row.stats, sessionsCount));
+  const unqualified = rows.filter((row) => !qualifiesForTrainingRanking(row.stats, sessionsCount));
+
+  qualified.sort(compareTrainingRankingRows);
+  qualified.forEach((row, index) => {
     row.rank = index + 1;
   });
 
-  return rows;
+  unqualified.sort(compareByName);
+
+  const teamAverageActivityPct =
+    qualified.length > 0
+      ? Math.round(
+          qualified.reduce((sum, row) => sum + row.stats.activityRatePct, 0) / qualified.length,
+        )
+      : null;
+
+  return {
+    qualified,
+    unqualified,
+    sessionsCount,
+    minimumBasis,
+    teamAverageActivityPct,
+  };
 }

@@ -1,15 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PlayerItem } from './usePlayers';
-import { buildTrainingRanking, type TrainingRankingRow } from '../lib/trainingRanking';
+import { buildTrainingRanking, type TrainingRankingResult } from '../lib/trainingRanking';
 import { loadTeamPlayersTrainingStats } from '../lib/trainingStatsLoader';
+
+const EMPTY_RESULT: TrainingRankingResult = {
+  qualified: [],
+  unqualified: [],
+  sessionsCount: 0,
+  minimumBasis: 0,
+  teamAverageActivityPct: null,
+};
 
 export function useTeamTrainingRanking(
   players: PlayerItem[],
   teamSeasonId: string | null,
   enabled = true,
 ) {
-  const [ranking, setRanking] = useState<TrainingRankingRow[]>([]);
-  const [sessionsCount, setSessionsCount] = useState(0);
+  const [result, setResult] = useState<TrainingRankingResult>(EMPTY_RESULT);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,8 +27,7 @@ export function useTeamTrainingRanking(
 
   const load = useCallback(async () => {
     if (!enabled) {
-      setRanking([]);
-      setSessionsCount(0);
+      setResult(EMPTY_RESULT);
       setError(null);
       setLoading(false);
       return;
@@ -29,8 +35,7 @@ export function useTeamTrainingRanking(
 
     const sid = (teamSeasonId ?? '').trim();
     if (!sid || activePlayers.length === 0) {
-      setRanking([]);
-      setSessionsCount(0);
+      setResult(EMPTY_RESULT);
       setError(null);
       return;
     }
@@ -40,11 +45,10 @@ export function useTeamTrainingRanking(
     try {
       const playerIds = activePlayers.map((p) => p.id);
       const { events, statsByPlayerId } = await loadTeamPlayersTrainingStats(playerIds, sid);
-      setSessionsCount(events.length);
-      setRanking(buildTrainingRanking(activePlayers, statsByPlayerId));
+      const sessionsCount = events.length;
+      setResult(buildTrainingRanking(activePlayers, statsByPlayerId, sessionsCount));
     } catch (e) {
-      setRanking([]);
-      setSessionsCount(0);
+      setResult(EMPTY_RESULT);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
@@ -55,5 +59,5 @@ export function useTeamTrainingRanking(
     void load();
   }, [load]);
 
-  return { ranking, sessionsCount, loading, error, refetch: load };
+  return { ...result, loading, error, refetch: load };
 }

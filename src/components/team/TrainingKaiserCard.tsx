@@ -3,8 +3,7 @@ import type { PlayerItem } from '../../hooks/usePlayers';
 import { useTeamTrainingRanking } from '../../hooks/useTeamTrainingRanking';
 import {
   activityRateColorClass,
-  getTrainingActivityBasis,
-  getTrainingTeamBasis,
+  getValuableTrainingCount,
   hasTrainingActivityBasis,
   hasTrainingTeamBasis,
   podiumMedal,
@@ -25,19 +24,30 @@ function jerseyLabel(player: PlayerItem): string | null {
   return null;
 }
 
+function formatTrainingBasisLine(row: TrainingRankingRow, sessionsCount: number): string {
+  const valuable = getValuableTrainingCount(row.stats);
+  const unit = sessionsCount === 1 ? 'Training' : 'Trainings';
+  return `Trainingsbasis: ${valuable} von ${sessionsCount} ${unit}`;
+}
+
 function formatTeamLine(row: TrainingRankingRow): string {
   const { stats } = row;
   if (!hasTrainingTeamBasis(stats)) return 'Teamtraining: Keine Trainingsbasis';
-  const basis = getTrainingTeamBasis(stats);
+  const basis = stats.present + stats.absent;
   return `Teamtraining: ${stats.teamRatePct} % · ${stats.present} von ${basis}`;
 }
 
 function formatActivityDetailLine(row: TrainingRankingRow): string {
   const { stats } = row;
   if (!hasTrainingActivityBasis(stats)) return 'Aktivität gesamt: Keine Trainingsbasis';
-  const basis = getTrainingActivityBasis(stats);
+  const basis = getValuableTrainingCount(stats);
   const numerator = stats.present + stats.external;
   return `Aktivität gesamt: ${stats.activityRatePct} % · ${numerator} von ${basis}`;
+}
+
+function InjuredLine({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return <p className="text-[11px] text-white/45">Verletzt: {count}</p>;
 }
 
 function PodiumRow({
@@ -76,10 +86,16 @@ function PodiumRow({
 
 function RankingCard({
   row,
+  sessionsCount,
   onPlayerClick,
+  showRank = true,
+  lowBasis = false,
 }: {
   row: TrainingRankingRow;
+  sessionsCount: number;
   onPlayerClick?: (player: PlayerItem) => void;
+  showRank?: boolean;
+  lowBasis?: boolean;
 }) {
   const jersey = jerseyLabel(row.player);
   const hasActivityBasis = hasTrainingActivityBasis(row.stats);
@@ -91,14 +107,15 @@ function RankingCard({
       onClick={() => onPlayerClick?.(row.player)}
       disabled={!onPlayerClick}
       className={cn(
-        'w-full rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-left transition',
+        'w-full rounded-xl border px-3 py-3 text-left transition',
+        lowBasis ? 'border-amber-500/20 bg-amber-950/15' : 'border-white/10 bg-black/25',
         onPlayerClick ? 'cursor-pointer hover:border-red-500/25 hover:bg-white/[0.04] active:scale-[0.99]' : 'cursor-default',
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[14px] font-semibold text-white">
-            <span className="mr-2 tabular-nums text-white/45">{row.rank}.</span>
+            {showRank ? <span className="mr-2 tabular-nums text-white/45">{row.rank}.</span> : null}
             {row.player.display_name}
           </p>
           <p className="mt-0.5 text-[12px] text-white/55">
@@ -109,24 +126,46 @@ function RankingCard({
           </p>
         </div>
       </div>
-      <p className="mt-2 text-[12px] text-white/60">
-        Dabei {row.stats.present} · LAZ {row.stats.external} · Abwesend {row.stats.absent}
-      </p>
-      <p className="mt-1 text-[11px] leading-relaxed text-white/50">{formatTeamLine(row)}</p>
-      <p className="text-[11px] leading-relaxed text-white/50">{formatActivityDetailLine(row)}</p>
+      <p className="mt-2 text-[12px] text-white/60">{formatTrainingBasisLine(row, sessionsCount)}</p>
+      {lowBasis ? (
+        <p className="mt-1 text-[11px] font-medium text-amber-300/85">zu geringe Trainingsbasis</p>
+      ) : (
+        <>
+          <p className="mt-2 text-[12px] text-white/60">
+            Dabei {row.stats.present} · LAZ {row.stats.external} · Abwesend {row.stats.absent}
+          </p>
+          <p className="mt-1 text-[11px] leading-relaxed text-white/50">{formatTeamLine(row)}</p>
+          <p className="text-[11px] leading-relaxed text-white/50">{formatActivityDetailLine(row)}</p>
+        </>
+      )}
+      <InjuredLine count={row.stats.injured} />
     </button>
   );
 }
 
 export const TrainingKaiserCard: React.FC<Props> = ({ players, teamSeasonId, onPlayerClick }) => {
-  const { ranking, sessionsCount, loading, error } = useTeamTrainingRanking(players, teamSeasonId, true);
+  const {
+    qualified,
+    unqualified,
+    sessionsCount,
+    minimumBasis,
+    teamAverageActivityPct,
+    loading,
+    error,
+  } = useTeamTrainingRanking(players, teamSeasonId, true);
 
-  const topThree = ranking.slice(0, 3);
-  const rest = ranking.slice(3);
+  const topThree = qualified.slice(0, 3);
+  const restQualified = qualified.slice(3);
+  const hasPlayers = qualified.length > 0 || unqualified.length > 0;
 
   return (
     <PremiumCard variant="subtle" showAmbientGlow={false} className="mb-4 sm:p-5">
-      <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
+      <SectionTitle
+        as="h2"
+        subtitle="Nur Spieler mit mindestens 30 % Trainingsbasis werden gewertet. Verletzungen werden nicht negativ berücksichtigt."
+        subtitleClassName="mt-1.5 text-[12px] leading-relaxed text-white/55"
+        className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case"
+      >
         <span className="mr-1.5" aria-hidden>
           🏆
         </span>
@@ -143,91 +182,152 @@ export const TrainingKaiserCard: React.FC<Props> = ({ players, teamSeasonId, onP
           title="Noch keine vergangenen Trainings erfasst."
           className="mt-3 py-6"
         />
-      ) : ranking.length === 0 ? (
+      ) : !hasPlayers ? (
         <PremiumEmptyState variant="subtle" title="Keine aktiven Spieler im Kader." className="mt-3 py-6" />
       ) : (
         <div className="mt-4 space-y-4">
-          {topThree.length > 0 ? (
-            <div className="space-y-2">
-              {topThree.map((row) => (
-                <PodiumRow key={row.player.id} row={row} onPlayerClick={onPlayerClick} />
-              ))}
-            </div>
-          ) : null}
+          {qualified.length === 0 ? (
+            <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
+              <p className="text-[12px] text-white/60">
+                Noch kein Spieler mit mindestens {minimumBasis} wertbaren Trainings (30 % von {sessionsCount}).
+              </p>
+            </GlassCard>
+          ) : (
+            <>
+              {topThree.length > 0 ? (
+                <div className="space-y-2">
+                  {topThree.map((row) => (
+                    <PodiumRow key={row.player.id} row={row} onPlayerClick={onPlayerClick} />
+                  ))}
+                </div>
+              ) : null}
 
-          {rest.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">Alle Spieler</p>
-              <div className="hidden overflow-x-auto sm:block">
-                <table className="w-full min-w-[520px] border-separate border-spacing-y-1.5 text-left text-[13px]">
-                  <thead>
-                    <tr className="text-[11px] uppercase tracking-wide text-white/45">
-                      <th className="px-2 py-1 font-medium">Rang</th>
-                      <th className="px-2 py-1 font-medium">Spieler</th>
-                      <th className="px-2 py-1 font-medium">Aktivität</th>
-                      <th className="px-2 py-1 font-medium">Dabei</th>
-                      <th className="px-2 py-1 font-medium">LAZ</th>
-                      <th className="px-2 py-1 font-medium">Abwesend</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ranking.map((row) => {
-                      const hasBasis = hasTrainingActivityBasis(row.stats);
-                      const pctClass = hasBasis ? activityRateColorClass(row.stats.activityRatePct) : 'text-white/50';
-                      return (
-                        <tr key={row.player.id}>
-                          <td className="rounded-l-lg bg-black/25 px-2 py-2 tabular-nums text-white/55">
-                            {podiumMedal(row.rank) ? (
-                              <span aria-hidden>{podiumMedal(row.rank)}</span>
-                            ) : (
-                              row.rank
-                            )}
-                          </td>
-                          <td className="bg-black/25 px-2 py-2">
-                            <button
-                              type="button"
-                              onClick={() => onPlayerClick?.(row.player)}
-                              disabled={!onPlayerClick}
-                              className={cn(
-                                'font-semibold text-white',
-                                onPlayerClick ? 'hover:text-red-200' : '',
-                              )}
-                            >
-                              {row.player.display_name}
-                            </button>
-                          </td>
-                          <td className={cn('bg-black/25 px-2 py-2 font-semibold tabular-nums', pctClass)}>
-                            {hasBasis ? `${row.stats.activityRatePct} %` : '—'}
-                          </td>
-                          <td className="bg-black/25 px-2 py-2 tabular-nums text-white/80">{row.stats.present}</td>
-                          <td className="bg-black/25 px-2 py-2 tabular-nums text-white/80">{row.stats.external}</td>
-                          <td className="rounded-r-lg bg-black/25 px-2 py-2 tabular-nums text-white/80">
-                            {row.stats.absent}
-                          </td>
+              {teamAverageActivityPct != null ? (
+                <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
+                  <p className="text-[13px] font-semibold text-white/85">
+                    <span className="mr-1.5" aria-hidden>
+                      📊
+                    </span>
+                    Teamdurchschnitt{' '}
+                    <span className={cn('tabular-nums', activityRateColorClass(teamAverageActivityPct))}>
+                      {teamAverageActivityPct} %
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-white/50">
+                    Auf Basis von {qualified.length} gewerteten Spielern
+                  </p>
+                </GlassCard>
+              ) : null}
+
+              {restQualified.length > 0 || qualified.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                    Offizielles Ranking
+                  </p>
+                  <div className="hidden overflow-x-auto sm:block">
+                    <table className="w-full min-w-[560px] border-separate border-spacing-y-1.5 text-left text-[13px]">
+                      <thead>
+                        <tr className="text-[11px] uppercase tracking-wide text-white/45">
+                          <th className="px-2 py-1 font-medium">Rang</th>
+                          <th className="px-2 py-1 font-medium">Spieler</th>
+                          <th className="px-2 py-1 font-medium">Aktivität</th>
+                          <th className="px-2 py-1 font-medium">Basis</th>
+                          <th className="px-2 py-1 font-medium">Dabei</th>
+                          <th className="px-2 py-1 font-medium">LAZ</th>
+                          <th className="px-2 py-1 font-medium">Abwesend</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <div className="space-y-2 sm:hidden">
-                {rest.map((row) => (
-                  <RankingCard key={row.player.id} row={row} onPlayerClick={onPlayerClick} />
+                      </thead>
+                      <tbody>
+                        {qualified.map((row) => {
+                          const hasBasis = hasTrainingActivityBasis(row.stats);
+                          const pctClass = hasBasis
+                            ? activityRateColorClass(row.stats.activityRatePct)
+                            : 'text-white/50';
+                          const valuable = getValuableTrainingCount(row.stats);
+                          return (
+                            <tr key={row.player.id}>
+                              <td className="rounded-l-lg bg-black/25 px-2 py-2 tabular-nums text-white/55">
+                                {podiumMedal(row.rank) ? (
+                                  <span aria-hidden>{podiumMedal(row.rank)}</span>
+                                ) : (
+                                  row.rank
+                                )}
+                              </td>
+                              <td className="bg-black/25 px-2 py-2">
+                                <button
+                                  type="button"
+                                  onClick={() => onPlayerClick?.(row.player)}
+                                  disabled={!onPlayerClick}
+                                  className={cn(
+                                    'font-semibold text-white',
+                                    onPlayerClick ? 'hover:text-red-200' : '',
+                                  )}
+                                >
+                                  {row.player.display_name}
+                                </button>
+                              </td>
+                              <td className={cn('bg-black/25 px-2 py-2 font-semibold tabular-nums', pctClass)}>
+                                {hasBasis ? `${row.stats.activityRatePct} %` : '—'}
+                              </td>
+                              <td className="bg-black/25 px-2 py-2 tabular-nums text-white/70">
+                                {valuable}/{sessionsCount}
+                              </td>
+                              <td className="bg-black/25 px-2 py-2 tabular-nums text-white/80">{row.stats.present}</td>
+                              <td className="bg-black/25 px-2 py-2 tabular-nums text-white/80">{row.stats.external}</td>
+                              <td className="rounded-r-lg bg-black/25 px-2 py-2 tabular-nums text-white/80">
+                                {row.stats.absent}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="space-y-2 sm:hidden">
+                    {qualified.map((row) => (
+                      <RankingCard
+                        key={row.player.id}
+                        row={row}
+                        sessionsCount={sessionsCount}
+                        onPlayerClick={onPlayerClick}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </>
+          )}
+
+          {unqualified.length > 0 ? (
+            <div className="space-y-2 border-t border-white/[0.06] pt-4">
+              <p className="text-[12px] font-semibold text-amber-300/90">
+                <span className="mr-1" aria-hidden>
+                  ⚠️
+                </span>
+                Geringe Trainingsbasis
+              </p>
+              <p className="text-[11px] text-white/50">
+                Mindestens {minimumBasis} wertbare Trainings erforderlich (30 % von {sessionsCount}).
+              </p>
+              <div className="space-y-2">
+                {unqualified.map((row) => (
+                  <RankingCard
+                    key={row.player.id}
+                    row={row}
+                    sessionsCount={sessionsCount}
+                    onPlayerClick={onPlayerClick}
+                    showRank={false}
+                    lowBasis
+                  />
                 ))}
               </div>
-            </div>
-          ) : ranking.length > 0 && topThree.length === ranking.length ? (
-            <div className="space-y-2 sm:hidden">
-              {ranking.map((row) => (
-                <RankingCard key={row.player.id} row={row} onPlayerClick={onPlayerClick} />
-              ))}
             </div>
           ) : null}
 
           <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
             <p className="text-[11px] leading-relaxed text-white/50">
-              Basis: {sessionsCount} vergangene Trainingseinheiten. Verletzt, offen und nicht erfasst zählen nicht in
-              die Quoten.
+              {sessionsCount} vergangene Trainingseinheiten · Mindestbasis fürs Ranking: {minimumBasis} wertbare
+              Trainings (Dabei + LAZ + Abwesend). Verletzt, offen und nicht erfasst zählen nicht in die Quoten.
             </p>
           </GlassCard>
         </div>
