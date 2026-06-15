@@ -11,7 +11,8 @@ import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
 import { useTeamTrainingRanking } from "../../hooks/useTeamTrainingRanking";
 import { useTrainingParticipationAccess } from "../../hooks/useTrainingParticipationAccess";
 import {
-  formatKaiserAverageLabel,
+  averageSquadTeamRatePct,
+  formatSquadParticipationLabel,
 } from "../../lib/trainingRanking";
 import { Button } from "../../app/components/ui/Button";
 import { AppButton } from "../ui/AppButton";
@@ -305,13 +306,16 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     error: trainingStatsError,
   } = usePlayerTrainingStats(player.id, player.team_season_id, canViewTrainingParticipation);
 
-  const { teamAverageActivityPct, sessionsCount, loading: teamRankingLoading } = useTeamTrainingRanking(
+  const { qualified, unqualified, sessionsCount, loading: teamRankingLoading } = useTeamTrainingRanking(
     squadPlayers,
     player.team_season_id,
     canViewTrainingParticipation && squadPlayers.length > 0,
   );
-  const pastTeamTrainings =
-    sessionsCount > 0 ? sessionsCount : trainingStats.sessionsCounted;
+  const squadParticipationAvg = useMemo(
+    () => averageSquadTeamRatePct(qualified, unqualified),
+    [qualified, unqualified],
+  );
+  const pastTeamTrainings = sessionsCount > 0 ? sessionsCount : trainingStats.sessionsCounted;
 
   const goalsPerGameDisplay = useMemo(() => {
     const v = Number(stats.goalsPerGame);
@@ -673,6 +677,11 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                       {pastTeamTrainings} vergangene Team-Trainings
                     </span>
                   </p>
+                  {!teamRankingLoading && squadParticipationAvg != null ? (
+                    <p className="mt-2 text-[12px] text-white/55">
+                      {formatSquadParticipationLabel(squadParticipationAvg)}
+                    </p>
+                  ) : null}
                   <div className="mt-4 space-y-3">
                     <div>
                       <div className="flex items-start justify-between gap-2">
@@ -701,11 +710,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                           <p className="mt-0.5 text-xs text-white/60">
                             {activityTrainingNumerator} von {activityTrainingBasis} Trainings
                           </p>
-                          {canManage && !teamRankingLoading && teamAverageActivityPct != null ? (
-                            <p className="mt-1 text-[11px] text-white/50">
-                              {formatKaiserAverageLabel(teamAverageActivityPct)}
-                            </p>
-                          ) : null}
                         </div>
                       </div>
                       <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/10">

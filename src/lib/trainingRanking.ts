@@ -70,6 +70,22 @@ export function averageQualifiedTeamRatePct(rows: TrainingRankingRow[]): number 
   return Math.round(rows.reduce((sum, row) => sum + row.stats.teamRatePct, 0) / rows.length);
 }
 
+/** Neutrale Mannschaftsbeteiligung über alle Spieler mit Trainingsbasis (ohne Ranking). */
+export function averageSquadTeamRatePct(
+  qualified: TrainingRankingRow[],
+  unqualified: TrainingRankingRow[],
+): number | null {
+  const withBasis = [...qualified, ...unqualified].filter((row) => hasTrainingTeamBasis(row.stats));
+  if (withBasis.length === 0) return null;
+  return Math.round(withBasis.reduce((sum, row) => sum + row.stats.teamRatePct, 0) / withBasis.length);
+}
+
+export const SQUAD_PARTICIPATION_LABEL = 'Ø Mannschaftsbeteiligung';
+
+export function formatSquadParticipationLabel(pct: number): string {
+  return `${SQUAD_PARTICIPATION_LABEL}: ${pct} %`;
+}
+
 /** Durchschnittliche Trainingsaktivität (activityRatePct) der gewerteten Spieler. */
 export function averageQualifiedActivityRatePct(rows: TrainingRankingRow[]): number | null {
   if (rows.length === 0) return null;

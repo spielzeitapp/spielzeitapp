@@ -55,3 +55,39 @@ export async function fetchValidSeasonMatchIds(teamSeasonId: string): Promise<Se
 
   return valid;
 }
+
+export type VisibleSeasonMatch = {
+  id: string;
+  opponent: string | null;
+  match_date: string | null;
+  status: string | null;
+  score_home: number | null;
+  score_away: number | null;
+};
+
+/** Sichtbare Saison-Spiele (nur an aktive Events gebunden, wie Trainerstatistik). */
+export async function fetchVisibleSeasonMatches(
+  teamSeasonId: string,
+  limit?: number,
+): Promise<VisibleSeasonMatch[]> {
+  const sid = teamSeasonId.trim();
+  if (!sid) return [];
+
+  const validIds = await fetchValidSeasonMatchIds(sid);
+  if (validIds.size === 0) return [];
+
+  let query = supabase
+    .from('matches')
+    .select('id, opponent, match_date, status, score_home, score_away')
+    .eq('team_season_id', sid)
+    .in('id', [...validIds])
+    .order('match_date', { ascending: false });
+
+  if (limit != null && limit > 0) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
+  if (error) return [];
+  return (data ?? []) as VisibleSeasonMatch[];
+}

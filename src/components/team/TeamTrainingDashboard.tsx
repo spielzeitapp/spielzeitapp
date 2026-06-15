@@ -19,7 +19,6 @@ type TrainingSubTab = 'overview' | 'kaiser' | 'challenge';
 type Props = {
   players: PlayerItem[];
   teamSeasonId: string;
-  trainingCount: number;
   onPlayerClick?: (player: PlayerItem) => void;
 };
 
@@ -73,7 +72,6 @@ function kaiserTileName(player: PlayerItem): { primary: string; secondary?: stri
 export const TeamTrainingDashboard: React.FC<Props> = ({
   players,
   teamSeasonId,
-  trainingCount,
   onPlayerClick,
 }) => {
   const [subTab, setSubTab] = useState<TrainingSubTab>('overview');
@@ -126,11 +124,12 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
     return deriveJugglingAwards(inputs, jugglingState.session.min_start_for_percent);
   }, [jugglingState.rows, jugglingState.session]);
 
+  const ratedTrainingsCount = sessionsCount;
   const ratedTrainingsLabel =
-    sessionsCount > 0
-      ? String(sessionsCount)
-      : trainingCount > 0
-        ? String(trainingCount)
+    rankingLoading && ratedTrainingsCount === 0
+      ? '…'
+      : ratedTrainingsCount > 0
+        ? String(ratedTrainingsCount)
         : 'Noch keine Daten';
 
   const ratedTrainingsSub =
@@ -199,11 +198,12 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
               error={rankingError}
             />
             <JugglingChallengeCard variant="teaser" />
-            {(sessionsCount > 0 || trainingCount > 0) ? (
+            {ratedTrainingsCount > 0 ? (
               <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
                 <p className="text-[12px] text-white/60">
-                  {sessionsCount > 0 ? sessionsCount : trainingCount} gewertete Team-Trainings in dieser Saison.
+                  {ratedTrainingsCount} gewertete Team-Trainings in dieser Saison.
                   {avgTeamPct != null ? ` Ø gewertete Spieler (Beteiligung): ${avgTeamPct} %.` : ''}
+                  {upcomingTrainings > 0 ? ` ${upcomingTrainings} ausständig.` : ''}
                 </p>
               </GlassCard>
             ) : null}
@@ -232,7 +232,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
       </div>
 
       {rankingError ? <p className="mt-3 text-[12px] text-red-300/90">{rankingError}</p> : null}
-      {trainingCount === 0 && sessionsCount === 0 && subTab === 'overview' && !rankingLoading ? (
+      {ratedTrainingsCount === 0 && subTab === 'overview' && !rankingLoading ? (
         <PremiumEmptyState variant="subtle" title="Noch keine Trainingsdaten" className="mt-3 py-4" />
       ) : null}
     </PremiumCard>

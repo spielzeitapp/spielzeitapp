@@ -29,6 +29,7 @@ import { STAFF_RPC_MIGRATION_HINT, useTeamStaff } from "../hooks/useTeamStaff";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
 import { TeamTrainingDashboard } from "../components/team/TeamTrainingDashboard";
+import { fetchVisibleSeasonMatches } from "../lib/seasonMatchStats";
 import { countPastTeamTrainings } from "../lib/trainingSeasonCounts";
 import type { ProfileTab } from "../components/team/PlayerProfileModal";
 
@@ -252,20 +253,10 @@ export const TeamPage: React.FC = () => {
       return;
     }
     let cancelled = false;
-    void supabase
-      .from("matches")
-      .select("id, opponent, match_date, status, score_home, score_away")
-      .eq("team_season_id", teamSeasonId)
-      .order("match_date", { ascending: false })
-      .limit(5)
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) {
-          setRecentMatches([]);
-          return;
-        }
-        setRecentMatches((data ?? []) as RecentMatchRow[]);
-      });
+    void fetchVisibleSeasonMatches(teamSeasonId, 5).then((rows) => {
+      if (cancelled) return;
+      setRecentMatches(rows);
+    });
     return () => {
       cancelled = true;
     };
@@ -1165,7 +1156,6 @@ export const TeamPage: React.FC = () => {
           <TeamTrainingDashboard
             players={players}
             teamSeasonId={teamSeasonId}
-            trainingCount={trainingCount}
             onPlayerClick={(player) => {
               setProfileInitialTab("training");
               setSelectedProfilePlayer(player);

@@ -3,6 +3,7 @@ import {
   resolveTrainingAttendanceStatus,
   type TrainingAttendanceStats,
 } from './trainingAttendance';
+import { isPastTrainingEvent } from './eventFilters';
 import { supabase } from './supabaseClient';
 
 export type PastTrainingEvent = { id: string; starts_at: string };
@@ -23,9 +24,10 @@ export async function fetchPastTrainingEvents(teamSeasonId: string): Promise<Pas
   const sid = teamSeasonId.trim();
   if (!sid) return [];
   const nowIso = new Date().toISOString();
+  const nowMs = Date.now();
   const { data: events, error } = await supabase
     .from('events')
-    .select('id, starts_at')
+    .select('id, starts_at, kind, type, status')
     .eq('team_season_id', sid)
     .eq('kind', 'training')
     .lt('starts_at', nowIso)
@@ -33,7 +35,12 @@ export async function fetchPastTrainingEvents(teamSeasonId: string): Promise<Pas
     .order('starts_at', { ascending: false });
 
   if (error) throw error;
-  return (events ?? []) as PastTrainingEvent[];
+  return (events ?? [])
+    .filter((row) => isPastTrainingEvent(row, nowMs))
+    .map((row) => ({
+      id: String((row as { id: string }).id),
+      starts_at: String((row as { starts_at: string }).starts_at),
+    }));
 }
 
 export function computeTrainingStatsForPlayer(
