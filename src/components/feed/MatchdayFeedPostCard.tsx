@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Share2 } from 'lucide-react';
-import type { EventRow } from '../../hooks/useEvents';
-import type { MatchdayFeedPayload, TeamFeedPostRow } from '../../lib/matchdayFeedTypes';
+import type { EventRow } from '../../hooks/useEvents';import type { MatchdayFeedPayload, TeamFeedPostRow } from '../../lib/matchdayFeedTypes';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { getClubLogo } from '../../lib/teamLogos';
@@ -22,8 +20,11 @@ import {
   FEED_POST_CAPTION_AFTER_MEDIA_CLASS,
   FeedCaption,
   FeedGameCtaLink,
+  FeedPostActionsFooter,
   FeedPostHeader,
   FeedPostTypeBadge,
+  FeedStandardActions,
+  FEED_STADIUM_ARTICLE_SHADOW,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
@@ -38,6 +39,10 @@ type Props = {
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
 };
+
+function likeStorageKey(postId: string): string {
+  return `spz_feed_like_${postId}`;
+}
 
 function formatKickoff(iso: string): string {
   const d = new Date(iso);
@@ -66,8 +71,17 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
     return null;
   }, [p.matchday_timing, post.post_kind]);
   const posterCaptureRef = useRef<HTMLDivElement>(null);
+  const [liked, setLiked] = useState(false);
   const [shareHint, setShareHint] = useState<string | null>(null);
   const [scores, setScores] = useState<{ home: number; away: number } | null>(null);
+
+  useEffect(() => {
+    try {
+      setLiked(sessionStorage.getItem(likeStorageKey(post.id)) === '1');
+    } catch {
+      setLiked(false);
+    }
+  }, [post.id]);
 
   const eventStatus = liveEvent?.status ?? 'upcoming';
   const matchId = liveEvent?.match_id ?? p.match_id;
@@ -254,12 +268,20 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
 
   const whenLabel = formatDateTimeMediumDeVienna(post.created_at);
 
+  const onToggleLike = useCallback(() => {
+    const next = !liked;
+    setLiked(next);
+    try {
+      sessionStorage.setItem(likeStorageKey(post.id), next ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  }, [liked, post.id]);
+
   return (
     <FeedPostArticleShell
-      style={{
-        boxShadow:
-          'inset 0 0 80px rgba(80,10,10,0.08), 0 20px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(220,38,38,0.07)',
-      }}
+      className="!border-[rgba(255,71,71,0.15)]"
+      style={{ boxShadow: FEED_STADIUM_ARTICLE_SHADOW }}
     >
       <FeedPostHeader
         teamLabel={teamLabel}
@@ -279,7 +301,7 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
             : 'Spieltag'}
       </FeedPostTypeBadge>
 
-      <div className={`${FEED_POST_BODY_CLASS} pb-3 sm:pb-4`}>
+      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
         <MatchdayPosterCard
           ref={posterCaptureRef}
           homeTeamName={p.display_home_name}
@@ -303,25 +325,19 @@ export const MatchdayFeedPostCard: React.FC<Props> = ({
           </div>
         ) : null}
 
-        {shareHint ? (
-          <p className={`${FEED_POST_BODY_INSET_CLASS} mt-2 text-center text-[12px] text-white/65`}>{shareHint}</p>
-        ) : null}
-        <div
-          className={`${FEED_POST_BODY_INSET_CLASS} flex gap-2 border-t border-white/[0.06] pt-2`}
-          style={{ boxShadow: 'inset 0 1px 0 rgba(220,38,38,0.04)' }}
-        >
-          <FeedGameCtaLink to={gameHref} className="flex-1" />
-          <button
-            type="button"
-            onClick={() => void onShare()}
-            className="inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-2 rounded-xl border border-white/18 bg-black/40 px-4 text-sm font-semibold text-white/92 backdrop-blur-sm transition hover:bg-white/10 active:bg-white/[0.08]"
-            aria-label="Matchday teilen"
-          >
-            <Share2 className="h-4 w-4 shrink-0" strokeWidth={2} />
-            Teilen
-          </button>
+        <div className={`${FEED_POST_BODY_INSET_CLASS} pt-1`}>
+          <FeedGameCtaLink to={gameHref} />
         </div>
       </div>
+
+      <FeedPostActionsFooter shareHint={shareHint}>
+        <FeedStandardActions
+          liked={liked}
+          onToggleLike={onToggleLike}
+          onShare={() => void onShare()}
+          inFooter
+        />
+      </FeedPostActionsFooter>
     </FeedPostArticleShell>
   );
 };

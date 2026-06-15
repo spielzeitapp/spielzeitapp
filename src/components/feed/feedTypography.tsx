@@ -21,6 +21,31 @@ export const FEED_POST_TYPE_BADGE_CLASS =
 
 export const FEED_POST_BODY_CLASS = 'min-w-0 px-0 pb-0 pt-0';
 
+/** Stadion-Backdrop wie Welcome-Screen / Ergebnis-Post. */
+export const FEED_STADIUM_BG_URL = `${import.meta.env.BASE_URL || '/'}intro/welcome-hero.png`;
+
+export const FEED_STADIUM_HERO_SHELL_CLASS =
+  'relative min-w-0 overflow-hidden rounded-none border-y border-red-500/20 bg-gradient-to-br from-[#180000] via-black to-[#240000] px-2 pb-4 pt-3 shadow-[0_10px_40px_rgba(255,0,0,0.18)] [box-shadow:inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-4 sm:pt-3.5';
+
+export const FEED_STADIUM_ARTICLE_SHADOW =
+  'inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 40px rgba(255,0,0,0.18), 0 14px 32px rgba(0,0,0,0.45)';
+
+export function FeedStadiumHeroBackdrop() {
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden>
+      <img
+        src={FEED_STADIUM_BG_URL}
+        alt=""
+        loading="lazy"
+        className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_28%] opacity-[0.08] brightness-[0.28] saturate-[0.35]"
+      />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#180000]/95 via-black/97 to-[#240000]/95" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(220,38,38,0.14),transparent_55%)] opacity-90" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_50%_at_50%_100%,rgba(120,8,18,0.22)_0%,transparent_62%)]" />
+    </div>
+  );
+}
+
 /** Text/Actions unter Vollbreite-Medien — ein Padding-Layer (12–16px). */
 export const FEED_POST_BODY_INSET_CLASS = 'px-3 sm:px-4';
 
@@ -56,19 +81,27 @@ export function FeedGameCtaLink({
 
 export function FeedMatchMetaBadge({ line, className = '' }: { line: string | null; className?: string }) {
   if (!line?.trim()) return null;
-  const display = line.replace(/\s*·\s*/g, ' ').trim();
+  const parts = line
+    .split('·')
+    .map((s) => s.trim())
+    .filter(Boolean);
   return (
     <div className={`flex items-center justify-center gap-2.5 px-1 ${className}`.trim()}>
       <div
-        className="h-px min-w-[1.5rem] flex-1 max-w-[3rem] bg-gradient-to-r from-transparent via-red-500/35 to-red-500/15 sm:max-w-[4rem]"
+        className="h-px min-w-[1.5rem] flex-1 max-w-[3rem] bg-gradient-to-r from-transparent via-red-500/40 to-red-500/20 sm:max-w-[4rem]"
         aria-hidden
       />
-      <p className="flex shrink-0 items-center gap-1.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-red-100/95 sm:text-[11px] sm:tracking-[0.14em]">
-        <Trophy className="h-3 w-3 shrink-0 text-amber-400/90" strokeWidth={2.25} aria-hidden />
-        {display}
-      </p>
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-red-500/28 bg-red-950/50 px-3 py-1 text-[10px] font-semibold leading-none text-red-50/95 shadow-[0_0_18px_rgba(220,38,38,0.14),inset_0_1px_0_rgba(255,255,255,0.06)] sm:text-[11px]">
+        <Trophy className="h-3 w-3 shrink-0 text-amber-400/95" strokeWidth={2.25} aria-hidden />
+        {parts.map((part, i) => (
+          <React.Fragment key={`${part}-${i}`}>
+            {i > 0 ? <span className="text-red-300/45" aria-hidden>·</span> : null}
+            <span className={/^U\d/i.test(part) ? 'font-bold tracking-wide' : 'tracking-[0.02em]'}>{part}</span>
+          </React.Fragment>
+        ))}
+      </span>
       <div
-        className="h-px min-w-[1.5rem] flex-1 max-w-[3rem] bg-gradient-to-l from-transparent via-red-500/35 to-red-500/15 sm:max-w-[4rem]"
+        className="h-px min-w-[1.5rem] flex-1 max-w-[3rem] bg-gradient-to-l from-transparent via-red-500/40 to-red-500/20 sm:max-w-[4rem]"
         aria-hidden
       />
     </div>

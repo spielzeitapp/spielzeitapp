@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CalendarDays, Clock3, MapPin } from 'lucide-react';
 import type { NextMatchFeedPostRow } from '../../lib/matchdayFeedTypes';
-import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { getClubLogo } from '../../lib/teamLogos';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatDateTimeMediumDeVienna } from '../../lib/notifications/format';
@@ -18,6 +18,9 @@ import {
   FeedPostHeader,
   FeedPostTypeBadge,
   FeedStandardActions,
+  FeedStadiumHeroBackdrop,
+  FEED_STADIUM_ARTICLE_SHADOW,
+  FEED_STADIUM_HERO_SHELL_CLASS,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
@@ -32,9 +35,6 @@ type Props = {
 };
 
 const PLACEHOLDER = '/logos/placeholder-shield-a.png';
-
-/** Stadion-Backdrop wie Welcome-Screen / Matchday-Poster / Live-Screen. */
-const stadiumBgUrl = `${import.meta.env.BASE_URL || '/'}intro/welcome-hero.png`;
 
 function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
@@ -115,12 +115,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
     return getClubLogo(p.our_team_name);
   }, [p]);
 
-  const locationLine = useMemo(() => {
-    const parsed = splitCombinedLocation(p.location || null);
-    const place = parsed.place;
-    const addr = parsed.address || (p.address ?? '').trim();
-    return (formatFullLocation(place, addr) || '').trim() || '—';
-  }, [p.location, p.address]);
+  const venueLabel = useMemo(() => formatFeedVenueShort(p.location) ?? '—', [p.location]);
 
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
@@ -162,10 +157,7 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
   return (
     <FeedPostArticleShell
       className="!border-[rgba(255,71,71,0.15)]"
-      style={{
-        boxShadow:
-          'inset 0 0 48px rgba(80,10,10,0.1), 0 14px 32px rgba(0,0,0,0.5), 0 0 36px rgba(227,29,47,0.13)',
-      }}
+      style={{ boxShadow: FEED_STADIUM_ARTICLE_SHADOW }}
     >
       <FeedPostHeader
         teamLabel={teamLabel}
@@ -179,22 +171,10 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
       />
       <FeedPostTypeBadge>Ankündigung</FeedPostTypeBadge>
 
-      <div className={`${FEED_POST_BODY_CLASS} pb-3`}>
-        <div className="relative overflow-hidden rounded-none border-y border-[rgba(255,71,71,0.15)] px-2 pb-3 pt-3 shadow-[0_0_30px_rgba(227,29,47,0.1),inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-4 sm:pt-4">
-          {/* Stadion-Backdrop: Crowd-Silhouetten, Flutlicht oben, roter Nebel unten */}
-          <div className="pointer-events-none absolute inset-0" aria-hidden>
-            <img
-              src={stadiumBgUrl}
-              alt=""
-              loading="lazy"
-              className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_30%] opacity-[0.3] brightness-[0.56] saturate-[0.78]"
-            />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,8,9,0.74)_0%,rgba(9,4,5,0.86)_52%,rgba(5,2,3,0.94)_100%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_55%_at_50%_-10%,rgba(255,240,220,0.16)_0%,transparent_62%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_65%_at_50%_115%,rgba(227,29,47,0.22)_0%,transparent_64%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_8%_100%,rgba(227,29,47,0.12)_0%,transparent_60%)]" />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,transparent_22%)]" />
-          </div>
+      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
+        <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
+          <FeedStadiumHeroBackdrop />
+
           <div className="relative space-y-3">
             <p className="text-center text-[18px] font-black uppercase leading-none tracking-[0.2em] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.7),0_0_18px_rgba(255,71,71,0.45)] sm:text-[20px] sm:tracking-[0.24em]">
               Nächstes Spiel
@@ -237,14 +217,14 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
                   Ort
                 </dt>
                 <dd
-                  className="mt-1 line-clamp-3 break-words text-[10.5px] font-semibold leading-snug text-white/90"
-                  title={locationLine}
+                  className="mt-1 line-clamp-2 break-words text-[11px] font-semibold leading-snug text-white/90 sm:text-[12px]"
+                  title={venueLabel}
                 >
-                  {locationLine}
+                  {venueLabel}
                 </dd>
               </div>
             </dl>
-            <div className="flex justify-center pt-1">
+            <div className="pt-1">
               <FeedGameCtaLink to={gameHref} />
             </div>
           </div>
@@ -255,16 +235,16 @@ export const NextMatchFeedPostCard: React.FC<Props> = ({
             <FeedCaption text={post.caption} />
           </div>
         ) : null}
+      </div>
 
-        <FeedPostActionsFooter shareHint={shareHint}>
+      <FeedPostActionsFooter shareHint={shareHint}>
           <FeedStandardActions
             liked={liked}
             onToggleLike={onToggleLike}
             onShare={() => void onShare()}
             inFooter
-          />
-        </FeedPostActionsFooter>
-      </div>
+        />
+      </FeedPostActionsFooter>
     </FeedPostArticleShell>
   );
 };

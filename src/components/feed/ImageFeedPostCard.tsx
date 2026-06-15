@@ -13,6 +13,7 @@ import {
   FeedPostTypeBadge,
   FeedPostActionsFooter,
   FeedStandardActions,
+  FEED_STADIUM_ARTICLE_SHADOW,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 
@@ -78,15 +79,13 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
 
   return (
     <FeedPostArticleShell
-      className="border-red-600/35"
-      style={{
-        boxShadow:
-          'inset 0 0 70px rgba(120,20,20,0.1), 0 20px 44px rgba(0,0,0,0.58), 0 0 0 1px rgba(220,38,38,0.12), 0 0 36px -8px rgba(220,38,38,0.16)',
-      }}
+      className="!border-[rgba(255,71,71,0.15)]"
+      style={{ boxShadow: FEED_STADIUM_ARTICLE_SHADOW }}
     >
       <FeedPostHeader
         teamLabel={teamLabel}
         whenLabel={whenLabel}
+        headerClassName="bg-black/25"
         actions={
           staffCanDelete && onFeedPostDeleted ? (
             <FeedPostDeleteButton input={toFeedPostDeleteInput(post)} onDeleted={onFeedPostDeleted} />
@@ -95,7 +94,7 @@ export const ImageFeedPostCard: React.FC<Props> = ({ post, teamLabel, staffCanDe
       />
       <FeedPostTypeBadge>Foto</FeedPostTypeBadge>
 
-      <div className={`${FEED_POST_BODY_CLASS} pb-2`}>
+      <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
         {resolvedSrc ? (
           <div className="overflow-hidden rounded-none border-y border-red-900/25 bg-black sm:rounded-2xl sm:border">
             <img

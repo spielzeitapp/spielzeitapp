@@ -38,6 +38,22 @@ export function combineLocationParts(
   return p || a;
 }
 
+/** Kurzer Platzname für Feed (ohne Straße/Adresse). */
+export function formatFeedVenueShort(location: string | null | undefined): string | null {
+  const parsed = splitCombinedLocation(location);
+  const place = (parsed.place ?? '').trim();
+  if (place) return place;
+  const raw = (location ?? '').trim();
+  if (!raw) return null;
+  const commaIdx = raw.indexOf(',');
+  if (commaIdx > 0) {
+    const first = raw.slice(0, commaIdx).trim();
+    const rest = raw.slice(commaIdx + 1).trim();
+    if (rest && /\d/.test(rest)) return first;
+  }
+  return raw;
+}
+
 /** Liest Platzname + Adresse aus einem gespeicherten location-Wert. */
 export function splitCombinedLocation(value: string | null | undefined): { place: string; address: string } {
   const s = (value ?? '').trim();

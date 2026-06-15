@@ -18,11 +18,13 @@ import {
   FeedPostTypeBadge,
   FeedPostActionsFooter,
   FeedStandardActions,
+  FeedStadiumHeroBackdrop,
+  FEED_STADIUM_HERO_SHELL_CLASS,
 } from './feedTypography';
 import { FeedPostArticleShell } from './FeedPostArticleShell';
 import { resolveMatchGameHref } from '../../lib/matchFeedLink';
 import { formatPeriodScoresBracketFromRaw } from '../../lib/matchEventScores';
-import { splitCombinedLocation } from '../../lib/eventLocation';
+import { formatFeedVenueShort } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { useSession } from '../../auth/useSession';
 import { canStaffManageTeamFeed } from '../../lib/feedStaffRole';
@@ -33,9 +35,6 @@ type Props = {
   staffCanDelete?: boolean;
   onFeedPostDeleted?: () => void;
 };
-
-/** Stadion-Backdrop wie Welcome-Screen / Spieltag-Poster. */
-const stadiumBgUrl = `${import.meta.env.BASE_URL || '/'}intro/welcome-hero.png`;
 
 function likeStorageKey(postId: string): string {
   return `spz_feed_like_${postId}`;
@@ -52,6 +51,13 @@ function isSensibleScorerMinute(minuteLabel: string): boolean {
 function isRealScorerName(name: string): boolean {
   const n = name.trim();
   return n.length > 0 && n !== '—' && n !== '–';
+}
+
+function formatScorerMinuteBadge(minuteLabel: string): string {
+  const t = minuteLabel.trim();
+  const m = /^(\d+(?:\+\d+)?)/.exec(t);
+  if (m) return `[${m[1]}']`;
+  return t;
 }
 
 type ResultVisualState = 'win' | 'draw' | 'loss';
@@ -152,11 +158,7 @@ export const ResultFeedPostCard: React.FC<Props> = ({
     [p.period_scores],
   );
   const matchDateLabel = useMemo(() => formatResultMatchDate(p.starts_at), [p.starts_at]);
-  const venueLabel = useMemo(() => {
-    const parsed = splitCombinedLocation(p.location || null);
-    const place = (parsed.place ?? '').trim() || (p.location ?? '').trim();
-    return place || null;
-  }, [p.location]);
+  const venueLabel = useMemo(() => formatFeedVenueShort(p.location), [p.location]);
   const captionTrim = post.caption?.trim() ?? '';
 
   const filteredScorers = useMemo(
@@ -233,18 +235,8 @@ export const ResultFeedPostCard: React.FC<Props> = ({
       <FeedPostTypeBadge>Ergebnis</FeedPostTypeBadge>
 
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
-        <div className="relative min-w-0 overflow-hidden rounded-none border-y border-red-500/20 bg-gradient-to-br from-[#180000] via-black to-[#240000] px-2 pb-4 pt-3 shadow-[0_10px_40px_rgba(255,0,0,0.18)] [box-shadow:inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[20px] sm:border sm:px-2.5 sm:pb-4 sm:pt-3.5">
-          <div className="pointer-events-none absolute inset-0" aria-hidden>
-            <img
-              src={stadiumBgUrl}
-              alt=""
-              loading="lazy"
-              className="absolute inset-0 h-full w-full scale-110 object-cover object-[center_28%] opacity-[0.08] brightness-[0.28] saturate-[0.35]"
-            />
-            <div className="absolute inset-0 bg-gradient-to-br from-[#180000]/95 via-black/97 to-[#240000]/95" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(220,38,38,0.14),transparent_55%)] opacity-90" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_50%_at_50%_100%,rgba(120,8,18,0.22)_0%,transparent_62%)]" />
-          </div>
+        <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
+          <FeedStadiumHeroBackdrop />
 
           <div className="relative min-w-0 space-y-4">
             <FeedMatchMetaBadge line={matchMetaLine} />
@@ -272,6 +264,11 @@ export const ResultFeedPostCard: React.FC<Props> = ({
                   <span className="mx-1.5 align-middle text-[0.42em] font-black text-white sm:mx-2.5">:</span>
                   {p.away_score}
                 </p>
+                {periodBracketLine ? (
+                  <p className="mt-1.5 text-[11px] font-semibold tabular-nums leading-snug text-white/60 sm:text-[12px]">
+                    {periodBracketLine}
+                  </p>
+                ) : null}
               </div>
 
               <div className="flex min-w-0 flex-col items-center justify-center gap-2 text-center sm:gap-2.5">
@@ -280,43 +277,38 @@ export const ResultFeedPostCard: React.FC<Props> = ({
               </div>
             </div>
 
-            {periodBracketLine || matchDateLabel || venueLabel ? (
-              <div className="mx-auto max-w-[22rem] space-y-2 text-center">
-                {periodBracketLine ? (
-                  <p className="text-[11px] font-semibold tabular-nums leading-snug text-white/65 sm:text-[12px]">
-                    {periodBracketLine}
-                  </p>
-                ) : null}
+            {matchDateLabel || venueLabel ? (
+              <div className="mx-auto max-w-[22rem] text-center">
                 <FeedMatchDateVenueLine dateLabel={matchDateLabel} venueLabel={venueLabel} />
               </div>
             ) : null}
 
             {filteredScorers.length > 0 ? (
               <div className="rounded-2xl border border-[rgba(255,71,71,0.14)] bg-black/35 px-2 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-3 sm:py-3">
-                <div className="mb-2 flex items-center gap-2 border-b border-red-500/15 pb-2">
-                  <span className="text-[13px] leading-none" aria-hidden>
+                <div className="mb-2.5 flex items-center gap-2 border-b border-red-500/20 pb-2">
+                  <span className="text-[11px] leading-none opacity-90" aria-hidden>
                     ⚽
                   </span>
-                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-red-200/95 sm:text-[11px]">
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-red-200/95 sm:text-[11px]">
                     Torschützen
                   </p>
-                  <div className="h-px flex-1 bg-gradient-to-r from-red-500/30 to-transparent" aria-hidden />
+                  <div className="h-px flex-1 bg-gradient-to-r from-red-500/40 via-red-500/20 to-transparent" aria-hidden />
                 </div>
                 <ul className="space-y-1.5">
                   {filteredScorers.map((s, i) => {
                     const minOk = isSensibleScorerMinute(s.minute_label);
-                    const minShown = minOk ? s.minute_label.trim() : null;
+                    const minShown = minOk ? formatScorerMinuteBadge(s.minute_label) : null;
                     return (
                       <li
                         key={`${s.player_name}-${i}`}
-                        className="flex min-w-0 items-center gap-2 rounded-lg bg-white/[0.03] px-2 py-1.5 sm:gap-2.5 sm:px-2.5"
+                        className="flex min-w-0 items-center gap-2 rounded-lg bg-white/[0.03] px-2 py-1.5 sm:px-2.5"
                       >
                         {minShown ? (
-                          <span className="inline-flex shrink-0 rounded-md border border-red-500/35 bg-red-950/65 px-1.5 py-0.5 text-[10px] font-bold tabular-nums leading-none text-red-100 sm:text-[11px]">
+                          <span className="inline-flex shrink-0 rounded-full border border-red-500/40 bg-red-950/70 px-2 py-0.5 text-[10px] font-bold tabular-nums leading-none text-red-100 sm:text-[11px]">
                             {minShown}
                           </span>
                         ) : null}
-                        <span className="shrink-0 text-[12px] leading-none" aria-hidden>
+                        <span className="shrink-0 text-[11px] leading-none opacity-90" aria-hidden>
                           ⚽
                         </span>
                         <span className="min-w-0 flex-1 break-words text-[13px] font-semibold leading-snug text-white sm:text-[14px]">
