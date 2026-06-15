@@ -63,7 +63,7 @@ import {
 import { fetchLineupForLiveMatch } from '../lib/liveMatchService';
 import { isStartelfCompleteFromStartingIds } from '../pages/MatchDetail/lineupGuards';
 import { getEffectiveEventType } from '../lib/eventTypeUtils';
-import { eventNotesTitle } from '../components/schedule/scheduleEventViewUtils';
+import { eventNotesTitle, mergeTitleIntoNotes } from '../components/schedule/scheduleEventViewUtils';
 
 type KindFilterId = 'all' | 'match' | 'training' | 'event' | 'tournament';
 type TimeFilterId = 'upcoming' | 'past';
@@ -102,18 +102,6 @@ function attendanceMergedToPillStatus(s: AttendanceStatus | null | undefined): A
   if (s === 'yes') return 'yes';
   if (s === 'no') return 'no';
   return 'open';
-}
-
-/** Titel-Zeile in notes (Training/Event) wie CreateEventModal: erster Teil vor „ · “. */
-function mergeTitleIntoNotes(existingNotes: string | null | undefined, newTitle: string): string | null {
-  const title = newTitle.trim();
-  const raw = (existingNotes ?? '').trim();
-  if (!raw) return title || null;
-  const parts = raw.split(' · ');
-  const rest = parts.slice(1).filter(Boolean);
-  if (!title && rest.length === 0) return null;
-  if (!title) return rest.join(' · ');
-  return rest.length ? `${title} · ${rest.join(' · ')}` : title;
 }
 
 function ScheduleHeroToolbarAction({
@@ -1607,6 +1595,9 @@ export const SchedulePage: React.FC = () => {
               onChange={(e) => setEditOpponent(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-main)]"
             />
+            {editEvent?.type === 'training' || editEvent?.type === 'event' || editEvent?.type === 'other' ? (
+              <p className="mt-1 text-xs text-[var(--text-sub)]">Steuert die Überschrift auf der Termine-Karte.</p>
+            ) : null}
           </div>
           <div>
             <label htmlFor="edit-datetime" className="block text-sm font-medium text-[var(--text-main)] mb-1">

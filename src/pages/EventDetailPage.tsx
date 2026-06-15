@@ -1155,6 +1155,15 @@ export const EventDetailPage: React.FC = () => {
     }
     if (editEvent.kind === 'training') {
       payload.training_absence_deadline_disabled = editTrainingDeadlineDisabled;
+      payload.opponent = null;
+      const notesParts: string[] = [];
+      const title = (editTitle ?? '').trim();
+      const end = (editEndTime ?? '').trim();
+      const details = (editDetails ?? '').trim();
+      if (title) notesParts.push(title);
+      if (end) notesParts.push(`Ende: ${end} Uhr`);
+      if (details) notesParts.push(details);
+      payload.notes = notesParts.length > 0 ? notesParts.join(' · ') : null;
     }
     console.log('saved event kind', editEvent.kind);
     let error: { message?: string } | null = null;
@@ -3771,18 +3780,17 @@ export const EventDetailPage: React.FC = () => {
                   <input
                     id="event-detail-edit-opponent"
                     type="text"
-                    value={
-                      editEvent?.kind === 'event' || editEvent?.kind === 'tournament'
-                        ? editTitle
-                        : editOpponent
-                    }
+                    value={editEvent?.kind === 'match' ? editOpponent : editTitle}
                     onChange={(e) =>
-                      editEvent?.kind === 'event' || editEvent?.kind === 'tournament'
-                        ? setEditTitle(e.target.value)
-                        : setEditOpponent(e.target.value)
+                      editEvent?.kind === 'match'
+                        ? setEditOpponent(e.target.value)
+                        : setEditTitle(e.target.value)
                     }
                     className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-main)]"
                   />
+                  {editEvent?.kind !== 'match' ? (
+                    <p className="mt-1 text-xs text-white/50">Steuert die Überschrift auf der Termine-Karte.</p>
+                  ) : null}
                 </div>
                 {editEvent?.kind === 'event' ? (
                   <div>

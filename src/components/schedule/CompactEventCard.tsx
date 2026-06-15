@@ -198,7 +198,9 @@ export function CompactEventCard({
   const oppName = (ev.opponent ?? 'Gegner').trim() || 'Gegner';
 
   const trainingTitle =
-    et === 'training' ? (compactTrainingHeadline(ourTeamName, trainingNotesTitle) ?? 'Training') : null;
+    et === 'training'
+      ? (trainingNotesTitle ?? compactTrainingHeadline(ourTeamName, null) ?? 'Training')
+      : null;
   const trainingTitleLines = splitTrainingTitleLines(trainingTitle);
   const tournamentTitle = et === 'tournament' ? (trainingNotesTitle ?? 'Turnier') : null;
   const tournamentEndLabel = et === 'tournament' ? eventTrainingEndDisplay(ev.notes) : null;
@@ -258,19 +260,15 @@ export function CompactEventCard({
           <span className="text-[13px] font-medium tabular-nums leading-tight text-red-400">{timeStr}</span>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-center space-y-1.5 pr-16">
+        <div className={`flex min-h-0 min-w-0 flex-1 flex-col justify-center space-y-1.5 ${hasTrailing ? 'pr-[4.75rem]' : ''}`}>
           <div className={`flex min-w-0 items-start ${et === 'training' ? 'gap-3' : 'gap-2'}`}>
             <div className="shrink-0 pt-0.5">{inlineTypeIcon}</div>
             {et === 'training' ? (
-              <div className="min-w-0 flex-1">
-                <p className="min-w-0 line-clamp-1 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]" lang="de">
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <p className="min-w-0 line-clamp-2 overflow-hidden text-[17px] font-semibold leading-tight text-white break-words [overflow-wrap:anywhere]" lang="de">
                   {trainingTitleLines.top}
+                  {trainingTitleLines.bottom ? ` ${trainingTitleLines.bottom}` : ''}
                 </p>
-                {trainingTitleLines.bottom ? (
-                  <p className="min-w-0 line-clamp-1 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]" lang="de">
-                    {trainingTitleLines.bottom}
-                  </p>
-                ) : null}
               </div>
             ) : et === 'game' ? (
               <div className="min-w-0 flex-1">
@@ -374,14 +372,10 @@ export function CompactEventCard({
         </>
       ) : et === 'training' ? (
         <>
-          <p className="min-w-0 line-clamp-1 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]" lang="de">
+          <p className="min-w-0 line-clamp-2 overflow-hidden text-[17px] font-semibold leading-tight text-white break-words [overflow-wrap:anywhere]" lang="de">
             {trainingTitleLines.top}
+            {trainingTitleLines.bottom ? ` ${trainingTitleLines.bottom}` : ''}
           </p>
-          {trainingTitleLines.bottom ? (
-            <p className="min-w-0 line-clamp-1 text-[17px] font-semibold leading-tight text-white break-normal hyphens-none [overflow-wrap:normal]" lang="de">
-              {trainingTitleLines.bottom}
-            </p>
-          ) : null}
         </>
       ) : et === 'tournament' ? (
         <p className={titleClamp} lang="de">
@@ -536,14 +530,10 @@ export function CompactEventCard({
         </div>
 
         <div className="relative z-[1] min-w-0 overflow-hidden py-0.5">
-          <p className="text-[18px] font-semibold leading-[1.05] text-white" lang="de">
+          <p className="line-clamp-2 overflow-hidden text-[18px] font-semibold leading-[1.05] text-white break-words [overflow-wrap:anywhere]" lang="de">
             {trainingTitleLines.top}
+            {trainingTitleLines.bottom ? ` ${trainingTitleLines.bottom}` : ''}
           </p>
-          {trainingTitleLines.bottom ? (
-            <p className="text-[18px] font-semibold leading-[1.05] text-white" lang="de">
-              {trainingTitleLines.bottom}
-            </p>
-          ) : null}
           <p className="mt-0.5 line-clamp-2 text-[15px] leading-snug text-white/[0.72]">
             {venueOnly ?? '—'}
           </p>

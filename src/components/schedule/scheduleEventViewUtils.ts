@@ -85,6 +85,18 @@ export function eventNotesTitle(notes: string | null | undefined): string | null
   return t || null;
 }
 
+/** Titel in notes aktualisieren (erster Teil vor „ · “), Rest (Ende, Details) bleibt erhalten. */
+export function mergeTitleIntoNotes(existingNotes: string | null | undefined, newTitle: string): string | null {
+  const title = newTitle.trim();
+  const raw = (existingNotes ?? '').trim();
+  if (!raw) return title || null;
+  const parts = raw.split(' · ');
+  const rest = parts.slice(1).filter(Boolean);
+  if (!title && rest.length === 0) return null;
+  if (!title) return rest.join(' · ');
+  return rest.length ? `${title} · ${rest.join(' · ')}` : title;
+}
+
 export function scheduleEventTypeLabel(ev: EventRow, et: EffectiveEventType): string {
   if (et === 'game') return getMatchTypeLabel(ev.match_type) ?? 'Spiel';
   if (et === 'training') return 'Training';
