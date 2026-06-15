@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, CalendarRange, ChevronRight, Settings, Users, Wrench } from 'lucide-react';
+import { Bell, CalendarRange, ChevronRight, Settings, Smartphone, Users, Wrench } from 'lucide-react';
 import { useSession } from '../auth/useSession';
 import { useUnreadCount } from '../hooks/useUnreadCount';
 import { supabase } from '../lib/supabaseClient';
 import { isHapticEnabled, setHapticEnabled, triggerHaptic } from '../lib/hapticFeedback';
 import { canPrepareNextSeason } from '../lib/seasonLifecycle';
+import { canViewParentLinks, normalizeRole } from '../lib/roles';
 import { dsGlassToggleTrack, dsPanelRowClass } from '../lib/premiumDesignSystem';
 import { PageShell, PremiumButton, PremiumCard, SectionTitle } from '../ui';
 import { cn } from '../ui/lib/cn';
@@ -48,6 +49,7 @@ export const MoreHubPage: React.FC = () => {
     canPrepareNextSeason(backendRole) ||
     isTrainerToolsRole(effectiveRole);
   const showPreviewLink = backendRole === 'admin' || backendRole === 'head_coach';
+  const showParentAccessLink = canViewParentLinks(normalizeRole(effectiveRole));
   const showDebugHubButtons = showMehrHubDebugButtons(backendRole, effectiveRole);
   const unreadCount = useUnreadCount(user?.id);
 
@@ -211,6 +213,20 @@ export const MoreHubPage: React.FC = () => {
                   </span>
                   <ChevronRight className="h-4 w-4 text-white/35" aria-hidden />
                 </Link>
+                {showParentAccessLink ? (
+                  <Link to="/app/team?tab=parents" className={subRowClass}>
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="flex items-center gap-2">
+                        <Smartphone className="h-4 w-4 shrink-0 text-red-400/90" aria-hidden />
+                        Eltern &amp; Spielerzugänge
+                      </span>
+                      <span className="pl-6 text-[11px] font-normal leading-snug text-white/45">
+                        Verknüpfungen, Push &amp; Spieler-App prüfen
+                      </span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-white/35" aria-hidden />
+                  </Link>
+                ) : null}
               </PremiumCard>
             )}
           </div>

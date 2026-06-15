@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from "../auth/useSession";
 import { AppButton } from "../components/ui/AppButton";
 import {
@@ -30,6 +30,8 @@ import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
 import { TeamParentsTab } from "../components/team/TeamParentsTab";
 import { useTeamPlayerParentLinks } from "../hooks/useTeamPlayerParentLinks";
+import { useTeamPlayerAppStatus } from "../hooks/useTeamPlayerAppStatus";
+import { playerAppStatusMap } from "../lib/playerAppStatus";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
 const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
@@ -124,6 +126,7 @@ function readTeamPhotoUrl(row: TeamPhotoRow | null): string | null {
 export const TeamPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { selectedTeamSeason, selectedMembership } = useSession();
   const {
     teamLabel,
@@ -726,8 +729,24 @@ export const TeamPage: React.FC = () => {
     rpcMissing: parentLinksRpcMissing,
   } = useTeamPlayerParentLinks(teamSeasonId, parentsTabActive);
 
+  const staffOverviewActive =
+    showParentLinksTab && (parentsTabActive || selectedProfilePlayer != null);
+  const {
+    rows: playerAppStatusRows,
+    loading: playerAppStatusLoading,
+    error: playerAppStatusError,
+    rpcMissing: playerAppStatusRpcMissing,
+  } = useTeamPlayerAppStatus(teamSeasonId, staffOverviewActive);
+
+  const playerAppStatusById = useMemo(
+    () => playerAppStatusMap(playerAppStatusRows),
+    [playerAppStatusRows],
+  );
+
   useEffect(() => {
-    const tab = (location.state as { tab?: string } | null)?.tab;
+    const tabFromQuery = searchParams.get("tab");
+    const tabFromState = (location.state as { tab?: string } | null)?.tab;
+    const tab = tabFromQuery || tabFromState;
     if (
       tab === "trainers" ||
       tab === "squad" ||
@@ -738,7 +757,7 @@ export const TeamPage: React.FC = () => {
       if (tab === "parents" && !showParentLinksTab) return;
       setActiveTab(tab);
     }
-  }, [location.state, showParentLinksTab]);
+  }, [searchParams, location.state, showParentLinksTab]);
 
   const sortedPlayers = useMemo(() => {
     const list = players.filter((p) => {
@@ -780,6 +799,11 @@ export const TeamPage: React.FC = () => {
           setSelectedProfilePlayer((prev) => (prev ? { ...prev, ...patch } : prev));
           void refetchPlayers();
         }}
+        playerAppStatus={
+          showParentLinksTab
+            ? (playerAppStatusById.get(selectedProfilePlayer.id)?.app_status ?? 'not_setup')
+            : undefined
+        }
       />
     ) : null}
     {canManagePlayers && teamSeasonId != null ? (
@@ -1072,6 +1096,10 @@ export const TeamPage: React.FC = () => {
           loading={parentLinksLoading}
           error={parentLinksError}
           rpcMissing={parentLinksRpcMissing}
+          appStatusRows={playerAppStatusRows}
+          appStatusLoading={playerAppStatusLoading}
+          appStatusError={playerAppStatusError}
+          appStatusRpcMissing={playerAppStatusRpcMissing}
         />
       ) : null}
 

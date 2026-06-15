@@ -18,6 +18,13 @@ import {
   type ParentLinkInfo,
   type PlayerParentLinkRow,
 } from "../../hooks/useTeamPlayerParentLinks";
+import {
+  formatPlayerAppStatusCardLine,
+  PLAYER_APP_STATUS_RPC_MIGRATION_HINT,
+  playerAppStatusMap,
+  summarizePlayerAppStatus,
+  type PlayerAppStatusRow,
+} from "../../lib/playerAppStatus";
 
 type ParentFilterId = "all" | "linked" | "open";
 
@@ -28,6 +35,10 @@ type TeamParentsTabProps = {
   loading: boolean;
   error: string | null;
   rpcMissing: boolean;
+  appStatusRows: PlayerAppStatusRow[];
+  appStatusLoading: boolean;
+  appStatusError: string | null;
+  appStatusRpcMissing: boolean;
 };
 
 const CHIP_BASE =
@@ -174,7 +185,7 @@ function ParentPushSummaryCard({
           </span>
           <span>
             <span className="font-bold text-emerald-50">{pushActiveCount}</span>
-            <span className="text-white/65"> aktiv</span>
+            <span className="text-white/65"> Push aktiv</span>
           </span>
         </span>
         <span className="inline-flex shrink-0 items-center gap-1 text-red-200/90">
@@ -198,6 +209,51 @@ function ParentPushSummaryCard({
   );
 }
 
+function PlayerAppStatusSummaryCard({
+  active,
+  created,
+  notSetup,
+}: {
+  active: number;
+  created: number;
+  notSetup: number;
+}): React.ReactElement {
+  return (
+    <GlassCard variant="subtle" showAmbientGlow={false} className="min-w-0 px-3 py-2 sm:px-4">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-white/50">Spieler-App</p>
+      <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-0.5 text-[12px] sm:text-[13px]">
+        <span className="inline-flex shrink-0 items-center gap-1 text-emerald-200/95">
+          <span aria-hidden className="text-[9px] leading-none">
+            🟢
+          </span>
+          <span>
+            <span className="font-bold text-emerald-50">{active}</span>
+            <span className="text-white/65"> aktiv</span>
+          </span>
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1 text-amber-200/95">
+          <span aria-hidden className="text-[9px] leading-none">
+            🟡
+          </span>
+          <span>
+            <span className="font-bold text-amber-50">{created}</span>
+            <span className="text-white/60"> eingerichtet</span>
+          </span>
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1 text-white/70">
+          <span aria-hidden className="text-[9px] leading-none">
+            ⚪
+          </span>
+          <span>
+            <span className="font-bold text-white/90">{notSetup}</span>
+            <span className="text-white/55"> offen</span>
+          </span>
+        </span>
+      </div>
+    </GlassCard>
+  );
+}
+
 export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
   teamSeasonId,
   tsLoading,
@@ -205,6 +261,10 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
   loading,
   error,
   rpcMissing,
+  appStatusRows,
+  appStatusLoading,
+  appStatusError,
+  appStatusRpcMissing,
 }) => {
   const [filter, setFilter] = useState<ParentFilterId>("all");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -223,6 +283,9 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
     }
     return { pushActiveCount, pushInactiveCount };
   }, [rows]);
+
+  const appStatusByPlayer = useMemo(() => playerAppStatusMap(appStatusRows), [appStatusRows]);
+  const appStatusSummary = useMemo(() => summarizePlayerAppStatus(appStatusRows), [appStatusRows]);
 
   const filteredRows = useMemo(() => {
     if (filter === "linked") return rows.filter((r) => r.parent_count > 0);
@@ -290,7 +353,7 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
           Eltern
         </SectionTitle>
         <p className="mt-1 text-[13px] text-white/60">
-          Welche Spieler bereits mit Elternaccounts verknüpft sind.
+          Verknüpfungen, Push und Spieler-App-Zugänge im Überblick.
         </p>
 
         {teamSeasonId == null && !tsLoading ? (
@@ -311,6 +374,18 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
             {rpcMissing ? (
               <p className="rounded-lg border border-amber-500/35 bg-amber-950/35 px-3 py-2 text-[13px] text-amber-100/95">
                 {PARENT_LINKS_RPC_MIGRATION_HINT}
+              </p>
+            ) : null}
+
+            {appStatusRpcMissing ? (
+              <p className="rounded-lg border border-amber-500/35 bg-amber-950/35 px-3 py-2 text-[13px] text-amber-100/95">
+                {PLAYER_APP_STATUS_RPC_MIGRATION_HINT}
+              </p>
+            ) : null}
+
+            {appStatusError ? (
+              <p className="rounded-lg border border-red-500/30 bg-red-950/30 px-3 py-2 text-[13px] text-red-200/90">
+                {appStatusError}
               </p>
             ) : null}
 
@@ -360,6 +435,16 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
               pushInactiveCount={pushSummary.pushInactiveCount}
             />
 
+            {!appStatusLoading && appStatusRows.length > 0 ? (
+              <PlayerAppStatusSummaryCard
+                active={appStatusSummary.active}
+                created={appStatusSummary.created}
+                notSetup={appStatusSummary.notSetup}
+              />
+            ) : appStatusLoading ? (
+              <p className="text-[12px] text-white/50">Lade Spieler-App-Status…</p>
+            ) : null}
+
             {filteredRows.length === 0 ? (
               <PremiumEmptyState
                 variant="subtle"
@@ -370,6 +455,10 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
               <ul className="min-w-0 space-y-2.5 pb-8">
                 {filteredRows.map((row) => {
                   const linked = row.parent_count > 0;
+                  const appStatus = appStatusByPlayer.get(row.player_id);
+                  const appStatusLine = appStatus
+                    ? formatPlayerAppStatusCardLine(appStatus.app_status, appStatus.last_used_at)
+                    : '⚪ Nicht eingerichtet';
                   return (
                     <li key={row.player_id} className="min-w-0">
                       <GlassCard
@@ -448,6 +537,13 @@ export const TeamParentsTab: React.FC<TeamParentsTabProps> = ({
                             <WhatsAppCopyButton onClick={() => void handleCopyReminder(row.player_name)} />
                           </div>
                         )}
+
+                        <div className="mt-3 border-t border-white/8 pt-3">
+                          <p className="text-[12px] font-medium uppercase tracking-wide text-white/55">
+                            Spieler-App
+                          </p>
+                          <p className="mt-1.5 text-[13px] leading-snug text-white/88">{appStatusLine}</p>
+                        </div>
                       </GlassCard>
                     </li>
                   );
