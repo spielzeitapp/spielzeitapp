@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Trophy } from 'lucide-react';
+import { CalendarDays, Heart, MapPin, MessageCircle, Share2, Trophy } from 'lucide-react';
 import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
 
 export const FEED_HASHTAG = '#GEMEINSAMEINTEAM';
@@ -172,17 +172,22 @@ export function FeedMatchDateVenueLine({
   if (!dateLabel && !venueLabel) return null;
   return (
     <p
-      className={`flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-[12px] font-medium leading-snug text-white/82 sm:text-[13px] ${className}`.trim()}
+      className={`flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-[12px] font-medium leading-snug text-white/82 sm:gap-x-2.5 sm:text-[13px] ${className}`.trim()}
     >
       {dateLabel ? (
-        <span className="inline-flex items-center gap-1">
-          <span aria-hidden>📅</span>
+        <span className="inline-flex items-center gap-1.5">
+          <CalendarDays className="h-4 w-4 shrink-0 text-red-300" strokeWidth={2} aria-hidden />
           {dateLabel}
         </span>
       ) : null}
+      {dateLabel && venueLabel ? (
+        <span className="text-white/35" aria-hidden>
+          ·
+        </span>
+      ) : null}
       {venueLabel ? (
-        <span className="inline-flex items-center gap-1">
-          <span aria-hidden>📍</span>
+        <span className="inline-flex items-center gap-1.5">
+          <MapPin className="h-4 w-4 shrink-0 text-red-400/90" strokeWidth={2} aria-hidden />
           {venueLabel}
         </span>
       ) : null}
