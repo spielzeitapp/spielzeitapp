@@ -14,12 +14,10 @@ import {
 import { useTeamSeasonCoachStats } from "../hooks/useTeamSeasonCoachStats";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffFormModal } from "../components/team/TrainerStaffFormModal";
-import { ProfileStatTile } from "../components/team/ProfileStatTile";
+import { TrainerProfileBody } from "../components/team/profile/TrainerProfileBody";
 import { ProfileHeroCard } from "../components/team/profile/ProfileHeroCard";
-import { ProfileContactCard } from "../components/team/profile/ProfileFooterCards";
-import { TrainerBalanceCard } from "../components/team/profile/TrainerBalanceCard";
-import { COACH_STAT_TILES } from "../components/team/profile/profileStatIcons";
 import { AppButton } from "../components/ui/AppButton";
+import { useCoachSeasonMatchDetails } from "../hooks/useCoachSeasonMatchDetails";
 import { premiumPlayerInitials } from "../lib/premiumPlayerCard";
 
 function nameHeroLines(member: TeamStaffMember): { line1: string; line2: string } {
@@ -47,6 +45,13 @@ export const TrainerProfilePage: React.FC = () => {
   const [rpcMissing, setRpcMissing] = useState(false);
 
   const { stats, loading: statsLoading, error: statsError } = useTeamSeasonCoachStats(teamSeasonId);
+  const {
+    matches: coachMatches,
+    recentMatches,
+    achievements,
+    loading: matchesLoading,
+    error: matchesError,
+  } = useCoachSeasonMatchDetails(teamSeasonId);
 
   const reloadMember = useCallback(async () => {
     const uid = userId?.trim();
@@ -119,19 +124,6 @@ export const TrainerProfilePage: React.FC = () => {
   const initials = member ? premiumPlayerInitials(staffDisplayName(member)) : "TR";
   const roleWatermark = "TR";
 
-  const statTiles = useMemo(
-    () =>
-      [
-        { Icon: COACH_STAT_TILES.trainings, label: "Trainings", value: String(stats.trainings) },
-        { Icon: COACH_STAT_TILES.games, label: "Spiele", value: String(stats.matches) },
-        { Icon: COACH_STAT_TILES.wins, label: "Siege", value: String(stats.wins) },
-        { Icon: COACH_STAT_TILES.goalsFor, label: "Tore Team", value: String(stats.goalsFor) },
-        { Icon: COACH_STAT_TILES.goalsAgainst, label: "Gegentore", value: String(stats.goalsAgainst) },
-        { Icon: COACH_STAT_TILES.pointsPerGame, label: "Punkte / Spiel", value: stats.pointsPerGame },
-      ] as const,
-    [stats],
-  );
-
   const bottomPad = canManage
     ? "max(6.25rem, calc(env(safe-area-inset-bottom, 0px) + 5.75rem))"
     : "max(1.75rem, env(safe-area-inset-bottom, 0px) + 1.25rem)";
@@ -181,47 +173,21 @@ export const TrainerProfilePage: React.FC = () => {
               initials={initials}
             />
 
-            <h2 className="mb-2.5 mt-4 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
-              Trainerstatistik
-            </h2>
-            <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
-              {statsLoading
-                ? [0, 1, 2, 3, 4, 5].map((i) => (
-                    <div
-                      key={`trainer-stat-skel-${i}`}
-                      className="h-[4.75rem] animate-pulse rounded-2xl border border-white/5 bg-white/[0.07]"
-                    />
-                  ))
-                : statTiles.map((s) => (
-                    <ProfileStatTile key={s.label} icon={<s.Icon />} label={s.label} value={s.value} />
-                  ))}
-            </div>
-            {!statsLoading && !statsError ? (
-              <TrainerBalanceCard wins={stats.wins} draws={stats.draws} losses={stats.losses} />
-            ) : null}
-            {statsError ? (
-              <p className="mt-2 text-center text-[11px] text-amber-400/95">{statsError}</p>
-            ) : null}
-            {!statsLoading && !statsError && stats.matches === 0 && stats.trainings === 0 ? (
-              <p className="mt-2 text-center text-[12px] text-white/60">Noch keine Saisondaten</p>
-            ) : null}
-
-            <div className="mt-6">
-              <ProfileContactCard phone={member.phone} email={member.email} />
-            </div>
-
-            {canManage ? (
-              <div className="mt-5 pb-1">
-                <AppButton
-                  type="button"
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  onClick={() => trainerEditor.openEditTrainerForm(member)}
-                >
-                  Bearbeiten
-                </AppButton>
-              </div>
+            {teamSeasonId ? (
+              <TrainerProfileBody
+                member={member}
+                teamSeasonId={teamSeasonId}
+                stats={stats}
+                statsLoading={statsLoading}
+                statsError={statsError}
+                matchDetails={coachMatches}
+                recentMatches={recentMatches}
+                matchesLoading={matchesLoading}
+                matchesError={matchesError}
+                achievements={achievements}
+                canManage={canManage}
+                onEdit={() => trainerEditor.openEditTrainerForm(member)}
+              />
             ) : null}
           </div>
 

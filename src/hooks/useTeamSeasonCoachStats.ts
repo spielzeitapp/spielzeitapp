@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { fetchValidSeasonMatchIds } from "../lib/seasonMatchStats";
+import { fetchIsHomeByMatchId, fetchValidSeasonMatchIds } from "../lib/seasonMatchStats";
 import { countPastTeamTrainings } from "../lib/trainingSeasonCounts";
 
 export type TeamSeasonCoachStats = {
@@ -88,57 +88,6 @@ function computeFromMatches(
     goalsAgainst,
     pointsPerGame,
   };
-}
-
-async function fetchIsHomeByMatchId(
-  teamSeasonId: string,
-  validMatchIds: Set<string>,
-): Promise<Map<string, boolean | null>> {
-  const isHomeByMatchId = new Map<string, boolean | null>();
-
-  const { data: matchEvents, error: matchEvErr } = await supabase
-    .from("events")
-    .select("match_id, is_home")
-    .eq("team_season_id", teamSeasonId)
-    .eq("kind", "match")
-    .not("match_id", "is", null);
-
-  if (!matchEvErr) {
-    for (const ev of matchEvents ?? []) {
-      const mid = (ev as { match_id?: string | null }).match_id;
-      if (mid && validMatchIds.has(String(mid))) {
-        isHomeByMatchId.set(String(mid), (ev as { is_home?: boolean | null }).is_home ?? null);
-      }
-    }
-  }
-
-  const { data: tmRows, error: tmErr } = await supabase
-    .from("tournament_matches")
-    .select("match_id, tournament_event_id")
-    .in("match_id", [...validMatchIds]);
-
-  if (!tmErr && (tmRows ?? []).length > 0) {
-    const tournamentEventIds = [...new Set((tmRows ?? []).map((r) => (r as { tournament_event_id: string }).tournament_event_id))];
-    const { data: tourEvents } = await supabase
-      .from("events")
-      .select("id, is_home")
-      .in("id", tournamentEventIds);
-
-    const homeByTournamentId = new Map<string, boolean | null>();
-    for (const ev of tourEvents ?? []) {
-      homeByTournamentId.set(String((ev as { id: string }).id), (ev as { is_home?: boolean | null }).is_home ?? null);
-    }
-
-    for (const tm of tmRows ?? []) {
-      const mid = String((tm as { match_id: string }).match_id);
-      if (!isHomeByMatchId.has(mid)) {
-        const tid = (tm as { tournament_event_id: string }).tournament_event_id;
-        isHomeByMatchId.set(mid, homeByTournamentId.get(tid) ?? true);
-      }
-    }
-  }
-
-  return isHomeByMatchId;
 }
 
 export function useTeamSeasonCoachStats(teamSeasonId: string | null) {
