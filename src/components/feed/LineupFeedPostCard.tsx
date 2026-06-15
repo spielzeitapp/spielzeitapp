@@ -12,6 +12,7 @@ import { shareFeedContent } from '../../lib/feedShare';
 import { FeedPostDeleteButton } from './FeedPostDeleteButton';
 import { toFeedPostDeleteInput } from '../../lib/deleteTeamFeedPost';
 import { getClubLogo } from '../../lib/teamLogos';
+import { buildFeedMatchMetaLine, pickFeedAgeGroup } from '../../lib/feedClubNaming';
 import { FeedClubName } from './FeedClubName';
 import { FeedMatchLogoBlock, FEED_MATCH_GRID_CLASS, FEED_MATCH_TEAM_COL_CLASS } from './feedMatchHero';
 import {
@@ -20,6 +21,7 @@ import {
   FeedCaption,
   FeedFormationBadge,
   FeedGameCtaLink,
+  FeedMatchMetaBadge,
   FeedPostActionsFooter,
   FeedPostHeader,
   FeedPostTypeBadge,
@@ -103,6 +105,15 @@ export const LineupFeedPostCard: React.FC<Props> = ({
     return isHome ? { left: our, right: opp } : { left: opp, right: our };
   }, [p.our_team_name, p.opponent_name, p.is_home, teamLabel, liveEvent]);
 
+  const lineupMetaLine = useMemo(
+    () =>
+      buildFeedMatchMetaLine(
+        pickFeedAgeGroup(teamLabel, p.our_team_name ?? '', p.opponent_name ?? liveEvent?.opponent ?? ''),
+        'Startaufstellung',
+      ),
+    [teamLabel, p.our_team_name, p.opponent_name, liveEvent?.opponent],
+  );
+
   const { backendRole, membershipRole } = useSession();
   const viewerIsStaff = canStaffManageTeamFeed(backendRole, membershipRole);
 
@@ -159,21 +170,31 @@ export const LineupFeedPostCard: React.FC<Props> = ({
           ) : null
         }
       />
-      <FeedPostTypeBadge>Spieltag · Aufstellung</FeedPostTypeBadge>
+      <FeedPostTypeBadge>Aufstellung</FeedPostTypeBadge>
 
       <div className={`${FEED_POST_BODY_CLASS} min-w-0 pb-6`}>
         <div className={FEED_STADIUM_HERO_SHELL_CLASS}>
           <FeedStadiumHeroBackdrop />
 
-          <div className="relative space-y-3">
-            <div className="space-y-1.5 text-center">
+          <div className="relative min-w-0 space-y-3">
+            <div className="text-center">
               <p className={FEED_HERO_TITLE_CLASS}>Startaufstellung</p>
-              {p.formation ? (
-                <div className="flex justify-center pt-0.5">
-                  <FeedFormationBadge formation={p.formation} />
-                </div>
-              ) : null}
             </div>
+
+            <FeedMatchMetaBadge
+              line={lineupMetaLine}
+              leadingIcon={
+                <span className="text-[11px] leading-none" aria-hidden>
+                  📋
+                </span>
+              }
+            />
+
+            {p.formation ? (
+              <div className="flex justify-center">
+                <FeedFormationBadge formation={p.formation} />
+              </div>
+            ) : null}
 
             {vsTeams ? (
               <div className={FEED_MATCH_GRID_CLASS}>
@@ -192,7 +213,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
             ) : null}
 
             <div className="rounded-2xl border border-[rgba(255,71,71,0.14)] bg-black/35 px-1.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:px-2.5 sm:py-3">
-              <FeedSectionHeader icon="👕" label="Startelf" />
+              <FeedSectionHeader icon="👕" label="Startaufstellung" />
               <ul className="space-y-1">
                 {displayPlayers.map((pl, index) => {
                   const name = lineupFeedDisplayPlayerName(pl);
@@ -202,7 +223,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
                       key={`${pl.player_id ?? index}-${pl.slot ?? index}`}
                       className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 rounded-lg bg-white/[0.03] px-2 py-1 sm:gap-x-2.5 sm:px-2.5"
                     >
-                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-red-400/35 bg-gradient-to-b from-red-600/55 to-red-950/80 text-[10px] font-black tabular-nums text-white shadow-[0_0_10px_rgba(220,38,38,0.25)] sm:h-7 sm:w-7 sm:text-[11px]">
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-red-400/35 bg-gradient-to-b from-red-600/55 to-red-950/80 text-[10px] font-black tabular-nums text-white shadow-[0_0_10px_rgba(220,38,38,0.29)] sm:h-7 sm:w-7 sm:text-[11px]">
                         {lineupBadgeLabel(pl)}
                       </span>
                       {name ? (

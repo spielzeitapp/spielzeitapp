@@ -38,7 +38,7 @@ export function FeedFormationBadge({ formation }: { formation: string }) {
   );
 }
 
-/** Sektionskopf wie TORSCHÜTZEN / STARTELF — Icon + Label + roter Divider. */
+/** Sektionskopf wie TORSCHÜTZEN / STARTAUFSTELLUNG — Icon + Label + roter Divider. */
 export function FeedSectionHeader({
   icon,
   label,
@@ -131,7 +131,16 @@ export function FeedGameCtaLink({
   );
 }
 
-export function FeedMatchMetaBadge({ line, className = '' }: { line: string | null; className?: string }) {
+export function FeedMatchMetaBadge({
+  line,
+  className = '',
+  leadingIcon,
+}: {
+  line: string | null;
+  className?: string;
+  /** Standard: Trophy (Ergebnis). Aufstellung z. B. 📋 */
+  leadingIcon?: React.ReactNode;
+}) {
   if (!line?.trim()) return null;
   const parts = line
     .split('·')
@@ -144,7 +153,9 @@ export function FeedMatchMetaBadge({ line, className = '' }: { line: string | nu
         aria-hidden
       />
       <FeedPremiumBadge>
-        <Trophy className="h-3 w-3 shrink-0 text-amber-400/95" strokeWidth={2.25} aria-hidden />
+        {leadingIcon ?? (
+          <Trophy className="h-3 w-3 shrink-0 text-amber-400/95" strokeWidth={2.25} aria-hidden />
+        )}
         {parts.map((part, i) => (
           <React.Fragment key={`${part}-${i}`}>
             {i > 0 ? <span className="text-red-300/45" aria-hidden>·</span> : null}
