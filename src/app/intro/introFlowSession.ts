@@ -5,6 +5,9 @@
 export const INTRO_FLOW_SESSION_KEY = 'spielzeit_intro_flow_v1';
 export const INTRO_FLOW_COMPLETED_VALUE = 'completed';
 
+/** Splash vor Welcome — Einstieg in den Intro-Flow nach Login. */
+export const INTRO_SPLASH_PATH = '/app/intro/splash';
+
 /** Welcome nach Splash — gleiche Route wie Trainer/Eltern-Intro. */
 export const INTRO_WELCOME_PATH = '/app/intro/welcome';
 
