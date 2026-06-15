@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useSession, getTeamNameFromMembership, getSeasonLabelFromMembership } from "../auth/useSession";
 import { AppButton } from "../components/ui/AppButton";
 import {
@@ -15,7 +15,7 @@ import {
 import { Camera } from "lucide-react";
 import { useActiveTeamSeason } from "../hooks/useActiveTeamSeason";
 import { usePlayers, type PlayerItem } from "../hooks/usePlayers";
-import { normalizeRole, canManageRoster, canViewParentLinks } from "../lib/roles";
+import { normalizeRole, canManageRoster } from "../lib/roles";
 import { getPositionLabel } from "../lib/positionLabels";
 import { supabase } from "../lib/supabaseClient";
 import { uploadPlayerProfileAvatar, uploadPlayerProfileCutout, logProfileHeroUpload } from "../lib/profileCutoutUpload";
@@ -28,15 +28,19 @@ import { PlayerCard } from "../components/team/PlayerCard";
 import { STAFF_RPC_MIGRATION_HINT, useTeamStaff } from "../hooks/useTeamStaff";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
-import { TeamParentsTab } from "../components/team/TeamParentsTab";
-import { useTeamPlayerParentLinks } from "../hooks/useTeamPlayerParentLinks";
-import { useTeamPlayerAppStatus } from "../hooks/useTeamPlayerAppStatus";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
 const TEAM_HERO_PLACEHOLDER = "/team/team-placeholder.png";
 
-type TeamTabId = "squad" | "parents" | "trainers" | "training" | "matches";
+type TeamTabId = "squad" | "trainers" | "training" | "matches";
 type SquadFilterId = "active" | "paused" | "all";
+
+const TEAM_TABS: { id: TeamTabId; label: string }[] = [
+  { id: "squad", label: "Kader" },
+  { id: "trainers", label: "Trainer" },
+  { id: "training", label: "Training" },
+  { id: "matches", label: "Spiele" },
+];
 
 type TeamNavState = {
   tab?: string;
@@ -46,7 +50,6 @@ type TeamNavState = {
 function isTeamTabId(value: string | null | undefined): value is TeamTabId {
   return (
     value === "squad" ||
-    value === "parents" ||
     value === "trainers" ||
     value === "training" ||
     value === "matches"
@@ -166,7 +169,6 @@ export const TeamPage: React.FC = () => {
 
   const roleNormalized = normalizeRole(role);
   const canManagePlayers = canManageRoster(roleNormalized);
-  const showParentLinksTab = canViewParentLinks(roleNormalized);
   const tabsReady = !sessionLoading && !tsLoading;
 
   const [showForm, setShowForm] = useState(false);
@@ -724,21 +726,6 @@ export const TeamPage: React.FC = () => {
     await refetchPlayers();
   };
 
-  const teamTabs = useMemo(() => {
-    const tabs: { id: TeamTabId; label: string }[] = [
-      { id: "squad", label: "Kader" },
-    ];
-    if (showParentLinksTab) {
-      tabs.push({ id: "parents", label: "Eltern" });
-    }
-    tabs.push(
-      { id: "trainers", label: "Trainer" },
-      { id: "training", label: "Training" },
-      { id: "matches", label: "Spiele" },
-    );
-    return tabs;
-  }, [showParentLinksTab]);
-
   const [activeTab, setActiveTab] = useState<TeamTabId>(readInitialTeamTab);
   const [squadFilter, setSquadFilter] = useState<SquadFilterId>("active");
 
@@ -755,38 +742,12 @@ export const TeamPage: React.FC = () => {
     setActiveTab(tabId);
   };
 
-  const parentsTabActive = activeTab === "parents" && showParentLinksTab;
-  const {
-    rows: parentLinkRows,
-    loading: parentLinksLoading,
-    error: parentLinksError,
-    rpcMissing: parentLinksRpcMissing,
-  } = useTeamPlayerParentLinks(teamSeasonId, parentsTabActive);
-
-  const staffOverviewActive = parentsTabActive;
-  const {
-    rows: playerAppStatusRows,
-    loading: playerAppStatusLoading,
-    error: playerAppStatusError,
-    rpcMissing: playerAppStatusRpcMissing,
-  } = useTeamPlayerAppStatus(teamSeasonId, staffOverviewActive);
-
   useEffect(() => {
     const tabFromQuery = searchParams.get("tab");
+    if (tabFromQuery === "parents") return;
+
     const navState = (location.state as TeamNavState | null) ?? null;
     const hasNavState = navState != null && Object.keys(navState).length > 0;
-
-    if (tabFromQuery === "parents") {
-      clearPlayerDetailState();
-      if (showParentLinksTab) {
-        setActiveTab("parents");
-      }
-      if (hasNavState) {
-        navigate({ pathname: "/app/team", search: "?tab=parents" }, { replace: true, state: null });
-      }
-      return;
-    }
-
     const tab = isTeamTabId(tabFromQuery)
       ? tabFromQuery
       : isTeamTabId(navState?.tab)
@@ -794,25 +755,16 @@ export const TeamPage: React.FC = () => {
         : null;
 
     if (!tab) return;
-    if (tab === "parents" && !showParentLinksTab) return;
 
-    if (navState?.clearSelectedPlayer || tab === "parents") {
+    if (navState?.clearSelectedPlayer) {
       clearPlayerDetailState();
     }
     setActiveTab(tab);
 
-    if (hasNavState && (navState?.clearSelectedPlayer || tabFromQuery)) {
-      const search = tabFromQuery ? `?tab=${encodeURIComponent(tabFromQuery)}` : location.search;
-      navigate({ pathname: location.pathname, search }, { replace: true, state: null });
+    if (hasNavState) {
+      navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null });
     }
-  }, [searchParams, location.state, location.pathname, location.search, showParentLinksTab, navigate]);
-
-  useEffect(() => {
-    if (!tabsReady) return;
-    if (activeTab === "parents" && !showParentLinksTab) {
-      setActiveTab("squad");
-    }
-  }, [tabsReady, activeTab, showParentLinksTab]);
+  }, [searchParams, location.state, location.pathname, location.search, navigate]);
 
   const sortedPlayers = useMemo(() => {
     const list = players.filter((p) => {
@@ -837,6 +789,10 @@ export const TeamPage: React.FC = () => {
     () => players.filter((p) => (p.status ?? "active") === "paused").length,
     [players]
   );
+
+  if (searchParams.get("tab") === "parents") {
+    return <Navigate to="/app/mehr/parent-access" replace />;
+  }
 
   return (
     <>
@@ -1011,7 +967,7 @@ export const TeamPage: React.FC = () => {
       >
         {tabsReady ? (
           <PremiumTabTrack className="min-w-0">
-            {teamTabs.map((tab) => (
+            {TEAM_TABS.map((tab) => (
               <PremiumTab
                 key={tab.id}
                 kind="filter"
@@ -1146,21 +1102,6 @@ export const TeamPage: React.FC = () => {
           )}
         </div>
       </PremiumCard>
-      ) : null}
-
-      {activeTab === "parents" && showParentLinksTab ? (
-        <TeamParentsTab
-          teamSeasonId={teamSeasonId}
-          tsLoading={tsLoading}
-          rows={parentLinkRows}
-          loading={parentLinksLoading}
-          error={parentLinksError}
-          rpcMissing={parentLinksRpcMissing}
-          appStatusRows={playerAppStatusRows}
-          appStatusLoading={playerAppStatusLoading}
-          appStatusError={playerAppStatusError}
-          appStatusRpcMissing={playerAppStatusRpcMissing}
-        />
       ) : null}
 
       {activeTab === "trainers" ? (

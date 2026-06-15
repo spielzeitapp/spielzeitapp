@@ -36,6 +36,7 @@ import { TrainerRemindersPage } from '../pages/TrainerRemindersPage';
 import { TrainerPreviewPage } from '../pages/TrainerPreviewPage';
 import { PlayerMatchdayPosterPreviewPage } from '../pages/dev/PlayerMatchdayPosterPreviewPage';
 import { SeasonManagementPage } from '../pages/SeasonManagementPage';
+import { ParentAccessPage } from '../pages/ParentAccessPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
@@ -202,6 +203,10 @@ function InternalRoutes(): React.ReactElement {
         <Route path="live" element={<LivePage />} />
         <Route path="live/:id" element={<LivePage />} />
         <Route path="team" element={<TeamPage />} />
+        <Route
+          path="team-management/parent-access"
+          element={<Navigate to="/app/mehr/parent-access" replace />}
+        />
         <Route path="team/trainer/:userId" element={<TrainerProfilePage />} />
         <Route path="table" element={<TablePage />} />
         <Route path="mehr" element={<MoreLayout />}>
@@ -211,6 +216,7 @@ function InternalRoutes(): React.ReactElement {
           <Route path="trainer/erinnerungen" element={<TrainerRemindersPage />} />
           <Route path="trainer/preview" element={<TrainerPreviewPage />} />
           <Route path="seasons" element={<SeasonManagementPage />} />
+          <Route path="parent-access" element={<ParentAccessPage />} />
           {/* Legacy: /app/mehr/notifications -> /app/nachrichten */}
           <Route path="notifications" element={<Navigate to="/app/nachrichten" replace />} />
           <Route path="profile" element={<Navigate to="/app/profile" replace />} />
