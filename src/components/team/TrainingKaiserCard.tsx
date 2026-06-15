@@ -1,6 +1,5 @@
 import React from 'react';
 import type { PlayerItem } from '../../hooks/usePlayers';
-import { useTeamTrainingRanking } from '../../hooks/useTeamTrainingRanking';
 import {
   activityRateColorClass,
   getValuableTrainingCount,
@@ -9,13 +8,20 @@ import {
   podiumMedal,
   type TrainingRankingRow,
 } from '../../lib/trainingRanking';
-import { GlassCard, PremiumCard, PremiumEmptyState, SectionTitle } from '../../ui';
+import { GlassCard, PremiumButton, PremiumCard, PremiumEmptyState, SectionTitle } from '../../ui';
 import { cn } from '../../ui/lib/cn';
+
+import type { TrainingRankingResult } from '../../lib/trainingRanking';
 
 type Props = {
   players: PlayerItem[];
   teamSeasonId: string;
   onPlayerClick?: (player: PlayerItem) => void;
+  variant?: 'full' | 'overview';
+  onViewAll?: () => void;
+  ranking: TrainingRankingResult;
+  loading: boolean;
+  error: string | null;
 };
 
 function jerseyLabel(player: PlayerItem): string | null {
@@ -143,34 +149,48 @@ function RankingCard({
   );
 }
 
-export const TrainingKaiserCard: React.FC<Props> = ({ players, teamSeasonId, onPlayerClick }) => {
+export const TrainingKaiserCard: React.FC<Props> = ({
+  players: _players,
+  teamSeasonId: _teamSeasonId,
+  onPlayerClick,
+  variant = 'full',
+  onViewAll,
+  ranking,
+  loading,
+  error,
+}) => {
   const {
     qualified,
     unqualified,
     sessionsCount,
     minimumBasis,
     teamAverageActivityPct,
-    loading,
-    error,
-  } = useTeamTrainingRanking(players, teamSeasonId, true);
+  } = ranking;
 
   const topThree = qualified.slice(0, 3);
   const restQualified = qualified.slice(3);
   const hasPlayers = qualified.length > 0 || unqualified.length > 0;
+  const isOverview = variant === 'overview';
 
   return (
-    <PremiumCard variant="subtle" showAmbientGlow={false} className="mb-4 sm:p-5">
-      <SectionTitle
-        as="h2"
-        subtitle="Nur Spieler mit mindestens 30 % Trainingsbasis werden gewertet. Verletzungen werden nicht negativ berücksichtigt."
-        subtitleClassName="mt-1.5 text-[12px] leading-relaxed text-white/55"
-        className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case"
-      >
-        <span className="mr-1.5" aria-hidden>
-          🏆
-        </span>
-        Trainingskaiser
-      </SectionTitle>
+    <PremiumCard variant="subtle" showAmbientGlow={false} className={isOverview ? 'sm:p-4' : 'mb-4 sm:p-5'}>
+      {!isOverview ? (
+        <SectionTitle
+          as="h2"
+          subtitle="Nur Spieler mit mindestens 30 % Trainingsbasis werden gewertet. Verletzungen werden nicht negativ berücksichtigt."
+          subtitleClassName="mt-1.5 text-[12px] leading-relaxed text-white/55"
+          className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case"
+        >
+          <span className="mr-1.5" aria-hidden>
+            🏆
+          </span>
+          Trainingskaiser
+        </SectionTitle>
+      ) : (
+        <SectionTitle as="h3" className="[&>h3]:text-base [&>h3]:font-semibold [&>h3]:normal-case">
+          Top 3 Trainingskaiser
+        </SectionTitle>
+      )}
 
       {loading ? (
         <p className="mt-4 text-[13px] text-white/65">Lade Trainingsranking…</p>
@@ -185,7 +205,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({ players, teamSeasonId, onP
       ) : !hasPlayers ? (
         <PremiumEmptyState variant="subtle" title="Keine aktiven Spieler im Kader." className="mt-3 py-6" />
       ) : (
-        <div className="mt-4 space-y-4">
+        <div className={isOverview ? 'mt-3 space-y-3' : 'mt-4 space-y-4'}>
           {qualified.length === 0 ? (
             <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
               <p className="text-[12px] text-white/60">
@@ -202,7 +222,20 @@ export const TrainingKaiserCard: React.FC<Props> = ({ players, teamSeasonId, onP
                 </div>
               ) : null}
 
-              {teamAverageActivityPct != null ? (
+              {isOverview ? (
+                <>
+                  <p className="text-[11px] leading-relaxed text-white/50">
+                    Mindestbasis: {minimumBasis} wertbare Trainings (30 % von {sessionsCount}).
+                  </p>
+                  {onViewAll ? (
+                    <PremiumButton type="button" variant="interactive" fullWidth onClick={onViewAll}>
+                      Alle anzeigen
+                    </PremiumButton>
+                  ) : null}
+                </>
+              ) : null}
+
+              {!isOverview && teamAverageActivityPct != null ? (
                 <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
                   <p className="text-[13px] font-semibold text-white/85">
                     <span className="mr-1.5" aria-hidden>
@@ -219,7 +252,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({ players, teamSeasonId, onP
                 </GlassCard>
               ) : null}
 
-              {restQualified.length > 0 || qualified.length > 0 ? (
+              {!isOverview && (restQualified.length > 0 || qualified.length > 0) ? (
                 <div className="space-y-2">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
                     Offizielles Ranking
@@ -298,7 +331,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({ players, teamSeasonId, onP
             </>
           )}
 
-          {unqualified.length > 0 ? (
+          {unqualified.length > 0 && !isOverview ? (
             <div className="space-y-2 border-t border-white/[0.06] pt-4">
               <p className="text-[12px] font-semibold text-amber-300/90">
                 <span className="mr-1" aria-hidden>
@@ -324,12 +357,14 @@ export const TrainingKaiserCard: React.FC<Props> = ({ players, teamSeasonId, onP
             </div>
           ) : null}
 
-          <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
-            <p className="text-[11px] leading-relaxed text-white/50">
-              {sessionsCount} vergangene Trainingseinheiten · Mindestbasis fürs Ranking: {minimumBasis} wertbare
-              Trainings (Dabei + LAZ + Abwesend). Verletzt, offen und nicht erfasst zählen nicht in die Quoten.
-            </p>
-          </GlassCard>
+          {!isOverview ? (
+            <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
+              <p className="text-[11px] leading-relaxed text-white/50">
+                {sessionsCount} vergangene Trainingseinheiten · Mindestbasis fürs Ranking: {minimumBasis} wertbare
+                Trainings (Dabei + LAZ + Abwesend). Verletzt, offen und nicht erfasst zählen nicht in die Quoten.
+              </p>
+            </GlassCard>
+          ) : null}
         </div>
       )}
     </PremiumCard>

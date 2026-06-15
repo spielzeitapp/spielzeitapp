@@ -28,8 +28,7 @@ import { PlayerCard } from "../components/team/PlayerCard";
 import { STAFF_RPC_MIGRATION_HINT, useTeamStaff } from "../hooks/useTeamStaff";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
-import { TrainingKaiserCard } from "../components/team/TrainingKaiserCard";
-import { JugglingChallengeCard } from "../components/team/JugglingChallengeCard";
+import { TeamTrainingDashboard } from "../components/team/TeamTrainingDashboard";
 import type { ProfileTab } from "../components/team/PlayerProfileModal";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
@@ -1165,47 +1164,38 @@ export const TeamPage: React.FC = () => {
       ) : null}
 
       {activeTab === "training" ? (
-        <>
-          {canViewTrainingKaiser && teamSeasonId != null ? (
-            <TrainingKaiserCard
-              players={players}
-              teamSeasonId={teamSeasonId}
-              onPlayerClick={(player) => {
-                setProfileInitialTab("training");
-                setSelectedProfilePlayer(player);
-              }}
-            />
-          ) : null}
-          {canViewTrainingKaiser && teamSeasonId != null ? <JugglingChallengeCard /> : null}
-        <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
-          <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
-            Training
-          </SectionTitle>
-          {teamSeasonId == null && !tsLoading ? (
-            <PremiumEmptyState variant="subtle" title="Bitte Team wählen." className="mt-3 py-6" />
-          ) : (
+        teamSeasonId == null && !tsLoading ? (
+          <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
+            <PremiumEmptyState variant="subtle" title="Bitte Team wählen." className="py-6" />
+          </PremiumCard>
+        ) : canViewTrainingKaiser && teamSeasonId != null ? (
+          <TeamTrainingDashboard
+            players={players}
+            teamSeasonId={teamSeasonId}
+            trainingCount={trainingCount}
+            onPlayerClick={(player) => {
+              setProfileInitialTab("training");
+              setSelectedProfilePlayer(player);
+            }}
+          />
+        ) : (
+          <PremiumCard variant="subtle" showAmbientGlow={false} className="sm:p-5">
+            <SectionTitle as="h2" className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case">
+              Training
+            </SectionTitle>
             <div className="mt-4 space-y-3">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3">
-                  <div className="text-[12px] text-white/60">Teilnahmequote Team</div>
-                  <div className="mt-1 text-[14px] font-medium text-white/80">Noch keine Trainingsdaten</div>
-                </GlassCard>
-                <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3">
                   <div className="text-[12px] text-white/60">Anzahl Trainings</div>
                   <div className="mt-1 text-[22px] font-bold text-white">{trainingCount}</div>
-                </GlassCard>
-                <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3">
-                  <div className="text-[12px] text-white/60">Durchschnittliche Beteiligung</div>
-                  <div className="mt-1 text-[14px] font-medium text-white/80">Noch keine Trainingsdaten</div>
                 </GlassCard>
               </div>
               {trainingCount === 0 ? (
                 <PremiumEmptyState variant="subtle" title="Noch keine Trainingsdaten" className="py-6" />
               ) : null}
             </div>
-          )}
-        </PremiumCard>
-        </>
+          </PremiumCard>
+        )
       ) : null}
 
       {activeTab === "matches" ? (
