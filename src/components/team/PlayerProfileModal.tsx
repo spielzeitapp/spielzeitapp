@@ -328,6 +328,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const trainingsExternal = trainingStats.external;
   const trainingsOpen = trainingStats.open;
   const trainingsLegacyUnknown = trainingStats.legacyUnknown;
+  const teamTrainingBasis = trainingsPresent + trainingsAbsent;
+  const activityTrainingNumerator = trainingsPresent + trainingsExternal;
+  const activityTrainingBasis = activityTrainingNumerator + trainingsAbsent;
 
   useEffect(() => {
     setIsLazPlayer(player.is_laz_player);
@@ -644,11 +647,15 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 <>
                   <div className="mt-4 space-y-3">
                     <div>
-                      <div className="flex items-baseline justify-between gap-2">
+                      <div className="flex items-start justify-between gap-2">
                         <span className="text-[13px] text-white/70">Team-Trainingsbeteiligung</span>
-                        <span className="text-[20px] font-bold tabular-nums text-white">{teamTrainingRatePct}%</span>
+                        <div className="text-right">
+                          <span className="text-[20px] font-bold tabular-nums text-white">{teamTrainingRatePct}%</span>
+                          <p className="mt-0.5 text-xs text-white/60">
+                            {trainingsPresent} von {teamTrainingBasis} Trainings
+                          </p>
+                        </div>
                       </div>
-                      <p className="mt-0.5 text-[10px] text-white/50">Dabei ÷ (Dabei + Abwesend)</p>
                       <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/10">
                         <div
                           className="h-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-400"
@@ -657,15 +664,17 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                       </div>
                     </div>
                     <div>
-                      <div className="flex items-baseline justify-between gap-2">
+                      <div className="flex items-start justify-between gap-2">
                         <span className="text-[13px] text-white/70">Trainingsaktivität gesamt</span>
-                        <span className="text-[20px] font-bold tabular-nums text-white">
-                          {activityTrainingRatePct}%
-                        </span>
+                        <div className="text-right">
+                          <span className="text-[20px] font-bold tabular-nums text-white">
+                            {activityTrainingRatePct}%
+                          </span>
+                          <p className="mt-0.5 text-xs text-white/60">
+                            {activityTrainingNumerator} von {activityTrainingBasis} Trainings
+                          </p>
+                        </div>
                       </div>
-                      <p className="mt-0.5 text-[10px] text-white/50">
-                        (Dabei + LAZ) ÷ (Dabei + LAZ + Abwesend)
-                      </p>
                       <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/10">
                         <div
                           className="h-full rounded-full bg-gradient-to-r from-violet-600 via-red-500 to-emerald-500"
@@ -679,7 +688,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     <SeasonMiniCell label="Abwesend" value={String(trainingsAbsent)} />
                     <SeasonMiniCell label="Verletzt" value={String(trainingsInjured)} />
                     <SeasonMiniCell label="LAZ" value={String(trainingsExternal)} />
-                    <SeasonMiniCell label="Offen" value={String(trainingsOpen)} />
+                    {trainingsOpen > 0 ? (
+                      <SeasonMiniCell label="Offen" value={String(trainingsOpen)} />
+                    ) : null}
                     {trainingsLegacyUnknown > 0 ? (
                       <SeasonMiniCell label="N. erf." value={String(trainingsLegacyUnknown)} />
                     ) : null}
