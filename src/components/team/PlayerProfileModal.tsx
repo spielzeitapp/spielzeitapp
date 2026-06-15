@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "../../lib/supabaseClient";
+import { lockBodyScroll } from "../../lib/bodyScrollLock";
+import { APP_SHEET_SCROLL_BOTTOM_PAD } from "../../lib/appScrollPadding";
 import { Activity, CalendarDays, Trophy, User } from "lucide-react";
 import { ProfileCompactHeader } from "./profile/ProfileCompactHeader";
 import { ProfileHeroCard } from "./profile/ProfileHeroCard";
@@ -383,6 +386,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  useEffect(() => lockBodyScroll(), []);
+
   const handleLazPlayerToggle = async (next: boolean) => {
     if (!canManage || lazSaving) return;
     const previous = player.is_laz_player;
@@ -402,11 +407,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
   const lazToggleChecked = lazSaving ? isLazPlayer : player.is_laz_player;
 
-  const bottomPad = canManage
-    ? "max(6.25rem, calc(env(safe-area-inset-bottom, 0px) + 5.75rem))"
-    : "max(1.75rem, env(safe-area-inset-bottom, 0px) + 1.25rem)";
+  if (typeof document === "undefined") return null;
 
-  return (
+  const modal = (
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4"
       role="dialog"
@@ -420,7 +423,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
         onClick={onClose}
       />
       <div
-        className="relative flex max-h-[min(94vh,920px)] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.75rem] bg-[linear-gradient(180deg,rgba(28,8,8,0.98)_0%,rgba(0,0,0,0.97)_42%,rgba(6,6,10,0.99)_100%)] shadow-[0_-24px_64px_rgba(0,0,0,0.7)] sm:rounded-3xl sm:shadow-2xl"
+        className="relative flex h-[min(92dvh,920px)] max-h-[min(92dvh,920px)] w-full max-w-lg min-h-0 flex-col overflow-hidden rounded-t-[1.75rem] bg-[linear-gradient(180deg,rgba(28,8,8,0.98)_0%,rgba(0,0,0,0.97)_42%,rgba(6,6,10,0.99)_100%)] shadow-[0_-24px_64px_rgba(0,0,0,0.7)] sm:h-auto sm:max-h-[min(94vh,920px)] sm:rounded-3xl sm:shadow-2xl"
       >
         <ProfileSaveSnackbar visible={saveToastVisible} />
         <ProfileCompactHeader
@@ -431,8 +434,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
         />
 
         <div
-          className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 pt-2 sm:px-4"
-          style={{ paddingBottom: `calc(${bottomPad})` }}
+          className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 pt-2 [-webkit-overflow-scrolling:touch] sm:px-4"
+          style={{ paddingBottom: `calc(${APP_SHEET_SCROLL_BOTTOM_PAD})` }}
         >
           <ProfileHeroCard
             variant="player"
@@ -751,4 +754,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 };

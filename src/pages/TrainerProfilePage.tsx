@@ -19,6 +19,7 @@ import { TrainerProfileBody } from "../components/team/profile/TrainerProfileBod
 import { ProfileHeroCard } from "../components/team/profile/ProfileHeroCard";
 import { AppButton } from "../components/ui/AppButton";
 import { premiumPlayerInitials } from "../lib/premiumPlayerCard";
+import { APP_BOTTOM_SCROLL_PAD } from "../lib/appScrollPadding";
 
 function nameHeroLines(member: TeamStaffMember): { line1: string; line2: string } {
   const first = (member.first_name ?? "").trim().toUpperCase();
@@ -148,14 +149,13 @@ export const TrainerProfilePage: React.FC = () => {
   const initials = member ? premiumPlayerInitials(staffDisplayName(member)) : "TR";
   const roleWatermark = "TR";
 
-  const bottomPad = canManage
-    ? "max(6.25rem, calc(env(safe-area-inset-bottom, 0px) + 5.75rem))"
-    : "max(1.75rem, env(safe-area-inset-bottom, 0px) + 1.25rem)";
-
   const goBack = () => navigate("/app/team", { state: { tab: "trainers" } });
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col bg-black">
+    <div
+      className="mx-auto w-full max-w-lg min-w-0 overflow-x-hidden px-3 pt-0 sm:px-4"
+      style={{ paddingBottom: `calc(${APP_BOTTOM_SCROLL_PAD})` }}
+    >
       <ProfileCompactHeader title="Trainerprofil" onBack={goBack} backLabel="Zurück zum Team" />
 
       {rpcMissing ? (
@@ -180,10 +180,7 @@ export const TrainerProfilePage: React.FC = () => {
         </div>
       ) : (
         <>
-          <div
-            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 pt-2 sm:px-4"
-            style={{ paddingBottom: `calc(${bottomPad})` }}
-          >
+          <div className="pt-2">
             <ProfileHeroCard
               variant="trainer"
               watermark={roleWatermark}

@@ -8,10 +8,21 @@
  */
 
 let lockCount = 0;
+const APP_MAIN_SELECTOR = 'main.appMain';
+const APP_MAIN_LOCK_CLASS = 'app-main-scroll-locked';
+
+function getAppMain(): HTMLElement | null {
+  if (typeof document === 'undefined') return null;
+  return document.querySelector(APP_MAIN_SELECTOR);
+}
 
 function applyLockStyles(locked: boolean): void {
   document.body.style.overflow = locked ? 'hidden' : '';
   document.documentElement.style.overflow = locked ? 'hidden' : '';
+  const main = getAppMain();
+  if (main) {
+    main.classList.toggle(APP_MAIN_LOCK_CLASS, locked);
+  }
 }
 
 /**

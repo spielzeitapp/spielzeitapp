@@ -136,6 +136,11 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
+.app__content.appMain.app-main-scroll-locked {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
 .appMain {
   padding-top: 88px;
   padding-bottom: 84px;
