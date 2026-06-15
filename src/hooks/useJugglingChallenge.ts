@@ -4,7 +4,7 @@ import type { ChallengeResultRow, ChallengeSessionRow, JugglingChallengePlayerRo
 import { supabase } from '../lib/supabaseClient';
 
 const JUGGLING_TYPE = 'juggling';
-const DEFAULT_TITLE = 'Jonglier-Challenge';
+const DEFAULT_TITLE = 'Gaberl-Challenge';
 
 function mapResultRow(raw: Record<string, unknown>): ChallengeResultRow {
   return {

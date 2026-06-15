@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { PlayerItem } from '../../hooks/usePlayers';
 import { useTeamTrainingRanking } from '../../hooks/useTeamTrainingRanking';
 import { useJugglingChallenge } from '../../hooks/useJugglingChallenge';
 import { deriveJugglingAwards } from '../../lib/challengeScoring';
+import { countUpcomingTeamTrainings } from '../../lib/trainingSeasonCounts';
 import {
   averageQualifiedTeamRatePct,
   hasTrainingActivityBasis,
@@ -76,6 +77,17 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
   onPlayerClick,
 }) => {
   const [subTab, setSubTab] = useState<TrainingSubTab>('overview');
+  const [upcomingTrainings, setUpcomingTrainings] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    void countUpcomingTeamTrainings(teamSeasonId).then((count) => {
+      if (!cancelled) setUpcomingTrainings(count);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [teamSeasonId]);
 
   const {
     qualified,
@@ -114,12 +126,15 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
     return deriveJugglingAwards(inputs, jugglingState.session.min_start_for_percent);
   }, [jugglingState.rows, jugglingState.session]);
 
-  const trainingsLabel =
+  const ratedTrainingsLabel =
     sessionsCount > 0
       ? String(sessionsCount)
       : trainingCount > 0
         ? String(trainingCount)
         : 'Noch keine Daten';
+
+  const ratedTrainingsSub =
+    upcomingTrainings > 0 ? `${upcomingTrainings} ausständig` : undefined;
 
   const participationLabel =
     avgTeamPct != null
@@ -141,7 +156,11 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
       </SectionTitle>
 
       <div className="mt-4 grid grid-cols-2 gap-2.5">
-        <StatSummaryCard label="Trainings" value={trainingsLabel} />
+        <StatSummaryCard
+          label="Gewertete Trainings"
+          value={ratedTrainingsLabel}
+          sub={ratedTrainingsSub}
+        />
         <StatSummaryCard label="Ø Beteiligung" value={participationLabel} />
         <StatSummaryCard
           label="🥇 Trainingskaiser"
@@ -150,7 +169,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
           sub={kaiserSub}
           compactValue
         />
-        <StatSummaryCard label="Challenge" value="Jonglier-Challenge" sub="Aktiv · Öffnen" />
+        <StatSummaryCard label="Challenge" value="Gaberl-Challenge" sub="Aktiv · Öffnen" />
       </div>
 
       <PremiumTabTrack className="mt-4" aria-label="Training Unterbereiche">
@@ -183,7 +202,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
             {(sessionsCount > 0 || trainingCount > 0) ? (
               <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
                 <p className="text-[12px] text-white/60">
-                  {sessionsCount > 0 ? sessionsCount : trainingCount} vergangene Trainingseinheiten in dieser Saison.
+                  {sessionsCount > 0 ? sessionsCount : trainingCount} gewertete Team-Trainings in dieser Saison.
                   {avgTeamPct != null ? ` Ø gewertete Spieler (Beteiligung): ${avgTeamPct} %.` : ''}
                 </p>
               </GlassCard>

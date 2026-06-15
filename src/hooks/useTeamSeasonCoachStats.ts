@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { fetchValidSeasonMatchIds } from "../lib/seasonMatchStats";
+import { countPastTeamTrainings } from "../lib/trainingSeasonCounts";
 
 export type TeamSeasonCoachStats = {
   trainings: number;
@@ -78,7 +80,7 @@ function computeFromMatches(
     finishedWithResult > 0 ? (pointsTotal / finishedWithResult).toFixed(2) : "–";
 
   return {
-    matches: rows.length,
+    matches: finishedWithResult,
     wins,
     draws,
     losses,
@@ -105,12 +107,9 @@ export function useTeamSeasonCoachStats(teamSeasonId: string | null) {
     setError(null);
 
     try {
-      const [trainingRes, matchesRes, matchEventsRes] = await Promise.all([
-        supabase
-          .from("events")
-          .select("id", { count: "exact", head: true })
-          .eq("team_season_id", teamSeasonId)
-          .eq("kind", "training"),
+      const [trainings, validMatchIds, matchesRes, matchEventsRes] = await Promise.all([
+        countPastTeamTrainings(teamSeasonId),
+        fetchValidSeasonMatchIds(teamSeasonId),
         supabase
           .from("matches")
           .select("id, status, score_home, score_away")
@@ -123,8 +122,6 @@ export function useTeamSeasonCoachStats(teamSeasonId: string | null) {
           .not("match_id", "is", null),
       ]);
 
-      const trainings = trainingRes.error ? 0 : Number(trainingRes.count ?? 0) || 0;
-
       if (matchesRes.error) {
         setStats({ ...EMPTY_STATS, trainings });
         setError(matchesRes.error.message);
@@ -132,12 +129,14 @@ export function useTeamSeasonCoachStats(teamSeasonId: string | null) {
         return;
       }
 
-      const matchRows = (matchesRes.data ?? []) as MatchRow[];
+      const matchRows = ((matchesRes.data ?? []) as MatchRow[]).filter((row) =>
+        validMatchIds.has(row.id),
+      );
       const isHomeByMatchId = new Map<string, boolean | null>();
       if (!matchEventsRes.error) {
         for (const ev of matchEventsRes.data ?? []) {
           const mid = (ev as { match_id?: string | null }).match_id;
-          if (mid) {
+          if (mid && validMatchIds.has(String(mid))) {
             isHomeByMatchId.set(String(mid), (ev as { is_home?: boolean | null }).is_home ?? null);
           }
         }

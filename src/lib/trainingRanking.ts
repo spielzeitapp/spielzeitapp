@@ -79,8 +79,15 @@ export function averageQualifiedActivityRatePct(rows: TrainingRankingRow[]): num
 /** Klartext für Durchschnitt nur gewerteter Spieler (≥ 30 % Trainingsbasis). */
 export const QUALIFIED_AVERAGE_LABEL = 'Ø gewertete Spieler';
 
+/** Neutraler Trainer-Benchmark im Spielerprofil (Trainingskaiser-Basis). */
+export const KAISER_AVERAGE_LABEL = 'Ø Trainingskaiser-Wertung';
+
 export function formatQualifiedAverageLabel(pct: number): string {
   return `${QUALIFIED_AVERAGE_LABEL}: ${pct} %`;
+}
+
+export function formatKaiserAverageLabel(pct: number): string {
+  return `${KAISER_AVERAGE_LABEL}: ${pct} %`;
 }
 
 /** Neutrale Vergleichszeile Spielerwert vs. Durchschnitt gewerteter Spieler. */

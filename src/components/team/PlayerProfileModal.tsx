@@ -11,9 +11,7 @@ import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
 import { useTeamTrainingRanking } from "../../hooks/useTeamTrainingRanking";
 import { useTrainingParticipationAccess } from "../../hooks/useTrainingParticipationAccess";
 import {
-  averageQualifiedTeamRatePct,
-  formatQualifiedAverageLabel,
-  formatTrainingComparisonToAverage,
+  formatKaiserAverageLabel,
 } from "../../lib/trainingRanking";
 import { Button } from "../../app/components/ui/Button";
 import { AppButton } from "../ui/AppButton";
@@ -307,12 +305,11 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     error: trainingStatsError,
   } = usePlayerTrainingStats(player.id, player.team_season_id, canViewTrainingParticipation);
 
-  const { qualified, teamAverageActivityPct, sessionsCount, loading: teamRankingLoading } = useTeamTrainingRanking(
+  const { teamAverageActivityPct, sessionsCount, loading: teamRankingLoading } = useTeamTrainingRanking(
     squadPlayers,
     player.team_season_id,
     canViewTrainingParticipation && squadPlayers.length > 0,
   );
-  const teamParticipationAvgPct = useMemo(() => averageQualifiedTeamRatePct(qualified), [qualified]);
   const pastTeamTrainings =
     sessionsCount > 0 ? sessionsCount : trainingStats.sessionsCounted;
 
@@ -352,14 +349,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const teamTrainingBasis = trainingsPresent + trainingsAbsent;
   const activityTrainingNumerator = trainingsPresent + trainingsExternal;
   const activityTrainingBasis = activityTrainingNumerator + trainingsAbsent;
-  const teamParticipationComparison = formatTrainingComparisonToAverage(
-    teamTrainingRatePct,
-    teamParticipationAvgPct,
-  );
-  const activityComparison = formatTrainingComparisonToAverage(
-    activityTrainingRatePct,
-    teamAverageActivityPct,
-  );
 
   useEffect(() => {
     setIsLazPlayer(player.is_laz_player);
@@ -693,16 +682,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                           <p className="mt-0.5 text-xs text-white/60">
                             {trainingsPresent} von {teamTrainingBasis} Trainings
                           </p>
-                          {!teamRankingLoading && teamParticipationAvgPct != null ? (
-                            <>
-                              <p className="mt-1 text-[11px] text-white/50">
-                                {formatQualifiedAverageLabel(teamParticipationAvgPct)}
-                              </p>
-                              {teamParticipationComparison ? (
-                                <p className="mt-0.5 text-[11px] text-white/45">{teamParticipationComparison}</p>
-                              ) : null}
-                            </>
-                          ) : null}
                         </div>
                       </div>
                       <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/10">
@@ -722,15 +701,10 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                           <p className="mt-0.5 text-xs text-white/60">
                             {activityTrainingNumerator} von {activityTrainingBasis} Trainings
                           </p>
-                          {!teamRankingLoading && teamAverageActivityPct != null ? (
-                            <>
-                              <p className="mt-1 text-[11px] text-white/50">
-                                {formatQualifiedAverageLabel(teamAverageActivityPct)}
-                              </p>
-                              {activityComparison ? (
-                                <p className="mt-0.5 text-[11px] text-white/45">{activityComparison}</p>
-                              ) : null}
-                            </>
+                          {canManage && !teamRankingLoading && teamAverageActivityPct != null ? (
+                            <p className="mt-1 text-[11px] text-white/50">
+                              {formatKaiserAverageLabel(teamAverageActivityPct)}
+                            </p>
                           ) : null}
                         </div>
                       </div>

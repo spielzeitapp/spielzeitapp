@@ -49,8 +49,8 @@ function AwardCard({
         <>
           <p className="mt-1 break-words text-[15px] font-bold leading-snug text-white">{row.playerName}</p>
           <p className="mt-0.5 text-[13px] tabular-nums text-red-200/90">
-            {title === 'Jonglierkönig'
-              ? `${row.endValue} Jonglierungen`
+            {title === 'Gaberlkönig'
+              ? `${row.endValue} Gaberl`
               : title === 'Aufsteiger'
                 ? formatImprovementDelta(row.absoluteImprovement)
                 : formatImprovementPercent(row.percentImprovement)}
@@ -252,7 +252,7 @@ export const JugglingChallengePage: React.FC = () => {
       </Link>
 
       <SectionTitle subtitle="Startwert, Endwert und Entwicklung pro Spieler">
-        Jonglier-Challenge
+        Gaberl-Challenge
       </SectionTitle>
 
       {loading || playersLoading || tsLoading ? (
@@ -262,7 +262,7 @@ export const JugglingChallengePage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           <div className="grid gap-2 sm:grid-cols-3">
-            <AwardCard emoji="🏆" title="Jonglierkönig" row={awards.king} />
+            <AwardCard emoji="🏆" title="Gaberlkönig" row={awards.king} />
             <AwardCard emoji="🚀" title="Aufsteiger" row={awards.riser} />
             <AwardCard emoji="⭐" title="Entwicklungspreis" row={awards.development} />
           </div>
@@ -320,7 +320,7 @@ export const JugglingChallengePage: React.FC = () => {
               <p className="mt-3 text-[13px] text-white/55">Noch keine Endwerte erfasst.</p>
             ) : (
               <>
-                <PremiumTabTrack className="mt-3" aria-label="Jonglier-Rankings">
+                <PremiumTabTrack className="mt-3" aria-label="Gaberl-Rankings">
                   <PremiumTab active={rankingTab === 'end'} onClick={() => setRankingTab('end')}>
                     Endwert
                   </PremiumTab>

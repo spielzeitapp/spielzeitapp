@@ -53,7 +53,7 @@ export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', award
         <span className="mr-1.5" aria-hidden>
           ⚽
         </span>
-        Jonglier-Challenge
+        Gaberl-Challenge
       </SectionTitle>
 
       {!isTeaser && awards && !loading ? (
@@ -68,7 +68,7 @@ export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', award
         to="/app/team/juggling-challenge"
         className={cn(dsPanelRowClass(), 'mt-3 flex items-center justify-between gap-3 !py-3')}
       >
-        <span className="text-[14px] font-semibold text-white">Challenge öffnen</span>
+        <span className="text-[14px] font-semibold text-white">Gaberl-Challenge öffnen</span>
         <ChevronRight className="h-4 w-4 shrink-0 text-white/45" aria-hidden />
       </Link>
     </PremiumCard>

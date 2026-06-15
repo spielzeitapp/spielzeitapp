@@ -29,6 +29,7 @@ import { STAFF_RPC_MIGRATION_HINT, useTeamStaff } from "../hooks/useTeamStaff";
 import { useTrainerStaffEditor } from "../hooks/useTrainerStaffEditor";
 import { TrainerStaffCard } from "../components/team/TrainerStaffCard";
 import { TeamTrainingDashboard } from "../components/team/TeamTrainingDashboard";
+import { countPastTeamTrainings } from "../lib/trainingSeasonCounts";
 import type { ProfileTab } from "../components/team/PlayerProfileModal";
 
 /** Lokales Fallback, wenn kein Mannschaftsfoto in `team_photos` hinterlegt ist. */
@@ -301,22 +302,10 @@ export const TeamPage: React.FC = () => {
       return;
     }
     let cancelled = false;
-    const nowIso = new Date().toISOString();
-    void supabase
-      .from("events")
-      .select("id", { count: "exact", head: true })
-      .eq("team_season_id", teamSeasonId)
-      .eq("kind", "training")
-      .lt("starts_at", nowIso)
-      .neq("status", "canceled")
-      .then(({ count, error }) => {
-        if (cancelled) return;
-        if (error) {
-          setTrainingCount(0);
-          return;
-        }
-        setTrainingCount(Number(count ?? 0) || 0);
-      });
+    void countPastTeamTrainings(teamSeasonId).then((count) => {
+      if (cancelled) return;
+      setTrainingCount(count);
+    });
     return () => {
       cancelled = true;
     };
@@ -1190,7 +1179,7 @@ export const TeamPage: React.FC = () => {
             <div className="mt-4 space-y-3">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-3">
-                  <div className="text-[12px] text-white/60">Anzahl Trainings</div>
+                  <div className="text-[12px] text-white/60">Gewertete Trainings</div>
                   <div className="mt-1 text-[22px] font-bold text-white">{trainingCount}</div>
                 </GlassCard>
               </div>

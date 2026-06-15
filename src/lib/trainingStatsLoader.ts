@@ -29,7 +29,7 @@ export async function fetchPastTrainingEvents(teamSeasonId: string): Promise<Pas
     .eq('team_season_id', sid)
     .eq('kind', 'training')
     .lt('starts_at', nowIso)
-    .neq('status', 'canceled')
+    .not('status', 'in', '(canceled,cancelled,deleted,archived)')
     .order('starts_at', { ascending: false });
 
   if (error) throw error;
