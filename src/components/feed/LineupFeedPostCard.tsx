@@ -21,6 +21,7 @@ import {
   FeedCaption,
   FeedFormationBadge,
   FeedGameCtaLink,
+  FeedLineupMetaIcon,
   FeedMatchMetaBadge,
   FeedPostActionsFooter,
   FeedPostHeader,
@@ -181,14 +182,7 @@ export const LineupFeedPostCard: React.FC<Props> = ({
               <p className={FEED_HERO_TITLE_CLASS}>Startaufstellung</p>
             </div>
 
-            <FeedMatchMetaBadge
-              line={lineupMetaLine}
-              leadingIcon={
-                <span className="text-[11px] leading-none" aria-hidden>
-                  📋
-                </span>
-              }
-            />
+            <FeedMatchMetaBadge line={lineupMetaLine} leadingIcon={<FeedLineupMetaIcon />} />
 
             {p.formation ? (
               <div className="flex justify-center">

@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Heart, MapPin, MessageCircle, Share2, Trophy } from 'lucide-react';
+import { CalendarDays, ClipboardList, Heart, MapPin, MessageCircle, Share2, Trophy } from 'lucide-react';
 import { FeedCardHeaderBrand } from './FeedCardHeaderBrand';
 
 export const FEED_HASHTAG = '#GEMEINSAMEINTEAM';
@@ -18,7 +18,7 @@ export const FEED_POST_BADGE_ROW_CLASS =
 
 /** Premium-Pill (Wettbewerb, Formation) — einheitliche Familie, roter Glow, keine weiße Kante. */
 export const FEED_PREMIUM_BADGE_CLASS =
-  'inline-flex min-h-[26px] shrink-0 items-center justify-center gap-1.5 rounded-full border border-red-500/32 bg-red-950/55 px-3 py-1 text-[10px] font-semibold leading-none text-red-50/95 shadow-[0_0_20px_rgba(220,38,38,0.18)] sm:min-h-[28px] sm:text-[11px]';
+  'inline-flex min-h-[26px] shrink-0 items-center justify-center gap-1.5 rounded-full border border-red-500/35 bg-black/40 px-3 py-1 text-[10px] font-semibold leading-none text-white/90 shadow-[0_0_18px_rgba(220,38,38,0.16)] sm:min-h-[28px] sm:text-[11px]';
 
 export function FeedPremiumBadge({
   children,
@@ -32,7 +32,7 @@ export function FeedPremiumBadge({
 
 export function FeedFormationBadge({ formation }: { formation: string }) {
   return (
-    <FeedPremiumBadge className="tabular-nums font-bold tracking-[0.12em] text-white/95">
+    <FeedPremiumBadge className="tabular-nums font-bold tracking-[0.12em]">
       {formation}
     </FeedPremiumBadge>
   );
@@ -131,6 +131,10 @@ export function FeedGameCtaLink({
   );
 }
 
+export function FeedLineupMetaIcon() {
+  return <ClipboardList className="h-3 w-3 shrink-0 text-red-200/90" strokeWidth={2.25} aria-hidden />;
+}
+
 export function FeedMatchMetaBadge({
   line,
   className = '',
@@ -138,7 +142,7 @@ export function FeedMatchMetaBadge({
 }: {
   line: string | null;
   className?: string;
-  /** Standard: Trophy (Ergebnis). Aufstellung z. B. 📋 */
+  /** Standard: Trophy (Ergebnis). Aufstellung: FeedLineupMetaIcon */
   leadingIcon?: React.ReactNode;
 }) {
   if (!line?.trim()) return null;
@@ -158,8 +162,14 @@ export function FeedMatchMetaBadge({
         )}
         {parts.map((part, i) => (
           <React.Fragment key={`${part}-${i}`}>
-            {i > 0 ? <span className="text-red-300/45" aria-hidden>·</span> : null}
-            <span className={/^U\d/i.test(part) ? 'font-bold tracking-wide' : 'tracking-[0.02em]'}>{part}</span>
+            {i > 0 ? <span className="text-red-400/40" aria-hidden>·</span> : null}
+            <span
+              className={
+                /^U\d/i.test(part) ? 'font-bold tracking-wide text-white/95' : 'tracking-[0.02em] text-white/90'
+              }
+            >
+              {part}
+            </span>
           </React.Fragment>
         ))}
       </FeedPremiumBadge>
