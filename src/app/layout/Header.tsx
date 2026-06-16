@@ -1,40 +1,25 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { useSession } from '../../auth/useSession';
 import { useAuth } from '../../auth/AuthProvider';
 import { supabase } from '../../lib/supabaseClient';
-import { getClubLogo } from '../../lib/teamLogos';
 import { dsGlassIconButtonClass, dsTrainerPillClass } from '../../lib/premiumDesignSystem';
+import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
 
-const logo = import.meta.env.BASE_URL + 'logos/nsg-goelsental.png';
+const APP_HEADER_ALT = 'SpielzeitApp – TEAMS LIVE MOMENTE';
 
-function AppWordmark({ compact }: { compact?: boolean }) {
-  const sz = compact
-    ? 'text-[clamp(1.05rem,4.5vw,1.34rem)]'
-    : 'text-[clamp(1.15rem,4.8vw,1.48rem)]';
+/** App-Wortmarke (PNG); object-cover schneidet Hochformat auf Header-Zeile zu. */
+function AppHeaderBrand() {
   return (
-    <h1
-      className={`font-black italic leading-[1.02] tracking-tight ${sz}`}
-      style={{ transform: 'skewX(-3deg)' }}
-    >
-      <span
-        className="text-[#fafafa]"
-        style={{
-          textShadow: '0 1px 0 rgba(0,0,0,0.55), 0 2px 10px rgba(0,0,0,0.5)',
-        }}
-      >
-        Spielzeit
-      </span>
-      <span
-        className="text-[#f87171]"
-        style={{
-          textShadow: '0 1px 0 rgba(0,0,0,0.45), 0 2px 12px rgba(0,0,0,0.55), 0 0 14px rgba(220,38,38,0.2)',
-        }}
-      >
-        App
-      </span>
-    </h1>
+    <img
+      src={spielzeitappHeader}
+      alt={APP_HEADER_ALT}
+      className="h-9 w-[8.75rem] max-w-[min(44vw,8.75rem)] shrink-0 object-cover object-[50%_40%] sm:h-10 sm:w-[10rem] sm:max-w-[10rem]"
+      width={160}
+      height={40}
+      decoding="async"
+    />
   );
 }
 
@@ -72,7 +57,6 @@ export const Header: React.FC = () => {
     effectiveRole,
     loading: sessionLoading,
     backendRole,
-    selectedTeamSeason,
   } = useSession();
   const { user, loading: authLoading } = useAuth();
   const publicView = isPublicRoute(pathname);
@@ -85,12 +69,6 @@ export const Header: React.FC = () => {
   const isStaff =
     !!backendRole &&
     ['admin', 'head_coach', 'trainer', 'co_trainer'].includes(backendRole.toLowerCase());
-
-  const headerTeamLogo = useMemo(() => {
-    const tn = (selectedTeamSeason?.team?.name ?? '').trim();
-    if (pathname.startsWith('/app') && tn) return getClubLogo(tn);
-    return logo;
-  }, [pathname, selectedTeamSeason?.team?.name]);
 
   const staffBackendBadge =
     isStaff && backendRole
@@ -143,34 +121,18 @@ export const Header: React.FC = () => {
         {/* Links: Logo + Branding (im internen Bereich klickbar → /app/home) */}
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
           {pathname.startsWith('/app') ? (
-            <Link to="/app/home" className="flex min-w-0 items-center gap-2 sm:gap-2.5">
-              <img
-                src={headerTeamLogo}
-                alt=""
-                className="h-9 w-9 shrink-0 rounded-full border border-transparent object-contain shadow-[0_0_22px_rgba(255,30,30,0.14)] sm:h-10 sm:w-10"
-                width={40}
-                height={40}
-              />
-              <div className="min-w-0 pr-1">
-                <AppWordmark compact />
-                {membershipError ? (
-                  <span className="mt-0.5 block truncate text-[9px] text-amber-400/95" role="alert">
-                    {membershipError}
-                  </span>
-                ) : null}
-              </div>
+            <Link to="/app/home" className="flex min-w-0 flex-col items-start gap-0.5">
+              <AppHeaderBrand />
+              {membershipError ? (
+                <span className="max-w-[min(44vw,8.75rem)] truncate text-[9px] text-amber-400/95 sm:max-w-[10rem]" role="alert">
+                  {membershipError}
+                </span>
+              ) : null}
             </Link>
           ) : (
             <>
-              <img
-                src={logo}
-                alt=""
-                className="h-9 w-9 shrink-0 rounded-full border border-white/10 object-cover shadow-[0_0_20px_rgba(220,38,38,0.14)]"
-                width={36}
-                height={36}
-              />
+              <AppHeaderBrand />
               <div className="min-w-0">
-                <AppWordmark />
                 <div className="text-xs text-zinc-400">
                   NSG Gölsental
                 </div>
