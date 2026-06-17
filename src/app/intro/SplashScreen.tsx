@@ -23,18 +23,18 @@ export const SplashScreen: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-black px-4"
+      className="fixed inset-0 z-[100] flex items-start justify-center overflow-hidden bg-black px-3"
       style={{
-        paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))',
-        paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))',
+        paddingTop: 'max(14vh, calc(3.75rem + env(safe-area-inset-top, 0px)))',
+        paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
       }}
     >
       <img
         src={spielzeitappSplash}
         alt={APP_SPLASH_ALT}
-        className="intro-splash-mark mx-auto h-auto w-full max-h-[min(70svh,26rem)] max-w-[min(92vw,22rem)] object-contain"
-        width={1536}
-        height={1024}
+        className="intro-splash-mark mx-auto h-auto w-full max-h-[min(82svh,34rem)] max-w-[min(94vw,29rem)] object-contain object-top"
+        width={853}
+        height={1844}
         decoding="async"
         fetchPriority="high"
       />

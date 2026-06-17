@@ -9,15 +9,15 @@ import spielzeitappHeader from '../../assets/branding/spielzeitapp-header.png';
 
 const APP_HEADER_ALT = 'SpielzeitApp – TEAMS LIVE MOMENTE';
 
-/** App-Wortmarke (PNG); object-cover schneidet Hochformat auf Header-Zeile zu. */
+/** App-Wortmarke (PNG); object-cover zeigt Logo + Schriftzug ohne Unterzeile. */
 function AppHeaderBrand() {
   return (
     <img
       src={spielzeitappHeader}
       alt={APP_HEADER_ALT}
-      className="h-9 w-[8.75rem] max-w-[min(44vw,8.75rem)] shrink-0 object-cover object-[50%_40%] sm:h-10 sm:w-[10rem] sm:max-w-[10rem]"
-      width={160}
-      height={40}
+      className="h-11 w-[10.25rem] max-w-[min(50vw,10.25rem)] shrink-0 object-cover object-[50%_32%] sm:h-12 sm:w-[12rem] sm:max-w-[12rem]"
+      width={192}
+      height={48}
       decoding="async"
     />
   );
@@ -124,7 +124,7 @@ export const Header: React.FC = () => {
             <Link to="/app/home" className="flex min-w-0 flex-col items-start gap-0.5">
               <AppHeaderBrand />
               {membershipError ? (
-                <span className="max-w-[min(44vw,8.75rem)] truncate text-[9px] text-amber-400/95 sm:max-w-[10rem]" role="alert">
+                <span className="max-w-[min(50vw,10.25rem)] truncate text-[9px] text-amber-400/95 sm:max-w-[12rem]" role="alert">
                   {membershipError}
                 </span>
               ) : null}
