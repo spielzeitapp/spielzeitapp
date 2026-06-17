@@ -2,17 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../app/components/ui/Button';
 import { supabase } from '../lib/supabaseClient';
+import { getAuthRedirectUrl } from '../lib/authRedirect';
 
 const inputClass =
   'h-12 w-full rounded-xl border border-white/15 bg-white/10 px-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-red-500/60';
 
 const MIN_PASSWORD_LENGTH = 6;
 
-/** Redirect URL after user clicks confirmation link in email (must be in Supabase Redirect URLs allow list).
- * Use root; index.html forwards internal users from "/" to "/app".
- */
-const EMAIL_REDIRECT_TO = 'https://app.spielzeitapp.at/';
-
+/** Redirect nach E-Mail-Bestätigung — aktueller Host (index.html leitet / → /app). */
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [firstName, setFirstName] = useState('');
@@ -58,7 +55,7 @@ export const RegisterPage: React.FC = () => {
         password,
         options: {
           data: { first_name: trimmedFirst, last_name: trimmedLast },
-          emailRedirectTo: EMAIL_REDIRECT_TO,
+          emailRedirectTo: getAuthRedirectUrl('/'),
         },
       };
       console.log('[RegisterPage] signUp payload (no password):', {
