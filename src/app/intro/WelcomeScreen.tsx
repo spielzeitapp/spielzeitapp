@@ -6,6 +6,7 @@ import { markIntroFlowCompleted } from './introFlowSession';
 import welcomeHeroBg from '../../assets/branding/spielzeitapp-welcome-bg.jpg';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
 import spielzeitappLogoMark from '../../assets/branding/spielzeitapp-logo-mark.png';
+import spielzeitappSlogan from '../../assets/branding/spielzeitapp-slogan.png';
 
 /** Primär „Zur App“: gleiche Route wie BottomNav „Home“ (`AppHomePage`). */
 const ROUTE_APP_HOME = '/app/home';
@@ -264,11 +265,6 @@ export const WelcomeScreen: React.FC = () => {
         .welcome-live-badge--anim {
           animation: welcome-live-badge-pulse 1.2s ease-in-out infinite;
         }
-        .welcome-hashtag-brush {
-          background: linear-gradient(90deg, transparent 0%, #f87171 4%, #ef4444 18%, #dc2626 50%, #ef4444 82%, #f87171 96%, transparent 100%);
-          filter: blur(0.45px);
-          transform: skewX(-8deg) scaleY(1);
-        }
       `}</style>
 
       {/* Hero: Hochformat mit freien Zonen oben/unten — keine Overlays über Personen */}
@@ -327,7 +323,7 @@ export const WelcomeScreen: React.FC = () => {
               </span>
             </h1>
 
-            <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/92 [text-shadow:0_1px_8px_rgba(0,0,0,0.8)] sm:mt-2 sm:text-[12px] sm:tracking-[0.22em]">
+            <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/92 [text-shadow:0_1px_8px_rgba(0,0,0,0.8)] sm:mt-1.5 sm:text-[12px] sm:tracking-[0.22em]">
               <span>Teams</span>
               <span className="mx-1.5 text-red-500/95 sm:mx-2">|</span>
               <span>Live</span>
@@ -335,22 +331,20 @@ export const WelcomeScreen: React.FC = () => {
               <span>Momente</span>
             </p>
 
-            <p
-              className="relative mt-2 inline-block text-[13px] font-bold uppercase italic tracking-[0.07em] [text-shadow:0_1px_10px_rgba(0,0,0,0.85)] sm:mt-2.5 sm:text-[15px]"
-              style={{ transform: 'skewX(-3deg)' }}
-            >
-              <span className="text-white">#GEMEINSAM</span>
-              <span className="text-red-500">EINTEAM</span>
-              <span
-                className="welcome-hashtag-brush pointer-events-none absolute -bottom-2 left-[-10%] right-[-10%] block h-1 rounded-full opacity-100"
-                aria-hidden
-              />
-            </p>
+            <img
+              src={spielzeitappSlogan}
+              alt="#GEMEINSAMEINTEAM"
+              className="mt-1.5 h-auto w-[min(78%,32.5rem)] max-w-[32.5rem] object-contain sm:mt-2"
+              width={1536}
+              height={1024}
+              decoding="async"
+              draggable={false}
+            />
           </header>
         </div>
 
         {/* Mittleres Drittel frei — Personengruppe im Hintergrund sichtbar */}
-        <div className="min-h-[28vh] max-[667px]:min-h-[26vh] sm:min-h-[30vh]" aria-hidden />
+        <div className="min-h-[27vh] max-[667px]:min-h-[25vh] sm:min-h-[29vh]" aria-hidden />
 
         <div
           className={[
