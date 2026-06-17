@@ -86,7 +86,7 @@ export const WelcomeScreen: React.FC = () => {
     >
       <style>{`
         .welcome-intro-cta {
-          background: linear-gradient(180deg, #2a0000 0%, #120000 100%);
+          background: linear-gradient(180deg, rgba(42, 0, 0, 0.78) 0%, rgba(18, 0, 0, 0.84) 100%);
           border: 1px solid rgba(255, 0, 0, 0.25);
           box-shadow:
             0 0 32px rgba(255, 0, 0, 0.34),
@@ -120,7 +120,7 @@ export const WelcomeScreen: React.FC = () => {
             inset 0 0 14px rgba(255, 0, 0, 0.16);
         }
         .welcome-intro-cta--live {
-          background: linear-gradient(180deg, #420c0c 0%, #180303 100%);
+          background: linear-gradient(180deg, rgba(66, 12, 12, 0.82) 0%, rgba(24, 3, 3, 0.88) 100%);
           border: 1px solid rgba(255, 45, 45, 0.58);
           box-shadow:
             0 0 20px rgba(255, 0, 0, 0.4),
@@ -150,8 +150,8 @@ export const WelcomeScreen: React.FC = () => {
             inset 0 0 14px rgba(255, 0, 0, 0.18);
         }
         .welcome-intro-icon-shell {
-          width: 68px;
-          height: 68px;
+          width: 60px;
+          height: 60px;
           flex-shrink: 0;
           border-radius: 0.75rem;
           display: flex;
@@ -251,6 +251,10 @@ export const WelcomeScreen: React.FC = () => {
           transform-origin: center center;
         }
         @media (min-width: 640px) {
+          .welcome-intro-icon-shell {
+            width: 68px;
+            height: 68px;
+          }
           .welcome-live-badge {
             font-size: 11px;
             padding: 0.45rem 0.7rem;
@@ -266,47 +270,17 @@ export const WelcomeScreen: React.FC = () => {
         }
       `}</style>
 
-      {/* Hero-Hintergrund: Personengruppe unten, Flutlicht oben — nicht über Personen abdunkeln */}
+      {/* Hero: Hochformat mit freien Zonen oben/unten — keine Overlays über Personen */}
       <img
         src={welcomeHeroBg}
         alt=""
-        className="pointer-events-none fixed inset-0 h-full min-h-[100dvh] w-full object-cover object-[50%_72%] sm:object-[50%_68%]"
+        className="pointer-events-none fixed inset-0 h-full min-h-[100dvh] w-full object-cover object-[50%_46%] max-[667px]:object-[50%_44%]"
         decoding="async"
         fetchPriority="high"
         aria-hidden
       />
 
-      {/* Oben: dezente Lesbarkeit für Branding, Stadion bleibt sichtbar */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(0,0,0,0.58) 0%, rgba(0,0,0,0.22) 12%, rgba(0,0,0,0.06) 22%, transparent 34%)',
-        }}
-        aria-hidden
-      />
-
-      {/* Rote SpielzeitApp-Energie — Stadion/Zuschauer, nicht über Personen */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 115% 58% at 50% 28%, rgba(220,38,38,0.2), transparent 58%), radial-gradient(ellipse 55% 38% at 12% 22%, rgba(255,255,255,0.06), transparent 52%), radial-gradient(ellipse 55% 38% at 88% 22%, rgba(255,255,255,0.06), transparent 52%)',
-        }}
-        aria-hidden
-      />
-
-      {/* Unten: Lesbarkeit für Buttons/Footer, Mitte/Personen frei */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background:
-            'linear-gradient(180deg, transparent 0%, transparent 48%, rgba(0,0,0,0.18) 62%, rgba(0,0,0,0.62) 82%, rgba(0,0,0,0.82) 100%)',
-        }}
-        aria-hidden
-      />
-
-      <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-1 pt-2">
+      <div className="relative z-10 mx-auto grid min-h-0 w-full max-w-md flex-1 grid-rows-[auto_minmax(0,1fr)_auto] px-5 pb-1 pt-0">
         <div
           className={[
             'relative shrink-0 transition-[opacity,transform] duration-300 ease-out',
@@ -316,21 +290,21 @@ export const WelcomeScreen: React.FC = () => {
           <img
             src={spielzeitappIcon}
             alt="SpielzeitApp"
-            className="absolute left-0 top-0 h-11 w-11 object-contain sm:h-12 sm:w-12"
-            width={48}
-            height={48}
+            className="absolute left-0 top-0 h-10 w-10 object-contain sm:h-11 sm:w-11"
+            width={44}
+            height={44}
             decoding="async"
             draggable={false}
           />
 
-          <header className="flex flex-col items-center pt-1 text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.38em] text-white/82 [text-shadow:0_1px_0_rgba(0,0,0,0.85),0_2px_14px_rgba(0,0,0,0.75)]">
+          <header className="flex flex-col items-center pt-0.5 text-center max-[667px]:pt-0">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.36em] text-white/88 [text-shadow:0_1px_8px_rgba(0,0,0,0.75)] sm:text-[10px] sm:tracking-[0.38em]">
               Willkommen in der
             </p>
 
-            <h1 className="mt-1.5 font-black italic leading-[0.95] tracking-tight" style={{ transform: 'skewX(-5deg)' }}>
+            <h1 className="mt-1 font-black italic leading-[0.95] tracking-tight max-[667px]:mt-0.5" style={{ transform: 'skewX(-5deg)' }}>
               <span
-                className="text-[clamp(2.35rem,9.2vw,3.25rem)] text-[#fafafa]"
+                className="text-[clamp(1.95rem,8.8vw,3.25rem)] text-[#fafafa]"
                 style={{
                   textShadow:
                     '0 1px 0 rgba(0,0,0,0.55), 0 3px 12px rgba(0,0,0,0.75), 0 8px 32px rgba(0,0,0,0.88), 0 0 1px rgba(255,255,255,0.06)',
@@ -339,7 +313,7 @@ export const WelcomeScreen: React.FC = () => {
                 Spielzeit
               </span>
               <span
-                className="text-[clamp(2.35rem,9.2vw,3.25rem)] text-[#ef4444]"
+                className="text-[clamp(1.95rem,8.8vw,3.25rem)] text-[#ef4444]"
                 style={{
                   textShadow:
                     '0 1px 0 rgba(0,0,0,0.45), 0 4px 18px rgba(0,0,0,0.82), 0 0 22px rgba(220,38,38,0.22), 0 0 40px rgba(127,29,29,0.12)',
@@ -349,16 +323,16 @@ export const WelcomeScreen: React.FC = () => {
               </span>
             </h1>
 
-            <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/90 [text-shadow:0_1px_2px_rgba(0,0,0,0.9),0_3px_16px_rgba(0,0,0,0.65)] sm:text-[12px]">
+            <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/92 [text-shadow:0_1px_8px_rgba(0,0,0,0.8)] sm:mt-2 sm:text-[12px] sm:tracking-[0.22em]">
               <span>Teams</span>
-              <span className="mx-2 text-red-500/95">|</span>
+              <span className="mx-1.5 text-red-500/95 sm:mx-2">|</span>
               <span>Live</span>
-              <span className="mx-2 text-red-500/95">|</span>
+              <span className="mx-1.5 text-red-500/95 sm:mx-2">|</span>
               <span>Momente</span>
             </p>
 
             <p
-              className="relative mt-3 inline-block text-[12px] font-bold uppercase italic tracking-[0.08em] [text-shadow:0_2px_12px_rgba(0,0,0,0.88)] sm:text-[13px]"
+              className="relative mt-2 inline-block text-[11px] font-bold uppercase italic tracking-[0.08em] [text-shadow:0_1px_10px_rgba(0,0,0,0.85)] sm:mt-2.5 sm:text-[13px]"
               style={{ transform: 'skewX(-3deg)' }}
             >
               <span className="text-white">#GEMEINSAM</span>
@@ -371,11 +345,12 @@ export const WelcomeScreen: React.FC = () => {
           </header>
         </div>
 
-        <div className="min-h-0 flex-1 basis-0" aria-hidden />
+        {/* Mittleres Drittel frei — Personengruppe im Hintergrund sichtbar */}
+        <div className="min-h-[28vh] max-[667px]:min-h-[26vh] sm:min-h-[30vh]" aria-hidden />
 
         <div
           className={[
-            'relative mt-auto w-full shrink-0 space-y-[7px] pt-0 transition-[opacity,transform] duration-300 ease-out delay-75',
+            'relative w-full space-y-[6px] pt-1 transition-[opacity,transform] duration-300 ease-out delay-75 max-[667px]:space-y-[5px]',
             welcomeEntered ? 'translate-y-0 opacity-100' : 'translate-y-[10px] opacity-0',
           ].join(' ')}
         >
@@ -441,7 +416,7 @@ export const WelcomeScreen: React.FC = () => {
           </PremiumIntroButton>
         </div>
 
-        <footer className="relative mt-4 flex shrink-0 flex-col items-center gap-1.5 px-1 pb-0">
+        <footer className="relative mt-2.5 flex shrink-0 flex-col items-center gap-1 px-1 pb-0 max-[667px]:mt-2 max-[667px]:gap-0.5">
           <div className="flex w-full max-w-[320px] items-center gap-2">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/14 to-white/5" />
             <Trophy className="h-3.5 w-3.5 shrink-0 text-red-500/80 sm:h-4 sm:w-4" strokeWidth={2} aria-hidden />
