@@ -5,8 +5,6 @@ import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
 import { markIntroFlowCompleted } from './introFlowSession';
 import welcomeHeroBg from '../../assets/branding/spielzeitapp-welcome-bg.jpg';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
-import spielzeitappLogoMark from '../../assets/branding/spielzeitapp-logo-mark.png';
-import spielzeitappSlogan from '../../assets/branding/spielzeitapp-slogan.png';
 
 /** Primär „Zur App“: gleiche Route wie BottomNav „Home“ (`AppHomePage`). */
 const ROUTE_APP_HOME = '/app/home';
@@ -277,74 +275,9 @@ export const WelcomeScreen: React.FC = () => {
         aria-hidden
       />
 
-      <div className="relative z-10 mx-auto grid min-h-0 w-full max-w-md flex-1 grid-rows-[auto_minmax(0,1fr)_auto] px-5 pb-1 pt-0">
-        <div
-          className={[
-            'relative shrink-0 transition-[opacity,transform] duration-300 ease-out',
-            welcomeEntered ? 'translate-y-0 opacity-100' : 'translate-y-[10px] opacity-0',
-          ].join(' ')}
-        >
-          <img
-            src={spielzeitappLogoMark}
-            alt="SpielzeitApp"
-            className="absolute left-0 top-0 h-12 w-12 shrink-0 object-contain sm:h-[3.35rem] sm:w-[3.35rem]"
-            width={54}
-            height={54}
-            decoding="async"
-            draggable={false}
-          />
-
-          <header className="flex flex-col items-center pt-0.5 text-center max-[667px]:pt-0">
-            <p className="text-[8px] font-semibold uppercase tracking-[0.32em] text-white/86 [text-shadow:0_1px_8px_rgba(0,0,0,0.75)] sm:text-[9px] sm:tracking-[0.36em]">
-              Willkommen in der
-            </p>
-
-            <h1
-              className="mt-1 whitespace-nowrap font-black italic leading-[0.95] tracking-tight max-[667px]:mt-0.5"
-              style={{ transform: 'skewX(-5deg)' }}
-            >
-              <span
-                className="text-[clamp(2.1rem,9.6vw,3.55rem)] text-[#fafafa]"
-                style={{
-                  textShadow:
-                    '0 1px 0 rgba(0,0,0,0.55), 0 3px 12px rgba(0,0,0,0.75), 0 8px 32px rgba(0,0,0,0.88), 0 0 1px rgba(255,255,255,0.06)',
-                }}
-              >
-                Spielzeit
-              </span>
-              <span
-                className="text-[clamp(2.1rem,9.6vw,3.55rem)] text-[#ef4444]"
-                style={{
-                  textShadow:
-                    '0 1px 0 rgba(0,0,0,0.45), 0 4px 18px rgba(0,0,0,0.82), 0 0 22px rgba(220,38,38,0.22), 0 0 40px rgba(127,29,29,0.12)',
-                }}
-              >
-                App
-              </span>
-            </h1>
-
-            <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/92 [text-shadow:0_1px_8px_rgba(0,0,0,0.8)] sm:mt-1.5 sm:text-[12px] sm:tracking-[0.22em]">
-              <span>Teams</span>
-              <span className="mx-1.5 text-red-500/95 sm:mx-2">|</span>
-              <span>Live</span>
-              <span className="mx-1.5 text-red-500/95 sm:mx-2">|</span>
-              <span>Momente</span>
-            </p>
-
-            <img
-              src={spielzeitappSlogan}
-              alt="#GEMEINSAMEINTEAM"
-              className="mt-1.5 h-auto w-[min(78%,32.5rem)] max-w-[32.5rem] object-contain sm:mt-2"
-              width={1536}
-              height={1024}
-              decoding="async"
-              draggable={false}
-            />
-          </header>
-        </div>
-
-        {/* Mittleres Drittel frei — Personengruppe im Hintergrund sichtbar */}
-        <div className="min-h-[27vh] max-[667px]:min-h-[25vh] sm:min-h-[29vh]" aria-hidden />
+      <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-1">
+        {/* Freier Bereich — Branding + Personengruppe im Hero-Bild */}
+        <div className="min-h-[58vh] flex-1 max-[667px]:min-h-[54vh] sm:min-h-[60vh]" aria-hidden />
 
         <div
           className={[
