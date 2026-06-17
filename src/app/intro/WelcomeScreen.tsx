@@ -5,6 +5,7 @@ import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
 import { markIntroFlowCompleted } from './introFlowSession';
 import welcomeHeroBg from '../../assets/branding/spielzeitapp-welcome-bg.jpg';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
+import spielzeitappLogoMark from '../../assets/branding/spielzeitapp-logo-mark.png';
 
 /** Primär „Zur App“: gleiche Route wie BottomNav „Home“ (`AppHomePage`). */
 const ROUTE_APP_HOME = '/app/home';
@@ -288,7 +289,7 @@ export const WelcomeScreen: React.FC = () => {
           ].join(' ')}
         >
           <img
-            src={spielzeitappIcon}
+            src={spielzeitappLogoMark}
             alt="SpielzeitApp"
             className="absolute left-0 top-0 h-12 w-12 shrink-0 object-contain sm:h-[3.35rem] sm:w-[3.35rem]"
             width={54}
