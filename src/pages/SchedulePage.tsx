@@ -62,6 +62,7 @@ import {
 } from '../lib/matchEventScores';
 import { fetchLineupForLiveMatch } from '../lib/liveMatchService';
 import { isStartelfCompleteFromStartingIds } from '../pages/MatchDetail/lineupGuards';
+import { PremiumEmptyState } from '../ui';
 import { getEffectiveEventType } from '../lib/eventTypeUtils';
 import { eventNotesTitle, mergeTitleIntoNotes } from '../components/schedule/scheduleEventViewUtils';
 
@@ -1063,17 +1064,26 @@ export const SchedulePage: React.FC = () => {
           {!pageLoading && !error && (
             <div className="w-full">
               {displayEvents.length === 0 ? (
-                <p className="text-sm text-[var(--text-sub)]">
-                  {events.length === 0
-                    ? 'Noch keine Spiele oder Termine für diese Mannschaft erfasst.'
-                    : normalizedUiRole === 'fan'
-                      ? timeFilter === 'upcoming'
-                        ? 'Keine kommenden Spiele.'
-                        : 'Keine vergangenen Spiele.'
-                      : timeFilter === 'upcoming'
-                        ? 'Keine kommenden Termine für diesen Filter.'
-                        : 'Keine vergangenen Termine für diesen Filter.'}
-                </p>
+                normalizedUiRole === 'fan' && events.length === 0 ? (
+                  <PremiumEmptyState
+                    variant="subtle"
+                    title="Noch keine Termine"
+                    description="Für dein Team sind noch keine Termine eingetragen."
+                    className="py-6"
+                  />
+                ) : (
+                  <p className="text-sm text-[var(--text-sub)]">
+                    {events.length === 0
+                      ? 'Noch keine Spiele oder Termine für diese Mannschaft erfasst.'
+                      : normalizedUiRole === 'fan'
+                        ? timeFilter === 'upcoming'
+                          ? 'Keine kommenden Spiele.'
+                          : 'Keine vergangenen Spiele.'
+                        : timeFilter === 'upcoming'
+                          ? 'Keine kommenden Termine für diesen Filter.'
+                          : 'Keine vergangenen Termine für diesen Filter.'}
+                  </p>
+                )
               ) : (
                 <>
                   {heroEvent

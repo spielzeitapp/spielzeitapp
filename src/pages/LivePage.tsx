@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { useSession } from '../auth/useSession';
 import { LivePageHeader, LivePremiumShell, LiveScheduleCtaLink } from '../components/live/LivePremiumShell';
 import { LiveMatchScreen } from './live/LiveMatchScreen';
 import { PremiumCard, PremiumEmptyState } from '../ui';
@@ -18,6 +19,7 @@ type LiveMatchRow = {
  * Ohne ?matchId: bei genau einem live-Match wird derselbe Screen genutzt (intern erste Live-Zeile); bei mehreren zuerst Auswahl.
  */
 export const LivePage: React.FC = () => {
+  const { effectiveRole } = useSession();
   const { id: idFromRoute } = useParams<{ id?: string }>();
   const [searchParams] = useSearchParams();
   const matchIdParam =
@@ -89,14 +91,29 @@ export const LivePage: React.FC = () => {
   }
 
   const rows = liveMatches ?? [];
+  const isFan = effectiveRole === 'fan';
   if (rows.length === 0) {
     return (
       <LivePremiumShell>
-        <LivePageHeader subtitle="Sobald ein Spiel auf LIVE steht, erscheint der Liveticker hier." />
+        <LivePageHeader
+          subtitle={
+            isFan
+              ? 'Sobald dein Team live spielt, erscheint der Liveticker hier.'
+              : 'Sobald ein Spiel auf LIVE steht, erscheint der Liveticker hier.'
+          }
+        />
         <PremiumEmptyState
           variant="subtle"
-          title="Aktuell kein Livespiel."
-          description="Starte ein Spiel im Spielplan oder warte, bis ein Match auf LIVE gesetzt wird."
+          title={
+            isFan
+              ? 'Aktuell läuft kein Live-Spiel für dein Team.'
+              : 'Aktuell kein Livespiel.'
+          }
+          description={
+            isFan
+              ? 'Schau im Spielplan nach dem nächsten Termin oder komm später wieder.'
+              : 'Starte ein Spiel im Spielplan oder warte, bis ein Match auf LIVE gesetzt wird.'
+          }
           className="py-8"
         >
           <LiveScheduleCtaLink />

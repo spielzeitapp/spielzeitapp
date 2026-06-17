@@ -39,6 +39,7 @@ export const HomePage: React.FC = () => {
     selectedTeamSeason,
     backendRole,
     membershipRole,
+    effectiveRole,
   } = useSession();
   const { events, loading: evLoading } = useEvents(teamSeasonId);
   const { session } = useAuth();
@@ -185,9 +186,24 @@ export const HomePage: React.FC = () => {
 
       {!loading && !teamSeasonId && !FEED_DEMO && (
         <PremiumEmptyState
-          title="Team / Saison wählen"
-          description='Bitte Team / Saison wählen (z. B. unter „Mehr“).'
-        />
+          variant="subtle"
+          title={
+            effectiveRole === 'fan'
+              ? 'Dein Team wartet auf dich'
+              : 'Team / Saison wählen'
+          }
+          description={
+            effectiveRole === 'fan'
+              ? 'Wähle dein Team, um Spieltage, Ergebnisse und Live-Updates zu sehen.'
+              : 'Bitte Team / Saison wählen (z. B. unter „Mehr“).'
+          }
+        >
+          {effectiveRole === 'fan' ? (
+            <Link to="/app/fan-onboarding" className={cn(dsPrimaryCtaClass(), 'inline-flex min-h-[44px] items-center px-5')}>
+              Team wählen
+            </Link>
+          ) : null}
+        </PremiumEmptyState>
       )}
 
       {!loading && showContent && (
