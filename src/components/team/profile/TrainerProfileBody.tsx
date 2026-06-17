@@ -7,6 +7,7 @@ import type { CoachSeasonAchievements, SeasonMatchCardData, SeasonMatchSummary }
 import type { PlayerItem } from '../../../hooks/usePlayers';
 import { useTeamTrainingSummary } from '../../../hooks/useTeamTrainingSummary';
 import { buildTrainerAchievementHighlights } from '../../../lib/trainerAchievementDisplay';
+import { PARTICIPATION_EXPLICIT_BASIS_SUB } from '../../../lib/trainingSummaryDisplay';
 import { ProfileStatTile } from '../ProfileStatTile';
 import { ProfileHighlightTile } from '../ProfileHighlightTile';
 import { TrainerBalanceCard } from './TrainerBalanceCard';
@@ -251,7 +252,7 @@ export const TrainerProfileBody: React.FC<Props> = ({
               icon={<StatIconTrendingUp />}
               title="Ø Mannschaftsbeteiligung"
               value={trainingBusy ? '…' : participationLabel}
-              sub={participationLabel !== 'Noch keine Daten' ? 'aus gewerteten Trainings' : undefined}
+              sub={participationLabel !== 'Noch keine Daten' ? PARTICIPATION_EXPLICIT_BASIS_SUB : undefined}
             />
             <ProfileHighlightTile
               icon={<COACH_STAT_TILES.wins />}

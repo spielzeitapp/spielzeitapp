@@ -51,8 +51,18 @@ export function dbStatusToTrainingAttendance(
   return 'legacy_unknown';
 }
 
+function isPastTrainingStart(
+  eventStartsAtIso: string | null | undefined,
+  nowMs: number,
+): boolean {
+  if (!eventStartsAtIso) return true;
+  const t = Date.parse(eventStartsAtIso);
+  if (!Number.isFinite(t)) return true;
+  return t < nowMs;
+}
+
 /**
- * Fehlende Zeile: vergangenes Training → legacy_unknown; zukünftiges/aktuelles → open.
+ * Live-/Termin-UI: fehlende event_attendance-Zeile = Dabei (bestehendes Verhalten).
  */
 export function resolveTrainingAttendanceStatus(
   rawDbStatus: string | null | undefined,
@@ -61,8 +71,22 @@ export function resolveTrainingAttendanceStatus(
 ): TrainingAttendanceStatus {
   const mapped = dbStatusToTrainingAttendance(rawDbStatus);
   if (mapped) return mapped;
-  // Fachregel Training: Ohne Ausnahme gilt ein aktiver Spieler als dabei.
   return 'present';
+}
+
+/**
+ * Statistik/Auswertung: fehlende Zeile bei vergangenem Training = legacy_unknown (nicht im Nenner).
+ * Zukünftiges/aktuelles Training ohne Zeile = open.
+ */
+export function resolveTrainingAttendanceStatusForStats(
+  rawDbStatus: string | null | undefined,
+  eventStartsAtIso: string | null | undefined,
+  nowMs: number = Date.now(),
+): TrainingAttendanceStatus {
+  const mapped = dbStatusToTrainingAttendance(rawDbStatus);
+  if (mapped) return mapped;
+  if (isPastTrainingStart(eventStartsAtIso, nowMs)) return 'legacy_unknown';
+  return 'open';
 }
 
 export function trainingAttendanceToDb(status: TrainingAttendanceStatus): TrainingAttendanceDbStatus | null {

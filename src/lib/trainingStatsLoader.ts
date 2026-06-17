@@ -1,6 +1,6 @@
 import {
   computeTrainingAttendanceStats,
-  resolveTrainingAttendanceStatus,
+  resolveTrainingAttendanceStatusForStats,
   type TrainingAttendanceStats,
 } from './trainingAttendance';
 import { isPastTrainingEvent } from './eventFilters';
@@ -50,7 +50,7 @@ export function computeTrainingStatsForPlayer(
 ): TrainingAttendanceStats {
   if (eventRows.length === 0) return { ...EMPTY_TRAINING_STATS };
   const sessionStatuses = eventRows.map((ev) =>
-    resolveTrainingAttendanceStatus(
+    resolveTrainingAttendanceStatusForStats(
       attendanceByEventId.get(String(ev.id).toLowerCase()),
       ev.starts_at,
       nowMs,

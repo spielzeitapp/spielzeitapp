@@ -8,6 +8,7 @@ import { TrainingKaiserCard } from './TrainingKaiserCard';
 import { JugglingChallengeCard } from './JugglingChallengeCard';
 import { ProfileHighlightTile } from './ProfileHighlightTile';
 import { COACH_STAT_TILES, StatIconTrendingUp } from './profile/profileStatIcons';
+import { PARTICIPATION_EXPLICIT_BASIS_SUB } from '../../lib/trainingSummaryDisplay';
 import { GlassCard, PremiumCard, PremiumEmptyState, PremiumTab, PremiumTabTrack, SectionTitle } from '../../ui';
 
 type TrainingSubTab = 'overview' | 'kaiser' | 'challenge';
@@ -75,7 +76,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
           icon={<StatIconTrendingUp />}
           title="Ø Beteiligung"
           value={participationLabel}
-          sub={participationLabel !== 'Noch keine Daten' ? 'aus gewerteten Trainings' : undefined}
+          sub={participationLabel !== 'Noch keine Daten' ? PARTICIPATION_EXPLICIT_BASIS_SUB : undefined}
         />
         <ProfileHighlightTile
           icon={<COACH_STAT_TILES.wins />}

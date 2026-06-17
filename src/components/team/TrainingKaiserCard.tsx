@@ -181,7 +181,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
       {!isOverview ? (
         <SectionTitle
           as="h2"
-          subtitle="Nur Spieler mit mindestens 30 % Trainingsbasis werden gewertet. Verletzungen werden nicht negativ berücksichtigt."
+          subtitle="Nur Spieler mit mindestens 30 % explizit erfasster Trainingsbasis werden gewertet. Fehlende, offene und verletzte Einheiten zählen nicht."
           subtitleClassName="mt-1.5 text-[12px] leading-relaxed text-white/55"
           className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case"
         >

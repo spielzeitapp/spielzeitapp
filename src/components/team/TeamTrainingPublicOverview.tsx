@@ -3,6 +3,7 @@ import type { PlayerItem } from '../../hooks/usePlayers';
 import { useTeamTrainingSummary } from '../../hooks/useTeamTrainingSummary';
 import { ProfileHighlightTile } from './ProfileHighlightTile';
 import { COACH_STAT_TILES, StatIconTrendingUp } from './profile/profileStatIcons';
+import { PARTICIPATION_EXPLICIT_BASIS_SUB } from '../../lib/trainingSummaryDisplay';
 import { GlassCard, PremiumCard, PremiumEmptyState, SectionTitle } from '../../ui';
 import { Gem } from 'lucide-react';
 
@@ -43,7 +44,7 @@ export const TeamTrainingPublicOverview: React.FC<Props> = ({ players, teamSeaso
           icon={<StatIconTrendingUp />}
           title="Ø Mannschaftsbeteiligung"
           value={busy ? '…' : participationLabel}
-          sub={participationLabel !== 'Noch keine Daten' ? 'aus gewerteten Trainings' : undefined}
+          sub={participationLabel !== 'Noch keine Daten' ? PARTICIPATION_EXPLICIT_BASIS_SUB : undefined}
         />
         <ProfileHighlightTile
           icon={<Gem className="h-[4.75rem] w-[4.75rem] text-red-400/[0.18]" strokeWidth={1.4} aria-hidden />}

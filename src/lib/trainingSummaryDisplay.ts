@@ -33,6 +33,9 @@ export function formatParticipationLabel(pct: number | null): string {
   return `${pct} %`;
 }
 
+/** Unterzeile Ø-Beteiligung: nur explizit erfasste yes/no/external zählen. */
+export const PARTICIPATION_EXPLICIT_BASIS_SUB = 'nur explizit erfasste Beteiligung';
+
 export function resolveKaiserLeader(ranking: TrainingRankingResult): TrainingRankingRow | null {
   return ranking.qualified[0] ?? null;
 }
