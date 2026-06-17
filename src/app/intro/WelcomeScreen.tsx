@@ -3,23 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Smartphone, Trophy } from 'lucide-react';
 import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
 import { markIntroFlowCompleted } from './introFlowSession';
+import welcomeHeroBg from '../../assets/branding/spielzeitapp-welcome-bg.jpg';
+import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
 
 /** Primär „Zur App“: gleiche Route wie BottomNav „Home“ (`AppHomePage`). */
 const ROUTE_APP_HOME = '/app/home';
 
 /** Liveticker: gleiche Route wie BottomNav „Live“ (`LiveMatchScreen`). */
 const ROUTE_LIVE_TICKER = '/app/live';
-
-/**
- * Vollbild-Hintergrund: `public/intro/welcome-hero.png` (einfach ersetzbar).
- * Motiv: Stadion/Fußball, Nacht, emotional — roter Look kommt aus den UI-Overlays.
- * Kein App-Screenshot, nur Foto unter Text und Buttons.
- */
-function welcomeHeroSrc(): string {
-  const base = import.meta.env.BASE_URL || '/';
-  const path = 'intro/welcome-hero.png';
-  return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`;
-}
 
 function appIconBase(): string {
   const b = import.meta.env.BASE_URL || '/';
@@ -59,7 +50,6 @@ function PremiumIntroButton({
 
 export const WelcomeScreen: React.FC = () => {
   const navigate = useNavigate();
-  const heroSrc = welcomeHeroSrc();
   const iconBase = appIconBase();
   const hasLiveMatch = useAppHasLiveMatch({ fetchOutsideApp: true });
   const [welcomeEntered, setWelcomeEntered] = useState(false);
@@ -88,7 +78,7 @@ export const WelcomeScreen: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex max-h-[100dvh] flex-col overflow-x-hidden overflow-y-hidden text-white"
+      className="fixed inset-0 z-[90] flex max-h-[100dvh] flex-col overflow-x-hidden overflow-y-hidden bg-black text-white"
       style={{
         paddingTop: 'max(0.375rem, env(safe-area-inset-top, 0px))',
         paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom, 0px))',
@@ -269,118 +259,118 @@ export const WelcomeScreen: React.FC = () => {
         .welcome-live-badge--anim {
           animation: welcome-live-badge-pulse 1.2s ease-in-out infinite;
         }
+        .welcome-hashtag-brush {
+          background: linear-gradient(90deg, transparent 0%, #ef4444 8%, #dc2626 50%, #ef4444 92%, transparent 100%);
+          filter: blur(0.35px);
+          transform: skewX(-8deg) scaleY(0.85);
+        }
       `}</style>
-      {/* —— Vollbild-Foto —— */}
+
+      {/* Hero-Hintergrund: Personengruppe unten, Flutlicht oben — nicht über Personen abdunkeln */}
       <img
-        src={heroSrc}
+        src={welcomeHeroBg}
         alt=""
-        className="pointer-events-none fixed inset-0 h-full min-h-[100dvh] w-full object-cover object-[center_43%] sm:object-[center_45%]"
+        className="pointer-events-none fixed inset-0 h-full min-h-[100dvh] w-full object-cover object-[50%_72%] sm:object-[50%_68%]"
         decoding="async"
         fetchPriority="high"
-      />
-
-      {/* Basis-Abdunkelung */}
-      <div
-        className="pointer-events-none fixed inset-0 bg-black/54"
-        style={{ mixBlendMode: 'multiply' }}
         aria-hidden
       />
-      {/* Tiefenstaffelung: oben schwärzer — Mitte emotional — unten wieder dunkel */}
+
+      {/* Oben: dezente Lesbarkeit für Branding, Stadion bleibt sichtbar */}
       <div
         className="pointer-events-none fixed inset-0"
         style={{
           background:
-            'linear-gradient(180deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.52) 18%, rgba(0,0,0,0.22) 38%, rgba(0,0,0,0.28) 58%, rgba(0,0,0,0.78) 78%, rgba(0,0,0,0.94) 100%)',
+            'linear-gradient(180deg, rgba(0,0,0,0.58) 0%, rgba(0,0,0,0.22) 12%, rgba(0,0,0,0.06) 22%, transparent 34%)',
         }}
         aria-hidden
       />
 
-      {/* Rot eher mittig / emotional, oben etwas ruhiger */}
+      {/* Rote SpielzeitApp-Energie — Stadion/Zuschauer, nicht über Personen */}
       <div
         className="pointer-events-none fixed inset-0"
         style={{
           background:
-            'radial-gradient(ellipse 118% 68% at 50% 52%, rgba(220,38,38,0.32), transparent 58%), radial-gradient(ellipse 70% 48% at 88% 48%, rgba(127,29,29,0.11), transparent 50%), radial-gradient(ellipse 65% 45% at 10% 46%, rgba(69,10,10,0.14), transparent 48%)',
+            'radial-gradient(ellipse 115% 58% at 50% 28%, rgba(220,38,38,0.2), transparent 58%), radial-gradient(ellipse 55% 38% at 12% 22%, rgba(255,255,255,0.06), transparent 52%), radial-gradient(ellipse 55% 38% at 88% 22%, rgba(255,255,255,0.06), transparent 52%)',
         }}
         aria-hidden
       />
 
-      {/* Zusätzliche Abdunkelung oben: Lesbarkeit Branding, weniger „busy“ */}
+      {/* Unten: Lesbarkeit für Buttons/Footer, Mitte/Personen frei */}
       <div
         className="pointer-events-none fixed inset-0"
         style={{
           background:
-            'linear-gradient(180deg, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.16) 12%, rgba(0,0,0,0.06) 24%, transparent 38%)',
+            'linear-gradient(180deg, transparent 0%, transparent 48%, rgba(0,0,0,0.18) 62%, rgba(0,0,0,0.62) 82%, rgba(0,0,0,0.82) 100%)',
         }}
         aria-hidden
       />
 
-      {/* Vignette verstärkt + unterer Lesbarkeits-Gradient */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 94% 92% at 50% 40%, transparent 12%, rgba(0,0,0,0.72) 100%), linear-gradient(180deg, transparent 0%, transparent 32%, rgba(0,0,0,0.88) 100%)',
-        }}
-        aria-hidden
-      />
-
-      {/* Dezent: Hintergrund zurücknehmen, CTAs visuell nach vorne */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.09) 72%, rgba(0,0,0,0.14) 100%)',
-        }}
-        aria-hidden
-      />
-
-      <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-1 pt-3">
-        <header
+      <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 pb-1 pt-2">
+        <div
           className={[
-            'flex shrink-0 flex-col items-center text-center transition-[opacity,transform] duration-300 ease-out',
+            'relative shrink-0 transition-[opacity,transform] duration-300 ease-out',
             welcomeEntered ? 'translate-y-0 opacity-100' : 'translate-y-[10px] opacity-0',
           ].join(' ')}
         >
-          <p className="text-[10px] font-semibold uppercase tracking-[0.38em] text-white/78 [text-shadow:0_1px_0_rgba(0,0,0,0.85),0_2px_14px_rgba(0,0,0,0.75)]">
-            Willkommen in der
-          </p>
+          <img
+            src={spielzeitappIcon}
+            alt="SpielzeitApp"
+            className="absolute left-0 top-0 h-11 w-11 object-contain sm:h-12 sm:w-12"
+            width={48}
+            height={48}
+            decoding="async"
+            draggable={false}
+          />
 
-          <h1 className="mt-1.5 font-black italic leading-[0.95] tracking-tight" style={{ transform: 'skewX(-5deg)' }}>
-            <span
-              className="text-[clamp(2.35rem,9.2vw,3.25rem)] text-[#fafafa]"
-              style={{
-                textShadow:
-                  '0 1px 0 rgba(0,0,0,0.55), 0 3px 12px rgba(0,0,0,0.75), 0 8px 32px rgba(0,0,0,0.88), 0 0 1px rgba(255,255,255,0.06)',
-              }}
+          <header className="flex flex-col items-center pt-1 text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.38em] text-white/82 [text-shadow:0_1px_0_rgba(0,0,0,0.85),0_2px_14px_rgba(0,0,0,0.75)]">
+              Willkommen in der
+            </p>
+
+            <h1 className="mt-1.5 font-black italic leading-[0.95] tracking-tight" style={{ transform: 'skewX(-5deg)' }}>
+              <span
+                className="text-[clamp(2.35rem,9.2vw,3.25rem)] text-[#fafafa]"
+                style={{
+                  textShadow:
+                    '0 1px 0 rgba(0,0,0,0.55), 0 3px 12px rgba(0,0,0,0.75), 0 8px 32px rgba(0,0,0,0.88), 0 0 1px rgba(255,255,255,0.06)',
+                }}
+              >
+                Spielzeit
+              </span>
+              <span
+                className="text-[clamp(2.35rem,9.2vw,3.25rem)] text-[#ef4444]"
+                style={{
+                  textShadow:
+                    '0 1px 0 rgba(0,0,0,0.45), 0 4px 18px rgba(0,0,0,0.82), 0 0 22px rgba(220,38,38,0.22), 0 0 40px rgba(127,29,29,0.12)',
+                }}
+              >
+                App
+              </span>
+            </h1>
+
+            <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/90 [text-shadow:0_1px_2px_rgba(0,0,0,0.9),0_3px_16px_rgba(0,0,0,0.65)] sm:text-[12px]">
+              <span>Teams</span>
+              <span className="mx-2 text-red-500/95">|</span>
+              <span>Live</span>
+              <span className="mx-2 text-red-500/95">|</span>
+              <span>Momente</span>
+            </p>
+
+            <p
+              className="relative mt-3 inline-block text-[12px] font-bold uppercase italic tracking-[0.08em] [text-shadow:0_2px_12px_rgba(0,0,0,0.88)] sm:text-[13px]"
+              style={{ transform: 'skewX(-3deg)' }}
             >
-              Spielzeit
-            </span>
-            <span
-              className="text-[clamp(2.35rem,9.2vw,3.25rem)] text-[#f87171]"
-              style={{
-                textShadow:
-                  '0 1px 0 rgba(0,0,0,0.45), 0 4px 18px rgba(0,0,0,0.82), 0 0 22px rgba(220,38,38,0.22), 0 0 40px rgba(127,29,29,0.12)',
-              }}
-            >
-              App
-            </span>
-          </h1>
+              <span className="text-white">#GEMEINSAM</span>
+              <span className="text-red-500">EINTEAM</span>
+              <span
+                className="welcome-hashtag-brush pointer-events-none absolute -bottom-1.5 left-[-4%] right-[-4%] block h-[3px] rounded-full opacity-95"
+                aria-hidden
+              />
+            </p>
+          </header>
+        </div>
 
-          <p className="mt-2 max-w-[300px] text-[15px] font-medium leading-snug text-white/88 [text-shadow:0_1px_2px_rgba(0,0,0,0.9),0_3px_16px_rgba(0,0,0,0.65)]">
-            Alle Termine. Alle Infos.
-          </p>
-
-          <p
-            className="mt-2.5 text-[12px] font-bold uppercase italic tracking-[0.1em] text-white/94 [text-shadow:0_2px_12px_rgba(0,0,0,0.88)] sm:text-[13px]"
-            style={{ transform: 'skewX(-3deg)' }}
-          >
-            <span className="text-white">#GEMEINSAM</span>
-            <span className="text-red-500">EINTEAM</span>
-          </p>
-        </header>
-
-        {/* Flexibler Luftpolster — schrumpft auf kleinen Viewports, kein Scroll */}
         <div className="min-h-0 flex-1 basis-0" aria-hidden />
 
         <div
@@ -392,17 +382,20 @@ export const WelcomeScreen: React.FC = () => {
           <PremiumIntroButton onClick={goHome}>
             <span className="welcome-intro-icon-shell relative z-10">
               <img
-                src={`${iconBase}icons/home-ball.png`}
-                className="-translate-y-px object-contain h-11 w-11 max-h-[44px] max-w-[44px] sm:h-[52px] sm:w-[52px] sm:max-h-[52px] sm:max-w-[52px]"
+                src={spielzeitappIcon}
+                className="h-10 w-10 object-contain sm:h-11 sm:w-11"
                 alt=""
-                width={48}
-                height={48}
+                width={44}
+                height={44}
                 decoding="async"
                 draggable={false}
               />
             </span>
-            <span className="relative z-10 min-w-0 flex-1 text-[16px] font-bold leading-tight text-white sm:text-[17px]">
-              Zur App
+            <span className="relative z-10 min-w-0 flex-1">
+              <span className="block text-[16px] font-bold leading-tight text-white sm:text-[17px]">Zur App</span>
+              <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
+                Alle Teams. Alle Funktionen.
+              </span>
             </span>
             <ChevronRight
               className="relative z-10 h-5 w-5 shrink-0 text-white/55 transition group-hover:text-white/90"
@@ -434,8 +427,11 @@ export const WelcomeScreen: React.FC = () => {
                 </span>
               )}
             </span>
-            <span className="relative z-10 min-w-0 flex-1 text-[16px] font-bold leading-tight text-white/95 sm:text-[17px]">
-              Liveticker
+            <span className="relative z-10 min-w-0 flex-1">
+              <span className="block text-[16px] font-bold leading-tight text-white/95 sm:text-[17px]">Liveticker</span>
+              <span className="mt-0.5 block text-[12px] font-medium leading-snug text-white/58 sm:text-[13px]">
+                Live dabei. Kein Tor verpassen.
+              </span>
             </span>
             <ChevronRight
               className="relative z-10 h-5 w-5 shrink-0 text-white/45 transition group-hover:text-white/80"
