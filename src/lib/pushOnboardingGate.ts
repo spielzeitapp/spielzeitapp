@@ -11,6 +11,7 @@ import { shouldDeferPushOnboardingPrompt } from './pushOnboardingPrompt';
 
 export const PUSH_ONBOARDING_EXEMPT_PATHS = [
   '/app/parent-onboarding',
+  '/app/fan-onboarding',
   '/app/role-choice',
   '/app/set-password',
   '/app/player-onboarding',
@@ -62,6 +63,9 @@ export async function isUserOnboardingComplete(params: {
   const hasPlayerMembership = membershipList.some(
     (m) => normalizeSessionRole(m.role) === 'player',
   );
+  const hasFanMembership = membershipList.some(
+    (m) => normalizeSessionRole(m.role) === 'fan',
+  );
 
   const pgRes = await supabase
     .from('player_guardians')
@@ -71,7 +75,15 @@ export async function isUserOnboardingComplete(params: {
   const hasGuardian = !pgRes.error && (pgRes.data ?? []).length > 0;
 
   if (hasParentMembership && hasGuardian) return true;
-  if (preview === 'fan' && !hasParentMembership && !hasGuardian) return true;
+  if (hasFanMembership) return true;
+  if (
+    preview === 'fan' &&
+    !hasParentMembership &&
+    !hasPlayerMembership &&
+    !hasGuardian
+  ) {
+    return false;
+  }
   if (preview === 'player' && !hasPlayerMembership) return false;
   if (hasPlayerMembership) return true;
 

@@ -37,7 +37,7 @@ export const RoleChoicePage: React.FC = () => {
                 onClick={() => {
                   console.log('[ROLE CHOICE SELECT FAN]');
                   setPreviewRole('fan');
-                  navigate('/app/home', { replace: true });
+                  navigate('/app/fan-onboarding', { replace: true });
                 }}
               >
                 Ich bin Fan

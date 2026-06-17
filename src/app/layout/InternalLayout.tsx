@@ -17,6 +17,7 @@ import { canManageMatches, normalizeRole as normalizeRoleKey } from '../../lib/r
 
 const ONBOARDING_EXEMPT_PATHS = [
   '/app/parent-onboarding',
+  '/app/fan-onboarding',
   '/app/role-choice',
   '/app/set-password',
   '/app/player-onboarding',
@@ -83,6 +84,9 @@ export const InternalLayout: React.FC = () => {
       const hasPlayerMembership = membershipList.some(
         (m) => normalizeSessionRole(m.role) === 'player',
       );
+      const hasFanMembership = membershipList.some(
+        (m) => normalizeSessionRole(m.role) === 'fan',
+      );
 
       const pgRes = await supabase
         .from('player_guardians')
@@ -95,7 +99,17 @@ export const InternalLayout: React.FC = () => {
 
       if (hasParentMembership && hasGuardian) return;
 
-      if (preview === 'fan' && !hasParentMembership && !hasGuardian) return;
+      if (hasFanMembership) return;
+
+      if (
+        preview === 'fan' &&
+        !hasParentMembership &&
+        !hasPlayerMembership &&
+        !hasGuardian
+      ) {
+        navigate('/app/fan-onboarding', { replace: true });
+        return;
+      }
 
       if (preview === 'player' && !hasPlayerMembership) {
         navigate('/app/player-onboarding', { replace: true });

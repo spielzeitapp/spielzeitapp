@@ -17,6 +17,7 @@ import { TermineLayout } from '../pages/TermineLayout';
 import { MoreLayout } from '../pages/MoreLayout';
 import { MorePage } from '../pages/MorePage';
 import { ParentOnboardingPage } from '../pages/ParentOnboardingPage';
+import { FanOnboardingPage } from '../pages/FanOnboardingPage';
 import { PlayerOnboardingPage } from '../pages/PlayerOnboardingPage';
 import { RoleChoicePage } from '../pages/RoleChoicePage';
 import { MatchDetailPage } from '../pages/MatchDetail/MatchDetailPage';
@@ -192,6 +193,7 @@ function InternalRoutes(): React.ReactElement {
         <Route path="calendar" element={<Navigate to="/app/termine/calendar" replace />} />
         <Route path="role-choice" element={<RoleChoicePage />} />
         <Route path="parent-onboarding" element={<ParentOnboardingPage />} />
+        <Route path="fan-onboarding" element={<FanOnboardingPage />} />
         <Route path="player-onboarding" element={<PlayerOnboardingPage />} />
         <Route path="set-password" element={<SetPasswordPage />} />
         <Route path="events/:eventId" element={<EventDetailPage />} />
