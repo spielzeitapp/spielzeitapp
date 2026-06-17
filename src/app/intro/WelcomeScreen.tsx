@@ -264,9 +264,9 @@ export const WelcomeScreen: React.FC = () => {
           animation: welcome-live-badge-pulse 1.2s ease-in-out infinite;
         }
         .welcome-hashtag-brush {
-          background: linear-gradient(90deg, transparent 0%, #ef4444 8%, #dc2626 50%, #ef4444 92%, transparent 100%);
-          filter: blur(0.35px);
-          transform: skewX(-8deg) scaleY(0.85);
+          background: linear-gradient(90deg, transparent 0%, #f87171 4%, #ef4444 18%, #dc2626 50%, #ef4444 82%, #f87171 96%, transparent 100%);
+          filter: blur(0.45px);
+          transform: skewX(-8deg) scaleY(1);
         }
       `}</style>
 
@@ -290,21 +290,24 @@ export const WelcomeScreen: React.FC = () => {
           <img
             src={spielzeitappIcon}
             alt="SpielzeitApp"
-            className="absolute left-0 top-0 h-10 w-10 object-contain sm:h-11 sm:w-11"
-            width={44}
-            height={44}
+            className="absolute left-0 top-0 h-12 w-12 shrink-0 object-contain sm:h-[3.35rem] sm:w-[3.35rem]"
+            width={54}
+            height={54}
             decoding="async"
             draggable={false}
           />
 
           <header className="flex flex-col items-center pt-0.5 text-center max-[667px]:pt-0">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.36em] text-white/88 [text-shadow:0_1px_8px_rgba(0,0,0,0.75)] sm:text-[10px] sm:tracking-[0.38em]">
+            <p className="text-[8px] font-semibold uppercase tracking-[0.32em] text-white/86 [text-shadow:0_1px_8px_rgba(0,0,0,0.75)] sm:text-[9px] sm:tracking-[0.36em]">
               Willkommen in der
             </p>
 
-            <h1 className="mt-1 font-black italic leading-[0.95] tracking-tight max-[667px]:mt-0.5" style={{ transform: 'skewX(-5deg)' }}>
+            <h1
+              className="mt-1 whitespace-nowrap font-black italic leading-[0.95] tracking-tight max-[667px]:mt-0.5"
+              style={{ transform: 'skewX(-5deg)' }}
+            >
               <span
-                className="text-[clamp(1.95rem,8.8vw,3.25rem)] text-[#fafafa]"
+                className="text-[clamp(2.1rem,9.6vw,3.55rem)] text-[#fafafa]"
                 style={{
                   textShadow:
                     '0 1px 0 rgba(0,0,0,0.55), 0 3px 12px rgba(0,0,0,0.75), 0 8px 32px rgba(0,0,0,0.88), 0 0 1px rgba(255,255,255,0.06)',
@@ -313,7 +316,7 @@ export const WelcomeScreen: React.FC = () => {
                 Spielzeit
               </span>
               <span
-                className="text-[clamp(1.95rem,8.8vw,3.25rem)] text-[#ef4444]"
+                className="text-[clamp(2.1rem,9.6vw,3.55rem)] text-[#ef4444]"
                 style={{
                   textShadow:
                     '0 1px 0 rgba(0,0,0,0.45), 0 4px 18px rgba(0,0,0,0.82), 0 0 22px rgba(220,38,38,0.22), 0 0 40px rgba(127,29,29,0.12)',
@@ -332,13 +335,13 @@ export const WelcomeScreen: React.FC = () => {
             </p>
 
             <p
-              className="relative mt-2 inline-block text-[11px] font-bold uppercase italic tracking-[0.08em] [text-shadow:0_1px_10px_rgba(0,0,0,0.85)] sm:mt-2.5 sm:text-[13px]"
+              className="relative mt-2 inline-block text-[13px] font-bold uppercase italic tracking-[0.07em] [text-shadow:0_1px_10px_rgba(0,0,0,0.85)] sm:mt-2.5 sm:text-[15px]"
               style={{ transform: 'skewX(-3deg)' }}
             >
               <span className="text-white">#GEMEINSAM</span>
               <span className="text-red-500">EINTEAM</span>
               <span
-                className="welcome-hashtag-brush pointer-events-none absolute -bottom-1.5 left-[-4%] right-[-4%] block h-[3px] rounded-full opacity-95"
+                className="welcome-hashtag-brush pointer-events-none absolute -bottom-2 left-[-10%] right-[-10%] block h-1 rounded-full opacity-100"
                 aria-hidden
               />
             </p>
