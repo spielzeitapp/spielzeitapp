@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { lockAppMainScroll } from "../../lib/bodyScrollLock";
 import { APP_BOTTOM_SCROLL_PAD } from "../../lib/appScrollPadding";
-import { Activity, CalendarDays, Trophy, User } from "lucide-react";
+import { Activity, CalendarDays, ChevronDown, Trophy, User } from "lucide-react";
 import { ProfileCompactHeader } from "./profile/ProfileCompactHeader";
 import { ProfileHeroCard } from "./profile/ProfileHeroCard";
 import { ProfileStatTile } from "./ProfileStatTile";
@@ -194,18 +194,35 @@ const TAB_CONFIG: { id: ProfileTab; label: string }[] = [
   { id: "training", label: "Training" },
 ];
 
-function PlayerSpecialSettingsSection({ children }: { children: React.ReactNode }) {
+function PlayerSpecialSettingsAccordion({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <section className="mb-3.5" aria-labelledby="player-special-settings-heading">
-      <h3
+    <section className="mb-3" aria-labelledby="player-special-settings-heading">
+      <button
+        type="button"
         id="player-special-settings-heading"
-        className="mb-2 px-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/42"
+        aria-expanded={open}
+        aria-controls="player-special-settings-panel"
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-[rgba(220,38,38,0.2)] bg-[rgba(8,8,10,0.72)] px-3 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-[rgba(220,38,38,0.32)]"
       >
-        Spezielle Einstellungen
-      </h3>
-      <div className={PROFILE_SETTINGS_PANEL}>
-        {children}
-      </div>
+        <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.14em] text-white/55">
+          <span className="mr-1.5" aria-hidden>
+            ⚙️
+          </span>
+          Spezielle Einstellungen
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-white/45 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          aria-hidden
+        />
+      </button>
+      {open ? (
+        <div id="player-special-settings-panel" className={`mt-2 ${PROFILE_SETTINGS_PANEL}`}>
+          {children}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -312,7 +329,7 @@ function PlayerStatusBadgesRow({ isLaz, isInjured }: { isLaz: boolean; isInjured
 
 function PlayerStatusBadges({ isLaz, isInjured }: { isLaz: boolean; isInjured: boolean }) {
   return (
-    <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
+    <div className="-mt-1 mb-2 flex flex-wrap items-center justify-center gap-2">
       <PlayerStatusBadgesRow isLaz={isLaz} isInjured={isInjured} />
     </div>
   );
@@ -656,7 +673,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           ) : null}
 
           {canManage ? (
-            <PlayerSpecialSettingsSection>
+            <PlayerSpecialSettingsAccordion>
               <SpecialSettingToggleRow
                 label="LAZ-Spieler"
                 hint="Kennzeichnet Spieler mit Leistungsaufenthaltszentrum (LAZ) für Trainings."
@@ -675,7 +692,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 accent="amber"
                 onChange={(next) => void handleInjuredPlayerToggle(next)}
               />
-            </PlayerSpecialSettingsSection>
+            </PlayerSpecialSettingsAccordion>
           ) : null}
 
           {/* Sticky tabs */}

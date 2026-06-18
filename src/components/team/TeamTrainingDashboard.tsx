@@ -8,6 +8,7 @@ import { TrainingKaiserCard } from './TrainingKaiserCard';
 import { TeamTrainingSessionsList } from './TeamTrainingSessionsList';
 import { TrainingOverviewHero } from './TrainingOverviewHero';
 import { JugglingChallengeCard } from './JugglingChallengeCard';
+import { TrainingChallengeTypesGrid } from './TrainingChallengeTypesGrid';
 import { ProfileHighlightTile } from './ProfileHighlightTile';
 import { COACH_STAT_TILES, StatIconTrendingUp } from './profile/profileStatIcons';
 import { PARTICIPATION_EXPLICIT_BASIS_SUB } from '../../lib/trainingSummaryDisplay';
@@ -67,12 +68,13 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
         Trainingszentrale
       </SectionTitle>
 
-      <div className="mt-4">
+      <div className="mt-4 w-full">
         <TrainingOverviewHero
           sessionsCount={ratedTrainingsCount}
           participationLabel={participationLabel}
           sessions={ranking.sessionParticipations}
           loading={rankingLoading}
+          className="w-full"
         />
       </div>
 
@@ -141,6 +143,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
               awards={jugglingAwards}
               loading={jugglingLoading}
             />
+            <TrainingChallengeTypesGrid variant="teaser" />
             {ratedTrainingsCount > 0 ? (
               <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
                 <p className="text-[12px] text-white/60">
@@ -168,11 +171,14 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
         ) : null}
 
         {subTab === 'challenge' ? (
-          <JugglingChallengeCard
-            variant="full"
-            awards={jugglingAwards}
-            loading={jugglingLoading}
-          />
+          <div className="space-y-3">
+            <JugglingChallengeCard
+              variant="full"
+              awards={jugglingAwards}
+              loading={jugglingLoading}
+            />
+            <TrainingChallengeTypesGrid variant="full" />
+          </div>
         ) : null}
       </div>
 

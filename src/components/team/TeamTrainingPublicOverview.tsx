@@ -57,12 +57,13 @@ export const TeamTrainingPublicOverview: React.FC<Props> = ({ players, teamSeaso
         Trainingszentrale
       </SectionTitle>
 
-      <div className="mt-4">
+      <div className="mt-4 w-full">
         <TrainingOverviewHero
           sessionsCount={ratedTrainingsCount}
           participationLabel={busy ? '…' : participationLabel}
           sessions={ranking.sessionParticipations}
           loading={busy}
+          className="w-full"
         />
       </div>
 

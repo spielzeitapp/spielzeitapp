@@ -12,6 +12,8 @@ import {
   type TrainingRankingRow,
 } from '../../lib/trainingRanking';
 import { GlassCard, PremiumButton, PremiumCard, PremiumEmptyState, SectionTitle } from '../../ui';
+import { TrainingStreakMetrics } from './TrainingStreakMetrics';
+import { EMPTY_TRAINING_STREAK } from '../../lib/trainingChallengeTypes';
 import { cn } from '../../ui/lib/cn';
 
 import type { TrainingRankingResult } from '../../lib/trainingRanking';
@@ -168,6 +170,7 @@ function KaiserFeaturedCard({
         {hasBasis ? (
           <p className="mt-1.5 whitespace-nowrap text-[12px] text-white/50">{formatCompletedTrainings(row)}</p>
         ) : null}
+        <TrainingStreakMetrics streak={EMPTY_TRAINING_STREAK} compact className="mt-3" />
       </div>
     </button>
   );
@@ -315,25 +318,29 @@ export const TrainingKaiserCard: React.FC<Props> = ({
   const body = (
     <>
       {!isOverview ? (
-        <SectionTitle
-          as="h2"
-          subtitle="Ø Beteiligung = Dabei / (Dabei + Abwesend). Trainingskaiser bewertet Aktivität: Dabei + LAZ."
-          subtitleClassName="mt-1.5 text-[12px] leading-relaxed text-white/55"
-          className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case"
-        >
-          <span className="mr-1.5" aria-hidden>
-            🏆
-          </span>
-          Trainingskaiser
-        </SectionTitle>
+        <>
+          <SectionTitle
+            as="h2"
+            subtitle="Ø Beteiligung = Dabei / (Dabei + Abwesend). Trainingskaiser bewertet Aktivität: Dabei + LAZ."
+            subtitleClassName="mt-1.5 text-[12px] leading-relaxed text-white/55"
+            className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case"
+          >
+            <span className="mr-1.5" aria-hidden>
+              🏆
+            </span>
+            Trainingskaiser
+          </SectionTitle>
+          <TrainingStreakMetrics streak={EMPTY_TRAINING_STREAK} className="mt-3" />
+        </>
       ) : (
         <>
           <SectionTitle as="h3" className="[&>h3]:text-base [&>h3]:font-semibold [&>h3]:normal-case">
             Trainingskaiser
           </SectionTitle>
-          <p className="mt-1 text-[11px] leading-relaxed text-white/50">
+          <p className="mt-1 text-[11px] leading-relaxed text-white/45">
             Trainingskaiser bewertet Aktivität: Dabei + LAZ.
           </p>
+          <TrainingStreakMetrics streak={EMPTY_TRAINING_STREAK} compact className="mt-3" />
         </>
       )}
 
