@@ -6,7 +6,8 @@
 import { getLogoUrl } from '../utils/logoResolver';
 
 const OUR_TEAM_DISPLAY_NAME = 'SPG Rohrbach';
-const OUR_TEAM_SLUG = 'spg-rohrbach';
+const SPG_ROHRBACH_SLUG = 'spg-rohrbach';
+const NSG_GOELSENTAL_SLUG = 'nsg-goelsental';
 export const PLACEHOLDER_LOGO = '/logos/placeholder-shield-a.png';
 
 /** Normalisiert Anzeigenamen für Lookup (lowercase, Umlaute, Sonderzeichen raus). */
@@ -29,45 +30,76 @@ function logoLookupKey(name: string): string {
     .trim();
 }
 
-function isOurNsgOrSpgTeam(key: string): boolean {
-  return (
-    key.includes('spg rohrbach') ||
-    key.includes('nsg rohrbach') ||
-    key.includes('nsg hainfeld')
-  );
+function isNsgHeimteamKey(key: string): boolean {
+  return key.includes('nsg rohrbach') || key.includes('nsg hainfeld');
 }
 
-/** Bekannte Namen → Dateiname (ohne .png), falls Dateiname vom Slug abweicht. */
+/**
+ * Bekannte Anzeigenamen → Dateiname unter public/logos (ohne .png).
+ * Nur lokale Assets — keine externen URLs.
+ */
 const LOGO_MAP: Record<string, string> = {
-  'spg rohrbach': OUR_TEAM_SLUG,
-  'nsg rohrbach': OUR_TEAM_SLUG,
-  'nsg hainfeld': OUR_TEAM_SLUG,
+  // NSG Heimteams (gemeinsames Vereinslogo)
+  'nsg rohrbach': NSG_GOELSENTAL_SLUG,
+  'nsg hainfeld': NSG_GOELSENTAL_SLUG,
+  'nsg goelsental': NSG_GOELSENTAL_SLUG,
+  // SPG (eigenes Logo, unverändert)
+  'spg rohrbach': SPG_ROHRBACH_SLUG,
+  // FK Austria Wien
+  'fk austria wien': 'fk-austria-wien',
+  'austria wien': 'fk-austria-wien',
+  austria: 'fk-austria-wien',
+  // SV Ried
+  'sv ried': 'sv-ried',
+  ried: 'sv-ried',
+  // First Vienna
+  'first vienna': 'first-vienna',
+  'first vienna fc': 'first-vienna',
+  vienna: 'first-vienna',
+  // ASK Wilhelmsburg
+  'ask wilhelmsburg': 'ask-wilhelmsburg',
+  wilhelmsburg: 'ask-wilhelmsburg',
+  // TSV Hartberg
+  'tsv hartberg': 'tsv-hartberg',
+  hartberg: 'tsv-hartberg',
+  // SV Mattersburg
+  'sv mattersburg': 'sv-mattersburg',
+  mattersburg: 'sv-mattersburg',
+  // Fortuna Wr. Neustadt
+  'fortuna wr neustadt': 'fortuna-wr-neustadt',
+  'fortuna wiener neustadt': 'fortuna-wr-neustadt',
+  'wr neustadt': 'fortuna-wr-neustadt',
+  'sc wr neustadt': 'fortuna-wr-neustadt',
+  // Bestehende Gegner
   'skn st poelten': 'skn_stpoelten_a',
   'skn st.poelten': 'skn_stpoelten_a',
   'skn st. poelten': 'skn_stpoelten_a',
   'alpenvorland usg': 'alpenvorland_usg',
-  'fk austria wien': 'fk-austria-wien',
-  'sv ried': 'sv-ried',
-  'first vienna': 'first-vienna',
-  'first vienna fc': 'first-vienna',
-  'ask wilhelmsburg': 'ask-wilhelmsburg',
-  'tsv hartberg': 'tsv-hartberg',
-  'sv mattersburg': 'sv-mattersburg',
-  'fortuna wr neustadt': 'fortuna-wr-neustadt',
-  'sc wr neustadt': 'fortuna-wr-neustadt',
 };
+
+/** Längere Aliase zuerst — verhindert zu frühe Kurz-Treffer bei Teilstrings. */
+const LOGO_MAP_KEYS_BY_LENGTH = Object.keys(LOGO_MAP).sort((a, b) => b.length - a.length);
 
 function resolveMappedLogoFile(name: string): string | null {
   const rawKey = normalizeForLookup(name);
   const key = logoLookupKey(name);
-  if (isOurNsgOrSpgTeam(rawKey) || isOurNsgOrSpgTeam(key)) {
-    return OUR_TEAM_SLUG;
+  if (!key && !rawKey) return null;
+
+  if (isNsgHeimteamKey(key) || isNsgHeimteamKey(rawKey)) {
+    return NSG_GOELSENTAL_SLUG;
   }
+
   if (LOGO_MAP[key]) return LOGO_MAP[key];
   if (LOGO_MAP[rawKey]) return LOGO_MAP[rawKey];
-  for (const [mapKey, file] of Object.entries(LOGO_MAP)) {
-    if (key.includes(mapKey) || mapKey.includes(key)) return file;
+
+  for (const mapKey of LOGO_MAP_KEYS_BY_LENGTH) {
+    if (mapKey.length < 4) continue;
+    if (key === mapKey || rawKey === mapKey) return LOGO_MAP[mapKey];
+    if (key.startsWith(`${mapKey} `) || key.endsWith(` ${mapKey}`)) {
+      return LOGO_MAP[mapKey];
+    }
   }
+
   return null;
 }
 
