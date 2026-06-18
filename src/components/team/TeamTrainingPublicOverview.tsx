@@ -3,6 +3,7 @@ import type { PlayerItem } from '../../hooks/usePlayers';
 import { useTeamTrainingSummary } from '../../hooks/useTeamTrainingSummary';
 import { countUpcomingTeamTrainings } from '../../lib/trainingSeasonCounts';
 import { ProfileHighlightTile } from './ProfileHighlightTile';
+import { TrainingOverviewHero } from './TrainingOverviewHero';
 import { COACH_STAT_TILES, StatIconTrendingUp } from './profile/profileStatIcons';
 import { PARTICIPATION_EXPLICIT_BASIS_SUB } from '../../lib/trainingSummaryDisplay';
 import { PremiumCard, PremiumEmptyState, SectionTitle } from '../../ui';
@@ -14,7 +15,7 @@ type Props = {
 };
 
 export const TeamTrainingPublicOverview: React.FC<Props> = ({ players, teamSeasonId }) => {
-  const { ratedTrainingsCount, participationLabel, rankingLoading, rankingError } = useTeamTrainingSummary(
+  const { ratedTrainingsCount, participationLabel, ranking, rankingLoading, rankingError } = useTeamTrainingSummary(
     players,
     teamSeasonId,
     true,
@@ -56,7 +57,16 @@ export const TeamTrainingPublicOverview: React.FC<Props> = ({ players, teamSeaso
         Trainingszentrale
       </SectionTitle>
 
-      <div className="mt-4 grid grid-cols-2 gap-2.5">
+      <div className="mt-4">
+        <TrainingOverviewHero
+          sessionsCount={ratedTrainingsCount}
+          participationLabel={busy ? '…' : participationLabel}
+          sessions={ranking.sessionParticipations}
+          loading={busy}
+        />
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2.5">
         <ProfileHighlightTile
           icon={<COACH_STAT_TILES.trainings />}
           title="Trainings"

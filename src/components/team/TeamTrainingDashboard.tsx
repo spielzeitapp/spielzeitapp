@@ -6,6 +6,7 @@ import { countUpcomingTeamTrainings } from '../../lib/trainingSeasonCounts';
 import type { TrainingRankingResult } from '../../lib/trainingRanking';
 import { TrainingKaiserCard } from './TrainingKaiserCard';
 import { TeamTrainingSessionsList } from './TeamTrainingSessionsList';
+import { TrainingOverviewHero } from './TrainingOverviewHero';
 import { JugglingChallengeCard } from './JugglingChallengeCard';
 import { ProfileHighlightTile } from './ProfileHighlightTile';
 import { COACH_STAT_TILES, StatIconTrendingUp } from './profile/profileStatIcons';
@@ -66,7 +67,16 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
         Trainingszentrale
       </SectionTitle>
 
-      <div className="mt-4 grid grid-cols-2 gap-2.5">
+      <div className="mt-4">
+        <TrainingOverviewHero
+          sessionsCount={ratedTrainingsCount}
+          participationLabel={participationLabel}
+          sessions={ranking.sessionParticipations}
+          loading={rankingLoading}
+        />
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2.5">
         <ProfileHighlightTile
           icon={<COACH_STAT_TILES.trainings />}
           title="Trainings"
@@ -126,7 +136,11 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
               sessions={ranking.sessionParticipations}
               loading={rankingLoading}
             />
-            <JugglingChallengeCard variant="teaser" />
+            <JugglingChallengeCard
+              variant="teaser"
+              awards={jugglingAwards}
+              loading={jugglingLoading}
+            />
             {ratedTrainingsCount > 0 ? (
               <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
                 <p className="text-[12px] text-white/60">

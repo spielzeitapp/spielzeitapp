@@ -157,14 +157,14 @@ export function computeSessionParticipationPct(
 
 /** Farbliche Bewertung Mannschafts-Beteiligung (Trainingszentrale). */
 export function participationPctColorClass(pct: number): string {
-  if (pct >= 70) return 'text-emerald-400';
+  if (pct >= 75) return 'text-emerald-400';
   if (pct >= 50) return 'text-amber-400';
   if (pct >= 30) return 'text-orange-400';
   return 'text-red-400';
 }
 
 export function participationPctBadgeClass(pct: number): string {
-  if (pct >= 70) {
+  if (pct >= 75) {
     return 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.12)]';
   }
   if (pct >= 50) {

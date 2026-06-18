@@ -15,6 +15,7 @@ import {
 } from '../../lib/attendanceColors';
 import { DS_LIST_GAP, DS_TEXT_MUTED, type DsChipTone } from '../../lib/premiumDesignSystem';
 import { PremiumPlayerCard } from '../player/PremiumPlayerCard';
+import { PlayerSpecialStatusBadges } from '../player/PlayerSpecialStatusBadges';
 import { PremiumStatusBadge, type PremiumStatusBadgeTone } from '../player/PremiumStatusBadge';
 
 type Props = {
@@ -197,11 +198,19 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                   nameClassName={TRAINING_NAME_CLASS}
                   sublineClassName={TRAINING_SUBLINE_CLASS}
                   trailing={
-                    <PremiumStatusBadge
-                      label={trainingAttendanceLabel(status)}
-                      tone={statusTone(status)}
-                      className={TRAINING_BADGE_CLASS}
-                    />
+                    <>
+                      <PlayerSpecialStatusBadges
+                        isLaz={player.is_laz_player}
+                        isInjured={player.is_injured}
+                        size="xs"
+                        className="mr-1"
+                      />
+                      <PremiumStatusBadge
+                        label={trainingAttendanceLabel(status)}
+                        tone={statusTone(status)}
+                        className={TRAINING_BADGE_CLASS}
+                      />
+                    </>
                   }
                   footer={
                     <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">

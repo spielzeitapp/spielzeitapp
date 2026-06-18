@@ -62,6 +62,19 @@ export function activityRateColorClass(pct: number): string {
   return 'text-red-400';
 }
 
+/** Ampel nach Spielerquote (teamRatePct) — nur Visualisierung. */
+export function teamRateTrafficLightEmoji(pct: number): string {
+  if (pct >= 75) return '🟢';
+  if (pct >= 50) return '🟡';
+  return '🔴';
+}
+
+export function teamRateTrafficLightClass(pct: number): string {
+  if (pct >= 75) return 'text-emerald-400';
+  if (pct >= 50) return 'text-amber-400';
+  return 'text-red-400';
+}
+
 const PODIUM_MEDALS = ['🥇', '🥈', '🥉'] as const;
 
 export function podiumMedal(rank: number): string | null {

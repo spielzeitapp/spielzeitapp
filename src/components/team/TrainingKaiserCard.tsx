@@ -1,11 +1,14 @@
 import React from 'react';
 import type { PlayerItem } from '../../hooks/usePlayers';
+import { PlayerSpecialStatusBadges } from '../player/PlayerSpecialStatusBadges';
 import {
   activityRateColorClass,
   getValuableTrainingCount,
   hasTrainingActivityBasis,
   hasTrainingTeamBasis,
   podiumMedal,
+  teamRateTrafficLightClass,
+  teamRateTrafficLightEmoji,
   type TrainingRankingRow,
 } from '../../lib/trainingRanking';
 import { GlassCard, PremiumButton, PremiumCard, PremiumEmptyState, SectionTitle } from '../../ui';
@@ -24,6 +27,12 @@ type Props = {
   loading: boolean;
   error: string | null;
 };
+
+const PODIUM_CARD_CLASS =
+  'overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.22)] bg-gradient-to-br from-[rgba(18,18,20,0.98)] to-[rgba(60,10,18,0.18)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(220,38,38,0.08)]';
+
+const PODIUM_ROW_CLASS =
+  'flex w-full items-center justify-between gap-2 rounded-xl border border-[rgba(220,38,38,0.14)] bg-[rgba(8,8,10,0.72)] px-3 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition';
 
 function jerseyLabel(player: PlayerItem): string | null {
   const n = player.jersey_number;
@@ -52,6 +61,13 @@ function formatActivityDetailLine(row: TrainingRankingRow): string {
   return `Aktivität gesamt: ${stats.activityRatePct} % · ${numerator} von ${basis}`;
 }
 
+function formatCompletedTrainings(row: TrainingRankingRow): string {
+  const completed = row.stats.present + row.stats.external;
+  const basis = getValuableTrainingCount(row.stats);
+  const unit = basis === 1 ? 'Training' : 'Trainings';
+  return `${completed} von ${basis} ${unit} absolviert`;
+}
+
 function InjuredLine({ count }: { count: number }) {
   if (count <= 0) return null;
   return <p className="text-[11px] text-white/45">Verletzt: {count}</p>;
@@ -62,14 +78,49 @@ function SickLine({ count }: { count: number }) {
   return <p className="text-[11px] text-white/45">Krank: {count}</p>;
 }
 
-function PodiumRow({
+function PlayerNameWithTrafficLight({
+  row,
+  showMedal = false,
+}: {
+  row: TrainingRankingRow;
+  showMedal?: boolean;
+}) {
+  const hasTeamBasis = hasTrainingTeamBasis(row.stats);
+  const trafficPct = hasTeamBasis ? row.stats.teamRatePct : 0;
+
+  return (
+    <span className="flex min-w-0 flex-1 items-start gap-2">
+      {showMedal ? (
+        <span className="shrink-0 text-[22px] leading-none" aria-hidden>
+          {podiumMedal(row.rank)}
+        </span>
+      ) : (
+        <span className="shrink-0 pt-0.5 text-[14px] leading-none" aria-hidden>
+          {hasTeamBasis ? teamRateTrafficLightEmoji(trafficPct) : '⚪'}
+        </span>
+      )}
+      <span className="min-w-0">
+        <span className="block truncate text-[15px] font-semibold leading-snug text-white">
+          {row.player.display_name}
+        </span>
+        <PlayerSpecialStatusBadges
+          isLaz={row.player.is_laz_player}
+          isInjured={row.player.is_injured}
+          size="xs"
+          className="mt-1"
+        />
+      </span>
+    </span>
+  );
+}
+
+function KaiserFeaturedCard({
   row,
   onPlayerClick,
 }: {
   row: TrainingRankingRow;
   onPlayerClick?: (player: PlayerItem) => void;
 }) {
-  const medal = podiumMedal(row.rank);
   const hasBasis = hasTrainingActivityBasis(row.stats);
   const pctClass = hasBasis ? activityRateColorClass(row.stats.activityRatePct) : 'text-white/50';
 
@@ -79,20 +130,72 @@ function PodiumRow({
       onClick={() => onPlayerClick?.(row.player)}
       disabled={!onPlayerClick}
       className={cn(
-        'flex w-full items-start justify-between gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-left transition',
-        onPlayerClick ? 'cursor-pointer hover:border-red-500/25 hover:bg-white/[0.04] active:scale-[0.99]' : 'cursor-default',
+        `${PODIUM_CARD_CLASS} relative w-full px-3.5 py-3.5 text-left`,
+        onPlayerClick ? 'cursor-pointer hover:border-[rgba(220,38,38,0.35)] active:scale-[0.99]' : 'cursor-default',
       )}
     >
-      <span className="flex min-w-0 flex-1 items-start gap-2">
-        <span className="shrink-0 text-[22px] leading-none" aria-hidden>
-          {medal}
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_100%_0%,rgba(220,38,38,0.14)_0%,transparent_55%)]"
+        aria-hidden
+      />
+      <div className="relative">
+        <p className="whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.14em] text-amber-200/90">
+          <span className="mr-1" aria-hidden>
+            🥇
+          </span>
+          Trainingskaiser
+        </p>
+        <p className="mt-2 truncate text-[18px] font-bold leading-tight text-white">{row.player.display_name}</p>
+        <PlayerSpecialStatusBadges
+          isLaz={row.player.is_laz_player}
+          isInjured={row.player.is_injured}
+          size="xs"
+          className="mt-1.5"
+        />
+        <p className={cn('mt-2 whitespace-nowrap text-[22px] font-bold tabular-nums leading-none', pctClass)}>
+          {hasBasis ? `${row.stats.activityRatePct} %` : '—'}
+          {hasBasis ? <span className="ml-1.5 text-[12px] font-semibold text-white/55">Aktivität</span> : null}
+        </p>
+        {hasBasis ? (
+          <p className="mt-1.5 whitespace-nowrap text-[12px] text-white/50">{formatCompletedTrainings(row)}</p>
+        ) : null}
+      </div>
+    </button>
+  );
+}
+
+function PodiumRow({
+  row,
+  onPlayerClick,
+}: {
+  row: TrainingRankingRow;
+  onPlayerClick?: (player: PlayerItem) => void;
+}) {
+  const hasActivityBasis = hasTrainingActivityBasis(row.stats);
+  const hasTeamBasis = hasTrainingTeamBasis(row.stats);
+  const activityClass = hasActivityBasis ? activityRateColorClass(row.stats.activityRatePct) : 'text-white/50';
+  const teamClass = hasTeamBasis ? teamRateTrafficLightClass(row.stats.teamRatePct) : 'text-white/50';
+
+  return (
+    <button
+      type="button"
+      onClick={() => onPlayerClick?.(row.player)}
+      disabled={!onPlayerClick}
+      className={cn(
+        PODIUM_ROW_CLASS,
+        onPlayerClick ? 'cursor-pointer hover:border-[rgba(220,38,38,0.32)] hover:bg-[rgba(12,8,10,0.88)] active:scale-[0.99]' : 'cursor-default',
+      )}
+    >
+      <PlayerNameWithTrafficLight row={row} showMedal />
+      <span className="shrink-0 text-right">
+        <span className={cn('block text-[17px] font-bold tabular-nums', activityClass)}>
+          {hasActivityBasis ? `${row.stats.activityRatePct} %` : '—'}
         </span>
-        <span className="min-w-0 break-words text-[15px] font-semibold leading-snug text-white">
-          {row.player.display_name}
-        </span>
-      </span>
-      <span className={cn('shrink-0 pt-0.5 text-[18px] font-bold tabular-nums', pctClass)}>
-        {hasBasis ? `${row.stats.activityRatePct} %` : '—'}
+        {hasTeamBasis ? (
+          <span className={cn('mt-0.5 block whitespace-nowrap text-[10px] font-medium tabular-nums', teamClass)}>
+            Quote {row.stats.teamRatePct} %
+          </span>
+        ) : null}
       </span>
     </button>
   );
@@ -113,7 +216,9 @@ function RankingCard({
 }) {
   const jersey = jerseyLabel(row.player);
   const hasActivityBasis = hasTrainingActivityBasis(row.stats);
-  const pctClass = hasActivityBasis ? activityRateColorClass(row.stats.activityRatePct) : 'text-white/50';
+  const hasTeamBasis = hasTrainingTeamBasis(row.stats);
+  const activityClass = hasActivityBasis ? activityRateColorClass(row.stats.activityRatePct) : 'text-white/50';
+  const teamClass = hasTeamBasis ? teamRateTrafficLightClass(row.stats.teamRatePct) : 'text-white/50';
 
   return (
     <button
@@ -122,21 +227,35 @@ function RankingCard({
       disabled={!onPlayerClick}
       className={cn(
         'w-full rounded-xl border px-3 py-3 text-left transition',
-        lowBasis ? 'border-amber-500/20 bg-amber-950/15' : 'border-white/10 bg-black/25',
-        onPlayerClick ? 'cursor-pointer hover:border-red-500/25 hover:bg-white/[0.04] active:scale-[0.99]' : 'cursor-default',
+        lowBasis ? 'border-amber-500/20 bg-amber-950/15' : 'border-[rgba(220,38,38,0.14)] bg-[rgba(8,8,10,0.72)]',
+        onPlayerClick ? 'cursor-pointer hover:border-[rgba(220,38,38,0.32)] hover:bg-[rgba(12,8,10,0.88)] active:scale-[0.99]' : 'cursor-default',
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="break-words text-[14px] font-semibold leading-snug text-white">
-            {showRank ? <span className="mr-2 tabular-nums text-white/45">{row.rank}.</span> : null}
-            {row.player.display_name}
+          <p className="flex items-start gap-2 text-[14px] font-semibold leading-snug text-white">
+            <span className="shrink-0 pt-0.5" aria-hidden>
+              {hasTeamBasis ? teamRateTrafficLightEmoji(row.stats.teamRatePct) : '⚪'}
+            </span>
+            <span className="min-w-0">
+              {showRank ? <span className="mr-1.5 tabular-nums text-white/45">{row.rank}.</span> : null}
+              <span className="truncate">{row.player.display_name}</span>
+              <PlayerSpecialStatusBadges
+                isLaz={row.player.is_laz_player}
+                isInjured={row.player.is_injured}
+                size="xs"
+                className="mt-1"
+              />
+            </span>
           </p>
-          <p className="mt-0.5 text-[12px] text-white/55">
+          <p className="mt-1 whitespace-nowrap text-[12px] text-white/55">
             {jersey ? `${jersey} · ` : ''}
-            <span className={cn('font-semibold', pctClass)}>
+            <span className={cn('font-semibold', activityClass)}>
               {hasActivityBasis ? `Aktivität ${row.stats.activityRatePct} %` : 'Keine Trainingsbasis'}
             </span>
+            {hasTeamBasis ? (
+              <span className={cn('ml-2 font-semibold', teamClass)}>Quote {row.stats.teamRatePct} %</span>
+            ) : null}
           </p>
         </div>
       </div>
@@ -145,7 +264,7 @@ function RankingCard({
         <p className="mt-1 text-[11px] font-medium text-amber-300/85">zu geringe Trainingsbasis</p>
       ) : (
         <>
-          <p className="mt-2 text-[12px] text-white/60">
+          <p className="mt-2 whitespace-nowrap text-[12px] text-white/60">
             Dabei {row.stats.present} · LAZ {row.stats.external} · Abwesend {row.stats.absent}
           </p>
           <p className="mt-1 text-[11px] leading-relaxed text-white/50">{formatTeamLine(row)}</p>
@@ -178,6 +297,8 @@ export const TrainingKaiserCard: React.FC<Props> = ({
   } = ranking;
 
   const topThree = qualified.slice(0, 3);
+  const kaiserLeader = topThree[0] ?? null;
+  const runnerUps = topThree.slice(1);
   const restQualified = qualified.slice(3);
   const hasPlayers = qualified.length > 0 || unqualified.length > 0;
   const isOverview = variant === 'overview';
@@ -199,7 +320,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
       ) : (
         <>
           <SectionTitle as="h3" className="[&>h3]:text-base [&>h3]:font-semibold [&>h3]:normal-case">
-            Top 3 Trainingskaiser
+            Trainingskaiser
           </SectionTitle>
           <p className="mt-1 text-[11px] leading-relaxed text-white/50">
             Trainingskaiser bewertet Aktivität: Dabei + LAZ.
@@ -231,7 +352,10 @@ export const TrainingKaiserCard: React.FC<Props> = ({
             <>
               {topThree.length > 0 ? (
                 <div className="space-y-2">
-                  {topThree.map((row) => (
+                  {isOverview && kaiserLeader ? (
+                    <KaiserFeaturedCard row={kaiserLeader} onPlayerClick={onPlayerClick} />
+                  ) : null}
+                  {(isOverview ? runnerUps : topThree).map((row) => (
                     <PodiumRow key={row.player.id} row={row} onPlayerClick={onPlayerClick} />
                   ))}
                 </div>
@@ -279,6 +403,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
                           <th className="px-2 py-1 font-medium">Rang</th>
                           <th className="px-2 py-1 font-medium">Spieler</th>
                           <th className="px-2 py-1 font-medium">Aktivität</th>
+                          <th className="px-2 py-1 font-medium">Quote</th>
                           <th className="px-2 py-1 font-medium">Basis</th>
                           <th className="px-2 py-1 font-medium">Dabei</th>
                           <th className="px-2 py-1 font-medium">LAZ</th>
@@ -287,10 +412,12 @@ export const TrainingKaiserCard: React.FC<Props> = ({
                       </thead>
                       <tbody>
                         {qualified.map((row) => {
-                          const hasBasis = hasTrainingActivityBasis(row.stats);
-                          const pctClass = hasBasis
+                          const hasActivity = hasTrainingActivityBasis(row.stats);
+                          const hasTeam = hasTrainingTeamBasis(row.stats);
+                          const activityClass = hasActivity
                             ? activityRateColorClass(row.stats.activityRatePct)
                             : 'text-white/50';
+                          const teamClass = hasTeam ? teamRateTrafficLightClass(row.stats.teamRatePct) : 'text-white/50';
                           const valuable = getValuableTrainingCount(row.stats);
                           return (
                             <tr key={row.player.id}>
@@ -307,15 +434,27 @@ export const TrainingKaiserCard: React.FC<Props> = ({
                                   onClick={() => onPlayerClick?.(row.player)}
                                   disabled={!onPlayerClick}
                                   className={cn(
-                                    'break-words text-left font-semibold text-white',
+                                    'text-left font-semibold text-white',
                                     onPlayerClick ? 'hover:text-red-200' : '',
                                   )}
                                 >
-                                  {row.player.display_name}
+                                  <span className="mr-1.5" aria-hidden>
+                                    {hasTeam ? teamRateTrafficLightEmoji(row.stats.teamRatePct) : '⚪'}
+                                  </span>
+                                  <span className="truncate">{row.player.display_name}</span>
+                                  <PlayerSpecialStatusBadges
+                                    isLaz={row.player.is_laz_player}
+                                    isInjured={row.player.is_injured}
+                                    size="xs"
+                                    className="mt-1"
+                                  />
                                 </button>
                               </td>
-                              <td className={cn('bg-black/25 px-2 py-2 font-semibold tabular-nums', pctClass)}>
-                                {hasBasis ? `${row.stats.activityRatePct} %` : '—'}
+                              <td className={cn('bg-black/25 px-2 py-2 font-semibold tabular-nums', activityClass)}>
+                                {hasActivity ? `${row.stats.activityRatePct} %` : '—'}
+                              </td>
+                              <td className={cn('bg-black/25 px-2 py-2 font-semibold tabular-nums', teamClass)}>
+                                {hasTeam ? `${row.stats.teamRatePct} %` : '—'}
                               </td>
                               <td className="bg-black/25 px-2 py-2 tabular-nums text-white/70">
                                 {valuable}/{sessionsCount}

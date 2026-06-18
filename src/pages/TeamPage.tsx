@@ -1008,6 +1008,8 @@ export const TeamPage: React.FC = () => {
                         position: getPositionLabel(p.position) || p.position,
                         jersey_number: p.jersey_number,
                         photo_url: readOptionalPhotoUrl(p),
+                        is_injured: p.is_injured,
+                        is_laz_player: p.is_laz_player,
                       }}
                       onClick={() => openPlayerProfile(p)}
                     />

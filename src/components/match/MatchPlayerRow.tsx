@@ -1,5 +1,6 @@
 import React from "react";
 import { PremiumPlayerCard } from "../player/PremiumPlayerCard";
+import { PlayerSpecialStatusBadges } from "../player/PlayerSpecialStatusBadges";
 import { PremiumStatusBadge, type PremiumStatusBadgeTone } from "../player/PremiumStatusBadge";
 import { getPositionLabel } from "../../lib/positionLabels";
 import { premiumJerseyNumberClass, type PremiumPlayerCardTone } from "../../lib/premiumPlayerCard";
@@ -17,6 +18,8 @@ type MatchRowPlayer = {
   avatarUrl?: string | null;
   jersey_number?: number | null;
   number?: number | null;
+  is_injured?: boolean;
+  is_laz_player?: boolean;
 };
 
 function statusTone(status?: "open" | "yes" | "no"): PremiumStatusBadgeTone {
@@ -48,6 +51,12 @@ export const MatchPlayerRow: React.FC<{
       onClick={onClick}
       trailing={
         <>
+          <PlayerSpecialStatusBadges
+            isLaz={player.is_laz_player}
+            isInjured={player.is_injured}
+            size="xs"
+            className="mr-1"
+          />
           {rightLabel ? (
             <PremiumStatusBadge label={rightLabel} tone={statusTone(status)} />
           ) : null}

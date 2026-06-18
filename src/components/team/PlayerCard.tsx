@@ -2,6 +2,7 @@ import React from "react";
 import { ChevronRight } from "lucide-react";
 import { getTrainingPositionDisplay } from "../../lib/positionLabels";
 import { PremiumPlayerCard } from "../player/PremiumPlayerCard";
+import { PlayerSpecialStatusBadges } from "../player/PlayerSpecialStatusBadges";
 import { premiumJerseyNumberClass } from "../../lib/premiumPlayerCard";
 
 export type PlayerCardPlayer = {
@@ -14,6 +15,7 @@ export type PlayerCardPlayer = {
   jersey_number?: number | null;
   photo_url?: string | null;
   is_injured?: boolean;
+  is_laz_player?: boolean;
 };
 
 type PlayerCardProps = {
@@ -33,11 +35,12 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, selected = false
       onClick={onClick}
       trailing={
         <>
-          {player.is_injured ? (
-            <span className="mr-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-300">
-              Verletzt
-            </span>
-          ) : null}
+          <PlayerSpecialStatusBadges
+            isLaz={player.is_laz_player}
+            isInjured={player.is_injured}
+            size="xs"
+            className="mr-1"
+          />
           <span className={premiumJerseyNumberClass()}>{num != null ? `#${num}` : "—"}</span>
           <ChevronRight className="h-4 w-4 text-white/28" aria-hidden />
         </>
