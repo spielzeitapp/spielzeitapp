@@ -23,6 +23,12 @@ import { MatchCenterCountdown } from './MatchCenterCountdown';
 import { ParticipantLogoChip } from './ParticipantLogoChip';
 import { TournamentPremiumStatBadge } from './TournamentPremiumStatBadge';
 import {
+  MC_BORDER,
+  MC_BORDER_STRONG,
+  MC_GLASS_DARK,
+  MC_GLOW_MD,
+} from './matchCenterStyles';
+import {
   TournamentFirstMatchPreview,
   TournamentMatchCenterPoster,
 } from './TournamentMatchCenterPoster';
@@ -86,39 +92,57 @@ export function MatchCenterTournamentCard({
   const firstMatch = pickTournamentFirstMatch(slots);
 
   return (
-    <article className="relative overflow-hidden rounded-[20px] border border-[rgba(220,38,38,0.38)] shadow-[0_0_40px_rgba(220,38,38,0.16),0_18px_52px_rgba(0,0,0,0.6)]">
-      <div className="relative bg-black px-3 py-2.5 sm:px-4">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/35 bg-red-950/55 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-red-100">
+    <article
+      className={`relative overflow-hidden rounded-[20px] border ${MC_BORDER_STRONG} ${MC_GLOW_MD} shadow-[0_18px_52px_rgba(0,0,0,0.6)]`}
+    >
+      {/* Emotionaler Header mit sichtbarem Cover */}
+      <div className="relative min-h-[8.5rem] overflow-hidden sm:min-h-[9.5rem]">
+        <img
+          src={coverUrl}
+          alt=""
+          className="pointer-events-none absolute inset-0 h-full w-full scale-105 object-cover object-[center_22%] brightness-[0.72] saturate-[0.92]"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.35)_0%,rgba(0,0,0,0.55)_45%,rgba(6,4,6,0.92)_100%)]"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_50%_0%,rgba(255,248,235,0.16)_0%,rgba(255,71,71,0.12)_28%,transparent_68%)]"
+          aria-hidden
+        />
+
+        <div className="relative px-3 pb-3 pt-2.5 sm:px-4 sm:pb-3.5">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border ${MC_BORDER} bg-[rgba(6,4,6,0.65)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-red-100 backdrop-blur-[2px]`}
+          >
             <Trophy className="h-3.5 w-3.5 text-amber-300" strokeWidth={2} aria-hidden />
             {premium ? 'Turnier' : 'Nächstes Turnier'}
           </span>
+          <h2 className="mt-2 text-[19px] font-bold leading-tight tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-[22px]">
+            {title}
+          </h2>
         </div>
-        <h2 className="mt-2 text-[19px] font-bold leading-tight tracking-tight text-white sm:text-[22px]">
-          {title}
-        </h2>
       </div>
 
       <div className="relative min-w-0 overflow-hidden">
         <img
           src={coverUrl}
           alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover object-[92%_12%] opacity-[0.22] brightness-[0.58] saturate-[0.88]"
+          className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover object-[92%_12%] opacity-[0.14] brightness-[0.55] saturate-[0.85]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(6,6,8,0.72)_0%,rgba(10,6,8,0.88)_42%,rgba(4,4,6,0.96)_100%)]"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_0%,rgba(255,248,235,0.14)_0%,rgba(122,29,42,0.18)_32%,transparent_68%)]"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(6,4,6,0.88)_0%,rgba(8,4,6,0.94)_55%,rgba(4,4,6,0.98)_100%)]"
           aria-hidden
         />
 
         <div className="relative px-3 py-3.5 sm:px-4 sm:py-4">
           {countdown ? (
-            <div className="relative -mx-0.5 mb-4 rounded-[18px] border border-red-500/28 bg-[rgba(4,4,6,0.55)] px-2 py-3 shadow-[0_0_40px_rgba(220,38,38,0.18),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-[2px] sm:px-3 sm:py-3.5">
-              <p className="mb-2.5 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-red-300/80">
+            <div
+              className={`relative mb-4 rounded-[18px] border ${MC_BORDER} ${MC_GLASS_DARK} px-2 py-3 ${MC_GLOW_MD} sm:px-3 sm:py-3.5`}
+            >
+              <p className="mb-2.5 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-[rgba(255,120,120,0.85)]">
                 Countdown bis Beginn
               </p>
               <MatchCenterCountdown parts={countdown} variant="hero" />
@@ -126,8 +150,10 @@ export function MatchCenterTournamentCard({
           ) : null}
 
           <div className="flex items-center gap-2 text-[12px] text-white/72">
-            <span className="inline-flex min-w-[3rem] flex-col items-center rounded-lg border border-red-500/28 bg-black/40 px-2 py-1">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-red-300/80">
+            <span
+              className={`inline-flex min-w-[3rem] flex-col items-center rounded-lg border ${MC_BORDER} bg-[rgba(6,4,8,0.55)] px-2 py-1`}
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wide text-[rgba(255,120,120,0.82)]">
                 {dateParts.wd}
               </span>
               <span className="text-[18px] font-bold leading-none text-white">{dateParts.day}</span>
@@ -182,7 +208,7 @@ export function MatchCenterTournamentCard({
               <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white/42">
                 Teilnehmende Mannschaften
               </p>
-              <div className="-mx-1 flex gap-2.5 overflow-x-auto pb-1 pl-1 pr-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="-mx-1 flex gap-3 overflow-x-auto pb-2 pl-1 pr-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {carouselTeams.map((p) => (
                   <ParticipantLogoChip
                     key={p.name}

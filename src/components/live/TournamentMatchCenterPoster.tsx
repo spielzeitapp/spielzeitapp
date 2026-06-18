@@ -1,12 +1,11 @@
 import React, { useMemo } from 'react';
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
-import { getClubLogo } from '../../lib/teamLogos';
+import { getClubLogo, hasKnownClubLogo, getTeamInitials } from '../../lib/teamLogos';
 import { formatHeroDateParts, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
-import {
-  MatchdayPosterArtwork,
-} from '../feed/MatchdayPosterArtwork';
+import { MatchdayPosterArtwork } from '../feed/MatchdayPosterArtwork';
 import { tournamentPhaseDisplayLabel } from '../../lib/matchCenterTournamentVisuals';
 import { tournamentMatchDisplayStatus } from '../../lib/tournamentPlan';
+import { MC_BORDER, MC_POSTER_SHELL, MC_POSTER_SHADOW } from './matchCenterStyles';
 
 type Props = {
   slot: TournamentMatchSlotView;
@@ -18,6 +17,38 @@ type Props = {
 function resolveLogo(name: string, map?: ReadonlyMap<string, string | null>): string {
   const url = map?.get(name.trim().toLowerCase());
   return getClubLogo(name, { logoUrl: url ?? undefined });
+}
+
+function TournamentTeamLogo({
+  name,
+  map,
+}: {
+  name: string;
+  map?: ReadonlyMap<string, string | null>;
+}) {
+  const logoUrl = map?.get(name.trim().toLowerCase()) ?? null;
+  const known = hasKnownClubLogo(name, { logoUrl });
+  const src = known ? resolveLogo(name, map) : null;
+  const [failed, setFailed] = React.useState(false);
+
+  if (!known || failed) {
+    return (
+      <div
+        className={`flex h-10 w-10 items-center justify-center rounded-xl border ${MC_BORDER} bg-[rgba(6,4,8,0.72)] text-[11px] font-bold text-white/80`}
+      >
+        {getTeamInitials(name)}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src!}
+      alt=""
+      className="h-10 w-10 object-contain"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 export function TournamentMatchCenterPoster({
@@ -50,7 +81,7 @@ export function TournamentMatchCenterPoster({
         : undefined;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-red-500/35 shadow-[0_0_32px_rgba(220,38,38,0.14),0_16px_40px_rgba(0,0,0,0.55)]">
+    <div className={MC_POSTER_SHELL} style={{ boxShadow: MC_POSTER_SHADOW }}>
       <MatchdayPosterArtwork
         statusLabel={phaseLabel.toUpperCase()}
         title="TOP-SPIEL"
@@ -89,7 +120,9 @@ export function TournamentFirstMatchPreview({
 }) {
   if (!slot) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/12 bg-black/25 px-3 py-4 text-center">
+      <div
+        className={`rounded-2xl border border-dashed ${MC_BORDER} bg-[rgba(6,4,8,0.45)] px-3 py-4 text-center`}
+      >
         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
           Erstes Spiel
         </p>
@@ -104,18 +137,16 @@ export function TournamentFirstMatchPreview({
   const kickoff = formatTimeHHmmDe(slot.kickoff_at);
 
   return (
-    <div className="rounded-2xl border border-[rgba(220,38,38,0.22)] bg-black/35 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-red-300/75">
+    <div
+      className={`rounded-2xl border ${MC_BORDER} bg-[rgba(6,4,8,0.55)] px-3 py-3 shadow-[0_0_16px_rgba(255,71,71,0.08)]`}
+    >
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[rgba(255,120,120,0.82)]">
         Erstes Spiel
       </p>
       <div className="mt-2.5 flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-          <img
-            src={resolveLogo(homeTeam, participantLogoByName)}
-            alt=""
-            className="h-10 w-10 object-contain"
-          />
-          <p className="line-clamp-2 w-full text-center text-[10px] font-semibold leading-snug text-white/88">
+          <TournamentTeamLogo name={homeTeam} map={participantLogoByName} />
+          <p className="w-full truncate text-center text-[10px] font-semibold text-white/88" title={homeTeam}>
             {homeTeam}
           </p>
         </div>
@@ -123,12 +154,8 @@ export function TournamentFirstMatchPreview({
           vs
         </span>
         <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-          <img
-            src={resolveLogo(awayTeam, participantLogoByName)}
-            alt=""
-            className="h-10 w-10 object-contain"
-          />
-          <p className="line-clamp-2 w-full text-center text-[10px] font-semibold leading-snug text-white/88">
+          <TournamentTeamLogo name={awayTeam} map={participantLogoByName} />
+          <p className="w-full truncate text-center text-[10px] font-semibold text-white/88" title={awayTeam}>
             {awayTeam}
           </p>
         </div>

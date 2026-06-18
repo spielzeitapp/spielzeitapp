@@ -1,5 +1,6 @@
 import React from 'react';
 import type { MatchCenterCountdown as CountdownParts } from '../../lib/matchCenterUtils';
+import { MC_BORDER, MC_GLOW_SM } from './matchCenterStyles';
 
 type Variant = 'compact' | 'hero';
 
@@ -14,11 +15,13 @@ function CountdownUnit({
 }) {
   if (variant === 'hero') {
     return (
-      <div className="flex min-w-0 flex-1 flex-col items-center rounded-2xl border border-red-500/35 bg-gradient-to-b from-[rgba(12,8,10,0.88)] to-[rgba(4,4,6,0.92)] px-2 py-3 shadow-[0_0_32px_rgba(220,38,38,0.16),inset_0_1px_0_rgba(255,255,255,0.07)]">
-        <span className="text-[36px] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_24px_rgba(255,255,255,0.12)] sm:text-[42px]">
+      <div
+        className={`flex min-w-0 flex-1 flex-col items-center rounded-2xl border ${MC_BORDER} bg-[rgba(6,4,8,0.82)] px-2 py-3 backdrop-blur-[3px] ${MC_GLOW_SM} shadow-[inset_0_1px_0_rgba(255,71,71,0.1)]`}
+      >
+        <span className="text-[36px] font-extrabold tabular-nums leading-none tracking-tight text-white drop-shadow-[0_0_20px_rgba(255,71,71,0.22)] sm:text-[42px]">
           {value}
         </span>
-        <span className="mt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-red-300/75">
+        <span className="mt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[rgba(255,120,120,0.82)]">
           {label}
         </span>
       </div>
@@ -26,7 +29,9 @@ function CountdownUnit({
   }
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-center rounded-xl border border-[rgba(220,38,38,0.22)] bg-black/35 px-1.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+    <div
+      className={`flex min-w-0 flex-1 flex-col items-center rounded-xl border ${MC_BORDER} bg-[rgba(8,6,10,0.72)] px-1.5 py-2 ${MC_GLOW_SM}`}
+    >
       <span className="text-[22px] font-bold tabular-nums leading-none text-white sm:text-[24px]">
         {value}
       </span>
