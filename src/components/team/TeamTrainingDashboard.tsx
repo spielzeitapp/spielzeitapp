@@ -75,7 +75,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
         />
         <ProfileHighlightTile
           icon={<StatIconTrendingUp />}
-          title="Ø Mannschaftsbeteiligung"
+          title="Ø Beteiligung"
           value={participationLabel}
           sub={participationLabel !== 'Noch keine Daten' ? PARTICIPATION_EXPLICIT_BASIS_SUB : undefined}
         />
@@ -132,7 +132,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
                 <p className="text-[12px] text-white/60">
                   {ratedTrainingsCount} gewertete Team-Trainings in dieser Saison.
                   {participationLabel !== 'Noch keine Daten'
-                    ? ` Ø Mannschaftsbeteiligung: ${participationLabel}.`
+                    ? ` Ø Beteiligung: ${participationLabel}.`
                     : ''}
                   {upcomingTrainings > 0 ? ` ${upcomingTrainings} ausständig.` : ''}
                 </p>

@@ -34,7 +34,7 @@ export function ProfileHighlightTile({
         {icon}
       </div>
       <div className="relative text-left">
-        <div className="text-[11px] font-semibold uppercase leading-snug tracking-wide text-white/60">
+        <div className="break-words pr-12 text-[11px] font-semibold uppercase leading-snug tracking-wide text-white/60">
           {title}
         </div>
         <div

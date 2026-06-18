@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PlayerItem } from './usePlayers';
 import { buildTrainingRanking, type TrainingRankingResult } from '../lib/trainingRanking';
-import { fetchTeamTrainingParticipationPct } from '../lib/teamTrainingParticipation';
 import { loadSquadTrainingParticipation } from '../lib/teamTrainingParticipationStats';
 import { loadTeamPlayersTrainingStats } from '../lib/trainingStatsLoader';
 
@@ -48,19 +47,15 @@ export function useTeamTrainingRanking(
     setError(null);
     try {
       const playerIds = activePlayers.map((p) => p.id);
-      const [{ events, statsByPlayerId }, participationRpc, squadParticipation] = await Promise.all([
+      const [{ events, statsByPlayerId }, squadParticipation] = await Promise.all([
         loadTeamPlayersTrainingStats(playerIds, sid),
-        fetchTeamTrainingParticipationPct(sid),
         loadSquadTrainingParticipation(sid, playerIds),
       ]);
       const sessionsCount = events.length;
       const ranking = buildTrainingRanking(activePlayers, statsByPlayerId, sessionsCount);
-      const teamParticipationPct =
-        participationRpc.pct ??
-        squadParticipation.squadParticipationPct;
       setResult({
         ...ranking,
-        teamParticipationPct,
+        teamParticipationPct: squadParticipation.squadParticipationPct,
         sessionParticipations: squadParticipation.sessions,
       });
     } catch (e) {

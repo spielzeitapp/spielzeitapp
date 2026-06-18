@@ -1,10 +1,12 @@
 import type { PlayerItem } from '../hooks/usePlayers';
-import type { TrainingRankingRow } from './trainingRanking';
-import {
-  averageQualifiedTeamRatePct,
-  hasTrainingActivityBasis,
-  type TrainingRankingResult,
-} from './trainingRanking';
+import type { TrainingRankingRow, TrainingRankingResult } from './trainingRanking';
+import { hasTrainingActivityBasis } from './trainingRanking';
+import { computeSquadParticipationPct } from './teamTrainingParticipationStats';
+
+/** Ø Beteiligung Trainingszentrale: nur Durchschnitt der Einheiten-Quoten (Client). */
+export function resolveTeamParticipationPct(ranking: TrainingRankingResult): number | null {
+  return computeSquadParticipationPct(ranking.sessionParticipations);
+}
 
 /** Gleiche Namensdarstellung wie TeamTrainingDashboard (Vorname + Nachname Zeile). */
 export function kaiserTileName(player: PlayerItem): { primary: string; secondary?: string } {
@@ -20,27 +22,13 @@ export function kaiserTileName(player: PlayerItem): { primary: string; secondary
   return { primary: parts[0] ?? '—' };
 }
 
-/** Mannschaftsbeteiligung: RPC-Wert, sonst Client-Durchschnitt der Einheiten-Quoten. */
-export function resolveTeamParticipationPct(ranking: TrainingRankingResult): number | null {
-  if (ranking.teamParticipationPct != null) return ranking.teamParticipationPct;
-  const rates = ranking.sessionParticipations
-    .map((s) => s.participationPct)
-    .filter((r): r is number => r != null);
-  if (rates.length > 0) {
-    return Math.round(rates.reduce((sum, r) => sum + r, 0) / rates.length);
-  }
-  const fromQualified = averageQualifiedTeamRatePct(ranking.qualified);
-  if (fromQualified != null) return fromQualified;
-  return ranking.teamAverageActivityPct;
-}
-
 export function formatParticipationLabel(pct: number | null): string {
   if (pct == null) return 'Noch keine Daten';
   return `${pct} %`;
 }
 
-/** Unterzeile Ø Mannschaftsbeteiligung. */
-export const PARTICIPATION_EXPLICIT_BASIS_SUB = 'Dabei / (Dabei + Abwesend) je Training';
+/** Unterzeile Ø Beteiligung (Trainingszentrale). */
+export const PARTICIPATION_EXPLICIT_BASIS_SUB = 'Dabei / (Dabei + Abwesend)';
 
 export function resolveKaiserLeader(ranking: TrainingRankingResult): TrainingRankingRow | null {
   return ranking.qualified[0] ?? null;

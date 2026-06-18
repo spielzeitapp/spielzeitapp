@@ -42,7 +42,7 @@ export const TeamTrainingPublicOverview: React.FC<Props> = ({ players, teamSeaso
         />
         <ProfileHighlightTile
           icon={<StatIconTrendingUp />}
-          title="Ø Mannschaftsbeteiligung"
+          title="Ø Beteiligung"
           value={busy ? '…' : participationLabel}
           sub={participationLabel !== 'Noch keine Daten' ? PARTICIPATION_EXPLICIT_BASIS_SUB : undefined}
         />

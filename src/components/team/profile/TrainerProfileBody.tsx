@@ -250,7 +250,7 @@ export const TrainerProfileBody: React.FC<Props> = ({
             />
             <ProfileHighlightTile
               icon={<StatIconTrendingUp />}
-              title="Ø Mannschaftsbeteiligung"
+              title="Ø Beteiligung"
               value={trainingBusy ? '…' : participationLabel}
               sub={participationLabel !== 'Noch keine Daten' ? PARTICIPATION_EXPLICIT_BASIS_SUB : undefined}
             />
