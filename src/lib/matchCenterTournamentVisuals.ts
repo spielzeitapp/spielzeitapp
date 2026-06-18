@@ -1,7 +1,9 @@
 import type { EventRow } from '../hooks/useEvents';
 import type { TournamentMatchSlotView, TournamentParticipant } from './tournamentPlan';
+import defaultTournamentHeroArtwork from '../assets/branding/tournament-hero-default.png';
 
-const DEFAULT_COVER = `${import.meta.env.BASE_URL || '/'}intro/welcome-hero.png`;
+/** Globales Fallback-Hero für Turniere (Vite-Asset aus src/assets/branding). */
+export const DEFAULT_TOURNAMENT_HERO_ARTWORK_URL = defaultTournamentHeroArtwork;
 
 export type MatchCenterTournamentEventExtras = {
   tournament_cover_url?: string | null;
@@ -25,12 +27,19 @@ function isAllowedCoverUrl(url: string): boolean {
 
 export function resolveTournamentCoverUrl(
   event: EventRow,
-  fallbackUrl: string = DEFAULT_COVER,
+  fallbackUrl: string = DEFAULT_TOURNAMENT_HERO_ARTWORK_URL,
 ): string {
   const extra = event as EventRow & MatchCenterTournamentEventExtras;
   const url = extra.tournament_cover_url?.trim();
   if (url && isAllowedCoverUrl(url)) return url;
   return fallbackUrl;
+}
+
+/** Für Turnier-Hero ohne EventRow — tournament_cover_url zuerst, sonst Branding-Fallback. */
+export function resolveTournamentHeroBackgroundUrl(coverUrl?: string | null): string {
+  const url = (coverUrl ?? '').trim();
+  if (url && isAllowedCoverUrl(url)) return url;
+  return DEFAULT_TOURNAMENT_HERO_ARTWORK_URL;
 }
 
 export function mapTournamentParticipants(rows: TournamentParticipantRow[]): MatchCenterParticipant[] {
