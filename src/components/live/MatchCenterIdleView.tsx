@@ -5,7 +5,14 @@ import {
   fetchTournamentMatchSlots,
   fetchTournamentParticipants,
   computeTournamentHeroSummary,
+  type TournamentMatchSlotView,
 } from '../../lib/tournamentPlan';
+import { fetchTournamentCompletion } from '../../lib/tournamentCompletion';
+import {
+  mapTournamentParticipants,
+  type MatchCenterParticipant,
+  type TournamentParticipantRow,
+} from '../../lib/matchCenterTournamentVisuals';
 import {
   pickNextUpcomingMatch,
   pickNextUpcomingTournament,
@@ -25,9 +32,11 @@ export function MatchCenterIdleView({ isFan }: Props) {
   const teamName = (selectedTeamSeason?.team?.name ?? 'Unser Team').trim() || 'Unser Team';
 
   const [now, setNow] = useState(() => new Date());
-  const [participantNames, setParticipantNames] = useState<string[]>([]);
+  const [participants, setParticipants] = useState<MatchCenterParticipant[]>([]);
+  const [slots, setSlots] = useState<TournamentMatchSlotView[]>([]);
   const [teamCount, setTeamCount] = useState<number | null>(null);
   const [matchCount, setMatchCount] = useState<number | null>(null);
+  const [tournamentCompleted, setTournamentCompleted] = useState(false);
   const [tournamentExtrasLoading, setTournamentExtrasLoading] = useState(false);
 
   useEffect(() => {
@@ -46,9 +55,11 @@ export function MatchCenterIdleView({ isFan }: Props) {
 
   useEffect(() => {
     if (!nextTournament) {
-      setParticipantNames([]);
+      setParticipants([]);
+      setSlots([]);
       setTeamCount(null);
       setMatchCount(null);
+      setTournamentCompleted(false);
       setTournamentExtrasLoading(false);
       return;
     }
@@ -57,25 +68,31 @@ export function MatchCenterIdleView({ isFan }: Props) {
     setTournamentExtrasLoading(true);
 
     void (async () => {
-      const [participantsRes, slotsRes] = await Promise.all([
+      const [participantsRes, slotsRes, completionRes] = await Promise.all([
         fetchTournamentParticipants(nextTournament.id),
         fetchTournamentMatchSlots(nextTournament.id),
+        fetchTournamentCompletion(nextTournament.id),
       ]);
       if (cancelled) return;
 
-      const participants = participantsRes.data ?? [];
-      const slots = slotsRes.data ?? [];
-      const summary = computeTournamentHeroSummary(participants, slots);
+      const participantRows = (participantsRes.data ?? []) as TournamentParticipantRow[];
+      const loadedSlots = slotsRes.data ?? [];
+      const summary = computeTournamentHeroSummary(participantRows, loadedSlots);
+      const completion = completionRes.data;
 
-      setParticipantNames(participants.map((p) => p.team_name.trim()).filter(Boolean));
+      setParticipants(mapTournamentParticipants(participantRows));
+      setSlots(loadedSlots);
       setTeamCount(summary.teamCount > 0 ? summary.teamCount : null);
       setMatchCount(summary.matchCount > 0 ? summary.matchCount : null);
+      setTournamentCompleted(Boolean(completion.completedAt));
       setTournamentExtrasLoading(false);
     })().catch(() => {
       if (!cancelled) {
-        setParticipantNames([]);
+        setParticipants([]);
+        setSlots([]);
         setTeamCount(null);
         setMatchCount(null);
+        setTournamentCompleted(false);
         setTournamentExtrasLoading(false);
       }
     });
@@ -112,10 +129,13 @@ export function MatchCenterIdleView({ isFan }: Props) {
         <LivePageHeader title="Match Center" subtitle="Nächstes Turnier — Countdown bis Beginn" />
         <MatchCenterTournamentCard
           event={nextTournament}
+          ourTeamName={teamName}
           now={now}
           teamCount={teamCount}
           matchCount={matchCount}
-          participantNames={participantNames}
+          participants={participants}
+          slots={slots}
+          tournamentCompleted={tournamentCompleted}
           loadingExtras={tournamentExtrasLoading}
         />
       </LivePremiumShell>
