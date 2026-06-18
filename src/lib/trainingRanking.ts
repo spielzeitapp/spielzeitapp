@@ -85,7 +85,7 @@ export function averageSquadTeamRatePct(
   return Math.round(withBasis.reduce((sum, row) => sum + row.stats.teamRatePct, 0) / withBasis.length);
 }
 
-export const SQUAD_PARTICIPATION_LABEL = 'Ø Mannschaftsbeteiligung';
+export const SQUAD_PARTICIPATION_LABEL = 'Ø Beteiligung';
 
 export function formatSquadParticipationLabel(pct: number): string {
   return `${SQUAD_PARTICIPATION_LABEL}: ${pct} %`;

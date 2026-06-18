@@ -161,8 +161,6 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
     [players, getStatus],
   );
 
-  const showLegacy = counts.legacyUnknown > 0;
-
   return (
     <div className={`flex w-full min-w-0 flex-col gap-5 ${className}`}>
       <div className="grid w-full grid-cols-2 gap-2.5">
@@ -178,12 +176,6 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
             </span>
           </div>
         ))}
-        {showLegacy ? (
-          <div className={`col-span-2 ${trainingStatBoxClass('neutral')}`}>
-            <span className={STAT_LABEL_CLASS}>N. erf.</span>
-            <span className={STAT_VALUE_CLASS}>{counts.legacyUnknown}</span>
-          </div>
-        ) : null}
       </div>
 
       {loading ? (

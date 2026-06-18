@@ -244,7 +244,7 @@ export const TrainerProfileBody: React.FC<Props> = ({
           <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
             <ProfileHighlightTile
               icon={<COACH_STAT_TILES.trainings />}
-              title="Gewertete Trainings"
+              title="Trainings"
               value={ratedTrainingsValue}
               sub={ratedTrainingsCount > 0 ? 'Basis dieser Saison' : undefined}
             />
@@ -256,7 +256,7 @@ export const TrainerProfileBody: React.FC<Props> = ({
             />
             <ProfileHighlightTile
               icon={<COACH_STAT_TILES.wins />}
-              title="Trainingskaiser"
+              title="Kaiser"
               value={trainingBusy ? '…' : kaiserName?.primary ?? 'Noch keine Wertung'}
               valueLine2={kaiserName?.secondary}
               sub={kaiserSub}

@@ -130,6 +130,27 @@ export function computeSessionParticipationPct(
   return pct(counts.present, denom);
 }
 
+/** Farbliche Bewertung Mannschafts-Beteiligung (Trainingszentrale). */
+export function participationPctColorClass(pct: number): string {
+  if (pct >= 70) return 'text-emerald-400';
+  if (pct >= 50) return 'text-amber-400';
+  if (pct >= 30) return 'text-orange-400';
+  return 'text-red-400';
+}
+
+export function participationPctBadgeClass(pct: number): string {
+  if (pct >= 70) {
+    return 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.12)]';
+  }
+  if (pct >= 50) {
+    return 'border-amber-500/25 bg-amber-500/10 text-amber-400 shadow-[0_0_18px_rgba(251,191,36,0.1)]';
+  }
+  if (pct >= 30) {
+    return 'border-orange-500/25 bg-orange-500/10 text-orange-400 shadow-[0_0_18px_rgba(251,146,60,0.1)]';
+  }
+  return 'border-red-500/25 bg-red-500/10 text-red-400 shadow-[0_0_18px_rgba(248,113,113,0.1)]';
+}
+
 /**
  * Training-Übersicht (Trainer): Dabei = aktiv − (Abwesend + Krank + Verletzt + LAZ).
  */

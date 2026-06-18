@@ -352,8 +352,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const trainingsSick = trainingStats.sick;
   const trainingsInjured = trainingStats.injured;
   const trainingsExternal = trainingStats.external;
-  const trainingsOpen = trainingStats.open;
-  const trainingsLegacyUnknown = trainingStats.legacyUnknown;
   const teamTrainingBasis = trainingsPresent + trainingsAbsent;
   const activityTrainingNumerator = trainingsPresent + trainingsExternal;
   const activityTrainingBasis = activityTrainingNumerator + trainingsAbsent;
@@ -690,7 +688,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   <div className="mt-4 space-y-3">
                     <div>
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-[13px] text-white/70">Team-Trainingsbeteiligung</span>
+                        <span className="text-[13px] text-white/70">Spielerquote</span>
                         <div className="shrink-0 text-right">
                           <span className="text-[20px] font-bold tabular-nums text-white">{teamTrainingRatePct}%</span>
                           <p className="mt-0.5 text-xs text-white/60">
@@ -707,7 +705,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     </div>
                     <div>
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-[13px] text-white/70">Trainingsaktivität gesamt</span>
+                        <span className="text-[13px] text-white/70">Aktivität</span>
                         <div className="shrink-0 text-right">
                           <span className="text-[20px] font-bold tabular-nums text-white">
                             {activityTrainingRatePct}%
@@ -731,15 +729,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     <SeasonMiniCell label="Krank" value={String(trainingsSick)} />
                     <SeasonMiniCell label="Verletzt" value={String(trainingsInjured)} />
                     <SeasonMiniCell label="LAZ" value={String(trainingsExternal)} />
-                    {trainingsOpen > 0 ? (
-                      <SeasonMiniCell label="Offen" value={String(trainingsOpen)} />
-                    ) : null}
-                    {trainingsLegacyUnknown > 0 ? (
-                      <SeasonMiniCell label="N. erf." value={String(trainingsLegacyUnknown)} />
-                    ) : null}
                   </div>
                   <p className="mt-3 text-[11px] leading-relaxed text-white/55">
-                    Krank, verletzt, LAZ, offen und nicht erfasst zählen nicht in die Team-Beteiligung.
+                    Spielerquote: Dabei / (Dabei + Abwesend). Krank, verletzt und LAZ zählen neutral.
                     Aktivität berücksichtigt LAZ zusätzlich.
                   </p>
                 </>

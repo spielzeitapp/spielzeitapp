@@ -187,7 +187,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
       {!isOverview ? (
         <SectionTitle
           as="h2"
-          subtitle="Mannschaftsbeteiligung = Dabei/(Dabei+Abwesend) je Training. Krank, Verletzt und LAZ sind neutral. Trainingskaiser nutzt individuelle Spielerquoten."
+          subtitle="Ø Beteiligung = Dabei / (Dabei + Abwesend). Trainingskaiser nutzt individuelle Aktivität."
           subtitleClassName="mt-1.5 text-[12px] leading-relaxed text-white/55"
           className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case"
         >
@@ -371,7 +371,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
             <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
               <p className="text-[11px] leading-relaxed text-white/50">
                 {sessionsCount} vergangene Trainingseinheiten · Mindestbasis fürs Ranking: {minimumBasis} wertbare
-                Trainings (Dabei + LAZ + Abwesend). Verletzt, offen und nicht erfasst zählen nicht in die Quoten.
+                Trainings (Dabei + LAZ + Abwesend). Krank und Verletzt zählen nicht in die Spielerquoten.
               </p>
             </GlassCard>
           ) : null}

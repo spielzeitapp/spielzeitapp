@@ -69,7 +69,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
       <div className="mt-4 grid grid-cols-2 gap-2.5">
         <ProfileHighlightTile
           icon={<COACH_STAT_TILES.trainings />}
-          title="Gewertete Trainings"
+          title="Trainings"
           value={ratedTrainingsLabel}
           sub={ratedTrainingsSub ?? (ratedTrainingsCount > 0 ? 'Basis dieser Saison' : undefined)}
         />
@@ -81,7 +81,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
         />
         <ProfileHighlightTile
           icon={<COACH_STAT_TILES.wins />}
-          title="Trainingskaiser"
+          title="Kaiser"
           value={kaiserName?.primary ?? 'Noch keine Wertung'}
           valueLine2={kaiserName?.secondary}
           sub={kaiserSub}

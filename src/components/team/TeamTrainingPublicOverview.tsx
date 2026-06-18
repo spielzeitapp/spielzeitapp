@@ -36,7 +36,7 @@ export const TeamTrainingPublicOverview: React.FC<Props> = ({ players, teamSeaso
       <div className="mt-4 grid grid-cols-2 gap-2.5">
         <ProfileHighlightTile
           icon={<COACH_STAT_TILES.trainings />}
-          title="Gewertete Trainings"
+          title="Trainings"
           value={ratedLabel}
           sub={ratedTrainingsCount > 0 ? 'Basis dieser Saison' : undefined}
         />
@@ -48,7 +48,7 @@ export const TeamTrainingPublicOverview: React.FC<Props> = ({ players, teamSeaso
         />
         <ProfileHighlightTile
           icon={<Gem className="h-[4.75rem] w-[4.75rem] text-red-400/[0.18]" strokeWidth={1.4} aria-hidden />}
-          title="Aktive Challenge"
+          title="Challenge"
           value="Gaberl-Challenge"
           sub="Team-Challenge läuft"
           className="col-span-2"
