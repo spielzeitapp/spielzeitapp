@@ -57,6 +57,11 @@ function InjuredLine({ count }: { count: number }) {
   return <p className="text-[11px] text-white/45">Verletzt: {count}</p>;
 }
 
+function SickLine({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return <p className="text-[11px] text-white/45">Krank: {count}</p>;
+}
+
 function PodiumRow({
   row,
   onPlayerClick,
@@ -147,6 +152,7 @@ function RankingCard({
           <p className="text-[11px] leading-relaxed text-white/50">{formatActivityDetailLine(row)}</p>
         </>
       )}
+      <SickLine count={row.stats.sick} />
       <InjuredLine count={row.stats.injured} />
     </button>
   );
@@ -181,7 +187,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
       {!isOverview ? (
         <SectionTitle
           as="h2"
-          subtitle="Nur Spieler mit mindestens 30 % explizit erfasster Trainingsbasis werden gewertet. Fehlende, offene und verletzte Einheiten zählen nicht."
+          subtitle="Mannschaftsbeteiligung = Dabei/(Dabei+Abwesend) je Training. Krank, Verletzt und LAZ sind neutral. Trainingskaiser nutzt individuelle Spielerquoten."
           subtitleClassName="mt-1.5 text-[12px] leading-relaxed text-white/55"
           className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case"
         >

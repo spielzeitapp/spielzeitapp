@@ -20,9 +20,15 @@ export function kaiserTileName(player: PlayerItem): { primary: string; secondary
   return { primary: parts[0] ?? '—' };
 }
 
-/** Mannschaftsbeteiligung: RPC-Wert (alle Rollen), sonst Ø gewerteter Spieler, Fallback Aktivität. */
+/** Mannschaftsbeteiligung: RPC-Wert, sonst Client-Durchschnitt der Einheiten-Quoten. */
 export function resolveTeamParticipationPct(ranking: TrainingRankingResult): number | null {
   if (ranking.teamParticipationPct != null) return ranking.teamParticipationPct;
+  const rates = ranking.sessionParticipations
+    .map((s) => s.participationPct)
+    .filter((r): r is number => r != null);
+  if (rates.length > 0) {
+    return Math.round(rates.reduce((sum, r) => sum + r, 0) / rates.length);
+  }
   const fromQualified = averageQualifiedTeamRatePct(ranking.qualified);
   if (fromQualified != null) return fromQualified;
   return ranking.teamAverageActivityPct;
@@ -33,8 +39,8 @@ export function formatParticipationLabel(pct: number | null): string {
   return `${pct} %`;
 }
 
-/** Unterzeile Ø-Beteiligung: nur explizit erfasste yes/no/external zählen. */
-export const PARTICIPATION_EXPLICIT_BASIS_SUB = 'nur explizit erfasste Beteiligung';
+/** Unterzeile Ø Mannschaftsbeteiligung. */
+export const PARTICIPATION_EXPLICIT_BASIS_SUB = 'Dabei / (Dabei + Abwesend) je Training';
 
 export function resolveKaiserLeader(ranking: TrainingRankingResult): TrainingRankingRow | null {
   return ranking.qualified[0] ?? null;

@@ -419,12 +419,12 @@ export const EventDetailPage: React.FC = () => {
   const [editCardType, setEditCardType] = useState<'yellow_card' | 'red_card'>('yellow_card');
   const [editCardPlayerId, setEditCardPlayerId] = useState('');
 
-  const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | 'injured' | 'external_training' | null>(null);
+  const [rsvpStatus, setRsvpStatus] = useState<'yes' | 'no' | 'sick' | 'injured' | 'external_training' | null>(null);
   const [loadingRsvp, setLoadingRsvp] = useState(true);
   const [cancelReason, setCancelReason] = useState('');
   /** Für Trainer: alle Zu-/Absagen dieses Events aus event_attendance. */
   const [eventAttendanceByPlayerId, setEventAttendanceByPlayerId] = useState<
-    Record<string, 'yes' | 'no' | 'injured' | 'external_training'>
+    Record<string, 'yes' | 'no' | 'sick' | 'injured' | 'external_training'>
   >({});
   const [eventAttendanceReasonByPlayerId, setEventAttendanceReasonByPlayerId] = useState<Record<string, string | null>>({});
   const [loadingEventAttendance, setLoadingEventAttendance] = useState(false);
@@ -858,8 +858,8 @@ export const EventDetailPage: React.FC = () => {
 
       if (!err && data) {
         const st = String(data.status ?? '').toLowerCase();
-        if (st === 'yes' || st === 'no' || st === 'injured' || st === 'external_training') {
-          setRsvpStatus(st as 'yes' | 'no' | 'injured' | 'external_training');
+        if (st === 'yes' || st === 'no' || st === 'sick' || st === 'injured' || st === 'external_training') {
+          setRsvpStatus(st as 'yes' | 'no' | 'sick' | 'injured' | 'external_training');
         } else {
           setRsvpStatus(null);
         }
@@ -917,12 +917,12 @@ export const EventDetailPage: React.FC = () => {
       .select('player_id, status')
       .eq('event_id', eventId);
     if (!err && data) {
-        const byPlayer: Record<string, 'yes' | 'no' | 'injured' | 'external_training'> = {};
+        const byPlayer: Record<string, 'yes' | 'no' | 'sick' | 'injured' | 'external_training'> = {};
         for (const row of data as { player_id: string; status: string }[]) {
           const pid = (row.player_id ?? '').toLowerCase();
           const st = String(row.status ?? '').toLowerCase();
-          if (st === 'yes' || st === 'no' || st === 'injured' || st === 'external_training') {
-            byPlayer[pid] = st as 'yes' | 'no' | 'injured' | 'external_training';
+          if (st === 'yes' || st === 'no' || st === 'sick' || st === 'injured' || st === 'external_training') {
+            byPlayer[pid] = st as 'yes' | 'no' | 'sick' | 'injured' | 'external_training';
           }
         }
         setEventAttendanceByPlayerId(byPlayer);
@@ -939,7 +939,7 @@ export const EventDetailPage: React.FC = () => {
   }, [loadEventAttendance]);
 
   const handleRsvp = useCallback(
-    async (status: 'yes' | 'no' | 'external_training', _reason?: string) => {
+    async (status: 'yes' | 'no' | 'sick' | 'external_training', _reason?: string) => {
       console.log('[ATTENDANCE FLOW] handleRsvp invoked', {
         caller: 'EventDetailPage.handleRsvp',
         table: 'event_attendance',
@@ -3441,17 +3441,20 @@ export const EventDetailPage: React.FC = () => {
                         </p>
                         {!trainingCancellationAllowed &&
                         rsvpStatus !== 'no' &&
+                        rsvpStatus !== 'sick' &&
                         rsvpStatus !== 'external_training' ? (
                           <p className="mt-1 text-[12px] text-amber-200/90">Absagefrist ist vorbei – Teilnahme gilt als „Dabei“.</p>
                         ) : null}
                         <div
-                          className={`mt-3 grid ${linkedPlayerIsLaz ? 'grid-cols-3' : 'grid-cols-2'} ${DS_STAT_GRID_GAP}`}
+                          className={`mt-3 grid ${linkedPlayerIsLaz ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3'} ${DS_STAT_GRID_GAP}`}
                         >
                           <button
                             type="button"
                             className={dsRsvpChoiceClass(
                               'yes',
-                              rsvpStatus !== 'no' && rsvpStatus !== 'external_training',
+                              rsvpStatus !== 'no' &&
+                                rsvpStatus !== 'sick' &&
+                                rsvpStatus !== 'external_training',
                             )}
                             onClick={() => void handleRsvp('yes')}
                           >
@@ -3469,6 +3472,13 @@ export const EventDetailPage: React.FC = () => {
                           >
                             <ThumbsDown className="h-4 w-4" aria-hidden />
                             Absagen
+                          </button>
+                          <button
+                            type="button"
+                            className={dsRsvpChoiceClass('yes', rsvpStatus === 'sick')}
+                            onClick={() => void handleRsvp('sick')}
+                          >
+                            Krank
                           </button>
                           {linkedPlayerIsLaz ? (
                             <button

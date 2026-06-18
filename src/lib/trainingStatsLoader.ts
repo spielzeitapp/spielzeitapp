@@ -13,6 +13,7 @@ export const EMPTY_TRAINING_STATS: TrainingAttendanceStats = {
   activityRatePct: 0,
   present: 0,
   absent: 0,
+  sick: 0,
   injured: 0,
   external: 0,
   open: 0,

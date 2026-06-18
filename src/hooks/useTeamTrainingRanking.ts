@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PlayerItem } from './usePlayers';
-import { averageQualifiedTeamRatePct, buildTrainingRanking, type TrainingRankingResult } from '../lib/trainingRanking';
+import { buildTrainingRanking, type TrainingRankingResult } from '../lib/trainingRanking';
 import { fetchTeamTrainingParticipationPct } from '../lib/teamTrainingParticipation';
+import { loadSquadTrainingParticipation } from '../lib/teamTrainingParticipationStats';
 import { loadTeamPlayersTrainingStats } from '../lib/trainingStatsLoader';
 
 const EMPTY_RESULT: TrainingRankingResult = {
@@ -11,6 +12,7 @@ const EMPTY_RESULT: TrainingRankingResult = {
   minimumBasis: 0,
   teamAverageActivityPct: null,
   teamParticipationPct: null,
+  sessionParticipations: [],
 };
 
 export function useTeamTrainingRanking(
@@ -46,15 +48,21 @@ export function useTeamTrainingRanking(
     setError(null);
     try {
       const playerIds = activePlayers.map((p) => p.id);
-      const [{ events, statsByPlayerId }, participationRpc] = await Promise.all([
+      const [{ events, statsByPlayerId }, participationRpc, squadParticipation] = await Promise.all([
         loadTeamPlayersTrainingStats(playerIds, sid),
         fetchTeamTrainingParticipationPct(sid),
+        loadSquadTrainingParticipation(sid, playerIds),
       ]);
       const sessionsCount = events.length;
       const ranking = buildTrainingRanking(activePlayers, statsByPlayerId, sessionsCount);
       const teamParticipationPct =
-        participationRpc.pct ?? averageQualifiedTeamRatePct(ranking.qualified);
-      setResult({ ...ranking, teamParticipationPct });
+        participationRpc.pct ??
+        squadParticipation.squadParticipationPct;
+      setResult({
+        ...ranking,
+        teamParticipationPct,
+        sessionParticipations: squadParticipation.sessions,
+      });
     } catch (e) {
       setResult(EMPTY_RESULT);
       setError(e instanceof Error ? e.message : String(e));

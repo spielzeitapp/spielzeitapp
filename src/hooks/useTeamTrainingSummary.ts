@@ -24,6 +24,7 @@ export function useTeamTrainingSummary(
     minimumBasis,
     teamAverageActivityPct,
     teamParticipationPct,
+    sessionParticipations,
     loading: rankingLoading,
     error: rankingError,
   } = useTeamTrainingRanking(players, teamSeasonId, enabled);
@@ -36,8 +37,17 @@ export function useTeamTrainingSummary(
       minimumBasis,
       teamAverageActivityPct,
       teamParticipationPct,
+      sessionParticipations,
     }),
-    [qualified, unqualified, sessionsCount, minimumBasis, teamAverageActivityPct, teamParticipationPct],
+    [
+      qualified,
+      unqualified,
+      sessionsCount,
+      minimumBasis,
+      teamAverageActivityPct,
+      teamParticipationPct,
+      sessionParticipations,
+    ],
   );
 
   const jugglingState = useJugglingChallenge(players, teamSeasonId, enabled);

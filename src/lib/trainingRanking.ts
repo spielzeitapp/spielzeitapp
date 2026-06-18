@@ -1,5 +1,6 @@
 import type { PlayerItem } from '../hooks/usePlayers';
 import type { TrainingAttendanceStats } from './trainingAttendance';
+import type { TrainingSessionParticipation } from './teamTrainingParticipationStats';
 import { EMPTY_TRAINING_STATS } from './trainingStatsLoader';
 
 export type TrainingRankingRow = {
@@ -16,6 +17,8 @@ export type TrainingRankingResult = {
   teamAverageActivityPct: number | null;
   /** Aggregierter Mannschaftswert (RPC oder Client-Fallback). */
   teamParticipationPct: number | null;
+  /** Beteiligung je vergangenem Training (Mannschaftsebene). */
+  sessionParticipations: TrainingSessionParticipation[];
 };
 
 /** Wertbare Trainings = explizit erfasst: Dabei + LAZ + Abwesend (für Ranking-Mindestbasis). */
@@ -178,5 +181,6 @@ export function buildTrainingRanking(
     minimumBasis,
     teamAverageActivityPct,
     teamParticipationPct: null,
+    sessionParticipations: [],
   };
 }

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-export type AttendanceStatus = "yes" | "no" | "injured" | "external_training";
+export type AttendanceStatus = "yes" | "no" | "sick" | "injured" | "external_training";
 
 export type EventAttendanceData = {
   yes: number;
   no: number;
+  sick: number;
   injured: number;
   external: number;
   unavailable: number;
@@ -64,7 +65,7 @@ export function useEventsAttendance(eventIds: string[]) {
     const eventIdToKey: Record<string, string> = {};
     for (const id of eventIds) {
       const key = String(id);
-      out[key] = { yes: 0, no: 0, injured: 0, external: 0, unavailable: 0, availabilityByPlayerId: {} };
+      out[key] = { yes: 0, no: 0, sick: 0, injured: 0, external: 0, unavailable: 0, availabilityByPlayerId: {} };
       eventIdToKey[key.toLowerCase()] = key;
     }
     for (const r of rows) {
@@ -78,18 +79,21 @@ export function useEventsAttendance(eventIds: string[]) {
           ? "yes"
           : st === "no" || st === "absent" || st === "declined"
             ? "no"
-            : st === "injured"
-              ? "injured"
-              : st === "external_training"
-                ? "external_training"
-                : null;
+            : st === "sick"
+              ? "sick"
+              : st === "injured"
+                ? "injured"
+                : st === "external_training"
+                  ? "external_training"
+                  : null;
       if (status) {
         out[eidKey].availabilityByPlayerId[pid] = status;
         if (status === "yes") out[eidKey].yes += 1;
         else if (status === "no") out[eidKey].no += 1;
+        else if (status === "sick") out[eidKey].sick += 1;
         else if (status === "injured") out[eidKey].injured += 1;
         else out[eidKey].external += 1;
-        if (status === "no" || status === "injured" || status === "external_training") {
+        if (status === "no" || status === "sick" || status === "injured" || status === "external_training") {
           out[eidKey].unavailable += 1;
         }
       }

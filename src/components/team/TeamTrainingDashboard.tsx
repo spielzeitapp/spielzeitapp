@@ -5,6 +5,7 @@ import { useTeamTrainingSummary } from '../../hooks/useTeamTrainingSummary';
 import { countUpcomingTeamTrainings } from '../../lib/trainingSeasonCounts';
 import type { TrainingRankingResult } from '../../lib/trainingRanking';
 import { TrainingKaiserCard } from './TrainingKaiserCard';
+import { TeamTrainingSessionsList } from './TeamTrainingSessionsList';
 import { JugglingChallengeCard } from './JugglingChallengeCard';
 import { ProfileHighlightTile } from './ProfileHighlightTile';
 import { COACH_STAT_TILES, StatIconTrendingUp } from './profile/profileStatIcons';
@@ -74,7 +75,7 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
         />
         <ProfileHighlightTile
           icon={<StatIconTrendingUp />}
-          title="Ø Beteiligung"
+          title="Ø Mannschaftsbeteiligung"
           value={participationLabel}
           sub={participationLabel !== 'Noch keine Daten' ? PARTICIPATION_EXPLICIT_BASIS_SUB : undefined}
         />
@@ -121,13 +122,17 @@ export const TeamTrainingDashboard: React.FC<Props> = ({
               loading={rankingLoading}
               error={rankingError}
             />
+            <TeamTrainingSessionsList
+              sessions={ranking.sessionParticipations}
+              loading={rankingLoading}
+            />
             <JugglingChallengeCard variant="teaser" />
             {ratedTrainingsCount > 0 ? (
               <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
                 <p className="text-[12px] text-white/60">
                   {ratedTrainingsCount} gewertete Team-Trainings in dieser Saison.
-                  {ranking.qualified.length > 0 && participationLabel !== 'Noch keine Daten'
-                    ? ` Ø gewertete Spieler (Beteiligung): ${participationLabel}.`
+                  {participationLabel !== 'Noch keine Daten'
+                    ? ` Ø Mannschaftsbeteiligung: ${participationLabel}.`
                     : ''}
                   {upcomingTrainings > 0 ? ` ${upcomingTrainings} ausständig.` : ''}
                 </p>

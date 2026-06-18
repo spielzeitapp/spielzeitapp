@@ -6,6 +6,7 @@ export type PremiumStatusBadgeTone = DsChipTone | 'warning' | 'selected';
 const TONE_MAP: Record<PremiumStatusBadgeTone, DsChipTone> = {
   present: 'present',
   absent: 'absent',
+  sick: 'sick',
   injured: 'injured',
   external: 'external',
   open: 'open',

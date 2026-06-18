@@ -349,6 +349,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
   const activityTrainingRatePct = trainingStats.activityRatePct;
   const trainingsPresent = trainingStats.present;
   const trainingsAbsent = trainingStats.absent;
+  const trainingsSick = trainingStats.sick;
   const trainingsInjured = trainingStats.injured;
   const trainingsExternal = trainingStats.external;
   const trainingsOpen = trainingStats.open;
@@ -727,6 +728,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
                     <SeasonMiniCell label="Dabei" value={String(trainingsPresent)} />
                     <SeasonMiniCell label="Abwesend" value={String(trainingsAbsent)} />
+                    <SeasonMiniCell label="Krank" value={String(trainingsSick)} />
                     <SeasonMiniCell label="Verletzt" value={String(trainingsInjured)} />
                     <SeasonMiniCell label="LAZ" value={String(trainingsExternal)} />
                     {trainingsOpen > 0 ? (
@@ -737,7 +739,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     ) : null}
                   </div>
                   <p className="mt-3 text-[11px] leading-relaxed text-white/55">
-                    Verletzt, offen und nicht erfasst zählen nicht in die Quoten.
+                    Krank, verletzt, LAZ, offen und nicht erfasst zählen nicht in die Team-Beteiligung.
+                    Aktivität berücksichtigt LAZ zusätzlich.
                   </p>
                 </>
               )}

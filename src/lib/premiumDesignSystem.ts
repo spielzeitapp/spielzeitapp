@@ -370,6 +370,7 @@ export const DS_CARD_FOOTER_DIVIDER = 'border-t border-[rgba(60,24,28,0.45)]';
 export type DsChipTone =
   | 'present'
   | 'absent'
+  | 'sick'
   | 'injured'
   | 'external'
   | 'open'
@@ -384,6 +385,8 @@ const CHIP_TONE: Record<DsChipTone, string> = {
   external: ATTENDANCE_CHIP_LAZ,
   absent:
     'h-[24px] px-2.5 text-[9px] font-bold uppercase tracking-[0.1em] leading-none bg-[rgba(100,14,24,0.38)] text-[#FF8D98] shadow-[0_0_14px_rgba(255,40,40,0.07)]',
+  sick:
+    'h-[24px] px-2.5 text-[9px] font-bold uppercase tracking-[0.1em] leading-none bg-[rgba(40,96,180,0.28)] text-[#8EC5FF] shadow-[0_0_12px_rgba(80,160,255,0.08)]',
   injured:
     'h-[24px] px-2.5 text-[9px] font-bold uppercase tracking-[0.1em] leading-none bg-[rgba(110,52,8,0.34)] text-[#FFB15A] shadow-[0_0_12px_rgba(255,138,0,0.07)]',
   open:
@@ -412,7 +415,7 @@ const ACTION_BASE =
   'h-10 min-w-0 rounded-[16px] border border-transparent px-3 text-[11px] font-semibold transition-[background,box-shadow] duration-150 disabled:cursor-default disabled:opacity-50 sm:text-[12px]';
 
 export function dsActionButtonClass(
-  tone: 'absent' | 'injured' | 'external' | 'present',
+  tone: 'absent' | 'sick' | 'injured' | 'external' | 'present',
   active?: boolean,
 ): string {
   const tones: Record<typeof tone, { idle: string; on: string }> = {
@@ -431,6 +434,10 @@ export function dsActionButtonClass(
     injured: {
       idle: 'bg-[rgba(110,52,8,0.26)] text-[#FFB15A] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] hover:bg-[rgba(110,52,8,0.32)]',
       on: 'bg-[rgba(110,52,8,0.34)] text-[#FFB15A] shadow-[0_0_14px_rgba(255,138,0,0.09),inset_0_1px_0_rgba(255,255,255,0.04)]',
+    },
+    sick: {
+      idle: 'bg-[rgba(40,96,180,0.22)] text-[#8EC5FF] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] hover:bg-[rgba(40,96,180,0.3)]',
+      on: 'bg-[rgba(40,96,180,0.34)] text-[#A8D4FF] shadow-[0_0_14px_rgba(80,160,255,0.12),inset_0_1px_0_rgba(255,255,255,0.04)]',
     },
   };
   return [ACTION_BASE, active ? tones[tone].on : tones[tone].idle].join(' ');

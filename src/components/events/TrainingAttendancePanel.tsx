@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { PlayerItem } from '../../hooks/usePlayers';
 import {
+  computeSessionParticipationPct,
   countTrainingAttendanceByStatus,
   trainingAttendanceBucketRank,
   trainingAttendanceLabel,
@@ -42,6 +43,7 @@ function comparePlayers(a: PlayerItem, b: PlayerItem): number {
 function statusTone(status: TrainingAttendanceStatus): PremiumStatusBadgeTone {
   if (status === 'present') return 'present';
   if (status === 'absent') return 'absent';
+  if (status === 'sick') return 'sick';
   if (status === 'injured') return 'injured';
   if (status === 'external') return 'external';
   if (status === 'legacy_unknown') return 'neutral';
@@ -49,14 +51,16 @@ function statusTone(status: TrainingAttendanceStatus): PremiumStatusBadgeTone {
 }
 
 const STAT_GRID_MAIN: {
-  key: keyof ReturnType<typeof countTrainingAttendanceByStatus>;
+  key: keyof ReturnType<typeof countTrainingAttendanceByStatus> | 'participation';
   label: string;
-  tone: DsChipTone;
+  tone: DsChipTone | 'participation';
 }[] = [
   { key: 'present', label: 'Dabei', tone: 'present' },
   { key: 'absent', label: 'Abwesend', tone: 'absent' },
+  { key: 'sick', label: 'Krank', tone: 'sick' },
   { key: 'injured', label: 'Verletzt', tone: 'injured' },
   { key: 'external', label: 'LAZ', tone: 'external' },
+  { key: 'participation', label: 'Beteiligung', tone: 'participation' },
 ];
 
 const STAT_BOX_BASE =
@@ -67,6 +71,8 @@ const STAT_BOX_TONE: Record<DsChipTone, string> = {
     'border-[rgba(40,255,120,0.14)] bg-[radial-gradient(ellipse_92%_82%_at_50%_0%,rgba(40,255,120,0.13)_0%,rgba(9,12,10,0.97)_54%,rgba(8,10,9,0.98)_100%)] text-[#9DFFC5] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_26px_rgba(40,255,120,0.11),0_8px_24px_rgba(0,0,0,0.38)]',
   absent:
     'border-[rgba(255,45,85,0.12)] bg-[radial-gradient(ellipse_96%_78%_at_50%_100%,rgba(110,16,28,0.2)_0%,rgba(11,8,10,0.97)_52%,rgba(10,8,9,0.98)_100%)] text-[#FF9AA6] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_24px_rgba(255,45,85,0.14),0_8px_24px_rgba(0,0,0,0.4)]',
+  sick:
+    'border-[rgba(80,160,255,0.14)] bg-[radial-gradient(ellipse_90%_72%_at_50%_0%,rgba(60,130,220,0.16)_0%,rgba(10,12,18,0.97)_48%,rgba(8,10,14,0.98)_100%)] text-[#8EC5FF] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_22px_rgba(80,160,255,0.1),0_8px_24px_rgba(0,0,0,0.38)]',
   injured:
     'border-[rgba(255,160,60,0.13)] bg-[radial-gradient(ellipse_90%_72%_at_50%_0%,rgba(255,138,0,0.15)_0%,rgba(14,11,9,0.96)_48%,rgba(12,10,9,0.97)_100%)] text-[#FFC078] shadow-[inset_0_1px_0_rgba(255,200,120,0.06),0_0_22px_rgba(255,138,0,0.12),0_8px_24px_rgba(0,0,0,0.38)]',
   external: ATTENDANCE_STAT_BOX_LAZ,
@@ -78,17 +84,21 @@ const STAT_BOX_TONE: Record<DsChipTone, string> = {
     'border-[rgba(255,45,85,0.12)] bg-[radial-gradient(ellipse_96%_78%_at_50%_100%,rgba(110,16,28,0.18)_0%,rgba(11,8,10,0.97)_52%,rgba(10,8,9,0.98)_100%)] text-[#FF9AA6] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_22px_rgba(255,45,85,0.12)]',
 };
 
+const PARTICIPATION_BOX =
+  'border-[rgba(255,255,255,0.1)] bg-[radial-gradient(ellipse_90%_80%_at_50%_0%,rgba(220,38,38,0.14)_0%,rgba(12,8,10,0.97)_55%,rgba(8,8,10,0.98)_100%)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(220,38,38,0.1),0_8px_24px_rgba(0,0,0,0.38)]';
+
 const STAT_LABEL_CLASS =
   'text-[8px] font-medium uppercase tracking-[0.1em] text-[#8E8E93] leading-[1.45]';
 
 const STAT_VALUE_CLASS = 'mt-2.5 text-[28px] font-bold tabular-nums leading-none tracking-tight text-inherit';
 
-function trainingStatBoxClass(tone: DsChipTone): string {
+function trainingStatBoxClass(tone: DsChipTone | 'participation'): string {
+  if (tone === 'participation') return [STAT_BOX_BASE, PARTICIPATION_BOX].join(' ');
   return [STAT_BOX_BASE, STAT_BOX_TONE[tone]].join(' ');
 }
 
 function trainingActionButtonClass(
-  tone: 'absent' | 'injured' | 'external' | 'present',
+  tone: 'absent' | 'sick' | 'injured' | 'external' | 'present',
   active?: boolean,
 ): string {
   const base =
@@ -105,6 +115,10 @@ function trainingActionButtonClass(
     absent: {
       idle: ATTENDANCE_ACTION_GLASS_IDLE,
       on: 'border border-[rgba(255,45,85,0.16)] bg-[rgba(82,12,22,0.44)] text-[#FF9AA6] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_26px_rgba(255,45,85,0.22)]',
+    },
+    sick: {
+      idle: ATTENDANCE_ACTION_GLASS_IDLE,
+      on: 'border border-[rgba(80,160,255,0.16)] bg-[rgba(24,64,120,0.42)] text-[#A8D4FF] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_24px_rgba(80,160,255,0.18)]',
     },
     injured: {
       idle: ATTENDANCE_ACTION_GLASS_IDLE,
@@ -134,6 +148,8 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
     return countTrainingAttendanceByStatus(statuses);
   }, [players, getStatus]);
 
+  const participationPct = useMemo(() => computeSessionParticipationPct(counts), [counts]);
+
   const sorted = useMemo(
     () =>
       [...players].sort((a, b) => {
@@ -153,7 +169,13 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
         {STAT_GRID_MAIN.map(({ key, label, tone }) => (
           <div key={key} className={trainingStatBoxClass(tone)}>
             <span className={STAT_LABEL_CLASS}>{label}</span>
-            <span className={STAT_VALUE_CLASS}>{counts[key]}</span>
+            <span className={STAT_VALUE_CLASS}>
+              {key === 'participation'
+                ? participationPct != null
+                  ? `${participationPct} %`
+                  : '—'
+                : counts[key]}
+            </span>
           </div>
         ))}
         {showLegacy ? (
@@ -191,7 +213,15 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                     />
                   }
                   footer={
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+                      <button
+                        type="button"
+                        disabled={status === 'present'}
+                        onClick={() => onSetStatus(player.id, 'present')}
+                        className={trainingActionButtonClass('present', status === 'present')}
+                      >
+                        Dabei
+                      </button>
                       <button
                         type="button"
                         disabled={status === 'absent'}
@@ -199,6 +229,14 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                         className={trainingActionButtonClass('absent', status === 'absent')}
                       >
                         Abwesend
+                      </button>
+                      <button
+                        type="button"
+                        disabled={status === 'sick'}
+                        onClick={() => onSetStatus(player.id, 'sick')}
+                        className={trainingActionButtonClass('sick', status === 'sick')}
+                      >
+                        Krank
                       </button>
                       <button
                         type="button"
@@ -215,14 +253,6 @@ export const TrainingAttendancePanel: React.FC<Props> = ({
                         className={trainingActionButtonClass('external', status === 'external')}
                       >
                         LAZ
-                      </button>
-                      <button
-                        type="button"
-                        disabled={status === 'present'}
-                        onClick={() => onSetStatus(player.id, 'present')}
-                        className={trainingActionButtonClass('present', status === 'present')}
-                      >
-                        Dabei
                       </button>
                     </div>
                   }
