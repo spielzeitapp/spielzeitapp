@@ -187,7 +187,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
       {!isOverview ? (
         <SectionTitle
           as="h2"
-          subtitle="Ø Beteiligung = Dabei / (Dabei + Abwesend). Trainingskaiser nutzt individuelle Aktivität."
+          subtitle="Ø Beteiligung = Dabei / (Dabei + Abwesend). Trainingskaiser bewertet Aktivität: Dabei + LAZ."
           subtitleClassName="mt-1.5 text-[12px] leading-relaxed text-white/55"
           className="[&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:normal-case"
         >
@@ -197,9 +197,14 @@ export const TrainingKaiserCard: React.FC<Props> = ({
           Trainingskaiser
         </SectionTitle>
       ) : (
-        <SectionTitle as="h3" className="[&>h3]:text-base [&>h3]:font-semibold [&>h3]:normal-case">
-          Top 3 Trainingskaiser
-        </SectionTitle>
+        <>
+          <SectionTitle as="h3" className="[&>h3]:text-base [&>h3]:font-semibold [&>h3]:normal-case">
+            Top 3 Trainingskaiser
+          </SectionTitle>
+          <p className="mt-1 text-[11px] leading-relaxed text-white/50">
+            Trainingskaiser bewertet Aktivität: Dabei + LAZ.
+          </p>
+        </>
       )}
 
       {loading ? (

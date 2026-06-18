@@ -14,7 +14,6 @@ import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
 import { useTeamTrainingRanking } from "../../hooks/useTeamTrainingRanking";
 import { useTrainingParticipationAccess } from "../../hooks/useTrainingParticipationAccess";
 import { formatSquadParticipationLabel } from "../../lib/trainingRanking";
-import { resolvePlayerAvailabilityStatusLabel } from "../../lib/playerAvailability";
 import { dsPrimaryCtaClass } from "../../lib/premiumDesignSystem";
 import { getPositionFull, getPositionLabel, getTrainingPositionDisplay } from "../../lib/positionLabels";
 
@@ -298,6 +297,27 @@ function PlayerAvailabilityBadge({ label }: { label: "Aktiv" | "Verletzt" | "LAZ
   );
 }
 
+function PlayerStatusBadgesRow({ isLaz, isInjured }: { isLaz: boolean; isInjured: boolean }) {
+  if (!isLaz && !isInjured) {
+    return <PlayerAvailabilityBadge label="Aktiv" />;
+  }
+
+  return (
+    <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
+      {isLaz ? <PlayerAvailabilityBadge label="LAZ" /> : null}
+      {isInjured ? <PlayerAvailabilityBadge label="Verletzt" /> : null}
+    </span>
+  );
+}
+
+function PlayerStatusBadges({ isLaz, isInjured }: { isLaz: boolean; isInjured: boolean }) {
+  return (
+    <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
+      <PlayerStatusBadgesRow isLaz={isLaz} isInjured={isInjured} />
+    </div>
+  );
+}
+
 function TrainingMetricTile({ label, value }: { label: string; value: string }) {
   return (
     <div className={PROFILE_METRIC_TILE}>
@@ -346,29 +366,49 @@ function ProfileTrainingOverviewCompact({
   loading,
   teamRatePct,
   activityRatePct,
-  availabilityLabel,
+  isLaz,
+  isInjured,
+  present,
+  absent,
+  sick,
+  injured,
+  external,
 }: {
   loading: boolean;
   teamRatePct: number;
   activityRatePct: number;
-  availabilityLabel: "Aktiv" | "Verletzt" | "LAZ";
+  isLaz: boolean;
+  isInjured: boolean;
+  present: number;
+  absent: number;
+  sick: number;
+  injured: number;
+  external: number;
 }) {
   if (loading) {
     return <p className="mt-4 text-[12px] text-white/55">Lade Trainingsdaten…</p>;
   }
+
+  const summaryFull = `${present} Dabei · ${absent} Abwesend · ${sick} Krank · ${injured} Verletzt · ${external} LAZ`;
+  const summaryCompact = `${present} Dabei · ${absent} Abwesend · ${teamRatePct} %`;
+
   return (
     <div className={`mt-6 p-3.5 sm:p-4 ${PROFILE_GLASS_PANEL}`}>
       <div className="flex items-center justify-between gap-2">
         <h4 className="whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-300/85">
           Training
         </h4>
-        <PlayerAvailabilityBadge label={availabilityLabel} />
+        <PlayerStatusBadgesRow isLaz={isLaz} isInjured={isInjured} />
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <TrainingMetricTile label="Spielerquote" value={`${teamRatePct} %`} />
         <TrainingMetricTile label="Aktivität" value={`${activityRatePct} %`} />
       </div>
-      <p className="mt-2.5 text-[10px] text-white/40">Details im Tab Training</p>
+      <p className="mt-2.5 whitespace-nowrap text-[11px] text-white/50">
+        <span className="hidden min-[380px]:inline">{summaryFull}</span>
+        <span className="min-[380px]:hidden">{summaryCompact}</span>
+      </p>
+      <p className="mt-1 text-[10px] text-white/40">Details im Tab Training</p>
     </div>
   );
 }
@@ -434,7 +474,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     canViewTrainingParticipation,
   );
   const squadParticipationPct = teamParticipationPct;
-  const availabilityLabel = resolvePlayerAvailabilityStatusLabel(player);
   const pastTeamTrainings = sessionsCount > 0 ? sessionsCount : trainingStats.sessionsCounted;
 
   const goalsPerGameDisplay = useMemo(() => {
@@ -595,11 +634,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             initials={initials(player)}
           />
 
-          {(player.is_injured || player.is_laz_player) ? (
-            <div className="mb-3 flex justify-center">
-              <PlayerAvailabilityBadge label={availabilityLabel} />
-            </div>
-          ) : null}
+          <PlayerStatusBadges isLaz={lazToggleChecked} isInjured={injuredToggleChecked} />
 
           {ageLabel || birthYearLabel ? (
             <div className="mb-3 grid grid-cols-2 gap-1.5">
@@ -739,7 +774,13 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   loading={trainingStatsLoading || teamRankingLoading}
                   teamRatePct={teamTrainingRatePct}
                   activityRatePct={activityTrainingRatePct}
-                  availabilityLabel={availabilityLabel}
+                  isLaz={lazToggleChecked}
+                  isInjured={injuredToggleChecked}
+                  present={trainingsPresent}
+                  absent={trainingsAbsent}
+                  sick={trainingsSick}
+                  injured={trainingsInjured}
+                  external={trainingsExternal}
                 />
               ) : null}
 
@@ -839,7 +880,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     Trainingsbeteiligung
                   </h4>
                 </div>
-                <PlayerAvailabilityBadge label={availabilityLabel} />
+                <PlayerStatusBadgesRow isLaz={isLaz} isInjured={isInjured} />
               </div>
               {trainingStatsLoading ? (
                 <p className="mt-4 text-[13px] text-white/55">Lade Trainingsdaten…</p>
