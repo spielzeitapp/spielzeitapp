@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Smartphone, Trophy } from 'lucide-react';
 import { useAppHasLiveMatch } from '../../hooks/useAppHasLiveMatch';
 import { markIntroFlowCompleted } from './introFlowSession';
-import welcomeHeroBg from '../../assets/branding/spielzeitapp-welcome-bg.jpg';
+import welcomeHeroBg from '../../assets/branding/spielzeitapp-welcome-bg-neu.jpg';
 import spielzeitappIcon from '../../assets/branding/spielzeitapp-icon.png';
 
 /** Primär „Zur App“: gleiche Route wie BottomNav „Home“ (`AppHomePage`). */
