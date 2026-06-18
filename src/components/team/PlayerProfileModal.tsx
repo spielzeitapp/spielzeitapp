@@ -15,9 +15,20 @@ import { useTeamTrainingRanking } from "../../hooks/useTeamTrainingRanking";
 import { useTrainingParticipationAccess } from "../../hooks/useTrainingParticipationAccess";
 import { formatSquadParticipationLabel } from "../../lib/trainingRanking";
 import { resolvePlayerAvailabilityStatusLabel } from "../../lib/playerAvailability";
-import { Button } from "../../app/components/ui/Button";
-import { AppButton } from "../ui/AppButton";
+import { dsPrimaryCtaClass } from "../../lib/premiumDesignSystem";
 import { getPositionFull, getPositionLabel, getTrainingPositionDisplay } from "../../lib/positionLabels";
+
+const PROFILE_GLASS_PANEL =
+  "overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.22)] bg-gradient-to-br from-[rgba(18,18,20,0.98)] to-[rgba(60,10,18,0.18)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(220,38,38,0.08)]";
+
+const PROFILE_METRIC_TILE =
+  "rounded-xl border border-[rgba(220,38,38,0.16)] bg-[rgba(8,8,10,0.72)] px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]";
+
+const PROFILE_PROGRESS_TRACK =
+  "mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)] ring-1 ring-[rgba(255,255,255,0.04)]";
+
+const PROFILE_SETTINGS_PANEL =
+  "overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.2)] bg-gradient-to-br from-[rgba(14,14,16,0.98)] to-[rgba(45,8,14,0.35)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_20px_rgba(220,38,38,0.06)]";
 
 export type PlayerProfileModalProps = {
   player: PlayerItem;
@@ -115,9 +126,9 @@ function formatAgeLabel(birthdate: string | null | undefined): string | null {
 
 function SeasonMiniCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-black/35 px-2.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-      <div className="text-[12px] font-semibold uppercase leading-tight tracking-wide text-white/60">{label}</div>
-      <div className="mt-0.5 text-[22px] font-bold tabular-nums text-white">{value}</div>
+    <div className={`${PROFILE_METRIC_TILE} text-center`}>
+      <div className="whitespace-nowrap text-[10px] font-medium tracking-wide text-white/50">{label}</div>
+      <div className="mt-0.5 text-[20px] font-bold tabular-nums leading-none text-white">{value}</div>
     </div>
   );
 }
@@ -193,7 +204,7 @@ function PlayerSpecialSettingsSection({ children }: { children: React.ReactNode 
       >
         Spezielle Einstellungen
       </h3>
-      <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.035)_0%,rgba(0,0,0,0.32)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className={PROFILE_SETTINGS_PANEL}>
         {children}
       </div>
     </section>
@@ -214,18 +225,24 @@ function SpecialSettingToggleRow({
   checked: boolean;
   disabled?: boolean;
   error?: string | null;
-  accent?: "green" | "amber";
+  accent?: "violet" | "amber";
   onChange: (next: boolean) => void;
 }) {
   return (
     <div
-      className={`flex items-center justify-between gap-3 border-b border-white/[0.06] px-3 py-2.5 last:border-b-0 ${
-        disabled ? "opacity-60" : ""
-      }`}
+      className={[
+        "flex items-center justify-between gap-3 border-b border-[rgba(220,38,38,0.1)] px-3 py-3 last:border-b-0 sm:px-3.5",
+        checked
+          ? accent === "amber"
+            ? "bg-[rgba(88,46,10,0.12)]"
+            : "bg-[rgba(46,16,88,0.12)]"
+          : "bg-transparent",
+        disabled ? "opacity-60" : "",
+      ].join(" ")}
     >
       <div className="min-w-0 flex-1 pr-1">
-        <p className="text-[13px] font-semibold leading-tight text-white/88">{label}</p>
-        <p className="mt-0.5 text-[11px] leading-snug text-white/48">{hint}</p>
+        <p className="whitespace-nowrap text-[13px] font-semibold leading-tight text-white/88">{label}</p>
+        <p className="mt-0.5 text-[11px] leading-snug text-white/45">{hint}</p>
         {error ? (
           <p className="mt-1 text-[11px] leading-snug text-red-300/90" role="alert">
             {error}
@@ -240,19 +257,23 @@ function SpecialSettingToggleRow({
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={[
-          "relative h-[26px] w-[44px] shrink-0 rounded-full border transition-colors duration-200",
+          "relative h-[28px] w-[48px] shrink-0 rounded-full border transition-all duration-200",
           checked
             ? accent === "amber"
-              ? "border-amber-400/35 bg-amber-900/55"
-              : "border-emerald-400/35 bg-emerald-900/55"
-            : "border-white/14 bg-white/[0.08]",
+              ? "border-amber-500/45 bg-amber-950/75 shadow-[0_0_16px_rgba(251,191,36,0.18)]"
+              : "border-violet-500/40 bg-violet-950/70 shadow-[0_0_16px_rgba(139,92,246,0.15)]"
+            : "border-[rgba(255,255,255,0.08)] bg-[rgba(0,0,0,0.5)]",
           disabled ? "cursor-not-allowed" : "cursor-pointer",
         ].join(" ")}
       >
         <span
           className={[
-            "absolute top-[2px] h-[20px] w-[20px] rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.45)] transition-[left] duration-200",
-            checked ? "left-[20px]" : "left-[2px]",
+            "absolute top-[3px] h-[20px] w-[20px] rounded-full shadow-[0_2px_6px_rgba(0,0,0,0.5)] transition-[left,background-color] duration-200",
+            checked
+              ? accent === "amber"
+                ? "left-[24px] bg-amber-100"
+                : "left-[24px] bg-violet-100"
+              : "left-[3px] bg-white/75",
           ].join(" ")}
           aria-hidden
         />
@@ -264,16 +285,60 @@ function SpecialSettingToggleRow({
 function PlayerAvailabilityBadge({ label }: { label: "Aktiv" | "Verletzt" | "LAZ" }) {
   const styles =
     label === "Verletzt"
-      ? "border-amber-500/35 bg-amber-500/12 text-amber-300"
+      ? "border-amber-500/35 bg-gradient-to-br from-amber-950/55 to-amber-900/15 text-amber-200 shadow-[0_0_18px_rgba(251,191,36,0.14)]"
       : label === "LAZ"
-        ? "border-violet-500/30 bg-violet-500/10 text-violet-300"
-        : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
+        ? "border-violet-500/35 bg-gradient-to-br from-violet-950/55 to-violet-900/15 text-violet-200 shadow-[0_0_18px_rgba(139,92,246,0.14)]"
+        : "border-emerald-500/35 bg-gradient-to-br from-emerald-950/55 to-emerald-900/15 text-emerald-200 shadow-[0_0_18px_rgba(52,211,153,0.14)]";
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${styles}`}
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${styles}`}
     >
       {label}
     </span>
+  );
+}
+
+function TrainingMetricTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={PROFILE_METRIC_TILE}>
+      <p className="whitespace-nowrap text-[10px] font-medium text-white/50">{label}</p>
+      <p className="mt-1 text-[20px] font-bold tabular-nums leading-none text-white">{value}</p>
+    </div>
+  );
+}
+
+function TrainingProgressRow({
+  label,
+  pct,
+  detail,
+  variant,
+}: {
+  label: string;
+  pct: number;
+  detail: string;
+  variant: "quote" | "activity";
+}) {
+  const fillClass =
+    variant === "quote"
+      ? "bg-gradient-to-r from-[rgba(170,28,38,0.9)] to-[rgba(210,70,45,0.8)] shadow-[0_0_14px_rgba(220,38,38,0.22)]"
+      : "bg-gradient-to-r from-[rgba(90,50,160,0.75)] to-[rgba(35,130,85,0.8)] shadow-[0_0_14px_rgba(100,60,180,0.18)]";
+
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-2">
+        <span className="shrink-0 whitespace-nowrap text-[13px] text-white/70">{label}</span>
+        <div className="min-w-0 text-right">
+          <span className="text-[20px] font-bold tabular-nums text-white">{pct}%</span>
+          <p className="mt-0.5 whitespace-nowrap text-[11px] text-white/45">{detail}</p>
+        </div>
+      </div>
+      <div className={PROFILE_PROGRESS_TRACK}>
+        <div
+          className={`h-full rounded-full ${fillClass}`}
+          style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -292,22 +357,18 @@ function ProfileTrainingOverviewCompact({
     return <p className="mt-4 text-[12px] text-white/55">Lade Trainingsdaten…</p>;
   }
   return (
-    <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+    <div className={`mt-6 p-3.5 sm:p-4 ${PROFILE_GLASS_PANEL}`}>
       <div className="flex items-center justify-between gap-2">
-        <h4 className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-300/85">Training</h4>
+        <h4 className="whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-300/85">
+          Training
+        </h4>
         <PlayerAvailabilityBadge label={availabilityLabel} />
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <div className="rounded-xl border border-white/8 bg-white/[0.03] px-2.5 py-2">
-          <p className="text-[10px] font-medium text-white/50">Spielerquote</p>
-          <p className="mt-0.5 text-[20px] font-bold tabular-nums text-white">{teamRatePct} %</p>
-        </div>
-        <div className="rounded-xl border border-white/8 bg-white/[0.03] px-2.5 py-2">
-          <p className="text-[10px] font-medium text-white/50">Aktivität</p>
-          <p className="mt-0.5 text-[20px] font-bold tabular-nums text-white">{activityRatePct} %</p>
-        </div>
+        <TrainingMetricTile label="Spielerquote" value={`${teamRatePct} %`} />
+        <TrainingMetricTile label="Aktivität" value={`${activityRatePct} %`} />
       </div>
-      <p className="mt-2 text-[10px] text-white/40">Details im Tab Training</p>
+      <p className="mt-2.5 text-[10px] text-white/40">Details im Tab Training</p>
     </div>
   );
 }
@@ -320,7 +381,7 @@ function ProfileSaveSnackbar({ visible }: { visible: boolean }) {
       role="status"
       aria-live="polite"
     >
-      <div className="rounded-full border border-white/12 bg-[rgba(8,8,12,0.94)] px-4 py-2 text-[13px] font-medium text-white/92 shadow-[0_10px_36px_rgba(0,0,0,0.55)] backdrop-blur-md">
+      <div className="rounded-full border border-[rgba(220,38,38,0.2)] bg-[rgba(8,8,12,0.94)] px-4 py-2 text-[13px] font-medium text-white/92 shadow-[0_10px_36px_rgba(0,0,0,0.55)] backdrop-blur-md">
         Gespeichert
       </div>
     </div>
@@ -518,7 +579,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
         />
 
         <div
-          className="min-h-0 min-w-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 pt-2 [-webkit-overflow-scrolling:touch] sm:px-4"
+          className="min-h-0 min-w-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 pt-2 [-webkit-overflow-scrolling:touch] [hyphens:none] sm:px-4"
           style={{ paddingBottom: `calc(${APP_BOTTOM_SCROLL_PAD})` }}
         >
           <ProfileHeroCard
@@ -567,6 +628,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 checked={lazToggleChecked}
                 disabled={lazSaving}
                 error={lazError}
+                accent="violet"
                 onChange={(next) => void handleLazPlayerToggle(next)}
               />
               <SpecialSettingToggleRow
@@ -582,8 +644,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           ) : null}
 
           {/* Sticky tabs */}
-          <div className="sticky top-0 z-10 -mx-3 mb-4 border-b border-white/10 bg-[linear-gradient(180deg,rgba(0,0,0,0.92)_0%,rgba(0,0,0,0.82)_100%)] px-1 py-1.5 backdrop-blur-md sm:-mx-4">
-            <div className="flex gap-1 rounded-xl border border-white/10 bg-black/40 p-0.5">
+          <div className="sticky top-0 z-10 -mx-3 mb-4 border-b border-[rgba(220,38,38,0.12)] bg-[linear-gradient(180deg,rgba(8,4,6,0.96)_0%,rgba(0,0,0,0.88)_100%)] px-1 py-1.5 backdrop-blur-md sm:-mx-4">
+            <div className="flex gap-1 rounded-xl border border-[rgba(220,38,38,0.16)] bg-[rgba(8,8,10,0.85)] p-0.5">
               {visibleTabs.map((t) => {
                 const active = profileTab === t.id;
                 return (
@@ -592,7 +654,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     type="button"
                     onClick={() => setProfileTab(t.id)}
                     className={[
-                      "min-h-[34px] flex-1 rounded-lg px-1 py-1.5 text-[12px] font-bold transition-all sm:min-h-[38px] sm:px-1.5",
+                      "min-h-[34px] flex-1 whitespace-nowrap rounded-lg px-1 py-1.5 text-[11px] font-bold transition-all sm:min-h-[38px] sm:px-1.5 sm:text-[12px]",
                       active
                         ? "border border-red-500/40 bg-red-600/25 text-white shadow-[0_0_20px_rgba(220,38,38,0.35)]"
                         : "border border-transparent text-white/60 hover:text-white/80",
@@ -612,7 +674,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   ? [0, 1, 2, 3].map((i) => (
                       <div
                         key={`st-skel-${i}`}
-                        className="h-[4.75rem] animate-pulse rounded-2xl border border-white/5 bg-white/[0.07]"
+                        className="h-[4.75rem] animate-pulse rounded-2xl border border-[rgba(220,38,38,0.12)] bg-[rgba(25,25,28,0.45)]"
                       />
                     ))
                   : (
@@ -699,7 +761,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   ))}
                 </div>
               ) : lastMatches.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-white/15 bg-white/[0.03] py-8 text-center text-sm text-white/70">
+                <p className="rounded-xl border border-dashed border-[rgba(220,38,38,0.2)] bg-[rgba(8,8,10,0.5)] py-8 text-center text-sm text-white/60">
                   Noch keine Einsatzdaten
                 </p>
               ) : (
@@ -752,7 +814,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 ].map((c) => (
                   <div
                     key={c.title}
-                    className="rounded-2xl border border-white/10 bg-gradient-to-r from-red-950/35 to-black/40 px-3 py-3.5"
+                    className={`px-3 py-3.5 sm:px-3.5 ${PROFILE_GLASS_PANEL}`}
                   >
                     <div className="flex items-center gap-2">
                       <Trophy className="h-5 w-5 shrink-0 text-red-400/80" strokeWidth={1.75} aria-hidden />
@@ -769,67 +831,46 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           ) : null}
 
           {profileTab === "training" ? (
-            <div className="rounded-2xl border border-white/10 bg-black/35 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-              <div className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-red-400/85" strokeWidth={1.75} aria-hidden />
-                <h4 className="text-[12px] font-extrabold uppercase tracking-wide text-red-300/90">
-                  Trainingsbeteiligung
-                </h4>
+            <div className={`p-3.5 sm:p-4 ${PROFILE_GLASS_PANEL}`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Activity className="h-5 w-5 shrink-0 text-red-400/85" strokeWidth={1.75} aria-hidden />
+                  <h4 className="whitespace-nowrap text-[12px] font-extrabold uppercase tracking-wide text-red-300/90">
+                    Trainingsbeteiligung
+                  </h4>
+                </div>
+                <PlayerAvailabilityBadge label={availabilityLabel} />
               </div>
               {trainingStatsLoading ? (
-                <p className="mt-4 text-[13px] text-white/65">Lade Trainingsdaten…</p>
+                <p className="mt-4 text-[13px] text-white/55">Lade Trainingsdaten…</p>
               ) : trainingStatsError ? (
                 <p className="mt-4 text-[13px] text-red-300/90">{trainingStatsError}</p>
               ) : (
                 <>
-                  <p className="mt-4 text-[12px] text-white/55">
-                    Saison:{' '}
+                  <p className="mt-4 text-[12px] text-white/50">
+                    Saison:{" "}
                     <span className="font-medium text-white/75">
                       {pastTeamTrainings} vergangene Team-Trainings
                     </span>
                   </p>
                   {!teamRankingLoading && squadParticipationPct != null ? (
-                    <p className="mt-2 text-[12px] text-white/55">
+                    <p className="mt-2 text-[12px] text-white/50">
                       {formatSquadParticipationLabel(squadParticipationPct)}
                     </p>
                   ) : null}
-                  <div className="mt-4 space-y-3">
-                    <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-[13px] text-white/70">Spielerquote</span>
-                        <div className="shrink-0 text-right">
-                          <span className="text-[20px] font-bold tabular-nums text-white">{teamTrainingRatePct}%</span>
-                          <p className="mt-0.5 text-xs text-white/60">
-                            {trainingsPresent} von {teamTrainingBasis} Trainings
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/10">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-red-600 via-red-500 to-orange-400"
-                          style={{ width: `${Math.min(100, Math.max(0, teamTrainingRatePct))}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-[13px] text-white/70">Aktivität</span>
-                        <div className="shrink-0 text-right">
-                          <span className="text-[20px] font-bold tabular-nums text-white">
-                            {activityTrainingRatePct}%
-                          </span>
-                          <p className="mt-0.5 text-xs text-white/60">
-                            {activityTrainingNumerator} von {activityTrainingBasis} Trainings
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/10">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-violet-600 via-red-500 to-emerald-500"
-                          style={{ width: `${Math.min(100, Math.max(0, activityTrainingRatePct))}%` }}
-                        />
-                      </div>
-                    </div>
+                  <div className="mt-4 space-y-4">
+                    <TrainingProgressRow
+                      label="Spielerquote"
+                      pct={teamTrainingRatePct}
+                      detail={`${trainingsPresent} von ${teamTrainingBasis} Trainings`}
+                      variant="quote"
+                    />
+                    <TrainingProgressRow
+                      label="Aktivität"
+                      pct={activityTrainingRatePct}
+                      detail={`${activityTrainingNumerator} von ${activityTrainingBasis} Trainings`}
+                      variant="activity"
+                    />
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
                     <SeasonMiniCell label="Dabei" value={String(trainingsPresent)} />
@@ -838,7 +879,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     <SeasonMiniCell label="Verletzt" value={String(trainingsInjured)} />
                     <SeasonMiniCell label="LAZ" value={String(trainingsExternal)} />
                   </div>
-                  <p className="mt-3 text-[11px] leading-relaxed text-white/55">
+                  <p className="mt-3 text-[11px] leading-relaxed text-white/45">
                     Spielerquote: Dabei / (Dabei + Abwesend). Krank, verletzt und LAZ zählen neutral.
                     Aktivität berücksichtigt LAZ zusätzlich.
                   </p>
@@ -849,9 +890,13 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
           {canManage ? (
             <div className="mt-5 pb-1">
-              <AppButton type="button" variant="primary" size="lg" fullWidth onClick={onEdit}>
+              <button
+                type="button"
+                onClick={onEdit}
+                className={`w-full ${dsPrimaryCtaClass()} !min-h-[44px] !px-4 !py-2.5 !text-[15px] !font-semibold`}
+              >
                 Bearbeiten
-              </AppButton>
+              </button>
             </div>
           ) : null}
         </div>
