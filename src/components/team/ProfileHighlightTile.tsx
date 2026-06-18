@@ -40,7 +40,7 @@ export function ProfileHighlightTile({
         <div
           className={cn(
             'mt-1.5 font-bold leading-snug text-white',
-            compactValue ? 'break-words text-[15px]' : 'text-[22px] tabular-nums leading-none tracking-tight',
+            compactValue ? 'whitespace-nowrap text-[13px]' : 'text-[22px] tabular-nums leading-none tracking-tight',
           )}
         >
           {value}
@@ -51,7 +51,7 @@ export function ProfileHighlightTile({
           </p>
         ) : null}
         {sub ? (
-          <p className="mt-1 whitespace-nowrap text-[10px] leading-snug text-white/45">{sub}</p>
+          <p className="mt-1 text-[9px] leading-snug text-white/45 [hyphens:none]">{sub}</p>
         ) : null}
       </div>
     </div>

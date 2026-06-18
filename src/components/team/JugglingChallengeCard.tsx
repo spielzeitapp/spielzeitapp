@@ -61,7 +61,7 @@ export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', award
             ) : king ? (
               <>
                 <p className="mt-2 text-[11px] text-white/50">Top Spieler</p>
-                <p className="mt-0.5 truncate text-[17px] font-bold leading-tight text-white">{king.playerName}</p>
+                <p className="mt-0.5 break-words text-[17px] font-bold leading-tight text-white">{king.playerName}</p>
                 <p className="mt-1.5 whitespace-nowrap text-[13px] font-semibold text-amber-200/90">
                   {king.endValue} Gaberls
                   {kingPct != null ? ` · ${formatImprovementPercent(kingPct)}` : ''}
@@ -87,7 +87,7 @@ export const JugglingChallengeCard: React.FC<Props> = ({ variant = 'full', award
           <span className="mr-1.5" aria-hidden>
             ⚽
           </span>
-          Gaberl-Challenge
+          <span className="whitespace-nowrap">Gaberl-Challenge</span>
         </SectionTitle>
       )}
 

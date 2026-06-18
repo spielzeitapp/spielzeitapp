@@ -401,7 +401,7 @@ function ProfileTrainingOverviewCompact({
         <PlayerStatusBadgesRow isLaz={isLaz} isInjured={isInjured} />
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <TrainingMetricTile label="Spielerquote" value={`${teamRatePct} %`} />
+        <TrainingMetricTile label="Trainingsquote" value={`${teamRatePct} %`} />
         <TrainingMetricTile label="Aktivität" value={`${activityRatePct} %`} />
       </div>
       <p className="mt-2.5 whitespace-nowrap text-[11px] text-white/50">
@@ -880,7 +880,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     Trainingsbeteiligung
                   </h4>
                 </div>
-                <PlayerStatusBadgesRow isLaz={isLaz} isInjured={isInjured} />
+                <PlayerStatusBadgesRow isLaz={lazToggleChecked} isInjured={injuredToggleChecked} />
               </div>
               {trainingStatsLoading ? (
                 <p className="mt-4 text-[13px] text-white/55">Lade Trainingsdaten…</p>
@@ -901,7 +901,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   ) : null}
                   <div className="mt-4 space-y-4">
                     <TrainingProgressRow
-                      label="Spielerquote"
+                      label="Trainingsquote"
                       pct={teamTrainingRatePct}
                       detail={`${trainingsPresent} von ${teamTrainingBasis} Trainings`}
                       variant="quote"
@@ -920,8 +920,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     <SeasonMiniCell label="Verletzt" value={String(trainingsInjured)} />
                     <SeasonMiniCell label="LAZ" value={String(trainingsExternal)} />
                   </div>
-                  <p className="mt-3 text-[11px] leading-relaxed text-white/45">
-                    Spielerquote: Dabei / (Dabei + Abwesend). Krank, verletzt und LAZ zählen neutral.
+                  <p className="mt-3 text-[11px] leading-relaxed text-white/45 [hyphens:none]">
+                    Trainingsquote: Dabei / (Dabei + Abwesend). Krank, verletzt und LAZ zählen neutral.
                     Aktivität berücksichtigt LAZ zusätzlich.
                   </p>
                 </>

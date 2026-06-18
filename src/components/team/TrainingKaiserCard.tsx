@@ -8,7 +8,7 @@ import {
   hasTrainingTeamBasis,
   podiumMedal,
   teamRateTrafficLightClass,
-  teamRateTrafficLightEmoji,
+  teamRateTrafficLightDotClass,
   type TrainingRankingRow,
 } from '../../lib/trainingRanking';
 import { GlassCard, PremiumButton, PremiumCard, PremiumEmptyState, SectionTitle } from '../../ui';
@@ -50,7 +50,7 @@ function formatTeamLine(row: TrainingRankingRow): string {
   const { stats } = row;
   if (!hasTrainingTeamBasis(stats)) return 'Teamtraining: Keine Trainingsbasis';
   const basis = stats.present + stats.absent;
-  return `Teamtraining: ${stats.teamRatePct} % · ${stats.present} von ${basis}`;
+  return `Trainingsquote: ${stats.teamRatePct} % · ${stats.present} von ${basis}`;
 }
 
 function formatActivityDetailLine(row: TrainingRankingRow): string {
@@ -66,6 +66,15 @@ function formatCompletedTrainings(row: TrainingRankingRow): string {
   const basis = getValuableTrainingCount(row.stats);
   const unit = basis === 1 ? 'Training' : 'Trainings';
   return `${completed} von ${basis} ${unit} absolviert`;
+}
+
+function TeamRateTrafficLightDot({ pct }: { pct: number }) {
+  return (
+    <span
+      className={cn('inline-block h-1.5 w-1.5 shrink-0 rounded-full', teamRateTrafficLightDotClass(pct))}
+      aria-hidden
+    />
+  );
 }
 
 function InjuredLine({ count }: { count: number }) {
@@ -95,12 +104,12 @@ function PlayerNameWithTrafficLight({
           {podiumMedal(row.rank)}
         </span>
       ) : (
-        <span className="shrink-0 pt-0.5 text-[14px] leading-none" aria-hidden>
-          {hasTeamBasis ? teamRateTrafficLightEmoji(trafficPct) : '⚪'}
+        <span className="shrink-0 pt-1.5" aria-hidden>
+          {hasTeamBasis ? <TeamRateTrafficLightDot pct={trafficPct} /> : null}
         </span>
       )}
       <span className="min-w-0">
-        <span className="block truncate text-[15px] font-semibold leading-snug text-white">
+        <span className="block break-words text-[15px] font-semibold leading-snug text-white">
           {row.player.display_name}
         </span>
         <PlayerSpecialStatusBadges
@@ -145,7 +154,7 @@ function KaiserFeaturedCard({
           </span>
           Trainingskaiser
         </p>
-        <p className="mt-2 truncate text-[18px] font-bold leading-tight text-white">{row.player.display_name}</p>
+        <p className="mt-2 break-words text-[18px] font-bold leading-tight text-white">{row.player.display_name}</p>
         <PlayerSpecialStatusBadges
           isLaz={row.player.is_laz_player}
           isInjured={row.player.is_injured}
@@ -193,7 +202,7 @@ function PodiumRow({
         </span>
         {hasTeamBasis ? (
           <span className={cn('mt-0.5 block whitespace-nowrap text-[10px] font-medium tabular-nums', teamClass)}>
-            Quote {row.stats.teamRatePct} %
+            Trainingsquote {row.stats.teamRatePct} %
           </span>
         ) : null}
       </span>
@@ -234,12 +243,12 @@ function RankingCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="flex items-start gap-2 text-[14px] font-semibold leading-snug text-white">
-            <span className="shrink-0 pt-0.5" aria-hidden>
-              {hasTeamBasis ? teamRateTrafficLightEmoji(row.stats.teamRatePct) : '⚪'}
+            <span className="mr-1.5 shrink-0 pt-1" aria-hidden>
+              {hasTeamBasis ? <TeamRateTrafficLightDot pct={row.stats.teamRatePct} /> : null}
             </span>
             <span className="min-w-0">
               {showRank ? <span className="mr-1.5 tabular-nums text-white/45">{row.rank}.</span> : null}
-              <span className="truncate">{row.player.display_name}</span>
+              <span className="break-words">{row.player.display_name}</span>
               <PlayerSpecialStatusBadges
                 isLaz={row.player.is_laz_player}
                 isInjured={row.player.is_injured}
@@ -254,7 +263,7 @@ function RankingCard({
               {hasActivityBasis ? `Aktivität ${row.stats.activityRatePct} %` : 'Keine Trainingsbasis'}
             </span>
             {hasTeamBasis ? (
-              <span className={cn('ml-2 font-semibold', teamClass)}>Quote {row.stats.teamRatePct} %</span>
+              <span className={cn('ml-2 font-semibold', teamClass)}>Trainingsquote {row.stats.teamRatePct} %</span>
             ) : null}
           </p>
         </div>
@@ -380,7 +389,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
                     <span className="mr-1.5" aria-hidden>
                       📊
                     </span>
-                    Ø Spielerquote{' '}
+                    Ø Trainingsquote{' '}
                     <span className={cn('tabular-nums', activityRateColorClass(teamAverageActivityPct))}>
                       {teamAverageActivityPct} %
                     </span>
@@ -394,7 +403,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
               {!isOverview && (restQualified.length > 0 || qualified.length > 0) ? (
                 <div className="space-y-2">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
-                    Offizielles Ranking
+                    Trainingsranking
                   </p>
                   <div className="hidden overflow-x-auto sm:block">
                     <table className="w-full min-w-[560px] border-separate border-spacing-y-1.5 text-left text-[13px]">
@@ -403,7 +412,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
                           <th className="px-2 py-1 font-medium">Rang</th>
                           <th className="px-2 py-1 font-medium">Spieler</th>
                           <th className="px-2 py-1 font-medium">Aktivität</th>
-                          <th className="px-2 py-1 font-medium">Quote</th>
+                          <th className="px-2 py-1 font-medium">Trainingsquote</th>
                           <th className="px-2 py-1 font-medium">Basis</th>
                           <th className="px-2 py-1 font-medium">Dabei</th>
                           <th className="px-2 py-1 font-medium">LAZ</th>
@@ -438,10 +447,10 @@ export const TrainingKaiserCard: React.FC<Props> = ({
                                     onPlayerClick ? 'hover:text-red-200' : '',
                                   )}
                                 >
-                                  <span className="mr-1.5" aria-hidden>
-                                    {hasTeam ? teamRateTrafficLightEmoji(row.stats.teamRatePct) : '⚪'}
+                                  <span className="mr-1.5 inline-flex align-middle" aria-hidden>
+                                    {hasTeam ? <TeamRateTrafficLightDot pct={row.stats.teamRatePct} /> : null}
                                   </span>
-                                  <span className="truncate">{row.player.display_name}</span>
+                                  <span className="break-words">{row.player.display_name}</span>
                                   <PlayerSpecialStatusBadges
                                     isLaz={row.player.is_laz_player}
                                     isInjured={row.player.is_injured}
@@ -515,7 +524,7 @@ export const TrainingKaiserCard: React.FC<Props> = ({
             <GlassCard variant="subtle" showAmbientGlow={false} className="px-3 py-2.5">
               <p className="text-[11px] leading-relaxed text-white/50">
                 {sessionsCount} vergangene Trainingseinheiten · Mindestbasis fürs Ranking: {minimumBasis} wertbare
-                Trainings (Dabei + LAZ + Abwesend). Krank und Verletzt zählen nicht in die Spielerquoten.
+                Trainings (Dabei + LAZ + Abwesend). Krank und Verletzt zählen nicht in die Trainingsquoten.
               </p>
             </GlassCard>
           ) : null}

@@ -62,7 +62,13 @@ export function activityRateColorClass(pct: number): string {
   return 'text-red-400';
 }
 
-/** Ampel nach Spielerquote (teamRatePct) — nur Visualisierung. */
+/** Ampel nach Trainingsquote (teamRatePct) — nur Visualisierung. */
+export function teamRateTrafficLightDotClass(pct: number): string {
+  if (pct >= 75) return 'bg-emerald-400/65 shadow-[0_0_5px_rgba(52,211,153,0.28)]';
+  if (pct >= 50) return 'bg-amber-400/65 shadow-[0_0_5px_rgba(251,191,36,0.24)]';
+  return 'bg-red-400/65 shadow-[0_0_5px_rgba(248,113,113,0.24)]';
+}
+
 export function teamRateTrafficLightEmoji(pct: number): string {
   if (pct >= 75) return '🟢';
   if (pct >= 50) return '🟡';
@@ -111,7 +117,7 @@ export function averageQualifiedActivityRatePct(rows: TrainingRankingRow[]): num
 }
 
 /** Klartext für Durchschnitt nur gewerteter Spieler (≥ 30 % Trainingsbasis). */
-export const QUALIFIED_AVERAGE_LABEL = 'Ø Spielerquote';
+export const QUALIFIED_AVERAGE_LABEL = 'Ø Trainingsquote';
 
 /** Neutraler Trainer-Benchmark im Spielerprofil (Trainingskaiser-Basis). */
 export const KAISER_AVERAGE_LABEL = 'Ø Trainingskaiser-Wertung';

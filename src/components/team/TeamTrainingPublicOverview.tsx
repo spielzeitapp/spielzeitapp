@@ -94,7 +94,7 @@ export const TeamTrainingPublicOverview: React.FC<Props> = ({ players, teamSeaso
           Mannschaftswerte aus vergangenen Team-Trainings. Ausständige Termine zählen nicht.
         </p>
         <p className="mt-2 text-[12px] leading-relaxed text-white/50">
-          Persönliche Spielerquote und Aktivität findest du im Spielerprofil deines Kindes.
+          Persönliche Trainingsquote und Aktivität findest du im Spielerprofil deines Kindes.
         </p>
       </div>
 
