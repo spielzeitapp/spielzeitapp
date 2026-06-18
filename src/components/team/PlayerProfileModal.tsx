@@ -13,10 +13,7 @@ import { usePlayerStats } from "../../hooks/usePlayerStats";
 import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
 import { useTeamTrainingRanking } from "../../hooks/useTeamTrainingRanking";
 import { useTrainingParticipationAccess } from "../../hooks/useTrainingParticipationAccess";
-import {
-  formatSquadParticipationLabel,
-} from "../../lib/trainingRanking";
-import { computeSquadParticipationPct } from "../../lib/teamTrainingParticipationStats";
+import { formatSquadParticipationLabel } from "../../lib/trainingRanking";
 import { resolvePlayerAvailabilityStatusLabel } from "../../lib/playerAvailability";
 import { Button } from "../../app/components/ui/Button";
 import { AppButton } from "../ui/AppButton";
@@ -285,15 +282,11 @@ function ProfileTrainingOverviewCompact({
   teamRatePct,
   activityRatePct,
   availabilityLabel,
-  squadParticipationPct,
-  sessionsCount,
 }: {
   loading: boolean;
   teamRatePct: number;
   activityRatePct: number;
   availabilityLabel: "Aktiv" | "Verletzt" | "LAZ";
-  squadParticipationPct: number | null;
-  sessionsCount: number;
 }) {
   if (loading) {
     return <p className="mt-4 text-[12px] text-white/55">Lade Trainingsdaten…</p>;
@@ -314,11 +307,6 @@ function ProfileTrainingOverviewCompact({
           <p className="mt-0.5 text-[20px] font-bold tabular-nums text-white">{activityRatePct} %</p>
         </div>
       </div>
-      {squadParticipationPct != null && sessionsCount > 0 ? (
-        <p className="mt-2.5 text-[11px] text-white/50">
-          {formatSquadParticipationLabel(squadParticipationPct)} · {sessionsCount} Trainings
-        </p>
-      ) : null}
       <p className="mt-2 text-[10px] text-white/40">Details im Tab Training</p>
     </div>
   );
@@ -379,15 +367,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     error: trainingStatsError,
   } = usePlayerTrainingStats(player.id, player.team_season_id, canViewTrainingParticipation);
 
-  const { sessionParticipations, sessionsCount, loading: teamRankingLoading } = useTeamTrainingRanking(
+  const { sessionsCount, teamParticipationPct, loading: teamRankingLoading } = useTeamTrainingRanking(
     squadPlayers,
     player.team_season_id,
-    canViewTrainingParticipation && squadPlayers.length > 0,
+    canViewTrainingParticipation,
   );
-  const squadParticipationPct = useMemo(
-    () => computeSquadParticipationPct(sessionParticipations),
-    [sessionParticipations],
-  );
+  const squadParticipationPct = teamParticipationPct;
   const availabilityLabel = resolvePlayerAvailabilityStatusLabel(player);
   const pastTeamTrainings = sessionsCount > 0 ? sessionsCount : trainingStats.sessionsCounted;
 
@@ -693,8 +678,6 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   teamRatePct={teamTrainingRatePct}
                   activityRatePct={activityTrainingRatePct}
                   availabilityLabel={availabilityLabel}
-                  squadParticipationPct={squadParticipationPct}
-                  sessionsCount={pastTeamTrainings}
                 />
               ) : null}
 

@@ -64,6 +64,7 @@ type MatchRow = {
   score_home: number | null;
   score_away: number | null;
   live_elapsed_seconds: number | null;
+  planned_match_minutes: number | null;
 };
 
 type EventRow = {
@@ -263,7 +264,7 @@ function badgeForRow(args: {
     return { badgeKind: 'bank', badgeLabel: 'BANK', subInDisplayMinute: null };
   }
   if (wasStarter && subOutSec == null && minutes >= Math.max(0, totalMin - 1)) {
-    return { badgeKind: 'full', badgeLabel: "90'", subInDisplayMinute: null };
+    return { badgeKind: 'full', badgeLabel: `${totalMin}'`, subInDisplayMinute: null };
   }
   if (!wasStarter && subInSec != null) {
     const m = Math.max(1, Math.floor(subInSec / 60));
@@ -298,12 +299,20 @@ async function fetchLineupFallbackPlayerSets(matchIds: string[]): Promise<Map<st
   return map;
 }
 
+function resolveMatchDurationMinutes(match: MatchRow, finalSec: number): number {
+  const planned = Number(match.planned_match_minutes);
+  if (Number.isFinite(planned) && planned > 0) {
+    return Math.floor(planned);
+  }
+  return Math.floor(Math.max(0, finalSec) / 60);
+}
+
 async function fetchFinishedMatches(teamSeasonId: string): Promise<{ data: MatchRow[]; error: string | null }> {
   const tid = teamSeasonId?.trim();
   if (!tid) return { data: [], error: null };
   const { data, error } = await supabase
     .from('matches')
-    .select('id, opponent, match_date, status, score_home, score_away, live_elapsed_seconds')
+    .select('id, opponent, match_date, status, score_home, score_away, live_elapsed_seconds, planned_match_minutes')
     .eq('team_season_id', tid)
     .eq('status', 'finished')
     .order('match_date', { ascending: false });
@@ -396,6 +405,7 @@ function aggregateForPlayer(
     const squadSet = new Set<string>([...(lineupFallback.get(mid) ?? []), ...kickSet]);
     const engineEvs = eventRowsToEngineEvents(evs);
     const finalSec = resolveReplayAtMatchSecond(engineEvs, m.live_elapsed_seconds);
+    const matchDurationMin = resolveMatchDurationMinutes(m, finalSec);
     const playtimes = computePlayerPlaytimeFromEvents({
       kickoffStartingPlayerIds: kickoffIds,
       squadPlayerIds: [...squadSet],
@@ -408,11 +418,10 @@ function aggregateForPlayer(
 
     const sh = Number(m.score_home ?? 0);
     const sa = Number(m.score_away ?? 0);
-    const totalMin = Math.floor(finalSec / 60);
     const badge = badgeForRow({
       wasStarter,
       minutes: mMin,
-      totalMin,
+      totalMin: matchDurationMin,
       subInSec,
       subOutSec,
     });

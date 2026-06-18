@@ -3,8 +3,9 @@ import type { TrainingRankingRow, TrainingRankingResult } from './trainingRankin
 import { hasTrainingActivityBasis } from './trainingRanking';
 import { computeSquadParticipationPct } from './teamTrainingParticipationStats';
 
-/** Ø Beteiligung Trainingszentrale: nur Durchschnitt der Einheiten-Quoten (Client). */
+/** Ø Beteiligung: RPC (SECURITY DEFINER, auch für Eltern korrekt), sonst Client-Fallback für Staff. */
 export function resolveTeamParticipationPct(ranking: TrainingRankingResult): number | null {
+  if (ranking.teamParticipationPct != null) return ranking.teamParticipationPct;
   return computeSquadParticipationPct(ranking.sessionParticipations);
 }
 

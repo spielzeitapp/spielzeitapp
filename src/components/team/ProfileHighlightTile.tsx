@@ -51,7 +51,7 @@ export function ProfileHighlightTile({
           </p>
         ) : null}
         {sub ? (
-          <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-white/45">{sub}</p>
+          <p className="mt-1 whitespace-nowrap text-[10px] leading-snug text-white/45">{sub}</p>
         ) : null}
       </div>
     </div>
