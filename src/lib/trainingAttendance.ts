@@ -56,22 +56,13 @@ export function dbStatusToTrainingAttendance(
   if (s === 'sick') return 'sick';
   if (s === 'injured') return 'injured';
   if (s === 'external_training') return 'external';
-  if (s === 'maybe') return 'legacy_unknown';
-  return 'legacy_unknown';
-}
-
-function isPastTrainingStart(
-  eventStartsAtIso: string | null | undefined,
-  nowMs: number,
-): boolean {
-  if (!eventStartsAtIso) return true;
-  const t = Date.parse(eventStartsAtIso);
-  if (!Number.isFinite(t)) return true;
-  return t < nowMs;
+  if (s === 'maybe') return 'present';
+  return null;
 }
 
 /**
- * Live-/Termin-UI: fehlende event_attendance-Zeile = Dabei (bestehendes Verhalten).
+ * Live-/Termin-UI und Statistik: fehlende event_attendance-Zeile = Dabei.
+ * Vergangene Trainings ohne Zeile zählen als teilgenommen; es gibt kein „offen“ oder „nicht erfasst“.
  */
 export function resolveTrainingAttendanceStatus(
   rawDbStatus: string | null | undefined,
@@ -83,19 +74,13 @@ export function resolveTrainingAttendanceStatus(
   return 'present';
 }
 
-/**
- * Statistik/Auswertung: fehlende Zeile bei vergangenem Training = legacy_unknown (nicht im Nenner).
- * Zukünftiges/aktuelles Training ohne Zeile = open.
- */
+/** Statistik: identische Auflösung wie Live-UI (nur vergangene Trainings werden geladen). */
 export function resolveTrainingAttendanceStatusForStats(
   rawDbStatus: string | null | undefined,
   eventStartsAtIso: string | null | undefined,
   nowMs: number = Date.now(),
 ): TrainingAttendanceStatus {
-  const mapped = dbStatusToTrainingAttendance(rawDbStatus);
-  if (mapped) return mapped;
-  if (isPastTrainingStart(eventStartsAtIso, nowMs)) return 'legacy_unknown';
-  return 'open';
+  return resolveTrainingAttendanceStatus(rawDbStatus, eventStartsAtIso, nowMs);
 }
 
 export function trainingAttendanceToDb(status: TrainingAttendanceStatus): TrainingAttendanceDbStatus | null {
@@ -165,7 +150,7 @@ export function countTrainingOverviewFromStatuses(
 
 /**
  * Profil-Auswertung (vergangene Einheiten, bereits aufgelöste Status).
- * Krank, Verletzt, LAZ, open, legacy_unknown nicht im Nenner der Team-Quote.
+ * Krank, Verletzt und LAZ nicht im Nenner der Team-Quote (neutral).
  */
 export function computeTrainingAttendanceStats(
   sessionStatuses: TrainingAttendanceStatus[],
@@ -175,17 +160,13 @@ export function computeTrainingAttendanceStats(
   let sick = 0;
   let injured = 0;
   let external = 0;
-  let open = 0;
-  let legacyUnknown = 0;
 
   for (const st of sessionStatuses) {
-    if (st === 'present') present += 1;
+    if (st === 'present' || st === 'open' || st === 'legacy_unknown') present += 1;
     else if (st === 'absent') absent += 1;
     else if (st === 'sick') sick += 1;
     else if (st === 'injured') injured += 1;
     else if (st === 'external') external += 1;
-    else if (st === 'legacy_unknown') legacyUnknown += 1;
-    else open += 1;
   }
 
   const teamDenom = present + absent;
@@ -199,8 +180,8 @@ export function computeTrainingAttendanceStats(
     sick,
     injured,
     external,
-    open,
-    legacyUnknown,
+    open: 0,
+    legacyUnknown: 0,
     sessionsCounted: sessionStatuses.length,
   };
 }

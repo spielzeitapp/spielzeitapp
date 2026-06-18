@@ -46,8 +46,7 @@ function statusTone(status: TrainingAttendanceStatus): PremiumStatusBadgeTone {
   if (status === 'sick') return 'sick';
   if (status === 'injured') return 'injured';
   if (status === 'external') return 'external';
-  if (status === 'legacy_unknown') return 'neutral';
-  return 'open';
+  return 'present';
 }
 
 const STAT_GRID_MAIN: {

@@ -21,7 +21,7 @@ export type TrainingRankingResult = {
   sessionParticipations: TrainingSessionParticipation[];
 };
 
-/** Wertbare Trainings = explizit erfasst: Dabei + LAZ + Abwesend (für Ranking-Mindestbasis). */
+/** Wertbare Trainings = Dabei + LAZ + Abwesend (für Ranking-Mindestbasis). */
 export function getValuableTrainingCount(stats: TrainingAttendanceStats): number {
   return stats.present + stats.external + stats.absent;
 }
