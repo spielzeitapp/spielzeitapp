@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useSession } from '../auth/useSession';
 import { LivePageHeader, LivePremiumShell, LiveScheduleCtaLink } from '../components/live/LivePremiumShell';
+import { MatchCenterIdleView } from '../components/live/MatchCenterIdleView';
 import { LiveMatchScreen } from './live/LiveMatchScreen';
 import { PremiumCard, PremiumEmptyState } from '../ui';
 import { cn } from '../ui/lib/cn';
@@ -93,33 +94,7 @@ export const LivePage: React.FC = () => {
   const rows = liveMatches ?? [];
   const isFan = effectiveRole === 'fan';
   if (rows.length === 0) {
-    return (
-      <LivePremiumShell>
-        <LivePageHeader
-          subtitle={
-            isFan
-              ? 'Sobald dein Team live spielt, erscheint der Liveticker hier.'
-              : 'Sobald ein Spiel auf LIVE steht, erscheint der Liveticker hier.'
-          }
-        />
-        <PremiumEmptyState
-          variant="subtle"
-          title={
-            isFan
-              ? 'Aktuell läuft kein Live-Spiel für dein Team.'
-              : 'Aktuell kein Livespiel.'
-          }
-          description={
-            isFan
-              ? 'Schau im Spielplan nach dem nächsten Termin oder komm später wieder.'
-              : 'Starte ein Spiel im Spielplan oder warte, bis ein Match auf LIVE gesetzt wird.'
-          }
-          className="py-8"
-        >
-          <LiveScheduleCtaLink />
-        </PremiumEmptyState>
-      </LivePremiumShell>
-    );
+    return <MatchCenterIdleView isFan={isFan} />;
   }
 
   if (rows.length === 1) {

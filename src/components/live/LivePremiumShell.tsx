@@ -12,9 +12,12 @@ const CONTENT_CLASS = 'mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl 
 export function LivePremiumShell({
   children,
   centerContent = false,
+  matchCenter = false,
 }: {
   children: React.ReactNode;
   centerContent?: boolean;
+  /** Extra Bottom-Padding für Match Center (Bottom Nav + Safe Area). */
+  matchCenter?: boolean;
 }) {
   return (
     <PageShell
@@ -23,6 +26,7 @@ export function LivePremiumShell({
       className={SHELL_CLASS}
       contentClassName={cn(
         CONTENT_CLASS,
+        matchCenter && 'pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]',
         centerContent && 'flex min-h-[calc(100dvh-3rem)] flex-col items-center justify-center text-center',
       )}
     >
@@ -31,13 +35,19 @@ export function LivePremiumShell({
   );
 }
 
-export function LivePageHeader({ subtitle }: { subtitle?: string }) {
+export function LivePageHeader({
+  title = 'Live',
+  subtitle,
+}: {
+  title?: string;
+  subtitle?: string;
+}) {
   return (
     <SectionTitle
       subtitle={subtitle}
       className="[&>h1]:text-lg [&>h1]:font-bold [&>h1]:tracking-tight [&>h1]:normal-case"
     >
-      Live
+      {title}
     </SectionTitle>
   );
 }
