@@ -192,7 +192,16 @@ export const MatchPreparationPage: React.FC = () => {
     };
   }, [matchId]);
 
-  const getAttendance = (playerId: string): 'yes' | 'no' | null => attendanceByPlayerId[playerId.toLowerCase()] ?? null;
+  const getAttendance = (playerId: string): 'yes' | 'no' | null => {
+    const key = playerId.toLowerCase();
+    const explicit = attendanceByPlayerId[key];
+    if (explicit) return explicit;
+    const player = players.find((p) => p.id.toLowerCase() === key);
+    if (player?.is_injured && matchRow && !matchRow.live_started_at) {
+      return 'no';
+    }
+    return null;
+  };
 
   const squadEditable = useMemo(
     () =>

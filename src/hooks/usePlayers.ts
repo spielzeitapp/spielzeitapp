@@ -17,6 +17,10 @@ export type PlayerItem = {
   status: "active" | "paused" | "archived";
   /** Trainer markiert LAZ-Spieler – Eltern dürfen bei Trainings LAZ wählen. */
   is_laz_player: boolean;
+  /** Langfristig verletzt – zukünftige Events ohne explizite Zeile = verletzt. */
+  is_injured: boolean;
+  injured_since: string | null;
+  injured_until: string | null;
   /** first_name + ' ' + last_name, getrimmt – für Anzeige. */
   display_name: string;
 };
@@ -32,6 +36,9 @@ export type PlayerRow = {
   is_active?: boolean;
   status?: string | null;
   is_laz_player?: boolean | null;
+  is_injured?: boolean | null;
+  injured_since?: string | null;
+  injured_until?: string | null;
   cutout_url?: string | null;
 };
 
@@ -51,6 +58,10 @@ function normalizeProfileBirthdate(raw: string | null | undefined): string | nul
 }
 
 function normalizeIsLazPlayer(raw: unknown): boolean {
+  return raw === true;
+}
+
+function normalizeIsInjured(raw: unknown): boolean {
   return raw === true;
 }
 
@@ -77,6 +88,9 @@ function toPlayer(row: PlayerRow): PlayerItem {
           ? "archived"
           : "active",
     is_laz_player: normalizeIsLazPlayer(row.is_laz_player),
+    is_injured: normalizeIsInjured(row.is_injured),
+    injured_since: row.injured_since != null ? String(row.injured_since) : null,
+    injured_until: row.injured_until != null ? String(row.injured_until) : null,
     display_name,
   };
 }
@@ -105,7 +119,7 @@ export function usePlayers(teamSeasonId: string | null, options?: UsePlayersOpti
     let query = supabase
       .from("players")
       .select(
-        "id, team_season_id, first_name, last_name, jersey_number, position, is_active, status, is_laz_player, cutout_url",
+        "id, team_season_id, first_name, last_name, jersey_number, position, is_active, status, is_laz_player, is_injured, injured_since, injured_until, cutout_url",
       )
       .eq("team_season_id", teamSeasonId);
 

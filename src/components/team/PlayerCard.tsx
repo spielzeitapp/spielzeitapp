@@ -13,6 +13,7 @@ export type PlayerCardPlayer = {
   number?: number | null;
   jersey_number?: number | null;
   photo_url?: string | null;
+  is_injured?: boolean;
 };
 
 type PlayerCardProps = {
@@ -32,6 +33,11 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, selected = false
       onClick={onClick}
       trailing={
         <>
+          {player.is_injured ? (
+            <span className="mr-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-300">
+              Verletzt
+            </span>
+          ) : null}
           <span className={premiumJerseyNumberClass()}>{num != null ? `#${num}` : "—"}</span>
           <ChevronRight className="h-4 w-4 text-white/28" aria-hidden />
         </>

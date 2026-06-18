@@ -39,6 +39,11 @@ import { downloadSingleEventFullCalendarIcs } from '../lib/ics';
 import { isTrainingAbsenceDeadlinePassed } from '../lib/trainingAbsence';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import {
+  playerAvailabilityFromItem,
+  resolveMatchEventRsvpStatus,
+  buildPlayerAvailabilityMap,
+} from '../lib/playerAvailability';
+import {
   resolveTrainingAttendanceStatus,
   trainingAttendanceToDb,
   type TrainingAttendanceStatus,
@@ -1025,22 +1030,48 @@ export const EventDetailPage: React.FC = () => {
     [eventId, event?.kind, canTrainerManageEvent, loadEventAttendance]
   );
 
+  const getMatchRsvpDisplay = useCallback(
+    (pid: string) => {
+      const player = players.find((p) => p.id.toLowerCase() === (pid ?? '').toLowerCase());
+      const raw = eventAttendanceByPlayerId[(pid ?? '').toLowerCase()];
+      return resolveMatchEventRsvpStatus(
+        raw,
+        player ? playerAvailabilityFromItem(player) : null,
+        event?.starts_at ?? null,
+      );
+    },
+    [eventAttendanceByPlayerId, event?.starts_at, players],
+  );
+
   const getAttendanceStatus = useCallback(
     (pid: string): 'yes' | 'no' | null => {
-      const raw = eventAttendanceByPlayerId[(pid ?? '').toLowerCase()];
-      if (raw === 'yes' || raw === 'no') return raw;
+      const display = getMatchRsvpDisplay(pid);
+      if (display === 'yes') return 'yes';
+      if (
+        display === 'no' ||
+        display === 'sick' ||
+        display === 'injured' ||
+        display === 'external_training'
+      ) {
+        return 'no';
+      }
       return null;
     },
-    [eventAttendanceByPlayerId],
+    [getMatchRsvpDisplay],
   );
 
   const getTrainingAttendanceStatus = useCallback(
-    (pid: string): TrainingAttendanceStatus =>
-      resolveTrainingAttendanceStatus(
+    (pid: string): TrainingAttendanceStatus => {
+      const player = players.find((p) => p.id.toLowerCase() === (pid ?? '').toLowerCase());
+      return resolveTrainingAttendanceStatus(
         eventAttendanceByPlayerId[(pid ?? '').toLowerCase()],
-        event?.starts_at ?? null,
-      ),
-    [eventAttendanceByPlayerId, event?.starts_at],
+        {
+          eventStartsAtIso: event?.starts_at ?? null,
+          player: player ? playerAvailabilityFromItem(player) : null,
+        },
+      );
+    },
+    [eventAttendanceByPlayerId, event?.starts_at, players],
   );
 
   const handleTrainerTrainingStatus = useCallback(
@@ -3367,10 +3398,25 @@ export const EventDetailPage: React.FC = () => {
                             <ul className={`flex flex-col ${DS_LIST_GAP}`}>
                               {group.map((player) => {
                                 const bucket = statusBucket(getAttendanceStatus, player.id);
+                                const rsvpDisplay = getMatchRsvpDisplay(player.id);
                                 const badge =
-                                  bucket === 'yes' ? 'DABEI' : bucket === 'no' ? 'ABWESEND' : 'OFFEN';
+                                  rsvpDisplay === 'yes'
+                                    ? 'DABEI'
+                                    : rsvpDisplay === 'injured'
+                                      ? 'VERLETZT'
+                                      : rsvpDisplay === 'sick'
+                                        ? 'KRANK'
+                                        : bucket === 'no'
+                                          ? 'ABWESEND'
+                                          : 'OFFEN';
                                 const chipTone: DsChipTone =
-                                  bucket === 'yes' ? 'present' : bucket === 'no' ? 'absent' : 'open';
+                                  rsvpDisplay === 'yes'
+                                    ? 'present'
+                                    : rsvpDisplay === 'injured'
+                                      ? 'injured'
+                                      : bucket === 'no'
+                                        ? 'absent'
+                                        : 'open';
                                 const num = player.jersey_number != null ? `#${player.jersey_number}` : null;
                                 const pos = (player.position ?? '').trim();
                                 const sub = [pos || null, num].filter(Boolean).join(' · ') || '—';

@@ -14,9 +14,10 @@ import { usePlayerTrainingStats } from "../../hooks/usePlayerTrainingStats";
 import { useTeamTrainingRanking } from "../../hooks/useTeamTrainingRanking";
 import { useTrainingParticipationAccess } from "../../hooks/useTrainingParticipationAccess";
 import {
-  averageSquadTeamRatePct,
   formatSquadParticipationLabel,
 } from "../../lib/trainingRanking";
+import { computeSquadParticipationPct } from "../../lib/teamTrainingParticipationStats";
+import { resolvePlayerAvailabilityStatusLabel } from "../../lib/playerAvailability";
 import { Button } from "../../app/components/ui/Button";
 import { AppButton } from "../ui/AppButton";
 import { getPositionFull, getPositionLabel, getTrainingPositionDisplay } from "../../lib/positionLabels";
@@ -31,7 +32,9 @@ export type PlayerProfileModalProps = {
   onClose: () => void;
   onEdit: () => void;
   /** Nach LAZ-Flag-Änderung Kader + Profil-State aktualisieren. */
-  onPlayerUpdated?: (patch: Pick<PlayerItem, "is_laz_player">) => void;
+  onPlayerUpdated?: (
+    patch: Pick<PlayerItem, "is_laz_player" | "is_injured" | "injured_since" | "injured_until">,
+  ) => void;
   /** Optionaler Start-Tab (z. B. aus Trainingskaiser). */
   initialTab?: ProfileTab;
   /** Aktiver Kader für anonymisierten Teamdurchschnitt im Training-Tab. */
@@ -206,6 +209,7 @@ function SpecialSettingToggleRow({
   checked,
   disabled,
   error,
+  accent = "green",
   onChange,
 }: {
   label: string;
@@ -213,6 +217,7 @@ function SpecialSettingToggleRow({
   checked: boolean;
   disabled?: boolean;
   error?: string | null;
+  accent?: "green" | "amber";
   onChange: (next: boolean) => void;
 }) {
   return (
@@ -240,7 +245,9 @@ function SpecialSettingToggleRow({
         className={[
           "relative h-[26px] w-[44px] shrink-0 rounded-full border transition-colors duration-200",
           checked
-            ? "border-emerald-400/35 bg-emerald-900/55"
+            ? accent === "amber"
+              ? "border-amber-400/35 bg-amber-900/55"
+              : "border-emerald-400/35 bg-emerald-900/55"
             : "border-white/14 bg-white/[0.08]",
           disabled ? "cursor-not-allowed" : "cursor-pointer",
         ].join(" ")}
@@ -253,6 +260,66 @@ function SpecialSettingToggleRow({
           aria-hidden
         />
       </button>
+    </div>
+  );
+}
+
+function PlayerAvailabilityBadge({ label }: { label: "Aktiv" | "Verletzt" | "LAZ" }) {
+  const styles =
+    label === "Verletzt"
+      ? "border-amber-500/35 bg-amber-500/12 text-amber-300"
+      : label === "LAZ"
+        ? "border-violet-500/30 bg-violet-500/10 text-violet-300"
+        : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${styles}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function ProfileTrainingOverviewCompact({
+  loading,
+  teamRatePct,
+  activityRatePct,
+  availabilityLabel,
+  squadParticipationPct,
+  sessionsCount,
+}: {
+  loading: boolean;
+  teamRatePct: number;
+  activityRatePct: number;
+  availabilityLabel: "Aktiv" | "Verletzt" | "LAZ";
+  squadParticipationPct: number | null;
+  sessionsCount: number;
+}) {
+  if (loading) {
+    return <p className="mt-4 text-[12px] text-white/55">Lade Trainingsdaten…</p>;
+  }
+  return (
+    <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-300/85">Training</h4>
+        <PlayerAvailabilityBadge label={availabilityLabel} />
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="rounded-xl border border-white/8 bg-white/[0.03] px-2.5 py-2">
+          <p className="text-[10px] font-medium text-white/50">Spielerquote</p>
+          <p className="mt-0.5 text-[20px] font-bold tabular-nums text-white">{teamRatePct} %</p>
+        </div>
+        <div className="rounded-xl border border-white/8 bg-white/[0.03] px-2.5 py-2">
+          <p className="text-[10px] font-medium text-white/50">Aktivität</p>
+          <p className="mt-0.5 text-[20px] font-bold tabular-nums text-white">{activityRatePct} %</p>
+        </div>
+      </div>
+      {squadParticipationPct != null && sessionsCount > 0 ? (
+        <p className="mt-2.5 text-[11px] text-white/50">
+          {formatSquadParticipationLabel(squadParticipationPct)} · {sessionsCount} Trainings
+        </p>
+      ) : null}
+      <p className="mt-2 text-[10px] text-white/40">Details im Tab Training</p>
     </div>
   );
 }
@@ -290,8 +357,11 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 }) => {
   const [profileTab, setProfileTab] = useState<ProfileTab>(initialTab);
   const [isLazPlayer, setIsLazPlayer] = useState(player.is_laz_player);
+  const [isInjuredPlayer, setIsInjuredPlayer] = useState(player.is_injured);
   const [lazSaving, setLazSaving] = useState(false);
+  const [injuredSaving, setInjuredSaving] = useState(false);
   const [lazError, setLazError] = useState<string | null>(null);
+  const [injuredError, setInjuredError] = useState<string | null>(null);
   const [saveToastVisible, setSaveToastVisible] = useState(false);
   const { canViewForPlayer } = useTrainingParticipationAccess(role);
   const canViewTrainingParticipation = canViewForPlayer(player.id);
@@ -309,15 +379,16 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     error: trainingStatsError,
   } = usePlayerTrainingStats(player.id, player.team_season_id, canViewTrainingParticipation);
 
-  const { qualified, unqualified, sessionsCount, loading: teamRankingLoading } = useTeamTrainingRanking(
+  const { sessionParticipations, sessionsCount, loading: teamRankingLoading } = useTeamTrainingRanking(
     squadPlayers,
     player.team_season_id,
     canViewTrainingParticipation && squadPlayers.length > 0,
   );
-  const squadParticipationAvg = useMemo(
-    () => averageSquadTeamRatePct(qualified, unqualified),
-    [qualified, unqualified],
+  const squadParticipationPct = useMemo(
+    () => computeSquadParticipationPct(sessionParticipations),
+    [sessionParticipations],
   );
+  const availabilityLabel = resolvePlayerAvailabilityStatusLabel(player);
   const pastTeamTrainings = sessionsCount > 0 ? sessionsCount : trainingStats.sessionsCounted;
 
   const goalsPerGameDisplay = useMemo(() => {
@@ -358,8 +429,10 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
 
   useEffect(() => {
     setIsLazPlayer(player.is_laz_player);
+    setIsInjuredPlayer(player.is_injured);
     setLazError(null);
-  }, [player.id, player.is_laz_player]);
+    setInjuredError(null);
+  }, [player.id, player.is_laz_player, player.is_injured]);
 
   useEffect(() => {
     setProfileTab(initialTab);
@@ -404,7 +477,33 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     onPlayerUpdated?.({ is_laz_player: next });
   };
 
+  const handleInjuredPlayerToggle = async (next: boolean) => {
+    if (!canManage || injuredSaving) return;
+    const previous = {
+      is_injured: player.is_injured,
+      injured_since: player.injured_since,
+      injured_until: player.injured_until,
+    };
+    const nowIso = new Date().toISOString();
+    setInjuredSaving(true);
+    setInjuredError(null);
+    setIsInjuredPlayer(next);
+    const patch = next
+      ? { is_injured: true, injured_since: nowIso, injured_until: null }
+      : { is_injured: false, injured_since: null, injured_until: nowIso };
+    const { error } = await supabase.from("players").update(patch).eq("id", player.id);
+    setInjuredSaving(false);
+    if (error) {
+      setIsInjuredPlayer(previous.is_injured);
+      setInjuredError(error.message ?? "Speichern fehlgeschlagen.");
+      return;
+    }
+    setSaveToastVisible(true);
+    onPlayerUpdated?.(patch);
+  };
+
   const lazToggleChecked = lazSaving ? isLazPlayer : player.is_laz_player;
+  const injuredToggleChecked = injuredSaving ? isInjuredPlayer : player.is_injured;
 
   if (typeof document === "undefined") return null;
 
@@ -450,6 +549,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             initials={initials(player)}
           />
 
+          {(player.is_injured || player.is_laz_player) ? (
+            <div className="mb-3 flex justify-center">
+              <PlayerAvailabilityBadge label={availabilityLabel} />
+            </div>
+          ) : null}
+
           {ageLabel || birthYearLabel ? (
             <div className="mb-3 grid grid-cols-2 gap-1.5">
               {ageLabel ? (
@@ -478,6 +583,15 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 disabled={lazSaving}
                 error={lazError}
                 onChange={(next) => void handleLazPlayerToggle(next)}
+              />
+              <SpecialSettingToggleRow
+                label="Verletzt"
+                hint="Langzeit-Ausfall: zukünftige Trainings und Spiele ohne Eintrag werden automatisch als verletzt geführt."
+                checked={injuredToggleChecked}
+                disabled={injuredSaving}
+                error={injuredError}
+                accent="amber"
+                onChange={(next) => void handleInjuredPlayerToggle(next)}
               />
             </PlayerSpecialSettingsSection>
           ) : null}
@@ -572,6 +686,17 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                   />
                 </div>
               </div>
+
+              {canViewTrainingParticipation ? (
+                <ProfileTrainingOverviewCompact
+                  loading={trainingStatsLoading || teamRankingLoading}
+                  teamRatePct={teamTrainingRatePct}
+                  activityRatePct={activityTrainingRatePct}
+                  availabilityLabel={availabilityLabel}
+                  squadParticipationPct={squadParticipationPct}
+                  sessionsCount={pastTeamTrainings}
+                />
+              ) : null}
 
             </>
           ) : null}
@@ -680,9 +805,9 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                       {pastTeamTrainings} vergangene Team-Trainings
                     </span>
                   </p>
-                  {!teamRankingLoading && squadParticipationAvg != null ? (
+                  {!teamRankingLoading && squadParticipationPct != null ? (
                     <p className="mt-2 text-[12px] text-white/55">
-                      {formatSquadParticipationLabel(squadParticipationAvg)}
+                      {formatSquadParticipationLabel(squadParticipationPct)}
                     </p>
                   ) : null}
                   <div className="mt-4 space-y-3">

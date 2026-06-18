@@ -1,5 +1,6 @@
 import {
   computeSessionParticipationPct,
+  computeSessionParticipationPctExact,
   countTrainingAttendanceByStatus,
   resolveTrainingAttendanceStatusForStats,
   type TrainingAttendanceCounts,
@@ -26,10 +27,15 @@ export function computeEventParticipationFromStatuses(
   };
 }
 
-export function averageSessionParticipationPct(rates: Array<number | null | undefined>): number | null {
-  const valid = rates.filter((r): r is number => r != null && Number.isFinite(r));
+export function averageSessionParticipationPct(exactRates: Array<number | null | undefined>): number | null {
+  const valid = exactRates.filter((r): r is number => r != null && Number.isFinite(r));
   if (valid.length === 0) return null;
   return Math.round(valid.reduce((sum, r) => sum + r, 0) / valid.length);
+}
+
+export function computeSquadParticipationPct(sessions: TrainingSessionParticipation[]): number | null {
+  const exactRates = sessions.map((s) => computeSessionParticipationPctExact(s.counts));
+  return averageSessionParticipationPct(exactRates);
 }
 
 export function buildSessionParticipations(
@@ -56,9 +62,6 @@ export function buildSessionParticipations(
   });
 }
 
-export function computeSquadParticipationPct(sessions: TrainingSessionParticipation[]): number | null {
-  return averageSessionParticipationPct(sessions.map((s) => s.participationPct));
-}
 
 export async function loadSquadTrainingParticipation(
   teamSeasonId: string,

@@ -55,6 +55,7 @@ import { attendanceLazModalButtonClass } from '../lib/attendanceColors';
 import { upsertEventAttendanceMinimal } from '../lib/rsvp/writeEventAttendance';
 import { combineLocationParts, splitCombinedLocation } from '../lib/eventLocation';
 import { trainingScheduleCardCounts } from '../lib/trainingAttendance';
+import { buildPlayerAvailabilityMap } from '../lib/playerAvailability';
 import {
   formatPeriodScoresBracket,
   parsePeriodScores,
@@ -897,6 +898,7 @@ export const SchedulePage: React.FC = () => {
   );
 
   const rosterPlayerIds = useMemo(() => players.map((p) => p.id), [players]);
+  const playerAvailabilityById = useMemo(() => buildPlayerAvailabilityMap(players), [players]);
   const myLinkedPlayerId = myAttendancePlayerIds[0] ?? null;
   const { isLazPlayer: myLinkedPlayerIsLaz } = useLinkedPlayerIsLaz(myLinkedPlayerId);
 
@@ -1100,6 +1102,7 @@ export const SchedulePage: React.FC = () => {
                                 rosterPlayerIds,
                                 availabilityByPlayerId: evAttendance?.availabilityByPlayerId,
                                 startsAtIso: ev.starts_at,
+                                playerAvailabilityById,
                               })
                             : { yes: yesRaw, no, open };
                         const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();
@@ -1312,6 +1315,7 @@ export const SchedulePage: React.FC = () => {
                               rosterPlayerIds,
                               availabilityByPlayerId: evAttendance?.availabilityByPlayerId,
                               startsAtIso: ev.starts_at,
+                              playerAvailabilityById,
                             })
                           : { yes: yesRaw, no, open };
                       const myPlayerIdKey = (myAttendancePlayerIds[0] ?? '').toLowerCase();

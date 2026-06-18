@@ -1,3 +1,6 @@
+import type { PlayerAvailabilityFlags } from './playerAvailability';
+import { isPlayerAutoInjuredForEvent } from './playerAvailability';
+
 /** Training-Teilnahme (UI); Match/Event nutzt weiterhin yes/no. */
 
 export type TrainingAttendanceStatus =
@@ -60,27 +63,53 @@ export function dbStatusToTrainingAttendance(
   return null;
 }
 
+export type TrainingAttendanceResolveOptions = {
+  eventStartsAtIso?: string | null;
+  nowMs?: number;
+  player?: PlayerAvailabilityFlags | null;
+};
+
+function normalizeTrainingResolveOptions(
+  options?: TrainingAttendanceResolveOptions | string | null,
+  legacyNowMs?: number,
+): TrainingAttendanceResolveOptions {
+  if (options == null || typeof options === 'string') {
+    return { eventStartsAtIso: options ?? undefined, nowMs: legacyNowMs };
+  }
+  return { nowMs: legacyNowMs, ...options };
+}
+
 /**
- * Live-/Termin-UI und Statistik: fehlende event_attendance-Zeile = Dabei.
- * Vergangene Trainings ohne Zeile zählen als teilgenommen; es gibt kein „offen“ oder „nicht erfasst“.
+ * Live-/Termin-UI: fehlende Zeile = Dabei, außer Spieler ist für zukünftiges Event als verletzt markiert.
  */
 export function resolveTrainingAttendanceStatus(
   rawDbStatus: string | null | undefined,
-  _eventStartsAtIso: string | null | undefined,
-  _nowMs: number = Date.now(),
+  options?: TrainingAttendanceResolveOptions | string | null,
+  legacyNowMs?: number,
+): TrainingAttendanceStatus {
+  const opts = normalizeTrainingResolveOptions(options, legacyNowMs);
+  const mapped = dbStatusToTrainingAttendance(rawDbStatus);
+  if (mapped) return mapped;
+
+  const nowMs = opts.nowMs ?? Date.now();
+  if (
+    opts.player &&
+    isPlayerAutoInjuredForEvent(opts.player, opts.eventStartsAtIso ?? null, nowMs)
+  ) {
+    return 'injured';
+  }
+  return 'present';
+}
+
+/** Statistik: nur vergangene Trainings; fehlende Zeile = Dabei (kein Verletzten-Auto-Status). */
+export function resolveTrainingAttendanceStatusForStats(
+  rawDbStatus: string | null | undefined,
+  _eventStartsAtIso?: string | null,
+  _nowMs?: number,
 ): TrainingAttendanceStatus {
   const mapped = dbStatusToTrainingAttendance(rawDbStatus);
   if (mapped) return mapped;
   return 'present';
-}
-
-/** Statistik: identische Auflösung wie Live-UI (nur vergangene Trainings werden geladen). */
-export function resolveTrainingAttendanceStatusForStats(
-  rawDbStatus: string | null | undefined,
-  eventStartsAtIso: string | null | undefined,
-  nowMs: number = Date.now(),
-): TrainingAttendanceStatus {
-  return resolveTrainingAttendanceStatus(rawDbStatus, eventStartsAtIso, nowMs);
 }
 
 export function trainingAttendanceToDb(status: TrainingAttendanceStatus): TrainingAttendanceDbStatus | null {
@@ -102,17 +131,28 @@ export function trainingAttendanceBucketRank(status: TrainingAttendanceStatus): 
   return 6;
 }
 
-function pct(num: number, denom: number): number {
-  return denom > 0 ? Math.round((num / denom) * 100) : 0;
+function pctExact(num: number, denom: number): number | null {
+  return denom > 0 ? (num / denom) * 100 : null;
 }
 
-/** Mannschafts-/Einzeltraining: Dabei / (Dabei + Abwesend). Krank, Verletzt, LAZ neutral. */
+function pct(num: number, denom: number): number {
+  const exact = pctExact(num, denom);
+  return exact != null ? Math.round(exact) : 0;
+}
+
+/** Exakte Session-Quote (ohne Rundung) für Durchschnittsbildung. */
+export function computeSessionParticipationPctExact(
+  counts: Pick<TrainingAttendanceCounts, 'present' | 'absent'>,
+): number | null {
+  return pctExact(counts.present, counts.present + counts.absent);
+}
+
+/** Mannschafts-/Einzeltraining: Dabei / (Dabei + Abwesend). Anzeige gerundet. */
 export function computeSessionParticipationPct(
   counts: Pick<TrainingAttendanceCounts, 'present' | 'absent'>,
 ): number | null {
-  const denom = counts.present + counts.absent;
-  if (denom <= 0) return null;
-  return pct(counts.present, denom);
+  const exact = computeSessionParticipationPctExact(counts);
+  return exact != null ? Math.round(exact) : null;
 }
 
 /** Farbliche Bewertung Mannschafts-Beteiligung (Trainingszentrale). */
@@ -212,14 +252,19 @@ export function trainingScheduleCardCounts(params: {
   rosterPlayerIds: string[];
   availabilityByPlayerId?: Record<string, string | null | undefined>;
   startsAtIso?: string | null;
+  playerAvailabilityById?: Record<string, PlayerAvailabilityFlags | undefined>;
+  nowMs?: number;
 }): { yes: number; no: number; open: number } {
   const byPlayer = params.availabilityByPlayerId ?? {};
-  const statuses = params.rosterPlayerIds.map((playerId) =>
-    resolveTrainingAttendanceStatus(
-      byPlayer[(playerId ?? '').toLowerCase()] ?? null,
-      params.startsAtIso ?? null,
-    ),
-  );
+  const nowMs = params.nowMs ?? Date.now();
+  const statuses = params.rosterPlayerIds.map((playerId) => {
+    const key = (playerId ?? '').toLowerCase();
+    return resolveTrainingAttendanceStatus(byPlayer[key] ?? null, {
+      eventStartsAtIso: params.startsAtIso ?? null,
+      nowMs,
+      player: params.playerAvailabilityById?.[key],
+    });
+  });
   const c = countTrainingAttendanceByStatus(statuses);
   return {
     yes: c.present,
