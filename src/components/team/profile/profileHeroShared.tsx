@@ -12,7 +12,7 @@ import {
 import { getLogoUrl } from "../../../utils/logoResolver";
 
 export const HERO_CARD_CLASS =
-  "relative mb-3 aspect-[1.55/1] min-h-[15rem] max-h-[16.875rem] w-full overflow-hidden rounded-[22px] border border-[#E50914]/55 bg-[#050505] shadow-[0_0_28px_rgba(229,9,20,0.16),0_12px_40px_rgba(0,0,0,0.58)] ring-1 ring-[#E50914]/20 sm:min-h-[16rem] sm:max-h-[18rem]";
+  "relative mb-2 aspect-[1.55/1] min-h-[14.5rem] max-h-[16.5rem] w-full overflow-hidden rounded-[22px] border border-[#E50914]/55 bg-[#050505] shadow-[0_0_28px_rgba(229,9,20,0.16),0_12px_40px_rgba(0,0,0,0.58)] ring-1 ring-[#E50914]/20 sm:min-h-[15.5rem] sm:max-h-[17.5rem]";
 
 /** Originales NSG-Gölsental-Logo für Hero-Wasserzeichen (public/logos). */
 export const PROFILE_HERO_WATERMARK_LOGO = getLogoUrl("nsg-goelsental");
@@ -193,9 +193,28 @@ export function HeroSeasonLine({ seasonLine }: { seasonLine: string }) {
   const line = seasonLine.trim();
   if (!line) return null;
   return (
-    <p className="pb-0.5 text-[10px] font-medium uppercase tracking-wide text-white/40">
+    <p className="pb-0.5 text-[10px] font-medium tracking-wide text-white/38">
       Saison {line}
     </p>
+  );
+}
+
+export function HeroInfoBadge({ emoji, label }: { emoji: string; label: string }) {
+  return (
+    <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-[rgba(220,38,38,0.28)] bg-[rgba(8,8,10,0.78)] px-2 py-0.5 text-[10px] font-semibold text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_14px_rgba(220,38,38,0.12)]">
+      <span className="shrink-0" aria-hidden>
+        {emoji}
+      </span>
+      <span className="truncate">{label}</span>
+    </span>
+  );
+}
+
+export function HeroJerseyBadge({ number }: { number: string }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-white/12 bg-white/[0.08] px-2 py-0.5 text-[10px] font-bold tabular-nums text-white/90 shadow-[0_0_12px_rgba(255,255,255,0.06)]">
+      #{number}
+    </span>
   );
 }
 

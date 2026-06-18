@@ -109,3 +109,27 @@ export function formatTrainingPlayerSubline(
   if (posLabel === "—" && !num) return "—";
   return [posLabel !== "—" ? posLabel : null, num].filter(Boolean).join(" · ");
 }
+
+export type ProfilePositionBadge = {
+  emoji: string;
+  label: string;
+};
+
+/** FIFA-Karten-Badge für Spielerprofil-Hero (UI only). */
+export function getProfilePositionBadge(pos?: string | null): ProfilePositionBadge | null {
+  const display = getTrainingPositionDisplay(pos);
+  if (display === "—") return null;
+
+  const badges: Record<string, ProfilePositionBadge> = {
+    Torwart: { emoji: "🥅", label: "Torwart" },
+    Verteidiger: { emoji: "🛡", label: "Verteidiger" },
+    Mittelfeld: { emoji: "⚡", label: "Mittelfeld" },
+    Stürmer: { emoji: "🎯", label: "Stürmer" },
+  };
+
+  return badges[display] ?? { emoji: "⚽", label: display };
+}
+
+export function isGoalkeeperProfilePosition(pos?: string | null): boolean {
+  return getTrainingPositionDisplay(pos) === "Torwart";
+}

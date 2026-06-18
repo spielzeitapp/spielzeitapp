@@ -15,7 +15,19 @@ import { useTeamTrainingRanking } from "../../hooks/useTeamTrainingRanking";
 import { useTrainingParticipationAccess } from "../../hooks/useTrainingParticipationAccess";
 import { formatSquadParticipationLabel } from "../../lib/trainingRanking";
 import { dsPrimaryCtaClass } from "../../lib/premiumDesignSystem";
-import { getPositionFull, getPositionLabel, getTrainingPositionDisplay } from "../../lib/positionLabels";
+import {
+  getPositionFull,
+  getPositionLabel,
+  getProfilePositionBadge,
+  getTrainingPositionDisplay,
+  isGoalkeeperProfilePosition,
+} from "../../lib/positionLabels";
+import { splitTeamSeasonLabel } from "./profile/profileHeroShared";
+import {
+  ProfileGoalkeeperStatsPlaceholder,
+  ProfileTrainingAwardsSection,
+  ProfileTrainingKaiserStatus,
+} from "./profile/ProfileTrainingExtras";
 
 const PROFILE_GLASS_PANEL =
   "overflow-hidden rounded-2xl border border-[rgba(220,38,38,0.22)] bg-gradient-to-br from-[rgba(18,18,20,0.98)] to-[rgba(60,10,18,0.18)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(220,38,38,0.08)]";
@@ -207,7 +219,7 @@ function PlayerSpecialSettingsAccordion({ children }: { children: React.ReactNod
         onClick={() => setOpen((value) => !value)}
         className="flex w-full items-center justify-between gap-2 rounded-2xl border border-[rgba(220,38,38,0.2)] bg-[rgba(8,8,10,0.72)] px-3 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-[rgba(220,38,38,0.32)]"
       >
-        <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.14em] text-white/55">
+        <span className="whitespace-nowrap text-[12px] font-semibold text-white/62">
           <span className="mr-1.5" aria-hidden>
             ⚙️
           </span>
@@ -298,41 +310,50 @@ function SpecialSettingToggleRow({
   );
 }
 
-function PlayerAvailabilityBadge({ label }: { label: "Aktiv" | "Verletzt" | "LAZ" }) {
-  const styles =
-    label === "Verletzt"
-      ? "border-amber-500/35 bg-gradient-to-br from-amber-950/55 to-amber-900/15 text-amber-200 shadow-[0_0_18px_rgba(251,191,36,0.14)]"
-      : label === "LAZ"
-        ? "border-violet-500/35 bg-gradient-to-br from-violet-950/55 to-violet-900/15 text-violet-200 shadow-[0_0_18px_rgba(139,92,246,0.14)]"
-        : "border-emerald-500/35 bg-gradient-to-br from-emerald-950/55 to-emerald-900/15 text-emerald-200 shadow-[0_0_18px_rgba(52,211,153,0.14)]";
+function PlayerPremiumStatusBadge({ kind }: { kind: "active" | "laz" | "injured" }) {
+  const config = {
+    active: {
+      emoji: "🟢",
+      label: "Aktiver Spieler",
+      styles:
+        "border-emerald-500/40 bg-gradient-to-br from-emerald-950/65 to-emerald-900/20 text-emerald-100 shadow-[0_0_24px_rgba(52,211,153,0.22)]",
+    },
+    laz: {
+      emoji: "🟣",
+      label: "LAZ-Spieler",
+      styles:
+        "border-violet-500/40 bg-gradient-to-br from-violet-950/65 to-violet-900/20 text-violet-100 shadow-[0_0_24px_rgba(139,92,246,0.22)]",
+    },
+    injured: {
+      emoji: "🟠",
+      label: "Verletzt",
+      styles:
+        "border-amber-500/40 bg-gradient-to-br from-amber-950/65 to-amber-900/20 text-amber-100 shadow-[0_0_24px_rgba(251,191,36,0.22)]",
+    },
+  }[kind];
+
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${styles}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.01em] ${config.styles}`}
     >
-      {label}
+      <span aria-hidden>{config.emoji}</span>
+      {config.label}
     </span>
   );
 }
 
 function PlayerStatusBadgesRow({ isLaz, isInjured }: { isLaz: boolean; isInjured: boolean }) {
-  if (!isLaz && !isInjured) {
-    return <PlayerAvailabilityBadge label="Aktiv" />;
+  if (isLaz && isInjured) {
+    return (
+      <>
+        <PlayerPremiumStatusBadge kind="laz" />
+        <PlayerPremiumStatusBadge kind="injured" />
+      </>
+    );
   }
-
-  return (
-    <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
-      {isLaz ? <PlayerAvailabilityBadge label="LAZ" /> : null}
-      {isInjured ? <PlayerAvailabilityBadge label="Verletzt" /> : null}
-    </span>
-  );
-}
-
-function PlayerStatusBadges({ isLaz, isInjured }: { isLaz: boolean; isInjured: boolean }) {
-  return (
-    <div className="-mt-1 mb-2 flex flex-wrap items-center justify-center gap-2">
-      <PlayerStatusBadgesRow isLaz={isLaz} isInjured={isInjured} />
-    </div>
-  );
+  if (isLaz) return <PlayerPremiumStatusBadge kind="laz" />;
+  if (isInjured) return <PlayerPremiumStatusBadge kind="injured" />;
+  return <PlayerPremiumStatusBadge kind="active" />;
 }
 
 function TrainingMetricTile({ label, value }: { label: string; value: string }) {
@@ -383,24 +404,22 @@ function ProfileTrainingOverviewCompact({
   loading,
   teamRatePct,
   activityRatePct,
-  isLaz,
-  isInjured,
   present,
   absent,
   sick,
   injured,
   external,
+  trainingRank,
 }: {
   loading: boolean;
   teamRatePct: number;
   activityRatePct: number;
-  isLaz: boolean;
-  isInjured: boolean;
   present: number;
   absent: number;
   sick: number;
   injured: number;
   external: number;
+  trainingRank: number | null;
 }) {
   if (loading) {
     return <p className="mt-4 text-[12px] text-white/55">Lade Trainingsdaten…</p>;
@@ -410,22 +429,22 @@ function ProfileTrainingOverviewCompact({
   const summaryCompact = `${present} Dabei · ${absent} Abwesend · ${teamRatePct} %`;
 
   return (
-    <div className={`mt-6 p-3.5 sm:p-4 ${PROFILE_GLASS_PANEL}`}>
+    <div className={`mt-4 p-3 sm:p-3.5 ${PROFILE_GLASS_PANEL}`}>
       <div className="flex items-center justify-between gap-2">
         <h4 className="whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.14em] text-red-300/85">
           Training
         </h4>
-        <PlayerStatusBadgesRow isLaz={isLaz} isInjured={isInjured} />
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-2.5 grid grid-cols-2 gap-2">
         <TrainingMetricTile label="Trainingsquote" value={`${teamRatePct} %`} />
         <TrainingMetricTile label="Aktivität" value={`${activityRatePct} %`} />
       </div>
-      <p className="mt-2.5 whitespace-nowrap text-[11px] text-white/50">
+      <p className="mt-2 text-[11px] leading-snug text-white/45 [hyphens:none]">
         <span className="hidden min-[380px]:inline">{summaryFull}</span>
         <span className="min-[380px]:hidden">{summaryCompact}</span>
       </p>
-      <p className="mt-1 text-[10px] text-white/40">Details im Tab Training</p>
+      <ProfileTrainingKaiserStatus rank={trainingRank} />
+      <p className="mt-2 text-[10px] text-white/35">Details im Tab Training</p>
     </div>
   );
 }
@@ -485,13 +504,26 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
     error: trainingStatsError,
   } = usePlayerTrainingStats(player.id, player.team_season_id, canViewTrainingParticipation);
 
-  const { sessionsCount, teamParticipationPct, loading: teamRankingLoading } = useTeamTrainingRanking(
+  const { sessionsCount, teamParticipationPct, qualified, loading: teamRankingLoading } = useTeamTrainingRanking(
     squadPlayers,
     player.team_season_id,
     canViewTrainingParticipation,
   );
   const squadParticipationPct = teamParticipationPct;
   const pastTeamTrainings = sessionsCount > 0 ? sessionsCount : trainingStats.sessionsCounted;
+
+  const trainingKaiserRank = useMemo(() => {
+    const row = qualified.find((entry) => entry.player.id === player.id);
+    return row?.rank ?? null;
+  }, [qualified, player.id]);
+
+  const seasonStatSub = useMemo(() => {
+    const season = splitTeamSeasonLabel(teamSeasonLabel ?? "").season.trim();
+    return season ? `Saison ${season}` : "Saison";
+  }, [teamSeasonLabel]);
+
+  const profilePositionBadge = useMemo(() => getProfilePositionBadge(player.position), [player.position]);
+  const showGoalkeeperPlaceholder = isGoalkeeperProfilePosition(player.position);
 
   const goalsPerGameDisplay = useMemo(() => {
     const v = Number(stats.goalsPerGame);
@@ -649,12 +681,14 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
             photoUrl={(photoUrl ?? "").trim() || avatarSrc}
             cutoutUrl={player.cutout_url}
             initials={initials(player)}
+            positionBadge={profilePositionBadge}
+            statusSlot={
+              <PlayerStatusBadgesRow isLaz={lazToggleChecked} isInjured={injuredToggleChecked} />
+            }
           />
 
-          <PlayerStatusBadges isLaz={lazToggleChecked} isInjured={injuredToggleChecked} />
-
           {ageLabel || birthYearLabel ? (
-            <div className="mb-3 grid grid-cols-2 gap-1.5">
+            <div className="mb-2.5 mt-1 grid grid-cols-2 gap-1.5">
               {ageLabel ? (
                 <PlayerInfoChip
                   icon={<User className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />}
@@ -696,7 +730,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           ) : null}
 
           {/* Sticky tabs */}
-          <div className="sticky top-0 z-10 -mx-3 mb-4 border-b border-[rgba(220,38,38,0.12)] bg-[linear-gradient(180deg,rgba(8,4,6,0.96)_0%,rgba(0,0,0,0.88)_100%)] px-1 py-1.5 backdrop-blur-md sm:-mx-4">
+          <div className="sticky top-0 z-10 -mx-3 mb-3 border-b border-[rgba(220,38,38,0.12)] bg-[linear-gradient(180deg,rgba(8,4,6,0.96)_0%,rgba(0,0,0,0.88)_100%)] px-1 py-1 backdrop-blur-md sm:-mx-4">
             <div className="flex gap-1 rounded-xl border border-[rgba(220,38,38,0.16)] bg-[rgba(8,8,10,0.85)] p-0.5">
               {visibleTabs.map((t) => {
                 const active = profileTab === t.id;
@@ -735,21 +769,25 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                           Icon: PLAYER_STAT_TILES.games,
                           label: "Spiele",
                           value: String(stats.games),
+                          sub: seasonStatSub,
                         },
                         {
                           Icon: PLAYER_STAT_TILES.goals,
                           label: "Tore",
                           value: String(stats.goals),
+                          sub: "Meisterschaft & Turniere",
                         },
                         {
                           Icon: PLAYER_STAT_TILES.avgMinutesPerGame,
                           label: "Ø Min./Spiel",
                           value: avgMinutesPerGameDisplay,
+                          sub: "Durchschnitt",
                         },
                         {
                           Icon: PLAYER_STAT_TILES.minutes,
                           label: "Spielmin.",
                           value: String(stats.minutes),
+                          sub: "Gesamt",
                         },
                       ] as const
                     ).map((s) => (
@@ -758,6 +796,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                         icon={<s.Icon />}
                         label={s.label}
                         value={s.value}
+                        sub={s.sub}
                       />
                     ))}
               </div>
@@ -768,8 +807,8 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                 <p className="mt-2 text-center text-[12px] text-white/60">Noch keine Ligadaten in dieser Saison</p>
               ) : null}
 
-              <div className="mt-6">
-                <h4 className="mb-2.5 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
+              <div className="mt-4">
+                <h4 className="mb-2 text-[12px] font-extrabold uppercase tracking-[0.18em] text-red-300/85">
                   Saisonstatistik
                 </h4>
                 <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
@@ -777,28 +816,34 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
                     icon={<PLAYER_STAT_TILES.goalsPerGame />}
                     label="Tore / Spiel"
                     value={goalsPerGameDisplay}
+                    sub="Durchschnitt"
                   />
                   <ProfileStatTile
                     icon={<PLAYER_STAT_TILES.deployments />}
                     label="Einsätze"
                     value={String(stats.games)}
+                    sub={seasonStatSub}
                   />
                 </div>
               </div>
 
+              {showGoalkeeperPlaceholder ? <ProfileGoalkeeperStatsPlaceholder /> : null}
+
               {canViewTrainingParticipation ? (
-                <ProfileTrainingOverviewCompact
-                  loading={trainingStatsLoading || teamRankingLoading}
-                  teamRatePct={teamTrainingRatePct}
-                  activityRatePct={activityTrainingRatePct}
-                  isLaz={lazToggleChecked}
-                  isInjured={injuredToggleChecked}
-                  present={trainingsPresent}
-                  absent={trainingsAbsent}
-                  sick={trainingsSick}
-                  injured={trainingsInjured}
-                  external={trainingsExternal}
-                />
+                <>
+                  <ProfileTrainingOverviewCompact
+                    loading={trainingStatsLoading || teamRankingLoading}
+                    teamRatePct={teamTrainingRatePct}
+                    activityRatePct={activityTrainingRatePct}
+                    present={trainingsPresent}
+                    absent={trainingsAbsent}
+                    sick={trainingsSick}
+                    injured={trainingsInjured}
+                    external={trainingsExternal}
+                    trainingRank={trainingKaiserRank}
+                  />
+                  <ProfileTrainingAwardsSection />
+                </>
               ) : null}
 
             </>
@@ -889,61 +934,68 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
           ) : null}
 
           {profileTab === "training" ? (
-            <div className={`p-3.5 sm:p-4 ${PROFILE_GLASS_PANEL}`}>
-              <div className="flex flex-wrap items-center justify-between gap-2">
+            <>
+              <div className={`p-3 sm:p-3.5 ${PROFILE_GLASS_PANEL}`}>
                 <div className="flex min-w-0 items-center gap-2">
                   <Activity className="h-5 w-5 shrink-0 text-red-400/85" strokeWidth={1.75} aria-hidden />
                   <h4 className="whitespace-nowrap text-[12px] font-extrabold uppercase tracking-wide text-red-300/90">
                     Trainingsbeteiligung
                   </h4>
                 </div>
-                <PlayerStatusBadgesRow isLaz={lazToggleChecked} isInjured={injuredToggleChecked} />
-              </div>
-              {trainingStatsLoading ? (
-                <p className="mt-4 text-[13px] text-white/55">Lade Trainingsdaten…</p>
-              ) : trainingStatsError ? (
-                <p className="mt-4 text-[13px] text-red-300/90">{trainingStatsError}</p>
-              ) : (
-                <>
-                  <p className="mt-4 text-[12px] text-white/50">
-                    Saison:{" "}
-                    <span className="font-medium text-white/75">
-                      {pastTeamTrainings} vergangene Team-Trainings
-                    </span>
-                  </p>
-                  {!teamRankingLoading && squadParticipationPct != null ? (
-                    <p className="mt-2 text-[12px] text-white/50">
-                      {formatSquadParticipationLabel(squadParticipationPct)}
+                {trainingStatsLoading ? (
+                  <p className="mt-3 text-[13px] text-white/55">Lade Trainingsdaten…</p>
+                ) : trainingStatsError ? (
+                  <p className="mt-3 text-[13px] text-red-300/90">{trainingStatsError}</p>
+                ) : (
+                  <>
+                    <p className="mt-3 text-[12px] text-white/50">
+                      Saison:{" "}
+                      <span className="font-medium text-white/75">
+                        {pastTeamTrainings} vergangene Team-Trainings
+                      </span>
                     </p>
-                  ) : null}
-                  <div className="mt-4 space-y-4">
-                    <TrainingProgressRow
-                      label="Trainingsquote"
-                      pct={teamTrainingRatePct}
-                      detail={`${trainingsPresent} von ${teamTrainingBasis} Trainings`}
-                      variant="quote"
-                    />
-                    <TrainingProgressRow
-                      label="Aktivität"
-                      pct={activityTrainingRatePct}
-                      detail={`${activityTrainingNumerator} von ${activityTrainingBasis} Trainings`}
-                      variant="activity"
-                    />
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    <SeasonMiniCell label="Dabei" value={String(trainingsPresent)} />
-                    <SeasonMiniCell label="Abwesend" value={String(trainingsAbsent)} />
-                    <SeasonMiniCell label="Krank" value={String(trainingsSick)} />
-                    <SeasonMiniCell label="Verletzt" value={String(trainingsInjured)} />
-                    <SeasonMiniCell label="LAZ" value={String(trainingsExternal)} />
-                  </div>
-                  <p className="mt-3 text-[11px] leading-relaxed text-white/45 [hyphens:none]">
-                    Trainingsquote: Dabei / (Dabei + Abwesend). Krank, verletzt und LAZ zählen neutral.
-                    Aktivität berücksichtigt LAZ zusätzlich.
-                  </p>
-                </>
-              )}
-            </div>
+                    {!teamRankingLoading && squadParticipationPct != null ? (
+                      <p className="mt-2 text-[12px] text-white/50">
+                        {formatSquadParticipationLabel(squadParticipationPct)}
+                      </p>
+                    ) : null}
+                    <div className="mt-3 space-y-3">
+                      <TrainingProgressRow
+                        label="Trainingsquote"
+                        pct={teamTrainingRatePct}
+                        detail={`${trainingsPresent} von ${teamTrainingBasis} Trainings`}
+                        variant="quote"
+                      />
+                      <TrainingProgressRow
+                        label="Aktivität"
+                        pct={activityTrainingRatePct}
+                        detail={`${activityTrainingNumerator} von ${activityTrainingBasis} Trainings`}
+                        variant="activity"
+                      />
+                    </div>
+                    <p className="mt-3 text-[11px] leading-snug text-white/45 [hyphens:none]">
+                      {trainingsPresent} Dabei · {trainingsAbsent} Abwesend · {trainingsSick} Krank ·{" "}
+                      {trainingsInjured} Verletzt · {trainingsExternal} LAZ
+                    </p>
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      <SeasonMiniCell label="Dabei" value={String(trainingsPresent)} />
+                      <SeasonMiniCell label="Abwesend" value={String(trainingsAbsent)} />
+                      <SeasonMiniCell label="Krank" value={String(trainingsSick)} />
+                      <SeasonMiniCell label="Verletzt" value={String(trainingsInjured)} />
+                      <SeasonMiniCell label="LAZ" value={String(trainingsExternal)} />
+                    </div>
+                    <p className="mt-2.5 text-[11px] leading-relaxed text-white/45 [hyphens:none]">
+                      Trainingsquote: Dabei / (Dabei + Abwesend). Krank, verletzt und LAZ zählen neutral.
+                      Aktivität berücksichtigt LAZ zusätzlich.
+                    </p>
+                    {!teamRankingLoading ? (
+                      <ProfileTrainingKaiserStatus rank={trainingKaiserRank} />
+                    ) : null}
+                  </>
+                )}
+              </div>
+              <ProfileTrainingAwardsSection />
+            </>
           ) : null}
 
           {canManage ? (
