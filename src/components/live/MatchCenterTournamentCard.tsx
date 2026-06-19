@@ -59,8 +59,8 @@ function HeroGlassInfoBar({
   const { label: placeLabel, detail: placeDetail } = splitPlaceDisplay(place);
 
   return (
-    <div className="mx-0 flex items-stretch gap-2 rounded-xl bg-black/55 px-2.5 py-2 backdrop-blur-md">
-      <span className="inline-flex min-w-[2.75rem] shrink-0 flex-col items-center justify-center rounded-lg border border-white/10 bg-black/35 px-1.5 py-1">
+    <div className="mx-0 flex items-stretch gap-2 rounded-xl border border-white/10 bg-black/55 px-2.5 py-2 shadow-[0_4px_24px_rgba(0,0,0,0.45)] backdrop-blur-md">
+      <span className="inline-flex min-w-[2.85rem] shrink-0 flex-col items-center justify-center rounded-lg border border-[rgba(255,71,71,0.18)] bg-black/40 px-1.5 py-1">
         <span className="text-[9px] font-bold uppercase tracking-wide text-red-300/85">
           {dateParts.wd}
         </span>
@@ -92,9 +92,11 @@ function HeroGlassInfoBar({
 }
 
 function TournamentCompactStats({
+  teamsDisplay,
   matchesDisplay,
   winnerDisplay,
 }: {
+  teamsDisplay: number | null;
   matchesDisplay: number | null;
   winnerDisplay: string;
 }) {
@@ -104,14 +106,25 @@ function TournamentCompactStats({
       : winnerDisplay;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12px] text-white/62">
+    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12px] text-white/65">
+      {teamsDisplay != null ? (
+        <span className="whitespace-nowrap">
+          <span aria-hidden>👥 </span>
+          {teamsDisplay} Teams
+        </span>
+      ) : null}
+      {teamsDisplay != null && (matchesDisplay != null || winnerDisplay) ? (
+        <span className="text-white/20" aria-hidden>
+          ·
+        </span>
+      ) : null}
       {matchesDisplay != null ? (
         <span className="whitespace-nowrap">
           <span aria-hidden>⚽ </span>
           {matchesDisplay} Spiele
         </span>
       ) : null}
-      {matchesDisplay != null ? (
+      {matchesDisplay != null && winnerDisplay ? (
         <span className="text-white/20" aria-hidden>
           ·
         </span>
@@ -170,15 +183,15 @@ export function MatchCenterTournamentCard({
 
   return (
     <article className="relative overflow-hidden rounded-[18px] bg-[#060608] shadow-[0_16px_48px_rgba(0,0,0,0.68)] ring-1 ring-white/[0.04]">
-      <div className="relative min-h-[10.5rem] w-full overflow-hidden sm:min-h-[12rem]">
+      <div className="relative min-h-[10rem] w-full overflow-hidden sm:min-h-[11.5rem]">
         <img
           src={coverUrl}
           alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[center_32%]"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[72%_32%]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.34)_0%,rgba(0,0,0,0.02)_30%,rgba(0,0,0,0.1)_55%,rgba(6,4,6,0.62)_100%)]"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.32)_0%,rgba(0,0,0,0.02)_28%,rgba(0,0,0,0.08)_52%,rgba(6,4,6,0.58)_100%)]"
           aria-hidden
         />
 
@@ -192,8 +205,8 @@ export function MatchCenterTournamentCard({
             {premium ? 'Turnier' : 'Nächstes Turnier'}
           </span>
 
-          <div className="flex flex-1 flex-col justify-end pb-[4.25rem] pt-7">
-            <h2 className="text-[16px] font-bold leading-[1.12] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)] sm:text-[18px]">
+          <div className="flex flex-1 flex-col justify-end pb-[4.35rem] pt-8">
+            <h2 className="line-clamp-2 max-w-[62%] text-left text-[15px] font-bold leading-[1.14] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)] sm:max-w-[58%] sm:text-[17px]">
               {title}
             </h2>
           </div>
@@ -204,14 +217,15 @@ export function MatchCenterTournamentCard({
         </div>
       </div>
 
-      <div className="relative bg-[#060608] px-3 pb-2 pt-1.5 sm:px-4 sm:pb-2.5">
+      <div className="relative bg-[#060608] px-3 pb-2 pt-1 sm:px-4 sm:pb-2.5">
         {countdown ? (
           <MatchCenterCountdown parts={countdown} variant="heroCompact" showHeader />
         ) : null}
 
-        {!loadingExtras && (matchesDisplay != null || winnerDisplay) ? (
+        {!loadingExtras && (teamsDisplay != null || matchesDisplay != null || winnerDisplay) ? (
           <div className="mt-1">
             <TournamentCompactStats
+              teamsDisplay={teamsDisplay}
               matchesDisplay={matchesDisplay}
               winnerDisplay={winnerDisplay}
             />
@@ -219,13 +233,13 @@ export function MatchCenterTournamentCard({
         ) : null}
 
         {carouselTeams.length > 0 ? (
-          <div className="mt-1.5">
+          <div className="mt-0.5">
             <div className="mb-0.5 flex items-center justify-between gap-2">
               <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-white/38">
                 Teilnehmende Mannschaften
               </p>
               {teamsDisplay != null ? (
-                <span className="shrink-0 rounded-full border border-[rgba(255,71,71,0.22)] bg-[rgba(255,71,71,0.06)] px-1.5 py-px text-[7px] font-bold uppercase tracking-[0.08em] text-[rgba(255,140,140,0.9)]">
+                <span className="shrink-0 rounded-full border border-[rgba(255,71,71,0.42)] bg-[rgba(255,71,71,0.1)] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[rgba(255,150,150,0.95)] shadow-[0_0_14px_rgba(255,71,71,0.22)]">
                   {teamsDisplay} Teams
                 </span>
               ) : null}

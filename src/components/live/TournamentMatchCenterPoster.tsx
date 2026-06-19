@@ -119,8 +119,8 @@ export function TournamentFirstMatchPreview({
 }) {
   if (!slot) {
     return (
-      <p className="flex items-center gap-1.5 border-t border-white/[0.05] pt-1.5 text-[11px] leading-tight text-white/52">
-        <CalendarDays className="h-3 w-3 shrink-0 text-red-400/75" strokeWidth={2.25} aria-hidden />
+      <p className="flex items-center justify-center gap-1.5 border-t border-white/[0.05] py-1 text-[11px] leading-tight text-white/55">
+        <CalendarDays className="h-3 w-3 shrink-0 text-red-400/80" strokeWidth={2.25} aria-hidden />
         Spielplan folgt in Kürze
       </p>
     );

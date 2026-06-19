@@ -15,11 +15,11 @@ function CountdownUnit({
 }) {
   if (variant === 'heroCompact') {
     return (
-      <div className="flex min-w-0 flex-1 flex-col items-center rounded-lg border border-[rgba(255,71,71,0.2)] bg-[rgba(8,6,10,0.94)] px-1 py-1.5 shadow-[0_0_18px_rgba(255,71,71,0.14),0_2px_12px_rgba(0,0,0,0.5)]">
-        <span className="text-[28px] font-extrabold tabular-nums leading-none tracking-tight text-white sm:text-[32px]">
+      <div className="flex min-w-0 flex-1 flex-col items-center rounded-lg border border-[rgba(255,71,71,0.28)] bg-[rgba(4,2,6,0.96)] px-1.5 py-2 shadow-[0_0_24px_rgba(255,71,71,0.18),0_4px_16px_rgba(0,0,0,0.55)]">
+        <span className="text-[30px] font-extrabold tabular-nums leading-none tracking-tight text-white sm:text-[34px]">
           {value}
         </span>
-        <span className="mt-1 text-[7px] font-bold uppercase tracking-[0.08em] text-[rgba(255,120,120,0.88)] sm:text-[8px]">
+        <span className="mt-1.5 text-[8px] font-bold uppercase tracking-[0.1em] text-[rgba(255,100,100,0.95)]">
           {label}
         </span>
       </div>
