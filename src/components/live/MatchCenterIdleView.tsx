@@ -21,7 +21,6 @@ import { LivePageHeader, LivePremiumShell, LiveScheduleCtaLink } from './LivePre
 import { PremiumEmptyState } from '../../ui';
 import { MatchCenterNextMatchCard } from './MatchCenterNextMatchCard';
 import { MatchCenterTournamentCard } from './MatchCenterTournamentCard';
-import { extractTournamentAgeGroup } from './ParticipantLogoChip';
 
 type Props = {
   isFan: boolean;
@@ -125,17 +124,9 @@ export function MatchCenterIdleView({ isFan }: Props) {
   }
 
   if (nextTournament) {
-    const ageGroup = extractTournamentAgeGroup([
-      teamName,
-      ...participants.map((p) => p.name),
-    ]);
-    const tournamentSubtitle = ageGroup
-      ? `Nächstes Turnier — ${ageGroup} Turnier`
-      : 'Nächstes Turnier — Countdown bis Beginn';
-
     return (
       <LivePremiumShell matchCenter>
-        <LivePageHeader title="Match Center" subtitle={tournamentSubtitle} />
+        <LivePageHeader title="Match Center" />
         <MatchCenterTournamentCard
           event={nextTournament}
           ourTeamName={teamName}

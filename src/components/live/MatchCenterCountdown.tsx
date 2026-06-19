@@ -15,11 +15,11 @@ function CountdownUnit({
 }) {
   if (variant === 'heroCompact') {
     return (
-      <div className="flex min-w-0 flex-1 flex-col items-center rounded-lg border border-[rgba(255,71,71,0.34)] bg-[rgba(2,1,4,0.98)] px-1.5 py-2 shadow-[0_0_28px_rgba(255,71,71,0.24),0_4px_18px_rgba(0,0,0,0.65)]">
-        <span className="text-[34px] font-extrabold tabular-nums leading-none tracking-tight text-white sm:text-[38px]">
+      <div className="flex min-w-0 flex-1 flex-col items-center rounded-lg border border-[rgba(255,71,71,0.32)] bg-[rgba(2,1,4,0.98)] px-1 py-1.5 shadow-[0_0_22px_rgba(255,71,71,0.22),0_3px_14px_rgba(0,0,0,0.6)]">
+        <span className="text-[30px] font-extrabold tabular-nums leading-none tracking-tight text-white sm:text-[32px]">
           {value}
         </span>
-        <span className="mt-1.5 text-[8px] font-bold uppercase tracking-[0.1em] text-[rgba(255,90,90,1)]">
+        <span className="mt-1 text-[7px] font-bold uppercase tracking-[0.1em] text-[rgba(255,90,90,1)]">
           {label}
         </span>
       </div>
@@ -71,7 +71,7 @@ export function MatchCenterCountdown({
 
   const gridClass =
     variant === 'heroCompact'
-      ? 'grid grid-cols-3 gap-1.5'
+      ? 'grid grid-cols-3 gap-1'
       : variant === 'hero'
         ? 'grid grid-cols-3 gap-2 sm:gap-2.5'
         : 'grid grid-cols-3 gap-1.5 sm:gap-2';

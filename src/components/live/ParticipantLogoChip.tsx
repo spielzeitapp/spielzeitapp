@@ -30,7 +30,7 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
   const initials = getTeamInitials(club || name);
   const showInitials = !knownLogo || failed;
 
-  const widthClass = carousel ? 'w-[4.5rem] sm:w-[4.75rem]' : 'w-[4.75rem]';
+  const widthClass = carousel ? 'w-[4.75rem] sm:w-[5.25rem]' : 'w-[4.75rem]';
   const boxClass = carousel ? CAROUSEL_LOGO_BOX : 'h-11 w-11';
   const imgClass = carousel ? CAROUSEL_LOGO_IMG : 'h-8 w-8';
 
@@ -53,7 +53,7 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
         )}
       </div>
       <p
-        className={`mt-0.5 w-full truncate text-center leading-tight text-white/82 ${
+        className={`mt-0.5 w-full truncate text-center leading-tight text-white/88 ${
           carousel ? 'text-[10px] font-medium' : 'text-[8px] font-medium'
         }`}
         title={club || name}
