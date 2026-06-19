@@ -17,6 +17,7 @@ import {
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { eventNotesTitle, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
+import { safeOptionalText, safeText } from '../../lib/safeText';
 import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
 import { MatchCenterCountdown } from './MatchCenterCountdown';
 import { ParticipantLogoChip } from './ParticipantLogoChip';
@@ -37,8 +38,8 @@ type Props = {
   loadingExtras?: boolean;
 };
 
-function formatTournamentInfoDate(iso: string | null | undefined): string {
-  if (!iso?.trim()) return '—';
+function formatTournamentInfoDate(iso: unknown): string {
+  if (!safeText(iso)) return '—';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
   return new Intl.DateTimeFormat('de-AT', {
@@ -75,7 +76,10 @@ export function MatchCenterTournamentCard({
   slots,
   loadingExtras = false,
 }: Props) {
-  const title = (eventNotesTitle(event.notes) ?? event.opponent ?? 'Turnier').trim() || 'Turnier';
+  const title =
+    safeText(
+      eventNotesTitle(event.notes) ?? safeOptionalText(event.opponent) ?? 'Turnier',
+    ) || 'Turnier';
   const premium = isRudolfSteurerGedenkturnier(title);
   const coverUrl = resolveTournamentCoverUrl(event);
 
@@ -99,7 +103,7 @@ export function MatchCenterTournamentCard({
   const logoByName = useMemo(() => {
     const map = new Map<string, string | null>();
     for (const p of carouselTeams) {
-      map.set(p.name.trim().toLowerCase(), p.logoUrl ?? null);
+      map.set(safeText(p.name).toLowerCase(), safeOptionalText(p.logoUrl));
     }
     return map;
   }, [carouselTeams]);

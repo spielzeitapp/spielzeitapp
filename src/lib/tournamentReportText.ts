@@ -1,6 +1,7 @@
 import type { TournamentTeamBalance } from './tournamentPlan';
 import type { TournamentFinalMatchDisplay, TournamentFinalSummary } from './tournamentFinalSummary';
 import type { TournamentGoalScorer } from './tournamentGoalScorers';
+import { safeOptionalText, safeText } from './safeText';
 
 export function buildTournamentReportText(params: {
   tournamentTitle: string;
@@ -10,7 +11,7 @@ export function buildTournamentReportText(params: {
   goalScorers: TournamentGoalScorer[];
 }): string {
   const { tournamentTitle, summary, balance, finalMatch, goalScorers } = params;
-  const title = tournamentTitle.trim() || 'Turnier';
+  const title = safeText(tournamentTitle) || 'Turnier';
   const rank = summary.finalPlacementRank;
   const total = summary.finalPlacementTotal;
   const isWinner = summary.finalPlacementLabel === 'Turniersieger' || rank === 1;
@@ -41,7 +42,7 @@ export function buildTournamentReportText(params: {
 
   if (finalMatch) {
     const opponentMatch = /^\S+\s+\d+:\d+\s+(.+)$/.exec(finalMatch.scoreline);
-    const opponent = opponentMatch?.[1]?.trim();
+    const opponent = safeOptionalText(opponentMatch?.[1]);
     const scoreOnly = finalMatch.scoreline.match(/(\d+:\d+)/)?.[1];
     if (opponent && scoreOnly) {
       lines.push(`Finale: ${scoreOnly} gegen ${opponent}`);

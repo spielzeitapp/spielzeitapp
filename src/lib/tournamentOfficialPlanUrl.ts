@@ -1,11 +1,12 @@
 import { supabase } from './supabaseClient';
+import { safeOptionalText, safeText } from './safeText';
 
 export type ValidateOfficialTournamentUrlResult =
   | { ok: true; url: string }
   | { ok: false; error: string };
 
-export function validateOfficialTournamentUrl(raw: string): ValidateOfficialTournamentUrlResult {
-  const trimmed = raw.trim();
+export function validateOfficialTournamentUrl(raw: unknown): ValidateOfficialTournamentUrlResult {
+  const trimmed = safeText(raw);
   if (!trimmed) {
     return { ok: false, error: 'Bitte Turnierplan-URL eingeben.' };
   }
@@ -21,8 +22,8 @@ export function validateOfficialTournamentUrl(raw: string): ValidateOfficialTour
   return { ok: true, url: parsed.toString() };
 }
 
-export function displayDomainFromOfficialPlanUrl(url: string | null | undefined): string {
-  const raw = (url ?? '').trim();
+export function displayDomainFromOfficialPlanUrl(url: unknown): string {
+  const raw = safeText(url);
   if (!raw) return '';
   try {
     return new URL(raw).hostname.replace(/^www\./i, '');
@@ -41,7 +42,7 @@ export async function saveOfficialTournamentPlanUrl(
 ): Promise<{ error: string | null }> {
   const { error } = await supabase
     .from('events')
-    .update({ official_tournament_url: url?.trim() || null })
+    .update({ official_tournament_url: safeOptionalText(url) })
     .eq('id', eventId);
   return { error: error?.message ?? null };
 }

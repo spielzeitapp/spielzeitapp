@@ -1,3 +1,4 @@
+import { safeOptionalText, safeText } from './safeText';
 import { isTeamAliasMatch } from './teamSeasonAliasMatch';
 import type { TournamentGroupStandings } from './tournamentGroupStandings';
 import type { TournamentTeamBalance, TournamentMatchSlotView } from './tournamentPlan';
@@ -21,8 +22,8 @@ export type TournamentFinalSummary = {
 
 type MatchOutcome = 'win' | 'loss' | 'draw';
 
-function normalizeTournamentPhase(phase: string | null | undefined): string {
-  const p = (phase ?? '').trim().toLowerCase();
+function normalizeTournamentPhase(phase: unknown): string {
+  const p = safeText(phase).toLowerCase();
   if (!p) return '';
   if (p === 'group' || p === 'gruppe' || p === 'vorrunde') return 'group';
   if (p === 'final' || p === 'finale' || p.includes('finalspiel')) return 'final';
@@ -232,7 +233,7 @@ function buildFinalMatchDisplay(params: {
   }
 
   if (params.slot && (params.slot.match_status ?? '').toLowerCase() === 'finished') {
-    const ourName = params.ourTeamNames.find((name) => name.trim())?.trim() || 'Unser Team';
+    const ourName = safeOptionalText(params.ourTeamNames.find((name) => safeText(name))) || 'Unser Team';
     return {
       title: 'Finale',
       scoreline: `${ourName} ${params.slot.score_home}:${params.slot.score_away} ${params.slot.opponent_name}`,

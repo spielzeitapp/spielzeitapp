@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { safeText } from './safeText';
 import {
   sortTournamentGoalScorers,
   type TournamentGoalScorer,
@@ -17,8 +18,8 @@ function formatPlayerDisplayName(
   first: string | null | undefined,
   last: string | null | undefined,
 ): string {
-  const fn = (first ?? '').trim();
-  const ln = (last ?? '').trim();
+  const fn = safeText(first);
+  const ln = safeText(last);
   return [fn, ln].join(' ').replace(/\s+/g, ' ').trim() || 'Spieler';
 }
 
@@ -163,7 +164,7 @@ export async function fetchTournamentCombinedGoalScorers(params: {
 export async function countTournamentMatchEventGoals(
   matchIds: string[],
 ): Promise<number> {
-  const ids = [...new Set(matchIds.map((id) => id.trim()).filter(Boolean))];
+  const ids = [...new Set(matchIds.map((id) => safeText(id)).filter(Boolean))];
   if (ids.length === 0) return 0;
 
   const { data, error } = await supabase

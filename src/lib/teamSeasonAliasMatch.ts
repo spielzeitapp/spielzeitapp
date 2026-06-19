@@ -1,5 +1,7 @@
 /** Alias-Vergleich ohne Supabase — sicher für Server/API-Bundles. */
 
+import { safeText } from './safeText';
+
 const UMLAUT_MAP: Record<string, string> = {
   ä: 'ae',
   ö: 'oe',
@@ -11,8 +13,8 @@ const UMLAUT_MAP: Record<string, string> = {
 };
 
 /** Normalisiert Namen für Alias-Vergleich (Import). */
-export function normalizeTeamAliasName(name: string): string {
-  let s = name.trim().toLowerCase();
+export function normalizeTeamAliasName(name: unknown): string {
+  let s = safeText(name).toLowerCase();
   for (const [from, to] of Object.entries(UMLAUT_MAP)) {
     s = s.split(from).join(to);
   }
@@ -73,14 +75,14 @@ function tokensContainedIn(haystack: string, needles: string[]): boolean {
  * Prüft, ob ein Turnier-Teilnehmername zu einem unserer bekannten Namen passt.
  * Vorsichtiger Enthält-Vergleich (min. Token-Länge / mehrwortige Aliase).
  */
-export function isTeamAliasMatch(candidateName: string, knownNames: string[]): boolean {
+export function isTeamAliasMatch(candidateName: unknown, knownNames: readonly unknown[]): boolean {
   const cand = normalizeTeamAliasName(candidateName);
   if (!cand) return false;
 
   const candTokens = significantTokens(cand);
 
   for (const known of knownNames) {
-    const raw = known.trim();
+    const raw = safeText(known);
     if (!raw) continue;
 
     const norm = normalizeTeamAliasName(raw);
@@ -112,11 +114,11 @@ export function isTeamAliasMatch(candidateName: string, knownNames: string[]): b
   return false;
 }
 
-export function collectUniqueKnownNames(names: Array<string | null | undefined>): string[] {
+export function collectUniqueKnownNames(names: readonly unknown[]): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
   for (const name of names) {
-    const trimmed = (name ?? '').trim();
+    const trimmed = safeText(name);
     if (!trimmed) continue;
     const key = normalizeTeamAliasName(trimmed);
     if (seen.has(key)) continue;

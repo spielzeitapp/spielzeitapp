@@ -161,15 +161,15 @@ function getDomainEventLabel(event: EventRow): string {
   return 'Termin';
 }
 
-function extractAudienceTrainerNotes(notes: string | null | undefined): string | null {
-  const parts = (notes ?? '')
+function extractAudienceTrainerNotes(notes: unknown): string | null {
+  const parts = safeText(notes)
     .split(' · ')
     .map((p) => p.trim())
     .filter(Boolean)
     .filter((p) => !p.toLowerCase().startsWith('ende:'));
   if (parts.length === 0) return null;
   const text = parts.length > 1 ? parts.slice(1).join(' · ') : parts[0];
-  return text.trim() || null;
+  return safeText(text) || null;
 }
 
 function parseEditableNotes(notes: string | null | undefined): { title: string; endTime: string; details: string } {

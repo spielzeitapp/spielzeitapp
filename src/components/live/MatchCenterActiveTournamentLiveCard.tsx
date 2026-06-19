@@ -9,6 +9,7 @@ import {
 import { tournamentPhaseDisplayLabel } from '../../lib/matchCenterTournamentVisuals';
 import { getClubLogo, getTeamInitials, hasKnownClubLogo } from '../../lib/teamLogos';
 import { eventNotesTitle } from '../schedule/scheduleEventViewUtils';
+import { safeOptionalText, safeText } from '../../lib/safeText';
 import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
 import { MC_BORDER_STRONG, MC_SURFACE } from './matchCenterStyles';
 
@@ -49,15 +50,18 @@ function TeamLogo({
 export function MatchCenterActiveTournamentLiveCard({ context, ourTeamName }: Props) {
   const { tournamentEvent, slot, participants, liveDetails } = context;
   const tournamentTitle =
-    (eventNotesTitle(tournamentEvent.notes) ?? tournamentEvent.opponent ?? 'Turnier').trim() ||
-    'Turnier';
-  const homeTeam = ourTeamName.trim() || 'Unser Team';
-  const awayTeam = slot.opponent_name.trim() || 'Gegner';
+    safeText(
+      eventNotesTitle(tournamentEvent.notes) ??
+        safeOptionalText(tournamentEvent.opponent) ??
+        'Turnier',
+    ) || 'Turnier';
+  const homeTeam = safeText(ourTeamName) || 'Unser Team';
+  const awayTeam = safeText(slot.opponent_name) || 'Gegner';
 
   const logoByName = useMemo(() => {
     const map = new Map<string, string | null>();
     for (const p of participants) {
-      map.set(p.name.trim().toLowerCase(), p.logoUrl ?? null);
+      map.set(safeText(p.name).toLowerCase(), safeOptionalText(p.logoUrl));
     }
     return map;
   }, [participants]);
@@ -120,8 +124,8 @@ export function MatchCenterActiveTournamentLiveCard({ context, ourTeamName }: Pr
           </div>
         </div>
 
-        {slot.pitch?.trim() ? (
-          <p className="mt-3 text-center text-[11px] text-white/45">{slot.pitch.trim()}</p>
+        {safeOptionalText(slot.pitch) ? (
+          <p className="mt-3 text-center text-[11px] text-white/45">{safeText(slot.pitch)}</p>
         ) : null}
 
         <Link

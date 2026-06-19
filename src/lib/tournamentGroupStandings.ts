@@ -1,3 +1,4 @@
+import { safeOptionalText, safeText } from './safeText';
 import { isTeamAliasMatch } from './teamSeasonAliasMatch';
 import type { TournamentParticipant } from './tournamentPlan';
 import type { TournamentPlanImportRawMatch } from './tournamentPlanImport';
@@ -34,12 +35,12 @@ type MutableStanding = {
   goalsAgainst: number;
 };
 
-function groupLabelKey(label: string | null | undefined): string {
-  return (label ?? '').trim().toLowerCase() || '_default';
+function groupLabelKey(label: unknown): string {
+  return safeText(label).toLowerCase() || '_default';
 }
 
-function displayGroupLabel(label: string | null | undefined): string {
-  const trimmed = (label ?? '').trim();
+function displayGroupLabel(label: unknown): string {
+  const trimmed = safeText(label);
   return trimmed || '1';
 }
 

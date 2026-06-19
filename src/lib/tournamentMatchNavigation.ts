@@ -5,6 +5,7 @@ import {
   type TournamentMatchSlotView,
 } from './tournamentPlan';
 import { eventNotesTitle } from '../components/schedule/scheduleEventViewUtils';
+import { safeOptionalText, safeText } from './safeText';
 
 export type TournamentMatchNavigationContext = {
   tournamentEventId: string;
@@ -40,8 +41,11 @@ export async function fetchTournamentMatchNavigationContext(
   if (slotsRes.error) return null;
 
   const tournamentTitle =
-    (eventNotesTitle(eventRow.notes as string | null) ?? (eventRow.opponent as string | null) ?? 'Turnier').trim() ||
-    'Turnier';
+    safeText(
+      eventNotesTitle(eventRow.notes as string | null) ??
+        safeOptionalText(eventRow.opponent) ??
+        'Turnier',
+    ) || 'Turnier';
 
   const nextSlot = pickNextPlannedTournamentSlot(slotsRes.data ?? [], {
     afterMatchId: options?.afterCurrentMatch ? id : null,
@@ -55,5 +59,5 @@ export async function fetchTournamentMatchNavigationContext(
 }
 
 export function tournamentCenterPath(tournamentEventId: string): string {
-  return `/app/events/${encodeURIComponent(tournamentEventId.trim())}`;
+  return `/app/events/${encodeURIComponent(safeText(tournamentEventId))}`;
 }

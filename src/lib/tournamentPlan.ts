@@ -1,4 +1,4 @@
-import { safeOptionalText } from './safeText';
+import { safeOptionalText, safeText } from './safeText';
 import { supabase } from './supabaseClient';
 import { upsertMatchForSetup, updateMatchRow } from './liveMatchService';
 import {
@@ -168,7 +168,7 @@ export function pickNextPlannedTournamentSlot(
   slots: TournamentMatchSlotView[],
   options?: { afterMatchId?: string | null },
 ): TournamentMatchSlotView | null {
-  const afterMatchId = options?.afterMatchId?.trim() ?? '';
+  const afterMatchId = safeText(options?.afterMatchId);
   const sorted = sortTournamentMatchSlots(slots);
 
   if (afterMatchId) {
@@ -233,6 +233,24 @@ export function formatTournamentKickoffTime(kickoffAtIso: string): string {
   }).format(d);
 }
 
+function normalizeParticipantRow(row: TournamentParticipant): TournamentParticipant {
+  return {
+    ...row,
+    team_name: safeText(row.team_name),
+    group_label: safeOptionalText(row.group_label),
+  };
+}
+
+function normalizeMatchSlotRow(row: TournamentMatchSlot): TournamentMatchSlot {
+  return {
+    ...row,
+    opponent_name: safeText(row.opponent_name),
+    pitch: safeOptionalText(row.pitch),
+    group_label: safeOptionalText(row.group_label),
+    phase: safeOptionalText(row.phase),
+  };
+}
+
 export async function fetchTournamentParticipants(
   tournamentEventId: string,
 ): Promise<{ data: TournamentParticipant[]; error: string | null }> {
@@ -245,7 +263,10 @@ export async function fetchTournamentParticipants(
     .order('team_name', { ascending: true });
 
   if (error) return { data: [], error: normalizeTournamentDbError(error.message, error.code) };
-  return { data: (data ?? []) as TournamentParticipant[], error: null };
+  return {
+    data: ((data ?? []) as TournamentParticipant[]).map(normalizeParticipantRow),
+    error: null,
+  };
 }
 
 /** Text-Import: Zeilen parsen, Leerzeilen weg, trimmen, keine Duplikate (Batch + bestehende Liste). */
@@ -253,7 +274,7 @@ export function parseTournamentParticipantImportLines(
   raw: string,
   existingTeamNames: string[] = [],
 ): string[] {
-  const existing = new Set(existingTeamNames.map((n) => n.trim().toLowerCase()).filter(Boolean));
+  const existing = new Set(existingTeamNames.map((n) => safeText(n).toLowerCase()).filter(Boolean));
   const seen = new Set<string>();
   const result: string[] = [];
   for (const line of raw.split(/\r?\n/)) {
@@ -289,7 +310,7 @@ export async function importTournamentParticipantsBulk(params: {
 
   if (countErr) return { imported: 0, error: normalizeTournamentDbError(countErr.message, countErr.code) };
 
-  const groupLabel = params.groupLabel?.trim() || null;
+  const groupLabel = safeOptionalText(params.groupLabel);
   const baseOrder = count ?? 0;
   const rows = names.map((team_name, index) => ({
     tournament_event_id: params.tournamentEventId,
@@ -321,7 +342,7 @@ export async function addTournamentParticipant(params: {
   const { error } = await supabase.from('tournament_participants').insert({
     tournament_event_id: params.tournamentEventId,
     team_name: name,
-    group_label: params.groupLabel?.trim() || null,
+    group_label: safeOptionalText(params.groupLabel),
     sort_order: (count ?? 0) + 1,
   });
 
@@ -415,7 +436,7 @@ export async function fetchTournamentMatchSlots(
   }
 
   if (error) return { data: [], error: normalizeTournamentDbError(error.message, error.code) };
-  const rows = (data ?? []) as TournamentMatchSlot[];
+  const rows = ((data ?? []) as TournamentMatchSlot[]).map(normalizeMatchSlotRow);
   const enriched = await enrichTournamentMatchSlots(rows);
   return { data: enriched, error: null };
 }
@@ -445,7 +466,7 @@ export async function createTournamentMatchSlot(params: {
     : kickoffIso.slice(0, 10);
   const matchTime = utcIsoToViennaTimeHHmm(kickoffIso);
 
-  const locationParts = [params.location?.trim(), params.pitch?.trim()].filter(Boolean);
+  const locationParts = [safeOptionalText(params.location), safeOptionalText(params.pitch)].filter(Boolean);
   const locationNote = locationParts.join(' · ') || '';
 
   const { matchId, error: matchErr } = await upsertMatchForSetup({
@@ -486,11 +507,11 @@ export async function createTournamentMatchSlot(params: {
     opponent_name: opponent,
     kickoff_at: kickoffIso,
     planned_minutes: planned,
-    pitch: params.pitch?.trim() || null,
-    group_label: params.groupLabel?.trim() || null,
+    pitch: safeOptionalText(params.pitch),
+    group_label: safeOptionalText(params.groupLabel),
     sort_order: (count ?? 0) + 1,
   };
-  const phaseValue = params.phase?.trim();
+  const phaseValue = safeOptionalText(params.phase);
   if (phaseValue) slotRow.phase = phaseValue;
 
   let insertRes = await supabase.from('tournament_matches').insert(slotRow).select('id').single();

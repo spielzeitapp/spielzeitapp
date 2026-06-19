@@ -6,6 +6,7 @@ import { formatHeroDateParts, formatTimeHHmmDe } from '../schedule/scheduleEvent
 import { MatchdayPosterArtwork } from '../feed/MatchdayPosterArtwork';
 import { tournamentPhaseDisplayLabel } from '../../lib/matchCenterTournamentVisuals';
 import { tournamentMatchDisplayStatus } from '../../lib/tournamentPlan';
+import { safeOptionalText, safeText } from '../../lib/safeText';
 import { MC_SURFACE, MC_POSTER_SHELL, MC_POSTER_SHADOW } from './matchCenterStyles';
 
 type Props = {
@@ -15,8 +16,8 @@ type Props = {
   participantLogoByName?: ReadonlyMap<string, string | null>;
 };
 
-function resolveLogo(name: string, map?: ReadonlyMap<string, string | null>): string {
-  const url = map?.get(name.trim().toLowerCase());
+function resolveLogo(name: unknown, map?: ReadonlyMap<string, string | null>): string {
+  const url = map?.get(safeText(name).toLowerCase());
   return getClubLogo(name, { logoUrl: url ?? undefined });
 }
 
@@ -27,7 +28,7 @@ function TournamentTeamLogo({
   name: string;
   map?: ReadonlyMap<string, string | null>;
 }) {
-  const logoUrl = map?.get(name.trim().toLowerCase()) ?? null;
+  const logoUrl = map?.get(safeText(name).toLowerCase()) ?? null;
   const known = hasKnownClubLogo(name, { logoUrl });
   const src = known ? resolveLogo(name, map) : null;
   const [failed, setFailed] = React.useState(false);
@@ -56,8 +57,8 @@ export function TournamentMatchCenterPoster({
   tournamentTitle,
   participantLogoByName,
 }: Props) {
-  const homeTeam = ourTeamName.trim() || 'Unser Team';
-  const awayTeam = slot.opponent_name.trim() || 'Gegner';
+  const homeTeam = safeText(ourTeamName) || 'Unser Team';
+  const awayTeam = safeText(slot.opponent_name) || 'Gegner';
   const kickoff = formatTimeHHmmDe(slot.kickoff_at);
   const phaseLabel = tournamentPhaseDisplayLabel(slot.phase, slot.group_label);
   const display = tournamentMatchDisplayStatus(slot);
@@ -126,8 +127,8 @@ export function TournamentFirstMatchPreview({
     );
   }
 
-  const homeTeam = ourTeamName.trim() || 'Unser Team';
-  const awayTeam = slot.opponent_name.trim() || 'Gegner';
+  const homeTeam = safeText(ourTeamName) || 'Unser Team';
+  const awayTeam = safeText(slot.opponent_name) || 'Gegner';
   const dateParts = formatHeroDateParts(slot.kickoff_at);
   const kickoff = formatTimeHHmmDe(slot.kickoff_at);
 

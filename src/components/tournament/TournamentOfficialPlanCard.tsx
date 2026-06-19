@@ -29,6 +29,7 @@ import {
   saveOfficialTournamentPlanUrl,
   validateOfficialTournamentUrl,
 } from '../../lib/tournamentOfficialPlanUrl';
+import { safeOptionalText, safeText } from '../../lib/safeText';
 import { TournamentPlanImportSheet } from './TournamentPlanImportSheet';
 import { TournamentPlanRefreshSheet } from './TournamentPlanRefreshSheet';
 import { TournamentPlanQrScannerSheet } from './TournamentPlanQrScannerSheet';
@@ -97,12 +98,12 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   const [refreshAnalysis, setRefreshAnalysis] = useState<TournamentPlanAnalysis | null>(null);
   const [refreshPreview, setRefreshPreview] = useState<TournamentPlanRefreshPreview | null>(null);
 
-  const hasUrl = Boolean(officialTournamentUrl?.trim());
+  const hasUrl = Boolean(safeText(officialTournamentUrl));
   const domain = displayDomainFromOfficialPlanUrl(officialTournamentUrl);
 
   useEffect(() => {
     if (modalOpen) {
-      setDraftUrl(officialTournamentUrl?.trim() ?? '');
+      setDraftUrl(safeText(officialTournamentUrl));
       setModalError(null);
     }
   }, [modalOpen, officialTournamentUrl]);
@@ -125,7 +126,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   };
 
   const handleOpen = () => {
-    const url = officialTournamentUrl?.trim();
+    const url = safeText(officialTournamentUrl);
     if (url) openOfficialTournamentPlanUrl(url);
   };
 
@@ -180,7 +181,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   );
 
   const startImport = useCallback(async () => {
-    const url = officialTournamentUrl?.trim();
+    const url = safeText(officialTournamentUrl);
     if (!url) return;
 
     setImportSheetOpen(true);
@@ -287,7 +288,7 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   }, [onScrollToAliases]);
 
   const startRefresh = useCallback(async () => {
-    const url = officialTournamentUrl?.trim();
+    const url = safeText(officialTournamentUrl);
     if (!url) return;
 
     setRefreshSheetOpen(true);

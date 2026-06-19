@@ -1,5 +1,6 @@
 import { normalizeMatchEventGoalType } from './matchEventScores';
 import { supabase } from './supabaseClient';
+import { safeOptionalText, safeText } from './safeText';
 
 export type TournamentGoalScorer = {
   playerId: string;
@@ -16,8 +17,8 @@ function formatPlayerDisplayName(
   first: string | null | undefined,
   last: string | null | undefined,
 ): string {
-  const fn = (first ?? '').trim();
-  const ln = (last ?? '').trim();
+  const fn = safeText(first);
+  const ln = safeText(last);
   return [fn, ln].join(' ').replace(/\s+/g, ' ').trim() || 'Spieler';
 }
 
@@ -28,7 +29,7 @@ export function aggregateTournamentGoalScorers(
   const counts = new Map<string, number>();
   for (const event of events) {
     if (normalizeMatchEventGoalType(event.type) !== 'goal') continue;
-    const playerId = event.player_id?.trim();
+    const playerId = safeOptionalText(event.player_id);
     if (!playerId) continue;
     counts.set(playerId, (counts.get(playerId) ?? 0) + 1);
   }
@@ -45,7 +46,7 @@ export function sortTournamentGoalScorers(rows: TournamentGoalScorer[]): Tournam
 export async function fetchTournamentGoalScorers(
   matchIds: string[],
 ): Promise<{ data: TournamentGoalScorer[]; error: string | null }> {
-  const ids = [...new Set(matchIds.map((id) => id.trim()).filter(Boolean))];
+  const ids = [...new Set(matchIds.map((id) => safeText(id)).filter(Boolean))];
   if (ids.length === 0) return { data: [], error: null };
 
   const { data: goalsData, error: goalsError } = await supabase

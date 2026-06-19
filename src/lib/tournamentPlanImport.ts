@@ -1,4 +1,5 @@
 import { isTeamAliasMatch } from './teamSeasonAliasMatch';
+import { safeOptionalText, safeText } from './safeText';
 import type { TournamentImportRecognition } from './teamSeasonAliases';
 import {
   captureMeinTurnierplanHtmlFallbackException,
@@ -1418,12 +1419,12 @@ export function inferKnockoutPhaseFromMeinTurnierplan(
   return 'unknown';
 }
 
-export function normalizeTeamMatchKey(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, ' ');
+export function normalizeTeamMatchKey(name: unknown): string {
+  return safeText(name).toLowerCase().replace(/\s+/g, ' ');
 }
 
-export function normalizePhaseForDedupe(phase: string | null | undefined): string {
-  const p = (phase ?? '').trim().toLowerCase();
+export function normalizePhaseForDedupe(phase: unknown): string {
+  const p = safeText(phase).toLowerCase();
   if (p === 'group' || p === 'placement' || p === 'semifinal' || p === 'final' || p === 'unknown') {
     return p;
   }
@@ -1438,9 +1439,9 @@ export function buildTournamentMatchDedupeKey(params: {
 }): string {
   const phaseKey =
     normalizePhaseForDedupe(params.phase) ||
-    (params.groupLabel?.trim() ? 'group' : 'unknown');
+    (safeOptionalText(params.groupLabel) ? 'group' : 'unknown');
   const groupKey =
-    phaseKey === 'group' ? normalizeTeamMatchKey(params.groupLabel ?? '') : phaseKey;
+    phaseKey === 'group' ? normalizeTeamMatchKey(params.groupLabel) : phaseKey;
   return `${params.kickoffTimeHHmm}|${normalizeTeamMatchKey(params.opponentName)}|${groupKey}`;
 }
 
@@ -1943,7 +1944,7 @@ export async function computeTournamentPlanRefreshPreview(params: {
         kickoffTimeHHmm: formatTournamentKickoffTime(slot.kickoff_at),
         opponentName: slot.opponent_name,
         groupLabel: slot.group_label,
-        phase: slot.phase ?? (slot.group_label?.trim() ? 'group' : null),
+        phase: slot.phase ?? (safeOptionalText(slot.group_label) ? 'group' : null),
       }),
       slot,
     ]),
@@ -2534,7 +2535,7 @@ export async function importTournamentPlanFromAnalysis(params: {
         kickoffTimeHHmm: formatTournamentKickoffTime(slot.kickoff_at),
         opponentName: slot.opponent_name,
         groupLabel: slot.group_label,
-        phase: slot.phase ?? (slot.group_label?.trim() ? 'group' : null),
+        phase: slot.phase ?? (safeOptionalText(slot.group_label) ? 'group' : null),
       }),
       slot,
     ]),

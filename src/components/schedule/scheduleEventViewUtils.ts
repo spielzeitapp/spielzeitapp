@@ -1,4 +1,5 @@
 import type { EventRow } from '../../hooks/useEvents';
+import { safeText } from '../../lib/safeText';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { getMatchTypeLabel } from '../match/matchCardLabels';
@@ -77,8 +78,8 @@ export function formatTimeHHmmDe(iso: string | null | undefined): string {
   }).format(d);
 }
 
-export function eventNotesTitle(notes: string | null | undefined): string | null {
-  const t = (notes ?? '')
+export function eventNotesTitle(notes: unknown): string | null {
+  const t = safeText(notes)
     .split(' · ')
     .map((p) => p.trim())
     .filter(Boolean)[0];
@@ -133,8 +134,8 @@ export function scheduleCompactSecondaryLine(ev: EventRow, et: EffectiveEventTyp
 }
 
 /** „Ende: …“ aus notes (Training), für Ende-Pill. */
-export function eventTrainingEndDisplay(notes: string | null | undefined): string | null {
-  const endRaw = (notes ?? '')
+export function eventTrainingEndDisplay(notes: unknown): string | null {
+  const endRaw = safeText(notes)
     .split(' · ')
     .find((p) => p.toLowerCase().startsWith('ende:'));
   if (!endRaw) return null;
