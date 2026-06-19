@@ -15,11 +15,11 @@ function CountdownUnit({
 }) {
   if (variant === 'heroCompact') {
     return (
-      <div className="flex min-w-0 flex-1 flex-col items-center rounded-lg border border-[rgba(255,71,71,0.32)] bg-[rgba(2,1,4,0.98)] px-1 py-1.5 shadow-[0_0_22px_rgba(255,71,71,0.22),0_3px_14px_rgba(0,0,0,0.6)]">
-        <span className="text-[30px] font-extrabold tabular-nums leading-none tracking-tight text-white sm:text-[32px]">
+      <div className="flex min-w-0 flex-1 flex-col items-center rounded-lg border border-[rgba(255,71,71,0.36)] bg-[rgba(1,0,3,0.99)] px-1.5 py-2 shadow-[0_0_30px_rgba(255,71,71,0.28),0_4px_16px_rgba(0,0,0,0.7)]">
+        <span className="text-[32px] font-extrabold tabular-nums leading-none tracking-tight text-white sm:text-[36px]">
           {value}
         </span>
-        <span className="mt-1 text-[7px] font-bold uppercase tracking-[0.1em] text-[rgba(255,90,90,1)]">
+        <span className="mt-1.5 text-[7px] font-bold uppercase tracking-[0.1em] text-[rgba(255,90,90,1)]">
           {label}
         </span>
       </div>
@@ -57,10 +57,12 @@ export function MatchCenterCountdown({
   parts,
   variant = 'compact',
   showHeader = false,
+  headerLabel = 'Countdown bis Beginn',
 }: {
   parts: CountdownParts;
   variant?: Variant;
   showHeader?: boolean;
+  headerLabel?: string;
 }) {
   const labels =
     variant === 'heroCompact'
@@ -79,8 +81,8 @@ export function MatchCenterCountdown({
   return (
     <div aria-label="Countdown">
       {showHeader && variant === 'heroCompact' ? (
-        <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[rgba(255,120,120,0.88)]">
-          Countdown bis Beginn
+        <p className="mb-1 text-center text-[8px] font-bold uppercase tracking-[0.12em] text-[rgba(255,120,120,0.92)]">
+          {headerLabel}
         </p>
       ) : null}
       <div className={gridClass}>

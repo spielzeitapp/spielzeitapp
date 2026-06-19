@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, MapPin, Trophy } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, Trophy } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import {
@@ -15,7 +15,8 @@ import {
   resolveTournamentCoverUrl,
 } from '../../lib/matchCenterTournamentVisuals';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
-import { eventNotesTitle, formatHeroDateParts, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
+import { VIENNA_TZ } from '../../lib/viennaTime';
+import { eventNotesTitle, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
 import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
 import { MatchCenterCountdown } from './MatchCenterCountdown';
 import { ParticipantLogoChip } from './ParticipantLogoChip';
@@ -36,57 +37,32 @@ type Props = {
   loadingExtras?: boolean;
 };
 
-function splitPlaceDisplay(place: string): { label: string; detail: string } {
-  const trimmed = place.trim();
-  if (!trimmed) return { label: 'Ort', detail: '—' };
-  const match = trimmed.match(/^(Sportplatz|Stadion|Arena|Halle)\s+(.+)$/i);
-  if (match) {
-    return { label: match[1]!, detail: match[2]!.trim() };
-  }
-  return { label: 'Ort', detail: trimmed };
+function formatTournamentInfoDate(iso: string | null | undefined): string {
+  if (!iso?.trim()) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(d);
 }
 
-function HeroGlassInfoBar({
-  startsAt,
-  place,
+const HERO_META_ICON = 'h-3 w-3 shrink-0 text-red-400/90';
+
+function HeroMetaLine({
+  icon: Icon,
+  children,
 }: {
-  startsAt: string | null | undefined;
-  place: string;
+  icon: typeof CalendarDays;
+  children: React.ReactNode;
 }) {
-  const dateParts = formatHeroDateParts(startsAt);
-  const kickoff = formatTimeHHmmDe(startsAt);
-  const { label: placeLabel, detail: placeDetail } = splitPlaceDisplay(place);
-
   return (
-    <div className="flex items-stretch gap-1 rounded-lg border border-white/10 bg-black/55 px-1.5 py-1 shadow-[0_4px_16px_rgba(0,0,0,0.45)] backdrop-blur-md">
-      <span className="inline-flex min-w-[2.1rem] shrink-0 flex-col items-center justify-center rounded-md border border-[rgba(255,71,71,0.18)] bg-black/40 px-0.5 py-0.5">
-        <span className="text-[7px] font-bold uppercase tracking-wide text-red-300/85">
-          {dateParts.wd}
-        </span>
-        <span className="text-[13px] font-bold leading-none text-white">{dateParts.day}</span>
-        <span className="text-[7px] font-semibold uppercase text-white/55">{dateParts.mon}</span>
-      </span>
-
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-px border-r border-white/10 pr-1">
-        <p className="inline-flex items-center gap-0.5 text-[7px] font-medium uppercase tracking-wide text-white/50">
-          <Clock className="h-2 w-2 shrink-0 text-red-400/85" strokeWidth={2.25} aria-hidden />
-          Beginn
-        </p>
-        <p className="text-[11px] font-semibold tabular-nums leading-tight text-white">{kickoff} Uhr</p>
-      </div>
-
-      {place ? (
-        <div className="flex min-w-0 flex-[1.05] flex-col justify-center gap-px">
-          <p className="inline-flex items-center gap-0.5 text-[7px] font-medium uppercase tracking-wide text-white/50">
-            <MapPin className="h-2 w-2 shrink-0 text-red-400/85" strokeWidth={2.25} aria-hidden />
-            {placeLabel}
-          </p>
-          <p className="truncate text-[10px] font-semibold leading-tight text-white/92" title={placeDetail}>
-            {placeDetail}
-          </p>
-        </div>
-      ) : null}
-    </div>
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium leading-snug text-white/92 drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
+      <Icon className={HERO_META_ICON} strokeWidth={2.25} aria-hidden />
+      {children}
+    </span>
   );
 }
 
@@ -107,6 +83,8 @@ export function MatchCenterTournamentCard({
     () => computeMatchCenterCountdown(event.starts_at, now),
     [event.starts_at, now],
   );
+  const infoDate = formatTournamentInfoDate(event.starts_at);
+  const kickoff = formatTimeHHmmDe(event.starts_at);
   const parsedLocation = splitCombinedLocation(event.location);
   const place = formatFullLocation(parsedLocation.place, parsedLocation.address || (event.address ?? ''));
 
@@ -132,24 +110,24 @@ export function MatchCenterTournamentCard({
 
   return (
     <article className="relative overflow-hidden rounded-[18px] bg-[#060608] shadow-[0_16px_48px_rgba(0,0,0,0.68)] ring-1 ring-white/[0.04]">
-      <div className="relative min-h-[9.75rem] w-full overflow-hidden sm:min-h-[11.25rem]">
+      <div className="relative min-h-[10rem] w-full overflow-hidden sm:min-h-[11.5rem]">
         <img
           src={coverUrl}
           alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[82%_42%]"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[84%_55%]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.18)_0%,rgba(0,0,0,0)_18%,rgba(0,0,0,0.06)_45%,rgba(6,4,6,0.55)_82%,rgba(6,4,6,0.72)_100%)]"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0)_24%,rgba(0,0,0,0.04)_50%,rgba(6,4,6,0.35)_100%)]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-[2.75rem] h-[42%] bg-[linear-gradient(to_top,rgba(0,0,0,0.78)_0%,rgba(0,0,0,0.42)_55%,transparent_100%)]"
+          className="pointer-events-none absolute inset-y-0 left-0 w-[62%] bg-[linear-gradient(to_right,rgba(0,0,0,0.62)_0%,rgba(0,0,0,0.28)_55%,transparent_100%)]"
           aria-hidden
         />
 
-        <div className="relative flex h-full min-h-[inherit] flex-col px-3 pb-1 pt-1 sm:px-4">
-          <span className="inline-flex w-fit items-center gap-0.5 rounded-full border border-white/[0.07] bg-black/30 px-1.5 py-px text-[7px] font-semibold uppercase tracking-[0.08em] text-white/72 backdrop-blur-[2px]">
+        <div className="relative flex h-full min-h-[inherit] flex-col px-3 pb-2 pt-1.5 sm:px-4">
+          <span className="inline-flex w-fit items-center gap-0.5 rounded-full border border-white/[0.08] bg-black/35 px-1.5 py-px text-[7px] font-semibold uppercase tracking-[0.08em] text-white/80 backdrop-blur-[2px]">
             <Trophy
               className="h-3 w-3 shrink-0 text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
               strokeWidth={2.25}
@@ -158,21 +136,27 @@ export function MatchCenterTournamentCard({
             {premium ? 'Turnier' : 'Nächstes Turnier'}
           </span>
 
-          <div className="flex flex-1 flex-col justify-end pb-[3.15rem]">
-            <h2 className="line-clamp-2 max-w-[58%] text-left text-[16px] font-bold leading-[1.13] tracking-tight text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.95)] sm:text-[17px]">
+          <div className="mt-auto max-w-[58%] space-y-1.5 pb-1 pt-3">
+            <h2 className="line-clamp-2 text-left text-[16px] font-bold leading-[1.14] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)] sm:text-[17px]">
               {title}
             </h2>
-          </div>
-
-          <div className="absolute bottom-1 left-3 max-w-[66%] sm:left-4 sm:max-w-[62%]">
-            <HeroGlassInfoBar startsAt={event.starts_at} place={place} />
+            <div className="flex flex-col gap-0.5">
+              <HeroMetaLine icon={CalendarDays}>{infoDate}</HeroMetaLine>
+              <HeroMetaLine icon={Clock}>{kickoff} Uhr</HeroMetaLine>
+              {place ? <HeroMetaLine icon={MapPin}>{place}</HeroMetaLine> : null}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="relative bg-[#060608] px-3 pb-2 pt-0 sm:px-4 sm:pb-2">
+      <div className="relative bg-[#060608] px-3 pb-2 pt-0.5 sm:px-4 sm:pb-2">
         {countdown ? (
-          <MatchCenterCountdown parts={countdown} variant="heroCompact" />
+          <MatchCenterCountdown
+            parts={countdown}
+            variant="heroCompact"
+            showHeader
+            headerLabel="Countdown bis Turnierstart"
+          />
         ) : null}
 
         {carouselTeams.length > 0 ? (

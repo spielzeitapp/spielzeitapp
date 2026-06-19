@@ -11,6 +11,20 @@ type Props = {
 const CAROUSEL_LOGO_BOX = 'h-[3.75rem] w-[3.75rem] sm:h-[4rem] sm:w-[4rem]';
 const CAROUSEL_LOGO_IMG = 'h-[3.5rem] w-[3.5rem] sm:h-[3.75rem] sm:w-[3.75rem]';
 
+const CAROUSEL_SHORT_NAMES: Record<string, string> = {
+  'fk austria wien': 'FK Austria',
+  'sv ried': 'SV Ried',
+  'first vienna fc': 'First Vienna',
+  'first vienna fc 1894': 'First Vienna',
+  'first vienna': 'First Vienna',
+  'ask wilhelmsburg': 'ASK Wilhelmsburg',
+};
+
+function shortenClubDisplayName(club: string): string {
+  const key = club.trim().toLowerCase();
+  return CAROUSEL_SHORT_NAMES[key] ?? club;
+}
+
 function splitParticipantDisplayName(name: string): { club: string; ageGroup: string | null } {
   const trimmed = name.trim();
   const match = trimmed.match(/^(.+?)\s+(U\d{1,2})\s*$/i);
@@ -24,6 +38,7 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
   const [failed, setFailed] = useState(false);
   const name = teamName.trim() || 'Team';
   const { club } = splitParticipantDisplayName(name);
+  const displayClub = carousel ? shortenClubDisplayName(club || name) : club || name;
   const knownLogo = hasKnownClubLogo(name, { logoUrl });
   const src = knownLogo ? getClubLogo(name, { logoUrl }) : null;
   const heim = isHeimteamParticipant(name);
@@ -53,12 +68,12 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
         )}
       </div>
       <p
-        className={`mt-0.5 w-full truncate text-center leading-tight text-white/88 ${
-          carousel ? 'text-[10px] font-medium' : 'text-[8px] font-medium'
+        className={`mt-0.5 w-full text-center leading-tight text-white/88 ${
+          carousel ? 'text-[10px] font-medium' : 'truncate text-[8px] font-medium'
         }`}
         title={club || name}
       >
-        {club || name}
+        {displayClub}
       </p>
       {heim ? (
         <span className="mt-0.5 whitespace-nowrap rounded-full border border-[rgba(255,71,71,0.28)] bg-[rgba(255,71,71,0.08)] px-1 py-px text-[5px] font-semibold uppercase tracking-[0.04em] text-[rgba(255,140,140,0.9)]">
