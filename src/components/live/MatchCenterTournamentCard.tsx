@@ -110,11 +110,11 @@ export function MatchCenterTournamentCard({
 
   return (
     <article className="relative overflow-hidden rounded-[18px] bg-[#060608] shadow-[0_16px_48px_rgba(0,0,0,0.68)] ring-1 ring-white/[0.04]">
-      <div className="relative min-h-[10rem] w-full overflow-hidden sm:min-h-[11.5rem]">
+      <div className="relative min-h-[9.25rem] w-full overflow-hidden sm:min-h-[10.625rem]">
         <img
           src={coverUrl}
           alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[84%_55%]"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[84%_48%]"
           aria-hidden
         />
         <div
@@ -136,14 +136,16 @@ export function MatchCenterTournamentCard({
             {premium ? 'Turnier' : 'Nächstes Turnier'}
           </span>
 
-          <div className="mt-auto max-w-[58%] space-y-1.5 pb-1 pt-3">
-            <h2 className="line-clamp-2 text-left text-[16px] font-bold leading-[1.14] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)] sm:text-[17px]">
-              {title}
-            </h2>
-            <div className="flex flex-col gap-0.5">
-              <HeroMetaLine icon={CalendarDays}>{infoDate}</HeroMetaLine>
-              <HeroMetaLine icon={Clock}>{kickoff} Uhr</HeroMetaLine>
-              {place ? <HeroMetaLine icon={MapPin}>{place}</HeroMetaLine> : null}
+          <div className="mt-auto max-w-[58%] pb-1 pt-2">
+            <div className="space-y-1.5 rounded-lg bg-black/30 px-2 py-1.5 backdrop-blur-[2px]">
+              <h2 className="line-clamp-2 text-left text-[16px] font-bold leading-[1.14] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.95)] sm:text-[17px]">
+                {title}
+              </h2>
+              <div className="flex flex-col gap-0.5">
+                <HeroMetaLine icon={CalendarDays}>{infoDate}</HeroMetaLine>
+                <HeroMetaLine icon={Clock}>{kickoff} Uhr</HeroMetaLine>
+                {place ? <HeroMetaLine icon={MapPin}>{place}</HeroMetaLine> : null}
+              </div>
             </div>
           </div>
         </div>

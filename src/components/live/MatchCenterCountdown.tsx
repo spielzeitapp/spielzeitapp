@@ -81,7 +81,7 @@ export function MatchCenterCountdown({
   return (
     <div aria-label="Countdown">
       {showHeader && variant === 'heroCompact' ? (
-        <p className="mb-1 text-center text-[8px] font-bold uppercase tracking-[0.12em] text-[rgba(255,120,120,0.92)]">
+        <p className="mb-1 text-center text-[9px] font-bold uppercase tracking-[0.14em] text-[rgba(255,130,130,0.98)] sm:text-[10px]">
           {headerLabel}
         </p>
       ) : null}

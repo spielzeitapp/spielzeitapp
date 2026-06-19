@@ -68,8 +68,8 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
         )}
       </div>
       <p
-        className={`mt-0.5 w-full text-center leading-tight text-white/88 ${
-          carousel ? 'text-[10px] font-medium' : 'truncate text-[8px] font-medium'
+        className={`mt-0.5 w-full text-center leading-tight text-white/90 ${
+          carousel ? 'truncate text-[11px] font-semibold' : 'truncate text-[8px] font-medium'
         }`}
         title={club || name}
       >
