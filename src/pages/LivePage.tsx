@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useSession } from '../auth/useSession';
+import { isTournamentLiveMatchForTeam } from '../lib/matchCenterTournamentLive';
 import { LivePageHeader, LivePremiumShell, LiveScheduleCtaLink } from '../components/live/LivePremiumShell';
 import { MatchCenterIdleView } from '../components/live/MatchCenterIdleView';
 import { LiveMatchScreen } from './live/LiveMatchScreen';
@@ -13,14 +14,16 @@ type LiveMatchRow = {
   id: string;
   opponent: string | null;
   match_date: string | null;
+  team_season_id: string | null;
 };
 
 /**
  * Haupt-Liveticker unter /app/live: roter LiveMatchScreen für alle Rollen (Trainer vs. Zuschauer nur Berechtigung).
  * Ohne ?matchId: bei genau einem live-Match wird derselbe Screen genutzt (intern erste Live-Zeile); bei mehreren zuerst Auswahl.
+ * Turnierspiele: Match Center zeigt Live-Card mit CTA statt Auto-Sprung in den Liveticker.
  */
 export const LivePage: React.FC = () => {
-  const { effectiveRole } = useSession();
+  const { effectiveRole, selectedTeamSeasonId: teamSeasonId } = useSession();
   const { id: idFromRoute } = useParams<{ id?: string }>();
   const [searchParams] = useSearchParams();
   const matchIdParam =
@@ -29,50 +32,81 @@ export const LivePage: React.FC = () => {
   const [loading, setLoading] = useState(!matchIdParam);
   const [error, setError] = useState<string | null>(null);
   const [liveMatches, setLiveMatches] = useState<LiveMatchRow[] | null>(null);
+  const [tournamentLiveMatchId, setTournamentLiveMatchId] = useState<string | null>(null);
+  const [tournamentCheckDone, setTournamentCheckDone] = useState(false);
 
   useEffect(() => {
     if (matchIdParam) {
       setLoading(false);
       setLiveMatches(null);
       setError(null);
+      setTournamentLiveMatchId(null);
+      setTournamentCheckDone(true);
       return;
     }
     let cancelled = false;
     (async () => {
       setLoading(true);
       setError(null);
-      const { data, error: err } = await supabase
+      setTournamentCheckDone(false);
+
+      let query = supabase
         .from('matches')
-        .select('id, opponent, match_date')
+        .select('id, opponent, match_date, team_season_id')
         .eq('status', 'live')
-        .order('match_date', { ascending: false })
-        .returns<LiveMatchRow[]>();
+        .order('match_date', { ascending: false });
+
+      if (teamSeasonId?.trim()) {
+        query = query.eq('team_season_id', teamSeasonId.trim());
+      }
+
+      const { data, error: err } = await query.returns<LiveMatchRow[]>();
 
       if (cancelled) return;
       if (err) {
         setError('Fehler beim Laden der Live-Spiele.');
         setLiveMatches([]);
+        setTournamentLiveMatchId(null);
+        setTournamentCheckDone(true);
         setLoading(false);
         return;
       }
-      setLiveMatches(data ?? []);
-      setLoading(false);
+
+      const rows = data ?? [];
+      setLiveMatches(rows);
+
+      if (rows.length === 1 && teamSeasonId?.trim()) {
+        const onlyId = String(rows[0]!.id);
+        const isTournament = await isTournamentLiveMatchForTeam(onlyId, teamSeasonId.trim());
+        if (!cancelled) {
+          setTournamentLiveMatchId(isTournament ? onlyId : null);
+        }
+      } else {
+        setTournamentLiveMatchId(null);
+      }
+
+      if (!cancelled) {
+        setTournamentCheckDone(true);
+        setLoading(false);
+      }
     })().catch(() => {
       if (cancelled) return;
       setError('Fehler beim Laden der Live-Spiele.');
       setLiveMatches([]);
+      setTournamentLiveMatchId(null);
+      setTournamentCheckDone(true);
       setLoading(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [matchIdParam]);
+  }, [matchIdParam, teamSeasonId]);
 
   if (matchIdParam) {
     return <LiveMatchScreen />;
   }
 
-  if (loading) {
+  if (loading || !tournamentCheckDone) {
     return (
       <LivePremiumShell centerContent>
         <p className="text-sm text-white/60">Lade Live-Status…</p>
@@ -93,8 +127,14 @@ export const LivePage: React.FC = () => {
 
   const rows = liveMatches ?? [];
   const isFan = effectiveRole === 'fan';
-  if (rows.length === 0) {
-    return <MatchCenterIdleView isFan={isFan} />;
+
+  if (rows.length === 0 || tournamentLiveMatchId) {
+    return (
+      <MatchCenterIdleView
+        isFan={isFan}
+        prioritizedLiveMatchId={tournamentLiveMatchId}
+      />
+    );
   }
 
   if (rows.length === 1) {

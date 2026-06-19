@@ -9,6 +9,10 @@ import {
 } from '../../lib/tournamentPlan';
 import { fetchTournamentCompletion } from '../../lib/tournamentCompletion';
 import {
+  fetchActiveTournamentLiveContext,
+  type ActiveTournamentLiveContext,
+} from '../../lib/matchCenterTournamentLive';
+import {
   mapTournamentParticipants,
   type MatchCenterParticipant,
   type TournamentParticipantRow,
@@ -21,12 +25,15 @@ import { LivePageHeader, LivePremiumShell, LiveScheduleCtaLink } from './LivePre
 import { PremiumEmptyState } from '../../ui';
 import { MatchCenterNextMatchCard } from './MatchCenterNextMatchCard';
 import { MatchCenterTournamentCard } from './MatchCenterTournamentCard';
+import { MatchCenterActiveTournamentLiveCard } from './MatchCenterActiveTournamentLiveCard';
 
 type Props = {
   isFan: boolean;
+  /** Von LivePage: laufendes Turnierspiel direkt auflösen (statt Auto-Liveticker). */
+  prioritizedLiveMatchId?: string | null;
 };
 
-export function MatchCenterIdleView({ isFan }: Props) {
+export function MatchCenterIdleView({ isFan, prioritizedLiveMatchId = null }: Props) {
   const { selectedTeamSeasonId: teamSeasonId, selectedTeamSeason } = useSession();
   const { events, loading: eventsLoading } = useEvents(teamSeasonId);
   const teamName = (selectedTeamSeason?.team?.name ?? 'Unser Team').trim() || 'Unser Team';
@@ -38,6 +45,10 @@ export function MatchCenterIdleView({ isFan }: Props) {
   const [matchCount, setMatchCount] = useState<number | null>(null);
   const [tournamentCompleted, setTournamentCompleted] = useState(false);
   const [tournamentExtrasLoading, setTournamentExtrasLoading] = useState(false);
+  const [activeLiveContext, setActiveLiveContext] = useState<ActiveTournamentLiveContext | null>(
+    null,
+  );
+  const [activeLiveLoading, setActiveLiveLoading] = useState(false);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 30_000);
@@ -49,9 +60,46 @@ export function MatchCenterIdleView({ isFan }: Props) {
     [events, eventsLoading, now],
   );
   const nextTournament = useMemo(
-    () => (eventsLoading || nextMatch ? null : pickNextUpcomingTournament(events, now)),
-    [events, eventsLoading, nextMatch, now],
+    () =>
+      eventsLoading || nextMatch || activeLiveContext
+        ? null
+        : pickNextUpcomingTournament(events, now),
+    [events, eventsLoading, nextMatch, activeLiveContext, now],
   );
+
+  useEffect(() => {
+    if (!teamSeasonId || eventsLoading) {
+      setActiveLiveContext(null);
+      setActiveLiveLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setActiveLiveLoading(true);
+
+    void fetchActiveTournamentLiveContext({
+      teamSeasonId,
+      events,
+      now,
+      matchIdHint: prioritizedLiveMatchId,
+    })
+      .then((ctx) => {
+        if (!cancelled) {
+          setActiveLiveContext(ctx);
+          setActiveLiveLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setActiveLiveContext(null);
+          setActiveLiveLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [teamSeasonId, events, eventsLoading, now, prioritizedLiveMatchId]);
 
   useEffect(() => {
     if (!nextTournament) {
@@ -106,10 +154,19 @@ export function MatchCenterIdleView({ isFan }: Props) {
     ? 'Sobald dein Team live spielt, erscheint der Liveticker hier.'
     : 'Sobald ein Spiel auf LIVE steht, erscheint der Liveticker hier.';
 
-  if (eventsLoading) {
+  if (eventsLoading || activeLiveLoading) {
     return (
       <LivePremiumShell centerContent matchCenter>
         <p className="text-sm text-white/60">Lade Match Center…</p>
+      </LivePremiumShell>
+    );
+  }
+
+  if (activeLiveContext) {
+    return (
+      <LivePremiumShell matchCenter>
+        <LivePageHeader title="Match Center" subtitle="Turnierspiel läuft gerade" />
+        <MatchCenterActiveTournamentLiveCard context={activeLiveContext} ourTeamName={teamName} />
       </LivePremiumShell>
     );
   }
