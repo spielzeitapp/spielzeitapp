@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, MapPin, Trophy } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import {
@@ -16,13 +16,11 @@ import {
   resolveTournamentWinnerDisplay,
 } from '../../lib/matchCenterTournamentVisuals';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
-import { eventNotesTitle } from '../schedule/scheduleEventViewUtils';
-import { formatHeroDateParts, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
+import { VIENNA_TZ } from '../../lib/viennaTime';
+import { eventNotesTitle, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
 import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
 import { MatchCenterCountdown } from './MatchCenterCountdown';
 import { ParticipantLogoChip } from './ParticipantLogoChip';
-import { TournamentPremiumStatBadge } from './TournamentPremiumStatBadge';
-import { MC_BORDER } from './matchCenterStyles';
 import {
   TournamentFirstMatchPreview,
   TournamentMatchCenterPoster,
@@ -39,6 +37,54 @@ type Props = {
   tournamentCompleted?: boolean;
   loadingExtras?: boolean;
 };
+
+function formatTournamentInfoDate(iso: string | null | undefined): string {
+  if (!iso?.trim()) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(d);
+}
+
+function TournamentCompactStats({
+  teamsDisplay,
+  matchesDisplay,
+  winnerDisplay,
+}: {
+  teamsDisplay: number | null;
+  matchesDisplay: number | null;
+  winnerDisplay: string;
+}) {
+  const winnerLabel =
+    winnerDisplay === 'Offen' || winnerDisplay === '—'
+      ? 'offen'
+      : winnerDisplay;
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/58">
+      {teamsDisplay != null ? (
+        <span className="whitespace-nowrap">
+          <span aria-hidden>👥 </span>
+          {teamsDisplay} Teams
+        </span>
+      ) : null}
+      {matchesDisplay != null ? (
+        <span className="whitespace-nowrap">
+          <span aria-hidden>⚽ </span>
+          {matchesDisplay} Spiele
+        </span>
+      ) : null}
+      <span className="whitespace-nowrap">
+        <span aria-hidden>🏆 </span>
+        Sieger {winnerLabel}
+      </span>
+    </div>
+  );
+}
 
 export function MatchCenterTournamentCard({
   event,
@@ -59,7 +105,7 @@ export function MatchCenterTournamentCard({
     () => computeMatchCenterCountdown(event.starts_at, now),
     [event.starts_at, now],
   );
-  const dateParts = formatHeroDateParts(event.starts_at);
+  const infoDate = formatTournamentInfoDate(event.starts_at);
   const kickoff = formatTimeHHmmDe(event.starts_at);
   const parsedLocation = splitCombinedLocation(event.location);
   const place = formatFullLocation(parsedLocation.place, parsedLocation.address || (event.address ?? ''));
@@ -87,94 +133,88 @@ export function MatchCenterTournamentCard({
   const firstMatch = pickTournamentFirstMatch(slots);
 
   return (
-    <article className="relative overflow-hidden rounded-[20px] bg-[#08080a] shadow-[0_20px_56px_rgba(0,0,0,0.68),0_0_48px_rgba(255,71,71,0.06)] ring-1 ring-white/[0.04]">
-      {/* Hero — volle Breite, Home-Hero-Feeling */}
-      <div className="relative min-h-[13.5rem] w-full overflow-hidden sm:min-h-[15.5rem]">
+    <article className="relative overflow-hidden rounded-[20px] bg-[#060608] shadow-[0_20px_56px_rgba(0,0,0,0.72)] ring-1 ring-white/[0.04]">
+      {/* Hero — dominant, weniger Abdunklung */}
+      <div className="relative min-h-[15.5rem] w-full overflow-hidden sm:min-h-[17.5rem]">
         <img
           src={coverUrl}
           alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[center_30%]"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[center_28%]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.72)_0%,rgba(0,0,0,0.18)_38%,rgba(0,0,0,0.55)_72%,rgba(6,4,6,0.96)_100%)]"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.48)_0%,rgba(0,0,0,0.06)_32%,rgba(0,0,0,0.28)_68%,rgba(6,4,6,0.82)_100%)]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_100%_80%_at_50%_20%,rgba(255,248,235,0.08)_0%,transparent_55%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_15%,rgba(255,248,235,0.1)_0%,transparent_58%)]"
           aria-hidden
         />
 
-        <div className="relative flex h-full min-h-[inherit] flex-col justify-between px-3 pb-3.5 pt-[max(0.65rem,env(safe-area-inset-top,0px))] sm:px-4 sm:pb-4">
-          <span
-            className={`inline-flex w-fit items-center gap-1.5 rounded-full border ${MC_BORDER} bg-[rgba(4,4,6,0.55)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-red-100 backdrop-blur-[3px]`}
-          >
-            <Trophy className="h-3.5 w-3.5 text-amber-300" strokeWidth={2} aria-hidden />
+        <div className="relative flex h-full min-h-[inherit] flex-col justify-between px-3 pb-3 pt-2 sm:px-4 sm:pb-3.5">
+          <span className="inline-flex w-fit items-center gap-1 rounded-full border border-white/[0.08] bg-black/35 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-white/75 backdrop-blur-[2px]">
+            <Trophy
+              className="h-4 w-4 shrink-0 text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.55)]"
+              strokeWidth={2.25}
+              aria-hidden
+            />
             {premium ? 'Turnier' : 'Nächstes Turnier'}
           </span>
 
-          <div className="mt-auto pt-6">
-            <h2 className="text-[21px] font-bold leading-[1.12] tracking-tight text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.85)] sm:text-[24px]">
+          <div className="mt-auto pt-4">
+            <h2 className="text-[20px] font-bold leading-[1.1] tracking-tight text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)] sm:text-[23px]">
               {title}
             </h2>
           </div>
         </div>
       </div>
 
-      {/* Inhalt — kompakt unter dem Hero */}
-      <div className="relative bg-[#08080a] px-3 py-3 sm:px-4 sm:py-3.5">
+      <div className="relative bg-[#060608] px-3 pb-2.5 pt-2 sm:px-4 sm:pb-3">
+        {/* Kompakte Info-Leiste direkt unter Hero */}
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-white/[0.05] pb-2 text-[11px] leading-snug text-white/62">
+          <span className="whitespace-nowrap">
+            <span aria-hidden>📅 </span>
+            {infoDate}
+          </span>
+          <span className="text-white/25" aria-hidden>
+            ·
+          </span>
+          <span className="whitespace-nowrap">
+            <span aria-hidden>🕙 </span>
+            {kickoff} Uhr
+          </span>
+          {place ? (
+            <>
+              <span className="text-white/25" aria-hidden>
+                ·
+              </span>
+              <span className="min-w-0 truncate">
+                <span aria-hidden>📍 </span>
+                {place}
+              </span>
+            </>
+          ) : null}
+        </div>
+
         {countdown ? (
-          <div className="mb-3">
-            <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-[rgba(255,120,120,0.72)]">
-              Countdown bis Beginn
-            </p>
+          <div className="mt-2">
             <MatchCenterCountdown parts={countdown} variant="heroCompact" />
           </div>
         ) : null}
 
-        <div className="flex items-center gap-2 text-[12px] text-white/72">
-          <span
-            className={`inline-flex min-w-[3rem] flex-col items-center rounded-lg border ${MC_BORDER} bg-[rgba(6,4,8,0.55)] px-2 py-1`}
-          >
-            <span className="text-[10px] font-bold uppercase tracking-wide text-[rgba(255,120,120,0.82)]">
-              {dateParts.wd}
-            </span>
-            <span className="text-[18px] font-bold leading-none text-white">{dateParts.day}</span>
-            <span className="text-[10px] font-semibold uppercase text-white/55">{dateParts.mon}</span>
-          </span>
-          <div className="min-w-0 flex-1 space-y-1">
-            <p className="inline-flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 shrink-0 text-red-400/80" aria-hidden />
-              <span>Beginn {kickoff} Uhr</span>
-            </p>
-            {place ? (
-              <p className="inline-flex min-w-0 items-start gap-1.5">
-                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-400/80" aria-hidden />
-                <span className="min-w-0 break-words leading-snug">{place}</span>
-              </p>
-            ) : null}
-          </div>
-        </div>
-
         {!loadingExtras && (teamsDisplay != null || matchesDisplay != null || winnerDisplay) ? (
-          <div className="mt-3 grid grid-cols-3 gap-1.5 sm:gap-2">
-            {teamsDisplay != null ? (
-              <TournamentPremiumStatBadge label="Teams" value={teamsDisplay} accent="red" />
-            ) : null}
-            {matchesDisplay != null ? (
-              <TournamentPremiumStatBadge label="Spiele" value={matchesDisplay} accent="neutral" />
-            ) : null}
-            <TournamentPremiumStatBadge
-              label="Sieger"
-              value={winnerDisplay}
-              accent={winnerDisplay !== 'Offen' && winnerDisplay !== '—' ? 'gold' : 'neutral'}
+          <div className="mt-2">
+            <TournamentCompactStats
+              teamsDisplay={teamsDisplay}
+              matchesDisplay={matchesDisplay}
+              winnerDisplay={winnerDisplay}
             />
           </div>
         ) : null}
 
         {!loadingExtras && topMatch ? (
-          <div className="mt-3.5">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white/42">
+          <div className="mt-2.5">
+            <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white/38">
               Top-Spiel des Turniers
             </p>
             <TournamentMatchCenterPoster
@@ -187,11 +227,11 @@ export function MatchCenterTournamentCard({
         ) : null}
 
         {carouselTeams.length > 0 ? (
-          <div className="mt-3.5">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white/42">
+          <div className="mt-3">
+            <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white/38">
               Teilnehmende Mannschaften
             </p>
-            <div className="-mx-1 flex gap-2.5 overflow-x-auto pb-1 pl-1 pr-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 pl-1 pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {carouselTeams.map((p) => (
                 <ParticipantLogoChip
                   key={p.name}
@@ -205,7 +245,7 @@ export function MatchCenterTournamentCard({
         ) : null}
 
         {!loadingExtras ? (
-          <div className="mt-3.5">
+          <div className="mt-2.5">
             <TournamentFirstMatchPreview
               slot={firstMatch}
               ourTeamName={ourTeamName}
@@ -216,7 +256,7 @@ export function MatchCenterTournamentCard({
 
         <Link
           to={`/app/events/${event.id}`}
-          className={`${dsPrimaryCtaClass()} mt-3.5 mb-[max(0.25rem,env(safe-area-inset-bottom,0px))] inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center px-4 py-3 text-[14px] font-semibold`}
+          className={`${dsPrimaryCtaClass()} mt-2.5 mb-[max(0.25rem,env(safe-area-inset-bottom,0px))] inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center px-4 py-3 text-[14px] font-semibold`}
         >
           Zum Turniercenter
         </Link>

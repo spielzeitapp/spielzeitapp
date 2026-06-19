@@ -8,10 +8,9 @@ type Props = {
 
 const ACCENT: Record<NonNullable<Props['accent']>, string> = {
   gold:
-    'border-[rgba(255,180,80,0.28)] bg-gradient-to-br from-amber-950/55 to-[rgba(12,10,8,0.78)] text-amber-100 shadow-[0_0_20px_rgba(251,191,36,0.12)]',
-  red: 'border-[rgba(255,71,71,0.28)] bg-gradient-to-br from-red-950/55 to-[rgba(12,8,10,0.78)] text-red-100 shadow-[0_0_18px_rgba(255,71,71,0.14)]',
-  neutral:
-    'border-[rgba(255,71,71,0.22)] bg-gradient-to-br from-[rgba(14,10,12,0.92)] to-[rgba(6,4,6,0.88)] text-white shadow-[0_0_14px_rgba(255,71,71,0.08)]',
+    'border-white/[0.06] bg-gradient-to-br from-amber-950/40 to-[rgba(8,6,6,0.88)] text-amber-100/90 shadow-[0_0_12px_rgba(0,0,0,0.45)]',
+  red: 'border-white/[0.06] bg-[rgba(8,4,6,0.88)] text-white/88 shadow-[0_0_12px_rgba(0,0,0,0.45)]',
+  neutral: 'border-white/[0.06] bg-[rgba(6,4,8,0.92)] text-white/82 shadow-[0_0_12px_rgba(0,0,0,0.45)]',
 };
 
 export function TournamentPremiumStatBadge({ label, value, accent = 'neutral' }: Props) {

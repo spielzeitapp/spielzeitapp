@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { getClubLogo, getTeamInitials, hasKnownClubLogo } from '../../lib/teamLogos';
 import { isHeimteamParticipant } from '../../lib/matchCenterUtils';
-import { MC_BORDER, MC_GLOW_SM } from './matchCenterStyles';
+import { MC_SURFACE } from './matchCenterStyles';
 
 type Props = {
   teamName: string;
@@ -28,19 +28,15 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
   const initials = getTeamInitials(club || name);
   const showInitials = !knownLogo || failed;
 
-  const widthClass = carousel ? 'w-[5.25rem] sm:w-[5.5rem]' : 'w-[4.75rem]';
-  const boxClass = carousel
-    ? 'h-[4.75rem] w-[4.75rem] sm:h-20 sm:w-20'
-    : 'h-11 w-11';
-  const imgClass = carousel ? 'h-[3.5rem] w-[3.5rem] sm:h-[3.75rem] sm:w-[3.75rem]' : 'h-8 w-8';
+  const widthClass = carousel ? 'w-[5.75rem] sm:w-[6rem]' : 'w-[4.75rem]';
+  const boxClass = carousel ? 'h-[5.5rem] w-[5.5rem] sm:h-[5.75rem] sm:w-[5.75rem]' : 'h-11 w-11';
+  const imgClass = carousel ? 'h-[4rem] w-[4rem] sm:h-[4.25rem] sm:w-[4.25rem]' : 'h-8 w-8';
 
   return (
     <div className={`relative flex shrink-0 flex-col items-center ${widthClass}`}>
-      <div
-        className={`flex items-center justify-center rounded-2xl border ${MC_BORDER} bg-[rgba(6,4,8,0.72)] ${MC_GLOW_SM} ${boxClass}`}
-      >
+      <div className={`flex items-center justify-center rounded-2xl ${MC_SURFACE} ${boxClass}`}>
         {showInitials ? (
-          <span className={`font-bold text-white/82 ${carousel ? 'text-[15px]' : 'text-[11px]'}`}>
+          <span className={`font-bold text-white/82 ${carousel ? 'text-[16px]' : 'text-[11px]'}`}>
             {initials}
           </span>
         ) : (
@@ -53,16 +49,16 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
         )}
       </div>
       <p
-        className="mt-1.5 w-full truncate text-center text-[8px] font-medium leading-none text-white/68"
+        className="mt-1 w-full truncate text-center text-[7px] font-medium leading-none text-white/55"
         title={club || name}
       >
         {club || name}
       </p>
       {ageGroup ? (
-        <p className="mt-0.5 text-[6px] font-medium uppercase tracking-wide text-white/38">{ageGroup}</p>
+        <p className="mt-0.5 text-[6px] font-medium uppercase tracking-wide text-white/32">{ageGroup}</p>
       ) : null}
       {heim ? (
-        <span className="mt-0.5 whitespace-nowrap rounded-full border border-[rgba(255,71,71,0.3)] bg-red-950/80 px-1 py-px text-[5px] font-bold uppercase tracking-[0.04em] text-red-100/85">
+        <span className="mt-0.5 whitespace-nowrap rounded-full border border-white/[0.08] bg-black/60 px-1 py-px text-[5px] font-semibold uppercase tracking-[0.04em] text-white/55">
           Heim
         </span>
       ) : null}

@@ -5,7 +5,7 @@ import { formatHeroDateParts, formatTimeHHmmDe } from '../schedule/scheduleEvent
 import { MatchdayPosterArtwork } from '../feed/MatchdayPosterArtwork';
 import { tournamentPhaseDisplayLabel } from '../../lib/matchCenterTournamentVisuals';
 import { tournamentMatchDisplayStatus } from '../../lib/tournamentPlan';
-import { MC_BORDER, MC_POSTER_SHELL, MC_POSTER_SHADOW } from './matchCenterStyles';
+import { MC_SURFACE, MC_POSTER_SHELL, MC_POSTER_SHADOW } from './matchCenterStyles';
 
 type Props = {
   slot: TournamentMatchSlotView;
@@ -33,9 +33,7 @@ function TournamentTeamLogo({
 
   if (!known || failed) {
     return (
-      <div
-        className={`flex h-10 w-10 items-center justify-center rounded-xl border ${MC_BORDER} bg-[rgba(6,4,8,0.72)] text-[11px] font-bold text-white/80`}
-      >
+      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${MC_SURFACE} text-[11px] font-bold text-white/80`}>
         {getTeamInitials(name)}
       </div>
     );
@@ -120,13 +118,14 @@ export function TournamentFirstMatchPreview({
 }) {
   if (!slot) {
     return (
-      <div
-        className={`rounded-2xl border border-dashed ${MC_BORDER} bg-[rgba(6,4,8,0.45)] px-3 py-4 text-center`}
-      >
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/38">
+      <div className={`rounded-xl ${MC_SURFACE} px-3 py-2.5 text-center`}>
+        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/35">
           Erstes Spiel
         </p>
-        <p className="mt-2 text-[13px] font-medium text-white/55">Spielplan folgt</p>
+        <p className="mt-1.5 text-[12px] font-medium text-white/55">
+          <span aria-hidden>📅 </span>
+          Spielplan folgt in Kürze
+        </p>
       </div>
     );
   }
@@ -137,10 +136,8 @@ export function TournamentFirstMatchPreview({
   const kickoff = formatTimeHHmmDe(slot.kickoff_at);
 
   return (
-    <div
-      className={`rounded-2xl border ${MC_BORDER} bg-[rgba(6,4,8,0.55)] px-3 py-3 shadow-[0_0_16px_rgba(255,71,71,0.08)]`}
-    >
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[rgba(255,120,120,0.82)]">
+    <div className={`rounded-xl ${MC_SURFACE} px-3 py-2.5`}>
+      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/40">
         Erstes Spiel
       </p>
       <div className="mt-2.5 flex items-center justify-between gap-2">
