@@ -10,8 +10,8 @@ import {
 
 export type { EffectiveEventType } from '../../lib/eventTypeUtils';
 
-export function formatHeroDateParts(iso: string | null | undefined): { wd: string; day: string; mon: string } {
-  if (!iso?.trim()) return { wd: '—', day: '–', mon: '' };
+export function formatHeroDateParts(iso: unknown): { wd: string; day: string; mon: string } {
+  if (!safeText(iso)) return { wd: '—', day: '–', mon: '' };
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return { wd: '—', day: '–', mon: '' };
   const wd = new Intl.DateTimeFormat('de-AT', { weekday: 'short', timeZone: VIENNA_TZ }).format(d);
@@ -67,8 +67,8 @@ export function formatCompactListDateParts(iso: string | null | undefined): {
   };
 }
 
-export function formatTimeHHmmDe(iso: string | null | undefined): string {
-  if (!iso?.trim()) return '–';
+export function formatTimeHHmmDe(iso: unknown): string {
+  if (!safeText(iso)) return '–';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '–';
   return new Intl.DateTimeFormat('de-AT', {

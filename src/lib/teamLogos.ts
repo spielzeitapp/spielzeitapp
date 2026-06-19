@@ -4,6 +4,7 @@
  */
 
 import { getLogoUrl } from '../utils/logoResolver';
+import { safeText } from './safeText';
 
 const OUR_TEAM_DISPLAY_NAME = 'SPG Rohrbach';
 const SPG_ROHRBACH_SLUG = 'spg-rohrbach';
@@ -144,9 +145,9 @@ export function nameToSlug(name: string): string {
 /** Erlaubte Logo-URL-Präfixe (kein API, nur public/Storage). */
 const ALLOWED_LOGO_PREFIXES = ['/logos/', 'https://'];
 
-function isAllowedLogoUrl(url: string | null | undefined): boolean {
-  if (!url || !url.trim()) return false;
-  const u = url.trim();
+function isAllowedLogoUrl(url: unknown): boolean {
+  const u = safeText(url);
+  if (!u) return false;
   return ALLOWED_LOGO_PREFIXES.some((p) => u.startsWith(p));
 }
 
@@ -159,10 +160,10 @@ export function getClubLogo(nameOrSlug: string, options?: GetClubLogoOptions): s
   const name = String(nameOrSlug || '').trim();
 
   if (options?.logoUrl && isAllowedLogoUrl(options.logoUrl)) {
-    return options.logoUrl.trim();
+    return safeText(options.logoUrl);
   }
-  if (options?.slug && options.slug.trim()) {
-    const slug = options.slug.trim().replace(/\.png$/i, '');
+  if (options?.slug && safeText(options.slug)) {
+    const slug = safeText(options.slug).replace(/\.png$/i, '');
     return getLogoUrl(slug);
   }
 

@@ -1353,11 +1353,11 @@ function participantName(
 ): string {
   if (id == null) return '';
   const entry = participants[String(id)] ?? participants[id as unknown as string];
-  return (entry?.name ?? '').trim();
+  return safeText(entry?.name);
 }
 
-function kickoffHHmmFromDateTime(dateAndTime: string | undefined): string {
-  const raw = (dateAndTime ?? '').trim();
+function kickoffHHmmFromDateTime(dateAndTime: unknown): string {
+  const raw = safeText(dateAndTime);
   const match = raw.match(/(\d{1,2}):(\d{2})/);
   if (!match) return '10:00';
   return `${match[1].padStart(2, '0')}:${match[2]}`;
@@ -1676,7 +1676,7 @@ export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis 
   const groupSummaries: TournamentPlanGroupSummary[] = [];
 
   for (let groupIndex = 0; groupIndex < json.groups.length; groupIndex += 1) {
-    const displayId = (json.groups[groupIndex]?.displayId ?? '').trim();
+    const displayId = safeText(json.groups[groupIndex]?.displayId);
     const label = displayId || String(groupIndex + 1);
     const participantIds = json.groupParticipants?.[groupIndex] ?? [];
     let teamCountInGroup = 0;
@@ -1712,9 +1712,10 @@ export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis 
     if (!homeTeam || !awayTeam) continue;
 
     const groupIdx = match.groupId ?? 0;
-    const groupLabel = (json.groups[groupIdx]?.displayId ?? '').trim() || null;
+    const groupLabel = safeOptionalText(json.groups[groupIdx]?.displayId);
     const court = courts[match.courtId ?? -1];
-    const pitch = court?.displayId?.trim() ? `Platz ${court.displayId.trim()}` : null;
+    const pitchDisplay = safeOptionalText(court?.displayId);
+    const pitch = pitchDisplay ? `Platz ${pitchDisplay}` : null;
 
     const scores = extractMeinTurnierplanMatchScores(match);
     rawMatches.push({
@@ -1744,7 +1745,8 @@ export function parseMeinTurnierplanJson(data: unknown): TournamentPlanAnalysis 
       match.sourceTeam2,
     );
     const court = courts[match.courtId ?? -1];
-    const pitch = court?.displayId?.trim() ? `Platz ${court.displayId.trim()}` : null;
+    const pitchDisplay = safeOptionalText(court?.displayId);
+    const pitch = pitchDisplay ? `Platz ${pitchDisplay}` : null;
     const scores = extractMeinTurnierplanMatchScores(match);
 
     rawMatches.push({

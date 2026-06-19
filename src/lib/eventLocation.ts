@@ -2,12 +2,14 @@
  * Ort / Platzname + Adresse für Anzeige und ICS.
  */
 
+import { safeText } from './safeText';
+
 export function formatFullLocation(
   place: string | null | undefined,
   address: string | null | undefined,
 ): string {
-  const p = (place ?? '').trim();
-  const a = (address ?? '').trim();
+  const p = safeText(place);
+  const a = safeText(address);
   if (p && a && p.toLowerCase() === a.toLowerCase()) return p;
   if (p && a) return `${p}, ${a}`;
   return p || a || '';
@@ -18,8 +20,8 @@ export function formatLocationTwoLines(
   place: string | null | undefined,
   address: string | null | undefined,
 ): { line1: string | null; line2: string | null } {
-  const p = (place ?? '').trim();
-  const a = (address ?? '').trim();
+  const p = safeText(place);
+  const a = safeText(address);
   return {
     line1: p || null,
     line2: a || null,
@@ -31,8 +33,8 @@ export function combineLocationParts(
   place: string | null | undefined,
   address: string | null | undefined,
 ): string | null {
-  const p = (place ?? '').trim();
-  const a = (address ?? '').trim();
+  const p = safeText(place);
+  const a = safeText(address);
   if (!p && !a) return null;
   if (p && a) return `${p}\n${a}`;
   return p || a;
@@ -54,7 +56,7 @@ function stripPostalCityTail(s: string): string {
 
 export function formatFeedVenueShort(location: string | null | undefined): string | null {
   const parsed = splitCombinedLocation(location);
-  let place = (parsed.place ?? '').trim();
+  let place = safeText(parsed.place);
   if (place) {
     const commaParts = place.split(',').map((p) => p.trim()).filter(Boolean);
     if (commaParts.length > 1 && commaParts.slice(1).some(feedVenueLooksLikeAddress)) {
@@ -63,7 +65,7 @@ export function formatFeedVenueShort(location: string | null | undefined): strin
     place = stripPostalCityTail(place);
     if (place && !feedVenueLooksLikeAddress(place)) return place;
   }
-  const raw = (location ?? '').trim();
+  const raw = safeText(location);
   if (!raw) return null;
   const commaIdx = raw.indexOf(',');
   if (commaIdx > 0) {
@@ -80,8 +82,8 @@ export function formatFeedVenueShort(location: string | null | undefined): strin
 }
 
 /** Liest Platzname + Adresse aus einem gespeicherten location-Wert. */
-export function splitCombinedLocation(value: string | null | undefined): { place: string; address: string } {
-  const s = (value ?? '').trim();
+export function splitCombinedLocation(value: unknown): { place: string; address: string } {
+  const s = safeText(value);
   if (!s) return { place: '', address: '' };
   const lines = s.split('\n').map((v) => v.trim()).filter(Boolean);
   if (lines.length >= 2) {

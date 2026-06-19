@@ -1,4 +1,5 @@
 import type { EventRow } from '../hooks/useEvents';
+import { safeText } from './safeText';
 
 export type MatchCenterCountdown = {
   days: number;
@@ -57,8 +58,8 @@ export function computeMatchCenterCountdown(
   startsAtIso: string | null | undefined,
   now: Date,
 ): MatchCenterCountdown | null {
-  if (!startsAtIso?.trim()) return null;
-  const target = new Date(startsAtIso).getTime();
+  if (!safeText(startsAtIso)) return null;
+  const target = new Date(String(startsAtIso)).getTime();
   if (Number.isNaN(target)) return null;
   let diff = Math.max(0, target - now.getTime());
   const days = Math.floor(diff / 86_400_000);
@@ -69,12 +70,12 @@ export function computeMatchCenterCountdown(
   return { days, hours, minutes };
 }
 
-export function isRudolfSteurerGedenkturnier(title: string): boolean {
-  const t = title.trim().toLowerCase();
+export function isRudolfSteurerGedenkturnier(title: unknown): boolean {
+  const t = safeText(title).toLowerCase();
   return t.includes('rudolf steurer') || t.includes('gedenkturnier');
 }
 
-export function isHeimteamParticipant(teamName: string): boolean {
-  const n = teamName.trim().toLowerCase();
+export function isHeimteamParticipant(teamName: unknown): boolean {
+  const n = safeText(teamName).toLowerCase();
   return n.includes('nsg rohrbach') || n.includes('nsg hainfeld');
 }

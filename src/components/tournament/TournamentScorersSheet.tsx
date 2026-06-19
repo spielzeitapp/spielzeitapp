@@ -6,6 +6,7 @@ import {
   premiumPlayerAvatarSrc,
   premiumPlayerInitials,
 } from '../../lib/premiumPlayerCard';
+import { safeText } from '../../lib/safeText';
 
 type Props = {
   isOpen: boolean;
@@ -26,7 +27,7 @@ function SheetScorerAvatar({
   const [failed, setFailed] = useState(false);
   const player = players.find((p) => p.id === playerId);
   const src = player ? premiumPlayerAvatarSrc(player) : null;
-  const initials = premiumPlayerInitials(playerName);
+  const initials = premiumPlayerInitials(safeText(playerName));
   const showPhoto = Boolean(src && src !== '/avatars/player-placeholder.png') && !failed;
 
   return (
@@ -91,7 +92,7 @@ export function TournamentScorersSheet({ isOpen, scorers, players, onClose }: Pr
                     players={players}
                   />
                   <p className="min-w-0 flex-1 truncate text-[15px] font-semibold text-white">
-                    {scorer.playerName}
+                    {safeText(scorer.playerName) || 'Spieler'}
                   </p>
                   <p className="shrink-0 text-[16px] font-bold tabular-nums text-red-200/95">
                     {scorer.goals}

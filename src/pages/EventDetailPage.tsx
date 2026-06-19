@@ -26,7 +26,7 @@ import { useLinkedPlayerIsLaz } from '../hooks/useLinkedPlayerIsLaz';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
 import { normalizeRole, canSeeMeetup, canManageMatches } from '../lib/roles';
 import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
-import { safeText } from '../lib/safeText';
+import { safeOptionalText, safeText } from '../lib/safeText';
 import { getClubLogo, getOurTeamDisplayName } from '../lib/teamLogos';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { Card, CardTitle } from '../app/components/ui/Card';
@@ -3102,7 +3102,8 @@ export const EventDetailPage: React.FC = () => {
             <TournamentCompactCard
               title={tournamentTitle}
               startsAt={event.starts_at}
-              location={event.location}
+              location={safeOptionalText(event.location)}
+              coverUrl={safeOptionalText((event as { tournament_cover_url?: unknown }).tournament_cover_url)}
             />
             {event.team_season_id ? (
               <TournamentDetailSections
@@ -3110,8 +3111,8 @@ export const EventDetailPage: React.FC = () => {
                 teamSeasonId={event.team_season_id}
                 tournamentDayIso={event.starts_at}
                 tournamentTitle={tournamentTitle}
-                location={event.location}
-                officialTournamentUrl={event.official_tournament_url ?? null}
+                location={safeOptionalText(event.location)}
+                officialTournamentUrl={safeOptionalText(event.official_tournament_url)}
                 tournamentMeetupLabel={tournamentMeetupLabel}
                 tournamentEndLabel={tournamentEndLabel}
                 tournamentNotes={tournamentNotesText}

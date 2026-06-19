@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { safeOptionalText, safeText } from './safeText';
 import { collectUniqueKnownNames, isTeamAliasMatch, normalizeTeamAliasName } from './teamSeasonAliasMatch';
 
 export { collectUniqueKnownNames, isTeamAliasMatch, normalizeTeamAliasName } from './teamSeasonAliasMatch';
@@ -90,11 +91,11 @@ export async function buildTournamentImportRecognition(
 
   const teams = row?.teams;
   const teamObj = Array.isArray(teams) ? teams[0] : teams;
-  const teamSeasonName = (row?.name ?? '').trim() || null;
-  const teamName = (teamObj?.name ?? '').trim() || null;
+  const teamSeasonName = safeOptionalText(row?.name);
+  const teamName = safeOptionalText(teamObj?.name);
 
   const aliasRes = await loadTeamSeasonAliases(teamSeasonId);
-  const aliases = aliasRes.data.map((a) => a.alias.trim()).filter(Boolean);
+  const aliases = aliasRes.data.map((a) => safeText(a.alias)).filter(Boolean);
 
   const knownNames = collectUniqueKnownNames([teamSeasonName, teamName, ...aliases]);
 

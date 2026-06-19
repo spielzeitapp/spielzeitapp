@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Target } from 'lucide-react';
 import type { PlayerItem } from '../../hooks/usePlayers';
 import type { TournamentGoalScorer } from '../../lib/tournamentGoalScorers';
+import { safeText } from '../../lib/safeText';
 import {
   premiumPlayerAvatarSrc,
   premiumPlayerInitials,
@@ -30,7 +31,7 @@ function ScorerAvatar({
   const [failed, setFailed] = useState(false);
   const player = players.find((p) => p.id === playerId);
   const src = player ? premiumPlayerAvatarSrc(player) : null;
-  const initials = premiumPlayerInitials(playerName);
+  const initials = premiumPlayerInitials(safeText(playerName));
   const showPhoto = Boolean(src && src !== '/avatars/player-placeholder.png') && !failed;
 
   return (
@@ -65,7 +66,7 @@ function ScorerRow({
       </span>
       <ScorerAvatar playerId={scorer.playerId} playerName={scorer.playerName} players={players} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-semibold text-white/92">{scorer.playerName}</p>
+        <p className="truncate text-[13px] font-semibold text-white/92">{safeText(scorer.playerName) || 'Spieler'}</p>
       </div>
       <p className="shrink-0 text-[15px] font-bold tabular-nums text-red-200/95">
         {scorer.goals}

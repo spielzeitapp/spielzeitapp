@@ -23,6 +23,7 @@ import {
   DS_CARD_INNER_GAP,
   DS_FEED_CARD_FOOTER_DIVIDER,
 } from './premiumDesignSystem';
+import { safeText } from './safeText';
 
 export type PremiumPlayerCardDensity = 'default' | 'compact';
 /** matchday = etwas stärkere active-Tiefe; feed = Home-Feed; training = Teilnahme mit Stadium-Glow. */
@@ -43,22 +44,22 @@ export type PremiumPlayerCardPlayer = {
 };
 
 export function premiumPlayerDisplayName(player: PremiumPlayerCardPlayer): string {
-  const first = (player.first_name ?? '').trim();
-  const last = (player.last_name ?? '').trim();
+  const first = safeText(player.first_name);
+  const last = safeText(player.last_name);
   const full = `${first} ${last}`.trim();
   if (full) return full;
-  const dn = (player.display_name ?? player.name ?? '').trim();
+  const dn = safeText(player.display_name ?? player.name);
   return dn || 'Spieler';
 }
 
-export function premiumPlayerInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+export function premiumPlayerInitials(name: unknown): string {
+  const parts = safeText(name).split(/\s+/).filter(Boolean);
   if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
   return (parts[0] ?? '?').slice(0, 2).toUpperCase();
 }
 
 export function premiumPlayerAvatarSrc(player: PremiumPlayerCardPlayer): string {
-  const raw = (player.avatar_url ?? player.avatarUrl ?? player.photo_url ?? '').trim();
+  const raw = safeText(player.avatar_url ?? player.avatarUrl ?? player.photo_url);
   return raw || '/avatars/player-placeholder.png';
 }
 

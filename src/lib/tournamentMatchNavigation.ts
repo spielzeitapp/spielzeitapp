@@ -17,7 +17,7 @@ export async function fetchTournamentMatchNavigationContext(
   matchId: string,
   options?: { afterCurrentMatch?: boolean },
 ): Promise<TournamentMatchNavigationContext | null> {
-  const id = matchId.trim();
+  const id = safeText(matchId);
   if (!id) return null;
 
   const { data: link, error: linkError } = await supabase

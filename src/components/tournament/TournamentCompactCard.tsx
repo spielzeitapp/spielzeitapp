@@ -4,13 +4,14 @@ import { resolveTournamentHeroBackgroundUrl } from '../../lib/matchCenterTournam
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
+import { safeOptionalText, safeText } from '../../lib/safeText';
 import { TC_CARD, TC_META_ICON } from './tournamentCenterStyles';
 
 type Props = {
   title: string;
   startsAt: string;
-  location: string | null;
-  coverUrl?: string | null;
+  location: unknown;
+  coverUrl?: unknown;
 };
 
 function formatTournamentDate(iso: string): string {
@@ -26,10 +27,10 @@ function formatTournamentDate(iso: string): string {
 }
 
 export function TournamentCompactCard({ title, startsAt, location, coverUrl }: Props) {
-  const heroUrl = resolveTournamentHeroBackgroundUrl(coverUrl);
+  const heroUrl = resolveTournamentHeroBackgroundUrl(safeOptionalText(coverUrl));
   const timeLabel = formatTimeHHmmDe(startsAt);
   const dateLabel = formatTournamentDate(startsAt);
-  const placeLine = formatFullLocation(splitCombinedLocation(location));
+  const placeLine = formatFullLocation(splitCombinedLocation(safeText(location)));
 
   return (
     <article className={`${TC_CARD} overflow-hidden`}>
