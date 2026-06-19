@@ -166,11 +166,11 @@ export function MatchCenterTournamentCard({
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.42)_0%,rgba(0,0,0,0.04)_30%,rgba(0,0,0,0.22)_62%,rgba(6,4,6,0.78)_100%)]"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.38)_0%,rgba(0,0,0,0.02)_28%,rgba(0,0,0,0.14)_55%,rgba(6,4,6,0.55)_88%,rgba(6,4,6,0.72)_100%)]"
           aria-hidden
         />
 
-        <div className="relative flex h-full min-h-[inherit] flex-col justify-between px-3 pb-2 pt-1.5 sm:px-4 sm:pb-2.5">
+        <div className="relative flex h-full min-h-[inherit] flex-col px-3 pb-2 pt-1.5 sm:px-4 sm:pb-2.5">
           <span className="inline-flex w-fit items-center gap-0.5 rounded-full border border-white/[0.07] bg-black/30 px-1.5 py-px text-[7px] font-semibold uppercase tracking-[0.08em] text-white/72 backdrop-blur-[2px]">
             <Trophy
               className="h-3 w-3 shrink-0 text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
@@ -180,7 +180,7 @@ export function MatchCenterTournamentCard({
             {premium ? 'Turnier' : 'Nächstes Turnier'}
           </span>
 
-          <div className="mt-auto pt-1">
+          <div className="mt-auto mb-12 pt-2 sm:mb-14">
             <h2 className="text-[17px] font-bold leading-[1.12] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)] sm:text-[19px]">
               {title}
             </h2>
@@ -188,9 +188,9 @@ export function MatchCenterTournamentCard({
         </div>
       </div>
 
-      <div className="relative bg-[#060608] px-3 pb-2 pt-1 sm:px-4 sm:pb-2.5">
+      <div className="relative bg-[#060608] px-3 pb-2 pt-0.5 sm:px-4 sm:pb-2.5">
         {/* Info-Leiste — Lucide, flach */}
-        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] leading-tight text-white/58">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] leading-tight text-white/62">
           <InfoItem icon={CalendarDays}>{infoDate}</InfoItem>
           <span className="text-white/18" aria-hidden>
             ·
@@ -207,7 +207,7 @@ export function MatchCenterTournamentCard({
         </div>
 
         {countdown ? (
-          <div className="mt-1.5">
+          <div className="mt-1">
             <MatchCenterCountdown parts={countdown} variant="heroCompact" />
           </div>
         ) : null}

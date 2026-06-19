@@ -10,16 +10,16 @@ function CountdownUnit({
   variant,
 }: {
   value: number;
-  label: string;
+  label: React.ReactNode;
   variant: Variant;
 }) {
   if (variant === 'heroCompact') {
     return (
-      <div className="flex min-w-0 flex-1 flex-col items-center rounded-md border border-white/[0.05] bg-white/[0.03] px-0.5 py-0.5">
-        <span className="text-[18px] font-extrabold tabular-nums leading-none tracking-tight text-white sm:text-[20px]">
+      <div className="flex min-w-0 flex-1 flex-col items-center rounded-md border border-white/[0.07] bg-white/[0.04] px-0.5 py-1">
+        <span className="text-[21px] font-extrabold tabular-nums leading-none tracking-tight text-white sm:text-[23px]">
           {value}
         </span>
-        <span className="mt-px text-[6px] font-semibold uppercase tracking-[0.1em] text-white/35">
+        <span className="mt-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-white/55 sm:text-[8px] sm:tracking-[0.06em]">
           {label}
         </span>
       </div>
@@ -62,7 +62,21 @@ export function MatchCenterCountdown({
 }) {
   const labels =
     variant === 'hero' || variant === 'heroCompact'
-      ? { days: 'Tage', hours: 'Std.', minutes: 'Min.' }
+      ? {
+          days: 'Tage',
+          hours: (
+            <>
+              <span className="sm:hidden">Std.</span>
+              <span className="hidden sm:inline">Stunden</span>
+            </>
+          ),
+          minutes: (
+            <>
+              <span className="sm:hidden">Min.</span>
+              <span className="hidden sm:inline">Minuten</span>
+            </>
+          ),
+        }
       : { days: 'Tage', hours: 'Std.', minutes: 'Min.' };
 
   const gridClass =
