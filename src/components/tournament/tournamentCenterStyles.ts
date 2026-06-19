@@ -1,0 +1,16 @@
+/** Turniercenter Premium — Dark Theme, rote Akzente (Match Center). */
+export const TC_CARD =
+  'relative overflow-hidden rounded-2xl border border-[rgba(255,71,71,0.14)] bg-[rgba(8,6,10,0.88)] shadow-[0_4px_24px_rgba(0,0,0,0.52)]';
+export const TC_CARD_INNER = 'px-3.5 py-3 sm:px-4 sm:py-3.5';
+export const TC_SECTION_LABEL =
+  'text-[10px] font-bold uppercase tracking-[0.14em] text-[rgba(255,140,140,0.82)]';
+export const TC_META_ICON = 'h-3.5 w-3.5 shrink-0 text-red-400/90';
+
+export type TournamentCenterTabId = 'overview' | 'games' | 'table' | 'teams';
+
+export const TOURNAMENT_CENTER_TABS: { id: TournamentCenterTabId; label: string }[] = [
+  { id: 'overview', label: 'Überblick' },
+  { id: 'games', label: 'Spiele' },
+  { id: 'table', label: 'Tabelle' },
+  { id: 'teams', label: 'Teams' },
+];

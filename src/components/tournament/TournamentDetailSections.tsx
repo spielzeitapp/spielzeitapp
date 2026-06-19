@@ -1,13 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronRight, FileInput, Plus, Trash2, Users } from 'lucide-react';
-import { Card, CardTitle } from '../../app/components/ui/Card';
+import { FileInput, Plus, Trash2 } from 'lucide-react';
 import { AppButton } from '../ui/AppButton';
 import { Modal } from '../../app/ui/Modal';
-import {
-  dsScheduleGlassButtonClass,
-  dsStatusChipClass,
-  DS_LIST_GAP,
-} from '../../lib/premiumDesignSystem';
+import { dsScheduleGlassButtonClass, DS_LIST_GAP } from '../../lib/premiumDesignSystem';
 import {
   addTournamentParticipant,
   computeTournamentHeroSummary,
@@ -15,15 +10,12 @@ import {
   createTournamentMatchSlot,
   fetchTournamentMatchSlots,
   fetchTournamentParticipants,
-  formatTournamentKickoffTime,
-  groupParticipantsByLabel,
   importTournamentParticipantsBulk,
   parseTournamentParticipantImportLines,
   removeTournamentMatchSlot,
   removeTournamentParticipant,
   TOURNAMENT_DEFAULT_PLANNED_MINUTES,
   tournamentImportSuccessMessage,
-  tournamentMatchDisplayStatus,
   type TournamentMatchSlotView,
   type TournamentParticipant,
 } from '../../lib/tournamentPlan';
@@ -42,12 +34,20 @@ import {
   fetchTournamentImportRecognition,
   type TournamentPlanImportRawMatch,
 } from '../../lib/tournamentPlanImport';
-import { TournamentBalanceCard } from './TournamentBalanceCard';
 import { TournamentFinalSummaryCard } from './TournamentFinalSummaryCard';
-import { TournamentGroupStandingCard } from './TournamentGroupStandingCard';
-import { TournamentHeroCard } from './TournamentHeroCard';
 import { TournamentOfficialPlanCard } from './TournamentOfficialPlanCard';
 import { TournamentTeamAliasesCard } from './TournamentTeamAliasesCard';
+import { TournamentCenterTabBar } from './TournamentCenterTabBar';
+import { TournamentFeaturedMatchCard } from './TournamentFeaturedMatchCard';
+import { TournamentGroupPreviewCard } from './TournamentGroupPreviewCard';
+import { TournamentInfoCard } from './TournamentInfoCard';
+import { TournamentLastResultsCard } from './TournamentLastResultsCard';
+import { TournamentMatchSlotCard } from './TournamentMatchSlotCard';
+import { TournamentOverviewBalanceCard } from './TournamentOverviewBalanceCard';
+import { TournamentTableTab } from './TournamentTableTab';
+import { TournamentTeamsTab } from './TournamentTeamsTab';
+import { groupTournamentSlotsBySection } from './tournamentCenterUtils';
+import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL, type TournamentCenterTabId } from './tournamentCenterStyles';
 
 type Props = {
   tournamentEventId: string;
@@ -56,8 +56,12 @@ type Props = {
   tournamentTitle: string;
   location: string | null;
   officialTournamentUrl: string | null;
+  tournamentMeetupLabel?: string | null;
+  tournamentEndLabel?: string | null;
+  tournamentNotes?: string | null;
   canManage: boolean;
   userId?: string | null;
+  trainerActions?: React.ReactNode;
   onOpenMatchPreparation: (matchId: string) => void;
   onOfficialTournamentUrlUpdated: (url: string | null) => void;
   onTournamentCompleted?: () => void;
@@ -77,12 +81,17 @@ export const TournamentDetailSections: React.FC<Props> = ({
   tournamentTitle,
   location,
   officialTournamentUrl,
+  tournamentMeetupLabel = null,
+  tournamentEndLabel = null,
+  tournamentNotes = null,
   canManage,
   userId = null,
+  trainerActions = null,
   onOpenMatchPreparation,
   onOfficialTournamentUrlUpdated,
   onTournamentCompleted,
 }) => {
+  const [activeTab, setActiveTab] = useState<TournamentCenterTabId>('overview');
   const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
   const [slots, setSlots] = useState<TournamentMatchSlotView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,11 +162,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
     return () => window.clearTimeout(t);
   }, [toastMessage]);
 
-  const participantGroups = useMemo(() => groupParticipantsByLabel(participants), [participants]);
-
   const existingTeamNames = useMemo(() => participants.map((p) => p.team_name), [participants]);
 
   const scrollToTeamAliases = useCallback(() => {
+    setActiveTab('overview');
     setAliasesReloadToken((t) => t + 1);
     requestAnimationFrame(() => {
       document.getElementById('tournament-team-aliases')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -300,6 +308,20 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const nextMatchId = heroSummary.nextMatch?.id ?? null;
 
+  const slotSections = useMemo(() => groupTournamentSlotsBySection(slots), [slots]);
+
+  const infoRows = useMemo(
+    () =>
+      [
+        { label: 'Teams', value: participants.length > 0 ? String(participants.length) : '' },
+        { label: 'Spiele', value: slots.length > 0 ? String(slots.length) : '' },
+        { label: 'Treffpunkt', value: tournamentMeetupLabel?.trim() ?? '' },
+        { label: 'Ende', value: tournamentEndLabel?.trim() ?? '' },
+        { label: 'Ort', value: (location ?? '').trim() },
+      ].filter((row) => row.value.length > 0),
+    [participants.length, slots.length, tournamentMeetupLabel, tournamentEndLabel, location],
+  );
+
   const openParticipantModal = () => {
     setParticipantModalError(null);
     setParticipantModalOpen(true);
@@ -419,10 +441,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-5 overflow-x-hidden">
+    <div className="flex min-w-0 flex-col gap-3 overflow-x-hidden sm:gap-3.5">
       {toastMessage ? (
         <div
-          className="pointer-events-none fixed left-1/2 z-[1001] max-w-[min(92vw,24rem)] -translate-x-1/2 rounded-2xl border border-purple-500/35 bg-[rgba(10,8,18,0.96)] px-4 py-2.5 text-center text-[14px] font-medium text-white shadow-[0_8px_32px_rgba(0,0,0,0.55)] backdrop-blur-sm bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:top-4 sm:bottom-auto"
+          className="pointer-events-none fixed left-1/2 z-[1001] max-w-[min(92vw,24rem)] -translate-x-1/2 rounded-2xl border border-[rgba(255,71,71,0.28)] bg-[rgba(10,8,8,0.96)] px-4 py-2.5 text-center text-[14px] font-medium text-white shadow-[0_8px_32px_rgba(0,0,0,0.55)] backdrop-blur-sm bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:top-4 sm:bottom-auto"
           role="status"
           aria-live="polite"
         >
@@ -430,168 +452,174 @@ export const TournamentDetailSections: React.FC<Props> = ({
         </div>
       ) : null}
 
-      <TournamentHeroCard
-        tournamentTitle={tournamentTitle}
-        participants={participants}
-        slots={slots}
-        loading={loading}
-      />
+      <TournamentCenterTabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <TournamentBalanceCard balance={teamBalance} loading={loading} />
+      {listError ? (
+        <p className="text-[13px] text-red-300/90" role="alert">
+          {listError}
+        </p>
+      ) : null}
 
-      <TournamentFinalSummaryCard
-        tournamentEventId={tournamentEventId}
-        tournamentTitle={tournamentTitle}
-        balance={teamBalance}
-        summary={finalSummary}
-        completion={completion}
-        goalScorers={goalScorers}
-        goalScorersLoading={goalScorersLoading}
-        hasMatchEventGoals={hasMatchEventGoals}
-        canManage={canManage}
-        userId={userId}
-        players={players}
-        playersLoading={playersLoading}
-        loading={loading || groupStandingsLoading}
-        onManualScorersSaved={() => void reloadGoalScorers()}
-        onCompleteTournament={() => void handleCompleteTournament()}
-        completingTournament={completingTournament}
-      />
+      {activeTab === 'overview' ? (
+        <div className="flex flex-col gap-3">
+          <TournamentFeaturedMatchCard
+            slots={slots}
+            loading={loading}
+            onOpen={onOpenMatchPreparation}
+          />
+          <TournamentOverviewBalanceCard balance={teamBalance} loading={loading} />
+          <TournamentGroupPreviewCard standings={groupStandings} loading={groupStandingsLoading} />
+          <TournamentLastResultsCard
+            slots={slots}
+            loading={loading}
+            onOpen={onOpenMatchPreparation}
+          />
+          <TournamentInfoCard rows={infoRows} notes={tournamentNotes}>
+            {trainerActions}
+          </TournamentInfoCard>
 
-      <TournamentGroupStandingCard standings={groupStandings} loading={groupStandingsLoading} />
+          <TournamentFinalSummaryCard
+            tournamentEventId={tournamentEventId}
+            tournamentTitle={tournamentTitle}
+            balance={teamBalance}
+            summary={finalSummary}
+            completion={completion}
+            goalScorers={goalScorers}
+            goalScorersLoading={goalScorersLoading}
+            hasMatchEventGoals={hasMatchEventGoals}
+            canManage={canManage}
+            userId={userId}
+            players={players}
+            playersLoading={playersLoading}
+            loading={loading || groupStandingsLoading}
+            onManualScorersSaved={() => void reloadGoalScorers()}
+            onCompleteTournament={() => void handleCompleteTournament()}
+            completingTournament={completingTournament}
+          />
 
-      <TournamentOfficialPlanCard
-        tournamentEventId={tournamentEventId}
-        teamSeasonId={teamSeasonId}
-        tournamentDayIso={tournamentDayIso}
-        location={location}
-        officialTournamentUrl={officialTournamentUrl}
-        existingTeamNames={participants.map((p) => p.team_name)}
-        existingSlots={slots}
-        canManage={canManage}
-        tournamentArchived={Boolean(completion.completedAt)}
-        onUrlUpdated={onOfficialTournamentUrlUpdated}
-        onImportComplete={() => void reload()}
-        onScrollToAliases={scrollToTeamAliases}
-      />
-
-      <TournamentTeamAliasesCard
-        teamSeasonId={teamSeasonId}
-        canManage={canManage}
-        reloadToken={aliasesReloadToken}
-      />
-
-      <Card className="relative border border-purple-500/20 bg-purple-950/15">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-          <CardTitle className="!mb-0 flex items-center gap-2">
-            <Users className="h-4 w-4 text-purple-300/90" strokeWidth={2} aria-hidden />
-            Teilnehmer
-          </CardTitle>
           {canManage ? (
-            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
+            <>
+              <TournamentOfficialPlanCard
+                tournamentEventId={tournamentEventId}
+                teamSeasonId={teamSeasonId}
+                tournamentDayIso={tournamentDayIso}
+                location={location}
+                officialTournamentUrl={officialTournamentUrl}
+                existingTeamNames={participants.map((p) => p.team_name)}
+                existingSlots={slots}
+                canManage={canManage}
+                tournamentArchived={Boolean(completion.completedAt)}
+                onUrlUpdated={onOfficialTournamentUrlUpdated}
+                onImportComplete={() => void reload()}
+                onScrollToAliases={scrollToTeamAliases}
+              />
+              <TournamentTeamAliasesCard
+                teamSeasonId={teamSeasonId}
+                canManage={canManage}
+                reloadToken={aliasesReloadToken}
+              />
+            </>
+          ) : null}
+        </div>
+      ) : null}
+
+      {activeTab === 'games' ? (
+        <div className="flex flex-col gap-3">
+          {canManage ? (
+            <button type="button" className={addButtonClass} onClick={openMatchModal}>
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              Turnierspiel hinzufügen
+            </button>
+          ) : null}
+
+          {loading ? (
+            <section className={TC_CARD}>
+              <div className={TC_CARD_INNER}>
+                <p className="text-[14px] text-white/55">Lade Turnierplan…</p>
+              </div>
+            </section>
+          ) : slots.length === 0 ? (
+            <section className={TC_CARD}>
+              <div className={`${TC_CARD_INNER} text-center py-2`}>
+                <p className={TC_SECTION_LABEL}>Spiele</p>
+                <p className="mt-2 text-[14px] text-white/55">Keine Turnierspiele geplant.</p>
+              </div>
+            </section>
+          ) : (
+            slotSections.map((section) => (
+              <section key={section.key} className={TC_CARD}>
+                <div className={TC_CARD_INNER}>
+                  <p className={`${TC_SECTION_LABEL} mb-2.5`}>{section.label}</p>
+                  <ul className={`flex flex-col ${DS_LIST_GAP}`}>
+                    {section.slots.map((slot) => (
+                      <li key={slot.id}>
+                        <TournamentMatchSlotCard
+                          slot={slot}
+                          canManage={canManage}
+                          isNextUpcoming={slot.id === nextMatchId}
+                          onOpen={() => onOpenMatchPreparation(slot.match_id)}
+                          onDelete={() => void handleRemoveSlot(slot.match_id)}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            ))
+          )}
+        </div>
+      ) : null}
+
+      {activeTab === 'table' ? (
+        <TournamentTableTab standings={groupStandings} loading={groupStandingsLoading} />
+      ) : null}
+
+      {activeTab === 'teams' ? (
+        <div className="flex flex-col gap-3">
+          {canManage ? (
+            <div className="grid grid-cols-2 gap-2">
               <button type="button" className={addButtonClass} onClick={openParticipantModal}>
                 <Plus className="h-3.5 w-3.5" aria-hidden />
                 Team
               </button>
               <button type="button" className={addButtonClass} onClick={openImportModal}>
                 <FileInput className="h-3.5 w-3.5" aria-hidden />
-                Importieren
+                Import
               </button>
             </div>
           ) : null}
-        </div>
 
-        {loading ? (
-          <p className="mt-3 text-[14px] text-white/65">Lade Teilnehmer…</p>
-        ) : participants.length === 0 ? (
-          <p className="mt-3 text-[14px] text-white/65">Keine Teams hinzugefügt</p>
-        ) : (
-          <div className={`mt-3 flex flex-col ${DS_LIST_GAP}`}>
-            {participantGroups.map(({ label, items }) => (
-              <div key={label ?? '_none'} className="flex flex-col gap-1.5">
-                {label ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-[12px] font-semibold text-purple-200/90">Gruppe {label}</p>
-                    <span className="inline-flex items-center rounded-full border border-purple-500/35 bg-purple-950/55 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-amber-200/90">
-                      {label} ({items.length})
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-[12px] font-semibold text-white/55">Ohne Gruppe</p>
-                    <span className="inline-flex items-center rounded-full border border-white/12 bg-white/[0.05] px-2 py-0.5 text-[10px] font-bold tabular-nums text-white/55">
-                      ({items.length})
-                    </span>
-                  </div>
-                )}
+          <TournamentTeamsTab participants={participants} loading={loading} />
+
+          {canManage && participants.length > 0 ? (
+            <section className={TC_CARD}>
+              <div className={TC_CARD_INNER}>
+                <p className={`${TC_SECTION_LABEL} mb-2`}>Teams verwalten</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {items.map((p) => (
+                  {participants.map((p) => (
                     <span
                       key={p.id}
-                      className="inline-flex max-w-full items-start gap-1 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1"
+                      className="inline-flex max-w-full items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1"
                     >
-                      <span className="min-w-0 max-w-[min(100%,14rem)] break-words text-[13px] font-medium leading-snug text-white/90 line-clamp-2">
+                      <span className="max-w-[min(100%,12rem)] truncate text-[12px] font-medium text-white/88">
                         {p.team_name}
                       </span>
-                      {canManage ? (
-                        <button
-                          type="button"
-                          className="mt-0.5 shrink-0 rounded-full p-0.5 text-white/45 hover:text-red-400 touch-manipulation"
-                          aria-label={`${p.team_name} entfernen`}
-                          onClick={() => void handleRemoveParticipant(p.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-                        </button>
-                      ) : null}
+                      <button
+                        type="button"
+                        className="shrink-0 rounded-full p-0.5 text-white/45 hover:text-red-400 touch-manipulation"
+                        aria-label={`${p.team_name} entfernen`}
+                        onClick={() => void handleRemoveParticipant(p.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                      </button>
                     </span>
                   ))}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      <Card className="relative border border-purple-500/20 bg-purple-950/20">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="!mb-0">Turnierplan</CardTitle>
-          {canManage ? (
-            <button
-              type="button"
-              className={addButtonClass}
-              onClick={openMatchModal}
-            >
-              <Plus className="h-3.5 w-3.5" aria-hidden />
-              Turnierspiel
-            </button>
+            </section>
           ) : null}
         </div>
-
-        {listError ? (
-          <p className="mt-2 text-[13px] text-red-300/90" role="alert">
-            {listError}
-          </p>
-        ) : null}
-
-        {loading ? (
-          <p className="mt-3 text-[14px] text-white/65">Lade Turnierplan…</p>
-        ) : slots.length === 0 ? (
-          <p className="mt-3 text-[14px] text-white/65">Keine Turnierspiele geplant</p>
-        ) : (
-          <ul className={`mt-3 flex flex-col ${DS_LIST_GAP}`}>
-            {slots.map((slot) => (
-              <TournamentMatchRow
-                key={slot.id}
-                slot={slot}
-                canManage={canManage}
-                isNextUpcoming={slot.id === nextMatchId}
-                onOpen={() => onOpenMatchPreparation(slot.match_id)}
-                onDelete={() => void handleRemoveSlot(slot.match_id)}
-              />
-            ))}
-          </ul>
-        )}
-      </Card>
+      ) : null}
 
       <Modal
         isOpen={participantModalOpen}
@@ -778,147 +806,3 @@ export const TournamentDetailSections: React.FC<Props> = ({
     </div>
   );
 };
-
-function tournamentMatchPhaseBadge(phase: string | null | undefined): string | null {
-  const p = (phase ?? '').trim().toLowerCase();
-  if (p === 'final') return 'FINALE';
-  if (p === 'semifinal') return 'HALBFINALE';
-  if (p === 'placement') return 'PLATZIERUNG';
-  return null;
-}
-
-function tournamentMatchBadgeLabel(
-  slot: TournamentMatchSlotView,
-  status: ReturnType<typeof tournamentMatchDisplayStatus>,
-): string {
-  const group = slot.group_label?.trim();
-  const phaseBadge = tournamentMatchPhaseBadge(slot.phase);
-  if (status.kind === 'planned' && phaseBadge) {
-    return phaseBadge;
-  }
-  if (status.kind === 'planned' && group) {
-    return `GRUPPE ${group.toUpperCase()}`;
-  }
-  return status.label;
-}
-
-function TournamentMatchRow({
-  slot,
-  canManage,
-  isNextUpcoming,
-  onOpen,
-  onDelete,
-}: {
-  slot: TournamentMatchSlotView;
-  canManage: boolean;
-  isNextUpcoming: boolean;
-  onOpen: () => void;
-  onDelete: () => void;
-}) {
-  const status = tournamentMatchDisplayStatus(slot);
-  const badgeLabel = tournamentMatchBadgeLabel(slot, status);
-  const timeLabel = formatTournamentKickoffTime(slot.kickoff_at);
-  const meta = slot.pitch?.trim() ?? '';
-
-  const chipTone =
-    status.kind === 'live'
-      ? 'selected'
-      : status.kind === 'result'
-        ? 'present'
-        : status.kind === 'preparation'
-          ? 'open'
-          : 'neutral';
-
-  const scoreLine =
-    status.kind === 'result' ? `${status.ourGoals}:${status.oppGoals}` : null;
-
-  const subline = [scoreLine ? `Ergebnis: ${scoreLine}` : null, meta].filter(Boolean).join(' · ');
-
-  const cardShellClass = isNextUpcoming
-    ? 'border-purple-400/50 bg-[linear-gradient(135deg,rgba(88,28,135,0.26)_0%,rgba(251,191,36,0.06)_48%,rgba(255,255,255,0.04)_100%)] shadow-[0_0_28px_rgba(168,85,247,0.14),inset_0_1px_0_rgba(251,191,36,0.12)]'
-    : 'border-white/10 bg-white/[0.04]';
-
-  return (
-    <li>
-      <div className={`relative overflow-hidden rounded-xl border transition ${cardShellClass}`}>
-        {isNextUpcoming ? (
-          <span className="absolute left-3 top-2.5 z-[1] text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200/90">
-            Nächstes Spiel
-          </span>
-        ) : null}
-        {canManage ? (
-          <button
-            type="button"
-            className="absolute bottom-2.5 right-2 z-[3] rounded-full p-1.5 text-white/40 hover:bg-red-500/15 hover:text-red-400 touch-manipulation sm:bottom-auto sm:right-2 sm:top-2"
-            aria-label={`${slot.opponent_name} entfernen`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-          >
-            <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
-          </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={onOpen}
-          className="relative flex w-full text-left touch-manipulation"
-        >
-          {/* Mobile: gestapelt, Gegner voll lesbar */}
-          <div
-            className={`flex w-full flex-col gap-2 px-3 pb-3 sm:hidden ${
-              isNextUpcoming ? 'pt-8' : 'pt-3'
-            } ${canManage ? 'pr-11' : 'pr-10'}`}
-          >
-            <p className="text-[14px] font-semibold tabular-nums text-purple-200/90">{timeLabel} Uhr</p>
-            {scoreLine ? (
-              <p className="text-[20px] font-bold leading-[1.2] text-white break-words">
-                <span className="tabular-nums text-emerald-300/95">{scoreLine}</span>
-                <span className="text-white/70"> · </span>
-                <span className="line-clamp-2">{slot.opponent_name}</span>
-              </p>
-            ) : (
-              <p className="text-[20px] font-bold leading-[1.2] text-white break-words line-clamp-2">
-                {slot.opponent_name}
-              </p>
-            )}
-            {subline ? <p className="text-[12px] leading-snug text-white/55 break-words">{subline}</p> : null}
-            <span className={`self-start ${dsStatusChipClass(chipTone)}`}>{badgeLabel}</span>
-          </div>
-
-          {/* Desktop: kompakte Zeile */}
-          <div
-            className={`hidden min-h-[56px] w-full items-center gap-3 px-3 py-2.5 sm:flex ${
-              canManage ? 'pr-16' : 'pr-10'
-            } ${isNextUpcoming ? 'pt-7' : ''}`}
-          >
-            <span className="w-[52px] shrink-0 text-[17px] font-bold tabular-nums text-white">{timeLabel}</span>
-            <span className="min-w-0 flex-1">
-              {scoreLine ? (
-                <span className="block text-[16px] font-semibold leading-snug text-white break-words">
-                  <span className="tabular-nums text-emerald-300/95">{scoreLine}</span>
-                  <span className="text-white/70"> · </span>
-                  <span className="line-clamp-2">{slot.opponent_name}</span>
-                </span>
-              ) : (
-                <span className="block text-[16px] font-semibold leading-snug text-white break-words line-clamp-2">
-                  {slot.opponent_name}
-                </span>
-              )}
-              {subline ? (
-                <span className="mt-0.5 block text-[12px] leading-snug text-white/55 break-words">{subline}</span>
-              ) : null}
-            </span>
-            <span className={`shrink-0 ${dsStatusChipClass(chipTone)}`}>{badgeLabel}</span>
-          </div>
-
-          <ChevronRight
-            className="pointer-events-none absolute right-3 top-1/2 z-[2] h-5 w-5 -translate-y-1/2 text-white/35 sm:right-9"
-            strokeWidth={2}
-            aria-hidden
-          />
-        </button>
-      </div>
-    </li>
-  );
-}

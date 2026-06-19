@@ -50,6 +50,8 @@ import {
 } from '../lib/trainingAttendance';
 import { AudienceMatchdayDetailCard } from '../components/events/AudienceMatchdayDetailCard';
 import { TournamentDetailSections } from '../components/tournament/TournamentDetailSections';
+import { TournamentCenterHeader } from '../components/tournament/TournamentCenterHeader';
+import { TournamentCompactCard } from '../components/tournament/TournamentCompactCard';
 import { TrainingAttendancePanel } from '../components/events/TrainingAttendancePanel';
 import { EventFeedCommunicationSection } from '../components/events/EventFeedCommunicationSection';
 import { useSession } from '../auth/useSession';
@@ -3016,8 +3018,15 @@ export const EventDetailPage: React.FC = () => {
       style={isTraining ? dsSchedulePageStyle() : { background: '#000000' }}
     >
       <div
-        className={`mx-auto flex w-full max-w-2xl flex-col overflow-x-hidden px-2 py-4 sm:px-4 ${isAudienceMatchDetail ? 'gap-3' : 'gap-5 py-5'} ${isTournament ? 'pb-[calc(7rem+env(safe-area-inset-bottom,0px))]' : 'pb-28'}`}
+        className={`mx-auto flex w-full max-w-2xl flex-col overflow-x-hidden px-2 sm:px-4 ${
+          isTournament
+            ? 'gap-3 py-3 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]'
+            : isAudienceMatchDetail
+              ? 'gap-3 py-4'
+              : 'gap-5 py-5 pb-28'
+        }`}
       >
+        {!isTournament ? (
         <div className="flex flex-col gap-3">
           <Link to="/app/termine" className="text-[14px] text-white/90 hover:text-white">
             ← Zurück zum Spielplan
@@ -3084,53 +3093,16 @@ export const EventDetailPage: React.FC = () => {
             />
           )}
         </div>
+        ) : null}
 
         {isTournament ? (
           <>
-            <div className="-mx-1 overflow-hidden rounded-[16px] border border-purple-500/25 bg-[linear-gradient(165deg,#1a1424_0%,#0a0a0c_52%,#180a22_100%)] px-4 py-3.5 shadow-[0_12px_40px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.06)] sm:mx-0">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/35 bg-purple-950/55 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-purple-100">
-                  <Trophy className="h-3.5 w-3.5 text-amber-300/95" strokeWidth={2} aria-hidden />
-                  Turnier
-                </span>
-              </div>
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0 text-center">
-                  <span className="text-[13px] font-semibold uppercase leading-none tracking-[0.12em] text-purple-300/90">{eventHeroDate.wd}</span>
-                  <span className="text-[34px] font-bold tabular-nums leading-none text-white">{eventHeroDate.day}</span>
-                  <span className="text-[13px] font-medium leading-tight text-white/70">{eventHeroDate.mon}</span>
-                  {eventHeroYear ? <span className="text-[12px] font-medium leading-tight text-white/45">{eventHeroYear}</span> : null}
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <p className="text-[20px] font-bold leading-tight text-white">{tournamentTitle}</p>
-                  <p className="text-[14px] text-white/75">{formatEventDateTimeLabel(event.starts_at)}</p>
-                </div>
-              </div>
-              <div className="mt-3 grid grid-cols-1 gap-2 text-[14px] text-white/80 sm:grid-cols-2">
-                <p>
-                  <span className="text-white/50">Treffpunkt: </span>
-                  {tournamentMeetupLabel ?? '—'}
-                </p>
-                <p>
-                  <span className="text-white/50">Beginn: </span>
-                  {scheduleMetaTimeDisplay(formatTimeHHmmDe(event.starts_at))}
-                </p>
-                <p>
-                  <span className="text-white/50">Ende: </span>
-                  {tournamentEndLabel ? scheduleMetaTimeDisplay(tournamentEndLabel) : '—'}
-                </p>
-                <p>
-                  <span className="text-white/50">Ort: </span>
-                  {eventPlaceLine || eventAddressLine || '—'}
-                </p>
-              </div>
-              {tournamentNotesText ? (
-                <p className="mt-3 text-[14px] leading-snug text-white/72">
-                  <span className="text-white/50">Notizen: </span>
-                  {tournamentNotesText}
-                </p>
-              ) : null}
-            </div>
+            <TournamentCenterHeader shareTitle={tournamentTitle} />
+            <TournamentCompactCard
+              title={tournamentTitle}
+              startsAt={event.starts_at}
+              location={event.location}
+            />
             {event.team_season_id ? (
               <TournamentDetailSections
                 tournamentEventId={event.id}
@@ -3139,8 +3111,52 @@ export const EventDetailPage: React.FC = () => {
                 tournamentTitle={tournamentTitle}
                 location={event.location}
                 officialTournamentUrl={event.official_tournament_url ?? null}
+                tournamentMeetupLabel={tournamentMeetupLabel}
+                tournamentEndLabel={tournamentEndLabel}
+                tournamentNotes={tournamentNotesText}
                 canManage={canTrainerManageEvent}
                 userId={sessionUser?.id ?? null}
+                trainerActions={
+                  <ScheduleEventActionsPanel
+                    className="mt-1 w-full"
+                    aria-label="Turnier-Aktionen"
+                    rows={[
+                      {
+                        key: 'calendar',
+                        label: 'Zum Kalender hinzufügen',
+                        icon: <CalendarPlus className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                        onClick: () => void handleAddSingleEventToCalendar(),
+                      },
+                      ...(audienceLocation.place || audienceLocation.address
+                        ? [
+                            {
+                              key: 'navigate',
+                              label: 'Navigation starten',
+                              icon: <Navigation className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                              onClick: handleStartNavigation,
+                            },
+                          ]
+                        : []),
+                      ...(canTrainerManageEvent
+                        ? [
+                            {
+                              key: 'edit',
+                              label: 'Bearbeiten',
+                              icon: <Pencil className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                              onClick: () => openEditModal(event),
+                            },
+                            {
+                              key: 'delete',
+                              label: 'Löschen',
+                              icon: <Trash2 className="h-4 w-4" strokeWidth={2} aria-hidden />,
+                              danger: true,
+                              onClick: () => setDeleteConfirmOpen(true),
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
+                }
                 onOpenMatchPreparation={(matchId) =>
                   navigate(`/app/match-preparation?matchId=${encodeURIComponent(matchId)}`)
                 }
