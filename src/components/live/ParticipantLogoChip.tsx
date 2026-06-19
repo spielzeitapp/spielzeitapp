@@ -8,8 +8,8 @@ type Props = {
   carousel?: boolean;
 };
 
-const CAROUSEL_LOGO_BOX = 'h-[4rem] w-[4rem] sm:h-[4.25rem] sm:w-[4.25rem]';
-const CAROUSEL_LOGO_IMG = 'h-[3.75rem] w-[3.75rem] sm:h-[4rem] sm:w-[4rem]';
+const CAROUSEL_LOGO_BOX = 'h-[3.75rem] w-[3.75rem] sm:h-[4rem] sm:w-[4rem]';
+const CAROUSEL_LOGO_IMG = 'h-[3.5rem] w-[3.5rem] sm:h-[3.75rem] sm:w-[3.75rem]';
 
 function splitParticipantDisplayName(name: string): { club: string; ageGroup: string | null } {
   const trimmed = name.trim();
@@ -18,10 +18,6 @@ function splitParticipantDisplayName(name: string): { club: string; ageGroup: st
     return { club: match[1]!.trim(), ageGroup: match[2]!.toUpperCase() };
   }
   return { club: trimmed, ageGroup: null };
-}
-
-function isFirstViennaClub(club: string): boolean {
-  return /first\s*vienna/i.test(club);
 }
 
 export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Props) {
@@ -33,9 +29,8 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
   const heim = isHeimteamParticipant(name);
   const initials = getTeamInitials(club || name);
   const showInitials = !knownLogo || failed;
-  const firstVienna = isFirstViennaClub(club || name);
 
-  const widthClass = carousel ? 'w-[4.75rem] sm:w-[5rem]' : 'w-[4.75rem]';
+  const widthClass = carousel ? 'w-[4.5rem] sm:w-[4.75rem]' : 'w-[4.75rem]';
   const boxClass = carousel ? CAROUSEL_LOGO_BOX : 'h-11 w-11';
   const imgClass = carousel ? CAROUSEL_LOGO_IMG : 'h-8 w-8';
 
@@ -52,9 +47,7 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
           <img
             src={src!}
             alt=""
-            className={`object-contain object-center drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)] ${imgClass} ${
-              firstVienna ? 'scale-110' : ''
-            }`}
+            className={`object-contain object-center drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)] ${imgClass}`}
             onError={() => setFailed(true)}
           />
         )}
@@ -68,7 +61,7 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
         {club || name}
       </p>
       {heim ? (
-        <span className="mt-0.5 whitespace-nowrap rounded-full border border-[rgba(255,71,71,0.3)] bg-[rgba(255,71,71,0.08)] px-1 py-px text-[5px] font-semibold uppercase tracking-[0.04em] text-[rgba(255,140,140,0.9)]">
+        <span className="mt-0.5 whitespace-nowrap rounded-full border border-[rgba(255,71,71,0.28)] bg-[rgba(255,71,71,0.08)] px-1 py-px text-[5px] font-semibold uppercase tracking-[0.04em] text-[rgba(255,140,140,0.9)]">
           Heim
         </span>
       ) : null}
@@ -76,9 +69,10 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
   );
 }
 
+/** Nur U12 für Subtitle — sonst null (kein falsches U11 o.ä.). */
 export function extractTournamentAgeGroup(names: readonly string[]): string | null {
   for (const raw of names) {
-    const match = raw.trim().match(/\b(U\d{1,2})\b/i);
+    const match = raw.trim().match(/\b(U12)\b/i);
     if (match) return match[1]!.toUpperCase();
   }
   return null;

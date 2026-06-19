@@ -59,30 +59,30 @@ function HeroGlassInfoBar({
   const { label: placeLabel, detail: placeDetail } = splitPlaceDisplay(place);
 
   return (
-    <div className="mx-0 flex items-stretch gap-2 rounded-xl border border-white/10 bg-black/55 px-2.5 py-2 shadow-[0_4px_24px_rgba(0,0,0,0.45)] backdrop-blur-md">
-      <span className="inline-flex min-w-[2.85rem] shrink-0 flex-col items-center justify-center rounded-lg border border-[rgba(255,71,71,0.18)] bg-black/40 px-1.5 py-1">
-        <span className="text-[9px] font-bold uppercase tracking-wide text-red-300/85">
+    <div className="mx-0 flex items-stretch gap-1.5 rounded-lg border border-white/10 bg-black/55 px-2 py-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-md">
+      <span className="inline-flex min-w-[2.35rem] shrink-0 flex-col items-center justify-center rounded-md border border-[rgba(255,71,71,0.18)] bg-black/40 px-1 py-0.5">
+        <span className="text-[8px] font-bold uppercase tracking-wide text-red-300/85">
           {dateParts.wd}
         </span>
-        <span className="text-[17px] font-bold leading-none text-white">{dateParts.day}</span>
-        <span className="text-[9px] font-semibold uppercase text-white/55">{dateParts.mon}</span>
+        <span className="text-[14px] font-bold leading-none text-white">{dateParts.day}</span>
+        <span className="text-[8px] font-semibold uppercase text-white/55">{dateParts.mon}</span>
       </span>
 
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 border-r border-white/10 pr-2">
-        <p className="inline-flex items-center gap-1 text-[9px] font-medium uppercase tracking-wide text-white/50">
-          <Clock className="h-3 w-3 shrink-0 text-red-400/85" strokeWidth={2.25} aria-hidden />
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-px border-r border-white/10 pr-1.5">
+        <p className="inline-flex items-center gap-0.5 text-[8px] font-medium uppercase tracking-wide text-white/50">
+          <Clock className="h-2.5 w-2.5 shrink-0 text-red-400/85" strokeWidth={2.25} aria-hidden />
           Beginn
         </p>
-        <p className="text-[13px] font-semibold tabular-nums leading-tight text-white">{kickoff} Uhr</p>
+        <p className="text-[12px] font-semibold tabular-nums leading-tight text-white">{kickoff} Uhr</p>
       </div>
 
       {place ? (
-        <div className="flex min-w-0 flex-[1.15] flex-col justify-center gap-0.5">
-          <p className="inline-flex items-center gap-1 text-[9px] font-medium uppercase tracking-wide text-white/50">
-            <MapPin className="h-3 w-3 shrink-0 text-red-400/85" strokeWidth={2.25} aria-hidden />
+        <div className="flex min-w-0 flex-[1.1] flex-col justify-center gap-px">
+          <p className="inline-flex items-center gap-0.5 text-[8px] font-medium uppercase tracking-wide text-white/50">
+            <MapPin className="h-2.5 w-2.5 shrink-0 text-red-400/85" strokeWidth={2.25} aria-hidden />
             {placeLabel}
           </p>
-          <p className="truncate text-[12px] font-semibold leading-tight text-white/92" title={placeDetail}>
+          <p className="truncate text-[11px] font-semibold leading-tight text-white/92" title={placeDetail}>
             {placeDetail}
           </p>
         </div>
@@ -183,19 +183,19 @@ export function MatchCenterTournamentCard({
 
   return (
     <article className="relative overflow-hidden rounded-[18px] bg-[#060608] shadow-[0_16px_48px_rgba(0,0,0,0.68)] ring-1 ring-white/[0.04]">
-      <div className="relative min-h-[10rem] w-full overflow-hidden sm:min-h-[11.5rem]">
+      <div className="relative min-h-[10.25rem] w-full overflow-hidden sm:min-h-[11.75rem]">
         <img
           src={coverUrl}
           alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[72%_32%]"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[78%_24%]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.32)_0%,rgba(0,0,0,0.02)_28%,rgba(0,0,0,0.08)_52%,rgba(6,4,6,0.58)_100%)]"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.22)_0%,rgba(0,0,0,0)_22%,rgba(0,0,0,0.04)_48%,rgba(6,4,6,0.48)_88%,rgba(6,4,6,0.62)_100%)]"
           aria-hidden
         />
 
-        <div className="relative flex h-full min-h-[inherit] flex-col px-3 pb-2 pt-1.5 sm:px-4">
+        <div className="relative flex h-full min-h-[inherit] flex-col px-3 pb-1.5 pt-1.5 sm:px-4">
           <span className="inline-flex w-fit items-center gap-0.5 rounded-full border border-white/[0.07] bg-black/30 px-1.5 py-px text-[7px] font-semibold uppercase tracking-[0.08em] text-white/72 backdrop-blur-[2px]">
             <Trophy
               className="h-3 w-3 shrink-0 text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
@@ -205,25 +205,25 @@ export function MatchCenterTournamentCard({
             {premium ? 'Turnier' : 'Nächstes Turnier'}
           </span>
 
-          <div className="flex flex-1 flex-col justify-end pb-[4.35rem] pt-8">
-            <h2 className="line-clamp-2 max-w-[62%] text-left text-[15px] font-bold leading-[1.14] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)] sm:max-w-[58%] sm:text-[17px]">
+          <div className="flex flex-1 flex-col justify-end pb-[3.5rem] pt-2">
+            <h2 className="line-clamp-2 max-w-[58%] text-left text-[15px] font-bold leading-[1.14] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)] sm:text-[17px]">
               {title}
             </h2>
           </div>
 
-          <div className="absolute inset-x-3 bottom-2 sm:inset-x-4">
+          <div className="absolute inset-x-3 bottom-1.5 max-w-[72%] sm:inset-x-4 sm:max-w-[68%]">
             <HeroGlassInfoBar startsAt={event.starts_at} place={place} />
           </div>
         </div>
       </div>
 
-      <div className="relative bg-[#060608] px-3 pb-2 pt-1 sm:px-4 sm:pb-2.5">
+      <div className="relative bg-[#060608] px-3 pb-2 pt-0.5 sm:px-4 sm:pb-2.5">
         {countdown ? (
           <MatchCenterCountdown parts={countdown} variant="heroCompact" showHeader />
         ) : null}
 
         {!loadingExtras && (teamsDisplay != null || matchesDisplay != null || winnerDisplay) ? (
-          <div className="mt-1">
+          <div className="mt-0.5">
             <TournamentCompactStats
               teamsDisplay={teamsDisplay}
               matchesDisplay={matchesDisplay}
@@ -234,12 +234,12 @@ export function MatchCenterTournamentCard({
 
         {carouselTeams.length > 0 ? (
           <div className="mt-0.5">
-            <div className="mb-0.5 flex items-center justify-between gap-2">
+            <div className="mb-0 flex items-center justify-between gap-1.5">
               <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-white/38">
                 Teilnehmende Mannschaften
               </p>
               {teamsDisplay != null ? (
-                <span className="shrink-0 rounded-full border border-[rgba(255,71,71,0.42)] bg-[rgba(255,71,71,0.1)] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[rgba(255,150,150,0.95)] shadow-[0_0_14px_rgba(255,71,71,0.22)]">
+                <span className="shrink-0 rounded-full border border-[rgba(255,71,71,0.32)] bg-[rgba(255,71,71,0.08)] px-1.5 py-px text-[7px] font-bold uppercase tracking-[0.06em] text-[rgba(255,150,150,0.92)] shadow-[0_0_10px_rgba(255,71,71,0.16)]">
                   {teamsDisplay} Teams
                 </span>
               ) : null}
