@@ -17,19 +17,28 @@ function splitParticipantDisplayName(name: string): { club: string; ageGroup: st
   return { club: trimmed, ageGroup: null };
 }
 
+function isFirstViennaClub(club: string): boolean {
+  return /first\s*vienna/i.test(club);
+}
+
 export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Props) {
   const [failed, setFailed] = useState(false);
   const name = teamName.trim() || 'Team';
-  const { club, ageGroup } = splitParticipantDisplayName(name);
+  const { club } = splitParticipantDisplayName(name);
   const knownLogo = hasKnownClubLogo(name, { logoUrl });
   const src = knownLogo ? getClubLogo(name, { logoUrl }) : null;
   const heim = isHeimteamParticipant(name);
   const initials = getTeamInitials(club || name);
   const showInitials = !knownLogo || failed;
+  const firstVienna = isFirstViennaClub(club || name);
 
   const widthClass = carousel ? 'w-[4.75rem] sm:w-[5rem]' : 'w-[4.75rem]';
   const boxClass = carousel ? 'h-[4.25rem] w-[4.25rem] sm:h-[4.5rem] sm:w-[4.5rem]' : 'h-11 w-11';
-  const imgClass = carousel ? 'max-h-[3.75rem] max-w-[3.75rem] sm:max-h-[4rem] sm:max-w-[4rem]' : 'h-8 w-8';
+  const imgClass = carousel
+    ? firstVienna
+      ? 'max-h-[4rem] max-w-[4rem] sm:max-h-[4.25rem] sm:max-w-[4.25rem]'
+      : 'max-h-[3.75rem] max-w-[3.75rem] sm:max-h-[4rem] sm:max-w-[4rem]'
+    : 'h-8 w-8';
 
   return (
     <div className={`relative flex shrink-0 flex-col items-center ${widthClass}`}>
@@ -50,19 +59,26 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
         )}
       </div>
       <p
-        className="mt-0.5 w-full truncate text-center text-[8px] font-medium leading-tight text-white/58"
+        className={`mt-0.5 w-full truncate text-center leading-tight text-white/72 ${
+          carousel ? 'text-[10px] font-semibold' : 'text-[8px] font-medium'
+        }`}
         title={club || name}
       >
         {club || name}
       </p>
-      {ageGroup ? (
-        <p className="mt-px text-[7px] font-medium uppercase tracking-wide text-white/35">{ageGroup}</p>
-      ) : null}
       {heim ? (
-        <span className="mt-px whitespace-nowrap rounded-full bg-white/[0.06] px-1 py-px text-[5px] font-medium uppercase tracking-[0.04em] text-white/45">
+        <span className="mt-0.5 whitespace-nowrap rounded-full border border-[rgba(255,71,71,0.25)] bg-[rgba(255,71,71,0.08)] px-1 py-px text-[5px] font-semibold uppercase tracking-[0.04em] text-[rgba(255,140,140,0.85)]">
           Heim
         </span>
       ) : null}
     </div>
   );
+}
+
+export function extractTournamentAgeGroup(names: readonly string[]): string | null {
+  for (const raw of names) {
+    const match = raw.trim().match(/\b(U\d{1,2})\b/i);
+    if (match) return match[1]!.toUpperCase();
+  }
+  return null;
 }

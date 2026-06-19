@@ -15,11 +15,11 @@ function CountdownUnit({
 }) {
   if (variant === 'heroCompact') {
     return (
-      <div className="flex min-w-0 flex-1 flex-col items-center rounded-lg border border-[rgba(255,71,71,0.16)] bg-[rgba(8,6,10,0.92)] px-1 py-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.45)]">
-        <span className="text-[26px] font-extrabold tabular-nums leading-none tracking-tight text-white sm:text-[28px]">
+      <div className="flex min-w-0 flex-1 flex-col items-center rounded-lg border border-[rgba(255,71,71,0.2)] bg-[rgba(8,6,10,0.94)] px-1 py-1.5 shadow-[0_0_18px_rgba(255,71,71,0.14),0_2px_12px_rgba(0,0,0,0.5)]">
+        <span className="text-[28px] font-extrabold tabular-nums leading-none tracking-tight text-white sm:text-[32px]">
           {value}
         </span>
-        <span className="mt-1 text-[7px] font-bold uppercase tracking-[0.06em] text-[rgba(255,120,120,0.82)] sm:text-[8px]">
+        <span className="mt-1 text-[7px] font-bold uppercase tracking-[0.08em] text-[rgba(255,120,120,0.88)] sm:text-[8px]">
           {label}
         </span>
       </div>
@@ -56,28 +56,18 @@ function CountdownUnit({
 export function MatchCenterCountdown({
   parts,
   variant = 'compact',
+  showHeader = false,
 }: {
   parts: CountdownParts;
   variant?: Variant;
+  showHeader?: boolean;
 }) {
   const labels =
-    variant === 'hero' || variant === 'heroCompact'
-      ? {
-          days: 'Tage',
-          hours: (
-            <>
-              <span className="min-[375px]:hidden">Std.</span>
-              <span className="hidden min-[375px]:inline">Stunden</span>
-            </>
-          ),
-          minutes: (
-            <>
-              <span className="hidden min-[375px]:inline">Minuten</span>
-              <span className="min-[375px]:hidden">Min.</span>
-            </>
-          ),
-        }
-      : { days: 'Tage', hours: 'Std.', minutes: 'Min.' };
+    variant === 'heroCompact'
+      ? { days: 'Tage', hours: 'Stunden', minutes: 'Minuten' }
+      : variant === 'hero'
+        ? { days: 'Tage', hours: 'Stunden', minutes: 'Minuten' }
+        : { days: 'Tage', hours: 'Std.', minutes: 'Min.' };
 
   const gridClass =
     variant === 'heroCompact'
@@ -87,10 +77,17 @@ export function MatchCenterCountdown({
         : 'grid grid-cols-3 gap-1.5 sm:gap-2';
 
   return (
-    <div className={gridClass} aria-label="Countdown">
-      <CountdownUnit value={parts.days} label={labels.days} variant={variant} />
-      <CountdownUnit value={parts.hours} label={labels.hours} variant={variant} />
-      <CountdownUnit value={parts.minutes} label={labels.minutes} variant={variant} />
+    <div aria-label="Countdown">
+      {showHeader && variant === 'heroCompact' ? (
+        <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[rgba(255,120,120,0.88)]">
+          Countdown bis Beginn
+        </p>
+      ) : null}
+      <div className={gridClass}>
+        <CountdownUnit value={parts.days} label={labels.days} variant={variant} />
+        <CountdownUnit value={parts.hours} label={labels.hours} variant={variant} />
+        <CountdownUnit value={parts.minutes} label={labels.minutes} variant={variant} />
+      </div>
     </div>
   );
 }

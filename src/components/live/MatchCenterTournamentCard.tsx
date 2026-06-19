@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Clock, MapPin, Trophy } from 'lucide-react';
+import { Clock, MapPin, Trophy } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import {
@@ -16,8 +16,7 @@ import {
   resolveTournamentWinnerDisplay,
 } from '../../lib/matchCenterTournamentVisuals';
 import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
-import { VIENNA_TZ } from '../../lib/viennaTime';
-import { eventNotesTitle, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
+import { eventNotesTitle, formatHeroDateParts, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
 import { dsPrimaryCtaClass } from '../../lib/premiumDesignSystem';
 import { MatchCenterCountdown } from './MatchCenterCountdown';
 import { ParticipantLogoChip } from './ParticipantLogoChip';
@@ -38,35 +37,64 @@ type Props = {
   loadingExtras?: boolean;
 };
 
-function formatTournamentInfoDate(iso: string | null | undefined): string {
-  if (!iso?.trim()) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat('de-AT', {
-    timeZone: VIENNA_TZ,
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(d);
+function splitPlaceDisplay(place: string): { label: string; detail: string } {
+  const trimmed = place.trim();
+  if (!trimmed) return { label: 'Ort', detail: '—' };
+  const match = trimmed.match(/^(Sportplatz|Stadion|Arena|Halle)\s+(.+)$/i);
+  if (match) {
+    return { label: match[1]!, detail: match[2]!.trim() };
+  }
+  return { label: 'Ort', detail: trimmed };
 }
 
-const INFO_ICON_CLASS = 'h-3 w-3 shrink-0 text-red-400/80';
+function HeroGlassInfoBar({
+  startsAt,
+  place,
+}: {
+  startsAt: string | null | undefined;
+  place: string;
+}) {
+  const dateParts = formatHeroDateParts(startsAt);
+  const kickoff = formatTimeHHmmDe(startsAt);
+  const { label: placeLabel, detail: placeDetail } = splitPlaceDisplay(place);
 
-function InfoItem({ icon: Icon, children }: { icon: typeof CalendarDays; children: React.ReactNode }) {
   return (
-    <span className="inline-flex min-w-0 max-w-full items-center gap-1">
-      <Icon className={INFO_ICON_CLASS} strokeWidth={2.25} aria-hidden />
-      <span className="truncate">{children}</span>
-    </span>
+    <div className="mx-0 flex items-stretch gap-2 rounded-xl bg-black/55 px-2.5 py-2 backdrop-blur-md">
+      <span className="inline-flex min-w-[2.75rem] shrink-0 flex-col items-center justify-center rounded-lg border border-white/10 bg-black/35 px-1.5 py-1">
+        <span className="text-[9px] font-bold uppercase tracking-wide text-red-300/85">
+          {dateParts.wd}
+        </span>
+        <span className="text-[17px] font-bold leading-none text-white">{dateParts.day}</span>
+        <span className="text-[9px] font-semibold uppercase text-white/55">{dateParts.mon}</span>
+      </span>
+
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 border-r border-white/10 pr-2">
+        <p className="inline-flex items-center gap-1 text-[9px] font-medium uppercase tracking-wide text-white/50">
+          <Clock className="h-3 w-3 shrink-0 text-red-400/85" strokeWidth={2.25} aria-hidden />
+          Beginn
+        </p>
+        <p className="text-[13px] font-semibold tabular-nums leading-tight text-white">{kickoff} Uhr</p>
+      </div>
+
+      {place ? (
+        <div className="flex min-w-0 flex-[1.15] flex-col justify-center gap-0.5">
+          <p className="inline-flex items-center gap-1 text-[9px] font-medium uppercase tracking-wide text-white/50">
+            <MapPin className="h-3 w-3 shrink-0 text-red-400/85" strokeWidth={2.25} aria-hidden />
+            {placeLabel}
+          </p>
+          <p className="truncate text-[12px] font-semibold leading-tight text-white/92" title={placeDetail}>
+            {placeDetail}
+          </p>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
 function TournamentCompactStats({
-  teamsDisplay,
   matchesDisplay,
   winnerDisplay,
 }: {
-  teamsDisplay: number | null;
   matchesDisplay: number | null;
   winnerDisplay: string;
 }) {
@@ -77,26 +105,13 @@ function TournamentCompactStats({
 
   return (
     <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12px] text-white/62">
-      {teamsDisplay != null ? (
+      {matchesDisplay != null ? (
         <span className="whitespace-nowrap">
-          <span aria-hidden>👥 </span>
-          {teamsDisplay} Teams
+          <span aria-hidden>⚽ </span>
+          {matchesDisplay} Spiele
         </span>
       ) : null}
       {matchesDisplay != null ? (
-        <>
-          {teamsDisplay != null ? (
-            <span className="text-white/20" aria-hidden>
-              ·
-            </span>
-          ) : null}
-          <span className="whitespace-nowrap">
-            <span aria-hidden>⚽ </span>
-            {matchesDisplay} Spiele
-          </span>
-        </>
-      ) : null}
-      {(teamsDisplay != null || matchesDisplay != null) ? (
         <span className="text-white/20" aria-hidden>
           ·
         </span>
@@ -128,8 +143,6 @@ export function MatchCenterTournamentCard({
     () => computeMatchCenterCountdown(event.starts_at, now),
     [event.starts_at, now],
   );
-  const infoDate = formatTournamentInfoDate(event.starts_at);
-  const kickoff = formatTimeHHmmDe(event.starts_at);
   const parsedLocation = splitCombinedLocation(event.location);
   const place = formatFullLocation(parsedLocation.place, parsedLocation.address || (event.address ?? ''));
 
@@ -157,8 +170,7 @@ export function MatchCenterTournamentCard({
 
   return (
     <article className="relative overflow-hidden rounded-[18px] bg-[#060608] shadow-[0_16px_48px_rgba(0,0,0,0.68)] ring-1 ring-white/[0.04]">
-      {/* Hero — kompakt, Titel mittig im Bild */}
-      <div className="relative min-h-[9.5rem] w-full overflow-hidden sm:min-h-[11.25rem]">
+      <div className="relative min-h-[10.5rem] w-full overflow-hidden sm:min-h-[12rem]">
         <img
           src={coverUrl}
           alt=""
@@ -166,7 +178,7 @@ export function MatchCenterTournamentCard({
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.36)_0%,rgba(0,0,0,0.02)_32%,rgba(0,0,0,0.12)_58%,rgba(6,4,6,0.5)_100%)]"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.34)_0%,rgba(0,0,0,0.02)_30%,rgba(0,0,0,0.1)_55%,rgba(6,4,6,0.62)_100%)]"
           aria-hidden
         />
 
@@ -180,42 +192,26 @@ export function MatchCenterTournamentCard({
             {premium ? 'Turnier' : 'Nächstes Turnier'}
           </span>
 
-          <div className="flex flex-1 items-center pb-1 pt-1">
+          <div className="flex flex-1 flex-col justify-end pb-[4.25rem] pt-7">
             <h2 className="text-[16px] font-bold leading-[1.12] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)] sm:text-[18px]">
               {title}
             </h2>
           </div>
+
+          <div className="absolute inset-x-3 bottom-2 sm:inset-x-4">
+            <HeroGlassInfoBar startsAt={event.starts_at} place={place} />
+          </div>
         </div>
       </div>
 
-      <div className="relative bg-[#060608] px-3 pb-2 pt-0 sm:px-4 sm:pb-2.5">
-        {/* Info-Leiste — Lucide, flach */}
-        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] leading-tight text-white/65">
-          <InfoItem icon={CalendarDays}>{infoDate}</InfoItem>
-          <span className="text-white/18" aria-hidden>
-            ·
-          </span>
-          <InfoItem icon={Clock}>{kickoff} Uhr</InfoItem>
-          {place ? (
-            <>
-              <span className="text-white/18" aria-hidden>
-                ·
-              </span>
-              <InfoItem icon={MapPin}>{place}</InfoItem>
-            </>
-          ) : null}
-        </div>
-
+      <div className="relative bg-[#060608] px-3 pb-2 pt-1.5 sm:px-4 sm:pb-2.5">
         {countdown ? (
-          <div className="mt-1.5">
-            <MatchCenterCountdown parts={countdown} variant="heroCompact" />
-          </div>
+          <MatchCenterCountdown parts={countdown} variant="heroCompact" showHeader />
         ) : null}
 
-        {!loadingExtras && (teamsDisplay != null || matchesDisplay != null || winnerDisplay) ? (
+        {!loadingExtras && (matchesDisplay != null || winnerDisplay) ? (
           <div className="mt-1">
             <TournamentCompactStats
-              teamsDisplay={teamsDisplay}
               matchesDisplay={matchesDisplay}
               winnerDisplay={winnerDisplay}
             />
@@ -224,9 +220,16 @@ export function MatchCenterTournamentCard({
 
         {carouselTeams.length > 0 ? (
           <div className="mt-1.5">
-            <p className="mb-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-white/35">
-              Teilnehmende Mannschaften
-            </p>
+            <div className="mb-0.5 flex items-center justify-between gap-2">
+              <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-white/38">
+                Teilnehmende Mannschaften
+              </p>
+              {teamsDisplay != null ? (
+                <span className="shrink-0 rounded-full border border-[rgba(255,71,71,0.22)] bg-[rgba(255,71,71,0.06)] px-1.5 py-px text-[7px] font-bold uppercase tracking-[0.08em] text-[rgba(255,140,140,0.9)]">
+                  {teamsDisplay} Teams
+                </span>
+              ) : null}
+            </div>
             <div className="flex gap-1 overflow-x-auto pb-0.5 pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {carouselTeams.map((p) => (
                 <ParticipantLogoChip
