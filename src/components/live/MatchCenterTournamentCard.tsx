@@ -168,7 +168,7 @@ export function MatchCenterTournamentCard({
                 Teilnehmende Mannschaften
               </p>
               {teamsDisplay != null ? (
-                <span className="shrink-0 rounded-full border border-[rgba(255,71,71,0.32)] bg-[rgba(255,71,71,0.08)] px-1.5 py-px text-[7px] font-bold uppercase tracking-[0.06em] text-[rgba(255,150,150,0.92)] shadow-[0_0_10px_rgba(255,71,71,0.16)]">
+                <span className="shrink-0 rounded-full border border-[rgba(255,71,71,0.28)] bg-[rgba(255,71,71,0.06)] px-1 py-px text-[6px] font-bold uppercase tracking-[0.05em] text-[rgba(255,150,150,0.9)] shadow-[0_0_8px_rgba(255,71,71,0.12)]">
                   {teamsDisplay} Teams
                 </span>
               ) : null}

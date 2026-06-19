@@ -48,7 +48,7 @@ export function LivePageHeader({
   return (
     <SectionTitle
       subtitle={subtitle}
-      className="-mb-1 [&>h1]:mb-0 [&>h1]:text-2xl [&>h1]:font-bold [&>h1]:leading-none [&>h1]:tracking-tight [&>h1]:normal-case [&>p]:mt-0.5 [&>p]:text-xs [&>p]:leading-snug [&>p]:text-white/45"
+      className="mb-3.5 [&>h1]:mb-0 [&>h1]:text-2xl [&>h1]:font-bold [&>h1]:leading-none [&>h1]:tracking-tight [&>h1]:normal-case [&>p]:mt-0.5 [&>p]:text-xs [&>p]:leading-snug [&>p]:text-white/45"
     >
       {title}
     </SectionTitle>

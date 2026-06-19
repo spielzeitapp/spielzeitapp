@@ -8,8 +8,8 @@ type Props = {
   carousel?: boolean;
 };
 
-const CAROUSEL_LOGO_BOX = 'h-[3.75rem] w-[3.75rem] sm:h-[4rem] sm:w-[4rem]';
-const CAROUSEL_LOGO_IMG = 'h-[3.5rem] w-[3.5rem] sm:h-[3.75rem] sm:w-[3.75rem]';
+const CAROUSEL_LOGO_BOX = 'h-[4.0625rem] w-[4.0625rem] sm:h-[4.375rem] sm:w-[4.375rem]';
+const CAROUSEL_LOGO_IMG = 'h-[3.8125rem] w-[3.8125rem] sm:h-[4.0625rem] sm:w-[4.0625rem]';
 
 const CAROUSEL_SHORT_NAMES: Record<string, string> = {
   'fk austria wien': 'FK Austria',
@@ -45,7 +45,7 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
   const initials = getTeamInitials(club || name);
   const showInitials = !knownLogo || failed;
 
-  const widthClass = carousel ? 'w-[4.75rem] sm:w-[5.25rem]' : 'w-[4.75rem]';
+  const widthClass = carousel ? 'w-[5.125rem] sm:w-[5.625rem]' : 'w-[4.75rem]';
   const boxClass = carousel ? CAROUSEL_LOGO_BOX : 'h-11 w-11';
   const imgClass = carousel ? CAROUSEL_LOGO_IMG : 'h-8 w-8';
 
