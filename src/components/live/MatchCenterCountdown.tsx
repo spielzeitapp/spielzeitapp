@@ -2,7 +2,7 @@ import React from 'react';
 import type { MatchCenterCountdown as CountdownParts } from '../../lib/matchCenterUtils';
 import { MC_BORDER, MC_GLOW_SM } from './matchCenterStyles';
 
-type Variant = 'compact' | 'hero';
+type Variant = 'compact' | 'hero' | 'heroCompact';
 
 function CountdownUnit({
   value,
@@ -13,6 +13,21 @@ function CountdownUnit({
   label: string;
   variant: Variant;
 }) {
+  if (variant === 'heroCompact') {
+    return (
+      <div
+        className={`flex min-w-0 flex-1 flex-col items-center rounded-xl border ${MC_BORDER} bg-[rgba(4,4,6,0.78)] px-1.5 py-1.5 backdrop-blur-[2px] ${MC_GLOW_SM}`}
+      >
+        <span className="text-[26px] font-extrabold tabular-nums leading-none tracking-tight text-white sm:text-[28px]">
+          {value}
+        </span>
+        <span className="mt-1 text-[8px] font-bold uppercase tracking-[0.14em] text-[rgba(255,120,120,0.78)]">
+          {label}
+        </span>
+      </div>
+    );
+  }
+
   if (variant === 'hero') {
     return (
       <div
@@ -50,15 +65,19 @@ export function MatchCenterCountdown({
   variant?: Variant;
 }) {
   const labels =
-    variant === 'hero'
+    variant === 'hero' || variant === 'heroCompact'
       ? { days: 'Tage', hours: 'Stunden', minutes: 'Minuten' }
       : { days: 'Tage', hours: 'Std.', minutes: 'Min.' };
 
+  const gridClass =
+    variant === 'heroCompact'
+      ? 'grid grid-cols-3 gap-1.5'
+      : variant === 'hero'
+        ? 'grid grid-cols-3 gap-2 sm:gap-2.5'
+        : 'grid grid-cols-3 gap-1.5 sm:gap-2';
+
   return (
-    <div
-      className={variant === 'hero' ? 'grid grid-cols-3 gap-2 sm:gap-2.5' : 'grid grid-cols-3 gap-1.5 sm:gap-2'}
-      aria-label="Countdown"
-    >
+    <div className={gridClass} aria-label="Countdown">
       <CountdownUnit value={parts.days} label={labels.days} variant={variant} />
       <CountdownUnit value={parts.hours} label={labels.hours} variant={variant} />
       <CountdownUnit value={parts.minutes} label={labels.minutes} variant={variant} />
