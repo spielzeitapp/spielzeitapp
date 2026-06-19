@@ -1,4 +1,5 @@
 import type { EventRow } from '../hooks/useEvents';
+import { safeOptionalText, safeText } from './safeText';
 import type { TournamentMatchSlotView, TournamentParticipant } from './tournamentPlan';
 import defaultTournamentHeroArtwork from '../assets/branding/tournament-hero-default.png';
 
@@ -20,8 +21,8 @@ export type TournamentParticipantRow = TournamentParticipant & {
 
 const COVER_PREFIXES = ['/', 'https://'];
 
-function isAllowedCoverUrl(url: string): boolean {
-  const u = url.trim();
+function isAllowedCoverUrl(url: unknown): boolean {
+  const u = safeText(url);
   return COVER_PREFIXES.some((p) => u.startsWith(p));
 }
 
@@ -30,14 +31,14 @@ export function resolveTournamentCoverUrl(
   fallbackUrl: string = DEFAULT_TOURNAMENT_HERO_ARTWORK_URL,
 ): string {
   const extra = event as EventRow & MatchCenterTournamentEventExtras;
-  const url = extra.tournament_cover_url?.trim();
+  const url = safeOptionalText(extra.tournament_cover_url);
   if (url && isAllowedCoverUrl(url)) return url;
   return fallbackUrl;
 }
 
 /** Für Turnier-Hero ohne EventRow — tournament_cover_url zuerst, sonst Branding-Fallback. */
 export function resolveTournamentHeroBackgroundUrl(coverUrl?: string | null): string {
-  const url = (coverUrl ?? '').trim();
+  const url = safeText(coverUrl);
   if (url && isAllowedCoverUrl(url)) return url;
   return DEFAULT_TOURNAMENT_HERO_ARTWORK_URL;
 }
@@ -45,14 +46,14 @@ export function resolveTournamentHeroBackgroundUrl(coverUrl?: string | null): st
 export function mapTournamentParticipants(rows: TournamentParticipantRow[]): MatchCenterParticipant[] {
   return rows
     .map((p) => ({
-      name: p.team_name.trim(),
-      logoUrl: p.logo_url?.trim() || null,
+      name: safeText(p.team_name),
+      logoUrl: safeOptionalText(p.logo_url),
     }))
     .filter((p) => p.name.length > 0);
 }
 
-function normalizePhase(phase: string | null | undefined): string {
-  const p = (phase ?? '').trim().toLowerCase();
+function normalizePhase(phase: unknown): string {
+  const p = safeText(phase).toLowerCase();
   if (!p) return '';
   if (p === 'final' || p === 'finale' || p.includes('finalspiel')) return 'final';
   if (p === 'semifinal' || p === 'halbfinale') return 'semifinal';
@@ -69,7 +70,7 @@ export function tournamentPhaseDisplayLabel(
   if (p === 'final') return 'Finale';
   if (p === 'semifinal') return 'Halbfinale';
   if (p === 'placement') return 'Spiel um Platz 3';
-  const group = (groupLabel ?? '').trim();
+  const group = safeText(groupLabel);
   if (group) return `Gruppe ${group}`;
   if (p === 'group') return 'Gruppenspiel';
   return 'Turnierspiel';
@@ -110,8 +111,8 @@ export function resolveTournamentWinnerName(
   if (!finalSlot) return null;
   const home = Number(finalSlot.score_home ?? 0);
   const away = Number(finalSlot.score_away ?? 0);
-  if (home > away) return ourTeamName.trim() || null;
-  if (away > home) return finalSlot.opponent_name.trim() || null;
+  if (home > away) return safeOptionalText(ourTeamName);
+  if (away > home) return safeOptionalText(finalSlot.opponent_name);
   return null;
 }
 

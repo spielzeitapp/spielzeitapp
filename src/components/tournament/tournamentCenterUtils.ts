@@ -1,4 +1,5 @@
 import { tournamentPhaseDisplayLabel } from '../../lib/matchCenterTournamentVisuals';
+import { safeOptionalText, safeText } from '../../lib/safeText';
 import {
   tournamentMatchDisplayStatus,
   type TournamentMatchSlotView,
@@ -32,11 +33,11 @@ export type TournamentSlotSection = {
 };
 
 function slotSectionLabel(slot: TournamentMatchSlotView): string {
-  const phase = (slot.phase ?? '').trim().toLowerCase();
+  const phase = safeText(slot.phase).toLowerCase();
   if (phase === 'final') return 'Finale';
   if (phase === 'semifinal') return 'Halbfinale';
   if (phase === 'placement') return 'Platzierung';
-  const group = slot.group_label?.trim();
+  const group = safeOptionalText(slot.group_label);
   if (group) return `Gruppe ${group}`;
   return tournamentPhaseDisplayLabel(slot.phase, slot.group_label);
 }
@@ -107,8 +108,8 @@ export async function shareTournamentCenter(title: string): Promise<boolean> {
   return false;
 }
 
-export function splitTeamDisplayName(name: string): { club: string; ageGroup: string | null } {
-  const trimmed = name.trim();
+export function splitTeamDisplayName(name: unknown): { club: string; ageGroup: string | null } {
+  const trimmed = safeText(name);
   const match = trimmed.match(/^(.+?)\s+(U\d{1,2})\s*$/i);
   if (match) {
     return { club: match[1]!.trim(), ageGroup: match[2]!.toUpperCase() };

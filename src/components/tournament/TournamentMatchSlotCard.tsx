@@ -8,6 +8,7 @@ import {
 } from '../../lib/tournamentPlan';
 import { dsStatusChipClass } from '../../lib/premiumDesignSystem';
 import { tournamentPhaseDisplayLabel } from '../../lib/matchCenterTournamentVisuals';
+import { safeOptionalText } from '../../lib/safeText';
 import { TournamentPrepareButton } from './TournamentNextMatchWorkflowCta';
 
 type Props = {
@@ -49,7 +50,7 @@ export function TournamentMatchSlotCard({
 }: Props) {
   const status = tournamentMatchDisplayStatus(slot);
   const timeLabel = formatTournamentKickoffTime(slot.kickoff_at);
-  const pitch = slot.pitch?.trim();
+  const pitch = safeOptionalText(slot.pitch);
   const scoreLine =
     status.kind === 'result' ? `${status.ourGoals}:${status.oppGoals}` : null;
   const label = statusLabel(slot, status);

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { getClubLogo, getTeamInitials, hasKnownClubLogo } from '../../lib/teamLogos';
+import { safeText } from '../../lib/safeText';
 import { isHeimteamParticipant } from '../../lib/matchCenterUtils';
 
 type Props = {
-  teamName: string;
-  logoUrl?: string | null;
+  teamName: unknown;
+  logoUrl?: unknown;
   carousel?: boolean;
 };
 
@@ -36,11 +37,11 @@ function splitParticipantDisplayName(name: string): { club: string; ageGroup: st
 
 export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Props) {
   const [failed, setFailed] = useState(false);
-  const name = teamName.trim() || 'Team';
+  const name = safeText(teamName) || 'Team';
   const { club } = splitParticipantDisplayName(name);
   const displayClub = carousel ? shortenClubDisplayName(club || name) : club || name;
-  const knownLogo = hasKnownClubLogo(name, { logoUrl });
-  const src = knownLogo ? getClubLogo(name, { logoUrl }) : null;
+  const knownLogo = hasKnownClubLogo(name, { logoUrl: safeText(logoUrl) || undefined });
+  const src = knownLogo ? getClubLogo(name, { logoUrl: safeText(logoUrl) || undefined }) : null;
   const heim = isHeimteamParticipant(name);
   const initials = getTeamInitials(club || name);
   const showInitials = !knownLogo || failed;
@@ -85,9 +86,9 @@ export function ParticipantLogoChip({ teamName, logoUrl, carousel = false }: Pro
 }
 
 /** Nur U12 für Subtitle — sonst null (kein falsches U11 o.ä.). */
-export function extractTournamentAgeGroup(names: readonly string[]): string | null {
+export function extractTournamentAgeGroup(names: readonly unknown[]): string | null {
   for (const raw of names) {
-    const match = raw.trim().match(/\b(U12)\b/i);
+    const match = safeText(raw).match(/\b(U12)\b/i);
     if (match) return match[1]!.toUpperCase();
   }
   return null;

@@ -48,6 +48,7 @@ import { TournamentScorersOverviewCard } from './TournamentScorersOverviewCard';
 import { TournamentTableTab } from './TournamentTableTab';
 import { TournamentTeamsTab } from './TournamentTeamsTab';
 import { groupTournamentSlotsBySection } from './tournamentCenterUtils';
+import { safeText } from '../../lib/safeText';
 import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL, type TournamentCenterTabId } from './tournamentCenterStyles';
 
 type Props = {
@@ -261,7 +262,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   };
 
   useEffect(() => {
-    const planUrl = officialTournamentUrl?.trim();
+    const planUrl = safeText(officialTournamentUrl);
     if (!planUrl || !teamSeasonId || participants.length === 0) {
       setGroupStandings(null);
       setPlanImportContext(null);
@@ -316,9 +317,9 @@ export const TournamentDetailSections: React.FC<Props> = ({
       [
         { label: 'Teams', value: participants.length > 0 ? String(participants.length) : '' },
         { label: 'Spiele', value: slots.length > 0 ? String(slots.length) : '' },
-        { label: 'Treffpunkt', value: tournamentMeetupLabel?.trim() ?? '' },
-        { label: 'Ende', value: tournamentEndLabel?.trim() ?? '' },
-        { label: 'Ort', value: (location ?? '').trim() },
+        { label: 'Treffpunkt', value: safeText(tournamentMeetupLabel) },
+        { label: 'Ende', value: safeText(tournamentEndLabel) },
+        { label: 'Ort', value: safeText(location) },
       ].filter((row) => row.value.length > 0),
     [participants.length, slots.length, tournamentMeetupLabel, tournamentEndLabel, location],
   );

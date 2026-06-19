@@ -1,5 +1,6 @@
 import React from 'react';
 import { Trophy } from 'lucide-react';
+import { safeOptionalText } from '../../lib/safeText';
 import {
   computeTournamentHeroSummary,
   formatTournamentKickoffTime,
@@ -33,8 +34,8 @@ export const TournamentHeroCard: React.FC<Props> = ({
 }) => {
   const summary = computeTournamentHeroSummary(participants, slots);
   const nextTime = summary.nextMatch ? formatTournamentKickoffTime(summary.nextMatch.kickoff_at) : null;
-  const nextOpponent = summary.nextMatch?.opponent_name?.trim() ?? '';
-  const nextGroup = summary.nextMatch?.group_label?.trim() ?? '';
+  const nextOpponent = safeOptionalText(summary.nextMatch?.opponent_name) ?? '';
+  const nextGroup = safeOptionalText(summary.nextMatch?.group_label) ?? '';
 
   return (
     <div className="relative -mx-1 min-w-0 overflow-hidden rounded-[18px] border border-purple-500/30 bg-[linear-gradient(165deg,#221830_0%,#0c0a12_46%,#1a1024_100%)] px-4 py-4 shadow-[0_16px_48px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.07),0_0_40px_rgba(168,85,247,0.08)] sm:mx-0">

@@ -7,6 +7,7 @@ import {
   type TournamentMatchSlotView,
 } from '../../lib/tournamentPlan';
 import { dsStatusChipClass } from '../../lib/premiumDesignSystem';
+import { safeOptionalText } from '../../lib/safeText';
 import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL } from './tournamentCenterStyles';
 import { pickFeaturedTournamentSlot } from './tournamentCenterUtils';
 import { TournamentPrepareButton } from './TournamentNextMatchWorkflowCta';
@@ -52,8 +53,8 @@ export function TournamentFeaturedMatchCard({
   const isLive = status.kind === 'live';
   const showPrepare = canManage && !isLive && isTournamentSlotPreparable(featured);
   const timeLabel = formatTournamentKickoffTime(featured.kickoff_at);
-  const group = featured.group_label?.trim();
-  const pitch = featured.pitch?.trim();
+  const group = safeOptionalText(featured.group_label);
+  const pitch = safeOptionalText(featured.pitch);
   const scoreLine =
     status.kind === 'result' ? `${status.ourGoals}:${status.oppGoals}` : null;
 

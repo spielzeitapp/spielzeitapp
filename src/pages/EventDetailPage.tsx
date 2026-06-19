@@ -26,6 +26,7 @@ import { useLinkedPlayerIsLaz } from '../hooks/useLinkedPlayerIsLaz';
 import { useAvailabilityPermissions } from '../hooks/useAvailabilityPermissions';
 import { normalizeRole, canSeeMeetup, canManageMatches } from '../lib/roles';
 import { deleteEventAndRelatedData } from '../lib/deleteEventCascade';
+import { safeText } from '../lib/safeText';
 import { getClubLogo, getOurTeamDisplayName } from '../lib/teamLogos';
 import { MatchCardLigaportal } from '../app/components/MatchCardLigaportal';
 import { Card, CardTitle } from '../app/components/ui/Card';
@@ -2942,7 +2943,7 @@ export const EventDetailPage: React.FC = () => {
   const isAudienceMatchDetail = event.kind === 'match' && !canTrainerManageEvent;
   const isTournament = event.kind === 'tournament';
   const isEventOrOther = event.kind === 'event';
-  const tournamentTitle = (eventNotesTitle(event.notes) ?? 'Turnier').trim();
+  const tournamentTitle = safeText(eventNotesTitle(event.notes) ?? 'Turnier');
   const tournamentEndLabel = eventTrainingEndDisplay(event.notes);
   const tournamentMeetupLabel = event.meeting_at ? formatMeetupTimeOnlyDe(event.meeting_at) : null;
   const tournamentNotesText = extractAudienceTrainerNotes(event.notes);

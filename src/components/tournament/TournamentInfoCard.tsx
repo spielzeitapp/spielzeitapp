@@ -1,4 +1,5 @@
 import React from 'react';
+import { safeText } from '../../lib/safeText';
 import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL } from './tournamentCenterStyles';
 
 type InfoRow = { label: string; value: string };
@@ -10,8 +11,9 @@ type Props = {
 };
 
 export function TournamentInfoCard({ rows, notes, children }: Props) {
-  const visibleRows = rows.filter((r) => r.value.trim().length > 0);
-  if (visibleRows.length === 0 && !notes?.trim() && !children) return null;
+  const visibleRows = rows.filter((r) => safeText(r.value).length > 0);
+  const notesText = safeText(notes);
+  if (visibleRows.length === 0 && !notesText && !children) return null;
 
   return (
     <section className={TC_CARD}>
@@ -27,10 +29,10 @@ export function TournamentInfoCard({ rows, notes, children }: Props) {
             ))}
           </dl>
         ) : null}
-        {notes?.trim() ? (
+        {notesText ? (
           <p className="text-[13px] leading-snug text-white/72">
             <span className="text-white/45">Notizen: </span>
-            {notes.trim()}
+            {notesText}
           </p>
         ) : null}
         {children}

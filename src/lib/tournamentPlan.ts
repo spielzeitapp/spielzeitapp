@@ -1,3 +1,4 @@
+import { safeOptionalText } from './safeText';
 import { supabase } from './supabaseClient';
 import { upsertMatchForSetup, updateMatchRow } from './liveMatchService';
 import {
@@ -195,7 +196,7 @@ export function computeTournamentHeroSummary(
   const teamCount = participants.length;
   const distinctGroups = new Set(
     participants
-      .map((p) => p.group_label?.trim())
+      .map((p) => safeOptionalText(p.group_label))
       .filter((label): label is string => Boolean(label))
       .map((label) => label.toLowerCase()),
   );
@@ -558,7 +559,7 @@ export function groupParticipantsByLabel(
 ): { label: string | null; items: TournamentParticipant[] }[] {
   const map = new Map<string | null, TournamentParticipant[]>();
   for (const p of participants) {
-    const key = p.group_label?.trim() || null;
+    const key = safeOptionalText(p.group_label);
     const list = map.get(key) ?? [];
     list.push(p);
     map.set(key, list);
