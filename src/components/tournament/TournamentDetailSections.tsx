@@ -44,6 +44,7 @@ import { TournamentInfoCard } from './TournamentInfoCard';
 import { TournamentLastResultsCard } from './TournamentLastResultsCard';
 import { TournamentMatchSlotCard } from './TournamentMatchSlotCard';
 import { TournamentOverviewBalanceCard } from './TournamentOverviewBalanceCard';
+import { TournamentScorersOverviewCard } from './TournamentScorersOverviewCard';
 import { TournamentTableTab } from './TournamentTableTab';
 import { TournamentTeamsTab } from './TournamentTeamsTab';
 import { groupTournamentSlotsBySection } from './tournamentCenterUtils';
@@ -474,6 +475,11 @@ export const TournamentDetailSections: React.FC<Props> = ({
             slots={slots}
             loading={loading}
             onOpen={onOpenMatchPreparation}
+          />
+          <TournamentScorersOverviewCard
+            scorers={goalScorers}
+            players={players}
+            loading={loading || goalScorersLoading}
           />
           <TournamentInfoCard rows={infoRows} notes={tournamentNotes}>
             {trainerActions}
