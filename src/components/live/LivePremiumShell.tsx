@@ -6,7 +6,10 @@ import { cn } from '../../ui/lib/cn';
 
 const SHELL_CLASS =
   'page live-page min-h-[100dvh] w-full max-w-none min-w-0 overflow-x-hidden px-3 py-6 sm:px-4 md:px-0';
+const SHELL_CLASS_MATCH_CENTER =
+  'page live-page min-h-[100dvh] w-full max-w-none min-w-0 overflow-x-hidden px-3 py-3 sm:px-4 sm:py-4 md:px-0';
 const CONTENT_CLASS = 'mx-auto w-full min-w-0 max-w-none space-y-4 md:max-w-3xl lg:max-w-4xl';
+const CONTENT_CLASS_COMPACT = 'mx-auto w-full min-w-0 max-w-none space-y-1 md:max-w-3xl lg:max-w-4xl';
 
 /** Äußere Live-Seitenhülle (Übersicht, Leerzustände, Ladezustände — ohne Match-Engine). */
 export function LivePremiumShell({
@@ -23,9 +26,9 @@ export function LivePremiumShell({
     <PageShell
       variant="subtle"
       showAtmosphere={false}
-      className={SHELL_CLASS}
+      className={matchCenter ? SHELL_CLASS_MATCH_CENTER : SHELL_CLASS}
       contentClassName={cn(
-        CONTENT_CLASS,
+        matchCenter ? CONTENT_CLASS_COMPACT : CONTENT_CLASS,
         matchCenter && 'pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]',
         centerContent && 'flex min-h-[calc(100dvh-3rem)] flex-col items-center justify-center text-center',
       )}
@@ -45,7 +48,7 @@ export function LivePageHeader({
   return (
     <SectionTitle
       subtitle={subtitle}
-      className="[&>h1]:text-lg [&>h1]:font-bold [&>h1]:tracking-tight [&>h1]:normal-case"
+      className="mb-0 [&>h1]:text-lg [&>h1]:font-bold [&>h1]:tracking-tight [&>h1]:normal-case [&>p]:text-[12px] [&>p]:leading-snug"
     >
       {title}
     </SectionTitle>

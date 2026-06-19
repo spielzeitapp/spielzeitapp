@@ -118,14 +118,11 @@ export function TournamentFirstMatchPreview({
 }) {
   if (!slot) {
     return (
-      <div className={`rounded-xl ${MC_SURFACE} px-3 py-2.5 text-center`}>
-        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/35">
+      <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2 text-center">
+        <p className="text-[8px] font-bold uppercase tracking-[0.1em] text-white/32">
           Erstes Spiel
         </p>
-        <p className="mt-1.5 text-[12px] font-medium text-white/55">
-          <span aria-hidden>📅 </span>
-          Spielplan folgt in Kürze
-        </p>
+        <p className="mt-1 text-[11px] font-medium text-white/52">Spielplan folgt in Kürze</p>
       </div>
     );
   }
@@ -136,11 +133,11 @@ export function TournamentFirstMatchPreview({
   const kickoff = formatTimeHHmmDe(slot.kickoff_at);
 
   return (
-    <div className={`rounded-xl ${MC_SURFACE} px-3 py-2.5`}>
-      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/40">
+    <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2">
+      <p className="text-[8px] font-bold uppercase tracking-[0.1em] text-white/38">
         Erstes Spiel
       </p>
-      <div className="mt-2.5 flex items-center justify-between gap-2">
+      <div className="mt-1.5 flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
           <TournamentTeamLogo name={homeTeam} map={participantLogoByName} />
           <p className="w-full truncate text-center text-[10px] font-semibold text-white/88" title={homeTeam}>
@@ -157,7 +154,7 @@ export function TournamentFirstMatchPreview({
           </p>
         </div>
       </div>
-      <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-white/62">
+      <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-0.5 text-[10px] text-white/58">
         <span>
           {dateParts.wd} {dateParts.day}. {dateParts.mon}
         </span>

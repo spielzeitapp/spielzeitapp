@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, Trophy } from 'lucide-react';
 import type { EventRow } from '../../hooks/useEvents';
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import {
@@ -50,6 +50,17 @@ function formatTournamentInfoDate(iso: string | null | undefined): string {
   }).format(d);
 }
 
+const INFO_ICON_CLASS = 'h-3 w-3 shrink-0 text-red-400/80';
+
+function InfoItem({ icon: Icon, children }: { icon: typeof CalendarDays; children: React.ReactNode }) {
+  return (
+    <span className="inline-flex min-w-0 max-w-full items-center gap-1">
+      <Icon className={INFO_ICON_CLASS} strokeWidth={2.25} aria-hidden />
+      <span className="truncate">{children}</span>
+    </span>
+  );
+}
+
 function TournamentCompactStats({
   teamsDisplay,
   matchesDisplay,
@@ -65,7 +76,7 @@ function TournamentCompactStats({
       : winnerDisplay;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/58">
+    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12px] text-white/62">
       {teamsDisplay != null ? (
         <span className="whitespace-nowrap">
           <span aria-hidden>👥 </span>
@@ -73,9 +84,21 @@ function TournamentCompactStats({
         </span>
       ) : null}
       {matchesDisplay != null ? (
-        <span className="whitespace-nowrap">
-          <span aria-hidden>⚽ </span>
-          {matchesDisplay} Spiele
+        <>
+          {teamsDisplay != null ? (
+            <span className="text-white/20" aria-hidden>
+              ·
+            </span>
+          ) : null}
+          <span className="whitespace-nowrap">
+            <span aria-hidden>⚽ </span>
+            {matchesDisplay} Spiele
+          </span>
+        </>
+      ) : null}
+      {(teamsDisplay != null || matchesDisplay != null) ? (
+        <span className="text-white/20" aria-hidden>
+          ·
         </span>
       ) : null}
       <span className="whitespace-nowrap">
@@ -133,77 +156,64 @@ export function MatchCenterTournamentCard({
   const firstMatch = pickTournamentFirstMatch(slots);
 
   return (
-    <article className="relative overflow-hidden rounded-[20px] bg-[#060608] shadow-[0_20px_56px_rgba(0,0,0,0.72)] ring-1 ring-white/[0.04]">
-      {/* Hero — dominant, weniger Abdunklung */}
-      <div className="relative min-h-[15.5rem] w-full overflow-hidden sm:min-h-[17.5rem]">
+    <article className="relative overflow-hidden rounded-[18px] bg-[#060608] shadow-[0_16px_48px_rgba(0,0,0,0.68)] ring-1 ring-white/[0.04]">
+      {/* Hero — kompakt, Titel-Overlay */}
+      <div className="relative min-h-[11.75rem] w-full overflow-hidden sm:min-h-[13.5rem]">
         <img
           src={coverUrl}
           alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[center_28%]"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[center_30%]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.48)_0%,rgba(0,0,0,0.06)_32%,rgba(0,0,0,0.28)_68%,rgba(6,4,6,0.82)_100%)]"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_100%_70%_at_50%_15%,rgba(255,248,235,0.1)_0%,transparent_58%)]"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.42)_0%,rgba(0,0,0,0.04)_30%,rgba(0,0,0,0.22)_62%,rgba(6,4,6,0.78)_100%)]"
           aria-hidden
         />
 
-        <div className="relative flex h-full min-h-[inherit] flex-col justify-between px-3 pb-3 pt-2 sm:px-4 sm:pb-3.5">
-          <span className="inline-flex w-fit items-center gap-1 rounded-full border border-white/[0.08] bg-black/35 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-white/75 backdrop-blur-[2px]">
+        <div className="relative flex h-full min-h-[inherit] flex-col justify-between px-3 pb-2 pt-1.5 sm:px-4 sm:pb-2.5">
+          <span className="inline-flex w-fit items-center gap-0.5 rounded-full border border-white/[0.07] bg-black/30 px-1.5 py-px text-[7px] font-semibold uppercase tracking-[0.08em] text-white/72 backdrop-blur-[2px]">
             <Trophy
-              className="h-4 w-4 shrink-0 text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.55)]"
+              className="h-3 w-3 shrink-0 text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
               strokeWidth={2.25}
               aria-hidden
             />
             {premium ? 'Turnier' : 'Nächstes Turnier'}
           </span>
 
-          <div className="mt-auto pt-4">
-            <h2 className="text-[20px] font-bold leading-[1.1] tracking-tight text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)] sm:text-[23px]">
+          <div className="mt-auto pt-1">
+            <h2 className="text-[17px] font-bold leading-[1.12] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)] sm:text-[19px]">
               {title}
             </h2>
           </div>
         </div>
       </div>
 
-      <div className="relative bg-[#060608] px-3 pb-2.5 pt-2 sm:px-4 sm:pb-3">
-        {/* Kompakte Info-Leiste direkt unter Hero */}
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-white/[0.05] pb-2 text-[11px] leading-snug text-white/62">
-          <span className="whitespace-nowrap">
-            <span aria-hidden>📅 </span>
-            {infoDate}
-          </span>
-          <span className="text-white/25" aria-hidden>
+      <div className="relative bg-[#060608] px-3 pb-2 pt-1 sm:px-4 sm:pb-2.5">
+        {/* Info-Leiste — Lucide, flach */}
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] leading-tight text-white/58">
+          <InfoItem icon={CalendarDays}>{infoDate}</InfoItem>
+          <span className="text-white/18" aria-hidden>
             ·
           </span>
-          <span className="whitespace-nowrap">
-            <span aria-hidden>🕙 </span>
-            {kickoff} Uhr
-          </span>
+          <InfoItem icon={Clock}>{kickoff} Uhr</InfoItem>
           {place ? (
             <>
-              <span className="text-white/25" aria-hidden>
+              <span className="text-white/18" aria-hidden>
                 ·
               </span>
-              <span className="min-w-0 truncate">
-                <span aria-hidden>📍 </span>
-                {place}
-              </span>
+              <InfoItem icon={MapPin}>{place}</InfoItem>
             </>
           ) : null}
         </div>
 
         {countdown ? (
-          <div className="mt-2">
+          <div className="mt-1.5">
             <MatchCenterCountdown parts={countdown} variant="heroCompact" />
           </div>
         ) : null}
 
         {!loadingExtras && (teamsDisplay != null || matchesDisplay != null || winnerDisplay) ? (
-          <div className="mt-2">
+          <div className="mt-1.5">
             <TournamentCompactStats
               teamsDisplay={teamsDisplay}
               matchesDisplay={matchesDisplay}
@@ -212,26 +222,12 @@ export function MatchCenterTournamentCard({
           </div>
         ) : null}
 
-        {!loadingExtras && topMatch ? (
-          <div className="mt-2.5">
-            <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white/38">
-              Top-Spiel des Turniers
-            </p>
-            <TournamentMatchCenterPoster
-              slot={topMatch}
-              ourTeamName={ourTeamName}
-              tournamentTitle={title}
-              participantLogoByName={logoByName}
-            />
-          </div>
-        ) : null}
-
         {carouselTeams.length > 0 ? (
-          <div className="mt-3">
-            <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white/38">
+          <div className="mt-2">
+            <p className="mb-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/35">
               Teilnehmende Mannschaften
             </p>
-            <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 pl-1 pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="-mx-0.5 flex gap-1.5 overflow-x-auto pb-0.5 pl-0.5 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {carouselTeams.map((p) => (
                 <ParticipantLogoChip
                   key={p.name}
@@ -244,8 +240,22 @@ export function MatchCenterTournamentCard({
           </div>
         ) : null}
 
+        {!loadingExtras && topMatch ? (
+          <div className="mt-2">
+            <p className="mb-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/35">
+              Top-Spiel des Turniers
+            </p>
+            <TournamentMatchCenterPoster
+              slot={topMatch}
+              ourTeamName={ourTeamName}
+              tournamentTitle={title}
+              participantLogoByName={logoByName}
+            />
+          </div>
+        ) : null}
+
         {!loadingExtras ? (
-          <div className="mt-2.5">
+          <div className="mt-2">
             <TournamentFirstMatchPreview
               slot={firstMatch}
               ourTeamName={ourTeamName}
@@ -256,7 +266,7 @@ export function MatchCenterTournamentCard({
 
         <Link
           to={`/app/events/${event.id}`}
-          className={`${dsPrimaryCtaClass()} mt-2.5 mb-[max(0.25rem,env(safe-area-inset-bottom,0px))] inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center px-4 py-3 text-[14px] font-semibold`}
+          className={`${dsPrimaryCtaClass()} mt-2 mb-[max(0.75rem,env(safe-area-inset-bottom,0px))] inline-flex min-h-[48px] w-full touch-manipulation items-center justify-center px-4 py-3 text-[14px] font-semibold`}
         >
           Zum Turniercenter
         </Link>
