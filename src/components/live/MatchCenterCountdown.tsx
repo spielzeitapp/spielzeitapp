@@ -15,11 +15,11 @@ function CountdownUnit({
 }) {
   if (variant === 'heroCompact') {
     return (
-      <div className="flex min-w-0 flex-1 flex-col items-center rounded-md border border-white/[0.07] bg-white/[0.04] px-0.5 py-1">
-        <span className="text-[21px] font-extrabold tabular-nums leading-none tracking-tight text-white sm:text-[23px]">
+      <div className="flex min-w-0 flex-1 flex-col items-center rounded-lg border border-[rgba(255,71,71,0.16)] bg-[rgba(8,6,10,0.92)] px-1 py-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.45)]">
+        <span className="text-[26px] font-extrabold tabular-nums leading-none tracking-tight text-white sm:text-[28px]">
           {value}
         </span>
-        <span className="mt-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-white/55 sm:text-[8px] sm:tracking-[0.06em]">
+        <span className="mt-1 text-[7px] font-bold uppercase tracking-[0.06em] text-[rgba(255,120,120,0.82)] sm:text-[8px]">
           {label}
         </span>
       </div>
@@ -66,14 +66,14 @@ export function MatchCenterCountdown({
           days: 'Tage',
           hours: (
             <>
-              <span className="sm:hidden">Std.</span>
-              <span className="hidden sm:inline">Stunden</span>
+              <span className="min-[375px]:hidden">Std.</span>
+              <span className="hidden min-[375px]:inline">Stunden</span>
             </>
           ),
           minutes: (
             <>
-              <span className="sm:hidden">Min.</span>
-              <span className="hidden sm:inline">Minuten</span>
+              <span className="hidden min-[375px]:inline">Minuten</span>
+              <span className="min-[375px]:hidden">Min.</span>
             </>
           ),
         }
@@ -81,7 +81,7 @@ export function MatchCenterCountdown({
 
   const gridClass =
     variant === 'heroCompact'
-      ? 'grid grid-cols-3 gap-0.5'
+      ? 'grid grid-cols-3 gap-1.5'
       : variant === 'hero'
         ? 'grid grid-cols-3 gap-2 sm:gap-2.5'
         : 'grid grid-cols-3 gap-1.5 sm:gap-2';

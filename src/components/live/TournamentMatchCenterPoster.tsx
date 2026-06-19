@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { CalendarDays } from 'lucide-react';
 import type { TournamentMatchSlotView } from '../../lib/tournamentPlan';
 import { getClubLogo, hasKnownClubLogo, getTeamInitials } from '../../lib/teamLogos';
 import { formatHeroDateParts, formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
@@ -118,12 +119,10 @@ export function TournamentFirstMatchPreview({
 }) {
   if (!slot) {
     return (
-      <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2 text-center">
-        <p className="text-[8px] font-bold uppercase tracking-[0.1em] text-white/32">
-          Erstes Spiel
-        </p>
-        <p className="mt-1 text-[11px] font-medium text-white/52">Spielplan folgt in Kürze</p>
-      </div>
+      <p className="flex items-center gap-1.5 border-t border-white/[0.05] pt-1.5 text-[11px] leading-tight text-white/52">
+        <CalendarDays className="h-3 w-3 shrink-0 text-red-400/75" strokeWidth={2.25} aria-hidden />
+        Spielplan folgt in Kürze
+      </p>
     );
   }
 

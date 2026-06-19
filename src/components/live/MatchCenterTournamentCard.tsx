@@ -157,20 +157,20 @@ export function MatchCenterTournamentCard({
 
   return (
     <article className="relative overflow-hidden rounded-[18px] bg-[#060608] shadow-[0_16px_48px_rgba(0,0,0,0.68)] ring-1 ring-white/[0.04]">
-      {/* Hero — kompakt, Titel-Overlay */}
-      <div className="relative min-h-[11.75rem] w-full overflow-hidden sm:min-h-[13.5rem]">
+      {/* Hero — kompakt, Titel mittig im Bild */}
+      <div className="relative min-h-[9.5rem] w-full overflow-hidden sm:min-h-[11.25rem]">
         <img
           src={coverUrl}
           alt=""
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[center_30%]"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[center_32%]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.38)_0%,rgba(0,0,0,0.02)_28%,rgba(0,0,0,0.14)_55%,rgba(6,4,6,0.55)_88%,rgba(6,4,6,0.72)_100%)]"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.36)_0%,rgba(0,0,0,0.02)_32%,rgba(0,0,0,0.12)_58%,rgba(6,4,6,0.5)_100%)]"
           aria-hidden
         />
 
-        <div className="relative flex h-full min-h-[inherit] flex-col px-3 pb-2 pt-1.5 sm:px-4 sm:pb-2.5">
+        <div className="relative flex h-full min-h-[inherit] flex-col px-3 pb-2 pt-1.5 sm:px-4">
           <span className="inline-flex w-fit items-center gap-0.5 rounded-full border border-white/[0.07] bg-black/30 px-1.5 py-px text-[7px] font-semibold uppercase tracking-[0.08em] text-white/72 backdrop-blur-[2px]">
             <Trophy
               className="h-3 w-3 shrink-0 text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
@@ -180,17 +180,17 @@ export function MatchCenterTournamentCard({
             {premium ? 'Turnier' : 'Nächstes Turnier'}
           </span>
 
-          <div className="mt-auto mb-12 pt-2 sm:mb-14">
-            <h2 className="text-[17px] font-bold leading-[1.12] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)] sm:text-[19px]">
+          <div className="flex flex-1 items-center pb-1 pt-1">
+            <h2 className="text-[16px] font-bold leading-[1.12] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.9)] sm:text-[18px]">
               {title}
             </h2>
           </div>
         </div>
       </div>
 
-      <div className="relative bg-[#060608] px-3 pb-2 pt-0.5 sm:px-4 sm:pb-2.5">
+      <div className="relative bg-[#060608] px-3 pb-2 pt-0 sm:px-4 sm:pb-2.5">
         {/* Info-Leiste — Lucide, flach */}
-        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] leading-tight text-white/62">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] leading-tight text-white/65">
           <InfoItem icon={CalendarDays}>{infoDate}</InfoItem>
           <span className="text-white/18" aria-hidden>
             ·
@@ -207,13 +207,13 @@ export function MatchCenterTournamentCard({
         </div>
 
         {countdown ? (
-          <div className="mt-1">
+          <div className="mt-1.5">
             <MatchCenterCountdown parts={countdown} variant="heroCompact" />
           </div>
         ) : null}
 
         {!loadingExtras && (teamsDisplay != null || matchesDisplay != null || winnerDisplay) ? (
-          <div className="mt-1.5">
+          <div className="mt-1">
             <TournamentCompactStats
               teamsDisplay={teamsDisplay}
               matchesDisplay={matchesDisplay}
@@ -223,11 +223,11 @@ export function MatchCenterTournamentCard({
         ) : null}
 
         {carouselTeams.length > 0 ? (
-          <div className="mt-2">
-            <p className="mb-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/35">
+          <div className="mt-1.5">
+            <p className="mb-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-white/35">
               Teilnehmende Mannschaften
             </p>
-            <div className="-mx-0.5 flex gap-1.5 overflow-x-auto pb-0.5 pl-0.5 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex gap-1 overflow-x-auto pb-0.5 pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {carouselTeams.map((p) => (
                 <ParticipantLogoChip
                   key={p.name}
@@ -241,8 +241,8 @@ export function MatchCenterTournamentCard({
         ) : null}
 
         {!loadingExtras && topMatch ? (
-          <div className="mt-2">
-            <p className="mb-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/35">
+          <div className="mt-1.5">
+            <p className="mb-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-white/35">
               Top-Spiel des Turniers
             </p>
             <TournamentMatchCenterPoster
@@ -255,7 +255,7 @@ export function MatchCenterTournamentCard({
         ) : null}
 
         {!loadingExtras ? (
-          <div className="mt-2">
+          <div className="mt-1.5">
             <TournamentFirstMatchPreview
               slot={firstMatch}
               ourTeamName={ourTeamName}
