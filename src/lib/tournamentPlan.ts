@@ -149,6 +149,45 @@ export function formatTournamentGoalDifference(diff: number): string {
   return String(diff);
 }
 
+export function sortTournamentMatchSlots(slots: TournamentMatchSlotView[]): TournamentMatchSlotView[] {
+  return [...slots].sort((a, b) => {
+    const diff = new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime();
+    if (diff !== 0) return diff;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
+}
+
+export function isTournamentSlotPreparable(slot: TournamentMatchSlotView): boolean {
+  const st = (slot.match_status ?? '').toLowerCase();
+  return st !== 'live' && st !== 'finished';
+}
+
+/** Nächster vorbereitbarer Slot (nach kickoff_at/sort_order), optional nach aktuellem Match. */
+export function pickNextPlannedTournamentSlot(
+  slots: TournamentMatchSlotView[],
+  options?: { afterMatchId?: string | null },
+): TournamentMatchSlotView | null {
+  const afterMatchId = options?.afterMatchId?.trim() ?? '';
+  const sorted = sortTournamentMatchSlots(slots);
+
+  if (afterMatchId) {
+    const currentIdx = sorted.findIndex((s) => s.match_id === afterMatchId);
+    if (currentIdx >= 0) {
+      for (let i = currentIdx + 1; i < sorted.length; i++) {
+        const slot = sorted[i]!;
+        if (isTournamentSlotPreparable(slot)) return slot;
+      }
+      return null;
+    }
+  }
+
+  for (const slot of sorted) {
+    if (afterMatchId && slot.match_id === afterMatchId) continue;
+    if (isTournamentSlotPreparable(slot)) return slot;
+  }
+  return null;
+}
+
 export function computeTournamentHeroSummary(
   participants: TournamentParticipant[],
   slots: TournamentMatchSlotView[],

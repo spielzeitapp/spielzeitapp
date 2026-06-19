@@ -120,6 +120,11 @@ import { supabase } from '../../lib/supabaseClient';
 import { getClubLogo, getOurTeamDisplayName } from '../../lib/teamLogos';
 import { isValidLogoUrl } from '../../utils/logoResolver';
 import { ensureResultFeedPostForMatch } from '../../lib/ensureResultFeedPost';
+import {
+  fetchTournamentMatchNavigationContext,
+  type TournamentMatchNavigationContext,
+} from '../../lib/tournamentMatchNavigation';
+import { TournamentNextMatchWorkflowCta } from '../../components/tournament/TournamentNextMatchWorkflowCta';
 
 const HOME_FALLBACK = 'Unser Team';
 
@@ -1434,6 +1439,8 @@ export const LiveMatchScreen: React.FC = () => {
   const [minPlaytimeEndWarnOpen, setMinPlaytimeEndWarnOpen] = useState(false);
   const [spielAbschlussOpen, setSpielAbschlussOpen] = useState(false);
   const [calendarFinalized, setCalendarFinalized] = useState(false);
+  const [tournamentNavContext, setTournamentNavContext] =
+    useState<TournamentMatchNavigationContext | null>(null);
   const [goalUndoOffer, setGoalUndoOffer] = useState<{
     eventId: string;
     side: 'home' | 'away';
@@ -1552,6 +1559,22 @@ export const LiveMatchScreen: React.FC = () => {
       cancelled = true;
     };
   }, [effectiveMatchId, matchRow?.status]);
+
+  useEffect(() => {
+    if (!effectiveMatchId || !matchIsFinished || !canControlLiveMatch) {
+      setTournamentNavContext(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchTournamentMatchNavigationContext(effectiveMatchId, { afterCurrentMatch: true }).then(
+      (ctx) => {
+        if (!cancelled) setTournamentNavContext(ctx);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveMatchId, matchIsFinished, canControlLiveMatch]);
 
   useEffect(() => () => clearGoalUndoTimer(), [clearGoalUndoTimer]);
 
@@ -4391,6 +4414,10 @@ export const LiveMatchScreen: React.FC = () => {
                     <span aria-hidden>🏆</span>
                     {calendarFinalized ? 'Termin abgeschlossen' : 'Spiel abschließen'}
                   </button>
+
+                  {matchIsFinished && tournamentNavContext ? (
+                    <TournamentNextMatchWorkflowCta context={tournamentNavContext} className="pt-1" />
+                  ) : null}
                 </div>
               ) : null}
 

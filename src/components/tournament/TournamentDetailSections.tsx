@@ -465,6 +465,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
           <TournamentFeaturedMatchCard
             slots={slots}
             loading={loading}
+            canManage={canManage}
             onOpen={onOpenMatchPreparation}
           />
           <TournamentOverviewBalanceCard balance={teamBalance} loading={loading} />
