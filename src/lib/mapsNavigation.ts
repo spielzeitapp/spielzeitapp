@@ -1,10 +1,11 @@
 import { formatFullLocation, splitCombinedLocation } from './eventLocation';
+import { safeText } from './safeText';
 
 export type MapsCoords = { lat: number; lng: number };
 
 /** Koordinaten aus location/notes (z. B. „48.12,16.25“ oder „geo:48.12,16.25“). */
-export function parseCoordsFromText(value: string | null | undefined): MapsCoords | null {
-  const s = (value ?? '').trim();
+export function parseCoordsFromText(value: unknown): MapsCoords | null {
+  const s = safeText(value);
   if (!s) return null;
 
   const geo = s.match(/geo:\s*(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)/i);
@@ -48,7 +49,7 @@ export function buildMapsNavigationUrl(opts: {
 
   const query =
     formatFullLocation(opts.place, opts.address) ||
-    (opts.locationRaw ?? '').trim().replace(/\n/g, ', ');
+    safeText(opts.locationRaw).replace(/\n/g, ', ');
   if (!query) return null;
 
   const encoded = encodeURIComponent(query);
@@ -68,8 +69,8 @@ export function openMapsNavigation(opts: Parameters<typeof buildMapsNavigationUr
 }
 
 export function resolveEventMapsCoords(
-  location: string | null | undefined,
-  notes: string | null | undefined,
+  location: unknown,
+  notes: unknown,
 ): MapsCoords | null {
   return parseCoordsFromText(location) ?? parseCoordsFromText(notes);
 }

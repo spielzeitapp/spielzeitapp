@@ -1,4 +1,5 @@
 import { VIENNA_TZ } from '../../lib/viennaTime';
+import { safeText } from '../../lib/safeText';
 
 /** Spielart (match_type) → Anzeige-Label (wie Termine-Karte). */
 export const MATCH_TYPE_LABELS: Record<string, string> = {
@@ -11,10 +12,11 @@ export const MATCH_TYPE_LABELS: Record<string, string> = {
   other: 'Sonstiges',
 };
 
-export function getMatchTypeLabel(matchType: string | null | undefined): string | null {
-  if (!matchType || !matchType.trim()) return null;
-  const key = matchType.trim().toLowerCase();
-  return MATCH_TYPE_LABELS[key] ?? matchType;
+export function getMatchTypeLabel(matchType: unknown): string | null {
+  const mt = safeText(matchType);
+  if (!mt) return null;
+  const key = mt.toLowerCase();
+  return MATCH_TYPE_LABELS[key] ?? mt;
 }
 
 /** Treffpunkt → nur Uhrzeit „HH:mm Uhr“ (Vienna). */

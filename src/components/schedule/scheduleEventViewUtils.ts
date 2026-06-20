@@ -35,8 +35,8 @@ const DE_WEEKDAY_LONG_TO_ABBREV: Record<string, string> = {
   sonntag: 'SO',
 };
 
-export function formatCompactListWeekdayAbbrev(iso: string | null | undefined): string {
-  if (!iso?.trim()) return '—';
+export function formatCompactListWeekdayAbbrev(iso: unknown): string {
+  if (!safeText(iso)) return '—';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
   const wd = new Intl.DateTimeFormat('de-AT', { weekday: 'long', timeZone: VIENNA_TZ }).format(d);
@@ -45,12 +45,12 @@ export function formatCompactListWeekdayAbbrev(iso: string | null | undefined): 
 }
 
 /** Kompakte Terminliste: voller Wochentag, großer Tag, Monat + Jahr (z. B. MAI 2026). */
-export function formatCompactListDateParts(iso: string | null | undefined): {
+export function formatCompactListDateParts(iso: unknown): {
   wd: string;
   day: string;
   monYear: string;
 } {
-  if (!iso?.trim()) return { wd: '—', day: '–', monYear: '' };
+  if (!safeText(iso)) return { wd: '—', day: '–', monYear: '' };
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return { wd: '—', day: '–', monYear: '' };
   const wd = new Intl.DateTimeFormat('de-AT', { weekday: 'long', timeZone: VIENNA_TZ }).format(d);
@@ -87,9 +87,9 @@ export function eventNotesTitle(notes: unknown): string | null {
 }
 
 /** Titel in notes aktualisieren (erster Teil vor „ · “), Rest (Ende, Details) bleibt erhalten. */
-export function mergeTitleIntoNotes(existingNotes: string | null | undefined, newTitle: string): string | null {
+export function mergeTitleIntoNotes(existingNotes: unknown, newTitle: string): string | null {
   const title = newTitle.trim();
-  const raw = (existingNotes ?? '').trim();
+  const raw = safeText(existingNotes);
   if (!raw) return title || null;
   const parts = raw.split(' · ');
   const rest = parts.slice(1).filter(Boolean);
@@ -114,7 +114,7 @@ export function scheduleLocationLine(ev: EventRow): string {
 /** Titelzeile für kompakte Liste (eine Zeile). */
 export function scheduleCompactPrimaryTitle(ev: EventRow, et: EffectiveEventType, ourClubDisplay: string): string {
   if (et === 'game') {
-    const opp = (ev.opponent ?? 'Gegner').trim() || 'Gegner';
+    const opp = safeText(ev.opponent) || 'Gegner';
     return opp;
   }
   if (et === 'training') return eventNotesTitle(ev.notes) ?? 'Training';
@@ -147,9 +147,9 @@ export function eventTrainingEndDisplay(notes: unknown): string | null {
 }
 
 /** Meta-Toolbar: Zeit mit „Uhr“ (kein doppeltes „Uhr Uhr“). */
-export function scheduleMetaTimeDisplay(raw: string | null | undefined, emptyLabel = 'Offen'): string {
-  if (!raw?.trim()) return emptyLabel;
-  const v = raw.trim();
+export function scheduleMetaTimeDisplay(raw: unknown, emptyLabel = 'Offen'): string {
+  if (!safeText(raw)) return emptyLabel;
+  const v = safeText(raw);
   if (/\buhr\s*$/i.test(v)) return v;
   return `${v} Uhr`;
 }
@@ -159,7 +159,7 @@ export function gameTeamNames(
   et: EffectiveEventType,
   ourClubDisplay: string,
 ): { left: string; right: string } {
-  const opp = (ev.opponent ?? 'Gegner').trim() || 'Gegner';
+  const opp = safeText(ev.opponent) || 'Gegner';
   if (et !== 'game') return { left: ourClubDisplay, right: opp };
   if (ev.is_home === true) return { left: ourClubDisplay, right: opp };
   if (ev.is_home === false) return { left: opp, right: ourClubDisplay };

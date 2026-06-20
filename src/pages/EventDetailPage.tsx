@@ -146,7 +146,7 @@ const EVENTS_SELECT =
   'id, team_season_id, kind, type, match_type, opponent, is_home, location, starts_at, meeting_at, status, attendance_mode, notes, match_id, official_tournament_url, created_by, created_at, updated_at';
 
 function getDomainEventLabel(event: EventRow): string {
-  const t = (event.type ?? '').trim().toLowerCase();
+  const t = safeText(event.type).toLowerCase();
   if (event.kind === 'match') {
     if (!t || t === 'game') return 'Meisterschaftsspiel';
     if (t === 'friendly') return 'Freundschaftsspiel';
@@ -172,8 +172,8 @@ function extractAudienceTrainerNotes(notes: unknown): string | null {
   return safeText(text) || null;
 }
 
-function parseEditableNotes(notes: string | null | undefined): { title: string; endTime: string; details: string } {
-  const parts = (notes ?? '')
+function parseEditableNotes(notes: unknown): { title: string; endTime: string; details: string } {
+  const parts = safeText(notes)
     .split(' · ')
     .map((p) => p.trim())
     .filter(Boolean);
@@ -188,11 +188,11 @@ function parseEditableNotes(notes: string | null | undefined): { title: string; 
   return { title, endTime, details };
 }
 
-function normalizeInfoText(value: string | null | undefined): string {
-  return (value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+function normalizeInfoText(value: unknown): string {
+  return safeText(value).replace(/\s+/g, ' ').toLowerCase();
 }
 
-function parseEventDisplayNotes(notes: string | null | undefined): {
+function parseEventDisplayNotes(notes: unknown): {
   detailsPrimary: string | null;
   detailsFurther: string | null;
 } {
@@ -524,7 +524,7 @@ export const EventDetailPage: React.FC = () => {
 
   const isFinishedMatchEvent = useMemo(() => {
     if (!event) return false;
-    const t = (event.type ?? '').trim().toLowerCase();
+    const t = safeText(event.type).toLowerCase();
     return t === 'game' && event.status === 'finished' && Boolean(event.match_id);
   }, [event]);
 
@@ -2978,14 +2978,17 @@ export const EventDetailPage: React.FC = () => {
       }).format(new Date(event.meeting_at))
     : null;
   const { detailsPrimary: eventDetailsPrimary, detailsFurther: eventDetailsFurther } = parseEventDisplayNotes(event.notes);
-  const eventFurtherInfoText = (eventDetailsFurther ?? '').trim();
+  const eventFurtherInfoText = safeText(eventDetailsFurther);
   const showFurtherEventInfo =
     isEventOrOther &&
     eventFurtherInfoText.length > 0 &&
     normalizeInfoText(eventFurtherInfoText) !== normalizeInfoText(eventDetailsPrimary);
-  const eventCompactTitle = (
-    eventNotesTitle(event.notes) ?? ((event.opponent ?? '').trim() || getDomainEventLabel(event))
-  ).trim();
+  const eventCompactTitle =
+    safeText(
+      eventNotesTitle(event.notes) ??
+        safeOptionalText(event.opponent) ??
+        getDomainEventLabel(event),
+    ) || 'Termin';
   const eventCompactTitleLen = eventCompactTitle.length;
   const eventCompactTitleSizeClass =
     eventCompactTitleLen > 42
@@ -2995,8 +2998,8 @@ export const EventDetailPage: React.FC = () => {
         : 'text-[17px]';
   const eventHeroDate = formatHeroDateParts(event.starts_at);
   const eventHeroYear = event.starts_at ? new Date(event.starts_at).getFullYear().toString() : '';
-  const eventPlaceLine = (audienceLocation.place || '').trim();
-  const eventAddressLine = (audienceLocation.address || '').trim();
+  const eventPlaceLine = safeText(audienceLocation.place);
+  const eventAddressLine = safeText(audienceLocation.address);
   const eventTypeRaw = `${eventCompactTitle} ${(event.type ?? '')}`.toLowerCase();
   const EventDetailIcon =
     eventTypeRaw.includes('film') || eventTypeRaw.includes('kino')
