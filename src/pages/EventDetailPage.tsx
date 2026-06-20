@@ -3129,7 +3129,7 @@ export const EventDetailPage: React.FC = () => {
       <div
         className={`mx-auto flex w-full max-w-2xl flex-col overflow-x-hidden px-2 sm:px-4 ${
           isTournament
-            ? 'gap-2.5 py-2.5 pb-[calc(8.5rem+env(safe-area-inset-bottom,0px))]'
+            ? 'gap-2.5 py-2.5 pb-[calc(9.5rem+env(safe-area-inset-bottom,0px))]'
             : isAudienceMatchDetail
               ? 'gap-3 py-4'
               : 'gap-5 py-5 pb-28'

@@ -47,6 +47,10 @@ type Props = {
   onUrlUpdated: (url: string | null) => void;
   onImportComplete: () => void;
   onScrollToAliases?: () => void;
+  /** Kompakte Darstellung im Trainer-Accordion ohne eigene Card-Hülle. */
+  embedded?: boolean;
+  /** Externer Trigger für Import/QR/Link-Workflow (z. B. aus Überblick). */
+  workflowRequest?: { action: 'import' | 'qr' | 'link'; key: number } | null;
 };
 
 const inputClass =
@@ -65,6 +69,8 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
   onUrlUpdated,
   onImportComplete,
   onScrollToAliases,
+  embedded = false,
+  workflowRequest = null,
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [draftUrl, setDraftUrl] = useState('');
@@ -214,6 +220,13 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
       setImportLoading(false);
     }
   }, [officialTournamentUrl, teamSeasonId]);
+
+  useEffect(() => {
+    if (!workflowRequest || !canManage) return;
+    if (workflowRequest.action === 'import') void startImport();
+    else if (workflowRequest.action === 'qr') openQrScanner();
+    else openEditor();
+  }, [workflowRequest?.key, canManage, startImport]);
 
   const handleImportConfirm = useCallback(async () => {
     if (!importAnalysis) return;
@@ -396,115 +409,129 @@ export const TournamentOfficialPlanCard: React.FC<Props> = ({
     tournamentEventId,
   ]);
 
-  return (
-    <>
-      <Card className="relative border border-purple-500/20 bg-purple-950/15">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <CardTitle className="!mb-0 flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-purple-300/90" strokeWidth={2} aria-hidden />
-              Offizieller Turnierplan
-            </CardTitle>
-            <span className={dsStatusChipClass(hasUrl ? 'present' : 'neutral')}>
-              {hasUrl ? 'Link hinterlegt' : 'Kein Link hinterlegt'}
-            </span>
+  const btnH = embedded ? 'min-h-[34px]' : 'min-h-[44px]';
+  const btnText = embedded ? 'text-[11px]' : 'text-sm';
+  const iconCls = embedded ? 'h-3.5 w-3.5' : 'h-4 w-4';
+  const panelBody = (
+    <div className={`flex flex-col ${embedded ? 'gap-2' : 'gap-3'}`}>
+      {!embedded ? (
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <CardTitle className="!mb-0 flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-purple-300/90" strokeWidth={2} aria-hidden />
+            Offizieller Turnierplan
+          </CardTitle>
+          <span className={dsStatusChipClass(hasUrl ? 'present' : 'neutral')}>
+            {hasUrl ? 'Link hinterlegt' : 'Kein Link hinterlegt'}
+          </span>
+        </div>
+      ) : (
+        <span className={`w-fit ${dsStatusChipClass(hasUrl ? 'present' : 'neutral')}`}>
+          {hasUrl ? 'Link hinterlegt' : 'Kein Link hinterlegt'}
+        </span>
+      )}
+
+      {saveError ? (
+        <p className="text-[12px] text-red-300/90" role="alert">
+          {saveError}
+        </p>
+      ) : null}
+
+      {tournamentArchived ? (
+        <p className="rounded-lg border border-amber-500/20 bg-amber-950/15 px-2.5 py-1.5 text-[11px] leading-snug text-white/60">
+          Turnier abgeschlossen — Aktualisieren ergänzt Daten, überschreibt keine Live-Daten.
+        </p>
+      ) : null}
+
+      {hasUrl ? (
+        <>
+          <div
+            className={`flex min-w-0 items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-950/20 ${embedded ? 'px-2 py-1.5' : 'px-3 py-2.5'}`}
+          >
+            <Link2 className={`${iconCls} shrink-0 text-emerald-300/85`} strokeWidth={2} aria-hidden />
+            <p className={`min-w-0 truncate font-semibold text-white ${embedded ? 'text-[12px]' : 'text-[15px]'}`}>
+              {domain}
+            </p>
           </div>
-
-          {saveError ? (
-            <p className="text-[13px] text-red-300/90" role="alert">
-              {saveError}
-            </p>
-          ) : null}
-
-          {tournamentArchived ? (
-            <p className="rounded-xl border border-amber-500/20 bg-amber-950/15 px-3 py-2 text-[12px] leading-snug text-white/60">
-              Turnier ist abgeschlossen. Aktualisieren kann neue Daten ergänzen, überschreibt aber keine
-              Live-Daten.
-            </p>
-          ) : null}
-
-          {hasUrl ? (
-            <>
-              <div className="flex min-w-0 items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-950/20 px-3 py-2.5">
-                <Link2 className="h-4 w-4 shrink-0 text-emerald-300/85" strokeWidth={2} aria-hidden />
-                <p className="min-w-0 truncate text-[15px] font-semibold text-white">{domain}</p>
-              </div>
-              <div className="flex flex-col gap-2">
+          <div className={embedded ? 'grid grid-cols-2 gap-1.5' : 'flex flex-col gap-2'}>
+            <button
+              type="button"
+              className={`inline-flex ${btnH} w-full items-center justify-center gap-1.5 touch-manipulation ${btnText} font-semibold ${embedded ? '' : 'gap-2'} ${dsPrimaryCtaClass()} ${embedded ? 'col-span-2' : ''}`}
+              onClick={handleOpen}
+            >
+              <ExternalLink className={iconCls} strokeWidth={2} aria-hidden />
+              Öffnen
+            </button>
+            {canManage ? (
+              <>
                 <button
                   type="button"
-                  className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 touch-manipulation ${dsPrimaryCtaClass()}`}
-                  onClick={handleOpen}
+                  className={`inline-flex ${btnH} w-full items-center justify-center gap-1.5 touch-manipulation ${btnText} font-semibold ${dsSecondaryCtaClass()}`}
+                  onClick={() => void startImport()}
                 >
-                  <ExternalLink className="h-4 w-4" strokeWidth={2} aria-hidden />
-                  Turnierplan öffnen
+                  <FileDown className={iconCls} strokeWidth={2} aria-hidden />
+                  Importieren
                 </button>
-                {canManage ? (
-                  <>
-                    <button
-                      type="button"
-                      className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 touch-manipulation ${dsSecondaryCtaClass()}`}
-                      onClick={() => void startImport()}
-                    >
-                      <FileDown className="h-4 w-4" strokeWidth={2} aria-hidden />
-                      Turnierplan importieren
-                    </button>
-                    <button
-                      type="button"
-                      className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 touch-manipulation ${dsSecondaryCtaClass()}`}
-                      onClick={() => void startRefresh()}
-                    >
-                      <RefreshCw className="h-4 w-4" strokeWidth={2} aria-hidden />
-                      Turnierplan aktualisieren
-                    </button>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        className={`inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 touch-manipulation ${dsScheduleGlassButtonClass()}`}
-                        onClick={openQrScanner}
-                      >
-                        <ScanLine className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-                        QR-Code erneut scannen
-                      </button>
-                      <button
-                        type="button"
-                        className={`inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 touch-manipulation ${dsScheduleGlassButtonClass()}`}
-                        onClick={openEditor}
-                      >
-                        <Pencil className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-                        Bearbeiten
-                      </button>
-                    </div>
-                  </>
-                ) : null}
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-[14px] text-white/65">Noch kein Turnierplan hinterlegt</p>
-              {canManage ? (
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 touch-manipulation ${dsSecondaryCtaClass()}`}
-                    onClick={openQrScanner}
-                  >
-                    <ScanLine className="h-4 w-4" strokeWidth={2} aria-hidden />
-                    QR-Code scannen
-                  </button>
-                  <button
-                    type="button"
-                    className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 touch-manipulation ${dsSecondaryCtaClass()}`}
-                    onClick={openEditor}
-                  >
-                    <Link2 className="h-4 w-4" strokeWidth={2} aria-hidden />
-                    Link hinzufügen
-                  </button>
-                </div>
-              ) : null}
-            </>
-          )}
-        </div>
-      </Card>
+                <button
+                  type="button"
+                  className={`inline-flex ${btnH} w-full items-center justify-center gap-1.5 touch-manipulation ${btnText} font-semibold ${dsSecondaryCtaClass()}`}
+                  onClick={() => void startRefresh()}
+                >
+                  <RefreshCw className={iconCls} strokeWidth={2} aria-hidden />
+                  Aktualisieren
+                </button>
+                <button
+                  type="button"
+                  className={`inline-flex ${btnH} w-full items-center justify-center gap-1 touch-manipulation ${btnText} font-semibold ${dsScheduleGlassButtonClass()}`}
+                  onClick={openQrScanner}
+                >
+                  <ScanLine className={iconCls} strokeWidth={2} aria-hidden />
+                  QR scannen
+                </button>
+                <button
+                  type="button"
+                  className={`inline-flex ${btnH} w-full items-center justify-center gap-1 touch-manipulation ${btnText} font-semibold ${dsScheduleGlassButtonClass()}`}
+                  onClick={openEditor}
+                >
+                  <Pencil className={iconCls} strokeWidth={2} aria-hidden />
+                  Link
+                </button>
+              </>
+            ) : null}
+          </div>
+        </>
+      ) : (
+        <>
+          <p className={`text-white/65 ${embedded ? 'text-[12px]' : 'text-[14px]'}`}>
+            Noch kein Turnierplan hinterlegt
+          </p>
+          {canManage ? (
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                className={`inline-flex ${btnH} w-full items-center justify-center gap-1.5 touch-manipulation ${btnText} font-semibold ${dsSecondaryCtaClass()}`}
+                onClick={openQrScanner}
+              >
+                <ScanLine className={iconCls} strokeWidth={2} aria-hidden />
+                QR scannen
+              </button>
+              <button
+                type="button"
+                className={`inline-flex ${btnH} w-full items-center justify-center gap-1.5 touch-manipulation ${btnText} font-semibold ${dsSecondaryCtaClass()}`}
+                onClick={openEditor}
+              >
+                <Link2 className={iconCls} strokeWidth={2} aria-hidden />
+                Link
+              </button>
+            </div>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      {embedded ? panelBody : <Card className="relative border border-purple-500/20 bg-purple-950/15">{panelBody}</Card>}
 
       {toastMessage ? (
         <div

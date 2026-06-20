@@ -120,6 +120,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
   const [importModalError, setImportModalError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [aliasesReloadToken, setAliasesReloadToken] = useState(0);
+  const [planWorkflowRequest, setPlanWorkflowRequest] = useState<{
+    action: 'import' | 'qr' | 'link';
+    key: number;
+  } | null>(null);
 
   const [matchModalOpen, setMatchModalOpen] = useState(false);
   const [matchOpponent, setMatchOpponent] = useState('');
@@ -318,6 +322,14 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const nextMatchId = heroSummary.nextMatch?.id ?? null;
 
+  const handleImportPlanFromOverview = useCallback(() => {
+    const planUrl = safeText(officialTournamentUrl);
+    setPlanWorkflowRequest({
+      action: planUrl ? 'import' : 'qr',
+      key: Date.now(),
+    });
+  }, [officialTournamentUrl]);
+
   const slotSections = useMemo(() => groupTournamentSlotsBySection(slots), [slots]);
 
   const infoRows = useMemo(() => {
@@ -476,7 +488,10 @@ export const TournamentDetailSections: React.FC<Props> = ({
             slots={slots}
             loading={loading}
             canManage={canManage}
+            hasOfficialPlanUrl={Boolean(safeText(officialTournamentUrl))}
             onOpen={onOpenMatchPreparation}
+            onAddMatch={canManage ? openMatchModal : undefined}
+            onImportPlan={canManage ? handleImportPlanFromOverview : undefined}
           />
           <TournamentOverviewBalanceCard balance={teamBalance} loading={loading} />
           <TournamentScorersOverviewCard
@@ -528,6 +543,8 @@ export const TournamentDetailSections: React.FC<Props> = ({
                   existingSlots={slots}
                   canManage={canManage}
                   tournamentArchived={Boolean(completion.completedAt)}
+                  embedded
+                  workflowRequest={planWorkflowRequest}
                   onUrlUpdated={onOfficialTournamentUrlUpdated}
                   onImportComplete={() => void reload()}
                   onScrollToAliases={scrollToTeamAliases}
@@ -539,18 +556,19 @@ export const TournamentDetailSections: React.FC<Props> = ({
                   teamSeasonId={teamSeasonId}
                   canManage={canManage}
                   reloadToken={aliasesReloadToken}
+                  embedded
                 />
               </TournamentTrainerAdminSection>
-
-              {trainerActions ? (
-                <TournamentTrainerAdminSection title="Bearbeiten / Löschen">
-                  {trainerActions}
-                </TournamentTrainerAdminSection>
-              ) : null}
 
               {trainerFeedSection ? (
                 <TournamentTrainerAdminSection title="Feed &amp; Kommunikation">
                   {trainerFeedSection}
+                </TournamentTrainerAdminSection>
+              ) : null}
+
+              {trainerActions ? (
+                <TournamentTrainerAdminSection title="Bearbeiten / Löschen">
+                  {trainerActions}
                 </TournamentTrainerAdminSection>
               ) : null}
             </TournamentTrainerAdminAccordion>
