@@ -53,6 +53,8 @@ import { AudienceMatchdayDetailCard } from '../components/events/AudienceMatchda
 import { TournamentDetailSections } from '../components/tournament/TournamentDetailSections';
 import { TournamentCenterHeader } from '../components/tournament/TournamentCenterHeader';
 import { TournamentCompactCard } from '../components/tournament/TournamentCompactCard';
+import { TournamentQuickActionBar } from '../components/tournament/TournamentQuickActionBar';
+import { TournamentCompactAttendancePanel } from '../components/tournament/TournamentCompactAttendancePanel';
 import { TrainingAttendancePanel } from '../components/events/TrainingAttendancePanel';
 import { EventFeedCommunicationSection } from '../components/events/EventFeedCommunicationSection';
 import { useSession } from '../auth/useSession';
@@ -2953,107 +2955,19 @@ export const EventDetailPage: React.FC = () => {
 
   const tournamentTrainerAttendanceSection =
     isTournament && canTrainerManageEvent ? (
-      <>
-        <div className={`mt-0.5 flex flex-wrap ${DS_STAT_GRID_GAP}`}>
-          <span className={dsStatusChipClass('present')}>
-            Zugesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length}
-          </span>
-          <span className={dsStatusChipClass('absent')}>
-            Abgesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
-          </span>
-          <span className={dsStatusChipClass('open')}>
-            Offen: {Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}
-          </span>
-        </div>
-        <div className={`flex flex-col ${DS_LIST_GAP} border-t border-[#2a2a2e]/60 pt-2.5`}>
-          {(playersLoading || loadingEventAttendance) && (
-            <p className="text-[13px] text-white/70">Lade…</p>
-          )}
-          {!playersLoading && !loadingEventAttendance && players.length === 0 && (
-            <p className="text-[13px] text-white/70">Keine Spieler im Kader.</p>
-          )}
-          {!playersLoading && !loadingEventAttendance && players.length > 0 &&
-            (() => {
-              const sorted = sortPlayersByRsvpBuckets(players, getAttendanceStatus);
-              const openPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'open');
-              const yesPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'yes');
-              const noPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'no');
-
-              const renderGroup = (title: 'OFFEN' | 'DABEI' | 'ABWESEND', group: PlayerItem[]) => {
-                if (group.length === 0) return null;
-                return (
-                  <div className={`flex flex-col ${DS_LIST_GAP}`}>
-                    <p className={`mb-0.5 mt-2 ${dsSectionLabelClass()}`}>{title}</p>
-                    <ul className={`flex flex-col ${DS_LIST_GAP}`}>
-                      {group.map((player) => {
-                        const bucket = statusBucket(getAttendanceStatus, player.id);
-                        const rsvpDisplay = getMatchRsvpDisplay(player.id);
-                        const badge =
-                          rsvpDisplay === 'yes'
-                            ? 'DABEI'
-                            : rsvpDisplay === 'injured'
-                              ? 'VERLETZT'
-                              : rsvpDisplay === 'sick'
-                                ? 'KRANK'
-                                : bucket === 'no'
-                                  ? 'ABWESEND'
-                                  : 'OFFEN';
-                        const chipTone: DsChipTone =
-                          rsvpDisplay === 'yes'
-                            ? 'present'
-                            : rsvpDisplay === 'injured'
-                              ? 'injured'
-                              : bucket === 'no'
-                                ? 'absent'
-                                : 'open';
-                        const num = player.jersey_number != null ? `#${player.jersey_number}` : null;
-                        const pos = (player.position ?? '').trim();
-                        const sub = [pos || null, num].filter(Boolean).join(' · ') || '—';
-
-                        return (
-                          <li key={player.id} className="w-full">
-                            <PremiumPlayerCard
-                              player={player}
-                              subline={sub}
-                              density="compact"
-                              trailing={<PremiumStatusBadge label={badge} tone={chipTone} />}
-                              footer={
-                                <div className={`grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleTrainerRsvp(player.id, 'yes')}
-                                    className={dsRsvpChoiceClass('yes', bucket === 'yes')}
-                                  >
-                                    Dabei
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleTrainerRsvp(player.id, 'no')}
-                                    className={dsRsvpChoiceClass('no', bucket === 'no')}
-                                  >
-                                    Abwesend
-                                  </button>
-                                </div>
-                              }
-                            />
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                );
-              };
-
-              return (
-                <div className="flex flex-col gap-1">
-                  {renderGroup('OFFEN', openPlayers)}
-                  {renderGroup('DABEI', yesPlayers)}
-                  {renderGroup('ABWESEND', noPlayers)}
-                </div>
-              );
-            })()}
-        </div>
-      </>
+      <TournamentCompactAttendancePanel
+        players={players}
+        playersLoading={playersLoading}
+        loadingAttendance={loadingEventAttendance}
+        yesCount={Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length}
+        noCount={Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
+        openCount={Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}
+        getAttendanceStatus={getAttendanceStatus}
+        getMatchRsvpDisplay={getMatchRsvpDisplay}
+        onSetAttendance={(playerId, status) => handleTrainerRsvp(playerId, status)}
+        sortPlayers={sortPlayersByRsvpBuckets}
+        statusBucket={statusBucket}
+      />
     ) : null;
 
   const handleStartNavigation = () => {
@@ -3206,12 +3120,18 @@ export const EventDetailPage: React.FC = () => {
 
         {isTournament ? (
           <>
-            <TournamentCenterHeader shareTitle={tournamentTitle} />
+            <TournamentCenterHeader />
             <TournamentCompactCard
               title={tournamentTitle}
               startsAt={event.starts_at}
               location={event.location}
               coverUrl={safeOptionalText((event as { tournament_cover_url?: unknown }).tournament_cover_url)}
+            />
+            <TournamentQuickActionBar
+              shareTitle={tournamentTitle}
+              onAddToCalendar={() => void handleAddSingleEventToCalendar()}
+              onNavigate={handleStartNavigation}
+              showNavigation={Boolean(audienceLocation.place || audienceLocation.address)}
             />
             {event.team_season_id ? (
               <TournamentDetailSections
@@ -3232,25 +3152,9 @@ export const EventDetailPage: React.FC = () => {
                 }
                 trainerActions={
                   <ScheduleEventActionsPanel
-                    className="mt-1 w-full"
-                    aria-label="Turnier-Aktionen"
+                    className="mt-0 w-full"
+                    aria-label="Turnier bearbeiten"
                     rows={[
-                      {
-                        key: 'calendar',
-                        label: 'Zum Kalender hinzufügen',
-                        icon: <CalendarPlus className="h-4 w-4" strokeWidth={2} aria-hidden />,
-                        onClick: () => void handleAddSingleEventToCalendar(),
-                      },
-                      ...(audienceLocation.place || audienceLocation.address
-                        ? [
-                            {
-                              key: 'navigate',
-                              label: 'Navigation starten',
-                              icon: <Navigation className="h-4 w-4" strokeWidth={2} aria-hidden />,
-                              onClick: handleStartNavigation,
-                            },
-                          ]
-                        : []),
                       ...(canTrainerManageEvent
                         ? [
                             {
