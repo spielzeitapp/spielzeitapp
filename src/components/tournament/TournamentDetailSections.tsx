@@ -39,7 +39,6 @@ import { TournamentOfficialPlanCard } from './TournamentOfficialPlanCard';
 import { TournamentTeamAliasesCard } from './TournamentTeamAliasesCard';
 import { TournamentCenterTabBar } from './TournamentCenterTabBar';
 import { TournamentFeaturedMatchCard } from './TournamentFeaturedMatchCard';
-import { TournamentGroupPreviewCard } from './TournamentGroupPreviewCard';
 import { TournamentInfoCard } from './TournamentInfoCard';
 import { TournamentLastResultsCard } from './TournamentLastResultsCard';
 import { TournamentMatchSlotCard } from './TournamentMatchSlotCard';
@@ -47,9 +46,18 @@ import { TournamentOverviewBalanceCard } from './TournamentOverviewBalanceCard';
 import { TournamentScorersOverviewCard } from './TournamentScorersOverviewCard';
 import { TournamentTableTab } from './TournamentTableTab';
 import { TournamentTeamsTab } from './TournamentTeamsTab';
-import { groupTournamentSlotsBySection } from './tournamentCenterUtils';
+import {
+  formatTournamentDayDate,
+  formatTournamentLocationDisplay,
+  groupTournamentSlotsBySection,
+} from './tournamentCenterUtils';
+import { formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
 import { safeText } from '../../lib/safeText';
-import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL, type TournamentCenterTabId } from './tournamentCenterStyles';
+import {
+  TournamentTrainerAdminAccordion,
+  TournamentTrainerAdminSection,
+} from './TournamentTrainerAdminAccordion';
+import { TC_CARD, TC_CARD_INNER, TC_SECTION_LABEL, TC_STACK_GAP, type TournamentCenterTabId } from './tournamentCenterStyles';
 
 type Props = {
   tournamentEventId: string;
@@ -58,12 +66,12 @@ type Props = {
   tournamentTitle: string;
   location: string | null;
   officialTournamentUrl: string | null;
-  tournamentMeetupLabel?: string | null;
-  tournamentEndLabel?: string | null;
   tournamentNotes?: string | null;
   canManage: boolean;
   userId?: string | null;
   trainerActions?: React.ReactNode;
+  trainerAttendanceSection?: React.ReactNode;
+  trainerFeedSection?: React.ReactNode;
   onOpenMatchPreparation: (matchId: string) => void;
   onOfficialTournamentUrlUpdated: (url: string | null) => void;
   onTournamentCompleted?: () => void;
@@ -83,12 +91,12 @@ export const TournamentDetailSections: React.FC<Props> = ({
   tournamentTitle,
   location,
   officialTournamentUrl,
-  tournamentMeetupLabel = null,
-  tournamentEndLabel = null,
   tournamentNotes = null,
   canManage,
   userId = null,
   trainerActions = null,
+  trainerAttendanceSection = null,
+  trainerFeedSection = null,
   onOpenMatchPreparation,
   onOfficialTournamentUrlUpdated,
   onTournamentCompleted,
@@ -312,17 +320,17 @@ export const TournamentDetailSections: React.FC<Props> = ({
 
   const slotSections = useMemo(() => groupTournamentSlotsBySection(slots), [slots]);
 
-  const infoRows = useMemo(
-    () =>
-      [
-        { label: 'Teams', value: participants.length > 0 ? String(participants.length) : '' },
-        { label: 'Spiele', value: slots.length > 0 ? String(slots.length) : '' },
-        { label: 'Treffpunkt', value: safeText(tournamentMeetupLabel) },
-        { label: 'Ende', value: safeText(tournamentEndLabel) },
-        { label: 'Ort', value: safeText(location) },
-      ].filter((row) => row.value.length > 0),
-    [participants.length, slots.length, tournamentMeetupLabel, tournamentEndLabel, location],
-  );
+  const infoRows = useMemo(() => {
+    const beginn = formatTimeHHmmDe(tournamentDayIso);
+    const planUrl = safeText(officialTournamentUrl);
+    return [
+      { label: 'Datum', value: formatTournamentDayDate(tournamentDayIso) },
+      { label: 'Beginn', value: beginn ? `${beginn} Uhr` : '' },
+      { label: 'Ort', value: formatTournamentLocationDisplay(location) },
+      { label: 'Teams', value: participants.length > 0 ? String(participants.length) : '' },
+      { label: 'Turnierplan', value: planUrl ? 'Hinterlegt' : 'Nicht hinterlegt' },
+    ].filter((row) => row.value.length > 0);
+  }, [participants.length, tournamentDayIso, location, officialTournamentUrl]);
 
   const openParticipantModal = () => {
     setParticipantModalError(null);
@@ -443,7 +451,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-3 overflow-x-hidden sm:gap-3.5">
+    <div className={`flex min-w-0 flex-col overflow-x-hidden ${TC_STACK_GAP}`}>
       {toastMessage ? (
         <div
           className="pointer-events-none fixed left-1/2 z-[1001] max-w-[min(92vw,24rem)] -translate-x-1/2 rounded-2xl border border-[rgba(255,71,71,0.28)] bg-[rgba(10,8,8,0.96)] px-4 py-2.5 text-center text-[14px] font-medium text-white shadow-[0_8px_32px_rgba(0,0,0,0.55)] backdrop-blur-sm bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:top-4 sm:bottom-auto"
@@ -463,7 +471,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       ) : null}
 
       {activeTab === 'overview' ? (
-        <div className="flex flex-col gap-3">
+        <div className={`flex flex-col ${TC_STACK_GAP}`}>
           <TournamentFeaturedMatchCard
             slots={slots}
             loading={loading}
@@ -471,21 +479,16 @@ export const TournamentDetailSections: React.FC<Props> = ({
             onOpen={onOpenMatchPreparation}
           />
           <TournamentOverviewBalanceCard balance={teamBalance} loading={loading} />
-          <TournamentGroupPreviewCard standings={groupStandings} loading={groupStandingsLoading} />
-          <TournamentLastResultsCard
-            slots={slots}
-            loading={loading}
-            onOpen={onOpenMatchPreparation}
-          />
           <TournamentScorersOverviewCard
             scorers={goalScorers}
             players={players}
             loading={loading || goalScorersLoading}
           />
-          <TournamentInfoCard rows={infoRows} notes={tournamentNotes}>
-            {trainerActions}
-          </TournamentInfoCard>
-
+          <TournamentLastResultsCard
+            slots={slots}
+            loading={loading}
+            onOpen={onOpenMatchPreparation}
+          />
           <TournamentFinalSummaryCard
             tournamentEventId={tournamentEventId}
             tournamentTitle={tournamentTitle}
@@ -504,35 +507,59 @@ export const TournamentDetailSections: React.FC<Props> = ({
             onCompleteTournament={() => void handleCompleteTournament()}
             completingTournament={completingTournament}
           />
+          <TournamentInfoCard rows={infoRows} notes={tournamentNotes} />
 
           {canManage ? (
-            <>
-              <TournamentOfficialPlanCard
-                tournamentEventId={tournamentEventId}
-                teamSeasonId={teamSeasonId}
-                tournamentDayIso={tournamentDayIso}
-                location={location}
-                officialTournamentUrl={officialTournamentUrl}
-                existingTeamNames={participants.map((p) => p.team_name)}
-                existingSlots={slots}
-                canManage={canManage}
-                tournamentArchived={Boolean(completion.completedAt)}
-                onUrlUpdated={onOfficialTournamentUrlUpdated}
-                onImportComplete={() => void reload()}
-                onScrollToAliases={scrollToTeamAliases}
-              />
-              <TournamentTeamAliasesCard
-                teamSeasonId={teamSeasonId}
-                canManage={canManage}
-                reloadToken={aliasesReloadToken}
-              />
-            </>
+            <TournamentTrainerAdminAccordion>
+              {trainerAttendanceSection ? (
+                <TournamentTrainerAdminSection title="Zu-/Absagen">
+                  {trainerAttendanceSection}
+                </TournamentTrainerAdminSection>
+              ) : null}
+
+              <TournamentTrainerAdminSection title="Offizieller Turnierplan">
+                <TournamentOfficialPlanCard
+                  tournamentEventId={tournamentEventId}
+                  teamSeasonId={teamSeasonId}
+                  tournamentDayIso={tournamentDayIso}
+                  location={location}
+                  officialTournamentUrl={officialTournamentUrl}
+                  existingTeamNames={participants.map((p) => p.team_name)}
+                  existingSlots={slots}
+                  canManage={canManage}
+                  tournamentArchived={Boolean(completion.completedAt)}
+                  onUrlUpdated={onOfficialTournamentUrlUpdated}
+                  onImportComplete={() => void reload()}
+                  onScrollToAliases={scrollToTeamAliases}
+                />
+              </TournamentTrainerAdminSection>
+
+              <TournamentTrainerAdminSection title="Turnier-Aliase">
+                <TournamentTeamAliasesCard
+                  teamSeasonId={teamSeasonId}
+                  canManage={canManage}
+                  reloadToken={aliasesReloadToken}
+                />
+              </TournamentTrainerAdminSection>
+
+              {trainerActions ? (
+                <TournamentTrainerAdminSection title="Bearbeiten / Löschen">
+                  {trainerActions}
+                </TournamentTrainerAdminSection>
+              ) : null}
+
+              {trainerFeedSection ? (
+                <TournamentTrainerAdminSection title="Feed &amp; Kommunikation">
+                  {trainerFeedSection}
+                </TournamentTrainerAdminSection>
+              ) : null}
+            </TournamentTrainerAdminAccordion>
           ) : null}
         </div>
       ) : null}
 
       {activeTab === 'games' ? (
-        <div className="flex flex-col gap-3">
+        <div className={`flex flex-col ${TC_STACK_GAP}`}>
           {canManage ? (
             <button type="button" className={addButtonClass} onClick={openMatchModal}>
               <Plus className="h-3.5 w-3.5" aria-hidden />
@@ -583,7 +610,7 @@ export const TournamentDetailSections: React.FC<Props> = ({
       ) : null}
 
       {activeTab === 'teams' ? (
-        <div className="flex flex-col gap-3">
+        <div className={`flex flex-col ${TC_STACK_GAP}`}>
           {canManage ? (
             <div className="grid grid-cols-2 gap-2">
               <button type="button" className={addButtonClass} onClick={openParticipantModal}>

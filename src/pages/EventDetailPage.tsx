@@ -2951,6 +2951,111 @@ export const EventDetailPage: React.FC = () => {
   const audienceMapsCoords = resolveEventMapsCoords(event.location, event.notes);
   const audienceTrainerNotes = extractAudienceTrainerNotes(event.notes);
 
+  const tournamentTrainerAttendanceSection =
+    isTournament && canTrainerManageEvent ? (
+      <>
+        <div className={`mt-0.5 flex flex-wrap ${DS_STAT_GRID_GAP}`}>
+          <span className={dsStatusChipClass('present')}>
+            Zugesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'yes').length}
+          </span>
+          <span className={dsStatusChipClass('absent')}>
+            Abgesagt: {Object.values(eventAttendanceByPlayerId).filter((s) => s === 'no').length}
+          </span>
+          <span className={dsStatusChipClass('open')}>
+            Offen: {Math.max(0, players.length - Object.keys(eventAttendanceByPlayerId).length)}
+          </span>
+        </div>
+        <div className={`flex flex-col ${DS_LIST_GAP} border-t border-[#2a2a2e]/60 pt-2.5`}>
+          {(playersLoading || loadingEventAttendance) && (
+            <p className="text-[13px] text-white/70">Lade…</p>
+          )}
+          {!playersLoading && !loadingEventAttendance && players.length === 0 && (
+            <p className="text-[13px] text-white/70">Keine Spieler im Kader.</p>
+          )}
+          {!playersLoading && !loadingEventAttendance && players.length > 0 &&
+            (() => {
+              const sorted = sortPlayersByRsvpBuckets(players, getAttendanceStatus);
+              const openPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'open');
+              const yesPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'yes');
+              const noPlayers = sorted.filter((p) => statusBucket(getAttendanceStatus, p.id) === 'no');
+
+              const renderGroup = (title: 'OFFEN' | 'DABEI' | 'ABWESEND', group: PlayerItem[]) => {
+                if (group.length === 0) return null;
+                return (
+                  <div className={`flex flex-col ${DS_LIST_GAP}`}>
+                    <p className={`mb-0.5 mt-2 ${dsSectionLabelClass()}`}>{title}</p>
+                    <ul className={`flex flex-col ${DS_LIST_GAP}`}>
+                      {group.map((player) => {
+                        const bucket = statusBucket(getAttendanceStatus, player.id);
+                        const rsvpDisplay = getMatchRsvpDisplay(player.id);
+                        const badge =
+                          rsvpDisplay === 'yes'
+                            ? 'DABEI'
+                            : rsvpDisplay === 'injured'
+                              ? 'VERLETZT'
+                              : rsvpDisplay === 'sick'
+                                ? 'KRANK'
+                                : bucket === 'no'
+                                  ? 'ABWESEND'
+                                  : 'OFFEN';
+                        const chipTone: DsChipTone =
+                          rsvpDisplay === 'yes'
+                            ? 'present'
+                            : rsvpDisplay === 'injured'
+                              ? 'injured'
+                              : bucket === 'no'
+                                ? 'absent'
+                                : 'open';
+                        const num = player.jersey_number != null ? `#${player.jersey_number}` : null;
+                        const pos = (player.position ?? '').trim();
+                        const sub = [pos || null, num].filter(Boolean).join(' · ') || '—';
+
+                        return (
+                          <li key={player.id} className="w-full">
+                            <PremiumPlayerCard
+                              player={player}
+                              subline={sub}
+                              density="compact"
+                              trailing={<PremiumStatusBadge label={badge} tone={chipTone} />}
+                              footer={
+                                <div className={`grid grid-cols-2 ${DS_STAT_GRID_GAP}`}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTrainerRsvp(player.id, 'yes')}
+                                    className={dsRsvpChoiceClass('yes', bucket === 'yes')}
+                                  >
+                                    Dabei
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTrainerRsvp(player.id, 'no')}
+                                    className={dsRsvpChoiceClass('no', bucket === 'no')}
+                                  >
+                                    Abwesend
+                                  </button>
+                                </div>
+                              }
+                            />
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              };
+
+              return (
+                <div className="flex flex-col gap-1">
+                  {renderGroup('OFFEN', openPlayers)}
+                  {renderGroup('DABEI', yesPlayers)}
+                  {renderGroup('ABWESEND', noPlayers)}
+                </div>
+              );
+            })()}
+        </div>
+      </>
+    ) : null;
+
   const handleStartNavigation = () => {
     const opened = openMapsNavigation({
       lat: audienceMapsCoords?.lat,
@@ -3024,7 +3129,7 @@ export const EventDetailPage: React.FC = () => {
       <div
         className={`mx-auto flex w-full max-w-2xl flex-col overflow-x-hidden px-2 sm:px-4 ${
           isTournament
-            ? 'gap-3 py-3 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]'
+            ? 'gap-2.5 py-2.5 pb-[calc(8.5rem+env(safe-area-inset-bottom,0px))]'
             : isAudienceMatchDetail
               ? 'gap-3 py-4'
               : 'gap-5 py-5 pb-28'
@@ -3105,7 +3210,7 @@ export const EventDetailPage: React.FC = () => {
             <TournamentCompactCard
               title={tournamentTitle}
               startsAt={event.starts_at}
-              location={safeOptionalText(event.location)}
+              location={event.location}
               coverUrl={safeOptionalText((event as { tournament_cover_url?: unknown }).tournament_cover_url)}
             />
             {event.team_season_id ? (
@@ -3116,11 +3221,15 @@ export const EventDetailPage: React.FC = () => {
                 tournamentTitle={tournamentTitle}
                 location={safeOptionalText(event.location)}
                 officialTournamentUrl={safeOptionalText(event.official_tournament_url)}
-                tournamentMeetupLabel={tournamentMeetupLabel}
-                tournamentEndLabel={tournamentEndLabel}
                 tournamentNotes={tournamentNotesText}
                 canManage={canTrainerManageEvent}
                 userId={sessionUser?.id ?? null}
+                trainerAttendanceSection={tournamentTrainerAttendanceSection}
+                trainerFeedSection={
+                  canTrainerManageEvent ? (
+                    <EventFeedCommunicationSection event={event} userId={sessionUser?.id ?? null} />
+                  ) : null
+                }
                 trainerActions={
                   <ScheduleEventActionsPanel
                     className="mt-1 w-full"
@@ -3334,7 +3443,8 @@ export const EventDetailPage: React.FC = () => {
         ) : null}
 
         {!isFan &&
-        !(isAudienceMatchDetail && canShowSelfRsvp) ? (
+        !(isAudienceMatchDetail && canShowSelfRsvp) &&
+        !(isTournament && canTrainerManageEvent) ? (
           <Card
             className={
               isTraining
@@ -3709,7 +3819,7 @@ export const EventDetailPage: React.FC = () => {
           </Card>
         )}
 
-        {canTrainerManageEvent ? (
+        {canTrainerManageEvent && !isTournament ? (
           <EventFeedCommunicationSection event={event} userId={sessionUser?.id ?? null} />
         ) : null}
 

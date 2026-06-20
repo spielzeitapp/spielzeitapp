@@ -1,9 +1,30 @@
+import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
 import { tournamentPhaseDisplayLabel } from '../../lib/matchCenterTournamentVisuals';
 import { safeOptionalText, safeText } from '../../lib/safeText';
+import { VIENNA_TZ } from '../../lib/viennaTime';
 import {
   tournamentMatchDisplayStatus,
   type TournamentMatchSlotView,
 } from '../../lib/tournamentPlan';
+
+export function formatTournamentLocationDisplay(location: unknown): string {
+  const parsed = splitCombinedLocation(location);
+  const formatted = formatFullLocation(parsed.place, parsed.address);
+  if (formatted) return formatted;
+  return parsed.place || safeText(location);
+}
+
+export function formatTournamentDayDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('de-AT', {
+    timeZone: VIENNA_TZ,
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(d);
+}
 
 export function pickFeaturedTournamentSlot(
   slots: TournamentMatchSlotView[],

@@ -1,10 +1,9 @@
 import React from 'react';
 import { CalendarDays, Clock, MapPin } from 'lucide-react';
 import { resolveTournamentHeroBackgroundUrl } from '../../lib/matchCenterTournamentVisuals';
-import { formatFullLocation, splitCombinedLocation } from '../../lib/eventLocation';
-import { VIENNA_TZ } from '../../lib/viennaTime';
 import { formatTimeHHmmDe } from '../schedule/scheduleEventViewUtils';
-import { safeOptionalText, safeText } from '../../lib/safeText';
+import { safeOptionalText } from '../../lib/safeText';
+import { formatTournamentDayDate, formatTournamentLocationDisplay } from './tournamentCenterUtils';
 import { TC_CARD, TC_META_ICON } from './tournamentCenterStyles';
 
 type Props = {
@@ -14,27 +13,15 @@ type Props = {
   coverUrl?: unknown;
 };
 
-function formatTournamentDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat('de-AT', {
-    timeZone: VIENNA_TZ,
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(d);
-}
-
 export function TournamentCompactCard({ title, startsAt, location, coverUrl }: Props) {
   const heroUrl = resolveTournamentHeroBackgroundUrl(safeOptionalText(coverUrl));
   const timeLabel = formatTimeHHmmDe(startsAt);
-  const dateLabel = formatTournamentDate(startsAt);
-  const placeLine = formatFullLocation(splitCombinedLocation(safeText(location)));
+  const dateLabel = formatTournamentDayDate(startsAt) || '—';
+  const placeLine = formatTournamentLocationDisplay(location);
 
   return (
     <article className={`${TC_CARD} overflow-hidden`}>
-      <div className="relative h-[5.5rem] w-full overflow-hidden sm:h-[6.25rem]">
+      <div className="relative h-[5rem] w-full overflow-hidden sm:h-[5.75rem]">
         <img
           src={heroUrl}
           alt=""
